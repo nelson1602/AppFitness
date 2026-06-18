@@ -17,11 +17,19 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  refreshTokens RefreshToken[]
-  routines      Routine[]
-  workoutLogs   WorkoutLog[]
-  nutritionLogs NutritionLog[]
-  bodyWeights   BodyWeight[]
+  refreshTokens     RefreshToken[]
+  routines          Routine[]
+  workoutLogs       WorkoutLog[]
+  nutritionLogs     NutritionLog[]
+  bodyWeights       BodyWeight[]
+  profile           UserProfile?
+  healthLogs        HealthLog[]
+  recommendations   Recommendation[]
+  notifications     Notification[]
+  achievements      UserAchievement[]
+  stats             UserStats?
+  progressSnapshots ProgressSnapshot[]
+  coachInsights     CoachInsight[]
 }
 
 model RefreshToken {
@@ -188,4 +196,176 @@ model BodyWeight {
 
   @@unique([userId, date])
   @@index([userId, date])
+}
+
+// ─── Engines ─────────────────────────────────────────────────────────────────
+
+model UserProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  birthDate           String?
+  gender              String?
+  heightCm            Float?
+
+  primaryGoal         String   @default("maintain")
+  targetWeightKg      Float?
+  targetDate          String?
+
+  fitnessLevel        String   @default("intermediate")
+  yearsTraining       Float    @default(0)
+
+  activityLevel       String   @default("moderate")
+  occupation          String?
+  sleepHours          Float    @default(7)
+  stressLevel         Int      @default(3)
+
+  equipment           String   @default("[]")
+
+  trainingDaysPerWeek Int      @default(3)
+  sessionDurationMins Int      @default(60)
+
+  targetCalories      Int?
+  targetProteinG      Float?
+  targetCarbsG        Float?
+  targetFatG          Float?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model HealthLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date           String
+
+  sleepHours     Float?
+  sleepQuality   Int?
+  energyLevel    Int?
+  stressLevel    Int?
+  restingHR      Int?
+  mood           Int?
+  readinessScore Float?
+  notes          String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model Recommendation {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type       String
+  priority   String   @default("medium")
+  title      String
+  body       String
+  actionData String   @default("{}")
+  isRead     Boolean  @default(false)
+  isApplied  Boolean  @default(false)
+  validUntil String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String
+  title     String
+  message   String
+  data      String   @default("{}")
+  isRead    Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Achievement {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String
+  icon        String
+  category    String
+  xpReward    Int      @default(50)
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id])
+
+  unlockedAt    DateTime @default(now())
+  notified      Boolean  @default(false)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+model UserStats {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  xp               Int      @default(0)
+  level            Int      @default(1)
+  totalXp          Int      @default(0)
+  currentStreak    Int      @default(0)
+  longestStreak    Int      @default(0)
+  lastActivityDate String?
+
+  workoutsLogged   Int      @default(0)
+  mealsLogged      Int      @default(0)
+  weightsLogged    Int      @default(0)
+  prsSet           Int      @default(0)
+}
+
+model ProgressSnapshot {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart     String
+
+  avgWeightKg   Float?
+  totalVolumeKg Float?
+  avgCalories   Float?
+  workoutCount  Int      @default(0)
+  isDeloadWeek  Boolean  @default(false)
+
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, weekStart])
+  @@index([userId])
+}
+
+model CoachInsight {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  weekStart   String
+  summary     String
+  insights    String   @default("[]")
+  adjustments String   @default("{}")
+
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, weekStart])
+  @@index([userId])
 }

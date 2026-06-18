@@ -4,14 +4,17 @@ import { AppShell } from '@/components/layout/AppShell'
 import { Spinner } from '@/components/ui/Spinner'
 import { useAuthStore } from '@/store/auth.store'
 import api from '@/lib/axios'
-import { LoginPage } from '@/pages/LoginPage'
-import { RegisterPage } from '@/pages/RegisterPage'
-import { DashboardPage } from '@/pages/DashboardPage'
-import { WorkoutsPage } from '@/pages/WorkoutsPage'
-import { RoutineFormPage } from '@/pages/RoutineFormPage'
+import { LoginPage }        from '@/pages/LoginPage'
+import { RegisterPage }     from '@/pages/RegisterPage'
+import { DashboardPage }    from '@/pages/DashboardPage'
+import { WorkoutsPage }     from '@/pages/WorkoutsPage'
+import { RoutineFormPage }  from '@/pages/RoutineFormPage'
 import { ActiveWorkoutPage } from '@/pages/ActiveWorkoutPage'
-import { NutritionPage } from '@/pages/NutritionPage'
-import type { User } from '@/types'
+import { NutritionPage }    from '@/pages/NutritionPage'
+import { CoachPage }        from '@/pages/CoachPage'
+import { ProfilePage }      from '@/pages/ProfilePage'
+import { GamificationPage } from '@/pages/GamificationPage'
+import type { User }        from '@/types'
 
 const ProtectedRoute = () => {
   const user = useAuthStore((s) => s.user)
@@ -37,6 +40,9 @@ const AppRoutes = () => (
         <Route path="/workouts/:id/edit"       element={<RoutineFormPage />} />
         <Route path="/workouts/active/:logId"  element={<ActiveWorkoutPage />} />
         <Route path="/nutrition"               element={<NutritionPage />} />
+        <Route path="/coach"                   element={<CoachPage />} />
+        <Route path="/profile"                 element={<ProfilePage />} />
+        <Route path="/achievements"            element={<GamificationPage />} />
       </Route>
     </Route>
 

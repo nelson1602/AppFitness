@@ -1,12 +1,15 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Dumbbell, Apple, LogOut, Activity } from 'lucide-react'
+import { LayoutDashboard, Dumbbell, Apple, LogOut, Activity, Bot, User, Trophy } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/store/auth.store'
 
 const NAV_ITEMS = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/workouts',  icon: Dumbbell,        label: 'Workouts'  },
-  { to: '/nutrition', icon: Apple,           label: 'Nutrition' },
+  { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard'    },
+  { to: '/workouts',    icon: Dumbbell,        label: 'Workouts'     },
+  { to: '/nutrition',   icon: Apple,           label: 'Nutrition'    },
+  { to: '/coach',       icon: Bot,             label: 'AI Coach'     },
+  { to: '/achievements',icon: Trophy,          label: 'Achievements' },
+  { to: '/profile',     icon: User,            label: 'Profile'      },
 ]
 
 export const Sidebar = () => {

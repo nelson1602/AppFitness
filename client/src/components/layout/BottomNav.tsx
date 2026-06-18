@@ -1,11 +1,13 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Dumbbell, Apple } from 'lucide-react'
+import { LayoutDashboard, Dumbbell, Apple, Bot, Trophy } from 'lucide-react'
 import { cn } from '@/lib/cn'
 
 const NAV_ITEMS = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/workouts',  icon: Dumbbell,        label: 'Workouts'  },
-  { to: '/nutrition', icon: Apple,           label: 'Nutrition' },
+  { to: '/dashboard',    icon: LayoutDashboard, label: 'Home'     },
+  { to: '/workouts',     icon: Dumbbell,        label: 'Workouts' },
+  { to: '/nutrition',    icon: Apple,           label: 'Food'     },
+  { to: '/coach',        icon: Bot,             label: 'Coach'    },
+  { to: '/achievements', icon: Trophy,          label: 'Progress' },
 ]
 
 export const BottomNav = () => (
