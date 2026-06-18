@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  routines      Routine[]
+  workoutLogs   WorkoutLog[]
+  nutritionLogs NutritionLog[]
+  bodyWeights   BodyWeight[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ─── Workouts ────────────────────────────────────────────────────────────────
+
+model Exercise {
+  id           String  @id @default(cuid())
+  name         String  @unique
+  muscleGroup  String
+  category     String  // strength | cardio | flexibility | bodyweight
+  instructions String?
+
+  routineExercises RoutineExercise[]
+  workoutSets      WorkoutSet[]
+}
+
+model Routine {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  exercises   RoutineExercise[]
+  workoutLogs WorkoutLog[]
+
+  @@index([userId])
+}
+
+model RoutineExercise {
+  id           String  @id @default(cuid())
+  order        Int
+  targetSets   Int?
+  targetReps   Int?
+  targetWeight Float?
+
+  routineId  String
+  exerciseId String
+  routine    Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@unique([routineId, order])
+  @@index([routineId])
+}
+
+model WorkoutLog {
+  id         String    @id @default(cuid())
+  name       String
+  notes      String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  userId    String
+  routineId String?
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routine   Routine? @relation(fields: [routineId], references: [id], onDelete: SetNull)
+
+  sets WorkoutSet[]
+
+  @@index([userId, startedAt])
+}
+
+model WorkoutSet {
+  id        String  @id @default(cuid())
+  setNumber Int
+  reps      Int?
+  weight    Float?  // kg
+  rpe       Float?  // 1–10
+  completed Boolean @default(false)
+  notes     String?
+
+  workoutLogId String
+  exerciseId   String
+  workoutLog   WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  exercise     Exercise   @relation(fields: [exerciseId], references: [id])
+
+  @@index([workoutLogId])
+}
+
+// ─── Nutrition ───────────────────────────────────────────────────────────────
+
+model Food {
+  id        String  @id @default(cuid())
+  name      String
+  brand     String?
+  // macros per 100 g
+  calories  Float
+  protein   Float
+  carbs     Float
+  fat       Float
+  fiber     Float?
+
+  mealItems MealItem[]
+}
+
+model NutritionLog {
+  id        String   @id @default(cuid())
+  // stored as ISO date string "YYYY-MM-DD" for SQLite compatibility
+  date      String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  meals Meal[]
+
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+model Meal {
+  id    String @id @default(cuid())
+  name  String // Breakfast | Lunch | Dinner | Snack
+  order Int    @default(0)
+
+  nutritionLogId String
+  nutritionLog   NutritionLog @relation(fields: [nutritionLogId], references: [id], onDelete: Cascade)
+
+  items MealItem[]
+
+  @@index([nutritionLogId])
+}
+
+model MealItem {
+  id       String @id @default(cuid())
+  quantity Float  // grams
+
+  mealId String
+  foodId String
+  meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  food   Food   @relation(fields: [foodId], references: [id])
+
+  @@index([mealId])
+}
+
+// ─── Progress ────────────────────────────────────────────────────────────────
+
+model BodyWeight {
+  id        String   @id @default(cuid())
+  weight    Float    // kg
+  date      String   // "YYYY-MM-DD"
+  notes     String?
+  createdAt DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
