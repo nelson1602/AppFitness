@@ -1,8 +1,20 @@
 export interface DashboardSummary {
   workoutsThisWeek: number
   volumeThisWeek: number
-  latestWeight: number | null
+  latestWeight:     number | null
   latestWeightDate: string | null
+  streak:       number
+  level:        number
+  xp:           number
+  totalXp:      number
+  nextLevelXp:  number
+  fitnessScore: number
+}
+
+export interface CoachInsight {
+  goal:                string
+  trainingDaysPerWeek: number
+  daysToNextEval:      number
 }
 
 export interface WeightEntry {

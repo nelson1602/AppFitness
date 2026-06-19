@@ -2,6 +2,7 @@ import type { ReadinessScore }        from '../health/health.types'
 import type { NutritionAdjustment, TrainingAdjustment } from '../recommendation/recommendation.types'
 import type { ProgressAnalysis }       from '../progress/progress.types'
 import type { NotificationPayload }    from '../notification/notification.types'
+import type { RoutineRecommendation }  from '../workout/workout.types'
 
 // ─── Context passed into the coach engine ────────────────────────────────────
 
@@ -17,6 +18,7 @@ export interface UserProfileData {
   trainingDaysPerWeek: number
   sessionDurationMins: number
   equipment:           string[]
+  injuries:            string | null
   targetCalories:      number | null
   targetProteinG:      number | null
   targetCarbsG:        number | null
@@ -78,6 +80,7 @@ export interface CoachReport {
   progressAnalysis:          ProgressAnalysis
   nutritionRecommendation:   NutritionAdjustment
   trainingRecommendation:    TrainingAdjustment
+  routineRecommendation:     RoutineRecommendation
   notifications:             NotificationPayload[]
   summary:                   string
   xpEarned:                  number

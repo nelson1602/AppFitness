@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { usePageTitle } from '@/hooks/usePageTitle'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, CheckCircle, Dumbbell } from 'lucide-react'
+import { Plus, CheckCircle, Dumbbell, Clock, Flame, Zap, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
@@ -8,9 +9,10 @@ import { Spinner } from '@/components/ui/Spinner'
 import { SetRow } from '@/features/workouts/components/SetRow'
 import { RestTimer } from '@/features/workouts/components/RestTimer'
 import { ExercisePicker } from '@/features/workouts/components/ExercisePicker'
+import { AchievementToast } from '@/components/ui/AchievementToast'
 import { useRestTimer } from '@/features/workouts/hooks/useRestTimer'
-import { fetchLog, addSet, updateSet, deleteSet, finishWorkout } from '@/features/workouts/api'
-import type { WorkoutLog, WorkoutSet, Exercise } from '@/types/workout'
+import { fetchLog, addSet, updateSet, deleteSet, finishWorkout, fetchLastPerformance } from '@/features/workouts/api'
+import type { WorkoutLog, WorkoutSet, Exercise, WorkoutSummary, LastPerformance } from '@/types/workout'
 
 interface ExerciseGroup {
   exercise: Exercise
@@ -18,30 +20,18 @@ interface ExerciseGroup {
 }
 
 const buildGroups = (log: WorkoutLog): ExerciseGroup[] => {
-  const order: string[] = []
+  const routineOrder = new Map<string, number>()
+  log.routine?.exercises?.forEach(re => routineOrder.set(re.exerciseId, re.order))
+
   const map = new Map<string, ExerciseGroup>()
-
-  // keep routine order first
-  log.routine && log.sets.forEach((s) => {
-    if (!map.has(s.exerciseId)) {
-      order.push(s.exerciseId)
-      map.set(s.exerciseId, { exercise: s.exercise, sets: [] })
-    }
+  for (const s of log.sets) {
+    if (!map.has(s.exerciseId)) map.set(s.exerciseId, { exercise: s.exercise, sets: [] })
     map.get(s.exerciseId)!.sets.push(s)
-  })
+  }
 
-  // Also handle sets without a routine
-  log.sets.forEach((s) => {
-    if (!map.has(s.exerciseId)) {
-      order.push(s.exerciseId)
-      map.set(s.exerciseId, { exercise: s.exercise, sets: [] })
-    }
-    if (!map.get(s.exerciseId)!.sets.find((x) => x.id === s.id)) {
-      map.get(s.exerciseId)!.sets.push(s)
-    }
-  })
-
-  return order.map((id) => map.get(id)!).filter(Boolean)
+  return [...map.entries()]
+    .sort(([a], [b]) => (routineOrder.get(a) ?? 999) - (routineOrder.get(b) ?? 999))
+    .map(([, g]) => g)
 }
 
 const useElapsed = (startedAt: string) => {
@@ -57,13 +47,17 @@ const useElapsed = (startedAt: string) => {
 }
 
 export const ActiveWorkoutPage = () => {
+  usePageTitle('Active Workout')
   const { logId } = useParams<{ logId: string }>()
   const navigate = useNavigate()
   const timer = useRestTimer(90)
 
-  const [log, setLog] = useState<WorkoutLog | null>(null)
+  const [log,      setLog]      = useState<WorkoutLog | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
-  const [finishing, setFinishing] = useState(false)
+  const [finishing,  setFinishing]  = useState(false)
+  const [summary,    setSummary]    = useState<WorkoutSummary | null>(null)
+  const [prevBests,  setPrevBests]  = useState<Record<string, LastPerformance | null>>({})
+  const fetchedIds = useRef(new Set<string>())
   const elapsed = useElapsed(log?.startedAt ?? new Date().toISOString())
 
   const reload = useCallback(async () => {
@@ -72,6 +66,24 @@ export const ActiveWorkoutPage = () => {
   }, [logId])
 
   useEffect(() => { reload() }, [reload])
+
+  // Fetch previous performance for each exercise group (lazy, once per exercise)
+  useEffect(() => {
+    if (!log) return
+    const groups = buildGroups(log)
+    const missing = groups.map(g => g.exercise.id).filter(id => !fetchedIds.current.has(id))
+    if (!missing.length) return
+    missing.forEach(id => fetchedIds.current.add(id))
+    Promise.all(missing.map(id => fetchLastPerformance(id).then(data => ({ id, data }))))
+      .then(results => {
+        setPrevBests(prev => {
+          const next = { ...prev }
+          results.forEach(({ id, data }) => { next[id] = data })
+          return next
+        })
+      })
+      .catch(() => {})
+  }, [log])
 
   const handleAddSet = async (exerciseId: string, existingSets: WorkoutSet[]) => {
     if (!logId) return
@@ -111,14 +123,89 @@ export const ActiveWorkoutPage = () => {
   const handleFinish = async () => {
     if (!logId || !confirm('Finish this workout?')) return
     setFinishing(true)
-    await finishWorkout(logId)
-    navigate('/workouts')
+    try {
+      const s = await finishWorkout(logId)
+      setSummary(s)
+    } finally {
+      setFinishing(false)
+    }
   }
 
   if (!log) {
     return (
       <div className="flex justify-center py-24">
         <Spinner className="w-6 h-6 text-primary" />
+      </div>
+    )
+  }
+
+  // ── Post-workout summary screen ─────────────────────────────────────────────
+  if (summary) {
+    const fmtVol = summary.volumeKg > 0 ? `${Math.round(summary.volumeKg).toLocaleString()} kg` : '—'
+    const fmtDur = summary.durationMins >= 60
+      ? `${Math.floor(summary.durationMins / 60)}h ${summary.durationMins % 60}m`
+      : `${summary.durationMins}m`
+    return (
+      <div className="flex flex-col items-center gap-6 py-10 animate-fade-in max-w-sm mx-auto">
+        <div className="w-16 h-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <CheckCircle className="w-8 h-8 text-primary" />
+        </div>
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-text-primary">Workout Complete!</h2>
+          <p className="text-sm text-text-secondary mt-1">{log.name}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 w-full">
+          {[
+            { label: 'Duration',   value: fmtDur,                      icon: Clock  },
+            { label: 'Volume',     value: fmtVol,                      icon: Flame  },
+            { label: 'Sets done',  value: String(summary.setsCompleted), icon: Dumbbell },
+            { label: 'XP earned',  value: `+${summary.xpEarned}`,      icon: Zap    },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="bg-surface-2 rounded-xl border border-border p-3 flex flex-col gap-1">
+              <div className="flex items-center gap-1.5 text-text-muted">
+                <Icon className="w-3.5 h-3.5" />
+                <span className="text-xs">{label}</span>
+              </div>
+              <span className="text-lg font-bold text-text-primary">{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {summary.prsSet > 0 && (
+          <div className="flex items-center gap-2 text-sm font-semibold text-primary bg-primary/10 px-4 py-2.5 rounded-full border border-primary/20">
+            <Trophy className="w-4 h-4" />
+            {summary.prsSet} Personal Record{summary.prsSet > 1 ? 's' : ''} Set!
+          </div>
+        )}
+
+        {summary.newAchievements?.length > 0 && (
+          <div className="w-full flex flex-col gap-2">
+            <p className="text-xs font-semibold text-primary uppercase tracking-wider text-center">
+              Achievements Unlocked
+            </p>
+            {summary.newAchievements.map((a) => (
+              <div
+                key={a.key}
+                className="flex items-center gap-3 bg-surface-2 border border-primary/20 rounded-xl px-4 py-3"
+              >
+                <span className="text-2xl shrink-0">{a.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-text-primary">{a.name}</p>
+                </div>
+                <span className="text-xs font-bold text-primary shrink-0">+{a.xpReward} XP</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Button className="w-full" onClick={() => navigate('/workouts')}>
+          Back to Workouts
+        </Button>
+
+        {summary.newAchievements?.length > 0 && (
+          <AchievementToast achievements={summary.newAchievements} />
+        )}
       </div>
     )
   }
@@ -150,14 +237,21 @@ export const ActiveWorkoutPage = () => {
         </Card>
       )}
 
-      {groups.map(({ exercise, sets }) => (
+      {groups.map(({ exercise, sets }) => {
+        const prev = prevBests[exercise.id]
+        return (
         <Card key={exercise.id} className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-text-primary">{exercise.name}</p>
-              <div className="flex gap-2 mt-0.5">
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 <Badge variant="default">{exercise.muscleGroup}</Badge>
                 <Badge variant="default">{exercise.category}</Badge>
+                {prev && (prev.reps || prev.weight) && (
+                  <span className="text-xs text-text-muted">
+                    prev: {prev.reps ?? '–'} × {prev.weight ?? '–'} kg
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -194,7 +288,8 @@ export const ActiveWorkoutPage = () => {
             <Plus className="w-4 h-4" /> Add set
           </button>
         </Card>
-      ))}
+        )
+      })}
 
       <Button variant="secondary" onClick={() => setPickerOpen(true)}>
         <Plus className="w-4 h-4" /> Add exercise

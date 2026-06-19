@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react'
-import { Search, ChevronRight } from 'lucide-react'
+import { Search, ChevronRight, Plus } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import { searchFoods } from '@/features/nutrition/api'
+import { searchFoods, createFood } from '@/features/nutrition/api'
 import type { Food } from '@/types/nutrition'
+
+interface CreateFoodForm {
+  name: string
+  calories: string
+  protein: string
+  carbs: string
+  fat: string
+  fiber: string
+}
 
 interface FoodSearchModalProps {
   open: boolean
@@ -20,9 +29,12 @@ export const FoodSearchModal = ({ open, onClose, onAdd }: FoodSearchModalProps) 
   const [quantity, setQuantity] = useState('100')
   const [loading, setLoading] = useState(false)
   const [adding, setAdding] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState<CreateFoodForm>({ name: '', calories: '', protein: '', carbs: '', fat: '', fiber: '' })
 
   useEffect(() => {
-    if (!open) { setQuery(''); setSelected(null); setQuantity('100') }
+    if (!open) { setQuery(''); setSelected(null); setQuantity('100'); setCreating(false) }
   }, [open])
 
   useEffect(() => {
@@ -57,9 +69,55 @@ export const FoodSearchModal = ({ open, onClose, onAdd }: FoodSearchModalProps) 
     }
   }
 
+  const handleCreateFood = async () => {
+    if (!form.name.trim() || !form.calories || !form.protein || !form.carbs || !form.fat) return
+    setSaving(true)
+    try {
+      const food = await createFood({
+        name:     form.name.trim(),
+        calories: Number(form.calories),
+        protein:  Number(form.protein),
+        carbs:    Number(form.carbs),
+        fat:      Number(form.fat),
+        fiber:    form.fiber ? Number(form.fiber) : null,
+      })
+      setSelected(food)
+      setCreating(false)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const startCreate = () => {
+    setForm({ name: query, calories: '', protein: '', carbs: '', fat: '', fiber: '' })
+    setCreating(true)
+  }
+
+  const modalTitle = selected ? 'Set quantity' : creating ? 'Create food' : 'Search food'
+
   return (
-    <Modal open={open} onClose={onClose} title={selected ? 'Set quantity' : 'Search food'}>
-      {!selected ? (
+    <Modal open={open} onClose={onClose} title={modalTitle}>
+      {creating ? (
+        <div className="flex flex-col gap-3 p-4">
+          <Input label="Name" value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="Calories (kcal)" type="number" min={0} value={form.calories} onChange={(e) => setForm(f => ({ ...f, calories: e.target.value }))} />
+            <Input label="Protein (g)" type="number" min={0} value={form.protein} onChange={(e) => setForm(f => ({ ...f, protein: e.target.value }))} />
+            <Input label="Carbs (g)" type="number" min={0} value={form.carbs} onChange={(e) => setForm(f => ({ ...f, carbs: e.target.value }))} />
+            <Input label="Fat (g)" type="number" min={0} value={form.fat} onChange={(e) => setForm(f => ({ ...f, fat: e.target.value }))} />
+          </div>
+          <Input label="Fiber (g, optional)" type="number" min={0} value={form.fiber} onChange={(e) => setForm(f => ({ ...f, fiber: e.target.value }))} />
+          <p className="text-xs text-text-muted -mt-1">All values are per 100 g</p>
+          <div className="flex gap-3">
+            <Button variant="secondary" onClick={() => setCreating(false)} className="flex-1">Cancel</Button>
+            <Button onClick={handleCreateFood} isLoading={saving} className="flex-1"
+              disabled={!form.name.trim() || !form.calories || !form.protein || !form.carbs || !form.fat}
+            >
+              Create
+            </Button>
+          </div>
+        </div>
+      ) : !selected ? (
         <div className="flex flex-col gap-3 p-4">
           <Input
             placeholder="Search food..."
@@ -93,8 +151,17 @@ export const FoodSearchModal = ({ open, onClose, onAdd }: FoodSearchModalProps) 
                   </button>
                 </li>
               ))}
-              {!loading && foods.length === 0 && (
-                <p className="text-center text-text-muted text-sm py-8">No foods found</p>
+              {foods.length === 0 && (
+                <div className="flex flex-col items-center gap-3 py-8">
+                  <p className="text-text-muted text-sm">{query ? `No foods found for "${query}"` : 'No foods yet'}</p>
+                  <button
+                    onClick={startCreate}
+                    className="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create{query ? ` "${query}"` : ' new food'}
+                  </button>
+                </div>
               )}
             </ul>
           )}

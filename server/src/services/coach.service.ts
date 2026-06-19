@@ -1,9 +1,10 @@
 import { prisma }       from '@/config/prisma'
 import { CoachEngine }  from '@/engines/coach/coach.engine'
 import { updateTargets } from './profile.service'
-import type { CoachContext }     from '@/engines/coach/coach.types'
-import type { CoachReport }      from '@/engines/coach/coach.types'
-import type { UserProfileData }  from '@/engines/coach/coach.types'
+import type { CoachContext }          from '@/engines/coach/coach.types'
+import type { CoachReport }           from '@/engines/coach/coach.types'
+import type { UserProfileData }       from '@/engines/coach/coach.types'
+import type { RoutineRecommendation } from '@/engines/workout/workout.types'
 
 const coachEngine = new CoachEngine()
 
@@ -81,7 +82,7 @@ export const buildCoachContext = async (userId: string): Promise<CoachContext> =
     primaryGoal: 'maintain', targetWeightKg: null, targetDate: null,
     fitnessLevel: 'intermediate', activityLevel: 'moderate',
     gender: null, birthDate: null, heightCm: null,
-    trainingDaysPerWeek: 3, sessionDurationMins: 60, equipment: [],
+    trainingDaysPerWeek: 3, sessionDurationMins: 60, equipment: [], injuries: null,
     targetCalories: null, targetProteinG: null, targetCarbsG: null, targetFatG: null,
   }
 
@@ -89,7 +90,7 @@ export const buildCoachContext = async (userId: string): Promise<CoachContext> =
   if (profile) {
     let equipment: string[] = []
     try { equipment = JSON.parse(profile.equipment ?? '[]') } catch { /* empty */ }
-    profileData = { ...defaultProfile, ...profile, equipment }
+    profileData = { ...defaultProfile, ...profile, equipment, injuries: profile.injuries ?? null }
   }
 
   return {
@@ -129,6 +130,48 @@ export const applyNutritionTargets = async (userId: string): Promise<void> => {
   const report = coachEngine.generateReport(ctx)
   const { targets } = report.nutritionRecommendation
   await updateTargets(userId, targets.calories, targets.proteinG, targets.carbsG, targets.fatG)
+}
+
+export const applyRoutineToDb = async (
+  userId:   string,
+  routine:  RoutineRecommendation,
+): Promise<void> => {
+  // Remove previously AI-generated routines so we don't accumulate stale ones
+  await prisma.routine.deleteMany({
+    where: { userId, name: { startsWith: 'AI Coach —' } },
+  })
+
+  for (const day of routine.days) {
+    const created = await prisma.routine.create({
+      data: {
+        userId,
+        name:        `AI Coach — ${day.label}`,
+        description: `${day.estimatedDurationMins} min · ${routine.splitType.replace('_', '/')} split`,
+      },
+    })
+
+    for (let i = 0; i < day.exercises.length; i++) {
+      const ex = day.exercises[i]
+
+      const dbExercise = await prisma.exercise.upsert({
+        where:  { name: ex.name },
+        update: {},
+        create: { name: ex.name, muscleGroup: ex.muscleGroup, category: 'strength' },
+      })
+
+      const repsLower = parseInt(ex.reps.split('-')[0], 10)
+
+      await prisma.routineExercise.create({
+        data: {
+          routineId:  created.id,
+          exerciseId: dbExercise.id,
+          order:      i + 1,
+          targetSets: ex.sets,
+          targetReps: isNaN(repsLower) ? 10 : repsLower,
+        },
+      })
+    }
+  }
 }
 
 export const saveWeeklySnapshot = async (userId: string): Promise<void> => {

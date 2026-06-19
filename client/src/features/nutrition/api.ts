@@ -1,5 +1,5 @@
 import api from '@/lib/axios'
-import type { Food, Meal, MealItem, NutritionLog } from '@/types/nutrition'
+import type { Food, Meal, MealItem, NutritionLog, MacroTargets } from '@/types/nutrition'
 
 export const searchFoods = (search?: string) =>
   api.get<Food[]>('/nutrition/foods', { params: { search } }).then((r) => r.data)
@@ -27,3 +27,6 @@ export const updateMealItem = (itemId: string, quantity: number) =>
 
 export const deleteMealItem = (itemId: string) =>
   api.delete(`/nutrition/items/${itemId}`)
+
+export const fetchTargets = () =>
+  api.get<MacroTargets>('/nutrition/targets').then((r) => r.data)

@@ -1,25 +1,25 @@
-import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Dumbbell, Apple, LogOut, Activity, Bot, User, Trophy } from 'lucide-react'
+import { NavLink } from 'react-router-dom'
+import { LayoutDashboard, Dumbbell, Apple, LogOut, Activity, Bot, User, TrendingUp } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/store/auth.store'
-
-const NAV_ITEMS = [
-  { to: '/dashboard',   icon: LayoutDashboard, label: 'Dashboard'    },
-  { to: '/workouts',    icon: Dumbbell,        label: 'Workouts'     },
-  { to: '/nutrition',   icon: Apple,           label: 'Nutrition'    },
-  { to: '/coach',       icon: Bot,             label: 'AI Coach'     },
-  { to: '/achievements',icon: Trophy,          label: 'Achievements' },
-  { to: '/profile',     icon: User,            label: 'Profile'      },
-]
+import { useLogout } from '@/lib/useLogout'
 
 export const Sidebar = () => {
-  const { user, clearAuth } = useAuthStore()
-  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const user = useAuthStore((s) => s.user)
+  const logout = useLogout()
 
-  const handleLogout = () => {
-    clearAuth()
-    navigate('/login')
-  }
+  const NAV_ITEMS = [
+    { to: '/dashboard', icon: LayoutDashboard, label: t('nav.dashboard') },
+    { to: '/workouts',  icon: Dumbbell,        label: t('nav.workouts')  },
+    { to: '/nutrition', icon: Apple,           label: t('nav.nutrition') },
+    { to: '/coach',     icon: Bot,             label: t('nav.coach')     },
+    { to: '/progress',  icon: TrendingUp,      label: t('nav.progress')  },
+    { to: '/profile',   icon: User,            label: t('nav.profile')   },
+  ]
+
+  const handleLogout = () => void logout()
 
   return (
     <aside className="hidden md:flex flex-col w-60 shrink-0 bg-surface border-r border-border h-screen sticky top-0">
@@ -63,7 +63,7 @@ export const Sidebar = () => {
           className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-text-secondary hover:text-error hover:bg-error/10 transition-colors"
         >
           <LogOut className="w-5 h-5 shrink-0" />
-          Log out
+          {t('nav.logOut')}
         </button>
       </div>
     </aside>

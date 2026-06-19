@@ -3,6 +3,7 @@ import { RecommendationEngine } from '../recommendation/recommendation.engine'
 import { ProgressEngine }       from '../progress/progress.engine'
 import { NotificationEngine }   from '../notification/notification.engine'
 import { GamificationEngine }   from '../gamification/gamification.engine'
+import { WorkoutEngine }        from '../workout/workout.engine'
 import type { CoachContext, CoachReport } from './coach.types'
 import type { ReadinessScore }            from '../health/health.types'
 import type { ProgressAnalysis }          from '../progress/progress.types'
@@ -13,13 +14,15 @@ export class CoachEngine {
   private readonly recommendation = new RecommendationEngine()
   private readonly progress       = new ProgressEngine()
   private readonly notification   = new NotificationEngine()
+  private readonly workout        = new WorkoutEngine()
   readonly gamification           = new GamificationEngine()
 
   generateReport(ctx: CoachContext): CoachReport {
-    const readiness              = this.health.calculateReadiness(ctx.latestHealthLog)
-    const progressAnalysis       = this.progress.analyze(ctx)
+    const readiness               = this.health.calculateReadiness(ctx.latestHealthLog)
+    const progressAnalysis        = this.progress.analyze(ctx)
     const nutritionRecommendation = this.recommendation.adjustNutrition(ctx, progressAnalysis)
     const trainingRecommendation  = this.recommendation.adjustTraining(ctx, readiness, progressAnalysis)
+    const routineRecommendation   = this.workout.generate(ctx.profile, trainingRecommendation)
     const notifications           = this.notification.generate(ctx, progressAnalysis, readiness)
     const summary                 = this.buildSummary(readiness, progressAnalysis, nutritionRecommendation)
 
@@ -28,6 +31,7 @@ export class CoachEngine {
       progressAnalysis,
       nutritionRecommendation,
       trainingRecommendation,
+      routineRecommendation,
       notifications,
       summary,
       xpEarned: 0,  // filled by gamification.service after persistence

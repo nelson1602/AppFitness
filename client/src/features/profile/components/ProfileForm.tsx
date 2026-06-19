@@ -67,7 +67,14 @@ export const ProfileForm = ({ initial, onSaved }: Props) => {
   const [targetWeight, setTargetWeight] = useState(String(initial?.targetWeightKg ?? ''))
   const [targetDate,   setTargetDate]   = useState(initial?.targetDate   ?? '')
   const [level,        setLevel]        = useState<FitnessLevel>(initial?.fitnessLevel ?? 'intermediate')
+  const [yearsTraining,setYearsTraining]= useState(String(initial?.yearsTraining ?? '0'))
   const [activity,     setActivity]     = useState<ActivityLevel>(initial?.activityLevel ?? 'moderate')
+  const [occupation,   setOccupation]   = useState(initial?.occupation   ?? '')
+  const [sleepHours,   setSleepHours]   = useState(String(initial?.sleepHours ?? '7'))
+  const [stressLevel,  setStressLevel]  = useState(String(initial?.stressLevel ?? '3'))
+  const [bpSystolic,   setBpSystolic]   = useState(String(initial?.bloodPressureSystolic ?? ''))
+  const [bpDiastolic,  setBpDiastolic]  = useState(String(initial?.bloodPressureDiastolic ?? ''))
+  const [injuries,     setInjuries]     = useState(initial?.injuries     ?? '')
   const [trainDays,    setTrainDays]    = useState(String(initial?.trainingDaysPerWeek ?? '3'))
   const [duration,     setDuration]     = useState(String(initial?.sessionDurationMins ?? '60'))
   const [equipment,    setEquipment]    = useState<Equipment[]>(initial?.equipment ?? [])
@@ -83,16 +90,23 @@ export const ProfileForm = ({ initial, onSaved }: Props) => {
     setError('')
     try {
       const saved = await saveProfile({
-        birthDate:           birthDate   || undefined,
-        gender:              gender      || undefined,
-        heightCm:            parseFloat(heightCm)     || undefined,
-        primaryGoal:         goal,
-        targetWeightKg:      parseFloat(targetWeight) || undefined,
-        targetDate:          targetDate  || undefined,
-        fitnessLevel:        level,
-        activityLevel:       activity,
-        trainingDaysPerWeek: parseInt(trainDays)  || 3,
-        sessionDurationMins: parseInt(duration)   || 60,
+        birthDate:              birthDate    || undefined,
+        gender:                 gender       || undefined,
+        heightCm:               parseFloat(heightCm)     || undefined,
+        primaryGoal:            goal,
+        targetWeightKg:         parseFloat(targetWeight) || undefined,
+        targetDate:             targetDate   || undefined,
+        fitnessLevel:           level,
+        yearsTraining:          parseFloat(yearsTraining) || 0,
+        activityLevel:          activity,
+        occupation:             occupation   || undefined,
+        sleepHours:             parseFloat(sleepHours) || 7,
+        stressLevel:            parseInt(stressLevel)  || 3,
+        bloodPressureSystolic:  parseInt(bpSystolic)   || undefined,
+        bloodPressureDiastolic: parseInt(bpDiastolic)  || undefined,
+        injuries:               injuries     || undefined,
+        trainingDaysPerWeek:    parseInt(trainDays)    || 3,
+        sessionDurationMins:    parseInt(duration)     || 60,
         equipment,
       })
       onSaved(saved)
@@ -145,8 +159,55 @@ export const ProfileForm = ({ initial, onSaved }: Props) => {
       {/* Experience & Activity */}
       <section className="flex flex-col gap-4">
         <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Experience & Lifestyle</h3>
-        <SelectField label="Fitness Level" value={level}    onChange={setLevel}    options={LEVELS} />
+        <div className="grid grid-cols-2 gap-4">
+          <SelectField label="Fitness Level"  value={level}    onChange={setLevel}    options={LEVELS} />
+          <Input label="Years Training" type="number" min="0" max="60" step="0.5" value={yearsTraining} onChange={e => setYearsTraining(e.target.value)} placeholder="0" />
+        </div>
         <SelectField label="Activity Level" value={activity} onChange={setActivity} options={ACTIVITIES} />
+        <div className="grid grid-cols-2 gap-4">
+          <Input label="Occupation" type="text" value={occupation} onChange={e => setOccupation(e.target.value)} placeholder="e.g. Office worker" />
+          <Input label="Target sleep (hrs)" type="number" min="2" max="16" step="0.5" value={sleepHours} onChange={e => setSleepHours(e.target.value)} placeholder="7" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm text-text-secondary">Baseline Stress Level</label>
+          <select
+            value={stressLevel}
+            onChange={e => setStressLevel(e.target.value)}
+            className="bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary focus:outline-none focus:border-primary"
+          >
+            <option value="1">1 — Very low</option>
+            <option value="2">2 — Low</option>
+            <option value="3">3 — Moderate</option>
+            <option value="4">4 — High</option>
+            <option value="5">5 — Very high</option>
+          </select>
+        </div>
+      </section>
+
+      {/* Health Conditions */}
+      <section className="flex flex-col gap-4">
+        <h3 className="text-sm font-semibold text-primary uppercase tracking-wider">Health Conditions</h3>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm text-text-secondary">Blood Pressure (mmHg)</label>
+          <div className="flex items-center gap-2">
+            <Input type="number" min="60" max="250" value={bpSystolic}  onChange={e => setBpSystolic(e.target.value)}  placeholder="120" className="flex-1" />
+            <span className="text-text-muted text-sm">/</span>
+            <Input type="number" min="40" max="150" value={bpDiastolic} onChange={e => setBpDiastolic(e.target.value)} placeholder="80"  className="flex-1" />
+          </div>
+          <p className="text-xs text-text-muted">Systolic / Diastolic</p>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm text-text-secondary">Injuries or Physical Limitations</label>
+          <textarea
+            value={injuries}
+            onChange={e => setInjuries(e.target.value)}
+            placeholder="e.g. Lower back pain, knee injury..."
+            rows={3}
+            maxLength={500}
+            className="bg-surface-2 border border-border rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary resize-none"
+          />
+          <p className="text-xs text-text-muted">{injuries.length}/500</p>
+        </div>
       </section>
 
       {/* Schedule */}

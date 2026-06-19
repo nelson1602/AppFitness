@@ -14,6 +14,8 @@ model User {
   email        String   @unique
   username     String   @unique
   passwordHash String
+  phone        String?
+  avatarUrl    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -22,6 +24,7 @@ model User {
   workoutLogs       WorkoutLog[]
   nutritionLogs     NutritionLog[]
   bodyWeights       BodyWeight[]
+  bodyMeasurements  BodyMeasurement[]
   profile           UserProfile?
   healthLogs        HealthLog[]
   recommendations   Recommendation[]
@@ -128,7 +131,7 @@ model WorkoutSet {
 
 model Food {
   id        String  @id @default(cuid())
-  name      String
+  name      String  @unique
   brand     String?
   // macros per 100 g
   calories  Float
@@ -198,6 +201,27 @@ model BodyWeight {
   @@index([userId, date])
 }
 
+model BodyMeasurement {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date       String   // "YYYY-MM-DD"
+
+  bodyFatPct Float?   // %
+  waistCm    Float?
+  hipCm      Float?
+  chestCm    Float?
+  leftArmCm  Float?
+  rightArmCm Float?
+  neckCm     Float?
+  notes      String?
+
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
 // ─── Engines ─────────────────────────────────────────────────────────────────
 
 model UserProfile {
@@ -222,6 +246,10 @@ model UserProfile {
   stressLevel         Int      @default(3)
 
   equipment           String   @default("[]")
+
+  bloodPressureSystolic  Int?
+  bloodPressureDiastolic Int?
+  injuries               String?
 
   trainingDaysPerWeek Int      @default(3)
   sessionDurationMins Int      @default(60)

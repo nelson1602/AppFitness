@@ -1,4 +1,6 @@
 import { useState, useEffect, FormEvent } from 'react'
+import { usePageTitle } from '@/hooks/usePageTitle'
+import { useTranslation } from 'react-i18next'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Plus, GripVertical, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -21,9 +23,12 @@ interface RoutineExEntry {
 export const RoutineFormPage = () => {
   const { id } = useParams<{ id: string }>()
   const isEdit = Boolean(id)
+  usePageTitle(isEdit ? 'Edit Routine' : 'New Routine')
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const [name, setName] = useState('')
+  const [nameError, setNameError] = useState('')
   const [description, setDescription] = useState('')
   const [entries, setEntries] = useState<RoutineExEntry[]>([])
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -66,7 +71,7 @@ export const RoutineFormPage = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim()) { setNameError(t('routine.nameRequired')); return }
     setSaving(true)
     try {
       const routine = isEdit
@@ -94,39 +99,43 @@ export const RoutineFormPage = () => {
   return (
     <div className="flex flex-col gap-6 max-w-lg mx-auto animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">{isEdit ? 'Edit Routine' : 'New Routine'}</h1>
+        <h1 className="text-2xl font-bold text-text-primary">
+          {isEdit ? t('routine.editTitle') : t('routine.newTitle')}
+        </h1>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <Card className="flex flex-col gap-4">
+          <div>
+            <Input
+              label={t('routine.name')}
+              value={name}
+              onChange={(e) => { setName(e.target.value); if (nameError) setNameError('') }}
+              placeholder={t('routine.namePlaceholder')}
+            />
+            {nameError && <p className="text-xs text-error mt-1">{nameError}</p>}
+          </div>
           <Input
-            label="Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Push Day A"
-            required
-          />
-          <Input
-            label="Description (optional)"
+            label={t('routine.description')}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Upper body push focus"
+            placeholder={t('routine.descPlaceholder')}
           />
         </Card>
 
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-text-primary">Exercises</h2>
+            <h2 className="font-semibold text-text-primary">{t('routine.exercises')}</h2>
             <Button type="button" variant="secondary" size="sm" onClick={() => setPickerOpen(true)}>
-              <Plus className="w-4 h-4" /> Add
+              <Plus className="w-4 h-4" /> {t('common.add')}
             </Button>
           </div>
 
           {entries.length === 0 ? (
             <Card className="flex flex-col items-center gap-2 py-10 text-center">
-              <p className="text-text-muted text-sm">No exercises added yet</p>
+              <p className="text-text-muted text-sm">{t('routine.noExercises')}</p>
               <Button type="button" variant="ghost" size="sm" onClick={() => setPickerOpen(true)}>
-                <Plus className="w-4 h-4" /> Add your first exercise
+                <Plus className="w-4 h-4" /> {t('routine.addFirstExercise')}
               </Button>
             </Card>
           ) : (
@@ -155,7 +164,7 @@ export const RoutineFormPage = () => {
                           className="w-full h-8 rounded bg-surface-2 border border-border text-center text-xs text-text-primary focus:outline-none focus:border-primary transition-colors"
                         />
                         <p className="text-center text-xs text-text-muted mt-0.5">
-                          {field === 'targetSets' ? 'Sets' : field === 'targetReps' ? 'Reps' : 'kg'}
+                          {field === 'targetSets' ? t('routine.sets') : field === 'targetReps' ? t('routine.reps') : t('routine.weightKg')}
                         </p>
                       </div>
                     ))}
@@ -168,10 +177,10 @@ export const RoutineFormPage = () => {
 
         <div className="flex gap-3">
           <Button type="button" variant="secondary" className="flex-1" onClick={() => navigate('/workouts')}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button type="submit" className="flex-1" isLoading={saving}>
-            {isEdit ? 'Save changes' : 'Create routine'}
+            {isEdit ? t('routine.updateBtn') : t('routine.saveBtn')}
           </Button>
         </div>
       </form>

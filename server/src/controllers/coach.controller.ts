@@ -18,3 +18,9 @@ export const saveSnapshot = wrap(async (req, res) => {
   await coachService.saveWeeklySnapshot(req.userId)
   res.json({ message: 'Weekly snapshot saved' })
 })
+
+export const applyRoutine = wrap(async (req, res) => {
+  const report = await coachService.generateCoachReport(req.userId)
+  await coachService.applyRoutineToDb(req.userId, report.routineRecommendation)
+  res.json({ message: 'Routine applied', days: report.routineRecommendation.days.length })
+})

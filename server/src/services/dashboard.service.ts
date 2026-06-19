@@ -1,5 +1,6 @@
 import { prisma } from '@/config/prisma'
 import { AppError } from '@/utils/errors'
+import { incrementCounter, buildGamificationContext, checkAndUnlockAchievements } from './gamification.service'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -12,13 +13,22 @@ const getMondayStr = (d: Date): string => {
   return utc.toISOString().split('T')[0]
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const nextLevelXp = (level: number): number => {
+  const thresholds = [0, 500, 1500, 3000, 5000]
+  if (level <= 4) return thresholds[level]
+  return 5000 + (level - 4) * 2000
+}
+
 // ─── Summary ──────────────────────────────────────────────────────────────────
 
 export const getSummary = async (userId: string) => {
   const now = new Date()
   const weekStart = new Date(getMondayStr(now) + 'T00:00:00.000Z')
+  const weekStartStr = getMondayStr(now)
 
-  const [workoutsThisWeek, latestWeight, setsThisWeek] = await Promise.all([
+  const [workoutsThisWeek, latestWeight, setsThisWeek, stats, mealsThisWeek] = await Promise.all([
     prisma.workoutLog.count({
       where: { userId, startedAt: { gte: weekStart }, finishedAt: { not: null } },
     }),
@@ -34,6 +44,13 @@ export const getSummary = async (userId: string) => {
       },
       select: { reps: true, weight: true },
     }),
+    prisma.userStats.findUnique({
+      where: { userId },
+      select: { currentStreak: true, level: true, xp: true, totalXp: true },
+    }),
+    prisma.meal.count({
+      where: { nutritionLog: { userId, date: { gte: weekStartStr } } },
+    }),
   ])
 
   const volumeThisWeek = setsThisWeek.reduce(
@@ -41,11 +58,54 @@ export const getSummary = async (userId: string) => {
     0,
   )
 
+  const streak  = stats?.currentStreak ?? 0
+  const level   = stats?.level         ?? 1
+  const xp      = stats?.xp            ?? 0
+  const totalXp = stats?.totalXp       ?? 0
+
+  const daysSinceWeight = latestWeight
+    ? Math.floor((Date.now() - new Date(latestWeight.date + 'T00:00:00').getTime()) / 86400000)
+    : 999
+
+  const fitnessScore = Math.min(100, Math.round(
+    Math.min(streak * 5, 25) +
+    Math.min(workoutsThisWeek * 10, 30) +
+    (daysSinceWeight <= 7 ? 10 : 0) +
+    Math.min(mealsThisWeek * 2, 20) +
+    Math.min((level - 1) * 5, 15),
+  ))
+
   return {
     workoutsThisWeek,
     volumeThisWeek: Math.round(volumeThisWeek),
-    latestWeight: latestWeight?.weight ?? null,
-    latestWeightDate: latestWeight?.date ?? null,
+    latestWeight:     latestWeight?.weight ?? null,
+    latestWeightDate: latestWeight?.date   ?? null,
+    streak,
+    level,
+    xp,
+    totalXp,
+    nextLevelXp: nextLevelXp(level),
+    fitnessScore,
+  }
+}
+
+// ─── Coach insight ────────────────────────────────────────────────────────────
+
+export const getCoachInsight = async (userId: string) => {
+  const profile = await prisma.userProfile.findUnique({
+    where: { userId },
+    select: { primaryGoal: true, trainingDaysPerWeek: true, updatedAt: true },
+  })
+  if (!profile) return null
+
+  const nextEval = new Date(profile.updatedAt)
+  nextEval.setDate(nextEval.getDate() + 28)
+  const daysToNextEval = Math.ceil((nextEval.getTime() - Date.now()) / 86400000)
+
+  return {
+    goal: profile.primaryGoal,
+    trainingDaysPerWeek: profile.trainingDaysPerWeek,
+    daysToNextEval: Math.max(0, daysToNextEval),
   }
 }
 
@@ -152,12 +212,24 @@ export const getNutritionWeek = async (userId: string) => {
 
 // ─── Body weight CRUD ─────────────────────────────────────────────────────────
 
-export const logBodyWeight = (userId: string, weight: number, date: string, notes?: string) =>
-  prisma.bodyWeight.upsert({
-    where: { userId_date: { userId, date } },
+export const logBodyWeight = async (userId: string, weight: number, date: string, notes?: string) => {
+  const entry = await prisma.bodyWeight.upsert({
+    where:  { userId_date: { userId, date } },
     update: { weight, ...(notes !== undefined ? { notes } : {}) },
     create: { userId, weight, date, notes },
   })
+
+  // Fire-and-forget: increment stat + check achievements
+  void (async () => {
+    try {
+      await incrementCounter(userId, 'weightsLogged')
+      const ctx = await buildGamificationContext(userId)
+      await checkAndUnlockAchievements(userId, ctx)
+    } catch {}
+  })()
+
+  return entry
+}
 
 export const deleteBodyWeight = async (userId: string, id: string) => {
   const entry = await prisma.bodyWeight.findFirst({ where: { id, userId }, select: { id: true } })

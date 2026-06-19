@@ -78,3 +78,12 @@ export const deleteSet = wrap(async (req, res) => {
   await svc.deleteSet(req.params.id, req.userId)
   res.status(204).send()
 })
+
+export const getLastPerformance = wrap(async (req, res) => {
+  res.json(await svc.getLastPerformance(req.params.exerciseId, req.userId))
+})
+
+export const getExerciseHistory = wrap(async (req, res) => {
+  const limit = Number(req.query.limit) || 20
+  res.json(await svc.getExerciseHistory(req.params.exerciseId, req.userId, limit))
+})

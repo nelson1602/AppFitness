@@ -1,0 +1,229 @@
+{
+  "common": {
+    "save": "Guardar", "cancel": "Cancelar", "delete": "Eliminar", "add": "Agregar",
+    "edit": "Editar", "close": "Cerrar", "back": "Atrás", "next": "Siguiente",
+    "finish": "Finalizar", "or": "o", "today": "Hoy", "yesterday": "Ayer",
+    "day": "día", "days": "días", "kg": "kg", "dismiss": "Cerrar",
+    "resume": "Continuar →", "view": "Ver →", "log": "Registrar", "new": "Nuevo",
+    "required": "Obligatorio", "optional": "opcional"
+  },
+  "nav": {
+    "dashboard": "Inicio", "workouts": "Entrenamientos", "nutrition": "Nutrición",
+    "coach": "Entrenador IA", "progress": "Progreso", "profile": "Perfil",
+    "home": "Inicio", "food": "Comida", "logOut": "Cerrar sesión", "achievements": "Logros"
+  },
+  "auth": {
+    "login": {
+      "title": "Bienvenido de vuelta", "subtitle": "Inicia sesión en tu cuenta",
+      "email": "Correo electrónico", "password": "Contraseña", "signIn": "Iniciar sesión",
+      "noAccount": "¿No tienes cuenta?", "signUp": "Regístrate",
+      "showPassword": "Mostrar contraseña", "hidePassword": "Ocultar contraseña",
+      "errors": {
+        "email": "Ingresa un correo electrónico válido",
+        "password": "La contraseña es obligatoria",
+        "server": "Error al iniciar sesión. Inténtalo de nuevo."
+      }
+    },
+    "register": {
+      "title": "Crear cuenta", "subtitle": "Comienza tu viaje fitness",
+      "username": "Usuario", "usernameHint": "Solo letras, números y guiones bajos",
+      "email": "Correo electrónico", "password": "Contraseña", "createAccount": "Crear cuenta",
+      "alreadyHave": "¿Ya tienes cuenta?", "signIn": "Iniciar sesión",
+      "strength": { "weak": "Débil", "fair": "Regular", "strong": "Fuerte" },
+      "errors": {
+        "usernameShort": "Mínimo 3 caracteres",
+        "usernameInvalid": "Solo letras, números y guiones bajos",
+        "email": "Ingresa un correo electrónico válido",
+        "passwordShort": "Mínimo 8 caracteres",
+        "server": "Error al registrarse. Inténtalo de nuevo."
+      }
+    }
+  },
+  "landing": {
+    "signIn": "Iniciar sesión", "register": "Registrarse",
+    "badge": "Tu entrenador personal digital",
+    "heading": "Entrena con inteligencia. Logra resultados reales.",
+    "subheading": "Planes de entrenamiento y nutrición personalizados con IA. Para quienes no pueden pagar un entrenador personal.",
+    "cta1": "Empezar gratis", "cta2": "Ya tengo cuenta",
+    "features": {
+      "aiCoach": { "title": "Entrenador IA", "desc": "Análisis personalizado y recomendaciones en tiempo real basadas en todo tu perfil." },
+      "routines": { "title": "Rutinas personalizadas", "desc": "Planes adaptados a tu equipamiento, tiempo disponible, nivel y objetivo." },
+      "nutrition": { "title": "Plan nutricional", "desc": "Calorías y macros calculados con tu TDEE, objetivo y condición física." },
+      "progress": { "title": "Seguimiento de progreso", "desc": "Gráficas de peso, volumen y adherencia. Rachas, logros y evaluaciones cada 4 semanas." },
+      "readiness": { "title": "Readiness diario", "desc": "Check-in de sueño, energía y estrés para ajustar la intensidad del día." },
+      "fitnessScore": { "title": "Fitness Score", "desc": "Puntuación global que mide tu consistencia, progreso y bienestar en un solo número." }
+    },
+    "ctaTitle": "¿Listo para empezar?",
+    "ctaSubtitle": "Crea tu cuenta gratis y recibe tu plan personalizado en minutos.",
+    "ctaBtn": "Crear cuenta gratis", "footerTagline": "Tu entrenador personal digital"
+  },
+  "dashboard": {
+    "greeting": "Hola, {{name}} 👋",
+    "stats": {
+      "workouts": "Entrenamientos", "volume": "Volumen", "bodyWeight": "Peso corporal",
+      "notLogged": "sin registrar", "streak": "Racha", "level": "Nivel"
+    },
+    "thisWeek": "esta semana",
+    "bodyWeightCard": { "title": "Peso Corporal", "subtitle": "Últimas 12 semanas" },
+    "trainingVolume": { "title": "Volumen de Entrenamiento", "subtitle": "Últimas 8 semanas (kg levantados)" },
+    "nutritionWeek": { "title": "Nutrición de la Semana", "subtitle": "Calorías diarias por macro (kcal)" }
+  },
+  "workouts": {
+    "title": "Entrenamientos", "subtitle": "Tus rutinas y registros de entrenamiento",
+    "tabs": { "routines": "Rutinas", "history": "Historial" },
+    "emptyRoutines": "Sin rutinas todavía", "createFirst": "Crea tu primera rutina",
+    "emptyHistory": "Sin entrenamientos registrados todavía",
+    "deleteModal": {
+      "title": "Eliminar rutina",
+      "message": "Esta acción no se puede deshacer. Todos los datos asociados se eliminarán permanentemente."
+    },
+    "exercises_one": "{{count}} ejercicio", "exercises_other": "{{count}} ejercicios",
+    "startWorkout": "Iniciar entrenamiento", "vol": "{{vol}} kg vol"
+  },
+  "routine": {
+    "newTitle": "Nueva Rutina", "editTitle": "Editar Rutina",
+    "name": "Nombre", "namePlaceholder": "Día de empuje A", "nameRequired": "El nombre de la rutina es obligatorio",
+    "description": "Descripción (opcional)", "descPlaceholder": "Empuje de tren superior",
+    "exercises": "Ejercicios", "noExercises": "Sin ejercicios todavía",
+    "addFirstExercise": "Agrega tu primer ejercicio",
+    "sets": "Series", "reps": "Reps", "weightKg": "kg",
+    "saveBtn": "Guardar Rutina", "updateBtn": "Actualizar Rutina"
+  },
+  "activeWorkout": {
+    "title": "Entrenamiento Activo", "finishConfirm": "¿Finalizar este entrenamiento?",
+    "complete": {
+      "title": "¡Entrenamiento Completado!", "duration": "Duración", "volume": "Volumen",
+      "sets": "Series hechas", "xp": "XP ganado",
+      "prs_one": "¡{{count}} Récord Personal!", "prs_other": "¡{{count}} Récords Personales!",
+      "achievements": "Logros Desbloqueados", "back": "Volver a Entrenamientos"
+    },
+    "noExercises": "Sin ejercicios. Agrega uno abajo.",
+    "prev": "ant: {{reps}} × {{weight}} kg",
+    "columns": { "set": "#", "reps": "Reps", "weight": "Peso", "rpe": "RPE" },
+    "addSet": "Agregar serie", "addExercise": "Agregar ejercicio"
+  },
+  "workoutLog": {
+    "title": "Registro de Entrenamiento", "notFound": "Entrenamiento no encontrado.", "back": "← Volver a entrenamientos",
+    "stats": { "duration": "Duración", "exercises": "Ejercicios", "volume": "Volumen", "sets": "Series hechas" },
+    "noSets": "Sin series registradas",
+    "columns": { "set": "Serie", "weight": "Peso", "reps": "Reps", "rpe": "RPE" },
+    "history": "↗ historial", "volKg": "Volumen: {{vol}} kg"
+  },
+  "nutrition": {
+    "title": "Nutrición", "calories": "Calorías", "kcalRemaining": "{{amount}} kcal restantes",
+    "prevDay": "Día anterior", "nextDay": "Día siguiente",
+    "noMeals": "Sin comidas registradas para {{date}}",
+    "addMeal": "Agregar comida",
+    "deleteMeal": {
+      "title": "Eliminar comida",
+      "message": "Esto eliminará la comida y todos sus registros de alimentos. Esta acción no se puede deshacer."
+    },
+    "macros": { "protein": "Proteína", "carbs": "Carbohidratos", "fat": "Grasas", "fiber": "Fibra" },
+    "presets": { "breakfast": "Desayuno", "lunch": "Almuerzo", "dinner": "Cena", "snack": "Snack" },
+    "orCustom": "o personalizado", "mealNamePlaceholder": "Nombre de la comida...", "addFood": "Agregar alimento"
+  },
+  "coach": {
+    "title": "Entrenador IA", "subtitle": "Tu entrenador personal digital personalizado", "weekly": "Resumen Semanal"
+  },
+  "progress": {
+    "title": "Progreso", "subtitle": "Tu viaje fitness de un vistazo",
+    "stats": { "workouts": "Entrenamientos", "prs": "RPs", "streak": "Racha", "adherence": "Adherencia", "thisWeek": "esta semana" },
+    "deload": { "title": "Semana de Descarga Recomendada", "message": "Fatiga acumulada detectada. Reduce el volumen esta semana." },
+    "plateau": { "title": "Estancamiento Detectado", "duration": "Sin cambio significativo en {{duration}} semanas.", "message": "Tu progreso se ha estancado." },
+    "goalTimeline": {
+      "title": "Línea de Tiempo del Objetivo", "estimated": "Fecha estimada", "weeksLeft": "Semanas restantes",
+      "rate": "Tasa / semana", "confidence": "Confianza",
+      "logNeeded": "Registra tu peso regularmente para ver tu línea de tiempo."
+    },
+    "weightTrend": "Tendencia de peso", "volumeTrend": "Tendencia de volumen", "vsPrev": "vs. semana anterior",
+    "adherenceTitle": "Adherencia Semanal de Entrenamiento", "daysTrained": "{{actual}} / {{target}} días entrenados"
+  },
+  "profile": {
+    "title": "Tu Perfil", "subtitle": "Los datos precisos permiten que cada motor funcione de forma óptima para ti.",
+    "tabs": { "profile": "Perfil y Salud", "account": "Cuenta" },
+    "accountInfo": "Información de Cuenta", "email": "Correo electrónico", "phone": "Teléfono",
+    "avatarUrl": "URL del Avatar", "avatarHint": "Enlace a tu foto de perfil", "avatarPreview": "Vista previa",
+    "saveAccount": "Guardar Información", "changePassword": "Cambiar Contraseña",
+    "currentPassword": "Contraseña actual", "newPassword": "Nueva contraseña",
+    "passwordHint": "Mínimo 8 caracteres", "changePasswordBtn": "Cambiar Contraseña",
+    "preferences": "Preferencias", "language": "Idioma",
+    "languages": { "en": "English", "es": "Español" }
+  },
+  "gamification": {
+    "title": "Logros", "heading": "Progreso y Logros",
+    "unlocked": "{{count}} / {{total}} logros desbloqueados"
+  },
+  "onboarding": {
+    "appName": "AppFitness",
+    "steps": { "about": "Sobre Ti", "weightGoal": "Peso y Objetivo", "training": "Entrenamiento", "lifestyle": "Estilo de Vida" },
+    "hints": {
+      "0": "Necesitamos esto para calcular tu TDEE y personalizar cada motor.",
+      "1": "Tu peso actual establece los objetivos calóricos. Elige una meta hacia la que entrenaremos juntos.",
+      "2": "Esto da forma a tu programa de entrenamiento: intensidad, horario y equipo disponible.",
+      "3": "Los factores del estilo de vida afectan la recuperación y el gasto energético diario."
+    },
+    "fields": {
+      "dob": "Fecha de Nacimiento", "gender": "Género", "heightCm": "Altura (cm)", "heightPlaceholder": "175",
+      "weightKg": "Peso Actual (kg)", "weightPlaceholder": "75", "primaryGoal": "Objetivo Principal",
+      "targetWeight": "Peso Objetivo (kg)", "targetWeightPlaceholder": "70", "targetDate": "Fecha Objetivo",
+      "expLevel": "Nivel de Experiencia", "yearsTrain": "Años entrenando", "daysWeek": "Días / semana",
+      "minSession": "Min / sesión", "equipment": "Equipamiento Disponible",
+      "activityLevel": "Nivel de Actividad Diaria", "occupation": "Ocupación (opcional)",
+      "occupationPlaceholder": "Ej. Oficinista, construcción...",
+      "sleep": "Sueño (hrs/noche)", "stress": "Nivel de Estrés"
+    },
+    "genders": { "male": "Masculino", "female": "Femenino", "other": "Otro" },
+    "goals": {
+      "loseFat": { "label": "Perder Grasa", "desc": "Reducir grasa corporal preservando el músculo" },
+      "buildMuscle": { "label": "Ganar Músculo", "desc": "Aumentar masa muscular y fuerza" },
+      "maintain": { "label": "Mantener", "desc": "Mantener tu físico actual" },
+      "performance": { "label": "Mejorar Rendimiento", "desc": "Resistencia atlética y rendimiento" }
+    },
+    "levels": {
+      "beginner": { "label": "Principiante", "desc": "Menos de 1 año de entrenamiento constante" },
+      "intermediate": { "label": "Intermedio", "desc": "1–3 años de entrenamiento constante" },
+      "advanced": { "label": "Avanzado", "desc": "Más de 3 años de entrenamiento serio" }
+    },
+    "activity": {
+      "sedentary": { "label": "Sedentario", "desc": "Trabajo de escritorio, poco movimiento diario" },
+      "light": { "label": "Ligero", "desc": "1–3 entrenamientos suaves por semana" },
+      "moderate": { "label": "Moderado", "desc": "3–5 entrenamientos por semana" },
+      "active": { "label": "Activo", "desc": "6–7 entrenamientos por semana" },
+      "veryActive": { "label": "Muy Activo", "desc": "Trabajo físico + entrenamiento diario" }
+    },
+    "equipment": {
+      "bodyweight": "Peso corporal", "bands": "Bandas", "dumbbells": "Mancuernas",
+      "kettlebells": "Kettlebells", "barbell": "Barra", "cables": "Cables", "machines": "Máquinas"
+    },
+    "stress": { "1": "1 — Muy bajo", "2": "2 — Bajo", "3": "3 — Moderado", "4": "4 — Alto", "5": "5 — Muy alto" },
+    "back": "Atrás", "continue": "Continuar", "finish": "Completar Configuración", "error": "Algo salió mal. Inténtalo de nuevo."
+  },
+  "wellness": {
+    "title": "Readiness Diario",
+    "scores": { "excellent": "Excelente", "good": "Bueno", "fair": "Regular", "low": "Bajo" },
+    "sleep": "Horas de sueño", "energy": "Energía", "stress": "Estrés", "mood": "Humor",
+    "updateBtn": "Actualizar check-in", "logBtn": "+ Registrar cómo te sientes hoy", "cancel": "Cancelar", "save": "Guardar"
+  },
+  "measurements": {
+    "title": "Medidas Corporales", "logBtn": "Registrar", "noMeasurements": "Sin medidas registradas todavía.",
+    "date": "Fecha", "bodyFat": "Grasa Corporal (%)", "waist": "Cintura (cm)", "hip": "Cadera (cm)",
+    "chest": "Pecho (cm)", "arm": "Brazo (cm)", "neck": "Cuello (cm)", "saveBtn": "Guardar Medidas",
+    "trend": { "title": "Tendencia de Cintura y Grasa", "waist": "Cintura (cm)", "bodyFat": "Grasa Corporal (%)" },
+    "stats": { "bodyFat": "Grasa Corp.", "waist": "Cintura", "hip": "Cadera", "chest": "Pecho", "arm": "Brazo", "neck": "Cuello" }
+  },
+  "offline": { "message": "Sin conexión — algunas funciones pueden no estar disponibles" },
+  "errors": {
+    "serverError": "Error del servidor — inténtalo de nuevo",
+    "tooManyRequests": "Demasiadas solicitudes — espera un momento",
+    "sessionExpired": "Tu sesión ha expirado — inicia sesión de nuevo",
+    "saveMeasurements": "Error al guardar las medidas.",
+    "measurementsSuccess": "Medidas guardadas.",
+    "profileSaved": "¡Perfil guardado exitosamente!",
+    "accountUpdated": "Cuenta actualizada exitosamente.",
+    "passwordChanged": "Contraseña cambiada exitosamente.",
+    "passwordShort": "La nueva contraseña debe tener al menos 8 caracteres.",
+    "updateFailed": "Error al actualizar la cuenta.",
+    "passwordFailed": "Error al cambiar la contraseña."
+  },
+  "achievementBanner": { "unlocked": "Logro Desbloqueado", "xp": "+{{xp}} XP" }
+}

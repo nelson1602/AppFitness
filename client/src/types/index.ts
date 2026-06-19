@@ -2,6 +2,8 @@ export interface User {
   id: string
   email: string
   username: string
+  phone: string | null
+  avatarUrl: string | null
   createdAt: string
 }
 

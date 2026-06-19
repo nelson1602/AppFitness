@@ -42,6 +42,41 @@ export interface WorkoutLog {
   notes?: string | null
   startedAt: string
   finishedAt?: string | null
-  routine?: { id: string; name: string } | null
+  routine?: {
+    id: string
+    name: string
+    exercises: { exerciseId: string; order: number }[]
+  } | null
   sets: WorkoutSet[]
+}
+
+export interface UnlockedAchievement {
+  key:      string
+  name:     string
+  icon:     string
+  xpReward: number
+}
+
+export interface WorkoutSummary {
+  durationMins:    number
+  volumeKg:        number
+  setsCompleted:   number
+  prsSet:          number
+  xpEarned:        number
+  newAchievements: UnlockedAchievement[]
+}
+
+export interface LastPerformance {
+  reps:   number | null
+  weight: number | null
+}
+
+export interface ExerciseSession {
+  date:          string
+  workoutName:   string
+  workoutLogId:  string
+  maxWeightKg:   number
+  bestReps:      number
+  totalVolumeKg: number
+  setCount:      number
 }

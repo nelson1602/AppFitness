@@ -16,6 +16,9 @@ export const ProfileSchema = z.object({
   equipment:           z.array(
                          z.enum(['barbell', 'dumbbell', 'machines', 'cables', 'bodyweight', 'kettlebell', 'resistance_bands'])
                        ).optional(),
-  trainingDaysPerWeek: z.number().int().min(1).max(7).optional(),
-  sessionDurationMins: z.number().int().min(15).max(240).optional(),
+  trainingDaysPerWeek:    z.number().int().min(1).max(7).optional(),
+  sessionDurationMins:    z.number().int().min(15).max(240).optional(),
+  bloodPressureSystolic:  z.number().int().min(60).max(250).optional(),
+  bloodPressureDiastolic: z.number().int().min(40).max(150).optional(),
+  injuries:               z.string().max(500).optional(),
 })

@@ -1,5 +1,5 @@
 import api from '@/lib/axios'
-import type { DashboardSummary, WeightEntry, WeeklyVolume, DailyNutrition } from '@/types/dashboard'
+import type { DashboardSummary, WeightEntry, WeeklyVolume, DailyNutrition, CoachInsight } from '@/types/dashboard'
 
 export const fetchSummary = () =>
   api.get<DashboardSummary>('/dashboard/summary').then((r) => r.data)
@@ -18,3 +18,6 @@ export const logBodyWeight = (data: { weight: number; date: string; notes?: stri
 
 export const deleteBodyWeight = (id: string) =>
   api.delete(`/dashboard/bodyweight/${id}`)
+
+export const fetchCoachInsight = () =>
+  api.get<CoachInsight | null>('/dashboard/coach-insight').then((r) => r.data)

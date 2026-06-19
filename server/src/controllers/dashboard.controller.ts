@@ -41,3 +41,7 @@ export const deleteBodyWeight = wrap(async (req, res) => {
   await svc.deleteBodyWeight(req.userId, req.params.id)
   res.status(204).send()
 })
+
+export const getCoachInsight = wrap(async (req, res) => {
+  res.json(await svc.getCoachInsight(req.userId))
+})

@@ -6,15 +6,19 @@ interface MacroBarProps {
   unit?: string
   color: string
   pct: number
+  target?: number
   className?: string
 }
 
-export const MacroBar = ({ label, value, unit = 'g', color, pct, className }: MacroBarProps) => (
+export const MacroBar = ({ label, value, unit = 'g', color, pct, target, className }: MacroBarProps) => (
   <div className={cn('flex flex-col gap-1', className)}>
     <div className="flex items-center justify-between text-xs">
       <span className="font-medium" style={{ color }}>{label}</span>
       <span className="text-text-secondary font-mono">
         {value < 10 ? value.toFixed(1) : Math.round(value)}{unit}
+        {target !== undefined && (
+          <span className="text-text-muted"> / {Math.round(target)}{unit}</span>
+        )}
       </span>
     </div>
     <div className="h-1.5 bg-surface-2 rounded-full overflow-hidden">

@@ -45,3 +45,21 @@ export const me = async (req: Request, res: Response, next: NextFunction) => {
     next(err)
   }
 }
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await authService.changePassword(req.userId, req.body)
+    res.status(204).send()
+  } catch (err) {
+    next(err)
+  }
+}
+
+export const updateAccount = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = await authService.updateAccount(req.userId, req.body)
+    res.json(user)
+  } catch (err) {
+    next(err)
+  }
+}

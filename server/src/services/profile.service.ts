@@ -1,21 +1,24 @@
 import { prisma } from '@/config/prisma'
 
 export interface ProfileInput {
-  birthDate?:          string
-  gender?:             string
-  heightCm?:           number
-  primaryGoal?:        string
-  targetWeightKg?:     number
-  targetDate?:         string
-  fitnessLevel?:       string
-  yearsTraining?:      number
-  activityLevel?:      string
-  occupation?:         string
-  sleepHours?:         number
-  stressLevel?:        number
-  equipment?:          string[]
-  trainingDaysPerWeek?: number
-  sessionDurationMins?: number
+  birthDate?:             string
+  gender?:                string
+  heightCm?:              number
+  primaryGoal?:           string
+  targetWeightKg?:        number
+  targetDate?:            string
+  fitnessLevel?:          string
+  yearsTraining?:         number
+  activityLevel?:         string
+  occupation?:            string
+  sleepHours?:            number
+  stressLevel?:           number
+  equipment?:             string[]
+  trainingDaysPerWeek?:   number
+  sessionDurationMins?:   number
+  bloodPressureSystolic?: number
+  bloodPressureDiastolic?: number
+  injuries?:              string
 }
 
 export const getProfile = (userId: string) =>

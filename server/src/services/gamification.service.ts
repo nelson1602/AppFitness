@@ -2,6 +2,7 @@ import { prisma }              from '@/config/prisma'
 import { GamificationEngine } from '@/engines/gamification/gamification.engine'
 import { ACHIEVEMENTS }       from '@/engines/gamification/achievement.definitions'
 import { XP_TABLE }           from '@/engines/gamification/gamification.types'
+import { emitToUser }         from '@/config/socket'
 import type { GamificationContext } from '@/engines/gamification/gamification.types'
 
 const engine = new GamificationEngine()
@@ -102,9 +103,36 @@ export const checkAndUnlockAchievements = async (
         update: { xp: { increment: bonusXP }, totalXp: { increment: bonusXP } },
       })
     }
+
+    // Push each unlock to the user's socket room in real-time
+    for (const a of newOnes) {
+      emitToUser(userId, 'achievement:unlocked', {
+        key: a.key, name: a.name, icon: a.icon, xpReward: a.xpReward,
+      })
+    }
   }
 
   return newOnes
+}
+
+export const buildGamificationContext = async (
+  userId:    string,
+  overrides: Partial<GamificationContext> = {},
+): Promise<GamificationContext> => {
+  const stats = await getOrCreateStats(userId)
+  return {
+    isFirstWorkout:     stats.workoutsLogged === 1,
+    workoutsLogged:     stats.workoutsLogged,
+    mealsLoggedToday:   0,
+    allMealsLoggedDays: 0,
+    weightsLogged:      stats.weightsLogged,
+    currentStreak:      stats.currentStreak,
+    prsSet:             stats.prsSet,
+    deloadCompleted:    false,
+    returnAfterBreak:   false,
+    goalReached:        false,
+    ...overrides,
+  }
 }
 
 export const getUserGamification = async (userId: string) => {

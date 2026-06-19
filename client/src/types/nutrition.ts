@@ -36,3 +36,10 @@ export interface MacroTotals {
   fat: number
   fiber: number
 }
+
+export interface MacroTargets {
+  targetCalories: number | null
+  targetProteinG: number | null
+  targetCarbsG:   number | null
+  targetFatG:     number | null
+}

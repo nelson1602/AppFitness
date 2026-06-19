@@ -13,6 +13,8 @@ const router = Router()
 
 router.use(authenticate)
 
+router.get('/targets',            c.getTargets)
+
 router.get('/foods',              c.searchFoods)
 router.post('/foods',             validate(createFoodSchema),     c.createFood)
 

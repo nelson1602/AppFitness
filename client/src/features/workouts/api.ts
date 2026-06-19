@@ -1,5 +1,5 @@
 import api from '@/lib/axios'
-import type { Exercise, Routine, WorkoutLog, WorkoutSet } from '@/types/workout'
+import type { Exercise, Routine, WorkoutLog, WorkoutSet, WorkoutSummary, LastPerformance, ExerciseSession } from '@/types/workout'
 
 export const fetchExercises = (params?: { search?: string; muscleGroup?: string }) =>
   api.get<Exercise[]>('/workouts/exercises', { params }).then((r) => r.data)
@@ -44,7 +44,13 @@ export const startWorkout = (data: { name: string; routineId?: string }) =>
   api.post<WorkoutLog>('/workouts/logs', data).then((r) => r.data)
 
 export const finishWorkout = (id: string, notes?: string) =>
-  api.patch<WorkoutLog>(`/workouts/logs/${id}/finish`, { notes }).then((r) => r.data)
+  api.patch<WorkoutSummary>(`/workouts/logs/${id}/finish`, { notes }).then((r) => r.data)
+
+export const fetchLastPerformance = (exerciseId: string) =>
+  api.get<LastPerformance | null>(`/workouts/exercises/${exerciseId}/last-performance`).then((r) => r.data)
+
+export const fetchExerciseHistory = (exerciseId: string, limit = 20) =>
+  api.get<ExerciseSession[]>(`/workouts/exercises/${exerciseId}/history`, { params: { limit } }).then((r) => r.data)
 
 export const deleteWorkoutLog = (id: string) =>
   api.delete(`/workouts/logs/${id}`)

@@ -47,3 +47,7 @@ export const deleteMealItem = wrap(async (req, res) => {
   await svc.deleteMealItem(req.userId, req.params.itemId)
   res.status(204).send()
 })
+
+export const getTargets = wrap(async (req, res) => {
+  res.json(await svc.getTargets(req.userId))
+})

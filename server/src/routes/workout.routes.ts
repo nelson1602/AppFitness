@@ -16,8 +16,10 @@ const router = Router()
 
 router.use(authenticate)
 
-router.get('/exercises',              c.getExercises)
-router.get('/exercises/muscle-groups', c.getMuscleGroups)
+router.get('/exercises',                                 c.getExercises)
+router.get('/exercises/muscle-groups',                   c.getMuscleGroups)
+router.get('/exercises/:exerciseId/last-performance',    c.getLastPerformance)
+router.get('/exercises/:exerciseId/history',             c.getExerciseHistory)
 
 router.get('/routines',              c.getRoutines)
 router.post('/routines',             validate(createRoutineSchema),       c.createRoutine)

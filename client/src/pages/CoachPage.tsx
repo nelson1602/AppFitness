@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
+import { usePageTitle } from '@/hooks/usePageTitle'
+import { useTranslation } from 'react-i18next'
 import { Spinner }   from '@/components/ui/Spinner'
 import { ReadinessCard } from '@/features/health/components/ReadinessCard'
 import { HealthLogForm } from '@/features/health/components/HealthLogForm'
 import { NutritionRecommendationCard, TrainingRecommendationCard } from '@/features/coach/components/RecommendationCard'
-import { ProgressInsights } from '@/features/coach/components/ProgressInsights'
-import { GoalTimeline }     from '@/features/coach/components/GoalTimeline'
-import { fetchCoachReport }  from '@/features/coach/api'
+import { ProgressInsights }          from '@/features/coach/components/ProgressInsights'
+import { GoalTimeline }              from '@/features/coach/components/GoalTimeline'
+import { RoutineRecommendationCard } from '@/features/coach/components/RoutineRecommendationCard'
+import { SupplementCard }            from '@/features/coach/components/SupplementCard'
+import { fetchCoachReport }          from '@/features/coach/api'
 import { fetchTodayHealth }  from '@/features/health/api'
 import type { CoachReport }  from '@/types/engines'
 import type { ReadinessScore } from '@/types/engines'
@@ -13,6 +17,8 @@ import type { ReadinessScore } from '@/types/engines'
 const today = () => new Date().toISOString().split('T')[0]
 
 export const CoachPage = () => {
+  usePageTitle('AI Coach')
+  const { t } = useTranslation()
   const [report,    setReport]    = useState<CoachReport | null>(null)
   const [readiness, setReadiness] = useState<ReadinessScore | null>(null)
   const [hasLog,    setHasLog]    = useState(false)
@@ -35,7 +41,7 @@ export const CoachPage = () => {
   const handleHealthSaved = (r: ReadinessScore) => {
     setReadiness(r)
     setHasLog(true)
-    load()  // re-fetch report with updated readiness
+    load()
   }
 
   if (loading) {
@@ -49,8 +55,8 @@ export const CoachPage = () => {
   return (
     <div className="flex flex-col gap-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">AI Coach</h1>
-        <p className="text-sm text-text-secondary mt-1">Your personalized digital personal trainer</p>
+        <h1 className="text-2xl font-bold text-text-primary">{t('coach.title')}</h1>
+        <p className="text-sm text-text-secondary mt-1">{t('coach.subtitle')}</p>
       </div>
 
       {/* Readiness */}
@@ -78,9 +84,15 @@ export const CoachPage = () => {
           {/* Training recommendation */}
           <TrainingRecommendationCard rec={report.trainingRecommendation} />
 
+          {/* Workout routine */}
+          <RoutineRecommendationCard routine={report.routineRecommendation} />
+
+          {/* Supplementation */}
+          <SupplementCard />
+
           {/* Summary */}
           <div className="bg-surface-2 rounded-xl border border-border p-4">
-            <h3 className="font-semibold text-text-primary mb-2">Weekly Summary</h3>
+            <h3 className="font-semibold text-text-primary mb-2">{t('coach.weekly')}</h3>
             <pre className="text-xs text-text-secondary whitespace-pre-wrap font-sans leading-relaxed">
               {report.summary}
             </pre>

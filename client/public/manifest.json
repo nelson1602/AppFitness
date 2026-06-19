@@ -1,0 +1,26 @@
+{
+  "name": "AppFitness — Digital Personal Trainer",
+  "short_name": "AppFitness",
+  "description": "Your AI-powered digital personal trainer",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0F1117",
+  "theme_color": "#6366F1",
+  "categories": ["health", "fitness"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

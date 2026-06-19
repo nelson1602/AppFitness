@@ -22,4 +22,20 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          charts: ['recharts'],
+          icons: ['lucide-react'],
+          i18n: ['i18next', 'react-i18next'],
+        },
+      },
+    },
+  },
 })

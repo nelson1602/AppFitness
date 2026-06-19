@@ -8,6 +8,7 @@ router.use(authenticate)
 
 router.get('/report',            ctrl.getReport)
 router.post('/apply-nutrition',  ctrl.applyNutrition)
+router.post('/apply-routine',    ctrl.applyRoutine)
 router.post('/snapshot',         ctrl.saveSnapshot)
 
 export default router

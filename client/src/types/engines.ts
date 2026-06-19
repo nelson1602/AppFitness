@@ -85,6 +85,36 @@ export interface NotificationPayload {
   data?:    Record<string, unknown>
 }
 
+// ─── Workout / Routine ────────────────────────────────────────────────────────
+
+export type SplitType = 'full_body' | 'upper_lower' | 'ppl'
+export type DayFocus  = 'full_body' | 'upper' | 'lower' | 'push' | 'pull' | 'legs'
+
+export interface GeneratedExercise {
+  name:        string
+  muscleGroup: string
+  sets:        number
+  reps:        string
+  restSeconds: number
+  isCompound:  boolean
+  notes?:      string
+}
+
+export interface WorkoutDay {
+  dayIndex:              number
+  label:                 string
+  focus:                 DayFocus
+  exercises:             GeneratedExercise[]
+  estimatedDurationMins: number
+}
+
+export interface RoutineRecommendation {
+  splitType:       SplitType
+  days:            WorkoutDay[]
+  totalWeeklySets: number
+  rationale:       string[]
+}
+
 // ─── Coach ───────────────────────────────────────────────────────────────────
 
 export interface CoachReport {
@@ -92,6 +122,7 @@ export interface CoachReport {
   progressAnalysis:         ProgressAnalysis
   nutritionRecommendation:  NutritionAdjustment
   trainingRecommendation:   TrainingAdjustment
+  routineRecommendation:    RoutineRecommendation
   notifications:            NotificationPayload[]
   summary:                  string
   xpEarned:                 number

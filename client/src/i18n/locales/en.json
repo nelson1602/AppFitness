@@ -1,0 +1,229 @@
+{
+  "common": {
+    "save": "Save", "cancel": "Cancel", "delete": "Delete", "add": "Add",
+    "edit": "Edit", "close": "Close", "back": "Back", "next": "Next",
+    "finish": "Finish", "or": "or", "today": "Today", "yesterday": "Yesterday",
+    "day": "day", "days": "days", "kg": "kg", "dismiss": "Dismiss",
+    "resume": "Resume →", "view": "View →", "log": "Log", "new": "New",
+    "required": "Required", "optional": "optional"
+  },
+  "nav": {
+    "dashboard": "Dashboard", "workouts": "Workouts", "nutrition": "Nutrition",
+    "coach": "AI Coach", "progress": "Progress", "profile": "Profile",
+    "home": "Home", "food": "Food", "logOut": "Log out", "achievements": "Achievements"
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back", "subtitle": "Sign in to your account",
+      "email": "Email", "password": "Password", "signIn": "Sign in",
+      "noAccount": "Don't have an account?", "signUp": "Sign up",
+      "showPassword": "Show password", "hidePassword": "Hide password",
+      "errors": {
+        "email": "Enter a valid email address",
+        "password": "Password is required",
+        "server": "Login failed. Please try again."
+      }
+    },
+    "register": {
+      "title": "Create account", "subtitle": "Start your fitness journey",
+      "username": "Username", "usernameHint": "Letters, numbers and underscores only",
+      "email": "Email", "password": "Password", "createAccount": "Create account",
+      "alreadyHave": "Already have an account?", "signIn": "Sign in",
+      "strength": { "weak": "Weak", "fair": "Fair", "strong": "Strong" },
+      "errors": {
+        "usernameShort": "At least 3 characters",
+        "usernameInvalid": "Letters, numbers and underscores only",
+        "email": "Enter a valid email address",
+        "passwordShort": "At least 8 characters",
+        "server": "Registration failed. Please try again."
+      }
+    }
+  },
+  "landing": {
+    "signIn": "Log in", "register": "Register",
+    "badge": "Your digital personal trainer",
+    "heading": "Train with intelligence. Achieve real results.",
+    "subheading": "AI-powered personalized training and nutrition plans. For those who can't afford a personal trainer.",
+    "cta1": "Get started free", "cta2": "I already have an account",
+    "features": {
+      "aiCoach": { "title": "AI Coach", "desc": "Personalized analysis and real-time recommendations based on your full profile." },
+      "routines": { "title": "Personalized Routines", "desc": "Plans adapted to your equipment, available time, level and goal." },
+      "nutrition": { "title": "Nutrition Plan", "desc": "Calories and macros calculated with your TDEE, goal and physical condition." },
+      "progress": { "title": "Progress Tracking", "desc": "Weight, volume and adherence charts. Streaks, achievements and evaluations every 4 weeks." },
+      "readiness": { "title": "Daily Readiness", "desc": "Sleep, energy and stress check-in to adjust today's training intensity." },
+      "fitnessScore": { "title": "Fitness Score", "desc": "Global score measuring your consistency, progress and wellbeing in a single number." }
+    },
+    "ctaTitle": "Ready to start?",
+    "ctaSubtitle": "Create your free account and get your personalized plan in minutes.",
+    "ctaBtn": "Create free account", "footerTagline": "Your digital personal trainer"
+  },
+  "dashboard": {
+    "greeting": "Hey, {{name}} 👋",
+    "stats": {
+      "workouts": "Workouts", "volume": "Volume", "bodyWeight": "Body weight",
+      "notLogged": "not logged", "streak": "Streak", "level": "Level"
+    },
+    "thisWeek": "this week",
+    "bodyWeightCard": { "title": "Body Weight", "subtitle": "Last 12 weeks" },
+    "trainingVolume": { "title": "Training Volume", "subtitle": "Last 8 weeks (kg lifted)" },
+    "nutritionWeek": { "title": "This Week's Nutrition", "subtitle": "Daily calories by macro (kcal)" }
+  },
+  "workouts": {
+    "title": "Workouts", "subtitle": "Your routines and training logs",
+    "tabs": { "routines": "Routines", "history": "History" },
+    "emptyRoutines": "No routines yet", "createFirst": "Create your first routine",
+    "emptyHistory": "No workouts logged yet",
+    "deleteModal": {
+      "title": "Delete routine",
+      "message": "This action cannot be undone. All associated data will be permanently removed."
+    },
+    "exercises_one": "{{count}} exercise", "exercises_other": "{{count}} exercises",
+    "startWorkout": "Start workout", "vol": "{{vol}} kg vol"
+  },
+  "routine": {
+    "newTitle": "New Routine", "editTitle": "Edit Routine",
+    "name": "Name", "namePlaceholder": "Push Day A", "nameRequired": "Routine name is required",
+    "description": "Description (optional)", "descPlaceholder": "Upper body push focus",
+    "exercises": "Exercises", "noExercises": "No exercises added yet",
+    "addFirstExercise": "Add your first exercise",
+    "sets": "Sets", "reps": "Reps", "weightKg": "kg",
+    "saveBtn": "Save Routine", "updateBtn": "Update Routine"
+  },
+  "activeWorkout": {
+    "title": "Active Workout", "finishConfirm": "Finish this workout?",
+    "complete": {
+      "title": "Workout Complete!", "duration": "Duration", "volume": "Volume",
+      "sets": "Sets done", "xp": "XP earned",
+      "prs_one": "{{count}} Personal Record Set!", "prs_other": "{{count}} Personal Records Set!",
+      "achievements": "Achievements Unlocked", "back": "Back to Workouts"
+    },
+    "noExercises": "No exercises yet. Add one below.",
+    "prev": "prev: {{reps}} × {{weight}} kg",
+    "columns": { "set": "#", "reps": "Reps", "weight": "Weight", "rpe": "RPE" },
+    "addSet": "Add set", "addExercise": "Add exercise"
+  },
+  "workoutLog": {
+    "title": "Workout Log", "notFound": "Workout not found.", "back": "← Back to workouts",
+    "stats": { "duration": "Duration", "exercises": "Exercises", "volume": "Volume", "sets": "Sets done" },
+    "noSets": "No sets recorded",
+    "columns": { "set": "Set", "weight": "Weight", "reps": "Reps", "rpe": "RPE" },
+    "history": "↗ history", "volKg": "Volume: {{vol}} kg"
+  },
+  "nutrition": {
+    "title": "Nutrition", "calories": "Calories", "kcalRemaining": "{{amount}} kcal remaining",
+    "prevDay": "Previous day", "nextDay": "Next day",
+    "noMeals": "No meals logged for {{date}}",
+    "addMeal": "Add meal",
+    "deleteMeal": {
+      "title": "Delete meal",
+      "message": "This will remove the meal and all its food entries. This action cannot be undone."
+    },
+    "macros": { "protein": "Protein", "carbs": "Carbs", "fat": "Fat", "fiber": "Fiber" },
+    "presets": { "breakfast": "Breakfast", "lunch": "Lunch", "dinner": "Dinner", "snack": "Snack" },
+    "orCustom": "or custom", "mealNamePlaceholder": "Meal name...", "addFood": "Add food"
+  },
+  "coach": {
+    "title": "AI Coach", "subtitle": "Your personalized digital personal trainer", "weekly": "Weekly Summary"
+  },
+  "progress": {
+    "title": "Progress", "subtitle": "Your fitness journey at a glance",
+    "stats": { "workouts": "Workouts", "prs": "PRs Set", "streak": "Streak", "adherence": "Adherence", "thisWeek": "this week" },
+    "deload": { "title": "Deload Week Recommended", "message": "Accumulated fatigue detected. Reduce volume this week." },
+    "plateau": { "title": "Progress Plateau Detected", "duration": "No significant change for {{duration}} weeks.", "message": "Your progress has stalled." },
+    "goalTimeline": {
+      "title": "Goal Timeline", "estimated": "Estimated date", "weeksLeft": "Weeks left",
+      "rate": "Rate / week", "confidence": "Confidence",
+      "logNeeded": "Log body weight regularly to see your goal timeline."
+    },
+    "weightTrend": "Weight trend", "volumeTrend": "Volume trend", "vsPrev": "vs. previous week",
+    "adherenceTitle": "Weekly Training Adherence", "daysTrained": "{{actual}} / {{target}} days trained"
+  },
+  "profile": {
+    "title": "Your Profile", "subtitle": "Accurate data enables every engine to work optimally for you.",
+    "tabs": { "profile": "Profile & Health", "account": "Account" },
+    "accountInfo": "Account Info", "email": "Email", "phone": "Phone",
+    "avatarUrl": "Avatar URL", "avatarHint": "Link to your profile picture", "avatarPreview": "Preview",
+    "saveAccount": "Save Account Info", "changePassword": "Change Password",
+    "currentPassword": "Current Password", "newPassword": "New Password",
+    "passwordHint": "At least 8 characters", "changePasswordBtn": "Change Password",
+    "preferences": "Preferences", "language": "Language",
+    "languages": { "en": "English", "es": "Español" }
+  },
+  "gamification": {
+    "title": "Achievements", "heading": "Progress & Achievements",
+    "unlocked": "{{count}} / {{total}} achievements unlocked"
+  },
+  "onboarding": {
+    "appName": "AppFitness",
+    "steps": { "about": "About You", "weightGoal": "Weight & Goal", "training": "Training", "lifestyle": "Lifestyle" },
+    "hints": {
+      "0": "We need this to calculate your TDEE and personalize every engine.",
+      "1": "Your current weight sets calorie targets. Choose a goal we'll train toward together.",
+      "2": "This shapes your workout program — intensity, schedule, and available gear.",
+      "3": "Lifestyle factors affect recovery and daily energy expenditure."
+    },
+    "fields": {
+      "dob": "Date of Birth", "gender": "Gender", "heightCm": "Height (cm)", "heightPlaceholder": "175",
+      "weightKg": "Current Weight (kg)", "weightPlaceholder": "75", "primaryGoal": "Primary Goal",
+      "targetWeight": "Target Weight (kg)", "targetWeightPlaceholder": "70", "targetDate": "Target Date",
+      "expLevel": "Experience Level", "yearsTrain": "Years training", "daysWeek": "Days / week",
+      "minSession": "Min / session", "equipment": "Available Equipment",
+      "activityLevel": "Daily Activity Level", "occupation": "Occupation (optional)",
+      "occupationPlaceholder": "e.g. Office worker, construction...",
+      "sleep": "Sleep (hrs/night)", "stress": "Stress Level"
+    },
+    "genders": { "male": "Male", "female": "Female", "other": "Other" },
+    "goals": {
+      "loseFat": { "label": "Lose Fat", "desc": "Reduce body fat while preserving muscle" },
+      "buildMuscle": { "label": "Build Muscle", "desc": "Increase muscle mass and strength" },
+      "maintain": { "label": "Maintain", "desc": "Keep your current physique" },
+      "performance": { "label": "Improve Performance", "desc": "Athletic endurance & performance" }
+    },
+    "levels": {
+      "beginner": { "label": "Beginner", "desc": "Less than 1 year of consistent training" },
+      "intermediate": { "label": "Intermediate", "desc": "1–3 years of consistent training" },
+      "advanced": { "label": "Advanced", "desc": "3+ years of serious training" }
+    },
+    "activity": {
+      "sedentary": { "label": "Sedentary", "desc": "Desk job, little daily movement" },
+      "light": { "label": "Light", "desc": "1–3 light workouts per week" },
+      "moderate": { "label": "Moderate", "desc": "3–5 workouts per week" },
+      "active": { "label": "Active", "desc": "6–7 workouts per week" },
+      "veryActive": { "label": "Very Active", "desc": "Physical job + daily training" }
+    },
+    "equipment": {
+      "bodyweight": "Bodyweight", "bands": "Bands", "dumbbells": "Dumbbells",
+      "kettlebells": "Kettlebells", "barbell": "Barbell", "cables": "Cables", "machines": "Machines"
+    },
+    "stress": { "1": "1 — Very low", "2": "2 — Low", "3": "3 — Moderate", "4": "4 — High", "5": "5 — Very high" },
+    "back": "Back", "continue": "Continue", "finish": "Finish Setup", "error": "Something went wrong. Please try again."
+  },
+  "wellness": {
+    "title": "Daily Readiness",
+    "scores": { "excellent": "Excellent", "good": "Good", "fair": "Fair", "low": "Low" },
+    "sleep": "Sleep hrs", "energy": "Energy", "stress": "Stress", "mood": "Mood",
+    "updateBtn": "Update check-in", "logBtn": "+ Log how you feel today", "cancel": "Cancel", "save": "Save"
+  },
+  "measurements": {
+    "title": "Body Measurements", "logBtn": "Log", "noMeasurements": "No measurements logged yet.",
+    "date": "Date", "bodyFat": "Body Fat (%)", "waist": "Waist (cm)", "hip": "Hip (cm)",
+    "chest": "Chest (cm)", "arm": "Arm (cm)", "neck": "Neck (cm)", "saveBtn": "Save Measurements",
+    "trend": { "title": "Waist & Body Fat Trend", "waist": "Waist (cm)", "bodyFat": "Body Fat (%)" },
+    "stats": { "bodyFat": "Body Fat", "waist": "Waist", "hip": "Hip", "chest": "Chest", "arm": "Arm", "neck": "Neck" }
+  },
+  "offline": { "message": "No connection — some features may be unavailable" },
+  "errors": {
+    "serverError": "Server error — please try again",
+    "tooManyRequests": "Too many requests — please wait a moment",
+    "sessionExpired": "Your session has expired — please log in again",
+    "saveMeasurements": "Failed to save measurements.",
+    "measurementsSuccess": "Measurements saved.",
+    "profileSaved": "Profile saved successfully!",
+    "accountUpdated": "Account updated successfully.",
+    "passwordChanged": "Password changed successfully.",
+    "passwordShort": "New password must be at least 8 characters.",
+    "updateFailed": "Failed to update account.",
+    "passwordFailed": "Failed to change password."
+  },
+  "achievementBanner": { "unlocked": "Achievement Unlocked", "xp": "+{{xp}} XP" }
+}

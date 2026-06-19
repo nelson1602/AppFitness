@@ -15,7 +15,7 @@ const FOOD_SELECT = {
 const MEAL_INCLUDE = {
   items: {
     include: { food: { select: FOOD_SELECT } },
-    orderBy: { createdAt: 'asc' as const },
+    orderBy: { id: 'asc' as const },
   },
 } as const
 
@@ -83,10 +83,29 @@ export const addMealItem = async (userId: string, mealId: string, data: AddMealI
   await assertMealOwner(userId, mealId)
   const food = await prisma.food.findUnique({ where: { id: data.foodId }, select: { id: true } })
   if (!food) throw new AppError('Food not found', 404)
-  return prisma.mealItem.create({
+  const item = await prisma.mealItem.create({
     data: { ...data, mealId },
     include: { food: { select: FOOD_SELECT } },
   })
+  await prisma.userStats.upsert({
+    where:  { userId },
+    update: { mealsLogged: { increment: 1 } },
+    create: { userId, mealsLogged: 1 },
+  })
+  return item
+}
+
+export const getTargets = async (userId: string) => {
+  const profile = await prisma.userProfile.findUnique({
+    where: { userId },
+    select: { targetCalories: true, targetProteinG: true, targetCarbsG: true, targetFatG: true },
+  })
+  return {
+    targetCalories: profile?.targetCalories ?? null,
+    targetProteinG: profile?.targetProteinG ?? null,
+    targetCarbsG:   profile?.targetCarbsG   ?? null,
+    targetFatG:     profile?.targetFatG     ?? null,
+  }
 }
 
 export const updateMealItem = async (userId: string, itemId: string, data: UpdateMealItemInput) => {

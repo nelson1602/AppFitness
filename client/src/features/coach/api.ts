@@ -13,3 +13,8 @@ export const applyNutritionRecommendation = async (): Promise<void> => {
 export const saveWeeklySnapshot = async (): Promise<void> => {
   await api.post('/coach/snapshot')
 }
+
+export const applyRoutineRecommendation = async (): Promise<{ days: number }> => {
+  const { data } = await api.post<{ message: string; days: number }>('/coach/apply-routine')
+  return data
+}
