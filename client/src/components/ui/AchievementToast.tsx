@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { UnlockedAchievement } from '@/types/workout'
 
 interface Props {
@@ -10,21 +10,26 @@ interface ToastItem extends UnlockedAchievement {
 }
 
 export const AchievementToast = ({ achievements }: Props) => {
+  // Snapshot the achievements this instance was mounted with — the effect below
+  // must only ever schedule dismiss timers for this initial batch, not for
+  // whatever the `achievements` prop happens to be on a later render.
+  const initialAchievements = useRef(achievements).current
+
   const [items, setItems] = useState<ToastItem[]>(() =>
-    achievements.map((a) => ({ ...a, visible: true })),
+    initialAchievements.map((a) => ({ ...a, visible: true })),
   )
 
   useEffect(() => {
-    if (!achievements.length) return
+    if (!initialAchievements.length) return
     // Stagger dismiss: first after 4s, each subsequent +1s
-    achievements.forEach((a, i) => {
+    initialAchievements.forEach((a, i) => {
       setTimeout(() => {
         setItems((prev) =>
           prev.map((item) => (item.key === a.key ? { ...item, visible: false } : item)),
         )
       }, 4000 + i * 1000)
     })
-  }, []) // run once on mount
+  }, [initialAchievements])
 
   const visible = items.filter((i) => i.visible)
   if (!visible.length) return null
