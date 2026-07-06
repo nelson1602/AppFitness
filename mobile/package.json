@@ -35,11 +35,13 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@testing-library/react-native": "^14.0.1",
     "@types/jest": "^29.5.14",
     "@types/react": "~19.2.2",
     "eslint": "^9.39.4",
     "eslint-config-expo": "~57.0.0",
     "prettier": "^3.9.4",
+    "react-test-renderer": "^19.2.3",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -62,7 +64,8 @@
       "/node_modules/@react-native/babel-preset/"
     ],
     "testMatch": [
-      "**/src/**/*.spec.ts"
+      "**/src/**/*.spec.ts",
+      "**/src/**/*.spec.tsx"
     ],
     "collectCoverageFrom": [
       "src/features/icoach/domain/**/*.ts",
@@ -75,7 +78,12 @@
       "src/features/profile/infrastructure/**/*.ts",
       "src/features/medical/infrastructure/**/*.ts",
       "src/features/dashboard/application/**/*.ts",
+      "src/features/dashboard/presentation/**/*.tsx",
+      "src/shared/presentation/**/*.tsx",
+      "src/app/**/*.tsx",
       "!**/*.spec.ts",
+      "!**/*.spec.tsx",
+      "!src/app/_layout.tsx",
       "!src/shared/infrastructure/sync/index.ts",
       "!src/shared/infrastructure/sync/types.ts",
       "!src/shared/infrastructure/logging/index.ts",
@@ -142,6 +150,18 @@
         "statements": 85,
         "lines": 85,
         "functions": 85,
+        "branches": 70
+      },
+      "src/features/dashboard/presentation/": {
+        "statements": 85,
+        "lines": 85,
+        "functions": 80,
+        "branches": 70
+      },
+      "src/shared/presentation/": {
+        "statements": 85,
+        "lines": 85,
+        "functions": 80,
         "branches": 70
       }
     }
