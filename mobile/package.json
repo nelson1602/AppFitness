@@ -39,6 +39,7 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.39.4",
     "eslint-config-expo": "~57.0.0",
+    "prettier": "^3.9.4",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -48,17 +49,39 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
     "test": "jest"
   },
   "private": true,
   "jest": {
     "preset": "jest-expo",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@sentry/react-native|native-base|standard-navigation|@noble))",
+      "/node_modules/react-native-reanimated/plugin/",
+      "/node_modules/@react-native/babel-preset/"
+    ],
     "testMatch": [
       "**/src/**/*.spec.ts"
     ],
     "collectCoverageFrom": [
       "src/features/icoach/domain/**/*.ts",
-      "!src/features/icoach/domain/**/*.spec.ts"
+      "src/shared/infrastructure/sync/**/*.ts",
+      "src/shared/infrastructure/crypto/**/*.ts",
+      "src/shared/infrastructure/logging/**/*.ts",
+      "src/features/authentication/application/**/*.ts",
+      "src/features/authentication/infrastructure/**/*.ts",
+      "src/features/authentication/presentation/**/*.ts",
+      "src/features/profile/infrastructure/**/*.ts",
+      "src/features/medical/infrastructure/**/*.ts",
+      "src/features/dashboard/application/**/*.ts",
+      "!**/*.spec.ts",
+      "!src/shared/infrastructure/sync/index.ts",
+      "!src/shared/infrastructure/sync/types.ts",
+      "!src/shared/infrastructure/logging/index.ts",
+      "!src/features/authentication/infrastructure/auth-api.ts",
+      "!src/features/profile/infrastructure/sync-appliers.ts",
+      "!src/features/medical/infrastructure/sync-appliers.ts"
     ],
     "coverageThreshold": {
       "src/features/icoach/domain/": {
@@ -66,6 +89,60 @@
         "lines": 95,
         "functions": 95,
         "branches": 90
+      },
+      "src/shared/infrastructure/sync/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 90,
+        "branches": 80
+      },
+      "src/shared/infrastructure/crypto/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 90
+      },
+      "src/shared/infrastructure/logging/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 90
+      },
+      "src/features/authentication/application/": {
+        "statements": 90,
+        "lines": 90,
+        "functions": 80,
+        "branches": 85
+      },
+      "src/features/authentication/infrastructure/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 90
+      },
+      "src/features/authentication/presentation/": {
+        "statements": 45,
+        "lines": 50,
+        "functions": 25,
+        "branches": 65
+      },
+      "src/features/profile/infrastructure/": {
+        "statements": 90,
+        "lines": 90,
+        "functions": 95,
+        "branches": 75
+      },
+      "src/features/medical/infrastructure/": {
+        "statements": 90,
+        "lines": 90,
+        "functions": 90,
+        "branches": 75
+      },
+      "src/features/dashboard/application/": {
+        "statements": 85,
+        "lines": 85,
+        "functions": 85,
+        "branches": 70
       }
     }
   }

@@ -18,10 +18,10 @@ export function registerProfileSyncAppliers(): void {
     entityType: 'user_profiles',
     applyServerChange: applyServerProfile,
     markConflict: async (entityId, nowIso) => {
-      await run(
-        `UPDATE user_profiles SET sync_status = 'conflict', updated_at = ? WHERE id = ?`,
-        [nowIso, entityId],
-      );
+      await run(`UPDATE user_profiles SET sync_status = 'conflict', updated_at = ? WHERE id = ?`, [
+        nowIso,
+        entityId,
+      ]);
     },
   });
 

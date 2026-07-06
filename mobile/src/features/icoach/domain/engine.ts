@@ -4,12 +4,7 @@ import { planNutrition } from './nutrition';
 import { analyzeRestrictions } from './restrictions';
 import { ENGINE_RULE_VERSION } from './rule-versions';
 import { planTraining } from './training';
-import {
-  CoachAssessment,
-  EngineInput,
-  InvalidEngineInputError,
-  Recommendation,
-} from './types';
+import { CoachAssessment, EngineInput, InvalidEngineInputError, Recommendation } from './types';
 
 /**
  * iCoach Deterministic Engine — orchestrator (.ai/07_ICOACH.md chain):
@@ -179,7 +174,8 @@ export function evaluate(input: EngineInput): CoachAssessment {
       priority: 'MEDIUM',
       title: 'Prioritize sleep',
       explanation: `Averaging ${input.recovery.sleepHours}h of sleep impairs recovery and performance; intensity was reduced accordingly.`,
-      scientificBasis: 'Sleep restriction impairs recovery, glucose metabolism, and training adaptations.',
+      scientificBasis:
+        'Sleep restriction impairs recovery, glucose metabolism, and training adaptations.',
       inputs: { sleepHours: input.recovery.sleepHours },
     });
   }

@@ -52,7 +52,10 @@ export function planNutrition(
 
   const proteinG = roundInt(GOAL_PROTEIN_G_PER_KG[goal] * subject.weightKg);
   const fatG = roundInt(
-    Math.max((calories * FAT_PCT_OF_CALORIES) / KCAL_PER_G.fat, MIN_FAT_G_PER_KG * subject.weightKg),
+    Math.max(
+      (calories * FAT_PCT_OF_CALORIES) / KCAL_PER_G.fat,
+      MIN_FAT_G_PER_KG * subject.weightKg,
+    ),
   );
   const remaining = calories - proteinG * KCAL_PER_G.protein - fatG * KCAL_PER_G.fat;
   const carbsG = Math.max(0, roundInt(remaining / KCAL_PER_G.carbs));

@@ -44,4 +44,3 @@ export function DataGapCard({ gaps, loading, onLoadSampleData }: DataGapCardProp
     </Card>
   );
 }
-

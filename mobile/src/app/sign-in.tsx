@@ -49,7 +49,12 @@ export default function SignInScreen() {
 
         <Card>
           <View style={{ gap: theme.spacing.md }}>
-            <Input label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
+            <Input
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+            />
             {mode === 'register' ? (
               <Input label="Username" value={username} onChangeText={setUsername} />
             ) : null}
@@ -111,4 +116,3 @@ function Input({
     </View>
   );
 }
-

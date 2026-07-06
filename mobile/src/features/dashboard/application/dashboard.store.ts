@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { getAccessToken, refreshTokens } from '@/features/authentication';
+import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
 
 import type { DashboardState, SyncUiStatus } from '../domain/dashboard.types';
@@ -15,7 +16,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     try {
       const data = await loadDashboardData();
       set({ data, status: data.assessment ? 'ready' : 'empty', error: null });
-    } catch {
+    } catch (error) {
+      logError('dashboard.refresh', error);
       set({ status: 'error', error: 'The dashboard could not be loaded right now.' });
     }
   },
@@ -51,7 +53,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           sync: {
             ...data.sync,
             status: syncStatus,
-            lastSyncedAt: outcome.outcome === 'success' ? new Date().toISOString() : data.sync.lastSyncedAt,
+            lastSyncedAt:
+              outcome.outcome === 'success' ? new Date().toISOString() : data.sync.lastSyncedAt,
             message:
               outcome.outcome === 'success'
                 ? null
@@ -62,7 +65,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         },
         status: data.assessment ? 'ready' : 'empty',
       });
-    } catch {
+    } catch (error) {
+      logError('dashboard.syncNow', error);
       const data = await loadDashboardData();
       set({
         data: { ...data, sync: { ...data.sync, status: 'error', message: 'Sync failed.' } },
@@ -76,7 +80,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     try {
       await loadSampleDashboardData();
       await get().refresh();
-    } catch {
+    } catch (error) {
+      logError('dashboard.loadSampleData', error);
       set({ status: 'error', error: 'Sample data could not be created.' });
     }
   },

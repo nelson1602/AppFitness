@@ -47,6 +47,14 @@ describe('ensureLocalUser', () => {
     ]);
   });
 
+  it('defaults the timestamp when none is provided', async () => {
+    await ensureLocalUser(user);
+
+    const [, params] = jest.mocked(run).mock.calls[0];
+    const stamped = (params as unknown[])[6] as string;
+    expect(new Date(stamped).toISOString()).toBe(stamped);
+  });
+
   it('is idempotent by design: repeated calls issue the same upsert', async () => {
     await ensureLocalUser(user, NOW);
     await ensureLocalUser({ ...user, username: 'renamed' }, NOW);

@@ -34,4 +34,3 @@ export function Screen({ children, scroll = true, style }: ScreenProps) {
     </SafeAreaView>
   );
 }
-

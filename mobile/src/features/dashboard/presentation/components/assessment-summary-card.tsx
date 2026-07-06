@@ -16,7 +16,9 @@ export function AssessmentSummaryCard({ assessment }: AssessmentSummaryCardProps
     <Card accessibilityLabel="Today assessment summary">
       <View style={{ gap: theme.spacing.md }}>
         <View>
-          <AppText variant="label" tone="muted">Today&apos;s assessment</AppText>
+          <AppText variant="label" tone="muted">
+            Today&apos;s assessment
+          </AppText>
           <AppText variant="headline">{result.nutrition.calories} kcal</AppText>
           <AppText tone="muted">
             BMI {result.bodyComposition.bmi} / {result.bodyComposition.bmiCategory.toLowerCase()}

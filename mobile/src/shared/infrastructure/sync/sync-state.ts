@@ -7,10 +7,9 @@ import type { SyncStateRow } from '../database/types';
  */
 
 export async function getCursor(entityType: string): Promise<number> {
-  const row = await queryFirst<SyncStateRow>(
-    `SELECT * FROM sync_state WHERE entity_type = ?`,
-    [entityType],
-  );
+  const row = await queryFirst<SyncStateRow>(`SELECT * FROM sync_state WHERE entity_type = ?`, [
+    entityType,
+  ]);
   return row?.last_pulled_seq ?? 0;
 }
 

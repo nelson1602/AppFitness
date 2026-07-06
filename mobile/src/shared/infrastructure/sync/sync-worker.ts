@@ -1,4 +1,5 @@
 import { encryptToBase64 } from '../crypto/field-cipher';
+import { logWarn } from '../logging';
 import { allAppliers, getApplier } from './appliers';
 import { recordConflict } from './sync-conflicts';
 import {
@@ -105,9 +106,7 @@ async function pushLoop(
       for (const row of batch) {
         await markFailed(row.op_id, describeError(error), now());
       }
-      return error instanceof SyncHttpError && error.status === 401
-        ? 'unauthenticated'
-        : 'offline';
+      return error instanceof SyncHttpError && error.status === 401 ? 'unauthenticated' : 'offline';
     }
 
     const byOpId = new Map(batch.map((row) => [row.op_id, row]));
@@ -150,8 +149,9 @@ async function pushLoop(
         }
         case 'REJECTED': {
           await removeRejected(result.opId);
-          console.warn(
-            `[sync] operation rejected: ${row.entity_type}/${row.entity_id} (${result.errorCode ?? 'unknown'})`,
+          logWarn(
+            'sync.push',
+            `operation rejected: ${row.entity_type}/${row.entity_id} (${result.errorCode ?? 'unknown'})`,
           );
           report.rejected += 1;
           break;

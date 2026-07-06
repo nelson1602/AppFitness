@@ -127,8 +127,5 @@ export async function applyServerGoal(
 }
 
 export async function markGoalConflict(id: string, nowIso: string): Promise<void> {
-  await run(`UPDATE goals SET sync_status = 'conflict', updated_at = ? WHERE id = ?`, [
-    nowIso,
-    id,
-  ]);
+  await run(`UPDATE goals SET sync_status = 'conflict', updated_at = ? WHERE id = ?`, [nowIso, id]);
 }

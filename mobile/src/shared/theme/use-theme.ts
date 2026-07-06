@@ -26,5 +26,4 @@ export const darkTheme: Theme = { dark: true, colors: darkColors, ...base };
  * Resolves the active theme from the system color scheme.
  * All screens/components read design tokens through this hook.
  */
-export const useTheme = (): Theme =>
-  useColorScheme() === 'dark' ? darkTheme : lightTheme;
+export const useTheme = (): Theme => (useColorScheme() === 'dark' ? darkTheme : lightTheme);

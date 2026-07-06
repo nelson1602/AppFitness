@@ -39,4 +39,3 @@ export interface DashboardState {
   syncNow: () => Promise<void>;
   loadSampleData: () => Promise<void>;
 }
-

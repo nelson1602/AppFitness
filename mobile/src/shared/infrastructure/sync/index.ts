@@ -15,8 +15,4 @@ export { getCursor, setCursor } from './sync-state';
 export { allAppliers, getApplier, registerApplier, type EntityApplier } from './appliers';
 export { runSync, type SyncDeps, type SyncOutcome, type SyncReport } from './sync-worker';
 export { createSyncTransport, SyncHttpError, type SyncTransport } from './sync-transport';
-export type {
-  EnqueueInput,
-  RecordConflictInput,
-  ServerOperationOutcome,
-} from './types';
+export type { EnqueueInput, RecordConflictInput, ServerOperationOutcome } from './types';

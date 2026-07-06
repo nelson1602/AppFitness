@@ -689,12 +689,12 @@ requires privacy review).
 
 ## [TECHDEBT-003] Dashboard Store Swallows Underlying Errors Silently
 
-Status: Proposed
+Status: Done
 Priority: P2
 Type: Refactor
 Owner: Unassigned
 Created: 2026-07-06
-Updated: 2026-07-06
+Updated: 2026-07-06 (resolved in Phase 11 Step 1)
 
 ### Description
 
@@ -714,9 +714,15 @@ tokens may appear in logs (`05_SECURITY.md`).
 
 ### Acceptance Criteria
 
-- [ ] Store catches route the caught error to a sanctioned logger in dev
-- [ ] No sensitive data in the logged output
-- [ ] User-facing messages unchanged
+- [x] Store catches route the caught error to a sanctioned logger in dev —
+      `mobile/src/shared/infrastructure/logging/logger.ts` (`__DEV__`-gated),
+      wired into dashboard store (refresh/syncNow/loadSampleData),
+      session-storage corrupted-session path, session-manager best-effort
+      logout, and the sync worker's rejected-op warning
+- [x] No sensitive data in the logged output — context keys matching
+      token/password/secret/key/notes/conditions/medications/payload are
+      redacted; covered by `logger.spec.ts`
+- [x] User-facing messages unchanged — asserted by existing store specs
 
 ### Related Documents
 
@@ -818,6 +824,23 @@ tester.
 - [ ] Conflict banner exercised with a real server-side conflict — logic
       code-reviewed; live trigger requires conflicting edits from a second
       writer (natural once Phase 11 edit forms exist)
+
+### Deferred Coverage Gaps (Phase 11 Step 1, 2026-07-06)
+
+Excluded from mobile Jest coverage collection deliberately — each needs a
+capability the current toolchain lacks; close in the Phase 11 component/E2E
+waves:
+
+- `authentication/infrastructure/auth-api.ts` — fetch client; unit-testable
+  with a fetch mock, deferred to keep Step 1 scoped (sync-transport covers
+  the same pattern)
+- `use-session.ts` hook body (~50% covered) — needs a React renderer
+  (React Native Testing Library wave); the snapshot-caching core IS tested;
+  low-water threshold set so coverage cannot silently regress
+- `profile|medical/infrastructure/sync-appliers.ts` — registration glue
+  exercised at app boot; cover via component/E2E waves
+- UI components (`shared/presentation/`, dashboard components, routes) —
+  the 70% UI threshold from `09_TESTING.md` awaits the RNTL wave
 
 ### Related Documents
 

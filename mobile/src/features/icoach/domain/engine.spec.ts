@@ -59,9 +59,7 @@ describe('iCoach engine', () => {
       ...baseInput(),
       fitnessLevel: 'ADVANCED',
       goal: 'STRENGTH',
-      restrictions: [
-        { type: 'DOCTOR_RESTRICTION', severity: 'SEVERE', bodyArea: 'back' },
-      ],
+      restrictions: [{ type: 'DOCTOR_RESTRICTION', severity: 'SEVERE', bodyArea: 'back' }],
     };
     const assessment = evaluate(input);
 

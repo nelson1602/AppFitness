@@ -2,12 +2,7 @@ import { useEffect, useSyncExternalStore } from 'react';
 
 // Import concrete modules, not the feature barrel ('..') — the barrel
 // re-exports this hook, which creates a require cycle.
-import {
-  getSession,
-  getStatus,
-  restoreSession,
-  subscribe,
-} from '../application/session-manager';
+import { getSession, getStatus, restoreSession, subscribe } from '../application/session-manager';
 import type { Session, SessionStatus } from '../domain/session.types';
 
 interface SessionSnapshot {
@@ -43,4 +38,3 @@ export function useSession(): SessionSnapshot {
 
   return current;
 }
-

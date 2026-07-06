@@ -31,10 +31,7 @@ export type RecommendationPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 export type SyncOperationType = 'CREATE' | 'UPDATE' | 'DELETE';
 export type SyncQueueStatus = 'PENDING' | 'IN_FLIGHT' | 'FAILED' | 'CONFLICT';
 export type ConflictResolutionStatus =
-  | 'PENDING'
-  | 'RESOLVED_LOCAL_WINS'
-  | 'RESOLVED_SERVER_WINS'
-  | 'MERGED';
+  'PENDING' | 'RESOLVED_LOCAL_WINS' | 'RESOLVED_SERVER_WINS' | 'MERGED';
 
 /** Columns shared by every synchronized user-data table. */
 export interface SyncedRow {

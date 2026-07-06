@@ -1,9 +1,22 @@
+import { logError } from '../../../shared/infrastructure/logging';
 import type { AuthUser, Session } from '../domain/session.types';
 import * as authApi from '../infrastructure/auth-api';
 import { AuthApiError } from '../infrastructure/auth-api';
 import { ensureLocalUser } from '../infrastructure/local-user.repository';
 import { clearSession, loadSession } from '../infrastructure/session-storage';
-import { getAccessToken, getStatus, restoreSession, signIn, signUp } from './session-manager';
+import {
+  getAccessToken,
+  getStatus,
+  refreshTokens,
+  restoreSession,
+  signIn,
+  signOut,
+  signUp,
+} from './session-manager';
+
+jest.mock('../../../shared/infrastructure/logging', () => ({
+  logError: jest.fn(),
+}));
 
 jest.mock('../infrastructure/auth-api', () => ({
   ...jest.requireActual('../infrastructure/auth-api'),
@@ -110,6 +123,77 @@ describe('session-manager local_user mirroring', () => {
     await restoreSession();
 
     expect(mockEnsureLocalUser).not.toHaveBeenCalled();
+    expect(getStatus()).toBe('unauthenticated');
+  });
+});
+
+describe('session-manager token rotation and sign-out', () => {
+  const mockLogout = jest.mocked(authApi.logout);
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  async function establishSession(): Promise<void> {
+    mockLogin.mockResolvedValue({ accessToken: 'a1', refreshToken: 'r1', user });
+    await signIn({ email: user.email, password: 'password12345' });
+  }
+
+  it('refreshTokens rotates the in-memory and stored tokens', async () => {
+    await establishSession();
+    mockRefresh.mockResolvedValue({ accessToken: 'a2', refreshToken: 'r2' });
+
+    const rotated = await refreshTokens();
+
+    expect(rotated?.accessToken).toBe('a2');
+    expect(getAccessToken()).toBe('a2');
+  });
+
+  it('refreshTokens clears the session on an explicit 401', async () => {
+    await establishSession();
+    mockRefresh.mockRejectedValue(new AuthApiError(401, 'revoked'));
+
+    await expect(refreshTokens()).resolves.toBeNull();
+    expect(mockClearSession).toHaveBeenCalled();
+    expect(getStatus()).toBe('unauthenticated');
+  });
+
+  it('refreshTokens keeps the session on transient failures', async () => {
+    await establishSession();
+    mockRefresh.mockRejectedValue(new Error('network down'));
+
+    await expect(refreshTokens()).resolves.toBeNull();
+    expect(getStatus()).toBe('authenticated');
+    expect(getAccessToken()).toBe('a1');
+  });
+
+  it('refreshTokens is a no-op without a session', async () => {
+    mockLoadSession.mockResolvedValue(null);
+    await restoreSession(); // force unauthenticated state
+
+    await expect(refreshTokens()).resolves.toBeNull();
+    expect(mockRefresh).not.toHaveBeenCalled();
+  });
+
+  it('signOut revokes server-side, clears storage, and goes unauthenticated', async () => {
+    await establishSession();
+    mockLogout.mockResolvedValue(undefined);
+
+    await signOut();
+
+    expect(mockLogout).toHaveBeenCalledWith('r1');
+    expect(mockClearSession).toHaveBeenCalled();
+    expect(getStatus()).toBe('unauthenticated');
+  });
+
+  it('offline sign-out is still a sign-out — revocation failure is logged, not fatal', async () => {
+    await establishSession();
+    mockLogout.mockRejectedValue(new Error('offline'));
+
+    await signOut();
+
+    expect(jest.mocked(logError)).toHaveBeenCalledWith('auth.signOut.logout', expect.anything());
+    expect(mockClearSession).toHaveBeenCalled();
     expect(getStatus()).toBe('unauthenticated');
   });
 });

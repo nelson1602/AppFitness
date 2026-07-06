@@ -1,3 +1,4 @@
+import { logError } from '../../../shared/infrastructure/logging';
 import * as authApi from '../infrastructure/auth-api';
 import { AuthApiError } from '../infrastructure/auth-api';
 import { ensureLocalUser } from '../infrastructure/local-user.repository';
@@ -132,8 +133,9 @@ export async function signOut(): Promise<void> {
     // depend on connectivity.
     try {
       await authApi.logout(session.refreshToken);
-    } catch {
+    } catch (error) {
       // offline sign-out is still a sign-out
+      logError('auth.signOut.logout', error);
     }
   }
   await clearSession();

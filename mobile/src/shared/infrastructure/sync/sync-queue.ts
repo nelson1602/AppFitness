@@ -1,4 +1,4 @@
-import { encryptToBase64 } from '../crypto/field-cipher';
+import { decryptFromBase64, encryptToBase64 } from '../crypto/field-cipher';
 import { queryAll, queryFirst, run } from '../database';
 import type { SyncQueueRow } from '../database/types';
 import { computeNextRetryAt } from './backoff';
@@ -45,7 +45,6 @@ export async function readQueuePayload(
 ): Promise<{ payload: Record<string, unknown>; sensitive: boolean }> {
   const parsed = JSON.parse(row.payload) as Record<string, unknown>;
   if (typeof parsed['__enc'] === 'string') {
-    const { decryptFromBase64 } = await import('../crypto/field-cipher');
     return {
       payload: JSON.parse(await decryptFromBase64(parsed['__enc'])) as Record<string, unknown>,
       sensitive: true,

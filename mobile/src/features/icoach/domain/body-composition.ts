@@ -1,10 +1,4 @@
-import {
-  BmiCategory,
-  BodyComposition,
-  BodyFatCategory,
-  round1,
-  Subject,
-} from './types';
+import { BmiCategory, BodyComposition, BodyFatCategory, round1, Subject } from './types';
 
 /**
  * Body composition calculations. Sources:
@@ -43,11 +37,7 @@ export function classifyBodyFat(sex: Subject['sex'], bodyFatPct?: number): BodyF
   if (bodyFatPct === undefined) return null;
   // OTHER/UNDISCLOSED use the midpoint of the male/female band edges.
   const edges =
-    sex === 'MALE'
-      ? [6, 14, 18, 25]
-      : sex === 'FEMALE'
-        ? [14, 21, 25, 32]
-        : [10, 17.5, 21.5, 28.5];
+    sex === 'MALE' ? [6, 14, 18, 25] : sex === 'FEMALE' ? [14, 21, 25, 32] : [10, 17.5, 21.5, 28.5];
   if (bodyFatPct < edges[0]) return 'ESSENTIAL';
   if (bodyFatPct < edges[1]) return 'ATHLETIC';
   if (bodyFatPct < edges[2]) return 'FIT';

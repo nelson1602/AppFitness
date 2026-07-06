@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
+import { logError } from '../../../shared/infrastructure/logging';
 import type { AuthUser, Session, SessionTokens } from '../domain/session.types';
 
 /**
@@ -38,8 +39,9 @@ export async function loadSession(): Promise<Session | null> {
 
   try {
     return { accessToken, refreshToken, user: JSON.parse(userJson) as AuthUser };
-  } catch {
-    await clearSession(); // corrupted entry — never half-restore a session
+  } catch (error) {
+    logError('auth.loadSession', error); // corrupted entry — never half-restore a session
+    await clearSession();
     return null;
   }
 }

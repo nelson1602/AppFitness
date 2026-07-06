@@ -207,7 +207,9 @@ function mergeRow(existing: UserProfileRow, input: ProfileInput, nowIso: string)
     activity_level: input.activityLevel ?? existing.activity_level,
     occupation: input.occupation !== undefined ? input.occupation : existing.occupation,
     sleep_hours_baseline:
-      input.sleepHoursBaseline !== undefined ? input.sleepHoursBaseline : existing.sleep_hours_baseline,
+      input.sleepHoursBaseline !== undefined
+        ? input.sleepHoursBaseline
+        : existing.sleep_hours_baseline,
     stress_level_baseline:
       input.stressLevelBaseline !== undefined
         ? input.stressLevelBaseline
@@ -215,7 +217,8 @@ function mergeRow(existing: UserProfileRow, input: ProfileInput, nowIso: string)
     equipment: input.equipment !== undefined ? JSON.stringify(input.equipment) : existing.equipment,
     training_days_per_week: input.trainingDaysPerWeek ?? existing.training_days_per_week,
     session_duration_mins: input.sessionDurationMins ?? existing.session_duration_mins,
-    target_calories: input.targetCalories !== undefined ? input.targetCalories : existing.target_calories,
+    target_calories:
+      input.targetCalories !== undefined ? input.targetCalories : existing.target_calories,
     target_protein_g:
       input.targetProteinG !== undefined ? input.targetProteinG : existing.target_protein_g,
     target_carbs_g: input.targetCarbsG !== undefined ? input.targetCarbsG : existing.target_carbs_g,

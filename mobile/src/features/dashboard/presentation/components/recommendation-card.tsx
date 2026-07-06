@@ -10,11 +10,14 @@ interface RecommendationCardProps {
 
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const theme = useTheme();
-  const tone = recommendation.priority === 'CRITICAL' || recommendation.priority === 'HIGH'
-    ? 'warning'
-    : 'primary';
+  const tone =
+    recommendation.priority === 'CRITICAL' || recommendation.priority === 'HIGH'
+      ? 'warning'
+      : 'primary';
   return (
-    <Card accessibilityLabel={`${recommendation.priority.toLowerCase()} recommendation: ${recommendation.title}`}>
+    <Card
+      accessibilityLabel={`${recommendation.priority.toLowerCase()} recommendation: ${recommendation.title}`}
+    >
       <View style={{ gap: theme.spacing.sm }}>
         <AppText variant="caption" tone={tone}>
           {recommendation.category} / {recommendation.priority}
