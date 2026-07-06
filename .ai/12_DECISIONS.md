@@ -1367,6 +1367,105 @@ CPU/latency overhead on medical reads/writes.
 
 ---
 
+## ADR-P007 - Mobile E2E Strategy for Expo Managed App
+
+Status: Accepted (2026-07-06, by project owner)
+Date: 2026-07-06
+Owner: QA/Mobile Architecture
+
+### Context
+
+Phase 11 requires cross-cutting mobile E2E coverage for registration,
+login, evaluation entry, plan generation, offline data entry,
+sync-on-reconnect, and logout.
+
+`.ai/09_TESTING.md` currently says to use Detox for mobile E2E testing.
+However, the current mobile app is still an Expo managed application:
+
+* No `mobile/android/` native project is committed.
+* No `mobile/ios/` native project is committed.
+* No `mobile/eas.json` exists yet.
+* No Detox configuration exists yet.
+
+Detox remains a strong React Native E2E framework, but its project setup
+expects app binaries, native build commands, and binary paths. The Detox
+documentation explicitly says Expo projects have a different setup path
+and should use Expo documentation. Current Expo documentation describes
+E2E testing for managed Expo apps with EAS Workflows and Maestro.
+
+A decision is required before Phase 11 Step 4 installs E2E tooling or
+creates workflows, because choosing Detox now may force native prebuild
+or EAS binary handling, while choosing Maestro would update the current
+testing standard.
+
+### Decision
+
+Use **Maestro with EAS Workflows** for the first mobile E2E automation
+layer while the app remains Expo managed.
+
+Keep Detox as a future option if AppFitness later commits native
+projects, requires deeper gray-box synchronization, or adopts a
+development-build workflow where Detox's additional complexity is
+justified.
+
+### Options Considered
+
+1. **Detox now with native prebuild**
+   * Run `expo prebuild`, commit native `android/` and/or `ios/`, install
+     Detox, and configure native build paths.
+2. **Detox now with EAS-built binaries**
+   * Keep native projects uncommitted, but create EAS build profiles and
+     configure Detox around generated artifacts.
+3. **Maestro with EAS Workflows**
+   * Add EAS build profiles, Maestro flows, and EAS Workflow files for
+     emulator/simulator E2E runs.
+4. **Defer mobile E2E**
+   * Keep unit/component/integration coverage only until later product
+     flows and store-release infrastructure exist.
+
+### Rationale
+
+Maestro with EAS Workflows is the lowest-risk candidate for the current
+Expo managed state. It avoids committing native projects solely for test
+automation, aligns with Expo's current E2E workflow guidance, and is
+sufficient for the first smoke-critical flows: launch, local
+registration/login, dashboard loading, dev-only sample data, sync-visible
+states, and logout once implemented.
+
+Detox remains technically valuable, especially for gray-box
+synchronization and lower-flake React Native tests, but adopting it now
+would expand the native build surface before Phase 12 store-release work
+has decided the broader EAS/native strategy.
+
+### Consequences
+
+Positive:
+
+* Avoids premature native project churn.
+* Keeps Phase 11 incremental and reversible.
+* Provides E2E coverage through Expo-aligned infrastructure.
+* Leaves Detox available as a future upgrade path.
+
+Negative:
+
+* Requires updating `.ai/09_TESTING.md` language if Maestro is accepted.
+* Maestro is black-box and has less app-internal synchronization than
+  Detox.
+* EAS Workflows require Expo/EAS project configuration and may involve
+  external service minutes/cost.
+* Some required flows cannot be fully automated until profile/medical
+  edit forms and logout UI exist.
+
+### Related Documents
+
+* .ai/09_TESTING.md
+* .ai/10_DEPLOYMENT.md
+* .ai/13_MIGRATION_ROADMAP.md
+* ADR-0002
+* ADR-0012
+
+---
+
 # Rejected Decisions
 
 No rejected decisions documented yet.

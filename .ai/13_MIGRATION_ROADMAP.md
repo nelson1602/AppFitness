@@ -857,8 +857,8 @@ cross-cutting E2E coverage that spans multiple features.
 ### Files/Modules Affected
 
 * `.github/workflows/*` (new).
-* Test configs across `mobile/` (Jest, Detox) and `api/` (Jest,
-  Supertest).
+* Test configs across `mobile/` (Jest, Maestro/EAS Workflows) and `api/`
+  (Jest, Supertest).
 
 ### Dependencies
 
@@ -869,6 +869,10 @@ cross-cutting E2E coverage that spans multiple features.
 * Treating this as "where testing starts" contradicts `09_TESTING.md`'s
   Definition of Done — if earlier phases skipped tests waiting for this
   phase, coverage debt compounds and becomes harder to close here.
+* Mobile E2E now follows ADR-P007: Maestro with EAS Workflows while the
+  app remains Expo managed. Detox remains a future option if native
+  projects or development-build requirements justify the added
+  complexity.
 
 ### Validation Commands
 
@@ -876,15 +880,20 @@ cross-cutting E2E coverage that spans multiple features.
   build).
 * Coverage report against thresholds: Domain 90%+, iCoach 95%+, Sync
   90%+, Security-critical 95%+, UI 70%+.
-* Detox E2E run for critical flows.
+* Maestro/EAS E2E run for critical flows.
 
 ### Exit Criteria
 
 * [ ] CI blocks merges on failing type-check/lint/tests.
 * [ ] Coverage thresholds from `09_TESTING.md` met across all categories.
-* [ ] Detox E2E covers: registration, login, evaluation entry, plan
-      generation, offline data entry, sync-on-reconnect, logout.
+* [ ] Maestro/EAS E2E covers: registration, login, evaluation entry,
+      plan generation, offline data entry, sync-on-reconnect, logout.
 * [ ] No skipped tests without documented justification.
+
+**Phase 11 status update (2026-07-06):** PR/mobile/API CI is green on
+`main`; mobile RNTL component coverage is in place; Expo web/native
+bundle exports pass. ADR-P007 is Accepted: proceed with Maestro/EAS
+Workflows for the first mobile E2E automation layer.
 
 ---
 

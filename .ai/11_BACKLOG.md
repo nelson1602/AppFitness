@@ -850,6 +850,38 @@ waves:
 
 ---
 
+## [TEST-003] Decide Mobile E2E Strategy for Expo Managed App
+
+Status: Completed
+Priority: P1
+Type: Testing
+Owner: Unassigned
+Created: 2026-07-06
+Updated: 2026-07-06
+
+### Description
+
+Decide whether Phase 11 Step 4 should implement mobile E2E automation
+with Detox, as currently stated in `.ai/09_TESTING.md`, or with
+Maestro/EAS Workflows, which better matches the current Expo managed app
+state.
+
+### Acceptance Criteria
+
+* [x] ADR-P007 reviewed
+* [x] E2E tool decision accepted
+* [x] Required dependency/workflow changes deferred to Phase 11 Step 4B
+* [x] Deferred E2E coverage gaps documented in ADR-P007
+
+### Related Documents
+
+* .ai/12_DECISIONS.md (ADR-P007)
+* .ai/09_TESTING.md
+* .ai/10_DEPLOYMENT.md
+* .ai/13_MIGRATION_ROADMAP.md (Phase 11)
+
+---
+
 # Documentation Backlog
 
 ## [DOCS-001] Architecture Decision Records

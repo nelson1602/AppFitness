@@ -180,7 +180,13 @@ Required flows:
 - Dashboard refresh
 - Logout
 
-Use Detox for mobile E2E testing.
+Use Maestro with EAS Workflows for mobile E2E testing while the app
+remains Expo managed (ADR-P007).
+
+Detox remains an approved future option if AppFitness later commits
+native projects, requires deeper gray-box synchronization, or adopts a
+development-build workflow where Detox's additional complexity is
+justified.
 
 ---
 
