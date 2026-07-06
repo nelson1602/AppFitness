@@ -1,0 +1,118 @@
+# API CI (Phase 11 Step 2, ADR-0012).
+# PR quality gate for the NestJS backend: Prisma validation, type-check,
+# non-mutating lint/format checks, unit tests with coverage, build, and an
+# e2e job against a disposable Postgres service container that also
+# validates the migrations (prisma migrate deploy).
+#
+# All credentials below are throwaway CI-only values — never production
+# secrets (.ai/10_DEPLOYMENT.md secrets policy).
+name: api-ci
+
+on:
+  pull_request:
+    paths:
+      - 'api/**'
+      - '.github/workflows/api-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - '.github/workflows/api-ci.yml'
+
+defaults:
+  run:
+    working-directory: api
+
+env:
+  # Dummy values so config validation passes; quality jobs never connect.
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/appfitness_ci
+  JWT_ACCESS_SECRET: ci_only_jwt_secret_not_a_real_secret_0000000001
+  JWT_ACCESS_EXPIRES_IN: 15m
+  JWT_REFRESH_EXPIRES_IN: 7d
+  MEDICAL_ENC_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+  MEDICAL_ENC_KEY_ID: ci-dummy-1
+
+jobs:
+  quality:
+    name: Prisma, type-check, lint, format, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Lint (no --fix)
+        run: npm run lint:check
+
+      - name: Format check (no --write)
+        run: npm run format:check
+
+      - name: Unit tests with coverage
+        run: npm test -- --coverage
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage
+          path: api/coverage/lcov.info
+          retention-days: 7
+
+  e2e:
+    name: Migrations + e2e against disposable Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: appfitness_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d appfitness_ci"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Apply migrations to the disposable CI database
+        run: npx prisma migrate deploy
+
+      - name: E2E tests
+        run: npm run test:e2e

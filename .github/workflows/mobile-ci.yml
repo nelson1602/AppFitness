@@ -1,0 +1,81 @@
+# Mobile CI (Phase 11 Step 2, ADR-0012).
+# PR quality gate for the Expo app: type-check, lint, format, unit tests
+# with coverage thresholds, expo-doctor, and iOS/Android bundle export.
+name: mobile-ci
+
+on:
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-ci.yml'
+
+env:
+  EXPO_NO_TELEMETRY: '1'
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  quality:
+    name: Type-check, lint, format, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Unit tests with coverage thresholds
+        run: npm test -- --coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-coverage
+          path: mobile/coverage/lcov.info
+          retention-days: 7
+
+  export:
+    name: Expo doctor + bundle export
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Expo doctor
+        run: npx expo-doctor
+
+      - name: Export iOS and Android bundles (build verification)
+        run: npx expo export --platform ios --platform android
