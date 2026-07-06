@@ -16,6 +16,14 @@ build/
 # Prisma
 server/prisma/migrations/
 
+# Test & tooling caches (generated)
+coverage/
+.jest-cache/
+node-compile-cache/
+
+# Claude Code local (user-specific) settings — shared .claude/settings.json stays tracked
+**/.claude/settings.local.json
+
 # Logs
 *.log
 npm-debug.log*

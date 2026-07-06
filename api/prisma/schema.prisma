@@ -1,0 +1,878 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// AppFitness — PostgreSQL system of record (ADR-0004, ADR-0013 Phase 3)
+//
+// Design record: .ai/15_DATABASE_SCHEMA_DESIGN.md
+// Rules: .ai/04_DATABASE.md (naming, sync metadata, soft deletes, audit)
+//
+// Conventions
+// - Tables/columns: snake_case via @@map/@map. Constraint names: uq_/idx_/fk_.
+// - Synchronized entities carry: UUID id (client-generatable), user_id owner,
+//   created_at, updated_at, version, deleted_at/deleted_by (soft delete),
+//   sync_seq (monotonic pull cursor — assigned by a DB trigger added in the
+//   initial migration's raw SQL; @default(0) here is a pre-migration stub).
+// - deleted_by / resolved_by / replaced_by hold user/token UUIDs without FK
+//   relations (audit metadata, not navigable domain links).
+// - Medical free-text is stored encrypted (Bytes, AES-256-GCM at the app
+//   layer — ADR-P006, Proposed). PostgreSQL never sees plaintext.
+// - CHECK constraints and partial indexes (WHERE deleted_at IS NULL) are not
+//   expressible in Prisma — they are added as reviewed raw SQL in the initial
+//   migration (deferred; live DB validation not yet run).
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Prisma 7: the connection URL lives in prisma.config.ts (CLI/Migrate) and
+// in the PrismaClient driver adapter at runtime — never in this file.
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_DELETION
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNDISCLOSED
+}
+
+enum GoalType {
+  FAT_LOSS
+  MUSCLE_GAIN
+  RECOMPOSITION
+  STRENGTH
+  ENDURANCE
+  GENERAL_HEALTH
+  REHABILITATION
+  MAINTENANCE
+}
+
+enum FitnessLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHT
+  MODERATE
+  ACTIVE
+  VERY_ACTIVE
+}
+
+enum RestrictionType {
+  INJURY
+  CONDITION
+  DOCTOR_RESTRICTION
+}
+
+enum RestrictionSeverity {
+  MILD
+  MODERATE
+  SEVERE
+}
+
+enum ExerciseCategory {
+  STRENGTH
+  CARDIO
+  FLEXIBILITY
+  BODYWEIGHT
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum RecommendationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SyncOperationType {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+enum SyncOperationStatus {
+  APPLIED
+  REJECTED
+  CONFLICT
+}
+
+enum ConflictStatus {
+  PENDING
+  RESOLVED_CLIENT_WINS
+  RESOLVED_SERVER_WINS
+  MERGED
+}
+
+enum AuditAction {
+  ACCOUNT_REGISTER
+  LOGIN
+  LOGOUT
+  AUTH_FAILURE
+  PASSWORD_CHANGE
+  ACCOUNT_UPDATE
+  PROFILE_UPDATE
+  GOAL_CHANGE
+  MEDICAL_EVALUATION_CREATE
+  MEDICAL_EVALUATION_DELETE
+  MEDICAL_RESTRICTION_CHANGE
+  SYNC_CONFLICT
+  PERMISSION_CHANGE
+  ACCOUNT_DELETE_REQUEST
+  DATA_EXPORT_REQUEST
+}
+
+// ─── Identity & Auth ─────────────────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  email        String     @unique(map: "uq_users_email")
+  username     String     @unique(map: "uq_users_username")
+  passwordHash String     @map("password_hash") // Argon2 PHC string (bcrypt tolerated transitionally — Phase 6 rehash-on-login)
+  role         Role       @default(USER)
+  status       UserStatus @default(ACTIVE)
+  phone        String?
+  avatarUrl    String?    @map("avatar_url")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+
+  profile             UserProfile?
+  goals               Goal[]
+  devices             Device[]
+  refreshTokens       RefreshToken[]
+  syncOperations      SyncOperation[]
+  syncConflicts       SyncConflict[]
+  auditLogs           AuditLog[]
+  medicalEvaluations  MedicalEvaluation[]
+  medicalRestrictions MedicalRestriction[]
+  healthLogs          HealthLog[]
+  routines            Routine[]
+  routineExercises    RoutineExercise[]
+  workoutLogs         WorkoutLog[]
+  workoutSets         WorkoutSet[]
+  nutritionLogs       NutritionLog[]
+  meals               Meal[]
+  mealItems           MealItem[]
+  bodyWeights         BodyWeight[]
+  bodyMeasurements    BodyMeasurement[]
+  progressSnapshots   ProgressSnapshot[]
+  recommendations     Recommendation[]
+  coachInsights       CoachInsight[]
+  notifications       Notification[]
+  userAchievements    UserAchievement[]
+  stats               UserStats?
+
+  @@map("users")
+}
+
+model Device {
+  id         String         @id @db.Uuid // client-generated
+  userId     String         @map("user_id") @db.Uuid
+  platform   DevicePlatform
+  name       String?
+  lastSeenAt DateTime?      @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt  DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_devices_user")
+  refreshTokens RefreshToken[]
+  syncOps       SyncOperation[]
+
+  @@index([userId], map: "idx_devices_user")
+  @@map("devices")
+}
+
+model RefreshToken {
+  id           String    @id @default(uuid()) @db.Uuid
+  tokenHash    String    @unique(map: "uq_refresh_tokens_token_hash") @map("token_hash") // hash only — raw token never stored
+  userId       String    @map("user_id") @db.Uuid
+  deviceId     String?   @map("device_id") @db.Uuid
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(6)
+  replacedById String?   @map("replaced_by_id") @db.Uuid // token-family rotation chain (reuse detection)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_refresh_tokens_user")
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull, map: "fk_refresh_tokens_device")
+
+  @@index([userId], map: "idx_refresh_tokens_user")
+  @@map("refresh_tokens")
+}
+
+// ─── Sync Infrastructure (server side of ADR-0006) ──────────────────────────
+
+model SyncOperation {
+  id         String              @id @db.Uuid // client-minted operation UUID = idempotency key
+  userId     String              @map("user_id") @db.Uuid
+  deviceId   String?             @map("device_id") @db.Uuid
+  entityType String              @map("entity_type")
+  entityId   String              @map("entity_id") @db.Uuid
+  operation  SyncOperationType
+  status     SyncOperationStatus
+  errorCode  String?             @map("error_code")
+  appliedAt  DateTime            @default(now()) @map("applied_at") @db.Timestamptz(6)
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_sync_operations_user")
+  device Device? @relation(fields: [deviceId], references: [id], onDelete: SetNull, map: "fk_sync_operations_device")
+
+  @@index([userId, appliedAt], map: "idx_sync_operations_user_applied")
+  @@map("sync_operations")
+}
+
+model SyncConflict {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @map("user_id") @db.Uuid
+  entityType     String         @map("entity_type")
+  entityId       String         @map("entity_id") @db.Uuid
+  clientPayload  Json           @map("client_payload")
+  serverSnapshot Json           @map("server_snapshot")
+  clientVersion  Int            @map("client_version")
+  serverVersion  Int            @map("server_version")
+  status         ConflictStatus @default(PENDING)
+  resolvedBy     String?        @map("resolved_by") @db.Uuid
+  resolvedAt     DateTime?      @map("resolved_at") @db.Timestamptz(6)
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_sync_conflicts_user")
+
+  @@index([userId, status], map: "idx_sync_conflicts_user_status")
+  @@map("sync_conflicts")
+}
+
+// ─── Audit (immutable, insert-only) ──────────────────────────────────────────
+
+model AuditLog {
+  id         String      @id @default(uuid()) @db.Uuid
+  userId     String?     @map("user_id") @db.Uuid // nullable: e.g. failed login for unknown account
+  deviceId   String?     @map("device_id") @db.Uuid
+  action     AuditAction
+  entityType String?     @map("entity_type")
+  entityId   String?     @map("entity_id")
+  metadata   Json        @default("{}") // operational metadata only — never medical/PII values
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull, map: "fk_audit_logs_user")
+
+  @@index([userId, createdAt], map: "idx_audit_logs_user_created")
+  @@index([action, createdAt], map: "idx_audit_logs_action_created")
+  @@map("audit_logs")
+}
+
+// ─── Profile & Goals ─────────────────────────────────────────────────────────
+
+model UserProfile {
+  id                  String        @id @default(uuid()) @db.Uuid
+  userId              String        @unique(map: "uq_user_profiles_user") @map("user_id") @db.Uuid
+  birthDate           DateTime?     @map("birth_date") @db.Date
+  gender              Gender?
+  heightCm            Float?        @map("height_cm")
+  fitnessLevel        FitnessLevel  @default(INTERMEDIATE) @map("fitness_level")
+  yearsTraining       Float         @default(0) @map("years_training")
+  activityLevel       ActivityLevel @default(MODERATE) @map("activity_level")
+  occupation          String?
+  sleepHoursBaseline  Float?        @map("sleep_hours_baseline")
+  stressLevelBaseline Int?          @map("stress_level_baseline")
+  equipment           Json          @default("[]")
+  trainingDaysPerWeek Int           @default(3) @map("training_days_per_week")
+  sessionDurationMins Int           @default(60) @map("session_duration_mins")
+  targetCalories      Int?          @map("target_calories")
+  targetProteinG      Float?        @map("target_protein_g")
+  targetCarbsG        Float?        @map("target_carbs_g")
+  targetFatG          Float?        @map("target_fat_g")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_user_profiles_user")
+
+  @@index([userId, syncSeq], map: "idx_user_profiles_user_syncseq")
+  @@map("user_profiles")
+}
+
+model Goal {
+  id             String    @id @db.Uuid // client-generatable
+  userId         String    @map("user_id") @db.Uuid
+  goalType       GoalType  @map("goal_type")
+  targetWeightKg Float?    @map("target_weight_kg")
+  targetDate     DateTime? @map("target_date") @db.Date
+  isActive       Boolean   @default(true) @map("is_active")
+  startedAt      DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt        DateTime? @map("ended_at") @db.Timestamptz(6)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_goals_user")
+
+  @@index([userId, isActive], map: "idx_goals_user_active")
+  @@index([userId, syncSeq], map: "idx_goals_user_syncseq")
+  @@map("goals")
+}
+
+// ─── Medical (highest sensitivity — ADR-0011; append-only history) ──────────
+
+model MedicalEvaluation {
+  id                     String         @id @db.Uuid // client-generatable
+  userId                 String         @map("user_id") @db.Uuid
+  evaluationDate         DateTime       @map("evaluation_date") @db.Date
+  weightKg               Float?         @map("weight_kg")
+  bodyFatPct             Float?         @map("body_fat_pct")
+  muscleMassKg           Float?         @map("muscle_mass_kg")
+  bloodPressureSystolic  Int?           @map("blood_pressure_systolic")
+  bloodPressureDiastolic Int?           @map("blood_pressure_diastolic")
+  restingHeartRate       Int?           @map("resting_heart_rate")
+  sleepQuality           Int?           @map("sleep_quality")
+  stressLevel            Int?           @map("stress_level")
+  activityLevel          ActivityLevel? @map("activity_level")
+  doctorNotesEnc         Bytes?         @map("doctor_notes_enc") // AES-256-GCM ciphertext (ADR-P006)
+  medicalConditionsEnc   Bytes?         @map("medical_conditions_enc")
+  medicationsEnc         Bytes?         @map("medications_enc")
+  encKeyId               String?        @map("enc_key_id") // key version used for the _enc fields
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_medical_evaluations_user")
+
+  @@index([userId, evaluationDate], map: "idx_medical_evaluations_user_date")
+  @@index([userId, syncSeq], map: "idx_medical_evaluations_user_syncseq")
+  @@map("medical_evaluations")
+}
+
+model MedicalRestriction {
+  id             String               @id @db.Uuid // client-generatable
+  userId         String               @map("user_id") @db.Uuid
+  type           RestrictionType
+  bodyArea       String?              @map("body_area")
+  severity       RestrictionSeverity?
+  notesEnc       Bytes?               @map("notes_enc") // AES-256-GCM ciphertext (ADR-P006)
+  encKeyId       String?              @map("enc_key_id")
+  isActive       Boolean              @default(true) @map("is_active")
+  effectiveFrom  DateTime?            @map("effective_from") @db.Date
+  effectiveUntil DateTime?            @map("effective_until") @db.Date
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_medical_restrictions_user")
+
+  @@index([userId, isActive], map: "idx_medical_restrictions_user_active")
+  @@index([userId, syncSeq], map: "idx_medical_restrictions_user_syncseq")
+  @@map("medical_restrictions")
+}
+
+model HealthLog {
+  id               String   @id @db.Uuid // client-generatable
+  userId           String   @map("user_id") @db.Uuid
+  date             DateTime @db.Date
+  sleepHours       Float?   @map("sleep_hours")
+  sleepQuality     Int?     @map("sleep_quality")
+  energyLevel      Int?     @map("energy_level")
+  stressLevel      Int?     @map("stress_level")
+  restingHeartRate Int?     @map("resting_heart_rate")
+  mood             Int?
+  readinessScore   Float?   @map("readiness_score")
+  notes            String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_health_logs_user")
+
+  @@unique([userId, date], map: "uq_health_logs_user_date")
+  @@index([userId, syncSeq], map: "idx_health_logs_user_syncseq")
+  @@map("health_logs")
+}
+
+// ─── Workout ─────────────────────────────────────────────────────────────────
+
+model Exercise {
+  id           String           @id @default(uuid()) @db.Uuid
+  name         String           @unique(map: "uq_exercises_name")
+  muscleGroup  String           @map("muscle_group")
+  category     ExerciseCategory
+  instructions String?
+  createdBy    String?          @map("created_by") @db.Uuid // null = global catalog entry
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  syncSeq   BigInt    @default(0) @map("sync_seq") // reference data syncs to devices too
+
+  routineExercises RoutineExercise[]
+  workoutSets      WorkoutSet[]
+
+  @@index([muscleGroup], map: "idx_exercises_muscle_group")
+  @@map("exercises")
+}
+
+model Routine {
+  id          String  @id @db.Uuid // client-generatable
+  userId      String  @map("user_id") @db.Uuid
+  name        String
+  description String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_routines_user")
+  exercises   RoutineExercise[]
+  workoutLogs WorkoutLog[]
+
+  @@index([userId, syncSeq], map: "idx_routines_user_syncseq")
+  @@map("routines")
+}
+
+model RoutineExercise {
+  id             String @id @db.Uuid // client-generatable
+  userId         String @map("user_id") @db.Uuid // denormalized owner for sync scoping
+  routineId      String @map("routine_id") @db.Uuid
+  exerciseId     String @map("exercise_id") @db.Uuid
+  order          Int
+  targetSets     Int?   @map("target_sets")
+  targetReps     Int?   @map("target_reps")
+  targetWeightKg Float? @map("target_weight_kg")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_routine_exercises_user")
+  routine  Routine  @relation(fields: [routineId], references: [id], onDelete: Restrict, map: "fk_routine_exercises_routine")
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict, map: "fk_routine_exercises_exercise")
+
+  @@unique([routineId, order], map: "uq_routine_exercises_routine_order")
+  @@index([userId, syncSeq], map: "idx_routine_exercises_user_syncseq")
+  @@map("routine_exercises")
+}
+
+model WorkoutLog {
+  id         String    @id @db.Uuid // client-generatable
+  userId     String    @map("user_id") @db.Uuid
+  routineId  String?   @map("routine_id") @db.Uuid
+  name       String
+  notes      String?
+  startedAt  DateTime  @map("started_at") @db.Timestamptz(6)
+  finishedAt DateTime? @map("finished_at") @db.Timestamptz(6)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_workout_logs_user")
+  routine Routine? @relation(fields: [routineId], references: [id], onDelete: SetNull, map: "fk_workout_logs_routine")
+  sets    WorkoutSet[]
+
+  @@index([userId, startedAt], map: "idx_workout_logs_user_started")
+  @@index([userId, syncSeq], map: "idx_workout_logs_user_syncseq")
+  @@map("workout_logs")
+}
+
+model WorkoutSet {
+  id           String  @id @db.Uuid // client-generatable
+  userId       String  @map("user_id") @db.Uuid // denormalized owner for sync scoping
+  workoutLogId String  @map("workout_log_id") @db.Uuid
+  exerciseId   String  @map("exercise_id") @db.Uuid
+  setNumber    Int     @map("set_number")
+  reps         Int?
+  weightKg     Float?  @map("weight_kg")
+  rpe          Float?
+  completed    Boolean @default(false)
+  notes        String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_workout_sets_user")
+  workoutLog WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Restrict, map: "fk_workout_sets_workout_log")
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Restrict, map: "fk_workout_sets_exercise")
+
+  @@index([workoutLogId], map: "idx_workout_sets_workout_log")
+  @@index([userId, syncSeq], map: "idx_workout_sets_user_syncseq")
+  @@map("workout_sets")
+}
+
+// ─── Nutrition ───────────────────────────────────────────────────────────────
+
+model Food {
+  id        String  @id @db.Uuid // client-generatable (custom foods created offline)
+  name      String
+  brand     String?
+  // macros per 100 g
+  calories  Float
+  protein   Float
+  carbs     Float
+  fat       Float
+  fiber     Float?
+  createdBy String? @map("created_by") @db.Uuid // null = global catalog entry
+  isVerified Boolean @default(false) @map("is_verified")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  mealItems MealItem[]
+
+  // No unique on name: user-created custom foods may collide with catalog names.
+  @@index([name], map: "idx_foods_name")
+  @@map("foods")
+}
+
+model NutritionLog {
+  id     String   @id @db.Uuid // client-generatable
+  userId String   @map("user_id") @db.Uuid
+  date   DateTime @db.Date
+  notes  String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_nutrition_logs_user")
+  meals Meal[]
+
+  @@unique([userId, date], map: "uq_nutrition_logs_user_date")
+  @@index([userId, syncSeq], map: "idx_nutrition_logs_user_syncseq")
+  @@map("nutrition_logs")
+}
+
+model Meal {
+  id             String   @id @db.Uuid // client-generatable
+  userId         String   @map("user_id") @db.Uuid // denormalized owner for sync scoping
+  nutritionLogId String   @map("nutrition_log_id") @db.Uuid
+  type           MealType
+  order          Int      @default(0)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_meals_user")
+  nutritionLog NutritionLog @relation(fields: [nutritionLogId], references: [id], onDelete: Restrict, map: "fk_meals_nutrition_log")
+  items        MealItem[]
+
+  @@index([nutritionLogId], map: "idx_meals_nutrition_log")
+  @@index([userId, syncSeq], map: "idx_meals_user_syncseq")
+  @@map("meals")
+}
+
+model MealItem {
+  id            String @id @db.Uuid // client-generatable
+  userId        String @map("user_id") @db.Uuid // denormalized owner for sync scoping
+  mealId        String @map("meal_id") @db.Uuid
+  foodId        String @map("food_id") @db.Uuid
+  quantityGrams Float  @map("quantity_grams")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_meal_items_user")
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Restrict, map: "fk_meal_items_meal")
+  food Food @relation(fields: [foodId], references: [id], onDelete: Restrict, map: "fk_meal_items_food")
+
+  @@index([mealId], map: "idx_meal_items_meal")
+  @@index([userId, syncSeq], map: "idx_meal_items_user_syncseq")
+  @@map("meal_items")
+}
+
+// ─── Progress ────────────────────────────────────────────────────────────────
+
+model BodyWeight {
+  id       String   @id @db.Uuid // client-generatable
+  userId   String   @map("user_id") @db.Uuid
+  weightKg Float    @map("weight_kg")
+  date     DateTime @db.Date
+  notes    String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_body_weights_user")
+
+  @@unique([userId, date], map: "uq_body_weights_user_date")
+  @@index([userId, syncSeq], map: "idx_body_weights_user_syncseq")
+  @@map("body_weights")
+}
+
+model BodyMeasurement {
+  id         String   @id @db.Uuid // client-generatable
+  userId     String   @map("user_id") @db.Uuid
+  date       DateTime @db.Date
+  bodyFatPct Float?   @map("body_fat_pct")
+  waistCm    Float?   @map("waist_cm")
+  hipCm      Float?   @map("hip_cm")
+  chestCm    Float?   @map("chest_cm")
+  leftArmCm  Float?   @map("left_arm_cm")
+  rightArmCm Float?   @map("right_arm_cm")
+  neckCm     Float?   @map("neck_cm")
+  notes      String?
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_body_measurements_user")
+
+  @@unique([userId, date], map: "uq_body_measurements_user_date")
+  @@index([userId, syncSeq], map: "idx_body_measurements_user_syncseq")
+  @@map("body_measurements")
+}
+
+model ProgressSnapshot {
+  id            String   @id @default(uuid()) @db.Uuid // server-computed weekly rollup
+  userId        String   @map("user_id") @db.Uuid
+  weekStart     DateTime @map("week_start") @db.Date
+  avgWeightKg   Float?   @map("avg_weight_kg")
+  totalVolumeKg Float?   @map("total_volume_kg")
+  avgCalories   Float?   @map("avg_calories")
+  workoutCount  Int      @default(0) @map("workout_count")
+  isDeloadWeek  Boolean  @default(false) @map("is_deload_week")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_progress_snapshots_user")
+
+  @@unique([userId, weekStart], map: "uq_progress_snapshots_user_week")
+  @@index([userId, syncSeq], map: "idx_progress_snapshots_user_syncseq")
+  @@map("progress_snapshots")
+}
+
+// ─── Coach / Engine (immutable outputs per .ai/07_ICOACH.md) ─────────────────
+
+model Recommendation {
+  id              String                 @id @default(uuid()) @db.Uuid
+  userId          String                 @map("user_id") @db.Uuid
+  type            String
+  priority        RecommendationPriority @default(MEDIUM)
+  title           String
+  body            String
+  ruleVersion     String                 @map("rule_version") // explainability: which rule version produced this
+  inputs          Json                   @default("{}") // explainability: inputs the rule consumed
+  actionData      Json                   @default("{}") @map("action_data")
+  scientificBasis String?                @map("scientific_basis")
+  confidence      Float?
+  isRead          Boolean                @default(false) @map("is_read")
+  isApplied       Boolean                @default(false) @map("is_applied")
+  validUntil      DateTime?              @map("valid_until") @db.Date
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_recommendations_user")
+
+  @@index([userId, createdAt], map: "idx_recommendations_user_created")
+  @@index([userId, syncSeq], map: "idx_recommendations_user_syncseq")
+  @@map("recommendations")
+}
+
+model CoachInsight {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  weekStart   DateTime @map("week_start") @db.Date
+  summary     String
+  insights    Json     @default("[]")
+  adjustments Json     @default("{}")
+  ruleVersion String   @map("rule_version")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_coach_insights_user")
+
+  @@unique([userId, weekStart], map: "uq_coach_insights_user_week")
+  @@index([userId, syncSeq], map: "idx_coach_insights_user_syncseq")
+  @@map("coach_insights")
+}
+
+model Notification {
+  id      String  @id @default(uuid()) @db.Uuid
+  userId  String  @map("user_id") @db.Uuid
+  type    String
+  title   String
+  message String
+  data    Json    @default("{}")
+  isRead  Boolean @default(false) @map("is_read")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_notifications_user")
+
+  @@index([userId, createdAt], map: "idx_notifications_user_created")
+  @@index([userId, syncSeq], map: "idx_notifications_user_syncseq")
+  @@map("notifications")
+}
+
+// ─── Gamification ────────────────────────────────────────────────────────────
+
+model Achievement {
+  id          String @id @default(uuid()) @db.Uuid
+  key         String @unique(map: "uq_achievements_key")
+  name        String
+  description String
+  icon        String
+  category    String
+  xpReward    Int    @default(50) @map("xp_reward")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  syncSeq   BigInt    @default(0) @map("sync_seq") // catalog syncs to devices
+
+  userAchievements UserAchievement[]
+
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @db.Uuid // client-generatable (offline unlocks)
+  userId        String   @map("user_id") @db.Uuid
+  achievementId String   @map("achievement_id") @db.Uuid
+  unlockedAt    DateTime @default(now()) @map("unlocked_at") @db.Timestamptz(6)
+  notified      Boolean  @default(false)
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_user_achievements_user")
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Restrict, map: "fk_user_achievements_achievement")
+
+  @@unique([userId, achievementId], map: "uq_user_achievements_user_achievement")
+  @@index([userId, syncSeq], map: "idx_user_achievements_user_syncseq")
+  @@map("user_achievements")
+}
+
+model UserStats {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @unique(map: "uq_user_stats_user") @map("user_id") @db.Uuid
+  xp               Int       @default(0)
+  level            Int       @default(1)
+  totalXp          Int       @default(0) @map("total_xp")
+  currentStreak    Int       @default(0) @map("current_streak")
+  longestStreak    Int       @default(0) @map("longest_streak")
+  lastActivityDate DateTime? @map("last_activity_date") @db.Date
+  workoutsLogged   Int       @default(0) @map("workouts_logged")
+  mealsLogged      Int       @default(0) @map("meals_logged")
+  weightsLogged    Int       @default(0) @map("weights_logged")
+  prsSet           Int       @default(0) @map("prs_set")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_user_stats_user")
+
+  @@map("user_stats")
+}
