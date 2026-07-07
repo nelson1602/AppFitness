@@ -1051,6 +1051,21 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 2 status (2026-07-07): BACKEND DEPLOYABILITY FOUNDATION
+COMPLETE — DEPLOYMENT AWAITS OWNER RAILWAY ACCOUNT.** ADR-P009 Accepted
+(Railway primary, US locality, Development-only). Added
+`api/Dockerfile` (multi-stage node:24-slim, production deps only,
+non-root, no secrets baked in), `api/.dockerignore`, `db:deploy`
+script, and `api/DEPLOYMENT.md` (env vars, Railway setup, pre-deploy
+`npx prisma@7 migrate deploy`, `/health` check, expand-first rollback
+policy). Validated locally end-to-end: image builds; container serves
+`/health` 200 in NODE_ENV=production against disposable Postgres; the
+pre-deploy migrate command runs inside the runtime image (3 migrations
+found, exit 0). Static suite green (build, 30 tests, lint, format,
+prisma validate/generate). Next: owner creates the Railway project per
+DEPLOYMENT.md, then first hosted deploy + smoke. ADR-P010 remains
+Proposed — no Sentry, no expo-updates.
+
 **Phase 12 Step 1 status (2026-07-07): DECISION BASELINE DRAFTED.**
 Approved path: Android internal-testing preparation with a gated
 submission checkpoint (no Play submission, no iOS work yet). ADR-P009

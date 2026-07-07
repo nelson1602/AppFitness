@@ -1561,7 +1561,10 @@ Negative:
 
 ## ADR-P009 - API Hosting Provider and Environment Topology
 
-Status: Proposed (awaiting project owner review)
+Status: **Accepted** (2026-07-07, by project owner — Railway primary /
+Fly.io fallback confirmed; Development-only topology for Phase 12;
+data locality: **US** unless the owner explicitly overrides before the
+first deployment)
 Date: 2026-07-07
 Owner: DevOps/Backend Architecture
 
