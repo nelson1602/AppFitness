@@ -1559,6 +1559,184 @@ Negative:
 
 ---
 
+## ADR-P009 - API Hosting Provider and Environment Topology
+
+Status: Proposed (awaiting project owner review)
+Date: 2026-07-07
+Owner: DevOps/Backend Architecture
+
+### Context
+
+Phase 12 (store-release preparation) requires the first hosted backend:
+internal testers need a reachable API, ADR-P008 stage 2 needs a hosted
+test API for EAS cloud Maestro, and `10_DEPLOYMENT.md` defines a
+Development → Staging → Production environment ladder that currently
+has zero rungs. The api/ is a standard NestJS + Prisma + PostgreSQL
+service with `/health`, committed migrations, and proven boot-on-
+ephemeral-infra behavior (CI). It is not yet containerized. It handles
+encrypted medical data (ADR-P006), so secret custody and data locality
+matter from the first environment.
+
+### Decision (proposed)
+
+1. Host on a **managed container PaaS of the Railway/Fly class**, with
+   **Railway as the primary recommendation** and Fly.io as the named
+   fallback (choice confirmed at acceptance): deploy `api/` from a
+   Dockerfile, attach the platform's managed PostgreSQL, one isolated
+   project/environment per rung.
+2. **Development environment only in Phase 12.** It serves internal
+   testers AND doubles as the ADR-P008 stage-2 hosted test API —
+   pointing the e2e build profile at its HTTPS URL is the entire
+   remaining unlock for EAS cloud Maestro (besides billing). Staging
+   and Production are created later from the same recipe, never shared
+   with Development data.
+3. **Secrets** live only in the platform's secret manager (fresh
+   `JWT_ACCESS_SECRET`, fresh `MEDICAL_ENC_KEY`/`KEY_ID` per ADR-P006,
+   `DATABASE_URL`, monitoring DSN). Never in the repo, never reused
+   from dev machines.
+4. **Migrations** run as a release step: `prisma migrate deploy` against
+   the environment's database before the new image serves traffic.
+   Migration policy stays additive/expand-first per `04_DATABASE.md`;
+   destructive migrations require an explicit approved plan.
+5. **Rollback:** redeploy the previous container image (platform-native
+   one-click/CLI); because migrations are expand-first, the previous
+   image must run against the newer schema. Database restore path =
+   platform snapshot/backup, verified once as part of Phase 12
+   validation.
+
+### Options Considered
+
+1. Railway/Fly-class managed PaaS (chosen)
+2. Render-class managed host
+3. VPS/self-managed Docker host (e.g. Hetzner + compose)
+4. Defer hosting entirely
+
+### Rationale
+
+Railway/Fly-class gives Dockerfile-native deploys, managed Postgres,
+per-environment isolation, built-in secret management, and usage-based
+pricing appropriate for a Development environment — the least
+operational surface for a solo project handling sensitive data.
+Render-class is equivalent in capability but its free/starter tiers
+spin down and its Postgres pricing ladder is less favorable at this
+scale; it remains an acceptable substitute, not the recommendation. A
+self-managed VPS is the cheapest at steady state but transfers OS
+patching, Postgres backups, TLS, and secret custody onto the project —
+exactly the burden `10_DEPLOYMENT.md`'s philosophy avoids at this
+stage. Deferring hosting would block internal testing, ADR-P008 stage
+2, and most of the Phase 12 release checklist.
+
+### Consequences
+
+Positive:
+
+* One recipe (Dockerfile + managed Postgres + secret store) reused for
+  all three environments.
+* Unlocks internal testers, hosted test API, and cloud Maestro with a
+  single environment.
+* Platform-managed TLS satisfies the no-cleartext production posture.
+
+Negative:
+
+* Recurring cost begins (small; Development-sized).
+* Provider lock-in is shallow (Dockerfile + Postgres dump portability)
+  but nonzero.
+* EU/US data-locality choice must be made at project creation and is
+  awkward to change later — flagged for acceptance.
+
+### Related Documents
+
+* .ai/10_DEPLOYMENT.md
+* .ai/05_SECURITY.md
+* .ai/04_DATABASE.md
+* ADR-P006, ADR-P008
+
+---
+
+## ADR-P010 - Monitoring, Crash Reporting, and OTA Update Policy
+
+Status: Proposed (awaiting project owner review)
+Date: 2026-07-07
+Owner: DevOps/Mobile Architecture
+
+### Context
+
+Phase 12's exit criteria require monitoring/error tracking wired and
+verified; `10_DEPLOYMENT.md` says "Use Sentry or equivalent" and lists
+OTA updates as part of the mobile release strategy. Nothing is
+installed. The app handles medical data: crash reports and breadcrumbs
+are a classic PHI-leak channel, and the project's own logger policy
+(TECHDEBT-003) already established redaction-by-default. `expo-updates`
+is not installed and OTA implies an update/rollback policy and store-
+compliance obligations.
+
+### Decision (proposed)
+
+1. **Sentry on both tiers** — `@sentry/react-native` (via the Expo
+   config plugin) in mobile and Sentry's NestJS integration in api —
+   added only after this ADR is Accepted (new dependencies).
+2. **Privacy posture is non-negotiable:** `sendDefaultPii` disabled;
+   `beforeSend` scrubbers on both tiers reusing the TECHDEBT-003
+   redaction key-list (token/password/secret/key/notes/conditions/
+   medications/payload); no request/response bodies or sync payloads in
+   breadcrumbs; user context limited to opaque user id; medical
+   free-text can never appear in events by construction (it is
+   encrypted before it reaches any loggable layer). Scrubbing behavior
+   gets unit tests like the logger did.
+3. **Source maps** uploaded to Sentry during EAS builds via the Sentry
+   Expo plugin so release stack traces are symbolicated; DSNs and auth
+   tokens live in EAS/host secret stores.
+4. **OTA updates: DEFERRED.** `expo-updates` is not adopted in Phase 12.
+   Rationale: no user base yet, OTA adds an update-channel/rollback
+   policy and review-compliance surface, and `10_DEPLOYMENT.md` already
+   constrains OTA to non-native, policy-safe changes. Mobile rollback in
+   Phase 12 is therefore store/track rollback plus a new build.
+   Revisit with its own acceptance gate before Production launch.
+
+### Options Considered
+
+1. Sentry both tiers + OTA deferred (chosen)
+2. Alternative SaaS (Bugsnag-class) or self-hosted (GlitchTip)
+3. No monitoring in Phase 12
+4. Adopt expo-updates now
+
+### Rationale
+
+Sentry has first-party Expo/React Native and NestJS paths, the
+strongest source-map story for EAS builds, and a serviceable free tier
+— and `10_DEPLOYMENT.md` names it. Alternatives add integration work
+without offsetting benefits; self-hosting a monitoring stack
+contradicts the managed-first posture of ADR-P009. Shipping without
+monitoring fails a Phase 12 exit criterion outright. Adopting OTA now
+front-loads policy and compliance cost for zero users.
+
+### Consequences
+
+Positive:
+
+* Release builds become debuggable (symbolicated crashes) before any
+  tester touches them.
+* One redaction policy shared between the dev logger and crash
+  reporting.
+
+Negative:
+
+* Two new dependencies (mobile + api) once Accepted.
+* Crash data leaves the project's infrastructure — mitigated by
+  scrubbing, EU region selection at Sentry org creation (flagged for
+  acceptance), and no-PHI-by-construction.
+* Without OTA, every mobile fix during testing rides a full build +
+  track update cycle.
+
+### Related Documents
+
+* .ai/10_DEPLOYMENT.md
+* .ai/05_SECURITY.md
+* .ai/03_CODING_STANDARDS.md (no silent error swallowing / TECHDEBT-003)
+* ADR-P009
+
+---
+
 # Rejected Decisions
 
 No rejected decisions documented yet.

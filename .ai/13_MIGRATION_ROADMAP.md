@@ -1051,6 +1051,19 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 1 status (2026-07-07): DECISION BASELINE DRAFTED.**
+Approved path: Android internal-testing preparation with a gated
+submission checkpoint (no Play submission, no iOS work yet). ADR-P009
+(API hosting: Railway-class managed PaaS, Development environment
+first, doubling as the ADR-P008 stage-2 hosted test API) and ADR-P010
+(Sentry both tiers with PHI-scrubbing-by-policy; expo-updates/OTA
+deferred) are drafted as **Proposed** — implementation of hosting,
+Dockerfile, eas.json profiles, and monitoring is blocked on their
+acceptance. Release-blocking product item: the dev sign-in surface
+with hardcoded demo credentials must be replaced before any tester
+build (tracked in RELEASE-001 with the compliance artifacts and
+TECHDEBT-002, now P1).
+
 ---
 
 # AI Instructions

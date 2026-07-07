@@ -649,11 +649,15 @@ forward as-is.
 ## [TECHDEBT-002] audit_logs Immutability Trigger Blocks GDPR User Hard-Deletion
 
 Status: Proposed
-Priority: P2
+Priority: P1 (raised from P2 on 2026-07-07: Phase 12 store release
+work makes this release-impacting — a Google Play data-safety form
+cannot truthfully claim account/data deletion while hard-deletion is
+blocked at the database level; resolve before any tester-facing
+release that advertises deletion)
 Type: Refactor
 Owner: Unassigned
 Created: 2026-07-06
-Updated: 2026-07-06
+Updated: 2026-07-07
 
 ### Description
 
@@ -926,6 +930,58 @@ component-test renderHook wave.
 - .ai/12_DECISIONS.md (ADR-P007, ADR-P008)
 - .ai/13_MIGRATION_ROADMAP.md (Phase 11)
 - mobile/e2e/README.md
+
+---
+
+# Release Backlog
+
+## [RELEASE-001] Phase 12 Store-Release Preparation Work Items
+
+Status: Approved
+Priority: P1
+Type: Feature
+Owner: Unassigned
+Created: 2026-07-07
+Updated: 2026-07-07
+
+### Description
+
+Tracks the Phase 12 (Android internal-testing preparation, gated
+submission) work items agreed at the 2026-07-07 planning gate. The
+actual Google Play internal-track submission is a SEPARATE approval
+gate and is not covered by this item.
+
+### Acceptance Criteria
+
+- [ ] ADR-P009 accepted → hosted Development environment live
+      (api Dockerfile, managed Postgres, secrets in host store,
+      `prisma migrate deploy` release step, backup/rollback verified);
+      doubles as the ADR-P008 stage-2 hosted test API
+- [ ] ADR-P010 accepted → Sentry wired on both tiers with scrubbing
+      tests; OTA remains deferred
+- [ ] `eas.json` development/preview/production profiles + submit
+      profile (production = AAB; HTTPS API URLs only outside e2e)
+- [ ] Dev sign-in surface replaced: hardcoded demo credentials removed
+      from source; sign-out surface added (also closes a TEST-004 flow)
+- [ ] Compliance artifacts drafted for owner/legal review: privacy
+      policy, terms of use, health-data disclaimer, Play data-safety
+      matrix derived from actual data flows
+- [ ] TECHDEBT-002 resolved (blocks truthful deletion claims — P1)
+- [ ] Release checklist from `10_DEPLOYMENT.md` passes end-to-end for a
+      production build; rollback plan documented and tested; release
+      notes template in place
+
+### Dependencies
+
+- ADR-P009, ADR-P010 (Proposed — owner acceptance required)
+- Owner-created accounts: Google Play developer, hosting provider,
+  Sentry org; Play service-account key as an EAS secret
+
+### Related Documents
+
+- .ai/10_DEPLOYMENT.md
+- .ai/12_DECISIONS.md (ADR-P008, ADR-P009, ADR-P010)
+- .ai/13_MIGRATION_ROADMAP.md (Phase 12)
 
 ---
 
