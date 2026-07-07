@@ -6,6 +6,12 @@ Fake, synthetic data only. The e2e build pins `EXPO_PUBLIC_API_URL` to
 `http://127.0.0.1:3001`; `adb reverse` maps the device's 127.0.0.1:3001
 to the host, so the app can only ever reach a local backend.
 
+Android blocks cleartext `http://` in release builds by default, so the
+e2e build profile sets `APP_VARIANT=e2e`, which makes `app.config.js`
+load the local `plugins/with-e2e-cleartext.js` config plugin
+(`usesCleartextTraffic=true`). **E2E builds only** — production and all
+other variants never load the plugin and keep cleartext blocked.
+
 ## Flows (`mobile/.maestro/`)
 
 | Flow | Needs API? | What it proves |

@@ -935,16 +935,21 @@ REST, goal via `/sync/push` — validated live, all APPLIED, and
 (`mobile-e2e.yml`: Postgres service + api + Android emulator + Maestro;
 requires an `EXPO_TOKEN` repo secret). Isolation model: fresh disposable
 DB per run; flows submit the prefilled dev identity (typing into
-prefilled RN inputs proved cursor-flaky). **Blocker found during live
-validation:** Android release builds block cleartext HTTP by default
-(APK manifest has no `usesCleartextTraffic`), so the e2e release APK
-cannot reach any `http://` backend — registration/dashboard flows fail
-at the network hop while all UI mechanics pass. Proposed fix awaiting
-approval: a local Expo config plugin (via `@expo/config-plugins`, ships
-with expo — no new dependency) enabling `usesCleartextTraffic` ONLY for
-e2e builds through a dynamic `app.config.js` keyed on an `APP_VARIANT`
-env set in the eas.json e2e profile, then one EAS rebuild and rerun.
-Production builds keep cleartext blocked (05_SECURITY.md).
+prefilled RN inputs proved cursor-flaky). **Cleartext blocker RESOLVED (2026-07-07):** Android release builds
+block cleartext HTTP by default; fixed with a local Expo config plugin
+(`mobile/plugins/with-e2e-cleartext.js`, uses `expo/config-plugins`
+which ships with expo — no new dependency) loaded by a dynamic
+`app.config.js` ONLY when `APP_VARIANT=e2e` (env set in the eas.json
+e2e profile). Verified: default-variant config resolves with no plugin
+and no cleartext; e2e APK manifest carries
+`android:usesCleartextTraffic=true` (aapt-confirmed). Note: a raw
+`android.usesCleartextTraffic` config value is silently ignored — it is
+not an Expo schema field; the plugin is required. **Seeded-backend E2E
+now fully green locally** (EAS build 5890feb2): smoke 12/12,
+registration 8/8 (register → empty dashboard against the local API),
+dashboard-sync 7/7 (server-side seed → real Sync now pull → populated
+dashboard with iCoach output). Remaining: EXPO_TOKEN repo secret for
+the CI dispatch; cloud EAS Maestro still billing-blocked.
 
 **Step 4B hybrid validation (2026-07-07): E2E SMOKE PASSED.** EAS account
 authenticated and project linked (`@nelson1602/appfitness`). The EAS
