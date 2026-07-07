@@ -895,6 +895,22 @@ cross-cutting E2E coverage that spans multiple features.
 bundle exports pass. ADR-P007 is Accepted: proceed with Maestro/EAS
 Workflows for the first mobile E2E automation layer.
 
+**Step 4B status (2026-07-07): E2E FOUNDATION IN PLACE — CLOUD RUN
+BLOCKED ON EAS ACCOUNT.** Added `mobile/.maestro/smoke-auth-surface.yml`
+(launch → session-restore redirect → sign-in surface → register-mode
+round-trip; asserts the `__DEV__`-only sample-data action is absent),
+`mobile/eas.json` (`e2e` profile: internal APK, `EXPO_PUBLIC_API_URL`
+pinned to 127.0.0.1 so an E2E build can never reach a real backend), and
+`mobile/.eas/workflows/e2e-android.yml` (manual-trigger EAS workflow:
+Android e2e build → Maestro job). `android.package` set to
+`com.appfitness.mobile` — owner should confirm before first store
+submission (changeable until then). Executing the workflow requires the
+project owner to authenticate once (`npx eas-cli login` +
+`npx eas-cli init` in `mobile/` to link an EAS projectId), then
+`npx eas-cli workflow:run e2e-android.yml`. Dashboard/registration E2E
+flows need a test backend strategy and stay tracked under the Phase 11
+exit criteria.
+
 ---
 
 # Phase 12 — Prepare Store Release

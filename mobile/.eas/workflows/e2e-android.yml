@@ -1,0 +1,27 @@
+# Phase 11 Step 4B (ADR-P007) — Android E2E: EAS build + Maestro.
+#
+# Manually triggered for now (no `on:` block — run with
+# `npx eas-cli workflow:run e2e-android.yml` from mobile/). A scheduled
+# trigger is a later, separately-approved step.
+#
+# The E2E build points EXPO_PUBLIC_API_URL at 127.0.0.1 (see eas.json
+# `e2e` profile) so it can never reach a real backend; the smoke flow
+# exercises launch/routing only and submits nothing.
+name: E2E Android smoke (Maestro)
+
+jobs:
+  build_android_e2e:
+    name: Build Android E2E APK
+    type: build
+    params:
+      platform: android
+      profile: e2e
+
+  maestro_smoke:
+    name: Run Maestro smoke flows
+    needs: [build_android_e2e]
+    type: maestro
+    params:
+      build_id: ${{ needs.build_android_e2e.outputs.build_id }}
+      flow_path:
+        - .maestro/smoke-auth-surface.yml

@@ -1,0 +1,33 @@
+# Phase 11 Step 4B (ADR-P007) — Android smoke flow.
+#
+# Smallest reliable path: the app launches, Expo Router restores no
+# session (fresh install), redirects to the sign-in surface, and the
+# auth form is interactive. Uses only fake/dev placeholder data — no
+# backend, no real health data. The dashboard flow needs a test API and
+# is tracked separately (TEST-002 / roadmap Phase 11).
+#
+# appId must match `android.package` in app.json.
+appId: com.appfitness.mobile
+---
+- launchApp:
+    clearState: true
+
+# Fresh install: session restore finds nothing → sign-in route.
+- extendedWaitUntil:
+    visible: 'AppFitness'
+    timeout: 30000
+- assertVisible: 'Minimal development sign-in for dashboard validation.'
+- assertVisible: 'Email'
+- assertVisible: 'Password'
+- assertVisible: 'Sign in'
+
+# Routing/interaction: switch to register mode and back.
+- tapOn: 'Create a local account'
+- assertVisible: 'Username'
+- assertVisible: 'Register'
+- tapOn: 'Use existing account'
+- assertVisible: 'Sign in'
+
+# Dev-only seed action must never appear on the auth surface (and the
+# "Load sample data" button is __DEV__-gated in release builds).
+- assertNotVisible: 'Load sample data'
