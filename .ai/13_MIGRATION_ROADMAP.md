@@ -899,10 +899,29 @@ cross-cutting E2E coverage that spans multiple features.
       `api/**` would wait on "Expected" checks — revisit with always-run
       no-op jobs if non-admin contributors join. The billing-blocked EAS
       Maestro workflow is intentionally NOT a required check.
-* [ ] Coverage thresholds from `09_TESTING.md` met across all categories.
-* [ ] Maestro/EAS E2E covers: registration, login, evaluation entry,
+* [~] Coverage thresholds from `09_TESTING.md` met across all categories.
+      — Met and CI-enforced for every category that has code: iCoach 95+,
+      sync 95/80, crypto/security 95, repositories 90, dashboard + shared
+      UI components 85 (above the 70% UI target). Two intentionally
+      phased gaps, enforced at low-water ratchets so they cannot regress:
+      `authentication/presentation` (use-session hook body needs the
+      renderHook wave) and `src/app` route files (collected, visible in
+      reports, no directory threshold yet). Documented deferrals
+      (auth-api client, sync-applier glue) listed in `11_BACKLOG.md`.
+* [~] Maestro/EAS E2E covers: registration, login, evaluation entry,
       plan generation, offline data entry, sync-on-reconnect, logout.
-* [ ] No skipped tests without documented justification.
+      — Covered and proven locally + in CI (run 28889967386):
+      registration, sync-on-reconnect (seeded server data pulled through
+      the real sync path), and dashboard/iCoach-output rendering.
+      Deferred pending UI surfaces that do not exist yet (TEST-004):
+      explicit existing-account login flow, evaluation entry, plan
+      generation beyond dashboard display, offline data entry, logout.
+      EAS *cloud* Maestro execution remains billing-blocked (ADR-P007/
+      P008) — intentionally NOT marked complete.
+* [x] No skipped tests without documented justification. — Verified
+      2026-07-07: zero `.skip`/`xit`/`xdescribe`/`it.todo` across
+      `mobile/src` and `api/src`; 213 mobile + 30 api unit tests plus
+      3 api e2e tests all execute.
 
 **Phase 11 status update (2026-07-06):** PR/mobile/API CI is green on
 `main`; mobile RNTL component coverage is in place; Expo web/native
@@ -950,6 +969,17 @@ registration 8/8 (register → empty dashboard against the local API),
 dashboard-sync 7/7 (server-side seed → real Sync now pull → populated
 dashboard with iCoach output). Remaining: EXPO_TOKEN repo secret for
 the CI dispatch; cloud EAS Maestro still billing-blocked.
+
+**Phase 11 status: CLOSED (2026-07-07), with explicit carry-forwards.**
+Everything automatable with today's app surface is done and enforced:
+PR CI (mobile + api) with branch protection, coverage thresholds across
+all existing code categories, 246 automated tests with zero skips, and
+the seeded-backend Maestro E2E proven locally and on a clean CI runner.
+Carried forward in `11_BACKLOG.md`: TEST-004 (five E2E flows pending
+future UI surfaces + EAS cloud Maestro pending billing + the two phased
+coverage ratchets) and TEST-002 (Phase 10 pending human validation,
+unchanged). These are structurally blocked on future-phase work, not on
+outstanding Phase 11 effort.
 
 **mobile-e2e CI proof COMPLETE (2026-07-07):** with the EXPO_TOKEN repo
 secret in place, the manual `mobile-e2e` workflow ran green end-to-end

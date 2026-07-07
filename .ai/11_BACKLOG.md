@@ -2,7 +2,7 @@
 
 Version: 1.1
 Status: Active
-Last Updated: 2026-07-06
+Last Updated: 2026-07-07
 
 ---
 
@@ -879,6 +879,53 @@ state.
 * .ai/09_TESTING.md
 * .ai/10_DEPLOYMENT.md
 * .ai/13_MIGRATION_ROADMAP.md (Phase 11)
+
+---
+
+## [TEST-004] Phase 11 Carry-Forwards — Deferred E2E Flows, Cloud Maestro, Phased Coverage
+
+Status: Blocked
+Priority: P2
+Type: Testing
+Owner: Unassigned
+Created: 2026-07-07
+Updated: 2026-07-07
+
+### Description
+
+Phase 11 closed (2026-07-07) with the seeded-backend Maestro E2E proven
+locally and in CI. These remaining items are structurally blocked on
+future-phase work and carry forward. Extend the existing foundation
+(`mobile/.maestro/`, `mobile/e2e/seed.mjs`, `mobile-e2e.yml`) — do not
+build a parallel harness.
+
+### Blocked By
+
+Future UI surfaces (forms/auth screens), EAS paid billing, and the
+component-test renderHook wave.
+
+### Acceptance Criteria
+
+- [ ] Existing-account login E2E flow — needs nothing new technically;
+      add alongside the next auth UI touch
+- [ ] Evaluation-entry E2E — pending medical evaluation entry UI
+- [ ] Plan-generation E2E beyond dashboard display — pending dedicated
+      iCoach UI surface
+- [ ] Offline data entry E2E — pending local entry forms (then airplane
+      -mode toggling via adb, per `09_TESTING.md` offline testing)
+- [ ] Logout E2E — pending sign-out UI surface
+- [ ] EAS cloud Maestro workflow (`.eas/workflows/e2e-android.yml`)
+      executed for real — pending paid EAS billing plus the Phase 12
+      hosted test API (ADR-P008 stage 2)
+- [ ] Coverage ratchets raised: `authentication/presentation` low-water
+      (45/50/25/65) to ≥70 after the renderHook wave; a `src/app/`
+      directory threshold once route coverage exists
+
+### Related Documents
+
+- .ai/12_DECISIONS.md (ADR-P007, ADR-P008)
+- .ai/13_MIGRATION_ROADMAP.md (Phase 11)
+- mobile/e2e/README.md
 
 ---
 
