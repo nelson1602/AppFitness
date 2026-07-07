@@ -884,7 +884,21 @@ cross-cutting E2E coverage that spans multiple features.
 
 ### Exit Criteria
 
-* [ ] CI blocks merges on failing type-check/lint/tests.
+* [x] CI blocks merges on failing type-check/lint/tests. — Branch
+      protection enabled on `main` (2026-07-07) requiring all four CI
+      checks: mobile quality ("Type-check, lint, format, tests"), mobile
+      export ("Expo doctor + bundle export"), api quality ("Prisma,
+      type-check, lint, format, unit tests, build"), and api e2e
+      ("Migrations + e2e against disposable Postgres"). Force pushes and
+      branch deletion blocked. Deliberate choices for the current
+      solo-owner repo: no required PR review (self-approval is
+      impossible, it would deadlock merges) and `enforce_admins` off (the
+      owner's direct-push workflow continues; tighten both when a
+      PR-based team flow is adopted). Known caveat: the workflows are
+      path-filtered, so a non-admin PR touching neither `mobile/**` nor
+      `api/**` would wait on "Expected" checks — revisit with always-run
+      no-op jobs if non-admin contributors join. The billing-blocked EAS
+      Maestro workflow is intentionally NOT a required check.
 * [ ] Coverage thresholds from `09_TESTING.md` met across all categories.
 * [ ] Maestro/EAS E2E covers: registration, login, evaluation entry,
       plan generation, offline data entry, sync-on-reconnect, logout.
