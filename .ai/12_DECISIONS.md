@@ -1466,6 +1466,99 @@ Negative:
 
 ---
 
+## ADR-P008 - E2E Test Backend Strategy: Seeded Local API Now, Hosted Test Environment Later
+
+Status: Accepted (2026-07-07, by project owner)
+Date: 2026-07-07
+Owner: QA/Mobile Architecture
+
+### Context
+
+ADR-P007 fixed the mobile E2E harness (Maestro + EAS Workflows) and the
+first smoke flow passed against a real EAS-built release artifact. The
+remaining Phase 11 E2E flows (registration, dashboard, sync) require a
+backend, but:
+
+* The mobile app has no profile/medical entry forms yet and its sample
+  data seeder is `__DEV__`-only (proven absent from release builds), so
+  populated-dashboard state cannot be created through the UI — data must
+  arrive server-side and enter the app through the real sync pull.
+* EAS's hosted Maestro runners cannot reach a developer-local API, and
+  the EAS Maestro job type is billing-blocked anyway.
+* No shared Development environment exists yet (`10_DEPLOYMENT.md`
+  defines one, but deployment work is Phase 12).
+* The server exposes goals only through `/sync/push` — there is no goals
+  REST endpoint.
+
+### Decision
+
+Staged hybrid:
+
+1. **Now:** E2E runs use a **seeded local API** — the real NestJS `api/`
+   plus disposable PostgreSQL, colocated with the Android emulator
+   (developer machine or a single CI runner). The emulator reaches the
+   host via `adb reverse tcp:3001 tcp:3001`, so the e2e build profile
+   keeps `EXPO_PUBLIC_API_URL=http://127.0.0.1:3001` and can never reach
+   a non-local backend.
+2. **Seeding uses public API/sync contracts only** — register/login via
+   `/auth/*`, profile via `PUT /users/me/profile`, evaluations via
+   `POST /medical/evaluations`, and goals by emulating a device push via
+   `/sync/push`. No test-only backend endpoints.
+3. **Fake, synthetic, non-sensitive data only**, unique per run via
+   environment variables.
+4. **Later (Phase 12):** a hosted disposable Development/test API
+   becomes the backend for EAS cloud Maestro runs once billing is
+   enabled — only the E2E build profile URL changes.
+5. GitHub Actions E2E uses the **EAS-built e2e APK artifact**, fetched
+   with an `EXPO_TOKEN` repository secret (no native prebuild in the
+   repo).
+
+### Options Considered
+
+1. Seeded local API (chosen for now)
+2. Mock transport / fake backend compiled into the app
+3. Hosted disposable test API immediately
+4. Staged hybrid of 1 → 3 (chosen)
+
+### Rationale
+
+The seeded local API preserves real behavior end to end — real auth,
+token rotation, sync push/pull, conflict machinery — which is exactly
+the layer where Phase 10 validation found its bugs. It requires zero
+product-code changes and no internet-exposed infrastructure. A mock
+transport was rejected: it would fake the riskiest layers, requires
+inventing a DI seam the app deliberately does not have, and risks
+test-only code paths in release artifacts. An immediate hosted test API
+was rejected as premature infrastructure before Phase 12; it remains
+the planned enabler for EAS cloud Maestro.
+
+### Consequences
+
+Positive:
+
+* Full-fidelity E2E now, at zero infrastructure/billing cost.
+* The seed script's `/sync/push` goal seeding doubles as a
+  second-device sync test of the public contract.
+* The EAS Workflow path (ADR-P007) stays intact; enabling it later is a
+  build-profile URL change plus billing.
+
+Negative:
+
+* EAS cloud Maestro stays blocked until Phase 12 hosting + billing.
+* CI E2E depends on GitHub-hosted Android emulation (flake risk) and an
+  `EXPO_TOKEN` secret for artifact download.
+* The seed script is coupled to the sync wire format for goals until a
+  goals REST endpoint exists.
+
+### Related Documents
+
+* ADR-P007
+* .ai/09_TESTING.md
+* .ai/10_DEPLOYMENT.md
+* .ai/13_MIGRATION_ROADMAP.md
+
+---
+
 # Rejected Decisions
 
 No rejected decisions documented yet.

@@ -1,0 +1,26 @@
+# ADR-P008 — populated dashboard via real sync pull.
+#
+# Run order matters: registration.yml first (creates the session on the
+# device), then `node e2e/seed.mjs` (seeds profile/evaluation/goal
+# server-side through public contracts), then this flow. Launches WITHOUT
+# clearing state so the persisted session restores straight to the
+# dashboard; "Sync now" pulls the seeded data through the real appliers.
+appId: com.appfitness.mobile
+---
+- launchApp
+
+# Session restore → dashboard.
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 30000
+
+# Pull the seeded server data through the real sync path.
+- tapOn: 'Sync now'
+
+# Populated state: assessment summary + recommendations from local iCoach.
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 60000
+- assertVisible: '.*kcal.*'
+- assertVisible: 'iCoach recommendations'
+- assertVisible: 'Local data ready'

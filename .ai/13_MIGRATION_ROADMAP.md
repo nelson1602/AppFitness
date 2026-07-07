@@ -925,6 +925,27 @@ project owner to authenticate once (`npx eas-cli login` +
 flows need a test backend strategy and stay tracked under the Phase 11
 exit criteria.
 
+**Test-backend strategy (2026-07-07, ADR-P008 Accepted): FOUNDATION IN
+PLACE — IN-APP E2E BLOCKED ON CLEARTEXT BUILD CONFIG.** Implemented the
+seeded-local-API strategy: registration + dashboard-sync Maestro flows,
+`mobile/e2e/seed.mjs` (public contracts only: profile/evaluation via
+REST, goal via `/sync/push` — validated live, all APPLIED, and
+`/sync/pull` returns all three seeded entities), local runbook
+(`mobile/e2e/README.md`), and a manual-dispatch GitHub Actions workflow
+(`mobile-e2e.yml`: Postgres service + api + Android emulator + Maestro;
+requires an `EXPO_TOKEN` repo secret). Isolation model: fresh disposable
+DB per run; flows submit the prefilled dev identity (typing into
+prefilled RN inputs proved cursor-flaky). **Blocker found during live
+validation:** Android release builds block cleartext HTTP by default
+(APK manifest has no `usesCleartextTraffic`), so the e2e release APK
+cannot reach any `http://` backend — registration/dashboard flows fail
+at the network hop while all UI mechanics pass. Proposed fix awaiting
+approval: a local Expo config plugin (via `@expo/config-plugins`, ships
+with expo — no new dependency) enabling `usesCleartextTraffic` ONLY for
+e2e builds through a dynamic `app.config.js` keyed on an `APP_VARIANT`
+env set in the eas.json e2e profile, then one EAS rebuild and rerun.
+Production builds keep cleartext blocked (05_SECURITY.md).
+
 **Step 4B hybrid validation (2026-07-07): E2E SMOKE PASSED.** EAS account
 authenticated and project linked (`@nelson1602/appfitness`). The EAS
 Workflow itself is **blocked on billing** — Maestro jobs require a paid

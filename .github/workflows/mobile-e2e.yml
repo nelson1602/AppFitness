@@ -1,0 +1,119 @@
+# Mobile E2E — seeded local API + Android emulator + Maestro (ADR-P008).
+#
+# Manual dispatch only. Everything is colocated on one runner: disposable
+# Postgres service, the real NestJS api, an Android emulator, and the
+# EAS-built release APK (fetched with the EXPO_TOKEN secret). adb reverse
+# maps the app's 127.0.0.1:3001 to the runner-local API — no external
+# backend can be reached. All credentials below are throwaway CI values.
+name: mobile-e2e
+
+on:
+  workflow_dispatch:
+
+env:
+  DATABASE_URL: postgresql://ci:ci@localhost:5432/appfitness_ci
+  JWT_ACCESS_SECRET: ci_only_jwt_secret_not_a_real_secret_0000000001
+  JWT_ACCESS_EXPIRES_IN: 15m
+  JWT_REFRESH_EXPIRES_IN: 7d
+  MEDICAL_ENC_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+  MEDICAL_ENC_KEY_ID: ci-dummy-1
+  PORT: '3001'
+  EXPO_NO_TELEMETRY: '1'
+
+jobs:
+  e2e:
+    name: Registration + dashboard sync (Maestro)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: appfitness_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d appfitness_ci"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 15
+    steps:
+      - name: Require EXPO_TOKEN
+        env:
+          HAS_EXPO_TOKEN: ${{ secrets.EXPO_TOKEN != '' }}
+        run: |
+          if [ "$HAS_EXPO_TOKEN" != "true" ]; then
+            echo "::error::EXPO_TOKEN repository secret is not configured — needed to download the EAS-built e2e APK. Create an access token at https://expo.dev/settings/access-tokens and add it as a repo secret."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+
+      - name: Boot API against disposable Postgres
+        working-directory: api
+        run: |
+          npm ci
+          npx prisma generate
+          npx prisma migrate deploy
+          npm run build
+          nohup node dist/main.js > /tmp/api.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:3001/health && break
+            sleep 2
+          done
+          curl -sf http://127.0.0.1:3001/health
+
+      - name: Download latest EAS e2e APK
+        working-directory: mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          URL=$(npx eas-cli build:list --platform android --build-profile e2e --status finished --limit 1 --json --non-interactive | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const b=JSON.parse(d)[0];if(!b){console.error('no finished e2e build found');process.exit(1)};console.log(b.artifacts.applicationArchiveUrl)})")
+          curl -sL -o /tmp/appfitness-e2e.apk "$URL"
+          ls -la /tmp/appfitness-e2e.apk
+
+      - name: Install Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Enable KVM for hardware-accelerated emulation
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run E2E flows on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          working-directory: mobile
+          script: |
+            adb install -r /tmp/appfitness-e2e.apk
+            adb reverse tcp:3001 tcp:3001
+            maestro test .maestro/smoke-auth-surface.yml
+            maestro test .maestro/registration.yml
+            node e2e/seed.mjs
+            maestro test .maestro/dashboard-sync.yml
+
+      - name: Upload API log and Maestro artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-debug
+          path: |
+            /tmp/api.log
+            ~/.maestro/tests/**
+          retention-days: 7

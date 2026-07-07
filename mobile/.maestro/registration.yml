@@ -1,0 +1,34 @@
+# ADR-P008 — registration → empty dashboard (requires the seeded-local-API
+# setup: api/ running on the host, a FRESH disposable database, and
+# `adb reverse tcp:3001 tcp:3001` so the release build's 127.0.0.1 API URL
+# reaches the host).
+#
+# Isolation comes from the fresh disposable DB per run (matching CI),
+# not from unique identities: the flow registers the prefilled dev
+# identity (demo@appfitness.local / demo) as-is. Replacing prefilled
+# RN TextInput text via tap+erase proved cursor-position-flaky, so the
+# flow deliberately types nothing. Fake, synthetic data only.
+appId: com.appfitness.mobile
+---
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: 'AppFitness'
+    timeout: 30000
+
+# Switch to register mode and submit the prefilled dev identity.
+- tapOn: 'Create a local account'
+- assertVisible: 'Username'
+- tapOn: 'Register'
+
+# Registration hits the local API, then routes to the dashboard, which
+# renders the empty/data-gap state for a brand-new account.
+- extendedWaitUntil:
+    visible: 'Finish your baseline'
+    timeout: 45000
+- assertVisible: 'Create your profile'
+- assertVisible: 'Your local iCoach assessment'
+
+# Dev-only seed action must not exist in release builds.
+- assertNotVisible: 'Load sample data'
