@@ -1051,6 +1051,22 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 2B status (2026-07-07): HOSTED DEVELOPMENT API LIVE AND
+VERIFIED.** Railway project deployed from `api/Dockerfile` with managed
+Postgres and fresh secrets; public HTTPS URL recorded in
+`api/DEPLOYMENT.md` (Railway's default environment name "production"
+appears in the hostname — the tier is Development-only, disposable
+data). Smoke suite passed end-to-end with fake disposable data only:
+`/health` 200, plain-HTTP 301→HTTPS, register 201, login 200, profile
+write 200, `/sync/pull` round-trip returns the written entity. First
+deploy failed with DB-route 500s — root cause: the service's
+`DATABASE_URL` was not the `${{Postgres.DATABASE_URL}}` reference;
+fixed in Railway settings, documented in DEPLOYMENT.md troubleshooting.
+This URL is now available as the ADR-P008 stage-2 hosted test API and
+the future internal-testing `EXPO_PUBLIC_API_URL`. RELEASE-001
+criterion 1: hosted Development environment — met except the one-time
+backup-restore verification, which remains on the setup checklist.
+
 **Phase 12 Step 2 status (2026-07-07): BACKEND DEPLOYABILITY FOUNDATION
 COMPLETE — DEPLOYMENT AWAITS OWNER RAILWAY ACCOUNT.** ADR-P009 Accepted
 (Railway primary, US locality, Development-only). Added

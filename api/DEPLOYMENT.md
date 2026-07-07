@@ -79,6 +79,29 @@ curl -sf http://127.0.0.1:3002/health
 
 (Env values above are throwaway placeholders for the local check only.)
 
+## Current deployment
+
+- **Development** (the only environment, ADR-P009):
+  `https://appfitness-production-1e78.up.railway.app` — verified
+  2026-07-07 (health, register/login, profile write, sync pull; HTTPS
+  only, plain HTTP 301-redirects). Note: "production" in the hostname is
+  Railway's default *environment name*, not our environment tier — this
+  deployment is Development-only and holds disposable data.
+
+## Troubleshooting
+
+- **`/health` 200 but every DB-touching route returns 500:** the
+  database layer is failing behind the opaque error policy. Check, in
+  order: (1) the service's `DATABASE_URL` is the *reference*
+  `${{Postgres.DATABASE_URL}}` — a hand-typed or wrong-variable value is
+  the classic cause (this exact failure occurred on first deploy);
+  (2) the deploy log shows the pre-deploy step printing
+  `N migrations found` — if the command line is absent, the pre-deploy
+  setting didn't save.
+- **Verifying a redeploy actually happened:** `GET /health` returns
+  `uptimeSeconds` — a large value means the old container is still
+  serving.
+
 ## Mobile/E2E tie-in
 
 Once deployed, the hosted Development URL becomes:
