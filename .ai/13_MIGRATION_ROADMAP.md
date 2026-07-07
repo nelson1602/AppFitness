@@ -911,6 +911,18 @@ project owner to authenticate once (`npx eas-cli login` +
 flows need a test backend strategy and stay tracked under the Phase 11
 exit criteria.
 
+**Step 4B hybrid validation (2026-07-07): E2E SMOKE PASSED.** EAS account
+authenticated and project linked (`@nelson1602/appfitness`). The EAS
+Workflow itself is **blocked on billing** — Maestro jobs require a paid
+Expo plan (workflow file was accepted by EAS; only the run is gated).
+Free-hybrid path executed instead: EAS cloud build of the `e2e` profile
+(build 86f5e9a1, FINISHED) → release APK installed on the local Android
+emulator → Maestro 2.6.1 ran `.maestro/smoke-auth-surface.yml` — **all
+12 steps passed**, including the assertion that the `__DEV__`-only
+"Load sample data" action is absent from release builds. Cloud workflow
+E2E remains open until billing is enabled; the Maestro flow itself is
+proven.
+
 ---
 
 # Phase 12 — Prepare Store Release
