@@ -55,7 +55,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: api/package-lock.json
+          cache-dependency-path: |
+            api/package-lock.json
+            mobile/package-lock.json
 
       - name: Boot API against disposable Postgres
         working-directory: api
@@ -70,6 +72,12 @@ jobs:
             sleep 2
           done
           curl -sf http://127.0.0.1:3001/health
+
+      # eas-cli evaluates the dynamic app.config.js, which resolves the
+      # app's config plugins — mobile node_modules must be installed.
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci
 
       - name: Download latest EAS e2e APK
         working-directory: mobile
