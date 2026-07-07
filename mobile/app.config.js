@@ -13,5 +13,13 @@ const IS_E2E = process.env.APP_VARIANT === 'e2e';
 
 module.exports = ({ config }) => ({
   ...config,
-  plugins: [...(config.plugins ?? []), ...(IS_E2E ? ['./plugins/with-e2e-cleartext'] : [])],
+  plugins: [
+    ...(config.plugins ?? []),
+    // Native Sentry SDK wiring (ADR-P010). No org/project/auth options:
+    // source-map upload stays disabled until credentials are approved;
+    // the JS SDK itself is a no-op without a DSN (see
+    // src/shared/infrastructure/monitoring/sentry.ts).
+    '@sentry/react-native/expo',
+    ...(IS_E2E ? ['./plugins/with-e2e-cleartext'] : []),
+  ],
 });

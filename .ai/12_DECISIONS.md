@@ -1658,7 +1658,9 @@ Negative:
 
 ## ADR-P010 - Monitoring, Crash Reporting, and OTA Update Policy
 
-Status: Proposed (awaiting project owner review)
+Status: **Accepted** (2026-07-07, by project owner — Sentry on both
+tiers with the strict privacy controls below; OTA/expo-updates remains
+deferred; DSNs only from environment/secret stores)
 Date: 2026-07-07
 Owner: DevOps/Mobile Architecture
 

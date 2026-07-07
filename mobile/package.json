@@ -5,6 +5,7 @@
   "dependencies": {
     "@expo/ui": "~57.0.4",
     "@noble/ciphers": "^2.2.0",
+    "@sentry/react-native": "~7.11.0",
     "expo": "~57.0.4",
     "expo-constants": "~57.0.3",
     "expo-crypto": "~57.0.0",
@@ -72,6 +73,7 @@
       "src/shared/infrastructure/sync/**/*.ts",
       "src/shared/infrastructure/crypto/**/*.ts",
       "src/shared/infrastructure/logging/**/*.ts",
+      "src/shared/infrastructure/monitoring/**/*.ts",
       "src/features/authentication/application/**/*.ts",
       "src/features/authentication/infrastructure/**/*.ts",
       "src/features/authentication/presentation/**/*.ts",
@@ -115,6 +117,12 @@
         "lines": 95,
         "functions": 95,
         "branches": 90
+      },
+      "src/shared/infrastructure/monitoring/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 85
       },
       "src/features/authentication/application/": {
         "statements": 90,

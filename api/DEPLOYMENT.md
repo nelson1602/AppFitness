@@ -21,6 +21,8 @@ injected via environment variables.
 | `JWT_REFRESH_EXPIRES_IN` | `7d` |
 | `MEDICAL_ENC_KEY` | Fresh base64 32-byte key (ADR-P006). Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
 | `MEDICAL_ENC_KEY_ID` | e.g. `dev-1` |
+| `SENTRY_DSN` | Optional (ADR-P010). Sentry is fully disabled when unset; all events pass privacy scrubbers |
+| `SENTRY_ENVIRONMENT` | e.g. `development` |
 
 Rules: secrets exist ONLY in Railway's variable store. Never reuse
 local `.env` values, never commit values, never share keys between

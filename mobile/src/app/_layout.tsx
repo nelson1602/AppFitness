@@ -3,10 +3,14 @@ import { StatusBar } from 'expo-status-bar';
 
 import { registerMedicalSyncAppliers } from '@/features/medical';
 import { registerProfileSyncAppliers } from '@/features/profile';
+import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
 import { useTheme } from '@/shared/theme';
 
 // Composition root: features register their sync appliers once at app
 // load. The sync worker itself runs on demand (no scheduling yet).
+// Monitoring is a no-op unless the build injects a Sentry DSN
+// (ADR-P010) — dev, tests, and E2E builds run without it.
+initMonitoring();
 registerProfileSyncAppliers();
 registerMedicalSyncAppliers();
 

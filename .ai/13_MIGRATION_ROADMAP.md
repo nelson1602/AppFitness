@@ -1051,6 +1051,26 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 3 status (2026-07-07): PRIVACY-SAFE SENTRY FOUNDATION
+IN PLACE.** ADR-P010 Accepted. api: `@sentry/nestjs` initialized only
+when `SENTRY_DSN` is set (src/instrument.ts), SentryModule +
+SentryGlobalFilter capture unhandled exceptions while preserving normal
+HTTP error responses. mobile: `@sentry/react-native` (~7.11.0, the Expo
+SDK 57-pinned version) initialized only when `EXPO_PUBLIC_SENTRY_DSN`
+is set; native wiring via the `@sentry/react-native/expo` config plugin
+with NO source-map-upload credentials (deferred until approved). Both
+tiers: `sendDefaultPii` off, tracesSampleRate 0 (errors only), and
+tested scrubbers (17 new tests; monitoring dirs threshold-gated ≥95%)
+that redact the TECHDEBT-003 key-list plus telemetry PII keys, strip
+request payloads/cookies/headers/query strings, reduce breadcrumbs to
+method/status/query-less URL, and reduce user context to an opaque
+string/number id. Sentry is inert in dev/CI/tests/e2e builds (no DSN
+anywhere yet). OTA/expo-updates remains deferred. Remaining to
+activate: owner-created Sentry org + DSNs in Railway/EAS secret stores.
+Exit criterion "Monitoring/error tracking wired up and verified" — the
+wiring and scrubbing are verified by tests; live-event verification
+happens when a DSN exists.
+
 **Phase 12 Step 2B status (2026-07-07): HOSTED DEVELOPMENT API LIVE AND
 VERIFIED.** Railway project deployed from `api/Dockerfile` with managed
 Postgres and fresh secrets; public HTTPS URL recorded in

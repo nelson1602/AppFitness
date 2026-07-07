@@ -1,3 +1,6 @@
+// Sentry must initialize before Nest and its dependencies load.
+import './instrument';
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
