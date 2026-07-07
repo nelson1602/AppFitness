@@ -951,6 +951,17 @@ dashboard-sync 7/7 (server-side seed → real Sync now pull → populated
 dashboard with iCoach output). Remaining: EXPO_TOKEN repo secret for
 the CI dispatch; cloud EAS Maestro still billing-blocked.
 
+**mobile-e2e CI proof COMPLETE (2026-07-07):** with the EXPO_TOKEN repo
+secret in place, the manual `mobile-e2e` workflow ran green end-to-end
+on GitHub Actions (run 28889967386): disposable Postgres service → real
+NestJS api → EAS e2e APK download → KVM Android emulator → all three
+Maestro flows (smoke, registration, seeded dashboard-sync). One CI-only
+defect was found and fixed on the first dispatch: eas-cli evaluates the
+dynamic app.config.js, which resolves config plugins from node_modules,
+so the workflow now runs `npm ci` in mobile/ first. E2E flows still
+deferred (no UI yet): evaluation entry, plan generation, logout. EAS
+cloud Maestro remains billing-blocked (ADR-P007/P008 unchanged).
+
 **Step 4B hybrid validation (2026-07-07): E2E SMOKE PASSED.** EAS account
 authenticated and project linked (`@nelson1602/appfitness`). The EAS
 Workflow itself is **blocked on billing** — Maestro jobs require a paid
