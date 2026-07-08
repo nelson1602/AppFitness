@@ -19,7 +19,7 @@ Legend: **PASS** · **BLOCKED** (engineering/asset gap) · **PENDING-HUMAN**
 | 3 | TypeScript passes | PASS | `tsc --noEmit` both packages |
 | 4 | Lint passes | PASS | expo lint / eslint `--max-warnings 0` |
 | 5 | Formatting passes | PASS | prettier `--check` both packages |
-| 6 | Security audit reviewed | PASS (with tracked exceptions) | dedicated `audit` job in both CI workflows (critical-gates prod deps; prints all advisories); findings triaged in `docs/DEPENDENCY_AUDIT.md` (api: 1 high `multer` not reachable via current routes + 3 moderate Prisma dev transitives; mobile: `uuid` moderate) — no unapproved upgrades |
+| 6 | Security audit reviewed | PASS (with tracked exceptions) | dedicated `audit` job in both CI workflows (critical-gates prod deps; prints all advisories); findings triaged in `docs/DEPENDENCY_AUDIT.md`. **No high/critical prod advisories** (multer high remediated Step 8A via platform-express 11.1.28→multer 2.2.0); remaining = api Prisma dev-transitive moderates + mobile `uuid` moderate |
 | 7 | Migrations tested | PASS | `prisma migrate deploy` in api-ci e2e job + local; `account_deletion_cascade` applied & e2e-verified |
 | 8 | Rollback plan exists | PASS (untested) | API rollback (`api/DEPLOYMENT.md`) + mobile store-track runbook (`docs/MOBILE_ROLLBACK.md`); both documented, not yet exercised on a live track |
 | 9 | Environment variables verified | PASS (dev) | Railway Development env set; `/health` + smoke verified (Step 2B). Production/Staging env do not exist yet (N/A until created) |
@@ -52,9 +52,9 @@ build verification ✅ (expo export / nest build) · **dependency audit ✅
 - ~~Release-notes template~~ → `docs/RELEASE_NOTES_TEMPLATE.md`.
 - ~~`eas.json` `submit` profile~~ → added (Android internal/draft).
 - ~~Mobile store-track rollback runbook~~ → `docs/MOBILE_ROLLBACK.md`.
-- Follow-ups needing owner approval: `multer`/`@nestjs/platform-express`
-  upgrade for the high-severity advisory; a one-time rollback dry-run on
-  the first internal track.
+- ~~`multer`/`@nestjs/platform-express` high-severity upgrade~~ → done
+  (Step 8A). Remaining follow-up needing owner action: a one-time
+  rollback dry-run on the first internal track.
 
 **Owner / store-console:**
 - Create Sentry org + set DSNs → live monitoring verification (item 10, exit).

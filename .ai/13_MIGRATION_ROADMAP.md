@@ -1051,6 +1051,18 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 8A (2026-07-08): multer high-severity advisory
+remediated.** Bumped `@nestjs/platform-express` 11.1.27 → 11.1.28 (patch,
+same 11.x — not a breaking change; package.json floor now `^11.1.28`),
+which pulls the patched `multer@2.2.0` (advisories GHSA-72gw-mp4g-v24j /
+GHSA-3p4h-7m6x-2hcm, fixed ≥2.2.0). api now has **zero high/critical
+production advisories**; only Prisma dev-tooling moderates remain
+(documented, major-downgrade-only). Validation: prisma validate/generate,
+typecheck, lint, format, 39 unit, e2e 4/4, build — all green; critical
+audit gate passes. Only `api/package.json` + `api/package-lock.json`
+changed (no unrelated upgrades, no app code). DEPENDENCY_AUDIT register
++ readiness matrix updated.
+
 **Phase 12 Step 7 (2026-07-08): in-repo release-engineering blockers
 closed.** Added a critical-gated `audit` job to both CI workflows +
 `docs/DEPENDENCY_AUDIT.md` (deterministic policy; high/moderate tracked

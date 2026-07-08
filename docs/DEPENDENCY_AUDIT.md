@@ -3,7 +3,8 @@
 Deterministic dependency-audit policy for CI (`10_DEPLOYMENT.md` CI
 pipeline / Release Checklist "Security audit reviewed").
 
-Last reviewed: 2026-07-08 · Owner: Eng (rotate per release)
+Last reviewed: 2026-07-08 (Step 8A — multer high remediated) · Owner: Eng
+(rotate per release)
 
 ## Policy
 
@@ -30,7 +31,7 @@ Last reviewed: 2026-07-08 · Owner: Eng (rotate per release)
 
 | Severity | Package | Advisory | Fix | Disposition |
 |---|---|---|---|---|
-| HIGH | `multer` (via `@nestjs/platform-express`) | DoS via deeply-nested field names; incomplete cleanup of aborted uploads | non-major fix available | **Triage — recommend approved upgrade** of `@nestjs/platform-express`/`multer`. Exposure is limited: the API currently defines no multipart/file-upload routes, so the DoS vectors are not reachable via existing endpoints. Fix before adding any upload route or production launch. |
+| ~~HIGH~~ | ~~`multer`~~ | ~~DoS advisories~~ | — | **RESOLVED 2026-07-08 (Step 8A):** bumped `@nestjs/platform-express` 11.1.27 → **11.1.28** (patch, same 11.x), which pulls the patched `multer@2.2.0`. No high/critical prod advisories remain. |
 | MODERATE | `prisma`, `@prisma/dev`, `@hono/node-server` | Middleware bypass via repeated slashes in Prisma's dev server (`@hono/node-server`) | only via a **major** `prisma` downgrade (7 → 6.19.3) — rejected | Accepted: these are **Prisma dev-tooling transitives** not used by the production runtime (the app serves via NestJS/Express, not `@prisma/dev`). Do not downgrade Prisma 7. Re-evaluate when Prisma ships a fix on the 7.x line. |
 
 ### mobile (production deps)
