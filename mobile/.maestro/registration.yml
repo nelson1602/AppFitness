@@ -28,6 +28,8 @@ appId: com.appfitness.mobile
 - tapOn:
     id: 'input-username'
 - inputText: ${E2E_USERNAME}
+# The soft keyboard can cover the password field on small screens.
+- hideKeyboard
 - tapOn:
     id: 'input-password'
 - inputText: ${E2E_PASSWORD}
