@@ -1051,6 +1051,19 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 release-checklist walkthrough (2026-07-08):** full audit of
+every `10_DEPLOYMENT.md` Release Checklist item + Phase 12 exit criteria
+against repo evidence recorded in `docs/RELEASE_READINESS.md` (evidence
+commit `deeff55`; mobile-ci + api-ci green). Verdicts: **internal-testing
+NOT YET**, **production/store NO**. Engineering blockers still closable
+in-repo: dependency audit in CI, release-notes template, `eas.json`
+submit profile, mobile store-rollback runbook. External gates
+(unchanged): Sentry org/DSNs for live monitoring verification; legal
+review of `docs/legal/*`; Play console + store-listing metadata;
+Production environment. TECHDEBT-002 (closed Step 6) and TEST-004 logout
+(closed Step 4B) confirmed still accurate — the account-deletion UI gate
+(Step 6B) needs no further status change.
+
 **Phase 12 Step 6B status (2026-07-08): DELETE-ACCOUNT UI + RETENTION
 DECISION.** Retention decision (ADR-P011 resolution): **v1 = immediate,
 irreversible hard deletion, no recovery window**; the only retained
