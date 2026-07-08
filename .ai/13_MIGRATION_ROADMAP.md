@@ -1051,6 +1051,27 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 4 status (2026-07-08): RELEASE PROFILES + PRODUCT GATE
+DONE — E2E FLOWS AWAIT NEXT E2E BUILD.** eas.json now has development
+(internal APK, local API), preview (internal APK, hosted HTTPS API),
+production (AAB, autoIncrement build numbers, hosted HTTPS API), and the
+proven e2e profile untouched; config-proofs: cleartext plugin loads ONLY
+for e2e, production/preview URLs are HTTPS, production Android is
+app-bundle. Product gate: hardcoded demo credentials REMOVED from the
+sign-in surface (fields start empty; dev copy replaced; guarded by
+sign-in.spec.tsx product-gate tests and a Maestro assertNotVisible),
+inputs got stable testIDs, and a minimal Sign out surface was added to
+the dashboard (clears the session; the route guard redirects — covered
+by a DashboardScreen test plus a logout step appended to the
+dashboard-sync Maestro flow, closing a TEST-004 flow pending live
+revalidation). Maestro registration flow now types the disposable
+identity via testIDs with REQUIRED -e params (flow env defaults shadow
+-e — known trap). NOTE: the updated flows match the NEW UI and cannot
+run against the existing e2e APK — the next EAS e2e build must be
+followed by a local/CI E2E revalidation pass. Both hosted-URL profiles
+point at the Development environment (the only one that exists);
+re-point when Staging/Production exist.
+
 **Phase 12 Step 3 status (2026-07-07): PRIVACY-SAFE SENTRY FOUNDATION
 IN PLACE.** ADR-P010 Accepted. api: `@sentry/nestjs` initialized only
 when `SENTRY_DSN` is set (src/instrument.ts), SentryModule +

@@ -26,11 +26,13 @@ profile/evaluation (REST) and a goal (`/sync/push`, public contract);
 the sync flow pulls it all through the real appliers.
 
 **Isolation model:** a fresh disposable database per run (exactly what
-CI's service container provides). The registration flow submits the
-prefilled dev identity (`demo@appfitness.local`) without typing —
-replacing prefilled RN TextInput text via tap+erase proved
-cursor-position-flaky, so the flows type nothing. The seed script's
-`E2E_EMAIL`/`E2E_PASSWORD` env overrides exist for non-default setups.
+CI's service container provides). Since the release product gate, the
+sign-in surface ships with EMPTY fields — the registration flow types
+the disposable identity into `testID`-addressed inputs and REQUIRES
+`-e E2E_EMAIL/-e E2E_USERNAME/-e E2E_PASSWORD` (no flow-level env
+defaults: they shadow `-e` overrides). Values must match the seed
+script's defaults unless both are overridden. The dashboard-sync flow
+ends by signing out and asserting the return to the auth surface.
 
 ## Local run
 
@@ -52,7 +54,8 @@ adb install -r <downloaded>.apk
 adb reverse tcp:3001 tcp:3001
 
 # 4. Flows
-maestro test .maestro/registration.yml
+maestro test -e E2E_EMAIL=demo@appfitness.local -e E2E_USERNAME=demo \
+  -e E2E_PASSWORD=password12345 .maestro/registration.yml
 node e2e/seed.mjs
 maestro test .maestro/dashboard-sync.yml
 ```

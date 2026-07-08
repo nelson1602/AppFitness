@@ -24,3 +24,12 @@ appId: com.appfitness.mobile
 - assertVisible: '.*kcal.*'
 - assertVisible: 'iCoach recommendations'
 - assertVisible: 'Local data ready'
+
+# Sign out clears the session; the route guard returns to the auth
+# surface (TEST-004 logout flow).
+- scrollUntilVisible:
+    element: 'Sign out'
+- tapOn: 'Sign out'
+- extendedWaitUntil:
+    visible: 'Sign in to continue.'
+    timeout: 30000

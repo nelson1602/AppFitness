@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
+import { signOut } from '@/features/authentication';
 import { AppButton, AppText, Banner, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -72,6 +73,18 @@ export function DashboardScreen() {
           </View>
         </>
       ) : null}
+
+      {/* Sign-out clears the session; the dashboard route's session
+          guard then redirects to /sign-in — no manual navigation. */}
+      <AppButton
+        accessibilityLabel="Sign out of your account"
+        onPress={() => {
+          void signOut();
+        }}
+        variant="text"
+      >
+        Sign out
+      </AppButton>
     </Screen>
   );
 }

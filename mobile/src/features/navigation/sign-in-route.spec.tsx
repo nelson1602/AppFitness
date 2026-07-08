@@ -81,7 +81,7 @@ describe('SignInScreen', () => {
 
     expect(await screen.findByText('Sign-in error')).toBeOnTheScreen();
     expect(
-      screen.getByText('Authentication failed. Check the local API and credentials.'),
+      screen.getByText('Authentication failed. Check your credentials and connection.'),
     ).toBeOnTheScreen();
     expect(screen.queryByText(/abc123/i)).toBeNull();
   });

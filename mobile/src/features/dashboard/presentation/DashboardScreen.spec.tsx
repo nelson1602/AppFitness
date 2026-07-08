@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { signOut } from '@/features/authentication';
 import type { DashboardData, DashboardState } from '../domain/dashboard.types';
 import { DashboardScreen } from './DashboardScreen';
 
@@ -11,6 +12,9 @@ let mockStoreState: DashboardState;
 
 jest.mock('../application/dashboard.store', () => ({
   useDashboardStore: () => mockStoreState,
+}));
+jest.mock('@/features/authentication', () => ({
+  signOut: jest.fn(),
 }));
 
 const baseData: DashboardData = {
@@ -149,6 +153,15 @@ describe('DashboardScreen', () => {
     expect(screen.getByText('iCoach recommendations')).toBeOnTheScreen();
     expect(screen.getByText('Protect sleep consistency')).toBeOnTheScreen();
     expect(syncNow).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers sign-out that clears the session (route guard handles redirect)', async () => {
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    fireEvent.press(screen.getByRole('button', { name: 'Sign out of your account' }));
+
+    expect(jest.mocked(signOut)).toHaveBeenCalledTimes(1);
   });
 
   it('surfaces dashboard and sync error states with safe copy', async () => {

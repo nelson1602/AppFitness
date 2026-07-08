@@ -9,9 +9,11 @@ import { useTheme } from '@/shared/theme';
 export default function SignInScreen() {
   const theme = useTheme();
   const [mode, setMode] = useState<'sign-in' | 'register'>('sign-in');
-  const [email, setEmail] = useState('demo@appfitness.local');
-  const [username, setUsername] = useState('demo');
-  const [password, setPassword] = useState('password12345');
+  // Release-visible surface: fields start empty — never prefilled
+  // credentials (10_DEPLOYMENT.md: "No test credentials included").
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +28,7 @@ export default function SignInScreen() {
       }
       router.replace('/dashboard');
     } catch {
-      setError('Authentication failed. Check the local API and credentials.');
+      setError('Authentication failed. Check your credentials and connection.');
     } finally {
       setLoading(false);
     }
@@ -38,7 +40,7 @@ export default function SignInScreen() {
       <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.lg }}>
         <View>
           <AppText variant="headline">AppFitness</AppText>
-          <AppText tone="muted">Minimal development sign-in for dashboard validation.</AppText>
+          <AppText tone="muted">Sign in to continue.</AppText>
         </View>
 
         {error ? (
@@ -97,6 +99,7 @@ function Input({
       <AppText variant="label">{label}</AppText>
       <TextInput
         accessibilityLabel={label}
+        testID={`input-${label.toLowerCase()}`}
         autoCapitalize="none"
         keyboardType={keyboardType}
         onChangeText={onChangeText}

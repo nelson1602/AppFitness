@@ -16,10 +16,12 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'AppFitness'
     timeout: 30000
-- assertVisible: 'Minimal development sign-in for dashboard validation.'
+- assertVisible: 'Sign in to continue.'
 - assertVisible: 'Email'
 - assertVisible: 'Password'
 - assertVisible: 'Sign in'
+# Release surface ships without prefilled credentials.
+- assertNotVisible: 'demo@appfitness.local'
 
 # Routing/interaction: switch to register mode and back.
 - tapOn: 'Create a local account'

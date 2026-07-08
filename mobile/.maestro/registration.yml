@@ -3,11 +3,13 @@
 # `adb reverse tcp:3001 tcp:3001` so the release build's 127.0.0.1 API URL
 # reaches the host).
 #
-# Isolation comes from the fresh disposable DB per run (matching CI),
-# not from unique identities: the flow registers the prefilled dev
-# identity (demo@appfitness.local / demo) as-is. Replacing prefilled
-# RN TextInput text via tap+erase proved cursor-position-flaky, so the
-# flow deliberately types nothing. Fake, synthetic data only.
+# The sign-in surface ships with EMPTY fields (release product gate) —
+# credentials are typed via testIDs and MUST be passed per run (no flow
+# env defaults: they would shadow -e overrides):
+#   maestro test -e E2E_EMAIL=demo@appfitness.local \
+#                -e E2E_USERNAME=demo -e E2E_PASSWORD=password12345 \
+#                .maestro/registration.yml
+# Fake, synthetic identities only; fresh disposable DB per run.
 appId: com.appfitness.mobile
 ---
 - launchApp:
@@ -17,9 +19,19 @@ appId: com.appfitness.mobile
     visible: 'AppFitness'
     timeout: 30000
 
-# Switch to register mode and submit the prefilled dev identity.
+# Switch to register mode and enter the disposable identity.
 - tapOn: 'Create a local account'
-- assertVisible: 'Username'
+- assertVisible: 'Register'
+- tapOn:
+    id: 'input-email'
+- inputText: ${E2E_EMAIL}
+- tapOn:
+    id: 'input-username'
+- inputText: ${E2E_USERNAME}
+- tapOn:
+    id: 'input-password'
+- inputText: ${E2E_PASSWORD}
+- hideKeyboard
 - tapOn: 'Register'
 
 # Registration hits the local API, then routes to the dashboard, which
