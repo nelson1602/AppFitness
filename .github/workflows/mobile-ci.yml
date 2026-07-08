@@ -79,3 +79,30 @@ jobs:
 
       - name: Export iOS and Android bundles (build verification)
         run: npx expo export --platform ios --platform android
+
+  # Dependency audit (10_DEPLOYMENT.md CI pipeline). Deterministic gate:
+  # fails ONLY on CRITICAL production vulnerabilities. High/moderate
+  # findings are surfaced in the log and tracked as documented exceptions
+  # in docs/DEPENDENCY_AUDIT.md (no unapproved upgrades). Not a required
+  # status check.
+  audit:
+    name: Dependency audit (prod deps)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Report all advisories (non-gating)
+        run: npm audit --omit=dev || true
+
+      - name: Fail on critical production advisories
+        run: npm audit --omit=dev --audit-level=critical

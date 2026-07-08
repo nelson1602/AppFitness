@@ -45,5 +45,14 @@
         "EXPO_PUBLIC_API_URL": "http://127.0.0.1:3001"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "draft",
+        "serviceAccountKeyPath": "./credentials/play-service-account.json"
+      }
+    }
   }
 }

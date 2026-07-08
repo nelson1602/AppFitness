@@ -9,6 +9,12 @@ build/
 .env
 .env.local
 
+# Store/submit credentials — NEVER commit (EAS submit reads these at submit time)
+credentials/
+*service-account*.json
+*.keystore
+*.jks
+
 # Database
 *.db
 *.db-journal

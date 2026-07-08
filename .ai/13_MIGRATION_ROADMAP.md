@@ -1051,6 +1051,21 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 7 (2026-07-08): in-repo release-engineering blockers
+closed.** Added a critical-gated `audit` job to both CI workflows +
+`docs/DEPENDENCY_AUDIT.md` (deterministic policy; high/moderate tracked
+as documented exceptions — api `multer` high not reachable via current
+routes, Prisma dev-transitive moderates, mobile `uuid` moderate; no
+unapproved upgrades). Added `docs/RELEASE_NOTES_TEMPLATE.md`, an
+`eas.json` `submit` profile (Android internal/draft, service-account key
+path gitignored), and `docs/MOBILE_ROLLBACK.md`. Readiness matrix items
+6/8/release-notes now PASS; item 12 remains blocked only on store-listing
+assets. Validation: both workflow YAMLs parse, eas.json valid +
+expo-doctor 20/20, critical audit gate passes locally (both packages),
+credentials path gitignore-verified. Internal-testing verdict updated:
+remaining blockers are now ALL external (Sentry org/DSNs, legal review,
+Play console/listing, production env). No app code changed.
+
 **Phase 12 release-checklist walkthrough (2026-07-08):** full audit of
 every `10_DEPLOYMENT.md` Release Checklist item + Phase 12 exit criteria
 against repo evidence recorded in `docs/RELEASE_READINESS.md` (evidence
