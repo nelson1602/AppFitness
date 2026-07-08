@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import SignInScreen from './sign-in';
+import SignInScreen from '../../app/sign-in';
 
 // Behavioral coverage (submit, error banner, register flow) lives in
 // src/features/navigation/sign-in-route.spec.tsx. This spec guards the
