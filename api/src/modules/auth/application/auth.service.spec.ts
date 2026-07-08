@@ -1,4 +1,8 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { RefreshToken, Role, User, UserStatus } from '@prisma/client';
 
@@ -47,6 +51,7 @@ describe('AuthService', () => {
       findUnique: jest.Mock;
       findUniqueOrThrow: jest.Mock;
       create: jest.Mock;
+      delete: jest.Mock;
     };
     refreshToken: {
       findUnique: jest.Mock;
@@ -55,6 +60,8 @@ describe('AuthService', () => {
       update: jest.Mock;
       updateMany: jest.Mock;
     };
+    auditLog: { updateMany: jest.Mock };
+    $transaction: jest.Mock;
   };
   let passwords: { hash: jest.Mock; verify: jest.Mock };
   let tokens: {
@@ -72,6 +79,7 @@ describe('AuthService', () => {
         findUnique: jest.fn().mockResolvedValue(activeUser),
         findUniqueOrThrow: jest.fn().mockResolvedValue(safeUser),
         create: jest.fn().mockResolvedValue(safeUser),
+        delete: jest.fn().mockResolvedValue(activeUser),
       },
       refreshToken: {
         findUnique: jest.fn().mockResolvedValue(null),
@@ -80,6 +88,9 @@ describe('AuthService', () => {
         update: jest.fn().mockResolvedValue({}),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
+      auditLog: { updateMany: jest.fn().mockResolvedValue({ count: 3 }) },
+      // Run the callback with the same mock as the transaction client.
+      $transaction: jest.fn((cb: (tx: unknown) => unknown) => cb(prisma)),
     };
     passwords = {
       hash: jest.fn().mockResolvedValue('$argon2id$hashed'),
@@ -215,5 +226,44 @@ describe('AuthService', () => {
 
     prisma.refreshToken.findUnique.mockResolvedValue(null);
     await expect(service.logout('raw-unknown')).resolves.toBeUndefined();
+  });
+
+  it('deleteAccount records ACCOUNT_DELETE, anonymizes audit, and deletes the user', async () => {
+    prisma.user.findUnique.mockResolvedValue(activeUser);
+
+    await service.deleteAccount(USER_ID);
+
+    // Completed-deletion event recorded (before de-linking).
+    expect(audit.record).toHaveBeenCalledWith({
+      action: 'ACCOUNT_DELETE',
+      userId: USER_ID,
+    });
+    // Runs inside a transaction.
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    // Audit rows de-linked via user_id -> null (the only permitted mutation).
+    expect(prisma.auditLog.updateMany).toHaveBeenCalledWith({
+      where: { userId: USER_ID },
+      data: { userId: null },
+    });
+    // User physically deleted (user-owned children cascade at the DB).
+    expect(prisma.user.delete).toHaveBeenCalledWith({ where: { id: USER_ID } });
+  });
+
+  it('deleteAccount rejects an unknown or already-deleted account and mutates nothing', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+    await expect(service.deleteAccount(USER_ID)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    prisma.user.findUnique.mockResolvedValue({
+      ...activeUser,
+      deletedAt: new Date(),
+    });
+    await expect(service.deleteAccount(USER_ID)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+
+    expect(prisma.user.delete).not.toHaveBeenCalled();
+    expect(prisma.auditLog.updateMany).not.toHaveBeenCalled();
   });
 });

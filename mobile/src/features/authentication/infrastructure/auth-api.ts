@@ -64,6 +64,16 @@ export function logout(refreshToken: string): Promise<void> {
   return post<void>('/auth/logout', { refreshToken }, false);
 }
 
+export async function deleteAccount(accessToken: string): Promise<void> {
+  const response = await fetch(`${BASE_URL}/auth/account`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    throw new AuthApiError(response.status, await safeErrorMessage(response));
+  }
+}
+
 export async function me(accessToken: string): Promise<AuthUser> {
   const response = await fetch(`${BASE_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },

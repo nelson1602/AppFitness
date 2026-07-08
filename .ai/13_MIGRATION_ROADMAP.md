@@ -1051,6 +1051,28 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 6 status (2026-07-08): ACCOUNT DELETION IMPLEMENTED
+(TECHDEBT-002 CLOSED).** ADR-P011 Accepted with the CASCADE revision.
+Migration `account_deletion_cascade`: 24 user-owned FKs → `ON DELETE
+CASCADE` (4 catalog FKs stay RESTRICT), `ACCOUNT_DELETE` enum value, and
+the audit trigger relaxed to permit ONLY `user_id -> NULL`. Backend:
+authenticated `DELETE /auth/account` → `AuthService.deleteAccount`
+(records ACCOUNT_DELETE, anonymizes the user's audit rows, cascades all
+user-owned data; catalog untouched). Mobile: `deleteAccount()` use case
+(server-first, then wipe local session + database incl. encrypted cache)
++ `auth-api.deleteAccount` + `wipeDatabase()`. Tests: +2 api unit, +3
+mobile unit, and a real-Postgres e2e (`account-deletion.e2e-spec.ts`)
+proving cascade + audit anonymization + retained deletion event +
+preserved immutability for other mutations. Validation green: api
+prisma/build/39 unit/lint/format + e2e 4/4; mobile tsc/230 tests+
+thresholds/lint/format/doctor 20/20/android export. Inspection
+corrections vs the original ADR: shared `MEDICAL_ENC_KEY` makes per-user
+crypto-erasure impossible server-side (physical deletion is the
+erasure), and the blocker spanned 24 FKs incl. child-of-child, which is
+why CASCADE replaced hand-enumeration. NOT touched: Railway/production
+DB. Remaining before a deletion *claim* in the Data Safety form: a
+confirmation UI surface + retention-window/legal decisions (RELEASE-001).
+
 **Phase 12 Step 5 status (2026-07-08): COMPLIANCE BASELINE DRAFTED +
 TECHDEBT-002 DESIGNED (docs only).** Created `docs/legal/`:
 DATA_INVENTORY.md (grounding: data categories, storage locations,

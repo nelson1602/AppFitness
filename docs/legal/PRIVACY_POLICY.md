@@ -74,11 +74,13 @@ data-processing agreements in review.]`
 `[PLACEHOLDER — retention periods per data category, and legal-hold
 obligations, to be set in review.]`
 
-**Known limitation (being addressed):** account and server-side data
-deletion is not yet available in the current version. We are implementing
-a compliant deletion path (see internal TECHDEBT-002 / ADR-P011). This
-policy must not claim deletion is available until that path ships and is
-verified. On-device data is removed when you uninstall the app.
+**Status:** a server-side deletion capability is implemented — deleting
+an account permanently removes the account and all associated user data,
+retaining only an anonymized (de-identified) security audit record.
+On-device data is erased on account deletion and when you uninstall the
+app. `[PLACEHOLDER: this policy must not state a user-facing "delete my
+account" method until the in-app flow and/or request process is finalized
+in review, along with the retention window before permanent removal.]`
 
 ## 7. Your rights
 

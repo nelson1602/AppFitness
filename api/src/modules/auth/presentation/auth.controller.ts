@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { AuthService, type AuthResult } from '../application/auth.service';
@@ -57,5 +57,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Current authenticated user' })
   me(@CurrentUser() user: AuthenticatedUser): Promise<SafeUser> {
     return this.authService.me(user.id);
+  }
+
+  @Delete('account')
+  @HttpCode(204)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary:
+      'Permanently delete the authenticated account and all user-owned data (irreversible)',
+  })
+  async deleteAccount(@CurrentUser() user: AuthenticatedUser): Promise<void> {
+    await this.authService.deleteAccount(user.id);
   }
 }

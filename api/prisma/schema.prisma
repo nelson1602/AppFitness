@@ -146,6 +146,7 @@ enum AuditAction {
   MEDICAL_RESTRICTION_CHANGE
   SYNC_CONFLICT
   PERMISSION_CHANGE
+  ACCOUNT_DELETE
   ACCOUNT_DELETE_REQUEST
   DATA_EXPORT_REQUEST
 }
@@ -320,7 +321,7 @@ model UserProfile {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_user_profiles_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_user_profiles_user")
 
   @@index([userId, syncSeq], map: "idx_user_profiles_user_syncseq")
   @@map("user_profiles")
@@ -343,7 +344,7 @@ model Goal {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_goals_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_goals_user")
 
   @@index([userId, isActive], map: "idx_goals_user_active")
   @@index([userId, syncSeq], map: "idx_goals_user_syncseq")
@@ -377,7 +378,7 @@ model MedicalEvaluation {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_medical_evaluations_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_medical_evaluations_user")
 
   @@index([userId, evaluationDate], map: "idx_medical_evaluations_user_date")
   @@index([userId, syncSeq], map: "idx_medical_evaluations_user_syncseq")
@@ -403,7 +404,7 @@ model MedicalRestriction {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_medical_restrictions_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_medical_restrictions_user")
 
   @@index([userId, isActive], map: "idx_medical_restrictions_user_active")
   @@index([userId, syncSeq], map: "idx_medical_restrictions_user_syncseq")
@@ -430,7 +431,7 @@ model HealthLog {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_health_logs_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_health_logs_user")
 
   @@unique([userId, date], map: "uq_health_logs_user_date")
   @@index([userId, syncSeq], map: "idx_health_logs_user_syncseq")
@@ -473,7 +474,7 @@ model Routine {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user        User              @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_routines_user")
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_routines_user")
   exercises   RoutineExercise[]
   workoutLogs WorkoutLog[]
 
@@ -498,8 +499,8 @@ model RoutineExercise {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_routine_exercises_user")
-  routine  Routine  @relation(fields: [routineId], references: [id], onDelete: Restrict, map: "fk_routine_exercises_routine")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_routine_exercises_user")
+  routine  Routine  @relation(fields: [routineId], references: [id], onDelete: Cascade, map: "fk_routine_exercises_routine")
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict, map: "fk_routine_exercises_exercise")
 
   @@unique([routineId, order], map: "uq_routine_exercises_routine_order")
@@ -523,7 +524,7 @@ model WorkoutLog {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_workout_logs_user")
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_workout_logs_user")
   routine Routine? @relation(fields: [routineId], references: [id], onDelete: SetNull, map: "fk_workout_logs_routine")
   sets    WorkoutSet[]
 
@@ -551,8 +552,8 @@ model WorkoutSet {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user       User       @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_workout_sets_user")
-  workoutLog WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Restrict, map: "fk_workout_sets_workout_log")
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_workout_sets_user")
+  workoutLog WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade, map: "fk_workout_sets_workout_log")
   exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Restrict, map: "fk_workout_sets_exercise")
 
   @@index([workoutLogId], map: "idx_workout_sets_workout_log")
@@ -601,7 +602,7 @@ model NutritionLog {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_nutrition_logs_user")
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_nutrition_logs_user")
   meals Meal[]
 
   @@unique([userId, date], map: "uq_nutrition_logs_user_date")
@@ -623,8 +624,8 @@ model Meal {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_meals_user")
-  nutritionLog NutritionLog @relation(fields: [nutritionLogId], references: [id], onDelete: Restrict, map: "fk_meals_nutrition_log")
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_meals_user")
+  nutritionLog NutritionLog @relation(fields: [nutritionLogId], references: [id], onDelete: Cascade, map: "fk_meals_nutrition_log")
   items        MealItem[]
 
   @@index([nutritionLogId], map: "idx_meals_nutrition_log")
@@ -646,8 +647,8 @@ model MealItem {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_meal_items_user")
-  meal Meal @relation(fields: [mealId], references: [id], onDelete: Restrict, map: "fk_meal_items_meal")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_meal_items_user")
+  meal Meal @relation(fields: [mealId], references: [id], onDelete: Cascade, map: "fk_meal_items_meal")
   food Food @relation(fields: [foodId], references: [id], onDelete: Restrict, map: "fk_meal_items_food")
 
   @@index([mealId], map: "idx_meal_items_meal")
@@ -671,7 +672,7 @@ model BodyWeight {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_body_weights_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_body_weights_user")
 
   @@unique([userId, date], map: "uq_body_weights_user_date")
   @@index([userId, syncSeq], map: "idx_body_weights_user_syncseq")
@@ -698,7 +699,7 @@ model BodyMeasurement {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_body_measurements_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_body_measurements_user")
 
   @@unique([userId, date], map: "uq_body_measurements_user_date")
   @@index([userId, syncSeq], map: "idx_body_measurements_user_syncseq")
@@ -722,7 +723,7 @@ model ProgressSnapshot {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_progress_snapshots_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_progress_snapshots_user")
 
   @@unique([userId, weekStart], map: "uq_progress_snapshots_user_week")
   @@index([userId, syncSeq], map: "idx_progress_snapshots_user_syncseq")
@@ -754,7 +755,7 @@ model Recommendation {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_recommendations_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_recommendations_user")
 
   @@index([userId, createdAt], map: "idx_recommendations_user_created")
   @@index([userId, syncSeq], map: "idx_recommendations_user_syncseq")
@@ -777,7 +778,7 @@ model CoachInsight {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_coach_insights_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_coach_insights_user")
 
   @@unique([userId, weekStart], map: "uq_coach_insights_user_week")
   @@index([userId, syncSeq], map: "idx_coach_insights_user_syncseq")
@@ -800,7 +801,7 @@ model Notification {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_notifications_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_notifications_user")
 
   @@index([userId, createdAt], map: "idx_notifications_user_created")
   @@index([userId, syncSeq], map: "idx_notifications_user_syncseq")
@@ -843,7 +844,7 @@ model UserAchievement {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user        User        @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_user_achievements_user")
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_user_achievements_user")
   achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Restrict, map: "fk_user_achievements_achievement")
 
   @@unique([userId, achievementId], map: "uq_user_achievements_user_achievement")
@@ -872,7 +873,7 @@ model UserStats {
   deletedBy String?   @map("deleted_by") @db.Uuid
   syncSeq   BigInt    @default(0) @map("sync_seq")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict, map: "fk_user_stats_user")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_user_stats_user")
 
   @@map("user_stats")
 }

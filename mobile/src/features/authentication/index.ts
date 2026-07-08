@@ -4,6 +4,7 @@ export {
   getAccessToken,
   getSession,
   getStatus,
+  deleteAccount,
   refreshTokens,
   restoreSession,
   signIn,

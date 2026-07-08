@@ -1,3 +1,4 @@
+import { wipeDatabase } from '../../../shared/infrastructure/database';
 import { logError } from '../../../shared/infrastructure/logging';
 import type { AuthUser, Session } from '../domain/session.types';
 import * as authApi from '../infrastructure/auth-api';
@@ -5,6 +6,7 @@ import { AuthApiError } from '../infrastructure/auth-api';
 import { ensureLocalUser } from '../infrastructure/local-user.repository';
 import { clearSession, loadSession } from '../infrastructure/session-storage';
 import {
+  deleteAccount,
   getAccessToken,
   getStatus,
   refreshTokens,
@@ -14,6 +16,9 @@ import {
   signUp,
 } from './session-manager';
 
+jest.mock('../../../shared/infrastructure/database', () => ({
+  wipeDatabase: jest.fn(),
+}));
 jest.mock('../../../shared/infrastructure/logging', () => ({
   logError: jest.fn(),
 }));
@@ -24,6 +29,7 @@ jest.mock('../infrastructure/auth-api', () => ({
   register: jest.fn(),
   refresh: jest.fn(),
   logout: jest.fn(),
+  deleteAccount: jest.fn(),
 }));
 jest.mock('../infrastructure/session-storage', () => ({
   saveSession: jest.fn(),
@@ -195,5 +201,39 @@ describe('session-manager token rotation and sign-out', () => {
     expect(jest.mocked(logError)).toHaveBeenCalledWith('auth.signOut.logout', expect.anything());
     expect(mockClearSession).toHaveBeenCalled();
     expect(getStatus()).toBe('unauthenticated');
+  });
+
+  it('deleteAccount deletes server-side, then wipes session and local data', async () => {
+    await establishSession();
+    jest.mocked(authApi.deleteAccount).mockResolvedValue(undefined);
+
+    await deleteAccount();
+
+    expect(jest.mocked(authApi.deleteAccount)).toHaveBeenCalledWith('a1');
+    expect(mockClearSession).toHaveBeenCalled();
+    expect(jest.mocked(wipeDatabase)).toHaveBeenCalledTimes(1);
+    expect(getStatus()).toBe('unauthenticated');
+  });
+
+  it('deleteAccount throws without a session and touches nothing', async () => {
+    mockLoadSession.mockResolvedValue(null);
+    await restoreSession(); // unauthenticated: no in-memory or stored session
+
+    await expect(deleteAccount()).rejects.toThrow('Not authenticated');
+
+    expect(jest.mocked(authApi.deleteAccount)).not.toHaveBeenCalled();
+    expect(jest.mocked(wipeDatabase)).not.toHaveBeenCalled();
+    expect(mockClearSession).not.toHaveBeenCalled();
+  });
+
+  it('deleteAccount does NOT wipe local data if server deletion fails', async () => {
+    await establishSession();
+    jest.mocked(authApi.deleteAccount).mockRejectedValue(new AuthApiError(500, 'server error'));
+
+    await expect(deleteAccount()).rejects.toBeInstanceOf(AuthApiError);
+
+    expect(jest.mocked(wipeDatabase)).not.toHaveBeenCalled();
+    expect(mockClearSession).not.toHaveBeenCalled();
+    expect(getStatus()).toBe('authenticated');
   });
 });

@@ -1,3 +1,4 @@
+import { wipeDatabase } from '../../../shared/infrastructure/database';
 import { logError } from '../../../shared/infrastructure/logging';
 import * as authApi from '../infrastructure/auth-api';
 import { AuthApiError } from '../infrastructure/auth-api';
@@ -124,6 +125,22 @@ export async function refreshTokens(): Promise<Session | null> {
     }
     return null;
   }
+}
+
+/**
+ * Permanently deletes the account server-side, then erases all local
+ * state (session + local database, incl. any encrypted medical cache).
+ * Server deletion must succeed first — otherwise the account still exists
+ * and we would only orphan the device. Irreversible.
+ */
+export async function deleteAccount(): Promise<void> {
+  const accessToken = getAccessToken() ?? (await refreshTokens())?.accessToken ?? null;
+  if (!accessToken) throw new Error('Not authenticated');
+
+  await authApi.deleteAccount(accessToken);
+  await clearSession();
+  await wipeDatabase();
+  setState('unauthenticated', null);
 }
 
 export async function signOut(): Promise<void> {

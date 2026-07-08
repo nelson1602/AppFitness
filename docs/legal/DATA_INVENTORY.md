@@ -69,11 +69,14 @@ P006, P010).
 
 - Local (device): clearing the app / sign-out clears SecureStore session;
   local SQLite is app-private and removed on uninstall.
-- Server: **account hard-deletion is currently BLOCKED at the database
-  level** — `medical_*`, `user_profiles`, `goals`, `health_logs`, etc.
-  use `ON DELETE RESTRICT`, and `audit_logs` has an immutability trigger
-  that also rejects the FK-driven `SET NULL`. A truthful "we delete your
-  data" claim cannot be made until this is resolved. See ADR-P011.
+- Server: **account/data deletion is implemented (2026-07-08, ADR-P011 /
+  TECHDEBT-002 closed).** `DELETE /auth/account` permanently deletes the
+  account and all user-owned data via `ON DELETE CASCADE`; catalog data
+  stays; the immutable audit trail is retained but anonymized
+  (`user_id` severed). e2e-proven against real Postgres. **Not yet
+  surfaced to users** (confirmation UI / documented request URL) and the
+  **retention window is not finalized** — both required before a public
+  deletion claim (RELEASE-001 / legal review).
 
 ## NOT collected / NOT implemented (do not represent as active)
 

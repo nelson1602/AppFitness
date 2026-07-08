@@ -648,13 +648,29 @@ forward as-is.
 
 ## [TECHDEBT-002] audit_logs Immutability Trigger Blocks GDPR User Hard-Deletion
 
-Status: Proposed
+Status: **Done** (2026-07-08, Phase 12 Step 6 — resolved per ADR-P011
+revised/CASCADE approach; see resolution note below)
 Priority: P1 (raised from P2 on 2026-07-07: Phase 12 store release
 work makes this release-impacting — a Google Play data-safety form
 cannot truthfully claim account/data deletion while hard-deletion is
 blocked at the database level; resolve before any tester-facing
 release that advertises deletion)
 Type: Refactor
+
+### Resolution (2026-07-08)
+
+Fixed via ADR-P011 (Accepted, CASCADE revision): migration
+`account_deletion_cascade` flips 24 user-owned FKs to `ON DELETE
+CASCADE` (catalog FKs stay RESTRICT) and relaxes the audit immutability
+trigger to permit ONLY the `user_id -> NULL` anonymizing update. The
+authenticated `DELETE /auth/account` endpoint (`AuthService.deleteAccount`)
+cascades user-owned data, records an `ACCOUNT_DELETE` event, and
+anonymizes the user's audit rows. Mobile `deleteAccount()` wipes the
+local session + database after server success. Proven by
+`test/account-deletion.e2e-spec.ts` against real Postgres (cascade +
+audit anonymization + retained deletion event + preserved immutability).
+Remaining: surface a confirmation UI and finalize the retention window
+(RELEASE-001 / legal review).
 Owner: Unassigned
 Created: 2026-07-06
 Updated: 2026-07-07

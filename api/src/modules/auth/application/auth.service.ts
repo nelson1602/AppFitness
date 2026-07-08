@@ -182,6 +182,36 @@ export class AuthService {
     return user;
   }
 
+  /**
+   * Permanently deletes the account and ALL user-owned data (ADR-P011).
+   * User-owned rows are removed by database `ON DELETE CASCADE`; shared
+   * catalog data (exercises/foods/achievements) is untouched. The
+   * immutable audit trail is retained but de-identified: the user's audit
+   * rows have `user_id` severed (the only mutation the audit trigger
+   * permits). Irreversible.
+   */
+  async deleteAccount(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user || user.deletedAt !== null) {
+      throw new NotFoundException('User not found');
+    }
+
+    // Record the completed-deletion event while the user still exists; it
+    // is de-linked below along with the user's other audit rows.
+    await this.audit.record({ action: AuditAction.ACCOUNT_DELETE, userId });
+
+    await this.prisma.$transaction(async (tx) => {
+      // Sever the personal link on the immutable audit rows (ADR-P011
+      // trigger permits ONLY user_id -> NULL). Content is preserved.
+      await tx.auditLog.updateMany({
+        where: { userId },
+        data: { userId: null },
+      });
+      // Physical delete; user-owned children cascade, catalog stays.
+      await tx.user.delete({ where: { id: userId } });
+    });
+  }
+
   private async issueTokenPair(
     userId: string,
     role: SafeUser['role'],

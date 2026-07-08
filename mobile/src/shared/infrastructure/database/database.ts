@@ -37,3 +37,13 @@ export async function closeDatabase(): Promise<void> {
   dbPromise = null;
   await db.closeAsync();
 }
+
+/**
+ * Closes and deletes the local database file — used on account deletion
+ * so no locally-cached (incl. encrypted medical) data survives on device.
+ * The next getDatabase() recreates and re-migrates an empty database.
+ */
+export async function wipeDatabase(): Promise<void> {
+  await closeDatabase();
+  await SQLite.deleteDatabaseAsync(DATABASE_NAME);
+}

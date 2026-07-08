@@ -1744,10 +1744,47 @@ Negative:
 
 ## ADR-P011 - Account & Personal-Data Deletion Strategy (GDPR erasure vs. audit immutability)
 
-Status: Proposed (awaiting project owner review — DESIGN ONLY, no
-implementation in Phase 12 Step 5)
+Status: **Accepted** (2026-07-08, by project owner) — see **Revision
+2026-07-08** below, which replaces the original explicit-enumeration
+decision with database-enforced cascade after implementation inspection.
 Date: 2026-07-08
 Owner: Backend Architecture / Security
+
+### Revision 2026-07-08 (supersedes decision points 1–2 below)
+
+Implementation inspection (Phase 12 Step 6) surfaced two facts the
+original decision did not account for:
+
+1. **Server medical encryption uses a single shared `MEDICAL_ENC_KEY`
+   (ADR-P006), not per-user keys.** Per-user "crypto-erasure by key
+   destruction" is therefore impossible server-side without destroying
+   every user's data. **Server-side, physical row deletion is the
+   erasure mechanism.** (Device-side, the per-device SecureStore key in
+   ADR-P001 still provides crypto-erasure of the local copy on
+   uninstall/clear.)
+2. **The blocker spans 20 user-owned `user_id` RESTRICT tables plus
+   RESTRICT child-of-child FKs** (`meal_items→meals`,
+   `meals→nutrition_logs`, `workout_sets→workout_logs`,
+   `routine_exercises→routines`), most belonging to modules not yet
+   built. Hand-ordered transactional enumeration across ~24 interdependent
+   tables — kept correct as new modules land — is more accident-prone
+   than the CASCADE it was meant to avoid.
+
+**Revised decision:** use **database-enforced `ON DELETE CASCADE`** for
+user-owned data only — the 20 `user_id` FKs and the 4 structural
+child-of-child FKs whose parent is user-owned. **Shared/catalog
+references stay `RESTRICT`** (`routine_exercises→exercises`,
+`workout_sets→exercises`, `meal_items→foods`,
+`user_achievements→achievements`) so deleting a user never touches shared
+data. Deletion is then a single guarded, authenticated, audited
+`user.delete()`; the database guarantees no orphans and cannot miss a
+future user-owned table. The **null-only `audit_logs` trigger exception
+is still required** (below) because `audit_logs→users` stays `SET NULL`
+and the immutability trigger otherwise rejects the FK cascade. Accidental
+mass-deletion risk is controlled by there being exactly one guarded
+deletion entry point (no admin bulk-delete, no cascade from elsewhere).
+Decision points 3–4 (audit trigger exception; final `ACCOUNT_DELETE`
+event) are unchanged.
 
 ### Context
 
