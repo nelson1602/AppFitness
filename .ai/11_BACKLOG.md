@@ -917,7 +917,10 @@ component-test renderHook wave.
       iCoach UI surface
 - [ ] Offline data entry E2E — pending local entry forms (then airplane
       -mode toggling via adb, per `09_TESTING.md` offline testing)
-- [ ] Logout E2E — pending sign-out UI surface
+- [x] Logout E2E — DONE (2026-07-08): sign-out surface added in Phase 12
+      Step 4; the dashboard-sync Maestro flow now ends with Sign out →
+      auth surface, proven locally and in CI (mobile-e2e run #3,
+      commit b62cae7)
 - [ ] EAS cloud Maestro workflow (`.eas/workflows/e2e-android.yml`)
       executed for real — pending paid EAS billing plus the Phase 12
       hosted test API (ADR-P008 stage 2)

@@ -1051,6 +1051,23 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 4B status (2026-07-08): E2E REVALIDATION PASSED — LOGOUT
+FLOW PROVEN.** EAS e2e rebuild against the credential-less UI: first
+build ERRORED (the Sentry gradle integration fails release builds
+without SENTRY_AUTH_TOKEN); fixed with `SENTRY_DISABLE_AUTO_UPLOAD=true`
+in every eas.json profile (remove per-profile when a Sentry auth token
+is provisioned for source maps), second build FINISHED (4459d1c7,
+aapt-verified: e2e cleartext intact, no side effects). Local Maestro on
+the new APK: smoke 13/13 (incl. no-prefilled-credentials assert),
+registration with typed identity via testIDs (one flow fix: a
+hideKeyboard step — the soft keyboard covered the password field),
+dashboard-sync + sign-out ending — all green. CI: mobile-e2e run #3
+passed on commit b62cae7 (5m51s,
+https://github.com/nelson1602/AppFitness/actions/runs/28961553321).
+TEST-004 logout flow is now live-proven locally AND in CI — closed.
+Non-blocking observation: a GitHub Actions Node 20 deprecation warning
+in the workflow toolchain (revisit when bumping action versions).
+
 **Phase 12 Step 4 status (2026-07-08): RELEASE PROFILES + PRODUCT GATE
 DONE — E2E FLOWS AWAIT NEXT E2E BUILD.** eas.json now has development
 (internal APK, local API), preview (internal APK, hosted HTTPS API),
