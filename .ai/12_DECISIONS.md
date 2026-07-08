@@ -1742,6 +1742,106 @@ Negative:
 
 ---
 
+## ADR-P011 - Account & Personal-Data Deletion Strategy (GDPR erasure vs. audit immutability)
+
+Status: Proposed (awaiting project owner review — DESIGN ONLY, no
+implementation in Phase 12 Step 5)
+Date: 2026-07-08
+Owner: Backend Architecture / Security
+
+### Context
+
+Store release (Phase 12) and the privacy commitments in `05_SECURITY.md`
+("users must be able to delete their data") require a working account /
+personal-data deletion path. Today a hard delete of a user is blocked at
+the database level on two independent fronts (TECHDEBT-002):
+
+1. **Immutable audit trail vs. FK cascade.** `audit_logs.user_id` is
+   `ON DELETE SET NULL`, but the `trg_audit_logs_immutable` trigger
+   (`reject_audit_mutation()`) raises on *any* UPDATE or DELETE — so the
+   FK-driven `SET NULL` is itself rejected. Deleting a user who has audit
+   rows (every user, from registration onward) fails.
+2. **RESTRICT children.** `user_profiles`, `goals`, `medical_evaluations`,
+   `medical_restrictions`, `health_logs`, `routines`, `workout_logs`,
+   `workout_sets`, `routine_exercises` all use `ON DELETE RESTRICT`, so a
+   user with any such row cannot be deleted until those are handled.
+   (`devices`, `refresh_tokens`, `sync_operations`, `sync_conflicts`
+   already `CASCADE` and are fine.)
+
+The Google Play Data Safety form and GDPR Art. 17 both require a truthful
+deletion capability; `PLAY_DATA_SAFETY.md` currently marks every deletion
+cell "Blocked" because of this.
+
+### Decision (proposed)
+
+A transactional **deletion service** in `api/` plus one **minimal,
+security-reviewed schema/trigger migration**:
+
+1. **RESTRICT children** — the deletion service explicitly removes the
+   user's medical/profile/goal/workout rows within a single transaction
+   (order respects FKs). Preferred over switching FKs to CASCADE so
+   deletion stays an explicit, audited, intentional operation rather than
+   an implicit side effect.
+2. **Encrypted medical free-text — crypto-erasure as defense in depth.**
+   Because medical free-text is AES-256-GCM encrypted per device/server
+   key (ADR-P001/P006), destroying the relevant key material renders any
+   residual ciphertext unrecoverable, complementing physical deletion.
+3. **Audit trail — sever the link, keep the record.** Relax
+   `trg_audit_logs_immutable` to permit **exactly one** mutation: an
+   UPDATE that only nulls `user_id` (the FK-cascade shape). All other
+   UPDATE/DELETE on `audit_logs` stays rejected, so audit *content*
+   remains append-only/immutable while personal linkage becomes
+   severable. Audit rows are retained (anonymized) to satisfy
+   security/legal retention obligations noted in `05_SECURITY.md`.
+4. **Emit a final audit event** ("account_deleted") before severing, so
+   the deletion itself is auditable.
+
+Net effect: identifiers and health data are physically deleted +
+crypto-erased; the immutable audit trail is preserved but de-identified.
+
+### Options Considered
+
+1. Transactional deletion service + null-only audit-trigger exception +
+   crypto-erasure (chosen)
+2. Anonymize audit rows via a controlled `SECURITY DEFINER` procedure the
+   trigger whitelists (heavier; more surface than a null-only exception)
+3. Drop the `audit_logs.user_id` FK and keep a bare UUID (a deleted
+   user's UUID alone is arguably not PII — but weakens referential
+   guarantees and still needs privacy sign-off)
+4. Switch all RESTRICT children to `ON DELETE CASCADE` (makes deletion
+   implicit/accident-prone; rejected)
+5. Soft-delete only (does not satisfy erasure; rejected as the sole
+   mechanism)
+
+### Consequences
+
+Positive: a truthful, auditable deletion capability; audit content
+integrity preserved; health data provably unrecoverable via key
+destruction. Negative: requires a new forward migration to the audit
+trigger (security-reviewed) and a well-tested deletion service; the
+crypto-erasure key-scoping must be designed so one user's erasure cannot
+affect another's data.
+
+### Open questions for review
+
+- Retention window before physical deletion (legal hold) — `05_SECURITY.md`
+  says "respect legal obligations before permanent removal"; the exact
+  period is a legal decision.
+- Hard-delete vs. `PENDING_DELETION` + scheduled purge.
+- Whether deletion is self-service (in-app) at launch or a documented
+  request process initially (Play accepts either).
+
+### Related Documents
+
+- .ai/05_SECURITY.md (Privacy, Data Retention)
+- .ai/12_DECISIONS.md (ADR-P001, ADR-P006)
+- .ai/15_DATABASE_SCHEMA_DESIGN.md
+- api/prisma/migrations/20260703181824_init/migration.sql (audit trigger, FKs)
+- docs/legal/DATA_INVENTORY.md, docs/legal/PLAY_DATA_SAFETY.md
+- Backlog TECHDEBT-002
+
+---
+
 # Rejected Decisions
 
 No rejected decisions documented yet.

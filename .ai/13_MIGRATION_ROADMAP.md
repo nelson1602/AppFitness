@@ -1051,6 +1051,22 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 5 status (2026-07-08): COMPLIANCE BASELINE DRAFTED +
+TECHDEBT-002 DESIGNED (docs only).** Created `docs/legal/`:
+DATA_INVENTORY.md (grounding: data categories, storage locations,
+encryption, sharing=none, deletion blocker), plus DRAFT
+PRIVACY_POLICY.md, TERMS_OF_USE.md, HEALTH_DISCLAIMER.md, and
+PLAY_DATA_SAFETY.md — every artifact labeled Draft / Not legal advice /
+requires human+legal review, with `[PLACEHOLDER]`s for business/legal
+inputs and no invented data collection. Data Safety matrix marks all
+deletion cells "Blocked" and lists submission blockers. TECHDEBT-002
+resolution designed as **ADR-P011 (Proposed)**: transactional deletion
+service + null-only audit-trigger exception + crypto-erasure; found the
+blocker spans RESTRICT FKs (medical/profile/goals/health/workout), not
+just the audit trigger. NO code/schema/store changes. Still gating store
+readiness: ADR-P011 acceptance → implementation, legal review of the
+drafts, Sentry live verification, and the release-checklist walkthrough.
+
 **Phase 12 Step 4B status (2026-07-08): E2E REVALIDATION PASSED — LOGOUT
 FLOW PROVEN.** EAS e2e rebuild against the credential-less UI: first
 build ERRORED (the Sentry gradle integration fails release builds

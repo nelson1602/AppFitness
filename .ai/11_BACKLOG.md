@@ -683,7 +683,18 @@ security-reviewed migration/procedure, or (c) audit rows keep the user
 UUID with no FK (UUID of a deleted user is not by itself PII —
 requires privacy review).
 
+**Update 2026-07-08 (Phase 12 Step 5):** resolution strategy designed in
+**ADR-P011 (Proposed)** — recommends option (a) (null-only audit-trigger
+exception) plus a transactional deletion service for the RESTRICT
+children and crypto-erasure of encrypted medical fields. Also note the
+blocker is broader than audit_logs alone: `user_profiles`, `goals`,
+`medical_*`, `health_logs`, and workout tables use `ON DELETE RESTRICT`.
+Awaiting ADR-P011 acceptance before implementation. This blocks truthful
+Play Data Safety deletion answers (see docs/legal/PLAY_DATA_SAFETY.md).
+
 ### Related Documents
+
+- .ai/12_DECISIONS.md (ADR-P011)
 
 - .ai/05_SECURITY.md (Data Retention, Audit Trail)
 - .ai/15_DATABASE_SCHEMA_DESIGN.md
