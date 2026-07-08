@@ -46,14 +46,16 @@ transit · Deletion support · Notes/blockers
 
 ## Blockers before submission
 
-1. **Deletion support (P1 — partially resolved 2026-07-08):** the
-   server-side deletion capability now EXISTS (`DELETE /auth/account`,
-   cascade + audit anonymization, e2e-proven; TECHDEBT-002 closed). The
-   "Deletion" cells above still read *Blocked* pending the two remaining
-   pieces: (a) a **user-reachable surface** — an in-app confirmation flow
-   and/or a documented request URL Play can point to — and (b) the
-   **finalized retention window** (legal). Update the cells to
-   "Supported" once (a) ships and (b) is decided.
+1. **Deletion support (P1 — resolved 2026-07-08, pending legal wording):**
+   the server-side capability EXISTS (`DELETE /auth/account`, cascade +
+   audit anonymization, e2e-proven; TECHDEBT-002 closed) AND is now
+   **surfaced in-app** — a guarded `/delete-account` screen with a
+   typed-confirmation gate calls it and wipes local data (Step 6B).
+   Retention decision made: **immediate, irreversible deletion** (v1,
+   ADR-P011). The remaining item before flipping the "Deletion" cells to
+   "Supported" on the live form is **legal review of the deletion wording
+   / confirmation that no in-scope jurisdiction mandates a retention
+   window** — a legal decision, not an engineering blocker.
 2. **Diagnostics decision:** confirm whether Sentry is enabled at launch;
    set the crash-logs row accordingly. Currently inert (no DSN).
 3. **Health-data declarations:** Play's Health Connect / sensitive-data

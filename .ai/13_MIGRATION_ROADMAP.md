@@ -1051,6 +1051,24 @@ and production readiness per `10_DEPLOYMENT.md`.
       `client/`/`server/`** — this is not automatic upon reaching this
       phase (see ADR-0013 Rollback Strategy).
 
+**Phase 12 Step 6B status (2026-07-08): DELETE-ACCOUNT UI + RETENTION
+DECISION.** Retention decision (ADR-P011 resolution): **v1 = immediate,
+irreversible hard deletion, no recovery window**; the only retained
+artifact is the anonymized audit trail; a grace/`PENDING_DELETION` purge
+window is a deferred, legal-gated option. Mobile: new guarded
+`/delete-account` route with a **typed-confirmation gate** (must type
+`DELETE`; destructive button disabled until it matches), reached from a
+"Delete account" button on the dashboard; on success it calls the
+existing `deleteAccount()` use case (server delete → wipe session +
+local DB) and routes to sign-in; on failure a safe non-sensitive error.
+Tests: +5 delete-account route (confirmation gating, success+route,
+safe failure, cancel, unauth redirect), +1 dashboard nav; 236 mobile
+tests pass, thresholds met, doctor 20/20, export OK. Data Safety draft
+deletion is now **in-app surfaced** (server capability from Step 6 +
+this UI); the remaining gate on a "yes" deletion answer is the
+legal-reviewed retention wording, not engineering. Confirmation is
+typed-phrase (not password step-up) — hardening noted in ADR-P011.
+
 **Phase 12 Step 6 status (2026-07-08): ACCOUNT DELETION IMPLEMENTED
 (TECHDEBT-002 CLOSED).** ADR-P011 Accepted with the CASCADE revision.
 Migration `account_deletion_cascade`: 24 user-owned FKs → `ON DELETE

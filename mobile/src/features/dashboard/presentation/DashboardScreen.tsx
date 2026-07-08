@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
@@ -84,6 +85,13 @@ export function DashboardScreen() {
         variant="text"
       >
         Sign out
+      </AppButton>
+      <AppButton
+        accessibilityLabel="Delete your account"
+        onPress={() => router.push('/delete-account')}
+        variant="text"
+      >
+        Delete account
       </AppButton>
     </Screen>
   );

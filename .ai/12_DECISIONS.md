@@ -1859,14 +1859,31 @@ trigger (security-reviewed) and a well-tested deletion service; the
 crypto-erasure key-scoping must be designed so one user's erasure cannot
 affect another's data.
 
-### Open questions for review
+### Retention-window resolution (2026-07-08, Phase 12 Step 6B)
 
-- Retention window before physical deletion (legal hold) — `05_SECURITY.md`
-  says "respect legal obligations before permanent removal"; the exact
-  period is a legal decision.
-- Hard-delete vs. `PENDING_DELETION` + scheduled purge.
-- Whether deletion is self-service (in-app) at launch or a documented
-  request process initially (Play accepts either).
+**v1 = immediate, irreversible hard deletion; no recovery window.**
+Rationale: no user base yet; immediate deletion is the simplest behavior
+to reason about and is exactly what the implemented + e2e-tested path
+does. The **only retained artifact is the anonymized (de-identified)
+audit trail**, which satisfies the security-log obligation in
+`05_SECURITY.md` without retaining personal data. Deletion is **surfaced
+in-app** with a typed-confirmation gate (Step 6B), so no separate
+documented-request process is needed for Play.
+
+Deferred (needs legal input, not an engineering call): whether a
+jurisdiction requires a grace/recovery window or a legal-hold period
+before permanent removal. If so, the existing `PENDING_DELETION`
+`UserStatus` + a scheduled purge job is the intended mechanism — a
+future ADR/migration, not v1. The compliance drafts must not state a
+specific legally-vetted retention period until that review happens.
+
+### Open questions for review (remaining)
+
+- Confirm no jurisdiction in scope mandates a minimum retention/grace
+  window that would require switching from immediate delete to
+  `PENDING_DELETION` + scheduled purge.
+- Whether to additionally harden the delete endpoint with password/step-up
+  re-auth (currently access-token-guarded + in-app typed confirmation).
 
 ### Related Documents
 

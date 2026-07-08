@@ -987,16 +987,23 @@ gate and is not covered by this item.
       (api Dockerfile, managed Postgres, secrets in host store,
       `prisma migrate deploy` release step, backup/rollback verified);
       doubles as the ADR-P008 stage-2 hosted test API
-- [ ] ADR-P010 accepted → Sentry wired on both tiers with scrubbing
-      tests; OTA remains deferred
-- [ ] `eas.json` development/preview/production profiles + submit
+- [x] ADR-P010 accepted → Sentry wired on both tiers with scrubbing
+      tests; OTA remains deferred (Step 3, 2026-07-07)
+- [x] `eas.json` development/preview/production profiles + submit
       profile (production = AAB; HTTPS API URLs only outside e2e)
-- [ ] Dev sign-in surface replaced: hardcoded demo credentials removed
+      (Step 4, 2026-07-08)
+- [x] Dev sign-in surface replaced: hardcoded demo credentials removed
       from source; sign-out surface added (also closes a TEST-004 flow)
-- [ ] Compliance artifacts drafted for owner/legal review: privacy
+      (Step 4, 2026-07-08)
+- [x] Compliance artifacts drafted for owner/legal review: privacy
       policy, terms of use, health-data disclaimer, Play data-safety
-      matrix derived from actual data flows
-- [ ] TECHDEBT-002 resolved (blocks truthful deletion claims — P1)
+      matrix derived from actual data flows (Step 5, 2026-07-08 —
+      docs/legal/, still Draft / require legal review)
+- [x] TECHDEBT-002 resolved (Step 6, 2026-07-08) + account-deletion
+      surfaced in-app with typed confirmation and immediate-deletion
+      retention decision (Step 6B). Remaining for a Data Safety "yes":
+      legal review of deletion wording / retention obligations.
+- [ ] Sentry live verification (needs owner-created org + DSNs)
 - [ ] Release checklist from `10_DEPLOYMENT.md` passes end-to-end for a
       production build; rollback plan documented and tested; release
       notes template in place

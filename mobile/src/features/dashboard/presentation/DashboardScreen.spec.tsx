@@ -16,6 +16,9 @@ jest.mock('../application/dashboard.store', () => ({
 jest.mock('@/features/authentication', () => ({
   signOut: jest.fn(),
 }));
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn() },
+}));
 
 const baseData: DashboardData = {
   missing: [],
@@ -162,6 +165,16 @@ describe('DashboardScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Sign out of your account' }));
 
     expect(jest.mocked(signOut)).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes to the delete-account surface (never deletes directly)', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    fireEvent.press(screen.getByRole('button', { name: 'Delete your account' }));
+
+    expect(router.push).toHaveBeenCalledWith('/delete-account');
   });
 
   it('surfaces dashboard and sync error states with safe copy', async () => {
