@@ -86,10 +86,12 @@ blocker is CLEARED; external gates remain.**
   the existing repository cipher path). A real (non-`__DEV__`) tester can
   now register and complete profile → weight → goal entirely on the device
   through the dashboard gap actions and reach a `ready` iCoach assessment
-  from purely local data — no server seeding. Remaining medical work
-  (restrictions/injuries management, evaluation history/soft-delete
-  surfacing) is Phase 14 Slice 2 and is **not** an internal-testing
-  blocker.
+  from purely local data — no server seeding. **Phase 14 Slice 2** then
+  added evaluation history (list + non-sensitive summary + soft-delete) and
+  restrictions/injuries management (add/list/end, encrypted notes), both
+  reachable from the dashboard; active restrictions flow into the iCoach
+  engine. The medical data-entry surface for internal testing is now
+  complete.
 - **External gates (unchanged, still blocking):** Sentry org+DSNs
   (monitoring verification), Play app + store-listing assets + Data Safety
   form, a published privacy-policy URL, legal sign-off on `docs/legal/*`.

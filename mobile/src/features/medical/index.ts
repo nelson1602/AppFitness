@@ -14,3 +14,4 @@ export {
 } from './application/medical.service';
 export { registerMedicalSyncAppliers } from './infrastructure/sync-appliers';
 export { useEvaluationStore } from './application/evaluation.store';
+export { useRestrictionStore } from './application/restriction.store';

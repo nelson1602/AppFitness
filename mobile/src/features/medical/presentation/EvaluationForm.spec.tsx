@@ -17,9 +17,11 @@ function setStore(partial: Partial<EvaluationFormState>) {
   mockStoreState = {
     status: 'ready',
     latest: null,
+    evaluations: [],
     error: null,
     load,
     save,
+    remove: jest.fn(),
     ...partial,
   };
 }

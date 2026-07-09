@@ -20,6 +20,7 @@ other variants never load the plugin and keep cleartext blocked.
 | `registration.yml` | yes | register → empty dashboard (data-gap state) |
 | `dashboard-sync.yml` | yes (after full seed) | session restore → Sync now → populated dashboard via real pull |
 | `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → sync clears pending → sign out & back in |
+| `medical-management.yml` | yes (no seed) | add/list/end a restriction; open evaluation history, see the recorded weight, two-step soft-delete it (runs after onboarding-loop, same session) |
 
 Two journeys run against the same disposable DB with distinct synthetic
 users:
@@ -28,12 +29,22 @@ users:
   `node e2e/seed.mjs` (full: profile/evaluation REST + goal via
   `/sync/push`) → `dashboard-sync.yml` pulls it all through the real
   appliers.
-- **Journey B (full device onboarding):** `registration.yml` (onboard
-  user) → `onboarding-loop.yml` enters the profile, physical evaluation
-  (weight), and goal entirely on the device through the dashboard gap
-  actions. The iCoach assessment reaches `ready` from purely local data
-  (no server seed), then local changes sync until pending clears, and the
-  account signs out and back in with data intact.
+- **Journey B (full device onboarding + medical management):**
+  `registration.yml` (onboard user) → `onboarding-loop.yml` enters the
+  profile, physical evaluation (weight), and goal entirely on the device
+  through the dashboard gap actions. The iCoach assessment reaches `ready`
+  from purely local data (no server seed), then local changes sync until
+  pending clears, and the account signs out and back in with data intact.
+  → `medical-management.yml` then adds/lists/ends a restriction and
+  soft-deletes the recorded evaluation from the history screen.
+
+**Offline (airplane-mode) entry E2E — pending (blocker documented):** the
+app reaches the runner-local API over `adb reverse` (a USB/loopback
+forward), which is NOT severed by toggling the emulator's airplane
+mode/radio, so airplane mode does not actually simulate offline for this
+harness. A meaningful offline test needs to drop the loopback forward or
+pause the API process (`adb reverse --remove tcp:3001` mid-flow, or stop
+`node dist/main.js`) rather than the device radio. Tracked in TEST-004.
 
 **Isolation model:** a fresh disposable database per run (exactly what
 CI's service container provides). Since the release product gate, the

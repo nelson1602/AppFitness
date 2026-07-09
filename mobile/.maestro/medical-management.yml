@@ -1,0 +1,73 @@
+# Phase 14 Slice 2 — medical management (restrictions + evaluation history).
+#
+# Runs AFTER onboarding-loop.yml for the SAME account (session persisted;
+# the dashboard already has a profile, a device-entered weight evaluation,
+# and a goal). Exercises the two new management surfaces entirely on the
+# device:
+#   - add an active restriction, see it listed, then end it;
+#   - open evaluation history, see the recorded weight, soft-delete it.
+#
+# Prereqs: api/ running, `adb reverse tcp:3001 tcp:3001`. No seed. Fake,
+# synthetic data only.
+appId: com.appfitness.mobile
+---
+- launchApp
+
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 30000
+
+# --- Restrictions: add → list → end ---
+- scrollUntilVisible:
+    element: 'Restrictions & injuries'
+- tapOn: 'Restrictions & injuries'
+- extendedWaitUntil:
+    visible: 'Add a restriction'
+    timeout: 15000
+- assertVisible: 'No active restrictions.'
+# Type defaults to Injury and effective-from to today; add a body area.
+- tapOn:
+    id: 'field-bodyArea'
+- inputText: 'left knee'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add restriction'
+- tapOn: 'Add restriction'
+
+# The new restriction appears in the active list.
+- scrollUntilVisible:
+    element: 'Injury · left knee'
+- assertNotVisible: 'No active restrictions.'
+
+# End it → the active list empties again.
+- scrollUntilVisible:
+    element: 'End restriction'
+- tapOn: 'End restriction'
+- extendedWaitUntil:
+    visible: 'No active restrictions.'
+    timeout: 15000
+
+# Back to the dashboard.
+- back
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 15000
+
+# --- Evaluation history: view → soft-delete ---
+- scrollUntilVisible:
+    element: 'Evaluation history'
+- tapOn: 'Evaluation history'
+- extendedWaitUntil:
+    visible: 'Evaluation history'
+    timeout: 15000
+# The weight recorded during onboarding is listed (summary shows "82 kg").
+- assertVisible: '.*82 kg.*'
+
+# Two-step soft-delete.
+- scrollUntilVisible:
+    element: 'Remove'
+- tapOn: 'Remove'
+- tapOn: 'Confirm remove'
+- extendedWaitUntil:
+    visible: 'No evaluations recorded yet.'
+    timeout: 15000

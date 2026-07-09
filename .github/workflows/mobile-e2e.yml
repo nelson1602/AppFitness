@@ -123,6 +123,9 @@ jobs:
             # device — no server seed step.
             maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard -e E2E_PASSWORD=password12345 .maestro/registration.yml
             maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_PASSWORD=password12345 .maestro/onboarding-loop.yml
+            # Phase 14 Slice 2 — medical management surfaces (restrictions +
+            # evaluation history), same account/session, all on-device.
+            maestro test .maestro/medical-management.yml
 
       - name: Upload API log and Maestro artifacts on failure
         if: failure()

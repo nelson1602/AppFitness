@@ -1337,10 +1337,19 @@ schema/adapters ship on the Phase 13 RHF+Zod+Zustand pattern; the shared
 `FormField`/`FormSelect` primitives were promoted to `shared/presentation`.
 The dashboard `weight` gap deep-links to it and the assessment reaches
 `ready` from purely local data. Verified green in mobile-e2e run
-29042870217 (commit afa6572, EAS e2e build 070988d4): the onboarding-loop
-now records weight on the device (no server seed) and the dashboard reaches
-`ready` from local profile + local weight. Slice 2 (restrictions/injuries
-management, evaluation history/soft-delete surfacing) is NOT in this slice.
+29042870217 (commit afa6572, EAS e2e build 070988d4).
+
+Slice 2 (restrictions/injuries + evaluation history) delivered 2026-07-09 —
+`/evaluation-history` (list + non-sensitive vitals summary + local sync
+status + two-step soft-delete via `removeEvaluation`) and `/restrictions`
+(add via `recordRestriction` with encrypted `notes`, active list, end via
+`endRestriction`) ship on the same pattern (new `restriction.store`,
+`restriction-form.schema`, `RestrictionForm`; `evaluation.store` extended
+with history + `remove`). The dashboard links to both surfaces. User-created
+active restrictions already flow into the iCoach engine through the existing
+adapter (proven by a new adapter test). A focused `medical-management.yml`
+Maestro flow exercises both surfaces. Offline (airplane-mode) entry E2E
+remains pending with a documented harness blocker (see below / e2e README).
 
 ### Objective
 Entry UI for medical/physical evaluations (weight, body metrics, vitals)
@@ -1362,17 +1371,22 @@ As Phase 13 + encryption-at-rest assertions; closes `TEST-004`
 evaluation-entry and offline-data-entry E2E flows.
 
 ### Exit Criteria
-- [~] Users can record evaluations through production UI (Slice 1 done —
-      record; list/soft-delete surfacing + restrictions add/deactivate are
-      Slice 2).
+- [x] Users can record + list + soft-delete evaluations and add + deactivate
+      restrictions through production UI (Slice 1 record; Slice 2 history +
+      restrictions).
 - [x] Free-text is encrypted at rest via the existing repository cipher
-      path (Slice 1: form → service → repository `encryptText`, sync op
-      marked `sensitive`; store never logs values — unit-verified).
+      path (form → service → repository `encryptText`, sync op marked
+      `sensitive`; stores never log values — unit-verified for evaluation
+      and restriction notes).
 - [x] Dashboard reaches `ready` with a real user-entered dataset (profile
-      + device-entered weight, no server seed).
+      + device-entered weight, no server seed); user restrictions flow into
+      the engine input (adapter test).
 - [x] Evaluation-entry Maestro flow passes — onboarding-loop enters weight
-      on-device; verified green in mobile-e2e run 29042870217.
-      Offline-data-entry (airplane-mode) flow remains open in TEST-004.
+      on-device (mobile-e2e run 29042870217); `medical-management.yml`
+      covers restrictions + evaluation history.
+- [ ] Offline-data-entry (airplane-mode) E2E — PENDING: `adb reverse`
+      loopback is not severed by emulator airplane mode; needs a loopback
+      drop / API pause instead. Tracked in TEST-004.
 
 ## Phase 15 — Nutrition Module  [commercial v1]
 

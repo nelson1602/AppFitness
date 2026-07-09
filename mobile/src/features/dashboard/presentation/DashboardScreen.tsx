@@ -95,6 +95,22 @@ export function DashboardScreen() {
         </>
       ) : null}
 
+      {/* Medical management surfaces (Phase 14 Slice 2). */}
+      <AppButton
+        accessibilityLabel="View evaluation history"
+        onPress={() => router.push('/evaluation-history')}
+        variant="secondary"
+      >
+        Evaluation history
+      </AppButton>
+      <AppButton
+        accessibilityLabel="Manage restrictions and injuries"
+        onPress={() => router.push('/restrictions')}
+        variant="secondary"
+      >
+        Restrictions & injuries
+      </AppButton>
+
       {/* Sign-out clears the session; the dashboard route's session
           guard then redirects to /sign-in — no manual navigation. */}
       <AppButton

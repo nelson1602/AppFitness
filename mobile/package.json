@@ -84,6 +84,7 @@
       "src/features/profile/infrastructure/**/*.ts",
       "src/features/medical/infrastructure/**/*.ts",
       "src/features/medical/application/evaluation.store.ts",
+      "src/features/medical/application/restriction.store.ts",
       "src/features/medical/presentation/**/*.ts",
       "src/features/medical/presentation/**/*.tsx",
       "src/features/dashboard/application/**/*.ts",
@@ -165,6 +166,12 @@
         "branches": 75
       },
       "src/features/medical/application/evaluation.store.ts": {
+        "statements": 90,
+        "lines": 90,
+        "functions": 90,
+        "branches": 80
+      },
+      "src/features/medical/application/restriction.store.ts": {
         "statements": 90,
         "lines": 90,
         "functions": 90,

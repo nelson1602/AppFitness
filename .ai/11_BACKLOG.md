@@ -1011,9 +1011,13 @@ renderHook wave.
       purely local data. Verified green in mobile-e2e run 29042870217.
 - [ ] Plan-generation E2E beyond dashboard display — pending dedicated
       iCoach UI surface
-- [ ] Offline data entry E2E — profile/goal device entry is now proven
-      online; still pending airplane-mode toggling via adb (per
-      `09_TESTING.md` offline testing)
+- [ ] Offline data entry E2E — profile/goal/evaluation/restriction device
+      entry is proven online (onboarding-loop + medical-management flows).
+      Airplane-mode toggling is BLOCKED: the app reaches the runner-local
+      API over `adb reverse` (USB/loopback), which the emulator's airplane
+      mode does not sever, so it does not simulate offline. A real offline
+      test must drop the loopback (`adb reverse --remove tcp:3001`) or pause
+      the API process mid-flow, not toggle the device radio.
 - [x] Logout E2E — DONE (2026-07-08): sign-out surface added in Phase 12
       Step 4; the dashboard-sync Maestro flow now ends with Sign out →
       auth surface, proven locally and in CI (mobile-e2e run #3,

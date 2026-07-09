@@ -81,6 +81,39 @@ describe('buildDashboardAssessment', () => {
     }
   });
 
+  it('flows a user-created active restriction into the engine input', () => {
+    const result = buildDashboardAssessment({
+      profile,
+      activeGoal: null,
+      latestEvaluation: evaluation,
+      activeRestrictions: [
+        {
+          id: 'restriction-1',
+          userId: 'user-1',
+          type: 'INJURY',
+          bodyArea: 'left knee',
+          severity: 'MODERATE',
+          notes: 'no deep squats',
+          isActive: true,
+          effectiveFrom: '2026-07-01',
+          effectiveUntil: null,
+          version: 1,
+          syncStatus: 'pending',
+        },
+      ],
+      today: '2026-07-06',
+    });
+
+    expect(result.status).toBe('ready');
+    if (result.status === 'ready') {
+      // The engine receives the mapped restriction (type/bodyArea/severity);
+      // sensitive notes are NOT part of the engine input.
+      expect(result.data.engineInput.restrictions).toEqual([
+        { type: 'INJURY', bodyArea: 'left knee', severity: 'MODERATE' },
+      ]);
+    }
+  });
+
   it('reports precise gaps instead of throwing when required data is missing', () => {
     const result = buildDashboardAssessment({
       profile: null,

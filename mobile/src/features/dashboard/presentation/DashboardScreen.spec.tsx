@@ -235,6 +235,18 @@ describe('DashboardScreen', () => {
     expect(jest.mocked(signOut)).toHaveBeenCalledTimes(1);
   });
 
+  it('navigates to the medical management surfaces', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'View evaluation history' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Manage restrictions and injuries' }));
+
+    expect(router.push).toHaveBeenCalledWith('/evaluation-history');
+    expect(router.push).toHaveBeenCalledWith('/restrictions');
+  });
+
   it('routes to the delete-account surface (never deletes directly)', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({ status: 'ready', data: baseData });

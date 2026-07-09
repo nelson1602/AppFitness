@@ -1,12 +1,13 @@
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { Evaluation, EvaluationInput } from '../domain/medical.types';
-import { getMyEvaluations, recordEvaluation } from './medical.service';
+import { getMyEvaluations, recordEvaluation, removeEvaluation } from './medical.service';
 import { useEvaluationStore } from './evaluation.store';
 
 jest.mock('./medical.service', () => ({
   getMyEvaluations: jest.fn(),
   recordEvaluation: jest.fn(),
+  removeEvaluation: jest.fn(),
 }));
 jest.mock('@/shared/infrastructure/logging', () => ({
   logError: jest.fn(),
@@ -15,6 +16,7 @@ jest.mock('@/shared/infrastructure/logging', () => ({
 
 const mockGetMyEvaluations = jest.mocked(getMyEvaluations);
 const mockRecordEvaluation = jest.mocked(recordEvaluation);
+const mockRemoveEvaluation = jest.mocked(removeEvaluation);
 const mockLogError = jest.mocked(logError);
 
 const evaluation: Evaluation = {
@@ -51,16 +53,18 @@ const input: EvaluationInput = {
 describe('evaluation store', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useEvaluationStore.setState({ status: 'idle', latest: null, error: null });
+    useEvaluationStore.setState({ status: 'idle', latest: null, evaluations: [], error: null });
   });
 
-  it('loads the latest evaluation and transitions idle → ready', async () => {
-    mockGetMyEvaluations.mockResolvedValue([evaluation]);
+  it('loads the full history and exposes the most recent as latest', async () => {
+    const older: Evaluation = { ...evaluation, id: 'e0', evaluationDate: '2026-06-01' };
+    mockGetMyEvaluations.mockResolvedValue([evaluation, older]);
 
     await useEvaluationStore.getState().load();
 
     const state = useEvaluationStore.getState();
     expect(state.status).toBe('ready');
+    expect(state.evaluations).toEqual([evaluation, older]);
     expect(state.latest).toEqual(evaluation);
     expect(state.error).toBeNull();
   });
@@ -115,5 +119,56 @@ describe('evaluation store', () => {
     expect(logged).not.toContain('sensitive note');
     expect(logged).not.toContain('sensitive condition');
     expect(logged).not.toContain('sensitive medication');
+  });
+
+  it('soft-deletes an evaluation and refreshes the history from the repository', async () => {
+    const remaining: Evaluation = { ...evaluation, id: 'e0', evaluationDate: '2026-06-01' };
+    useEvaluationStore.setState({
+      status: 'ready',
+      evaluations: [evaluation, remaining],
+      latest: evaluation,
+      error: null,
+    });
+    mockRemoveEvaluation.mockResolvedValue(undefined);
+    mockGetMyEvaluations.mockResolvedValue([remaining]);
+
+    const ok = await useEvaluationStore.getState().remove('e1');
+
+    const state = useEvaluationStore.getState();
+    expect(ok).toBe(true);
+    expect(mockRemoveEvaluation).toHaveBeenCalledWith('e1');
+    expect(state.evaluations).toEqual([remaining]);
+    expect(state.latest).toEqual(remaining);
+    expect(state.status).toBe('ready');
+  });
+
+  it('clears latest when the last evaluation is soft-deleted', async () => {
+    useEvaluationStore.setState({
+      status: 'ready',
+      evaluations: [evaluation],
+      latest: evaluation,
+      error: null,
+    });
+    mockRemoveEvaluation.mockResolvedValue(undefined);
+    mockGetMyEvaluations.mockResolvedValue([]);
+
+    const ok = await useEvaluationStore.getState().remove('e1');
+
+    expect(ok).toBe(true);
+    expect(useEvaluationStore.getState().evaluations).toEqual([]);
+    expect(useEvaluationStore.getState().latest).toBeNull();
+  });
+
+  it('reports a safe error when soft-delete fails', async () => {
+    mockRemoveEvaluation.mockRejectedValue(new Error('db locked'));
+
+    const ok = await useEvaluationStore.getState().remove('e1');
+
+    expect(ok).toBe(false);
+    expect(useEvaluationStore.getState().status).toBe('error');
+    expect(useEvaluationStore.getState().error).toBe(
+      'Your evaluation could not be removed. Please try again.',
+    );
+    expect(mockLogError).toHaveBeenCalledWith('evaluation.remove', expect.any(Error));
   });
 });
