@@ -6,12 +6,25 @@ import { signOut } from '@/features/authentication';
 import { AppButton, AppText, Banner, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
+import type { DataRequirement } from '../domain/dashboard.types';
 import { useDashboardStore } from '../application/dashboard.store';
 import { AssessmentSummaryCard } from './components/assessment-summary-card';
 import { DashboardSkeleton } from './components/dashboard-skeleton';
 import { DataGapCard } from './components/data-gap-card';
 import { RecommendationCard } from './components/recommendation-card';
 import { SyncStatusBanner } from './components/sync-status-banner';
+
+/**
+ * Gaps the profile edit screen can resolve. Goal (default-goal) and body
+ * measurements (weight) are handled by later slices — they stay
+ * unaddressable here so the card renders no dead "Add now" action.
+ */
+const PROFILE_EDIT_GAPS = new Set(['profile', 'birth-date', 'height']);
+
+function resolveGapFix(gap: DataRequirement): (() => void) | undefined {
+  if (PROFILE_EDIT_GAPS.has(gap.id)) return () => router.push('/profile-edit');
+  return undefined;
+}
 
 export function DashboardScreen() {
   const theme = useTheme();
@@ -59,13 +72,16 @@ export function DashboardScreen() {
           onLoadSampleData={() => {
             void loadSampleData();
           }}
+          resolveFix={resolveGapFix}
         />
       ) : null}
 
       {status === 'ready' && data?.assessment ? (
         <>
           <AssessmentSummaryCard assessment={data.assessment} />
-          {data.missing.length > 0 ? <DataGapCard gaps={data.missing} /> : null}
+          {data.missing.length > 0 ? (
+            <DataGapCard gaps={data.missing} resolveFix={resolveGapFix} />
+          ) : null}
           <View style={{ gap: theme.spacing.md }}>
             <AppText variant="title">iCoach recommendations</AppText>
             {data.assessment.assessment.recommendations.map((recommendation) => (

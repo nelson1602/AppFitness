@@ -146,6 +146,29 @@ describe('DashboardScreen', () => {
     expect(loadSampleData).toHaveBeenCalledTimes(1);
   });
 
+  it('deep-links a profile data gap to the profile edit screen', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({
+      status: 'empty',
+      data: {
+        ...baseData,
+        assessment: null,
+        missing: [
+          {
+            id: 'profile',
+            title: 'Create your profile',
+            detail: 'Birth date, height, and training background are required.',
+          },
+        ],
+      },
+    });
+
+    await render(<DashboardScreen />);
+    fireEvent.press(screen.getByRole('button', { name: 'Fix: Create your profile' }));
+
+    expect(router.push).toHaveBeenCalledWith('/profile-edit');
+  });
+
   it('renders recommendations and triggers manual sync', async () => {
     setStore({ status: 'ready', data: baseData });
 

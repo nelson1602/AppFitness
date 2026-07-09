@@ -39,4 +39,18 @@ describe('DataGapCard', () => {
 
     expect(screen.queryByText('Load sample data')).toBeNull();
   });
+
+  it('renders a fix action only for gaps the resolver can address', async () => {
+    const fixProfile = jest.fn();
+    const resolveFix = (gap: (typeof gaps)[number]) =>
+      gap.id === 'profile' ? fixProfile : undefined;
+
+    await render(<DataGapCard gaps={gaps} resolveFix={resolveFix} />);
+
+    expect(screen.getByRole('button', { name: 'Fix: Create your profile' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Fix: Add current weight' })).toBeNull();
+
+    fireEvent.press(screen.getByRole('button', { name: 'Fix: Create your profile' }));
+    expect(fixProfile).toHaveBeenCalledTimes(1);
+  });
 });

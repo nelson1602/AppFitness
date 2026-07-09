@@ -9,9 +9,15 @@ interface DataGapCardProps {
   gaps: DataRequirement[];
   loading?: boolean;
   onLoadSampleData?: () => void;
+  /**
+   * Maps a gap to a "fix it" action, or undefined if no entry screen
+   * exists for it yet. Routing knowledge stays in the screen — the card
+   * never hard-codes which gaps are addressable.
+   */
+  resolveFix?: (gap: DataRequirement) => (() => void) | undefined;
 }
 
-export function DataGapCard({ gaps, loading, onLoadSampleData }: DataGapCardProps) {
+export function DataGapCard({ gaps, loading, onLoadSampleData, resolveFix }: DataGapCardProps) {
   const theme = useTheme();
   return (
     <Card accessibilityLabel="Dashboard setup requirements">
@@ -22,14 +28,26 @@ export function DataGapCard({ gaps, loading, onLoadSampleData }: DataGapCardProp
           iCoach assessment.
         </AppText>
         <View style={{ gap: theme.spacing.sm }}>
-          {gaps.map((gap) => (
-            <View key={gap.id} style={{ gap: theme.spacing.xs }}>
-              <AppText variant="label">{gap.title}</AppText>
-              <AppText variant="caption" tone="muted">
-                {gap.detail}
-              </AppText>
-            </View>
-          ))}
+          {gaps.map((gap) => {
+            const fix = resolveFix?.(gap);
+            return (
+              <View key={gap.id} style={{ gap: theme.spacing.xs }}>
+                <AppText variant="label">{gap.title}</AppText>
+                <AppText variant="caption" tone="muted">
+                  {gap.detail}
+                </AppText>
+                {fix ? (
+                  <AppButton
+                    accessibilityLabel={`Fix: ${gap.title}`}
+                    onPress={fix}
+                    variant="secondary"
+                  >
+                    Add now
+                  </AppButton>
+                ) : null}
+              </View>
+            );
+          })}
         </View>
         {__DEV__ && onLoadSampleData ? (
           <AppButton
