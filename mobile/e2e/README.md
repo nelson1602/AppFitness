@@ -19,7 +19,7 @@ other variants never load the plugin and keep cleartext blocked.
 | `smoke-auth-surface.yml` | no | launch, routing, auth surface, `__DEV__` gate |
 | `registration.yml` | yes | register → empty dashboard (data-gap state) |
 | `dashboard-sync.yml` | yes (after full seed) | session restore → Sync now → populated dashboard via real pull |
-| `onboarding-loop.yml` | yes (after evaluation seed) | device-side profile+goal entry via gap actions → iCoach recalc → sync clears pending → sign out & back in |
+| `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → sync clears pending → sign out & back in |
 
 Two journeys run against the same disposable DB with distinct synthetic
 users:
@@ -28,12 +28,12 @@ users:
   `node e2e/seed.mjs` (full: profile/evaluation REST + goal via
   `/sync/push`) → `dashboard-sync.yml` pulls it all through the real
   appliers.
-- **Journey B (device onboarding, Slice 3):** `registration.yml`
-  (onboard user) → `E2E_SEED_SCOPE=evaluation node e2e/seed.mjs` (weight
-  only — no on-device weight UI yet, TEST-004) → `onboarding-loop.yml`
-  enters the profile and goal on the device through the dashboard gap
-  actions, confirms the iCoach assessment recalculates and pending sync
-  clears, then signs out and back in with data intact.
+- **Journey B (full device onboarding):** `registration.yml` (onboard
+  user) → `onboarding-loop.yml` enters the profile, physical evaluation
+  (weight), and goal entirely on the device through the dashboard gap
+  actions. The iCoach assessment reaches `ready` from purely local data
+  (no server seed), then local changes sync until pending clears, and the
+  account signs out and back in with data intact.
 
 **Isolation model:** a fresh disposable database per run (exactly what
 CI's service container provides). Since the release product gate, the
@@ -69,10 +69,9 @@ maestro test -e E2E_EMAIL=demo@appfitness.local -e E2E_USERNAME=demo \
 node e2e/seed.mjs
 maestro test .maestro/dashboard-sync.yml
 
-# 5. Flows — Journey B (device onboarding loop, Slice 3)
+# 5. Flows — Journey B (full device onboarding loop; no seed)
 maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard \
   -e E2E_PASSWORD=password12345 .maestro/registration.yml
-E2E_EMAIL=onboard@appfitness.local E2E_SEED_SCOPE=evaluation node e2e/seed.mjs
 maestro test -e E2E_EMAIL=onboard@appfitness.local \
   -e E2E_PASSWORD=password12345 .maestro/onboarding-loop.yml
 ```

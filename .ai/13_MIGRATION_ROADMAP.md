@@ -1331,6 +1331,15 @@ export, + human Android simulator pass. iOS runtime pending macOS.
 
 ## Phase 14 — Medical / Physical Evaluation Entry UI  [internal-test path]
 
+Status: Slice 1 (physical evaluation entry) delivered 2026-07-09 — the
+`/evaluation-edit` route, `EvaluationForm`, `evaluation.store`, and Zod
+schema/adapters ship on the Phase 13 RHF+Zod+Zustand pattern; the shared
+`FormField`/`FormSelect` primitives were promoted to `shared/presentation`.
+The dashboard `weight` gap deep-links to it and the assessment reaches
+`ready` from purely local data. Local validation green; the onboarding-loop
+E2E now enters weight on the device (no server seed). Slice 2
+(restrictions/injuries management) is NOT in this slice.
+
 ### Objective
 Entry UI for medical/physical evaluations (weight, body metrics, vitals)
 and restrictions (with encrypted free-text), on the existing medical
@@ -1351,11 +1360,17 @@ As Phase 13 + encryption-at-rest assertions; closes `TEST-004`
 evaluation-entry and offline-data-entry E2E flows.
 
 ### Exit Criteria
-- [ ] Users can record/list/soft-delete evaluations and add/deactivate
-      restrictions through production UI.
-- [ ] Free-text is encrypted at rest (device + server); verified.
-- [ ] Dashboard reaches `ready` with a real user-entered dataset.
-- [ ] Evaluation-entry + offline-data-entry Maestro flows pass.
+- [~] Users can record evaluations through production UI (Slice 1 done —
+      record; list/soft-delete surfacing + restrictions add/deactivate are
+      Slice 2).
+- [x] Free-text is encrypted at rest via the existing repository cipher
+      path (Slice 1: form → service → repository `encryptText`, sync op
+      marked `sensitive`; store never logs values — unit-verified).
+- [x] Dashboard reaches `ready` with a real user-entered dataset (profile
+      + device-entered weight, no server seed).
+- [~] Evaluation-entry Maestro flow passes (onboarding-loop now enters
+      weight on-device; verified in mobile-e2e). Offline-data-entry
+      (airplane-mode) flow remains open in TEST-004.
 
 ## Phase 15 — Nutrition Module  [commercial v1]
 

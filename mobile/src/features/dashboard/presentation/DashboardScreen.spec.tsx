@@ -169,6 +169,29 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/profile-edit');
   });
 
+  it('deep-links the weight data gap to the evaluation edit screen', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({
+      status: 'empty',
+      data: {
+        ...baseData,
+        assessment: null,
+        missing: [
+          {
+            id: 'weight',
+            title: 'Record a weight measurement',
+            detail: 'Weight is required for body composition and nutrition targets.',
+          },
+        ],
+      },
+    });
+
+    await render(<DashboardScreen />);
+    fireEvent.press(screen.getByRole('button', { name: 'Fix: Record a weight measurement' }));
+
+    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+  });
+
   it('deep-links the default-goal assessment note to the goal edit screen', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({

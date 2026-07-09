@@ -1,22 +1,18 @@
-# ADR-P008 / TEST-004 — full device-side profile-and-goal onboarding loop.
+# ADR-P008 / TEST-004 — full device-side onboarding loop.
 #
-# Proves the complete production-path loop that Phase 13 unlocked: a brand
-# new account enters its profile and goal ON THE DEVICE through the
-# dashboard gap actions, the iCoach assessment recalculates, local changes
-# sync and the pending state clears, and the account can sign out and back
-# in with its data intact.
+# Proves the complete production-path loop that Phases 13–14 unlocked: a
+# brand new account enters its profile, physical evaluation (weight), and
+# goal ENTIRELY ON THE DEVICE through the dashboard gap actions; the iCoach
+# assessment reaches `ready` from purely local data (no server seeding);
+# local changes sync and the pending state clears; and the account can sign
+# out and back in with its data intact.
 #
 # Prereqs (same seeded-local-API setup as registration.yml): api/ running
 # on the host, a FRESH disposable database, and `adb reverse tcp:3001
 # tcp:3001`. Run AFTER registration.yml (creates the persisted session for
-# the SAME account) and AFTER an evaluation-only server seed:
-#
-#   E2E_EMAIL=<addr> E2E_SEED_SCOPE=evaluation node e2e/seed.mjs
-#
-# The weight measurement is seeded server-side because there is no
-# on-device weight entry UI yet (documented TEST-004 gap); the profile and
-# goal below are entered entirely on the device. Credentials are passed per
-# run (the release sign-in surface ships with empty fields):
+# the SAME account). No server seed step is required — every data point is
+# entered on the device. Credentials are passed per run (the release
+# sign-in surface ships with empty fields):
 #
 #   maestro test -e E2E_EMAIL=<addr> -e E2E_PASSWORD=<pw> .maestro/onboarding-loop.yml
 #
@@ -59,8 +55,7 @@ appId: com.appfitness.mobile
 - tapOn: 'Save profile'
 
 # Back on the dashboard: profile / birth-date / height gaps close. Weight
-# remains (no on-device weight entry UI), so the assessment is still
-# incomplete.
+# remains, so the assessment is still incomplete.
 - extendedWaitUntil:
     visible: 'Your local iCoach assessment'
     timeout: 30000
@@ -69,15 +64,31 @@ appId: com.appfitness.mobile
 - assertNotVisible: 'Add your height'
 - assertVisible: 'Record a weight measurement'
 
-# --- 2. Pull the seeded weight; iCoach becomes ready and recalculates ---
-- tapOn: 'Sync now'
+# --- 2. Record a physical evaluation (weight) through the gap action ---
+- tapOn:
+    id: 'gap-fix-weight'
+- extendedWaitUntil:
+    visible:
+      id: 'field-weightKg'
+    timeout: 15000
+# The evaluation date defaults to today; only weight is required.
+- tapOn:
+    id: 'field-weightKg'
+- inputText: '82'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Save evaluation'
+- tapOn: 'Save evaluation'
+
+# Back on the dashboard: with a local profile + local weight, the iCoach
+# assessment reaches `ready` from purely local data — no server round-trip.
+# The weight gap closes; the maintenance-goal note appears below the
+# assessment, so scroll it into view.
 - extendedWaitUntil:
     visible: "Today's assessment"
-    timeout: 60000
+    timeout: 30000
 - assertVisible: '.*kcal.*'
-# No active goal yet → the engine used the maintenance default. The note
-# sits in the setup card below the assessment, so scroll it into view
-# (the recommendations list below it is off-screen at this point).
+- assertNotVisible: 'Record a weight measurement'
 - scrollUntilVisible:
     element: 'Using maintenance goal'
 

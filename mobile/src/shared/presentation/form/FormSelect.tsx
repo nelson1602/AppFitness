@@ -1,8 +1,9 @@
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
 
-import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+
+import { AppText } from '../app-text';
 
 interface Option {
   label: string;
@@ -20,6 +21,7 @@ interface FormSelectProps<T extends FieldValues> {
 /**
  * Reusable React Hook Form enum selector rendered as a row of pressable
  * chips (no UI framework / native picker). RHF-`Controller`-driven.
+ * Shared across the profile, goal, and medical forms.
  */
 export function FormSelect<T extends FieldValues>({
   control,

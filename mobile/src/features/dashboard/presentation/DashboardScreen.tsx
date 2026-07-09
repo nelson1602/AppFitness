@@ -16,15 +16,17 @@ import { SyncStatusBanner } from './components/sync-status-banner';
 
 /**
  * Maps a data gap / assessment note to the edit screen that resolves it.
- * Body measurements (weight) are handled by a later slice — they stay
- * unaddressable here so the card renders no dead "Add now" action.
+ * Routing knowledge stays in the screen — the card never hard-codes which
+ * gaps are addressable.
  */
 const PROFILE_EDIT_GAPS = new Set(['profile', 'birth-date', 'height']);
 const GOAL_EDIT_GAPS = new Set(['default-goal']);
+const EVALUATION_EDIT_GAPS = new Set(['weight']);
 
 function resolveGapFix(gap: DataRequirement): (() => void) | undefined {
   if (PROFILE_EDIT_GAPS.has(gap.id)) return () => router.push('/profile-edit');
   if (GOAL_EDIT_GAPS.has(gap.id)) return () => router.push('/goal-edit');
+  if (EVALUATION_EDIT_GAPS.has(gap.id)) return () => router.push('/evaluation-edit');
   return undefined;
 }
 

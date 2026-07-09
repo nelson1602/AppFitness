@@ -3,12 +3,10 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
-import { AppButton, AppText, Banner } from '@/shared/presentation';
+import { AppButton, AppText, Banner, FormField, FormSelect } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useGoalStore } from '../application/goal.store';
-import { FormField } from './components/FormField';
-import { FormSelect } from './components/FormSelect';
 import {
   goalFormSchema,
   goalToFormValues,

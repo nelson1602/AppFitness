@@ -1004,9 +1004,11 @@ renderHook wave.
       through the dashboard gap actions, verifies the gaps close and the
       iCoach assessment recalculates, and syncs until pending clears.
       Verified green in mobile-e2e run 29029948096.
-- [ ] Evaluation-entry E2E — pending medical evaluation entry UI. The
-      onboarding loop seeds the weight server-side (`E2E_SEED_SCOPE=
-      evaluation`) as a stopgap; a real device-entry flow needs the UI
+- [x] Evaluation-entry E2E — DONE (2026-07-09, Phase 14 Slice 1): the
+      `/evaluation-edit` screen ships, and `onboarding-loop.yml` now
+      records the weight on the device (the `E2E_SEED_SCOPE=evaluation`
+      server-seed stopgap was removed). The dashboard reaches `ready` from
+      purely local data.
 - [ ] Plan-generation E2E beyond dashboard display — pending dedicated
       iCoach UI surface
 - [ ] Offline data entry E2E — profile/goal device entry is now proven

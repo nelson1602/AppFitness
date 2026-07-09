@@ -1,8 +1,9 @@
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import { TextInput, View } from 'react-native';
 
-import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+
+import { AppText } from '../app-text';
 
 interface FormFieldProps<T extends FieldValues> {
   control: Control<T>;
@@ -15,8 +16,9 @@ interface FormFieldProps<T extends FieldValues> {
 
 /**
  * Reusable React Hook Form text field: label + TextInput + inline error.
- * RHF-`Controller`-driven and theme-tokened; reused across profile/goal
- * forms. Presentational only — validation lives in the Zod schema.
+ * RHF-`Controller`-driven and theme-tokened; shared across the profile,
+ * goal, and medical forms. Presentational only — validation lives in each
+ * feature's Zod schema.
  */
 export function FormField<T extends FieldValues>({
   control,
