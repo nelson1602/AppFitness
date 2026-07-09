@@ -169,6 +169,28 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/profile-edit');
   });
 
+  it('deep-links the default-goal assessment note to the goal edit screen', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({
+      status: 'ready',
+      data: {
+        ...baseData,
+        missing: [
+          {
+            id: 'default-goal',
+            title: 'Using maintenance goal',
+            detail: 'Set a goal to personalize calorie and training adjustments.',
+          },
+        ],
+      },
+    });
+
+    await render(<DashboardScreen />);
+    fireEvent.press(screen.getByRole('button', { name: 'Fix: Using maintenance goal' }));
+
+    expect(router.push).toHaveBeenCalledWith('/goal-edit');
+  });
+
   it('renders recommendations and triggers manual sync', async () => {
     setStore({ status: 'ready', data: baseData });
 

@@ -15,14 +15,16 @@ import { RecommendationCard } from './components/recommendation-card';
 import { SyncStatusBanner } from './components/sync-status-banner';
 
 /**
- * Gaps the profile edit screen can resolve. Goal (default-goal) and body
- * measurements (weight) are handled by later slices — they stay
+ * Maps a data gap / assessment note to the edit screen that resolves it.
+ * Body measurements (weight) are handled by a later slice — they stay
  * unaddressable here so the card renders no dead "Add now" action.
  */
 const PROFILE_EDIT_GAPS = new Set(['profile', 'birth-date', 'height']);
+const GOAL_EDIT_GAPS = new Set(['default-goal']);
 
 function resolveGapFix(gap: DataRequirement): (() => void) | undefined {
   if (PROFILE_EDIT_GAPS.has(gap.id)) return () => router.push('/profile-edit');
+  if (GOAL_EDIT_GAPS.has(gap.id)) return () => router.push('/goal-edit');
   return undefined;
 }
 
