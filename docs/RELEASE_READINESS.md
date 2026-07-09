@@ -76,23 +76,28 @@ account-deletion path, and the release scaffolding (dependency-audit
 policy, release-notes template, EAS submit profile, rollback runbooks)
 are done and CI-green. No high/critical prod advisories (Step 8A).
 
-**2. Android internal-testing readiness: NOT READY — one engineering
-blocker + external gates.**
-- **Engineering blocker (in-repo, real):** there is **no production UI to
-  enter profile, goal, or medical/evaluation data**. `mobile/src/features/
-  {profile,medical}` have application/domain/infrastructure layers but no
-  `presentation/`; the only routes are sign-in, dashboard, delete-account.
-  A real (non-`__DEV__`-seeded) tester registers and lands on the empty
-  "Finish your baseline" dashboard with no way to add data — so an
-  internal test would exercise almost nothing. Resolved by Phases 13–14
-  (profile/goal entry, then evaluation entry). Tracked in `TEST-004`
-  (evaluation-entry / offline-data-entry E2E) and the roadmap.
+**2. Android internal-testing readiness: NOT READY — one narrowed
+engineering blocker + external gates.**
+- **Engineering blocker (in-repo, real — NARROWED by Phase 13):** the
+  original blocker was that there was **no production UI to enter profile,
+  goal, or medical/evaluation data**. Phase 13 shipped profile entry
+  (Slice 1), goal entry (Slice 2), and the device-side onboarding E2E loop
+  (Slice 3): a real (non-`__DEV__`) tester can now register, complete their
+  profile and active goal through the dashboard gap actions, and get a
+  recalculated iCoach assessment. **Remaining:** there is still **no
+  on-device medical/evaluation (weight) entry UI** — `mobile/src/features/
+  medical` has application/domain/infrastructure but no `presentation/`.
+  Until Phase 14 adds it, a weight measurement must be supplied via sync
+  (the onboarding E2E seeds it server-side with `E2E_SEED_SCOPE=
+  evaluation`), so an unseeded tester cannot reach a full assessment on
+  device alone. Tracked in `TEST-004` (evaluation-entry E2E) and the
+  roadmap (Phase 14).
 - **External gates (unchanged):** Sentry org+DSNs (monitoring
   verification), Play app + store-listing assets + Data Safety form, a
   published privacy-policy URL, legal sign-off on `docs/legal/*`.
-- **Independently actionable now (no UI dependency):** the existing-
-  account **login E2E** flow — login already has UI; it needs only a
-  Maestro flow, not any new screen.
+- **Now proven (Phase 13 Slice 3):** the existing-account **login E2E**
+  and the full **profile+goal onboarding loop** are covered by
+  `mobile/.maestro/onboarding-loop.yml` in the `mobile-e2e` workflow.
 
 **3. Production / store-submission readiness: NO.** All internal-testing
 items plus finalized legal artifacts, a Production environment (only

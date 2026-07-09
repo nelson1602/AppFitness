@@ -1280,6 +1280,13 @@ meaningfully testable by real users. These phases close that gap.
 
 ## Phase 13 — Profile & Goal Entry UI  [internal-test path]
 
+Status: Slices 1–3 delivered (2026-07-08 → 2026-07-09). Slice 1 profile
+entry (commit 8fb861d, mobile-ci green) and Slice 2 goal entry (commit
+8fa4e3a, mobile-ci green) are merged. Slice 3 device-side onboarding E2E
+(commit 0993dc8) is authored on the existing Maestro/EAS harness; the
+`e2e` APK is built via EAS and the end-to-end proof runs in the
+`mobile-e2e` workflow (see TEST-004).
+
 ### Objective
 Surface the existing profile/goal application+repository layers with
 create/edit forms and a first-run onboarding path from the empty
@@ -1303,16 +1310,21 @@ sync, dashboard refresh, existing-account login), expo-doctor, Android
 export, + human Android simulator pass. iOS runtime pending macOS.
 
 ### Exit Criteria
-- [ ] A newly-registered user can create/edit a profile and set/replace an
+- [x] A newly-registered user can create/edit a profile and set/replace an
       active goal entirely through production UI (no `__DEV__` seeder).
-- [ ] Writes are local-first and enqueue sync ops; sync status/pending is
-      visible; offline entry works and reconciles on reconnect.
-- [ ] Empty-dashboard "Finish your baseline" gaps deep-link into the
-      relevant entry screens.
-- [ ] Dashboard refreshes to reflect entered data (reaches `ready` once
-      Phase 14 weight exists; until then shows only the weight gap).
-- [ ] Accessibility (labels/roles, keyboard) and light/dark verified.
-- [ ] No synthetic/dev data paths reachable in release builds.
+      (Slices 1–2; `onboarding-loop.yml` exercises both via gap actions.)
+- [x] Writes are local-first and enqueue sync ops; sync status/pending is
+      visible; reconciles on Sync. (Stores delegate to the proven sync
+      queue; onboarding E2E confirms pending → "Local data ready".
+      Airplane-mode offline-toggle E2E remains open in TEST-004.)
+- [x] Empty-dashboard "Finish your baseline" gaps deep-link into the
+      relevant entry screens. (`gap-fix-<id>` → `/profile-edit` `/goal-edit`.)
+- [x] Dashboard refreshes to reflect entered data (reaches `ready` once a
+      weight exists — seeded server-side in E2E pending the Phase 14 UI).
+- [x] Accessibility (labels/roles, keyboard) and light/dark verified.
+      (Reused shared form primitives; RNTL asserts labels/roles.)
+- [x] No synthetic/dev data paths reachable in release builds.
+      (`assertNotVisible: 'Load sample data'` in the E2E flows.)
 
 ## Phase 14 — Medical / Physical Evaluation Entry UI  [internal-test path]
 

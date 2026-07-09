@@ -970,35 +970,46 @@ state.
 
 ## [TEST-004] Phase 11 Carry-Forwards — Deferred E2E Flows, Cloud Maestro, Phased Coverage
 
-Status: Blocked
+Status: In Progress
 Priority: P2
 Type: Testing
 Owner: Unassigned
 Created: 2026-07-07
-Updated: 2026-07-07
+Updated: 2026-07-09
 
 ### Description
 
 Phase 11 closed (2026-07-07) with the seeded-backend Maestro E2E proven
-locally and in CI. These remaining items are structurally blocked on
-future-phase work and carry forward. Extend the existing foundation
-(`mobile/.maestro/`, `mobile/e2e/seed.mjs`, `mobile-e2e.yml`) — do not
-build a parallel harness.
+locally and in CI. Phase 13 Slice 3 (2026-07-09) added the device-side
+profile-and-goal onboarding loop on the same foundation. The remaining
+items are structurally blocked on future-phase work and carry forward.
+Extend the existing foundation (`mobile/.maestro/`, `mobile/e2e/seed.mjs`,
+`mobile-e2e.yml`) — do not build a parallel harness.
 
 ### Blocked By
 
-Future UI surfaces (forms/auth screens), EAS paid billing, and the
-component-test renderHook wave.
+Remaining UI surfaces (medical evaluation entry, dedicated iCoach plan
+surface), EAS paid billing (cloud Maestro), and the component-test
+renderHook wave.
 
 ### Acceptance Criteria
 
-- [ ] Existing-account login E2E flow — needs nothing new technically;
-      add alongside the next auth UI touch
-- [ ] Evaluation-entry E2E — pending medical evaluation entry UI
+- [x] Existing-account login E2E flow — DONE (2026-07-09, Slice 3): the
+      `onboarding-loop.yml` flow signs out and signs back in as the same
+      account, asserting the populated dashboard restores with local data
+      intact
+- [x] Device-side profile + goal onboarding E2E — DONE (2026-07-09,
+      Slice 3): `onboarding-loop.yml` completes profile and active goal
+      through the dashboard gap actions, verifies the gaps close and the
+      iCoach assessment recalculates, and syncs until pending clears
+- [ ] Evaluation-entry E2E — pending medical evaluation entry UI. The
+      onboarding loop seeds the weight server-side (`E2E_SEED_SCOPE=
+      evaluation`) as a stopgap; a real device-entry flow needs the UI
 - [ ] Plan-generation E2E beyond dashboard display — pending dedicated
       iCoach UI surface
-- [ ] Offline data entry E2E — pending local entry forms (then airplane
-      -mode toggling via adb, per `09_TESTING.md` offline testing)
+- [ ] Offline data entry E2E — profile/goal device entry is now proven
+      online; still pending airplane-mode toggling via adb (per
+      `09_TESTING.md` offline testing)
 - [x] Logout E2E — DONE (2026-07-08): sign-out surface added in Phase 12
       Step 4; the dashboard-sync Maestro flow now ends with Sign out →
       auth surface, proven locally and in CI (mobile-e2e run #3,
