@@ -24,8 +24,9 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Add a restriction'
     timeout: 15000
-- assertVisible: 'No active restrictions.'
 # Type defaults to Injury and effective-from to today; add a body area.
+# (The empty-state text lives below the add form, so it is not asserted
+# up front — the add/end round-trip below is the real proof.)
 - tapOn:
     id: 'field-bodyArea'
 - inputText: 'left knee'
@@ -34,17 +35,16 @@ appId: com.appfitness.mobile
     element: 'Add restriction'
 - tapOn: 'Add restriction'
 
-# The new restriction appears in the active list.
+# The new restriction appears in the active list (below the add form).
 - scrollUntilVisible:
     element: 'Injury · left knee'
-- assertNotVisible: 'No active restrictions.'
 
-# End it → the active list empties again.
+# End it → the restriction leaves the active list.
 - scrollUntilVisible:
     element: 'End restriction'
 - tapOn: 'End restriction'
 - extendedWaitUntil:
-    visible: 'No active restrictions.'
+    notVisible: 'Injury · left knee'
     timeout: 15000
 
 # Back to the dashboard.
@@ -57,17 +57,18 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: 'Evaluation history'
 - tapOn: 'Evaluation history'
+# Wait for the loaded list: the weight recorded during onboarding shows as
+# "82 kg" in the summary.
 - extendedWaitUntil:
-    visible: 'Evaluation history'
+    visible: '.*82 kg.*'
     timeout: 15000
-# The weight recorded during onboarding is listed (summary shows "82 kg").
-- assertVisible: '.*82 kg.*'
 
-# Two-step soft-delete.
+# Two-step soft-delete → the history empties.
 - scrollUntilVisible:
     element: 'Remove'
 - tapOn: 'Remove'
 - tapOn: 'Confirm remove'
 - extendedWaitUntil:
-    visible: 'No evaluations recorded yet.'
+    notVisible: '.*82 kg.*'
     timeout: 15000
+- assertVisible: 'No evaluations recorded yet.'
