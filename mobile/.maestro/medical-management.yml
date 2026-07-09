@@ -47,11 +47,10 @@ appId: com.appfitness.mobile
     notVisible: 'Injury · left knee'
     timeout: 15000
 
-# Back to the dashboard.
+# Back to the dashboard. Its scroll position is preserved near the medical
+# buttons, so go straight to the history entry point (which also confirms
+# we landed back on the dashboard — the button exists only there).
 - back
-- extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
-    timeout: 15000
 
 # --- Evaluation history: view → soft-delete ---
 - scrollUntilVisible:
