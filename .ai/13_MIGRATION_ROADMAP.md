@@ -1336,9 +1336,11 @@ Status: Slice 1 (physical evaluation entry) delivered 2026-07-09 — the
 schema/adapters ship on the Phase 13 RHF+Zod+Zustand pattern; the shared
 `FormField`/`FormSelect` primitives were promoted to `shared/presentation`.
 The dashboard `weight` gap deep-links to it and the assessment reaches
-`ready` from purely local data. Local validation green; the onboarding-loop
-E2E now enters weight on the device (no server seed). Slice 2
-(restrictions/injuries management) is NOT in this slice.
+`ready` from purely local data. Verified green in mobile-e2e run
+29042870217 (commit afa6572, EAS e2e build 070988d4): the onboarding-loop
+now records weight on the device (no server seed) and the dashboard reaches
+`ready` from local profile + local weight. Slice 2 (restrictions/injuries
+management, evaluation history/soft-delete surfacing) is NOT in this slice.
 
 ### Objective
 Entry UI for medical/physical evaluations (weight, body metrics, vitals)
@@ -1368,9 +1370,9 @@ evaluation-entry and offline-data-entry E2E flows.
       marked `sensitive`; store never logs values — unit-verified).
 - [x] Dashboard reaches `ready` with a real user-entered dataset (profile
       + device-entered weight, no server seed).
-- [~] Evaluation-entry Maestro flow passes (onboarding-loop now enters
-      weight on-device; verified in mobile-e2e). Offline-data-entry
-      (airplane-mode) flow remains open in TEST-004.
+- [x] Evaluation-entry Maestro flow passes — onboarding-loop enters weight
+      on-device; verified green in mobile-e2e run 29042870217.
+      Offline-data-entry (airplane-mode) flow remains open in TEST-004.
 
 ## Phase 15 — Nutrition Module  [commercial v1]
 

@@ -1008,7 +1008,7 @@ renderHook wave.
       `/evaluation-edit` screen ships, and `onboarding-loop.yml` now
       records the weight on the device (the `E2E_SEED_SCOPE=evaluation`
       server-seed stopgap was removed). The dashboard reaches `ready` from
-      purely local data.
+      purely local data. Verified green in mobile-e2e run 29042870217.
 - [ ] Plan-generation E2E beyond dashboard display — pending dedicated
       iCoach UI surface
 - [ ] Offline data entry E2E — profile/goal device entry is now proven
