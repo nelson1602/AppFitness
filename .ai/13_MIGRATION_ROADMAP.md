@@ -1348,8 +1348,10 @@ status + two-step soft-delete via `removeEvaluation`) and `/restrictions`
 with history + `remove`). The dashboard links to both surfaces. User-created
 active restrictions already flow into the iCoach engine through the existing
 adapter (proven by a new adapter test). A focused `medical-management.yml`
-Maestro flow exercises both surfaces. Offline (airplane-mode) entry E2E
-remains pending with a documented harness blocker (see below / e2e README).
+Maestro flow exercises both surfaces — verified green in mobile-e2e run
+29050409506 (commit a9850d7, EAS e2e build 97264fb5). Offline (airplane-
+mode) entry E2E remains pending with a documented harness blocker (see
+below / e2e README).
 
 ### Objective
 Entry UI for medical/physical evaluations (weight, body metrics, vitals)
@@ -1383,7 +1385,7 @@ evaluation-entry and offline-data-entry E2E flows.
       the engine input (adapter test).
 - [x] Evaluation-entry Maestro flow passes — onboarding-loop enters weight
       on-device (mobile-e2e run 29042870217); `medical-management.yml`
-      covers restrictions + evaluation history.
+      covers restrictions + evaluation history (mobile-e2e run 29050409506).
 - [ ] Offline-data-entry (airplane-mode) E2E — PENDING: `adb reverse`
       loopback is not severed by emulator airplane mode; needs a loopback
       drop / API pause instead. Tracked in TEST-004.
