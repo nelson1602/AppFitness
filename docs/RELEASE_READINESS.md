@@ -33,7 +33,7 @@ Legend: **PASS** · **BLOCKED** (engineering/asset gap) · **PENDING-HUMAN**
 
 | Criterion | Status | Evidence / gap |
 |---|---|---|
-| Production build passes every Release Checklist item | BLOCKED | items 6, 8(mobile), 10, 12 open; 11/13/14 pending-human |
+| Production build passes every Release Checklist item | BLOCKED | items 10 (Sentry) & 12 (store-listing assets) open; 11/13/14 pending-human. (Items 6 and 8 resolved in Steps 7–8A.) |
 | Rollback plan documented and tested | PARTIAL | API documented (untested against a live redeploy); mobile track rollback pending |
 | Monitoring/error tracking (Sentry) wired up **and verified** | BLOCKED (external) | wired ✅; live verification needs org + DSNs |
 | Release notes prepared | PASS (template) | reusable template `docs/RELEASE_NOTES_TEMPLATE.md`; per-release note authored at release time |
@@ -68,19 +68,46 @@ build verification ✅ (expo export / nest build) · **dependency audit ✅
 
 ## Verdicts
 
-**Internal-testing readiness: NOT YET — in-repo blockers now closed;
-remaining gates are all external.** The app is functionally ready
-(builds via `production`/`preview`, hosted Development API verified, auth
-/ dashboard / sync / account-deletion working and E2E-proven), and the
-release-engineering scaffolding (dependency audit, release-notes
-template, submit profile, rollback runbooks) is in place. What remains
-for an honest Play **internal-testing** track is entirely
-owner/legal/store-console: Sentry org+DSNs (monitoring verification),
-Play app + store-listing assets + Data Safety form, a published
-privacy-policy URL, and legal sign-off on `docs/legal/*`.
+These four dimensions are distinct; do not conflate them.
 
-**Production / store-submission readiness: NO.** All internal-testing
-items plus: finalized legal artifacts, a Production environment (only
+**1. Phase 12 release-engineering: COMPLETE (in-repo).** CI (type/lint/
+format/unit/integration-e2e/build/dependency-audit), migrations, the
+account-deletion path, and the release scaffolding (dependency-audit
+policy, release-notes template, EAS submit profile, rollback runbooks)
+are done and CI-green. No high/critical prod advisories (Step 8A).
+
+**2. Android internal-testing readiness: NOT READY — one engineering
+blocker + external gates.**
+- **Engineering blocker (in-repo, real):** there is **no production UI to
+  enter profile, goal, or medical/evaluation data**. `mobile/src/features/
+  {profile,medical}` have application/domain/infrastructure layers but no
+  `presentation/`; the only routes are sign-in, dashboard, delete-account.
+  A real (non-`__DEV__`-seeded) tester registers and lands on the empty
+  "Finish your baseline" dashboard with no way to add data — so an
+  internal test would exercise almost nothing. Resolved by Phases 13–14
+  (profile/goal entry, then evaluation entry). Tracked in `TEST-004`
+  (evaluation-entry / offline-data-entry E2E) and the roadmap.
+- **External gates (unchanged):** Sentry org+DSNs (monitoring
+  verification), Play app + store-listing assets + Data Safety form, a
+  published privacy-policy URL, legal sign-off on `docs/legal/*`.
+- **Independently actionable now (no UI dependency):** the existing-
+  account **login E2E** flow — login already has UI; it needs only a
+  Maestro flow, not any new screen.
+
+**3. Production / store-submission readiness: NO.** All internal-testing
+items plus finalized legal artifacts, a Production environment (only
 Development exists), production smoke tests, mobile production validation
-(push/biometric/no-debug), tested rollback, and the ADR-0013
-decommissioning gate remain.
+(push/biometric/no-debug), *tested* rollback (runbooks are documented,
+not yet exercised), and the ADR-0013 decommissioning gate.
+
+**4. Product-feature completeness vs `00_PROJECT.md` scope: PARTIAL.**
+Implemented & user-accessible: authentication, dashboard (read-only
+assessment), account lifecycle, offline sync (for existing entities).
+Foundation/domain-only (no entry UI): profile, goal, medical/physical
+evaluation. Deterministic iCoach engine: implemented, consumed read-only.
+Missing entirely (no code; some have dormant schema tables): nutrition
+planning, workout planning, progress monitoring, habit tracking,
+notifications, settings. AI-assisted coaching: deferred by scope. See the
+missing-feature matrix and continuation phases in
+`.ai/13_MIGRATION_ROADMAP.md`. (No completion percentage is asserted —
+counts of built vs unbuilt capabilities only.)

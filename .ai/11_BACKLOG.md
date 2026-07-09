@@ -426,6 +426,61 @@ The app remains usable offline for up to 48 hours and synchronizes safely when o
 
 ---
 
+## [FEATURE-005] Product-Completion Continuation (Phases 13–20)
+
+Status: Approved (planning)
+Priority: P1
+Type: Feature
+Owner: Unassigned
+Created: 2026-07-09
+Updated: 2026-07-09
+
+### Description
+
+Tracks the post-migration product-completion work identified by the
+2026-07-09 re-audit: closing the gap between the Phase 0–12 foundation and
+the full `00_PROJECT.md` §Product Scope. Phase-level detail lives in
+`.ai/13_MIGRATION_ROADMAP.md` (Phases 13–20) and is not duplicated here.
+
+### Problem
+
+Profile/goal/medical layers are foundation-only (no entry UI) and
+nutrition/workout/progress/habit/notification capabilities are unbuilt, so
+the app is not yet meaningfully testable by real users (see
+`docs/RELEASE_READINESS.md` verdict 2/4).
+
+### Scope
+
+Included (roadmap Phases 13–20): profile/goal entry UI (13), evaluation
+entry UI (14), nutrition (15), workout (16), progress (17), habits (18),
+notifications (19), store-submission re-gate (20). Boundaries:
+internal-test = 13–14; commercial v1 = 13–17; post-v1 = 18–19.
+
+### Relationship to existing items (no duplication)
+
+- **FEATURE-002** (Medical Evaluation Module) — its UI delivery is roadmap
+  Phase 14; the module foundation shipped in migration Phase 8.
+- **FEATURE-003/004** (iCoach engine / sync queue) — complete; consumed by
+  these phases, not re-done.
+- **TEST-004** — the deferred E2E flows (login, evaluation-entry,
+  offline-entry, plan-generation) are closed by Phases 13–14/15–16.
+- **RELEASE-001** — store readiness; its external gates + Phase 20 re-gate
+  remain the submission path.
+
+### Acceptance Criteria
+
+- [ ] Each of roadmap Phases 13–20 meets its own Exit Criteria.
+- [ ] `docs/RELEASE_READINESS.md` product-completeness verdict reaches the
+      v1 boundary (Phases 13–17) before store submission.
+
+### Related Documents
+
+- .ai/00_PROJECT.md (§Product Scope)
+- .ai/13_MIGRATION_ROADMAP.md (Phases 13–20)
+- docs/RELEASE_READINESS.md
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation

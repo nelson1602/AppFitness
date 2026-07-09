@@ -1251,6 +1251,189 @@ TECHDEBT-002, now P1).
 
 ---
 
+# Post-Migration Continuation (Phases 13+)
+
+Phases 0–12 delivered the migration *foundation* — architecture, backend,
+sync, auth, the deterministic iCoach engine, a read-only dashboard, CI/CD,
+and store-release engineering. A 2026-07-09 re-audit established that
+several `00_PROJECT.md` §Product Scope capabilities are foundation/
+domain-only or unbuilt, and — critically — that **no production UI exists
+to enter profile, goal, or evaluation data**, so the app is not yet
+meaningfully testable by real users. These phases close that gap.
+
+**Boundaries (do not conflate):**
+- **Minimum internal-testing path = Phases 13 + 14.** Only when a real
+  user can enter a profile *and* a weight evaluation does the dashboard
+  reach its `ready` state (the iCoach adapter requires profile birth-date
+  + height AND a weight measurement; goal is optional/defaults to
+  maintenance). Phase 13 alone resolves the profile/height/birth-date
+  gaps but a "record a weight" gap remains until Phase 14.
+- **Commercial v1 = Phases 13–17** (see per-phase rationale). Nutrition,
+  workouts, and progress are core to the product promise and belong in
+  v1; habits and notifications are engagement features that can ship
+  post-v1 without blocking a credible first release.
+- **Post-v1 = Phases 18–19** (habits, notifications), then the
+  store-submission re-gate (Phase 20). AI-assisted coaching remains a
+  scoped-but-deferred non-goal (`00_PROJECT.md`).
+- Deferred means **scheduled later, not removed** — the official product
+  scope is preserved in full.
+
+## Phase 13 — Profile & Goal Entry UI  [internal-test path]
+
+### Objective
+Surface the existing profile/goal application+repository layers with
+create/edit forms and a first-run onboarding path from the empty
+dashboard, so real users can supply the identity/goal data the iCoach
+engine needs. No backend or schema changes.
+
+### Dependencies
+Phases 7 (profile), 9 (iCoach), 10 (dashboard), 5 (sync) — all complete.
+
+### Risks
+- Form complexity (~12 profile fields, validation) — mitigated by a form
+  library decision (RHF+Zod proposed, owner-gated) or the existing
+  raw-`useState` pattern.
+- Offline write/sync-status surfacing must reuse the proven sync queue,
+  not a parallel path.
+
+### Validation
+tsc, unit (domain/application), RNTL form tests, repository/queue
+integration tests, Maestro (profile+goal entry, offline save, reconnect
+sync, dashboard refresh, existing-account login), expo-doctor, Android
+export, + human Android simulator pass. iOS runtime pending macOS.
+
+### Exit Criteria
+- [ ] A newly-registered user can create/edit a profile and set/replace an
+      active goal entirely through production UI (no `__DEV__` seeder).
+- [ ] Writes are local-first and enqueue sync ops; sync status/pending is
+      visible; offline entry works and reconciles on reconnect.
+- [ ] Empty-dashboard "Finish your baseline" gaps deep-link into the
+      relevant entry screens.
+- [ ] Dashboard refreshes to reflect entered data (reaches `ready` once
+      Phase 14 weight exists; until then shows only the weight gap).
+- [ ] Accessibility (labels/roles, keyboard) and light/dark verified.
+- [ ] No synthetic/dev data paths reachable in release builds.
+
+## Phase 14 — Medical / Physical Evaluation Entry UI  [internal-test path]
+
+### Objective
+Entry UI for medical/physical evaluations (weight, body metrics, vitals)
+and restrictions (with encrypted free-text), on the existing medical
+module. Completes the minimum data-entry loop so the dashboard reaches
+`ready` for real users.
+
+### Dependencies
+Phase 13 (shared form patterns), Phase 8 (medical module), ADR-P001/P006
+(encryption — already implemented).
+
+### Risks
+Health-data sensitivity: encrypted free-text must never leave the
+established cipher path; no PHI in logs/telemetry (TECHDEBT-003 /
+ADR-P010 already enforce this).
+
+### Validation
+As Phase 13 + encryption-at-rest assertions; closes `TEST-004`
+evaluation-entry and offline-data-entry E2E flows.
+
+### Exit Criteria
+- [ ] Users can record/list/soft-delete evaluations and add/deactivate
+      restrictions through production UI.
+- [ ] Free-text is encrypted at rest (device + server); verified.
+- [ ] Dashboard reaches `ready` with a real user-entered dataset.
+- [ ] Evaluation-entry + offline-data-entry Maestro flows pass.
+
+## Phase 15 — Nutrition Module  [commercial v1]
+
+### Objective
+Full-stack nutrition (api module + mobile feature): meal/nutrition
+logging and plan targets, consuming the iCoach nutrition outputs. First
+net-new module since the migration foundation.
+
+### Dependencies
+Phases 13–14; new api module + mobile feature; dormant `nutrition_logs`/
+`meals`/`meal_items` tables exist.
+
+### Risks
+New sync entities + appliers; food catalog scope; keep the deterministic
+engine authoritative (AI never replaces calculations).
+
+### Validation
+Backend unit/e2e, mobile unit/RNTL, sync round-trip Maestro, coverage
+thresholds extended to the new module.
+
+### Exit Criteria
+- [ ] Users log nutrition; targets from the engine are shown; data syncs
+      offline-first; tests meet thresholds.
+
+## Phase 16 — Workout Module  [commercial v1]
+
+### Objective
+Routines + workout logging (api module + mobile feature), consuming the
+iCoach training recommendations.
+
+### Dependencies
+Phases 13–14; dormant `routines`/`routine_exercises`/`workout_logs`/
+`workout_sets` + `exercises` catalog tables exist.
+
+### Risks
+Exercise-catalog sourcing; inter-entity FKs; sync ordering.
+
+### Exit Criteria
+- [ ] Users build routines and log workouts; syncs offline-first; the
+      engine's training plan is reflected; tests meet thresholds.
+
+## Phase 17 — Progress Monitoring  [commercial v1]
+
+### Objective
+Body metrics over time, progress snapshots, and trend views — the
+"progress monitoring" and dashboard-analytics scope.
+
+### Dependencies
+Phases 13–14 (body/evaluation data); dormant `body_weights`/
+`body_measurements`/`progress_snapshots` tables.
+
+### Risks
+Charting without adding a heavy UI framework (prefer lightweight/native);
+historical-data volume/perf.
+
+### Exit Criteria
+- [ ] Users see progress trends from their own data; offline-first; tests
+      meet thresholds.
+
+## Phase 18 — Habit Tracking  [post-v1]
+
+### Objective
+Habit definition + adherence tracking (scope item; no schema/module yet).
+
+### Exit Criteria
+- [ ] Users define and track habits; syncs; tested. (Deferred past first
+      commercial release — engagement feature, not core to v1 value.)
+
+## Phase 19 — Notifications  [post-v1]
+
+### Objective
+Implement notifications per ADR-P004 (strategy accepted; no code yet).
+
+### Exit Criteria
+- [ ] Notification delivery + preferences per ADR-P004; permission
+      handling; tested. (Post-v1.)
+
+## Phase 20 — Store-Submission Re-Gate  [commercial v1 close-out]
+
+### Objective
+Re-run the `10_DEPLOYMENT.md` Release Checklist against a feature-complete-
+enough app; complete the external gates (Sentry verification, legal
+sign-off, Play console/listing, Production environment, tested rollback).
+
+### Dependencies
+Phases 13–17 + the external gates from `docs/RELEASE_READINESS.md`.
+
+### Exit Criteria
+- [ ] `docs/RELEASE_READINESS.md` matrix all PASS or explicitly waived;
+      internal → closed → production track progression validated.
+
+---
+
 # AI Instructions
 
 Every AI agent executing any phase of this roadmap must:
