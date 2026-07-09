@@ -1,0 +1,132 @@
+# ADR-P008 / TEST-004 — full device-side profile-and-goal onboarding loop.
+#
+# Proves the complete production-path loop that Phase 13 unlocked: a brand
+# new account enters its profile and goal ON THE DEVICE through the
+# dashboard gap actions, the iCoach assessment recalculates, local changes
+# sync and the pending state clears, and the account can sign out and back
+# in with its data intact.
+#
+# Prereqs (same seeded-local-API setup as registration.yml): api/ running
+# on the host, a FRESH disposable database, and `adb reverse tcp:3001
+# tcp:3001`. Run AFTER registration.yml (creates the persisted session for
+# the SAME account) and AFTER an evaluation-only server seed:
+#
+#   E2E_EMAIL=<addr> E2E_SEED_SCOPE=evaluation node e2e/seed.mjs
+#
+# The weight measurement is seeded server-side because there is no
+# on-device weight entry UI yet (documented TEST-004 gap); the profile and
+# goal below are entered entirely on the device. Credentials are passed per
+# run (the release sign-in surface ships with empty fields):
+#
+#   maestro test -e E2E_EMAIL=<addr> -e E2E_PASSWORD=<pw> .maestro/onboarding-loop.yml
+#
+# Fake, synthetic identities only; fresh disposable DB per run.
+appId: com.appfitness.mobile
+---
+- launchApp
+
+# Session restore → dashboard empty/data-gap state for the new account.
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 30000
+- assertVisible: 'Finish your baseline'
+- assertVisible: 'Create your profile'
+# Dev-only seed action must never appear in a release build.
+- assertNotVisible: 'Load sample data'
+
+# --- 1. Complete the profile through the dashboard gap action ---
+- tapOn:
+    id: 'gap-fix-profile'
+- extendedWaitUntil:
+    visible:
+      id: 'field-birthDate'
+    timeout: 15000
+- tapOn:
+    id: 'field-birthDate'
+- inputText: '1990-01-15'
+- hideKeyboard
+- tapOn:
+    id: 'field-heightCm'
+- inputText: '178'
+- hideKeyboard
+# Selecting a sex avoids the "undisclosed sex" note so the ready-state card
+# carries only the goal note. Fitness level and activity level default to
+# valid selections already.
+- tapOn:
+    id: 'option-gender-MALE'
+- scrollUntilVisible:
+    element: 'Save profile'
+- tapOn: 'Save profile'
+
+# Back on the dashboard: profile / birth-date / height gaps close. Weight
+# remains (no on-device weight entry UI), so the assessment is still
+# incomplete.
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 30000
+- assertNotVisible: 'Create your profile'
+- assertNotVisible: 'Add your birth date'
+- assertNotVisible: 'Add your height'
+- assertVisible: 'Record a weight measurement'
+
+# --- 2. Pull the seeded weight; iCoach becomes ready and recalculates ---
+- tapOn: 'Sync now'
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 60000
+- assertVisible: '.*kcal.*'
+- assertVisible: 'iCoach recommendations'
+# No active goal yet → the engine used the maintenance default.
+- assertVisible: 'Using maintenance goal'
+
+# --- 3. Complete the active goal through the dashboard gap action ---
+- tapOn:
+    id: 'gap-fix-default-goal'
+- extendedWaitUntil:
+    visible: 'Set your goal'
+    timeout: 15000
+- tapOn:
+    id: 'option-goalType-FAT_LOSS'
+- tapOn: 'Save goal'
+
+# Back on the dashboard: the maintenance-goal note clears (iCoach
+# recalculated with the chosen goal) and, with sex + goal both set, the
+# setup card disappears entirely while the assessment stays.
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 30000
+- assertNotVisible: 'Using maintenance goal'
+- assertNotVisible: 'Finish your baseline'
+- assertVisible: '.*kcal.*'
+
+# --- 4. Sync the local profile + goal; the pending state clears ---
+- tapOn: 'Sync now'
+- extendedWaitUntil:
+    visible: 'Local data ready'
+    timeout: 60000
+
+# --- 5. Sign out, then sign back in as the SAME existing account ---
+- scrollUntilVisible:
+    element: 'Sign out'
+- tapOn: 'Sign out'
+- extendedWaitUntil:
+    visible: 'Sign in to continue.'
+    timeout: 30000
+- tapOn:
+    id: 'input-email'
+- inputText: ${E2E_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: 'input-password'
+- inputText: ${E2E_PASSWORD}
+- hideKeyboard
+- tapOn: 'Sign in'
+
+# Existing account restores straight to the populated, already-synced
+# dashboard — local data survived sign-out.
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 45000
+- assertVisible: 'Local data ready'
+- assertNotVisible: 'Finish your baseline'
+- assertNotVisible: 'Load sample data'

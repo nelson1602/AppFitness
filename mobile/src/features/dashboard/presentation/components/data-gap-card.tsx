@@ -39,6 +39,7 @@ export function DataGapCard({ gaps, loading, onLoadSampleData, resolveFix }: Dat
                 {fix ? (
                   <AppButton
                     accessibilityLabel={`Fix: ${gap.title}`}
+                    testID={`gap-fix-${gap.id}`}
                     onPress={fix}
                     variant="secondary"
                   >

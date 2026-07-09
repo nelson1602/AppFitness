@@ -53,4 +53,14 @@ describe('DataGapCard', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Fix: Create your profile' }));
     expect(fixProfile).toHaveBeenCalledTimes(1);
   });
+
+  it('exposes a stable testID per fixable gap for E2E targeting', async () => {
+    const resolveFix = () => () => undefined;
+
+    await render(<DataGapCard gaps={gaps} resolveFix={resolveFix} />);
+
+    // testID mirrors the gap id so Maestro flows can target a specific gap.
+    expect(screen.getByTestId('gap-fix-profile')).toBeOnTheScreen();
+    expect(screen.getByTestId('gap-fix-weight')).toBeOnTheScreen();
+  });
 });

@@ -22,7 +22,7 @@ env:
 
 jobs:
   e2e:
-    name: Registration + dashboard sync (Maestro)
+    name: Registration + dashboard sync + onboarding loop (Maestro)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     services:
@@ -112,9 +112,18 @@ jobs:
             adb install -r /tmp/appfitness-e2e.apk
             adb reverse tcp:3001 tcp:3001
             maestro test .maestro/smoke-auth-surface.yml
+            # Journey A — seeded server → device pull (existing coverage).
             maestro test -e E2E_EMAIL=demo@appfitness.local -e E2E_USERNAME=demo -e E2E_PASSWORD=password12345 .maestro/registration.yml
             node e2e/seed.mjs
             maestro test .maestro/dashboard-sync.yml
+            # Journey B — device-side profile-and-goal onboarding loop
+            # (Slice 3). A distinct synthetic user keeps its device-entered
+            # data separate from Journey A's server-seeded dataset. Only the
+            # weight measurement is seeded server-side (no on-device weight
+            # UI yet); profile and goal are entered on the device.
+            maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard -e E2E_PASSWORD=password12345 .maestro/registration.yml
+            E2E_EMAIL=onboard@appfitness.local E2E_SEED_SCOPE=evaluation node e2e/seed.mjs
+            maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_PASSWORD=password12345 .maestro/onboarding-loop.yml
 
       - name: Upload API log and Maestro artifacts on failure
         if: failure()
