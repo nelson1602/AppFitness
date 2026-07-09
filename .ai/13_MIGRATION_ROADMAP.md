@@ -1280,12 +1280,15 @@ meaningfully testable by real users. These phases close that gap.
 
 ## Phase 13 — Profile & Goal Entry UI  [internal-test path]
 
-Status: Slices 1–3 delivered (2026-07-08 → 2026-07-09). Slice 1 profile
-entry (commit 8fb861d, mobile-ci green) and Slice 2 goal entry (commit
-8fa4e3a, mobile-ci green) are merged. Slice 3 device-side onboarding E2E
-(commit 0993dc8) is authored on the existing Maestro/EAS harness; the
-`e2e` APK is built via EAS and the end-to-end proof runs in the
-`mobile-e2e` workflow (see TEST-004).
+Status: Slices 1–3 delivered and verified (2026-07-08 → 2026-07-09).
+Slice 1 profile entry (commit 8fb861d) and Slice 2 goal entry (commit
+8fa4e3a) are merged, mobile-ci green. Slice 3 device-side onboarding E2E
+(`onboarding-loop.yml`, flow fixes through commit 1f072a9) runs on the
+existing Maestro/EAS harness against a newly built EAS `e2e` APK
+(d87bac75) and passed green in the `mobile-e2e` workflow (run
+29029948096): register → profile via gap action → weight pull →
+assessment recalculates → goal via note action → sync clears pending →
+sign out → sign back in with data intact.
 
 ### Objective
 Surface the existing profile/goal application+repository layers with

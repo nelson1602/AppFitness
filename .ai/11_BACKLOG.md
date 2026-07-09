@@ -997,11 +997,13 @@ renderHook wave.
 - [x] Existing-account login E2E flow — DONE (2026-07-09, Slice 3): the
       `onboarding-loop.yml` flow signs out and signs back in as the same
       account, asserting the populated dashboard restores with local data
-      intact
+      intact. Verified in mobile-e2e run 29029948096 (commit 1f072a9,
+      EAS e2e build d87bac75).
 - [x] Device-side profile + goal onboarding E2E — DONE (2026-07-09,
       Slice 3): `onboarding-loop.yml` completes profile and active goal
       through the dashboard gap actions, verifies the gaps close and the
-      iCoach assessment recalculates, and syncs until pending clears
+      iCoach assessment recalculates, and syncs until pending clears.
+      Verified green in mobile-e2e run 29029948096.
 - [ ] Evaluation-entry E2E — pending medical evaluation entry UI. The
       onboarding loop seeds the weight server-side (`E2E_SEED_SCOPE=
       evaluation`) as a stopgap; a real device-entry flow needs the UI
