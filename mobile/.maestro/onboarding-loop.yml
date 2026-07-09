@@ -89,6 +89,10 @@ appId: com.appfitness.mobile
     timeout: 15000
 - tapOn:
     id: 'option-goalType-FAT_LOSS'
+# The save button is below the goal-type chips + optional fields; scroll
+# it into view (mirrors the profile form).
+- scrollUntilVisible:
+    element: 'Save goal'
 - tapOn: 'Save goal'
 
 # Back on the dashboard (scrolled to top after remount): the
