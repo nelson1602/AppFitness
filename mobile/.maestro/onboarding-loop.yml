@@ -131,7 +131,13 @@ appId: com.appfitness.mobile
     id: 'input-password'
 - inputText: ${E2E_PASSWORD}
 - hideKeyboard
-- tapOn: 'Sign in'
+# "Sign in" is also the navigation header title, so match the submit
+# button specifically by its position below the password field (a bare
+# text match hits the header first, which is a no-op).
+- tapOn:
+    text: 'Sign in'
+    below:
+      id: 'input-password'
 
 # Existing account restores straight to the populated, already-synced
 # dashboard — local data survived sign-out.
