@@ -75,9 +75,11 @@ appId: com.appfitness.mobile
     visible: "Today's assessment"
     timeout: 60000
 - assertVisible: '.*kcal.*'
-- assertVisible: 'iCoach recommendations'
-# No active goal yet → the engine used the maintenance default.
-- assertVisible: 'Using maintenance goal'
+# No active goal yet → the engine used the maintenance default. The note
+# sits in the setup card below the assessment, so scroll it into view
+# (the recommendations list below it is off-screen at this point).
+- scrollUntilVisible:
+    element: 'Using maintenance goal'
 
 # --- 3. Complete the active goal through the dashboard gap action ---
 - tapOn:
@@ -89,9 +91,10 @@ appId: com.appfitness.mobile
     id: 'option-goalType-FAT_LOSS'
 - tapOn: 'Save goal'
 
-# Back on the dashboard: the maintenance-goal note clears (iCoach
-# recalculated with the chosen goal) and, with sex + goal both set, the
-# setup card disappears entirely while the assessment stays.
+# Back on the dashboard (scrolled to top after remount): the
+# maintenance-goal note clears (iCoach recalculated with the chosen goal)
+# and, with sex + goal both set, the setup card disappears entirely while
+# the assessment stays.
 - extendedWaitUntil:
     visible: "Today's assessment"
     timeout: 30000
@@ -104,6 +107,10 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Local data ready'
     timeout: 60000
+# With the setup card gone, confirm the iCoach recommendations render
+# below the assessment (scroll-aware; they are below the fold).
+- scrollUntilVisible:
+    element: 'iCoach recommendations'
 
 # --- 5. Sign out, then sign back in as the SAME existing account ---
 - scrollUntilVisible:
