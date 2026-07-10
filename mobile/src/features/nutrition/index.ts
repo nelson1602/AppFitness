@@ -37,3 +37,9 @@ export type {
 export { MEAL_RULE_VERSION, MEAL_SLOTS } from './domain/meal-plan';
 export { restrictionsToAvoidTags } from './domain/restriction-map';
 export { generateMealPlan } from './application/meal-generator';
+export { NutritionPlanScreen } from './presentation/NutritionPlanScreen';
+export {
+  buildMealSeed,
+  selectMealPlan,
+  type MealPlanSelection,
+} from './application/meal-plan.service';

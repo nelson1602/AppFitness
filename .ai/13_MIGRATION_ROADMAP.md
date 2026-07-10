@@ -1465,7 +1465,14 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
         `avoidFor` exclusion (current restriction model maps to none —
         documented; explicit `excludeAvoidTags` mechanism tested). No UI,
         no schema/backend/deps/AI.
-      - [ ] Slice 3B: nutrition-plan UI surface + Maestro E2E.
+      - [x] Slice 3B *(delivered 2026-07-10)*: `/nutrition-plan` route +
+        `NutritionPlanScreen` (day selector 1–15, each day's 4 meals with
+        foods/portions/calories/macros, day totals vs targets, rationale,
+        non-medical disclaimer, data-gap/loading/error states) + a
+        "15-day meal plan" entry from `/nutrition`. A pure `selectMealPlan`
+        thin layer reads the dashboard/iCoach assessment (source of truth)
+        and a STABLE seed (userId+goal+weight+catalog+rule versions), no
+        recompute. onboarding-loop E2E asserts the plan renders.
 - [ ] Slice 4: food logging (ADR/schema/sync gated).
 
 ## Phase 16 — Workout Module  [commercial v1]

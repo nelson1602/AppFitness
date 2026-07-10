@@ -126,6 +126,14 @@ function NutritionContent({
           <MacroRow label="Fat" grams={nutrition.fatG} kcal={kcal.fat} />
         </View>
       </Card>
+
+      <AppButton
+        accessibilityLabel="View your 15-day meal plan"
+        onPress={() => router.push('/nutrition-plan')}
+        variant="secondary"
+      >
+        15-day meal plan
+      </AppButton>
     </View>
   );
 }

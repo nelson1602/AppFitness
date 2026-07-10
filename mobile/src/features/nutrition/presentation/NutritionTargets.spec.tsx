@@ -68,6 +68,16 @@ describe('NutritionTargets', () => {
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
   });
 
+  it('links to the 15-day meal plan from the ready state', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: readyData() as unknown as DashboardState['data'] });
+
+    await render(<NutritionTargets />);
+    fireEvent.press(screen.getByRole('button', { name: 'View your 15-day meal plan' }));
+
+    expect(router.push).toHaveBeenCalledWith('/nutrition-plan');
+  });
+
   it('renders calories, macro breakdown (grams + kcal), and goal adjustment', async () => {
     setStore({ status: 'ready', data: readyData() as unknown as DashboardState['data'] });
 

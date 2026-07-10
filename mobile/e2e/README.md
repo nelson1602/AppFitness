@@ -19,7 +19,7 @@ other variants never load the plugin and keep cleartext blocked.
 | `smoke-auth-surface.yml` | no | launch, routing, auth surface, `__DEV__` gate |
 | `registration.yml` | yes | register → empty dashboard (data-gap state) |
 | `dashboard-sync.yml` | yes (after full seed) | session restore → Sync now → populated dashboard via real pull |
-| `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → nutrition targets render → sync clears pending → sign out & back in |
+| `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → nutrition targets + 15-day meal plan render → sync clears pending → sign out & back in |
 | `medical-management.yml` | yes (no seed) | add/list/end a restriction; open evaluation history, see the recorded weight, two-step soft-delete it (runs after onboarding-loop, same session) |
 | `offline-entry.yml` | API unreachable | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync shows "Local changes pending" |
 | `reconnect-sync.yml` | yes | with the loopback restored: the offline-queued change syncs to "Local data ready" |

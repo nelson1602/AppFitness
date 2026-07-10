@@ -139,6 +139,19 @@ appId: com.appfitness.mobile
 - assertVisible: 'Protein'
 # No dev-only sample-data path on this surface.
 - assertNotVisible: 'Load sample data'
+
+# --- 4c. 15-day meal plan surface (Phase 15 Slice 3B) ---
+- scrollUntilVisible:
+    element: '15-day meal plan'
+- tapOn: '15-day meal plan'
+- extendedWaitUntil:
+    visible: 'Day 1'
+    timeout: 15000
+- assertVisible: 'Breakfast'
+- assertVisible: '.*kcal.*'
+- assertNotVisible: 'Load sample data'
+# Back to /nutrition, then back to the dashboard.
+- back
 - back
 
 # --- 5. Sign out, then sign back in as the SAME existing account ---
