@@ -6,9 +6,9 @@
 # that loopback, so it cannot simulate offline for this setup.
 #
 # Proves: a production data-entry path (profile) saves locally with no
-# network, and a sync attempt lands in the non-ready "Offline" state. A
-# companion `reconnect-sync.yml` (run after the loopback is restored) proves
-# the queued change then syncs to "Local data ready".
+# network, and the queued change surfaces as pending ("Local changes
+# pending"). A companion `reconnect-sync.yml` (run after the loopback is
+# restored) proves the queued change then syncs to "Local data ready".
 #
 # Prereqs: run AFTER registration.yml (online) for the SAME account, THEN
 # `adb reverse --remove tcp:3001`. Fake synthetic data only.
@@ -45,15 +45,15 @@ appId: com.appfitness.mobile
 - tapOn: 'Save profile'
 
 # Local save succeeded with no network — profile gaps close on the
-# dashboard even while offline.
+# dashboard even while offline, and the change is queued: the sync banner
+# shows the pending (non-ready) state.
+#
+# We intentionally do NOT tap "Sync now" here: a failed sync attempt puts
+# the op into a 60s retry backoff (backoff.ts), which would make the
+# immediate reconnect retry flaky. The PENDING banner already proves the
+# offline local write + unsynced state; reconnect-sync.yml then pushes it.
 - extendedWaitUntil:
     visible: 'Your local iCoach assessment'
     timeout: 30000
 - assertNotVisible: 'Create your profile'
-
-# A sync attempt while offline lands in the non-ready "Offline" state; the
-# queued change stays pending for later.
-- tapOn: 'Sync now'
-- extendedWaitUntil:
-    visible: 'Offline'
-    timeout: 30000
+- assertVisible: 'Local changes pending'

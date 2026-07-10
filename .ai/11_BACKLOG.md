@@ -1014,9 +1014,9 @@ renderHook wave.
 - [x] Offline data entry E2E — DONE (2026-07-09, Phase 14.5): offline is
       simulated by dropping the `adb reverse` loopback (airplane mode does
       not sever it). `offline-entry.yml` saves a profile locally with no
-      network and the sync goes "Offline"; `reconnect-sync.yml` restores the
-      loopback and the queued change syncs to "Local data ready". Wired into
-      mobile-e2e as Journey C.
+      network (banner: "Local changes pending"); `reconnect-sync.yml`
+      restores the loopback and the queued change syncs to "Local data
+      ready". Wired into mobile-e2e as Journey C.
 - [x] Logout E2E — DONE (2026-07-08): sign-out surface added in Phase 12
       Step 4; the dashboard-sync Maestro flow now ends with Sign out →
       auth surface, proven locally and in CI (mobile-e2e run #3,

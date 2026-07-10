@@ -21,7 +21,7 @@ other variants never load the plugin and keep cleartext blocked.
 | `dashboard-sync.yml` | yes (after full seed) | session restore → Sync now → populated dashboard via real pull |
 | `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → sync clears pending → sign out & back in |
 | `medical-management.yml` | yes (no seed) | add/list/end a restriction; open evaluation history, see the recorded weight, two-step soft-delete it (runs after onboarding-loop, same session) |
-| `offline-entry.yml` | API unreachable | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync lands in "Offline" |
+| `offline-entry.yml` | API unreachable | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync shows "Local changes pending" |
 | `reconnect-sync.yml` | yes | with the loopback restored: the offline-queued change syncs to "Local data ready" |
 
 Two journeys run against the same disposable DB with distinct synthetic
@@ -42,9 +42,11 @@ users:
 
 - **Journey C (offline data entry, Phase 14.5):** `registration.yml`
   (offline user, online) → `adb reverse --remove tcp:3001` (simulate
-  offline) → `offline-entry.yml` (profile saves locally, sync goes
-  "Offline") → `adb reverse tcp:3001 tcp:3001` (restore) →
-  `reconnect-sync.yml` (queued change syncs to "Local data ready").
+  offline) → `offline-entry.yml` (profile saves locally, banner shows
+  "Local changes pending") → `adb reverse tcp:3001 tcp:3001` (restore) →
+  `reconnect-sync.yml` (queued change syncs to "Local data ready"). We do
+  not attempt a sync while offline — a failed op enters a 60s retry backoff
+  that would make the immediate reconnect flaky.
 
 **Offline simulation — note:** the app reaches the runner-local API over
 `adb reverse` (a USB/loopback forward), which is NOT severed by the
