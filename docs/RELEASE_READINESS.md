@@ -95,10 +95,11 @@ blocker is CLEARED; external gates remain.**
 - **External gates (unchanged, still blocking):** Sentry org+DSNs
   (monitoring verification), Play app + store-listing assets + Data Safety
   form, a published privacy-policy URL, legal sign-off on `docs/legal/*`.
-- **Now proven (Phases 13–14):** existing-account **login** and the full
-  **device-side profile + evaluation/weight + goal onboarding loop** are
-  covered by `mobile/.maestro/onboarding-loop.yml` in the `mobile-e2e`
-  workflow.
+- **Now proven (Phases 13–14.5):** existing-account **login**, the full
+  **device-side profile + evaluation/weight + goal onboarding loop**,
+  **medical management** (restrictions + evaluation history), and
+  **offline data entry** (local save + reconnect sync) are covered by the
+  `mobile/.maestro/*` flows in the `mobile-e2e` workflow.
 
 **3. Production / store-submission readiness: NO.** All internal-testing
 items plus finalized legal artifacts, a Production environment (only

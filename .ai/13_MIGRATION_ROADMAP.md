@@ -1386,9 +1386,22 @@ evaluation-entry and offline-data-entry E2E flows.
 - [x] Evaluation-entry Maestro flow passes — onboarding-loop enters weight
       on-device (mobile-e2e run 29042870217); `medical-management.yml`
       covers restrictions + evaluation history (mobile-e2e run 29050409506).
-- [ ] Offline-data-entry (airplane-mode) E2E — PENDING: `adb reverse`
-      loopback is not severed by emulator airplane mode; needs a loopback
-      drop / API pause instead. Tracked in TEST-004.
+- [x] Offline-data-entry E2E — DONE (Phase 14.5): simulated by dropping the
+      `adb reverse` loopback (airplane mode does not sever it).
+      `offline-entry.yml` saves a profile locally offline + sync goes
+      "Offline"; `reconnect-sync.yml` restores connectivity + syncs to
+      "Local data ready" (mobile-e2e Journey C).
+
+## Phase 14.5 — Consolidation  [internal-test path]  ✅
+
+Short carry-forward slice (2026-07-09) before Phase 15. Closed two TEST-004
+items: (1) offline data-entry E2E via the adb-reverse loopback-drop approach
+(`offline-entry.yml` + `reconnect-sync.yml`, mobile-e2e Journey C); (2)
+`authentication/presentation` coverage — a `renderHook` spec for `useSession`
+took the file to 100%, threshold raised 45/50/25/65 → 95/95/90/85. No
+product/schema/contract changes. Remaining TEST-004: plan-generation E2E
+(needs a dedicated iCoach surface) and a `src/app/` directory coverage
+threshold.
 
 ## Phase 15 — Nutrition Module  [commercial v1]
 

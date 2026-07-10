@@ -1,0 +1,21 @@
+# Phase 14.5 — reconnect + sync proof (companion to offline-entry.yml).
+#
+# Runs AFTER connectivity is restored (`adb reverse tcp:3001 tcp:3001`).
+# Proves the change queued while offline syncs to completion once the API
+# is reachable again.
+#
+# Prereqs: run after offline-entry.yml with the loopback restored. Fake
+# synthetic data only.
+appId: com.appfitness.mobile
+---
+- launchApp
+
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 30000
+
+# The offline-queued profile now pushes; the pending state clears.
+- tapOn: 'Sync now'
+- extendedWaitUntil:
+    visible: 'Local data ready'
+    timeout: 60000

@@ -1,0 +1,59 @@
+# Phase 14.5 — offline data-entry proof.
+#
+# Runs while the runner-local API is UNREACHABLE. Offline is simulated by
+# the CI/local harness dropping the adb-reverse loopback BEFORE this flow
+# (`adb reverse --remove tcp:3001`) — emulator airplane mode does NOT sever
+# that loopback, so it cannot simulate offline for this setup.
+#
+# Proves: a production data-entry path (profile) saves locally with no
+# network, and a sync attempt lands in the non-ready "Offline" state. A
+# companion `reconnect-sync.yml` (run after the loopback is restored) proves
+# the queued change then syncs to "Local data ready".
+#
+# Prereqs: run AFTER registration.yml (online) for the SAME account, THEN
+# `adb reverse --remove tcp:3001`. Fake synthetic data only.
+appId: com.appfitness.mobile
+---
+- launchApp
+
+# Session restores offline (stored session is kept when the server is
+# unreachable — 48h offline operation), landing on the empty dashboard.
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 30000
+- assertVisible: 'Create your profile'
+
+# --- Enter a profile OFFLINE: the local-first write must succeed. ---
+- tapOn:
+    id: 'gap-fix-profile'
+- extendedWaitUntil:
+    visible:
+      id: 'field-birthDate'
+    timeout: 15000
+- tapOn:
+    id: 'field-birthDate'
+- inputText: '1990-01-15'
+- hideKeyboard
+- tapOn:
+    id: 'field-heightCm'
+- inputText: '178'
+- hideKeyboard
+- tapOn:
+    id: 'option-gender-MALE'
+- scrollUntilVisible:
+    element: 'Save profile'
+- tapOn: 'Save profile'
+
+# Local save succeeded with no network — profile gaps close on the
+# dashboard even while offline.
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 30000
+- assertNotVisible: 'Create your profile'
+
+# A sync attempt while offline lands in the non-ready "Offline" state; the
+# queued change stays pending for later.
+- tapOn: 'Sync now'
+- extendedWaitUntil:
+    visible: 'Offline'
+    timeout: 30000

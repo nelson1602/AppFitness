@@ -21,6 +21,8 @@ other variants never load the plugin and keep cleartext blocked.
 | `dashboard-sync.yml` | yes (after full seed) | session restore → Sync now → populated dashboard via real pull |
 | `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → sync clears pending → sign out & back in |
 | `medical-management.yml` | yes (no seed) | add/list/end a restriction; open evaluation history, see the recorded weight, two-step soft-delete it (runs after onboarding-loop, same session) |
+| `offline-entry.yml` | API unreachable | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync lands in "Offline" |
+| `reconnect-sync.yml` | yes | with the loopback restored: the offline-queued change syncs to "Local data ready" |
 
 Two journeys run against the same disposable DB with distinct synthetic
 users:
@@ -38,13 +40,17 @@ users:
   → `medical-management.yml` then adds/lists/ends a restriction and
   soft-deletes the recorded evaluation from the history screen.
 
-**Offline (airplane-mode) entry E2E — pending (blocker documented):** the
-app reaches the runner-local API over `adb reverse` (a USB/loopback
-forward), which is NOT severed by toggling the emulator's airplane
-mode/radio, so airplane mode does not actually simulate offline for this
-harness. A meaningful offline test needs to drop the loopback forward or
-pause the API process (`adb reverse --remove tcp:3001` mid-flow, or stop
-`node dist/main.js`) rather than the device radio. Tracked in TEST-004.
+- **Journey C (offline data entry, Phase 14.5):** `registration.yml`
+  (offline user, online) → `adb reverse --remove tcp:3001` (simulate
+  offline) → `offline-entry.yml` (profile saves locally, sync goes
+  "Offline") → `adb reverse tcp:3001 tcp:3001` (restore) →
+  `reconnect-sync.yml` (queued change syncs to "Local data ready").
+
+**Offline simulation — note:** the app reaches the runner-local API over
+`adb reverse` (a USB/loopback forward), which is NOT severed by the
+emulator's airplane mode/radio. Offline is therefore simulated by dropping
+the loopback forward (`adb reverse --remove tcp:3001`) around the offline
+flow, not by toggling the device radio.
 
 **Isolation model:** a fresh disposable database per run (exactly what
 CI's service container provides). Since the release product gate, the

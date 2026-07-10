@@ -148,10 +148,10 @@
         "branches": 90
       },
       "src/features/authentication/presentation/": {
-        "statements": 45,
-        "lines": 50,
-        "functions": 25,
-        "branches": 65
+        "statements": 95,
+        "lines": 95,
+        "functions": 90,
+        "branches": 85
       },
       "src/features/profile/infrastructure/": {
         "statements": 90,

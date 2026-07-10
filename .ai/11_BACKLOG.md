@@ -1011,13 +1011,12 @@ renderHook wave.
       purely local data. Verified green in mobile-e2e run 29042870217.
 - [ ] Plan-generation E2E beyond dashboard display — pending dedicated
       iCoach UI surface
-- [ ] Offline data entry E2E — profile/goal/evaluation/restriction device
-      entry is proven online (onboarding-loop + medical-management flows).
-      Airplane-mode toggling is BLOCKED: the app reaches the runner-local
-      API over `adb reverse` (USB/loopback), which the emulator's airplane
-      mode does not sever, so it does not simulate offline. A real offline
-      test must drop the loopback (`adb reverse --remove tcp:3001`) or pause
-      the API process mid-flow, not toggle the device radio.
+- [x] Offline data entry E2E — DONE (2026-07-09, Phase 14.5): offline is
+      simulated by dropping the `adb reverse` loopback (airplane mode does
+      not sever it). `offline-entry.yml` saves a profile locally with no
+      network and the sync goes "Offline"; `reconnect-sync.yml` restores the
+      loopback and the queued change syncs to "Local data ready". Wired into
+      mobile-e2e as Journey C.
 - [x] Logout E2E — DONE (2026-07-08): sign-out surface added in Phase 12
       Step 4; the dashboard-sync Maestro flow now ends with Sign out →
       auth surface, proven locally and in CI (mobile-e2e run #3,
@@ -1025,9 +1024,11 @@ renderHook wave.
 - [ ] EAS cloud Maestro workflow (`.eas/workflows/e2e-android.yml`)
       executed for real — pending paid EAS billing plus the Phase 12
       hosted test API (ADR-P008 stage 2)
-- [ ] Coverage ratchets raised: `authentication/presentation` low-water
-      (45/50/25/65) to ≥70 after the renderHook wave; a `src/app/`
-      directory threshold once route coverage exists
+- [~] Coverage ratchets raised: `authentication/presentation` DONE
+      (2026-07-09, Phase 14.5) — a `renderHook` spec for `useSession`
+      (subscription + restore-on-unknown effect + re-render) took the file
+      to 100%, threshold raised 45/50/25/65 → 95/95/90/85. A `src/app/`
+      directory threshold once route coverage exists remains open.
 
 ### Related Documents
 

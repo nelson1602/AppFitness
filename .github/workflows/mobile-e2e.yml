@@ -126,6 +126,15 @@ jobs:
             # Phase 14 Slice 2 — medical management surfaces (restrictions +
             # evaluation history), same account/session, all on-device.
             maestro test .maestro/medical-management.yml
+            # Phase 14.5 — offline data entry. Register online, then DROP the
+            # adb-reverse loopback to simulate offline (airplane mode does not
+            # sever it): a profile saves locally + sync goes "Offline".
+            # Restore the loopback and confirm the queued change syncs.
+            maestro test -e E2E_EMAIL=offline@appfitness.local -e E2E_USERNAME=offline -e E2E_PASSWORD=password12345 .maestro/registration.yml
+            adb reverse --remove tcp:3001
+            maestro test .maestro/offline-entry.yml
+            adb reverse tcp:3001 tcp:3001
+            maestro test .maestro/reconnect-sync.yml
 
       - name: Upload API log and Maestro artifacts on failure
         if: failure()
