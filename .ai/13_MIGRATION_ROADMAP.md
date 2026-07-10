@@ -1447,7 +1447,13 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       surface with a dashboard entry; tests meet thresholds; onboarding-loop
       E2E asserts the targets render — verified green in mobile-e2e run
       29094958093 (commit d32985c, EAS e2e build b0d2ec3a).
-- [ ] Slice 2: 300-food bundled catalog + query service + integrity tests.
+- [x] Slice 2 *(delivered 2026-07-10)*: exactly-300-food bundled catalog
+      (`food-catalog.data.ts`, `CATALOG_VERSION='food-catalog@1.0.0'`) +
+      pure query service (getById/listAll/filterByCategory/filterByTags/
+      search) + integrity tests (count, unique ids/names, closed
+      category/tag/avoid vocabularies, provenance, serving data, macro↔
+      calorie sanity). Static/bundled; no SQLite/sync/backend/deps; not yet
+      consumed by UI (feeds Slice 3).
 - [ ] Slice 3: deterministic 15-day routine + determinism/safety tests.
 - [ ] Slice 4: food logging (ADR/schema/sync gated).
 

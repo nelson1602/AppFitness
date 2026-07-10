@@ -88,6 +88,8 @@
       "src/features/medical/presentation/**/*.ts",
       "src/features/medical/presentation/**/*.tsx",
       "src/features/nutrition/domain/**/*.ts",
+      "src/features/nutrition/application/**/*.ts",
+      "src/features/nutrition/infrastructure/**/*.ts",
       "src/features/nutrition/presentation/**/*.tsx",
       "src/features/dashboard/application/**/*.ts",
       "src/features/dashboard/presentation/**/*.tsx",
@@ -190,6 +192,18 @@
         "lines": 95,
         "functions": 95,
         "branches": 90
+      },
+      "src/features/nutrition/application/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 85
+      },
+      "src/features/nutrition/infrastructure/": {
+        "statements": 90,
+        "lines": 90,
+        "functions": 90,
+        "branches": 80
       },
       "src/features/nutrition/presentation/": {
         "statements": 85,
