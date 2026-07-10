@@ -1016,7 +1016,8 @@ renderHook wave.
       not sever it). `offline-entry.yml` saves a profile locally with no
       network (banner: "Local changes pending"); `reconnect-sync.yml`
       restores the loopback and the queued change syncs to "Local data
-      ready". Wired into mobile-e2e as Journey C.
+      ready". Wired into mobile-e2e as Journey C; verified green in run
+      29090314372.
 - [x] Logout E2E — DONE (2026-07-08): sign-out surface added in Phase 12
       Step 4; the dashboard-sync Maestro flow now ends with Sign out →
       auth surface, proven locally and in CI (mobile-e2e run #3,

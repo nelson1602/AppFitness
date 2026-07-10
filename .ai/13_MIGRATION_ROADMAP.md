@@ -1394,8 +1394,9 @@ evaluation-entry and offline-data-entry E2E flows.
 
 ## Phase 14.5 — Consolidation  [internal-test path]  ✅
 
-Short carry-forward slice (2026-07-09) before Phase 15. Closed two TEST-004
-items: (1) offline data-entry E2E via the adb-reverse loopback-drop approach
+Short carry-forward slice before Phase 15, verified green in mobile-e2e run
+29090314372 (commit 15af0db). Closed two TEST-004 items: (1) offline
+data-entry E2E via the adb-reverse loopback-drop approach
 (`offline-entry.yml` + `reconnect-sync.yml`, mobile-e2e Journey C); (2)
 `authentication/presentation` coverage — a `renderHook` spec for `useSession`
 took the file to 100%, threshold raised 45/50/25/65 → 95/95/90/85. No
