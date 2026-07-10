@@ -1454,7 +1454,18 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       category/tag/avoid vocabularies, provenance, serving data, macro↔
       calorie sanity). Static/bundled; no SQLite/sync/backend/deps; not yet
       consumed by UI (feeds Slice 3).
-- [ ] Slice 3: deterministic 15-day routine + determinism/safety tests.
+- [~] Slice 3: deterministic 15-day meal routine.
+      - [x] Slice 3A *(delivered 2026-07-10)*: pure generator
+        (`generateMealPlan`, `MEAL_RULE_VERSION='meal-rules@1.0.0'`) over the
+        engine `NutritionPlan` + goal + 300-food catalog. Deterministic
+        (seed hash, no RNG/Date), 3-group linear portion solve
+        (calories+protein+carbs → fat follows), snack/dense-food top-up so
+        no day falls below the safety-floored target, goal-preference food
+        bias, anti-repetition rotation, explainable rationale, best-effort
+        `avoidFor` exclusion (current restriction model maps to none —
+        documented; explicit `excludeAvoidTags` mechanism tested). No UI,
+        no schema/backend/deps/AI.
+      - [ ] Slice 3B: nutrition-plan UI surface + Maestro E2E.
 - [ ] Slice 4: food logging (ADR/schema/sync gated).
 
 ## Phase 16 — Workout Module  [commercial v1]
