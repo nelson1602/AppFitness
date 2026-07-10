@@ -1445,7 +1445,8 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
 ### Exit Criteria
 - [x] Slice 1: engine nutrition targets shown on a guarded `/nutrition`
       surface with a dashboard entry; tests meet thresholds; onboarding-loop
-      E2E asserts the targets render.
+      E2E asserts the targets render — verified green in mobile-e2e run
+      29094958093 (commit d32985c, EAS e2e build b0d2ec3a).
 - [ ] Slice 2: 300-food bundled catalog + query service + integrity tests.
 - [ ] Slice 3: deterministic 15-day routine + determinism/safety tests.
 - [ ] Slice 4: food logging (ADR/schema/sync gated).
