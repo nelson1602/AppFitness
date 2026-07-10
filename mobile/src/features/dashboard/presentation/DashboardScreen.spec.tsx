@@ -247,6 +247,16 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/restrictions');
   });
 
+  it('navigates to the nutrition targets surface', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'View nutrition targets' }));
+
+    expect(router.push).toHaveBeenCalledWith('/nutrition');
+  });
+
   it('routes to the delete-account surface (never deletes directly)', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({ status: 'ready', data: baseData });

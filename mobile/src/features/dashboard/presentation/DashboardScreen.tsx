@@ -95,6 +95,15 @@ export function DashboardScreen() {
         </>
       ) : null}
 
+      {/* Nutrition targets (Phase 15 Slice 1). */}
+      <AppButton
+        accessibilityLabel="View nutrition targets"
+        onPress={() => router.push('/nutrition')}
+        variant="secondary"
+      >
+        Nutrition
+      </AppButton>
+
       {/* Medical management surfaces (Phase 14 Slice 2). */}
       <AppButton
         accessibilityLabel="View evaluation history"

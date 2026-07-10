@@ -1407,25 +1407,48 @@ threshold.
 ## Phase 15 — Nutrition Module  [commercial v1]
 
 ### Objective
-Full-stack nutrition (api module + mobile feature): meal/nutrition
-logging and plan targets, consuming the iCoach nutrition outputs. First
-net-new module since the migration foundation.
+Nutrition experience consuming the existing deterministic iCoach nutrition
+output, delivered incrementally (planning gate 2026-07-10). AI/LLM never
+replaces the deterministic engine.
+
+### Slice structure (approved)
+- **Slice 1 — Nutrition Targets UI** *(delivered 2026-07-10)*: `/nutrition`
+  route + dashboard entry; read-only projection of the engine's
+  `NutritionPlan` (calories, macros + macro kcal, goal-adjustment
+  explanation, safety-floor explanation, non-medical disclaimer, data-gap
+  state). Reuses the dashboard/iCoach assessment as the single source of
+  truth — no recompute. Mobile-only; no schema/backend/deps.
+- **Slice 2 — Healthy food catalog**: static, bundled, versioned local
+  catalog of 300 foods (id/name/category/serving/macros/tags/source) + pure
+  query service. No DB/sync/backend.
+- **Slice 3 — Deterministic 15-day meal routine**: pure generator over the
+  engine targets + catalog; goal-aware, restriction-aware (within the
+  current model), anti-repetition, explainable, identical-inputs→identical
+  -outputs. No AI/LLM.
+- **Slice 4 — Food logging** *(deferred, ADR-gated)*: activates the dormant
+  `nutrition_logs`/`meals`/`meal_items` tables — requires an ADR + schema/
+  sync/backend planning gate before implementation.
+- Dietary preferences/allergies deferred for v1 (no profile-field/schema
+  change).
 
 ### Dependencies
-Phases 13–14; new api module + mobile feature; dormant `nutrition_logs`/
-`meals`/`meal_items` tables exist.
+Phases 13–14.5; the iCoach nutrition engine (already deterministic).
 
 ### Risks
-New sync entities + appliers; food catalog scope; keep the deterministic
-engine authoritative (AI never replaces calculations).
+Catalog authorship + provenance (Slice 2); portion-fit tolerance (Slice 3);
+keep the engine authoritative; non-medical disclaimer wording (legal track).
 
 ### Validation
-Backend unit/e2e, mobile unit/RNTL, sync round-trip Maestro, coverage
-thresholds extended to the new module.
+Mobile unit/RNTL, deterministic generator snapshots (Slice 3), coverage
+thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
 
 ### Exit Criteria
-- [ ] Users log nutrition; targets from the engine are shown; data syncs
-      offline-first; tests meet thresholds.
+- [x] Slice 1: engine nutrition targets shown on a guarded `/nutrition`
+      surface with a dashboard entry; tests meet thresholds; onboarding-loop
+      E2E asserts the targets render.
+- [ ] Slice 2: 300-food bundled catalog + query service + integrity tests.
+- [ ] Slice 3: deterministic 15-day routine + determinism/safety tests.
+- [ ] Slice 4: food logging (ADR/schema/sync gated).
 
 ## Phase 16 — Workout Module  [commercial v1]
 

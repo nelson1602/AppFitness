@@ -127,6 +127,20 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: 'iCoach recommendations'
 
+# --- 4b. Nutrition targets surface (Phase 15 Slice 1) ---
+- scrollUntilVisible:
+    element: 'Nutrition'
+- tapOn: 'Nutrition'
+- extendedWaitUntil:
+    visible: 'Nutrition targets'
+    timeout: 15000
+# Calorie target + macro breakdown render from the deterministic engine.
+- assertVisible: '.*kcal.*'
+- assertVisible: 'Protein'
+# No dev-only sample-data path on this surface.
+- assertNotVisible: 'Load sample data'
+- back
+
 # --- 5. Sign out, then sign back in as the SAME existing account ---
 - scrollUntilVisible:
     element: 'Sign out'
