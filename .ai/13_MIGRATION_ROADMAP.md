@@ -1472,7 +1472,9 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
         "15-day meal plan" entry from `/nutrition`. A pure `selectMealPlan`
         thin layer reads the dashboard/iCoach assessment (source of truth)
         and a STABLE seed (userId+goal+weight+catalog+rule versions), no
-        recompute. onboarding-loop E2E asserts the plan renders.
+        recompute. Verified green in mobile-e2e run 29108560964 (commit
+        497f8c3, EAS e2e build 2800dd33): onboarding-loop opens the plan
+        from /nutrition and asserts Day 1 + a meal render.
 - [ ] Slice 4: food logging (ADR/schema/sync gated).
 
 ## Phase 16 — Workout Module  [commercial v1]
