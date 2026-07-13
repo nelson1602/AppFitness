@@ -2517,6 +2517,57 @@ endpoint, no mobile changes**. Behaviour (all covered by unit + pipeline tests):
 This resolves TECHDEBT-004 **risk 2**; risk 3 (non-gram gram sourcing) stays
 open. TECHDEBT-004 remains **Open** for risk 3 only.
 
+### Slice 4C Implementation Note (2026-07-13)
+
+The mobile food-logging **write path** is implemented
+(`mobile/src/features/nutrition/`), consuming the Slice 4B handler — **mobile
+only; no logging UI, no route/screen change, no backend, schema, or REST
+change**. The logging UI + E2E are deferred to Slice 4D. Behaviour (covered by
+unit tests):
+
+- **Local-first, sync-only writes (ADR-0006).** `food-log.repository.logFood`
+  get-or-creates the day's `nutrition_logs` + `meals` **locally only** — neither
+  has a server handler in 4B, so enqueuing them would be `ENTITY_NOT_SUPPORTED`;
+  they are structural local parents. It seeds the referenced canonical `foods`
+  row (`INSERT OR IGNORE`, `sync_status='synced'`, never enqueued — the server
+  already holds the byte-identical revision) so the `meal_items` FK resolves, then
+  inserts the `meal_items` row with its immutable per-serving snapshot and
+  enqueues **exactly one** `meal_items` op in the same transaction. Edit
+  (`serving_count` only) and soft-delete follow the same enqueue-in-transaction
+  discipline; `version` is never bumped locally (baseVersion = last server-acked).
+- **Sensitive, minimal payloads.** Every `meal_items` op is `sensitive: true`
+  (encrypted at rest in the queue). Payloads carry only the server contract —
+  CREATE `{meal_id, food_id, serving_count}`, UPDATE `{serving_count}`, DELETE
+  `{}` — never a food name, notes, or other PHI. `serving_count` is the editable
+  quantity model; non-gram foods use fractional servings (no fabricated grams).
+- **Identity.** The write path works in catalog keys/slugs; the persisted/synced
+  identity is the Slice 4A UUIDv5 `food_id` + revision, resolved via a canonical
+  lookup service. The local per-serving snapshot is display-only and
+  **non-authoritative after reconciliation** (the pull applier upserts server
+  state as `synced`).
+- **Worker error semantics (mobile side).** `DEPENDENCY_NOT_READY` is treated as
+  **retryable** (`markFailed` — kept queued with backoff, never dropped);
+  `CATALOG_REVISION_UNSUPPORTED` is surfaced as an **actionable failure**
+  (`markActionRequired` parks the op in `CONFLICT` so it stops auto-retrying yet
+  stays visible, and the entity row is flagged) — **never silently discarded**,
+  satisfying the binding Slice 4A guard #3.
+- **Pull compatibility.** `registerNutritionSyncAppliers` registers the
+  `meal_items` pull applier at the composition root (`_layout.tsx`, mirroring the
+  profile/medical appliers); the applier upserts server rows as `synced` and
+  flags version conflicts as action-required. `nutrition_logs`/`meals`/`foods`
+  register no applier (no server handler).
+- **Deterministic plan untouched.** The write path derives consumed totals from
+  the immutable per-serving snapshot (`serving_count × snapshot`); it never reads,
+  recomputes, or mutates the read-only iCoach `NutritionPlan`/`MealPlan`. No PHI
+  in logs/audit/debug output.
+
+**UI deferred to Slice 4D:** `FoodLogScreen`, add-food form, serving stepper,
+`/food-log` route, the food-log store, the meal-plan entry point, and the
+food-logging E2E.
+
+TECHDEBT-004 remains **Open** for risk 3 only (per-food non-gram gram sourcing is
+still not implemented; Slice 4C logs via fractional servings, no fabrication).
+
 ### Related Documents
 
 - .ai/01_ARCHITECTURE.md, .ai/04_DATABASE.md, .ai/05_SECURITY.md, .ai/06_MOBILE.md

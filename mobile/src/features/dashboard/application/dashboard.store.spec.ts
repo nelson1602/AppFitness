@@ -51,6 +51,8 @@ function report(outcome: SyncOutcome): SyncReport {
     pushedApplied: 0,
     conflicts: 0,
     rejected: 0,
+    deferred: 0,
+    actionRequired: 0,
     pulledApplied: 0,
     skippedPending: 0,
   };

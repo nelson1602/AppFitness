@@ -4,6 +4,7 @@ import { allAppliers, getApplier, type EntityApplier } from './appliers';
 import { recordConflict } from './sync-conflicts';
 import {
   hasPendingOpFor,
+  markActionRequired,
   markApplied,
   markConflict,
   markFailed,
@@ -39,6 +40,7 @@ jest.mock('./sync-conflicts', () => ({
 }));
 jest.mock('./sync-queue', () => ({
   hasPendingOpFor: jest.fn(),
+  markActionRequired: jest.fn(),
   markApplied: jest.fn(),
   markConflict: jest.fn(),
   markFailed: jest.fn(),
@@ -62,6 +64,7 @@ const mockMarkInFlight = jest.mocked(markInFlight);
 const mockMarkApplied = jest.mocked(markApplied);
 const mockMarkFailed = jest.mocked(markFailed);
 const mockMarkConflict = jest.mocked(markConflict);
+const mockMarkActionRequired = jest.mocked(markActionRequired);
 const mockRemoveRejected = jest.mocked(removeRejected);
 const mockHasPending = jest.mocked(hasPendingOpFor);
 const mockRecordConflict = jest.mocked(recordConflict);
@@ -286,6 +289,61 @@ describe('runSync — push loop', () => {
     expect(report.rejected).toBe(1);
     expect(mockRemoveRejected).toHaveBeenCalledWith('op-1');
     expect(mockMarkFailed).not.toHaveBeenCalled();
+  });
+
+  it('treats DEPENDENCY_NOT_READY as retryable — keeps the op queued, never drops it', async () => {
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({
+        push: jest
+          .fn()
+          .mockResolvedValue([
+            pushResult({ status: 'REJECTED', errorCode: 'DEPENDENCY_NOT_READY' }),
+          ]),
+      }),
+    );
+    mockPeekReady
+      .mockResolvedValueOnce([queueRow({ entity_type: 'meal_items', entity_id: 'mi-1' })])
+      .mockResolvedValueOnce([]);
+
+    const report = await runSync(deps);
+
+    expect(report.deferred).toBe(1);
+    expect(report.rejected).toBe(0);
+    expect(mockMarkFailed).toHaveBeenCalledWith('op-1', 'DEPENDENCY_NOT_READY', NOW);
+    expect(mockRemoveRejected).not.toHaveBeenCalled();
+  });
+
+  it('surfaces CATALOG_REVISION_UNSUPPORTED as an actionable failure — parked, not discarded', async () => {
+    const applier: EntityApplier = {
+      entityType: 'meal_items',
+      applyServerChange: jest.fn(),
+      markConflict: jest.fn(),
+    };
+    mockGetApplier.mockReturnValue(applier);
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({
+        push: jest
+          .fn()
+          .mockResolvedValue([
+            pushResult({ status: 'REJECTED', errorCode: 'CATALOG_REVISION_UNSUPPORTED' }),
+          ]),
+      }),
+    );
+    mockPeekReady
+      .mockResolvedValueOnce([queueRow({ entity_type: 'meal_items', entity_id: 'mi-1' })])
+      .mockResolvedValueOnce([]);
+
+    const report = await runSync(deps);
+
+    expect(report.actionRequired).toBe(1);
+    expect(report.rejected).toBe(0);
+    expect(mockMarkActionRequired).toHaveBeenCalledWith(
+      'op-1',
+      'CATALOG_REVISION_UNSUPPORTED',
+      NOW,
+    );
+    expect(applier.markConflict).toHaveBeenCalledWith('mi-1', NOW);
+    expect(mockRemoveRejected).not.toHaveBeenCalled();
   });
 
   it('ignores results for ops not in the batch (defensive against server echoes)', async () => {
