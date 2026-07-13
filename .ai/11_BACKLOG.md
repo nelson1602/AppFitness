@@ -857,10 +857,10 @@ before any food-logging write path is built:
    gram conversion exists (else fractional servings).
 
 All three are captured as decisions in **ADR-P012 (Accepted 2026-07-10)** and are
-**approved for resolution in Slice 4A**. This item stays **Open**: none of the
-three integrity risks is closed until the actual code, forward migrations, seeds,
-and validation land and resolve them — acceptance of the ADR authorizes the work
-but does not itself fix the schema.
+**approved for resolution in Slice 4A/4B**. As of 2026-07-13, risks 1 (catalog
+identity/schema/seed) and 2 (server-derived macro snapshot) are **resolved**;
+the item stays **Open** only for risk 3 (per-food non-gram gram sourcing). See
+the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -909,10 +909,14 @@ never touched):
    identity, partial-unique revision constraint, and the seed are now behaviorally
    validated on fresh Postgres and SQLite (above). The identity mismatch and
    missing catalog schema are fixed and proven.
-2. **Macro snapshot — OPEN (foundation validated).** The server-derived snapshot
-   columns + derivation exist and the migration is validated, but no write path
-   exercises them yet; closed when the meal_items handler lands and is validated
-   (Slice 4B).
+2. **Macro snapshot — RESOLVED (Slice 4B, 2026-07-13).** The `meal_items` sync
+   handler now derives the immutable per-serving snapshot **server-side** from
+   the matching immutable Food revision at CREATE time; client-supplied
+   names/macros/snapshot values are never trusted, only `serving_count` is
+   mutable, and an unknown/unsupported revision is rejected with
+   `CATALOG_REVISION_UNSUPPORTED`. Covered by unit + pipeline tests (server
+   derivation, client-value rejection, immutability on UPDATE). This closes the
+   retroactive-macro-change risk. (No logging UI yet — that is a later slice.)
 3. **Serving-unit conflation — OPEN (structure validated).** The normalized
    structure + `serving_count` replacement are validated, but per-food
    **gram-per-serving sourcing for the 192 non-gram foods stays intentionally
@@ -920,7 +924,23 @@ never touched):
    is unavailable for those foods until sourced; the log path uses fractional
    servings meanwhile. This sub-task remains open.
 
-The item stays **Open** until risks 2 and 3 are actually resolved.
+The item stays **Open** until risk 3 (per-food non-gram gram sourcing) is
+actually resolved; risks 1 and 2 are resolved.
+
+### Slice 4B implementation status (2026-07-13) — backend handler landed
+
+The `meal_items` `EntitySyncHandler` is implemented and registered
+(`api/src/modules/nutrition/`), with a minimal backward-compatible sync-pipeline
+extension (`SyncApplyError`) so handlers can surface typed codes: retryable
+`DEPENDENCY_NOT_READY` (missing parent — not persisted, so a later retry
+re-processes; never `removeRejected`) and non-retryable
+`CATALOG_REVISION_UNSUPPORTED` (recorded terminally, actionable). CREATE derives
+the snapshot server-side; UPDATE mutates `serving_count` only; DELETE
+soft-deletes; ownership is scoped to the authenticated user and the parent meal;
+conflicts are recorded (never overwritten); `redactForConflict` excludes the
+food-name snapshot; audit uses `NUTRITION_CHANGE` with operational metadata
+only. **No logging UI, no REST write endpoint, no mobile changes** (later
+slices). All api validations green (66 tests).
 
 ### Related Documents
 

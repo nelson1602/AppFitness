@@ -6,6 +6,8 @@ import { SyncEntityRegistry } from '../domain/sync-entity-registry';
 import {
   EntitySyncHandler,
   ServerEntityState,
+  SYNC_ERROR_CODES,
+  SyncApplyError,
   SyncOperationInput,
 } from '../domain/sync.types';
 import { SyncService } from './sync.service';
@@ -42,12 +44,14 @@ class FakeGoalsHandler implements EntitySyncHandler {
   };
   applied: SyncOperationInput[] = [];
   failNextApply = false;
+  applyError: Error | null = null;
 
   getServerState(): Promise<ServerEntityState | null> {
     return Promise.resolve(this.serverState);
   }
 
   apply(_userId: string, op: SyncOperationInput): Promise<void> {
+    if (this.applyError) return Promise.reject(this.applyError);
     if (this.failNextApply) return Promise.reject(new Error('boom'));
     this.applied.push(op);
     return Promise.resolve();
@@ -165,6 +169,33 @@ describe('SyncService', () => {
 
     expect(results[0].status).toBe(SyncOperationStatus.REJECTED);
     expect(results[0].errorCode).toBe('APPLY_FAILED');
+  });
+
+  it('a retryable SyncApplyError is NOT persisted (so the op can retry) but reports its code', async () => {
+    handler.applyError = new SyncApplyError(
+      SYNC_ERROR_CODES.DEPENDENCY_NOT_READY,
+      true,
+    );
+
+    const { results } = await service.push(USER, null, [makeOp()]);
+
+    expect(results[0].errorCode).toBe(SYNC_ERROR_CODES.DEPENDENCY_NOT_READY);
+    expect(prisma.syncOperation.create).not.toHaveBeenCalled();
+  });
+
+  it('a non-retryable SyncApplyError is recorded terminally with its own code', async () => {
+    handler.applyError = new SyncApplyError(
+      SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED,
+      false,
+    );
+
+    const { results } = await service.push(USER, null, [makeOp()]);
+
+    expect(results[0].status).toBe(SyncOperationStatus.REJECTED);
+    expect(results[0].errorCode).toBe(
+      SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED,
+    );
+    expect(prisma.syncOperation.create).toHaveBeenCalledTimes(1);
   });
 
   it('pull with no registered changes echoes the cursor', async () => {

@@ -39,6 +39,28 @@ export interface CanonicalFood {
   fiberPerServing: number | null;
 }
 
+/**
+ * The minimal set of food-revision fields needed to derive a per-serving
+ * snapshot. A bundled `CanonicalFood` and a persisted `Food` row both satisfy
+ * this shape, so the server can derive a MealItem snapshot straight from the
+ * stored food revision (ADR-P012 Slice 4B) using the same code path the
+ * catalog parity tests cover.
+ */
+export interface FoodRevisionSnapshotSource {
+  name: string;
+  catalogKey: string | null;
+  foodRevision: number | null;
+  catalogVersion: string | null;
+  servingAmount: number;
+  servingUnit: string;
+  gramsPerServing: number | null;
+  caloriesPerServing: number;
+  proteinPerServing: number;
+  carbsPerServing: number;
+  fatPerServing: number;
+  fiberPerServing: number | null;
+}
+
 export interface ServingSnapshot {
   foodNameSnapshot: string;
   catalogKeySnapshot: string | null;
@@ -77,7 +99,9 @@ export function deriveFoodId(catalogKey: string, foodRevision: number): string {
  * Derive the immutable per-serving snapshot from a food revision. Byte-for-byte
  * identical to the mobile derivation.
  */
-export function deriveServingSnapshot(food: CanonicalFood): ServingSnapshot {
+export function deriveServingSnapshot(
+  food: FoodRevisionSnapshotSource,
+): ServingSnapshot {
   return {
     foodNameSnapshot: food.name,
     catalogKeySnapshot: food.catalogKey,

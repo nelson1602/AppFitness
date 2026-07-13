@@ -1490,6 +1490,22 @@ replaces the deterministic engine.
     No new runtime dependency (mobile derivation is test-only, pure-JS SHA-1;
     `FoodItem.id`/meal-plan output unchanged — the plan still uses the
     slug/catalog key, NOT the persisted UUID `Food.id`).
+  - **Slice 4B status (2026-07-13) — meal_items sync handler foundation
+    IMPLEMENTED (backend only; no UI).** Added the `meal_items`
+    `EntitySyncHandler` + nutrition module (`api/src/modules/nutrition/`) and a
+    minimal backward-compatible sync-pipeline extension (`SyncApplyError`) so
+    handlers surface typed codes. CREATE derives the per-serving snapshot
+    server-side from the immutable Food revision (client values untrusted);
+    UPDATE mutates `serving_count` only; DELETE soft-deletes; ownership scoped
+    to the authenticated user + parent meal; version conflicts recorded (never
+    overwritten); `redactForConflict` excludes the food-name snapshot;
+    `NUTRITION_CHANGE` audit with operational metadata only. Retryable
+    `DEPENDENCY_NOT_READY` (missing parent — not persisted, so retries
+    re-process) and non-retryable `CATALOG_REVISION_UNSUPPORTED` (terminal,
+    actionable). **No logging UI, no REST write endpoint, no mobile changes.**
+    API validations GREEN (`db:validate`/`db:generate`/`typecheck`/`lint:check`/
+    `jest` 66 tests/`build`). Resolves TECHDEBT-004 risk 2; risk 3 (non-gram
+    sourcing) stays open. Remaining for Slice 4: mobile write flow + logging UI.
 - Dietary preferences/allergies deferred for v1 (no profile-field/schema
   change).
 
@@ -1546,9 +1562,12 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       validations green both packages; **DB behavioral validation DONE** on fresh
       disposable Postgres + ephemeral SQLite (`migrate deploy` + `db:seed`
       idempotent/immutable/partial-unique, atomic preflight abort — see Slice 4A
-      status above). Remaining for Slice 4: logging write path, sync
-      handlers/appliers, and UI (Slice 4B), plus per-food non-gram sourcing
-      (TECHDEBT-004).
+      status above). Slice **4B (2026-07-13): meal_items sync handler foundation
+      IMPLEMENTED** (backend only — server-derived snapshots, ownership scoping,
+      `DEPENDENCY_NOT_READY`/`CATALOG_REVISION_UNSUPPORTED` semantics, conflict
+      redaction, `NUTRITION_CHANGE` audit; api validations green, 66 tests;
+      resolves TECHDEBT-004 risk 2). Remaining for Slice 4: the mobile write
+      flow + logging UI, plus per-food non-gram sourcing (TECHDEBT-004 risk 3).
 
 ## Phase 16 — Workout Module  [commercial v1]
 

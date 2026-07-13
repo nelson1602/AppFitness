@@ -6,6 +6,7 @@ import { SyncEntityRegistry } from '../domain/sync-entity-registry';
 import {
   PulledChange,
   SYNC_ERROR_CODES,
+  SyncApplyError,
   SyncOperationInput,
   SyncOperationResult,
 } from '../domain/sync.types';
@@ -126,7 +127,27 @@ export class SyncService {
     // 4. Apply through the entity handler (which owns payload validation).
     try {
       await handler.apply(userId, op);
-    } catch {
+    } catch (err) {
+      if (err instanceof SyncApplyError) {
+        // Retryable (e.g. DEPENDENCY_NOT_READY): do NOT persist a terminal
+        // outcome — leaving the op UUID unrecorded lets a later retry
+        // re-process once the dependency is ready. `apply` must throw this
+        // BEFORE any write, so no partial state is left behind.
+        if (err.retryable) {
+          return {
+            opId: op.opId,
+            status: SyncOperationStatus.REJECTED,
+            duplicate: false,
+            errorCode: err.errorCode,
+          };
+        }
+        // Non-retryable (e.g. CATALOG_REVISION_UNSUPPORTED): terminal, but
+        // recorded with its specific code so it is actionable and idempotent.
+        return this.recordOutcome(userId, deviceId, op, {
+          status: SyncOperationStatus.REJECTED,
+          errorCode: err.errorCode,
+        });
+      }
       return this.recordOutcome(userId, deviceId, op, {
         status: SyncOperationStatus.REJECTED,
         errorCode: SYNC_ERROR_CODES.APPLY_FAILED,

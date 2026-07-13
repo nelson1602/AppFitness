@@ -2490,6 +2490,33 @@ risk 2), and per-food gram-per-serving sourcing for the 192 non-gram foods
 (deferred; `grams_per_serving` left null rather than fabricated — TECHDEBT-004
 risk 3). TECHDEBT-004 therefore remains **Open** for risks 2 and 3.
 
+### Slice 4B Implementation Note (2026-07-13)
+
+The `meal_items` `EntitySyncHandler` is implemented and registered
+(`api/src/modules/nutrition/`), backend only — **no logging UI, no REST write
+endpoint, no mobile changes**. Behaviour (all covered by unit + pipeline tests):
+
+- **Server-derived snapshot:** CREATE resolves the referenced immutable Food
+  revision and derives the per-serving snapshot via the shared
+  `deriveServingSnapshot`; client-supplied names/macros/snapshot values are
+  never trusted. Only `serving_count` is mutable (UPDATE); a food change is
+  soft-delete + create. DELETE is a soft-delete tombstone.
+- **Ownership:** all reads/writes scoped to the authenticated `user_id`; the
+  parent `meal` must exist and be owned by the same user (a cross-user or
+  deleted parent is rejected).
+- **Error semantics (minimal sync-pipeline extension, `SyncApplyError`):** a
+  missing parent → retryable **`DEPENDENCY_NOT_READY`** (the op is NOT
+  persisted, so a later retry re-processes — never `removeRejected`); an
+  unknown/unsupported revision → non-retryable **`CATALOG_REVISION_UNSUPPORTED`**
+  (recorded terminally, actionable). Plain errors remain `APPLY_FAILED`.
+- **Conflict/privacy:** version conflicts are recorded, never overwritten;
+  `redactForConflict` excludes the food-name snapshot (keeps minimal structured
+  values); audit uses `NUTRITION_CHANGE` with operational metadata only (no
+  names/quantities/dates/PHI).
+
+This resolves TECHDEBT-004 **risk 2**; risk 3 (non-gram gram sourcing) stays
+open. TECHDEBT-004 remains **Open** for risk 3 only.
+
 ### Related Documents
 
 - .ai/01_ARCHITECTURE.md, .ai/04_DATABASE.md, .ai/05_SECURITY.md, .ai/06_MOBILE.md

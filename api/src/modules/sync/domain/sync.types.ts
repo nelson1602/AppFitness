@@ -85,3 +85,27 @@ export const SYNC_ERROR_CODES = {
 
 export type SyncErrorCode =
   (typeof SYNC_ERROR_CODES)[keyof typeof SYNC_ERROR_CODES];
+
+/**
+ * Thrown by an `EntitySyncHandler.apply` to carry a specific sync error code
+ * (ADR-P012). The pipeline treats it distinctly from a generic failure:
+ *
+ * - `retryable: true` (e.g. `DEPENDENCY_NOT_READY` — a child whose parent has
+ *   not yet synced): the pipeline does NOT persist a terminal outcome, so the
+ *   same operation UUID re-processes on a later retry once the dependency is
+ *   ready. The op is never permanently rejected.
+ * - `retryable: false` (e.g. `CATALOG_REVISION_UNSUPPORTED`): the pipeline
+ *   records a terminal `REJECTED` with this code — actionable and idempotent
+ *   (a replay returns the same recorded outcome), never silently discarded.
+ *
+ * A plain `Error` remains a generic `APPLY_FAILED` rejection.
+ */
+export class SyncApplyError extends Error {
+  constructor(
+    readonly errorCode: SyncErrorCode,
+    readonly retryable: boolean,
+  ) {
+    super(errorCode);
+    this.name = 'SyncApplyError';
+  }
+}
