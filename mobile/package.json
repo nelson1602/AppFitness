@@ -106,7 +106,8 @@
       "!src/shared/infrastructure/logging/index.ts",
       "!src/features/authentication/infrastructure/auth-api.ts",
       "!src/features/profile/infrastructure/sync-appliers.ts",
-      "!src/features/medical/infrastructure/sync-appliers.ts"
+      "!src/features/medical/infrastructure/sync-appliers.ts",
+      "!src/features/nutrition/infrastructure/sync-appliers.ts"
     ],
     "coverageThreshold": {
       "src/features/icoach/domain/": {
