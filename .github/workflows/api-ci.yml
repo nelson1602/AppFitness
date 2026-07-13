@@ -4,20 +4,22 @@
 # e2e job against a disposable Postgres service container that also
 # validates the migrations (prisma migrate deploy).
 #
+# The `quality` and `e2e` jobs are REQUIRED status checks on `main`. They run
+# on every PR/push (no path filter) so the required contexts are always
+# reported; a lightweight `changes` job decides whether `api/**` was actually
+# touched. When it was NOT (e.g. a mobile-only PR), the real steps are skipped
+# and the jobs report SUCCESS as a no-op — a skipped *job* would leave the
+# required check unreported and block merges, so the jobs must run and pass.
+# When `api/**` IS touched, full validation runs exactly as before.
+#
 # All credentials below are throwaway CI-only values — never production
 # secrets (.ai/10_DEPLOYMENT.md secrets policy).
 name: api-ci
 
 on:
   pull_request:
-    paths:
-      - 'api/**'
-      - '.github/workflows/api-ci.yml'
   push:
     branches: [main]
-    paths:
-      - 'api/**'
-      - '.github/workflows/api-ci.yml'
 
 defaults:
   run:
@@ -33,53 +35,107 @@ env:
   MEDICAL_ENC_KEY_ID: ci-dummy-1
 
 jobs:
+  # Decide whether this event touched api-relevant files. Defaults to `true`
+  # whenever the base commit is unavailable so API validation is never
+  # weakened by a detection gap (fail-safe: run the real checks).
+  changes:
+    name: Detect api changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect api-relevant changes
+        id: filter
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base='${{ github.event.pull_request.base.sha }}'
+          else
+            base='${{ github.event.before }}'
+          fi
+          if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "Base commit unavailable; running api-ci conservatively (api=true)."
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$base" HEAD)"
+          echo "Changed files:"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -qE '^(api/|\.github/workflows/api-ci\.yml)'; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api=false" >> "$GITHUB_OUTPUT"
+          fi
+
   quality:
     name: Prisma, type-check, lint, format, unit tests, build
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.api == 'true'
 
       - uses: actions/setup-node@v4
+        if: needs.changes.outputs.api == 'true'
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: api/package-lock.json
 
       - name: Install dependencies
+        if: needs.changes.outputs.api == 'true'
         run: npm ci
 
       - name: Generate Prisma client
+        if: needs.changes.outputs.api == 'true'
         run: npx prisma generate
 
       - name: Validate Prisma schema
+        if: needs.changes.outputs.api == 'true'
         run: npx prisma validate
 
       - name: TypeScript check
+        if: needs.changes.outputs.api == 'true'
         run: npm run typecheck
 
       - name: Lint (no --fix)
+        if: needs.changes.outputs.api == 'true'
         run: npm run lint:check
 
       - name: Format check (no --write)
+        if: needs.changes.outputs.api == 'true'
         run: npm run format:check
 
       - name: Unit tests with coverage
+        if: needs.changes.outputs.api == 'true'
         run: npm test -- --coverage
 
       - name: Build
+        if: needs.changes.outputs.api == 'true'
         run: npm run build
 
       - name: Upload coverage report
-        if: always()
+        if: always() && needs.changes.outputs.api == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: api-coverage
           path: api/coverage/lcov.info
           retention-days: 7
 
+      - name: No-op (api unchanged)
+        if: needs.changes.outputs.api != 'true'
+        run: echo "No api/** changes in this event — skipping api quality checks."
+
   e2e:
     name: Migrations + e2e against disposable Postgres
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -98,32 +154,44 @@ jobs:
           --health-retries 15
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.api == 'true'
 
       - uses: actions/setup-node@v4
+        if: needs.changes.outputs.api == 'true'
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: api/package-lock.json
 
       - name: Install dependencies
+        if: needs.changes.outputs.api == 'true'
         run: npm ci
 
       - name: Generate Prisma client
+        if: needs.changes.outputs.api == 'true'
         run: npx prisma generate
 
       - name: Apply migrations to the disposable CI database
+        if: needs.changes.outputs.api == 'true'
         run: npx prisma migrate deploy
 
       - name: E2E tests
+        if: needs.changes.outputs.api == 'true'
         run: npm run test:e2e
+
+      - name: No-op (api unchanged)
+        if: needs.changes.outputs.api != 'true'
+        run: echo "No api/** changes in this event — skipping api migrations/e2e."
 
   # Dependency audit (10_DEPLOYMENT.md CI pipeline). Deterministic gate:
   # fails ONLY on CRITICAL production vulnerabilities. High/moderate
   # findings are surfaced in the log and tracked as documented exceptions
   # in docs/DEPENDENCY_AUDIT.md (no unapproved upgrades). Not a required
-  # status check.
+  # status check, so it may skip entirely when api/** is untouched.
   audit:
     name: Dependency audit (prod deps)
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
