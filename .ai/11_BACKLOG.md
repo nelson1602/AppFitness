@@ -817,6 +817,119 @@ tokens may appear in logs (`05_SECURITY.md`).
 
 ---
 
+## [TECHDEBT-004] Dormant Nutrition Schema Has Three Latent Integrity Risks (blocks Slice 4)
+
+Status: Open (approved for resolution in Slice 4A — ADR-P012 Accepted 2026-07-10)
+Priority: P1 (must resolve before food-logging implementation)
+Type: Data Integrity / Schema
+Created: 2026-07-10
+
+### Description
+
+Discovered during the Phase 15 Slice 4 ADR gate (ADR-P012). The dormant
+nutrition tables carry three concrete structural risks that must be resolved
+before any food-logging write path is built:
+
+1. **Catalog identity mismatch + missing catalog schema.** `Food.id` /
+   `MealItem.foodId` are `@db.Uuid`, but the Slice-2 bundled catalog keys foods
+   by slug (`food.chicken_breast`) and **no mapping exists**. The live `Food`
+   table also has **no `catalog_key`, no catalog/revision version, and no serving
+   metadata**, and documents its macros **"per 100 g"** — so it **cannot receive
+   the normalized per-serving catalog seed without a forward schema correction**
+   (not purely additive). ADR-P012 proposes that correction plus **revision-
+   scoped** deterministic UUIDs (`uuidv5(catalog_key + food_revision)`) with
+   **immutable, retained** revisions so older clients stay FK-valid.
+2. **No historical macro snapshot.** `MealItem` stores only `food_id` +
+   `quantity_grams`. Catalog macros are Atwater estimates and may be corrected;
+   without a snapshot, historical daily totals would change retroactively —
+   contradicting ADR-0011 (health-data integrity). ADR-P012 proposes new
+   per-serving snapshot columns, **derived server-side from the matching
+   immutable food revision** (client names/macros untrusted), with totals derived
+   from the immutable snapshot.
+3. **Serving-unit conflation.** The bundled catalog defines macros **per
+   canonical serving**, yet the dormant schema stores `meal_items.quantity_grams`,
+   and the catalog itself encodes servings inconsistently — e.g. one 182 g apple
+   is authored as `piece(182)` (`{amount: 182, unit: 'piece'}`), mixing a gram
+   weight into a "piece" unit. Activating logging against this would produce
+   nonsensical quantities. ADR-P012 proposes normalizing each serving to an
+   amount + unit with an optional `grams_per_serving`, replacing `quantity_grams`
+   with a positive `serving_count`, and permitting gram entry only where a valid
+   gram conversion exists (else fractional servings).
+
+All three are captured as decisions in **ADR-P012 (Accepted 2026-07-10)** and are
+**approved for resolution in Slice 4A**. This item stays **Open**: none of the
+three integrity risks is closed until the actual code, forward migrations, seeds,
+and validation land and resolve them — acceptance of the ADR authorizes the work
+but does not itself fix the schema.
+
+### Slice 4A implementation status (2026-07-13) — item still OPEN
+
+Slice 4A landed the **foundation** (schema/identity/seed artifacts + tests); it
+deliberately does NOT add the logging write path, sync handlers/appliers, API
+routes, or UI. Delivered and code-validated:
+
+- Forward-only Postgres migrations (`20260710120000_add_nutrition_change_audit_action`,
+  `20260710120100_nutrition_catalog_serving_model_4a`) and SQLite migration
+  `002-nutrition-catalog-4a.ts`, each with an explicit **no-production-data
+  preflight guard**; historical migrations untouched.
+- `Food` corrected (catalog_key, food_revision, catalog_version, serving
+  metadata, per-serving macro rebase) + **partial** unique
+  `(catalog_key, food_revision) WHERE catalog_key IS NOT NULL` via reviewed raw
+  SQL; `meal_items.quantity_grams` → `serving_count` + immutable per-serving
+  snapshot columns.
+- Deterministic revision-scoped catalog identity (`uuidv5(catalog_key:food_revision)`,
+  fixed namespace), normalized serving helper, server-derived snapshot helper,
+  and the canonical seed artifact (mobile `.ts` + api `.json`, byte-identical),
+  with mobile/server parity + golden + uniqueness + normalization tests green.
+
+**DB behavioral validation (2026-07-13) — DONE.** Validated against fresh
+disposable databases (a throwaway Postgres 16 container on an isolated port and
+ephemeral `node:sqlite`; the shared dev DB on 5433 and unrelated containers were
+never touched):
+
+- Postgres: `prisma migrate deploy` applied all six migrations; `NUTRITION_CHANGE`
+  enum, `foods` serving/catalog columns, `meal_items` `serving_count` + snapshot
+  columns present, `quantity_grams` gone, partial unique index exactly
+  `(catalog_key, food_revision) WHERE catalog_key IS NOT NULL`. `db:seed` seeded
+  **exactly 300 rows**, was **idempotent** on a second run (0 new), a **tampered
+  existing revision was not overwritten** (immutability), a duplicate
+  `(catalog_key, food_revision)` was **rejected**, and two null-`catalog_key`
+  custom foods with the same revision **both inserted** (unconstrained).
+- Postgres preflight guard: on a fresh DB seeded to the pre-4A schema with one
+  guarded-table row, the 4A migration **aborted with `SLICE_4A_PREFLIGHT_ABORT`
+  and rolled back atomically** (foods kept its pre-4A columns).
+- SQLite: migrations 001→002 applied via the real migration modules; schema
+  shape, all four indexes, the partial-unique predicate + behaviour (duplicate
+  rejected, null `catalog_key` free), and `user_version = 2` verified; the 002
+  `preflight` hook **threw `SLICE_4A_PREFLIGHT_ABORT`** with data present.
+
+**Status of the three risks:**
+
+1. **Catalog identity — RESOLVED.** Schema correction, revision-scoped UUID
+   identity, partial-unique revision constraint, and the seed are now behaviorally
+   validated on fresh Postgres and SQLite (above). The identity mismatch and
+   missing catalog schema are fixed and proven.
+2. **Macro snapshot — OPEN (foundation validated).** The server-derived snapshot
+   columns + derivation exist and the migration is validated, but no write path
+   exercises them yet; closed when the meal_items handler lands and is validated
+   (Slice 4B).
+3. **Serving-unit conflation — OPEN (structure validated).** The normalized
+   structure + `serving_count` replacement are validated, but per-food
+   **gram-per-serving sourcing for the 192 non-gram foods stays intentionally
+   deferred** (`grams_per_serving` left null, not fabricated). Gram-based entry
+   is unavailable for those foods until sourced; the log path uses fractional
+   servings meanwhile. This sub-task remains open.
+
+The item stays **Open** until risks 2 and 3 are actually resolved.
+
+### Related Documents
+
+- .ai/12_DECISIONS.md (ADR-P012, ADR-0011)
+- .ai/15_DATABASE_SCHEMA_DESIGN.md, .ai/16_SQLITE_SCHEMA_DESIGN.md
+- api/prisma/schema.prisma (Food, MealItem)
+
+---
+
 # Performance Backlog
 
 ## [PERF-001] Mobile Startup Performance Baseline

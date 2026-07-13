@@ -1,18 +1,25 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { initialMigration } from './001-initial';
+import { nutritionCatalog4aMigration } from './002-nutrition-catalog-4a';
 
 export interface Migration {
   version: number;
   name: string;
   statements: readonly string[];
+  /**
+   * Optional guard run inside the migration transaction BEFORE its statements
+   * (ADR-P012). Throw to abort the migration — e.g. a destructive, not-purely
+   * additive change that must only run against tables with no production data.
+   */
+  preflight?: (db: SQLiteDatabase) => Promise<void>;
 }
 
 /**
  * Ordered migration registry. Append new migrations here — never edit a
  * shipped migration (.ai/04_DATABASE.md).
  */
-export const MIGRATIONS: readonly Migration[] = [initialMigration];
+export const MIGRATIONS: readonly Migration[] = [initialMigration, nutritionCatalog4aMigration];
 
 /**
  * Applies pending migrations atomically, tracked via PRAGMA user_version
@@ -32,6 +39,9 @@ export async function runMigrations(db: SQLiteDatabase): Promise<void> {
     if (migration.version <= currentVersion) continue;
 
     await db.withExclusiveTransactionAsync(async (tx) => {
+      if (migration.preflight) {
+        await migration.preflight(tx);
+      }
       for (const statement of migration.statements) {
         await tx.execAsync(statement);
       }

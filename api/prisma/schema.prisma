@@ -144,6 +144,7 @@ enum AuditAction {
   MEDICAL_EVALUATION_CREATE
   MEDICAL_EVALUATION_DELETE
   MEDICAL_RESTRICTION_CHANGE
+  NUTRITION_CHANGE
   SYNC_CONFLICT
   PERMISSION_CHANGE
   ACCOUNT_DELETE
@@ -564,17 +565,27 @@ model WorkoutSet {
 // ─── Nutrition ───────────────────────────────────────────────────────────────
 
 model Food {
-  id        String  @id @db.Uuid // client-generatable (custom foods created offline)
-  name      String
-  brand     String?
-  // macros per 100 g
-  calories  Float
-  protein   Float
-  carbs     Float
-  fat       Float
-  fiber     Float?
-  createdBy String? @map("created_by") @db.Uuid // null = global catalog entry
-  isVerified Boolean @default(false) @map("is_verified")
+  // For bundled catalog foods, id is the deterministic UUIDv5 of
+  // "catalog_key:food_revision" (ADR-P012). Future custom foods are
+  // client-generated with a null catalog_key.
+  id             String  @id @db.Uuid
+  catalogKey     String? @map("catalog_key") // stable natural key for bundled foods; NULL for custom foods
+  foodRevision   Int     @default(1) @map("food_revision") // immutable revision; a correction mints a new revision + id
+  catalogVersion String? @map("catalog_version") // release-level catalog stamp; NULL for custom foods
+  name           String
+  brand          String?
+  // canonical serving (ADR-P012 serving-unit normalization)
+  servingAmount   Float  @map("serving_amount")
+  servingUnit     String @map("serving_unit")
+  gramsPerServing Float? @map("grams_per_serving") // gram weight of one serving where a valid conversion exists; else NULL
+  // macros per canonical serving (re-based from the former per-100g basis)
+  caloriesPerServing Float   @map("calories_per_serving")
+  proteinPerServing  Float   @map("protein_per_serving")
+  carbsPerServing    Float   @map("carbs_per_serving")
+  fatPerServing      Float   @map("fat_per_serving")
+  fiberPerServing    Float?  @map("fiber_per_serving")
+  createdBy          String? @map("created_by") @db.Uuid // null = global catalog entry
+  isVerified         Boolean @default(false) @map("is_verified")
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -585,6 +596,10 @@ model Food {
   mealItems MealItem[]
 
   // No unique on name: user-created custom foods may collide with catalog names.
+  // Bundled-catalog revision uniqueness is a PARTIAL unique index
+  // (catalog_key, food_revision) WHERE catalog_key IS NOT NULL, created via
+  // reviewed raw SQL in the migration because Prisma cannot express the partial
+  // predicate (ADR-P012). Do not add an @@unique here.
   @@index([name], map: "idx_foods_name")
   @@map("foods")
 }
@@ -634,11 +649,28 @@ model Meal {
 }
 
 model MealItem {
-  id            String @id @db.Uuid // client-generatable
-  userId        String @map("user_id") @db.Uuid // denormalized owner for sync scoping
-  mealId        String @map("meal_id") @db.Uuid
-  foodId        String @map("food_id") @db.Uuid
-  quantityGrams Float  @map("quantity_grams")
+  id           String @id @db.Uuid // client-generatable
+  userId       String @map("user_id") @db.Uuid // denormalized owner for sync scoping
+  mealId       String @map("meal_id") @db.Uuid
+  foodId       String @map("food_id") @db.Uuid
+  servingCount Float  @map("serving_count") // positive count of canonical servings consumed (replaces quantity_grams)
+
+  // Immutable per-serving snapshot, DERIVED SERVER-SIDE from the matching food
+  // revision at create time (ADR-P012). Client-supplied names/macros are never
+  // trusted; only serving_count is mutable. Consumed totals =
+  // serving_count × the per-serving snapshot below.
+  foodNameSnapshot           String  @map("food_name_snapshot")
+  catalogKeySnapshot         String? @map("catalog_key_snapshot")
+  foodRevisionSnapshot       Int?    @map("food_revision_snapshot")
+  catalogVersionSnapshot     String? @map("catalog_version_snapshot")
+  servingAmountSnapshot      Float   @map("serving_amount_snapshot")
+  servingUnitSnapshot        String  @map("serving_unit_snapshot")
+  gramsPerServingSnapshot    Float?  @map("grams_per_serving_snapshot")
+  caloriesPerServingSnapshot Float   @map("calories_per_serving_snapshot")
+  proteinPerServingSnapshot  Float   @map("protein_per_serving_snapshot")
+  carbsPerServingSnapshot    Float   @map("carbs_per_serving_snapshot")
+  fatPerServingSnapshot      Float   @map("fat_per_serving_snapshot")
+  fiberPerServingSnapshot    Float?  @map("fiber_per_serving_snapshot")
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)

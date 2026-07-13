@@ -1896,6 +1896,615 @@ specific legally-vetted retention period until that review happens.
 
 ---
 
+## ADR-P012 — Offline-First Food Logging, Nutrition Catalog Identity, and Conflict Semantics
+
+Status: **Accepted**
+Date: 2026-07-10
+Accepted: **2026-07-10 by project owner**
+Owner: Architecture / Data / Security
+
+> This ADR gates Phase 15 Slice 4 (Food Logging). It was **Accepted 2026-07-10
+> by the project owner** (see **Acceptance Resolution**). Acceptance is
+> documentation-only: nothing below has been implemented yet — no product code,
+> schema, migration, seed, or dependency was changed by this acceptance. Slice 4
+> is now **approved to proceed incrementally**, beginning with the foundation
+> slice **4A**, under the implementation constraints recorded below.
+
+### Context
+
+Phase 15 Slices 1–3 shipped read-only nutrition: engine-driven targets
+(`/nutrition`), a bundled 300-food catalog with stable slug ids
+(`food.chicken_breast`, `CATALOG_VERSION='food-catalog@1.0.0'`), and a
+deterministic read-only 15-day meal plan (`/nutrition-plan`, verified E2E).
+Slice 4 introduces **actual intake logging** — a net-new synchronized,
+Highly-Sensitive write domain.
+
+Repository evidence establishes the ground truth this ADR must reconcile:
+
+- **Tables exist but are inert.** `api/prisma/schema.prisma` defines `Food`,
+  `NutritionLog`, `Meal`, `MealItem` (and `MealType`); `mobile/.../database/
+  types.ts` mirrors them (`FoodRow`, `NutritionLogRow`, `MealRow`,
+  `MealItemRow`). There are **no** repositories, stores, UI, mobile appliers,
+  backend handlers, or a NestJS nutrition module.
+- **Identity mismatch + missing catalog metadata.** `Food.id` is `@db.Uuid`;
+  `MealItem.foodId` is `@db.Uuid` with FK `onDelete: Restrict`. The Slice-2
+  catalog keys foods by slug, not UUID, and **no mapping exists**. Worse, the
+  live `Food` table has **no catalog key, no catalog/revision version, and no
+  serving metadata** — only `name`, `brand?`, a generic `version Int`,
+  `createdBy?`/`isVerified`, and macros the schema documents as **"per 100 g"**
+  (`// macros per 100 g`). It therefore **cannot receive the proposed
+  normalized per-serving catalog seed without a forward schema correction**
+  (below).
+- **No macro snapshot.** `MealItem` stores only `food_id` + `quantity_grams`
+  (both schemas). Catalog calories are Atwater estimates (Slice 2) and may be
+  corrected; historical totals would then change retroactively.
+- **Plaintext notes.** `nutrition_logs.notes` is a plaintext `String?`
+  (Postgres) / `notes TEXT` (SQLite) — no `_enc` column. ADR-0011 classes all
+  health data Highly Sensitive.
+- **Sync pipeline is entity-agnostic and causal-by-construction.**
+  `api/src/modules/sync/application/sync.service.ts` applies push ops
+  **"Sequential on purpose: client queues are causally ordered"**; pull sorts
+  changes by monotonic `sync_seq`. Version mismatch → a `sync_conflicts` row,
+  **never auto-overwritten**. `EntitySyncHandler` (sync.types.ts) exposes
+  `getServerState / apply / pullChanges / redactForConflict?` — the last
+  explicitly to keep sensitive fields out of `sync_conflicts` JSONB. The
+  mobile queue (`sync-queue.ts`) already encrypts payloads at rest when an op
+  is enqueued with **`sensitive: true`** (the `{__enc}` envelope via the
+  ADR-P001 field cipher), and `SyncOperation.id` is the idempotency key.
+- **Documented parity note.** `.ai/16_SQLITE_SCHEMA_DESIGN.md` already records
+  the `"order"` (Prisma) ↔ `order_index` (SQLite) mapping owned by the sync
+  layer; `.ai/15` treats catalogs as server-owned/pull rows.
+- **Established write pattern + real REST contracts.** Profile, goal, and
+  medical writes flow local-first → sync queue → backend `EntitySyncHandler`.
+  Alongside that, **real supported REST write endpoints exist** and are product
+  contracts (not E2E-only): `PUT /users/me/profile`, `POST /medical/evaluations`,
+  and `POST /medical/restrictions`. Nutrition **deliberately** forgoes a REST
+  write path so intake has exactly one offline-first write path (below).
+
+### Decision
+
+Adopt an **offline-first, sync-only, snapshot-preserving** food-logging model
+that reuses the existing sync/conflict/encryption machinery and adds a backend
+`NutritionModule` of entity handlers — with **no second write path** and **no
+recomputation of the deterministic plan**. Concretely (each expanded below):
+
+1. **Normalize serving semantics first** (below) and log intake as a positive
+   `serving_count` of a catalog food, NOT raw `quantity_grams`.
+2. Log **actual intake** as `NutritionLog → Meal → MealItem`, separate from the
+   generated `NutritionPlan`/`MealPlan`, which remain read-only.
+3. Reference **only the bundled 300-food catalog** in v1; defer custom foods
+   and free-text notes (notes deferral is **non-blocking** — see below).
+4. Correct the `Food` schema (catalog key/revision/version + serving metadata +
+   per-serving macro basis) and give every catalog food a **stable, revision-
+   scoped UUID** (`uuidv5(catalog_key + food_revision)` under a documented fixed
+   namespace), precomputed at build time (no runtime crypto dependency) and
+   shared byte-for-byte by the bundle, SQLite, and PostgreSQL. **Catalog
+   revisions are immutable** — a corrected food is a new revision/UUID; old
+   revisions are retained and FK-valid so older clients stay compatible.
+5. **Snapshot per serving** on each `MealItem` at create, **derived by the
+   server** from its matching immutable food revision (the client sends only
+   `food_id` + `serving_count` + revision identity; the backend never trusts
+   client names/macros; unknown revisions → `CATALOG_REVISION_UNSUPPORTED`).
+   Only `serving_count` is mutable; consumed totals are **derived** as
+   `serving_count × per-serving snapshot`. Foods are versioned + soft-deleted,
+   never hard-deleted.
+6. Preserve **causal order** via FIFO enqueue (parent→child) + the backend's
+   sequential apply + a **deterministic per-applier pull order**
+   (`nutrition_logs` → `meals` → `meal_items`), with a small safe protocol
+   change for missing parents (below).
+7. Use **versioned mutable entities with explicit soft-delete tombstones**
+   (not FK cascade); corrections allowed; conflicts recorded and **never
+   silently merged** — explicit resolution only.
+8. Enforce Highly-Sensitive controls **everywhere**: `sensitive:true` queue
+   encryption, encrypted local conflict payloads, `redactForConflict` on all
+   nutrition handlers (exclude notes + food-name snapshots), and no PHI in
+   logs/Sentry/audit; a single additive `NUTRITION_CHANGE` audit action.
+
+### Entity and Aggregate Model
+
+- **Aggregate root: `NutritionLog`** — one per user per **local calendar day**
+  (`@@unique(userId, date)`). Owns its `Meal`s; `date` is immutable (moving a
+  day = soft-delete + create).
+- **`Meal`** (child) — `type ∈ {BREAKFAST,LUNCH,DINNER,SNACK}` (existing
+  `MealType`), `order_index`/`order` for intra-day ordering; denormalized
+  `user_id` for sync scoping. Cardinality: 0..n meals per log; multiple meals
+  of the same type are allowed (no `unique(log,type)`), ordered by
+  `order_index`.
+- **`MealItem`** (child) — `meal_id`, `food_id`, **`serving_count`** (positive;
+  replaces raw `quantity_grams`), **plus the per-serving snapshot fields
+  (below)**; denormalized `user_id`.
+- **Ownership/boundary:** the aggregate is user-owned; all three carry
+  `user_id` so backend handlers scope every read/write by owner.
+- **Soft-delete is explicit tombstones, NOT FK cascade.** The database
+  `ON DELETE CASCADE` on the parent FKs governs **physical** deletion only
+  (e.g., account hard-erasure, ADR-P011) — it does **not** fire on ordinary
+  soft-delete. Ordinary removal sets `deleted_at`/`deleted_by` and replicates
+  as a soft-delete op; the client emits **explicit child tombstones plus the
+  parent tombstone in causal order** and the backend applies each, so both
+  sides converge without relying on the DB cascade.
+- **Supported operations:** CREATE (log/meal/item), UPDATE (`meal.type`/
+  `order_index`; `meal_item.serving_count`), soft-DELETE (all three, via
+  tombstone). Snapshot fields are immutable; a correction that changes the
+  *food* is soft-delete-item + create-item.
+
+### Catalog Identity and Versioning
+
+- **Food-table schema correction (prerequisite; not purely additive).** The
+  live `Food` table lacks the columns the catalog model needs. A forward-only,
+  pre-activation schema correction adds, in **both** Prisma and SQLite:
+  - **`catalog_key`** (nullable text) — the stable natural key for bundled foods
+    (`food.chicken_breast`); nullable so **future custom user foods** (no catalog
+    key) remain possible.
+  - **`food_revision`** (int) and **`catalog_version`** (text) — per-food
+    revision and the release-level catalog stamp.
+  - **`serving_amount`** (float) + **`serving_unit`** (text) canonical serving,
+    and nullable **`grams_per_serving`** (float).
+  - **Macro fields whose names and documented basis explicitly mean *per
+    canonical serving*** — replacing/re-basing the current `// macros per 100 g`
+    columns, so the seeded values are unambiguous.
+  - A **uniqueness rule for bundled catalog revisions** — unique
+    `(catalog_key, food_revision)` **where `catalog_key IS NOT NULL`** (a partial
+    index), which pins each bundled revision exactly once while leaving
+    custom foods (null `catalog_key`) unconstrained.
+- **Deterministic UUIDv5 from `catalog_key + food_revision`** under a fixed,
+  documented AppFitness nutrition namespace UUID:
+  `Food.id = uuidv5(catalog_key + ':' + food_revision, NUTRITION_NAMESPACE)`.
+  The `(catalog_key, food_revision)` pair is the human-stable natural key; the
+  UUID is its deterministic, reproducible projection. Precomputed at build time
+  and bundled as static data (no runtime UUIDv5 dependency); the backend seed
+  uses the identical id list; the derivation is documented so any party can
+  regenerate/verify it.
+- **Immutable catalog revisions (old-client-safe).** Nutritional values are
+  **never updated in place** for an existing catalog revision. A corrected food
+  is a **new `food_revision` → new UUID**; the old revision row is **retained
+  and FK-valid** forever. The **mobile bundle carries the current revisions**;
+  **PostgreSQL retains every supported revision** so a `MealItem` created by an
+  older client still resolves its exact food revision. A global
+  **`CATALOG_VERSION` bump remains the release-level traceability marker** (it
+  does not mutate any prior revision).
+
+### Catalog Initialization and Distribution
+
+- **Bundle-and-seed both sides, idempotently, with identical ids.** On first
+  run the app seeds local SQLite `foods` (`INSERT OR IGNORE` by id) from the
+  bundled current revisions, so foods exist locally before any `meal_item` FK
+  write (offline-safe). The backend seeds PostgreSQL `foods` (upsert by id) at
+  deploy via a deterministic, re-runnable seed — a **data seed of global catalog
+  rows** (`created_by = NULL`, `is_verified = true`), not a migration of user
+  data. Because revisions are immutable, seeding is **insert-new-revisions-only**:
+  it never overwrites an existing `(catalog_key, food_revision)` row, and the
+  server **accumulates** every supported revision while the bundle ships only the
+  current ones.
+- Foods are effectively **read-only catalog** in v1 (no write endpoint, no user
+  edits). **Custom user foods are deferred** (the nullable `catalog_key` +
+  existing `created_by` column anticipate them). Because the catalog is bundled +
+  seeded identically, a dedicated foods *pull* handler is **not** required for
+  v1 — an older client keeps working against the revisions retained server-side.
+
+### Serving-Unit Normalization (prerequisite)
+
+Three things disagree today: the Slice-2 **bundled catalog data** authors macros
+**per serving**, the dormant **`Food` table** documents its macro columns **"per
+100 g"**, and the dormant `meal_items` row stores raw `quantity_grams` — while
+the bundled catalog even encodes servings inconsistently (e.g. one 182 g apple
+is authored as `piece(182)` = `{amount: 182, unit: 'piece'}`, conflating a gram
+weight with a piece count). **Food logging must not be activated until serving
+semantics are normalized** and the `Food` schema is corrected (see *Catalog
+Identity and Versioning*). Decision for v1:
+
+- Catalog macros are stored and documented **per canonical serving** — this
+  **re-bases the current per-100 g `Food` macro columns** as part of the schema
+  correction.
+- Each catalog serving is normalized to an **actual amount + unit** — one apple
+  becomes `amount: 1, unit: 'piece'`, with the **gram weight recorded
+  separately** (`grams_per_serving`) when known.
+- Replace the dormant `meal_items.quantity_grams` via a **forward migration**
+  (both schemas; a replacement, not an additive add) and log intake as a positive
+  **`serving_count`** instead.
+- Permit gram-based entry **only** when the selected food has a valid gram
+  conversion (`grams_per_serving` present); otherwise the user logs
+  **fractional servings** (e.g. `serving_count = 1.5`).
+- This serving-unit conflation is recorded as the third integrity risk under
+  **TECHDEBT-004**.
+
+### Historical Macro-Integrity Strategy
+
+- **Per-serving snapshot (chosen).** At create time, `MealItem` records the
+  food's immutable **`food_name_snapshot`**, the resolving **catalog identity**
+  (`catalog_key`, `food_revision`, `catalog_version`), serving **amount/unit**
+  (`serving_amount_snapshot`, `serving_unit_snapshot`), optional
+  **`grams_per_serving_snapshot`**, and **per-serving** macros
+  (`calories_per_serving_snapshot`, `protein_per_serving_snapshot`,
+  `carbs_per_serving_snapshot`, `fat_per_serving_snapshot`,
+  `fiber_per_serving_snapshot`). These snapshot fields are **immutable** after
+  creation.
+- **Snapshot trust boundary (server-derived).** Mobile derives its *local*
+  snapshot from its **bundled immutable food revision**, but the **sync payload
+  carries only `food_id`, `serving_count`, and the catalog/revision identity
+  (`food_id` already encodes `catalog_key + food_revision`)** — **never** names
+  or macros. The **backend does not trust client-supplied names or macros**: it
+  loads the **matching immutable server food revision** and derives the persisted
+  **server** snapshot itself. An unknown or unsupported revision returns a typed,
+  **non-silent** compatibility error **`CATALOG_REVISION_UNSUPPORTED`** (not a
+  best-effort accept). Because both sides derive from the *same immutable
+  revision*, the local and server snapshots are byte-identical by construction —
+  a property the tests must prove.
+- **Only `serving_count` is mutable.** Consumed totals are **derived**
+  (`serving_count × per-serving snapshot`) and never persisted as a second
+  immutable value — the ADR does not treat both a per-serving snapshot and a
+  quantity-adjusted total as immutable. A later catalog macro correction cannot
+  alter historical intake, because totals recompute only from the immutable
+  per-serving snapshot × the (mutable) count.
+- **Foods remain versioned + soft-deleted** (`version`, `deleted_at`) and are
+  **never hard-deleted**; the `onDelete: Restrict` FK guarantees a referenced
+  food row persists. Satisfies ADR-0011/ADR-P011 (health data is never silently
+  mutated or lost).
+- **Schema impact:** new nullable per-serving snapshot columns on `meal_items`
+  **plus** the `quantity_grams → serving_count` replacement, in **both** schemas
+  — a forward-only, pre-activation migration (SQLite create/upgrade + Postgres)
+  that is **data-safe but not purely additive** (the replacement changes an
+  existing column). Rejected alternatives: (a) recompute from live catalog (fails
+  integrity); (b) client-authored snapshots trusted by the server (fails the
+  trust boundary — server derives from its own revision instead).
+
+### Sync and Conflict Semantics
+
+- **Wire shapes / entity names:** `nutrition_logs`, `meals`, `meal_items`
+  (matching `entity_type`), payloads shaped like the row snapshots the existing
+  handlers use. The meal handler maps `order_index` ↔ `order` (per `.ai/16`). The
+  **`meal_items` payload is deliberately minimal** — `food_id`, `serving_count`,
+  and the catalog/revision identity — and the backend derives the persisted
+  snapshot from its own immutable food revision (see snapshot trust boundary),
+  rejecting unknown revisions with `CATALOG_REVISION_UNSUPPORTED`.
+- **Push causal order (create):** the mobile repository writes log→meal→item in
+  one local transaction and **enqueues CREATE ops in that FIFO order**; the
+  backend applies push ops **sequentially in received order** (evidence:
+  `sync.service.ts`), so parents commit before children.
+- **Push rejection — smallest safe protocol change (proposed, not existing).**
+  Today `sync-worker.ts` handles a backend `REJECTED` result by
+  **`removeRejected(opId)`** — it deletes the op and does **not** retain
+  children for retry. A child whose parent has not yet applied would be
+  permanently dropped. Proposed change: the backend returns a typed
+  **`DEPENDENCY_NOT_READY`** error code for an FK/missing-parent apply failure;
+  the mobile worker treats `DEPENDENCY_NOT_READY` as **retryable** — mark
+  **FAILED** (keep the queue item, existing backoff) instead of removing it —
+  and, if it never resolves, surfaces a **persistent, actionable failure**.
+  **Permanent** validation/ownership rejections remain **non-retryable**
+  (removed as today). This is a proposed addition; it does not exist yet.
+- **Pull ordering — per-applier, deterministic.** The mobile worker pulls
+  **separately per registered applier**, each with its own cursor
+  (`pullLoop` in `sync-worker.ts`), so a global `sync_seq` alone does **not**
+  guarantee cross-entity order. Require a **deterministic applier order**
+  (`nutrition_logs` → `meals` → `meal_items`, by registration order) and **pull
+  all pages of each parent entity before advancing to its children**. If an
+  applier encounters a **missing parent** while applying a pulled child, it
+  **fails that pull without advancing its cursor** and retries on the next
+  sync. No in-memory deferral buffer is introduced (none exists in the worker,
+  and repository evidence does not require one).
+- **Idempotency / retries / tombstones:** `op_id` UUID is the idempotency key
+  (duplicate retries are no-ops, `duplicate:true`); soft-delete tombstones
+  (`deleted_at`, `deleted_by`) replicate as UPDATE ops in causal (child-first)
+  order; retries use the existing FAILED-with-backoff queue.
+- **Per-entity conflict policy (multi-device):** every entity is
+  **version-guarded**; a base-version mismatch records a `sync_conflicts` row
+  and is **never auto-overwritten** (evidence). **No automatic merge** for any
+  nutrition entity — the user (or a future explicit resolver UI) reconciles.
+  Rationale: intake is health data; silent last-write-wins could erase a
+  correction or a removal. Corrections (`serving_count`) and removals
+  (soft-delete tombstone) are ordinary version-guarded ops, not overwrites.
+
+### Security and Privacy Controls
+
+- **Classification (decided, not open):** food intake is **Highly Sensitive**
+  (ADR-0011) **everywhere** — including the structured scalars. Their sensitivity
+  is **not** downgraded to a lower tier; only the concrete at-rest *mechanism*
+  differs by field type.
+- **Local at rest (SQLite):** catalog `foods` are non-personal reference data.
+  User nutrition rows (`food_id`, `serving_count`, `date`, `type`,
+  `order_index`, per-serving snapshots) are Highly Sensitive and protected at
+  rest by **OS file-based encryption** on the app database — the same at-rest
+  posture the existing medical **structured** fields (e.g. evaluation
+  weight/BP) already rely on. **`notes` free-text is out of v1 scope**; when
+  added it MUST be field-encrypted (`notes_enc` + `enc_key_id`, ADR-P001
+  cipher). No plaintext note is written in v1.
+- **Local sync queue AND local conflict store — encrypted.** Nutrition ops
+  enqueue with **`sensitive: true`**, so the queued payload is encrypted at rest
+  via the field cipher (`sync-queue.ts`), and on a CONFLICT the worker likewise
+  stores the local conflict payloads **encrypted** (`{__enc}`, `sync-worker.ts`
+  lines 128–133). Queued and locally-recorded food data are never at rest in
+  plaintext.
+- **In transit:** TLS 1.3 (ADR-P001 refinement).
+- **Server at rest (PostgreSQL):** structured nutrition columns protected by the
+  managed database's at-rest encryption (ADR-P009); when notes land,
+  `notes_enc bytea` + `enc_key_id` via the ADR-P006 cipher.
+- **Server conflict records (`sync_conflicts`):** all nutrition handlers
+  implement **`redactForConflict`** so `client_payload`/`server_snapshot` retain
+  **only the minimum structured values required for resolution** (entity
+  id/type, versions, operation, and the minimal fields a resolver needs) — and
+  **MUST exclude `notes` and the food-name snapshot**. These records are
+  protected by the database's at-rest controls. Because minimized structured
+  intake values (e.g. `food_id`, `serving_count`) may remain, the ADR does
+  **not** claim the conflict records are PHI-free — they are Highly Sensitive,
+  minimized, and DB-at-rest-protected. (Redaction chosen over encrypting JSONB —
+  reuses the existing hook.)
+- **Logs / Sentry / audit:** **never** food names, quantities, ids, dates, or
+  notes. Audit `metadata` stays operational — matching `AuditLog.metadata`
+  "never medical/PII values." **One** additive `AuditAction` value
+  **`NUTRITION_CHANGE`** carries the operation as metadata (e.g. `{ entityType,
+  operation }`); no per-CRUD enum proliferation.
+- **Authorization/ownership:** backend handlers scope every `getServerState`/
+  `apply`/`pullChanges` by `user_id` (denormalized on all three entities);
+  cross-user access is rejected — mirrors medical/goal handlers.
+
+### Backend Contract
+
+- Add a NestJS **`NutritionModule`** exposing three `EntitySyncHandler`s
+  (`nutrition_logs`, `meals`, `meal_items`) registered in the sync entity
+  registry: each implements `getServerState`, `apply` (owns payload validation
+  + ownership + version/conflict + FK-order handling), `pullChanges`
+  (incremental by `sync_seq`), and `redactForConflict`. The **`meal_items`
+  handler additionally derives the persisted per-serving snapshot server-side**
+  by loading the matching immutable food revision (never trusting client
+  names/macros) and returns **`CATALOG_REVISION_UNSUPPORTED`** for an
+  unknown/unsupported revision.
+- **Nutrition deliberately chooses sync-only writes.** Profile and medical
+  REST write endpoints **are real, supported product contracts** (not
+  E2E-only). Nutrition intentionally does **not** add REST writes so that the
+  new domain has exactly **one offline-first write path** (the sync queue),
+  keeping causal ordering, conflict handling, and queue encryption uniform for
+  health-sensitive intake. The catalog is **seeded**, not written via API. No
+  new REST endpoints are added for nutrition in v1.
+
+### Schema and Migration Impact
+
+- **Forward-only and pre-activation, but *not* purely additive** (historical
+  migrations remain untouched):
+  1. **`foods` catalog schema correction (not additive).** Add `catalog_key`
+     (nullable), `food_revision`, `catalog_version`, `serving_amount`,
+     `serving_unit`, `grams_per_serving` (nullable), and **re-base the macro
+     columns to *per canonical serving*** (a change of the documented column
+     basis, not a pure column add), plus the partial-unique
+     `(catalog_key, food_revision) WHERE catalog_key IS NOT NULL`. Postgres
+     migration + SQLite create/upgrade. Runs **before any catalog seed or write
+     path exists**, so it is **data-safe** (no user rows to migrate) — but it is
+     a schema *correction*, not an additive add-only change.
+  2. **`meal_items` serving model (not additive).** **Replace** the dormant
+     `quantity_grams` with a positive **`serving_count`** (a rename/replacement,
+     not an add), and add per-serving snapshot columns (`food_name_snapshot`,
+     `catalog_key`, `food_revision`, `serving_amount_snapshot`,
+     `serving_unit_snapshot`, `grams_per_serving_snapshot` nullable,
+     `calories_per_serving_snapshot`, `protein_per_serving_snapshot`,
+     `carbs_per_serving_snapshot`, `fat_per_serving_snapshot`,
+     `fiber_per_serving_snapshot`, `catalog_version`). `meal_items` has no
+     production rows yet, so the replacement is **data-safe** though not additive.
+  3. `foods` global-catalog **data seed** (both sides, idempotent,
+     insert-new-revisions-only) with normalized per-serving macros, serving
+     amount/unit, and `grams_per_serving` — not a user migration.
+  4. **One** new `AuditAction` value **`NUTRITION_CHANGE`** (this enum add *is*
+     additive).
+  5. **Two new sync error codes:** `DEPENDENCY_NOT_READY` (retryable
+     FK/missing-parent apply failure) and `CATALOG_REVISION_UNSUPPORTED`
+     (non-silent unknown/unsupported catalog revision) added to
+     `SYNC_ERROR_CODES`.
+  6. **Deferred (non-blocking):** `nutrition_logs.notes_enc bytea` + `enc_key_id`
+     when notes ship (a later slice; notes are out of v1 scope).
+- **Prisma/SQLite parity** maintained; the meal handler owns the
+  `order`↔`order_index` mapping (`.ai/16`). No change to `Food.id` type (already
+  UUID). No historical migration is touched.
+
+### Options Considered
+
+1. **Normalized-serving, snapshot-preserving, sync-only, bundled-catalog with
+   deterministic UUIDs (chosen).** Normalizes serving amount/unit and replaces
+   `quantity_grams` with `serving_count`; reuses existing
+   sync/conflict/encryption; strongest integrity; offline-safe; no second write
+   path; no feature toggle.
+2. **Append-only intake (medical-evaluation style).** Rejected: users must be
+   able to correct quantities and remove entries; append-only forces
+   awkward reversal rows and complicates daily totals. Version-guarded mutable
+   + soft-delete is safer *and* correctable, and still never silently
+   overwrites.
+3. **Live-catalog totals (no snapshot).** Rejected: catalog corrections rewrite
+   history — violates ADR-0011 integrity intent.
+4. **Runtime slug→UUID mapping / change `Food.id` to text.** Rejected: implicit
+   mapping is fragile and forbidden by the gate; changing the PK type is a
+   larger, non-additive schema change. Deterministic precomputed UUIDv5 gives a
+   shared identity with zero runtime mapping.
+5. **REST write endpoints for nutrition.** Rejected for v1: creates a second
+   write path divergent from the offline sync queue.
+6. **Encrypt `sync_conflicts` JSONB.** Rejected in favor of the existing
+   `redactForConflict` hook (simpler, no new key/format), which removes notes and
+   food-name snapshots but **may retain minimized structured intake fields** for
+   resolution — so it does **not** keep all sensitive values out of the snapshot
+   (those records stay Highly Sensitive and DB-at-rest-protected, not PHI-free).
+
+### Rationale
+
+The offline-first, deterministic, health-sensitive constraints are already
+solved by the existing machinery (sequential causal apply, version conflicts
+never auto-overwritten, `sensitive` queue encryption, `redactForConflict`,
+per-entity handlers). The only genuinely new decisions are **identity**
+(deterministic shared revision-scoped UUIDs), **historical integrity**
+(per-item server-derived snapshots), and **date semantics** — each chosen for
+correctness. The migrations are **forward-only, pre-activation, and data-safe,
+but not purely additive** (the catalog macro re-basing and the
+`quantity_grams → serving_count` replacement change existing columns). This
+maximizes reuse, minimizes new surface, and keeps the deterministic plan
+untouched.
+
+### Consequences
+
+Positive: strong historical integrity; correctable but never silently
+overwritten intake; offline-first; reuses proven sync/security; forward-only
+pre-activation migrations that touch no historical migration; no second write
+path; catalog identity shared, revision-scoped, and verifiable; old clients stay
+compatible via retained immutable revisions.
+Negative: the catalog macro re-basing and the `quantity_grams → serving_count`
+replacement are **schema corrections (not purely additive)**; the new
+`Food`/`meal_items` columns, seed, one enum value, and the `DEPENDENCY_NOT_READY`
++ `CATALOG_REVISION_UNSUPPORTED` error codes require owner-approved forward
+migrations/protocol changes; totals must be derived (slightly more query work);
+the server must load a food revision to derive each snapshot (extra read); notes
+are absent until a follow-up slice; a snapshot duplicates per-serving macros per
+item (small storage cost, deliberate).
+
+### Rollout and Rollback
+
+- Implement as small slices (below). Seeds are idempotent and re-runnable.
+  **No handler-registration feature toggle** is introduced — it would add an
+  untested code path and a second way to lose sync coverage.
+- **Rollback = redeploy the previous application version.** The forward
+  migrations are **pre-activation and data-safe** — the catalog schema correction
+  and the `quantity_grams → serving_count` replacement both run before any
+  catalog seed or write path exists, so no user data is at risk **even though the
+  changes are not purely additive**; no historical migration is reverted, and any
+  rows written under the new version are preserved. The prior deployment simply
+  does not register the nutrition handlers.
+
+### Acceptance Criteria (for a future Accepted state + implementation)
+
+- `Food` schema corrected (`catalog_key`, `food_revision`, `catalog_version`,
+  `serving_amount`/`serving_unit`/`grams_per_serving`, per-serving macro basis,
+  partial-unique `(catalog_key, food_revision)`); catalog serving semantics
+  normalized; the `piece(182)`-style conflation is gone; `serving_count` replaces
+  `quantity_grams`.
+- Revision-scoped deterministic UUIDs (`uuidv5(catalog_key + food_revision)`)
+  identical across bundle/SQLite/PostgreSQL; catalog seeds idempotent,
+  insert-new-revisions-only, and FK-safe offline.
+- **Catalog revisions immutable:** a food correction creates a new revision/UUID;
+  old revisions remain retained and FK-valid, and an older client's
+  `MealItem` still resolves its exact revision (old-client compatibility).
+- **Snapshots are server-derived from the matching immutable revision** (client
+  supplies only `food_id` + `serving_count` + revision identity); an
+  unknown/unsupported revision returns non-silent `CATALOG_REVISION_UNSUPPORTED`;
+  a test proves mobile and server derive **identical** snapshots from the same
+  revision.
+- Logging writes only nutrition entities; `NutritionPlan`/`MealPlan` unchanged
+  and never recomputed.
+- Push causal order holds; a not-yet-ready child yields **`DEPENDENCY_NOT_READY`**
+  and is **retried** (FAILED-with-backoff), never `removeRejected`ed; permanent
+  rejections stay non-retryable.
+- Deterministic per-applier pull order (`nutrition_logs` → `meals` →
+  `meal_items`), all parent pages before children; a missing parent fails the
+  pull **without advancing its cursor** and retries next sync.
+- Version conflicts recorded, never auto-merged; corrections (`serving_count`) /
+  removals (tombstone) work.
+- Totals derived (`serving_count × immutable per-serving snapshot`); catalog
+  corrections don't alter history.
+- Local queue and local conflict payloads encrypted; server `sync_conflicts`
+  minimized (no `notes`, no food-name snapshot) and DB-at-rest-protected — Highly
+  Sensitive, not claimed PHI-free; no PHI in logs/Sentry/audit; notes absent.
+- `date` is the immutable local `YYYY-MM-DD`; no cross-day drift on timezone
+  change.
+- Tests green: unit (repo/handler/date/revision-UUID/serving-normalization/
+  snapshot + **identical mobile-vs-server snapshot derivation**), integration
+  (sync round-trip + conflict + `DEPENDENCY_NOT_READY` retry + pull order +
+  `CATALOG_REVISION_UNSUPPORTED`), security (redaction/encryption/no-PHI-in-logs),
+  offline (log→sync→reconnect), E2E (log a catalog food → appears in day →
+  correct total → soft-delete).
+
+### Acceptance Resolution
+
+**Accepted 2026-07-10 by the project owner.** The consolidated recommendation
+above was **approved in full** — the single design that bundles the `foods`
+catalog schema correction + serving-unit normalization, `serving_count` +
+immutable server-derived per-serving snapshots with derived totals, deterministic
+revision-scoped catalog UUIDs (`uuidv5(catalog_key + food_revision)`) with
+immutable retained revisions for old-client safety, sync-only writes with
+`DEPENDENCY_NOT_READY` retryable push failures + non-silent
+`CATALOG_REVISION_UNSUPPORTED`, deterministic per-applier pull ordering,
+tombstone soft-delete, a single `NUTRITION_CHANGE` audit action, and
+forward-only pre-activation migrations that are data-safe but not purely
+additive.
+
+This acceptance authorizes Phase 15 Slice 4 to **proceed incrementally**,
+starting with foundation slice **4A**; it does **not** itself implement anything.
+All decisions and implementation constraints recorded in this ADR remain binding.
+
+**`notes` free-text stays explicitly deferred and NON-blocking.** Notes are
+**out of v1 scope**; their encryption/key-scope decision is a future,
+non-blocking gate that does **not** gate Slice 4A or any part of this acceptance.
+
+**Slice 4A implementation guards (binding).** Before and during Slice 4A the
+implementer MUST:
+
+1. **Verify no production data** exists in the dormant nutrition/catalog tables
+   (`foods`, `nutrition_logs`, `meals`, `meal_items`) **before** replacing or
+   re-basing any column; the "data-safe" claim depends on this being true at
+   migration time.
+2. Implement the conditional **`(catalog_key, food_revision)` uniqueness** rule
+   via **reviewed forward-migration SQL** (a partial unique index with the
+   `WHERE catalog_key IS NOT NULL` predicate), because **Prisma cannot represent
+   the partial-index predicate** directly.
+3. Surface **`CATALOG_REVISION_UNSUPPORTED`** as an **actionable sync failure**
+   (persistent, user-visible) and **never silently discard** the local
+   operation.
+4. **Preserve old immutable catalog revisions** — never update nutritional values
+   in place for an existing revision; corrections mint a new revision/UUID.
+5. **Never edit historical migrations** — all changes are new forward migrations.
+6. Keep the **deterministic `NutritionPlan` and `MealPlan` unchanged** — logging
+   never recomputes or mutates the generated plan.
+
+### Slice 4A Implementation Note (2026-07-10)
+
+Slice 4A (foundation only) is **implemented and code-validated**; the write
+path, sync handlers/appliers, API routes, and UI are intentionally **not** part
+of it. What landed:
+
+- Forward-only migrations with no-production-data **preflight guards** —
+  Postgres `20260710120000_add_nutrition_change_audit_action` +
+  `20260710120100_nutrition_catalog_serving_model_4a`, and SQLite
+  `002-nutrition-catalog-4a.ts` (registered via an optional `preflight` hook).
+  Historical migrations untouched.
+- `Food` schema correction (catalog_key, food_revision, catalog_version,
+  serving metadata, per-serving macro rebase) with the **partial** unique
+  `(catalog_key, food_revision) WHERE catalog_key IS NOT NULL` created in
+  reviewed raw SQL (Prisma cannot express the predicate); `meal_items`
+  `quantity_grams` → `serving_count` + immutable per-serving snapshot columns.
+- Deterministic revision-scoped identity `uuidv5(catalog_key:food_revision)`
+  under the fixed namespace `b9f4d2a1-6c7e-5a83-9d0b-1e2f3a4c5d60`; normalized
+  serving + server-derived snapshot helpers; byte-identical canonical seed
+  artifacts (mobile `.ts`, api `.json`) with mobile/server parity, golden-UUID,
+  uniqueness, and normalization tests. **No runtime UUID dependency on mobile**
+  (static ids shipped; derivation is a test-only pure-JS SHA-1). `FoodItem.id`
+  and meal-plan output are unchanged (the generator already tie-breaks on the
+  slug, which is now `catalog_key`).
+- Definitions only: `DEPENDENCY_NOT_READY`, `CATALOG_REVISION_UNSUPPORTED`
+  (`SYNC_ERROR_CODES`), `NUTRITION_CHANGE` (`AuditAction`).
+
+**Behavioral validation (2026-07-13) — DONE.** Migrations + seed were validated
+against fresh disposable databases (an isolated throwaway Postgres 16 container
+and ephemeral `node:sqlite`; the shared dev DB and unrelated containers were
+never touched): Postgres `migrate deploy` applied all six migrations with the
+expected enum/columns/dropped-`quantity_grams`/partial-unique index; `db:seed`
+produced exactly 300 rows, was idempotent, preserved a tampered revision
+(immutability), rejected a duplicate `(catalog_key, food_revision)`, and left
+null-`catalog_key` custom foods unconstrained; the Postgres preflight guard
+aborted atomically with `SLICE_4A_PREFLIGHT_ABORT`; and SQLite 001→002 verified
+schema/indexes/partial-unique/`user_version` plus the preflight abort path. The
+identity/schema/seed integrity risk (TECHDEBT-004 risk 1) is thereby **resolved**.
+
+**Still open (NOT part of Slice 4A):** the logging write path / meal_items
+sync handler that exercises the server-derived snapshot (Slice 4B, TECHDEBT-004
+risk 2), and per-food gram-per-serving sourcing for the 192 non-gram foods
+(deferred; `grams_per_serving` left null rather than fabricated — TECHDEBT-004
+risk 3). TECHDEBT-004 therefore remains **Open** for risks 2 and 3.
+
+### Related Documents
+
+- .ai/01_ARCHITECTURE.md, .ai/04_DATABASE.md, .ai/05_SECURITY.md, .ai/06_MOBILE.md
+- .ai/15_DATABASE_SCHEMA_DESIGN.md, .ai/16_SQLITE_SCHEMA_DESIGN.md
+- .ai/13_MIGRATION_ROADMAP.md (Phase 15 Slice 4)
+- ADR-0005, ADR-0006, ADR-0011, ADR-P001, ADR-P006, ADR-P011
+- api/prisma/schema.prisma (Food, NutritionLog, Meal, MealItem, MealType, SyncOperation, SyncConflict, AuditLog)
+- api/src/modules/sync/** (sync.service.ts sequential apply; sync.types.ts EntitySyncHandler + redactForConflict + SYNC_ERROR_CODES)
+- mobile/src/shared/infrastructure/sync/sync-worker.ts (pushLoop `removeRejected`; per-applier `pullLoop` cursors; encrypted CONFLICT payloads)
+- mobile/src/shared/infrastructure/sync/sync-queue.ts (`sensitive` `{__enc}` envelope)
+- mobile/src/shared/infrastructure/database/** (SyncedRow rows; `order_index`↔`order`)
+- mobile/src/features/nutrition/infrastructure/food-catalog.data.ts (Slice 1–3B bundled catalog; `piece(182)` serving-unit conflation)
+
+---
+
 # Rejected Decisions
 
 No rejected decisions documented yet.

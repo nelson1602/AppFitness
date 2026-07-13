@@ -72,4 +72,16 @@ export const SYNC_ERROR_CODES = {
   ENTITY_NOT_SUPPORTED: 'ENTITY_NOT_SUPPORTED',
   NOT_FOUND: 'NOT_FOUND',
   APPLY_FAILED: 'APPLY_FAILED',
+  // ADR-P012 (Slice 4A — definitions only; no handler consumes these yet).
+  // Retryable: a child op whose parent has not yet applied (FK/missing parent).
+  // The mobile worker must treat this as FAILED-with-backoff and RETRY it,
+  // never removeRejected() it.
+  DEPENDENCY_NOT_READY: 'DEPENDENCY_NOT_READY',
+  // Non-retryable but must be surfaced as an actionable failure: a meal_item
+  // references a catalog food revision the server does not recognise/support.
+  // The local operation must NOT be silently discarded.
+  CATALOG_REVISION_UNSUPPORTED: 'CATALOG_REVISION_UNSUPPORTED',
 } as const;
+
+export type SyncErrorCode =
+  (typeof SYNC_ERROR_CODES)[keyof typeof SYNC_ERROR_CODES];

@@ -186,13 +186,21 @@ export interface WorkoutSetRow extends SyncedRow {
 // ─── Nutrition ───────────────────────────────────────────────────────────────
 
 export interface FoodRow extends CatalogRow {
+  // ADR-P012 Slice 4A: catalog identity + normalized serving + per-serving
+  // macros. `catalog_key`/`catalog_version` are null for future custom foods.
+  catalog_key: string | null;
+  food_revision: number;
+  catalog_version: string | null;
   name: string;
   brand: string | null;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber: number | null;
+  serving_amount: number;
+  serving_unit: string;
+  grams_per_serving: number | null;
+  calories_per_serving: number;
+  protein_per_serving: number;
+  carbs_per_serving: number;
+  fat_per_serving: number;
+  fiber_per_serving: number | null;
   created_by: string | null;
   is_verified: SqlBool;
 }
@@ -211,7 +219,21 @@ export interface MealRow extends SyncedRow {
 export interface MealItemRow extends SyncedRow {
   meal_id: string;
   food_id: string;
-  quantity_grams: number;
+  // ADR-P012 Slice 4A: serving_count + immutable per-serving snapshot
+  // (server-derived at log time; only serving_count is mutable).
+  serving_count: number;
+  food_name_snapshot: string;
+  catalog_key_snapshot: string | null;
+  food_revision_snapshot: number | null;
+  catalog_version_snapshot: string | null;
+  serving_amount_snapshot: number;
+  serving_unit_snapshot: string;
+  grams_per_serving_snapshot: number | null;
+  calories_per_serving_snapshot: number;
+  protein_per_serving_snapshot: number;
+  carbs_per_serving_snapshot: number;
+  fat_per_serving_snapshot: number;
+  fiber_per_serving_snapshot: number | null;
 }
 
 // ─── Progress ────────────────────────────────────────────────────────────────

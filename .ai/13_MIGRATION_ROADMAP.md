@@ -1425,9 +1425,71 @@ replaces the deterministic engine.
   engine targets + catalog; goal-aware, restriction-aware (within the
   current model), anti-repetition, explainable, identical-inputs→identical
   -outputs. No AI/LLM.
-- **Slice 4 — Food logging** *(deferred, ADR-gated)*: activates the dormant
-  `nutrition_logs`/`meals`/`meal_items` tables — requires an ADR + schema/
-  sync/backend planning gate before implementation.
+- **Slice 4 — Food logging** *(ADR-gated — APPROVED TO PROCEED; not started)*:
+  activates the dormant `nutrition_logs`/`meals`/`meal_items` tables. **ADR-P012**
+  (Offline-First Food Logging, Nutrition Catalog Identity, and Conflict
+  Semantics) was **Accepted 2026-07-10 by the project owner** and is
+  **Status: Accepted** in `12_DECISIONS.md`. The prior "blocked pending owner
+  acceptance" gate is **cleared**; Slice 4 is now **approved to proceed
+  incrementally** but is **not started and not completed** — it advances only
+  through the sub-slices below, under ADR-P012's binding implementation
+  constraints.
+  - **Next authorized slice — Slice 4A (foundation only; planning/implementation
+    authorized, not yet started):** correct the `Food` schema (add
+    `catalog_key`/`food_revision`/`catalog_version` +
+    `serving_amount`/`serving_unit`/`grams_per_serving`, re-base macros to
+    per-serving, partial-unique `(catalog_key, food_revision)`) in both Prisma
+    and SQLite; normalize catalog serving semantics (removing the `piece(182)`
+    gram/piece conflation); establish **revision-scoped** deterministic catalog
+    UUIDs (`uuidv5(catalog_key + food_revision)` under a fixed namespace,
+    precomputed at build time) with **immutable, retained** revisions for
+    old-client safety; define the canonical seed artifacts (bundle current
+    revisions + server insert-new-revisions-only, identical ids); and prepare
+    the forward schema/migration plan (`quantity_grams → serving_count`,
+    server-derived per-serving snapshot columns, single `NUTRITION_CHANGE` audit
+    action, `DEPENDENCY_NOT_READY` + `CATALOG_REVISION_UNSUPPORTED` error codes).
+    These migrations are **forward-only, pre-activation, and data-safe but not
+    purely additive**. **Slice 4A includes no food-logging write path and no UI.**
+    The write path, sync handlers, and logging UI follow in later slices once 4A
+    lands.
+  - **Slice 4A implementation guards (from ADR-P012 Acceptance Resolution):**
+    (a) verify the dormant nutrition/catalog tables hold **no production data**
+    before replacing/re-basing columns; (b) implement the conditional
+    `(catalog_key, food_revision)` uniqueness via **reviewed forward-migration
+    SQL** (partial index `WHERE catalog_key IS NOT NULL`) since **Prisma cannot
+    express the predicate**; (c) surface **`CATALOG_REVISION_UNSUPPORTED`** as an
+    actionable sync failure and **never silently discard** the local op;
+    (d) **preserve old immutable catalog revisions**; (e) **never edit historical
+    migrations**; (f) keep the deterministic **`NutritionPlan`/`MealPlan`
+    unchanged**.
+  - **Slice 4A status (2026-07-13) — foundation IMPLEMENTED and BEHAVIORALLY
+    VALIDATED; COMPLETE.** Delivered: forward-only Postgres migrations
+    (`20260710120000_add_nutrition_change_audit_action`,
+    `20260710120100_nutrition_catalog_serving_model_4a`) + SQLite migration
+    `002-nutrition-catalog-4a.ts`, each with a no-production-data preflight
+    guard; `Food` schema correction + partial unique `(catalog_key,
+    food_revision)` via reviewed raw SQL; `meal_items` `serving_count` + immutable
+    per-serving snapshot columns; deterministic revision-scoped catalog UUIDs
+    (fixed namespace `uuidv5(catalog_key:food_revision)`); normalized-serving +
+    server-derived snapshot helpers; byte-identical canonical seed artifacts
+    (mobile `.ts`, api `.json`) + human-run `db:seed`; error/audit definitions
+    (`DEPENDENCY_NOT_READY`, `CATALOG_REVISION_UNSUPPORTED`, `NUTRITION_CHANGE`).
+    **No write path, sync handler/applier, API route, or UI** (guards (c)/others
+    are definitions/intent only until the write slice). Code-level validations
+    GREEN both packages (mobile `tsc`/`jest` 480 tests/`lint`/`format:check`; api
+    `db:validate`/`db:generate`/`typecheck`/`lint:check`/`jest` 49 tests/`build`).
+    **DB behavioral validation DONE (2026-07-13)** against fresh disposable
+    databases (isolated throwaway Postgres 16 container + ephemeral
+    `node:sqlite`; shared/dev DBs untouched): `migrate deploy` + `db:seed` (300
+    rows, idempotent, immutable, partial-unique enforced, null-`catalog_key`
+    free); Postgres preflight guard aborts atomically with
+    `SLICE_4A_PREFLIGHT_ABORT`; SQLite 001→002 schema/indexes/partial-unique/
+    `user_version` + preflight abort verified. **Still deferred (NOT part of
+    4A):** the logging write path / sync handler / UI (Slice 4B) and per-food
+    gram-per-serving sourcing for the 192 non-gram foods (TECHDEBT-004, risk 3).
+    No new runtime dependency (mobile derivation is test-only, pure-JS SHA-1;
+    `FoodItem.id`/meal-plan output unchanged — the plan still uses the
+    slug/catalog key, NOT the persisted UUID `Food.id`).
 - Dietary preferences/allergies deferred for v1 (no profile-field/schema
   change).
 
@@ -1475,7 +1537,18 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
         recompute. Verified green in mobile-e2e run 29108560964 (commit
         497f8c3, EAS e2e build 2800dd33): onboarding-loop opens the plan
         from /nutrition and asserts Day 1 + a meal render.
-- [ ] Slice 4: food logging (ADR/schema/sync gated).
+- [ ] Slice 4: food logging — **ADR-P012 Accepted 2026-07-10; proceeding
+      incrementally**. Slice **4A foundation COMPLETE — implemented and
+      behaviorally validated 2026-07-13** (schema correction, revision-scoped
+      immutable catalog UUIDs, normalized serving + server-derived snapshot
+      helpers, byte-identical canonical seeds, forward migrations with preflight
+      guards, error/audit definitions; no write path, no UI). Code-level
+      validations green both packages; **DB behavioral validation DONE** on fresh
+      disposable Postgres + ephemeral SQLite (`migrate deploy` + `db:seed`
+      idempotent/immutable/partial-unique, atomic preflight abort — see Slice 4A
+      status above). Remaining for Slice 4: logging write path, sync
+      handlers/appliers, and UI (Slice 4B), plus per-food non-gram sourcing
+      (TECHDEBT-004).
 
 ## Phase 16 — Workout Module  [commercial v1]
 
