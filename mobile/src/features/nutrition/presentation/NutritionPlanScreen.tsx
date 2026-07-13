@@ -150,6 +150,15 @@ export function NutritionPlanScreen() {
         </AppText>
       </View>
 
+      <AppButton
+        accessibilityLabel="Log the food you ate today"
+        testID="open-food-log"
+        variant="secondary"
+        onPress={() => router.push('/food-log')}
+      >
+        Log today’s food
+      </AppButton>
+
       {status === 'loading' || status === 'idle' ? (
         <AppText accessibilityLabel="Loading meal plan">Loading…</AppText>
       ) : error ? (

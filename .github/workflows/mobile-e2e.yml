@@ -22,7 +22,7 @@ env:
 
 jobs:
   e2e:
-    name: Registration + dashboard sync + onboarding loop (Maestro)
+    name: Registration + dashboard sync + onboarding loop + food logging (Maestro)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     services:
@@ -123,6 +123,11 @@ jobs:
             # device — no server seed step.
             maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard -e E2E_PASSWORD=password12345 .maestro/registration.yml
             maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_PASSWORD=password12345 .maestro/onboarding-loop.yml
+            # Phase 15 Slice 4D — device-side food logging on top of the merged
+            # Slice 4C write path. Reuses the onboard session: open the food log
+            # from the meal-plan entry point, log a catalog food, see totals
+            # update, confirm a sync attempt keeps the (pending) entry, delete it.
+            maestro test .maestro/food-log.yml
             # Phase 14 Slice 2 — medical management surfaces (restrictions +
             # evaluation history), same account/session, all on-device.
             maestro test .maestro/medical-management.yml
