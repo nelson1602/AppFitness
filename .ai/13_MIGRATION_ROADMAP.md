@@ -1579,10 +1579,23 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       as retryable (kept queued) and surfaces `CATALOG_REVISION_UNSUPPORTED` as an
       actionable, parked (non-retrying, non-discarded) failure; the `meal_items`
       pull applier is registered at the composition root. Mobile validations green
-      (`tsc`, `jest`, `lint`, `format:check`). Slice **4D (planned): logging UI +
-      E2E** — `FoodLogScreen`, add-food form, serving stepper, `/food-log` route,
-      food-log store, meal-plan entry point, and the food-logging E2E. Remaining
-      for Slice 4: the 4D UI/E2E, plus per-food non-gram gram sourcing
+      (`tsc`, `jest`, `lint`, `format:check`). Slice **4D (2026-07-13): logging
+      UI + E2E IMPLEMENTED** (mobile UI only — no backend/schema/REST/write-path
+      change). `FoodLogScreen` + `FoodLogAddForm` + fractional `ServingStepper`
+      render loading/empty/logged/add/edit/soft-delete + sync banner/chips;
+      `/food-log` route (session-guarded) is reachable from the 15-day meal-plan
+      screen; `useFoodLogStore` is Zustand orchestration only over the Slice 4C
+      repository/domain (no SQL/business logic in the UI; local-first). Pending
+      and retryable `DEPENDENCY_NOT_READY` show as "pending" (not data loss),
+      terminal `CATALOG_REVISION_UNSUPPORTED` shows an actionable "Action needed"
+      surface; the deterministic plan stays read-only; no PHI in logs. RNTL
+      component + store tests cover every state; a Maestro flow
+      (`.maestro/food-log.yml`, wired into `mobile-e2e.yml` after
+      `onboarding-loop.yml`) drives log → totals update → sync-attempt-keeps-
+      entry → soft-delete. Mobile unit validations green (`tsc`, `jest`, `lint`,
+      `format:check`); **E2E pending** the manual, `EXPO_TOKEN`-gated `mobile-e2e`
+      workflow (EAS APK) — it cannot run in a plain checkout. Remaining for
+      Slice 4: run the gated E2E, plus per-food non-gram gram sourcing
       (TECHDEBT-004 risk 3) stays OPEN — logging uses fractional servings, no
       fabricated conversions.
 

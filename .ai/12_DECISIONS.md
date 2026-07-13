@@ -2568,6 +2568,43 @@ food-logging E2E.
 TECHDEBT-004 remains **Open** for risk 3 only (per-food non-gram gram sourcing is
 still not implemented; Slice 4C logs via fractional servings, no fabrication).
 
+### Slice 4D Implementation Note (2026-07-13)
+
+The food-logging **UI** on top of the merged Slice 4C write path is implemented
+(`mobile/src/features/nutrition/`) — **UI + tests + E2E only; no backend,
+schema, REST, or write-path change**.
+
+- **Clean layering (ADR-0006, 06_MOBILE).** `FoodLogScreen` + `FoodLogAddForm`
+  + `ServingStepper` render state and dispatch actions only; `useFoodLogStore`
+  (Zustand) is orchestration-only and delegates ALL persistence to the Slice 4C
+  `food-log.repository` and ALL macro math to the `food-log` domain — no SQL or
+  business logic in components. Local-first: writes return immediately, the day
+  re-reads from SQLite, sync is best-effort and never blocks a write.
+- **Deterministic engine untouched (ADR-P006, ADR-0011).** The screen shows the
+  read-only iCoach nutrition targets for context; daily totals are DERIVED from
+  logged entries (`serving_count × immutable snapshot`) and the
+  `NutritionPlan`/`MealPlan` is never recomputed or mutated (asserted by a store
+  test). Serving entry is fractional only (ServingStepper 0.25 step) — no
+  fabricated grams (TECHDEBT-004 risk 3 stays open).
+- **Sync/error UX = the Slice 4C contract, surfaced (05_SECURITY).** Pending and
+  retryable `DEPENDENCY_NOT_READY` render as "pending" (never data loss);
+  terminal `CATALOG_REVISION_UNSUPPORTED` renders an actionable "Action needed"
+  banner/chip (never silently discarded); offline/error are distinct. No food
+  name/quantity/PHI/token is logged (store uses the sanitized logger).
+- **Navigation.** `/food-log` is session-guarded like the other nutrition
+  routes; the entry point is the 15-day meal-plan screen (`open-food-log`).
+- **Tests.** RNTL component + store specs cover every state (incl.
+  action-required + the no-recompute guarantee); a Maestro flow
+  (`.maestro/food-log.yml`, wired into `mobile-e2e.yml` after
+  `onboarding-loop.yml`) drives log → totals update → sync-attempt-keeps-entry
+  → soft-delete. E2E runs only via the manual, `EXPO_TOKEN`-gated `mobile-e2e`
+  workflow (EAS APK) — it cannot run in a plain dev checkout. The
+  `CATALOG_REVISION_UNSUPPORTED` E2E surface is deliberately left to the
+  component test (forcing it end-to-end needs a server-side bad revision — a
+  backend hack — out of scope).
+
+TECHDEBT-004 remains **Open** for risk 3 only; Slice 4D adds no gram sourcing.
+
 ### Related Documents
 
 - .ai/01_ARCHITECTURE.md, .ai/04_DATABASE.md, .ai/05_SECURITY.md, .ai/06_MOBILE.md

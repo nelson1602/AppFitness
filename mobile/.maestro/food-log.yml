@@ -1,0 +1,93 @@
+# Phase 15 Slice 4D — food logging (local-first write path, Slice 4C engine).
+#
+# Proves the device-side food-logging journey on top of the merged Slice 4C
+# write path: from a populated dashboard, open the food log via the meal-plan
+# entry point, log a catalog food, see the daily totals update, confirm the
+# entry is saved locally and shown as pending (a sync attempt never loses it —
+# the parent meal is not yet server-synced, so the meal_items op comes back
+# DEPENDENCY_NOT_READY and stays queued, never discarded), then soft-delete it.
+#
+# Prereqs (same seeded-local-API setup as the other flows): api/ running on the
+# host, a disposable database, and `adb reverse tcp:3001 tcp:3001`. Run AFTER
+# onboarding-loop.yml — it reuses that flow's persisted `onboard` session (which
+# already has a ready iCoach assessment + nutrition targets). No -e vars needed;
+# the session is restored on launch. Fake synthetic identity; disposable DB.
+#
+# NOTE: the CATALOG_REVISION_UNSUPPORTED "action needed" surface is intentionally
+# NOT driven here — it requires the server to reject a catalog revision, which
+# can only be forced with a backend hack. That state is covered by the
+# FoodLogScreen component test instead (see FoodLogScreen.spec.tsx).
+appId: com.appfitness.mobile
+---
+- launchApp
+
+# Session restore → populated dashboard for the onboard account.
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 45000
+
+# --- Navigate: dashboard → Nutrition → 15-day meal plan → Food log ---
+- scrollUntilVisible:
+    element: 'Nutrition'
+- tapOn: 'Nutrition'
+- extendedWaitUntil:
+    visible: 'Nutrition targets'
+    timeout: 15000
+- scrollUntilVisible:
+    element: '15-day meal plan'
+- tapOn: '15-day meal plan'
+- extendedWaitUntil:
+    visible: 'Day 1'
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: 'open-food-log'
+- tapOn:
+    id: 'open-food-log'
+- extendedWaitUntil:
+    visible: 'Food log'
+    timeout: 15000
+
+# Fresh day → empty state. Dev-only seed action must never appear in release.
+- assertVisible: 'Nothing logged yet'
+- assertNotVisible: 'Load sample data'
+
+# --- Log a catalog food (default meal = Breakfast) ---
+- tapOn:
+    id: 'food-search-input'
+- inputText: 'chicken'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Chicken breast, cooked'
+    timeout: 10000
+- tapOn: 'Chicken breast, cooked'
+# Exercise the serving stepper (fractional 0.25 step) before logging.
+- tapOn:
+    id: 'add-serving-inc'
+- tapOn:
+    id: 'food-log-add-submit'
+
+# --- Daily totals update from the logged entry ---
+- extendedWaitUntil:
+    visible: "Today's totals"
+    timeout: 10000
+- assertVisible: '.*kcal.*'
+- assertVisible: 'Chicken breast, cooked'
+# Local-first: saved on device and queued, surfaced as pending (not lost).
+- assertVisible: 'Pending sync'
+
+# --- A sync attempt keeps the entry (DEPENDENCY_NOT_READY is retryable,
+#     never data loss — the local parent meal is not yet server-synced). ---
+- tapOn:
+    id: 'food-log-sync-now'
+- extendedWaitUntil:
+    visible: 'Chicken breast, cooked'
+    timeout: 30000
+- assertVisible: 'Chicken breast, cooked'
+
+# --- Soft-delete the entry → back to the empty state ---
+- tapOn: 'Remove'
+- extendedWaitUntil:
+    visible: 'Nothing logged yet'
+    timeout: 10000
+- assertNotVisible: 'Chicken breast, cooked'

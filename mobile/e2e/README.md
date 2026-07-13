@@ -20,6 +20,7 @@ other variants never load the plugin and keep cleartext blocked.
 | `registration.yml` | yes | register → empty dashboard (data-gap state) |
 | `dashboard-sync.yml` | yes (after full seed) | session restore → Sync now → populated dashboard via real pull |
 | `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → nutrition targets + 15-day meal plan render → sync clears pending → sign out & back in |
+| `food-log.yml` | yes (no seed) | open the food log from the meal-plan entry point, log a catalog food, see daily totals update, confirm a sync attempt keeps the (pending) entry, soft-delete it (runs after onboarding-loop, same session) |
 | `medical-management.yml` | yes (no seed) | add/list/end a restriction; open evaluation history, see the recorded weight, two-step soft-delete it (runs after onboarding-loop, same session) |
 | `offline-entry.yml` | API unreachable | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync shows "Local changes pending" |
 | `reconnect-sync.yml` | yes | with the loopback restored: the offline-queued change syncs to "Local data ready" |
@@ -37,8 +38,13 @@ users:
   through the dashboard gap actions. The iCoach assessment reaches `ready`
   from purely local data (no server seed), then local changes sync until
   pending clears, and the account signs out and back in with data intact.
-  → `medical-management.yml` then adds/lists/ends a restriction and
-  soft-deletes the recorded evaluation from the history screen.
+  → `food-log.yml` then logs a catalog food from the meal-plan entry
+  point, confirms the daily totals update and the entry survives a sync
+  attempt as pending (the local parent meal is not yet server-synced, so
+  the `meal_items` op returns `DEPENDENCY_NOT_READY` and stays queued —
+  never data loss), then soft-deletes it. → `medical-management.yml` then
+  adds/lists/ends a restriction and soft-deletes the recorded evaluation
+  from the history screen.
 
 - **Journey C (offline data entry, Phase 14.5):** `registration.yml`
   (offline user, online) → `adb reverse --remove tcp:3001` (simulate
@@ -93,6 +99,7 @@ maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard \
   -e E2E_PASSWORD=password12345 .maestro/registration.yml
 maestro test -e E2E_EMAIL=onboard@appfitness.local \
   -e E2E_PASSWORD=password12345 .maestro/onboarding-loop.yml
+maestro test .maestro/food-log.yml
 ```
 
 Maestro install (no admin): unzip the GitHub release

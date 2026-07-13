@@ -988,6 +988,46 @@ the logging UI + E2E are deferred to Slice 4D.
 logs via fractional servings only and fabricates no gram conversions; the item
 remains Open.
 
+### Slice 4D implementation status (2026-07-13) — logging UI + E2E (UI only)
+
+The food-logging **UI** on top of the merged Slice 4C write path is implemented
+(`mobile/src/features/nutrition/`), **UI + tests + E2E only — no backend, schema,
+REST, or write-path change**.
+
+- **Screen/components:** `FoodLogScreen` renders loading / empty / logged /
+  add-food / edit-serving / soft-delete states plus a sync banner and per-item
+  chips; `FoodLogAddForm` (catalog search → pick → meal + serving) and a
+  fractional `ServingStepper` (0.25 step, no fabricated grams). Light/dark via
+  theme tokens, accessibility labels/roles, screen kept thin.
+- **Navigation:** `/food-log` route (session-guarded like the other nutrition
+  routes); reachable from the 15-day meal-plan screen (`open-food-log` entry).
+- **Store:** `useFoodLogStore` (Zustand orchestration only) delegates all
+  persistence to the Slice 4C repository and all macro math to the domain — no
+  SQL/business logic in the UI; local-first (writes return immediately, the day
+  re-reads from SQLite, sync is best-effort).
+- **Sync/error UX:** pending → "Changes pending" banner + per-item "Pending
+  sync" chip; a retryable `DEPENDENCY_NOT_READY` stays pending (never presented
+  as data loss); a terminal `CATALOG_REVISION_UNSUPPORTED` surfaces an
+  actionable "Action needed" banner/chip; offline/error states are distinct.
+  The deterministic `NutritionPlan`/`MealPlan` stays read-only (targets shown
+  for context, totals derived from logged entries). No PHI in logs.
+- **Tests:** RNTL component tests (`FoodLogScreen.spec.tsx`) + store tests
+  (`food-log.store.spec.ts`) cover every state incl. action-required and the
+  no-recompute guarantee. A Maestro flow (`.maestro/food-log.yml`, wired into
+  `mobile-e2e.yml` after `onboarding-loop.yml`) drives log → totals update →
+  sync-attempt-keeps-entry → soft-delete.
+
+**E2E pending validation (external gate):** `mobile-e2e.yml` is
+`workflow_dispatch`-only and requires an EAS-built release APK via the
+`EXPO_TOKEN` secret, so the Maestro flow **cannot run in this environment**. It
+must be exercised via the manual `mobile-e2e` workflow. The
+`CATALOG_REVISION_UNSUPPORTED` action-required surface is covered by the
+component test only (driving it in E2E would need a server-side unsupported
+revision — a backend hack — which is out of scope).
+
+**TECHDEBT-004 risk 3 remains OPEN** — Slice 4D adds no gram sourcing; the UI
+logs via fractional servings only.
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md (ADR-P012, ADR-0011)
