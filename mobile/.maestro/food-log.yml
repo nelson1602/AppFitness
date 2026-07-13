@@ -36,12 +36,12 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: '15-day meal plan'
 - tapOn: '15-day meal plan'
+# The "Log today's food" entry button sits at the top of the meal-plan screen
+# (above the day content), so wait for it directly rather than scrolling down.
 - extendedWaitUntil:
-    visible: 'Day 1'
-    timeout: 15000
-- scrollUntilVisible:
-    element:
+    visible:
       id: 'open-food-log'
+    timeout: 15000
 - tapOn:
     id: 'open-food-log'
 - extendedWaitUntil:
