@@ -43,3 +43,19 @@ export {
   selectMealPlan,
   type MealPlanSelection,
 } from './application/meal-plan.service';
+
+// ── Food logging write path (Slice 4C) ───────────────────────────────────────
+// UI exports (FoodLogScreen, useFoodLogStore) land in Slice 4D.
+export {
+  getCanonicalById,
+  getCanonicalByCatalogKey,
+  listCanonicalFoods,
+} from './application/catalog-lookup.service';
+export type {
+  ConsumedMacros,
+  DailyFoodLog,
+  LoggedMealItem,
+  LogFoodInput,
+  MealItemSyncState,
+} from './domain/food-log';
+export { registerNutritionSyncAppliers } from './infrastructure/sync-appliers';

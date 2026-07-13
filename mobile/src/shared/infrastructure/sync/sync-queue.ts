@@ -100,6 +100,24 @@ export async function markConflict(opId: string, nowIso: string): Promise<void> 
   ]);
 }
 
+/**
+ * Terminal, non-retryable rejection that needs the user (e.g.
+ * CATALOG_REVISION_UNSUPPORTED): parked in CONFLICT so it stops auto-retrying
+ * (peekReady ignores CONFLICT) yet stays visible with its error code — surfaced
+ * as actionable, never silently discarded (removeRejected). `code` is a stable
+ * error code, never PHI.
+ */
+export async function markActionRequired(
+  opId: string,
+  code: string,
+  nowIso: string,
+): Promise<void> {
+  await run(
+    `UPDATE sync_queue SET status = 'CONFLICT', last_error = ?, updated_at = ? WHERE op_id = ?`,
+    [code, nowIso, opId],
+  );
+}
+
 /** Permanent rejection (e.g. NOT_FOUND, APPLY_FAILED): remove and surface the error. */
 export async function removeRejected(opId: string): Promise<void> {
   await run(`DELETE FROM sync_queue WHERE op_id = ?`, [opId]);

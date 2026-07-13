@@ -1566,8 +1566,25 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       IMPLEMENTED** (backend only — server-derived snapshots, ownership scoping,
       `DEPENDENCY_NOT_READY`/`CATALOG_REVISION_UNSUPPORTED` semantics, conflict
       redaction, `NUTRITION_CHANGE` audit; api validations green, 66 tests;
-      resolves TECHDEBT-004 risk 2). Remaining for Slice 4: the mobile write
-      flow + logging UI, plus per-food non-gram sourcing (TECHDEBT-004 risk 3).
+      resolves TECHDEBT-004 risk 2). Slice **4C (2026-07-13): mobile food-logging
+      WRITE PATH ONLY IMPLEMENTED** (mobile only — **no logging UI/route**, no
+      backend/schema/REST change). Local-first `food-log.repository`
+      get-or-creates `nutrition_logs`/`meals` **locally only** (no server handler
+      for them) and seeds the referenced canonical `foods` FK row, then inserts
+      `meal_items` with its immutable per-serving snapshot and enqueues **one**
+      `meal_items` op per write in the same transaction; ops are `sensitive: true`
+      with minimal no-PHI payloads (`serving_count` is the editable quantity).
+      Persisted identity uses the Slice 4A UUIDv5 food id via a canonical lookup;
+      local snapshot is display-only. Sync worker now treats `DEPENDENCY_NOT_READY`
+      as retryable (kept queued) and surfaces `CATALOG_REVISION_UNSUPPORTED` as an
+      actionable, parked (non-retrying, non-discarded) failure; the `meal_items`
+      pull applier is registered at the composition root. Mobile validations green
+      (`tsc`, `jest`, `lint`, `format:check`). Slice **4D (planned): logging UI +
+      E2E** — `FoodLogScreen`, add-food form, serving stepper, `/food-log` route,
+      food-log store, meal-plan entry point, and the food-logging E2E. Remaining
+      for Slice 4: the 4D UI/E2E, plus per-food non-gram gram sourcing
+      (TECHDEBT-004 risk 3) stays OPEN — logging uses fractional servings, no
+      fabricated conversions.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

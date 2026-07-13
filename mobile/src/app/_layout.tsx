@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { registerMedicalSyncAppliers } from '@/features/medical';
+import { registerNutritionSyncAppliers } from '@/features/nutrition';
 import { registerProfileSyncAppliers } from '@/features/profile';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
 import { useTheme } from '@/shared/theme';
@@ -13,6 +14,7 @@ import { useTheme } from '@/shared/theme';
 initMonitoring();
 registerProfileSyncAppliers();
 registerMedicalSyncAppliers();
+registerNutritionSyncAppliers();
 
 export default function RootLayout() {
   const theme = useTheme();
