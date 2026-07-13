@@ -131,6 +131,9 @@ jobs:
 
       - name: No-op (api unchanged)
         if: needs.changes.outputs.api != 'true'
+        # Runs from the workspace root: checkout is skipped when api/ is
+        # untouched, so the default `api` working directory does not exist.
+        working-directory: ${{ github.workspace }}
         run: echo "No api/** changes in this event — skipping api quality checks."
 
   e2e:
@@ -181,6 +184,9 @@ jobs:
 
       - name: No-op (api unchanged)
         if: needs.changes.outputs.api != 'true'
+        # Runs from the workspace root: checkout is skipped when api/ is
+        # untouched, so the default `api` working directory does not exist.
+        working-directory: ${{ github.workspace }}
         run: echo "No api/** changes in this event — skipping api migrations/e2e."
 
   # Dependency audit (10_DEPLOYMENT.md CI pipeline). Deterministic gate:
