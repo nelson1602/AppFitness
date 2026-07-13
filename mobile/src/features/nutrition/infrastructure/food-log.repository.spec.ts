@@ -7,6 +7,7 @@ import {
   applyServerMealItem,
   listLoggedItems,
   logFood,
+  markMealItemConflict,
   removeMealItem,
   updateServingCount,
 } from './food-log.repository';
@@ -260,5 +261,100 @@ describe('food-log repository — reads', () => {
 
     const sql = sqlOf('INSERT OR REPLACE INTO meal_items')[0];
     expect(sql).toContain("'synced'");
+  });
+});
+
+describe('food-log repository — pull applier (server → local reconcile)', () => {
+  // Column order of the INSERT OR REPLACE params (see applyServerMealItem).
+  const P = {
+    version: 4,
+    deletedAt: 5,
+    deletedBy: 6,
+    servingCount: 9,
+    catalogKey: 11,
+    foodRevision: 12,
+    gramsPerServing: 16,
+    fiber: 21,
+  } as const;
+  const runParams = (): unknown[] =>
+    mockRun.mock.calls.find((c) =>
+      (c[0] as string).includes('INSERT OR REPLACE'),
+    )?.[1] as unknown[];
+
+  it('applies a soft-deleted tombstone, keeping the server deleted_at and full snapshot', async () => {
+    await applyServerMealItem(
+      {
+        id: 'srv-2',
+        user_id: USER,
+        created_at: NOW,
+        updated_at: NOW,
+        version: 6,
+        deleted_at: '2026-07-13T10:00:00.000Z',
+        deleted_by: USER,
+        meal_id: 'meal-1',
+        food_id: CHICKEN_ID,
+        serving_count: 2,
+        food_name_snapshot: 'Chicken breast, cooked',
+        catalog_key_snapshot: 'food.chicken_breast',
+        food_revision_snapshot: 1,
+        catalog_version_snapshot: 'food-catalog@1.0.0',
+        serving_amount_snapshot: 100,
+        serving_unit_snapshot: 'g',
+        grams_per_serving_snapshot: 100,
+        calories_per_serving_snapshot: 160,
+        protein_per_serving_snapshot: 31,
+        carbs_per_serving_snapshot: 0,
+        fat_per_serving_snapshot: 4,
+        fiber_per_serving_snapshot: 2,
+      },
+      true,
+    );
+
+    const params = runParams();
+    // deleted=true keeps the server-supplied tombstone timestamp.
+    expect(params[P.deletedAt]).toBe('2026-07-13T10:00:00.000Z');
+    expect(params[P.deletedBy]).toBe(USER);
+    // present optional snapshot fields flow through as their real values.
+    expect(params[P.catalogKey]).toBe('food.chicken_breast');
+    expect(params[P.foodRevision]).toBe(1);
+    expect(params[P.gramsPerServing]).toBe(100);
+    expect(params[P.fiber]).toBe(2);
+  });
+
+  it('falls back safely when a tombstone omits deleted_at and optional/numeric fields', async () => {
+    await applyServerMealItem(
+      {
+        id: 'srv-3',
+        user_id: USER,
+        created_at: NOW,
+        updated_at: NOW,
+        // version, serving_count, macro numerics, snapshots and deleted_at all absent
+        meal_id: 'meal-1',
+        food_id: CHICKEN_ID,
+      },
+      true,
+    );
+
+    const params = runParams();
+    // deleted=true but no server deleted_at → synthesized ISO timestamp.
+    expect(typeof params[P.deletedAt]).toBe('string');
+    expect(params[P.deletedAt]).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    // numeric fallbacks: version → 1, serving_count → 0.
+    expect(params[P.version]).toBe(1);
+    expect(params[P.servingCount]).toBe(0);
+    // missing optional fields coerce to null (never fabricated).
+    expect(params[P.catalogKey]).toBeNull();
+    expect(params[P.foodRevision]).toBeNull();
+    expect(params[P.gramsPerServing]).toBeNull();
+    expect(params[P.fiber]).toBeNull();
+  });
+
+  it('flags a local row as conflict (action required) without deleting it', async () => {
+    await markMealItemConflict('item-5', NOW);
+
+    const sql = sqlOf('UPDATE meal_items')[0];
+    expect(sql).toContain("sync_status = 'conflict'");
+    expect(sql).not.toContain('deleted_at');
+    expect(mockRun.mock.calls[0][1]).toEqual([NOW, 'item-5']);
   });
 });
