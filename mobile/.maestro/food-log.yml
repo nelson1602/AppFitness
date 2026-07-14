@@ -74,16 +74,24 @@ appId: com.appfitness.mobile
     id: 'food-log-add-submit'
 
 # --- Daily totals update from the logged entry ---
-- extendedWaitUntil:
-    visible: "Today's totals"
-    timeout: 10000
+# The totals card renders below the (now-collapsed) add-food form. Match the
+# heading with an apostrophe-agnostic regex: the app renders a curly apostrophe
+# ("Today’s totals", U+2019); a literal ' would not match Maestro's regex.
+# scrollUntilVisible both waits for the async local write and brings it on-screen.
+- scrollUntilVisible:
+    element: 'Today.s totals'
 - assertVisible: '.*kcal.*'
+- scrollUntilVisible:
+    element: 'Chicken breast, cooked'
 - assertVisible: 'Chicken breast, cooked'
 # Local-first: saved on device and queued, surfaced as pending (not lost).
 - assertVisible: 'Pending sync'
 
 # --- A sync attempt keeps the entry (DEPENDENCY_NOT_READY is retryable,
 #     never data loss — the local parent meal is not yet server-synced). ---
+- scrollUntilVisible:
+    element:
+      id: 'food-log-sync-now'
 - tapOn:
     id: 'food-log-sync-now'
 - extendedWaitUntil:
@@ -92,6 +100,8 @@ appId: com.appfitness.mobile
 - assertVisible: 'Chicken breast, cooked'
 
 # --- Soft-delete the entry → back to the empty state ---
+- scrollUntilVisible:
+    element: 'Remove'
 - tapOn: 'Remove'
 - extendedWaitUntil:
     visible: 'Nothing logged yet'
