@@ -34,7 +34,8 @@ export const FOOD_REVISION = 1;
  * ADR-P013 Batch 1 (2026-07-14) adds the 4 `slice` foods whose full-serving
  * gram weight was sourced from the pinned USDA-FDC SR Legacy archive — see
  * infrastructure/catalog/fdc-portion-manifest.json for per-food provenance.
- * The 158 volumetric foods (cup/tbsp/tsp/ml) and `food.sourdough_bread` (no
+ * ADR-P013 Batch 2 (2026-07-14) adds 13 `tbsp` foods from the same pinned
+ * archive. The remaining volumetric foods and `food.sourdough_bread` (no
  * reconciling FDC portion) stay at revision 1 with `gramsPerServing = null`,
  * gated behind later ADR-P013 batches.
  */
@@ -73,6 +74,20 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.rye_bread': 2,
   'food.ezekiel_bread': 2,
   'food.canadian_bacon': 2,
+  // ADR-P013 Batch 2 â€” tablespoon foods with FDC-sourced full-serving gram weights.
+  'food.hummus': 2,
+  'food.parmesan': 2,
+  'food.peanut_butter': 2,
+  'food.almond_butter': 2,
+  'food.sesame_seeds': 2,
+  'food.hemp_seeds': 2,
+  'food.tahini': 2,
+  'food.cashew_butter': 2,
+  'food.sunflower_butter': 2,
+  'food.flaxseed_oil': 2,
+  'food.salsa': 2,
+  'food.balsamic_vinegar': 2,
+  'food.soy_sauce_low_sodium': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */
@@ -140,8 +155,7 @@ export function normalizeServing(serving: ServingSize): NormalizedServing {
   return {
     servingAmount: serving.amount,
     servingUnit: serving.unit,
-    gramsPerServing:
-      serving.unit === 'g' ? serving.amount : (serving.grams ?? null),
+    gramsPerServing: serving.unit === 'g' ? serving.amount : (serving.grams ?? null),
   };
 }
 

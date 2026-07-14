@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batch 1 — USDA FoodData Central foodPortion gram-weight provenance for slice foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gramWeight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-2 - USDA FoodData Central foodPortion gram-weight provenance for slice and tablespoon foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -22,8 +22,18 @@
       "fdcId": 172688,
       "fdcDataType": "sr_legacy_food",
       "fdcDescription": "Bread, whole-wheat, commercially prepared",
-      "portion": { "portionRowId": 91108, "amount": 1, "modifier": "slice", "gramWeight": 32 },
-      "fdcPer100g": { "kcal": 252, "proteinG": 12.45, "carbsG": 42.71, "fatG": 3.5 },
+      "portion": {
+        "portionRowId": 91108,
+        "amount": 1,
+        "modifier": "slice",
+        "gramWeight": 32
+      },
+      "fdcPer100g": {
+        "kcal": 252,
+        "proteinG": 12.45,
+        "carbsG": 42.71,
+        "fatG": 3.5
+      },
       "derivedGramsPerServing": 32,
       "reviewNote": "Catalog serving is 1 slice; SR portion 'slice' = 32 g. Non-toasted commercial record chosen over toasted/recipe variants. Reconciliation: 80.6 kcal vs 73 authored (delta 7.6 <= 25)."
     },
@@ -32,8 +42,18 @@
       "fdcId": 172684,
       "fdcDataType": "sr_legacy_food",
       "fdcDescription": "Bread, rye",
-      "portion": { "portionRowId": 91098, "amount": 1, "modifier": "slice, regular", "gramWeight": 32 },
-      "fdcPer100g": { "kcal": 259, "proteinG": 8.5, "carbsG": 48.3, "fatG": 3.3 },
+      "portion": {
+        "portionRowId": 91098,
+        "amount": 1,
+        "modifier": "slice, regular",
+        "gramWeight": 32
+      },
+      "fdcPer100g": {
+        "kcal": 259,
+        "proteinG": 8.5,
+        "carbsG": 48.3,
+        "fatG": 3.3
+      },
       "derivedGramsPerServing": 32,
       "reviewNote": "Catalog serving is 1 slice; SR offers regular (32 g), thin (25 g), snack (7 g) — 'slice, regular' matches the authored 81 kcal (reconciles to 82.9 kcal, delta 1.9)."
     },
@@ -42,8 +62,18 @@
       "fdcId": 171850,
       "fdcDataType": "sr_legacy_food",
       "fdcDescription": "Bread, wheat, sprouted",
-      "portion": { "portionRowId": 89465, "amount": 1, "modifier": "slice 1 serving", "gramWeight": 38 },
-      "fdcPer100g": { "kcal": 188, "proteinG": 13.16, "carbsG": 33.88, "fatG": 0 },
+      "portion": {
+        "portionRowId": 89465,
+        "amount": 1,
+        "modifier": "slice 1 serving",
+        "gramWeight": 38
+      },
+      "fdcPer100g": {
+        "kcal": 188,
+        "proteinG": 13.16,
+        "carbsG": 33.88,
+        "fatG": 0
+      },
       "derivedGramsPerServing": 38,
       "reviewNote": "Catalog food is generic 'Sprouted grain bread' (not brand-specific); SR 'Bread, wheat, sprouted' is the closest analytical record. Reconciliation: 71.4 kcal vs 85 authored (delta 13.6 <= 25)."
     },
@@ -52,16 +82,382 @@
       "fdcId": 167869,
       "fdcDataType": "sr_legacy_food",
       "fdcDescription": "Canadian bacon, unprepared",
-      "portion": { "portionRowId": 82124, "amount": 2, "modifier": "slices (6 per 6-oz pkg.)", "gramWeight": 57 },
-      "fdcPer100g": { "kcal": 110, "proteinG": 20.31, "carbsG": 1.34, "fatG": 2.62 },
+      "portion": {
+        "portionRowId": 82124,
+        "amount": 2,
+        "modifier": "slices (6 per 6-oz pkg.)",
+        "gramWeight": 57
+      },
+      "fdcPer100g": {
+        "kcal": 110,
+        "proteinG": 20.31,
+        "carbsG": 1.34,
+        "fatG": 2.62
+      },
       "derivedGramsPerServing": 57,
       "reviewNote": "Catalog serving is 2 slices; SR portion is exactly 2 slices = 57 g. 'Unprepared' reconciles (62.7 kcal vs 75, P 11.58 vs 11); the alternate 168383 'cooked, pan-fried' (slice = 13.8 g) FAILS the gate (40.3 kcal vs 75) and was rejected."
+    },
+    {
+      "catalogKey": "food.hummus",
+      "fdcId": 174289,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Hummus, commercial",
+      "portion": {
+        "portionRowId": 94086,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 15
+      },
+      "fdcPer100g": {
+        "kcal": 237,
+        "proteinG": 7.78,
+        "carbsG": 15.0,
+        "fatG": 17.82
+      },
+      "derivedGramsPerServing": 30,
+      "reviewNote": "Catalog serving is 2 tbsp; SR commercial hummus portion is 1 tbsp = 15 g, so the full serving is 30 g. Commercial record chosen over home-prepared because it reconciles more closely with authored fat/calories. Reconciliation: 71.1 kcal vs 73 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.parmesan",
+      "fdcId": 171247,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Cheese, parmesan, grated",
+      "portion": {
+        "portionRowId": 88262,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 5
+      },
+      "fdcPer100g": {
+        "kcal": 420,
+        "proteinG": 28.42,
+        "carbsG": 13.91,
+        "fatG": 27.84
+      },
+      "derivedGramsPerServing": 5,
+      "reviewNote": "Catalog serving is 1 tbsp; SR grated parmesan portion is 1 tbsp = 5 g. Grated record matches the tablespoon serving better than shredded/low-sodium/topping variants. Reconciliation: 21.0 kcal vs 17 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.peanut_butter",
+      "fdcId": 172470,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Peanut butter, smooth style, without salt",
+      "portion": {
+        "portionRowId": 90673,
+        "amount": 2,
+        "modifier": "tbsp",
+        "gramWeight": 32
+      },
+      "fdcPer100g": {
+        "kcal": 598,
+        "proteinG": 22.21,
+        "carbsG": 22.31,
+        "fatG": 51.36
+      },
+      "derivedGramsPerServing": 32,
+      "reviewNote": "Catalog serving is 2 tbsp; SR smooth without-salt portion is exactly 2 tbsp = 32 g. Chosen for the catalog natural/unsalted intent; salted/chunky variants also pass but are less specific. Reconciliation: 191.4 kcal vs 200 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.almond_butter",
+      "fdcId": 168588,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Nuts, almond butter, plain, without salt added",
+      "portion": {
+        "portionRowId": 83375,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 16
+      },
+      "fdcPer100g": {
+        "kcal": 614,
+        "proteinG": 20.96,
+        "carbsG": 18.82,
+        "fatG": 55.5
+      },
+      "derivedGramsPerServing": 32,
+      "reviewNote": "Catalog serving is 2 tbsp; SR plain without-salt almond butter portion is 1 tbsp = 16 g, so the full serving is 32 g. Reconciliation: 196.5 kcal vs 214 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.sesame_seeds",
+      "fdcId": 170150,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Seeds, sesame seeds, whole, dried",
+      "portion": {
+        "portionRowId": 86136,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 9
+      },
+      "fdcPer100g": {
+        "kcal": 573,
+        "proteinG": 17.73,
+        "carbsG": 23.45,
+        "fatG": 49.67
+      },
+      "derivedGramsPerServing": 18,
+      "reviewNote": "Catalog serving is 2 tbsp; SR whole dried sesame seed portion is 1 tbsp = 9 g, so the full serving is 18 g. Whole-seed record matches the catalog name better than decorticated kernels. Reconciliation: 103.1 kcal vs 109 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.hemp_seeds",
+      "fdcId": 170148,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Seeds, hemp seed, hulled",
+      "portion": {
+        "portionRowId": 86132,
+        "amount": 3,
+        "modifier": "tbsp",
+        "gramWeight": 30
+      },
+      "fdcPer100g": {
+        "kcal": 553,
+        "proteinG": 31.56,
+        "carbsG": 8.67,
+        "fatG": 48.75
+      },
+      "derivedGramsPerServing": 20,
+      "reviewNote": "Catalog serving is 2 tbsp; SR hulled hemp seed portion is 3 tbsp = 30 g, so the full serving is 20 g. Reconciliation: 110.6 kcal vs 113 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.tahini",
+      "fdcId": 170189,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Seeds, sesame butter, tahini, from roasted and toasted kernels (most common type)",
+      "portion": {
+        "portionRowId": 86209,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 15
+      },
+      "fdcPer100g": {
+        "kcal": 595,
+        "proteinG": 17.0,
+        "carbsG": 21.19,
+        "fatG": 53.76
+      },
+      "derivedGramsPerServing": 30,
+      "reviewNote": "Catalog serving is 2 tbsp; SR most-common roasted/toasted tahini portion is 1 tbsp = 15 g, so the full serving is 30 g. Reconciliation: 178.5 kcal vs 188 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.cashew_butter",
+      "fdcId": 170163,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Nuts, cashew butter, plain, without salt added",
+      "portion": {
+        "portionRowId": 86156,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 16
+      },
+      "fdcPer100g": {
+        "kcal": 587,
+        "proteinG": 17.56,
+        "carbsG": 27.57,
+        "fatG": 49.41
+      },
+      "derivedGramsPerServing": 32,
+      "reviewNote": "Catalog serving is 2 tbsp; SR plain without-salt cashew butter portion is 1 tbsp = 16 g, so the full serving is 32 g. Reconciliation: 187.8 kcal vs 200 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.sunflower_butter",
+      "fdcId": 170155,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Seeds, sunflower seed butter, without salt",
+      "portion": {
+        "portionRowId": 86143,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 16
+      },
+      "fdcPer100g": {
+        "kcal": 617,
+        "proteinG": 17.28,
+        "carbsG": 23.32,
+        "fatG": 55.2
+      },
+      "derivedGramsPerServing": 32,
+      "reviewNote": "Catalog serving is 2 tbsp; SR sunflower seed butter without salt portion is 1 tbsp = 16 g, so the full serving is 32 g. Reconciliation: 197.4 kcal vs 196 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.flaxseed_oil",
+      "fdcId": 167702,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Oil, flaxseed, cold pressed",
+      "portion": {
+        "portionRowId": 81791,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 13.6
+      },
+      "fdcPer100g": {
+        "kcal": 884,
+        "proteinG": 0.11,
+        "carbsG": 0.0,
+        "fatG": 99.98
+      },
+      "derivedGramsPerServing": 13.6,
+      "reviewNote": "Catalog serving is 1 tbsp; SR cold-pressed flaxseed oil portion is 1 tbsp = 13.6 g. Oil-like macro profile reconciles with the authored 14 g fat serving. Reconciliation: 120.2 kcal vs 126 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.salsa",
+      "fdcId": 174524,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Sauce, salsa, ready-to-serve",
+      "portion": {
+        "portionRowId": 94513,
+        "amount": 2,
+        "modifier": "tbsp",
+        "gramWeight": 36
+      },
+      "fdcPer100g": {
+        "kcal": 29,
+        "proteinG": 1.52,
+        "carbsG": 6.64,
+        "fatG": 0.17
+      },
+      "derivedGramsPerServing": 36,
+      "reviewNote": "Catalog serving is 2 tbsp; SR ready-to-serve salsa portion is exactly 2 tbsp = 36 g. Generic red salsa chosen over salsa verde and queso dip variants. Reconciliation: 10.4 kcal vs 8 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.balsamic_vinegar",
+      "fdcId": 172241,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Vinegar, balsamic",
+      "portion": {
+        "portionRowId": 90145,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 16
+      },
+      "fdcPer100g": {
+        "kcal": 88,
+        "proteinG": 0.49,
+        "carbsG": 17.03,
+        "fatG": 0.0
+      },
+      "derivedGramsPerServing": 16,
+      "reviewNote": "Catalog serving is 1 tbsp; SR balsamic vinegar portion is 1 tbsp = 16 g. Reconciliation: 14.1 kcal vs 12 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.soy_sauce_low_sodium",
+      "fdcId": 172473,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Soy sauce made from soy and wheat (shoyu), low sodium",
+      "portion": {
+        "portionRowId": 90677,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 14.2
+      },
+      "fdcPer100g": {
+        "kcal": 57,
+        "proteinG": 9.05,
+        "carbsG": 5.59,
+        "fatG": 0.3
+      },
+      "derivedGramsPerServing": 14.2,
+      "reviewNote": "Catalog serving is 1 tbsp; SR low-sodium shoyu soy sauce portion is 1 tbsp = 14.2 g, matching the catalog low-sodium label. Reconciliation: 8.1 kcal vs 8 authored (within tolerance)."
     }
   ],
   "unmatched": [
     {
       "catalogKey": "food.sourdough_bread",
       "reason": "SR Legacy has no standalone sourdough record. The only sourdough-inclusive candidate 172675 'Bread, french or vienna (includes sourdough)' carries a 139 g 'slice' portion, which fails macro reconciliation against the authored 97 kcal slice (scaled estimate 378.1 kcal, delta 281 >> 25). Left null and gated per ADR-P013 (never force-fit); revisit in a later batch with a different pinned dataset (e.g. FNDDS) if desired."
+    },
+    {
+      "catalogKey": "food.cream_cheese_light",
+      "reason": "SR Legacy has no light cream cheese tablespoon portion. Available cream-cheese-flavor frosting portions are preparation mismatches and fail macro reconciliation; left null/gated."
+    },
+    {
+      "catalogKey": "food.chia_seeds",
+      "reason": "SR Legacy has a chia seed record but no tbsp/tablespoon portion row in the pinned archive; left null/gated rather than converting from ounces."
+    },
+    {
+      "catalogKey": "food.flax_seeds",
+      "reason": "Catalog food is ground flaxseed. SR's ground 1 tbsp portion (7 g) fails macro reconciliation against the authored serving, while the passing whole-flaxseed portion is a preparation mismatch; left null/gated."
+    },
+    {
+      "catalogKey": "food.poppy_seeds",
+      "reason": "SR poppy seed 1 tbsp portion fails macro reconciliation against the authored serving; left null/gated."
+    },
+    {
+      "catalogKey": "food.olive_oil",
+      "reason": "Pinned SR Legacy archive has no standalone olive-oil tablespoon portion row (only an olive-oil mayonnaise product); left null/gated."
+    },
+    {
+      "catalogKey": "food.avocado_oil",
+      "reason": "Pinned SR Legacy archive has no avocado-oil tablespoon portion row; left null/gated."
+    },
+    {
+      "catalogKey": "food.canola_oil",
+      "reason": "Pinned SR Legacy archive has no standalone canola-oil tablespoon portion row; left null/gated."
+    },
+    {
+      "catalogKey": "food.walnut_oil",
+      "reason": "Pinned SR Legacy archive has no walnut-oil tablespoon portion row; left null/gated."
+    },
+    {
+      "catalogKey": "food.sesame_oil",
+      "reason": "Pinned SR Legacy archive has no sesame-oil tablespoon portion row; left null/gated."
+    },
+    {
+      "catalogKey": "food.coconut_oil",
+      "reason": "Pinned SR Legacy archive has no coconut-oil tablespoon portion row; left null/gated."
+    },
+    {
+      "catalogKey": "food.butter",
+      "reason": "Catalog serving is tsp(5), but the authored macros align with roughly one teaspoon/5 g, not five teaspoons. Left null/gated pending a separate serving-semantics correction decision; not force-fit."
+    },
+    {
+      "catalogKey": "food.ghee",
+      "reason": "SR Legacy has a ghee record but no tsp/teaspoon portion row; catalog serving also appears semantically ambiguous (tsp(5)); left null/gated."
+    },
+    {
+      "catalogKey": "food.mct_oil",
+      "reason": "Pinned SR Legacy archive has no MCT-oil tablespoon portion row; left null/gated."
+    },
+    {
+      "catalogKey": "food.mustard",
+      "reason": "Catalog serving is tsp(5), while SR yellow mustard provides 1 tsp = 5 g. The authored amount likely encodes grams, not five teaspoons, so this requires a serving-semantics correction decision; left null/gated."
+    },
+    {
+      "catalogKey": "food.hot_sauce",
+      "reason": "Catalog serving is tsp(5), while compatible SR hot-sauce/Tabasco portions are 1 tsp rows. The authored amount likely encodes grams, not five teaspoons; left null/gated."
+    },
+    {
+      "catalogKey": "food.pesto",
+      "reason": "Pinned SR Legacy pesto records provide 0.25 cup portions, not tbsp portions; left null/gated rather than deriving a tablespoon conversion from cup volume."
+    },
+    {
+      "catalogKey": "food.nutritional_yeast",
+      "reason": "Pinned SR Legacy has no nutritional-yeast tablespoon portion. Baker's yeast is a source/preparation mismatch and fails macro reconciliation; left null/gated."
+    },
+    {
+      "catalogKey": "food.tomato_paste",
+      "reason": "SR no-salt tomato paste has a tbsp portion, but the authored catalog serving is 2 tbsp and macro reconciliation fails against the current rounded macros; left null/gated pending review."
+    },
+    {
+      "catalogKey": "food.apple_cider_vinegar",
+      "reason": "SR cider vinegar has a tbsp portion, but the authored catalog macros are all zero while SR carries trace calories/carbs; left null/gated pending a low-impact zero-macro policy decision."
+    },
+    {
+      "catalogKey": "food.lemon_juice",
+      "reason": "Catalog food is fresh lemon juice. Pinned SR Legacy tablespoon candidates are bottled/from-concentrate records; left null/gated rather than using a preparation mismatch."
+    },
+    {
+      "catalogKey": "food.garlic",
+      "reason": "Catalog serving is tsp(3), but SR raw garlic gives 1 tsp = 2.8 g and the authored macros align with a small gram serving, not three teaspoons. Left null/gated pending serving-semantics correction."
+    },
+    {
+      "catalogKey": "food.ginger",
+      "reason": "Catalog serving is tsp(2), but SR raw ginger gives 1 tsp = 2 g and the authored macros align with a small gram serving, not two teaspoons. Left null/gated pending serving-semantics correction."
+    },
+    {
+      "catalogKey": "food.greek_yogurt_dressing",
+      "reason": "Pinned SR Legacy has no matching Greek-yogurt herb dressing tablespoon portion; left null/gated."
+    },
+    {
+      "catalogKey": "food.tzatziki",
+      "reason": "Pinned SR Legacy has no tzatziki tablespoon portion; left null/gated."
     }
   ]
 }

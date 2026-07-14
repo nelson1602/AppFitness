@@ -68,24 +68,33 @@ describe('food catalog integrity', () => {
     }
   });
 
-  it('records an authored gram weight only on known count-unit servings (no fabrication)', () => {
+  it('records an authored gram weight only on known non-gram servings (no fabrication)', () => {
     // TECHDEBT-004 risk 3: the only non-gram foods carrying a known gram
     // weight are the 29 part-1 normalized `piece` foods (amount: 1, weight was
-    // the pre-4A authored amount) and the 4 ADR-P013 Batch-1 `slice` foods
-    // (authored slice count kept; full-serving weight from the pinned FDC
-    // manifest — see catalog/fdc-portion-manifest.spec.ts). Volumetric foods
-    // must NOT carry a fabricated gram weight.
+    // the pre-4A authored amount), the 4 ADR-P013 Batch-1 `slice` foods, and
+    // the 13 ADR-P013 Batch-2 `tbsp` foods. FDC-sourced full-serving weights
+    // are gated by catalog/fdc-portion-manifest.spec.ts. Remaining volumetric
+    // foods must NOT carry a fabricated gram weight.
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(33);
+    expect(withGrams).toHaveLength(46);
     for (const f of withGrams) {
-      expect(['piece', 'slice']).toContain(f.servingSize.unit);
+      expect(['piece', 'slice', 'tbsp']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
       else expect(f.servingSize.amount).toBeGreaterThan(0);
       expect(f.servingSize.grams).toBeGreaterThan(0);
     }
-    expect(withGrams.filter((f) => f.servingSize.unit === 'slice').map((f) => f.id).sort()).toEqual(
-      ['food.canadian_bacon', 'food.ezekiel_bread', 'food.rye_bread', 'food.whole_wheat_bread'],
-    );
+    expect(
+      withGrams
+        .filter((f) => f.servingSize.unit === 'slice')
+        .map((f) => f.id)
+        .sort(),
+    ).toEqual([
+      'food.canadian_bacon',
+      'food.ezekiel_bread',
+      'food.rye_bread',
+      'food.whole_wheat_bread',
+    ]);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(13);
   });
 
   it('has finite, non-negative calories and macros; fiber within carbs', () => {

@@ -71,6 +71,12 @@ const slice = (amount: number): ServingSize => ({ amount, unit: 'slice' });
 // canadian_bacon's 2-slice serving = 57 g total). Revision bumps live in
 // FOOD_REVISIONS (domain/catalog-identity.ts).
 const sliceFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'slice', grams });
+// A tablespoon serving whose full-serving gram weight is sourced from the pinned
+// USDA-FDC archive (ADR-P013 Batch 2; see catalog/fdc-portion-manifest.json for
+// per-food fdcId/portion provenance). `grams` covers the WHOLE authored serving
+// (e.g. hummus' 2-tbsp serving = 30 g total). Revision bumps live in
+// FOOD_REVISIONS (domain/catalog-identity.ts).
+const tbspFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'tbsp', grams });
 
 export const FOOD_CATALOG: readonly FoodItem[] = [
   // ── protein_animal (42) ──────────────────────────────────────────────
@@ -742,7 +748,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 9,
     tags: ['high_protein', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.hummus', 'Hummus', 'legume', tbsp(2), 2, 5, 5, {
+  food('food.hummus', 'Hummus', 'legume', tbspFdc(2, 30), 2, 5, 5, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'healthy_fat', 'quick_prep'],
   }),
@@ -1397,7 +1403,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['high_protein', 'vegetarian', 'gluten_free'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.parmesan', 'Parmesan cheese', 'dairy', tbsp(1), 2, 0, 1, {
+  food('food.parmesan', 'Parmesan cheese', 'dairy', tbspFdc(1, 5), 2, 0, 1, {
     tags: ['vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive', 'high_sodium_sensitive'],
   }),
@@ -1535,7 +1541,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     ],
     avoid: ['nut_allergy'],
   }),
-  food('food.peanut_butter', 'Peanut butter, natural', 'nuts_seeds', tbsp(2), 7, 7, 16, {
+  food('food.peanut_butter', 'Peanut butter, natural', 'nuts_seeds', tbspFdc(2, 32), 7, 7, 16, {
     fiber: 2,
     tags: [
       'high_protein',
@@ -1549,7 +1555,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     ],
     avoid: ['nut_allergy'],
   }),
-  food('food.almond_butter', 'Almond butter, natural', 'nuts_seeds', tbsp(2), 7, 6, 18, {
+  food('food.almond_butter', 'Almond butter, natural', 'nuts_seeds', tbspFdc(2, 32), 7, 6, 18, {
     fiber: 3,
     tags: [
       'healthy_fat',
@@ -1594,11 +1600,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
   }),
-  food('food.sesame_seeds', 'Sesame seeds', 'nuts_seeds', tbsp(2), 3, 4, 9, {
+  food('food.sesame_seeds', 'Sesame seeds', 'nuts_seeds', tbspFdc(2, 18), 3, 4, 9, {
     fiber: 2,
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
-  food('food.hemp_seeds', 'Hemp seeds', 'nuts_seeds', tbsp(2), 6, 2, 9, {
+  food('food.hemp_seeds', 'Hemp seeds', 'nuts_seeds', tbspFdc(2, 20), 6, 2, 9, {
     fiber: 1,
     tags: [
       'high_protein',
@@ -1610,11 +1616,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'heart_healthy',
     ],
   }),
-  food('food.tahini', 'Tahini', 'nuts_seeds', tbsp(2), 5, 6, 16, {
+  food('food.tahini', 'Tahini', 'nuts_seeds', tbspFdc(2, 30), 5, 6, 16, {
     fiber: 3,
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
-  food('food.cashew_butter', 'Cashew butter', 'nuts_seeds', tbsp(2), 5, 9, 16, {
+  food('food.cashew_butter', 'Cashew butter', 'nuts_seeds', tbspFdc(2, 32), 5, 9, 16, {
     fiber: 1,
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
     avoid: ['nut_allergy'],
@@ -1637,7 +1643,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     ],
     avoid: ['nut_allergy'],
   }),
-  food('food.sunflower_butter', 'Sunflower seed butter', 'nuts_seeds', tbsp(2), 6, 7, 16, {
+  food('food.sunflower_butter', 'Sunflower seed butter', 'nuts_seeds', tbspFdc(2, 32), 6, 7, 16, {
     fiber: 3,
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
   }),
@@ -1676,7 +1682,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   food('food.canola_oil', 'Canola oil', 'fat_oil', tbsp(1), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
   }),
-  food('food.flaxseed_oil', 'Flaxseed oil', 'fat_oil', tbsp(1), 0, 0, 14, {
+  food('food.flaxseed_oil', 'Flaxseed oil', 'fat_oil', tbspFdc(1, 13.6), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'heart_healthy'],
   }),
   food('food.walnut_oil', 'Walnut oil', 'fat_oil', tbsp(1), 0, 0, 14, {
@@ -1798,22 +1804,31 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   food('food.mustard', 'Mustard, yellow', 'condiment', tsp(5), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'quick_prep'],
   }),
-  food('food.salsa', 'Salsa, tomato', 'condiment', tbsp(2), 0, 2, 0, {
+  food('food.salsa', 'Salsa, tomato', 'condiment', tbspFdc(2, 36), 0, 2, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'quick_prep'],
   }),
-  food('food.balsamic_vinegar', 'Balsamic vinegar', 'condiment', tbsp(1), 0, 3, 0, {
+  food('food.balsamic_vinegar', 'Balsamic vinegar', 'condiment', tbspFdc(1, 16), 0, 3, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
   food('food.hot_sauce', 'Hot sauce', 'condiment', tsp(5), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'quick_prep'],
     avoid: ['high_sodium_sensitive'],
   }),
-  food('food.soy_sauce_low_sodium', 'Soy sauce, low-sodium', 'condiment', tbsp(1), 1, 1, 0, {
-    tags: ['vegan', 'vegetarian', 'dairy_free', 'quick_prep'],
-    avoid: ['gluten_sensitive', 'high_sodium_sensitive'],
-    caution: 'Still high in sodium.',
-  }),
+  food(
+    'food.soy_sauce_low_sodium',
+    'Soy sauce, low-sodium',
+    'condiment',
+    tbspFdc(1, 14.2),
+    1,
+    1,
+    0,
+    {
+      tags: ['vegan', 'vegetarian', 'dairy_free', 'quick_prep'],
+      avoid: ['gluten_sensitive', 'high_sodium_sensitive'],
+      caution: 'Still high in sodium.',
+    },
+  ),
   food('food.pesto', 'Basil pesto', 'condiment', tbsp(1), 1, 1, 8, {
     tags: ['vegetarian', 'gluten_free', 'healthy_fat'],
     avoid: ['nut_allergy', 'lactose_sensitive'],

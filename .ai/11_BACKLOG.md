@@ -861,8 +861,9 @@ All three are captured as decisions in **ADR-P012 (Accepted 2026-07-10)** and ar
 identity/schema/seed), 2 (server-derived macro snapshot), and risk 3 **part 1**
 (29 count-unit `piece` foods normalized) are **resolved**; the item stays
 **Open** only for risk 3 **part 2** (data-source gate ADR-P013, Accepted
-2026-07-14; **Batch 1 implemented 2026-07-14** — 4 slice foods FDC-sourced,
-`sourdough_bread` unmatched; 159 foods still gated: 158 volumetric +
+2026-07-14; **Batch 1 implemented 2026-07-14** - 4 slice foods FDC-sourced;
+**Batch 2 implemented 2026-07-14** - 13 tablespoon foods FDC-sourced;
+146 foods still gated: 98 `cup` + 18 remaining `tbsp` + 6 `tsp` + 23 `ml` +
 `sourdough_bread`). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
@@ -932,11 +933,13 @@ never touched):
      one the catalog already carried.
    - **Part 2 — volumetric + `slice` foods: OPEN, in progress under ADR-P013
      (Accepted 2026-07-14).** **Batch 1 (2026-07-14)** sourced full-serving
-     gram weights for 4 of the 5 `slice` foods from the pinned USDA-FDC SR
-     Legacy archive (see ADR-P013 Batch 1 Implementation Note + the checked-in
-     `fdc-portion-manifest.json`); `sourdough_bread` had no reconciling FDC
-     portion and stays null/gated. **159 foods remain gated** (158 volumetric
-     `cup`/`tbsp`/`tsp`/`ml` + `sourdough_bread`); gram entry stays unavailable
+     gram weights for 4 of the 5 `slice` foods; **Batch 2 (2026-07-14)** sourced
+     13 `tbsp` foods from the same pinned USDA-FDC SR Legacy archive (see
+     ADR-P013 Batch 1/2 Implementation Notes + the checked-in
+     `fdc-portion-manifest.json`); `sourdough_bread` and non-reconciling or
+     ambiguous volumetric foods stay null/gated. **146 foods remain gated**
+     (98 `cup` + 18 remaining `tbsp` + 6 `tsp` + 23 `ml` + `sourdough_bread`);
+     gram entry stays unavailable
      for those; the log path uses fractional servings meanwhile.
 
 The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
@@ -1079,9 +1082,10 @@ UI change.**
 
 **Risk 3 part 2 stays OPEN, in progress** — the USDA-FDC `foodPortion`
 data-source strategy is **ADR-P013 (Accepted 2026-07-14)**. **Batch 1
-(2026-07-14, `food-catalog@1.2.0`)** sourced 4 slice foods from the pinned SR
-Legacy archive with a checked-in provenance manifest + gate spec;
-`sourdough_bread` unmatched (no reconciling portion) and 158 volumetric foods
+(2026-07-14, `food-catalog@1.2.0`)** sourced 4 slice foods; **Batch 2
+(2026-07-14, `food-catalog@1.3.0`)** sourced 13 tablespoon foods from the same
+pinned SR Legacy archive with a checked-in provenance manifest + gate spec.
+`sourdough_bread` unmatched (no reconciling portion) and 145 volumetric foods
 remain gated for later batches (nothing fabricated).
 
 ### Related Documents

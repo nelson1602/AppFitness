@@ -104,8 +104,12 @@ export interface FoodItem {
  * foods from the pinned USDA-FDC SR Legacy archive (see
  * infrastructure/catalog/fdc-portion-manifest.json); new immutable revisions
  * (2). `sourdough_bread` stays null/gated (no reconciling FDC portion).
+ * 1.3.0 (ADR-P013 Batch 2): sourced full-serving gram weights for 13
+ * tablespoon foods from the same pinned USDA-FDC SR Legacy archive; new
+ * immutable revisions (2). Ambiguous tsp servings and non-reconciling tbsp/tsp
+ * foods stay null/gated.
  */
-export const CATALOG_VERSION = 'food-catalog@1.2.0';
+export const CATALOG_VERSION = 'food-catalog@1.3.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

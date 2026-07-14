@@ -10,7 +10,9 @@ import manifestJson from './fdc-portion-manifest.json';
  * per-100 g values within the documented tolerance, and exact agreement
  * between the authored grams and the manifest derivation. It also locks the
  * manifest and the catalog together: every FDC-sourced food has exactly one
- * entry, and every unmatched food stays null/gated.
+ * entry, and every unmatched food stays null/gated. Batch 1 covered `slice`
+ * foods; Batch 2 adds accepted `tbsp` foods and records rejected/ambiguous
+ * tbsp/tsp candidates as unmatched.
  */
 
 interface ManifestEntry {
@@ -94,9 +96,10 @@ describe('FDC portion manifest — gates', () => {
     for (const e of manifest.entries) {
       const food = byKey.get(e.catalogKey);
       expect(food).toBeDefined();
-      // Batch 1 is slice foods: the FDC portion label must be a slice portion.
-      expect(food!.servingUnit).toBe('slice');
-      expect(e.portion.modifier.toLowerCase()).toContain('slice');
+      expect(['slice', 'tbsp']).toContain(food!.servingUnit);
+      const label = e.portion.modifier.toLowerCase();
+      if (food!.servingUnit === 'slice') expect(label).toContain('slice');
+      else expect(label).toMatch(/\b(tbsp|tablespoon)\b/);
     }
   });
 

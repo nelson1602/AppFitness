@@ -2901,7 +2901,35 @@ change.**
   (300 rows, second run inserts 0, 33 rev-2 ids no collision), macros unchanged
   0/300 vs prior release, `git diff --check` clean.
 
-**Remaining under this ADR:** 159 foods (158 volumetric + `sourdough_bread`)
+
+### Batch 2 Implementation Note (2026-07-14) - tablespoon foods
+
+The second batch is implemented per this ADR. **Catalog/data + tests only - no
+schema, migration, UI, sync, backend, or deployment change.** It reuses the same
+pinned `sr_legacy_food_csv_2018-04` archive and checked-in provenance manifest.
+
+- **Matched (13), all passing the macro-reconciliation gate:** `hummus` (30 g
+  per 2 tbsp), `parmesan` (5 g per 1 tbsp), `peanut_butter` (32 g per 2 tbsp),
+  `almond_butter` (32 g per 2 tbsp), `sesame_seeds` (18 g per 2 tbsp),
+  `hemp_seeds` (20 g per 2 tbsp), `tahini` (30 g per 2 tbsp),
+  `cashew_butter` (32 g per 2 tbsp), `sunflower_butter` (32 g per 2 tbsp),
+  `flaxseed_oil` (13.6 g per 1 tbsp), `salsa` (36 g per 2 tbsp),
+  `balsamic_vinegar` (16 g per 1 tbsp), and `soy_sauce_low_sodium` (14.2 g per
+  1 tbsp). Each row has exact FDC id/portion-row/per-100 g macro provenance in
+  `fdc-portion-manifest.json`.
+- **Unmatched / still gated:** non-reconciling or missing SR Legacy portions
+  (`cream_cheese_light`, `chia_seeds`, `flax_seeds`, `poppy_seeds`, several
+  oils, `pesto`, `nutritional_yeast`, `tomato_paste`, etc.) remain null. The
+  suspicious `tsp(5)`/`tsp(3)`/`tsp(2)` foods (`butter`, `mustard`, `hot_sauce`,
+  `garlic`, `ginger`, etc.) are not force-fit because the authored amount likely
+  encodes grams rather than teaspoon counts; they require a separate serving-
+  semantics correction decision before gram sourcing.
+- **Mechanics:** the 13 matched foods gained authored full-serving `grams`,
+  bumped to `food_revision` 2 (new UUIDv5s; rev-1 rows retained),
+  `CATALOG_VERSION` -> `food-catalog@1.3.0`; canonical artifacts/hash/goldens
+  regenerated (a hummus rev-2 golden added to both suites). Macros are unchanged.
+
+**Remaining under this ADR:** 146 foods (98 `cup` + 18 remaining `tbsp` + 6 `tsp` + 23 `ml` + `sourdough_bread`)
 stay `grams_per_serving = null`, gated pending later batches.
 
 ### Related Documents
