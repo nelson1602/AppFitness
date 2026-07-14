@@ -988,7 +988,7 @@ the logging UI + E2E are deferred to Slice 4D.
 logs via fractional servings only and fabricates no gram conversions; the item
 remains Open.
 
-### Slice 4D implementation status (2026-07-13) — logging UI + E2E (UI only)
+### Slice 4D implementation status (2026-07-13) — logging UI + E2E (E2E validated 2026-07-14)
 
 The food-logging **UI** on top of the merged Slice 4C write path is implemented
 (`mobile/src/features/nutrition/`), **UI + tests + E2E only — no backend, schema,
@@ -1017,10 +1017,16 @@ REST, or write-path change**.
   `mobile-e2e.yml` after `onboarding-loop.yml`) drives log → totals update →
   sync-attempt-keeps-entry → soft-delete.
 
-**E2E pending validation (external gate):** `mobile-e2e.yml` is
-`workflow_dispatch`-only and requires an EAS-built release APK via the
-`EXPO_TOKEN` secret, so the Maestro flow **cannot run in this environment**. It
-must be exercised via the manual `mobile-e2e` workflow. The
+**E2E validated (2026-07-14):** the `food-log.yml` Maestro flow passed
+end-to-end on the manual `mobile-e2e` workflow — GitHub Actions run
+`29331177197` (green). App under test: the EAS `e2e` release APK at commit
+`47fa5c7` (build `fb815b8a-8305-44e2-b300-924155548e96`); flow definitions at
+commit `49ebe63`. The flow drives log → daily-totals update →
+sync-attempt-keeps-the-pending-entry (`DEPENDENCY_NOT_READY` is retryable, never
+data loss) → soft-delete → empty state, running after the `registration` →
+`dashboard-sync` → `onboarding-loop` journeys in the same job. `mobile-e2e.yml`
+stays `workflow_dispatch`-only and needs the EAS-built release APK via the
+`EXPO_TOKEN` secret, so it must be dispatched manually. The
 `CATALOG_REVISION_UNSUPPORTED` action-required surface is covered by the
 component test only (driving it in E2E would need a server-side unsupported
 revision — a backend hack — which is out of scope).
