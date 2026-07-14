@@ -64,6 +64,12 @@ appId: com.appfitness.mobile
 # Exercise the serving stepper (fractional 0.25 step) before logging.
 - tapOn:
     id: 'add-serving-inc'
+# The "Add to log" submit button sits at the bottom of the add-food card,
+# below the serving stepper — off the emulator viewport. Scroll it into view
+# before tapping (same pattern as the onboarding Save buttons).
+- scrollUntilVisible:
+    element:
+      id: 'food-log-add-submit'
 - tapOn:
     id: 'food-log-add-submit'
 
