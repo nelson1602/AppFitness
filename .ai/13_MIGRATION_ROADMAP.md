@@ -1602,9 +1602,10 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       unit: 'piece', grams: <authored weight>}` as new immutable revisions (2),
       `CATALOG_VERSION` → 1.1.0; canonical artifacts/hash/golden ids regenerated;
       no schema/migration/UI/sync change; macros unchanged. **Risk 3 part 2**
-      (158 volumetric + 5 `slice` foods) stays OPEN, gated behind a proposed
-      USDA-FDC `foodPortion` data-source ADR — no authoritative gram data in
-      repo, nothing fabricated; logging uses fractional servings meanwhile.
+      (158 volumetric + 5 `slice` foods) stays OPEN — the USDA-FDC `foodPortion`
+      data-source strategy is **ADR-P013 (Accepted 2026-07-14)**; implementation
+      is authorized but not started (no authoritative gram data in repo yet,
+      nothing fabricated); logging uses fractional servings meanwhile.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

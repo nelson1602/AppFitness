@@ -861,7 +861,8 @@ All three are captured as decisions in **ADR-P012 (Accepted 2026-07-10)** and ar
 identity/schema/seed), 2 (server-derived macro snapshot), and risk 3 **part 1**
 (29 count-unit `piece` foods normalized) are **resolved**; the item stays
 **Open** only for risk 3 **part 2** (gram sourcing for the 158 volumetric +
-5 `slice` foods, gated behind a data-source ADR). See the status sections below.
+5 `slice` foods — data-source gate ADR-P013, Accepted 2026-07-14; implementation
+authorized but not started). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -931,7 +932,8 @@ never touched):
    - **Part 2 — 158 volumetric (`cup`/`tbsp`/`tsp`/`ml`) + 5 genuine `slice`
      counts: OPEN, gated.** `grams_per_serving` stays null; a correct weight
      needs authoritative per-food portion data (USDA FDC `foodPortion`) not in
-     the repo — deferred behind a proposed data-source ADR gate. Gram entry stays
+     the repo — sourcing strategy recorded and accepted as **ADR-P013 (2026-07-14)**;
+     implementation authorized but not yet started. Gram entry stays
      unavailable for those; the log path uses fractional servings meanwhile.
 
 The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
@@ -1072,9 +1074,10 @@ UI change.**
   and a deterministic seed preflight/idempotency/immutability check all green;
   `git diff --check` clean.
 
-**Risk 3 part 2 (158 volumetric + 5 `slice` foods) stays OPEN**, gated behind a
-proposed USDA-FDC `foodPortion` data-source ADR (no authoritative gram data in
-repo; nothing fabricated).
+**Risk 3 part 2 (158 volumetric + 5 `slice` foods) stays OPEN** — the USDA-FDC
+`foodPortion` data-source strategy is **ADR-P013 (Accepted 2026-07-14)**;
+implementation is authorized but not started (no authoritative gram data in
+repo yet; nothing fabricated).
 
 ### Related Documents
 

@@ -2635,12 +2635,13 @@ without new external data:
   in the repo** — the only provenance is the generic string `USDA FoodData
   Central`. Inventing weights (assuming "1 cup rice ≈ 200 g") is forbidden.
 
-**DATA-SOURCE GATE (proposed, not yet accepted).** Resolving part 2 requires a
-follow-up decision to adopt an authoritative dataset — proposed: import USDA FDC
-`foodPortion` household-measure gram weights, matched per food with a recorded
-`fdcId` + provenance, each corrected food shipped as a new revision with a
-`CATALOG_VERSION` bump. Until that ADR is accepted, gram-based entry stays
-unavailable for volumetric foods and the log path uses fractional servings.
+**DATA-SOURCE GATE — recorded as ADR-P013 (Accepted 2026-07-14).** Resolving
+part 2 requires adopting an authoritative dataset: import USDA FDC `foodPortion`
+household-measure gram weights, matched per food with a recorded `fdcId` +
+provenance, each corrected food shipped as a new revision with a
+`CATALOG_VERSION` bump — see ADR-P013 for the full strategy. Until sourcing
+batches actually land, gram-based entry stays unavailable for volumetric foods
+and the log path uses fractional servings.
 
 Seeding stays insert-new-revisions-only and idempotent (300 rows on a fresh DB:
 271 rev-1 + 29 rev-2; a second run inserts 0; tampered revisions are not
@@ -2668,17 +2669,21 @@ reconciliation). No production server has been seeded (pre-activation).
 
 ## ADR-P013 — USDA-FDC `foodPortion` Gram-Weight Sourcing for Volumetric & Slice Catalog Foods (TECHDEBT-004 risk 3, part 2)
 
-Status: **Proposed** (planning/data-source gate — NOT accepted; nothing implemented)
+Status: **Accepted**
 Date: 2026-07-14
+Accepted: **2026-07-14 by project owner** (as proposed, unamended)
 Owner: Architecture / Data
 Supersedes: none. Extends: ADR-P012 (catalog identity, serving normalization, immutable revisions).
 
-> This ADR is a **documentation-only gate**. It records a *proposed* strategy to
-> source authoritative gram weights for the catalog foods still lacking them. No
-> data import, catalog change, migration, seed run, or UI/sync/backend change is
-> authorized by drafting it. Implementation begins only if/when the project owner
-> **Accepts** this ADR. Until then, TECHDEBT-004 risk 3 **part 2** stays OPEN and
-> those foods keep `grams_per_serving = null` (fractional-serving logging only).
+> This ADR was drafted as a **documentation-only gate** and **Accepted 2026-07-14
+> by the project owner, as proposed** (see **Acceptance Resolution**). Acceptance
+> is documentation-only: nothing below has been implemented yet — no FDC data
+> import, matching manifest, catalog/schema/seed change, or UI/sync/backend
+> change accompanied this acceptance. Implementation of TECHDEBT-004 risk 3
+> **part 2** is now **authorized to proceed incrementally** under the rules below;
+> until a sourcing batch actually lands, the gated foods keep
+> `grams_per_serving = null` (fractional-serving logging only) and the backlog
+> item stays OPEN.
 
 ### Context
 
@@ -2798,6 +2803,10 @@ This provenance is additive metadata; it does **not** change catalog identity
 
 #### 6. Explicitly OUT OF SCOPE until this ADR is Accepted
 
+*(Historical pre-acceptance constraints. The ADR was Accepted 2026-07-14 — the
+first bullet's sourcing work is now authorized; see the Acceptance Resolution
+for what remains out of scope.)*
+
 - No FDC data download/import, no `fdcId`/portion manifest, no catalog-data edits,
   no `FoodSource`/schema extension, no `CATALOG_VERSION` bump, no artifact
   regeneration.
@@ -2825,6 +2834,31 @@ Owner sign-off on: (a) USDA FDC as the source + pinned release, (b) the
 provenance fields, (c) the macro-reconciliation tolerance, (d) batching strategy,
 (e) the revision/`CATALOG_VERSION` plan. Only then does implementation begin,
 incrementally, mirroring part 1's catalog/data-only discipline.
+
+### Acceptance Resolution
+
+**Accepted 2026-07-14 by the project owner, as proposed (unamended).** All five
+acceptance-criteria points were approved as written: (a) USDA FDC as the
+authoritative source, pinned to a specific FDC data release; (b) the per-food
+provenance fields (`fdcId`, `fdcDataType`, `fdcReleaseDate`, `portionRef`, and
+the derived g/ml for `ml` liquids); (c) the automated macro-reconciliation gate
+with the documented tolerance (calories within `max(15%, 25 kcal)`,
+protein/carbs/fat within a comparable band; a mismatch fails the build — never
+force-fit); (d) batched sourcing via a human-reviewed slug → `fdcId` + portion
+manifest, with any unmatched food left `null` and still gated; (e) a new
+immutable `food_revision` per sourced food (via the existing `FOOD_REVISIONS`
+mechanism) with one `CATALOG_VERSION` bump per sourcing release.
+
+This acceptance authorizes TECHDEBT-004 risk 3 **part 2** implementation to
+**proceed incrementally**; it does **not** itself implement anything. Binding
+constraints carried forward from §6:
+
+- **Still out of scope:** gram-based entry UI (a separate, later decision even
+  after data lands); any Prisma/SQLite migration, `meal_items` handler or
+  sync-semantics change, backend/REST change, or Railway/deployment change; any
+  change to the 108 gram foods or the 29 part-1 `piece` foods.
+- The backlog item (TECHDEBT-004 risk 3 part 2) stays **OPEN** until sourcing
+  batches actually land and are validated; acceptance alone resolves nothing.
 
 ### Related Documents
 
