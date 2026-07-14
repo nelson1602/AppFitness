@@ -980,11 +980,14 @@ sourcing track is COMPLETE (2026-07-14): 158 of 190 non-gram foods sourced
 poppy-seeds serving-semantics correction slice, `food-catalog@1.10.1`); the 32
 remaining foods are intentionally gated** with archive-re-verified reasons
 (see ADR-P013 "SR Legacy Sourcing Track — Closure Note" + Batch 7 and
-poppy-correction notes). Further progress is blocked solely on one separate
-owner decision: the FNDDS / second-source ADR amendment (covers most of the 32
-incl. `sourdough_bread` unless a sourdough-specific source is preferred),
-**drafted 2026-07-14 as ADR-P013 Amendment A1 (Status: Proposed — docs-only
-gate, awaiting owner acceptance; nothing implemented)**. This item stays OPEN.
+poppy-correction notes). The FNDDS / second-source gate (covers most of the
+32 incl. `sourdough_bread` unless a sourdough-specific source is preferred)
+was drafted 2026-07-14 as ADR-P013 Amendment A1 and **Accepted 2026-07-14 by
+the project owner (as proposed, unamended)** — FNDDS implementation is now
+**authorized but not yet started** (no archive pinned, no matching done, no
+data changed); each batch still needs its own scoped owner authorization.
+This item stays OPEN until the remaining foods are actually resolved or
+explicitly carved out.
 
 ### Slice 4B implementation status (2026-07-13) — backend handler landed
 
@@ -1139,8 +1142,9 @@ serving-semantics correction slice (2026-07-14, `food-catalog@1.10.1`)**
 corrected poppy_seeds' teaspoon-scale authored serving to tsp(1) with the SR
 tsp gram weight (owner-authorized). **32 foods remain gated** (16 `cup` +
 7 `tbsp` + 8 `ml` + `sourdough_bread`) — none matchable under the pinned SR
-Legacy archive; closing them needs the FNDDS second-source decision, drafted
-as ADR-P013 Amendment A1 (Proposed, not Accepted). Nothing fabricated.
+Legacy archive; ADR-P013 Amendment A1 (FNDDS second source) was **Accepted
+2026-07-14**, so closing them is now an implementation matter (authorized,
+not yet started). Nothing fabricated.
 
 ### Related Documents
 

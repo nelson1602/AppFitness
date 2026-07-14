@@ -3274,26 +3274,29 @@ deployment change; no FNDDS, sourdough, or other gated food touched.**
   the correction documented in the reviewNote. Macros unchanged (0/300).
 
 **Remaining under this ADR: 32 foods** (16 `cup` + 7 `tbsp` + 8 `ml` +
-`sourdough_bread`), intentionally gated — blocked solely on (a) the FNDDS /
-second-source ADR amendment (drafted as Amendment A1 below, Status:
-**Proposed**).
+`sourdough_bread`), intentionally gated — unblocked by Amendment A1 below
+(**Accepted 2026-07-14**); FNDDS implementation is authorized but has not yet
+started.
 
 ### Amendment A1 (2026-07-14) — FNDDS Second-Source Gate
 
-Status: **Proposed** (documentation-only gate; NOT Accepted — nothing below is
-authorized until the owner accepts)
+Status: **Accepted**
 Date: 2026-07-14
-Owner decision required: accept, amend, or reject.
+Accepted: **2026-07-14 by project owner** (as proposed, unamended; see the
+Acceptance resolution at the end of this amendment)
 Extends: this ADR (ADR-P013). No new technology; FNDDS is another dataset of
 the already-approved USDA FoodData Central source (same publisher, same
 public-domain license, same CSV distribution channel) — this amendment gates
 the *dataset*, not a stack change.
 
-> **Docs-only gate.** Like ADR-P013's own acceptance gate, this amendment
-> authorizes NOTHING by itself. Until Accepted: no archive download or import,
-> no catalog data change, no manifest change, no canonical regeneration, no
-> test change, and the 32 gated foods keep `grams_per_serving = null` with
-> fractional-serving logging.
+> This amendment was drafted as a **documentation-only gate** and **Accepted
+> 2026-07-14 by the project owner, as proposed**. Acceptance is
+> documentation-only: no FNDDS archive has been downloaded, no matching has
+> been performed, and no catalog/manifest/artifact/test change has landed.
+> Incremental FNDDS batches are now **authorized to proceed** under the rules
+> below; until a batch actually lands, the 32 gated foods keep
+> `grams_per_serving = null` with fractional-serving logging and TECHDEBT-004
+> risk 3 part 2 stays OPEN.
 
 #### Why SR Legacy is exhausted
 
@@ -3446,6 +3449,23 @@ FNDDS archive download/verification; any matching work; any change to catalog
 data, the manifest, canonical artifacts, goldens, tests, schema, migrations,
 UI, sync, backend behavior, dependencies, or deployment; any authored-data
 correction; any third source.
+
+#### Acceptance resolution (2026-07-14)
+
+The project owner **accepted Amendment A1 as proposed, unamended**, explicitly
+approving: (1) FNDDS as the **sole** approved second source for the remaining
+ADR-P013 gated foods; (2) the pin-before-use requirements and the
+`secondarySources` / `sourceRef` manifest structure; (3) the matching rules,
+including composite-food eligibility and the varietal/preparation standard;
+(4) the existing macro reconciliation tolerances (unless a later ADR changes
+them); (5) reuse of the existing revision, `CATALOG_VERSION`, artifact
+regeneration, seed/idempotency, and immutability mechanics; (6) that class-4
+authored-data corrections and residue foods remain **separate owner
+decisions**. Acceptance authorizes incremental FNDDS batches under these
+rules; the "Out of scope until Accepted" list above is now the implementation
+backlog, and each batch still requires its own scoped owner authorization to
+land, consistent with how Batches 1–7 were executed. **No implementation has
+started as of this acceptance.**
 
 ### Related Documents
 

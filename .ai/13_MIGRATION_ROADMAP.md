@@ -1626,13 +1626,13 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       poppy-seeds serving-semantics correction slice): 158/190 non-gram foods
       sourced; the 32 remaining foods (16 `cup` + 7 `tbsp` + 8 `ml` +
       sourdough) are intentionally gated** — TECHDEBT-004 risk 3 part 2 stays
-      Open (partially resolved), blocked solely on one separate owner
-      decision: the FNDDS/second-source ADR amendment (expected to cover
-      sourdough), drafted 2026-07-14 as **ADR-P013 Amendment A1 (Status:
-      Proposed — docs-only gate, awaiting owner acceptance)**. Nothing
-      fabricated; logging uses fractional servings meanwhile. See ADR-P013
-      "SR Legacy Sourcing Track — Closure Note" + Batch 7, poppy-correction,
-      and Amendment A1 notes.
+      Open (partially resolved). The FNDDS/second-source gate (expected to
+      cover sourdough) was drafted 2026-07-14 as ADR-P013 Amendment A1 and
+      **Accepted 2026-07-14 by the project owner** — FNDDS batches are now
+      authorized under the amendment's rules but **not yet started** (no
+      archive pinned, no data changed). Nothing fabricated; logging uses
+      fractional servings meanwhile. See ADR-P013 "SR Legacy Sourcing Track —
+      Closure Note" + Batch 7, poppy-correction, and Amendment A1 notes.
 
 ## Phase 16 — Workout Module  [commercial v1]
 
