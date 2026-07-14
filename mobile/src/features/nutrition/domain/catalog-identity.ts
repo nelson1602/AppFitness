@@ -216,6 +216,9 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.herbal_tea': 2,
   'food.sparkling_water': 2,
   'food.apple_cider_vinegar': 2,
+  // ADR-P013 Batch 7 — lemon_juice density mini-batch (owner-authorized;
+  // density from the raw record's volume-paired rows, tbsp serving).
+  'food.lemon_juice': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

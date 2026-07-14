@@ -146,8 +146,12 @@ export interface FoodItem {
  * apple_cider_vinegar via its direct tbsp portion (14.9 g). New immutable
  * revisions (2). Gram entry on zero-macro foods scales zeros — harmless by
  * design.
+ * 1.10.0 (ADR-P013 Batch 7, lemon_juice density mini-batch): density-derived
+ * the 1-tbsp serving of food.lemon_juice from SR "Lemon juice, raw" (167747),
+ * whose cup and fl-oz volume pairings independently give 1.0313 g/ml
+ * (1 tbsp = 14.7868 ml -> 15.25 g). New immutable revision (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.9.0';
+export const CATALOG_VERSION = 'food-catalog@1.10.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

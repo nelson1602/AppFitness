@@ -3215,18 +3215,41 @@ No further sourcing is possible without a **separate owner decision**:
 - **(b) Poppy-seeds authored-data correction** — `food.poppy_seeds`' authored
   macros appear teaspoon-scale; a data-correction slice (new revision of the
   authored macros) must precede any re-match.
-- **(c) One scoped exception:** `food.lemon_juice` is closable under the
-  ALREADY-approved density method (SR "Lemon juice, raw" 167747 has an fl-oz
-  volume pairing) — it stayed gated only because Batch 5's authorized scope
-  was ml-*unit* foods. It needs a scoped mini-batch authorization, not a new
-  source decision.
+- **(c) One scoped exception — RESOLVED (Batch 7, 2026-07-14):**
+  `food.lemon_juice` was closable under the ALREADY-approved density method
+  and the owner authorized the scoped mini-batch; see the Batch 7 note below.
 
 **TECHDEBT-004 risk 3 part 2 therefore remains OPEN (partially resolved):**
 the track is closed under current approved sources, but full gram-entry
-coverage is still blocked for the 34 gated foods, which log via fractional
-servings. ADR-P013 itself remains Accepted and in force — any future batch
-under a newly approved source follows the same manifest/gate/revision
-discipline.
+coverage is still blocked for the remaining gated foods, which log via
+fractional servings. ADR-P013 itself remains Accepted and in force — any
+future batch under a newly approved source follows the same
+manifest/gate/revision discipline.
+
+### Batch 7 Implementation Note (2026-07-14) — lemon_juice density mini-batch
+
+Owner-authorized scoped mini-batch closing gate (c) of the Closure Note.
+**Catalog/data + tests only — no schema, migration, UI, sync, backend, or
+deployment change; no FNDDS, poppy, or other gated food touched.**
+
+- `food.lemon_juice` (1 tbsp serving) → SR 167747 **"Lemon juice, raw"** —
+  exact fresh-preparation match. Density from the cup volume pairing:
+  244 g / 236.588 ml = **1.0313 g/ml**, independently cross-checked by the
+  record's fl-oz row (30.5 g / 29.5735 ml = the identical 1.0313 g/ml).
+  `derivedGramsPerServing = 1.0313 × 14.7868 ml (1 tbsp) = 15.25 g` (exact:
+  244/16). Reconciliation: est 3.4 kcal vs authored 4 — passes.
+- The manifest density block gains an explicit **`catalogServingMl`** field
+  (required for density-derived non-`ml` foods, optional-and-equal-to-
+  `servingAmount` for `ml` foods), with gate-spec checks extended accordingly;
+  all prior entries untouched.
+- Revision 2 (new UUIDv5; rev-1 retained), `CATALOG_VERSION` →
+  `food-catalog@1.10.0`; artifacts/hash/goldens regenerated (a `lemon_juice`
+  rev-2 golden added to both suites); the corrected unmatched reason replaced
+  by full provenance. Macros unchanged (0/300).
+
+**Remaining under this ADR: 33 foods** (16 `cup` + 8 `tbsp` + 8 `ml` +
+`sourdough_bread`), intentionally gated — blocked solely on (a) the FNDDS /
+second-source ADR amendment and (b) the poppy-seeds authored-data correction.
 
 ### Related Documents
 

@@ -1874,7 +1874,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.lemon_juice', 'Lemon juice, fresh', 'condiment', tbsp(1), 0, 1, 0, {
+  food('food.lemon_juice', 'Lemon juice, fresh', 'condiment', tbspFdc(1, 15.25), 0, 1, 0, {
     tags: [
       'vegan',
       'vegetarian',

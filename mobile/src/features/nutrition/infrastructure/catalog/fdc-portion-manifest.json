@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-6 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2616,6 +2616,31 @@
       },
       "derivedGramsPerServing": 14.9,
       "reviewNote": "Direct SR tbsp portion (1 tbsp = 14.9 g). Identified in Batch 2 and held on the zero-macro policy question; sourced now that the owner resolved the policy (2026-07-14). Reconciliation trivially passes (3.1 kcal est vs authored 0)."
+    },
+    {
+      "catalogKey": "food.lemon_juice",
+      "fdcId": 167747,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Lemon juice, raw",
+      "portion": {
+        "portionRowId": 81887,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 244
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0313,
+        "catalogServingMl": 14.7868
+      },
+      "fdcPer100g": {
+        "kcal": 22,
+        "proteinG": 0.35,
+        "carbsG": 6.9,
+        "fatG": 0.24
+      },
+      "derivedGramsPerServing": 15.25,
+      "reviewNote": "Batch 7 (owner-authorized density mini-batch). Raw record = exact fresh preparation match. density = 244 g / 236.588 ml (cup row) = 1.0313 g/ml; the independent fl-oz row (30.5 g / 29.5735 ml, portionRowId 81888) cross-checks at the identical 1.0313 g/ml. Catalog serving is 1 tbsp = 14.7868 ml (catalogServingMl), so derivedGramsPerServing = 1.0313 * 14.7868 = 15.25 g (exact: 244/16). Reconciliation: est 3.4 kcal vs authored 4 (delta 0.6); the food previously stayed gated only because Batch 5 scope was ml-unit foods."
     }
   ],
   "unmatched": [
@@ -2646,10 +2671,6 @@
     {
       "catalogKey": "food.nutritional_yeast",
       "reason": "Pinned SR Legacy has no nutritional-yeast tablespoon portion. Baker's yeast is a source/preparation mismatch and fails macro reconciliation; left null/gated."
-    },
-    {
-      "catalogKey": "food.lemon_juice",
-      "reason": "Corrected after re-verification (Batch 4): SR \"Lemon juice, raw\" (fdcId 167747) EXISTS in the pinned archive but carries no tbsp portion row (only cup 244 g, fl oz 30.5 g, and yield portions); the tbsp-portioned candidates are from-concentrate/bottled preparation mismatches. Deriving a tablespoon from the fl-oz volume pairing is the density method reserved for the ml batch — revisit there. Left null and gated."
     },
     {
       "catalogKey": "food.greek_yogurt_dressing",
