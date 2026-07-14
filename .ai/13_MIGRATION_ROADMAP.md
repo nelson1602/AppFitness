@@ -1620,11 +1620,16 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       sourced the 5 zero-macro foods after the owner resolved that policy. All
       use the pinned USDA-FDC SR Legacy archive where a portion row exists
       (checked-in `fdc-portion-manifest.json` + gate spec incl. density
-      checks; new immutable revisions 2). **34 foods remain gated** (16 `cup`
-      + 9 `tbsp` + 8 `ml` + sourdough) — none matchable under the pinned
-      archive; need a different-source decision (FNDDS) or the poppy
-      authored-data correction. Nothing fabricated; logging uses fractional
-      servings meanwhile.
+      checks; new immutable revisions 2). **The SR Legacy + zero-macro-policy
+      sourcing track is COMPLETE (2026-07-14, `food-catalog@1.9.0`): 156/190
+      non-gram foods sourced; the 34 remaining foods (16 `cup` + 9 `tbsp` +
+      8 `ml` + sourdough) are intentionally gated** — TECHDEBT-004 risk 3
+      part 2 stays Open (partially resolved), blocked solely on separate
+      owner decisions: FNDDS/second-source ADR amendment (expected to cover
+      sourdough), poppy authored-data correction, or a scoped density
+      mini-batch for lemon_juice (already-approved method). Nothing
+      fabricated; logging uses fractional servings meanwhile. See ADR-P013
+      "SR Legacy Sourcing Track — Closure Note".
 
 ## Phase 16 — Workout Module  [commercial v1]
 

@@ -965,8 +965,16 @@ never touched):
      8 `ml` + `sourdough_bread`); gram entry stays unavailable for those; the
      log path uses fractional servings meanwhile.
 
-The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
-risks 1, 2, and risk 3 part 1 are resolved.
+The item stays **Open (partially resolved)** for risk 3 **part 2** only; risks
+1, 2, and risk 3 part 1 are resolved. **The SR Legacy + zero-macro-policy
+sourcing track is COMPLETE (2026-07-14): 156 of 190 non-gram foods sourced;
+the 34 remaining foods are intentionally gated** with archive-re-verified
+reasons (see ADR-P013 "SR Legacy Sourcing Track — Closure Note"). Further
+progress is blocked solely on separate owner decisions: (a) an FNDDS /
+second-source ADR amendment (covers most of the 34 incl. `sourdough_bread`
+unless a sourdough-specific source is preferred), (b) the poppy-seeds
+authored-data correction, and (c) a scoped mini-batch authorization for
+`lemon_juice`, which is closable under the already-approved density method.
 
 ### Slice 4B implementation status (2026-07-13) — backend handler landed
 

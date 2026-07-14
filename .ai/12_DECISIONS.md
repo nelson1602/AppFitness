@@ -3191,6 +3191,43 @@ pinned SR Legacy archive. Closing them requires a different pinned source
 (e.g. FNDDS) via a follow-up source decision, or the poppy-seeds
 authored-data correction.
 
+### SR Legacy Sourcing Track — Closure Note (2026-07-14)
+
+The **SR Legacy + zero-macro-policy sourcing track is COMPLETE (exhausted)**
+under this ADR's approved source rules. Across Batches 1–6 plus the tsp
+semantics mini-slice (`food-catalog@1.2.0` → `1.9.0`), **156 of the 190
+non-gram catalog foods carry sourced gram weights** (29 piece + 4 slice + 22
+tbsp + 4 tsp + 82 cup + 15 ml), every value traceable to the pinned
+`sr_legacy_food_csv_2018-04` archive via the checked-in
+`fdc-portion-manifest.json` (127 provenance entries) and enforced by the gate
+spec. Nothing was fabricated at any point.
+
+The **34 remaining foods are INTENTIONALLY gated**, each with an
+archive-re-verified `unmatched` reason (16 `cup`: 6 grain + 3 legume
+varietals, 5 vegetables, 2 fruits; 9 `tbsp`; 8 `ml`; `sourdough_bread`).
+No further sourcing is possible without a **separate owner decision**:
+
+- **(a) FNDDS / second-source ADR amendment** — the general unblock for foods
+  with no reconciling SR Legacy record (most of the 34, including
+  `sourdough_bread`, which FNDDS's dedicated sour-dough record is expected to
+  cover; a sourdough-specific source decision is only needed if FNDDS is
+  rejected).
+- **(b) Poppy-seeds authored-data correction** — `food.poppy_seeds`' authored
+  macros appear teaspoon-scale; a data-correction slice (new revision of the
+  authored macros) must precede any re-match.
+- **(c) One scoped exception:** `food.lemon_juice` is closable under the
+  ALREADY-approved density method (SR "Lemon juice, raw" 167747 has an fl-oz
+  volume pairing) — it stayed gated only because Batch 5's authorized scope
+  was ml-*unit* foods. It needs a scoped mini-batch authorization, not a new
+  source decision.
+
+**TECHDEBT-004 risk 3 part 2 therefore remains OPEN (partially resolved):**
+the track is closed under current approved sources, but full gram-entry
+coverage is still blocked for the 34 gated foods, which log via fractional
+servings. ADR-P013 itself remains Accepted and in force — any future batch
+under a newly approved source follows the same manifest/gate/revision
+discipline.
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
