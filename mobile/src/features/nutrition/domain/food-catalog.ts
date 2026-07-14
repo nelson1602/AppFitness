@@ -140,8 +140,14 @@ export interface FoodItem {
  * protein shakes, matcha, kombucha stay gated (no reconciling SR record);
  * green_tea/black_coffee/herbal_tea/sparkling_water join apple_cider_vinegar
  * in the zero-macro policy class, pending the owner decision.
+ * 1.9.0 (ADR-P013 Batch 6): zero-macro policy resolved by the owner
+ * (2026-07-14) — sourced the 5 zero-macro foods from their pre-recorded SR
+ * candidates: 4 beverages density-derived (fl-oz portions, 1.0009 g/ml) and
+ * apple_cider_vinegar via its direct tbsp portion (14.9 g). New immutable
+ * revisions (2). Gram entry on zero-macro foods scales zeros — harmless by
+ * design.
  */
-export const CATALOG_VERSION = 'food-catalog@1.8.0';
+export const CATALOG_VERSION = 'food-catalog@1.9.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

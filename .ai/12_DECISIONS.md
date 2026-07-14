@@ -3152,11 +3152,44 @@ only — no schema, migration, UI, sync, backend, or deployment change.**
   canonical artifacts/hash/goldens regenerated (a `milk_skim` rev-2 golden
   added to both suites). Macros unchanged (0/300).
 
-**Remaining under this ADR:** 39 foods (16 `cup` + 10 `tbsp` + 12 `ml` +
-`sourdough_bread`). None are matchable under the pinned SR Legacy archive as
-already re-verified — closing them requires a different pinned source (e.g.
-FNDDS) via a follow-up source decision, the owner's zero-macro policy call
-(5 foods incl. vinegar), or an authored-data correction (poppy).
+**Remaining after Batch 5:** 39 foods (16 `cup` + 10 `tbsp` + 12 `ml` +
+`sourdough_bread`) — see Batch 6 below.
+
+### Batch 6 Implementation Note (2026-07-14) — zero-macro policy resolution
+
+**Policy decision (owner, 2026-07-14):** zero-macro catalog foods MAY carry
+sourced gram weights. Rationale: gram-based entry scales the immutable
+zero-macro snapshot, so logged totals stay zero regardless of grams — the
+weight adds unit convenience with no correctness risk; provenance requirements
+stay unchanged. This resolves the question Batch 2 first recorded for
+`apple_cider_vinegar` and Batch 5 extended to four beverages.
+
+All 5 policy-class foods are sourced from the SR candidates pre-recorded in
+their unmatched reasons (every pick archive-re-verified by portion row):
+
+- **Density path (4 ml beverages, fl-oz portions, 1.0009 g/ml):** `green_tea`
+  → 171917 "tea, green, brewed, regular" (regular over decaf for the generic
+  catalog food; the record's 245 g cup row disagrees with its own fl-oz
+  density and physical water density, so the fl-oz portion was chosen —
+  documented), `black_coffee` → 171890 "coffee, brewed, prepared with tap
+  water", `herbal_tea` → 173232 "tea, herb, other than chamomile, brewed",
+  `sparkling_water` → 173233 PERRIER (SR's carbonated-water record — branded,
+  noted; non-carbonated bottled waters are preparation mismatches, club soda
+  carries added sodium). Each derives 240.2 g per 240 ml serving.
+- **Standard tbsp path (1):** `apple_cider_vinegar` → 173469 "Vinegar, cider",
+  direct 1 tbsp = 14.9 g portion (the data Batch 2 originally identified).
+- **Mechanics:** revision 2 for all 5 (new UUIDv5s; rev-1 retained),
+  `CATALOG_VERSION` → `food-catalog@1.9.0`; artifacts/hash/goldens regenerated
+  (a `green_tea` rev-2 golden added to both suites); the 5 policy `unmatched`
+  entries replaced by provenance entries. Macros unchanged (0/300). **Catalog/
+  data + tests only — no schema, migration, UI, sync, backend, or deployment
+  change.**
+
+**Remaining under this ADR:** 34 foods (16 `cup` + 9 `tbsp` + 8 `ml` +
+`sourdough_bread`) stay `grams_per_serving = null` — none matchable under the
+pinned SR Legacy archive. Closing them requires a different pinned source
+(e.g. FNDDS) via a follow-up source decision, or the poppy-seeds
+authored-data correction.
 
 ### Related Documents
 

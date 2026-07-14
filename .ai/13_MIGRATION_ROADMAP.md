@@ -1616,14 +1616,15 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       Batch 2's unmatched verdicts for them (ADR-P013 Batch 4 erratum);
       **Batch 5 (2026-07-14, `food-catalog@1.8.0`)** density-derived 11 ml
       foods from volume-paired portions (density = gramWeight/sourceVolumeMl,
-      never assumed 1 g/ml). All use the pinned USDA-FDC SR Legacy archive
-      where a portion row exists (checked-in `fdc-portion-manifest.json` +
-      gate spec incl. density checks; new immutable revisions 2). **39 foods
-      remain gated** (16 `cup` + 10 `tbsp` + 12 `ml` + sourdough) — none
-      matchable under the pinned archive; need a different-source decision,
-      the zero-macro policy call (5 foods incl. vinegar), or an authored-data
-      correction (poppy). Nothing fabricated; logging uses fractional servings
-      meanwhile.
+      never assumed 1 g/ml); **Batch 6 (2026-07-14, `food-catalog@1.9.0`)**
+      sourced the 5 zero-macro foods after the owner resolved that policy. All
+      use the pinned USDA-FDC SR Legacy archive where a portion row exists
+      (checked-in `fdc-portion-manifest.json` + gate spec incl. density
+      checks; new immutable revisions 2). **34 foods remain gated** (16 `cup`
+      + 9 `tbsp` + 8 `ml` + sourdough) — none matchable under the pinned
+      archive; need a different-source decision (FNDDS) or the poppy
+      authored-data correction. Nothing fabricated; logging uses fractional
+      servings meanwhile.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

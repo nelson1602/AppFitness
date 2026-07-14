@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-5 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-6 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2500,6 +2500,122 @@
       },
       "derivedGramsPerServing": 248.5,
       "reviewNote": "RTD unsweetened record matches the authored name (fresh coconut liquid record also passes). density = 245 / 236.588 = 1.0356; derived = 248.5 g. Est 44.7 kcal vs 44."
+    },
+    {
+      "catalogKey": "food.green_tea",
+      "fdcId": 171917,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beverages, tea, green, brewed, regular",
+      "portion": {
+        "portionRowId": 89559,
+        "amount": 1,
+        "modifier": "fl oz",
+        "gramWeight": 29.6
+      },
+      "density": {
+        "sourceVolumeMl": 29.574,
+        "gPerMl": 1.0009
+      },
+      "fdcPer100g": {
+        "kcal": 1,
+        "proteinG": 0.22,
+        "carbsG": 0,
+        "fatG": 0
+      },
+      "derivedGramsPerServing": 240.2,
+      "reviewNote": "Regular (caffeinated) record chosen for the generic catalog food over the decaffeinated variant. fl-oz portion chosen (closest kcal; the record’s 245 g cup row disagrees with its own fl-oz density and physical water density). density = 29.6 g / 29.5735 ml = 1.0009 g/ml; derived = 1.0009 * 240 ml = 240.2 g. Zero-macro policy resolved by owner 2026-07-14."
+    },
+    {
+      "catalogKey": "food.black_coffee",
+      "fdcId": 171890,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beverages, coffee, brewed, prepared with tap water",
+      "portion": {
+        "portionRowId": 89518,
+        "amount": 1,
+        "modifier": "fl oz",
+        "gramWeight": 29.6
+      },
+      "density": {
+        "sourceVolumeMl": 29.574,
+        "gPerMl": 1.0009
+      },
+      "fdcPer100g": {
+        "kcal": 1,
+        "proteinG": 0.12,
+        "carbsG": 0,
+        "fatG": 0.02
+      },
+      "derivedGramsPerServing": 240.2,
+      "reviewNote": "Regular brewed record over the decaffeinated variant. density = 29.6 / 29.5735 = 1.0009 g/ml; derived = 240.2 g. Zero-macro policy resolved by owner 2026-07-14."
+    },
+    {
+      "catalogKey": "food.herbal_tea",
+      "fdcId": 173232,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beverages, tea, herb, other than chamomile, brewed",
+      "portion": {
+        "portionRowId": 92155,
+        "amount": 1,
+        "modifier": "fl oz",
+        "gramWeight": 29.6
+      },
+      "density": {
+        "sourceVolumeMl": 29.574,
+        "gPerMl": 1.0009
+      },
+      "fdcPer100g": {
+        "kcal": 1,
+        "proteinG": 0,
+        "carbsG": 0.2,
+        "fatG": 0
+      },
+      "derivedGramsPerServing": 240.2,
+      "reviewNote": "Generic (non-chamomile) herbal-tea record for the generic catalog food. density = 29.6 / 29.5735 = 1.0009 g/ml; derived = 240.2 g. Zero-macro policy resolved by owner 2026-07-14."
+    },
+    {
+      "catalogKey": "food.sparkling_water",
+      "fdcId": 173233,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beverages, water, bottled, PERRIER",
+      "portion": {
+        "portionRowId": 92158,
+        "amount": 1,
+        "modifier": "fl oz",
+        "gramWeight": 29.6
+      },
+      "density": {
+        "sourceVolumeMl": 29.574,
+        "gPerMl": 1.0009
+      },
+      "fdcPer100g": {
+        "kcal": 0,
+        "proteinG": 0,
+        "carbsG": 0,
+        "fatG": 0
+      },
+      "derivedGramsPerServing": 240.2,
+      "reviewNote": "PERRIER is SR Legacy’s carbonated (sparkling) water record — branded, like the kefir pick, noted; the non-carbonated bottled waters are preparation mismatches and club soda carries added sodium salts. density = 29.6 / 29.5735 = 1.0009 g/ml; derived = 240.2 g. Zero-macro policy resolved by owner 2026-07-14."
+    },
+    {
+      "catalogKey": "food.apple_cider_vinegar",
+      "fdcId": 173469,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Vinegar, cider",
+      "portion": {
+        "portionRowId": 92598,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 14.9
+      },
+      "fdcPer100g": {
+        "kcal": 21,
+        "proteinG": 0,
+        "carbsG": 0.93,
+        "fatG": 0
+      },
+      "derivedGramsPerServing": 14.9,
+      "reviewNote": "Direct SR tbsp portion (1 tbsp = 14.9 g). Identified in Batch 2 and held on the zero-macro policy question; sourced now that the owner resolved the policy (2026-07-14). Reconciliation trivially passes (3.1 kcal est vs authored 0)."
     }
   ],
   "unmatched": [
@@ -2530,10 +2646,6 @@
     {
       "catalogKey": "food.nutritional_yeast",
       "reason": "Pinned SR Legacy has no nutritional-yeast tablespoon portion. Baker's yeast is a source/preparation mismatch and fails macro reconciliation; left null/gated."
-    },
-    {
-      "catalogKey": "food.apple_cider_vinegar",
-      "reason": "SR cider vinegar has a tbsp portion, but the authored catalog macros are all zero while SR carries trace calories/carbs; left null/gated pending a low-impact zero-macro policy decision."
     },
     {
       "catalogKey": "food.lemon_juice",
@@ -2642,22 +2754,6 @@
     {
       "catalogKey": "food.kombucha_unsweet",
       "reason": "SR Legacy 2018-04 contains no kombucha record. Left null and gated."
-    },
-    {
-      "catalogKey": "food.green_tea",
-      "reason": "Zero-macro policy class (same as food.apple_cider_vinegar): authored macros are all zero while SR brewed-tea records carry trace values. SR candidates pass the gate trivially (171917 \"Beverages, tea, green, brewed, regular\", cup 245 g, density 1.0356) — held pending the owner’s zero-macro policy decision, deliberately not resolved in Batch 5."
-    },
-    {
-      "catalogKey": "food.black_coffee",
-      "reason": "Zero-macro policy class: SR 171890 \"Beverages, coffee, brewed, prepared with tap water\" (fl oz 29.6 g, density 1.0009) passes trivially — held pending the owner’s zero-macro policy decision."
-    },
-    {
-      "catalogKey": "food.herbal_tea",
-      "reason": "Zero-macro policy class: SR 173232 \"Beverages, tea, herb, other than chamomile, brewed\" (fl oz 29.6 g, density 1.0009) passes trivially — held pending the owner’s zero-macro policy decision."
-    },
-    {
-      "catalogKey": "food.sparkling_water",
-      "reason": "Zero-macro policy class: SR bottled/carbonated water records (e.g. 173233 PERRIER, fl oz 29.6 g, density 1.0009) pass trivially — held pending the owner’s zero-macro policy decision."
     }
   ]
 }

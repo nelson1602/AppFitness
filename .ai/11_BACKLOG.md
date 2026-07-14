@@ -872,9 +872,11 @@ FDC-sourced (pomegranate/dragon_fruit unmatched); **Batch 4 implemented
 2026-07-14** — 8 remaining tbsp foods FDC-sourced after re-verification
 disproved Batch 2's unmatched verdicts for them (erratum in ADR-P013 Batch 4
 note); **Batch 5 implemented 2026-07-14** — 11 ml foods density-derived from
-volume-paired portions (8 unmatched: no SR record/prep mismatch; 4 zero-macro
-beverages join the vinegar policy class); 39 foods still gated: 16 `cup` +
-10 `tbsp` + 12 `ml` + `sourdough_bread`). See the status sections below.
+volume-paired portions; **Batch 6 implemented 2026-07-14** — the owner
+resolved the zero-macro policy and the 5 policy-class foods (4 beverages +
+apple_cider_vinegar) were sourced from their pre-recorded SR candidates; 34
+foods still gated: 16 `cup` + 9 `tbsp` + 8 `ml` + `sourdough_bread`). See the
+status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -956,11 +958,12 @@ never touched):
      remaining tbsp foods (6 oils, light cream cheese, tomato paste) after
      disproving Batch 2's unmatched verdicts for them — see the ADR-P013
      Batch 4 erratum; **Batch 5 (2026-07-14)** density-derived 11 ml foods
-     from volume-paired portions (never assumed 1 g/ml); `apple_cider_vinegar`
-     plus 4 zero-macro beverages (green tea, black coffee, herbal tea,
-     sparkling water) stay policy-pending. **39 foods remain gated** (16 `cup`
-     + 10 `tbsp` + 12 `ml` + `sourdough_bread`); gram entry stays unavailable
-     for those; the log path uses fractional servings meanwhile.
+     from volume-paired portions (never assumed 1 g/ml); **Batch 6
+     (2026-07-14)** sourced the 5 zero-macro foods after the owner resolved
+     the zero-macro policy (gram entry on zero-macro foods scales zeros —
+     harmless by design). **34 foods remain gated** (16 `cup` + 9 `tbsp` +
+     8 `ml` + `sourdough_bread`); gram entry stays unavailable for those; the
+     log path uses fractional servings meanwhile.
 
 The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
 risks 1, 2, and risk 3 part 1 are resolved.
@@ -1110,11 +1113,12 @@ semantics mini-slice (2026-07-14, `food-catalog@1.3.1`)** corrected 6 ambiguous
 sourced 42 cup vegetables; **Batch 3C (2026-07-14, `food-catalog@1.6.0`)**
 sourced 14 cup fruits; **Batch 4 (2026-07-14, `food-catalog@1.7.0`)** sourced
 8 remaining tbsp foods (Batch 2 erratum); **Batch 5 (2026-07-14,
-`food-catalog@1.8.0`)** density-derived 11 ml foods. **39 foods remain gated**
-(16 `cup` + 10 `tbsp` + 12 `ml` + `sourdough_bread`) — none matchable under
-the pinned SR Legacy archive; closing them needs a different-source decision
-(FNDDS), the zero-macro policy call (5 foods), or an authored-data correction
-(poppy). Nothing fabricated.
+`food-catalog@1.8.0`)** density-derived 11 ml foods; **Batch 6 (2026-07-14,
+`food-catalog@1.9.0`)** sourced the 5 zero-macro foods after the owner
+resolved that policy. **34 foods remain gated** (16 `cup` + 9 `tbsp` + 8 `ml`
++ `sourdough_bread`) — none matchable under the pinned SR Legacy archive;
+closing them needs a different-source decision (FNDDS) or the poppy
+authored-data correction. Nothing fabricated.
 
 ### Related Documents
 

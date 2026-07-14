@@ -1760,7 +1760,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   }),
 
   // ── beverage (12) ────────────────────────────────────────────────────
-  food('food.green_tea', 'Green tea, unsweetened', 'beverage', ml(240), 0, 0, 0, {
+  food('food.green_tea', 'Green tea, unsweetened', 'beverage', mlFdc(240, 240.2), 0, 0, 0, {
     tags: [
       'vegan',
       'vegetarian',
@@ -1771,13 +1771,13 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.black_coffee', 'Coffee, black', 'beverage', ml(240), 0, 0, 0, {
+  food('food.black_coffee', 'Coffee, black', 'beverage', mlFdc(240, 240.2), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.herbal_tea', 'Herbal tea, unsweetened', 'beverage', ml(240), 0, 0, 0, {
+  food('food.herbal_tea', 'Herbal tea, unsweetened', 'beverage', mlFdc(240, 240.2), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.sparkling_water', 'Sparkling water, unsweetened', 'beverage', ml(240), 0, 0, 0, {
+  food('food.sparkling_water', 'Sparkling water, unsweetened', 'beverage', mlFdc(240, 240.2), 0, 0, 0, {
     tags: [
       'vegan',
       'vegetarian',
@@ -1863,7 +1863,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.apple_cider_vinegar', 'Apple cider vinegar', 'condiment', tbsp(1), 0, 0, 0, {
+  food('food.apple_cider_vinegar', 'Apple cider vinegar', 'condiment', tbspFdc(1, 14.9), 0, 0, 0, {
     tags: [
       'vegan',
       'vegetarian',

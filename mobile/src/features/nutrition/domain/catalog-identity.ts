@@ -209,6 +209,13 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.orange_juice': 2,
   'food.vegetable_juice_lowsodium': 2,
   'food.coconut_water': 2,
+  // ADR-P013 Batch 6 — zero-macro foods, sourced after the owner resolved the
+  // zero-macro policy (2026-07-14).
+  'food.green_tea': 2,
+  'food.black_coffee': 2,
+  'food.herbal_tea': 2,
+  'food.sparkling_water': 2,
+  'food.apple_cider_vinegar': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */
