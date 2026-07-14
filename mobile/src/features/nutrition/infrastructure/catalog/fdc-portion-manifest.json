@@ -1,0 +1,67 @@
+{
+  "$comment": "ADR-P013 Batch 1 — USDA FoodData Central foodPortion gram-weight provenance for slice foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gramWeight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "source": {
+    "dataset": "USDA FoodData Central — SR Legacy (CSV)",
+    "releaseLabel": "sr_legacy_food_csv_2018-04",
+    "archiveUrl": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+    "archiveSha256": "b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0",
+    "archiveBytes": 6074592,
+    "downloadedAt": "2026-07-14",
+    "license": "Public domain (U.S. Government work)"
+  },
+  "tolerances": {
+    "$comment": "Macro-reconciliation gate (ADR-P013 acceptance criterion c). FDC per-100g macros scaled to derivedGramsPerServing must agree with the catalog's authored per-serving macros within these bounds.",
+    "caloriesAbsMin": 25,
+    "caloriesPct": 0.15,
+    "macroGramsAbsMin": 3,
+    "macroGramsPct": 0.2
+  },
+  "entries": [
+    {
+      "catalogKey": "food.whole_wheat_bread",
+      "fdcId": 172688,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Bread, whole-wheat, commercially prepared",
+      "portion": { "portionRowId": 91108, "amount": 1, "modifier": "slice", "gramWeight": 32 },
+      "fdcPer100g": { "kcal": 252, "proteinG": 12.45, "carbsG": 42.71, "fatG": 3.5 },
+      "derivedGramsPerServing": 32,
+      "reviewNote": "Catalog serving is 1 slice; SR portion 'slice' = 32 g. Non-toasted commercial record chosen over toasted/recipe variants. Reconciliation: 80.6 kcal vs 73 authored (delta 7.6 <= 25)."
+    },
+    {
+      "catalogKey": "food.rye_bread",
+      "fdcId": 172684,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Bread, rye",
+      "portion": { "portionRowId": 91098, "amount": 1, "modifier": "slice, regular", "gramWeight": 32 },
+      "fdcPer100g": { "kcal": 259, "proteinG": 8.5, "carbsG": 48.3, "fatG": 3.3 },
+      "derivedGramsPerServing": 32,
+      "reviewNote": "Catalog serving is 1 slice; SR offers regular (32 g), thin (25 g), snack (7 g) — 'slice, regular' matches the authored 81 kcal (reconciles to 82.9 kcal, delta 1.9)."
+    },
+    {
+      "catalogKey": "food.ezekiel_bread",
+      "fdcId": 171850,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Bread, wheat, sprouted",
+      "portion": { "portionRowId": 89465, "amount": 1, "modifier": "slice 1 serving", "gramWeight": 38 },
+      "fdcPer100g": { "kcal": 188, "proteinG": 13.16, "carbsG": 33.88, "fatG": 0 },
+      "derivedGramsPerServing": 38,
+      "reviewNote": "Catalog food is generic 'Sprouted grain bread' (not brand-specific); SR 'Bread, wheat, sprouted' is the closest analytical record. Reconciliation: 71.4 kcal vs 85 authored (delta 13.6 <= 25)."
+    },
+    {
+      "catalogKey": "food.canadian_bacon",
+      "fdcId": 167869,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Canadian bacon, unprepared",
+      "portion": { "portionRowId": 82124, "amount": 2, "modifier": "slices (6 per 6-oz pkg.)", "gramWeight": 57 },
+      "fdcPer100g": { "kcal": 110, "proteinG": 20.31, "carbsG": 1.34, "fatG": 2.62 },
+      "derivedGramsPerServing": 57,
+      "reviewNote": "Catalog serving is 2 slices; SR portion is exactly 2 slices = 57 g. 'Unprepared' reconciles (62.7 kcal vs 75, P 11.58 vs 11); the alternate 168383 'cooked, pan-fried' (slice = 13.8 g) FAILS the gate (40.3 kcal vs 75) and was rejected."
+    }
+  ],
+  "unmatched": [
+    {
+      "catalogKey": "food.sourdough_bread",
+      "reason": "SR Legacy has no standalone sourdough record. The only sourdough-inclusive candidate 172675 'Bread, french or vienna (includes sourdough)' carries a 139 g 'slice' portion, which fails macro reconciliation against the authored 97 kcal slice (scaled estimate 378.1 kcal, delta 281 >> 25). Left null and gated per ADR-P013 (never force-fit); revisit in a later batch with a different pinned dataset (e.g. FNDDS) if desired."
+    }
+  ]
+}

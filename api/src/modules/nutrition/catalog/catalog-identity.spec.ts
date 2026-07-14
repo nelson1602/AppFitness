@@ -28,8 +28,9 @@ const CATALOG = JSON.parse(
 ) as readonly CanonicalFood[];
 
 // Cross-package golden anchors (identical to the mobile suite): key, immutable
-// revision, derived id. egg_whole is a revision-2 anchor (TECHDEBT-004 risk 3
-// normalization); the others are revision 1.
+// revision, derived id. egg_whole is a part-1 revision-2 anchor (TECHDEBT-004
+// risk 3 normalization) and rye_bread an ADR-P013 Batch-1 revision-2 anchor
+// (FDC-sourced grams); the others are revision 1.
 const GOLDEN = [
   {
     key: 'food.chicken_breast',
@@ -42,12 +43,17 @@ const GOLDEN = [
     id: 'ccd3b52a-5a8b-5ce9-b115-5f64b24b361e',
   },
   {
+    key: 'food.rye_bread',
+    revision: 2,
+    id: 'f5997bf5-a983-5eea-86e0-71440ec899a1',
+  },
+  {
     key: 'food.brown_rice',
     revision: 1,
     id: '6491c19f-e35b-556e-92ae-4703226b376a',
   },
 ];
-const EXPECTED_CATALOG_HASH = 'd22651ec0f95c8224a4a9c334c7c79a91329e4f5';
+const EXPECTED_CATALOG_HASH = 'b1c5e5fe3cf59da0c706e3566be0fed24affc8b7';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -105,10 +111,12 @@ describe('canonical catalog seed artifact', () => {
       if (food.servingUnit === 'g') {
         expect(food.gramsPerServing).toBe(food.servingAmount);
       } else if (food.foodRevision === 2) {
-        // Normalized count-unit food (TECHDEBT-004 risk 3): 1 piece + an
-        // authored, non-fabricated gram weight.
-        expect(food.servingUnit).toBe('piece');
-        expect(food.servingAmount).toBe(1);
+        // Revision-2 count-unit food with a known, non-fabricated gram weight:
+        // part-1 `piece` foods (amount 1) or ADR-P013 Batch-1 `slice` foods
+        // (authored slice count kept; FDC-sourced full-serving weight).
+        expect(['piece', 'slice']).toContain(food.servingUnit);
+        if (food.servingUnit === 'piece') expect(food.servingAmount).toBe(1);
+        else expect(food.servingAmount).toBeGreaterThan(0);
         expect(food.gramsPerServing).toBeGreaterThan(0);
       } else {
         expect(food.gramsPerServing).toBeNull();
@@ -126,7 +134,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.1.0',
+      catalogVersionSnapshot: 'food-catalog@1.2.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

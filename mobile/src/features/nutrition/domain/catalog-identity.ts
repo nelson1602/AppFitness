@@ -29,9 +29,14 @@ export const FOOD_REVISION = 1;
  * revision (2 → a new UUID); the old revision-1 rows stay FK-valid on any
  * server that already seeded them. A food's key appears here IFF its authored
  * serving now carries an explicit `grams` on a non-gram unit; the canonical
- * integrity test locks the two together. The 158 volumetric foods
- * (cup/tbsp/tsp/ml) and 5 genuine `slice` counts stay at revision 1 with
- * `gramsPerServing = null`, gated behind the USDA-FDC data-source decision.
+ * integrity test locks the two together.
+ *
+ * ADR-P013 Batch 1 (2026-07-14) adds the 4 `slice` foods whose full-serving
+ * gram weight was sourced from the pinned USDA-FDC SR Legacy archive — see
+ * infrastructure/catalog/fdc-portion-manifest.json for per-food provenance.
+ * The 158 volumetric foods (cup/tbsp/tsp/ml) and `food.sourdough_bread` (no
+ * reconciling FDC portion) stay at revision 1 with `gramsPerServing = null`,
+ * gated behind later ADR-P013 batches.
  */
 export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.egg_whole': 2,
@@ -63,6 +68,11 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.starfruit': 2,
   'food.string_cheese': 2,
   'food.avocado_half': 2,
+  // ADR-P013 Batch 1 — slice foods with FDC-sourced full-serving gram weights.
+  'food.whole_wheat_bread': 2,
+  'food.rye_bread': 2,
+  'food.ezekiel_bread': 2,
+  'food.canadian_bacon': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

@@ -60,9 +60,11 @@ export interface ServingSize {
   amount: number;
   unit: ServingUnit;
   /**
-   * Gram weight of one serving where a valid, authored conversion exists for a
-   * NON-gram unit (e.g. one `piece` of a food = N grams). Never fabricated: set
-   * only where the source weight is known (ADR-P012 / TECHDEBT-004 risk 3). For
+   * Gram weight of ONE FULL SERVING where a valid, authored conversion exists
+   * for a NON-gram unit — e.g. one `piece` = N grams, or a 2-`slice` serving =
+   * N grams total. Never fabricated: set only where the source weight is known
+   * (part 1: the weight already authored in `amount`; ADR-P013 batches: the
+   * pinned USDA-FDC portion in catalog/fdc-portion-manifest.json). For
    * `unit: 'g'` the amount is already grams, so this is omitted.
    */
   grams?: number;
@@ -98,8 +100,12 @@ export interface FoodItem {
  * 1.1.0 (TECHDEBT-004 risk 3, split-risk part 1): normalized the 29 count-unit
  * `piece` foods whose authored amount was already a one-piece gram weight to
  * `{amount: 1, unit: 'piece', grams: <weight>}` as new immutable revisions (2).
+ * 1.2.0 (ADR-P013 Batch 1): sourced full-serving gram weights for 4 `slice`
+ * foods from the pinned USDA-FDC SR Legacy archive (see
+ * infrastructure/catalog/fdc-portion-manifest.json); new immutable revisions
+ * (2). `sourdough_bread` stays null/gated (no reconciling FDC portion).
  */
-export const CATALOG_VERSION = 'food-catalog@1.1.0';
+export const CATALOG_VERSION = 'food-catalog@1.2.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

@@ -2860,6 +2860,50 @@ constraints carried forward from §6:
 - The backlog item (TECHDEBT-004 risk 3 part 2) stays **OPEN** until sourcing
   batches actually land and are validated; acceptance alone resolves nothing.
 
+### Batch 1 Implementation Note (2026-07-14) — slice foods
+
+The pilot batch (the 5 `slice` foods) is implemented per this ADR. **Catalog/
+data + tests only — no schema, migration, UI, sync, backend, or deployment
+change.**
+
+- **Pinned source:** `sr_legacy_food_csv_2018-04` (USDA FDC SR Legacy CSV),
+  `https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip`,
+  6,074,592 bytes, sha256
+  `b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0`,
+  downloaded 2026-07-14. Public domain.
+- **Matched (4), all passing the macro-reconciliation gate:**
+  `whole_wheat_bread` → fdc 172688 "Bread, whole-wheat, commercially prepared",
+  slice = 32 g (est. 80.6 kcal vs 73 authored); `rye_bread` → fdc 172684
+  "Bread, rye", "slice, regular" = 32 g (82.9 vs 81); `ezekiel_bread` → fdc
+  171850 "Bread, wheat, sprouted", slice = 38 g (71.4 vs 85); `canadian_bacon`
+  → fdc 167869 "Canadian bacon, unprepared", 2 slices = 57 g (62.7 vs 75; the
+  alternate 168383 "cooked, pan-fried" FAILED the gate at 40.3 vs 75 and was
+  rejected — the gate arbitrated the candidate choice, as designed).
+- **Unmatched (1), left null/gated — never force-fit:** `sourdough_bread`. SR
+  Legacy's only sourdough-inclusive record (172675 "Bread, french or vienna
+  (includes sourdough)") carries a 139 g "slice" portion → scaled estimate
+  378.1 kcal vs the authored 97 kcal slice: catastrophic reconciliation
+  failure. Revisit in a later batch (possibly a different pinned dataset).
+- **Mechanics:** the 4 matched foods gained an authored full-serving `grams`
+  (slice counts preserved — `canadian_bacon` stays a 2-slice serving, 57 g
+  total), bumped to `food_revision` 2 (new UUIDv5s; rev-1 rows retained),
+  `CATALOG_VERSION` → `food-catalog@1.2.0`; canonical artifacts/hash/goldens
+  regenerated (a rye rev-2 golden added to both suites).
+- **Provenance artifact:** `mobile/.../catalog/fdc-portion-manifest.json`
+  (release pin + per-food `fdcId`/`fdcDataType`/`fdcDescription`/portion row/
+  `gramWeight`/`fdcPer100g`/`derivedGramsPerServing`/review notes + the
+  unmatched list), enforced by the `fdc-portion-manifest.spec.ts` gate: schema/
+  provenance completeness, unit compatibility, `0 < gramWeight ≤ 1000`, macro
+  reconciliation within the documented tolerance, authored grams ===
+  derivation, manifest↔catalog lock, unmatched stay null/gated.
+- **Validation:** mobile nutrition 17 suites / 137 tests, api catalog/nutrition
+  25 tests, both typechecks + lint, seed preflight/idempotency/immutability sim
+  (300 rows, second run inserts 0, 33 rev-2 ids no collision), macros unchanged
+  0/300 vs prior release, `git diff --check` clean.
+
+**Remaining under this ADR:** 159 foods (158 volumetric + `sourdough_bread`)
+stay `grams_per_serving = null`, gated pending later batches.
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)

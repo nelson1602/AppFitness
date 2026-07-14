@@ -860,9 +860,10 @@ All three are captured as decisions in **ADR-P012 (Accepted 2026-07-10)** and ar
 **approved for resolution in Slice 4A/4B**. As of 2026-07-14, risks 1 (catalog
 identity/schema/seed), 2 (server-derived macro snapshot), and risk 3 **part 1**
 (29 count-unit `piece` foods normalized) are **resolved**; the item stays
-**Open** only for risk 3 **part 2** (gram sourcing for the 158 volumetric +
-5 `slice` foods — data-source gate ADR-P013, Accepted 2026-07-14; implementation
-authorized but not started). See the status sections below.
+**Open** only for risk 3 **part 2** (data-source gate ADR-P013, Accepted
+2026-07-14; **Batch 1 implemented 2026-07-14** — 4 slice foods FDC-sourced,
+`sourdough_bread` unmatched; 159 foods still gated: 158 volumetric +
+`sourdough_bread`). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -929,12 +930,14 @@ never touched):
      grams: <authored weight>}`, shipped as new immutable revisions (2), with
      `CATALOG_VERSION` bumped to 1.1.0. No weight fabricated — the value was the
      one the catalog already carried.
-   - **Part 2 — 158 volumetric (`cup`/`tbsp`/`tsp`/`ml`) + 5 genuine `slice`
-     counts: OPEN, gated.** `grams_per_serving` stays null; a correct weight
-     needs authoritative per-food portion data (USDA FDC `foodPortion`) not in
-     the repo — sourcing strategy recorded and accepted as **ADR-P013 (2026-07-14)**;
-     implementation authorized but not yet started. Gram entry stays
-     unavailable for those; the log path uses fractional servings meanwhile.
+   - **Part 2 — volumetric + `slice` foods: OPEN, in progress under ADR-P013
+     (Accepted 2026-07-14).** **Batch 1 (2026-07-14)** sourced full-serving
+     gram weights for 4 of the 5 `slice` foods from the pinned USDA-FDC SR
+     Legacy archive (see ADR-P013 Batch 1 Implementation Note + the checked-in
+     `fdc-portion-manifest.json`); `sourdough_bread` had no reconciling FDC
+     portion and stays null/gated. **159 foods remain gated** (158 volumetric
+     `cup`/`tbsp`/`tsp`/`ml` + `sourdough_bread`); gram entry stays unavailable
+     for those; the log path uses fractional servings meanwhile.
 
 The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
 risks 1, 2, and risk 3 part 1 are resolved.
@@ -1074,10 +1077,12 @@ UI change.**
   and a deterministic seed preflight/idempotency/immutability check all green;
   `git diff --check` clean.
 
-**Risk 3 part 2 (158 volumetric + 5 `slice` foods) stays OPEN** — the USDA-FDC
-`foodPortion` data-source strategy is **ADR-P013 (Accepted 2026-07-14)**;
-implementation is authorized but not started (no authoritative gram data in
-repo yet; nothing fabricated).
+**Risk 3 part 2 stays OPEN, in progress** — the USDA-FDC `foodPortion`
+data-source strategy is **ADR-P013 (Accepted 2026-07-14)**. **Batch 1
+(2026-07-14, `food-catalog@1.2.0`)** sourced 4 slice foods from the pinned SR
+Legacy archive with a checked-in provenance manifest + gate spec;
+`sourdough_bread` unmatched (no reconciling portion) and 158 volumetric foods
+remain gated for later batches (nothing fabricated).
 
 ### Related Documents
 

@@ -68,17 +68,24 @@ describe('food catalog integrity', () => {
     }
   });
 
-  it('records an authored gram weight only as a positive one-piece serving (no fabrication)', () => {
-    // TECHDEBT-004 risk 3 (part 1): the only non-gram foods carrying a known
-    // gram weight are the 29 normalized `piece` foods (amount: 1). Volumetric
-    // foods must NOT carry a fabricated gram weight.
+  it('records an authored gram weight only on known count-unit servings (no fabrication)', () => {
+    // TECHDEBT-004 risk 3: the only non-gram foods carrying a known gram
+    // weight are the 29 part-1 normalized `piece` foods (amount: 1, weight was
+    // the pre-4A authored amount) and the 4 ADR-P013 Batch-1 `slice` foods
+    // (authored slice count kept; full-serving weight from the pinned FDC
+    // manifest — see catalog/fdc-portion-manifest.spec.ts). Volumetric foods
+    // must NOT carry a fabricated gram weight.
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(29);
+    expect(withGrams).toHaveLength(33);
     for (const f of withGrams) {
-      expect(f.servingSize.unit).toBe('piece');
-      expect(f.servingSize.amount).toBe(1);
+      expect(['piece', 'slice']).toContain(f.servingSize.unit);
+      if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
+      else expect(f.servingSize.amount).toBeGreaterThan(0);
       expect(f.servingSize.grams).toBeGreaterThan(0);
     }
+    expect(withGrams.filter((f) => f.servingSize.unit === 'slice').map((f) => f.id).sort()).toEqual(
+      ['food.canadian_bacon', 'food.ezekiel_bread', 'food.rye_bread', 'food.whole_wheat_bread'],
+    );
   });
 
   it('has finite, non-negative calories and macros; fiber within carbs', () => {

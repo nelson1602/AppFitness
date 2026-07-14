@@ -65,6 +65,12 @@ const cup = (amount: number): ServingSize => ({ amount, unit: 'cup' });
 const tbsp = (amount: number): ServingSize => ({ amount, unit: 'tbsp' });
 const tsp = (amount: number): ServingSize => ({ amount, unit: 'tsp' });
 const slice = (amount: number): ServingSize => ({ amount, unit: 'slice' });
+// A slice serving whose full-serving gram weight is sourced from the pinned
+// USDA-FDC archive (ADR-P013 Batch 1; see catalog/fdc-portion-manifest.json for
+// per-food fdcId/portion provenance). `grams` covers the WHOLE serving (e.g.
+// canadian_bacon's 2-slice serving = 57 g total). Revision bumps live in
+// FOOD_REVISIONS (domain/catalog-identity.ts).
+const sliceFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'slice', grams });
 
 export const FOOD_CATALOG: readonly FoodItem[] = [
   // ── protein_animal (42) ──────────────────────────────────────────────
@@ -234,7 +240,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     avoid: ['high_sodium_sensitive'],
     caution: 'Processed — higher sodium.',
   }),
-  food('food.canadian_bacon', 'Canadian bacon', 'protein_animal', slice(2), 11, 1, 3, {
+  food('food.canadian_bacon', 'Canadian bacon', 'protein_animal', sliceFdc(2, 57), 11, 1, 3, {
     tags: ['high_protein'],
     avoid: ['high_sodium_sensitive'],
     caution: 'Processed — higher sodium.',
@@ -477,7 +483,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 4,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.whole_wheat_bread', 'Whole wheat bread', 'grain', slice(1), 4, 12, 1, {
+  food('food.whole_wheat_bread', 'Whole wheat bread', 'grain', sliceFdc(1, 32), 4, 12, 1, {
     fiber: 2,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'budget_friendly', 'quick_prep'],
     avoid: ['gluten_sensitive'],
@@ -487,7 +493,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'quick_prep'],
     avoid: ['gluten_sensitive'],
   }),
-  food('food.rye_bread', 'Rye bread', 'grain', slice(1), 3, 15, 1, {
+  food('food.rye_bread', 'Rye bread', 'grain', sliceFdc(1, 32), 3, 15, 1, {
     fiber: 2,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'high_fiber'],
     avoid: ['gluten_sensitive'],
@@ -549,7 +555,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.ezekiel_bread', 'Sprouted grain bread', 'grain', slice(1), 4, 15, 1, {
+  food('food.ezekiel_bread', 'Sprouted grain bread', 'grain', sliceFdc(1, 38), 4, 15, 1, {
     fiber: 3,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'high_fiber', 'heart_healthy'],
     avoid: ['gluten_sensitive'],

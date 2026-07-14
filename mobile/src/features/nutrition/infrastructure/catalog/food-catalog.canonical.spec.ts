@@ -17,14 +17,17 @@ import { buildCanonicalCatalog, canonicalHash, deriveFoodId, uuidv5 } from './ca
  */
 
 // Cross-package golden anchors (key, immutable revision, derived id). egg_whole
-// is a revision-2 anchor (TECHDEBT-004 risk 3 normalization); the others are
-// revision 1 — proving both packages derive rev-1 and rev-2 ids identically.
+// is a part-1 revision-2 anchor (TECHDEBT-004 risk 3 normalization) and
+// rye_bread an ADR-P013 Batch-1 revision-2 anchor (FDC-sourced grams); the
+// others are revision 1 — proving both packages derive rev-1 and rev-2 ids
+// identically.
 const GOLDEN = [
   { key: 'food.chicken_breast', revision: 1, id: '16cb6cd9-debe-55fd-b39e-aac043b8705e' },
   { key: 'food.egg_whole', revision: 2, id: 'ccd3b52a-5a8b-5ce9-b115-5f64b24b361e' },
+  { key: 'food.rye_bread', revision: 2, id: 'f5997bf5-a983-5eea-86e0-71440ec899a1' },
   { key: 'food.brown_rice', revision: 1, id: '6491c19f-e35b-556e-92ae-4703226b376a' },
 ];
-const EXPECTED_CATALOG_HASH = 'd22651ec0f95c8224a4a9c334c7c79a91329e4f5';
+const EXPECTED_CATALOG_HASH = 'b1c5e5fe3cf59da0c706e3566be0fed24affc8b7';
 
 describe('uuidv5 derivation', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -90,24 +93,30 @@ describe('serving normalization policy', () => {
         expect(food.gramsPerServing).toBe(food.servingAmount);
         expect(food.foodRevision).toBe(1);
       } else if (food.foodRevision === 2) {
-        // Normalized count-unit food (TECHDEBT-004 risk 3): 1 piece + a known,
-        // authored gram weight — never fabricated.
-        expect(food.servingUnit).toBe('piece');
-        expect(food.servingAmount).toBe(1);
+        // Revision-2 count-unit food with a known gram weight — never
+        // fabricated. Part 1: `piece` foods normalized to amount 1 (weight was
+        // the pre-4A authored amount). ADR-P013 Batch 1: `slice` foods keep
+        // their authored slice count; grams cover the FULL serving and come
+        // from the pinned FDC manifest (fdc-portion-manifest.spec.ts gates).
+        expect(['piece', 'slice']).toContain(food.servingUnit);
+        if (food.servingUnit === 'piece') expect(food.servingAmount).toBe(1);
+        else expect(food.servingAmount).toBeGreaterThan(0);
         expect(food.gramsPerServing).toBeGreaterThan(0);
       } else {
-        // Volumetric (cup/tbsp/tsp/ml) + genuine slice counts stay gated.
+        // Volumetric (cup/tbsp/tsp/ml) + still-unmatched slice foods stay gated.
         expect(food.gramsPerServing).toBeNull();
       }
     }
   });
 
-  it('exactly the 29 normalized foods carry a non-gram gram weight at revision 2', () => {
-    const normalized = CANONICAL_FOOD_CATALOG.filter(
+  it('exactly 33 foods carry a non-gram gram weight, all at revision 2 (29 piece + 4 slice)', () => {
+    const withGrams = CANONICAL_FOOD_CATALOG.filter(
       (f) => f.servingUnit !== 'g' && f.gramsPerServing != null,
     );
-    expect(normalized).toHaveLength(29);
-    expect(normalized.every((f) => f.foodRevision === 2 && f.servingAmount === 1)).toBe(true);
+    expect(withGrams).toHaveLength(33);
+    expect(withGrams.every((f) => f.foodRevision === 2)).toBe(true);
+    expect(withGrams.filter((f) => f.servingUnit === 'piece')).toHaveLength(29);
+    expect(withGrams.filter((f) => f.servingUnit === 'slice')).toHaveLength(4);
   });
 
   it('preserves an authored non-gram serving with no known weight (no fabrication)', () => {
