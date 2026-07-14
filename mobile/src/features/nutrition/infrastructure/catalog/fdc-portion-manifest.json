@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-2 - USDA FoodData Central foodPortion gram-weight provenance for slice and tablespoon foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-2 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, and accepted teaspoon foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -356,6 +356,86 @@
       },
       "derivedGramsPerServing": 14.2,
       "reviewNote": "Catalog serving is 1 tbsp; SR low-sodium shoyu soy sauce portion is 1 tbsp = 14.2 g, matching the catalog low-sodium label. Reconciliation: 8.1 kcal vs 8 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.mustard",
+      "fdcId": 172234,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Mustard, prepared, yellow",
+      "portion": {
+        "portionRowId": 90130,
+        "amount": 1,
+        "modifier": "tsp or 1 packet",
+        "gramWeight": 5
+      },
+      "fdcPer100g": {
+        "kcal": 60,
+        "proteinG": 3.74,
+        "carbsG": 5.83,
+        "fatG": 3.34
+      },
+      "derivedGramsPerServing": 5,
+      "reviewNote": "Catalog serving previously displayed tsp(5), but the authored macros align with one teaspoon/5 g, not five teaspoons. Corrected serving is 1 tsp; SR yellow mustard portion is 1 tsp or 1 packet = 5 g. Reconciliation: 3.0 kcal vs 0 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.hot_sauce",
+      "fdcId": 174528,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Sauce, ready-to-serve, pepper, TABASCO",
+      "portion": {
+        "portionRowId": 94522,
+        "amount": 1,
+        "modifier": "tsp",
+        "gramWeight": 4.7
+      },
+      "fdcPer100g": {
+        "kcal": 12,
+        "proteinG": 1.29,
+        "carbsG": 0.8,
+        "fatG": 0.76
+      },
+      "derivedGramsPerServing": 4.7,
+      "reviewNote": "Catalog serving previously displayed tsp(5), but the authored zero-macro condiment serving aligns with one teaspoon, not five teaspoons. Corrected serving is 1 tsp; SR Tabasco pepper sauce provides 1 tsp = 4.7 g. Reconciliation: 0.6 kcal vs 0 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.garlic",
+      "fdcId": 169230,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Garlic, raw",
+      "portion": {
+        "portionRowId": 84479,
+        "amount": 1,
+        "modifier": "tsp",
+        "gramWeight": 2.8
+      },
+      "fdcPer100g": {
+        "kcal": 149,
+        "proteinG": 6.36,
+        "carbsG": 33.06,
+        "fatG": 0.5
+      },
+      "derivedGramsPerServing": 2.8,
+      "reviewNote": "Catalog serving previously displayed tsp(3), but the authored macros align with one teaspoon/approximately 3 g, not three teaspoons. Corrected serving is 1 tsp; SR raw garlic portion is 1 tsp = 2.8 g. Reconciliation: 4.2 kcal vs 4 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.ginger",
+      "fdcId": 169231,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Ginger root, raw",
+      "portion": {
+        "portionRowId": 84482,
+        "amount": 1,
+        "modifier": "tsp",
+        "gramWeight": 2
+      },
+      "fdcPer100g": {
+        "kcal": 80,
+        "proteinG": 1.82,
+        "carbsG": 17.77,
+        "fatG": 0.75
+      },
+      "derivedGramsPerServing": 2,
+      "reviewNote": "Catalog serving previously displayed tsp(2), but the authored zero-macro condiment serving aligns with one teaspoon/2 g, not two teaspoons. Corrected serving is 1 tsp; SR raw ginger portion is 1 tsp = 2 g. Reconciliation: 1.6 kcal vs 0 authored (within tolerance)."
     }
   ],
   "unmatched": [
@@ -404,24 +484,8 @@
       "reason": "Pinned SR Legacy archive has no coconut-oil tablespoon portion row; left null/gated."
     },
     {
-      "catalogKey": "food.butter",
-      "reason": "Catalog serving is tsp(5), but the authored macros align with roughly one teaspoon/5 g, not five teaspoons. Left null/gated pending a separate serving-semantics correction decision; not force-fit."
-    },
-    {
-      "catalogKey": "food.ghee",
-      "reason": "SR Legacy has a ghee record but no tsp/teaspoon portion row; catalog serving also appears semantically ambiguous (tsp(5)); left null/gated."
-    },
-    {
       "catalogKey": "food.mct_oil",
       "reason": "Pinned SR Legacy archive has no MCT-oil tablespoon portion row; left null/gated."
-    },
-    {
-      "catalogKey": "food.mustard",
-      "reason": "Catalog serving is tsp(5), while SR yellow mustard provides 1 tsp = 5 g. The authored amount likely encodes grams, not five teaspoons, so this requires a serving-semantics correction decision; left null/gated."
-    },
-    {
-      "catalogKey": "food.hot_sauce",
-      "reason": "Catalog serving is tsp(5), while compatible SR hot-sauce/Tabasco portions are 1 tsp rows. The authored amount likely encodes grams, not five teaspoons; left null/gated."
     },
     {
       "catalogKey": "food.pesto",
@@ -442,14 +506,6 @@
     {
       "catalogKey": "food.lemon_juice",
       "reason": "Catalog food is fresh lemon juice. Pinned SR Legacy tablespoon candidates are bottled/from-concentrate records; left null/gated rather than using a preparation mismatch."
-    },
-    {
-      "catalogKey": "food.garlic",
-      "reason": "Catalog serving is tsp(3), but SR raw garlic gives 1 tsp = 2.8 g and the authored macros align with a small gram serving, not three teaspoons. Left null/gated pending serving-semantics correction."
-    },
-    {
-      "catalogKey": "food.ginger",
-      "reason": "Catalog serving is tsp(2), but SR raw ginger gives 1 tsp = 2 g and the authored macros align with a small gram serving, not two teaspoons. Left null/gated pending serving-semantics correction."
     },
     {
       "catalogKey": "food.greek_yogurt_dressing",

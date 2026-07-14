@@ -35,9 +35,11 @@ export const FOOD_REVISION = 1;
  * gram weight was sourced from the pinned USDA-FDC SR Legacy archive — see
  * infrastructure/catalog/fdc-portion-manifest.json for per-food provenance.
  * ADR-P013 Batch 2 (2026-07-14) adds 13 `tbsp` foods from the same pinned
- * archive. The remaining volumetric foods and `food.sourdough_bread` (no
- * reconciling FDC portion) stay at revision 1 with `gramsPerServing = null`,
- * gated behind later ADR-P013 batches.
+ * archive. The tsp semantics mini-slice corrects the six ambiguous `tsp(N)`
+ * foods whose authored amount encoded grams, not teaspoon counts. The
+ * remaining volumetric foods and `food.sourdough_bread` (no reconciling FDC
+ * portion) stay at revision 1 with `gramsPerServing = null`, gated behind later
+ * ADR-P013 batches.
  */
 export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.egg_whole': 2,
@@ -88,6 +90,13 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.salsa': 2,
   'food.balsamic_vinegar': 2,
   'food.soy_sauce_low_sodium': 2,
+  // ADR-P013 tsp semantics mini-slice — corrected `tsp(N grams)` servings.
+  'food.butter': 2,
+  'food.ghee': 2,
+  'food.mustard': 2,
+  'food.hot_sauce': 2,
+  'food.garlic': 2,
+  'food.ginger': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

@@ -26,9 +26,10 @@ const GOLDEN = [
   { key: 'food.egg_whole', revision: 2, id: 'ccd3b52a-5a8b-5ce9-b115-5f64b24b361e' },
   { key: 'food.rye_bread', revision: 2, id: 'f5997bf5-a983-5eea-86e0-71440ec899a1' },
   { key: 'food.hummus', revision: 2, id: '1a1f1b52-87db-5673-961a-5a042b9f004d' },
+  { key: 'food.butter', revision: 2, id: 'e4fd7208-a77b-55dc-9b56-afcc3445597e' },
   { key: 'food.brown_rice', revision: 1, id: '6491c19f-e35b-556e-92ae-4703226b376a' },
 ];
-const EXPECTED_CATALOG_HASH = '30d9f4b1565b549070796559b578cb79b10c467c';
+const EXPECTED_CATALOG_HASH = '0b291389335c6f9a2fa174686bc778c8fdd35660';
 
 describe('uuidv5 derivation', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -90,16 +91,17 @@ describe('serving normalization policy', () => {
   it('records grams_per_serving only where a valid gram conversion exists', () => {
     for (const food of CANONICAL_FOOD_CATALOG) {
       if (food.servingUnit === 'g') {
-        // Gram serving: grams === the amount, base revision.
+        // Gram serving: grams === the amount. Most are base revision; butter/ghee
+        // are revision 2 because this mini-slice corrected their mislabeled
+        // tsp(N grams) serving semantics to gram servings.
         expect(food.gramsPerServing).toBe(food.servingAmount);
-        expect(food.foodRevision).toBe(1);
       } else if (food.foodRevision === 2) {
         // Revision-2 count-unit food with a known gram weight — never
         // fabricated. Part 1: `piece` foods normalized to amount 1 (weight was
         // the pre-4A authored amount). ADR-P013 batches: `slice`/`tbsp` foods
         // keep their authored serving count; grams cover the FULL serving and
         // come from the pinned FDC manifest (fdc-portion-manifest.spec.ts gates).
-        expect(['piece', 'slice', 'tbsp']).toContain(food.servingUnit);
+        expect(['piece', 'slice', 'tbsp', 'tsp']).toContain(food.servingUnit);
         if (food.servingUnit === 'piece') expect(food.servingAmount).toBe(1);
         else expect(food.servingAmount).toBeGreaterThan(0);
         expect(food.gramsPerServing).toBeGreaterThan(0);
@@ -110,15 +112,16 @@ describe('serving normalization policy', () => {
     }
   });
 
-  it('exactly 46 foods carry a non-gram gram weight, all at revision 2 (29 piece + 4 slice + 13 tbsp)', () => {
+  it('exactly 50 foods carry a non-gram gram weight, all at revision 2 (29 piece + 4 slice + 13 tbsp + 4 tsp)', () => {
     const withGrams = CANONICAL_FOOD_CATALOG.filter(
       (f) => f.servingUnit !== 'g' && f.gramsPerServing != null,
     );
-    expect(withGrams).toHaveLength(46);
+    expect(withGrams).toHaveLength(50);
     expect(withGrams.every((f) => f.foodRevision === 2)).toBe(true);
     expect(withGrams.filter((f) => f.servingUnit === 'piece')).toHaveLength(29);
     expect(withGrams.filter((f) => f.servingUnit === 'slice')).toHaveLength(4);
     expect(withGrams.filter((f) => f.servingUnit === 'tbsp')).toHaveLength(13);
+    expect(withGrams.filter((f) => f.servingUnit === 'tsp')).toHaveLength(4);
   });
 
   it('preserves an authored non-gram serving with no known weight (no fabrication)', () => {

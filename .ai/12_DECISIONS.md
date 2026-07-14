@@ -2929,7 +2929,30 @@ pinned `sr_legacy_food_csv_2018-04` archive and checked-in provenance manifest.
   `CATALOG_VERSION` -> `food-catalog@1.3.0`; canonical artifacts/hash/goldens
   regenerated (a hummus rev-2 golden added to both suites). Macros are unchanged.
 
-**Remaining under this ADR:** 146 foods (98 `cup` + 18 remaining `tbsp` + 6 `tsp` + 23 `ml` + `sourdough_bread`)
+
+### Tsp Serving-Semantics Mini-Slice (2026-07-14) - corrected `tsp(N grams)` foods
+
+Before continuing to the `cup` batch, the six ambiguous `tsp(N)` foods were
+resolved because their authored amounts encoded gram weights rather than
+teaspoon counts. **Catalog/data + tests only - no schema, migration, UI, sync,
+backend, or deployment change.**
+
+- **Corrected to gram servings (no FDC portion row force-fit):** `butter` and
+  `ghee` now use `g(5)`. Their authored macros already describe a 5 g serving;
+  SR Legacy has butter/ghee analytical records, but no exact ghee teaspoon
+  portion row in the pinned archive, so the display semantics were corrected
+  without inventing a `tsp` conversion.
+- **Corrected to 1 tsp + FDC-sourced grams:** `mustard` (1 tsp = 5 g),
+  `hot_sauce` (Tabasco pepper sauce, 1 tsp = 4.7 g), `garlic` (1 tsp = 2.8 g),
+  and `ginger` (1 tsp = 2 g). Each row has exact FDC id/portion-row/per-100 g
+  macro provenance in `fdc-portion-manifest.json` and passes the same manifest
+  gate.
+- **Mechanics:** all six foods bumped to `food_revision` 2 (new UUIDv5s; rev-1
+  rows retained), `CATALOG_VERSION` -> `food-catalog@1.3.1`; canonical
+  artifacts/hash/goldens regenerated (a butter rev-2 golden added to both
+  suites). Macros are unchanged.
+
+**Remaining under this ADR:** 140 foods (98 `cup` + 18 remaining `tbsp` + 23 `ml` + `sourdough_bread`)
 stay `grams_per_serving = null`, gated pending later batches.
 
 ### Related Documents

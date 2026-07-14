@@ -108,8 +108,12 @@ export interface FoodItem {
  * tablespoon foods from the same pinned USDA-FDC SR Legacy archive; new
  * immutable revisions (2). Ambiguous tsp servings and non-reconciling tbsp/tsp
  * foods stay null/gated.
+ * 1.3.1 (ADR-P013 tsp semantics mini-slice): corrected the six ambiguous
+ * `tsp(N)` foods whose authored amount encoded grams, not teaspoon counts.
+ * Butter/ghee become gram servings; mustard/hot sauce/garlic/ginger become
+ * one-teaspoon servings with FDC-sourced gram weights.
  */
-export const CATALOG_VERSION = 'food-catalog@1.3.0';
+export const CATALOG_VERSION = 'food-catalog@1.3.1';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

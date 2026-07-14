@@ -72,13 +72,13 @@ describe('food catalog integrity', () => {
     // TECHDEBT-004 risk 3: the only non-gram foods carrying a known gram
     // weight are the 29 part-1 normalized `piece` foods (amount: 1, weight was
     // the pre-4A authored amount), the 4 ADR-P013 Batch-1 `slice` foods, and
-    // the 13 ADR-P013 Batch-2 `tbsp` foods. FDC-sourced full-serving weights
+    // the 13 ADR-P013 Batch-2 `tbsp` foods, and the 4 tsp-semantics `tsp` foods. FDC-sourced full-serving weights
     // are gated by catalog/fdc-portion-manifest.spec.ts. Remaining volumetric
     // foods must NOT carry a fabricated gram weight.
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(46);
+    expect(withGrams).toHaveLength(50);
     for (const f of withGrams) {
-      expect(['piece', 'slice', 'tbsp']).toContain(f.servingSize.unit);
+      expect(['piece', 'slice', 'tbsp', 'tsp']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
       else expect(f.servingSize.amount).toBeGreaterThan(0);
       expect(f.servingSize.grams).toBeGreaterThan(0);
@@ -95,6 +95,7 @@ describe('food catalog integrity', () => {
       'food.whole_wheat_bread',
     ]);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(13);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(4);
   });
 
   it('has finite, non-negative calories and macros; fiber within carbs', () => {

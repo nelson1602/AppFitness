@@ -863,8 +863,9 @@ identity/schema/seed), 2 (server-derived macro snapshot), and risk 3 **part 1**
 **Open** only for risk 3 **part 2** (data-source gate ADR-P013, Accepted
 2026-07-14; **Batch 1 implemented 2026-07-14** - 4 slice foods FDC-sourced;
 **Batch 2 implemented 2026-07-14** - 13 tablespoon foods FDC-sourced;
-146 foods still gated: 98 `cup` + 18 remaining `tbsp` + 6 `tsp` + 23 `ml` +
-`sourdough_bread`). See the status sections below.
+**tsp semantics mini-slice implemented 2026-07-14** - 6 ambiguous `tsp(N)`
+foods corrected; 140 foods still gated: 98 `cup` + 18 remaining `tbsp` +
+23 `ml` + `sourdough_bread`). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -937,9 +938,9 @@ never touched):
      13 `tbsp` foods from the same pinned USDA-FDC SR Legacy archive (see
      ADR-P013 Batch 1/2 Implementation Notes + the checked-in
      `fdc-portion-manifest.json`); `sourdough_bread` and non-reconciling or
-     ambiguous volumetric foods stay null/gated. **146 foods remain gated**
-     (98 `cup` + 18 remaining `tbsp` + 6 `tsp` + 23 `ml` + `sourdough_bread`);
-     gram entry stays unavailable
+     ambiguous volumetric foods stay null/gated. The tsp semantics mini-slice
+     corrected 6 `tsp(N grams)` foods. **140 foods remain gated** (98 `cup` +
+     18 remaining `tbsp` + 23 `ml` + `sourdough_bread`); gram entry stays unavailable
      for those; the log path uses fractional servings meanwhile.
 
 The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
@@ -1083,10 +1084,10 @@ UI change.**
 **Risk 3 part 2 stays OPEN, in progress** — the USDA-FDC `foodPortion`
 data-source strategy is **ADR-P013 (Accepted 2026-07-14)**. **Batch 1
 (2026-07-14, `food-catalog@1.2.0`)** sourced 4 slice foods; **Batch 2
-(2026-07-14, `food-catalog@1.3.0`)** sourced 13 tablespoon foods from the same
-pinned SR Legacy archive with a checked-in provenance manifest + gate spec.
-`sourdough_bread` unmatched (no reconciling portion) and 145 volumetric foods
-remain gated for later batches (nothing fabricated).
+(2026-07-14, `food-catalog@1.3.0`)** sourced 13 tablespoon foods; the **tsp
+semantics mini-slice (2026-07-14, `food-catalog@1.3.1`)** corrected 6 ambiguous
+`tsp(N grams)` foods. `sourdough_bread` unmatched (no reconciling portion) and
+139 volumetric foods remain gated for later batches (nothing fabricated).
 
 ### Related Documents
 

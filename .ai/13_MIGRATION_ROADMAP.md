@@ -1605,11 +1605,13 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       stays OPEN, in progress — strategy is **ADR-P013 (Accepted 2026-07-14)**;
       **Batch 1 (2026-07-14, `food-catalog@1.2.0`)** sourced 4 `slice` foods
       and **Batch 2 (2026-07-14, `food-catalog@1.3.0`)** sourced 13 `tbsp`
-      foods from the pinned USDA-FDC SR Legacy archive (checked-in
+      foods; the **tsp semantics mini-slice (2026-07-14, `food-catalog@1.3.1`)**
+      corrected 6 ambiguous `tsp(N grams)` foods. All use the pinned USDA-FDC
+      SR Legacy archive where a portion row exists (checked-in
       `fdc-portion-manifest.json` + gate spec; new immutable revisions 2;
       `sourdough_bread` and ambiguous/non-reconciling foods remain null/gated).
-      **146 foods remain gated** (98 `cup` + 18 `tbsp` + 6 `tsp` + 23 `ml` +
-      sourdough - nothing fabricated); logging uses fractional servings meanwhile.
+      **140 foods remain gated** (98 `cup` + 18 `tbsp` + 23 `ml` + sourdough -
+      nothing fabricated); logging uses fractional servings meanwhile.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

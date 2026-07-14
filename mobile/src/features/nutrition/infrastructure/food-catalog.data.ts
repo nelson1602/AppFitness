@@ -63,7 +63,6 @@ const ml = (amount: number): ServingSize => ({ amount, unit: 'ml' });
 const piece1 = (grams: number): ServingSize => ({ amount: 1, unit: 'piece', grams });
 const cup = (amount: number): ServingSize => ({ amount, unit: 'cup' });
 const tbsp = (amount: number): ServingSize => ({ amount, unit: 'tbsp' });
-const tsp = (amount: number): ServingSize => ({ amount, unit: 'tsp' });
 const slice = (amount: number): ServingSize => ({ amount, unit: 'slice' });
 // A slice serving whose full-serving gram weight is sourced from the pinned
 // USDA-FDC archive (ADR-P013 Batch 1; see catalog/fdc-portion-manifest.json for
@@ -77,6 +76,10 @@ const sliceFdc = (amount: number, grams: number): ServingSize => ({ amount, unit
 // (e.g. hummus' 2-tbsp serving = 30 g total). Revision bumps live in
 // FOOD_REVISIONS (domain/catalog-identity.ts).
 const tbspFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'tbsp', grams });
+// A teaspoon serving whose full-serving gram weight is sourced from the pinned
+// USDA-FDC archive (ADR-P013 tsp semantics mini-slice; see
+// catalog/fdc-portion-manifest.json for per-food fdcId/portion provenance).
+const tspFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'tsp', grams });
 
 export const FOOD_CATALOG: readonly FoodItem[] = [
   // ── protein_animal (42) ──────────────────────────────────────────────
@@ -1724,12 +1727,12 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
     caution: 'High in saturated fat — use in moderation.',
   }),
-  food('food.butter', 'Butter', 'fat_oil', tsp(5), 0, 0, 4, {
+  food('food.butter', 'Butter', 'fat_oil', g(5), 0, 0, 4, {
     tags: ['vegetarian', 'gluten_free'],
     avoid: ['lactose_sensitive'],
     caution: 'High in saturated fat — use in moderation.',
   }),
-  food('food.ghee', 'Ghee', 'fat_oil', tsp(5), 0, 0, 5, {
+  food('food.ghee', 'Ghee', 'fat_oil', g(5), 0, 0, 5, {
     tags: ['vegetarian', 'gluten_free'],
     caution: 'High in saturated fat — use in moderation.',
   }),
@@ -1801,7 +1804,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   }),
 
   // ── condiment (14) ───────────────────────────────────────────────────
-  food('food.mustard', 'Mustard, yellow', 'condiment', tsp(5), 0, 0, 0, {
+  food('food.mustard', 'Mustard, yellow', 'condiment', tspFdc(1, 5), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'quick_prep'],
   }),
   food('food.salsa', 'Salsa, tomato', 'condiment', tbspFdc(2, 36), 0, 2, 0, {
@@ -1811,7 +1814,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   food('food.balsamic_vinegar', 'Balsamic vinegar', 'condiment', tbspFdc(1, 16), 0, 3, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.hot_sauce', 'Hot sauce', 'condiment', tsp(5), 0, 0, 0, {
+  food('food.hot_sauce', 'Hot sauce', 'condiment', tspFdc(1, 4.7), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'quick_prep'],
     avoid: ['high_sodium_sensitive'],
   }),
@@ -1863,10 +1866,10 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.garlic', 'Garlic, raw', 'condiment', tsp(3), 0, 1, 0, {
+  food('food.garlic', 'Garlic, raw', 'condiment', tspFdc(1, 2.8), 0, 1, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.ginger', 'Ginger, fresh grated', 'condiment', tsp(2), 0, 0, 0, {
+  food('food.ginger', 'Ginger, fresh grated', 'condiment', tspFdc(1, 2), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
   food('food.greek_yogurt_dressing', 'Greek yogurt herb dressing', 'condiment', tbsp(2), 2, 2, 1, {

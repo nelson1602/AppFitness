@@ -53,12 +53,17 @@ const GOLDEN = [
     id: '1a1f1b52-87db-5673-961a-5a042b9f004d',
   },
   {
+    key: 'food.butter',
+    revision: 2,
+    id: 'e4fd7208-a77b-55dc-9b56-afcc3445597e',
+  },
+  {
     key: 'food.brown_rice',
     revision: 1,
     id: '6491c19f-e35b-556e-92ae-4703226b376a',
   },
 ];
-const EXPECTED_CATALOG_HASH = '30d9f4b1565b549070796559b578cb79b10c467c';
+const EXPECTED_CATALOG_HASH = '0b291389335c6f9a2fa174686bc778c8fdd35660';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -117,9 +122,10 @@ describe('canonical catalog seed artifact', () => {
         expect(food.gramsPerServing).toBe(food.servingAmount);
       } else if (food.foodRevision === 2) {
         // Revision-2 count-unit food with a known, non-fabricated gram weight:
-        // part-1 `piece` foods (amount 1) or ADR-P013 Batch-1/2 `slice`/`tbsp`
-        // foods (authored count kept; FDC-sourced full-serving weight).
-        expect(['piece', 'slice', 'tbsp']).toContain(food.servingUnit);
+        // part-1 `piece` foods (amount 1), ADR-P013 Batch-1/2 `slice`/`tbsp`
+        // foods, or tsp-semantics `tsp` foods (authored count kept;
+        // FDC-sourced full-serving weight).
+        expect(['piece', 'slice', 'tbsp', 'tsp']).toContain(food.servingUnit);
         if (food.servingUnit === 'piece') expect(food.servingAmount).toBe(1);
         else expect(food.servingAmount).toBeGreaterThan(0);
         expect(food.gramsPerServing).toBeGreaterThan(0);
@@ -139,7 +145,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.3.0',
+      catalogVersionSnapshot: 'food-catalog@1.3.1',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,
