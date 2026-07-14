@@ -219,6 +219,10 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   // ADR-P013 Batch 7 — lemon_juice density mini-batch (owner-authorized;
   // density from the raw record's volume-paired rows, tbsp serving).
   'food.lemon_juice': 2,
+  // ADR-P013 poppy-seeds serving-semantics correction slice (owner-authorized;
+  // authored macros were teaspoon-scale — serving corrected tbsp(1) → tsp(1)
+  // with the SR tsp portion gram weight, same pattern as the tsp mini-slice).
+  'food.poppy_seeds': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

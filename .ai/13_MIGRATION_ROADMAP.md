@@ -1621,15 +1621,16 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       use the pinned USDA-FDC SR Legacy archive where a portion row exists
       (checked-in `fdc-portion-manifest.json` + gate spec incl. density
       checks; new immutable revisions 2). **The SR Legacy + zero-macro-policy
-      sourcing track is COMPLETE (2026-07-14, `food-catalog@1.10.0` after the
-      owner-authorized Batch 7 lemon_juice density mini-batch): 157/190
-      non-gram foods sourced; the 33 remaining foods (16 `cup` + 8 `tbsp` +
-      8 `ml` + sourdough) are intentionally gated** — TECHDEBT-004 risk 3
-      part 2 stays Open (partially resolved), blocked solely on separate
-      owner decisions: FNDDS/second-source ADR amendment (expected to cover
-      sourdough) or the poppy authored-data correction. Nothing fabricated;
-      logging uses fractional servings meanwhile. See ADR-P013 "SR Legacy
-      Sourcing Track — Closure Note" + Batch 7 note.
+      sourcing track is COMPLETE (2026-07-14, `food-catalog@1.10.1` after the
+      owner-authorized Batch 7 lemon_juice density mini-batch and the
+      poppy-seeds serving-semantics correction slice): 158/190 non-gram foods
+      sourced; the 32 remaining foods (16 `cup` + 7 `tbsp` + 8 `ml` +
+      sourdough) are intentionally gated** — TECHDEBT-004 risk 3 part 2 stays
+      Open (partially resolved), blocked solely on one separate owner
+      decision: the FNDDS/second-source ADR amendment (expected to cover
+      sourdough). Nothing fabricated; logging uses fractional servings
+      meanwhile. See ADR-P013 "SR Legacy Sourcing Track — Closure Note" +
+      Batch 7 and poppy-correction notes.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

@@ -82,9 +82,11 @@ describe('food catalog integrity', () => {
     // foods must NOT carry a fabricated gram weight.
     // Batch 6 adds the 5 zero-macro foods after the owner resolved that
     // policy (4 ml beverages + apple_cider_vinegar).
-    // Batch 7 adds lemon_juice (density-derived tbsp liquid).
+    // Batch 7 adds lemon_juice (density-derived tbsp liquid). The poppy-seeds
+    // serving-semantics correction slice corrects poppy_seeds' teaspoon-scale
+    // authored macros to a 1-tsp serving with the SR tsp gram weight.
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(157);
+    expect(withGrams).toHaveLength(158);
     for (const f of withGrams) {
       expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
@@ -103,7 +105,7 @@ describe('food catalog integrity', () => {
       'food.whole_wheat_bread',
     ]);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(23);
-    expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(4);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(5);
     expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(82);
     expect(withGrams.filter((f) => f.servingSize.unit === 'ml')).toHaveLength(15);
   });

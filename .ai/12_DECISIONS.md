@@ -3212,9 +3212,10 @@ No further sourcing is possible without a **separate owner decision**:
   `sourdough_bread`, which FNDDS's dedicated sour-dough record is expected to
   cover; a sourdough-specific source decision is only needed if FNDDS is
   rejected).
-- **(b) Poppy-seeds authored-data correction** — `food.poppy_seeds`' authored
-  macros appear teaspoon-scale; a data-correction slice (new revision of the
-  authored macros) must precede any re-match.
+- **(b) Poppy-seeds authored-data correction — RESOLVED (correction slice,
+  2026-07-14):** the teaspoon-scale hypothesis was proven from the pinned
+  archive and the owner authorized the correction; the serving (not the
+  macros) was the defect. See the poppy-seeds correction note below.
 - **(c) One scoped exception — RESOLVED (Batch 7, 2026-07-14):**
   `food.lemon_juice` was closable under the ALREADY-approved density method
   and the owner authorized the scoped mini-batch; see the Batch 7 note below.
@@ -3247,9 +3248,34 @@ deployment change; no FNDDS, poppy, or other gated food touched.**
   rev-2 golden added to both suites); the corrected unmatched reason replaced
   by full provenance. Macros unchanged (0/300).
 
-**Remaining under this ADR: 33 foods** (16 `cup` + 8 `tbsp` + 8 `ml` +
+### Poppy-Seeds Serving-Semantics Correction Slice (2026-07-14)
+
+Owner-authorized correction slice closing gate (b) of the Closure Note.
+**Catalog/data + tests only — no schema, migration, UI, sync, backend, or
+deployment change; no FNDDS, sourdough, or other gated food touched.**
+
+- **Proof of the defect (from the pinned archive, not assumed):** SR 171330
+  **"Spices, poppy seed"** carries per-100 g kcal 525 / protein 17.99 / carbs
+  28.13 / fat 41.56 and two portion rows: 1 tsp = 2.8 g (portionRowId 88449)
+  and 1 tbsp = 8.8 g (portionRowId 88450). The authored macros (1/1/1 g,
+  17 kcal Atwater) fail the tbsp portion (est 46.2 kcal, Δ29.2 > the 25-kcal
+  gate — off ~2.7×) but reconcile cleanly at the tsp portion (est 14.7 kcal,
+  Δ2.3; protein 0.50 vs 1; carbs 0.79 vs 1; fat 1.16 vs 1). The authored
+  macros were correct for a teaspoon; the authored serving unit was the
+  defect.
+- **Correction:** serving corrected `tbsp(1)` → `tspFdc(1, 2.8)` — the exact
+  pattern of the 1.3.1 tsp semantics mini-slice (mustard/hot_sauce/garlic/
+  ginger). **Authored macros unchanged**; no grams invented — the 2.8 g weight
+  is the SR tsp portion row.
+- Revision 2 (new UUIDv5; rev-1 retained), `CATALOG_VERSION` →
+  `food-catalog@1.10.1` (patch bump per the 1.3.1 semantics-correction
+  precedent); artifacts/hash/goldens regenerated (a `poppy_seeds` rev-2 golden
+  added to both suites); the unmatched reason replaced by full provenance with
+  the correction documented in the reviewNote. Macros unchanged (0/300).
+
+**Remaining under this ADR: 32 foods** (16 `cup` + 7 `tbsp` + 8 `ml` +
 `sourdough_bread`), intentionally gated — blocked solely on (a) the FNDDS /
-second-source ADR amendment and (b) the poppy-seeds authored-data correction.
+second-source ADR amendment.
 
 ### Related Documents
 

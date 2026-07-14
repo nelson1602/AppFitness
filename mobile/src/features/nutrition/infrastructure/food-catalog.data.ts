@@ -1685,7 +1685,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['high_protein', 'healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
-  food('food.poppy_seeds', 'Poppy seeds', 'nuts_seeds', tbsp(1), 1, 1, 1, {
+  food('food.poppy_seeds', 'Poppy seeds', 'nuts_seeds', tspFdc(1, 2.8), 1, 1, 1, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),

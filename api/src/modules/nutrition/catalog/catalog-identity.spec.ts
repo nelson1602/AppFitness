@@ -95,8 +95,13 @@ const GOLDEN = [
     revision: 2,
     id: 'cfbd1b33-00c0-5f80-a79c-9dd7c9a98df9',
   },
+  {
+    key: 'food.poppy_seeds',
+    revision: 2,
+    id: 'cd24d2e9-8b80-5986-9f28-458a2ff9f2e1',
+  },
 ];
-const EXPECTED_CATALOG_HASH = '48fc9fecfdb559556a6bbeae36e32cefe376e58d';
+const EXPECTED_CATALOG_HASH = '17d840e16ce33199b25d100c7c1811944835fa23';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -180,7 +185,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.10.0',
+      catalogVersionSnapshot: 'food-catalog@1.10.1',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

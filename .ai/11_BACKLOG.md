@@ -876,8 +876,11 @@ volume-paired portions; **Batch 6 implemented 2026-07-14** — the owner
 resolved the zero-macro policy and the 5 policy-class foods (4 beverages +
 apple_cider_vinegar) were sourced from their pre-recorded SR candidates;
 **Batch 7 implemented 2026-07-14** — the owner-authorized lemon_juice density
-mini-batch; 33 foods still gated: 16 `cup` + 8 `tbsp` + 8 `ml` +
-`sourdough_bread`). See the status sections below.
+mini-batch; **poppy-seeds serving-semantics correction slice implemented
+2026-07-14** — the owner-authorized correction of poppy_seeds' teaspoon-scale
+authored serving (tbsp(1) → tsp(1) + SR tsp gram weight); 32 foods still
+gated: 16 `cup` + 7 `tbsp` + 8 `ml` + `sourdough_bread`). See the status
+sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -963,21 +966,23 @@ never touched):
      (2026-07-14)** sourced the 5 zero-macro foods after the owner resolved
      the zero-macro policy (gram entry on zero-macro foods scales zeros —
      harmless by design); **Batch 7 (2026-07-14)** density-derived the 1-tbsp
-     lemon_juice serving (owner-authorized scoped mini-batch). **33 foods
-     remain gated** (16 `cup` + 8 `tbsp` + 8 `ml` + `sourdough_bread`); gram
-     entry stays unavailable for those; the log path uses fractional servings
-     meanwhile.
+     lemon_juice serving (owner-authorized scoped mini-batch); the
+     **poppy-seeds serving-semantics correction slice (2026-07-14)** corrected
+     poppy_seeds' teaspoon-scale authored serving to tsp(1) with the SR tsp
+     gram weight (owner-authorized). **32 foods remain gated** (16 `cup` +
+     7 `tbsp` + 8 `ml` + `sourdough_bread`); gram entry stays unavailable for
+     those; the log path uses fractional servings meanwhile.
 
 The item stays **Open (partially resolved)** for risk 3 **part 2** only; risks
 1, 2, and risk 3 part 1 are resolved. **The SR Legacy + zero-macro-policy
-sourcing track is COMPLETE (2026-07-14): 157 of 190 non-gram foods sourced
-(incl. the owner-authorized Batch 7 lemon_juice density mini-batch,
-`food-catalog@1.10.0`); the 33 remaining foods are intentionally gated** with
-archive-re-verified reasons (see ADR-P013 "SR Legacy Sourcing Track — Closure
-Note" + Batch 7 note). Further progress is blocked solely on separate owner
-decisions: (a) an FNDDS / second-source ADR amendment (covers most of the 33
-incl. `sourdough_bread` unless a sourdough-specific source is preferred), and
-(b) the poppy-seeds authored-data correction.
+sourcing track is COMPLETE (2026-07-14): 158 of 190 non-gram foods sourced
+(incl. the owner-authorized Batch 7 lemon_juice density mini-batch and the
+poppy-seeds serving-semantics correction slice, `food-catalog@1.10.1`); the 32
+remaining foods are intentionally gated** with archive-re-verified reasons
+(see ADR-P013 "SR Legacy Sourcing Track — Closure Note" + Batch 7 and
+poppy-correction notes). Further progress is blocked solely on one separate
+owner decision: the FNDDS / second-source ADR amendment (covers most of the 32
+incl. `sourdough_bread` unless a sourdough-specific source is preferred).
 
 ### Slice 4B implementation status (2026-07-13) — backend handler landed
 
@@ -1127,10 +1132,13 @@ sourced 14 cup fruits; **Batch 4 (2026-07-14, `food-catalog@1.7.0`)** sourced
 `food-catalog@1.8.0`)** density-derived 11 ml foods; **Batch 6 (2026-07-14,
 `food-catalog@1.9.0`)** sourced the 5 zero-macro foods after the owner
 resolved that policy; **Batch 7 (2026-07-14, `food-catalog@1.10.0`)**
-density-derived lemon_juice (owner-authorized). **33 foods remain gated**
-(16 `cup` + 8 `tbsp` + 8 `ml` + `sourdough_bread`) — none matchable under the
-pinned SR Legacy archive; closing them needs a different-source decision
-(FNDDS) or the poppy authored-data correction. Nothing fabricated.
+density-derived lemon_juice (owner-authorized); the **poppy-seeds
+serving-semantics correction slice (2026-07-14, `food-catalog@1.10.1`)**
+corrected poppy_seeds' teaspoon-scale authored serving to tsp(1) with the SR
+tsp gram weight (owner-authorized). **32 foods remain gated** (16 `cup` +
+7 `tbsp` + 8 `ml` + `sourdough_bread`) — none matchable under the pinned SR
+Legacy archive; closing them needs a different-source decision (FNDDS).
+Nothing fabricated.
 
 ### Related Documents
 

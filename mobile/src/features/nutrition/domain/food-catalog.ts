@@ -150,8 +150,15 @@ export interface FoodItem {
  * the 1-tbsp serving of food.lemon_juice from SR "Lemon juice, raw" (167747),
  * whose cup and fl-oz volume pairings independently give 1.0313 g/ml
  * (1 tbsp = 14.7868 ml -> 15.25 g). New immutable revision (2).
+ * 1.10.1 (ADR-P013 poppy-seeds serving-semantics correction slice): the
+ * authored macros of food.poppy_seeds (1/1/1 g, 17 kcal) are teaspoon-scale —
+ * they fail SR "Spices, poppy seed" (171330) at the 1-tbsp portion (8.8 g,
+ * est 46.2 kcal) but reconcile at the 1-tsp portion (2.8 g, est 14.7 kcal).
+ * Serving corrected tbsp(1) -> tsp(1) with the SR tsp gram weight (same
+ * pattern as the 1.3.1 tsp semantics mini-slice); macros unchanged. New
+ * immutable revision (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.10.0';
+export const CATALOG_VERSION = 'food-catalog@1.10.1';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [
