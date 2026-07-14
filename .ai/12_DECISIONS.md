@@ -2982,9 +2982,50 @@ manifest.
   regenerated (a `brown_rice` rev-2 golden added to both suites). Macros are
   unchanged.
 
-**Remaining under this ADR:** 114 foods (72 remaining `cup` + 18 remaining
-`tbsp` + 23 `ml` + `sourdough_bread`) stay `grams_per_serving = null`, gated
-pending later batches.
+**Remaining after Batch 3A:** 114 foods (72 remaining `cup` + 18 remaining
+`tbsp` + 23 `ml` + `sourdough_bread`) stayed `grams_per_serving = null` — see
+Batch 3B below.
+
+### Batch 3B Implementation Note (2026-07-14) — cup vegetables
+
+The second `cup` batch is implemented per this ADR. **Catalog/data + tests only
+— no schema, migration, UI, sync, backend, or deployment change.** It reuses
+the same pinned `sr_legacy_food_csv_2018-04` archive (sha256 re-verified before
+use) and the checked-in provenance manifest.
+
+- **Matched (42 of 47 gated cup vegetables), all passing the
+  macro-reconciliation gate** with without-salt (or unsalted-variant) SR
+  records: `broccoli`, `spinach`, `kale`, `cauliflower`, `brussels_sprouts`,
+  `asparagus`, `green_beans`, `zucchini`, `bell_pepper_red`, `carrots`,
+  `tomato`, `cucumber`, `lettuce_romaine`, `cabbage`, `mushrooms`,
+  `sweet_potato`, `butternut_squash`, `beets`, `eggplant`, `celery`,
+  `bok_choy`, `swiss_chard`, `collard_greens`, `okra`, `snap_peas`, `corn`,
+  `pumpkin`, `spaghetti_squash`, `turnip`, `parsnip`, `radish`, `arugula`,
+  `watercress`, `fennel`, `kohlrabi`, `acorn_squash`, `bell_pepper_green`,
+  `cherry_tomatoes`, `sauerkraut`, `spinach_raw`, `jicama`, `tomatillo`. Each
+  row has exact FDC id/portion-row/per-100 g macro provenance in
+  `fdc-portion-manifest.json`; every pick was re-verified against the archive
+  (description + portion row + nutrients + derivation) before applying.
+- **Unmatched / still gated (5), never force-fit:** `onion` and `leeks` (SR
+  cooked records fail macro reconciliation), `snow_peas` (catalog food says
+  *cooked* but only the RAW edible-podded record reconciles — semantic
+  mismatch), `mixed_greens` (no SR record for a mix; single-lettuce analogs
+  differ materially, 36–57 g/cup — ambiguous), `broccolini` (no SR record; the
+  nearest name match, broccoli raab, is a different vegetable and fails the
+  gate catastrophically). Reasons recorded in the manifest's `unmatched` list.
+- **Mechanics:** the 42 matched foods gained authored full-serving `grams`
+  (2-cup salad servings derive as cup weight × 2), bumped to `food_revision` 2
+  (new UUIDv5s; rev-1 rows retained), `CATALOG_VERSION` →
+  `food-catalog@1.5.0`; canonical artifacts/hash/goldens regenerated (a
+  `broccoli` rev-2 golden added to both suites). Macros are unchanged (0/300).
+- **Encoding fix (incidental):** the regenerated canonical `.ts` restores the
+  proper em-dash in its GENERATED header comment; a later batch's generator had
+  written it as literal `???` (mojibake). Comment-only, no data impact.
+
+**Remaining under this ADR:** 72 foods (30 remaining `cup` — fruits, dairy,
+beverages, composites, plus the 5 unmatched vegetables and 3A's unmatched
+grains/legumes — + 18 remaining `tbsp` + 23 `ml` + `sourdough_bread`) stay
+`grams_per_serving = null`, gated pending later batches.
 
 ### Related Documents
 

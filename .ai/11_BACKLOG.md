@@ -865,7 +865,9 @@ identity/schema/seed), 2 (server-derived macro snapshot), and risk 3 **part 1**
 **Batch 2 implemented 2026-07-14** - 13 tablespoon foods FDC-sourced;
 **tsp semantics mini-slice implemented 2026-07-14** - 6 ambiguous `tsp(N)`
 foods corrected; **Batch 3A implemented 2026-07-14** - 26 cup-served
-grains/legumes/staples FDC-sourced; 114 foods still gated: 72 remaining `cup` + 18 remaining `tbsp` +
+grains/legumes/staples FDC-sourced; **Batch 3B implemented 2026-07-14** — 42
+cup-served vegetables FDC-sourced (onion/snow_peas/leeks/mixed_greens/broccolini
+unmatched); 72 foods still gated: 30 remaining `cup` + 18 remaining `tbsp` +
 23 `ml` + `sourdough_bread`). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
@@ -941,9 +943,12 @@ never touched):
      `fdc-portion-manifest.json`); `sourdough_bread` and non-reconciling or
      ambiguous volumetric foods stay null/gated. The tsp semantics mini-slice
      corrected 6 `tsp(N grams)` foods. **Batch 3A (2026-07-14)** sourced 26
-     cup-served grains/legumes/staples. **114 foods remain gated** (72 remaining
-     `cup` + 18 remaining `tbsp` + 23 `ml` + `sourdough_bread`); gram entry stays unavailable
-     for those; the log path uses fractional servings meanwhile.
+     cup-served grains/legumes/staples; **Batch 3B (2026-07-14)** sourced 42
+     cup-served vegetables (onion, snow_peas, leeks, mixed_greens, broccolini
+     unmatched — reasons in the manifest). **72 foods remain gated** (30
+     remaining `cup` + 18 remaining `tbsp` + 23 `ml` + `sourdough_bread`);
+     gram entry stays unavailable for those; the log path uses fractional
+     servings meanwhile.
 
 The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
 risks 1, 2, and risk 3 part 1 are resolved.
@@ -1088,8 +1093,10 @@ data-source strategy is **ADR-P013 (Accepted 2026-07-14)**. **Batch 1
 (2026-07-14, `food-catalog@1.2.0`)** sourced 4 slice foods; **Batch 2
 (2026-07-14, `food-catalog@1.3.0`)** sourced 13 tablespoon foods; the **tsp
 semantics mini-slice (2026-07-14, `food-catalog@1.3.1`)** corrected 6 ambiguous
-`tsp(N grams)` foods. `sourdough_bread` unmatched (no reconciling portion) and
-139 volumetric foods remain gated for later batches (nothing fabricated).
+`tsp(N grams)` foods; **Batch 3A (2026-07-14, `food-catalog@1.4.0`)** sourced
+26 cup grains/legumes/staples; **Batch 3B (2026-07-14, `food-catalog@1.5.0`)**
+sourced 42 cup vegetables. **72 foods remain gated** (30 `cup` + 18 `tbsp` +
+23 `ml` + `sourdough_bread`) for later batches (nothing fabricated).
 
 ### Related Documents
 

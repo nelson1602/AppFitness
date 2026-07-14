@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-3A + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-3B + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -956,6 +956,846 @@
       },
       "derivedGramsPerServing": 172,
       "reviewNote": "Catalog serving is 1 cup cooked soybeans; SR cooked unsalted soybeans provide 1 cup = 172 g and reconcile within tolerance."
+    },
+    {
+      "catalogKey": "food.broccoli",
+      "fdcId": 169967,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Broccoli, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 85772,
+        "amount": 0.5,
+        "modifier": "cup, chopped",
+        "gramWeight": 78
+      },
+      "fdcPer100g": {
+        "kcal": 35,
+        "proteinG": 2.38,
+        "carbsG": 7.18,
+        "fatG": 0.41
+      },
+      "derivedGramsPerServing": 156,
+      "reviewNote": "Without-salt record; 0.5 cup chopped = 78 g so 1 cup = 156 g. Est 54.6 kcal vs 69 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.spinach",
+      "fdcId": 168463,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Spinach, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 83136,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 180
+      },
+      "fdcPer100g": {
+        "kcal": 23,
+        "proteinG": 2.97,
+        "carbsG": 3.75,
+        "fatG": 0.26
+      },
+      "derivedGramsPerServing": 180,
+      "reviewNote": "Without-salt record; 1 cup = 180 g. Est 41.4 kcal vs 48."
+    },
+    {
+      "catalogKey": "food.kale",
+      "fdcId": 169238,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Kale, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 84493,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 118
+      },
+      "fdcPer100g": {
+        "kcal": 36,
+        "proteinG": 2.94,
+        "carbsG": 5.3,
+        "fatG": 1.21
+      },
+      "derivedGramsPerServing": 118,
+      "reviewNote": "Without-salt record; 1 cup = 118 g. Est 42.5 kcal vs 49."
+    },
+    {
+      "catalogKey": "food.cauliflower",
+      "fdcId": 170397,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Cauliflower, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 86573,
+        "amount": 0.5,
+        "modifier": "cup (1\" pieces)",
+        "gramWeight": 62
+      },
+      "fdcPer100g": {
+        "kcal": 23,
+        "proteinG": 1.84,
+        "carbsG": 4.11,
+        "fatG": 0.45
+      },
+      "derivedGramsPerServing": 124,
+      "reviewNote": "Without-salt record; 0.5 cup pieces = 62 g so 1 cup = 124 g. Est 28.5 kcal vs 28."
+    },
+    {
+      "catalogKey": "food.brussels_sprouts",
+      "fdcId": 169971,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Brussels sprouts, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 85784,
+        "amount": 0.5,
+        "modifier": "cup",
+        "gramWeight": 78
+      },
+      "fdcPer100g": {
+        "kcal": 36,
+        "proteinG": 2.55,
+        "carbsG": 7.1,
+        "fatG": 0.5
+      },
+      "derivedGramsPerServing": 156,
+      "reviewNote": "Without-salt record; 0.5 cup = 78 g so 1 cup = 156 g. Est 56.2 kcal vs 69 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.asparagus",
+      "fdcId": 168390,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Asparagus, cooked, boiled, drained",
+      "portion": {
+        "portionRowId": 83018,
+        "amount": 0.5,
+        "modifier": "cup",
+        "gramWeight": 90
+      },
+      "fdcPer100g": {
+        "kcal": 22,
+        "proteinG": 2.4,
+        "carbsG": 4.11,
+        "fatG": 0.22
+      },
+      "derivedGramsPerServing": 180,
+      "reviewNote": "Unsalted cooked record; 0.5 cup = 90 g so 1 cup = 180 g. Est 39.6 kcal vs 44."
+    },
+    {
+      "catalogKey": "food.green_beans",
+      "fdcId": 169141,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beans, snap, green, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 84317,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 125
+      },
+      "fdcPer100g": {
+        "kcal": 35,
+        "proteinG": 1.89,
+        "carbsG": 7.88,
+        "fatG": 0.28
+      },
+      "derivedGramsPerServing": 125,
+      "reviewNote": "Without-salt record; 1 cup = 125 g. Est 43.8 kcal vs 48."
+    },
+    {
+      "catalogKey": "food.zucchini",
+      "fdcId": 169292,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Squash, summer, zucchini, includes skin, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 84613,
+        "amount": 1,
+        "modifier": "cup, sliced",
+        "gramWeight": 180
+      },
+      "fdcPer100g": {
+        "kcal": 15,
+        "proteinG": 1.14,
+        "carbsG": 2.69,
+        "fatG": 0.36
+      },
+      "derivedGramsPerServing": 180,
+      "reviewNote": "Without-salt record; 1 cup sliced = 180 g (mashed 240 g rejected as less representative). Est 27.0 kcal vs 24."
+    },
+    {
+      "catalogKey": "food.bell_pepper_red",
+      "fdcId": 170108,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Peppers, sweet, red, raw",
+      "portion": {
+        "portionRowId": 86062,
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 149
+      },
+      "fdcPer100g": {
+        "kcal": 26,
+        "proteinG": 0.99,
+        "carbsG": 6.03,
+        "fatG": 0.3
+      },
+      "derivedGramsPerServing": 149,
+      "reviewNote": "Raw record; 1 cup chopped = 149 g (sliced 92 g fails the gate). Est 38.7 kcal vs 40."
+    },
+    {
+      "catalogKey": "food.carrots",
+      "fdcId": 170394,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Carrots, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 86565,
+        "amount": 0.5,
+        "modifier": "cup slices",
+        "gramWeight": 78
+      },
+      "fdcPer100g": {
+        "kcal": 35,
+        "proteinG": 0.76,
+        "carbsG": 8.22,
+        "fatG": 0.18
+      },
+      "derivedGramsPerServing": 156,
+      "reviewNote": "Without-salt record; 0.5 cup slices = 78 g so 1 cup = 156 g. Est 54.6 kcal vs 52."
+    },
+    {
+      "catalogKey": "food.tomato",
+      "fdcId": 170457,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Tomatoes, red, ripe, raw, year round average",
+      "portion": {
+        "portionRowId": 86682,
+        "amount": 1,
+        "modifier": "cup, chopped or sliced",
+        "gramWeight": 180
+      },
+      "fdcPer100g": {
+        "kcal": 18,
+        "proteinG": 0.88,
+        "carbsG": 3.89,
+        "fatG": 0.2
+      },
+      "derivedGramsPerServing": 180,
+      "reviewNote": "Year-round-average raw record; 1 cup chopped/sliced = 180 g. Est 32.4 kcal vs 32."
+    },
+    {
+      "catalogKey": "food.cucumber",
+      "fdcId": 168409,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Cucumber, with peel, raw",
+      "portion": {
+        "portionRowId": 83049,
+        "amount": 0.5,
+        "modifier": "cup slices",
+        "gramWeight": 52
+      },
+      "fdcPer100g": {
+        "kcal": 15,
+        "proteinG": 0.65,
+        "carbsG": 3.63,
+        "fatG": 0.11
+      },
+      "derivedGramsPerServing": 104,
+      "reviewNote": "With-peel raw record; 0.5 cup slices = 52 g so 1 cup = 104 g. Est 15.6 kcal vs 20."
+    },
+    {
+      "catalogKey": "food.lettuce_romaine",
+      "fdcId": 169247,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Lettuce, cos or romaine, raw",
+      "portion": {
+        "portionRowId": 84506,
+        "amount": 1,
+        "modifier": "cup shredded",
+        "gramWeight": 47
+      },
+      "fdcPer100g": {
+        "kcal": 17,
+        "proteinG": 1.23,
+        "carbsG": 3.29,
+        "fatG": 0.3
+      },
+      "derivedGramsPerServing": 94,
+      "reviewNote": "Catalog serving is 2 cups; 1 cup shredded = 47 g so serving = 94 g. Est 16.0 kcal vs 16 (delta 0)."
+    },
+    {
+      "catalogKey": "food.cabbage",
+      "fdcId": 169976,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Cabbage, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 85799,
+        "amount": 0.5,
+        "modifier": "cup, shredded",
+        "gramWeight": 75
+      },
+      "fdcPer100g": {
+        "kcal": 23,
+        "proteinG": 1.27,
+        "carbsG": 5.51,
+        "fatG": 0.06
+      },
+      "derivedGramsPerServing": 150,
+      "reviewNote": "Without-salt record; 0.5 cup shredded = 75 g so 1 cup = 150 g. Est 34.5 kcal vs 40."
+    },
+    {
+      "catalogKey": "food.mushrooms",
+      "fdcId": 169252,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Mushrooms, white, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 84533,
+        "amount": 1,
+        "modifier": "cup pieces",
+        "gramWeight": 156
+      },
+      "fdcPer100g": {
+        "kcal": 28,
+        "proteinG": 2.17,
+        "carbsG": 5.29,
+        "fatG": 0.47
+      },
+      "derivedGramsPerServing": 156,
+      "reviewNote": "Without-salt record; 1 cup pieces = 156 g. Est 43.7 kcal vs 57 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.sweet_potato",
+      "fdcId": 168483,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Sweet potato, cooked, baked in skin, flesh, without salt",
+      "portion": {
+        "portionRowId": 83168,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 200
+      },
+      "fdcPer100g": {
+        "kcal": 90,
+        "proteinG": 2.01,
+        "carbsG": 20.71,
+        "fatG": 0.15
+      },
+      "derivedGramsPerServing": 200,
+      "reviewNote": "Baked-in-skin without-salt record; 1 cup = 200 g. Est 180.0 kcal vs 180 (delta 0)."
+    },
+    {
+      "catalogKey": "food.butternut_squash",
+      "fdcId": 169296,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Squash, winter, butternut, cooked, baked, without salt",
+      "portion": {
+        "portionRowId": 84618,
+        "amount": 1,
+        "modifier": "cup, cubes",
+        "gramWeight": 205
+      },
+      "fdcPer100g": {
+        "kcal": 40,
+        "proteinG": 0.9,
+        "carbsG": 10.49,
+        "fatG": 0.09
+      },
+      "derivedGramsPerServing": 205,
+      "reviewNote": "Baked without-salt record; 1 cup cubes = 205 g. Est 82.0 kcal vs 96 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.beets",
+      "fdcId": 169146,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beets, cooked, boiled, drained",
+      "portion": {
+        "portionRowId": 84327,
+        "amount": 0.5,
+        "modifier": "cup slices",
+        "gramWeight": 85
+      },
+      "fdcPer100g": {
+        "kcal": 44,
+        "proteinG": 1.68,
+        "carbsG": 9.96,
+        "fatG": 0.18
+      },
+      "derivedGramsPerServing": 170,
+      "reviewNote": "Unsalted cooked record; 0.5 cup slices = 85 g so 1 cup = 170 g. Est 74.8 kcal vs 80."
+    },
+    {
+      "catalogKey": "food.eggplant",
+      "fdcId": 169229,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Eggplant, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 84477,
+        "amount": 1,
+        "modifier": "cup (1\" cubes)",
+        "gramWeight": 99
+      },
+      "fdcPer100g": {
+        "kcal": 35,
+        "proteinG": 0.83,
+        "carbsG": 8.73,
+        "fatG": 0.23
+      },
+      "derivedGramsPerServing": 99,
+      "reviewNote": "Without-salt record; 1 cup cubes = 99 g. Est 34.6 kcal vs 40."
+    },
+    {
+      "catalogKey": "food.celery",
+      "fdcId": 169988,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Celery, raw",
+      "portion": {
+        "portionRowId": 85824,
+        "amount": 1,
+        "modifier": "cup chopped",
+        "gramWeight": 101
+      },
+      "fdcPer100g": {
+        "kcal": 14,
+        "proteinG": 0.69,
+        "carbsG": 2.97,
+        "fatG": 0.17
+      },
+      "derivedGramsPerServing": 101,
+      "reviewNote": "Raw record; 1 cup chopped = 101 g. Est 14.1 kcal vs 16."
+    },
+    {
+      "catalogKey": "food.bok_choy",
+      "fdcId": 170391,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Cabbage, chinese (pak-choi), cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 86553,
+        "amount": 1,
+        "modifier": "cup, shredded",
+        "gramWeight": 170
+      },
+      "fdcPer100g": {
+        "kcal": 12,
+        "proteinG": 1.56,
+        "carbsG": 1.78,
+        "fatG": 0.16
+      },
+      "derivedGramsPerServing": 170,
+      "reviewNote": "Pak-choi is bok choy; without-salt record; 1 cup shredded = 170 g. Est 20.4 kcal vs 24."
+    },
+    {
+      "catalogKey": "food.swiss_chard",
+      "fdcId": 170401,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Chard, swiss, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 86579,
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 175
+      },
+      "fdcPer100g": {
+        "kcal": 20,
+        "proteinG": 1.88,
+        "carbsG": 4.13,
+        "fatG": 0.08
+      },
+      "derivedGramsPerServing": 175,
+      "reviewNote": "Without-salt record; 1 cup chopped = 175 g. Est 35.0 kcal vs 40."
+    },
+    {
+      "catalogKey": "food.collard_greens",
+      "fdcId": 170407,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Collards, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 86587,
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 190
+      },
+      "fdcPer100g": {
+        "kcal": 33,
+        "proteinG": 2.71,
+        "carbsG": 5.65,
+        "fatG": 0.72
+      },
+      "derivedGramsPerServing": 190,
+      "reviewNote": "Without-salt record; 1 cup chopped = 190 g. Est 62.7 kcal vs 69."
+    },
+    {
+      "catalogKey": "food.okra",
+      "fdcId": 169261,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Okra, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 84555,
+        "amount": 0.5,
+        "modifier": "cup slices",
+        "gramWeight": 80
+      },
+      "fdcPer100g": {
+        "kcal": 22,
+        "proteinG": 1.87,
+        "carbsG": 4.51,
+        "fatG": 0.21
+      },
+      "derivedGramsPerServing": 160,
+      "reviewNote": "Without-salt record; 0.5 cup slices = 80 g so 1 cup = 160 g. Est 35.2 kcal vs 40."
+    },
+    {
+      "catalogKey": "food.snap_peas",
+      "fdcId": 170010,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Peas, edible-podded, raw",
+      "portion": {
+        "portionRowId": 85890,
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 98
+      },
+      "fdcPer100g": {
+        "kcal": 42,
+        "proteinG": 2.8,
+        "carbsG": 7.55,
+        "fatG": 0.2
+      },
+      "derivedGramsPerServing": 98,
+      "reviewNote": "SR edible-podded covers sugar snap peas; catalog food has no cooked marker and reconciles with the raw record (est 41.2 kcal vs 40, delta 1.2). 1 cup chopped = 98 g."
+    },
+    {
+      "catalogKey": "food.corn",
+      "fdcId": 169999,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Corn, sweet, yellow, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 85853,
+        "amount": 1,
+        "modifier": "cup cut",
+        "gramWeight": 149
+      },
+      "fdcPer100g": {
+        "kcal": 96,
+        "proteinG": 3.41,
+        "carbsG": 20.98,
+        "fatG": 1.5
+      },
+      "derivedGramsPerServing": 149,
+      "reviewNote": "Without-salt record; 1 cup cut = 149 g. Est 143.0 kcal vs 162 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.pumpkin",
+      "fdcId": 168449,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Pumpkin, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 83113,
+        "amount": 1,
+        "modifier": "cup, mashed",
+        "gramWeight": 245
+      },
+      "fdcPer100g": {
+        "kcal": 20,
+        "proteinG": 0.72,
+        "carbsG": 4.9,
+        "fatG": 0.07
+      },
+      "derivedGramsPerServing": 245,
+      "reviewNote": "Without-salt record; mashed is the only SR cup measure for boiled pumpkin (245 g). Est 49.0 kcal vs 56."
+    },
+    {
+      "catalogKey": "food.spaghetti_squash",
+      "fdcId": 169299,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Squash, winter, spaghetti, cooked, boiled, drained, or baked, without salt",
+      "portion": {
+        "portionRowId": 84621,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 155
+      },
+      "fdcPer100g": {
+        "kcal": 27,
+        "proteinG": 0.66,
+        "carbsG": 6.46,
+        "fatG": 0.26
+      },
+      "derivedGramsPerServing": 155,
+      "reviewNote": "Without-salt record; 1 cup = 155 g. Est 41.9 kcal vs 44."
+    },
+    {
+      "catalogKey": "food.turnip",
+      "fdcId": 170058,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Turnips, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 85976,
+        "amount": 1,
+        "modifier": "cup, cubes",
+        "gramWeight": 156
+      },
+      "fdcPer100g": {
+        "kcal": 22,
+        "proteinG": 0.71,
+        "carbsG": 5.06,
+        "fatG": 0.08
+      },
+      "derivedGramsPerServing": 156,
+      "reviewNote": "Without-salt record; 1 cup cubes = 156 g (mashed 230 g rejected — fails kcal proximity). Est 34.3 kcal vs 36."
+    },
+    {
+      "catalogKey": "food.parsnip",
+      "fdcId": 170009,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Parsnips, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 85888,
+        "amount": 0.5,
+        "modifier": "cup slices",
+        "gramWeight": 78
+      },
+      "fdcPer100g": {
+        "kcal": 71,
+        "proteinG": 1.32,
+        "carbsG": 17.01,
+        "fatG": 0.3
+      },
+      "derivedGramsPerServing": 156,
+      "reviewNote": "Without-salt record; 0.5 cup slices = 78 g so 1 cup = 156 g. Est 110.8 kcal vs 116."
+    },
+    {
+      "catalogKey": "food.radish",
+      "fdcId": 169276,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Radishes, raw",
+      "portion": {
+        "portionRowId": 84582,
+        "amount": 1,
+        "modifier": "cup slices",
+        "gramWeight": 116
+      },
+      "fdcPer100g": {
+        "kcal": 16,
+        "proteinG": 0.68,
+        "carbsG": 3.4,
+        "fatG": 0.1
+      },
+      "derivedGramsPerServing": 116,
+      "reviewNote": "Raw record; 1 cup slices = 116 g. Est 18.6 kcal vs 20."
+    },
+    {
+      "catalogKey": "food.arugula",
+      "fdcId": 169387,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Arugula, raw",
+      "portion": {
+        "portionRowId": 84771,
+        "amount": 0.5,
+        "modifier": "cup",
+        "gramWeight": 10
+      },
+      "fdcPer100g": {
+        "kcal": 25,
+        "proteinG": 2.58,
+        "carbsG": 3.65,
+        "fatG": 0.66
+      },
+      "derivedGramsPerServing": 40,
+      "reviewNote": "Catalog serving is 2 cups; 0.5 cup = 10 g so serving = 40 g. Est 10.0 kcal vs 8."
+    },
+    {
+      "catalogKey": "food.watercress",
+      "fdcId": 170068,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Watercress, raw",
+      "portion": {
+        "portionRowId": 85991,
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 34
+      },
+      "fdcPer100g": {
+        "kcal": 11,
+        "proteinG": 2.3,
+        "carbsG": 1.29,
+        "fatG": 0.1
+      },
+      "derivedGramsPerServing": 68,
+      "reviewNote": "Catalog serving is 2 cups; 1 cup chopped = 34 g so serving = 68 g. Est 7.5 kcal vs 12 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.fennel",
+      "fdcId": 169385,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Fennel, bulb, raw",
+      "portion": {
+        "portionRowId": 84766,
+        "amount": 1,
+        "modifier": "cup, sliced",
+        "gramWeight": 87
+      },
+      "fdcPer100g": {
+        "kcal": 31,
+        "proteinG": 1.24,
+        "carbsG": 7.3,
+        "fatG": 0.2
+      },
+      "derivedGramsPerServing": 87,
+      "reviewNote": "Raw bulb record; 1 cup sliced = 87 g. Est 27.0 kcal vs 28."
+    },
+    {
+      "catalogKey": "food.kohlrabi",
+      "fdcId": 168425,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Kohlrabi, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 83073,
+        "amount": 1,
+        "modifier": "cup slices",
+        "gramWeight": 165
+      },
+      "fdcPer100g": {
+        "kcal": 29,
+        "proteinG": 1.8,
+        "carbsG": 6.69,
+        "fatG": 0.11
+      },
+      "derivedGramsPerServing": 165,
+      "reviewNote": "Without-salt record; 1 cup slices = 165 g. Est 47.8 kcal vs 56."
+    },
+    {
+      "catalogKey": "food.acorn_squash",
+      "fdcId": 169293,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Squash, winter, acorn, cooked, baked, without salt",
+      "portion": {
+        "portionRowId": 84615,
+        "amount": 1,
+        "modifier": "cup, cubes",
+        "gramWeight": 205
+      },
+      "fdcPer100g": {
+        "kcal": 56,
+        "proteinG": 1.12,
+        "carbsG": 14.58,
+        "fatG": 0.14
+      },
+      "derivedGramsPerServing": 205,
+      "reviewNote": "Baked without-salt record (catalog authored as baked-density macros; boiled/mashed record fails the gate). 1 cup cubes = 205 g. Est 114.8 kcal vs 128 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.bell_pepper_green",
+      "fdcId": 170427,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Peppers, sweet, green, raw",
+      "portion": {
+        "portionRowId": 86623,
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 149
+      },
+      "fdcPer100g": {
+        "kcal": 20,
+        "proteinG": 0.86,
+        "carbsG": 4.64,
+        "fatG": 0.17
+      },
+      "derivedGramsPerServing": 149,
+      "reviewNote": "Raw record; 1 cup chopped = 149 g (sliced 92 g fails proximity). Est 29.8 kcal vs 32."
+    },
+    {
+      "catalogKey": "food.cherry_tomatoes",
+      "fdcId": 170457,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Tomatoes, red, ripe, raw, year round average",
+      "portion": {
+        "portionRowId": 86681,
+        "amount": 1,
+        "modifier": "cup cherry tomatoes",
+        "gramWeight": 149
+      },
+      "fdcPer100g": {
+        "kcal": 18,
+        "proteinG": 0.88,
+        "carbsG": 3.89,
+        "fatG": 0.2
+      },
+      "derivedGramsPerServing": 149,
+      "reviewNote": "Same SR record as food.tomato but the dedicated \"cup cherry tomatoes\" portion (149 g). Est 26.8 kcal vs 28."
+    },
+    {
+      "catalogKey": "food.sauerkraut",
+      "fdcId": 169279,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Sauerkraut, canned, solids and liquids",
+      "portion": {
+        "portionRowId": 84590,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 142
+      },
+      "fdcPer100g": {
+        "kcal": 19,
+        "proteinG": 0.91,
+        "carbsG": 4.28,
+        "fatG": 0.14
+      },
+      "derivedGramsPerServing": 142,
+      "reviewNote": "Drained-solids cup (142 g); the undrained 236 g portion fails the gate. Est 27.0 kcal vs 28."
+    },
+    {
+      "catalogKey": "food.spinach_raw",
+      "fdcId": 168462,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Spinach, raw",
+      "portion": {
+        "portionRowId": 83132,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 30
+      },
+      "fdcPer100g": {
+        "kcal": 23,
+        "proteinG": 2.86,
+        "carbsG": 3.63,
+        "fatG": 0.39
+      },
+      "derivedGramsPerServing": 60,
+      "reviewNote": "Catalog serving is 2 cups; 1 cup raw = 30 g so serving = 60 g. Est 13.8 kcal vs 16."
+    },
+    {
+      "catalogKey": "food.jicama",
+      "fdcId": 170073,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Yambean (jicama), raw",
+      "portion": {
+        "portionRowId": 86000,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 130
+      },
+      "fdcPer100g": {
+        "kcal": 38,
+        "proteinG": 0.72,
+        "carbsG": 8.82,
+        "fatG": 0.09
+      },
+      "derivedGramsPerServing": 130,
+      "reviewNote": "SR names jicama \"Yambean (jicama)\"; 1 cup = 130 g. Est 49.4 kcal vs 48."
+    },
+    {
+      "catalogKey": "food.tomatillo",
+      "fdcId": 168566,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Tomatillos, raw",
+      "portion": {
+        "portionRowId": 83338,
+        "amount": 0.5,
+        "modifier": "cup, chopped or diced",
+        "gramWeight": 66
+      },
+      "fdcPer100g": {
+        "kcal": 32,
+        "proteinG": 0.96,
+        "carbsG": 5.84,
+        "fatG": 1.02
+      },
+      "derivedGramsPerServing": 132,
+      "reviewNote": "Raw record; 0.5 cup chopped/diced = 66 g so 1 cup = 132 g. Est 42.2 kcal vs 45."
     }
   ],
   "unmatched": [
@@ -1070,6 +1910,26 @@
     {
       "catalogKey": "food.cannellini_beans",
       "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated."
+    },
+    {
+      "catalogKey": "food.onion",
+      "reason": "Both SR cooked-onion records (170001 without salt, 170100 with salt) fail macro reconciliation for the authored 1-cup serving: 1 cup = 210 g gives 88-92 kcal and 20-21 g carbs vs the authored 64 kcal / 14 g (carbs delta > tolerance). Left null and gated."
+    },
+    {
+      "catalogKey": "food.snow_peas",
+      "reason": "Catalog food is \"Snow peas, cooked\" but the SR cooked edible-podded record (170509) fails reconciliation (64 kcal / 10.3 g carbs vs authored 40 / 7); only the RAW record passes, which contradicts the authored cooked name. Semantic mismatch left null and gated."
+    },
+    {
+      "catalogKey": "food.leeks",
+      "reason": "SR cooked leek records (168426/168535) reconcile to 32.2 kcal and 7.9 g carbs per authored 1-cup serving vs the authored 56 kcal / 13 g — outside tolerance. Left null and gated."
+    },
+    {
+      "catalogKey": "food.mixed_greens",
+      "reason": "No SR Legacy record exists for a salad-greens mix; the single-lettuce analogs (green leaf, butterhead, iceberg, romaine) have materially different cup weights (36-57 g) and none represents a mix. Ambiguous — left null and gated."
+    },
+    {
+      "catalogKey": "food.broccolini",
+      "reason": "SR Legacy has no broccolini record; the nearest name match \"Broccoli raab, raw\" is a different vegetable and fails reconciliation catastrophically (8.8 kcal vs authored 53). Left null and gated."
     }
   ]
 }

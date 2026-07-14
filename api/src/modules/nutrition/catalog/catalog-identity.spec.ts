@@ -30,7 +30,8 @@ const CATALOG = JSON.parse(
 // Cross-package golden anchors (identical to the mobile suite): key, immutable
 // revision, derived id. egg_whole is a part-1 revision-2 anchor (TECHDEBT-004
 // risk 3 normalization), rye_bread an ADR-P013 Batch-1 revision-2 anchor
-// (FDC-sourced grams), and brown_rice an ADR-P013 Batch-3A cup-food anchor.
+// (FDC-sourced grams), brown_rice an ADR-P013 Batch-3A cup-food anchor, and
+// broccoli an ADR-P013 Batch-3B cup-vegetable anchor.
 const GOLDEN = [
   {
     key: 'food.chicken_breast',
@@ -62,8 +63,13 @@ const GOLDEN = [
     revision: 2,
     id: 'ca8102b8-1ef9-5672-8d29-8a8d307ee3b7',
   },
+  {
+    key: 'food.broccoli',
+    revision: 2,
+    id: '5dec7664-4730-51eb-b33d-8aeb68ac0b74',
+  },
 ];
-const EXPECTED_CATALOG_HASH = '788c447b3a5216d6241daab778e3da331be203a6';
+const EXPECTED_CATALOG_HASH = 'c763888da153c4018147a5a9603b54a2db8fa26e';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -147,7 +153,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.4.0',
+      catalogVersionSnapshot: 'food-catalog@1.5.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

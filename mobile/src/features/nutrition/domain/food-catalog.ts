@@ -116,8 +116,13 @@ export interface FoodItem {
  * cup-served grains, legumes, and staple foods from the same pinned USDA-FDC
  * SR Legacy archive; varietals/preparations without exact reconciling SR rows
  * stay null/gated.
+ * 1.5.0 (ADR-P013 Batch 3B): sourced full-serving gram weights for 42
+ * cup-served vegetables from the same pinned USDA-FDC SR Legacy archive; new
+ * immutable revisions (2). onion/leeks (reconciliation failure), snow_peas
+ * (cooked record fails the gate), mixed_greens (ambiguous), and broccolini
+ * (no SR record) stay null/gated.
  */
-export const CATALOG_VERSION = 'food-catalog@1.4.0';
+export const CATALOG_VERSION = 'food-catalog@1.5.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

@@ -787,7 +787,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   }),
 
   // ── vegetable (50) ───────────────────────────────────────────────────
-  food('food.broccoli', 'Broccoli, cooked', 'vegetable', cup(1), 4, 11, 1, {
+  food('food.broccoli', 'Broccoli, cooked', 'vegetable', cupFdc(1, 156), 4, 11, 1, {
     fiber: 5,
     tags: [
       'vegan',
@@ -799,7 +799,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.spinach', 'Spinach, cooked', 'vegetable', cup(1), 5, 7, 0, {
+  food('food.spinach', 'Spinach, cooked', 'vegetable', cupFdc(1, 180), 5, 7, 0, {
     fiber: 4,
     tags: [
       'vegan',
@@ -811,7 +811,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.kale', 'Kale, cooked', 'vegetable', cup(1), 3, 7, 1, {
+  food('food.kale', 'Kale, cooked', 'vegetable', cupFdc(1, 118), 3, 7, 1, {
     fiber: 3,
     tags: [
       'vegan',
@@ -823,19 +823,19 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'heart_healthy',
     ],
   }),
-  food('food.cauliflower', 'Cauliflower, cooked', 'vegetable', cup(1), 2, 5, 0, {
+  food('food.cauliflower', 'Cauliflower, cooked', 'vegetable', cupFdc(1, 124), 2, 5, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'low_sodium'],
   }),
-  food('food.brussels_sprouts', 'Brussels sprouts, cooked', 'vegetable', cup(1), 4, 11, 1, {
+  food('food.brussels_sprouts', 'Brussels sprouts, cooked', 'vegetable', cupFdc(1, 156), 4, 11, 1, {
     fiber: 4,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
-  food('food.asparagus', 'Asparagus, cooked', 'vegetable', cup(1), 4, 7, 0, {
+  food('food.asparagus', 'Asparagus, cooked', 'vegetable', cupFdc(1, 180), 4, 7, 0, {
     fiber: 4,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'low_carb'],
   }),
-  food('food.green_beans', 'Green beans, cooked', 'vegetable', cup(1), 2, 10, 0, {
+  food('food.green_beans', 'Green beans, cooked', 'vegetable', cupFdc(1, 125), 2, 10, 0, {
     fiber: 4,
     tags: [
       'vegan',
@@ -847,7 +847,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.zucchini', 'Zucchini, cooked', 'vegetable', cup(1), 1, 5, 0, {
+  food('food.zucchini', 'Zucchini, cooked', 'vegetable', cupFdc(1, 180), 1, 5, 0, {
     fiber: 2,
     tags: [
       'vegan',
@@ -859,11 +859,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.bell_pepper_red', 'Red bell pepper', 'vegetable', cup(1), 1, 9, 0, {
+  food('food.bell_pepper_red', 'Red bell pepper', 'vegetable', cupFdc(1, 149), 1, 9, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.carrots', 'Carrots, cooked', 'vegetable', cup(1), 1, 12, 0, {
+  food('food.carrots', 'Carrots, cooked', 'vegetable', cupFdc(1, 156), 1, 12, 0, {
     fiber: 5,
     tags: [
       'vegan',
@@ -875,7 +875,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.tomato', 'Tomato, raw', 'vegetable', cup(1), 1, 7, 0, {
+  food('food.tomato', 'Tomato, raw', 'vegetable', cupFdc(1, 180), 1, 7, 0, {
     fiber: 2,
     tags: [
       'vegan',
@@ -887,7 +887,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.cucumber', 'Cucumber, raw', 'vegetable', cup(1), 1, 4, 0, {
+  food('food.cucumber', 'Cucumber, raw', 'vegetable', cupFdc(1, 104), 1, 4, 0, {
     fiber: 1,
     tags: [
       'vegan',
@@ -899,7 +899,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.lettuce_romaine', 'Romaine lettuce', 'vegetable', cup(2), 1, 3, 0, {
+  food('food.lettuce_romaine', 'Romaine lettuce', 'vegetable', cupFdc(2, 94), 1, 3, 0, {
     fiber: 2,
     tags: [
       'vegan',
@@ -911,11 +911,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.cabbage', 'Cabbage, cooked', 'vegetable', cup(1), 2, 8, 0, {
+  food('food.cabbage', 'Cabbage, cooked', 'vegetable', cupFdc(1, 150), 2, 8, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'budget_friendly'],
   }),
-  food('food.mushrooms', 'White mushrooms, cooked', 'vegetable', cup(1), 4, 8, 1, {
+  food('food.mushrooms', 'White mushrooms, cooked', 'vegetable', cupFdc(1, 156), 4, 8, 1, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'budget_friendly'],
   }),
@@ -923,7 +923,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'budget_friendly'],
   }),
-  food('food.sweet_potato', 'Sweet potato, baked', 'vegetable', cup(1), 4, 41, 0, {
+  food('food.sweet_potato', 'Sweet potato, baked', 'vegetable', cupFdc(1, 200), 4, 41, 0, {
     fiber: 7,
     tags: [
       'complex_carb',
@@ -949,7 +949,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.butternut_squash', 'Butternut squash, cooked', 'vegetable', cup(1), 2, 22, 0, {
+  food('food.butternut_squash', 'Butternut squash, cooked', 'vegetable', cupFdc(1, 205), 2, 22, 0, {
     fiber: 7,
     tags: [
       'complex_carb',
@@ -961,15 +961,15 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'low_sodium',
     ],
   }),
-  food('food.beets', 'Beets, cooked', 'vegetable', cup(1), 3, 17, 0, {
+  food('food.beets', 'Beets, cooked', 'vegetable', cupFdc(1, 170), 3, 17, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'budget_friendly'],
   }),
-  food('food.eggplant', 'Eggplant, cooked', 'vegetable', cup(1), 1, 9, 0, {
+  food('food.eggplant', 'Eggplant, cooked', 'vegetable', cupFdc(1, 99), 1, 9, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'low_carb'],
   }),
-  food('food.celery', 'Celery, raw', 'vegetable', cup(1), 1, 3, 0, {
+  food('food.celery', 'Celery, raw', 'vegetable', cupFdc(1, 101), 1, 3, 0, {
     fiber: 2,
     tags: [
       'vegan',
@@ -981,15 +981,15 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.bok_choy', 'Bok choy, cooked', 'vegetable', cup(1), 3, 3, 0, {
+  food('food.bok_choy', 'Bok choy, cooked', 'vegetable', cupFdc(1, 170), 3, 3, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'low_sodium'],
   }),
-  food('food.swiss_chard', 'Swiss chard, cooked', 'vegetable', cup(1), 3, 7, 0, {
+  food('food.swiss_chard', 'Swiss chard, cooked', 'vegetable', cupFdc(1, 175), 3, 7, 0, {
     fiber: 4,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
-  food('food.collard_greens', 'Collard greens, cooked', 'vegetable', cup(1), 4, 11, 1, {
+  food('food.collard_greens', 'Collard greens, cooked', 'vegetable', cupFdc(1, 190), 4, 11, 1, {
     fiber: 8,
     tags: [
       'vegan',
@@ -1005,15 +1005,15 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 7,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
-  food('food.okra', 'Okra, cooked', 'vegetable', cup(1), 3, 7, 0, {
+  food('food.okra', 'Okra, cooked', 'vegetable', cupFdc(1, 160), 3, 7, 0, {
     fiber: 4,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
-  food('food.snap_peas', 'Sugar snap peas', 'vegetable', cup(1), 3, 7, 0, {
+  food('food.snap_peas', 'Sugar snap peas', 'vegetable', cupFdc(1, 98), 3, 7, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.corn', 'Sweet corn, cooked', 'vegetable', cup(1), 5, 31, 2, {
+  food('food.corn', 'Sweet corn, cooked', 'vegetable', cupFdc(1, 149), 5, 31, 2, {
     fiber: 4,
     tags: [
       'complex_carb',
@@ -1030,19 +1030,19 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.pumpkin', 'Pumpkin, cooked', 'vegetable', cup(1), 2, 12, 0, {
+  food('food.pumpkin', 'Pumpkin, cooked', 'vegetable', cupFdc(1, 245), 2, 12, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.spaghetti_squash', 'Spaghetti squash, cooked', 'vegetable', cup(1), 1, 10, 0, {
+  food('food.spaghetti_squash', 'Spaghetti squash, cooked', 'vegetable', cupFdc(1, 155), 1, 10, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'low_sodium'],
   }),
-  food('food.turnip', 'Turnip, cooked', 'vegetable', cup(1), 1, 8, 0, {
+  food('food.turnip', 'Turnip, cooked', 'vegetable', cupFdc(1, 156), 1, 8, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'budget_friendly'],
   }),
-  food('food.parsnip', 'Parsnip, cooked', 'vegetable', cup(1), 2, 27, 0, {
+  food('food.parsnip', 'Parsnip, cooked', 'vegetable', cupFdc(1, 156), 2, 27, 0, {
     fiber: 6,
     tags: [
       'complex_carb',
@@ -1054,7 +1054,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'low_sodium',
     ],
   }),
-  food('food.radish', 'Radish, raw', 'vegetable', cup(1), 1, 4, 0, {
+  food('food.radish', 'Radish, raw', 'vegetable', cupFdc(1, 116), 1, 4, 0, {
     fiber: 2,
     tags: [
       'vegan',
@@ -1066,7 +1066,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.arugula', 'Arugula, raw', 'vegetable', cup(2), 1, 1, 0, {
+  food('food.arugula', 'Arugula, raw', 'vegetable', cupFdc(2, 40), 1, 1, 0, {
     fiber: 1,
     tags: [
       'vegan',
@@ -1078,7 +1078,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.watercress', 'Watercress, raw', 'vegetable', cup(2), 2, 1, 0, {
+  food('food.watercress', 'Watercress, raw', 'vegetable', cupFdc(2, 68), 2, 1, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'low_sodium'],
   }),
@@ -1086,15 +1086,15 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.fennel', 'Fennel bulb, raw', 'vegetable', cup(1), 1, 6, 0, {
+  food('food.fennel', 'Fennel bulb, raw', 'vegetable', cupFdc(1, 87), 1, 6, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'low_carb'],
   }),
-  food('food.kohlrabi', 'Kohlrabi, cooked', 'vegetable', cup(1), 3, 11, 0, {
+  food('food.kohlrabi', 'Kohlrabi, cooked', 'vegetable', cupFdc(1, 165), 3, 11, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.acorn_squash', 'Acorn squash, cooked', 'vegetable', cup(1), 2, 30, 0, {
+  food('food.acorn_squash', 'Acorn squash, cooked', 'vegetable', cupFdc(1, 205), 2, 30, 0, {
     fiber: 9,
     tags: [
       'complex_carb',
@@ -1106,7 +1106,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'low_sodium',
     ],
   }),
-  food('food.bell_pepper_green', 'Green bell pepper', 'vegetable', cup(1), 1, 7, 0, {
+  food('food.bell_pepper_green', 'Green bell pepper', 'vegetable', cupFdc(1, 149), 1, 7, 0, {
     fiber: 3,
     tags: [
       'vegan',
@@ -1118,7 +1118,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.cherry_tomatoes', 'Cherry tomatoes', 'vegetable', cup(1), 1, 6, 0, {
+  food('food.cherry_tomatoes', 'Cherry tomatoes', 'vegetable', cupFdc(1, 149), 1, 6, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
@@ -1134,7 +1134,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.sauerkraut', 'Sauerkraut', 'vegetable', cup(1), 1, 6, 0, {
+  food('food.sauerkraut', 'Sauerkraut', 'vegetable', cupFdc(1, 142), 1, 6, 0, {
     fiber: 4,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
     avoid: ['high_sodium_sensitive'],
@@ -1144,7 +1144,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.spinach_raw', 'Spinach, raw', 'vegetable', cup(2), 2, 2, 0, {
+  food('food.spinach_raw', 'Spinach, raw', 'vegetable', cupFdc(2, 60), 2, 2, 0, {
     fiber: 1,
     tags: [
       'vegan',
@@ -1160,7 +1160,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 4,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
-  food('food.jicama', 'Jicama, raw', 'vegetable', cup(1), 1, 11, 0, {
+  food('food.jicama', 'Jicama, raw', 'vegetable', cupFdc(1, 130), 1, 11, 0, {
     fiber: 6,
     tags: [
       'vegan',
@@ -1172,7 +1172,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.tomatillo', 'Tomatillo, raw', 'vegetable', cup(1), 1, 8, 1, {
+  food('food.tomatillo', 'Tomatillo, raw', 'vegetable', cupFdc(1, 132), 1, 8, 1, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),

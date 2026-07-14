@@ -37,10 +37,13 @@ export const FOOD_REVISION = 1;
  * ADR-P013 Batch 2 (2026-07-14) adds 13 `tbsp` foods from the same pinned
  * archive. The tsp semantics mini-slice corrects the six ambiguous `tsp(N)`
  * foods whose authored amount encoded grams, not teaspoon counts. ADR-P013
- * Batch 3A adds reviewed `cup` portions for grains, legumes, and staples. The
- * remaining volumetric foods and `food.sourdough_bread` (no reconciling FDC
- * portion) stay at revision 1 with `gramsPerServing = null`, gated behind later
- * ADR-P013 batches.
+ * Batch 3A adds reviewed `cup` portions for grains, legumes, and staples;
+ * Batch 3B adds reviewed `cup` portions for vegetables. The remaining
+ * volumetric foods and the unmatched foods (`food.sourdough_bread`,
+ * `food.onion`, `food.snow_peas`, `food.leeks`, `food.mixed_greens`,
+ * `food.broccolini` — see the manifest's `unmatched` reasons) stay at
+ * revision 1 with `gramsPerServing = null`, gated behind later ADR-P013
+ * batches.
  */
 export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.egg_whole': 2,
@@ -125,6 +128,49 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.adzuki_beans': 2,
   'food.fava_beans': 2,
   'food.soybeans': 2,
+  // ADR-P013 Batch 3B — cup-served vegetables with FDC-sourced full-serving gram weights.
+  'food.broccoli': 2,
+  'food.spinach': 2,
+  'food.kale': 2,
+  'food.cauliflower': 2,
+  'food.brussels_sprouts': 2,
+  'food.asparagus': 2,
+  'food.green_beans': 2,
+  'food.zucchini': 2,
+  'food.bell_pepper_red': 2,
+  'food.carrots': 2,
+  'food.tomato': 2,
+  'food.cucumber': 2,
+  'food.lettuce_romaine': 2,
+  'food.cabbage': 2,
+  'food.mushrooms': 2,
+  'food.sweet_potato': 2,
+  'food.butternut_squash': 2,
+  'food.beets': 2,
+  'food.eggplant': 2,
+  'food.celery': 2,
+  'food.bok_choy': 2,
+  'food.swiss_chard': 2,
+  'food.collard_greens': 2,
+  'food.okra': 2,
+  'food.snap_peas': 2,
+  'food.corn': 2,
+  'food.pumpkin': 2,
+  'food.spaghetti_squash': 2,
+  'food.turnip': 2,
+  'food.parsnip': 2,
+  'food.radish': 2,
+  'food.arugula': 2,
+  'food.watercress': 2,
+  'food.fennel': 2,
+  'food.kohlrabi': 2,
+  'food.acorn_squash': 2,
+  'food.bell_pepper_green': 2,
+  'food.cherry_tomatoes': 2,
+  'food.sauerkraut': 2,
+  'food.spinach_raw': 2,
+  'food.jicama': 2,
+  'food.tomatillo': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */
