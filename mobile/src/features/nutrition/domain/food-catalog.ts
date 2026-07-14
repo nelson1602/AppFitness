@@ -59,6 +59,13 @@ export type AvoidTag =
 export interface ServingSize {
   amount: number;
   unit: ServingUnit;
+  /**
+   * Gram weight of one serving where a valid, authored conversion exists for a
+   * NON-gram unit (e.g. one `piece` of a food = N grams). Never fabricated: set
+   * only where the source weight is known (ADR-P012 / TECHDEBT-004 risk 3). For
+   * `unit: 'g'` the amount is already grams, so this is omitted.
+   */
+  grams?: number;
 }
 
 export interface FoodSource {
@@ -86,8 +93,13 @@ export interface FoodItem {
   source: FoodSource;
 }
 
-/** Bump on ANY change to the catalog data or shape (traceability). */
-export const CATALOG_VERSION = 'food-catalog@1.0.0';
+/**
+ * Bump on ANY change to the catalog data or shape (traceability).
+ * 1.1.0 (TECHDEBT-004 risk 3, split-risk part 1): normalized the 29 count-unit
+ * `piece` foods whose authored amount was already a one-piece gram weight to
+ * `{amount: 1, unit: 'piece', grams: <weight>}` as new immutable revisions (2).
+ */
+export const CATALOG_VERSION = 'food-catalog@1.1.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

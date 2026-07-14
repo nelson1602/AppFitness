@@ -56,7 +56,11 @@ function food(
 
 const g = (amount: number): ServingSize => ({ amount, unit: 'g' });
 const ml = (amount: number): ServingSize => ({ amount, unit: 'ml' });
-const piece = (amount: number): ServingSize => ({ amount, unit: 'piece' });
+// One `piece` weighing `grams` (ADR-P012 / TECHDEBT-004 risk 3): the authored
+// argument is the known one-piece gram weight, recorded as `grams` (not the
+// nonsensical "N piece" the amount used to hold). Revision bump lives in
+// FOOD_REVISIONS (domain/catalog-identity.ts).
+const piece1 = (grams: number): ServingSize => ({ amount: 1, unit: 'piece', grams });
 const cup = (amount: number): ServingSize => ({ amount, unit: 'cup' });
 const tbsp = (amount: number): ServingSize => ({ amount, unit: 'tbsp' });
 const tsp = (amount: number): ServingSize => ({ amount, unit: 'tsp' });
@@ -134,17 +138,17 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   food('food.bison', 'Bison, cooked', 'protein_animal', g(100), 28, 0, 7, {
     tags: ['high_protein', 'gluten_free', 'dairy_free'],
   }),
-  food('food.egg_whole', 'Egg, whole', 'protein_animal', piece(50), 6, 0.5, 5, {
+  food('food.egg_whole', 'Egg, whole', 'protein_animal', piece1(50), 6, 0.5, 5, {
     tags: ['vegetarian', 'gluten_free', 'quick_prep', 'budget_friendly'],
   }),
-  food('food.egg_white', 'Egg white', 'protein_animal', piece(33), 4, 0.2, 0, {
+  food('food.egg_white', 'Egg white', 'protein_animal', piece1(33), 4, 0.2, 0, {
     tags: ['high_protein', 'low_carb', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
   food(
     'food.egg_omelette_plain',
     'Plain egg omelette (2 eggs)',
     'protein_animal',
-    piece(120),
+    piece1(120),
     13,
     2,
     11,
@@ -247,7 +251,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     avoid: ['high_purine'],
     caution: 'Very high vitamin A — moderate intake.',
   }),
-  food('food.eggs_two_large', 'Eggs, two large', 'protein_animal', piece(100), 12, 1, 10, {
+  food('food.eggs_two_large', 'Eggs, two large', 'protein_animal', piece1(100), 12, 1, 10, {
     tags: ['vegetarian', 'gluten_free', 'quick_prep', 'budget_friendly'],
   }),
 
@@ -301,7 +305,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     'food.black_bean_burger',
     'Black bean veggie burger',
     'protein_plant',
-    piece(85),
+    piece1(85),
     11,
     15,
     4,
@@ -340,7 +344,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['high_protein', 'vegan', 'vegetarian', 'dairy_free', 'quick_prep'],
   }),
-  food('food.falafel', 'Falafel, baked', 'protein_plant', piece(60), 8, 16, 6, {
+  food('food.falafel', 'Falafel, baked', 'protein_plant', piece1(60), 8, 16, 6, {
     fiber: 4,
     tags: ['vegan', 'vegetarian', 'dairy_free', 'high_fiber'],
   }),
@@ -497,11 +501,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
-  food('food.corn_tortilla', 'Corn tortilla', 'grain', piece(24), 1, 11, 1, {
+  food('food.corn_tortilla', 'Corn tortilla', 'grain', piece1(24), 1, 11, 1, {
     fiber: 1,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
   }),
-  food('food.whole_wheat_tortilla', 'Whole wheat tortilla', 'grain', piece(45), 4, 21, 3, {
+  food('food.whole_wheat_tortilla', 'Whole wheat tortilla', 'grain', piece1(45), 4, 21, 3, {
     fiber: 3,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'quick_prep'],
     avoid: ['gluten_sensitive'],
@@ -519,7 +523,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'high_fiber'],
     avoid: ['gluten_sensitive'],
   }),
-  food('food.rice_cakes', 'Brown rice cakes', 'grain', piece(9), 1, 7, 0, {
+  food('food.rice_cakes', 'Brown rice cakes', 'grain', piece1(9), 1, 7, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
   }),
   food('food.shredded_wheat', 'Shredded wheat cereal', 'grain', g(40), 4, 30, 1, {
@@ -903,7 +907,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.potato_baked', 'Potato, baked with skin', 'vegetable', piece(173), 5, 37, 0, {
+  food('food.potato_baked', 'Potato, baked with skin', 'vegetable', piece1(173), 5, 37, 0, {
     fiber: 4,
     tags: [
       'complex_carb',
@@ -968,7 +972,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'heart_healthy',
     ],
   }),
-  food('food.artichoke', 'Artichoke, cooked', 'vegetable', piece(120), 4, 14, 0, {
+  food('food.artichoke', 'Artichoke, cooked', 'vegetable', piece1(120), 4, 14, 0, {
     fiber: 7,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
@@ -1107,7 +1111,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     avoid: ['high_sodium_sensitive'],
     caution: 'Fermented — higher sodium.',
   }),
-  food('food.portobello', 'Portobello mushroom, grilled', 'vegetable', piece(84), 3, 5, 0, {
+  food('food.portobello', 'Portobello mushroom, grilled', 'vegetable', piece1(84), 3, 5, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
@@ -1145,7 +1149,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   }),
 
   // ── fruit (34) ───────────────────────────────────────────────────────
-  food('food.apple', 'Apple, with skin', 'fruit', piece(182), 1, 25, 0, {
+  food('food.apple', 'Apple, with skin', 'fruit', piece1(182), 1, 25, 0, {
     fiber: 4,
     tags: [
       'vegan',
@@ -1158,7 +1162,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.banana', 'Banana', 'fruit', piece(118), 1, 27, 0, {
+  food('food.banana', 'Banana', 'fruit', piece1(118), 1, 27, 0, {
     fiber: 3,
     tags: [
       'vegan',
@@ -1170,7 +1174,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.orange', 'Orange', 'fruit', piece(131), 1, 15, 0, {
+  food('food.orange', 'Orange', 'fruit', piece1(131), 1, 15, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
@@ -1219,11 +1223,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.peach', 'Peach', 'fruit', piece(150), 1, 14, 0, {
+  food('food.peach', 'Peach', 'fruit', piece1(150), 1, 14, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.pear', 'Pear, with skin', 'fruit', piece(178), 1, 27, 0, {
+  food('food.pear', 'Pear, with skin', 'fruit', piece1(178), 1, 27, 0, {
     fiber: 6,
     tags: [
       'vegan',
@@ -1235,11 +1239,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.plum', 'Plum', 'fruit', piece(66), 1, 8, 0, {
+  food('food.plum', 'Plum', 'fruit', piece1(66), 1, 8, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.kiwi', 'Kiwifruit', 'fruit', piece(69), 1, 10, 0, {
+  food('food.kiwi', 'Kiwifruit', 'fruit', piece1(69), 1, 10, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
@@ -1247,7 +1251,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.grapefruit', 'Grapefruit', 'fruit', piece(123), 1, 13, 0, {
+  food('food.grapefruit', 'Grapefruit', 'fruit', piece1(123), 1, 13, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
     caution: 'May interact with some medications.',
@@ -1264,7 +1268,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'heart_healthy',
     ],
   }),
-  food('food.avocado_fruit', 'Avocado', 'fruit', piece(150), 3, 13, 22, {
+  food('food.avocado_fruit', 'Avocado', 'fruit', piece1(150), 3, 13, 22, {
     fiber: 10,
     tags: [
       'vegan',
@@ -1277,7 +1281,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'heart_healthy',
     ],
   }),
-  food('food.dates', 'Medjool dates', 'fruit', piece(24), 0.5, 18, 0, {
+  food('food.dates', 'Medjool dates', 'fruit', piece1(24), 0.5, 18, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
   }),
@@ -1289,11 +1293,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly', 'quick_prep'],
   }),
-  food('food.apricot', 'Apricots', 'fruit', piece(70), 1, 8, 0, {
+  food('food.apricot', 'Apricots', 'fruit', piece1(70), 1, 8, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.clementine', 'Clementine', 'fruit', piece(74), 1, 9, 0, {
+  food('food.clementine', 'Clementine', 'fruit', piece1(74), 1, 9, 0, {
     fiber: 1,
     tags: [
       'vegan',
@@ -1313,7 +1317,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.nectarine', 'Nectarine', 'fruit', piece(142), 1, 15, 0, {
+  food('food.nectarine', 'Nectarine', 'fruit', piece1(142), 1, 15, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
@@ -1325,7 +1329,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 9,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
-  food('food.passion_fruit', 'Passion fruit', 'fruit', piece(18), 0.4, 4, 0, {
+  food('food.passion_fruit', 'Passion fruit', 'fruit', piece1(18), 0.4, 4, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
@@ -1333,7 +1337,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.starfruit', 'Starfruit', 'fruit', piece(91), 1, 6, 0, {
+  food('food.starfruit', 'Starfruit', 'fruit', piece1(91), 1, 6, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'low_carb'],
   }),
@@ -1403,7 +1407,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['high_protein', 'vegetarian', 'gluten_free'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.string_cheese', 'String cheese, part-skim', 'dairy', piece(28), 7, 1, 5, {
+  food('food.string_cheese', 'String cheese, part-skim', 'dairy', piece1(28), 7, 1, 5, {
     tags: ['high_protein', 'vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive'],
   }),
@@ -1676,7 +1680,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   food('food.sesame_oil', 'Sesame oil', 'fat_oil', tbsp(1), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
-  food('food.avocado_half', 'Avocado, half', 'fat_oil', piece(75), 1, 6, 11, {
+  food('food.avocado_half', 'Avocado, half', 'fat_oil', piece1(75), 1, 6, 11, {
     fiber: 5,
     tags: [
       'healthy_fat',

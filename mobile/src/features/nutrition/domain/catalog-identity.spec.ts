@@ -31,7 +31,7 @@ describe('normalizeServing', () => {
     });
   });
 
-  it('leaves grams_per_serving null for non-gram servings (no fabrication)', () => {
+  it('leaves grams_per_serving null for non-gram servings without a known weight', () => {
     for (const unit of ['ml', 'piece', 'cup', 'tbsp', 'tsp', 'slice'] as const) {
       expect(normalizeServing({ amount: 1, unit })).toEqual({
         servingAmount: 1,
@@ -39,6 +39,14 @@ describe('normalizeServing', () => {
         gramsPerServing: null,
       });
     }
+  });
+
+  it('records an authored gram weight on a non-gram serving (TECHDEBT-004 risk 3)', () => {
+    expect(normalizeServing({ amount: 1, unit: 'piece', grams: 50 })).toEqual({
+      servingAmount: 1,
+      servingUnit: 'piece',
+      gramsPerServing: 50,
+    });
   });
 });
 

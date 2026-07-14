@@ -1593,11 +1593,18 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       (`.maestro/food-log.yml`, wired into `mobile-e2e.yml` after
       `onboarding-loop.yml`) drives log → totals update → sync-attempt-keeps-
       entry → soft-delete. Mobile unit validations green (`tsc`, `jest`, `lint`,
-      `format:check`); **E2E pending** the manual, `EXPO_TOKEN`-gated `mobile-e2e`
-      workflow (EAS APK) — it cannot run in a plain checkout. Remaining for
-      Slice 4: run the gated E2E, plus per-food non-gram gram sourcing
-      (TECHDEBT-004 risk 3) stays OPEN — logging uses fractional servings, no
-      fabricated conversions.
+      `format:check`); **E2E verified 2026-07-14** on the manual, `EXPO_TOKEN`-
+      gated `mobile-e2e` workflow (GitHub Actions run 29331177197, EAS APK at
+      commit 47fa5c7). Slice **4E (2026-07-14): TECHDEBT-004 risk 3 split-risk
+      part 1** — the 29 count-unit `piece` foods whose authored `servingAmount`
+      was already a one-piece gram weight (the `piece(182)` conflation ADR-P012
+      scoped to 4A but left in the data) are normalized at source to `{amount: 1,
+      unit: 'piece', grams: <authored weight>}` as new immutable revisions (2),
+      `CATALOG_VERSION` → 1.1.0; canonical artifacts/hash/golden ids regenerated;
+      no schema/migration/UI/sync change; macros unchanged. **Risk 3 part 2**
+      (158 volumetric + 5 `slice` foods) stays OPEN, gated behind a proposed
+      USDA-FDC `foodPortion` data-source ADR — no authoritative gram data in
+      repo, nothing fabricated; logging uses fractional servings meanwhile.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

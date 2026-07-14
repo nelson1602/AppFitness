@@ -857,10 +857,11 @@ before any food-logging write path is built:
    gram conversion exists (else fractional servings).
 
 All three are captured as decisions in **ADR-P012 (Accepted 2026-07-10)** and are
-**approved for resolution in Slice 4A/4B**. As of 2026-07-13, risks 1 (catalog
-identity/schema/seed) and 2 (server-derived macro snapshot) are **resolved**;
-the item stays **Open** only for risk 3 (per-food non-gram gram sourcing). See
-the status sections below.
+**approved for resolution in Slice 4A/4B**. As of 2026-07-14, risks 1 (catalog
+identity/schema/seed), 2 (server-derived macro snapshot), and risk 3 **part 1**
+(29 count-unit `piece` foods normalized) are **resolved**; the item stays
+**Open** only for risk 3 **part 2** (gram sourcing for the 158 volumetric +
+5 `slice` foods, gated behind a data-source ADR). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -917,15 +918,24 @@ never touched):
    `CATALOG_REVISION_UNSUPPORTED`. Covered by unit + pipeline tests (server
    derivation, client-value rejection, immutability on UPDATE). This closes the
    retroactive-macro-change risk. (No logging UI yet — that is a later slice.)
-3. **Serving-unit conflation — OPEN (structure validated).** The normalized
-   structure + `serving_count` replacement are validated, but per-food
-   **gram-per-serving sourcing for the 192 non-gram foods stays intentionally
-   deferred** (`grams_per_serving` left null, not fabricated). Gram-based entry
-   is unavailable for those foods until sourced; the log path uses fractional
-   servings meanwhile. This sub-task remains open.
+3. **Serving-unit conflation — PARTIALLY RESOLVED (split-risk; 2026-07-14).**
+   The normalized structure + `serving_count` replacement were validated in 4A;
+   gram sourcing is now split into two parts (see ADR-P012 "Risk-3 Normalization
+   Note" and the Slice 4E status section below):
+   - **Part 1 — 29 count-unit `piece` foods: RESOLVED.** These were authored
+     with the one-piece gram weight in `servingAmount` under a `piece` label (the
+     `piece(182)` conflation). Corrected at source to `{amount: 1, unit: 'piece',
+     grams: <authored weight>}`, shipped as new immutable revisions (2), with
+     `CATALOG_VERSION` bumped to 1.1.0. No weight fabricated — the value was the
+     one the catalog already carried.
+   - **Part 2 — 158 volumetric (`cup`/`tbsp`/`tsp`/`ml`) + 5 genuine `slice`
+     counts: OPEN, gated.** `grams_per_serving` stays null; a correct weight
+     needs authoritative per-food portion data (USDA FDC `foodPortion`) not in
+     the repo — deferred behind a proposed data-source ADR gate. Gram entry stays
+     unavailable for those; the log path uses fractional servings meanwhile.
 
-The item stays **Open** until risk 3 (per-food non-gram gram sourcing) is
-actually resolved; risks 1 and 2 are resolved.
+The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
+risks 1, 2, and risk 3 part 1 are resolved.
 
 ### Slice 4B implementation status (2026-07-13) — backend handler landed
 
@@ -1032,11 +1042,43 @@ component test only (driving it in E2E would need a server-side unsupported
 revision — a backend hack — which is out of scope).
 
 **TECHDEBT-004 risk 3 remains OPEN** — Slice 4D adds no gram sourcing; the UI
-logs via fractional servings only.
+logs via fractional servings only. (Risk 3 **part 1** was subsequently resolved
+in Slice 4E — see below.)
+
+### Slice 4E implementation status (2026-07-14) — risk 3 part 1 (count-unit normalization)
+
+Resolved TECHDEBT-004 risk 3 **part 1**: the 29 count-unit `piece` foods whose
+authored `servingAmount` was already the one-piece gram weight (the `piece(182)`
+conflation) are normalized **at the authored source** (`food-catalog.data.ts`)
+to `{amount: 1, unit: 'piece', grams: <authored weight>}` — no fabricated data.
+**Catalog/data only — no schema, migration, REST, sync-semantics, backend, or
+UI change.**
+
+- **New immutable revisions.** Each of the 29 is bumped to `food_revision` 2 (a
+  new UUIDv5) via a `FOOD_REVISIONS` map; revision-1 rows stay FK-valid.
+  `CATALOG_VERSION` → `food-catalog@1.1.0`. Canonical artifacts (mobile `.ts` +
+  api `.json`) regenerated from the corrected source; content hash + cross-package
+  golden ids updated. Seeding stays insert-new-revisions-only + idempotent
+  (fresh DB = 300 rows: 271 rev-1 + 29 rev-2).
+- **`normalizeServing`** now emits `gramsPerServing` from an authored non-gram
+  `grams` weight (previously only `'g'` servings); the volumetric foods without
+  an authored weight still resolve to `null`.
+- **Meal generator** portion labels for these foods are corrected as a
+  side-effect (e.g. `100 piece` egg → `2 piece`); **macros are unchanged** (the
+  generator never used `servingAmount` for macro math) — verified by its
+  deterministic/tolerance tests, which assert no golden `serving.amount` literals.
+- **Validation.** Mobile nutrition suite (16 suites / 127 tests), API
+  catalog/nutrition (25 tests), both typechecks, lint, canonical parity + hash,
+  and a deterministic seed preflight/idempotency/immutability check all green;
+  `git diff --check` clean.
+
+**Risk 3 part 2 (158 volumetric + 5 `slice` foods) stays OPEN**, gated behind a
+proposed USDA-FDC `foodPortion` data-source ADR (no authoritative gram data in
+repo; nothing fabricated).
 
 ### Related Documents
 
-- .ai/12_DECISIONS.md (ADR-P012, ADR-0011)
+- .ai/12_DECISIONS.md (ADR-P012 incl. Risk-3 Normalization Note, ADR-0011)
 - .ai/15_DATABASE_SCHEMA_DESIGN.md, .ai/16_SQLITE_SCHEMA_DESIGN.md
 - api/prisma/schema.prisma (Food, MealItem)
 

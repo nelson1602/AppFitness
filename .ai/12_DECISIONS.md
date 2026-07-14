@@ -2605,6 +2605,51 @@ schema, REST, or write-path change**.
 
 TECHDEBT-004 remains **Open** for risk 3 only; Slice 4D adds no gram sourcing.
 
+### Risk-3 Normalization Note (2026-07-14) — split-risk, part 1 (count-unit foods)
+
+TECHDEBT-004 risk 3 ("per-food non-gram gram sourcing") is **split** because the
+192 non-gram foods are two different problems, only one of which can be resolved
+without new external data:
+
+- **Part 1 — count-unit foods with an already-authored gram weight (RESOLVED
+  here).** 29 `piece` foods were authored with the one-piece gram weight sitting
+  in `servingAmount` under a `piece` label — the exact `piece(182)`
+  gram/piece conflation ADR-P012 flagged (e.g. `egg_whole = 50 piece / 71 kcal`;
+  `apple = 182 piece`). These are corrected **at the authored source**
+  (`food-catalog.data.ts`) to `{amount: 1, unit: 'piece', grams: <authored
+  weight>}`; **no gram weight is invented** — the value is the weight the catalog
+  already carried. Because catalog revisions are IMMUTABLE, each is shipped as a
+  **new `food_revision` (2 → a new UUIDv5)**; the revision-1 rows stay FK-valid
+  on any server that already seeded them. `CATALOG_VERSION` is bumped **1.0.0 →
+  1.1.0**. The canonical artifacts (mobile `.ts` + api `.json`) are regenerated
+  from the corrected source (parity test `CANONICAL === buildCanonicalCatalog(
+  FOOD_CATALOG)` + cross-package golden ids/hash stay green); a new
+  `FOOD_REVISIONS` map holds the per-food revision overrides. The `piece`→
+  `1 piece` fix also corrects the meal generator's portion label (macros are
+  unchanged — the generator never used `servingAmount` for macro math), e.g. a
+  2-serving egg dish now reads `2 piece` instead of `100 piece`.
+- **Part 2 — volumetric foods (STILL OPEN, gated).** 158 `cup`/`tbsp`/`tsp`/`ml`
+  foods and 5 genuine `slice` counts keep `grams_per_serving = null`. A correct
+  gram weight for these needs **per-food authoritative portion/density data**
+  (e.g. USDA FoodData Central `foodPortion` gram weights) that **does not exist
+  in the repo** — the only provenance is the generic string `USDA FoodData
+  Central`. Inventing weights (assuming "1 cup rice ≈ 200 g") is forbidden.
+
+**DATA-SOURCE GATE (proposed, not yet accepted).** Resolving part 2 requires a
+follow-up decision to adopt an authoritative dataset — proposed: import USDA FDC
+`foodPortion` household-measure gram weights, matched per food with a recorded
+`fdcId` + provenance, each corrected food shipped as a new revision with a
+`CATALOG_VERSION` bump. Until that ADR is accepted, gram-based entry stays
+unavailable for volumetric foods and the log path uses fractional servings.
+
+Seeding stays insert-new-revisions-only and idempotent (300 rows on a fresh DB:
+271 rev-1 + 29 rev-2; a second run inserts 0; tampered revisions are not
+overwritten). Note: because the seed no-ops on existing ids, a server previously
+seeded at 1.0.0 keeps the unchanged foods' `catalog_version` stamp at 1.0.0
+while accumulating the 29 new rev-2 rows; the stamp is traceability only (ids,
+macros, and snapshots are unaffected, and the server re-derives snapshots on
+reconciliation). No production server has been seeded (pre-activation).
+
 ### Related Documents
 
 - .ai/01_ARCHITECTURE.md, .ai/04_DATABASE.md, .ai/05_SECURITY.md, .ai/06_MOBILE.md
@@ -2616,7 +2661,8 @@ TECHDEBT-004 remains **Open** for risk 3 only; Slice 4D adds no gram sourcing.
 - mobile/src/shared/infrastructure/sync/sync-worker.ts (pushLoop `removeRejected`; per-applier `pullLoop` cursors; encrypted CONFLICT payloads)
 - mobile/src/shared/infrastructure/sync/sync-queue.ts (`sensitive` `{__enc}` envelope)
 - mobile/src/shared/infrastructure/database/** (SyncedRow rows; `order_index`↔`order`)
-- mobile/src/features/nutrition/infrastructure/food-catalog.data.ts (Slice 1–3B bundled catalog; `piece(182)` serving-unit conflation)
+- mobile/src/features/nutrition/infrastructure/food-catalog.data.ts (Slice 1–3B bundled catalog; the `piece(182)` count-unit conflation is normalized as of 2026-07-14 — see Risk-3 Normalization Note)
+- mobile/src/features/nutrition/domain/catalog-identity.ts (`FOOD_REVISIONS` per-food revision overrides; `normalizeServing`)
 
 ---
 

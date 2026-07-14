@@ -27,13 +27,27 @@ const CATALOG = JSON.parse(
   readFileSync(CANONICAL_PATH, 'utf8'),
 ) as readonly CanonicalFood[];
 
-// Cross-package golden anchors (identical to the mobile suite).
-const GOLDEN_IDS: Record<string, string> = {
-  'food.chicken_breast': '16cb6cd9-debe-55fd-b39e-aac043b8705e',
-  'food.egg_whole': '298cb837-2dc6-550d-bf11-9f3654920d5e',
-  'food.brown_rice': '6491c19f-e35b-556e-92ae-4703226b376a',
-};
-const EXPECTED_CATALOG_HASH = '295245c602366d241171fde3aa61aadb80859b62';
+// Cross-package golden anchors (identical to the mobile suite): key, immutable
+// revision, derived id. egg_whole is a revision-2 anchor (TECHDEBT-004 risk 3
+// normalization); the others are revision 1.
+const GOLDEN = [
+  {
+    key: 'food.chicken_breast',
+    revision: 1,
+    id: '16cb6cd9-debe-55fd-b39e-aac043b8705e',
+  },
+  {
+    key: 'food.egg_whole',
+    revision: 2,
+    id: 'ccd3b52a-5a8b-5ce9-b115-5f64b24b361e',
+  },
+  {
+    key: 'food.brown_rice',
+    revision: 1,
+    id: '6491c19f-e35b-556e-92ae-4703226b376a',
+  },
+];
+const EXPECTED_CATALOG_HASH = 'd22651ec0f95c8224a4a9c334c7c79a91329e4f5';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -43,8 +57,8 @@ describe('catalog identity (uuidv5)', () => {
   });
 
   it('derives the golden ids from catalog_key:food_revision', () => {
-    for (const [key, id] of Object.entries(GOLDEN_IDS)) {
-      expect(deriveFoodId(key, 1)).toBe(id);
+    for (const g of GOLDEN) {
+      expect(deriveFoodId(g.key, g.revision)).toBe(g.id);
     }
   });
 
@@ -71,8 +85,8 @@ describe('canonical catalog seed artifact', () => {
   });
 
   it('matches the golden ids and the cross-package content hash', () => {
-    for (const [key, id] of Object.entries(GOLDEN_IDS)) {
-      expect(CATALOG.find((f) => f.catalogKey === key)?.id).toBe(id);
+    for (const g of GOLDEN) {
+      expect(CATALOG.find((f) => f.catalogKey === g.key)?.id).toBe(g.id);
     }
     expect(canonicalHash(CATALOG)).toBe(EXPECTED_CATALOG_HASH);
   });
@@ -90,6 +104,12 @@ describe('canonical catalog seed artifact', () => {
     for (const food of CATALOG) {
       if (food.servingUnit === 'g') {
         expect(food.gramsPerServing).toBe(food.servingAmount);
+      } else if (food.foodRevision === 2) {
+        // Normalized count-unit food (TECHDEBT-004 risk 3): 1 piece + an
+        // authored, non-fabricated gram weight.
+        expect(food.servingUnit).toBe('piece');
+        expect(food.servingAmount).toBe(1);
+        expect(food.gramsPerServing).toBeGreaterThan(0);
       } else {
         expect(food.gramsPerServing).toBeNull();
       }
@@ -106,7 +126,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.0.0',
+      catalogVersionSnapshot: 'food-catalog@1.1.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

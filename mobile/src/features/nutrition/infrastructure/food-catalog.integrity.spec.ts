@@ -68,6 +68,19 @@ describe('food catalog integrity', () => {
     }
   });
 
+  it('records an authored gram weight only as a positive one-piece serving (no fabrication)', () => {
+    // TECHDEBT-004 risk 3 (part 1): the only non-gram foods carrying a known
+    // gram weight are the 29 normalized `piece` foods (amount: 1). Volumetric
+    // foods must NOT carry a fabricated gram weight.
+    const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
+    expect(withGrams).toHaveLength(29);
+    for (const f of withGrams) {
+      expect(f.servingSize.unit).toBe('piece');
+      expect(f.servingSize.amount).toBe(1);
+      expect(f.servingSize.grams).toBeGreaterThan(0);
+    }
+  });
+
   it('has finite, non-negative calories and macros; fiber within carbs', () => {
     for (const f of FOOD_CATALOG) {
       for (const v of [f.calories, f.proteinG, f.carbsG, f.fatG]) {

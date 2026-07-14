@@ -16,12 +16,15 @@ import { buildCanonicalCatalog, canonicalHash, deriveFoodId, uuidv5 } from './ca
  * from the authored FOOD_CATALOG source of truth.
  */
 
-const GOLDEN_IDS: Record<string, string> = {
-  'food.chicken_breast': '16cb6cd9-debe-55fd-b39e-aac043b8705e',
-  'food.egg_whole': '298cb837-2dc6-550d-bf11-9f3654920d5e',
-  'food.brown_rice': '6491c19f-e35b-556e-92ae-4703226b376a',
-};
-const EXPECTED_CATALOG_HASH = '295245c602366d241171fde3aa61aadb80859b62';
+// Cross-package golden anchors (key, immutable revision, derived id). egg_whole
+// is a revision-2 anchor (TECHDEBT-004 risk 3 normalization); the others are
+// revision 1 — proving both packages derive rev-1 and rev-2 ids identically.
+const GOLDEN = [
+  { key: 'food.chicken_breast', revision: 1, id: '16cb6cd9-debe-55fd-b39e-aac043b8705e' },
+  { key: 'food.egg_whole', revision: 2, id: 'ccd3b52a-5a8b-5ce9-b115-5f64b24b361e' },
+  { key: 'food.brown_rice', revision: 1, id: '6491c19f-e35b-556e-92ae-4703226b376a' },
+];
+const EXPECTED_CATALOG_HASH = 'd22651ec0f95c8224a4a9c334c7c79a91329e4f5';
 
 describe('uuidv5 derivation', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -31,10 +34,12 @@ describe('uuidv5 derivation', () => {
   });
 
   it('derives the golden ids and is revision-scoped', () => {
-    for (const [key, id] of Object.entries(GOLDEN_IDS)) {
-      expect(deriveFoodId(key, 1)).toBe(id);
+    for (const g of GOLDEN) {
+      expect(deriveFoodId(g.key, g.revision)).toBe(g.id);
     }
-    expect(deriveFoodId('food.chicken_breast', 2)).not.toBe(GOLDEN_IDS['food.chicken_breast']);
+    expect(deriveFoodId('food.chicken_breast', 2)).not.toBe(
+      GOLDEN.find((g) => g.key === 'food.chicken_breast')!.id,
+    );
   });
 
   it('rejects a malformed namespace', () => {
@@ -63,8 +68,8 @@ describe('committed canonical artifact', () => {
   });
 
   it('matches the golden ids and the cross-package content hash', () => {
-    for (const [key, id] of Object.entries(GOLDEN_IDS)) {
-      expect(CANONICAL_FOOD_CATALOG.find((f) => f.catalogKey === key)?.id).toBe(id);
+    for (const g of GOLDEN) {
+      expect(CANONICAL_FOOD_CATALOG.find((f) => f.catalogKey === g.key)?.id).toBe(g.id);
     }
     expect(CATALOG_CONTENT_HASH).toBe(EXPECTED_CATALOG_HASH);
     expect(canonicalHash(CANONICAL_FOOD_CATALOG)).toBe(EXPECTED_CATALOG_HASH);
@@ -78,17 +83,34 @@ describe('committed canonical artifact', () => {
 });
 
 describe('serving normalization policy', () => {
-  it('records grams_per_serving only for gram servings (no fabricated conversions)', () => {
+  it('records grams_per_serving only where a valid gram conversion exists', () => {
     for (const food of CANONICAL_FOOD_CATALOG) {
       if (food.servingUnit === 'g') {
+        // Gram serving: grams === the amount, base revision.
         expect(food.gramsPerServing).toBe(food.servingAmount);
+        expect(food.foodRevision).toBe(1);
+      } else if (food.foodRevision === 2) {
+        // Normalized count-unit food (TECHDEBT-004 risk 3): 1 piece + a known,
+        // authored gram weight — never fabricated.
+        expect(food.servingUnit).toBe('piece');
+        expect(food.servingAmount).toBe(1);
+        expect(food.gramsPerServing).toBeGreaterThan(0);
       } else {
+        // Volumetric (cup/tbsp/tsp/ml) + genuine slice counts stay gated.
         expect(food.gramsPerServing).toBeNull();
       }
     }
   });
 
-  it('preserves the authored serving amount/unit exactly', () => {
+  it('exactly the 29 normalized foods carry a non-gram gram weight at revision 2', () => {
+    const normalized = CANONICAL_FOOD_CATALOG.filter(
+      (f) => f.servingUnit !== 'g' && f.gramsPerServing != null,
+    );
+    expect(normalized).toHaveLength(29);
+    expect(normalized.every((f) => f.foodRevision === 2 && f.servingAmount === 1)).toBe(true);
+  });
+
+  it('preserves an authored non-gram serving with no known weight (no fabrication)', () => {
     expect(normalizeServing({ amount: 182, unit: 'piece' })).toEqual({
       servingAmount: 182,
       servingUnit: 'piece',
@@ -98,6 +120,14 @@ describe('serving normalization policy', () => {
       servingAmount: 100,
       servingUnit: 'g',
       gramsPerServing: 100,
+    });
+  });
+
+  it('records an authored gram weight on a normalized one-piece serving', () => {
+    expect(normalizeServing({ amount: 1, unit: 'piece', grams: 182 })).toEqual({
+      servingAmount: 1,
+      servingUnit: 'piece',
+      gramsPerServing: 182,
     });
   });
 });

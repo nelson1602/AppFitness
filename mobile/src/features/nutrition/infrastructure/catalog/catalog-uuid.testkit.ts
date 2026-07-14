@@ -12,9 +12,9 @@
  */
 
 import {
-  FOOD_REVISION,
   NUTRITION_UUID_NAMESPACE,
   normalizeServing,
+  revisionOf,
   type CanonicalFood,
 } from '../../domain/catalog-identity';
 import { CATALOG_VERSION, type FoodItem } from '../../domain/food-catalog';
@@ -148,10 +148,11 @@ export function stableStringify(value: unknown): string {
 export function buildCanonicalCatalog(catalog: readonly FoodItem[]): CanonicalFood[] {
   return catalog.map((item) => {
     const serving = normalizeServing(item.servingSize);
+    const foodRevision = revisionOf(item.id);
     return {
-      id: deriveFoodId(item.id, FOOD_REVISION),
+      id: deriveFoodId(item.id, foodRevision),
       catalogKey: item.id,
-      foodRevision: FOOD_REVISION,
+      foodRevision,
       catalogVersion: CATALOG_VERSION,
       name: item.name,
       category: item.category,

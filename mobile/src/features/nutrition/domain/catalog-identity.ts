@@ -17,8 +17,58 @@ import type { ServingSize, ServingUnit } from './food-catalog';
 /** Fixed, documented namespace UUID for AppFitness nutrition-catalog UUIDv5. */
 export const NUTRITION_UUID_NAMESPACE = 'b9f4d2a1-6c7e-5a83-9d0b-1e2f3a4c5d60';
 
-/** Current immutable revision of every bundled catalog food (ADR-P012). */
+/** Base immutable revision of a bundled catalog food (ADR-P012). */
 export const FOOD_REVISION = 1;
+
+/**
+ * Per-food revision overrides (ADR-P012 / TECHDEBT-004 risk 3, split-risk part
+ * 1). These 29 `piece` foods were authored with the one-piece gram weight in
+ * `servingAmount` under a `piece` label — the exact `piece(182)` conflation
+ * ADR-P012 flagged. They are corrected to `{amount: 1, unit: 'piece', grams:
+ * <weight>}` and, because catalog revisions are IMMUTABLE, shipped as a NEW
+ * revision (2 → a new UUID); the old revision-1 rows stay FK-valid on any
+ * server that already seeded them. A food's key appears here IFF its authored
+ * serving now carries an explicit `grams` on a non-gram unit; the canonical
+ * integrity test locks the two together. The 158 volumetric foods
+ * (cup/tbsp/tsp/ml) and 5 genuine `slice` counts stay at revision 1 with
+ * `gramsPerServing = null`, gated behind the USDA-FDC data-source decision.
+ */
+export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
+  'food.egg_whole': 2,
+  'food.egg_white': 2,
+  'food.egg_omelette_plain': 2,
+  'food.eggs_two_large': 2,
+  'food.black_bean_burger': 2,
+  'food.falafel': 2,
+  'food.corn_tortilla': 2,
+  'food.whole_wheat_tortilla': 2,
+  'food.rice_cakes': 2,
+  'food.potato_baked': 2,
+  'food.artichoke': 2,
+  'food.portobello': 2,
+  'food.apple': 2,
+  'food.banana': 2,
+  'food.orange': 2,
+  'food.peach': 2,
+  'food.pear': 2,
+  'food.plum': 2,
+  'food.kiwi': 2,
+  'food.grapefruit': 2,
+  'food.avocado_fruit': 2,
+  'food.dates': 2,
+  'food.apricot': 2,
+  'food.clementine': 2,
+  'food.nectarine': 2,
+  'food.passion_fruit': 2,
+  'food.starfruit': 2,
+  'food.string_cheese': 2,
+  'food.avocado_half': 2,
+};
+
+/** The immutable revision of one bundled food (override, else the base). */
+export function revisionOf(catalogKey: string): number {
+  return FOOD_REVISIONS[catalogKey] ?? FOOD_REVISION;
+}
 
 /**
  * The canonical, normalized representation of one catalog food revision. This
@@ -68,17 +118,20 @@ export interface NormalizedServing {
 
 /**
  * Normalize a catalog serving. The authored `{amount, unit}` is preserved
- * exactly (no reinterpretation, no fabricated conversions). A gram-per-serving
- * value is recorded ONLY where a valid conversion exists — i.e. the serving is
- * already expressed in grams. Non-gram foods keep `gramsPerServing = null`;
- * per-food gram sourcing for those remains open under TECHDEBT-004, and until it
- * lands the log path offers fractional servings (never fabricated gram entry).
+ * exactly (no reinterpretation). A gram-per-serving value is recorded ONLY
+ * where a valid, authored conversion exists: the serving is already in grams
+ * (`unit: 'g'`), OR a non-gram serving carries an explicit authored `grams`
+ * weight (ADR-P012 / TECHDEBT-004 risk 3 — never fabricated). Non-gram foods
+ * without an authored gram weight keep `gramsPerServing = null`; sourcing those
+ * (the volumetric foods) remains open under TECHDEBT-004, and until it lands the
+ * log path offers fractional servings (never fabricated gram entry).
  */
 export function normalizeServing(serving: ServingSize): NormalizedServing {
   return {
     servingAmount: serving.amount,
     servingUnit: serving.unit,
-    gramsPerServing: serving.unit === 'g' ? serving.amount : null,
+    gramsPerServing:
+      serving.unit === 'g' ? serving.amount : (serving.grams ?? null),
   };
 }
 
