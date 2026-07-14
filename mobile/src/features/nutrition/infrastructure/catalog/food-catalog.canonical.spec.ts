@@ -31,8 +31,9 @@ const GOLDEN = [
   { key: 'food.broccoli', revision: 2, id: '5dec7664-4730-51eb-b33d-8aeb68ac0b74' },
   { key: 'food.strawberries', revision: 2, id: '7f718148-11cc-5d5d-a0d7-6523dcc55336' },
   { key: 'food.olive_oil', revision: 2, id: '86cb6064-1102-5af0-80e3-b81ff49ee32a' },
+  { key: 'food.milk_skim', revision: 2, id: '120ff999-602c-50fd-82c6-f934a7c7059b' },
 ];
-const EXPECTED_CATALOG_HASH = '58835d11b1bf32383ec1ada5285eb5e40655774f';
+const EXPECTED_CATALOG_HASH = '2e60f2e2db15427d8719377a24d4d52504059863';
 
 describe('uuidv5 derivation', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -104,7 +105,7 @@ describe('serving normalization policy', () => {
         // the pre-4A authored amount). ADR-P013 batches: `slice`/`tbsp` foods
         // keep their authored serving count; grams cover the FULL serving and
         // come from the pinned FDC manifest (fdc-portion-manifest.spec.ts gates).
-        expect(['piece', 'slice', 'tbsp', 'tsp', 'cup']).toContain(food.servingUnit);
+        expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(food.servingUnit);
         if (food.servingUnit === 'piece') expect(food.servingAmount).toBe(1);
         else expect(food.servingAmount).toBeGreaterThan(0);
         expect(food.gramsPerServing).toBeGreaterThan(0);
@@ -115,17 +116,18 @@ describe('serving normalization policy', () => {
     }
   });
 
-  it('exactly 140 foods carry a non-gram gram weight, all at revision 2 (29 piece + 4 slice + 21 tbsp + 4 tsp + 82 cup)', () => {
+  it('exactly 151 foods carry a non-gram gram weight, all at revision 2 (29 piece + 4 slice + 21 tbsp + 4 tsp + 82 cup + 11 ml)', () => {
     const withGrams = CANONICAL_FOOD_CATALOG.filter(
       (f) => f.servingUnit !== 'g' && f.gramsPerServing != null,
     );
-    expect(withGrams).toHaveLength(140);
+    expect(withGrams).toHaveLength(151);
     expect(withGrams.every((f) => f.foodRevision === 2)).toBe(true);
     expect(withGrams.filter((f) => f.servingUnit === 'piece')).toHaveLength(29);
     expect(withGrams.filter((f) => f.servingUnit === 'slice')).toHaveLength(4);
     expect(withGrams.filter((f) => f.servingUnit === 'tbsp')).toHaveLength(21);
     expect(withGrams.filter((f) => f.servingUnit === 'tsp')).toHaveLength(4);
     expect(withGrams.filter((f) => f.servingUnit === 'cup')).toHaveLength(82);
+    expect(withGrams.filter((f) => f.servingUnit === 'ml')).toHaveLength(11);
   });
 
   it('preserves an authored non-gram serving with no known weight (no fabrication)', () => {

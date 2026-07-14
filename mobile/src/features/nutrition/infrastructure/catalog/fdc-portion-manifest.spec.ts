@@ -22,6 +22,13 @@ interface ManifestEntry {
   fdcDataType: string;
   fdcDescription: string;
   portion: { portionRowId: number; amount: number; modifier: string; gramWeight: number };
+  /**
+   * Present ONLY for `ml` foods (ADR-P013 Batch 5): the density derivation from
+   * a volume-paired portion row. sourceVolumeMl is the total millilitres the
+   * portion row represents (US customary: cup = 236.588 ml, fl oz = 29.5735 ml);
+   * gPerMl = gramWeight / sourceVolumeMl. Never an assumed 1 g/ml.
+   */
+  density?: { sourceVolumeMl: number; gPerMl: number };
   fdcPer100g: { kcal: number; proteinG: number; carbsG: number; fatG: number };
   derivedGramsPerServing: number;
   reviewNote: string;
@@ -97,20 +104,48 @@ describe('FDC portion manifest — gates', () => {
     for (const e of manifest.entries) {
       const food = byKey.get(e.catalogKey);
       expect(food).toBeDefined();
-      expect(['slice', 'tbsp', 'tsp', 'cup']).toContain(food!.servingUnit);
+      expect(['slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(food!.servingUnit);
       const label = e.portion.modifier.toLowerCase();
       if (food!.servingUnit === 'slice') expect(label).toContain('slice');
       else if (food!.servingUnit === 'tbsp') expect(label).toMatch(/\b(tbsp|tablespoon)\b/);
       else if (food!.servingUnit === 'tsp') expect(label).toMatch(/\b(tsp|teaspoon)\b/);
+      else if (food!.servingUnit === 'ml')
+        // Density derivation needs a volume-paired portion (cup / fl oz / ml).
+        expect(label).toMatch(/\b(cup|fl oz|fluid ounce|ml|milliliter|tbsp|tablespoon|tsp|teaspoon)\b/);
       else expect(label).toMatch(/\bcup\b/);
+    }
+  });
+
+  it('ml foods carry a density block; non-ml foods never do', () => {
+    for (const e of manifest.entries) {
+      const food = byKey.get(e.catalogKey)!;
+      if (food.servingUnit === 'ml') {
+        expect(e.density).toBeDefined();
+        expect(e.density!.sourceVolumeMl).toBeGreaterThan(0);
+        // Plausible liquid density; an assumed 1.000 g/ml exactly would be
+        // suspicious but is not per-se invalid — the derivation check below
+        // requires it to actually equal gramWeight / sourceVolumeMl.
+        expect(e.density!.gPerMl).toBeGreaterThanOrEqual(0.5);
+        expect(e.density!.gPerMl).toBeLessThanOrEqual(1.6);
+      } else {
+        expect(e.density).toBeUndefined();
+      }
     }
   });
 
   it('derivedGramsPerServing follows from the portion and the catalog serving amount', () => {
     for (const e of manifest.entries) {
       const food = byKey.get(e.catalogKey)!;
-      const derived = (e.portion.gramWeight / e.portion.amount) * food.servingAmount;
-      expect(e.derivedGramsPerServing).toBeCloseTo(derived, 6);
+      if (e.density) {
+        // Density path (ml foods): gPerMl = gramWeight / sourceVolumeMl and
+        // derived = density * catalog serving ml (rounded to 0.1 g).
+        expect(e.density.gPerMl).toBeCloseTo(e.portion.gramWeight / e.density.sourceVolumeMl, 4);
+        const derived = (e.portion.gramWeight / e.density.sourceVolumeMl) * food.servingAmount;
+        expect(Math.abs(e.derivedGramsPerServing - derived)).toBeLessThanOrEqual(0.05 + 1e-9);
+      } else {
+        const derived = (e.portion.gramWeight / e.portion.amount) * food.servingAmount;
+        expect(e.derivedGramsPerServing).toBeCloseTo(derived, 6);
+      }
     }
   });
 

@@ -871,8 +871,10 @@ unmatched); **Batch 3C implemented 2026-07-14** — 14 cup-served fruits
 FDC-sourced (pomegranate/dragon_fruit unmatched); **Batch 4 implemented
 2026-07-14** — 8 remaining tbsp foods FDC-sourced after re-verification
 disproved Batch 2's unmatched verdicts for them (erratum in ADR-P013 Batch 4
-note); 50 foods still gated: 16 `cup` + 10 `tbsp` + 23 `ml` +
-`sourdough_bread`). See the status sections below.
+note); **Batch 5 implemented 2026-07-14** — 11 ml foods density-derived from
+volume-paired portions (8 unmatched: no SR record/prep mismatch; 4 zero-macro
+beverages join the vinegar policy class); 39 foods still gated: 16 `cup` +
+10 `tbsp` + 12 `ml` + `sourdough_bread`). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -953,10 +955,12 @@ never touched):
      (pomegranate, dragon_fruit unmatched); **Batch 4 (2026-07-14)** sourced 8
      remaining tbsp foods (6 oils, light cream cheese, tomato paste) after
      disproving Batch 2's unmatched verdicts for them — see the ADR-P013
-     Batch 4 erratum; `apple_cider_vinegar` stays policy-pending. **50 foods
-     remain gated** (16 `cup` + 10 `tbsp` + 23 `ml` + `sourdough_bread`);
-     gram entry stays unavailable for those; the log path uses fractional
-     servings meanwhile.
+     Batch 4 erratum; **Batch 5 (2026-07-14)** density-derived 11 ml foods
+     from volume-paired portions (never assumed 1 g/ml); `apple_cider_vinegar`
+     plus 4 zero-macro beverages (green tea, black coffee, herbal tea,
+     sparkling water) stay policy-pending. **39 foods remain gated** (16 `cup`
+     + 10 `tbsp` + 12 `ml` + `sourdough_bread`); gram entry stays unavailable
+     for those; the log path uses fractional servings meanwhile.
 
 The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
 risks 1, 2, and risk 3 part 1 are resolved.
@@ -1105,9 +1109,12 @@ semantics mini-slice (2026-07-14, `food-catalog@1.3.1`)** corrected 6 ambiguous
 26 cup grains/legumes/staples; **Batch 3B (2026-07-14, `food-catalog@1.5.0`)**
 sourced 42 cup vegetables; **Batch 3C (2026-07-14, `food-catalog@1.6.0`)**
 sourced 14 cup fruits; **Batch 4 (2026-07-14, `food-catalog@1.7.0`)** sourced
-8 remaining tbsp foods (Batch 2 erratum). **50 foods remain gated** (16 `cup`
-+ 10 `tbsp` + 23 `ml` + `sourdough_bread`) for later batches (nothing
-fabricated).
+8 remaining tbsp foods (Batch 2 erratum); **Batch 5 (2026-07-14,
+`food-catalog@1.8.0`)** density-derived 11 ml foods. **39 foods remain gated**
+(16 `cup` + 10 `tbsp` + 12 `ml` + `sourdough_bread`) — none matchable under
+the pinned SR Legacy archive; closing them needs a different-source decision
+(FNDDS), the zero-macro policy call (5 foods), or an authored-data correction
+(poppy). Nothing fabricated.
 
 ### Related Documents
 

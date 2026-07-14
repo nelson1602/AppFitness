@@ -80,8 +80,13 @@ const GOLDEN = [
     revision: 2,
     id: '86cb6064-1102-5af0-80e3-b81ff49ee32a',
   },
+  {
+    key: 'food.milk_skim',
+    revision: 2,
+    id: '120ff999-602c-50fd-82c6-f934a7c7059b',
+  },
 ];
-const EXPECTED_CATALOG_HASH = '58835d11b1bf32383ec1ada5285eb5e40655774f';
+const EXPECTED_CATALOG_HASH = '2e60f2e2db15427d8719377a24d4d52504059863';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -143,7 +148,7 @@ describe('canonical catalog seed artifact', () => {
         // part-1 `piece` foods (amount 1), ADR-P013 Batch-1/2/3A
         // `slice`/`tbsp`/`cup` foods, or tsp-semantics `tsp` foods (authored count kept;
         // FDC-sourced full-serving weight).
-        expect(['piece', 'slice', 'tbsp', 'tsp', 'cup']).toContain(
+        expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(
           food.servingUnit,
         );
         if (food.servingUnit === 'piece') expect(food.servingAmount).toBe(1);
@@ -165,7 +170,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.7.0',
+      catalogVersionSnapshot: 'food-catalog@1.8.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

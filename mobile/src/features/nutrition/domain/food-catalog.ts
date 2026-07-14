@@ -133,8 +133,15 @@ export interface FoodItem {
  * stay gated (reasons re-verified); lemon_juice's reason corrected (raw
  * record exists but has no tbsp portion — density-batch candidate);
  * apple_cider_vinegar stays policy-pending.
+ * 1.8.0 (ADR-P013 Batch 5): density-derived full-serving gram weights for 11
+ * ml foods from volume-paired portions in the same pinned USDA-FDC SR Legacy
+ * archive (density = gramWeight / sourceVolumeMl; never assumed 1 g/ml); new
+ * immutable revisions (2). pea/oat/cashew milk, coconut-milk beverage,
+ * protein shakes, matcha, kombucha stay gated (no reconciling SR record);
+ * green_tea/black_coffee/herbal_tea/sparkling_water join apple_cider_vinegar
+ * in the zero-macro policy class, pending the owner decision.
  */
-export const CATALOG_VERSION = 'food-catalog@1.7.0';
+export const CATALOG_VERSION = 'food-catalog@1.8.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

@@ -85,6 +85,11 @@ const tspFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 
 // per-food fdcId/portion provenance). `grams` covers the WHOLE authored serving
 // (e.g. popcorn's 3-cup serving = 24 g total). Never derive by assumed density.
 const cupFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'cup', grams });
+// A millilitre serving whose full-serving gram weight is DENSITY-derived from a
+// volume-paired portion row in the pinned USDA-FDC archive (ADR-P013 Batch 5;
+// see catalog/fdc-portion-manifest.json for each food's density = gramWeight /
+// sourceVolumeMl and derivation). Never an assumed 1 g/ml.
+const mlFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'ml', grams });
 
 export const FOOD_CATALOG: readonly FoodItem[] = [
   // ── protein_animal (42) ──────────────────────────────────────────────
@@ -350,7 +355,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 5,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.soy_milk_unsweet', 'Soy milk, unsweetened', 'protein_plant', ml(240), 7, 4, 4, {
+  food('food.soy_milk_unsweet', 'Soy milk, unsweetened', 'protein_plant', mlFdc(240, 246.5), 7, 4, 4, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'heart_healthy'],
   }),
   food('food.pea_milk_unsweet', 'Pea milk, unsweetened', 'protein_plant', ml(240), 8, 0, 5, {
@@ -1392,15 +1397,15 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['high_protein', 'vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive', 'high_sodium_sensitive'],
   }),
-  food('food.milk_skim', 'Milk, skim', 'dairy', ml(240), 8, 12, 0, {
+  food('food.milk_skim', 'Milk, skim', 'dairy', mlFdc(240, 248.5), 8, 12, 0, {
     tags: ['high_protein', 'vegetarian', 'gluten_free', 'budget_friendly'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.milk_1pct', 'Milk, 1%', 'dairy', ml(240), 8, 12, 2, {
+  food('food.milk_1pct', 'Milk, 1%', 'dairy', mlFdc(240, 247.5), 8, 12, 2, {
     tags: ['high_protein', 'vegetarian', 'gluten_free', 'budget_friendly'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.milk_2pct', 'Milk, 2%', 'dairy', ml(240), 8, 12, 5, {
+  food('food.milk_2pct', 'Milk, 2%', 'dairy', mlFdc(240, 247.5), 8, 12, 5, {
     tags: ['vegetarian', 'gluten_free', 'budget_friendly'],
     avoid: ['lactose_sensitive'],
   }),
@@ -1408,7 +1413,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.kefir_plain', 'Kefir, plain low-fat', 'dairy', ml(240), 9, 12, 2, {
+  food('food.kefir_plain', 'Kefir, plain low-fat', 'dairy', mlFdc(240, 246.5), 9, 12, 2, {
     tags: ['high_protein', 'vegetarian', 'gluten_free'],
     avoid: ['lactose_sensitive'],
   }),
@@ -1444,7 +1449,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.almond_milk_unsweet', 'Almond milk, unsweetened', 'dairy', ml(240), 1, 1, 3, {
+  food('food.almond_milk_unsweet', 'Almond milk, unsweetened', 'dairy', mlFdc(240, 265.8), 1, 1, 3, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb'],
     avoid: ['nut_allergy'],
   }),
@@ -1470,7 +1475,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['high_protein', 'vegetarian', 'gluten_free'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.buttermilk_lowfat', 'Buttermilk, low-fat', 'dairy', ml(240), 8, 12, 2, {
+  food('food.buttermilk_lowfat', 'Buttermilk, low-fat', 'dairy', mlFdc(240, 248.5), 8, 12, 2, {
     tags: ['vegetarian', 'gluten_free'],
     avoid: ['lactose_sensitive'],
   }),
@@ -1783,24 +1788,24 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.tomato_juice_lowsodium', 'Tomato juice, low-sodium', 'beverage', ml(240), 2, 10, 0, {
+  food('food.tomato_juice_lowsodium', 'Tomato juice, low-sodium', 'beverage', mlFdc(240, 246.5), 2, 10, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.orange_juice', 'Orange juice, 100%', 'beverage', ml(240), 2, 26, 0, {
+  food('food.orange_juice', 'Orange juice, 100%', 'beverage', mlFdc(240, 251.6), 2, 26, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
   }),
   food(
     'food.vegetable_juice_lowsodium',
     'Vegetable juice, low-sodium',
     'beverage',
-    ml(240),
+    mlFdc(240, 245.5),
     2,
     11,
     0,
     { fiber: 2, tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'] },
   ),
-  food('food.coconut_water', 'Coconut water, unsweetened', 'beverage', ml(240), 2, 9, 0, {
+  food('food.coconut_water', 'Coconut water, unsweetened', 'beverage', mlFdc(240, 248.5), 2, 9, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
   food('food.protein_shake_water', 'Whey protein shake (water)', 'beverage', ml(300), 25, 3, 2, {

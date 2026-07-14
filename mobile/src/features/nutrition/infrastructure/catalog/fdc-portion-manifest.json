@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-4 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-5 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2236,6 +2236,270 @@
       },
       "derivedGramsPerServing": 32,
       "reviewNote": "No-salt record matches the authored \"no salt added\" name; catalog serving is 2 tbsp so 2 x 16 g = 32 g. Est 26.2 kcal vs 28 — PASSES; Batch 2’s reconciliation-failure claim does not reproduce (likely missed the x2 serving scaling)."
+    },
+    {
+      "catalogKey": "food.soy_milk_unsweet",
+      "fdcId": 175215,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Soymilk (all flavors), unsweetened, with added calcium, vitamins A and D",
+      "portion": {
+        "portionRowId": 95857,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 243
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0271
+      },
+      "fdcPer100g": {
+        "kcal": 33,
+        "proteinG": 2.86,
+        "carbsG": 1.74,
+        "fatG": 1.61
+      },
+      "derivedGramsPerServing": 246.5,
+      "reviewNote": "Generic unsweetened soymilk record (branded SILK also passes but is brand-specific). density = 243 g / 236.588 ml = 1.0271 g/ml; derivedGramsPerServing = 1.0271 * 240 ml = 246.5 g. Est 81.3 kcal vs 80."
+    },
+    {
+      "catalogKey": "food.milk_skim",
+      "fdcId": 171269,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Milk, nonfat, fluid, with added vitamin A and vitamin D (fat free or skim)",
+      "portion": {
+        "portionRowId": 88325,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 245
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0356
+      },
+      "fdcPer100g": {
+        "kcal": 34,
+        "proteinG": 3.37,
+        "carbsG": 4.96,
+        "fatG": 0.08
+      },
+      "derivedGramsPerServing": 248.5,
+      "reviewNote": "density = 245 / 236.588 = 1.0356 g/ml; derived = 1.0356 * 240 = 248.5 g (fl-oz row 30.6 g cross-checks at 1.0347). Est 84.5 kcal vs 80."
+    },
+    {
+      "catalogKey": "food.milk_1pct",
+      "fdcId": 170872,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Milk, lowfat, fluid, 1% milkfat, with added vitamin A and vitamin D",
+      "portion": {
+        "portionRowId": 87459,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 244
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0313
+      },
+      "fdcPer100g": {
+        "kcal": 42,
+        "proteinG": 3.37,
+        "carbsG": 4.99,
+        "fatG": 0.97
+      },
+      "derivedGramsPerServing": 247.5,
+      "reviewNote": "density = 244 / 236.588 = 1.0313 g/ml; derived = 1.0313 * 240 = 247.5 g (fl-oz row cross-checks). Est 104.0 kcal vs 98."
+    },
+    {
+      "catalogKey": "food.milk_2pct",
+      "fdcId": 171267,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Milk, reduced fat, fluid, 2% milkfat, with added vitamin A and vitamin D",
+      "portion": {
+        "portionRowId": 88320,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 244
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0313
+      },
+      "fdcPer100g": {
+        "kcal": 50,
+        "proteinG": 3.3,
+        "carbsG": 4.8,
+        "fatG": 1.98
+      },
+      "derivedGramsPerServing": 247.5,
+      "reviewNote": "The vitamin-fortified record chosen for consistency with the skim/1% picks (US fluid milk is fortified); the unfortified record also passes. density = 244 / 236.588 = 1.0313; derived = 247.5 g. Est 123.8 kcal vs 125."
+    },
+    {
+      "catalogKey": "food.kefir_plain",
+      "fdcId": 170904,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Kefir, lowfat, plain, LIFEWAY",
+      "portion": {
+        "portionRowId": 87527,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 243
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0271
+      },
+      "fdcPer100g": {
+        "kcal": 43,
+        "proteinG": 3.79,
+        "carbsG": 4.77,
+        "fatG": 1.02
+      },
+      "derivedGramsPerServing": 246.5,
+      "reviewNote": "SR Legacy’s only plain lowfat kefir record (branded — noted). density = 243 / 236.588 = 1.0271; derived = 246.5 g. Est 106.0 kcal vs 102."
+    },
+    {
+      "catalogKey": "food.almond_milk_unsweet",
+      "fdcId": 174832,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beverages, almond milk, unsweetened, shelf stable",
+      "portion": {
+        "portionRowId": 94967,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 262
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.1074
+      },
+      "fdcPer100g": {
+        "kcal": 15,
+        "proteinG": 0.4,
+        "carbsG": 1.31,
+        "fatG": 0.96
+      },
+      "derivedGramsPerServing": 265.8,
+      "reviewNote": "Exact unsweetened match. SR cup weight is 262 g giving density 1.1074 g/ml (higher than typical almond-milk estimates but taken as sourced, not adjusted); derived = 265.8 g. Est 39.9 kcal vs 35."
+    },
+    {
+      "catalogKey": "food.buttermilk_lowfat",
+      "fdcId": 170874,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Milk, buttermilk, fluid, cultured, lowfat",
+      "portion": {
+        "portionRowId": 87464,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 245
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0356
+      },
+      "fdcPer100g": {
+        "kcal": 40,
+        "proteinG": 3.31,
+        "carbsG": 4.79,
+        "fatG": 1.07
+      },
+      "derivedGramsPerServing": 248.5,
+      "reviewNote": "density = 245 / 236.588 = 1.0356; derived = 248.5 g (fl-oz row cross-checks at 1.0347). Est 99.4 kcal vs 98."
+    },
+    {
+      "catalogKey": "food.tomato_juice_lowsodium",
+      "fdcId": 170545,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Tomato juice, canned, without salt added",
+      "portion": {
+        "portionRowId": 86828,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 243
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0271
+      },
+      "fdcPer100g": {
+        "kcal": 17,
+        "proteinG": 0.85,
+        "carbsG": 3.53,
+        "fatG": 0.29
+      },
+      "derivedGramsPerServing": 246.5,
+      "reviewNote": "Without-salt record matches the authored low-sodium name. density = 243 / 236.588 = 1.0271; derived = 246.5 g. Est 41.9 kcal vs 48."
+    },
+    {
+      "catalogKey": "food.orange_juice",
+      "fdcId": 169098,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Orange juice, raw (Includes foods for USDA's Food Distribution Program)",
+      "portion": {
+        "portionRowId": 84231,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 248
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0482
+      },
+      "fdcPer100g": {
+        "kcal": 45,
+        "proteinG": 0.7,
+        "carbsG": 10.4,
+        "fatG": 0.2
+      },
+      "derivedGramsPerServing": 251.6,
+      "reviewNote": "Raw juice = 100% juice (canned-unsweetened also passes but raw is the closer match). density = 248 / 236.588 = 1.0482; derived = 251.6 g. Est 113.2 kcal vs 112."
+    },
+    {
+      "catalogKey": "food.vegetable_juice_lowsodium",
+      "fdcId": 167708,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Tomato and vegetable juice, low sodium",
+      "portion": {
+        "portionRowId": 81801,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 242
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0229
+      },
+      "fdcPer100g": {
+        "kcal": 22,
+        "proteinG": 0.6,
+        "carbsG": 4.59,
+        "fatG": 0.1
+      },
+      "derivedGramsPerServing": 245.5,
+      "reviewNote": "Exact low-sodium vegetable-juice record. density = 242 / 236.588 = 1.0229; derived = 245.5 g. Est 54.0 kcal vs 52."
+    },
+    {
+      "catalogKey": "food.coconut_water",
+      "fdcId": 174831,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beverages, Coconut water, ready-to-drink, unsweetened",
+      "portion": {
+        "portionRowId": 94966,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 245
+      },
+      "density": {
+        "sourceVolumeMl": 236.588,
+        "gPerMl": 1.0356
+      },
+      "fdcPer100g": {
+        "kcal": 18,
+        "proteinG": 0.22,
+        "carbsG": 4.24,
+        "fatG": 0
+      },
+      "derivedGramsPerServing": 248.5,
+      "reviewNote": "RTD unsweetened record matches the authored name (fresh coconut liquid record also passes). density = 245 / 236.588 = 1.0356; derived = 248.5 g. Est 44.7 kcal vs 44."
     }
   ],
   "unmatched": [
@@ -2346,6 +2610,54 @@
     {
       "catalogKey": "food.dragon_fruit",
       "reason": "SR Legacy 2018-04 contains no dragon fruit / pitaya / pitahaya record at all (added to FDC only in later non-SR data types). No source row exists in the pinned archive. Left null and gated."
+    },
+    {
+      "catalogKey": "food.pea_milk_unsweet",
+      "reason": "SR Legacy 2018-04 contains no pea-milk record (category too recent for SR). No source row exists in the pinned archive. Left null and gated."
+    },
+    {
+      "catalogKey": "food.oat_milk_unsweet",
+      "reason": "SR Legacy 2018-04 contains no oat-milk record (category too recent for SR). Left null and gated."
+    },
+    {
+      "catalogKey": "food.cashew_milk_unsweet",
+      "reason": "SR Legacy 2018-04 contains no cashew-milk record. Left null and gated."
+    },
+    {
+      "catalogKey": "food.coconut_milk_beverage",
+      "reason": "The only SR coconut-milk beverage record is SWEETENED (174116) and fails macro reconciliation for the authored unsweetened serving (75.5 kcal est vs 49); canned coconut milk (170173) is a different, far denser food and fails catastrophically. Left null and gated."
+    },
+    {
+      "catalogKey": "food.protein_shake_water",
+      "reason": "Prepared whey-protein shake is a composite with no SR record; only protein powders exist (e.g. 173459) and fail reconciliation catastrophically against the prepared 300 ml serving. Left null and gated."
+    },
+    {
+      "catalogKey": "food.vegan_protein_shake",
+      "reason": "Prepared plant-protein shake is a composite with no SR record; the nearest soy-protein candidates are unrelated products and fail reconciliation. Left null and gated."
+    },
+    {
+      "catalogKey": "food.matcha_unsweet",
+      "reason": "SR Legacy 2018-04 contains no matcha record. Left null and gated."
+    },
+    {
+      "catalogKey": "food.kombucha_unsweet",
+      "reason": "SR Legacy 2018-04 contains no kombucha record. Left null and gated."
+    },
+    {
+      "catalogKey": "food.green_tea",
+      "reason": "Zero-macro policy class (same as food.apple_cider_vinegar): authored macros are all zero while SR brewed-tea records carry trace values. SR candidates pass the gate trivially (171917 \"Beverages, tea, green, brewed, regular\", cup 245 g, density 1.0356) — held pending the owner’s zero-macro policy decision, deliberately not resolved in Batch 5."
+    },
+    {
+      "catalogKey": "food.black_coffee",
+      "reason": "Zero-macro policy class: SR 171890 \"Beverages, coffee, brewed, prepared with tap water\" (fl oz 29.6 g, density 1.0009) passes trivially — held pending the owner’s zero-macro policy decision."
+    },
+    {
+      "catalogKey": "food.herbal_tea",
+      "reason": "Zero-macro policy class: SR 173232 \"Beverages, tea, herb, other than chamomile, brewed\" (fl oz 29.6 g, density 1.0009) passes trivially — held pending the owner’s zero-macro policy decision."
+    },
+    {
+      "catalogKey": "food.sparkling_water",
+      "reason": "Zero-macro policy class: SR bottled/carbonated water records (e.g. 173233 PERRIER, fl oz 29.6 g, density 1.0009) pass trivially — held pending the owner’s zero-macro policy decision."
     }
   ]
 }

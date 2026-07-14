@@ -197,6 +197,18 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.coconut_oil': 2,
   'food.cream_cheese_light': 2,
   'food.tomato_paste': 2,
+  // ADR-P013 Batch 5 — ml foods with density-derived full-serving gram weights.
+  'food.soy_milk_unsweet': 2,
+  'food.milk_skim': 2,
+  'food.milk_1pct': 2,
+  'food.milk_2pct': 2,
+  'food.kefir_plain': 2,
+  'food.almond_milk_unsweet': 2,
+  'food.buttermilk_lowfat': 2,
+  'food.tomato_juice_lowsodium': 2,
+  'food.orange_juice': 2,
+  'food.vegetable_juice_lowsodium': 2,
+  'food.coconut_water': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

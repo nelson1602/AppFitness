@@ -3104,11 +3104,59 @@ replaced by full provenance entries.
   regenerated (an `olive_oil` rev-2 golden added to both suites). Macros
   unchanged (0/300).
 
-**Remaining under this ADR:** 50 foods (16 `cup` + 10 `tbsp` + 23 `ml` +
-`sourdough_bread`) stay `grams_per_serving = null`. Of the 26 non-`ml`
-remainders, all have re-verified unmatched reasons under this archive — they
-need either a different pinned source (e.g. FNDDS), the density method, an
-authored-data correction (poppy), or an owner policy call (vinegar).
+**Remaining after Batch 4:** 50 foods (16 `cup` + 10 `tbsp` + 23 `ml` +
+`sourdough_bread`) stayed `grams_per_serving = null` — see Batch 5 below.
+
+### Batch 5 Implementation Note (2026-07-14) — ml foods (density method)
+
+The millilitre batch is implemented per this ADR using the **density method**
+defined in §1: gram weights derived ONLY from volume-paired SR portion rows —
+`density = gramWeight / sourceVolumeMl`, `derivedGramsPerServing = density ×
+catalogServingMl` (US customary volumes: cup = 236.588 ml, fl oz = 29.5735 ml,
+consistent with SR's own gram weights, e.g. milk 244 g/cup ≈ 1.031 g/ml).
+**Never an assumed 1 g/ml.** Each manifest entry carries an explicit
+`density: { sourceVolumeMl, gPerMl }` block, enforced by new gate-spec checks
+(density present iff `ml` food; gPerMl === gramWeight/sourceVolumeMl;
+plausibility band 0.5–1.6 g/ml; derivation to 0.1 g). **Catalog/data + tests
+only — no schema, migration, UI, sync, backend, or deployment change.**
+
+- **Matched (11), all gate-passing, densities 1.02–1.11 g/ml from cup
+  portions:** `soy_milk_unsweet` → 175215 generic unsweetened soymilk
+  (1.0271 → 246.5 g/240 ml), `milk_skim` → 171269 (1.0356 → 248.5 g),
+  `milk_1pct` → 170872 (1.0313 → 247.5 g), `milk_2pct` → 171267
+  vitamin-fortified for consistency with the other milks (1.0313 → 247.5 g),
+  `kefir_plain` → 170904 LIFEWAY (SR's only plain kefir — branded, noted;
+  1.0271 → 246.5 g), `almond_milk_unsweet` → 174832 (SR's 262 g/cup gives
+  1.1074 — taken as sourced, not adjusted; 265.8 g), `buttermilk_lowfat` →
+  170874 (1.0356 → 248.5 g), `tomato_juice_lowsodium` → 170545 no-salt
+  (1.0271 → 246.5 g), `orange_juice` → 169098 raw = 100 % (1.0482 → 251.6 g),
+  `vegetable_juice_lowsodium` → 167708 exact low-sodium record (1.0229 →
+  245.5 g), `coconut_water` → 174831 RTD unsweetened (1.0356 → 248.5 g).
+  fl-oz rows cross-check the cup-derived densities where present.
+- **Unmatched (8), never force-fit:** `pea_milk_unsweet`, `oat_milk_unsweet`,
+  `cashew_milk_unsweet`, `matcha_unsweet`, `kombucha_unsweet` (no SR record —
+  categories post-date SR Legacy), `coconut_milk_beverage` (only the SWEETENED
+  beverage record exists and fails the gate), `protein_shake_water` /
+  `vegan_protein_shake` (prepared composites; only powders exist, fail
+  catastrophically).
+- **Zero-macro policy class (4), deliberately NOT resolved:** `green_tea`,
+  `black_coffee`, `herbal_tea`, `sparkling_water` — authored macros all zero
+  with trace-value SR records that pass the gate trivially: the same class as
+  `apple_cider_vinegar`, which Batch 2 parked on an explicit owner policy
+  decision (and which this batch was instructed to exclude). All four reasons
+  name ready SR candidate records so the eventual policy resolution is a
+  trivial mini-batch covering all five foods.
+- **Mechanics:** the 11 matched foods gained authored full-serving `grams` via
+  a new `mlFdc(amount, grams)` helper, bumped to `food_revision` 2 (new
+  UUIDv5s; rev-1 rows retained), `CATALOG_VERSION` → `food-catalog@1.8.0`;
+  canonical artifacts/hash/goldens regenerated (a `milk_skim` rev-2 golden
+  added to both suites). Macros unchanged (0/300).
+
+**Remaining under this ADR:** 39 foods (16 `cup` + 10 `tbsp` + 12 `ml` +
+`sourdough_bread`). None are matchable under the pinned SR Legacy archive as
+already re-verified — closing them requires a different pinned source (e.g.
+FNDDS) via a follow-up source decision, the owner's zero-macro policy call
+(5 foods incl. vinegar), or an authored-data correction (poppy).
 
 ### Related Documents
 
