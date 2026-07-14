@@ -867,8 +867,10 @@ identity/schema/seed), 2 (server-derived macro snapshot), and risk 3 **part 1**
 foods corrected; **Batch 3A implemented 2026-07-14** - 26 cup-served
 grains/legumes/staples FDC-sourced; **Batch 3B implemented 2026-07-14** — 42
 cup-served vegetables FDC-sourced (onion/snow_peas/leeks/mixed_greens/broccolini
-unmatched); 72 foods still gated: 30 remaining `cup` + 18 remaining `tbsp` +
-23 `ml` + `sourdough_bread`). See the status sections below.
+unmatched); **Batch 3C implemented 2026-07-14** — 14 cup-served fruits
+FDC-sourced (pomegranate/dragon_fruit unmatched); 58 foods still gated: 16
+remaining `cup` + 18 remaining `tbsp` + 23 `ml` + `sourdough_bread`). See the
+status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -945,10 +947,11 @@ never touched):
      corrected 6 `tsp(N grams)` foods. **Batch 3A (2026-07-14)** sourced 26
      cup-served grains/legumes/staples; **Batch 3B (2026-07-14)** sourced 42
      cup-served vegetables (onion, snow_peas, leeks, mixed_greens, broccolini
-     unmatched — reasons in the manifest). **72 foods remain gated** (30
-     remaining `cup` + 18 remaining `tbsp` + 23 `ml` + `sourdough_bread`);
-     gram entry stays unavailable for those; the log path uses fractional
-     servings meanwhile.
+     unmatched); **Batch 3C (2026-07-14)** sourced 14 cup-served fruits
+     (pomegranate, dragon_fruit unmatched — reasons in the manifest). **58
+     foods remain gated** (16 remaining `cup` + 18 remaining `tbsp` + 23 `ml`
+     + `sourdough_bread`); gram entry stays unavailable for those; the log
+     path uses fractional servings meanwhile.
 
 The item stays **Open** for risk 3 **part 2** (volumetric gram sourcing) only;
 risks 1, 2, and risk 3 part 1 are resolved.
@@ -1095,7 +1098,8 @@ data-source strategy is **ADR-P013 (Accepted 2026-07-14)**. **Batch 1
 semantics mini-slice (2026-07-14, `food-catalog@1.3.1`)** corrected 6 ambiguous
 `tsp(N grams)` foods; **Batch 3A (2026-07-14, `food-catalog@1.4.0`)** sourced
 26 cup grains/legumes/staples; **Batch 3B (2026-07-14, `food-catalog@1.5.0`)**
-sourced 42 cup vegetables. **72 foods remain gated** (30 `cup` + 18 `tbsp` +
+sourced 42 cup vegetables; **Batch 3C (2026-07-14, `food-catalog@1.6.0`)**
+sourced 14 cup fruits. **58 foods remain gated** (16 `cup` + 18 `tbsp` +
 23 `ml` + `sourdough_bread`) for later batches (nothing fabricated).
 
 ### Related Documents

@@ -1207,11 +1207,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.strawberries', 'Strawberries', 'fruit', cup(1), 1, 12, 0, {
+  food('food.strawberries', 'Strawberries', 'fruit', cupFdc(1, 166), 1, 12, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.blueberries', 'Blueberries', 'fruit', cup(1), 1, 21, 0, {
+  food('food.blueberries', 'Blueberries', 'fruit', cupFdc(1, 148), 1, 21, 0, {
     fiber: 4,
     tags: [
       'vegan',
@@ -1224,31 +1224,31 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.raspberries', 'Raspberries', 'fruit', cup(1), 1, 15, 1, {
+  food('food.raspberries', 'Raspberries', 'fruit', cupFdc(1, 123), 1, 15, 1, {
     fiber: 8,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
-  food('food.blackberries', 'Blackberries', 'fruit', cup(1), 2, 14, 1, {
+  food('food.blackberries', 'Blackberries', 'fruit', cupFdc(1, 144), 2, 14, 1, {
     fiber: 8,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
-  food('food.grapes', 'Grapes', 'fruit', cup(1), 1, 27, 0, {
+  food('food.grapes', 'Grapes', 'fruit', cupFdc(1, 151), 1, 27, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.pineapple', 'Pineapple', 'fruit', cup(1), 1, 22, 0, {
+  food('food.pineapple', 'Pineapple', 'fruit', cupFdc(1, 165), 1, 22, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.mango', 'Mango', 'fruit', cup(1), 1, 25, 1, {
+  food('food.mango', 'Mango', 'fruit', cupFdc(1, 165), 1, 25, 1, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.watermelon', 'Watermelon', 'fruit', cup(1), 1, 11, 0, {
+  food('food.watermelon', 'Watermelon', 'fruit', cupFdc(1, 154), 1, 11, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.cantaloupe', 'Cantaloupe', 'fruit', cup(1), 1, 13, 0, {
+  food('food.cantaloupe', 'Cantaloupe', 'fruit', cupFdc(1, 160), 1, 13, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
@@ -1276,7 +1276,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.cherries', 'Cherries', 'fruit', cup(1), 2, 25, 0, {
+  food('food.cherries', 'Cherries', 'fruit', cupFdc(1, 154), 2, 25, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
@@ -1338,11 +1338,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.honeydew', 'Honeydew melon', 'fruit', cup(1), 1, 16, 0, {
+  food('food.honeydew', 'Honeydew melon', 'fruit', cupFdc(1, 177), 1, 16, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.papaya', 'Papaya', 'fruit', cup(1), 1, 16, 0, {
+  food('food.papaya', 'Papaya', 'fruit', cupFdc(1, 145), 1, 16, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
@@ -1354,7 +1354,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
   }),
-  food('food.guava', 'Guava', 'fruit', cup(1), 4, 24, 2, {
+  food('food.guava', 'Guava', 'fruit', cupFdc(1, 165), 4, 24, 2, {
     fiber: 9,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'low_sodium'],
   }),
@@ -1362,7 +1362,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
-  food('food.lychee', 'Lychee', 'fruit', cup(1), 1, 29, 0, {
+  food('food.lychee', 'Lychee', 'fruit', cupFdc(1, 190), 1, 29, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),

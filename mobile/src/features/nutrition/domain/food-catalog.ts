@@ -121,8 +121,12 @@ export interface FoodItem {
  * immutable revisions (2). onion/leeks (reconciliation failure), snow_peas
  * (cooked record fails the gate), mixed_greens (ambiguous), and broccolini
  * (no SR record) stay null/gated.
+ * 1.6.0 (ADR-P013 Batch 3C): sourced full-serving gram weights for 14
+ * cup-served fruits from the same pinned USDA-FDC SR Legacy archive; new
+ * immutable revisions (2). pomegranate (carbs reconciliation failure) and
+ * dragon_fruit (no SR record) stay null/gated.
  */
-export const CATALOG_VERSION = 'food-catalog@1.5.0';
+export const CATALOG_VERSION = 'food-catalog@1.6.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

@@ -3022,10 +3022,44 @@ use) and the checked-in provenance manifest.
   proper em-dash in its GENERATED header comment; a later batch's generator had
   written it as literal `???` (mojibake). Comment-only, no data impact.
 
-**Remaining under this ADR:** 72 foods (30 remaining `cup` — fruits, dairy,
-beverages, composites, plus the 5 unmatched vegetables and 3A's unmatched
-grains/legumes — + 18 remaining `tbsp` + 23 `ml` + `sourdough_bread`) stay
-`grams_per_serving = null`, gated pending later batches.
+**Remaining after Batch 3B:** 72 foods (30 remaining `cup` + 18 remaining
+`tbsp` + 23 `ml` + `sourdough_bread`) stayed `grams_per_serving = null` — see
+Batch 3C below.
+
+### Batch 3C Implementation Note (2026-07-14) — cup fruits
+
+The third `cup` batch is implemented per this ADR. **Catalog/data + tests only
+— no schema, migration, UI, sync, backend, or deployment change.** It reuses
+the same pinned `sr_legacy_food_csv_2018-04` archive (sha256 re-verified before
+use) and the checked-in provenance manifest.
+
+- **Matched (14 of 16 gated cup fruits), all passing the macro-reconciliation
+  gate:** `strawberries`, `blueberries`, `raspberries`, `blackberries`,
+  `grapes`, `pineapple`, `mango`, `watermelon`, `cantaloupe`, `cherries`,
+  `honeydew`, `papaya`, `guava`, `lychee`. Gate-arbitrated record choices:
+  grapes → European/Thompson (the American slip-skin record fails), cherries →
+  sweet (sour red fails), guava → common (strawberry guava fails), pineapple →
+  the generic all-varieties record (catalog food is generic "Pineapple").
+  Portion rule: among passing portions of the chosen record, the closest kcal
+  reconciliation. Every pick re-verified against the archive (description +
+  portion row + nutrients + derivation) before applying; full provenance in
+  `fdc-portion-manifest.json`.
+- **Unmatched / still gated (2), never force-fit:** `pomegranate` (the only SR
+  cup portion, "0.5 cup arils" → 174 g/cup, passes calories but fails the
+  carbs band: 32.5 g est vs 26 authored, delta 6.5 > max(20%, 3 g)) and
+  `dragon_fruit` (SR Legacy 2018-04 has no dragon fruit/pitaya record at all).
+  Reasons recorded in the manifest's `unmatched` list.
+- **Mechanics:** the 14 matched foods gained authored full-serving `grams`,
+  bumped to `food_revision` 2 (new UUIDv5s; rev-1 rows retained),
+  `CATALOG_VERSION` → `food-catalog@1.6.0`; canonical artifacts/hash/goldens
+  regenerated (a `strawberries` rev-2 golden added to both suites). Macros are
+  unchanged (0/300).
+
+**Remaining under this ADR:** 58 foods (16 remaining `cup` — 6 grain + 3
+legume varietals from 3A, the 5 unmatched vegetables from 3B, and the 2
+unmatched fruits from 3C — + 18 remaining `tbsp` + 23 `ml` +
+`sourdough_bread`) stay `grams_per_serving = null`, gated pending later
+batches.
 
 ### Related Documents
 

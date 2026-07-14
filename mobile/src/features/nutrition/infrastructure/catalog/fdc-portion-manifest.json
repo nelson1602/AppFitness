@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-3B + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-3C + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -1796,6 +1796,286 @@
       },
       "derivedGramsPerServing": 132,
       "reviewNote": "Raw record; 0.5 cup chopped/diced = 66 g so 1 cup = 132 g. Est 42.2 kcal vs 45."
+    },
+    {
+      "catalogKey": "food.strawberries",
+      "fdcId": 167762,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Strawberries, raw",
+      "portion": {
+        "portionRowId": 81921,
+        "amount": 1,
+        "modifier": "cup, sliced",
+        "gramWeight": 166
+      },
+      "fdcPer100g": {
+        "kcal": 32,
+        "proteinG": 0.67,
+        "carbsG": 7.68,
+        "fatG": 0.3
+      },
+      "derivedGramsPerServing": 166,
+      "reviewNote": "1 cup sliced = 166 g (closest passing portion; halves/whole also pass, pureed fails). Est 53.1 kcal vs 52 (delta 1.1)."
+    },
+    {
+      "catalogKey": "food.blueberries",
+      "fdcId": 171711,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Blueberries, raw",
+      "portion": {
+        "portionRowId": 89238,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 148
+      },
+      "fdcPer100g": {
+        "kcal": 57,
+        "proteinG": 0.74,
+        "carbsG": 14.49,
+        "fatG": 0.33
+      },
+      "derivedGramsPerServing": 148,
+      "reviewNote": "1 cup = 148 g. Est 84.4 kcal vs 88."
+    },
+    {
+      "catalogKey": "food.raspberries",
+      "fdcId": 167755,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Raspberries, raw",
+      "portion": {
+        "portionRowId": 81905,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 123
+      },
+      "fdcPer100g": {
+        "kcal": 52,
+        "proteinG": 1.2,
+        "carbsG": 11.94,
+        "fatG": 0.65
+      },
+      "derivedGramsPerServing": 123,
+      "reviewNote": "1 cup = 123 g. Est 64.0 kcal vs 73 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.blackberries",
+      "fdcId": 173946,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Blackberries, raw",
+      "portion": {
+        "portionRowId": 93521,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 144
+      },
+      "fdcPer100g": {
+        "kcal": 43,
+        "proteinG": 1.39,
+        "carbsG": 9.61,
+        "fatG": 0.49
+      },
+      "derivedGramsPerServing": 144,
+      "reviewNote": "1 cup = 144 g. Est 61.9 kcal vs 73 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.grapes",
+      "fdcId": 174683,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Grapes, red or green (European type, such as Thompson seedless), raw",
+      "portion": {
+        "portionRowId": 94748,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 151
+      },
+      "fdcPer100g": {
+        "kcal": 69,
+        "proteinG": 0.72,
+        "carbsG": 18.1,
+        "fatG": 0.16
+      },
+      "derivedGramsPerServing": 151,
+      "reviewNote": "European/Thompson record reconciles (est 104.2 kcal vs 112); the American slip-skin record (174682, 1 cup = 92 g) FAILS the gate (61.6 vs 112) and was rejected."
+    },
+    {
+      "catalogKey": "food.pineapple",
+      "fdcId": 169124,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Pineapple, raw, all varieties",
+      "portion": {
+        "portionRowId": 84287,
+        "amount": 1,
+        "modifier": "cup, chunks",
+        "gramWeight": 165
+      },
+      "fdcPer100g": {
+        "kcal": 50,
+        "proteinG": 0.54,
+        "carbsG": 13.12,
+        "fatG": 0.12
+      },
+      "derivedGramsPerServing": 165,
+      "reviewNote": "Catalog food is generic \"Pineapple\" so the all-varieties record is chosen (est 82.5 kcal vs 92); the extra-sweet variety also passes but is variety-specific."
+    },
+    {
+      "catalogKey": "food.mango",
+      "fdcId": 169910,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Mangos, raw",
+      "portion": {
+        "portionRowId": 85651,
+        "amount": 1,
+        "modifier": "cup pieces",
+        "gramWeight": 165
+      },
+      "fdcPer100g": {
+        "kcal": 60,
+        "proteinG": 0.82,
+        "carbsG": 14.98,
+        "fatG": 0.38
+      },
+      "derivedGramsPerServing": 165,
+      "reviewNote": "1 cup pieces = 165 g. Est 99.0 kcal vs 113 (within tolerance)."
+    },
+    {
+      "catalogKey": "food.watermelon",
+      "fdcId": 167765,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Watermelon, raw",
+      "portion": {
+        "portionRowId": 81932,
+        "amount": 1,
+        "modifier": "cup, balls",
+        "gramWeight": 154
+      },
+      "fdcPer100g": {
+        "kcal": 30,
+        "proteinG": 0.61,
+        "carbsG": 7.55,
+        "fatG": 0.15
+      },
+      "derivedGramsPerServing": 154,
+      "reviewNote": "1 cup balls = 154 g (closest passing portion; diced 152 g also passes). Est 46.2 kcal vs 48."
+    },
+    {
+      "catalogKey": "food.cantaloupe",
+      "fdcId": 169092,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Melons, cantaloupe, raw",
+      "portion": {
+        "portionRowId": 84208,
+        "amount": 1,
+        "modifier": "cup, cubes",
+        "gramWeight": 160
+      },
+      "fdcPer100g": {
+        "kcal": 34,
+        "proteinG": 0.84,
+        "carbsG": 8.16,
+        "fatG": 0.19
+      },
+      "derivedGramsPerServing": 160,
+      "reviewNote": "1 cup cubes = 160 g (closest passing portion; diced/balls also pass). Est 54.4 kcal vs 56."
+    },
+    {
+      "catalogKey": "food.cherries",
+      "fdcId": 171719,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Cherries, sweet, raw",
+      "portion": {
+        "portionRowId": 89255,
+        "amount": 1,
+        "modifier": "cup, without pits",
+        "gramWeight": 154
+      },
+      "fdcPer100g": {
+        "kcal": 63,
+        "proteinG": 1.06,
+        "carbsG": 16.01,
+        "fatG": 0.2
+      },
+      "derivedGramsPerServing": 154,
+      "reviewNote": "Catalog \"Cherries\" reconciles with the sweet record (est 97.0 kcal vs 108); sour red cherries (173954) FAIL the gate and were rejected. Without-pits cup = 154 g."
+    },
+    {
+      "catalogKey": "food.honeydew",
+      "fdcId": 169911,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Melons, honeydew, raw",
+      "portion": {
+        "portionRowId": 85654,
+        "amount": 1,
+        "modifier": "cup, balls",
+        "gramWeight": 177
+      },
+      "fdcPer100g": {
+        "kcal": 36,
+        "proteinG": 0.54,
+        "carbsG": 9.09,
+        "fatG": 0.14
+      },
+      "derivedGramsPerServing": 177,
+      "reviewNote": "1 cup balls = 177 g (closest passing portion; diced 170 g also passes). Est 63.7 kcal vs 68."
+    },
+    {
+      "catalogKey": "food.papaya",
+      "fdcId": 169926,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Papayas, raw",
+      "portion": {
+        "portionRowId": 85692,
+        "amount": 1,
+        "modifier": "cup 1\" pieces",
+        "gramWeight": 145
+      },
+      "fdcPer100g": {
+        "kcal": 43,
+        "proteinG": 0.47,
+        "carbsG": 10.82,
+        "fatG": 0.26
+      },
+      "derivedGramsPerServing": 145,
+      "reviewNote": "1 cup 1-inch pieces = 145 g (mashed 230 g fails the gate). Est 62.4 kcal vs 68."
+    },
+    {
+      "catalogKey": "food.guava",
+      "fdcId": 173044,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Guavas, common, raw",
+      "portion": {
+        "portionRowId": 91858,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 165
+      },
+      "fdcPer100g": {
+        "kcal": 68,
+        "proteinG": 2.55,
+        "carbsG": 14.32,
+        "fatG": 0.95
+      },
+      "derivedGramsPerServing": 165,
+      "reviewNote": "Common-guava record reconciles (est 112.2 kcal vs 130, within tolerance); strawberry guava (173045) FAILS the gate and was rejected."
+    },
+    {
+      "catalogKey": "food.lychee",
+      "fdcId": 169086,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Litchis, raw",
+      "portion": {
+        "portionRowId": 84200,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 190
+      },
+      "fdcPer100g": {
+        "kcal": 66,
+        "proteinG": 0.83,
+        "carbsG": 16.53,
+        "fatG": 0.44
+      },
+      "derivedGramsPerServing": 190,
+      "reviewNote": "SR names lychee \"Litchis\"; 1 cup = 190 g. Est 125.4 kcal vs 120."
     }
   ],
   "unmatched": [
@@ -1930,6 +2210,14 @@
     {
       "catalogKey": "food.broccolini",
       "reason": "SR Legacy has no broccolini record; the nearest name match \"Broccoli raab, raw\" is a different vegetable and fails reconciliation catastrophically (8.8 kcal vs authored 53). Left null and gated."
+    },
+    {
+      "catalogKey": "food.pomegranate",
+      "reason": "The only SR cup portion for Pomegranates, raw (169134, \"0.5 cup arils\" = 87 g -> 174 g/cup) fails macro reconciliation for the authored serving: estimated carbs 32.5 g vs authored 26 g (delta 6.5 > max(20%, 3 g) tolerance) even though calories pass. Left null and gated."
+    },
+    {
+      "catalogKey": "food.dragon_fruit",
+      "reason": "SR Legacy 2018-04 contains no dragon fruit / pitaya / pitahaya record at all (added to FDC only in later non-SR data types). No source row exists in the pinned archive. Left null and gated."
     }
   ]
 }

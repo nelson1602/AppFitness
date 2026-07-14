@@ -38,12 +38,13 @@ export const FOOD_REVISION = 1;
  * archive. The tsp semantics mini-slice corrects the six ambiguous `tsp(N)`
  * foods whose authored amount encoded grams, not teaspoon counts. ADR-P013
  * Batch 3A adds reviewed `cup` portions for grains, legumes, and staples;
- * Batch 3B adds reviewed `cup` portions for vegetables. The remaining
- * volumetric foods and the unmatched foods (`food.sourdough_bread`,
- * `food.onion`, `food.snow_peas`, `food.leeks`, `food.mixed_greens`,
- * `food.broccolini` — see the manifest's `unmatched` reasons) stay at
- * revision 1 with `gramsPerServing = null`, gated behind later ADR-P013
- * batches.
+ * Batch 3B adds reviewed `cup` portions for vegetables; Batch 3C adds
+ * reviewed `cup` portions for fruits. The remaining volumetric foods and the
+ * unmatched foods (`food.sourdough_bread`, `food.onion`, `food.snow_peas`,
+ * `food.leeks`, `food.mixed_greens`, `food.broccolini`, `food.pomegranate`,
+ * `food.dragon_fruit`, plus 3A's unmatched varietals — see the manifest's
+ * `unmatched` reasons) stay at revision 1 with `gramsPerServing = null`,
+ * gated behind later ADR-P013 batches.
  */
 export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.egg_whole': 2,
@@ -171,6 +172,21 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.spinach_raw': 2,
   'food.jicama': 2,
   'food.tomatillo': 2,
+  // ADR-P013 Batch 3C — cup-served fruits with FDC-sourced full-serving gram weights.
+  'food.strawberries': 2,
+  'food.blueberries': 2,
+  'food.raspberries': 2,
+  'food.blackberries': 2,
+  'food.grapes': 2,
+  'food.pineapple': 2,
+  'food.mango': 2,
+  'food.watermelon': 2,
+  'food.cantaloupe': 2,
+  'food.cherries': 2,
+  'food.honeydew': 2,
+  'food.papaya': 2,
+  'food.guava': 2,
+  'food.lychee': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */
