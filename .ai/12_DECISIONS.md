@@ -3055,11 +3055,60 @@ use) and the checked-in provenance manifest.
   regenerated (a `strawberries` rev-2 golden added to both suites). Macros are
   unchanged (0/300).
 
-**Remaining under this ADR:** 58 foods (16 remaining `cup` — 6 grain + 3
-legume varietals from 3A, the 5 unmatched vegetables from 3B, and the 2
-unmatched fruits from 3C — + 18 remaining `tbsp` + 23 `ml` +
-`sourdough_bread`) stay `grams_per_serving = null`, gated pending later
-batches.
+**Remaining after Batch 3C:** 58 foods (16 remaining `cup` + 18 remaining
+`tbsp` + 23 `ml` + `sourdough_bread`) stayed `grams_per_serving = null` — see
+Batch 4 below.
+
+### Batch 4 Implementation Note (2026-07-14) — remaining tbsp foods + Batch 2 erratum
+
+The remaining-tablespoon batch is implemented per this ADR. **Catalog/data +
+tests only — no schema, migration, UI, sync, backend, or deployment change.**
+Same pinned archive (sha256 re-verified) and manifest process.
+
+**Erratum — Batch 2 unmatched verdicts.** All 18 remaining tbsp foods had been
+declared unmatched by Batch 2. Re-verification against the archive with
+corrected search patterns disproved **8** of those verdicts (Batch 2's search
+used name-order patterns like "olive oil" and missed SR Legacy's
+`Oil, <name>` / `Cheese, cream, low fat` naming; its tomato-paste
+reconciliation-failure claim does not reproduce — likely a missed ×2 serving
+scaling). The Batch 2 note above is retained unmodified as history; this note
+records the correction, and the 8 wrong `unmatched` manifest entries are
+replaced by full provenance entries.
+
+- **Matched (8), all passing the gate:** `olive_oil` → 171413 "Oil, olive,
+  salad or cooking" (13.5 g/tbsp; no EVOO-specific SR record — identical
+  100 %-fat profile, documented), `avocado_oil` → 173573 (14 g), `canola_oil`
+  → 172336 (14 g), `walnut_oil` → 171030 (13.6 g), `sesame_oil` → 171016
+  (13.6 g), `coconut_oil` → 171412 (13.6 g), `cream_cheese_light` → 169079
+  "Cheese, cream, low fat" (plain tbsp 15 g; chosen over the regular whipped
+  portion — closer kcal but a fat-level mismatch), `tomato_paste` → 170459
+  no-salt record (2 tbsp = 32 g; est 26.2 vs 28 kcal).
+- **Still gated (9), Batch 2 reasons re-verified accurate:** `chia_seeds`
+  (record exists, no tbsp portion), `mct_oil` / `tzatziki` (no SR record),
+  `pesto` (cup portions only), `nutritional_yeast` (baker's yeast is a source
+  mismatch and fails), `flax_seeds` (ground portion fails; whole passes but is
+  a preparation mismatch), `poppy_seeds` (fails badly — the authored macros
+  look teaspoon-scale; possible future authored-data correction, out of
+  scope), `greek_yogurt_dressing` (only unrelated commercial dressings pass —
+  semantic mismatch), and `lemon_juice` — reason **corrected**: SR "Lemon
+  juice, raw" (167747) EXISTS but has no tbsp portion (only cup/fl-oz/yields);
+  deriving tbsp from the fl-oz pairing is the density method reserved for the
+  `ml` batch — revisit there.
+- **Policy-pending (1), deliberately NOT resolved here:** `apple_cider_vinegar`
+  passes the gate trivially (3.1 kcal est vs authored 0), but Batch 2 recorded
+  an explicit "zero-macro policy decision" gate; that owner decision is
+  surfaced, not overturned.
+- **Mechanics:** the 8 matched foods gained authored full-serving `grams`,
+  bumped to `food_revision` 2 (new UUIDv5s; rev-1 rows retained),
+  `CATALOG_VERSION` → `food-catalog@1.7.0`; canonical artifacts/hash/goldens
+  regenerated (an `olive_oil` rev-2 golden added to both suites). Macros
+  unchanged (0/300).
+
+**Remaining under this ADR:** 50 foods (16 `cup` + 10 `tbsp` + 23 `ml` +
+`sourdough_bread`) stay `grams_per_serving = null`. Of the 26 non-`ml`
+remainders, all have re-verified unmatched reasons under this archive — they
+need either a different pinned source (e.g. FNDDS), the density method, an
+authored-data correction (poppy), or an owner policy call (vinegar).
 
 ### Related Documents
 

@@ -74,12 +74,13 @@ describe('food catalog integrity', () => {
     // the pre-4A authored amount), the 4 ADR-P013 Batch-1 `slice` foods, the
     // 13 ADR-P013 Batch-2 `tbsp` foods, the 4 tsp-semantics `tsp` foods, the
     // 26 ADR-P013 Batch-3A `cup` grains/legumes/staples, the 42 ADR-P013
-    // Batch-3B `cup` vegetables, and the 14 ADR-P013 Batch-3C `cup` fruits.
+    // Batch-3B `cup` vegetables, the 14 ADR-P013 Batch-3C `cup` fruits, and
+    // the 8 ADR-P013 Batch-4 remaining `tbsp` foods.
     // FDC-sourced full-serving weights
     // are gated by catalog/fdc-portion-manifest.spec.ts. Remaining volumetric
     // foods must NOT carry a fabricated gram weight.
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(132);
+    expect(withGrams).toHaveLength(140);
     for (const f of withGrams) {
       expect(['piece', 'slice', 'tbsp', 'tsp', 'cup']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
@@ -97,7 +98,7 @@ describe('food catalog integrity', () => {
       'food.rye_bread',
       'food.whole_wheat_bread',
     ]);
-    expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(13);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(21);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(4);
     expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(82);
   });

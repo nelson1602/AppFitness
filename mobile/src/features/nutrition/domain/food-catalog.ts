@@ -125,8 +125,16 @@ export interface FoodItem {
  * cup-served fruits from the same pinned USDA-FDC SR Legacy archive; new
  * immutable revisions (2). pomegranate (carbs reconciliation failure) and
  * dragon_fruit (no SR record) stay null/gated.
+ * 1.7.0 (ADR-P013 Batch 4): sourced full-serving gram weights for 8 of the
+ * remaining tbsp foods (6 oils, light cream cheese, tomato paste) after
+ * re-verification disproved Batch 2's unmatched reasons for them (SR
+ * "Oil, <name>" naming missed; tomato-paste gate failure not reproducible).
+ * chia/flax/poppy/mct/pesto/nutritional_yeast/greek_yogurt_dressing/tzatziki
+ * stay gated (reasons re-verified); lemon_juice's reason corrected (raw
+ * record exists but has no tbsp portion — density-batch candidate);
+ * apple_cider_vinegar stays policy-pending.
  */
-export const CATALOG_VERSION = 'food-catalog@1.6.0';
+export const CATALOG_VERSION = 'food-catalog@1.7.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

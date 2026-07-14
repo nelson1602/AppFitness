@@ -187,6 +187,16 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.papaya': 2,
   'food.guava': 2,
   'food.lychee': 2,
+  // ADR-P013 Batch 4 — remaining tbsp foods; corrects Batch 2's wrong
+  // unmatched verdicts (SR "Oil, <name>" naming was missed by that search).
+  'food.olive_oil': 2,
+  'food.avocado_oil': 2,
+  'food.canola_oil': 2,
+  'food.walnut_oil': 2,
+  'food.sesame_oil': 2,
+  'food.coconut_oil': 2,
+  'food.cream_cheese_light': 2,
+  'food.tomato_paste': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-3C + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-4 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2076,16 +2076,172 @@
       },
       "derivedGramsPerServing": 190,
       "reviewNote": "SR names lychee \"Litchis\"; 1 cup = 190 g. Est 125.4 kcal vs 120."
+    },
+    {
+      "catalogKey": "food.olive_oil",
+      "fdcId": 171413,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Oil, olive, salad or cooking",
+      "portion": {
+        "portionRowId": 88667,
+        "amount": 1,
+        "modifier": "tablespoon",
+        "gramWeight": 13.5
+      },
+      "fdcPer100g": {
+        "kcal": 884,
+        "proteinG": 0,
+        "carbsG": 0,
+        "fatG": 100
+      },
+      "derivedGramsPerServing": 13.5,
+      "reviewNote": "SR generic olive-oil record (no extra-virgin-specific SR record exists; identical 100%-fat profile). 1 tablespoon = 13.5 g. Est 119.3 kcal vs 126. Corrects Batch 2’s wrong \"no portion row\" reason."
+    },
+    {
+      "catalogKey": "food.avocado_oil",
+      "fdcId": 173573,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Oil, avocado",
+      "portion": {
+        "portionRowId": 92854,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 14
+      },
+      "fdcPer100g": {
+        "kcal": 884,
+        "proteinG": 0,
+        "carbsG": 0,
+        "fatG": 100
+      },
+      "derivedGramsPerServing": 14,
+      "reviewNote": "1 tbsp = 14 g. Est 123.8 kcal vs 126. Corrects Batch 2’s wrong \"no portion row\" reason."
+    },
+    {
+      "catalogKey": "food.canola_oil",
+      "fdcId": 172336,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Oil, canola",
+      "portion": {
+        "portionRowId": 90374,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 14
+      },
+      "fdcPer100g": {
+        "kcal": 884,
+        "proteinG": 0,
+        "carbsG": 0,
+        "fatG": 100
+      },
+      "derivedGramsPerServing": 14,
+      "reviewNote": "1 tbsp = 14 g. Est 123.8 kcal vs 126. Corrects Batch 2’s wrong \"no portion row\" reason."
+    },
+    {
+      "catalogKey": "food.walnut_oil",
+      "fdcId": 171030,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Oil, walnut",
+      "portion": {
+        "portionRowId": 87812,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 13.6
+      },
+      "fdcPer100g": {
+        "kcal": 884,
+        "proteinG": 0,
+        "carbsG": 0,
+        "fatG": 100
+      },
+      "derivedGramsPerServing": 13.6,
+      "reviewNote": "1 tbsp = 13.6 g. Est 120.2 kcal vs 126. Corrects Batch 2’s wrong \"no portion row\" reason."
+    },
+    {
+      "catalogKey": "food.sesame_oil",
+      "fdcId": 171016,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Oil, sesame, salad or cooking",
+      "portion": {
+        "portionRowId": 87777,
+        "amount": 1,
+        "modifier": "tablespoon",
+        "gramWeight": 13.6
+      },
+      "fdcPer100g": {
+        "kcal": 884,
+        "proteinG": 0,
+        "carbsG": 0,
+        "fatG": 100
+      },
+      "derivedGramsPerServing": 13.6,
+      "reviewNote": "1 tablespoon = 13.6 g. Est 120.2 kcal vs 126. Corrects Batch 2’s wrong \"no portion row\" reason."
+    },
+    {
+      "catalogKey": "food.coconut_oil",
+      "fdcId": 171412,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Oil, coconut",
+      "portion": {
+        "portionRowId": 88664,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 13.6
+      },
+      "fdcPer100g": {
+        "kcal": 892,
+        "proteinG": 0,
+        "carbsG": 0,
+        "fatG": 99.06
+      },
+      "derivedGramsPerServing": 13.6,
+      "reviewNote": "1 tbsp = 13.6 g. Est 121.3 kcal vs 126. Corrects Batch 2’s wrong \"no portion row\" reason."
+    },
+    {
+      "catalogKey": "food.cream_cheese_light",
+      "fdcId": 169079,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Cheese, cream, low fat",
+      "portion": {
+        "portionRowId": 84187,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 15
+      },
+      "fdcPer100g": {
+        "kcal": 208,
+        "proteinG": 7.85,
+        "carbsG": 6.73,
+        "fatG": 16.67
+      },
+      "derivedGramsPerServing": 15,
+      "reviewNote": "SR names the light variant \"low fat\"; plain 1 tbsp = 15 g (est 31.2 kcal vs 35). Chosen over the regular whipped portion (closer kcal but a fat-level mismatch). Corrects Batch 2’s wrong \"no light cream cheese tbsp portion\" reason."
+    },
+    {
+      "catalogKey": "food.tomato_paste",
+      "fdcId": 170459,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",
+      "portion": {
+        "portionRowId": 86698,
+        "amount": 1,
+        "modifier": "tbsp",
+        "gramWeight": 16
+      },
+      "fdcPer100g": {
+        "kcal": 82,
+        "proteinG": 4.32,
+        "carbsG": 18.91,
+        "fatG": 0.47
+      },
+      "derivedGramsPerServing": 32,
+      "reviewNote": "No-salt record matches the authored \"no salt added\" name; catalog serving is 2 tbsp so 2 x 16 g = 32 g. Est 26.2 kcal vs 28 — PASSES; Batch 2’s reconciliation-failure claim does not reproduce (likely missed the x2 serving scaling)."
     }
   ],
   "unmatched": [
     {
       "catalogKey": "food.sourdough_bread",
       "reason": "SR Legacy has no standalone sourdough record. The only sourdough-inclusive candidate 172675 'Bread, french or vienna (includes sourdough)' carries a 139 g 'slice' portion, which fails macro reconciliation against the authored 97 kcal slice (scaled estimate 378.1 kcal, delta 281 >> 25). Left null and gated per ADR-P013 (never force-fit); revisit in a later batch with a different pinned dataset (e.g. FNDDS) if desired."
-    },
-    {
-      "catalogKey": "food.cream_cheese_light",
-      "reason": "SR Legacy has no light cream cheese tablespoon portion. Available cream-cheese-flavor frosting portions are preparation mismatches and fail macro reconciliation; left null/gated."
     },
     {
       "catalogKey": "food.chia_seeds",
@@ -2100,30 +2256,6 @@
       "reason": "SR poppy seed 1 tbsp portion fails macro reconciliation against the authored serving; left null/gated."
     },
     {
-      "catalogKey": "food.olive_oil",
-      "reason": "Pinned SR Legacy archive has no standalone olive-oil tablespoon portion row (only an olive-oil mayonnaise product); left null/gated."
-    },
-    {
-      "catalogKey": "food.avocado_oil",
-      "reason": "Pinned SR Legacy archive has no avocado-oil tablespoon portion row; left null/gated."
-    },
-    {
-      "catalogKey": "food.canola_oil",
-      "reason": "Pinned SR Legacy archive has no standalone canola-oil tablespoon portion row; left null/gated."
-    },
-    {
-      "catalogKey": "food.walnut_oil",
-      "reason": "Pinned SR Legacy archive has no walnut-oil tablespoon portion row; left null/gated."
-    },
-    {
-      "catalogKey": "food.sesame_oil",
-      "reason": "Pinned SR Legacy archive has no sesame-oil tablespoon portion row; left null/gated."
-    },
-    {
-      "catalogKey": "food.coconut_oil",
-      "reason": "Pinned SR Legacy archive has no coconut-oil tablespoon portion row; left null/gated."
-    },
-    {
       "catalogKey": "food.mct_oil",
       "reason": "Pinned SR Legacy archive has no MCT-oil tablespoon portion row; left null/gated."
     },
@@ -2136,16 +2268,12 @@
       "reason": "Pinned SR Legacy has no nutritional-yeast tablespoon portion. Baker's yeast is a source/preparation mismatch and fails macro reconciliation; left null/gated."
     },
     {
-      "catalogKey": "food.tomato_paste",
-      "reason": "SR no-salt tomato paste has a tbsp portion, but the authored catalog serving is 2 tbsp and macro reconciliation fails against the current rounded macros; left null/gated pending review."
-    },
-    {
       "catalogKey": "food.apple_cider_vinegar",
       "reason": "SR cider vinegar has a tbsp portion, but the authored catalog macros are all zero while SR carries trace calories/carbs; left null/gated pending a low-impact zero-macro policy decision."
     },
     {
       "catalogKey": "food.lemon_juice",
-      "reason": "Catalog food is fresh lemon juice. Pinned SR Legacy tablespoon candidates are bottled/from-concentrate records; left null/gated rather than using a preparation mismatch."
+      "reason": "Corrected after re-verification (Batch 4): SR \"Lemon juice, raw\" (fdcId 167747) EXISTS in the pinned archive but carries no tbsp portion row (only cup 244 g, fl oz 30.5 g, and yield portions); the tbsp-portioned candidates are from-concentrate/bottled preparation mismatches. Deriving a tablespoon from the fl-oz volume pairing is the density method reserved for the ml batch — revisit there. Left null and gated."
     },
     {
       "catalogKey": "food.greek_yogurt_dressing",

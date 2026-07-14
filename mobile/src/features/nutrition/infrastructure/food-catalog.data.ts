@@ -1440,7 +1440,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['high_protein', 'vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.cream_cheese_light', 'Cream cheese, light', 'dairy', tbsp(1), 1, 1, 3, {
+  food('food.cream_cheese_light', 'Cream cheese, light', 'dairy', tbspFdc(1, 15), 1, 1, 3, {
     tags: ['vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive'],
   }),
@@ -1690,23 +1690,23 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   }),
 
   // ── fat_oil (14) ─────────────────────────────────────────────────────
-  food('food.olive_oil', 'Extra virgin olive oil', 'fat_oil', tbsp(1), 0, 0, 14, {
+  food('food.olive_oil', 'Extra virgin olive oil', 'fat_oil', tbspFdc(1, 13.5), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'heart_healthy'],
   }),
-  food('food.avocado_oil', 'Avocado oil', 'fat_oil', tbsp(1), 0, 0, 14, {
+  food('food.avocado_oil', 'Avocado oil', 'fat_oil', tbspFdc(1, 14), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'heart_healthy'],
   }),
-  food('food.canola_oil', 'Canola oil', 'fat_oil', tbsp(1), 0, 0, 14, {
+  food('food.canola_oil', 'Canola oil', 'fat_oil', tbspFdc(1, 14), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
   }),
   food('food.flaxseed_oil', 'Flaxseed oil', 'fat_oil', tbspFdc(1, 13.6), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'heart_healthy'],
   }),
-  food('food.walnut_oil', 'Walnut oil', 'fat_oil', tbsp(1), 0, 0, 14, {
+  food('food.walnut_oil', 'Walnut oil', 'fat_oil', tbspFdc(1, 13.6), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'heart_healthy'],
     avoid: ['nut_allergy'],
   }),
-  food('food.sesame_oil', 'Sesame oil', 'fat_oil', tbsp(1), 0, 0, 14, {
+  food('food.sesame_oil', 'Sesame oil', 'fat_oil', tbspFdc(1, 13.6), 0, 0, 14, {
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
   food('food.avocado_half', 'Avocado, half', 'fat_oil', piece1(75), 1, 6, 11, {
@@ -1737,7 +1737,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 4,
     tags: ['healthy_fat', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
   }),
-  food('food.coconut_oil', 'Coconut oil', 'fat_oil', tbsp(1), 0, 0, 14, {
+  food('food.coconut_oil', 'Coconut oil', 'fat_oil', tbspFdc(1, 13.6), 0, 0, 14, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
     caution: 'High in saturated fat — use in moderation.',
   }),
@@ -1854,7 +1854,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 1,
     tags: ['high_protein', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
   }),
-  food('food.tomato_paste', 'Tomato paste, no salt added', 'condiment', tbsp(2), 1, 6, 0, {
+  food('food.tomato_paste', 'Tomato paste, no salt added', 'condiment', tbspFdc(2, 32), 1, 6, 0, {
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),
