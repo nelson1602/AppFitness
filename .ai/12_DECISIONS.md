@@ -2666,6 +2666,177 @@ reconciliation). No production server has been seeded (pre-activation).
 
 ---
 
+## ADR-P013 — USDA-FDC `foodPortion` Gram-Weight Sourcing for Volumetric & Slice Catalog Foods (TECHDEBT-004 risk 3, part 2)
+
+Status: **Proposed** (planning/data-source gate — NOT accepted; nothing implemented)
+Date: 2026-07-14
+Owner: Architecture / Data
+Supersedes: none. Extends: ADR-P012 (catalog identity, serving normalization, immutable revisions).
+
+> This ADR is a **documentation-only gate**. It records a *proposed* strategy to
+> source authoritative gram weights for the catalog foods still lacking them. No
+> data import, catalog change, migration, seed run, or UI/sync/backend change is
+> authorized by drafting it. Implementation begins only if/when the project owner
+> **Accepts** this ADR. Until then, TECHDEBT-004 risk 3 **part 2** stays OPEN and
+> those foods keep `grams_per_serving = null` (fractional-serving logging only).
+
+### Context
+
+TECHDEBT-004 risk 3 was split (ADR-P012 "Risk-3 Normalization Note"). **Part 1**
+is resolved (commit `8897c64`): the 29 count-unit `piece` foods whose authored
+`servingAmount` was already a one-piece gram weight were normalized to
+`{amount: 1, unit: 'piece', grams: <authored weight>}` as revision-2 records
+(`CATALOG_VERSION` 1.1.0) — no fabricated data.
+
+**Part 2 (this ADR) remains blocked on data.** 163 bundled foods still have
+`grams_per_serving = null`:
+
+- **158 volumetric:** `cup` (98), `tbsp` (31), `tsp` (6), `ml` (23).
+- **5 `slice` counts:** 4 breads (`1 slice`) + `canadian_bacon` (`2 slice`).
+
+Their macros are per canonical serving and correct for **serving-count** logging;
+what is missing is a **gram weight per serving**, which needs per-food density /
+household-measure data. Repository evidence: the only provenance in the catalog
+is the generic string `source.ref = 'USDA FoodData Central'` — there is **no
+per-food `fdcId`, no `foodPortion`/`gramWeight`, no density table**. A gram
+weight cannot be computed from what is in the repo, and inventing one (e.g.
+"1 cup cooked rice ≈ 200 g") is forbidden (ADR-0011 health-data integrity; iCoach
+determinism/safety). Hence a formal external data-source decision is required.
+
+### Decision drivers
+
+- **No fabrication.** Every gram weight must trace to an authoritative record.
+- **Auditability/reproducibility.** A third party must be able to re-derive each
+  value from a recorded identifier + portion.
+- **Immutability (ADR-P012).** Adding a gram weight changes a food's data → a new
+  revision, never an in-place edit.
+- **Minimal blast radius.** Catalog/data + tests only, mirroring part 1.
+
+### Proposed decision
+
+#### 1. Source strategy — USDA FoodData Central `foodPortion`
+
+- Adopt **USDA FDC** (public-domain, U.S. government) as the authoritative source.
+  Prefer **SR Legacy** / **Foundation Foods** data types (documented analytical
+  values) over Branded/Survey where a choice exists.
+- For each catalog food, use the FDC record's **`foodPortion[]`** entries, each of
+  which carries a `gramWeight`, an `amount`, a `measureUnit` (or `modifier`, e.g.
+  `"1 cup"`, `"1 slice"`, `"1 tbsp"`). The catalog serving's gram weight is the
+  `gramWeight` of the matching portion (scaled to the authored `amount`).
+- **`ml` (liquids, 23):** FDC portions are mass-based; derive grams from the
+  authored millilitres × the food's **density**. Use an FDC portion that pairs a
+  volume with a `gramWeight` (e.g. `"1 cup (240 ml)" → gramWeight`) to compute
+  g/ml, or an FDC-published density; **never assume 1.0 g/ml** unless the source
+  states it (water only).
+- Acquire data via the **FDC bulk download / API**, pinned to a **specific FDC
+  data release** (record the release date/version) so the mapping is frozen and
+  reproducible. No runtime network dependency — values are baked into the bundle
+  exactly like the existing catalog.
+
+#### 2. Required per-food identifiers / provenance (schema-additive to the artifact)
+
+Extend the authored `FoodSource` (and the derived canonical/snapshot only if
+needed) to record, per sourced food:
+
+- **`fdcId`** (integer) — the exact FDC record used.
+- **`fdcDataType`** (e.g. `sr_legacy_food`, `foundation_food`).
+- **`fdcReleaseDate`** (the pinned FDC release).
+- **`portionRef`** — the chosen `foodPortion` (its `id`/`modifier` + `gramWeight`
+  + `amount`/`measureUnit`) and, for `ml`, the derived g/ml.
+- Keep the existing human-readable `source.ref`/`note`.
+
+This provenance is additive metadata; it does **not** change catalog identity
+(`id = uuidv5(catalog_key:food_revision)` is unaffected by provenance fields).
+
+#### 3. Matching & validation rules
+
+- **Deterministic, reviewed mapping.** Each of the 163 foods is matched to one FDC
+  record + one portion by a **human-reviewed manifest** (slug → `fdcId` +
+  `portionRef`), not by fuzzy auto-matching at build time. The manifest is the
+  auditable artifact.
+- **Macro-reconciliation gate (automated).** For each match, compute the FDC
+  food's macros scaled to the chosen `gramWeight` and compare to the catalog's
+  authored per-serving macros. Require agreement within a **documented tolerance**
+  (proposed: calories within `max(15%, 25 kcal)`, mirroring the existing catalog
+  integrity tolerance; protein/carbs/fat within a comparable band). A mismatch
+  **fails the build** → the match is wrong or the portion is wrong; it must be
+  corrected or the food left `null` (still gated), never force-fit.
+- **Unit sanity.** The matched portion's unit must be consistent with the catalog
+  serving unit (a `cup` food matches a volume portion; a `slice` food matches a
+  slice/piece portion). `gramWeight` must be `> 0` and within a plausible range.
+- **No partial fabrication.** A food with no acceptable FDC portion stays `null`
+  and remains gated — the ADR does not require sourcing *all* 163 at once; it may
+  land in reviewed batches (e.g. by unit), each batch its own revision bump.
+
+#### 4. Revision & `CATALOG_VERSION` bump plan
+
+- Each food that gains a gram weight is a **data change → new `food_revision`**
+  (its next integer; a new UUIDv5 via the existing `FOOD_REVISIONS` map
+  mechanism). Revision-1 rows stay retained/FK-valid.
+- **`CATALOG_VERSION`** bumps once per sourcing release (e.g. `1.1.0 → 1.2.0`;
+  further batches `1.3.0`, …). The parity test's "every food stamped with the
+  current `CATALOG_VERSION`" invariant is preserved (all bundle rows re-stamped).
+- Canonical artifacts (mobile `.ts` + api `.json`) regenerated from the corrected
+  source via `buildCanonicalCatalog`; content hash + cross-package golden ids
+  updated; `normalizeServing` already supports an authored non-gram `grams`
+  weight (added in part 1), so no new normalization code is required.
+
+#### 5. Seed / idempotency / immutability implications
+
+- Seeding stays **insert-new-revisions-only** and idempotent: a sourcing release
+  adds N new revision rows; a fresh DB seeds the current bundle (still one row per
+  food = 300); a re-run inserts 0; tampered existing revisions are never
+  overwritten. No seed code change.
+- **Version-stamp drift** (as in part 1): a server previously seeded at an older
+  `CATALOG_VERSION` keeps unchanged foods' stamp (seed no-ops on existing ids)
+  while accumulating the new revisions. This is traceability-only — ids, macros,
+  and MealItem snapshots are unaffected, and the server re-derives snapshots on
+  reconciliation. No production server has been seeded (pre-activation).
+- Immutable historical MealItem snapshots are unaffected: an item logged against
+  a `null`-gram revision keeps its snapshot; only *new* logs after a food's new
+  revision ships carry the gram weight.
+
+#### 6. Explicitly OUT OF SCOPE until this ADR is Accepted
+
+- No FDC data download/import, no `fdcId`/portion manifest, no catalog-data edits,
+  no `FoodSource`/schema extension, no `CATALOG_VERSION` bump, no artifact
+  regeneration.
+- No gram-based **entry UI** (the food-log UI change to accept grams is a separate,
+  later concern even after data lands).
+- No Prisma/SQLite migration, no `meal_items` handler/sync-semantics change, no
+  backend/REST change, no Railway/deployment change.
+- No change to the 108 gram foods or the 29 part-1 `piece` foods.
+
+### Consequences
+
+- **Positive:** authoritative, auditable gram weights unlock gram-based logging
+  and gram-accurate totals for the remaining foods; closes TECHDEBT-004 entirely
+  once all batches land.
+- **Cost/risk:** per-food FDC matching is manual and error-prone — the
+  macro-reconciliation gate + human-reviewed manifest are the mitigations. `ml`
+  density handling is the trickiest sub-case. Multiple `CATALOG_VERSION` bumps if
+  batched.
+- **If rejected / deferred:** status quo holds — those foods log via fractional
+  servings; no correctness loss, only missing gram precision.
+
+### Acceptance criteria (what "Accepted" would authorize)
+
+Owner sign-off on: (a) USDA FDC as the source + pinned release, (b) the
+provenance fields, (c) the macro-reconciliation tolerance, (d) batching strategy,
+(e) the revision/`CATALOG_VERSION` plan. Only then does implementation begin,
+incrementally, mirroring part 1's catalog/data-only discipline.
+
+### Related Documents
+
+- .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
+- .ai/11_BACKLOG.md — TECHDEBT-004 (risk 3 part 1 resolved; part 2 gated here)
+- .ai/13_MIGRATION_ROADMAP.md — Phase 15 Slice 4E / risk-3 status
+- mobile/src/features/nutrition/infrastructure/food-catalog.data.ts — authored catalog + `FoodSource`
+- mobile/src/features/nutrition/domain/catalog-identity.ts — `FOOD_REVISIONS`, `normalizeServing`
+- USDA FoodData Central — https://fdc.nal.usda.gov (foodPortion / gramWeight)
+
+---
+
 # Rejected Decisions
 
 No rejected decisions documented yet.
