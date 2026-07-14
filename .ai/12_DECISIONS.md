@@ -3275,7 +3275,177 @@ deployment change; no FNDDS, sourdough, or other gated food touched.**
 
 **Remaining under this ADR: 32 foods** (16 `cup` + 7 `tbsp` + 8 `ml` +
 `sourdough_bread`), intentionally gated — blocked solely on (a) the FNDDS /
-second-source ADR amendment.
+second-source ADR amendment (drafted as Amendment A1 below, Status:
+**Proposed**).
+
+### Amendment A1 (2026-07-14) — FNDDS Second-Source Gate
+
+Status: **Proposed** (documentation-only gate; NOT Accepted — nothing below is
+authorized until the owner accepts)
+Date: 2026-07-14
+Owner decision required: accept, amend, or reject.
+Extends: this ADR (ADR-P013). No new technology; FNDDS is another dataset of
+the already-approved USDA FoodData Central source (same publisher, same
+public-domain license, same CSV distribution channel) — this amendment gates
+the *dataset*, not a stack change.
+
+> **Docs-only gate.** Like ADR-P013's own acceptance gate, this amendment
+> authorizes NOTHING by itself. Until Accepted: no archive download or import,
+> no catalog data change, no manifest change, no canonical regeneration, no
+> test change, and the 32 gated foods keep `grams_per_serving = null` with
+> fractional-serving logging.
+
+#### Why SR Legacy is exhausted
+
+The SR Legacy sourcing track is CLOSED (Closure Note above): Batches 1–7 plus
+two semantics-correction slices sourced **158 of 190** non-gram foods from the
+pinned `sr_legacy_food_csv_2018-04` archive. Every one of the **32 remaining
+foods** (16 `cup` + 7 `tbsp` + 8 `ml` + `sourdough_bread`) has an
+archive-re-verified unmatched reason in `fdc-portion-manifest.json`, falling
+into four failure classes SR Legacy cannot resolve:
+
+1. **No SR record at all** (category post-dates SR): pea/oat/cashew milk,
+   matcha, kombucha, dragon_fruit, broccolini, mct_oil, tzatziki,
+   greek_yogurt_dressing.
+2. **Record exists, no usable portion row for the catalog serving**:
+   chia_seeds (no tbsp row), pesto (cup rows only), sourdough (only a 139 g
+   french/vienna "slice" that fails reconciliation).
+3. **Varietal/preparation specificity missing** (generic rows rejected to
+   avoid mislabeling): basmati/jasmine rice, farro, sorghum, polenta,
+   couscous_whole, lentils_red/green, cannellini_beans, flax_seeds (ground).
+4. **All candidates fail macro reconciliation** (possible authored-data
+   disagreement): onion, leeks, pomegranate, snow_peas,
+   coconut_milk_beverage, protein_shake_water, vegan_protein_shake,
+   mixed_greens.
+
+#### Candidate second source
+
+**FNDDS (USDA Food and Nutrient Database for Dietary Studies)** — FDC data
+type `survey_fndds_food` — is proposed as the single second source. Rationale:
+same publisher/licensing/distribution as SR Legacy; strong coverage of
+*prepared, composite, and recent-market* foods (survey foods include prepared
+dishes, plant milks, dressings, and sourdough as-eaten), which is exactly
+failure classes 1–3; portion rows carry household measures with gram weights,
+the same shape our manifest gates already validate. **No other source is
+approved by this amendment** — Branded Foods, Foundation Foods, or non-USDA
+databases would each need a further amendment.
+
+#### Dataset pinning requirements (acceptance blocker)
+
+Exactly one FNDDS release is pinned before any matching starts, recorded in
+the manifest with the same fields as the SR pin and verified before every use:
+
+- `dataset` (e.g. "USDA FoodData Central — FNDDS (CSV)"), `releaseLabel`
+  (exact survey cycle, e.g. `surveydownload_csv_<release>`), `archiveUrl`
+  (fdc.nal.usda.gov), `archiveSha256`, `archiveBytes`, `downloadedAt`,
+  `license` (public domain).
+- The pin is chosen at implementation time (newest cycle covering the target
+  foods), recorded in the implementation note, and NEVER changed within the
+  track; a re-pin is a new amendment.
+
+The manifest `source` block stays the SR pin (existing entries' provenance is
+immutable); FNDDS lands as a `secondarySources` array, and each FNDDS-sourced
+entry carries a `sourceRef` naming its pin. The manifest gate spec is extended
+to validate both. Existing SR entries are byte-untouched.
+
+#### Per-food provenance (same discipline as SR entries)
+
+Every FNDDS-sourced food gets one manifest entry with: `catalogKey`, `fdcId`,
+`fdcDataType: "survey_fndds_food"`, `fdcDescription` (verbatim), `sourceRef`,
+`portion` (`portionRowId`, `amount`, `modifier`/portion description verbatim,
+`gramWeight`), `fdcPer100g` (kcal/protein/carbs/fat), `derivedGramsPerServing`
+(= authored grams, exactly), and a human `reviewNote` that **quotes and
+supersedes the prior SR unmatched reason**.
+
+#### Matching rules
+
+- Exact food AND preparation semantic match (cooked vs raw, ground vs whole,
+  unsweetened vs sweetened, whole-wheat vs refined) — the same standard that
+  rejected force-fits in Batches 1–7. Varietal foods (basmati, jasmine, red/
+  green lentils, cannellini) match only varietal-specific FNDDS rows; generic
+  rows remain rejected.
+- **Composite/prepared foods** (pesto, tzatziki, greek_yogurt_dressing,
+  protein shakes, mixed_greens): FNDDS survey foods that represent the
+  as-consumed dish ARE acceptable — this is FNDDS's purpose — subject to the
+  same reconciliation gate. Multi-ingredient recipe assembly by us is NOT
+  acceptable (no synthesized foods).
+- **Branded rows are out of scope** (data type `branded_food` is not FNDDS
+  and not approved).
+- Portion selection: prefer the row matching the catalog serving unit;
+  cup-row-to-tbsp/tsp conversion and fl-oz/cup density derivation for `ml`
+  (and volume-served liquid) foods follow the EXISTING approved rules
+  (Batch 5 / Batch 7): density = gramWeight / sourceVolumeMl with US
+  customary volumes (cup 236.588 ml, fl oz 29.5735 ml, tbsp 14.7868 ml, tsp
+  4.92892 ml), `catalogServingMl` required for non-`ml` volume servings,
+  never an assumed 1 g/ml.
+- The Batch-4 erratum discipline applies: prior unmatched claims are
+  RE-VERIFIED against the FNDDS pin, never trusted from memory or notes.
+
+#### Macro reconciliation rules
+
+Unchanged from ADR-P013: FNDDS per-100 g macros scaled to
+`derivedGramsPerServing` must agree with authored per-serving macros within
+kcal `max(15%, 25)` and per-macro `max(20%, 3 g)`. The gate arbitrates
+candidate rows; no reconciling row → the food STAYS gated with an updated
+FNDDS-checked reason. Class-4 foods (onion, leeks, pomegranate, snow_peas,
+coconut_milk_beverage, shakes, mixed_greens) are the likely failures here: if
+FNDDS also fails, that is evidence of an authored-macro defect and each
+becomes a per-food correction-slice decision (poppy precedent) — authored-data
+corrections are NOT authorized by this amendment.
+
+#### Superseding prior unmatched reasons
+
+An FNDDS match moves the food from `unmatched` to `entries` exactly as SR
+matches did; the prior SR reason is preserved verbatim inside the new entry's
+`reviewNote` (auditable history, since the SR reason remains TRUE for the SR
+pin). Foods failing under both pins keep ONE unmatched record whose reason
+cites both pins.
+
+#### Revision / CATALOG_VERSION / artifact plan
+
+Identical mechanics to Batches 1–7: each sourced food ships as a NEW immutable
+revision (rev-1 rows retained; new UUIDv5), batches bump `CATALOG_VERSION` one
+MINOR each (first FNDDS batch: `1.11.0`), canonical artifacts + content hash +
+mobile/API goldens regenerate per batch under the emitter
+identity-check-then-transform discipline, and counts in the canonical/
+integrity/manifest gate specs update per batch.
+
+#### Seed / idempotency / immutability impact
+
+None beyond the proven per-batch pattern: the seed remains insert-only (new
+revision rows only), idempotent (second run inserts 0), and immutable
+(existing rows never updated); each batch's validation includes the seed
+simulation, the macros-unchanged-vs-HEAD proof (0/300 — this track sources
+gram weights only), `git diff --check`, both test suites, typechecks, and
+lint. No schema, migration, sync, or backend behavior change.
+
+#### Proposed batch plan (indicative, not binding)
+
+F1 `cup` varietals/vegetables/fruits (class 3 + class 4 cups) → F2 `tbsp` →
+F3 `ml` (density method) → F4 `sourdough_bread` (slice). Foods with no
+reconciling FNDDS row stay gated; a residue is EXPECTED (e.g. pea milk or MCT
+oil may post-date even the pinned FNDDS cycle) and closing it needs either a
+further source amendment or a menu/authored-data decision.
+
+#### Acceptance criteria (what "Accepted" would authorize)
+
+The owner accepts this amendment when satisfied that: (a) FNDDS is approved as
+the sole second source, branded/other sources excluded; (b) the pin-before-use
+requirement and manifest `secondarySources`/`sourceRef` structure are
+approved; (c) the matching rules above — including composite-food eligibility
+and the varietal/preparation standard — are approved; (d) the unchanged
+reconciliation tolerances are approved; (e) the revision/version/artifact/seed
+mechanics (reuse of the Batch 1–7 pattern) are approved; (f) it is understood
+that class-4 authored-data corrections and any residue foods remain SEPARATE
+owner decisions. Acceptance authorizes incremental FNDDS batches under these
+rules; it does NOT itself change any data.
+
+#### Out of scope until Accepted
+
+FNDDS archive download/verification; any matching work; any change to catalog
+data, the manifest, canonical artifacts, goldens, tests, schema, migrations,
+UI, sync, backend behavior, dependencies, or deployment; any authored-data
+correction; any third source.
 
 ### Related Documents
 

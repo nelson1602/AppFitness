@@ -1628,9 +1628,11 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       sourdough) are intentionally gated** — TECHDEBT-004 risk 3 part 2 stays
       Open (partially resolved), blocked solely on one separate owner
       decision: the FNDDS/second-source ADR amendment (expected to cover
-      sourdough). Nothing fabricated; logging uses fractional servings
-      meanwhile. See ADR-P013 "SR Legacy Sourcing Track — Closure Note" +
-      Batch 7 and poppy-correction notes.
+      sourdough), drafted 2026-07-14 as **ADR-P013 Amendment A1 (Status:
+      Proposed — docs-only gate, awaiting owner acceptance)**. Nothing
+      fabricated; logging uses fractional servings meanwhile. See ADR-P013
+      "SR Legacy Sourcing Track — Closure Note" + Batch 7, poppy-correction,
+      and Amendment A1 notes.
 
 ## Phase 16 — Workout Module  [commercial v1]
 
