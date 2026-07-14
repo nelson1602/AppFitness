@@ -29,8 +29,8 @@ const CATALOG = JSON.parse(
 
 // Cross-package golden anchors (identical to the mobile suite): key, immutable
 // revision, derived id. egg_whole is a part-1 revision-2 anchor (TECHDEBT-004
-// risk 3 normalization) and rye_bread an ADR-P013 Batch-1 revision-2 anchor
-// (FDC-sourced grams); the others are revision 1.
+// risk 3 normalization), rye_bread an ADR-P013 Batch-1 revision-2 anchor
+// (FDC-sourced grams), and brown_rice an ADR-P013 Batch-3A cup-food anchor.
 const GOLDEN = [
   {
     key: 'food.chicken_breast',
@@ -59,11 +59,11 @@ const GOLDEN = [
   },
   {
     key: 'food.brown_rice',
-    revision: 1,
-    id: '6491c19f-e35b-556e-92ae-4703226b376a',
+    revision: 2,
+    id: 'ca8102b8-1ef9-5672-8d29-8a8d307ee3b7',
   },
 ];
-const EXPECTED_CATALOG_HASH = '0b291389335c6f9a2fa174686bc778c8fdd35660';
+const EXPECTED_CATALOG_HASH = '788c447b3a5216d6241daab778e3da331be203a6';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -122,10 +122,12 @@ describe('canonical catalog seed artifact', () => {
         expect(food.gramsPerServing).toBe(food.servingAmount);
       } else if (food.foodRevision === 2) {
         // Revision-2 count-unit food with a known, non-fabricated gram weight:
-        // part-1 `piece` foods (amount 1), ADR-P013 Batch-1/2 `slice`/`tbsp`
-        // foods, or tsp-semantics `tsp` foods (authored count kept;
+        // part-1 `piece` foods (amount 1), ADR-P013 Batch-1/2/3A
+        // `slice`/`tbsp`/`cup` foods, or tsp-semantics `tsp` foods (authored count kept;
         // FDC-sourced full-serving weight).
-        expect(['piece', 'slice', 'tbsp', 'tsp']).toContain(food.servingUnit);
+        expect(['piece', 'slice', 'tbsp', 'tsp', 'cup']).toContain(
+          food.servingUnit,
+        );
         if (food.servingUnit === 'piece') expect(food.servingAmount).toBe(1);
         else expect(food.servingAmount).toBeGreaterThan(0);
         expect(food.gramsPerServing).toBeGreaterThan(0);
@@ -145,7 +147,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.3.1',
+      catalogVersionSnapshot: 'food-catalog@1.4.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

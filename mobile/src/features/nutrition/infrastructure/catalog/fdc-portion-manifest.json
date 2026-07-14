@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-2 + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, and accepted teaspoon foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-3A + tsp semantics mini-slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -111,7 +111,7 @@
       "fdcPer100g": {
         "kcal": 237,
         "proteinG": 7.78,
-        "carbsG": 15.0,
+        "carbsG": 15,
         "fatG": 17.82
       },
       "derivedGramsPerServing": 30,
@@ -230,7 +230,7 @@
       },
       "fdcPer100g": {
         "kcal": 595,
-        "proteinG": 17.0,
+        "proteinG": 17,
         "carbsG": 21.19,
         "fatG": 53.76
       },
@@ -291,7 +291,7 @@
       "fdcPer100g": {
         "kcal": 884,
         "proteinG": 0.11,
-        "carbsG": 0.0,
+        "carbsG": 0,
         "fatG": 99.98
       },
       "derivedGramsPerServing": 13.6,
@@ -332,7 +332,7 @@
         "kcal": 88,
         "proteinG": 0.49,
         "carbsG": 17.03,
-        "fatG": 0.0
+        "fatG": 0
       },
       "derivedGramsPerServing": 16,
       "reviewNote": "Catalog serving is 1 tbsp; SR balsamic vinegar portion is 1 tbsp = 16 g. Reconciliation: 14.1 kcal vs 12 authored (within tolerance)."
@@ -436,6 +436,526 @@
       },
       "derivedGramsPerServing": 2,
       "reviewNote": "Catalog serving previously displayed tsp(2), but the authored zero-macro condiment serving aligns with one teaspoon/2 g, not two teaspoons. Corrected serving is 1 tsp; SR raw ginger portion is 1 tsp = 2 g. Reconciliation: 1.6 kcal vs 0 authored (within tolerance)."
+    },
+    {
+      "catalogKey": "food.edamame",
+      "fdcId": 168411,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Edamame, frozen, prepared",
+      "portion": {
+        "portionRowId": 83053,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 155
+      },
+      "fdcPer100g": {
+        "kcal": 121,
+        "proteinG": 11.91,
+        "carbsG": 8.91,
+        "fatG": 5.2
+      },
+      "derivedGramsPerServing": 155,
+      "reviewNote": "Catalog serving is 1 cup shelled cooked edamame; SR frozen prepared edamame provides 1 cup = 155 g and reconciles with authored macros."
+    },
+    {
+      "catalogKey": "food.brown_rice",
+      "fdcId": 168875,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Rice, brown, medium-grain, cooked (Includes foods for USDA's Food Distribution Program)",
+      "portion": {
+        "portionRowId": 83925,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 195
+      },
+      "fdcPer100g": {
+        "kcal": 112,
+        "proteinG": 2.32,
+        "carbsG": 23.51,
+        "fatG": 0.83
+      },
+      "derivedGramsPerServing": 195,
+      "reviewNote": "Catalog serving is 1 cup cooked brown rice; SR medium-grain cooked brown rice provides 1 cup = 195 g and reconciles closely."
+    },
+    {
+      "catalogKey": "food.white_rice",
+      "fdcId": 168878,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Rice, white, long-grain, regular, enriched, cooked",
+      "portion": {
+        "portionRowId": 83928,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 158
+      },
+      "fdcPer100g": {
+        "kcal": 130,
+        "proteinG": 2.69,
+        "carbsG": 28.17,
+        "fatG": 0.28
+      },
+      "derivedGramsPerServing": 158,
+      "reviewNote": "Catalog serving is 1 cup cooked white rice; generic long-grain cooked rice was chosen over restaurant/packed variants for source specificity."
+    },
+    {
+      "catalogKey": "food.wild_rice",
+      "fdcId": 168897,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Wild rice, cooked",
+      "portion": {
+        "portionRowId": 83947,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 164
+      },
+      "fdcPer100g": {
+        "kcal": 101,
+        "proteinG": 3.99,
+        "carbsG": 21.34,
+        "fatG": 0.34
+      },
+      "derivedGramsPerServing": 164,
+      "reviewNote": "Catalog serving is 1 cup cooked wild rice; SR cooked wild rice provides 1 cup = 164 g and reconciles."
+    },
+    {
+      "catalogKey": "food.quinoa",
+      "fdcId": 168917,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Quinoa, cooked",
+      "portion": {
+        "portionRowId": 83990,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 185
+      },
+      "fdcPer100g": {
+        "kcal": 120,
+        "proteinG": 4.4,
+        "carbsG": 21.3,
+        "fatG": 1.92
+      },
+      "derivedGramsPerServing": 185,
+      "reviewNote": "Catalog serving is 1 cup cooked quinoa; SR cooked quinoa provides 1 cup = 185 g and reconciles."
+    },
+    {
+      "catalogKey": "food.barley",
+      "fdcId": 170285,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Barley, pearled, cooked",
+      "portion": {
+        "portionRowId": 86368,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 157
+      },
+      "fdcPer100g": {
+        "kcal": 123,
+        "proteinG": 2.26,
+        "carbsG": 28.22,
+        "fatG": 0.44
+      },
+      "derivedGramsPerServing": 157,
+      "reviewNote": "Catalog serving is 1 cup cooked pearl barley; SR pearled cooked barley provides 1 cup = 157 g and reconciles."
+    },
+    {
+      "catalogKey": "food.bulgur",
+      "fdcId": 170287,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Bulgur, cooked",
+      "portion": {
+        "portionRowId": 86370,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 182
+      },
+      "fdcPer100g": {
+        "kcal": 83,
+        "proteinG": 3.08,
+        "carbsG": 18.58,
+        "fatG": 0.24
+      },
+      "derivedGramsPerServing": 182,
+      "reviewNote": "Catalog serving is 1 cup cooked bulgur; SR cooked bulgur provides 1 cup = 182 g and reconciles."
+    },
+    {
+      "catalogKey": "food.buckwheat",
+      "fdcId": 170686,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Buckwheat groats, roasted, cooked",
+      "portion": {
+        "portionRowId": 87082,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 168
+      },
+      "fdcPer100g": {
+        "kcal": 92,
+        "proteinG": 3.38,
+        "carbsG": 19.94,
+        "fatG": 0.62
+      },
+      "derivedGramsPerServing": 168,
+      "reviewNote": "Catalog serving is 1 cup cooked buckwheat groats; SR roasted cooked groats provide 1 cup = 168 g and reconcile."
+    },
+    {
+      "catalogKey": "food.millet",
+      "fdcId": 168871,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Millet, cooked",
+      "portion": {
+        "portionRowId": 83921,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 174
+      },
+      "fdcPer100g": {
+        "kcal": 119,
+        "proteinG": 3.51,
+        "carbsG": 23.67,
+        "fatG": 1
+      },
+      "derivedGramsPerServing": 174,
+      "reviewNote": "Catalog serving is 1 cup cooked millet; SR cooked millet provides 1 cup = 174 g and reconciles."
+    },
+    {
+      "catalogKey": "food.amaranth",
+      "fdcId": 170683,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Amaranth grain, cooked",
+      "portion": {
+        "portionRowId": 87079,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 246
+      },
+      "fdcPer100g": {
+        "kcal": 102,
+        "proteinG": 3.8,
+        "carbsG": 18.69,
+        "fatG": 1.58
+      },
+      "derivedGramsPerServing": 246,
+      "reviewNote": "Catalog serving is 1 cup cooked amaranth; SR cooked amaranth grain provides 1 cup = 246 g and reconciles."
+    },
+    {
+      "catalogKey": "food.popcorn_air",
+      "fdcId": 170246,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Snacks, popcorn, air-popped (Unsalted)",
+      "portion": {
+        "portionRowId": 86317,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 8
+      },
+      "fdcPer100g": {
+        "kcal": 382,
+        "proteinG": 12,
+        "carbsG": 77.9,
+        "fatG": 4.2
+      },
+      "derivedGramsPerServing": 24,
+      "reviewNote": "Catalog serving is 3 cups air-popped popcorn; SR unsalted air-popped popcorn provides 1 cup = 8 g, so the full serving is 24 g."
+    },
+    {
+      "catalogKey": "food.lentils_brown",
+      "fdcId": 172421,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Lentils, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 90596,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 198
+      },
+      "fdcPer100g": {
+        "kcal": 116,
+        "proteinG": 9.02,
+        "carbsG": 20.13,
+        "fatG": 0.38
+      },
+      "derivedGramsPerServing": 198,
+      "reviewNote": "Catalog serving is 1 cup cooked brown lentils; SR Legacy does not distinguish brown/green lentils, but the generic cooked lentil row reconciles and is accepted for the brown-lentil catalog item."
+    },
+    {
+      "catalogKey": "food.chickpeas",
+      "fdcId": 173757,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 93226,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 164
+      },
+      "fdcPer100g": {
+        "kcal": 164,
+        "proteinG": 8.86,
+        "carbsG": 27.42,
+        "fatG": 2.59
+      },
+      "derivedGramsPerServing": 164,
+      "reviewNote": "Catalog serving is 1 cup cooked chickpeas; SR cooked unsalted chickpeas provide 1 cup = 164 g and reconcile."
+    },
+    {
+      "catalogKey": "food.black_beans",
+      "fdcId": 173735,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beans, black, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 93200,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 172
+      },
+      "fdcPer100g": {
+        "kcal": 132,
+        "proteinG": 8.86,
+        "carbsG": 23.71,
+        "fatG": 0.54
+      },
+      "derivedGramsPerServing": 172,
+      "reviewNote": "Catalog serving is 1 cup cooked black beans; SR cooked unsalted black beans provide 1 cup = 172 g and reconcile."
+    },
+    {
+      "catalogKey": "food.kidney_beans",
+      "fdcId": 173740,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beans, kidney, all types, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 93205,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 177
+      },
+      "fdcPer100g": {
+        "kcal": 127,
+        "proteinG": 8.67,
+        "carbsG": 22.8,
+        "fatG": 0.5
+      },
+      "derivedGramsPerServing": 177,
+      "reviewNote": "Catalog serving is 1 cup cooked kidney beans; SR cooked unsalted kidney beans provide 1 cup = 177 g and reconcile."
+    },
+    {
+      "catalogKey": "food.pinto_beans",
+      "fdcId": 175200,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beans, pinto, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 95832,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 171
+      },
+      "fdcPer100g": {
+        "kcal": 143,
+        "proteinG": 9.01,
+        "carbsG": 26.22,
+        "fatG": 0.65
+      },
+      "derivedGramsPerServing": 171,
+      "reviewNote": "Catalog serving is 1 cup cooked pinto beans; SR cooked unsalted pinto beans provide 1 cup = 171 g and reconcile."
+    },
+    {
+      "catalogKey": "food.navy_beans",
+      "fdcId": 173746,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beans, navy, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 93213,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 182
+      },
+      "fdcPer100g": {
+        "kcal": 140,
+        "proteinG": 8.23,
+        "carbsG": 26.05,
+        "fatG": 0.62
+      },
+      "derivedGramsPerServing": 182,
+      "reviewNote": "Catalog serving is 1 cup cooked navy beans; SR cooked unsalted navy beans provide 1 cup = 182 g and reconcile."
+    },
+    {
+      "catalogKey": "food.great_northern_beans",
+      "fdcId": 175191,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beans, great northern, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 95819,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 177
+      },
+      "fdcPer100g": {
+        "kcal": 118,
+        "proteinG": 8.33,
+        "carbsG": 21.09,
+        "fatG": 0.45
+      },
+      "derivedGramsPerServing": 177,
+      "reviewNote": "Catalog serving is 1 cup cooked great northern beans; SR cooked unsalted great northern beans provide 1 cup = 177 g and reconcile."
+    },
+    {
+      "catalogKey": "food.lima_beans",
+      "fdcId": 174253,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Lima beans, large, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 94026,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 188
+      },
+      "fdcPer100g": {
+        "kcal": 115,
+        "proteinG": 7.8,
+        "carbsG": 20.88,
+        "fatG": 0.38
+      },
+      "derivedGramsPerServing": 188,
+      "reviewNote": "Catalog serving is 1 cup cooked lima beans; SR cooked unsalted large lima beans provide 1 cup = 188 g and reconcile."
+    },
+    {
+      "catalogKey": "food.split_peas",
+      "fdcId": 172429,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Peas, split, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 90606,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 196
+      },
+      "fdcPer100g": {
+        "kcal": 118,
+        "proteinG": 8.34,
+        "carbsG": 21.1,
+        "fatG": 0.39
+      },
+      "derivedGramsPerServing": 196,
+      "reviewNote": "Catalog serving is 1 cup cooked split peas; SR cooked unsalted split peas provide 1 cup = 196 g and reconcile."
+    },
+    {
+      "catalogKey": "food.green_peas",
+      "fdcId": 170420,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Peas, green, cooked, boiled, drained, without salt",
+      "portion": {
+        "portionRowId": 86614,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 160
+      },
+      "fdcPer100g": {
+        "kcal": 84,
+        "proteinG": 5.36,
+        "carbsG": 15.63,
+        "fatG": 0.22
+      },
+      "derivedGramsPerServing": 160,
+      "reviewNote": "Catalog serving is 1 cup cooked green peas; SR cooked unsalted green peas provide 1 cup = 160 g and reconcile."
+    },
+    {
+      "catalogKey": "food.black_eyed_peas",
+      "fdcId": 173759,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Cowpeas, common (blackeyes, crowder, southern), mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 93229,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 171
+      },
+      "fdcPer100g": {
+        "kcal": 116,
+        "proteinG": 7.73,
+        "carbsG": 20.76,
+        "fatG": 0.53
+      },
+      "derivedGramsPerServing": 171,
+      "reviewNote": "Catalog serving is 1 cup cooked black-eyed peas; SR blackeye/cowpea cooked unsalted row provides 1 cup = 171 g and reconciles."
+    },
+    {
+      "catalogKey": "food.mung_beans",
+      "fdcId": 174257,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Mung beans, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 94032,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 202
+      },
+      "fdcPer100g": {
+        "kcal": 105,
+        "proteinG": 7.02,
+        "carbsG": 19.15,
+        "fatG": 0.38
+      },
+      "derivedGramsPerServing": 202,
+      "reviewNote": "Catalog serving is 1 cup cooked mung beans; SR cooked unsalted mung beans provide 1 cup = 202 g and reconcile."
+    },
+    {
+      "catalogKey": "food.adzuki_beans",
+      "fdcId": 173728,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Beans, adzuki, mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 93192,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 230
+      },
+      "fdcPer100g": {
+        "kcal": 128,
+        "proteinG": 7.52,
+        "carbsG": 24.77,
+        "fatG": 0.1
+      },
+      "derivedGramsPerServing": 230,
+      "reviewNote": "Catalog serving is 1 cup cooked adzuki beans; SR cooked unsalted adzuki beans provide 1 cup = 230 g and reconcile."
+    },
+    {
+      "catalogKey": "food.fava_beans",
+      "fdcId": 173753,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Broadbeans (fava beans), mature seeds, cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 93220,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 170
+      },
+      "fdcPer100g": {
+        "kcal": 110,
+        "proteinG": 7.6,
+        "carbsG": 19.65,
+        "fatG": 0.4
+      },
+      "derivedGramsPerServing": 170,
+      "reviewNote": "Catalog serving is 1 cup cooked fava beans; SR cooked unsalted broadbeans/fava beans provide 1 cup = 170 g and reconcile."
+    },
+    {
+      "catalogKey": "food.soybeans",
+      "fdcId": 174271,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Soybeans, mature cooked, boiled, without salt",
+      "portion": {
+        "portionRowId": 94059,
+        "amount": 1,
+        "modifier": "cup",
+        "gramWeight": 172
+      },
+      "fdcPer100g": {
+        "kcal": 172,
+        "proteinG": 18.21,
+        "carbsG": 8.36,
+        "fatG": 8.97
+      },
+      "derivedGramsPerServing": 172,
+      "reviewNote": "Catalog serving is 1 cup cooked soybeans; SR cooked unsalted soybeans provide 1 cup = 172 g and reconcile within tolerance."
     }
   ],
   "unmatched": [
@@ -514,6 +1034,42 @@
     {
       "catalogKey": "food.tzatziki",
       "reason": "Pinned SR Legacy has no tzatziki tablespoon portion; left null/gated."
+    },
+    {
+      "catalogKey": "food.basmati_rice",
+      "reason": "SR Legacy has no basmati-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated."
+    },
+    {
+      "catalogKey": "food.jasmine_rice",
+      "reason": "SR Legacy has no jasmine-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated."
+    },
+    {
+      "catalogKey": "food.farro",
+      "reason": "Pinned SR Legacy has no cooked farro cup row; left null/gated rather than substituting another wheat grain."
+    },
+    {
+      "catalogKey": "food.sorghum",
+      "reason": "Pinned SR Legacy has no cooked sorghum cup row (only non-serving syrup/flour-style candidates); left null/gated."
+    },
+    {
+      "catalogKey": "food.polenta",
+      "reason": "Pinned SR Legacy has no cooked polenta cup row; dry/self-rising cornmeal candidates are preparation mismatches. Left null/gated."
+    },
+    {
+      "catalogKey": "food.couscous_whole",
+      "reason": "Catalog food is whole wheat couscous; pinned SR Legacy provides generic cooked couscous only. Rejected to avoid preparation/grain mismatch; left null/gated."
+    },
+    {
+      "catalogKey": "food.lentils_red",
+      "reason": "SR Legacy does not provide a red-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated."
+    },
+    {
+      "catalogKey": "food.lentils_green",
+      "reason": "SR Legacy does not provide a green-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated."
+    },
+    {
+      "catalogKey": "food.cannellini_beans",
+      "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated."
     }
   ]
 }

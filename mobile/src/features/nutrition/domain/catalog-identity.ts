@@ -36,7 +36,8 @@ export const FOOD_REVISION = 1;
  * infrastructure/catalog/fdc-portion-manifest.json for per-food provenance.
  * ADR-P013 Batch 2 (2026-07-14) adds 13 `tbsp` foods from the same pinned
  * archive. The tsp semantics mini-slice corrects the six ambiguous `tsp(N)`
- * foods whose authored amount encoded grams, not teaspoon counts. The
+ * foods whose authored amount encoded grams, not teaspoon counts. ADR-P013
+ * Batch 3A adds reviewed `cup` portions for grains, legumes, and staples. The
  * remaining volumetric foods and `food.sourdough_bread` (no reconciling FDC
  * portion) stay at revision 1 with `gramsPerServing = null`, gated behind later
  * ADR-P013 batches.
@@ -97,6 +98,33 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   'food.hot_sauce': 2,
   'food.garlic': 2,
   'food.ginger': 2,
+  // ADR-P013 Batch 3A — cup-served grains, legumes, and staples with FDC-sourced full-serving gram weights.
+  'food.edamame': 2,
+  'food.brown_rice': 2,
+  'food.white_rice': 2,
+  'food.wild_rice': 2,
+  'food.quinoa': 2,
+  'food.barley': 2,
+  'food.bulgur': 2,
+  'food.buckwheat': 2,
+  'food.millet': 2,
+  'food.amaranth': 2,
+  'food.popcorn_air': 2,
+  'food.lentils_brown': 2,
+  'food.chickpeas': 2,
+  'food.black_beans': 2,
+  'food.kidney_beans': 2,
+  'food.pinto_beans': 2,
+  'food.navy_beans': 2,
+  'food.great_northern_beans': 2,
+  'food.lima_beans': 2,
+  'food.split_peas': 2,
+  'food.green_peas': 2,
+  'food.black_eyed_peas': 2,
+  'food.mung_beans': 2,
+  'food.adzuki_beans': 2,
+  'food.fava_beans': 2,
+  'food.soybeans': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

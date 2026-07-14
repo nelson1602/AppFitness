@@ -112,8 +112,12 @@ export interface FoodItem {
  * `tsp(N)` foods whose authored amount encoded grams, not teaspoon counts.
  * Butter/ghee become gram servings; mustard/hot sauce/garlic/ginger become
  * one-teaspoon servings with FDC-sourced gram weights.
+ * 1.4.0 (ADR-P013 Batch 3A): sourced full-serving gram weights for 26
+ * cup-served grains, legumes, and staple foods from the same pinned USDA-FDC
+ * SR Legacy archive; varietals/preparations without exact reconciling SR rows
+ * stay null/gated.
  */
-export const CATALOG_VERSION = 'food-catalog@1.3.1';
+export const CATALOG_VERSION = 'food-catalog@1.4.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

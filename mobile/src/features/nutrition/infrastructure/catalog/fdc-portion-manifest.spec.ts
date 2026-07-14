@@ -12,7 +12,8 @@ import manifestJson from './fdc-portion-manifest.json';
  * manifest and the catalog together: every FDC-sourced food has exactly one
  * entry, and every unmatched food stays null/gated. Batch 1 covered `slice`
  * foods; Batch 2 adds accepted `tbsp` foods; the tsp semantics mini-slice adds
- * accepted `tsp` foods and keeps rejected/ambiguous candidates unmatched.
+ * accepted `tsp` foods; Batch 3A adds reviewed `cup` grains/legumes/staples and
+ * keeps rejected/ambiguous candidates unmatched.
  */
 
 interface ManifestEntry {
@@ -96,11 +97,12 @@ describe('FDC portion manifest — gates', () => {
     for (const e of manifest.entries) {
       const food = byKey.get(e.catalogKey);
       expect(food).toBeDefined();
-      expect(['slice', 'tbsp', 'tsp']).toContain(food!.servingUnit);
+      expect(['slice', 'tbsp', 'tsp', 'cup']).toContain(food!.servingUnit);
       const label = e.portion.modifier.toLowerCase();
       if (food!.servingUnit === 'slice') expect(label).toContain('slice');
       else if (food!.servingUnit === 'tbsp') expect(label).toMatch(/\b(tbsp|tablespoon)\b/);
-      else expect(label).toMatch(/\b(tsp|teaspoon)\b/);
+      else if (food!.servingUnit === 'tsp') expect(label).toMatch(/\b(tsp|teaspoon)\b/);
+      else expect(label).toMatch(/\bcup\b/);
     }
   });
 

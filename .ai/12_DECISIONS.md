@@ -2952,8 +2952,39 @@ backend, or deployment change.**
   artifacts/hash/goldens regenerated (a butter rev-2 golden added to both
   suites). Macros are unchanged.
 
-**Remaining under this ADR:** 140 foods (98 `cup` + 18 remaining `tbsp` + 23 `ml` + `sourdough_bread`)
-stay `grams_per_serving = null`, gated pending later batches.
+**Remaining after this mini-slice:** 140 foods (98 `cup` + 18 remaining `tbsp`
++ 23 `ml` + `sourdough_bread`) stayed `grams_per_serving = null`, gated pending
+later batches.
+
+### Batch 3A Implementation Note (2026-07-14) - cup grains, legumes, and staples
+
+The first `cup` batch is implemented per this ADR. **Catalog/data + tests only -
+no schema, migration, UI, sync, backend, or deployment change.** It reuses the
+same pinned `sr_legacy_food_csv_2018-04` archive and checked-in provenance
+manifest.
+
+- **Matched (26), all passing the macro-reconciliation gate:** `edamame`,
+  `brown_rice`, `white_rice`, `wild_rice`, `quinoa`, `barley`, `bulgur`,
+  `buckwheat`, `millet`, `amaranth`, `popcorn_air`, `lentils_brown`,
+  `chickpeas`, `black_beans`, `kidney_beans`, `pinto_beans`, `navy_beans`,
+  `great_northern_beans`, `lima_beans`, `split_peas`, `green_peas`,
+  `black_eyed_peas`, `mung_beans`, `adzuki_beans`, `fava_beans`, and
+  `soybeans`. Each row has exact FDC id/portion-row/per-100 g macro provenance
+  in `fdc-portion-manifest.json`.
+- **Unmatched / still gated:** varietals or preparations without an exact
+  reconciling SR Legacy row (`basmati_rice`, `jasmine_rice`, `farro`,
+  `sorghum`, `polenta`, `couscous_whole`, `lentils_red`, `lentils_green`,
+  `cannellini_beans`) remain null. Generic substitutes were rejected rather than
+  force-fit.
+- **Mechanics:** the 26 matched foods gained authored full-serving `grams`,
+  bumped to `food_revision` 2 (new UUIDv5s; rev-1 rows retained),
+  `CATALOG_VERSION` -> `food-catalog@1.4.0`; canonical artifacts/hash/goldens
+  regenerated (a `brown_rice` rev-2 golden added to both suites). Macros are
+  unchanged.
+
+**Remaining under this ADR:** 114 foods (72 remaining `cup` + 18 remaining
+`tbsp` + 23 `ml` + `sourdough_bread`) stay `grams_per_serving = null`, gated
+pending later batches.
 
 ### Related Documents
 

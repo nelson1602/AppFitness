@@ -80,6 +80,11 @@ const tbspFdc = (amount: number, grams: number): ServingSize => ({ amount, unit:
 // USDA-FDC archive (ADR-P013 tsp semantics mini-slice; see
 // catalog/fdc-portion-manifest.json for per-food fdcId/portion provenance).
 const tspFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'tsp', grams });
+// A cup serving whose full-serving gram weight is sourced from the pinned
+// USDA-FDC archive (ADR-P013 Batch 3A; see catalog/fdc-portion-manifest.json for
+// per-food fdcId/portion provenance). `grams` covers the WHOLE authored serving
+// (e.g. popcorn's 3-cup serving = 24 g total). Never derive by assumed density.
+const cupFdc = (amount: number, grams: number): ServingSize => ({ amount, unit: 'cup', grams });
 
 export const FOOD_CATALOG: readonly FoodItem[] = [
   // ── protein_animal (42) ──────────────────────────────────────────────
@@ -287,7 +292,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     avoid: ['gluten_sensitive'],
     caution: 'Wheat gluten — not gluten-free.',
   }),
-  food('food.edamame', 'Edamame, shelled, cooked', 'protein_plant', cup(1), 18, 14, 8, {
+  food('food.edamame', 'Edamame, shelled, cooked', 'protein_plant', cupFdc(1, 155), 18, 14, 8, {
     fiber: 8,
     tags: ['high_protein', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
@@ -416,11 +421,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.brown_rice', 'Brown rice, cooked', 'grain', cup(1), 5, 45, 2, {
+  food('food.brown_rice', 'Brown rice, cooked', 'grain', cupFdc(1, 195), 5, 45, 2, {
     fiber: 4,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
   }),
-  food('food.white_rice', 'White rice, cooked', 'grain', cup(1), 4, 45, 0, {
+  food('food.white_rice', 'White rice, cooked', 'grain', cupFdc(1, 158), 4, 45, 0, {
     tags: [
       'complex_carb',
       'vegan',
@@ -437,11 +442,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   food('food.jasmine_rice', 'Jasmine rice, cooked', 'grain', cup(1), 4, 45, 0, {
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
-  food('food.wild_rice', 'Wild rice, cooked', 'grain', cup(1), 7, 35, 1, {
+  food('food.wild_rice', 'Wild rice, cooked', 'grain', cupFdc(1, 164), 7, 35, 1, {
     fiber: 3,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.quinoa', 'Quinoa, cooked', 'grain', cup(1), 8, 39, 4, {
+  food('food.quinoa', 'Quinoa, cooked', 'grain', cupFdc(1, 185), 8, 39, 4, {
     fiber: 5,
     tags: [
       'high_protein',
@@ -453,12 +458,12 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'high_fiber',
     ],
   }),
-  food('food.barley', 'Pearl barley, cooked', 'grain', cup(1), 4, 44, 1, {
+  food('food.barley', 'Pearl barley, cooked', 'grain', cupFdc(1, 157), 4, 44, 1, {
     fiber: 6,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'high_fiber', 'heart_healthy'],
     avoid: ['gluten_sensitive'],
   }),
-  food('food.bulgur', 'Bulgur, cooked', 'grain', cup(1), 6, 34, 0, {
+  food('food.bulgur', 'Bulgur, cooked', 'grain', cupFdc(1, 182), 6, 34, 0, {
     fiber: 8,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'high_fiber'],
     avoid: ['gluten_sensitive'],
@@ -468,15 +473,15 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['high_protein', 'complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'high_fiber'],
     avoid: ['gluten_sensitive'],
   }),
-  food('food.buckwheat', 'Buckwheat groats, cooked', 'grain', cup(1), 6, 33, 1, {
+  food('food.buckwheat', 'Buckwheat groats, cooked', 'grain', cupFdc(1, 168), 6, 33, 1, {
     fiber: 5,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.millet', 'Millet, cooked', 'grain', cup(1), 6, 41, 2, {
+  food('food.millet', 'Millet, cooked', 'grain', cupFdc(1, 174), 6, 41, 2, {
     fiber: 2,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
-  food('food.amaranth', 'Amaranth, cooked', 'grain', cup(1), 9, 46, 4, {
+  food('food.amaranth', 'Amaranth, cooked', 'grain', cupFdc(1, 246), 9, 46, 4, {
     fiber: 5,
     tags: [
       'high_protein',
@@ -551,7 +556,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'high_fiber'],
     avoid: ['gluten_sensitive'],
   }),
-  food('food.popcorn_air', 'Air-popped popcorn', 'grain', cup(3), 3, 19, 1, {
+  food('food.popcorn_air', 'Air-popped popcorn', 'grain', cupFdc(3, 24), 3, 19, 1, {
     fiber: 4,
     tags: [
       'complex_carb',
@@ -571,7 +576,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   }),
 
   // ── legume (20) ──────────────────────────────────────────────────────
-  food('food.lentils_brown', 'Brown lentils, cooked', 'legume', cup(1), 18, 40, 1, {
+  food('food.lentils_brown', 'Brown lentils, cooked', 'legume', cupFdc(1, 198), 18, 40, 1, {
     fiber: 16,
     tags: [
       'high_protein',
@@ -610,7 +615,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.chickpeas', 'Chickpeas, cooked', 'legume', cup(1), 15, 45, 4, {
+  food('food.chickpeas', 'Chickpeas, cooked', 'legume', cupFdc(1, 164), 15, 45, 4, {
     fiber: 12,
     tags: [
       'high_protein',
@@ -623,7 +628,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.black_beans', 'Black beans, cooked', 'legume', cup(1), 15, 41, 1, {
+  food('food.black_beans', 'Black beans, cooked', 'legume', cupFdc(1, 172), 15, 41, 1, {
     fiber: 15,
     tags: [
       'high_protein',
@@ -637,7 +642,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.kidney_beans', 'Kidney beans, cooked', 'legume', cup(1), 15, 40, 1, {
+  food('food.kidney_beans', 'Kidney beans, cooked', 'legume', cupFdc(1, 177), 15, 40, 1, {
     fiber: 13,
     tags: [
       'high_protein',
@@ -649,7 +654,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.pinto_beans', 'Pinto beans, cooked', 'legume', cup(1), 15, 45, 1, {
+  food('food.pinto_beans', 'Pinto beans, cooked', 'legume', cupFdc(1, 171), 15, 45, 1, {
     fiber: 15,
     tags: [
       'high_protein',
@@ -661,7 +666,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.navy_beans', 'Navy beans, cooked', 'legume', cup(1), 15, 47, 1, {
+  food('food.navy_beans', 'Navy beans, cooked', 'legume', cupFdc(1, 182), 15, 47, 1, {
     fiber: 19,
     tags: [
       'high_protein',
@@ -686,23 +691,32 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.great_northern_beans', 'Great northern beans, cooked', 'legume', cup(1), 15, 37, 1, {
-    fiber: 12,
-    tags: [
-      'high_protein',
-      'vegan',
-      'vegetarian',
-      'gluten_free',
-      'dairy_free',
-      'high_fiber',
-      'budget_friendly',
-    ],
-  }),
-  food('food.lima_beans', 'Lima beans, cooked', 'legume', cup(1), 15, 39, 1, {
+  food(
+    'food.great_northern_beans',
+    'Great northern beans, cooked',
+    'legume',
+    cupFdc(1, 177),
+    15,
+    37,
+    1,
+    {
+      fiber: 12,
+      tags: [
+        'high_protein',
+        'vegan',
+        'vegetarian',
+        'gluten_free',
+        'dairy_free',
+        'high_fiber',
+        'budget_friendly',
+      ],
+    },
+  ),
+  food('food.lima_beans', 'Lima beans, cooked', 'legume', cupFdc(1, 188), 15, 39, 1, {
     fiber: 13,
     tags: ['high_protein', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.split_peas', 'Split peas, cooked', 'legume', cup(1), 16, 41, 1, {
+  food('food.split_peas', 'Split peas, cooked', 'legume', cupFdc(1, 196), 16, 41, 1, {
     fiber: 16,
     tags: [
       'high_protein',
@@ -714,7 +728,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.green_peas', 'Green peas, cooked', 'legume', cup(1), 9, 25, 1, {
+  food('food.green_peas', 'Green peas, cooked', 'legume', cupFdc(1, 160), 9, 25, 1, {
     fiber: 9,
     tags: [
       'high_protein',
@@ -727,7 +741,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'quick_prep',
     ],
   }),
-  food('food.black_eyed_peas', 'Black-eyed peas, cooked', 'legume', cup(1), 13, 36, 1, {
+  food('food.black_eyed_peas', 'Black-eyed peas, cooked', 'legume', cupFdc(1, 171), 13, 36, 1, {
     fiber: 11,
     tags: [
       'high_protein',
@@ -739,15 +753,15 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.mung_beans', 'Mung beans, cooked', 'legume', cup(1), 14, 39, 1, {
+  food('food.mung_beans', 'Mung beans, cooked', 'legume', cupFdc(1, 202), 14, 39, 1, {
     fiber: 15,
     tags: ['high_protein', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.adzuki_beans', 'Adzuki beans, cooked', 'legume', cup(1), 17, 57, 0, {
+  food('food.adzuki_beans', 'Adzuki beans, cooked', 'legume', cupFdc(1, 230), 17, 57, 0, {
     fiber: 17,
     tags: ['high_protein', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.fava_beans', 'Fava beans, cooked', 'legume', cup(1), 13, 33, 1, {
+  food('food.fava_beans', 'Fava beans, cooked', 'legume', cupFdc(1, 170), 13, 33, 1, {
     fiber: 9,
     tags: ['high_protein', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
@@ -759,7 +773,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 7,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber', 'budget_friendly'],
   }),
-  food('food.soybeans', 'Soybeans, cooked', 'legume', cup(1), 29, 17, 15, {
+  food('food.soybeans', 'Soybeans, cooked', 'legume', cupFdc(1, 172), 29, 17, 15, {
     fiber: 10,
     tags: [
       'high_protein',
