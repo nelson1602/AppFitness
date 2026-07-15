@@ -4108,6 +4108,80 @@ variant.**
 Until a decision is recorded here, `food.kombucha_unsweet` remains gated and
 counted under gate (a).
 
+#### Gate-(b) Decision Note (2026-07-15) — protein shakes (OWNER DECISION REQUIRED)
+
+Status: **Investigated, awaiting owner decision — NO data change made.**
+Covers both gate-(b) foods: `food.protein_shake_water` ("Whey protein shake
+(water)", 300 ml, P25/C3/F2, Atwater 130 kcal) and `food.vegan_protein_shake`
+("Plant protein shake (water)", 300 ml, P24/C4/F2, Atwater 130 kcal). Both
+are the same policy question.
+
+**Correction to the prior gated reason.** The Batch F3 manifest reason said
+FNDDS "has only DRY nutritional powder mixes; no prepared-shake survey food
+exists." **That is inaccurate** — this re-verification found FNDDS category
+7208 carries many prepared ready-to-drink (RTD) shake records (Boost, Ensure,
+Carnation Instant Breakfast, Muscle Milk, Slim Fast incl. a HIGH-PROTEIN RTD
+2710724, Glucerna). A1's composite-eligibility rule already permits matching
+an as-consumed RTD record if it reconciles — so the true blocker is not
+"no prepared record" but "no prepared record reconciles." (The manifest
+reason should be corrected to this when an option below is implemented; not
+touched in this docs-only slice.)
+
+**Evidence (both pins re-verified):**
+
+- **Prepared RTD records exist but FAIL reconciliation** against the lean
+  powder-in-water authored profile — they are sweetened/fattier
+  meal-replacement composites. Best protein-forward candidates at the
+  authored 300 ml: *Slim Fast high-protein RTD* (2710724) → est 192 kcal /
+  P20.7 / C2.7 / **F10.6** vs authored 130/25/3/2 (fails kcal + fat);
+  *Muscle Milk RTD* (2710720) → est 169 kcal / P19.1 / C7.4 / F7.0 (fails
+  kcal, P, C, F). All RTD records carry far more fat/calories than a lean
+  isolate-in-water shake.
+- **Powder records exist but are the DRY ingredient** (EAS Whey Powder
+  2710731 = 66.67 g protein/100 g, "1 scoop" = 19.5 g; EAS Soy Powder
+  2710732). Matching a 300 ml *prepared beverage* to a dry-powder record
+  requires assembling powder + water at a chosen scoop count — **recipe
+  synthesis, which A1 explicitly forbids** ("Multi-ingredient recipe
+  assembly by us is NOT acceptable"). Even if allowed, 37.5 g EAS whey in
+  water yields C6.7 vs authored 3 — the authored lean-isolate profile does
+  not match the EAS blend either.
+
+Conclusion: **composite-policy issue — the authored "protein powder + water"
+foods are lean isolate-in-water composites the catalog authored from
+product-style data; no pinned record represents that exact preparation (RTD
+records are fattier meal-replacements; powder records are the dry
+ingredient).**
+
+**Owner decision required — choose one:**
+
+- **(A) Allow prepared-RTD composite matching (already A1-eligible) — but no
+  pinned RTD reconciles.** Tested: every category-7208 RTD candidate fails
+  the gate on fat and/or calories (see above). So Option A sources NOTHING
+  under the current pin; both foods stay gated. Recorded here so the
+  "did we check prepared records?" question is closed. Not implementable now.
+- **(B) RECOMMENDED — keep the authored lean powder-in-water values and
+  re-classify both foods from gate (b) to gate (d) third-source residue.**
+  Their resolution path is a lean whey-isolate / pea-protein-isolate RTD
+  record from a future approved source (Foundation Foods or branded).
+  Docs-only ledger change; **empties gate (b)**; gated count unchanged
+  (b: 2 → 0, d: 20 → 22, total still 23). No macro/serving/gram/revision/
+  version change; grams stay null. Mirrors the milk-family Option B outcome.
+- **(C) Authorize a powder + water recipe convention** — an explicit
+  exception to A1's no-recipe-synthesis rule, letting us assemble
+  grams/macros from a pinned powder record + water. NOT RECOMMENDED: it is a
+  broad policy change, and even the EAS powder does not cleanly reconcile to
+  the authored lean-isolate macros (carbs 6.7 vs 3), so it would also require
+  an authored-macro change.
+- **(D) Defer** — both stay in gate (b) as-is.
+
+**Impact if Option B is later accepted:** foods `protein_shake_water` and
+`vegan_protein_shake`; serving unchanged (`ml(300)`); `grams_per_serving`
+stays null; NO macro deltas; NO new revisions and NO `CATALOG_VERSION` bump
+(docs/ledger only); gated count stays 23 (moves b→d). Gate (b) becomes empty.
+
+Until a decision is recorded here, both protein-shake foods remain gated and
+counted under gate (b).
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)

@@ -1019,7 +1019,14 @@ leeks (raw-label renames); pomegranate, dragon_fruit (owner Option A
 authored-macro corrections); coconut_milk_beverage, oat_milk_unsweet,
 kombucha_unsweet (owner Option B re-classifications to gate (d) — authored
 data correct, only incompatible sweetened/regular variants pinned)**;
-(b) the protein-shake composite policy; (c) the mixed_greens lettuce-NFS
+(b) the protein-shake composite policy (**investigated 2026-07-15:
+protein_shake_water + vegan_protein_shake — prepared RTD shake records DO
+exist in FNDDS (correcting the F3 note) and are A1-eligible, but all fail
+reconciliation as fattier meal-replacement composites; powder records are the
+dry ingredient and matching them is A1-forbidden recipe synthesis; a decision
+gate with options A/B/C/D is drafted in ADR-P013, "Gate-(b) Decision Note —
+protein shakes", recommending Option B re-classification to third-source
+residue, which would EMPTY gate (b)**); (c) the mixed_greens lettuce-NFS
 proxy decision; (d) an optional third-source amendment for the 20-food
 no-record/varietal/unavailable-variant residue (incl. coconut_milk_beverage,
 oat_milk_unsweet, kombucha_unsweet).
