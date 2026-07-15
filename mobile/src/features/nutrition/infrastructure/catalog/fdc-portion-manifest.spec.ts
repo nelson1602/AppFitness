@@ -48,6 +48,21 @@ interface Manifest {
     downloadedAt: string;
     license: string;
   };
+  /**
+   * ADR-P013 Amendment A1: pinned secondary sources (FNDDS). Pin-only until a
+   * matching batch lands; entries referencing a secondary source will carry a
+   * `sourceRef` naming its pin.
+   */
+  secondarySources?: {
+    sourceRef: string;
+    dataset: string;
+    releaseLabel: string;
+    archiveUrl: string;
+    archiveSha256: string;
+    archiveBytes: number;
+    downloadedAt: string;
+    license: string;
+  }[];
   tolerances: {
     caloriesAbsMin: number;
     caloriesPct: number;
@@ -78,6 +93,22 @@ describe('FDC portion manifest — pinned source provenance', () => {
     expect(s.archiveBytes).toBeGreaterThan(0);
     expect(s.downloadedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(s.license.toLowerCase()).toContain('public domain');
+  });
+
+  it('each Amendment A1 secondary source pins a specific release: unique ref, label, url, sha256, size, download date, license', () => {
+    const secondaries = manifest.secondarySources ?? [];
+    const refs = secondaries.map((s) => s.sourceRef);
+    expect(new Set(refs).size).toBe(refs.length);
+    for (const s of secondaries) {
+      expect(s.sourceRef.length).toBeGreaterThan(0);
+      expect(s.dataset).toContain('USDA FoodData Central');
+      expect(s.releaseLabel).toMatch(/^survey_food_csv_\d{4}-\d{2}-\d{2}$/);
+      expect(s.archiveUrl).toMatch(/^https:\/\/fdc\.nal\.usda\.gov\/.+\.zip$/);
+      expect(s.archiveSha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(s.archiveBytes).toBeGreaterThan(0);
+      expect(s.downloadedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(s.license.toLowerCase()).toContain('public domain');
+    }
   });
 
   it('every entry carries complete per-food provenance', () => {

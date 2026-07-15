@@ -3275,8 +3275,8 @@ deployment change; no FNDDS, sourdough, or other gated food touched.**
 
 **Remaining under this ADR: 32 foods** (16 `cup` + 7 `tbsp` + 8 `ml` +
 `sourdough_bread`), intentionally gated — unblocked by Amendment A1 below
-(**Accepted 2026-07-14**); FNDDS implementation is authorized but has not yet
-started.
+(**Accepted 2026-07-14**); the FNDDS release is **pinned** (pin batch,
+2026-07-14 — see the pin record in A1) but **no matching has started**.
 
 ### Amendment A1 (2026-07-14) — FNDDS Second-Source Gate
 
@@ -3466,6 +3466,32 @@ rules; the "Out of scope until Accepted" list above is now the implementation
 backlog, and each batch still requires its own scoped owner authorization to
 land, consistent with how Batches 1–7 were executed. **No implementation has
 started as of this acceptance.**
+
+#### FNDDS pin record (2026-07-14) — pin batch (owner-authorized)
+
+The owner authorized the **pin batch only** and the FNDDS release is now
+pinned per the requirements above (manifest `secondarySources`, SR pin and all
+existing entries byte-untouched):
+
+- `sourceRef`: `fndds_survey_food_csv_2024-10-31`
+- Dataset: USDA FoodData Central — FNDDS Survey Foods (CSV); survey cycle
+  **FNDDS 2021-2023 (WWEIA)** — the newest cycle at pin time.
+- `releaseLabel`: `survey_food_csv_2024-10-31`
+- URL: `https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_survey_food_csv_2024-10-31.zip`
+- SHA-256: `5ccc25ec2777a8982fbb61378a42f415316173eb11e48c9a8ba4cb19f5a4f29c`
+- Bytes: 3,325,692 · downloaded 2026-07-14 · public domain (U.S. Government
+  work).
+- Verification: SHA-256 computed twice (reproducible); archive extracts
+  cleanly; exactly 5,432 `survey_fndds_food` records, 22,046 `food_portion`
+  rows, plus `food_nutrient`/`measure_unit` tables in the shapes the existing
+  gates validate. The manifest gate spec now validates the secondary-source
+  pin fields alongside the SR pin.
+
+**Pin-only slice: NO food matching was performed, no manifest entries
+reference the FNDDS pin yet, no catalog data / revisions / `CATALOG_VERSION` /
+canonical artifacts changed.** Matching batches (F1–F4) each await their own
+scoped owner authorization. Per the pinning rules, this pin is never changed
+within the track — a re-pin is a new amendment.
 
 ### Related Documents
 

@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin (no FNDDS entries exist yet - matching has NOT started). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -9,6 +9,20 @@
     "downloadedAt": "2026-07-14",
     "license": "Public domain (U.S. Government work)"
   },
+  "secondarySources": [
+    {
+      "sourceRef": "fndds_survey_food_csv_2024-10-31",
+      "dataset": "USDA FoodData Central — FNDDS Survey Foods (CSV)",
+      "surveyCycle": "FNDDS 2021-2023 (WWEIA)",
+      "releaseLabel": "survey_food_csv_2024-10-31",
+      "archiveUrl": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_survey_food_csv_2024-10-31.zip",
+      "archiveSha256": "5ccc25ec2777a8982fbb61378a42f415316173eb11e48c9a8ba4cb19f5a4f29c",
+      "archiveBytes": 3325692,
+      "downloadedAt": "2026-07-14",
+      "license": "Public domain (U.S. Government work)",
+      "verificationNotes": "Pinned under ADR-P013 Amendment A1 (pin batch, 2026-07-14) as the newest survey cycle. SHA-256 computed twice from the downloaded archive (reproducible); zip extracts cleanly; contains exactly 5,432 survey_fndds_food records (food.csv), 22,046 food_portion rows, and food_nutrient/measure_unit tables in the same shape the SR gates validate. Pin-only slice: NO matching performed, no manifest entries reference this source yet, no catalog data changed."
+    }
+  ],
   "tolerances": {
     "$comment": "Macro-reconciliation gate (ADR-P013 acceptance criterion c). FDC per-100g macros scaled to derivedGramsPerServing must agree with the catalog's authored per-serving macros within these bounds.",
     "caloriesAbsMin": 25,

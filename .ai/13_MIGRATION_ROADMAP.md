@@ -1628,11 +1628,12 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       sourdough) are intentionally gated** — TECHDEBT-004 risk 3 part 2 stays
       Open (partially resolved). The FNDDS/second-source gate (expected to
       cover sourdough) was drafted 2026-07-14 as ADR-P013 Amendment A1 and
-      **Accepted 2026-07-14 by the project owner** — FNDDS batches are now
-      authorized under the amendment's rules but **not yet started** (no
-      archive pinned, no data changed). Nothing fabricated; logging uses
-      fractional servings meanwhile. See ADR-P013 "SR Legacy Sourcing Track —
-      Closure Note" + Batch 7, poppy-correction, and Amendment A1 notes.
+      **Accepted 2026-07-14 by the project owner** — the FNDDS release is
+      **pinned** (pin batch 2026-07-14, `fndds_survey_food_csv_2024-10-31`,
+      FNDDS 2021-2023) but **no matching has started** and no catalog data
+      changed. Nothing fabricated; logging uses fractional servings
+      meanwhile. See ADR-P013 "SR Legacy Sourcing Track — Closure Note" +
+      Batch 7, poppy-correction, and Amendment A1 notes (incl. pin record).
 
 ## Phase 16 — Workout Module  [commercial v1]
 

@@ -983,9 +983,10 @@ remaining foods are intentionally gated** with archive-re-verified reasons
 poppy-correction notes). The FNDDS / second-source gate (covers most of the
 32 incl. `sourdough_bread` unless a sourdough-specific source is preferred)
 was drafted 2026-07-14 as ADR-P013 Amendment A1 and **Accepted 2026-07-14 by
-the project owner (as proposed, unamended)** — FNDDS implementation is now
-**authorized but not yet started** (no archive pinned, no matching done, no
-data changed); each batch still needs its own scoped owner authorization.
+the project owner (as proposed, unamended)** — the FNDDS release is **pinned
+(2026-07-14, `fndds_survey_food_csv_2024-10-31`, FNDDS 2021-2023 — see the A1
+pin record) but NO matching has started** and no data changed; each matching
+batch still needs its own scoped owner authorization.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 
@@ -1143,8 +1144,8 @@ corrected poppy_seeds' teaspoon-scale authored serving to tsp(1) with the SR
 tsp gram weight (owner-authorized). **32 foods remain gated** (16 `cup` +
 7 `tbsp` + 8 `ml` + `sourdough_bread`) — none matchable under the pinned SR
 Legacy archive; ADR-P013 Amendment A1 (FNDDS second source) was **Accepted
-2026-07-14**, so closing them is now an implementation matter (authorized,
-not yet started). Nothing fabricated.
+2026-07-14**, so closing them is now an implementation matter (FNDDS release
+pinned 2026-07-14; matching not started). Nothing fabricated.
 
 ### Related Documents
 
