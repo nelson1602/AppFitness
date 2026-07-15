@@ -1851,7 +1851,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       caution: 'Still high in sodium.',
     },
   ),
-  food('food.pesto', 'Basil pesto', 'condiment', tbsp(1), 1, 1, 8, {
+  food('food.pesto', 'Basil pesto', 'condiment', tbspFdc(1, 16), 1, 1, 8, {
     tags: ['vegetarian', 'gluten_free', 'healthy_fat'],
     avoid: ['nut_allergy', 'lactose_sensitive'],
   }),
@@ -1895,7 +1895,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['high_protein', 'vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.tzatziki', 'Tzatziki', 'condiment', tbsp(2), 1, 2, 1, {
+  food('food.tzatziki', 'Tzatziki', 'condiment', tbspFdc(2, 30), 1, 2, 1, {
     tags: ['vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive'],
   }),

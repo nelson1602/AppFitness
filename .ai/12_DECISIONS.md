@@ -3273,11 +3273,12 @@ deployment change; no FNDDS, sourdough, or other gated food touched.**
   added to both suites); the unmatched reason replaced by full provenance with
   the correction documented in the reviewNote. Macros unchanged (0/300).
 
-**Remaining under this ADR: 31 foods** (15 `cup` + 7 `tbsp` + 8 `ml` +
+**Remaining under this ADR: 29 foods** (15 `cup` + 5 `tbsp` + 8 `ml` +
 `sourdough_bread`), intentionally gated. Amendment A1 (**Accepted
-2026-07-14**) pinned FNDDS 2021-2023 and **Batch F1 (2026-07-15)** matched the
-cup foods — one match (`polenta`); the 15 cup residues carry FNDDS-verified
-reasons. Batches F2 (tbsp), F3 (ml), F4 (sourdough) await scoped owner
+2026-07-14**) pinned FNDDS 2021-2023; **Batch F1 (2026-07-15)** matched the
+cup foods (one match: `polenta`) and **Batch F2 (2026-07-15)** matched the
+tbsp foods (two matches: `pesto`, `tzatziki`); all residues carry
+FNDDS-verified reasons. Batches F3 (ml) and F4 (sourdough) await scoped owner
 authorization.
 
 ### Amendment A1 (2026-07-14) — FNDDS Second-Source Gate
@@ -3538,6 +3539,40 @@ dependency, or deployment change; no tbsp/ml/sourdough foods touched.**
 correction-slice decisions): `onion`, `snow_peas`, `leeks`, `pomegranate`,
 `dragon_fruit` (+ the F3-pending `coconut_milk_beverage`, shakes, and the
 `mixed_greens` proxy decision).
+
+#### Batch F2 implementation note (2026-07-15) — tbsp foods (owner-authorized)
+
+The 7 gated `tbsp` foods were matched against the pinned FNDDS archive
+(SHA-256 re-verified against the pin before use). **Catalog/data +
+provenance/tests/docs only — no schema, migration, UI, sync, backend,
+dependency, or deployment change; no cup/ml/sourdough foods, no authored-data
+corrections, no proxy decisions.**
+
+- **Matched (2), both as-consumed prepared/composite survey foods (A1
+  composite eligibility):**
+  - `food.pesto` → FNDDS 2710175 **"Pesto sauce"**, direct "1 tablespoon"
+    portion = **16 g**. Reconciliation: est 92.8 kcal vs authored 80 (Δ12.8);
+    protein 1.38 vs 1; carbs 0.91 vs 1; fat 9.47 vs 8 (Δ1.47) — all pass.
+  - `food.tzatziki` → FNDDS 2705448 **"Tzatziki dip"** (attribute "Greek
+    dip"), "1 tablespoon" = 15 g → authored 2-tbsp serving = **30 g**.
+    Reconciliation: est 27.3 kcal vs authored 21 (Δ6.3); macros all within
+    0.8 g — pass.
+- **Unmatched (5), reasons FNDDS-verified in the manifest:** `chia_seeds`
+  (record exists, no tbsp portion; cup→tbsp conversion is liquid-only under
+  A1 and would fail the kcal gate anyway at Δ25.9), `flax_seeds` (FNDDS record
+  is whole-seed; catalog is ground — preparation mismatch persists),
+  `mct_oil` (no FNDDS record at all), `nutritional_yeast` (the only yeast
+  record is attribute-tagged "brewers yeast" — different product),
+  `greek_yogurt_dressing` (the only yogurt-dressing-tagged record is a sweet
+  "Fruit dressing" — semantic mismatch).
+- **Mechanics:** pesto/tzatziki ship as revision 2 (rev-1 retained, new
+  UUIDv5s), `CATALOG_VERSION` → `food-catalog@1.12.0`, artifacts/hash/goldens
+  regenerated under the emitter identity-check discipline. Macros unchanged
+  (0/300).
+
+**Class-4 ledger is unchanged by F2.** The 5 tbsp residues are all
+no-record/no-portion/semantic cases, NOT authored-data disagreements —
+closing them needs either a third-source amendment or menu decisions.
 
 ### Related Documents
 

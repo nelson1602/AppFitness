@@ -164,8 +164,16 @@ export interface FoodItem {
  * "polenta"), 1 cup cooked = 240 g (est 139.2 kcal vs authored 141). The
  * other 15 stay gated with FNDDS-verified reasons (no record / generic-only
  * varietal folds / reconciliation failures). New immutable revision (2).
+ * 1.12.0 (ADR-P013 Amendment A1 Batch F2): matched the 7 gated tbsp foods
+ * against the pinned FNDDS archive. Two matches: food.pesto -> "Pesto sauce"
+ * (2710175, 1 tbsp = 16 g; est 92.8 kcal vs authored 80) and food.tzatziki ->
+ * "Tzatziki dip" (2705448, attribute "Greek dip", 1 tbsp = 15 g -> 2 tbsp =
+ * 30 g; est 27.3 kcal vs authored 21). chia (no tbsp portion), flax (whole
+ * vs ground), mct_oil (no record), nutritional_yeast (record is brewers
+ * yeast), and greek_yogurt_dressing (only a sweet fruit dressing carries the
+ * yogurt-dressing tag) stay gated. New immutable revisions (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.11.0';
+export const CATALOG_VERSION = 'food-catalog@1.12.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

@@ -105,8 +105,18 @@ const GOLDEN = [
     revision: 2,
     id: '3e81adb5-b68c-59bf-a16a-a8f9d6ac64b5',
   },
+  {
+    key: 'food.pesto',
+    revision: 2,
+    id: '554c9b45-140d-551c-84f1-ea42f9909f6d',
+  },
+  {
+    key: 'food.tzatziki',
+    revision: 2,
+    id: 'a16f145a-1bd3-5329-a09f-c43ef8459006',
+  },
 ];
-const EXPECTED_CATALOG_HASH = '3e9f8e58805678a1bb8fc18f8139810bfd9666ab';
+const EXPECTED_CATALOG_HASH = 'c9592cde5e3dd64555ffdd83a444eef49eb15e70';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -190,7 +200,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.11.0',
+      catalogVersionSnapshot: 'food-catalog@1.12.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

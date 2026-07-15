@@ -880,8 +880,10 @@ mini-batch; **poppy-seeds serving-semantics correction slice implemented
 2026-07-14** — the owner-authorized correction of poppy_seeds' teaspoon-scale
 authored serving (tbsp(1) → tsp(1) + SR tsp gram weight); **Amendment A1
 Batch F1 implemented 2026-07-15** — cup foods matched against the pinned
-FNDDS archive, one match (polenta); 31 foods still gated: 15 `cup` +
-7 `tbsp` + 8 `ml` + `sourdough_bread`). See the status sections below.
+FNDDS archive, one match (polenta); **Amendment A1 Batch F2 implemented
+2026-07-15** — tbsp foods matched, two matches (pesto, tzatziki); 29 foods
+still gated: 15 `cup` + 5 `tbsp` + 8 `ml` + `sourdough_bread`). See the
+status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -970,9 +972,9 @@ never touched):
      lemon_juice serving (owner-authorized scoped mini-batch); the
      **poppy-seeds serving-semantics correction slice (2026-07-14)** corrected
      poppy_seeds' teaspoon-scale authored serving to tsp(1) with the SR tsp
-     gram weight (owner-authorized); **Amendment A1 Batch F1 (2026-07-15)**
-     sourced polenta from the pinned FNDDS archive (first FNDDS match).
-     **31 foods remain gated** (15 `cup` + 7 `tbsp` + 8 `ml` +
+     gram weight (owner-authorized); **Amendment A1 Batches F1–F2
+     (2026-07-15)** sourced polenta, pesto, and tzatziki from the pinned
+     FNDDS archive. **29 foods remain gated** (15 `cup` + 5 `tbsp` + 8 `ml` +
      `sourdough_bread`); gram entry stays unavailable for those; the log path
      uses fractional servings meanwhile.
 
@@ -983,12 +985,13 @@ sourcing track is COMPLETE (2026-07-14): 158 of 190 non-gram foods sourced
 poppy-seeds serving-semantics correction slice, `food-catalog@1.10.1`).**
 Under ADR-P013 Amendment A1 (**Accepted 2026-07-14**; FNDDS 2021-2023 pinned
 2026-07-14 as `fndds_survey_food_csv_2024-10-31`), **Batch F1 (2026-07-15,
-`food-catalog@1.11.0`) matched the 16 gated cup foods — one match (polenta),
-bringing the total to 159 of 190 non-gram foods sourced; the 31 remaining
-foods are intentionally gated** with FNDDS-verified reasons (see the A1
-Batch F1 note + class-4 ledger). Batches F2 (tbsp), F3 (ml), F4 (sourdough)
-each still need their own scoped owner authorization; the confirmed class-4
-foods need per-food authored-data correction decisions.
+`food-catalog@1.11.0`) matched the cup foods (one match: polenta) and Batch
+F2 (2026-07-15, `food-catalog@1.12.0`) matched the tbsp foods (two matches:
+pesto, tzatziki), bringing the total to 161 of 190 non-gram foods sourced;
+the 29 remaining foods are intentionally gated** with FNDDS-verified reasons
+(see the A1 Batch F1/F2 notes + class-4 ledger). Batches F3 (ml) and F4
+(sourdough) each still need their own scoped owner authorization; the
+confirmed class-4 foods need per-food authored-data correction decisions.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 
@@ -1145,12 +1148,14 @@ serving-semantics correction slice (2026-07-14, `food-catalog@1.10.1`)**
 corrected poppy_seeds' teaspoon-scale authored serving to tsp(1) with the SR
 tsp gram weight (owner-authorized); **Amendment A1 Batch F1 (2026-07-15,
 `food-catalog@1.11.0`)** matched the cup foods against the pinned FNDDS
-2021-2023 archive — one match (polenta = FNDDS "Cornmeal mush", 240 g/cup).
-**31 foods remain gated** (15 `cup` + 7 `tbsp` + 8 `ml` + `sourdough_bread`)
-with FNDDS-verified reasons; Batches F2–F4 await scoped authorization, and
-five cup foods are now confirmed class-4 authored-data disagreements (onion,
-snow_peas, leeks, pomegranate, dragon_fruit — see the A1 class-4 ledger).
-Nothing fabricated.
+2021-2023 archive — one match (polenta = FNDDS "Cornmeal mush", 240 g/cup);
+**Batch F2 (2026-07-15, `food-catalog@1.12.0`)** matched the tbsp foods —
+two matches (pesto 16 g/tbsp, tzatziki 30 g/2 tbsp, both FNDDS composite
+survey foods). **29 foods remain gated** (15 `cup` + 5 `tbsp` + 8 `ml` +
+`sourdough_bread`) with FNDDS-verified reasons; Batches F3–F4 await scoped
+authorization, and five cup foods are confirmed class-4 authored-data
+disagreements (onion, snow_peas, leeks, pomegranate, dragon_fruit — see the
+A1 class-4 ledger). Nothing fabricated.
 
 ### Related Documents
 

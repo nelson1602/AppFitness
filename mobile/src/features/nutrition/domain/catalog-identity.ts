@@ -226,6 +226,10 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   // ADR-P013 Amendment A1 Batch F1 — cup foods matched against the pinned
   // FNDDS 2021-2023 archive (sourceRef fndds_survey_food_csv_2024-10-31).
   'food.polenta': 2,
+  // ADR-P013 Amendment A1 Batch F2 — tbsp foods matched against the same
+  // pinned FNDDS archive (composite/prepared survey foods).
+  'food.pesto': 2,
+  'food.tzatziki': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

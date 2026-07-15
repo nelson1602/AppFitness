@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1 landed the first FNDDS entry, food.polenta). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2696,6 +2696,48 @@
       },
       "derivedGramsPerServing": 240,
       "reviewNote": "Amendment A1 Batch F1 (first FNDDS match). Prior SR reason (superseded for the FNDDS pin): 'Pinned SR Legacy has no cooked polenta cup row; dry/self-rising cornmeal candidates are preparation mismatches.' FNDDS codes polenta as 'Cornmeal mush' — the record officially carries the additional description 'polenta' in food_attribute.csv (attribute row 3314100) — and the no-added-fat variant matches the authored zero-added-fat macros. Portion '1 cup, cooked' = 240 g. Reconciliation: est 139.2 kcal vs authored 141 (delta 1.8); protein 2.69 vs 3; carbs 29.93 vs 30; fat 0.67 vs 1 — all comfortably within tolerance."
+    },
+    {
+      "catalogKey": "food.pesto",
+      "fdcId": 2710175,
+      "fdcDataType": "survey_fndds_food",
+      "fdcDescription": "Pesto sauce",
+      "sourceRef": "fndds_survey_food_csv_2024-10-31",
+      "portion": {
+        "portionRowId": 309551,
+        "amount": 1,
+        "modifier": "1 tablespoon",
+        "gramWeight": 16
+      },
+      "fdcPer100g": {
+        "kcal": 580,
+        "proteinG": 8.61,
+        "carbsG": 5.67,
+        "fatG": 59.17
+      },
+      "derivedGramsPerServing": 16,
+      "reviewNote": "Amendment A1 Batch F2. Prior SR reason (superseded for the FNDDS pin): 'Pinned SR Legacy pesto records provide 0.25 cup portions, not tbsp portions.' FNDDS 'Pesto sauce' is the as-consumed prepared/composite survey food (A1 composite eligibility) with a direct '1 tablespoon' portion = 16 g. Reconciliation: est 92.8 kcal vs authored 80 (delta 12.8); protein 1.38 vs 1; carbs 0.91 vs 1; fat 9.47 vs 8 (delta 1.47) — all within tolerance."
+    },
+    {
+      "catalogKey": "food.tzatziki",
+      "fdcId": 2705448,
+      "fdcDataType": "survey_fndds_food",
+      "fdcDescription": "Tzatziki dip",
+      "sourceRef": "fndds_survey_food_csv_2024-10-31",
+      "portion": {
+        "portionRowId": 290809,
+        "amount": 1,
+        "modifier": "1 tablespoon",
+        "gramWeight": 15
+      },
+      "fdcPer100g": {
+        "kcal": 91,
+        "proteinG": 5.22,
+        "carbsG": 4.1,
+        "fatG": 6
+      },
+      "derivedGramsPerServing": 30,
+      "reviewNote": "Amendment A1 Batch F2. Prior SR reason (superseded for the FNDDS pin): 'Pinned SR Legacy has no tzatziki tablespoon portion.' FNDDS 'Tzatziki dip' (attribute-tagged 'Greek dip') is the as-consumed prepared/composite survey food with a direct '1 tablespoon' portion = 15 g; the authored 2-tbsp serving derives 2 x 15 = 30 g. Reconciliation: est 27.3 kcal vs authored 21 (delta 6.3); protein 1.57 vs 1; carbs 1.23 vs 2; fat 1.80 vs 1 — all within tolerance."
     }
   ],
   "unmatched": [
@@ -2705,31 +2747,23 @@
     },
     {
       "catalogKey": "food.chia_seeds",
-      "reason": "SR Legacy has a chia seed record but no tbsp/tablespoon portion row in the pinned archive; left null/gated rather than converting from ounces."
+      "reason": "SR Legacy has a chia seed record but no tbsp/tablespoon portion row in the pinned archive; left null/gated rather than converting from ounces. FNDDS re-check (Batch F2, fndds_survey_food_csv_2024-10-31): 'Chia seeds' (2707590) exists but likewise carries no tablespoon portion (only '1 cup' = 168 g and a quantity-not-specified row); cup->tbsp volume conversion is reserved for liquids under A1, and the converted estimate would fail the kcal gate anyway (est 102.1 vs authored 128, delta 25.9 > 25). Left null/gated."
     },
     {
       "catalogKey": "food.flax_seeds",
-      "reason": "Catalog food is ground flaxseed. SR's ground 1 tbsp portion (7 g) fails macro reconciliation against the authored serving, while the passing whole-flaxseed portion is a preparation mismatch; left null/gated."
+      "reason": "Catalog food is ground flaxseed. SR's ground 1 tbsp portion (7 g) fails macro reconciliation against the authored serving, while the passing whole-flaxseed portion is a preparation mismatch; left null/gated. FNDDS re-check (Batch F2): FNDDS 'Flax seeds' (2707588) is the whole-seed record (1 cup = 168 g, whole-seed density) with no tablespoon portion and no ground variant — the whole-vs-ground preparation mismatch persists. Left null/gated."
     },
     {
       "catalogKey": "food.mct_oil",
-      "reason": "Pinned SR Legacy archive has no MCT-oil tablespoon portion row; left null/gated."
-    },
-    {
-      "catalogKey": "food.pesto",
-      "reason": "Pinned SR Legacy pesto records provide 0.25 cup portions, not tbsp portions; left null/gated rather than deriving a tablespoon conversion from cup volume."
+      "reason": "Pinned SR Legacy archive has no MCT-oil tablespoon portion row; left null/gated. FNDDS re-check (Batch F2): FNDDS 2021-2023 contains no MCT / medium-chain-triglyceride record at all (food.csv and food_attribute.csv both empty). Left null/gated."
     },
     {
       "catalogKey": "food.nutritional_yeast",
-      "reason": "Pinned SR Legacy has no nutritional-yeast tablespoon portion. Baker's yeast is a source/preparation mismatch and fails macro reconciliation; left null/gated."
+      "reason": "Pinned SR Legacy has no nutritional-yeast tablespoon portion. Baker's yeast is a source/preparation mismatch and fails macro reconciliation; left null/gated. FNDDS re-check (Batch F2): the only FNDDS yeast record ('Yeast', 2710005) is attribute-tagged 'brewers yeast' — a different product from fortified nutritional yeast; no nutritional-yeast record exists. Rejection stands."
     },
     {
       "catalogKey": "food.greek_yogurt_dressing",
-      "reason": "Pinned SR Legacy has no matching Greek-yogurt herb dressing tablespoon portion; left null/gated."
-    },
-    {
-      "catalogKey": "food.tzatziki",
-      "reason": "Pinned SR Legacy has no tzatziki tablespoon portion; left null/gated."
+      "reason": "Pinned SR Legacy has no matching Greek-yogurt herb dressing tablespoon portion; left null/gated. FNDDS re-check (Batch F2): the only FNDDS record carrying a 'yogurt dressing' attribute is 'Fruit dressing' (2710214) — a sweet fruit-salad dressing, a semantic mismatch for a savory Greek-yogurt herb dressing; no matching record exists. Left null/gated."
     },
     {
       "catalogKey": "food.basmati_rice",
