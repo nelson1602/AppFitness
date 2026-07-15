@@ -996,9 +996,15 @@ pesto, tzatziki); Batch F3 (2026-07-15, docs/manifest-only) matched ZERO ml
 foods; Batch F4 (2026-07-15, `food-catalog@1.13.0`) sourced sourdough_bread
 (31 g/slice), **completing the A1 matching track: 162 of 190 non-gram foods
 sourced; the 28 remaining foods are intentionally gated** with FNDDS-verified
-reasons (see the A1 Batch F1–F4 notes + ledgers). Everything still gated is
-blocked on per-food product/composite/authored-data decisions or a
-third-source amendment — no further matching batch can progress.
+reasons. **The A1/FNDDS matching track is CLOSED (exhausted) as of 2026-07-15
+— see ADR-P013 "Amendment A1 Matching Track — Closure Note".** No further
+matching batch can progress under the two approved pins; the four remaining
+gates each need an explicit owner decision (none authorized or implied):
+(a) 8 class-4/product-variant correction slices — onion, snow_peas, leeks,
+pomegranate, dragon_fruit, coconut_milk_beverage, oat_milk_unsweet,
+kombucha_unsweet; (b) the protein-shake composite policy; (c) the
+mixed_greens lettuce-NFS proxy decision; (d) an optional third-source
+amendment for the 17-food no-record/varietal residue.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 

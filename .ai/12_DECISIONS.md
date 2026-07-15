@@ -3647,6 +3647,46 @@ protein-shake composite policy, the mixed_greens proxy, or a third-source
 amendment for the no-record residue. No further matching batch can make
 progress under the current pins.
 
+#### Amendment A1 Matching Track — Closure Note (2026-07-15)
+
+The **Amendment A1 / FNDDS matching track is COMPLETE (exhausted)** under the
+pinned `fndds_survey_food_csv_2024-10-31` archive. Across the pin batch and
+Batches F1–F4 (`food-catalog@1.11.0` → `1.13.0`), 4 of the 32 foods gated at
+acceptance were sourced (`polenta`, `pesto`, `tzatziki`, `sourdough_bread`);
+combined with the SR Legacy track, **162 of the 190 non-gram catalog foods
+carry sourced gram weights** (29 piece + 5 slice + 25 tbsp + 5 tsp + 83 cup +
+15 ml). The **28 remaining foods (15 `cup` + 5 `tbsp` + 8 `ml`; the slice set
+is empty) are intentionally gated** with reasons verified against BOTH pinned
+archives; they log via fractional servings meanwhile.
+
+**TECHDEBT-004 risk 3 part 2 therefore remains OPEN (partially resolved).**
+No further sourcing is possible under the two approved pins without a
+**separate explicit owner decision**; nothing below is authorized or implied
+by this closure note:
+
+- **(a) Eight class-4 / product-variant correction slices** (per-food
+  authored-data decisions; both pins fail reconciliation): `onion`,
+  `snow_peas`, `leeks`, `pomegranate`, `dragon_fruit`,
+  `coconut_milk_beverage`, `oat_milk_unsweet`, `kombucha_unsweet`.
+- **(b) Protein-shake composite policy** (`protein_shake_water`,
+  `vegan_protein_shake`): whether to define the prepared shakes as a
+  powder+water recipe — a composite-policy decision, not a match.
+- **(c) Mixed-greens proxy decision** (`mixed_greens`): whether to accept
+  FNDDS generic "Lettuce, raw" (numerically reconciling but single-genus) as
+  a proxy for a greens mix.
+- **(d) Optional third-source amendment** for the no-record/varietal residue
+  (17 foods): `basmati_rice`, `jasmine_rice`, `farro`, `sorghum`,
+  `couscous_whole`, `lentils_red`, `lentils_green`, `cannellini_beans`,
+  `broccolini` (varietal folds / no acceptable record — cup), `chia_seeds`,
+  `flax_seeds`, `mct_oil`, `nutritional_yeast`, `greek_yogurt_dressing`
+  (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet` (ml).
+  Any new source (Foundation Foods, branded, or non-USDA) requires its own
+  pinned-source amendment. Gate arithmetic: 8 (a) + 2 (b) + 1 (c) + 17 (d)
+  = the 28 gated foods.
+
+ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
+under (a)–(d) follows the same manifest/gate/revision discipline.
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
