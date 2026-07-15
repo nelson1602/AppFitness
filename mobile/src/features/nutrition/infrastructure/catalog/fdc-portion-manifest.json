@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2738,13 +2738,30 @@
       },
       "derivedGramsPerServing": 30,
       "reviewNote": "Amendment A1 Batch F2. Prior SR reason (superseded for the FNDDS pin): 'Pinned SR Legacy has no tzatziki tablespoon portion.' FNDDS 'Tzatziki dip' (attribute-tagged 'Greek dip') is the as-consumed prepared/composite survey food with a direct '1 tablespoon' portion = 15 g; the authored 2-tbsp serving derives 2 x 15 = 30 g. Reconciliation: est 27.3 kcal vs authored 21 (delta 6.3); protein 1.57 vs 1; carbs 1.23 vs 2; fat 1.80 vs 1 — all within tolerance."
+    },
+    {
+      "catalogKey": "food.sourdough_bread",
+      "fdcId": 2707646,
+      "fdcDataType": "survey_fndds_food",
+      "fdcDescription": "Bread, sour dough",
+      "sourceRef": "fndds_survey_food_csv_2024-10-31",
+      "portion": {
+        "portionRowId": 299109,
+        "amount": 1,
+        "modifier": "1 medium or regular slice",
+        "gramWeight": 31
+      },
+      "fdcPer100g": {
+        "kcal": 272,
+        "proteinG": 10.75,
+        "carbsG": 51.88,
+        "fatG": 2.42
+      },
+      "derivedGramsPerServing": 31,
+      "reviewNote": "Amendment A1 Batch F4. Prior SR reason (superseded for the FNDDS pin): 'SR Legacy has no standalone sourdough record; the only sourdough-inclusive candidate 172675 (french/vienna) carries a 139 g slice that fails reconciliation.' FNDDS has a dedicated as-eaten record — 'Bread, sour dough' (FNDDS spells sourdough as two words; the untoasted record matches the catalog food). Portion '1 medium or regular slice' = 31 g is the semantic and numeric match for the authored 1-slice serving. Reconciliation: est 84.3 kcal vs authored 97 (delta 12.7); protein 3.33 vs 4; carbs 16.08 vs 18 (delta 1.92); fat 0.75 vs 1 — all within tolerance. The large-slice row (43 g) fails carbs and the small-slice row (24 g) fails kcal — not chosen."
     }
   ],
   "unmatched": [
-    {
-      "catalogKey": "food.sourdough_bread",
-      "reason": "SR Legacy has no standalone sourdough record. The only sourdough-inclusive candidate 172675 'Bread, french or vienna (includes sourdough)' carries a 139 g 'slice' portion, which fails macro reconciliation against the authored 97 kcal slice (scaled estimate 378.1 kcal, delta 281 >> 25). Left null and gated per ADR-P013 (never force-fit); revisit in a later batch with a different pinned dataset (e.g. FNDDS) if desired."
-    },
     {
       "catalogKey": "food.chia_seeds",
       "reason": "SR Legacy has a chia seed record but no tbsp/tablespoon portion row in the pinned archive; left null/gated rather than converting from ounces. FNDDS re-check (Batch F2, fndds_survey_food_csv_2024-10-31): 'Chia seeds' (2707590) exists but likewise carries no tablespoon portion (only '1 cup' = 168 g and a quantity-not-specified row); cup->tbsp volume conversion is reserved for liquids under A1, and the converted estimate would fail the kcal gate anyway (est 102.1 vs authored 128, delta 25.9 > 25). Left null/gated."

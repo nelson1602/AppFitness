@@ -115,8 +115,13 @@ const GOLDEN = [
     revision: 2,
     id: 'a16f145a-1bd3-5329-a09f-c43ef8459006',
   },
+  {
+    key: 'food.sourdough_bread',
+    revision: 2,
+    id: '40d78a50-c12d-5690-a0ee-d4f1729963d9',
+  },
 ];
-const EXPECTED_CATALOG_HASH = 'c9592cde5e3dd64555ffdd83a444eef49eb15e70';
+const EXPECTED_CATALOG_HASH = '91c9899930ba60a288cfe3853216966a164157a2';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -200,7 +205,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.12.0',
+      catalogVersionSnapshot: 'food-catalog@1.13.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

@@ -1623,18 +1623,18 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       checks; new immutable revisions 2). **The SR Legacy + zero-macro-policy
       sourcing track is COMPLETE (2026-07-14, `food-catalog@1.10.1`).** Under
       ADR-P013 Amendment A1 (**Accepted 2026-07-14**, FNDDS 2021-2023 pinned
-      as `fndds_survey_food_csv_2024-10-31`), **Batches F1–F3 (2026-07-15,
-      `food-catalog@1.12.0`) matched the cup, tbsp, and ml foods — three
-      matches (polenta 240 g/cup; pesto 16 g/tbsp; tzatziki 30 g/2 tbsp; F3
-      matched zero ml foods): 161/190 non-gram foods sourced; the 29
-      remaining foods (15 `cup` + 5 `tbsp` + 8 `ml` + sourdough) stay
-      intentionally gated** with FNDDS-verified reasons — TECHDEBT-004 risk 3
-      part 2 stays Open (partially resolved). Batch F4 (sourdough) awaits
-      scoped owner authorization; the rest are blocked on per-food
-      product/composite/authored-data decisions or a third-source amendment
-      (see the A1 ledgers). Nothing fabricated; logging uses fractional
-      servings meanwhile. See ADR-P013 "SR Legacy Sourcing Track — Closure
-      Note" + Amendment A1 notes (pin record + Batches F1–F3).
+      as `fndds_survey_food_csv_2024-10-31`), **the matching track F1–F4 is
+      COMPLETE (2026-07-15, `food-catalog@1.13.0`) with four matches
+      (polenta 240 g/cup; pesto 16 g/tbsp; tzatziki 30 g/2 tbsp;
+      sourdough_bread 31 g/slice; F3 matched zero ml foods): 162/190
+      non-gram foods sourced; the 28 remaining foods (15 `cup` + 5 `tbsp` +
+      8 `ml`) stay intentionally gated** with FNDDS-verified reasons —
+      TECHDEBT-004 risk 3 part 2 stays Open (partially resolved). Everything
+      still gated is blocked on per-food product/composite/authored-data
+      decisions or a third-source amendment (see the A1 ledgers). Nothing
+      fabricated; logging uses fractional servings meanwhile. See ADR-P013
+      "SR Legacy Sourcing Track — Closure Note" + Amendment A1 notes (pin
+      record + Batches F1–F4).
 
 ## Phase 16 — Workout Module  [commercial v1]
 

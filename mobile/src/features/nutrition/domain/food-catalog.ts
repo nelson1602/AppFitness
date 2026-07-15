@@ -172,8 +172,13 @@ export interface FoodItem {
  * vs ground), mct_oil (no record), nutritional_yeast (record is brewers
  * yeast), and greek_yogurt_dressing (only a sweet fruit dressing carries the
  * yogurt-dressing tag) stay gated. New immutable revisions (2).
+ * 1.13.0 (ADR-P013 Amendment A1 Batch F4): matched food.sourdough_bread
+ * against the pinned FNDDS archive -> "Bread, sour dough" (2707646, FNDDS
+ * spells it as two words), "1 medium or regular slice" = 31 g (est 84.3 kcal
+ * vs authored 97). Batch F3 (ml foods, same day) matched nothing and changed
+ * no data. New immutable revision (2). The slice-unit gated set is now empty.
  */
-export const CATALOG_VERSION = 'food-catalog@1.12.0';
+export const CATALOG_VERSION = 'food-catalog@1.13.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

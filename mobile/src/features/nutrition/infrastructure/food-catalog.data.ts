@@ -63,7 +63,6 @@ const ml = (amount: number): ServingSize => ({ amount, unit: 'ml' });
 const piece1 = (grams: number): ServingSize => ({ amount: 1, unit: 'piece', grams });
 const cup = (amount: number): ServingSize => ({ amount, unit: 'cup' });
 const tbsp = (amount: number): ServingSize => ({ amount, unit: 'tbsp' });
-const slice = (amount: number): ServingSize => ({ amount, unit: 'slice' });
 // A slice serving whose full-serving gram weight is sourced from the pinned
 // USDA-FDC archive (ADR-P013 Batch 1; see catalog/fdc-portion-manifest.json for
 // per-food fdcId/portion provenance). `grams` covers the WHOLE serving (e.g.
@@ -507,7 +506,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'budget_friendly', 'quick_prep'],
     avoid: ['gluten_sensitive'],
   }),
-  food('food.sourdough_bread', 'Sourdough bread', 'grain', slice(1), 4, 18, 1, {
+  food('food.sourdough_bread', 'Sourdough bread', 'grain', sliceFdc(1, 31), 4, 18, 1, {
     fiber: 1,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'quick_prep'],
     avoid: ['gluten_sensitive'],

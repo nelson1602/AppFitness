@@ -86,9 +86,10 @@ describe('food catalog integrity', () => {
     // serving-semantics correction slice corrects poppy_seeds' teaspoon-scale
     // authored macros to a 1-tsp serving with the SR tsp gram weight.
     // Amendment A1 Batch F1 adds polenta (first FNDDS-sourced cup food);
-    // Batch F2 adds pesto and tzatziki (FNDDS composite tbsp foods).
+    // Batch F2 adds pesto and tzatziki (FNDDS composite tbsp foods);
+    // Batch F4 adds sourdough_bread (FNDDS "Bread, sour dough" slice).
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(161);
+    expect(withGrams).toHaveLength(162);
     for (const f of withGrams) {
       expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
@@ -104,6 +105,7 @@ describe('food catalog integrity', () => {
       'food.canadian_bacon',
       'food.ezekiel_bread',
       'food.rye_bread',
+      'food.sourdough_bread',
       'food.whole_wheat_bread',
     ]);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(25);

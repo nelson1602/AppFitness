@@ -883,9 +883,11 @@ Batch F1 implemented 2026-07-15** — cup foods matched against the pinned
 FNDDS archive, one match (polenta); **Amendment A1 Batch F2 implemented
 2026-07-15** — tbsp foods matched, two matches (pesto, tzatziki); **Amendment
 A1 Batch F3 implemented 2026-07-15** — ml foods matched, ZERO matches (all 8
-need product/composite/third-source decisions; docs/manifest-only slice); 29
-foods still gated: 15 `cup` + 5 `tbsp` + 8 `ml` + `sourdough_bread`). See the
-status sections below.
+need product/composite/third-source decisions; docs/manifest-only slice);
+**Amendment A1 Batch F4 implemented 2026-07-15** — sourdough_bread sourced
+from FNDDS "Bread, sour dough" (31 g/slice), completing the F1–F4 matching
+track; 28 foods still gated: 15 `cup` + 5 `tbsp` + 8 `ml`). See the status
+sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -974,12 +976,12 @@ never touched):
      lemon_juice serving (owner-authorized scoped mini-batch); the
      **poppy-seeds serving-semantics correction slice (2026-07-14)** corrected
      poppy_seeds' teaspoon-scale authored serving to tsp(1) with the SR tsp
-     gram weight (owner-authorized); **Amendment A1 Batches F1–F3
-     (2026-07-15)** sourced polenta, pesto, and tzatziki from the pinned
-     FNDDS archive (F3 matched zero ml foods — all 8 need
-     product/composite/third-source decisions). **29 foods remain gated**
-     (15 `cup` + 5 `tbsp` + 8 `ml` + `sourdough_bread`); gram entry stays
-     unavailable for those; the log path uses fractional servings meanwhile.
+     gram weight (owner-authorized); **Amendment A1 Batches F1–F4
+     (2026-07-15)** sourced polenta, pesto, tzatziki, and sourdough_bread
+     from the pinned FNDDS archive (F3 matched zero ml foods — all 8 need
+     product/composite/third-source decisions). **28 foods remain gated**
+     (15 `cup` + 5 `tbsp` + 8 `ml`); gram entry stays unavailable for those;
+     the log path uses fractional servings meanwhile.
 
 The item stays **Open (partially resolved)** for risk 3 **part 2** only; risks
 1, 2, and risk 3 part 1 are resolved. **The SR Legacy + zero-macro-policy
@@ -990,12 +992,13 @@ Under ADR-P013 Amendment A1 (**Accepted 2026-07-14**; FNDDS 2021-2023 pinned
 2026-07-14 as `fndds_survey_food_csv_2024-10-31`), **Batch F1 (2026-07-15,
 `food-catalog@1.11.0`) matched the cup foods (one match: polenta) and Batch
 F2 (2026-07-15, `food-catalog@1.12.0`) matched the tbsp foods (two matches:
-pesto, tzatziki), bringing the total to 161 of 190 non-gram foods sourced;
-Batch F3 (2026-07-15, docs/manifest-only) matched ZERO ml foods; the 29
-remaining foods are intentionally gated** with FNDDS-verified reasons (see
-the A1 Batch F1–F3 notes + updated ledgers). Only Batch F4 (sourdough) still
-needs a matching authorization; everything else gated is blocked on per-food
-product/composite/authored-data decisions or a third-source amendment.
+pesto, tzatziki); Batch F3 (2026-07-15, docs/manifest-only) matched ZERO ml
+foods; Batch F4 (2026-07-15, `food-catalog@1.13.0`) sourced sourdough_bread
+(31 g/slice), **completing the A1 matching track: 162 of 190 non-gram foods
+sourced; the 28 remaining foods are intentionally gated** with FNDDS-verified
+reasons (see the A1 Batch F1–F4 notes + ledgers). Everything still gated is
+blocked on per-food product/composite/authored-data decisions or a
+third-source amendment — no further matching batch can progress.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 
@@ -1157,11 +1160,13 @@ tsp gram weight (owner-authorized); **Amendment A1 Batch F1 (2026-07-15,
 two matches (pesto 16 g/tbsp, tzatziki 30 g/2 tbsp, both FNDDS composite
 survey foods); **Batch F3 (2026-07-15)** matched ZERO ml foods (3 no-record,
 2 composite-policy shakes, 3 carbs-gate failures incl. coconut_milk_beverage
-— class 4 confirmed under both pins). **29 foods remain gated** (15 `cup` +
-5 `tbsp` + 8 `ml` + `sourdough_bread`) with FNDDS-verified reasons; Batch F4
-awaits scoped authorization; the class-4/product-variant ledger now covers
-onion, snow_peas, leeks, pomegranate, dragon_fruit, coconut_milk_beverage,
-oat_milk_unsweet, kombucha_unsweet (see the A1 ledgers). Nothing fabricated.
+— class 4 confirmed under both pins); **Batch F4 (2026-07-15,
+`food-catalog@1.13.0`)** sourced sourdough_bread from FNDDS "Bread, sour
+dough" (31 g medium/regular slice) — the A1 matching track is COMPLETE.
+**28 foods remain gated** (15 `cup` + 5 `tbsp` + 8 `ml`) with FNDDS-verified
+reasons; the class-4/product-variant ledger covers onion, snow_peas, leeks,
+pomegranate, dragon_fruit, coconut_milk_beverage, oat_milk_unsweet,
+kombucha_unsweet (see the A1 ledgers). Nothing fabricated.
 
 ### Related Documents
 

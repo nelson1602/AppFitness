@@ -230,6 +230,9 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   // pinned FNDDS archive (composite/prepared survey foods).
   'food.pesto': 2,
   'food.tzatziki': 2,
+  // ADR-P013 Amendment A1 Batch F4 — sourdough_bread matched against the
+  // pinned FNDDS archive ("Bread, sour dough", medium/regular slice).
+  'food.sourdough_bread': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

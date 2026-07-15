@@ -3273,14 +3273,14 @@ deployment change; no FNDDS, sourdough, or other gated food touched.**
   added to both suites); the unmatched reason replaced by full provenance with
   the correction documented in the reviewNote. Macros unchanged (0/300).
 
-**Remaining under this ADR: 29 foods** (15 `cup` + 5 `tbsp` + 8 `ml` +
-`sourdough_bread`), intentionally gated. Amendment A1 (**Accepted
-2026-07-14**) pinned FNDDS 2021-2023; **Batch F1 (2026-07-15)** matched the
-cup foods (one match: `polenta`), **Batch F2 (2026-07-15)** the tbsp foods
-(two matches: `pesto`, `tzatziki`), and **Batch F3 (2026-07-15)** the ml
-foods (**zero matches** — all 8 need product/composite/third-source
-decisions); all residues carry FNDDS-verified reasons. Only Batch F4
-(sourdough) still awaits scoped owner authorization as a matching batch.
+**Remaining under this ADR: 28 foods** (15 `cup` + 5 `tbsp` + 8 `ml`),
+intentionally gated. Amendment A1 (**Accepted 2026-07-14**) pinned FNDDS
+2021-2023; its matching track **F1–F4 is COMPLETE (2026-07-15)** with four
+matches (`polenta`, `pesto`, `tzatziki`, `sourdough_bread` — the slice gated
+set is now empty); all residues carry FNDDS-verified reasons and are blocked
+solely on NON-matching owner decisions (class-4/product-variant correction
+slices, the protein-shake composite policy, the mixed_greens proxy, or a
+third-source amendment). See the F1–F4 notes and ledgers below.
 
 ### Amendment A1 (2026-07-14) — FNDDS Second-Source Gate
 
@@ -3617,6 +3617,35 @@ reasons:
   `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet`, plus the F2
   tbsp residues (`chia_seeds`, `flax_seeds`, `mct_oil`, `nutritional_yeast`,
   `greek_yogurt_dressing`) and the F1 varietal/no-record cup residues.
+
+#### Batch F4 implementation note (2026-07-15) — sourdough_bread (owner-authorized)
+
+`food.sourdough_bread` was matched against the pinned FNDDS archive (SHA-256
+re-verified before use). **Catalog/data + provenance/tests/docs only; no
+other food touched.**
+
+- **Matched:** `food.sourdough_bread` → FNDDS 2707646 **"Bread, sour dough"**
+  (FNDDS spells sourdough as two words — why the original A1 draft grep found
+  nothing; the untoasted record matches the catalog food). Portion "1 medium
+  or regular slice" = **31 g** — the semantic and numeric match for the
+  authored 1-slice serving. Reconciliation: est 84.3 kcal vs authored 97
+  (Δ12.7); protein 3.33 vs 4; carbs 16.08 vs 18 (Δ1.92); fat 0.75 vs 1 — all
+  pass. The large-slice row (43 g) fails carbs and the small-slice row (24 g)
+  fails kcal — not chosen.
+- **Mechanics:** revision 2 (rev-1 retained, new UUIDv5), `CATALOG_VERSION` →
+  `food-catalog@1.13.0`, artifacts/hash/goldens regenerated under the emitter
+  identity-check discipline; the prior SR unmatched reason (139 g
+  french/vienna slice failure) is preserved verbatim in the entry's
+  reviewNote. Macros unchanged (0/300). **The slice-unit gated set is now
+  EMPTY.**
+
+**The Amendment A1 matching track (F1–F4) is COMPLETE.** Four matches total
+(polenta, pesto, tzatziki, sourdough_bread); **28 foods remain gated**
+(15 `cup` + 5 `tbsp` + 8 `ml`), every one blocked on a NON-matching owner
+decision: per-food class-4/product-variant correction slices, the
+protein-shake composite policy, the mixed_greens proxy, or a third-source
+amendment for the no-record residue. No further matching batch can make
+progress under the current pins.
 
 ### Related Documents
 
