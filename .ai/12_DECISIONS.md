@@ -3978,6 +3978,61 @@ est 76.7 kcal / 7.23 C / 0.52 P / 5.15 F / 6.19 sugar vs authored 49
 Until a decision is recorded here, `food.coconut_milk_beverage` remains
 gated and counted under gate (a).
 
+#### Gate-(a) Decision Note (2026-07-15) — food.oat_milk_unsweet (OWNER DECISION REQUIRED)
+
+Status: **Investigated, awaiting owner decision — NO data change made.**
+Same shape as coconut_milk_beverage (authored data describes a real product
+the pins don't carry), with an EXTRA divergence that reinforces it.
+
+**Evidence (both pins re-verified):** SR Legacy has NO oat-milk record.
+FNDDS 2705412 "Oat milk" is the sole pinned source — a single NFS
+(not-specified-as-to-sweetening) record: per 100 g 45 kcal / 5.37 carbs /
+0.66 protein / 2.33 fat / **2.04 g sugar** / 0.5 fiber; cup = 244 g →
+density 1.0313 g/ml → 247.5 g per the authored 240 ml serving. Scaled to
+247.5 g: est **111.4 kcal / 13.29 C / 1.63 P / 5.77 F / 5.05 sugar** vs
+authored **93 (Atwater of P3/C9/F5) / 9 / 3 / 5**.
+
+- **Carbs fail the gate** (13.29 vs 9, Δ4.29 > 3) — but carbs minus the
+  record's sugar = 13.29 − 5.05 = **8.24 ≈ authored 9**, so the carbs gap is
+  the record's added sugar (the same unsweetened-vs-sweetened signature as
+  coconut_milk_beverage). Fat matches (5.77 vs 5).
+- **Protein diverges the OTHER way** (est 1.63 vs authored 3): sweetening
+  cannot lower protein, so the authored product is a genuinely different,
+  higher-protein formulation than the FNDDS generic blend. This is a
+  stronger "different product" signal than coconut milk had — the authored
+  3 g protein matches real unsweetened/fortified oat-milk SKUs (e.g. Planet
+  Oat / Oatly Original ≈ 2–4 g/cup), which the single NFS survey record
+  does not represent.
+
+Conclusion: **product-variant issue — the authored unsweetened profile is
+defensible and the sole pinned record is an incompatible (sweetened-typical,
+lower-protein) variant.** Not a net-carbs convention error, not a
+serving-scale error.
+
+**Owner decision required — choose one:**
+
+- **(A) Adopt the pinned FNDDS values** (authored-macro change): serving
+  `mlFdc(240, 247.5)` (density 1.0313 g/ml from the FNDDS cup row), protein
+  3 → 2 (1.63), carbs 9 → 13 (13.29), fat 5 → 6 (5.77), fiber none → 1
+  (1.24), **kcal Atwater-derives 93 → 114**. Deltas per 240 ml: +21 kcal /
+  +4 g carbs / −1 g protein / +1 g fat / +1 g fiber. Mechanics: revision 2,
+  `CATALOG_VERSION` → next patch, artifacts/goldens, manifest provenance.
+  NOT RECOMMENDED: it converts a deliberately-unsweetened, higher-protein
+  catalog food into the sweetened-typical NFS blend AND lowers its protein —
+  changing the product's dietary character away from what the name states.
+- **(B) RECOMMENDED — keep the authored unsweetened values and re-classify
+  the gate:** the food keeps its correct data and stays gram-gated (no
+  approved source), moving from gate (a) "authored-data correction" to gate
+  (d) "third-source residue"; its resolution path is an
+  unsweetened/fortified oat-milk source (Foundation Foods or a branded
+  record) under a future third-source amendment. Docs-only ledger change;
+  gated count unchanged (a: 2 → 1, d: 18 → 19, total still 23). Mirrors the
+  coconut_milk_beverage Option B outcome.
+- **(C) Defer** — stays in gate (a) as-is.
+
+Until a decision is recorded here, `food.oat_milk_unsweet` remains gated and
+counted under gate (a).
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
