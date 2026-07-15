@@ -184,8 +184,16 @@ export interface FoodItem {
  * cross-checks, while both pins' cooked records fail (88-99 kcal). The name
  * was the defect: renamed "Onion, cooked" -> "Onion, raw" with the SR cup
  * gram weight; macros unchanged. New immutable revision (2).
+ * 1.13.2 (ADR-P013 gate-(a) correction slice 2, food.snow_peas): same defect
+ * class as onion — the authored macros (40 kcal / P3 / C7 / F0 per cup) are
+ * RAW snow-pea chopped-cup values: SR "Peas, edible-podded, raw" (170010,
+ * "cup, chopped" = 98 g, 42 kcal/100 g) reconciles at est 41.2 kcal vs 40
+ * and FNDDS "Snowpeas, raw" (2709806) carries identical per-100 g values,
+ * while both pins' cooked records fail (67-70 kcal). Renamed "Snow peas,
+ * cooked" -> "Snow peas, raw" with the SR chopped-cup gram weight; macros
+ * unchanged. New immutable revision (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.13.1';
+export const CATALOG_VERSION = 'food-catalog@1.13.2';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

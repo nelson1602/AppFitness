@@ -1030,7 +1030,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'budget_friendly',
     ],
   }),
-  food('food.snow_peas', 'Snow peas, cooked', 'vegetable', cup(1), 3, 7, 0, {
+  food('food.snow_peas', 'Snow peas, raw', 'vegetable', cupFdc(1, 98), 3, 7, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),

@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Gate-(a) correction slice 1 corrected food.onion's preparation label (raw, not cooked) and sourced it from the SR raw record. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Gate-(a) correction slices 1-2 corrected the preparation labels of food.onion and food.snow_peas (raw, not cooked) and sourced them from the SR raw records. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2779,6 +2779,26 @@
       },
       "derivedGramsPerServing": 160,
       "reviewNote": "Gate-(a) correction slice 1 (owner-authorized). Prior class-4 verdict (both pins' COOKED records fail: SR 170001/170100 give 88-92 kcal / 20-21 g carbs per 210 g cup; FNDDS 2709950 gives 98.7 / 23.0 — vs authored 64 / 14). Root cause proven: the authored macros are RAW-onion chopped-cup values — SR 'Onions, raw' (170000) reconciles EXACTLY (40 kcal/100 g x 160 g = 64.0 vs authored 64; carbs 14.94 vs 14; protein 1.76 vs 2; fat 0.16 vs 0) and FNDDS 'Onions, raw' (2709795, 1 cup = 160 g identical) independently cross-checks (est 60.8 kcal). The food name was the defect: renamed 'Onion, cooked' -> 'Onion, raw'; macros unchanged; gram weight from the SR raw cup-chopped row."
+    },
+    {
+      "catalogKey": "food.snow_peas",
+      "fdcId": 170010,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Peas, edible-podded, raw",
+      "portion": {
+        "portionRowId": 85890,
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 98
+      },
+      "fdcPer100g": {
+        "kcal": 42,
+        "proteinG": 2.8,
+        "carbsG": 7.55,
+        "fatG": 0.2
+      },
+      "derivedGramsPerServing": 98,
+      "reviewNote": "Gate-(a) correction slice 2 (owner-authorized). Prior class-4 verdict (both pins' COOKED records fail: SR cooked 160 g cup gives 67.2 kcal / 11.3 g carbs; FNDDS cooked gives 70.4 / 12.5 — vs authored 40 / 7). Root cause proven: the authored macros are RAW snow-pea chopped-cup values — SR 'Peas, edible-podded, raw' (170010) reconciles near-exactly at the 'cup, chopped' row (42 kcal/100 g x 98 g = est 41.2 vs authored 40; carbs 7.40 vs 7; protein 2.74 vs 3; fat 0.20 vs 0), and FNDDS 'Snowpeas, raw' (2709806) carries the identical per-100 g values. The 'cup, whole' rows (SR 63 g / FNDDS 65 g) reconcile only loosely (est 26.5-27.3 kcal) — the authored basis is the chopped cup. The food name was the defect: renamed 'Snow peas, cooked' -> 'Snow peas, raw'; macros unchanged; gram weight from the SR raw cup-chopped row."
     }
   ],
   "unmatched": [
@@ -2833,10 +2853,6 @@
     {
       "catalogKey": "food.cannellini_beans",
       "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated. FNDDS re-check (Batch F1): FNDDS has only generic 'White beans' records, attribute-tagged 'Cannellini' among other white beans (deliberately not distinguished); generic rejected under the A1 varietal rule."
-    },
-    {
-      "catalogKey": "food.snow_peas",
-      "reason": "Catalog food is \"Snow peas, cooked\" but the SR cooked edible-podded record (170509) fails reconciliation (64 kcal / 10.3 g carbs vs authored 40 / 7); only the RAW record passes, which contradicts the authored cooked name. Semantic mismatch left null and gated. FNDDS re-check (Batch F1): 'Snowpeas, fresh, cooked, no added fat' (2709983, 1 cup = 160 g) fails too — est 70.4 kcal / 12.5 g carbs vs authored 40 / 7; frozen and NS-form variants fail as well. Failure under BOTH pins -> authored-data disagreement (A1 class 4)."
     },
     {
       "catalogKey": "food.leeks",

@@ -3666,9 +3666,10 @@ by this closure note:
 
 - **(a) Class-4 / product-variant correction slices** (per-food
   authored-data decisions; both pins fail reconciliation). Originally eight;
-  **`onion` RESOLVED by correction slice 1 (2026-07-15, see note below)** —
-  seven remain: `snow_peas`, `leeks`, `pomegranate`, `dragon_fruit`,
-  `coconut_milk_beverage`, `oat_milk_unsweet`, `kombucha_unsweet`.
+  **`onion` RESOLVED by correction slice 1 and `snow_peas` by slice 2
+  (2026-07-15, see notes below)** — six remain: `leeks`, `pomegranate`,
+  `dragon_fruit`, `coconut_milk_beverage`, `oat_milk_unsweet`,
+  `kombucha_unsweet`.
 - **(b) Protein-shake composite policy** (`protein_shake_water`,
   `vegan_protein_shake`): whether to define the prepared shakes as a
   powder+water recipe — a composite-policy decision, not a match.
@@ -3683,8 +3684,8 @@ by this closure note:
   (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet` (ml).
   Any new source (Foundation Foods, branded, or non-USDA) requires its own
   pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b) + 1 (c)
-  + 17 (d) = 28 gated foods; after correction slice 1 (onion): 7 (a) + 2 (b)
-  + 1 (c) + 17 (d) = **27 gated**.
+  + 17 (d) = 28 gated foods; after correction slices 1 (onion) and 2
+  (snow_peas): 6 (a) + 2 (b) + 1 (c) + 17 (d) = **26 gated**.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
@@ -3714,6 +3715,32 @@ poppy-seeds investigate-then-correct pattern):
 
 **Remaining after this slice: 27 foods** (14 `cup` + 5 `tbsp` + 8 `ml`),
 gated on the decisions above. 163/190 non-gram foods sourced.
+
+#### Gate-(a) Correction Slice 2 (2026-07-15) — food.snow_peas (owner-authorized)
+
+Same defect class and pattern as slice 1, **proven from both pinned archives
+before any change**:
+
+- The authored macros (40 kcal / P3 / C7 / F0 / fiber 3 per 1 cup) are
+  **RAW snow-pea chopped-cup values**: SR **170010 "Peas, edible-podded,
+  raw"** (42 kcal / 7.55 C / 2.8 P / 0.2 F per 100 g; portion row 85890
+  "cup, chopped" = **98 g**) reconciles near-exactly (est 41.2 kcal vs 40;
+  carbs 7.40 vs 7; protein 2.74 vs 3; fat 0.20 vs 0). FNDDS "Snowpeas, raw"
+  (2709806) carries the **identical per-100 g values**; its whole-pod cup
+  (65 g ≈ SR "cup, whole" 63 g) reconciles only loosely, confirming the
+  chopped cup as the authored basis.
+- Both pins' COOKED records fail (SR cooked 160 g cup: 67.2 kcal / 11.3 g
+  carbs; FNDDS cooked: 70.4 / 12.5) — the class-4 verdict was correct; the
+  **name** was the defect.
+- **Correction (smallest possible):** renamed **"Snow peas, cooked" →
+  "Snow peas, raw"**; gram weight from the SR raw cup-chopped row via
+  `cupFdc(1, 98)`; **macros unchanged**. Revision 2 (rev-1 retained, new
+  UUIDv5), `CATALOG_VERSION` → `food-catalog@1.13.2` (patch), artifacts/
+  hash/goldens regenerated (identity-checked emitter), unmatched record
+  replaced by full SR provenance (primary pin).
+
+**Remaining after this slice: 26 foods** (13 `cup` + 5 `tbsp` + 8 `ml`),
+gated on the decisions above. 164/190 non-gram foods sourced.
 
 ### Related Documents
 
