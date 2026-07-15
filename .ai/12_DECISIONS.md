@@ -3273,10 +3273,12 @@ deployment change; no FNDDS, sourdough, or other gated food touched.**
   added to both suites); the unmatched reason replaced by full provenance with
   the correction documented in the reviewNote. Macros unchanged (0/300).
 
-**Remaining under this ADR: 32 foods** (16 `cup` + 7 `tbsp` + 8 `ml` +
-`sourdough_bread`), intentionally gated — unblocked by Amendment A1 below
-(**Accepted 2026-07-14**); the FNDDS release is **pinned** (pin batch,
-2026-07-14 — see the pin record in A1) but **no matching has started**.
+**Remaining under this ADR: 31 foods** (15 `cup` + 7 `tbsp` + 8 `ml` +
+`sourdough_bread`), intentionally gated. Amendment A1 (**Accepted
+2026-07-14**) pinned FNDDS 2021-2023 and **Batch F1 (2026-07-15)** matched the
+cup foods — one match (`polenta`); the 15 cup residues carry FNDDS-verified
+reasons. Batches F2 (tbsp), F3 (ml), F4 (sourdough) await scoped owner
+authorization.
 
 ### Amendment A1 (2026-07-14) — FNDDS Second-Source Gate
 
@@ -3492,6 +3494,50 @@ reference the FNDDS pin yet, no catalog data / revisions / `CATALOG_VERSION` /
 canonical artifacts changed.** Matching batches (F1–F4) each await their own
 scoped owner authorization. Per the pinning rules, this pin is never changed
 within the track — a re-pin is a new amendment.
+
+#### Batch F1 implementation note (2026-07-15) — cup foods (owner-authorized)
+
+The 16 gated `cup` foods were matched against the pinned FNDDS archive
+(SHA-256 re-verified against the pin before use). **Catalog/data +
+provenance/tests/docs only — no schema, migration, UI, sync, backend,
+dependency, or deployment change; no tbsp/ml/sourdough foods touched.**
+
+- **Matched (1):** `food.polenta` → FNDDS 2708374 **"Cornmeal mush, no added
+  fat"** — FNDDS officially codes polenta as cornmeal mush (the record carries
+  the additional description "polenta" in `food_attribute.csv`), and the
+  no-added-fat variant matches the authored macros. Portion "1 cup, cooked" =
+  **240 g**; reconciliation: est 139.2 kcal vs authored 141 (Δ1.8), protein
+  2.69 vs 3, carbs 29.93 vs 30, fat 0.67 vs 1 — all pass. First entry carrying
+  `sourceRef: fndds_survey_food_csv_2024-10-31`; the manifest gate now
+  enforces that entry sourceRefs name a pinned secondary source and carry the
+  `survey_fndds_food` data type (SR entries stay sourceRef-free).
+- **Unmatched (15), reasons FNDDS-verified in the manifest:**
+  - *No FNDDS record at all:* `farro`, `sorghum`.
+  - *Generic-only folds (A1 varietal rule — generic rejected):*
+    `basmati_rice`/`jasmine_rice` (FNDDS attribute-tags generic "Rice, white"
+    as "basmati or jasmine rice" — deliberately not distinguished),
+    `couscous_whole` (plain couscous only), `lentils_red`/`lentils_green`
+    (generic lentils only), `cannellini_beans` (generic "White beans",
+    attribute-tagged "Cannellini").
+  - *Reconciliation failures under BOTH pins → class-4 authored-data
+    disagreements:* `onion` (est 98.7 kcal vs 64), `snow_peas` (70.4 vs 40),
+    `leeks` (149.6 vs 56 — the sole FNDDS record carries added fat),
+    `pomegranate` (carbs 32.7 vs 26, same axis as SR), `dragon_fruit` (record
+    now EXISTS — 2709234 — but est 122.4 kcal vs authored 56).
+  - *Semantic rejections:* `broccolini` (FNDDS codes it to "Broccoli raab,
+    cooked", which fails reconciliation and is a different vegetable),
+    `mixed_greens` (no mix record; generic "Lettuce, raw" passes NUMERICALLY
+    but a single-genus NFS code is not clearly acceptable — accepting that
+    proxy is a separate owner decision).
+- **Mechanics:** polenta ships as revision 2 (rev-1 retained, new UUIDv5),
+  `CATALOG_VERSION` → `food-catalog@1.11.0`, artifacts/hash/goldens
+  regenerated under the emitter identity-check discipline (identity verified
+  byte-for-byte before the transform). Macros unchanged (0/300).
+
+**Class-4 ledger after F1** (authored-data disagreements needing per-food
+correction-slice decisions): `onion`, `snow_peas`, `leeks`, `pomegranate`,
+`dragon_fruit` (+ the F3-pending `coconut_milk_beverage`, shakes, and the
+`mixed_greens` proxy decision).
 
 ### Related Documents
 

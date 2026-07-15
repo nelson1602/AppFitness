@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch - USDA FoodData Central foodPortion gram-weight provenance for slice, tablespoon, accepted teaspoon, and first-batch cup foods. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin (no FNDDS entries exist yet - matching has NOT started). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1 landed the first FNDDS entry, food.polenta). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2675,6 +2675,27 @@
       },
       "derivedGramsPerServing": 2.8,
       "reviewNote": "Poppy-seeds serving-semantics correction slice (owner-authorized). Batch 2/4 correctly found the authored macros (1/1/1 g, 17 kcal Atwater) fail the SR tbsp portion (portionRowId 88450, 8.8 g -> est 46.2 kcal, delta 29.2 > 25): they are teaspoon-scale. The serving was corrected tbsp(1) -> tsp(1) per the tsp-semantics mini-slice pattern; the SR tsp portion (2.8 g) reconciles cleanly (est 14.7 kcal vs authored 17, delta 2.3; protein 0.50 vs 1; carbs 0.79 vs 1; fat 1.16 vs 1). Macros unchanged; only the serving semantics and the sourced gram weight changed."
+    },
+    {
+      "catalogKey": "food.polenta",
+      "fdcId": 2708374,
+      "fdcDataType": "survey_fndds_food",
+      "fdcDescription": "Cornmeal mush, no added fat",
+      "sourceRef": "fndds_survey_food_csv_2024-10-31",
+      "portion": {
+        "portionRowId": 302734,
+        "amount": 1,
+        "modifier": "1 cup, cooked",
+        "gramWeight": 240
+      },
+      "fdcPer100g": {
+        "kcal": 58,
+        "proteinG": 1.12,
+        "carbsG": 12.47,
+        "fatG": 0.28
+      },
+      "derivedGramsPerServing": 240,
+      "reviewNote": "Amendment A1 Batch F1 (first FNDDS match). Prior SR reason (superseded for the FNDDS pin): 'Pinned SR Legacy has no cooked polenta cup row; dry/self-rising cornmeal candidates are preparation mismatches.' FNDDS codes polenta as 'Cornmeal mush' — the record officially carries the additional description 'polenta' in food_attribute.csv (attribute row 3314100) — and the no-added-fat variant matches the authored zero-added-fat macros. Portion '1 cup, cooked' = 240 g. Reconciliation: est 139.2 kcal vs authored 141 (delta 1.8); protein 2.69 vs 3; carbs 29.93 vs 30; fat 0.67 vs 1 — all comfortably within tolerance."
     }
   ],
   "unmatched": [
@@ -2712,67 +2733,63 @@
     },
     {
       "catalogKey": "food.basmati_rice",
-      "reason": "SR Legacy has no basmati-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated."
+      "reason": "SR Legacy has no basmati-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated. FNDDS re-check (Batch F1, fndds_survey_food_csv_2024-10-31): no basmati-specific record either — FNDDS attribute-tags its generic 'Rice, white' records as 'basmati or jasmine rice' (deliberately not distinguished), so the generic-row rejection stands under the A1 varietal rule."
     },
     {
       "catalogKey": "food.jasmine_rice",
-      "reason": "SR Legacy has no jasmine-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated."
+      "reason": "SR Legacy has no jasmine-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated. FNDDS re-check (Batch F1): same finding as basmati — FNDDS folds jasmine into generic 'Rice, white' via attribute tags; generic rejected under the A1 varietal rule."
     },
     {
       "catalogKey": "food.farro",
-      "reason": "Pinned SR Legacy has no cooked farro cup row; left null/gated rather than substituting another wheat grain."
+      "reason": "Pinned SR Legacy has no cooked farro cup row; left null/gated rather than substituting another wheat grain. FNDDS re-check (Batch F1): FNDDS 2021-2023 contains no farro record at all (food.csv and food_attribute.csv both empty for 'farro')."
     },
     {
       "catalogKey": "food.sorghum",
-      "reason": "Pinned SR Legacy has no cooked sorghum cup row (only non-serving syrup/flour-style candidates); left null/gated."
-    },
-    {
-      "catalogKey": "food.polenta",
-      "reason": "Pinned SR Legacy has no cooked polenta cup row; dry/self-rising cornmeal candidates are preparation mismatches. Left null/gated."
+      "reason": "Pinned SR Legacy has no cooked sorghum cup row (only non-serving syrup/flour-style candidates); left null/gated. FNDDS re-check (Batch F1): FNDDS 2021-2023 contains no sorghum record at all."
     },
     {
       "catalogKey": "food.couscous_whole",
-      "reason": "Catalog food is whole wheat couscous; pinned SR Legacy provides generic cooked couscous only. Rejected to avoid preparation/grain mismatch; left null/gated."
+      "reason": "Catalog food is whole wheat couscous; pinned SR Legacy provides generic cooked couscous only. Rejected to avoid preparation/grain mismatch; left null/gated. FNDDS re-check (Batch F1): FNDDS likewise provides only generic 'Couscous, plain, cooked' (2708441); no whole-wheat couscous record — rejection stands."
     },
     {
       "catalogKey": "food.lentils_red",
-      "reason": "SR Legacy does not provide a red-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated."
+      "reason": "SR Legacy does not provide a red-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated. FNDDS re-check (Batch F1): FNDDS provides only generic lentil records ('Lentils, NFS' / 'from dried') with no red-lentil-specific row or attribute; generic rejected under the A1 varietal rule."
     },
     {
       "catalogKey": "food.lentils_green",
-      "reason": "SR Legacy does not provide a green-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated."
+      "reason": "SR Legacy does not provide a green-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated. FNDDS re-check (Batch F1): same finding as red lentils — only generic lentil records exist; generic rejected under the A1 varietal rule."
     },
     {
       "catalogKey": "food.cannellini_beans",
-      "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated."
+      "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated. FNDDS re-check (Batch F1): FNDDS has only generic 'White beans' records, attribute-tagged 'Cannellini' among other white beans (deliberately not distinguished); generic rejected under the A1 varietal rule."
     },
     {
       "catalogKey": "food.onion",
-      "reason": "Both SR cooked-onion records (170001 without salt, 170100 with salt) fail macro reconciliation for the authored 1-cup serving: 1 cup = 210 g gives 88-92 kcal and 20-21 g carbs vs the authored 64 kcal / 14 g (carbs delta > tolerance). Left null and gated."
+      "reason": "Both SR cooked-onion records (170001 without salt, 170100 with salt) fail macro reconciliation for the authored 1-cup serving: 1 cup = 210 g gives 88-92 kcal and 20-21 g carbs vs the authored 64 kcal / 14 g (carbs delta > tolerance). Left null and gated. FNDDS re-check (Batch F1): 'Onions, cooked, no added fat' (2709950, 1 cup = 210 g) also fails — est 98.7 kcal / 23.0 g carbs vs authored 64 / 14. Failure under BOTH pins -> authored-data disagreement (A1 class 4); needs a per-food correction-slice decision, not a re-match."
     },
     {
       "catalogKey": "food.snow_peas",
-      "reason": "Catalog food is \"Snow peas, cooked\" but the SR cooked edible-podded record (170509) fails reconciliation (64 kcal / 10.3 g carbs vs authored 40 / 7); only the RAW record passes, which contradicts the authored cooked name. Semantic mismatch left null and gated."
+      "reason": "Catalog food is \"Snow peas, cooked\" but the SR cooked edible-podded record (170509) fails reconciliation (64 kcal / 10.3 g carbs vs authored 40 / 7); only the RAW record passes, which contradicts the authored cooked name. Semantic mismatch left null and gated. FNDDS re-check (Batch F1): 'Snowpeas, fresh, cooked, no added fat' (2709983, 1 cup = 160 g) fails too — est 70.4 kcal / 12.5 g carbs vs authored 40 / 7; frozen and NS-form variants fail as well. Failure under BOTH pins -> authored-data disagreement (A1 class 4)."
     },
     {
       "catalogKey": "food.leeks",
-      "reason": "SR cooked leek records (168426/168535) reconcile to 32.2 kcal and 7.9 g carbs per authored 1-cup serving vs the authored 56 kcal / 13 g — outside tolerance. Left null and gated."
+      "reason": "SR cooked leek records (168426/168535) reconcile to 32.2 kcal and 7.9 g carbs per authored 1-cup serving vs the authored 56 kcal / 13 g — outside tolerance. Left null and gated. FNDDS re-check (Batch F1): the sole FNDDS record 'Leeks' (2709935, 1 cup = 170 g) carries added cooking fat (3.05 g fat/100 g) and fails catastrophically — est 149.6 kcal / 5.2 g fat vs authored 56 / 0. Failure under BOTH pins -> authored-data disagreement (A1 class 4)."
     },
     {
       "catalogKey": "food.mixed_greens",
-      "reason": "No SR Legacy record exists for a salad-greens mix; the single-lettuce analogs (green leaf, butterhead, iceberg, romaine) have materially different cup weights (36-57 g) and none represents a mix. Ambiguous — left null and gated."
+      "reason": "No SR Legacy record exists for a salad-greens mix; the single-lettuce analogs (green leaf, butterhead, iceberg, romaine) have materially different cup weights (36-57 g) and none represents a mix. Ambiguous — left null and gated. FNDDS re-check (Batch F1): FNDDS has no mixed/spring-mix record either. Generic 'Lettuce, raw' (2709789, 1 cup = 35 g) reconciles NUMERICALLY (est 14.0 kcal vs authored 12 for the 2-cup 70 g serving) but is a single-genus lettuce NFS code, not a greens mix (spring mix includes spinach/arugula/chard) — not clearly acceptable under the A1 matching standard. Accepting the lettuce-NFS proxy would be a separate owner decision."
     },
     {
       "catalogKey": "food.broccolini",
-      "reason": "SR Legacy has no broccolini record; the nearest name match \"Broccoli raab, raw\" is a different vegetable and fails reconciliation catastrophically (8.8 kcal vs authored 53). Left null and gated."
+      "reason": "SR Legacy has no broccolini record; the nearest name match \"Broccoli raab, raw\" is a different vegetable and fails reconciliation catastrophically (8.8 kcal vs authored 53). Left null and gated. FNDDS re-check (Batch F1): FNDDS officially codes broccolini to 'Broccoli raab, cooked' (2709573, attribute-tagged 'broccolini'; 1 cup = 170 g), but the record fails reconciliation — est 78.2 kcal / 4.9 g carbs / 5.4 g fat vs authored 53 / 8 / 1 (the record carries added cooking fat and raab is a different vegetable). Rejection stands."
     },
     {
       "catalogKey": "food.pomegranate",
-      "reason": "The only SR cup portion for Pomegranates, raw (169134, \"0.5 cup arils\" = 87 g -> 174 g/cup) fails macro reconciliation for the authored serving: estimated carbs 32.5 g vs authored 26 g (delta 6.5 > max(20%, 3 g) tolerance) even though calories pass. Left null and gated."
+      "reason": "The only SR cup portion for Pomegranates, raw (169134, \"0.5 cup arils\" = 87 g -> 174 g/cup) fails macro reconciliation for the authored serving: estimated carbs 32.5 g vs authored 26 g (delta 6.5 > max(20%, 3 g) tolerance) even though calories pass. Left null and gated. FNDDS re-check (Batch F1): 'Pomegranate, raw' (2709267, 1 cup = 175 g) fails on the same axis — est carbs 32.7 g vs authored 26 (delta 6.7 > 5.2 tolerance); kcal passes. Failure under BOTH pins -> authored-data disagreement (A1 class 4)."
     },
     {
       "catalogKey": "food.dragon_fruit",
-      "reason": "SR Legacy 2018-04 contains no dragon fruit / pitaya / pitahaya record at all (added to FDC only in later non-SR data types). No source row exists in the pinned archive. Left null and gated."
+      "reason": "SR Legacy 2018-04 contains no dragon fruit / pitaya / pitahaya record at all (added to FDC only in later non-SR data types). No source row exists in the pinned archive. Left null and gated. FNDDS re-check (Batch F1): 'Dragon fruit' (2709234, attribute 'pitaya', 1 cup = 180 g) EXISTS but fails reconciliation badly — est 122.4 kcal / 29.2 g carbs vs authored 56 / 13. The authored values disagree with the FNDDS record -> authored-data disagreement (A1 class 4); needs a per-food correction-slice decision, not a re-match."
     },
     {
       "catalogKey": "food.pea_milk_unsweet",

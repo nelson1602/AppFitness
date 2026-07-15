@@ -21,6 +21,11 @@ interface ManifestEntry {
   fdcId: number;
   fdcDataType: string;
   fdcDescription: string;
+  /**
+   * ADR-P013 Amendment A1: names the pinned secondary source (FNDDS) this
+   * entry was derived from. Absent on SR Legacy entries (the primary pin).
+   */
+  sourceRef?: string;
   portion: { portionRowId: number; amount: number; modifier: string; gramWeight: number };
   /**
    * Present for density-derived entries (ADR-P013 Batch 5 ml foods; Batch 7
@@ -93,6 +98,19 @@ describe('FDC portion manifest — pinned source provenance', () => {
     expect(s.archiveBytes).toBeGreaterThan(0);
     expect(s.downloadedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(s.license.toLowerCase()).toContain('public domain');
+  });
+
+  it('every entry sourceRef names a pinned secondary source, and FNDDS entries carry the survey data type', () => {
+    const pinned = new Set((manifest.secondarySources ?? []).map((s) => s.sourceRef));
+    for (const e of manifest.entries) {
+      if (e.sourceRef != null) {
+        expect(pinned.has(e.sourceRef)).toBe(true);
+        expect(e.fdcDataType).toBe('survey_fndds_food');
+      } else {
+        // Entries without a sourceRef are SR Legacy (the primary pin).
+        expect(e.fdcDataType).toBe('sr_legacy_food');
+      }
+    }
   });
 
   it('each Amendment A1 secondary source pins a specific release: unique ref, label, url, sha256, size, download date, license', () => {

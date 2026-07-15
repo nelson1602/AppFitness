@@ -157,8 +157,15 @@ export interface FoodItem {
  * Serving corrected tbsp(1) -> tsp(1) with the SR tsp gram weight (same
  * pattern as the 1.3.1 tsp semantics mini-slice); macros unchanged. New
  * immutable revision (2).
+ * 1.11.0 (ADR-P013 Amendment A1 Batch F1): first FNDDS batch — matched the 16
+ * gated cup foods against the pinned FNDDS 2021-2023 archive
+ * (fndds_survey_food_csv_2024-10-31). One match: food.polenta -> FNDDS
+ * "Cornmeal mush, no added fat" (2708374, officially attribute-tagged
+ * "polenta"), 1 cup cooked = 240 g (est 139.2 kcal vs authored 141). The
+ * other 15 stay gated with FNDDS-verified reasons (no record / generic-only
+ * varietal folds / reconciliation failures). New immutable revision (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.10.1';
+export const CATALOG_VERSION = 'food-catalog@1.11.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

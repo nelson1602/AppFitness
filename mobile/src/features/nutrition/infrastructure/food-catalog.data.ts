@@ -539,7 +539,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 4,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'dairy_free', 'high_fiber', 'heart_healthy'],
   }),
-  food('food.polenta', 'Polenta, cooked', 'grain', cup(1), 3, 30, 1, {
+  food('food.polenta', 'Polenta, cooked', 'grain', cupFdc(1, 240), 3, 30, 1, {
     fiber: 2,
     tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
   }),

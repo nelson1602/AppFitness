@@ -223,6 +223,9 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   // authored macros were teaspoon-scale — serving corrected tbsp(1) → tsp(1)
   // with the SR tsp portion gram weight, same pattern as the tsp mini-slice).
   'food.poppy_seeds': 2,
+  // ADR-P013 Amendment A1 Batch F1 — cup foods matched against the pinned
+  // FNDDS 2021-2023 archive (sourceRef fndds_survey_food_csv_2024-10-31).
+  'food.polenta': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

@@ -1621,19 +1621,18 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       use the pinned USDA-FDC SR Legacy archive where a portion row exists
       (checked-in `fdc-portion-manifest.json` + gate spec incl. density
       checks; new immutable revisions 2). **The SR Legacy + zero-macro-policy
-      sourcing track is COMPLETE (2026-07-14, `food-catalog@1.10.1` after the
-      owner-authorized Batch 7 lemon_juice density mini-batch and the
-      poppy-seeds serving-semantics correction slice): 158/190 non-gram foods
-      sourced; the 32 remaining foods (16 `cup` + 7 `tbsp` + 8 `ml` +
-      sourdough) are intentionally gated** — TECHDEBT-004 risk 3 part 2 stays
-      Open (partially resolved). The FNDDS/second-source gate (expected to
-      cover sourdough) was drafted 2026-07-14 as ADR-P013 Amendment A1 and
-      **Accepted 2026-07-14 by the project owner** — the FNDDS release is
-      **pinned** (pin batch 2026-07-14, `fndds_survey_food_csv_2024-10-31`,
-      FNDDS 2021-2023) but **no matching has started** and no catalog data
-      changed. Nothing fabricated; logging uses fractional servings
-      meanwhile. See ADR-P013 "SR Legacy Sourcing Track — Closure Note" +
-      Batch 7, poppy-correction, and Amendment A1 notes (incl. pin record).
+      sourcing track is COMPLETE (2026-07-14, `food-catalog@1.10.1`).** Under
+      ADR-P013 Amendment A1 (**Accepted 2026-07-14**, FNDDS 2021-2023 pinned
+      as `fndds_survey_food_csv_2024-10-31`), **Batch F1 (2026-07-15,
+      `food-catalog@1.11.0`) matched the 16 gated cup foods — one match
+      (polenta, 240 g/cup): 159/190 non-gram foods sourced; the 31 remaining
+      foods (15 `cup` + 7 `tbsp` + 8 `ml` + sourdough) stay intentionally
+      gated** with FNDDS-verified reasons — TECHDEBT-004 risk 3 part 2 stays
+      Open (partially resolved). Batches F2–F4 await scoped owner
+      authorization; five cup foods are confirmed class-4 authored-data
+      disagreements (see the A1 class-4 ledger). Nothing fabricated; logging
+      uses fractional servings meanwhile. See ADR-P013 "SR Legacy Sourcing
+      Track — Closure Note" + Amendment A1 notes (pin record + Batch F1).
 
 ## Phase 16 — Workout Module  [commercial v1]
 

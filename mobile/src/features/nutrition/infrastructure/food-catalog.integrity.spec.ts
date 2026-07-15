@@ -85,8 +85,9 @@ describe('food catalog integrity', () => {
     // Batch 7 adds lemon_juice (density-derived tbsp liquid). The poppy-seeds
     // serving-semantics correction slice corrects poppy_seeds' teaspoon-scale
     // authored macros to a 1-tsp serving with the SR tsp gram weight.
+    // Amendment A1 Batch F1 adds polenta (first FNDDS-sourced cup food).
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(158);
+    expect(withGrams).toHaveLength(159);
     for (const f of withGrams) {
       expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
@@ -106,7 +107,7 @@ describe('food catalog integrity', () => {
     ]);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(23);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(5);
-    expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(82);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(83);
     expect(withGrams.filter((f) => f.servingSize.unit === 'ml')).toHaveLength(15);
   });
 

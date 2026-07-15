@@ -100,8 +100,13 @@ const GOLDEN = [
     revision: 2,
     id: 'cd24d2e9-8b80-5986-9f28-458a2ff9f2e1',
   },
+  {
+    key: 'food.polenta',
+    revision: 2,
+    id: '3e81adb5-b68c-59bf-a16a-a8f9d6ac64b5',
+  },
 ];
-const EXPECTED_CATALOG_HASH = '17d840e16ce33199b25d100c7c1811944835fa23';
+const EXPECTED_CATALOG_HASH = '3e9f8e58805678a1bb8fc18f8139810bfd9666ab';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -185,7 +190,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.10.1',
+      catalogVersionSnapshot: 'food-catalog@1.11.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,
