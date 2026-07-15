@@ -3668,26 +3668,32 @@ by this closure note:
   authored-data decisions; both pins fail reconciliation). Originally eight;
   **`onion`, `snow_peas`, `leeks`, `pomegranate`, and `dragon_fruit`
   RESOLVED by slices 1–5 (2026-07-15, see notes below; pomegranate and
-  dragon_fruit via owner-approved Option A authored-macro corrections)** —
-  three remain: `coconut_milk_beverage`, `oat_milk_unsweet`,
-  `kombucha_unsweet`.
+  dragon_fruit via owner-approved Option A authored-macro corrections)**;
+  **`coconut_milk_beverage` RE-CLASSIFIED to gate (d) by owner Option B
+  (2026-07-15, see note above)** — its authored unsweetened data is correct,
+  the pins carry only the sweetened-fortified variant, so its resolution
+  path is a third-source (not an authored-data correction). Two remain:
+  `oat_milk_unsweet`, `kombucha_unsweet`.
 - **(b) Protein-shake composite policy** (`protein_shake_water`,
   `vegan_protein_shake`): whether to define the prepared shakes as a
   powder+water recipe — a composite-policy decision, not a match.
 - **(c) Mixed-greens proxy decision** (`mixed_greens`): whether to accept
   FNDDS generic "Lettuce, raw" (numerically reconciling but single-genus) as
   a proxy for a greens mix.
-- **(d) Optional third-source amendment** for the no-record/varietal residue
-  (17 foods): `basmati_rice`, `jasmine_rice`, `farro`, `sorghum`,
-  `couscous_whole`, `lentils_red`, `lentils_green`, `cannellini_beans`,
-  `broccolini` (varietal folds / no acceptable record — cup), `chia_seeds`,
-  `flax_seeds`, `mct_oil`, `nutritional_yeast`, `greek_yogurt_dressing`
-  (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet` (ml).
-  Any new source (Foundation Foods, branded, or non-USDA) requires its own
-  pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b) + 1 (c)
-  + 17 (d) = 28 gated foods; after correction slices 1–5 (onion, snow_peas,
-  leeks, pomegranate, dragon_fruit): 3 (a) + 2 (b) + 1 (c) + 17 (d) =
-  **23 gated**.
+- **(d) Optional third-source amendment** for the no-record/varietal/
+  unavailable-variant residue (18 foods): `basmati_rice`, `jasmine_rice`,
+  `farro`, `sorghum`, `couscous_whole`, `lentils_red`, `lentils_green`,
+  `cannellini_beans`, `broccolini` (varietal folds / no acceptable record —
+  cup), `chia_seeds`, `flax_seeds`, `mct_oil`, `nutritional_yeast`,
+  `greek_yogurt_dressing` (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`,
+  `matcha_unsweet`, `coconut_milk_beverage` (ml — the last re-classified from
+  gate (a) by Option B: authored data correct, only the sweetened variant is
+  pinned; needs an unsweetened-product source). Any new source (Foundation
+  Foods, branded, or non-USDA) requires its own pinned-source amendment.
+  Gate arithmetic at closure: 8 (a) + 2 (b) + 1 (c) + 17 (d) = 28 gated
+  foods; after correction slices 1–5 (onion, snow_peas, leeks, pomegranate,
+  dragon_fruit) and the coconut_milk_beverage Option B re-classification:
+  2 (a) + 2 (b) + 1 (c) + 18 (d) = **23 gated**.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
@@ -3919,9 +3925,15 @@ kcal was stated Atwater-derived in the draft this time — no deviation):
 **Remaining after this slice: 23 foods** (10 `cup` + 5 `tbsp` + 8 `ml`),
 gated on the decisions above. 167/190 non-gram foods sourced.
 
-#### Gate-(a) Decision Note (2026-07-15) — food.coconut_milk_beverage (OWNER DECISION REQUIRED)
+#### Gate-(a) Decision Note (2026-07-15) — food.coconut_milk_beverage (RESOLVED: Option B)
 
-Status: **Investigated, awaiting owner decision — NO data change made.**
+Status: **Owner chose Option B (2026-07-15) — the authored unsweetened
+values are KEPT unchanged and the food is RE-CLASSIFIED from gate (a) to
+gate (d) third-source residue. Docs/ledger only; no catalog data, revision,
+`CATALOG_VERSION`, artifact, or manifest change. `grams_per_serving` stays
+null (gated) pending an unsweetened-product source under a future
+third-source amendment.** Original investigation:
+
 Unlike pomegranate and dragon_fruit, the investigation shows the AUTHORED
 DATA IS CORRECT for the named product — the pinned sources are what
 mismatch.
