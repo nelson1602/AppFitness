@@ -1013,23 +1013,17 @@ arils cup, Atwater kcal 162), and dragon_fruit (owner Option A: one-fruit
 macros corrected to the FNDDS 180 g cup scale — carbs 29, Atwater kcal 120)
 — bringing the total to **167 of 190 non-gram foods sourced; 23 remain
 intentionally gated** (10 `cup` + 5 `tbsp` + 8 `ml`). The remaining gates
-each need an explicit owner decision (none authorized or implied): (a) 2
-class-4/product-variant correction slices — oat_milk_unsweet
-(**investigated 2026-07-15: same product-variant shape as
-coconut_milk_beverage — authored unsweetened/higher-protein data is
-defensible; the sole FNDDS record is a sweetened-typical NFS blend whose
-sugar accounts for the carbs gap and whose protein diverges the other way; a
-decision gate with options A/B/C is drafted in ADR-P013, "Gate-(a) Decision
-Note — food.oat_milk_unsweet", recommending Option B re-classification to the
-third-source residue**), kombucha_unsweet (**coconut_milk_beverage was
-investigated 2026-07-15 and RE-CLASSIFIED to gate (d) by owner Option B: its
-authored unsweetened data is correct — both pins carry only the
-sweetened-fortified variant — so its resolution path is a third-source, not
-an authored-data correction; docs/ledger-only, its grams stay gated**);
-(b) the protein-shake composite policy; (c) the mixed_greens lettuce-NFS
-proxy decision; (d) an optional third-source amendment for the 18-food
+each need an explicit owner decision (none authorized or implied): (a) 1
+class-4/product-variant correction slice — kombucha_unsweet
+(**coconut_milk_beverage and oat_milk_unsweet were investigated 2026-07-15
+and RE-CLASSIFIED to gate (d) by owner Option B: each has correct authored
+unsweetened data while both pins carry only an incompatible sweetened-typical
+variant, so their resolution path is a third-source, not an authored-data
+correction; docs/ledger-only, their grams stay gated**); (b) the
+protein-shake composite policy; (c) the mixed_greens lettuce-NFS proxy
+decision; (d) an optional third-source amendment for the 19-food
 no-record/varietal/unavailable-variant residue (now incl.
-coconut_milk_beverage).
+coconut_milk_beverage and oat_milk_unsweet).
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 
