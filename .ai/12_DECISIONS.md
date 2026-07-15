@@ -3678,27 +3678,35 @@ by this closure note:
   (3 raw-label renames, 2 Option-A macro corrections, 3 Option-B
   re-classifications).**
 - **(b) Protein-shake composite policy** (`protein_shake_water`,
-  `vegan_protein_shake`): whether to define the prepared shakes as a
-  powder+water recipe — a composite-policy decision, not a match.
+  `vegan_protein_shake`): **RESOLVED by owner Option B (2026-07-15) — both
+  RE-CLASSIFIED to gate (d) third-source residue** (authored lean
+  powder-in-water values correct; prepared RTD records exist but fail
+  reconciliation as fattier meal-replacements, and powder+water recipe
+  synthesis is A1-forbidden and was not authorized). **Gate (b) is now
+  EMPTY.**
 - **(c) Mixed-greens proxy decision** (`mixed_greens`): whether to accept
   FNDDS generic "Lettuce, raw" (numerically reconciling but single-genus) as
   a proxy for a greens mix.
 - **(d) Optional third-source amendment** for the no-record/varietal/
-  unavailable-variant residue (20 foods): `basmati_rice`, `jasmine_rice`,
-  `farro`, `sorghum`, `couscous_whole`, `lentils_red`, `lentils_green`,
-  `cannellini_beans`, `broccolini` (varietal folds / no acceptable record —
-  cup), `chia_seeds`, `flax_seeds`, `mct_oil`, `nutritional_yeast`,
-  `greek_yogurt_dressing` (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`,
-  `matcha_unsweet`, `coconut_milk_beverage`, `oat_milk_unsweet`,
-  `kombucha_unsweet` (ml — the last three re-classified from gate (a) by
+  unavailable-variant/composite residue (22 foods): `basmati_rice`,
+  `jasmine_rice`, `farro`, `sorghum`, `couscous_whole`, `lentils_red`,
+  `lentils_green`, `cannellini_beans`, `broccolini` (varietal folds / no
+  acceptable record — cup), `chia_seeds`, `flax_seeds`, `mct_oil`,
+  `nutritional_yeast`, `greek_yogurt_dressing` (tbsp), `pea_milk_unsweet`,
+  `cashew_milk_unsweet`, `matcha_unsweet`, `coconut_milk_beverage`,
+  `oat_milk_unsweet`, `kombucha_unsweet` (ml — re-classified from gate (a) by
   Option B: authored data correct, only an incompatible sweetened-typical /
-  regular-NFS variant is pinned; each needs an unsweetened/low-sugar-product
-  source). Any new source (Foundation Foods, branded, or non-USDA) requires
-  its own pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b)
-  + 1 (c) + 17 (d) = 28 gated foods; after correction slices 1–5 (onion,
-  snow_peas, leeks, pomegranate, dragon_fruit) and the coconut_milk_beverage
-  + oat_milk_unsweet + kombucha_unsweet Option B re-classifications:
-  0 (a) + 2 (b) + 1 (c) + 20 (d) = **23 gated**.
+  regular-NFS variant is pinned), and `protein_shake_water`,
+  `vegan_protein_shake` (ml — re-classified from gate (b) by Option B: lean
+  powder-in-water composites; no pinned RTD reconciles and recipe synthesis
+  is A1-forbidden; each needs a lean whey-/pea-isolate RTD source). Any new
+  source (Foundation Foods, branded, or non-USDA) requires its own
+  pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b) + 1 (c)
+  + 17 (d) = 28 gated foods; after correction slices 1–5 (onion, snow_peas,
+  leeks, pomegranate, dragon_fruit), the coconut_milk_beverage +
+  oat_milk_unsweet + kombucha_unsweet gate-(a) Option B re-classifications,
+  and the protein-shake gate-(b) Option B re-classification:
+  0 (a) + 0 (b) + 1 (c) + 22 (d) = **23 gated**.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
@@ -4108,9 +4116,17 @@ variant.**
 Until a decision is recorded here, `food.kombucha_unsweet` remains gated and
 counted under gate (a).
 
-#### Gate-(b) Decision Note (2026-07-15) — protein shakes (OWNER DECISION REQUIRED)
+#### Gate-(b) Decision Note (2026-07-15) — protein shakes (RESOLVED: Option B)
 
-Status: **Investigated, awaiting owner decision — NO data change made.**
+Status: **Owner chose Option B (2026-07-15) — the authored lean
+powder-in-water values are KEPT unchanged and BOTH protein-shake foods are
+RE-CLASSIFIED from gate (b) to gate (d) third-source residue. Docs/ledger
+only; no catalog data, revision, `CATALOG_VERSION`, artifact, or manifest
+change. `grams_per_serving` stays null (gated) pending a lean
+whey-isolate / pea-protein-isolate RTD record from a future third-source
+amendment. This EMPTIES gate (b). No powder+water recipe convention was
+authorized.** Original investigation:
+
 Covers both gate-(b) foods: `food.protein_shake_water` ("Whey protein shake
 (water)", 300 ml, P25/C3/F2, Atwater 130 kcal) and `food.vegan_protein_shake`
 ("Plant protein shake (water)", 300 ml, P24/C4/F2, Atwater 130 kcal). Both

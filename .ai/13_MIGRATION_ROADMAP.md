@@ -1640,9 +1640,12 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       raw-label renames; pomegranate/dragon_fruit Option A macro
       corrections; coconut_milk_beverage/oat_milk_unsweet/kombucha_unsweet
       Option B re-classifications to gate (d): authored data correct, only
-      incompatible sweetened/regular variants pinned), (b) the protein-shake
-      composite policy, (c) the mixed_greens proxy decision, (d) an optional
-      third-source amendment for the 20-food residue (see ADR-P013
+      incompatible sweetened/regular variants pinned), (b) EMPTY — the
+      protein-shake composite policy was resolved by owner Option B
+      (2026-07-15): both shakes keep authored lean powder-in-water values and
+      moved to gate (d) (no pinned RTD reconciles; recipe synthesis
+      A1-forbidden), (c) the mixed_greens proxy decision, (d) an optional
+      third-source amendment for the 22-food residue (see ADR-P013
       "Amendment A1 Matching Track — Closure Note" for the gate ledger).
       Nothing fabricated; logging uses fractional servings meanwhile. See
       also the "SR Legacy Sourcing Track — Closure Note" + Amendment A1
