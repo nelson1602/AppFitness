@@ -200,8 +200,19 @@ export interface FoodItem {
  * fat-added FNDDS record (149.6 kcal/cup) both fail. Renamed "Leeks,
  * cooked" -> "Leeks, raw" with the SR cup gram weight; macros unchanged.
  * New immutable revision (2).
+ * 1.13.4 (ADR-P013 gate-(a) slice 4, food.pomegranate — owner chose
+ * Option A): the authored carbs (26 g) was proven to be a NET-carbs figure
+ * (source total 32.54 - fiber 6.96 = 25.6); corrected to the catalog's
+ * total-carbs convention using the source-scaled 174 g arils cup (SR 169134,
+ * "0.5 cup arils" = 87 g): carbs 26 -> 33, fiber 6 -> 7, protein/fat
+ * unchanged; calories follow the catalog-wide Atwater derivation
+ * (134 -> 162 — NOTE: the decision draft said 144, the measured source
+ * value, but every catalog kcal is Math.round(4P+4C+9F) by convention and
+ * no explicit-kcal field exists; reconciliation passes at 162, delta 17.6
+ * <= 25). First authored-MACRO change in the catalog; rev-1 snapshots keep
+ * the old values. New immutable revision (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.13.3';
+export const CATALOG_VERSION = 'food-catalog@1.13.4';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

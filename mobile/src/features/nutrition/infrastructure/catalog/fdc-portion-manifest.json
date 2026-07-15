@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Gate-(a) correction slices 1-3 corrected the preparation labels of food.onion, food.snow_peas, and food.leeks (raw, not cooked) and sourced them from the SR raw records. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Gate-(a) correction slices 1-3 corrected the preparation labels of food.onion, food.snow_peas, and food.leeks (raw, not cooked) and sourced them from the SR raw records; slice 4 applied the owner-approved Option A authored-macro correction to food.pomegranate (net -> total carbs). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2819,6 +2819,26 @@
       },
       "derivedGramsPerServing": 89,
       "reviewNote": "Gate-(a) correction slice 3 (owner-authorized). Prior class-4 verdict (SR cooked records 168426/168535 reconcile to 32.2 kcal / 7.9 g carbs per cup and the sole FNDDS 'Leeks' record 2709935 carries added fat and fails at 149.6 kcal — vs authored 56 / 13). Root cause proven: the authored macros are RAW-leek cup values — SR 'Leeks, (bulb and lower leaf-portion), raw' (169246) reconciles near-exactly (61 kcal/100 g x 89 g cup = est 54.3 vs authored 56; carbs 12.59 vs 13; protein 1.34 vs 1; fat 0.27 vs 0). FNDDS has no raw-leek code, so no cross-check exists there — the SR raw record is the single exact-preparation source. The food name was the defect: renamed 'Leeks, cooked' -> 'Leeks, raw'; macros unchanged; gram weight from the SR raw cup row."
+    },
+    {
+      "catalogKey": "food.pomegranate",
+      "fdcId": 169134,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Pomegranates, raw",
+      "portion": {
+        "portionRowId": 84309,
+        "amount": 0.5,
+        "modifier": "cup arils (seed/juice sacs)",
+        "gramWeight": 87
+      },
+      "fdcPer100g": {
+        "kcal": 83,
+        "proteinG": 1.67,
+        "carbsG": 18.7,
+        "fatG": 1.17
+      },
+      "derivedGramsPerServing": 174,
+      "reviewNote": "Gate-(a) slice 4 — the owner chose Option A of the pomegranate authored-macro decision gate (ADR-P013, 2026-07-15). Root cause: the authored carbs (26 g) was a NET-carbs figure (source total 32.54 - fiber 6.96 = 25.6) while the catalog convention is TOTAL carbs; the authored kcal (134 = Atwater of the net macros) inherited the error. Corrected under Option A: carbs 26 -> 33, fiber 6 -> 7, protein/fat unchanged; the catalog kcal follows the catalog-wide Atwater derivation (134 -> 162; the decision draft cited the measured 144, but no explicit-kcal field exists — documented in the ADR implementation note). Gram weight from SR row 84309 '0.5 cup arils' = 87 g -> 174 g per 1-cup serving (FNDDS 2709267 cross-checks at 175 g/cup with identical per-100 g values). Post-correction reconciliation: est 144.4 kcal vs authored 162 (delta 17.6 <= 25); carbs 32.54 vs 33; protein 2.91 vs 3; fat 2.04 vs 2 — passes."
     }
   ],
   "unmatched": [
@@ -2881,10 +2901,6 @@
     {
       "catalogKey": "food.broccolini",
       "reason": "SR Legacy has no broccolini record; the nearest name match \"Broccoli raab, raw\" is a different vegetable and fails reconciliation catastrophically (8.8 kcal vs authored 53). Left null and gated. FNDDS re-check (Batch F1): FNDDS officially codes broccolini to 'Broccoli raab, cooked' (2709573, attribute-tagged 'broccolini'; 1 cup = 170 g), but the record fails reconciliation — est 78.2 kcal / 4.9 g carbs / 5.4 g fat vs authored 53 / 8 / 1 (the record carries added cooking fat and raab is a different vegetable). Rejection stands."
-    },
-    {
-      "catalogKey": "food.pomegranate",
-      "reason": "The only SR cup portion for Pomegranates, raw (169134, \"0.5 cup arils\" = 87 g -> 174 g/cup) fails macro reconciliation for the authored serving: estimated carbs 32.5 g vs authored 26 g (delta 6.5 > max(20%, 3 g) tolerance) even though calories pass. Left null and gated. FNDDS re-check (Batch F1): 'Pomegranate, raw' (2709267, 1 cup = 175 g) fails on the same axis — est carbs 32.7 g vs authored 26 (delta 6.7 > 5.2 tolerance); kcal passes. Failure under BOTH pins -> authored-data disagreement (A1 class 4)."
     },
     {
       "catalogKey": "food.dragon_fruit",

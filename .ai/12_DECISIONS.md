@@ -3666,10 +3666,10 @@ by this closure note:
 
 - **(a) Class-4 / product-variant correction slices** (per-food
   authored-data decisions; both pins fail reconciliation). Originally eight;
-  **`onion`, `snow_peas`, and `leeks` RESOLVED by correction slices 1–3
-  (2026-07-15, see notes below)** — five remain: `pomegranate`,
-  `dragon_fruit`, `coconut_milk_beverage`, `oat_milk_unsweet`,
-  `kombucha_unsweet`.
+  **`onion`, `snow_peas`, `leeks`, and `pomegranate` RESOLVED by slices 1–4
+  (2026-07-15, see notes below; pomegranate via the owner-approved Option A
+  authored-macro correction)** — four remain: `dragon_fruit`,
+  `coconut_milk_beverage`, `oat_milk_unsweet`, `kombucha_unsweet`.
 - **(b) Protein-shake composite policy** (`protein_shake_water`,
   `vegan_protein_shake`): whether to define the prepared shakes as a
   powder+water recipe — a composite-policy decision, not a match.
@@ -3684,8 +3684,8 @@ by this closure note:
   (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet` (ml).
   Any new source (Foundation Foods, branded, or non-USDA) requires its own
   pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b) + 1 (c)
-  + 17 (d) = 28 gated foods; after correction slices 1–3 (onion, snow_peas,
-  leeks): 5 (a) + 2 (b) + 1 (c) + 17 (d) = **25 gated**.
+  + 17 (d) = 28 gated foods; after correction slices 1–4 (onion, snow_peas,
+  leeks, pomegranate): 4 (a) + 2 (b) + 1 (c) + 17 (d) = **24 gated**.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
@@ -3769,9 +3769,10 @@ weight:
 **Remaining after this slice: 25 foods** (12 `cup` + 5 `tbsp` + 8 `ml`),
 gated on the decisions above. 165/190 non-gram foods sourced.
 
-#### Gate-(a) Decision Note (2026-07-15) — food.pomegranate (OWNER DECISION REQUIRED)
+#### Gate-(a) Decision Note (2026-07-15) — food.pomegranate (RESOLVED: Option A)
 
-Status: **Investigated, awaiting owner decision — NO data change made.**
+Status: **Owner chose Option A (2026-07-15); implemented as slice 4 — see the
+implementation note below.** Original decision gate as drafted:
 Unlike slices 1–3, this is NOT a label defect; the correction requires an
 authored-macro change, which is not covered by any existing authorization.
 
@@ -3810,6 +3811,37 @@ protein → 180 g).
 
 Until a decision is recorded here, `food.pomegranate` remains gated and
 counted under gate (a).
+
+#### Gate-(a) Slice 4 Implementation Note (2026-07-15) — food.pomegranate (Option A applied)
+
+The owner **chose Option A** and the correction is implemented — the first
+authored-MACRO change in the catalog's history (slices 1–3 changed only
+labels/serving weights):
+
+- **Applied:** carbs 26 → **33** (total-carbs convention), fiber 6 → **7**,
+  protein/fat unchanged; serving sourced via `cupFdc(1, 174)` from SR 169134
+  row 84309 ("0.5 cup arils" = 87 g → 174 g/cup; FNDDS 2709267 cross-checks
+  at 175 g with identical per-100 g values).
+- **Deviation from the draft, documented:** the draft stated kcal 134 → 144
+  (the measured source value), but every catalog kcal is derived as
+  `Math.round(4P + 4C + 9F)` (Atwater) — no explicit-kcal field exists in the
+  authored shape. Under Option A's macros the derived kcal is **162**
+  (134 → 162). Introducing an explicit-kcal override for one food would be a
+  catalog-shape change outside this slice's scope. Reconciliation still
+  passes (|est 144.4 − 162| = 17.6 ≤ 25); the Atwater-vs-measured gap is the
+  same fiber-driven divergence every catalog food carries. If the owner
+  prefers measured-kcal semantics, that is a separate catalog-wide
+  convention decision.
+- **Mechanics:** revision 2 (rev-1 retained — historical logs keep the old
+  134/26/6 snapshots), `CATALOG_VERSION` → `food-catalog@1.13.4` (patch),
+  artifacts/hash/goldens regenerated (identity-checked emitter), the
+  unmatched record replaced by full SR provenance citing this decision.
+- **Downstream:** future 1-cup pomegranate logs record 162 kcal / 33 g
+  carbs / 7 g fiber (+28 kcal / +7 g carbs / +1 g fiber vs rev 1); generated
+  meal plans using pomegranate recalc accordingly.
+
+**Remaining after this slice: 24 foods** (11 `cup` + 5 `tbsp` + 8 `ml`),
+gated on the decisions above. 166/190 non-gram foods sourced.
 
 ### Related Documents
 

@@ -1289,8 +1289,8 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
     caution: 'May interact with some medications.',
   }),
-  food('food.pomegranate', 'Pomegranate arils', 'fruit', cup(1), 3, 26, 2, {
-    fiber: 6,
+  food('food.pomegranate', 'Pomegranate arils', 'fruit', cupFdc(1, 174), 3, 33, 2, {
+    fiber: 7,
     tags: [
       'vegan',
       'vegetarian',
