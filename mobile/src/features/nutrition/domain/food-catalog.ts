@@ -177,8 +177,15 @@ export interface FoodItem {
  * spells it as two words), "1 medium or regular slice" = 31 g (est 84.3 kcal
  * vs authored 97). Batch F3 (ml foods, same day) matched nothing and changed
  * no data. New immutable revision (2). The slice-unit gated set is now empty.
+ * 1.13.1 (ADR-P013 gate-(a) correction slice 1, food.onion): the authored
+ * macros (64 kcal / P2 / C14 / F0 per cup) are RAW-onion chopped-cup values —
+ * SR "Onions, raw" (170000, 1 cup chopped = 160 g, 40 kcal/100 g) reconciles
+ * at 64.0 kcal EXACTLY and FNDDS "Onions, raw" (2709795, 1 cup = 160 g)
+ * cross-checks, while both pins' cooked records fail (88-99 kcal). The name
+ * was the defect: renamed "Onion, cooked" -> "Onion, raw" with the SR cup
+ * gram weight; macros unchanged. New immutable revision (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.13.0';
+export const CATALOG_VERSION = 'food-catalog@1.13.1';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

@@ -886,8 +886,10 @@ A1 Batch F3 implemented 2026-07-15** — ml foods matched, ZERO matches (all 8
 need product/composite/third-source decisions; docs/manifest-only slice);
 **Amendment A1 Batch F4 implemented 2026-07-15** — sourdough_bread sourced
 from FNDDS "Bread, sour dough" (31 g/slice), completing the F1–F4 matching
-track; 28 foods still gated: 15 `cup` + 5 `tbsp` + 8 `ml`). See the status
-sections below.
+track; **gate-(a) correction slice 1 implemented 2026-07-15** — food.onion's
+authored macros proven to be raw chopped-cup values, renamed "Onion, raw" +
+SR cup weight (160 g); 27 foods still gated: 14 `cup` + 5 `tbsp` + 8 `ml`).
+See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -979,9 +981,11 @@ never touched):
      gram weight (owner-authorized); **Amendment A1 Batches F1–F4
      (2026-07-15)** sourced polenta, pesto, tzatziki, and sourdough_bread
      from the pinned FNDDS archive (F3 matched zero ml foods — all 8 need
-     product/composite/third-source decisions). **28 foods remain gated**
-     (15 `cup` + 5 `tbsp` + 8 `ml`); gram entry stays unavailable for those;
-     the log path uses fractional servings meanwhile.
+     product/composite/third-source decisions); **gate-(a) correction
+     slice 1 (2026-07-15)** corrected and sourced onion (renamed raw, SR
+     160 g cup). **27 foods remain gated** (14 `cup` + 5 `tbsp` + 8 `ml`);
+     gram entry stays unavailable for those; the log path uses fractional
+     servings meanwhile.
 
 The item stays **Open (partially resolved)** for risk 3 **part 2** only; risks
 1, 2, and risk 3 part 1 are resolved. **The SR Legacy + zero-macro-policy
@@ -995,16 +999,19 @@ F2 (2026-07-15, `food-catalog@1.12.0`) matched the tbsp foods (two matches:
 pesto, tzatziki); Batch F3 (2026-07-15, docs/manifest-only) matched ZERO ml
 foods; Batch F4 (2026-07-15, `food-catalog@1.13.0`) sourced sourdough_bread
 (31 g/slice), **completing the A1 matching track: 162 of 190 non-gram foods
-sourced; the 28 remaining foods are intentionally gated** with FNDDS-verified
-reasons. **The A1/FNDDS matching track is CLOSED (exhausted) as of 2026-07-15
-— see ADR-P013 "Amendment A1 Matching Track — Closure Note".** No further
-matching batch can progress under the two approved pins; the four remaining
-gates each need an explicit owner decision (none authorized or implied):
-(a) 8 class-4/product-variant correction slices — onion, snow_peas, leeks,
-pomegranate, dragon_fruit, coconut_milk_beverage, oat_milk_unsweet,
-kombucha_unsweet; (b) the protein-shake composite policy; (c) the
-mixed_greens lettuce-NFS proxy decision; (d) an optional third-source
-amendment for the 17-food no-record/varietal residue.
+sourced. **The A1/FNDDS matching track is CLOSED (exhausted) as of 2026-07-15
+— see ADR-P013 "Amendment A1 Matching Track — Closure Note".** Gate-(a)
+correction slice 1 (2026-07-15, `food-catalog@1.13.1`) then resolved onion —
+its authored macros were proven to be raw chopped-cup values (SR 170000
+reconciles at 64.0 kcal exactly; FNDDS cross-checks) and the food was renamed
+"Onion, raw" with the SR 160 g cup weight — bringing the total to **163 of
+190 non-gram foods sourced; 27 remain intentionally gated** (14 `cup` +
+5 `tbsp` + 8 `ml`). The remaining gates each need an explicit owner decision
+(none authorized or implied): (a) 7 class-4/product-variant correction
+slices — snow_peas, leeks, pomegranate, dragon_fruit, coconut_milk_beverage,
+oat_milk_unsweet, kombucha_unsweet; (b) the protein-shake composite policy;
+(c) the mixed_greens lettuce-NFS proxy decision; (d) an optional
+third-source amendment for the 17-food no-record/varietal residue.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 

@@ -39,8 +39,9 @@ const GOLDEN = [
   { key: 'food.pesto', revision: 2, id: '554c9b45-140d-551c-84f1-ea42f9909f6d' },
   { key: 'food.tzatziki', revision: 2, id: 'a16f145a-1bd3-5329-a09f-c43ef8459006' },
   { key: 'food.sourdough_bread', revision: 2, id: '40d78a50-c12d-5690-a0ee-d4f1729963d9' },
+  { key: 'food.onion', revision: 2, id: '5e52c0e4-aa09-53e7-be82-8805012a63eb' },
 ];
-const EXPECTED_CATALOG_HASH = '91c9899930ba60a288cfe3853216966a164157a2';
+const EXPECTED_CATALOG_HASH = '5cd00bb54a5be55a3bfb5452dbe8fbbcae35a399';
 
 describe('uuidv5 derivation', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -123,17 +124,17 @@ describe('serving normalization policy', () => {
     }
   });
 
-  it('exactly 162 foods carry a non-gram gram weight, all at revision 2 (29 piece + 5 slice + 25 tbsp + 5 tsp + 83 cup + 15 ml)', () => {
+  it('exactly 163 foods carry a non-gram gram weight, all at revision 2 (29 piece + 5 slice + 25 tbsp + 5 tsp + 84 cup + 15 ml)', () => {
     const withGrams = CANONICAL_FOOD_CATALOG.filter(
       (f) => f.servingUnit !== 'g' && f.gramsPerServing != null,
     );
-    expect(withGrams).toHaveLength(162);
+    expect(withGrams).toHaveLength(163);
     expect(withGrams.every((f) => f.foodRevision === 2)).toBe(true);
     expect(withGrams.filter((f) => f.servingUnit === 'piece')).toHaveLength(29);
     expect(withGrams.filter((f) => f.servingUnit === 'slice')).toHaveLength(5);
     expect(withGrams.filter((f) => f.servingUnit === 'tbsp')).toHaveLength(25);
     expect(withGrams.filter((f) => f.servingUnit === 'tsp')).toHaveLength(5);
-    expect(withGrams.filter((f) => f.servingUnit === 'cup')).toHaveLength(83);
+    expect(withGrams.filter((f) => f.servingUnit === 'cup')).toHaveLength(84);
     expect(withGrams.filter((f) => f.servingUnit === 'ml')).toHaveLength(15);
   });
 

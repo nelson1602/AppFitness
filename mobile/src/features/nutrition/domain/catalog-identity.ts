@@ -233,6 +233,11 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   // ADR-P013 Amendment A1 Batch F4 — sourdough_bread matched against the
   // pinned FNDDS archive ("Bread, sour dough", medium/regular slice).
   'food.sourdough_bread': 2,
+  // ADR-P013 gate-(a) correction slice 1 — onion (owner-authorized): the
+  // authored macros are RAW chopped-cup values (SR 170000, 64.0 kcal exact);
+  // the name said "cooked". Renamed to raw + SR cup gram weight; macros
+  // unchanged.
+  'food.onion': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

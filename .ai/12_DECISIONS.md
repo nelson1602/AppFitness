@@ -3664,9 +3664,10 @@ No further sourcing is possible under the two approved pins without a
 **separate explicit owner decision**; nothing below is authorized or implied
 by this closure note:
 
-- **(a) Eight class-4 / product-variant correction slices** (per-food
-  authored-data decisions; both pins fail reconciliation): `onion`,
-  `snow_peas`, `leeks`, `pomegranate`, `dragon_fruit`,
+- **(a) Class-4 / product-variant correction slices** (per-food
+  authored-data decisions; both pins fail reconciliation). Originally eight;
+  **`onion` RESOLVED by correction slice 1 (2026-07-15, see note below)** —
+  seven remain: `snow_peas`, `leeks`, `pomegranate`, `dragon_fruit`,
   `coconut_milk_beverage`, `oat_milk_unsweet`, `kombucha_unsweet`.
 - **(b) Protein-shake composite policy** (`protein_shake_water`,
   `vegan_protein_shake`): whether to define the prepared shakes as a
@@ -3681,11 +3682,38 @@ by this closure note:
   `flax_seeds`, `mct_oil`, `nutritional_yeast`, `greek_yogurt_dressing`
   (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet` (ml).
   Any new source (Foundation Foods, branded, or non-USDA) requires its own
-  pinned-source amendment. Gate arithmetic: 8 (a) + 2 (b) + 1 (c) + 17 (d)
-  = the 28 gated foods.
+  pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b) + 1 (c)
+  + 17 (d) = 28 gated foods; after correction slice 1 (onion): 7 (a) + 2 (b)
+  + 1 (c) + 17 (d) = **27 gated**.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
+
+#### Gate-(a) Correction Slice 1 (2026-07-15) — food.onion (owner-authorized)
+
+**Root cause proven from both pinned archives before any change** (the
+poppy-seeds investigate-then-correct pattern):
+
+- The authored macros (64 kcal / P2 / C14 / F0 / fiber 3 per 1 cup) are
+  **RAW-onion chopped-cup values**: SR **170000 "Onions, raw"** (40 kcal /
+  9.34 C / 1.1 P / 0.1 F per 100 g; portion row 85855 "cup, chopped" =
+  **160 g**) reconciles at **64.0 kcal EXACTLY** (carbs 14.94 vs 14, protein
+  1.76 vs 2, fat 0.16 vs 0). FNDDS "Onions, raw" (2709795) independently
+  cross-checks: 1 cup = 160 g **identical**, est 60.8 kcal — also passes.
+- Both pins' COOKED records fail (SR 170001/170100: 88–92 kcal, 20–21 g
+  carbs; FNDDS 2709950: 98.7 kcal, 23.0 g carbs) — the class-4 verdict was
+  correct; the **name** was the defect, not the macros.
+- **Correction (smallest possible):** renamed **"Onion, cooked" →
+  "Onion, raw"**; gram weight sourced from the SR raw cup-chopped row via
+  `cupFdc(1, 160)`; **macros unchanged**. Revision 2 (rev-1 retained, new
+  UUIDv5), `CATALOG_VERSION` → `food-catalog@1.13.1` (patch bump per the
+  semantics-correction precedent), artifacts/hash/goldens regenerated
+  (identity-checked emitter), the unmatched record replaced by full SR
+  provenance (primary pin — no `sourceRef`). Catalog/data +
+  provenance/tests/docs only.
+
+**Remaining after this slice: 27 foods** (14 `cup` + 5 `tbsp` + 8 `ml`),
+gated on the decisions above. 163/190 non-gram foods sourced.
 
 ### Related Documents
 

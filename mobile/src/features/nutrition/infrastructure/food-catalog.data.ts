@@ -923,7 +923,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'budget_friendly'],
   }),
-  food('food.onion', 'Onion, cooked', 'vegetable', cup(1), 2, 14, 0, {
+  food('food.onion', 'Onion, raw', 'vegetable', cupFdc(1, 160), 2, 14, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'budget_friendly'],
   }),

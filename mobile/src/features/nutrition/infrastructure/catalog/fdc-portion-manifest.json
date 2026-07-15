@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Gate-(a) correction slice 1 corrected food.onion's preparation label (raw, not cooked) and sourced it from the SR raw record. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2759,6 +2759,26 @@
       },
       "derivedGramsPerServing": 31,
       "reviewNote": "Amendment A1 Batch F4. Prior SR reason (superseded for the FNDDS pin): 'SR Legacy has no standalone sourdough record; the only sourdough-inclusive candidate 172675 (french/vienna) carries a 139 g slice that fails reconciliation.' FNDDS has a dedicated as-eaten record — 'Bread, sour dough' (FNDDS spells sourdough as two words; the untoasted record matches the catalog food). Portion '1 medium or regular slice' = 31 g is the semantic and numeric match for the authored 1-slice serving. Reconciliation: est 84.3 kcal vs authored 97 (delta 12.7); protein 3.33 vs 4; carbs 16.08 vs 18 (delta 1.92); fat 0.75 vs 1 — all within tolerance. The large-slice row (43 g) fails carbs and the small-slice row (24 g) fails kcal — not chosen."
+    },
+    {
+      "catalogKey": "food.onion",
+      "fdcId": 170000,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Onions, raw",
+      "portion": {
+        "portionRowId": 85855,
+        "amount": 1,
+        "modifier": "cup, chopped",
+        "gramWeight": 160
+      },
+      "fdcPer100g": {
+        "kcal": 40,
+        "proteinG": 1.1,
+        "carbsG": 9.34,
+        "fatG": 0.1
+      },
+      "derivedGramsPerServing": 160,
+      "reviewNote": "Gate-(a) correction slice 1 (owner-authorized). Prior class-4 verdict (both pins' COOKED records fail: SR 170001/170100 give 88-92 kcal / 20-21 g carbs per 210 g cup; FNDDS 2709950 gives 98.7 / 23.0 — vs authored 64 / 14). Root cause proven: the authored macros are RAW-onion chopped-cup values — SR 'Onions, raw' (170000) reconciles EXACTLY (40 kcal/100 g x 160 g = 64.0 vs authored 64; carbs 14.94 vs 14; protein 1.76 vs 2; fat 0.16 vs 0) and FNDDS 'Onions, raw' (2709795, 1 cup = 160 g identical) independently cross-checks (est 60.8 kcal). The food name was the defect: renamed 'Onion, cooked' -> 'Onion, raw'; macros unchanged; gram weight from the SR raw cup-chopped row."
     }
   ],
   "unmatched": [
@@ -2813,10 +2833,6 @@
     {
       "catalogKey": "food.cannellini_beans",
       "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated. FNDDS re-check (Batch F1): FNDDS has only generic 'White beans' records, attribute-tagged 'Cannellini' among other white beans (deliberately not distinguished); generic rejected under the A1 varietal rule."
-    },
-    {
-      "catalogKey": "food.onion",
-      "reason": "Both SR cooked-onion records (170001 without salt, 170100 with salt) fail macro reconciliation for the authored 1-cup serving: 1 cup = 210 g gives 88-92 kcal and 20-21 g carbs vs the authored 64 kcal / 14 g (carbs delta > tolerance). Left null and gated. FNDDS re-check (Batch F1): 'Onions, cooked, no added fat' (2709950, 1 cup = 210 g) also fails — est 98.7 kcal / 23.0 g carbs vs authored 64 / 14. Failure under BOTH pins -> authored-data disagreement (A1 class 4); needs a per-food correction-slice decision, not a re-match."
     },
     {
       "catalogKey": "food.snow_peas",
