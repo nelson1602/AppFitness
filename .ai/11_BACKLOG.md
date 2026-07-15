@@ -1014,16 +1014,19 @@ macros corrected to the FNDDS 180 g cup scale — carbs 29, Atwater kcal 120)
 — bringing the total to **167 of 190 non-gram foods sourced; 23 remain
 intentionally gated** (10 `cup` + 5 `tbsp` + 8 `ml`). The remaining gates
 each need an explicit owner decision (none authorized or implied): (a) 1
-class-4/product-variant correction slice — kombucha_unsweet
-(**coconut_milk_beverage and oat_milk_unsweet were investigated 2026-07-15
-and RE-CLASSIFIED to gate (d) by owner Option B: each has correct authored
-unsweetened data while both pins carry only an incompatible sweetened-typical
-variant, so their resolution path is a third-source, not an authored-data
-correction; docs/ledger-only, their grams stay gated**); (b) the
-protein-shake composite policy; (c) the mixed_greens lettuce-NFS proxy
-decision; (d) an optional third-source amendment for the 19-food
-no-record/varietal/unavailable-variant residue (now incl.
-coconut_milk_beverage and oat_milk_unsweet).
+class-4/product-variant correction slice — kombucha_unsweet (**investigated
+2026-07-15: same product-variant shape as the milk foods — authored
+low-sugar profile is defensible; the sole FNDDS "Tea, kombucha" record is an
+NFS/regular higher-sugar variant that fails carbs reconciliation by 0.01 g
+over the floor; a decision gate with options A/B/C is drafted in ADR-P013,
+"Gate-(a) Decision Note — food.kombucha_unsweet", recommending Option B
+re-classification which would EMPTY gate (a)**); coconut_milk_beverage and
+oat_milk_unsweet were already RE-CLASSIFIED to gate (d) by owner Option B
+(2026-07-15) on the same authored-data-correct / incompatible-variant basis;
+(b) the protein-shake composite policy; (c) the mixed_greens lettuce-NFS
+proxy decision; (d) an optional third-source amendment for the 19-food
+no-record/varietal/unavailable-variant residue (incl. coconut_milk_beverage
+and oat_milk_unsweet).
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 

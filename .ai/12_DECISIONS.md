@@ -4041,6 +4041,62 @@ serving-scale error.
 Until a decision is recorded here, `food.oat_milk_unsweet` remains gated and
 counted under gate (a).
 
+#### Gate-(a) Decision Note (2026-07-15) — food.kombucha_unsweet (OWNER DECISION REQUIRED)
+
+Status: **Investigated, awaiting owner decision — NO data change made.**
+Same product-variant shape as coconut_milk_beverage and oat_milk_unsweet:
+the authored low-sugar profile is defensible; the sole pinned record is an
+incompatible higher-sugar variant. This is the LAST class-4 candidate.
+
+**Evidence (both pins re-verified):** SR Legacy has NO kombucha record.
+FNDDS 2710509 "Tea, kombucha" is the sole pinned source — an NFS
+(not-specified) regular kombucha: per 100 g 16 kcal / 3.98 carbs (essentially
+all sugar: 3.99 g) / 0.1 protein / 0.01 fat / 0 fiber; fl-oz row = 31 g →
+density 1.0482 g/ml (12-fl-oz row 372 g cross-checks identically) → 251.6 g
+per the authored 240 ml serving. Scaled to 251.6 g: est **40.3 kcal /
+10.01 C / 0.25 P / 0.03 F / 10.04 sugar** vs authored **28 (Atwater of
+P0/C7/F0) / 7 / 0 / 0**.
+
+- **Carbs fail the gate** (10.01 vs 7, Δ3.01 — over the 3 g floor by 0.01;
+  kcal passes on its own at Δ12.3). Kombucha carbs are essentially all
+  sugar, so the gap is a pure sugar-content difference: the authored food is
+  ~2.9 g sugar/100 g (low-sugar) vs the FNDDS NFS record's 3.99 g/100 g
+  (regular). Real kombucha sugar varies widely by product (regular
+  ~4–8 g/100 g, low/reduced-sugar ~1–3 g/100 g), so the authored low-sugar
+  profile is a defensible real product the survey NFS record does not
+  represent.
+- Not a net-carbs error (no fiber; carbs are all sugar). Not a clean
+  serving-scale fix either (the FNDDS record would only reconcile at an
+  arbitrary ~168 ml, not a standard beverage serving).
+
+Conclusion: **product-variant issue — the authored low-sugar profile is
+defensible and the sole pinned record is the incompatible regular/NFS
+variant.**
+
+**Owner decision required — choose one:**
+
+- **(A) Adopt the pinned FNDDS NFS values** (authored-macro change): serving
+  `mlFdc(240, 251.6)` (density 1.0482 g/ml from the FNDDS fl-oz row), protein
+  0 (unchanged), carbs 7 → 10 (10.01), fat 0 (unchanged), **kcal
+  Atwater-derives 28 → 40**. Deltas per 240 ml: +12 kcal / +3 g carbs.
+  Mechanics: revision 2, `CATALOG_VERSION` → next patch, artifacts/goldens,
+  manifest provenance. NOT RECOMMENDED: it converts a deliberately low-sugar
+  catalog food into the regular/NFS higher-sugar product — changing the
+  food's dietary character away from what the name states.
+- **(B) RECOMMENDED — keep the authored low-sugar values and re-classify the
+  gate:** the food keeps its correct data and stays gram-gated (no approved
+  source), moving from gate (a) "authored-data correction" to gate (d)
+  "third-source residue"; its resolution path is a low-sugar-specific
+  kombucha source (Foundation Foods or a branded record) under a future
+  third-source amendment. Docs-only ledger change; gated count unchanged
+  (a: 1 → 0, d: 19 → 20, total still 23). **Empties gate (a)** — mirrors the
+  coconut_milk_beverage and oat_milk_unsweet Option B outcomes and completes
+  the gate-(a) track.
+- **(C) Defer** — stays in gate (a) as-is.
+
+Until a decision is recorded here, `food.kombucha_unsweet` remains gated and
+counted under gate (a).
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
