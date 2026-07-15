@@ -211,8 +211,16 @@ export interface FoodItem {
  * no explicit-kcal field exists; reconciliation passes at 162, delta 17.6
  * <= 25). First authored-MACRO change in the catalog; rev-1 snapshots keep
  * the old values. New immutable revision (2).
+ * 1.13.5 (ADR-P013 gate-(a) slice 5, food.dragon_fruit — owner chose
+ * Option A): the authored macros (P1/C13/F0, Atwater 56 kcal) described
+ * roughly ONE FRUIT (FNDDS 75 g row reconciles) while the serving said
+ * 1 cup (FNDDS 180 g). Corrected to the FNDDS cup scale: carbs 13 -> 29
+ * (29.23 scaled), protein 1 / fat 0 / fiber 3 unchanged (FNDDS cup-scale
+ * fiber is 3.24 — the authored fiber is now source-consistent), kcal
+ * Atwater-derives 56 -> 120 (est measured 122.4, delta 2.4). Gram weight
+ * from FNDDS "1 cup" = 180 g. New immutable revision (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.13.4';
+export const CATALOG_VERSION = 'food-catalog@1.13.5';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

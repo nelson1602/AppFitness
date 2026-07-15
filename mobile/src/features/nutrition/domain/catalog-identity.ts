@@ -250,6 +250,11 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   // authored carbs was a NET-carbs figure; corrected to total carbs 33 +
   // fiber 7 with the SR 174 g arils-cup weight (kcal follows Atwater).
   'food.pomegranate': 2,
+  // ADR-P013 gate-(a) slice 5 — dragon_fruit (owner chose Option A): the
+  // authored macros described ~one fruit, not the stated cup; corrected to
+  // the FNDDS cup-scaled carbs (29) with the 180 g cup weight (kcal follows
+  // Atwater to 120; protein/fat/fiber unchanged).
+  'food.dragon_fruit': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

@@ -886,11 +886,12 @@ A1 Batch F3 implemented 2026-07-15** — ml foods matched, ZERO matches (all 8
 need product/composite/third-source decisions; docs/manifest-only slice);
 **Amendment A1 Batch F4 implemented 2026-07-15** — sourdough_bread sourced
 from FNDDS "Bread, sour dough" (31 g/slice), completing the F1–F4 matching
-track; **gate-(a) slices 1–4 implemented 2026-07-15** — onion, snow_peas,
-and leeks renamed raw with SR cup weights (160 g / 98 g / 89 g), and
-pomegranate corrected under the owner-approved Option A (net → total carbs,
-SR 174 g arils cup); 24 foods still gated: 11 `cup` + 5 `tbsp` + 8 `ml`).
-See the status sections below.
+track; **gate-(a) slices 1–5 implemented 2026-07-15** — onion, snow_peas,
+and leeks renamed raw with SR cup weights (160 g / 98 g / 89 g), pomegranate
+corrected under owner-approved Option A (net → total carbs, SR 174 g arils
+cup), and dragon_fruit corrected under owner-approved Option A (one-fruit
+macros → FNDDS 180 g cup scale); 23 foods still gated: 10 `cup` + 5 `tbsp` +
+8 `ml`). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -982,12 +983,13 @@ never touched):
      gram weight (owner-authorized); **Amendment A1 Batches F1–F4
      (2026-07-15)** sourced polenta, pesto, tzatziki, and sourdough_bread
      from the pinned FNDDS archive (F3 matched zero ml foods — all 8 need
-     product/composite/third-source decisions); **gate-(a) slices 1–4
+     product/composite/third-source decisions); **gate-(a) slices 1–5
      (2026-07-15)** corrected and sourced onion, snow_peas, leeks (renamed
-     raw, SR 160 g / 98 g / 89 g cups), and pomegranate (owner-approved
-     Option A: net → total carbs, SR 174 g arils cup). **24 foods remain
-     gated** (11 `cup` + 5 `tbsp` + 8 `ml`); gram entry stays unavailable
-     for those; the log path uses fractional servings meanwhile.
+     raw, SR 160 g / 98 g / 89 g cups), pomegranate (Option A: net → total
+     carbs, SR 174 g arils cup), and dragon_fruit (Option A: one-fruit
+     macros → FNDDS 180 g cup scale). **23 foods remain gated** (10 `cup` +
+     5 `tbsp` + 8 `ml`); gram entry stays unavailable for those; the log
+     path uses fractional servings meanwhile.
 
 The item stays **Open (partially resolved)** for risk 3 **part 2** only; risks
 1, 2, and risk 3 part 1 are resolved. **The SR Legacy + zero-macro-policy
@@ -1003,22 +1005,17 @@ foods; Batch F4 (2026-07-15, `food-catalog@1.13.0`) sourced sourdough_bread
 (31 g/slice), **completing the A1 matching track: 162 of 190 non-gram foods
 sourced. **The A1/FNDDS matching track is CLOSED (exhausted) as of 2026-07-15
 — see ADR-P013 "Amendment A1 Matching Track — Closure Note".** Gate-(a)
-gate-(a) slices 1–4 (2026-07-15, `food-catalog@1.13.1`–`1.13.4`) then
+gate-(a) slices 1–5 (2026-07-15, `food-catalog@1.13.1`–`1.13.5`) then
 resolved onion, snow_peas, leeks (authored macros proven raw cup values;
-renamed raw with SR cup weights 160 g / 98 g / 89 g), and pomegranate (the
-owner chose Option A of the drafted decision gate: the authored carbs was a
-NET-carbs figure, corrected to total carbs 33 + fiber 7 with the SR 174 g
-arils cup; kcal follows the catalog-wide Atwater derivation to 162 — see the
-slice-4 note for the documented deviation from the draft's 144) — bringing
-the total to **166 of 190 non-gram foods sourced; 24 remain intentionally
-gated** (11 `cup` + 5 `tbsp` + 8 `ml`). The remaining gates each need an
-explicit owner decision (none authorized or implied): (a) 4
-class-4/product-variant correction slices — dragon_fruit (**investigated
-2026-07-15: not the net-carbs pattern; authored macros describe ~one fruit
-(75 g), not the stated 1-cup (180 g) serving; an authored-macro/serving
-decision is drafted in ADR-P013, "Gate-(a) Decision Note —
-food.dragon_fruit"**), coconut_milk_beverage, oat_milk_unsweet,
-kombucha_unsweet;
+renamed raw with SR cup weights 160 g / 98 g / 89 g), pomegranate (owner
+Option A: NET-carbs figure corrected to total carbs 33 + fiber 7, SR 174 g
+arils cup, Atwater kcal 162), and dragon_fruit (owner Option A: one-fruit
+macros corrected to the FNDDS 180 g cup scale — carbs 29, Atwater kcal 120)
+— bringing the total to **167 of 190 non-gram foods sourced; 23 remain
+intentionally gated** (10 `cup` + 5 `tbsp` + 8 `ml`). The remaining gates
+each need an explicit owner decision (none authorized or implied): (a) 3
+class-4/product-variant correction slices — coconut_milk_beverage,
+oat_milk_unsweet, kombucha_unsweet;
 (b) the protein-shake composite policy; (c) the mixed_greens lettuce-NFS
 proxy decision; (d) an optional third-source amendment for the 17-food
 no-record/varietal residue.

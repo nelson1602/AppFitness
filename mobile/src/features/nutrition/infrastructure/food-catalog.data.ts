@@ -1374,7 +1374,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'low_carb'],
   }),
-  food('food.dragon_fruit', 'Dragon fruit', 'fruit', cup(1), 1, 13, 0, {
+  food('food.dragon_fruit', 'Dragon fruit', 'fruit', cupFdc(1, 180), 1, 29, 0, {
     fiber: 3,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),

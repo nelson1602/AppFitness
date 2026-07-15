@@ -3666,10 +3666,11 @@ by this closure note:
 
 - **(a) Class-4 / product-variant correction slices** (per-food
   authored-data decisions; both pins fail reconciliation). Originally eight;
-  **`onion`, `snow_peas`, `leeks`, and `pomegranate` RESOLVED by slices 1–4
-  (2026-07-15, see notes below; pomegranate via the owner-approved Option A
-  authored-macro correction)** — four remain: `dragon_fruit`,
-  `coconut_milk_beverage`, `oat_milk_unsweet`, `kombucha_unsweet`.
+  **`onion`, `snow_peas`, `leeks`, `pomegranate`, and `dragon_fruit`
+  RESOLVED by slices 1–5 (2026-07-15, see notes below; pomegranate and
+  dragon_fruit via owner-approved Option A authored-macro corrections)** —
+  three remain: `coconut_milk_beverage`, `oat_milk_unsweet`,
+  `kombucha_unsweet`.
 - **(b) Protein-shake composite policy** (`protein_shake_water`,
   `vegan_protein_shake`): whether to define the prepared shakes as a
   powder+water recipe — a composite-policy decision, not a match.
@@ -3684,8 +3685,9 @@ by this closure note:
   (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet` (ml).
   Any new source (Foundation Foods, branded, or non-USDA) requires its own
   pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b) + 1 (c)
-  + 17 (d) = 28 gated foods; after correction slices 1–4 (onion, snow_peas,
-  leeks, pomegranate): 4 (a) + 2 (b) + 1 (c) + 17 (d) = **24 gated**.
+  + 17 (d) = 28 gated foods; after correction slices 1–5 (onion, snow_peas,
+  leeks, pomegranate, dragon_fruit): 3 (a) + 2 (b) + 1 (c) + 17 (d) =
+  **23 gated**.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
@@ -3843,9 +3845,10 @@ labels/serving weights):
 **Remaining after this slice: 24 foods** (11 `cup` + 5 `tbsp` + 8 `ml`),
 gated on the decisions above. 166/190 non-gram foods sourced.
 
-#### Gate-(a) Decision Note (2026-07-15) — food.dragon_fruit (OWNER DECISION REQUIRED)
+#### Gate-(a) Decision Note (2026-07-15) — food.dragon_fruit (RESOLVED: Option A)
 
-Status: **Investigated, awaiting owner decision — NO data change made.**
+Status: **Owner chose Option A (2026-07-15); implemented as slice 5 — see the
+implementation note below.** Original decision gate as drafted:
 Tested the pomegranate net-carbs hypothesis: it does NOT apply here. The
 defect is a serving-scale/source ambiguity.
 
@@ -3891,6 +3894,30 @@ P1/C13/F0), fiber 3.
 
 Until a decision is recorded here, `food.dragon_fruit` remains gated and
 counted under gate (a).
+
+#### Gate-(a) Slice 5 Implementation Note (2026-07-15) — food.dragon_fruit (Option A applied)
+
+The owner **chose Option A** and it is implemented exactly as drafted (the
+kcal was stated Atwater-derived in the draft this time — no deviation):
+
+- **Applied:** serving kept at 1 cup, sourced via `cupFdc(1, 180)` from
+  FNDDS 2709234 row 306141 ("1 cup" = 180 g); carbs 13 → **29** (cup-scaled
+  29.23); protein 1, fat 0, fiber 3 unchanged (FNDDS cup-scale fiber 3.24 —
+  the authored fiber is now pinned-source-consistent); kcal Atwater-derives
+  56 → **120**. Post-correction reconciliation: est 122.4 kcal vs 120
+  (Δ2.4); carbs 29.23 vs 29; protein 1.22 vs 1; fat 0.38 vs 0 — passes.
+- **Mechanics:** revision 2 (rev-1 retained — historical logs keep the old
+  56/13 snapshots), `CATALOG_VERSION` → `food-catalog@1.13.5` (patch),
+  artifacts/hash/goldens regenerated (identity-checked emitter), the
+  unmatched record replaced by full FNDDS provenance
+  (`sourceRef: fndds_survey_food_csv_2024-10-31`) citing this decision.
+- **Downstream:** future 1-cup dragon-fruit logs record 120 kcal / 29 g
+  carbs (+64 kcal / +16 g carbs vs rev 1) — the largest correction in the
+  gate-(a) track, reflecting what a 180 g cup actually contains; generated
+  meal plans using it recalc accordingly.
+
+**Remaining after this slice: 23 foods** (10 `cup` + 5 `tbsp` + 8 `ml`),
+gated on the decisions above. 167/190 non-gram foods sourced.
 
 ### Related Documents
 
