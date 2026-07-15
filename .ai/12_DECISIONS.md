@@ -3666,8 +3666,8 @@ by this closure note:
 
 - **(a) Class-4 / product-variant correction slices** (per-food
   authored-data decisions; both pins fail reconciliation). Originally eight;
-  **`onion` RESOLVED by correction slice 1 and `snow_peas` by slice 2
-  (2026-07-15, see notes below)** — six remain: `leeks`, `pomegranate`,
+  **`onion`, `snow_peas`, and `leeks` RESOLVED by correction slices 1–3
+  (2026-07-15, see notes below)** — five remain: `pomegranate`,
   `dragon_fruit`, `coconut_milk_beverage`, `oat_milk_unsweet`,
   `kombucha_unsweet`.
 - **(b) Protein-shake composite policy** (`protein_shake_water`,
@@ -3684,8 +3684,8 @@ by this closure note:
   (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet` (ml).
   Any new source (Foundation Foods, branded, or non-USDA) requires its own
   pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b) + 1 (c)
-  + 17 (d) = 28 gated foods; after correction slices 1 (onion) and 2
-  (snow_peas): 6 (a) + 2 (b) + 1 (c) + 17 (d) = **26 gated**.
+  + 17 (d) = 28 gated foods; after correction slices 1–3 (onion, snow_peas,
+  leeks): 5 (a) + 2 (b) + 1 (c) + 17 (d) = **25 gated**.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
@@ -3741,6 +3741,33 @@ before any change**:
 
 **Remaining after this slice: 26 foods** (13 `cup` + 5 `tbsp` + 8 `ml`),
 gated on the decisions above. 164/190 non-gram foods sourced.
+
+#### Gate-(a) Correction Slice 3 (2026-07-15) — food.leeks (owner-authorized)
+
+Same defect class and pattern as slices 1–2, **proven from the pinned
+archives before any change**. The prior "authored values sit between raw and
+cooked" concern dissolved once the RAW record was tested with its actual cup
+weight:
+
+- The authored macros (56 kcal / P1 / C13 / F0 / fiber 2 per 1 cup) are
+  **RAW-leek cup values**: SR **169246 "Leeks, (bulb and lower
+  leaf-portion), raw"** (61 kcal / 14.15 C / 1.5 P / 0.3 F per 100 g;
+  portion row 84503 "cup" = **89 g**) reconciles near-exactly (est 54.3 kcal
+  vs 56; carbs 12.59 vs 13; protein 1.34 vs 1; fat 0.27 vs 0).
+- The SR cooked records fail (32.2 kcal / 7.9 g carbs per cup) and the sole
+  FNDDS "Leeks" record carries added fat and fails (149.6 kcal) — the
+  class-4 verdict was correct; the **name** was the defect. FNDDS has no
+  raw-leek code, so the SR raw record is the single exact-preparation
+  source (no FNDDS cross-check exists, unlike slices 1–2).
+- **Correction (smallest possible):** renamed **"Leeks, cooked" →
+  "Leeks, raw"**; gram weight from the SR raw cup row via `cupFdc(1, 89)`;
+  **macros unchanged**. Revision 2 (rev-1 retained, new UUIDv5),
+  `CATALOG_VERSION` → `food-catalog@1.13.3` (patch), artifacts/hash/goldens
+  regenerated (identity-checked emitter), unmatched record replaced by full
+  SR provenance (primary pin).
+
+**Remaining after this slice: 25 foods** (12 `cup` + 5 `tbsp` + 8 `ml`),
+gated on the decisions above. 165/190 non-gram foods sourced.
 
 ### Related Documents
 

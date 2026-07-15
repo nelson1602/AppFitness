@@ -886,10 +886,10 @@ A1 Batch F3 implemented 2026-07-15** — ml foods matched, ZERO matches (all 8
 need product/composite/third-source decisions; docs/manifest-only slice);
 **Amendment A1 Batch F4 implemented 2026-07-15** — sourdough_bread sourced
 from FNDDS "Bread, sour dough" (31 g/slice), completing the F1–F4 matching
-track; **gate-(a) correction slices 1–2 implemented 2026-07-15** — onion and
-snow_peas' authored macros proven to be raw chopped-cup values, renamed raw
-with SR cup weights (160 g / 98 g); 26 foods still gated: 13 `cup` +
-5 `tbsp` + 8 `ml`). See the status sections below.
+track; **gate-(a) correction slices 1–3 implemented 2026-07-15** — onion,
+snow_peas, and leeks' authored macros proven to be raw cup values, renamed
+raw with SR cup weights (160 g / 98 g / 89 g); 25 foods still gated:
+12 `cup` + 5 `tbsp` + 8 `ml`). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -982,10 +982,10 @@ never touched):
      (2026-07-15)** sourced polenta, pesto, tzatziki, and sourdough_bread
      from the pinned FNDDS archive (F3 matched zero ml foods — all 8 need
      product/composite/third-source decisions); **gate-(a) correction
-     slices 1–2 (2026-07-15)** corrected and sourced onion and snow_peas
-     (renamed raw, SR 160 g / 98 g cups). **26 foods remain gated**
-     (13 `cup` + 5 `tbsp` + 8 `ml`); gram entry stays unavailable for those;
-     the log path uses fractional servings meanwhile.
+     slices 1–3 (2026-07-15)** corrected and sourced onion, snow_peas, and
+     leeks (renamed raw, SR 160 g / 98 g / 89 g cups). **25 foods remain
+     gated** (12 `cup` + 5 `tbsp` + 8 `ml`); gram entry stays unavailable
+     for those; the log path uses fractional servings meanwhile.
 
 The item stays **Open (partially resolved)** for risk 3 **part 2** only; risks
 1, 2, and risk 3 part 1 are resolved. **The SR Legacy + zero-macro-policy
@@ -1001,18 +1001,19 @@ foods; Batch F4 (2026-07-15, `food-catalog@1.13.0`) sourced sourdough_bread
 (31 g/slice), **completing the A1 matching track: 162 of 190 non-gram foods
 sourced. **The A1/FNDDS matching track is CLOSED (exhausted) as of 2026-07-15
 — see ADR-P013 "Amendment A1 Matching Track — Closure Note".** Gate-(a)
-correction slices 1–2 (2026-07-15, `food-catalog@1.13.1`/`1.13.2`) then
-resolved onion and snow_peas — both foods' authored macros were proven to be
-raw chopped-cup values (SR 170000 reconciles onion at 64.0 kcal exactly; SR
-170010 reconciles snow peas at 41.2 vs 40; FNDDS cross-checks both) and the
-foods were renamed raw with SR cup weights (160 g / 98 g) — bringing the
-total to **164 of 190 non-gram foods sourced; 26 remain intentionally gated**
-(13 `cup` + 5 `tbsp` + 8 `ml`). The remaining gates each need an explicit
-owner decision (none authorized or implied): (a) 6 class-4/product-variant
-correction slices — leeks, pomegranate, dragon_fruit, coconut_milk_beverage,
-oat_milk_unsweet, kombucha_unsweet; (b) the protein-shake composite policy;
-(c) the mixed_greens lettuce-NFS proxy decision; (d) an optional
-third-source amendment for the 17-food no-record/varietal residue.
+correction slices 1–3 (2026-07-15, `food-catalog@1.13.1`–`1.13.3`) then
+resolved onion, snow_peas, and leeks — all three foods' authored macros were
+proven to be raw cup values (SR 170000 reconciles onion at 64.0 kcal
+exactly; SR 170010 reconciles snow peas at 41.2 vs 40; SR 169246 reconciles
+leeks at 54.3 vs 56) and the foods were renamed raw with SR cup weights
+(160 g / 98 g / 89 g) — bringing the total to **165 of 190 non-gram foods
+sourced; 25 remain intentionally gated** (12 `cup` + 5 `tbsp` + 8 `ml`).
+The remaining gates each need an explicit owner decision (none authorized or
+implied): (a) 5 class-4/product-variant correction slices — pomegranate,
+dragon_fruit, coconut_milk_beverage, oat_milk_unsweet, kombucha_unsweet;
+(b) the protein-shake composite policy; (c) the mixed_greens lettuce-NFS
+proxy decision; (d) an optional third-source amendment for the 17-food
+no-record/varietal residue.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 

@@ -1086,7 +1086,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 1,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb', 'low_sodium'],
   }),
-  food('food.leeks', 'Leeks, cooked', 'vegetable', cup(1), 1, 13, 0, {
+  food('food.leeks', 'Leeks, raw', 'vegetable', cupFdc(1, 89), 1, 13, 0, {
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
   }),

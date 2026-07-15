@@ -1628,13 +1628,13 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       (polenta 240 g/cup; pesto 16 g/tbsp; tzatziki 30 g/2 tbsp;
       sourdough_bread 31 g/slice; F3 matched zero ml foods). **The A1/FNDDS
       matching track is CLOSED (exhausted) as of 2026-07-15**; gate-(a)
-      correction slices 1–2 (2026-07-15, `food-catalog@1.13.1`/`1.13.2`)
-      then corrected onion and snow_peas (authored macros proven raw
-      chopped-cup; renamed raw + SR cup weights 160 g / 98 g): **164/190
-      non-gram foods sourced; the 26 remaining foods (13 `cup` + 5 `tbsp` +
-      8 `ml`) stay intentionally gated** — TECHDEBT-004 risk 3 part 2 stays
-      Open (partially resolved). The remaining gates each need an explicit
-      owner decision (none authorized): (a) the 6 remaining
+      correction slices 1–3 (2026-07-15, `food-catalog@1.13.1`–`1.13.3`)
+      then corrected onion, snow_peas, and leeks (authored macros proven raw
+      cup values; renamed raw + SR cup weights 160 g / 98 g / 89 g):
+      **165/190 non-gram foods sourced; the 25 remaining foods (12 `cup` +
+      5 `tbsp` + 8 `ml`) stay intentionally gated** — TECHDEBT-004 risk 3
+      part 2 stays Open (partially resolved). The remaining gates each need
+      an explicit owner decision (none authorized): (a) the 5 remaining
       class-4/product-variant correction slices, (b) the protein-shake
       composite policy, (c) the mixed_greens proxy decision, (d) an optional
       third-source amendment (see ADR-P013 "Amendment A1 Matching Track —

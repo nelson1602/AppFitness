@@ -242,6 +242,10 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   // same defect class — authored macros are RAW chopped-cup values
   // (SR 170010, est 41.2 kcal vs 40); renamed to raw + SR cup gram weight.
   'food.snow_peas': 2,
+  // ADR-P013 gate-(a) correction slice 3 — leeks (owner-authorized): same
+  // defect class — authored macros are RAW cup values (SR 169246, 89 g cup,
+  // est 54.3 kcal vs 56); renamed to raw + SR cup gram weight.
+  'food.leeks': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */

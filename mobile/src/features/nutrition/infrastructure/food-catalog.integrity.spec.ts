@@ -88,10 +88,10 @@ describe('food catalog integrity', () => {
     // Amendment A1 Batch F1 adds polenta (first FNDDS-sourced cup food);
     // Batch F2 adds pesto and tzatziki (FNDDS composite tbsp foods);
     // Batch F4 adds sourdough_bread (FNDDS "Bread, sour dough" slice).
-    // Gate-(a) correction slices 1-2 add onion and snow_peas (renamed raw +
-    // SR cup weights).
+    // Gate-(a) correction slices 1-3 add onion, snow_peas, and leeks
+    // (renamed raw + SR cup weights).
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(164);
+    expect(withGrams).toHaveLength(165);
     for (const f of withGrams) {
       expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
@@ -112,7 +112,7 @@ describe('food catalog integrity', () => {
     ]);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(25);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(5);
-    expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(85);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(86);
     expect(withGrams.filter((f) => f.servingSize.unit === 'ml')).toHaveLength(15);
   });
 

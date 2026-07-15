@@ -192,8 +192,16 @@ export interface FoodItem {
  * while both pins' cooked records fail (67-70 kcal). Renamed "Snow peas,
  * cooked" -> "Snow peas, raw" with the SR chopped-cup gram weight; macros
  * unchanged. New immutable revision (2).
+ * 1.13.3 (ADR-P013 gate-(a) correction slice 3, food.leeks): same defect
+ * class — the authored macros (56 kcal / P1 / C13 / F0 per cup) are RAW-leek
+ * cup values: SR "Leeks, (bulb and lower leaf-portion), raw" (169246,
+ * 1 cup = 89 g, 61 kcal/100 g) reconciles near-exactly (est 54.3 kcal vs 56;
+ * carbs 12.59 vs 13), while the SR cooked record (32.2 kcal/cup) and the
+ * fat-added FNDDS record (149.6 kcal/cup) both fail. Renamed "Leeks,
+ * cooked" -> "Leeks, raw" with the SR cup gram weight; macros unchanged.
+ * New immutable revision (2).
  */
-export const CATALOG_VERSION = 'food-catalog@1.13.2';
+export const CATALOG_VERSION = 'food-catalog@1.13.3';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [
