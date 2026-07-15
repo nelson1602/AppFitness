@@ -1014,8 +1014,13 @@ macros corrected to the FNDDS 180 g cup scale — carbs 29, Atwater kcal 120)
 — bringing the total to **167 of 190 non-gram foods sourced; 23 remain
 intentionally gated** (10 `cup` + 5 `tbsp` + 8 `ml`). The remaining gates
 each need an explicit owner decision (none authorized or implied): (a) 3
-class-4/product-variant correction slices — coconut_milk_beverage,
-oat_milk_unsweet, kombucha_unsweet;
+class-4/product-variant correction slices — coconut_milk_beverage
+(**investigated 2026-07-15: the authored unsweetened data is CORRECT — both
+pins carry only the sweetened-fortified variant, and the record's sugar
+exactly accounts for the reconciliation gap; a decision gate with options
+A/B/C is drafted in ADR-P013, "Gate-(a) Decision Note —
+food.coconut_milk_beverage", recommending re-classification to the
+third-source residue**), oat_milk_unsweet, kombucha_unsweet;
 (b) the protein-shake composite policy; (c) the mixed_greens lettuce-NFS
 proxy decision; (d) an optional third-source amendment for the 17-food
 no-record/varietal residue.

@@ -3919,6 +3919,53 @@ kcal was stated Atwater-derived in the draft this time — no deviation):
 **Remaining after this slice: 23 foods** (10 `cup` + 5 `tbsp` + 8 `ml`),
 gated on the decisions above. 167/190 non-gram foods sourced.
 
+#### Gate-(a) Decision Note (2026-07-15) — food.coconut_milk_beverage (OWNER DECISION REQUIRED)
+
+Status: **Investigated, awaiting owner decision — NO data change made.**
+Unlike pomegranate and dragon_fruit, the investigation shows the AUTHORED
+DATA IS CORRECT for the named product — the pinned sources are what
+mismatch.
+
+**Evidence (both pins re-verified):** FNDDS 2705413 "Coconut milk"
+(plant-milk beverage category) carries per-100 g values IDENTICAL to SR
+174116 "Beverages, coconut milk, **sweetened**, fortified with calcium,
+vitamins A, B12, D2": 31 kcal / 2.92 carbs / 0.21 protein / 2.08 fat /
+**2.5 g sugar**. Both pins cover ONLY the sweetened-fortified variant.
+Scaled to the authored 240 ml serving (cup 244 g → 1.0313 g/ml → 247.5 g):
+est 76.7 kcal / 7.23 C / 0.52 P / 5.15 F / 6.19 sugar vs authored 49
+(Atwater of P0/C1/F5) / 1 / 0 / 5.
+
+- **Fat matches (5.15 vs 5)** — fat content is variant-independent.
+- **Carbs minus sugar = 7.23 − 6.19 = 1.04 ≈ the authored 1 g** — the
+  entire carbs gap is the record's added sugar; the kcal gap (27.7) matches
+  the sugar's caloric contribution (~24.8) plus rounding.
+- The authored values match real unsweetened coconut-milk beverages (e.g.
+  ~45–50 kcal / 1 g carb / 5 g fat per cup). The authored data describes
+  the named product correctly; no approved source covers it.
+
+**Owner decision required — choose one:**
+
+- **(A) Adopt the pinned sweetened-variant values** (authored-macro + name
+  change): rename to "Coconut milk beverage" (dropping "unsweetened"),
+  serving `mlFdc(240, 247.5)` (density 1.0313 g/ml from the FNDDS cup row),
+  protein 0 → 1 (rounded 0.52), carbs 1 → 7, fat 5 unchanged, **kcal
+  Atwater-derives 49 → 77**. Deltas per 240 ml logged: +28 kcal / +6 g
+  carbs / +1 g protein. Mechanics: revision 2, `CATALOG_VERSION` →
+  `food-catalog@1.13.6` (patch), artifacts/goldens, manifest provenance.
+  NOT RECOMMENDED: it silently converts a deliberately-unsweetened catalog
+  food into the sweetened-typical product, changing its dietary character.
+- **(B) RECOMMENDED — keep the authored unsweetened values and re-classify
+  the gate:** the food keeps its correct data and stays gram-gated (no
+  approved source), and moves from gate (a) "authored-data correction" to
+  gate (d) "third-source residue" — its true resolution path is an
+  unsweetened-product source (e.g. Foundation Foods or a branded record)
+  under a future third-source amendment. Docs-only ledger change; gated
+  count unchanged (a: 3 → 2, d: 17 → 18, total still 23).
+- **(C) Defer** — stays in gate (a) as-is.
+
+Until a decision is recorded here, `food.coconut_milk_beverage` remains
+gated and counted under gate (a).
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
