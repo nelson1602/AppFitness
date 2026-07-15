@@ -3684,9 +3684,12 @@ by this closure note:
   reconciliation as fattier meal-replacements, and powder+water recipe
   synthesis is A1-forbidden and was not authorized). **Gate (b) is now
   EMPTY.**
-- **(c) Mixed-greens proxy decision** (`mixed_greens`): whether to accept
-  FNDDS generic "Lettuce, raw" (numerically reconciling but single-genus) as
-  a proxy for a greens mix.
+- **(c) Mixed-greens decision** (`mixed_greens`): **investigated 2026-07-15
+  — the proxy premise was overturned:** FNDDS carries a direct exact-name
+  record **2709792 "Mixed salad greens, raw"** (missed in F1) that reconciles
+  cleanly at the authored 2-cup / 70 g serving, so this is a normal A1 match,
+  not a proxy/exception. Owner decision gate drafted (Option A: source
+  directly — recommended); see the Gate-(c) Decision Note above.
 - **(d) Optional third-source amendment** for the no-record/varietal/
   unavailable-variant/composite residue (22 foods): `basmati_rice`,
   `jasmine_rice`, `farro`, `sorghum`, `couscous_whole`, `lentils_red`,
@@ -4197,6 +4200,60 @@ stays null; NO macro deltas; NO new revisions and NO `CATALOG_VERSION` bump
 
 Until a decision is recorded here, both protein-shake foods remain gated and
 counted under gate (b).
+
+#### Gate-(c) Decision Note (2026-07-15) — food.mixed_greens (OWNER DECISION REQUIRED)
+
+Status: **Investigated, awaiting owner decision — NO data change made.**
+The investigation OVERTURNS the premise of this gate: a direct exact-name
+FNDDS record exists, so no lettuce-NFS proxy or A1 exception is needed.
+
+**Correction to the F1 finding.** The Batch F1 manifest reason said "No SR
+Legacy record exists for a salad-greens mix … FNDDS has no mixed/spring-mix
+record either; generic 'Lettuce, raw' passes numerically but is single-genus,
+not a greens mix." **That is inaccurate** — FNDDS carries **2709792 "Mixed
+salad greens, raw"** (WWEIA category 6410), an exact-name match for the
+catalog's "Mixed salad greens." F1's search missed it. (The manifest reason
+should be corrected when an option below is implemented; not touched in this
+docs-only slice.)
+
+**Evidence (both pins re-verified):** SR Legacy has no salad-greens-mix
+record (accurate). FNDDS **2709792 "Mixed salad greens, raw"**: per 100 g
+21 kcal / 3.43 C / 1.31 P / 0.21 F / 1.4 fiber; portion "1 cup" = 35 g →
+authored 2-cup serving = **70 g**. Reconciliation at 70 g: est 14.7 kcal vs
+authored 12 (Δ2.7); protein 0.92 vs 1; carbs 2.40 vs 2; fat 0.15 vs 0; fiber
+0.98 vs 1 — **passes every gate comfortably.** This is a normal Amendment A1
+FNDDS match (like the F1–F4 batches), NOT a proxy or exception.
+
+Conclusion: **mixed_greens is directly matchable under existing A1 rules** —
+the "proxy decision" framing is moot. The generic "Lettuce, raw" (2709789,
+also 35 g/cup) was the inferior fallback F1 considered; it is no longer
+relevant now that the exact-name mix record is confirmed.
+
+**Owner decision required — choose one:**
+
+- **(A) RECOMMENDED — source mixed_greens directly from FNDDS 2709792 "Mixed
+  salad greens, raw"** (a normal A1 match, no proxy/exception): serving kept
+  at 2 cup, `cupFdc(2, 70)` (35 g/cup × 2), `sourceRef:
+  fndds_survey_food_csv_2024-10-31`. Macros UNCHANGED (all reconcile within
+  tolerance). Mechanics: revision 2 (rev-1 retained, new UUIDv5),
+  `CATALOG_VERSION` → next patch, artifacts/hash/goldens regenerated,
+  manifest entry replaces the (inaccurate) unmatched reason. **Gated count
+  decreases 23 → 22**; mixed_greens leaves gate (c), which then EMPTIES.
+- **(B) Accept generic "Lettuce, raw" as a documented proxy** — now
+  unnecessary and inferior (single-genus vs the exact mix record). Not
+  recommended; listed only for completeness.
+- **(C) Reject sourcing and re-classify to gate (d) third-source residue** —
+  not warranted, since a reconciling same-pin record exists.
+- **(D) Defer.**
+
+**Impact if Option A is later accepted:** food `mixed_greens`; serving 2 cup
+unchanged; `grams_per_serving` null → **70**; NO macro deltas (est within
+tolerance, authored values kept); new immutable revision 2 + patch
+`CATALOG_VERSION` bump + regenerated artifacts/goldens; **gated count 23 →
+22** (10 cup → 9 cup); gate (c) empties, leaving only gate (d).
+
+Until a decision is recorded here, `food.mixed_greens` remains gated and
+counted under gate (c).
 
 ### Related Documents
 

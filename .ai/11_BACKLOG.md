@@ -1024,7 +1024,13 @@ Option B (2026-07-15): protein_shake_water + vegan_protein_shake keep their
 authored lean powder-in-water values and were RE-CLASSIFIED to gate (d)
 third-source residue (prepared RTD records exist but fail reconciliation as
 fattier meal-replacements; powder+water recipe synthesis is A1-forbidden and
-was not authorized)**; (c) the mixed_greens lettuce-NFS proxy decision;
+was not authorized)**; (c) the mixed_greens decision (**investigated 2026-07-15: the lettuce-NFS
+proxy premise was OVERTURNED — FNDDS has a direct exact-name record 2709792
+"Mixed salad greens, raw" (missed in F1) that reconciles cleanly at the
+authored 2-cup/70 g serving; a decision gate is drafted in ADR-P013,
+"Gate-(c) Decision Note — food.mixed_greens", recommending Option A: source
+it directly as a normal A1 match, which would decrease the gated count
+23 → 22 and EMPTY gate (c)**);
 (d) an optional third-source amendment for the 22-food
 no-record/varietal/unavailable-variant/composite residue (incl.
 coconut_milk_beverage, oat_milk_unsweet, kombucha_unsweet,

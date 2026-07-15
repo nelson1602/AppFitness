@@ -1644,7 +1644,10 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       protein-shake composite policy was resolved by owner Option B
       (2026-07-15): both shakes keep authored lean powder-in-water values and
       moved to gate (d) (no pinned RTD reconciles; recipe synthesis
-      A1-forbidden), (c) the mixed_greens proxy decision, (d) an optional
+      A1-forbidden), (c) the mixed_greens decision (investigated 2026-07-15:
+      a direct FNDDS "Mixed salad greens, raw" record exists — not a proxy;
+      Option A recommends sourcing it directly, which would empty gate (c)),
+      (d) an optional
       third-source amendment for the 22-food residue (see ADR-P013
       "Amendment A1 Matching Track — Closure Note" for the gate ledger).
       Nothing fabricated; logging uses fractional servings meanwhile. See
