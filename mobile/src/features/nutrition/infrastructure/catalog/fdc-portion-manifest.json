@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2827,35 +2827,35 @@
     },
     {
       "catalogKey": "food.pea_milk_unsweet",
-      "reason": "SR Legacy 2018-04 contains no pea-milk record (category too recent for SR). No source row exists in the pinned archive. Left null and gated."
+      "reason": "SR Legacy 2018-04 contains no pea-milk record (category too recent for SR). No source row exists in the pinned archive. Left null and gated. FNDDS re-check (Batch F3, fndds_survey_food_csv_2024-10-31): FNDDS 2021-2023 has no pea-milk record either. No approved source covers this food — needs a third-source amendment or a menu decision."
     },
     {
       "catalogKey": "food.oat_milk_unsweet",
-      "reason": "SR Legacy 2018-04 contains no oat-milk record (category too recent for SR). Left null and gated."
+      "reason": "SR Legacy 2018-04 contains no oat-milk record (category too recent for SR). Left null and gated. FNDDS re-check (Batch F3): FNDDS 'Oat milk' (2705412) EXISTS with volume-paired portions (1 cup = 244 g -> 1.0313 g/ml), but is NFS as to sweetening/fortification and fails carbs reconciliation for the authored 240 ml serving: est 13.29 g carbs vs authored 9 (delta 4.29 > 3); est protein 1.63 vs authored 3 — the authored macros describe a protein-fortified unsweetened product the survey record does not represent. Product-variant/authored-data decision required; not force-fit."
     },
     {
       "catalogKey": "food.cashew_milk_unsweet",
-      "reason": "SR Legacy 2018-04 contains no cashew-milk record. Left null and gated."
+      "reason": "SR Legacy 2018-04 contains no cashew-milk record. Left null and gated. FNDDS re-check (Batch F3): FNDDS 2021-2023 has no cashew-milk record either. Needs a third-source amendment or a menu decision."
     },
     {
       "catalogKey": "food.coconut_milk_beverage",
-      "reason": "The only SR coconut-milk beverage record is SWEETENED (174116) and fails macro reconciliation for the authored unsweetened serving (75.5 kcal est vs 49); canned coconut milk (170173) is a different, far denser food and fails catastrophically. Left null and gated."
+      "reason": "The only SR coconut-milk beverage record is SWEETENED (174116) and fails macro reconciliation for the authored unsweetened serving (75.5 kcal est vs 49); canned coconut milk (170173) is a different, far denser food and fails catastrophically. Left null and gated. FNDDS re-check (Batch F3): FNDDS 'Coconut milk' (2705413, plant-milk beverage category, 1 cup = 244 g -> 1.0313 g/ml) is the sweetened-typical NFS beverage (2.5 g sugar/100 g) and fails the same way — est 76.7 kcal / 7.23 g carbs vs authored 49 / 1. Failure under BOTH pins -> class-4 authored-data/product-variant disagreement confirmed; needs a per-food decision, not a re-match."
     },
     {
       "catalogKey": "food.protein_shake_water",
-      "reason": "Prepared whey-protein shake is a composite with no SR record; only protein powders exist (e.g. 173459) and fail reconciliation catastrophically against the prepared 300 ml serving. Left null and gated."
+      "reason": "Prepared whey-protein shake is a composite with no SR record; only protein powders exist (e.g. 173459) and fail reconciliation catastrophically against the prepared 300 ml serving. Left null and gated. FNDDS re-check (Batch F3): FNDDS likewise has only DRY nutritional powder mixes ('Nutritional powder mix (EAS Whey Protein Powder)', 2710731); no prepared-shake survey food exists. Composite/product-policy decision required (e.g. define the shake as powder + water recipe) — deliberately NOT resolved in a matching batch."
     },
     {
       "catalogKey": "food.vegan_protein_shake",
-      "reason": "Prepared plant-protein shake is a composite with no SR record; the nearest soy-protein candidates are unrelated products and fail reconciliation. Left null and gated."
+      "reason": "Prepared plant-protein shake is a composite with no SR record; the nearest soy-protein candidates are unrelated products and fail reconciliation. Left null and gated. FNDDS re-check (Batch F3): FNDDS has only the dry 'Nutritional powder mix (EAS Soy Protein Powder)' (2710732); no prepared plant-protein-shake survey food. Composite/product-policy decision required — deliberately NOT resolved in a matching batch."
     },
     {
       "catalogKey": "food.matcha_unsweet",
-      "reason": "SR Legacy 2018-04 contains no matcha record. Left null and gated."
+      "reason": "SR Legacy 2018-04 contains no matcha record. Left null and gated. FNDDS re-check (Batch F3): FNDDS 2021-2023 has no matcha record either (food.csv and food_attribute.csv both empty). Needs a third-source amendment or a menu decision."
     },
     {
       "catalogKey": "food.kombucha_unsweet",
-      "reason": "SR Legacy 2018-04 contains no kombucha record. Left null and gated."
+      "reason": "SR Legacy 2018-04 contains no kombucha record. Left null and gated. FNDDS re-check (Batch F3): FNDDS 'Tea, kombucha' (2710509) EXISTS with fl-oz volume pairings (1 fl oz = 31 g -> 1.0482 g/ml), but represents regular commercial kombucha (~4 g sugar/100 g) and fails carbs reconciliation for the authored low-sugar 240 ml serving: est 10.01 g carbs vs authored 7 (delta 3.01 > 3; kcal 40.3 vs 28 passes). Marginal but over tolerance, and the low-sugar vs NFS product gap is real — product-variant decision required; not force-fit."
     }
   ]
 }

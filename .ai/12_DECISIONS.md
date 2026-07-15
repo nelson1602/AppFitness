@@ -3276,10 +3276,11 @@ deployment change; no FNDDS, sourdough, or other gated food touched.**
 **Remaining under this ADR: 29 foods** (15 `cup` + 5 `tbsp` + 8 `ml` +
 `sourdough_bread`), intentionally gated. Amendment A1 (**Accepted
 2026-07-14**) pinned FNDDS 2021-2023; **Batch F1 (2026-07-15)** matched the
-cup foods (one match: `polenta`) and **Batch F2 (2026-07-15)** matched the
-tbsp foods (two matches: `pesto`, `tzatziki`); all residues carry
-FNDDS-verified reasons. Batches F3 (ml) and F4 (sourdough) await scoped owner
-authorization.
+cup foods (one match: `polenta`), **Batch F2 (2026-07-15)** the tbsp foods
+(two matches: `pesto`, `tzatziki`), and **Batch F3 (2026-07-15)** the ml
+foods (**zero matches** — all 8 need product/composite/third-source
+decisions); all residues carry FNDDS-verified reasons. Only Batch F4
+(sourdough) still awaits scoped owner authorization as a matching batch.
 
 ### Amendment A1 (2026-07-14) — FNDDS Second-Source Gate
 
@@ -3573,6 +3574,49 @@ corrections, no proxy decisions.**
 **Class-4 ledger is unchanged by F2.** The 5 tbsp residues are all
 no-record/no-portion/semantic cases, NOT authored-data disagreements —
 closing them needs either a third-source amendment or menu decisions.
+
+#### Batch F3 implementation note (2026-07-15) — ml foods (owner-authorized)
+
+The 8 gated `ml` foods were matched against the pinned FNDDS archive (SHA-256
+re-verified before use). **Outcome: ZERO matches — manifest reasons + docs
+only; no catalog data, revision, `CATALOG_VERSION`, or canonical-artifact
+change.** Nothing force-fit; per the batch instructions, foods needing
+product/composite/authored-data decisions were left gated with explicit
+reasons:
+
+- **No FNDDS record at all (3):** `pea_milk_unsweet`, `cashew_milk_unsweet`,
+  `matcha_unsweet` — no approved source covers them; closing needs a
+  third-source amendment or a menu decision.
+- **Composite/product-policy cases (2):** `protein_shake_water`,
+  `vegan_protein_shake` — FNDDS has only DRY nutritional powder mixes (EAS
+  whey/soy powders, 2710731/2710732); no prepared-shake survey food. Defining
+  the shake as a powder+water recipe would be a composite-policy decision,
+  deliberately not taken in a matching batch.
+- **Reconciliation failures on the carbs gate (3), density method applied
+  correctly (cup/fl-oz volume pairings, never assumed 1 g/ml):**
+  - `oat_milk_unsweet` → FNDDS "Oat milk" (2705412, 1.0313 g/ml): est 13.29 g
+    carbs vs authored 9 (Δ4.29 > 3); est protein 1.63 vs authored 3 — the
+    authored macros describe a protein-fortified unsweetened product.
+    Product-variant/authored-data decision.
+  - `coconut_milk_beverage` → FNDDS "Coconut milk" (2705413, 1.0313 g/ml):
+    est 76.7 kcal / 7.23 g carbs vs authored 49 / 1 — the sweetened-typical
+    NFS beverage. **Failure under BOTH pins → class 4 CONFIRMED.**
+  - `kombucha_unsweet` → FNDDS "Tea, kombucha" (2710509, 1.0482 g/ml): est
+    10.01 g carbs vs authored 7 (Δ3.01, marginally over the 3 g gate) — the
+    NFS record is regular kombucha (~4 g sugar/100 g) vs the authored
+    low-sugar variant. Product-variant decision; not force-fit.
+
+**Updated ledgers after F3:**
+- *Class-4 / authored-data–product-variant decisions:* `onion`, `snow_peas`,
+  `leeks`, `pomegranate`, `dragon_fruit`, **`coconut_milk_beverage`
+  (confirmed)**, `oat_milk_unsweet`, `kombucha_unsweet` (+ the
+  `mixed_greens` proxy decision).
+- *Composite/product-policy decisions:* `protein_shake_water`,
+  `vegan_protein_shake`.
+- *No-source residue (third-source amendment or menu decision):*
+  `pea_milk_unsweet`, `cashew_milk_unsweet`, `matcha_unsweet`, plus the F2
+  tbsp residues (`chia_seeds`, `flax_seeds`, `mct_oil`, `nutritional_yeast`,
+  `greek_yogurt_dressing`) and the F1 varietal/no-record cup residues.
 
 ### Related Documents
 
