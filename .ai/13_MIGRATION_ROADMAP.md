@@ -1635,15 +1635,15 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       **167/190 non-gram foods sourced; the 23 remaining foods (10 `cup` +
       5 `tbsp` + 8 `ml`) stay intentionally gated** — TECHDEBT-004 risk 3
       part 2 stays Open (partially resolved). The remaining gates each need
-      an explicit owner decision (none authorized): (a) the 1 remaining
-      class-4/product-variant correction slice (kombucha_unsweet —
-      coconut_milk_beverage and oat_milk_unsweet were re-classified to gate
-      (d) by owner Option B on 2026-07-15: authored data correct, only an
-      incompatible sweetened-typical variant is pinned), (b) the
-      protein-shake composite policy, (c) the mixed_greens proxy decision,
-      (d) an optional third-source amendment for the 19-food residue (see
-      ADR-P013 "Amendment A1 Matching Track — Closure Note" for the gate
-      ledger).
+      an explicit owner decision (none authorized): (a) EMPTY — all eight
+      original class-4 foods resolved 2026-07-15 (onion/snow_peas/leeks
+      raw-label renames; pomegranate/dragon_fruit Option A macro
+      corrections; coconut_milk_beverage/oat_milk_unsweet/kombucha_unsweet
+      Option B re-classifications to gate (d): authored data correct, only
+      incompatible sweetened/regular variants pinned), (b) the protein-shake
+      composite policy, (c) the mixed_greens proxy decision, (d) an optional
+      third-source amendment for the 20-food residue (see ADR-P013
+      "Amendment A1 Matching Track — Closure Note" for the gate ledger).
       Nothing fabricated; logging uses fractional servings meanwhile. See
       also the "SR Legacy Sourcing Track — Closure Note" + Amendment A1
       notes (pin record + Batches F1–F4).

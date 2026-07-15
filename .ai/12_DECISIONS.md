@@ -3669,11 +3669,14 @@ by this closure note:
   **`onion`, `snow_peas`, `leeks`, `pomegranate`, and `dragon_fruit`
   RESOLVED by slices 1–5 (2026-07-15, see notes below; pomegranate and
   dragon_fruit via owner-approved Option A authored-macro corrections)**;
-  **`coconut_milk_beverage` and `oat_milk_unsweet` RE-CLASSIFIED to gate (d)
-  by owner Option B (2026-07-15, see notes above)** — each has correct
-  authored unsweetened data while the pins carry only an incompatible
-  (sweetened-typical) variant, so their resolution path is a third-source
-  (not an authored-data correction). One remains: `kombucha_unsweet`.
+  **`coconut_milk_beverage`, `oat_milk_unsweet`, and `kombucha_unsweet`
+  RE-CLASSIFIED to gate (d) by owner Option B (2026-07-15, see notes above)**
+  — each has correct authored unsweetened/low-sugar data while the pins carry
+  only an incompatible (sweetened-typical / regular-NFS) variant, so their
+  resolution path is a third-source (not an authored-data correction).
+  **Gate (a) is now EMPTY — all eight original class-4 foods resolved
+  (3 raw-label renames, 2 Option-A macro corrections, 3 Option-B
+  re-classifications).**
 - **(b) Protein-shake composite policy** (`protein_shake_water`,
   `vegan_protein_shake`): whether to define the prepared shakes as a
   powder+water recipe — a composite-policy decision, not a match.
@@ -3681,20 +3684,21 @@ by this closure note:
   FNDDS generic "Lettuce, raw" (numerically reconciling but single-genus) as
   a proxy for a greens mix.
 - **(d) Optional third-source amendment** for the no-record/varietal/
-  unavailable-variant residue (19 foods): `basmati_rice`, `jasmine_rice`,
+  unavailable-variant residue (20 foods): `basmati_rice`, `jasmine_rice`,
   `farro`, `sorghum`, `couscous_whole`, `lentils_red`, `lentils_green`,
   `cannellini_beans`, `broccolini` (varietal folds / no acceptable record —
   cup), `chia_seeds`, `flax_seeds`, `mct_oil`, `nutritional_yeast`,
   `greek_yogurt_dressing` (tbsp), `pea_milk_unsweet`, `cashew_milk_unsweet`,
-  `matcha_unsweet`, `coconut_milk_beverage`, `oat_milk_unsweet` (ml — the
-  last two re-classified from gate (a) by Option B: authored data correct,
-  only an incompatible sweetened-typical variant is pinned; each needs an
-  unsweetened-product source). Any new source (Foundation Foods, branded, or
-  non-USDA) requires its own pinned-source amendment. Gate arithmetic at
-  closure: 8 (a) + 2 (b) + 1 (c) + 17 (d) = 28 gated foods; after correction
-  slices 1–5 (onion, snow_peas, leeks, pomegranate, dragon_fruit) and the
-  coconut_milk_beverage + oat_milk_unsweet Option B re-classifications:
-  1 (a) + 2 (b) + 1 (c) + 19 (d) = **23 gated**.
+  `matcha_unsweet`, `coconut_milk_beverage`, `oat_milk_unsweet`,
+  `kombucha_unsweet` (ml — the last three re-classified from gate (a) by
+  Option B: authored data correct, only an incompatible sweetened-typical /
+  regular-NFS variant is pinned; each needs an unsweetened/low-sugar-product
+  source). Any new source (Foundation Foods, branded, or non-USDA) requires
+  its own pinned-source amendment. Gate arithmetic at closure: 8 (a) + 2 (b)
+  + 1 (c) + 17 (d) = 28 gated foods; after correction slices 1–5 (onion,
+  snow_peas, leeks, pomegranate, dragon_fruit) and the coconut_milk_beverage
+  + oat_milk_unsweet + kombucha_unsweet Option B re-classifications:
+  0 (a) + 2 (b) + 1 (c) + 20 (d) = **23 gated**.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
@@ -4041,9 +4045,16 @@ serving-scale error.
 Until a decision is recorded here, `food.oat_milk_unsweet` remains gated and
 counted under gate (a).
 
-#### Gate-(a) Decision Note (2026-07-15) — food.kombucha_unsweet (OWNER DECISION REQUIRED)
+#### Gate-(a) Decision Note (2026-07-15) — food.kombucha_unsweet (RESOLVED: Option B)
 
-Status: **Investigated, awaiting owner decision — NO data change made.**
+Status: **Owner chose Option B (2026-07-15) — the authored low-sugar values
+are KEPT unchanged and the food is RE-CLASSIFIED from gate (a) to gate (d)
+third-source residue. Docs/ledger only; no catalog data, revision,
+`CATALOG_VERSION`, artifact, or manifest change. `grams_per_serving` stays
+null (gated) pending a low-sugar-specific kombucha source under a future
+third-source amendment. This EMPTIES gate (a) — all eight original class-4
+foods are now resolved.** Original investigation:
+
 Same product-variant shape as coconut_milk_beverage and oat_milk_unsweet:
 the authored low-sugar profile is defensible; the sole pinned record is an
 incompatible higher-sugar variant. This is the LAST class-4 candidate.
