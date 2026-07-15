@@ -1013,8 +1013,12 @@ slice-4 note for the documented deviation from the draft's 144) — bringing
 the total to **166 of 190 non-gram foods sourced; 24 remain intentionally
 gated** (11 `cup` + 5 `tbsp` + 8 `ml`). The remaining gates each need an
 explicit owner decision (none authorized or implied): (a) 4
-class-4/product-variant correction slices — dragon_fruit,
-coconut_milk_beverage, oat_milk_unsweet, kombucha_unsweet;
+class-4/product-variant correction slices — dragon_fruit (**investigated
+2026-07-15: not the net-carbs pattern; authored macros describe ~one fruit
+(75 g), not the stated 1-cup (180 g) serving; an authored-macro/serving
+decision is drafted in ADR-P013, "Gate-(a) Decision Note —
+food.dragon_fruit"**), coconut_milk_beverage, oat_milk_unsweet,
+kombucha_unsweet;
 (b) the protein-shake composite policy; (c) the mixed_greens lettuce-NFS
 proxy decision; (d) an optional third-source amendment for the 17-food
 no-record/varietal residue.

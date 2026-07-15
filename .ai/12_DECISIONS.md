@@ -3843,6 +3843,55 @@ labels/serving weights):
 **Remaining after this slice: 24 foods** (11 `cup` + 5 `tbsp` + 8 `ml`),
 gated on the decisions above. 166/190 non-gram foods sourced.
 
+#### Gate-(a) Decision Note (2026-07-15) — food.dragon_fruit (OWNER DECISION REQUIRED)
+
+Status: **Investigated, awaiting owner decision — NO data change made.**
+Tested the pomegranate net-carbs hypothesis: it does NOT apply here. The
+defect is a serving-scale/source ambiguity.
+
+**Evidence (SR has no dragon-fruit record — re-confirmed; FNDDS 2709234
+"Dragon fruit", attribute "pitaya", is the only pinned source):** per 100 g:
+68 kcal / 16.24 carbs / 0.68 protein / 0.21 fat / 1.8 fiber; portions
+"1 fruit" = 75 g, "1 cup" = 180 g. Authored: 1 cup, kcal 56 (= Atwater of
+P1/C13/F0), fiber 3.
+
+- *Net-carbs test:* at the 180 g cup, net carbs = 26.0 g ≠ authored 13 —
+  NOT the pomegranate pattern.
+- *Serving-scale test:* authored carbs and kcal cohere at an implied ~80 g
+  portion (C → 80.0 g, kcal → 82.4 g) ≈ the FNDDS **"1 fruit" = 75 g** row,
+  where reconciliation PASSES every gate (est 51.0 kcal vs 56; carbs 12.18
+  vs 13; protein 0.51 vs 1; fat 0.16 vs 0).
+- *But* the authored fiber (3 g) fits FNDDS at NO scale (1.35 g at 75 g /
+  1.8 g at 100 g) — it matches the commercial pitaya label convention
+  (~3 g/100 g), so the authored macros likely came from a non-pinned label
+  source. And at 100 g of FNDDS, carbs fails (16.24 vs 13, Δ3.24 > 3).
+- The serving label "1 cup" (= 180 g) is wrong under every reading — the
+  authored macros describe roughly ONE FRUIT, not a cup.
+
+**Owner decision required — choose one:**
+
+- **(A) RECOMMENDED — keep the 1-cup serving, adopt FNDDS-sourced cup
+  macros** (authored-macro change): serving `cupFdc(1, 180)` from FNDDS row
+  306141; **protein 1 (unchanged), carbs 13 → 29, fat 0 (unchanged), fiber
+  3 (unchanged — FNDDS cup-scale fiber is 3.24), kcal 56 → 120
+  (ATWATER-DERIVED: 4·1 + 4·29 + 9·0 — stated per the catalog convention,
+  not the measured 122.4)**. Post-correction reconciliation passes (est
+  122.4 vs 120, Δ2.4; carbs 29.23 vs 29). Every authored value including
+  fiber becomes pinned-source-consistent. Downstream: future 1-cup logs
+  +64 kcal / +16 g carbs vs rev 1 — large, but honest for a 180 g cup.
+- **(B) Re-scope the serving to one fruit, keep the macros**
+  (serving-semantics change): `piece1(75)` from FNDDS row 306139
+  ("1 fruit" = 75 g); macros/kcal unchanged (56 / P1 / C13 / F0 / fiber 3);
+  reconciliation passes at 75 g. Preserves the numbers users see, but the
+  serving changes from "1 cup" to "1 piece", and the authored fiber 3
+  remains ~2.2× the pinned source's 1.35 g at that serving (unsupported by
+  any approved source).
+- **(C) Keep as-is** — stays gated; fractional-serving logging continues.
+- **(D) Defer.**
+
+Until a decision is recorded here, `food.dragon_fruit` remains gated and
+counted under gate (a).
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
