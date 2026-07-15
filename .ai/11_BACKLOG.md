@@ -1009,8 +1009,11 @@ leeks at 54.3 vs 56) and the foods were renamed raw with SR cup weights
 (160 g / 98 g / 89 g) — bringing the total to **165 of 190 non-gram foods
 sourced; 25 remain intentionally gated** (12 `cup` + 5 `tbsp` + 8 `ml`).
 The remaining gates each need an explicit owner decision (none authorized or
-implied): (a) 5 class-4/product-variant correction slices — pomegranate,
-dragon_fruit, coconut_milk_beverage, oat_milk_unsweet, kombucha_unsweet;
+implied): (a) 5 class-4/product-variant correction slices — pomegranate
+(**investigated 2026-07-15: authored carbs proven to be a NET-carbs figure;
+an authored-macro change decision is drafted in ADR-P013, "Gate-(a) Decision
+Note — food.pomegranate"**), dragon_fruit, coconut_milk_beverage,
+oat_milk_unsweet, kombucha_unsweet;
 (b) the protein-shake composite policy; (c) the mixed_greens lettuce-NFS
 proxy decision; (d) an optional third-source amendment for the 17-food
 no-record/varietal residue.

@@ -3769,6 +3769,48 @@ weight:
 **Remaining after this slice: 25 foods** (12 `cup` + 5 `tbsp` + 8 `ml`),
 gated on the decisions above. 165/190 non-gram foods sourced.
 
+#### Gate-(a) Decision Note (2026-07-15) — food.pomegranate (OWNER DECISION REQUIRED)
+
+Status: **Investigated, awaiting owner decision — NO data change made.**
+Unlike slices 1–3, this is NOT a label defect; the correction requires an
+authored-macro change, which is not covered by any existing authorization.
+
+**Evidence (both pins re-verified; they carry IDENTICAL per-100 g values):**
+SR 169134 "Pomegranates, raw" / FNDDS 2709267 "Pomegranate, raw" = 83 kcal /
+18.7 carbs / 1.67 protein / 1.17 fat / 4.0 fiber per 100 g; SR portion row
+84309 "0.5 cup arils" = 87 g → **174 g per cup** (FNDDS cup = 175 g).
+Scaled to 174 g: **kcal 144.4 / P 2.91 / C 32.54 / F 2.04 / fiber 6.96** vs
+authored **134 / 3 / 26 / 2 / 6**. Protein, fat, and fiber match the 174 g
+cup well; **carbs is the sole failing axis** (Δ6.5 > the 5.2 tolerance).
+
+**Root cause: the authored carbs is a NET-carbs figure.** 32.54 total −
+6.96 fiber = **25.6 ≈ the authored 26**, while the catalog convention is
+TOTAL carbs; the authored kcal (134 = Atwater(3, 26, 2) exactly) inherited
+the error. No serving-size reinterpretation can fix it — the authored macros
+imply mutually inconsistent gram weights (carbs → 139 g, kcal → 161 g,
+protein → 180 g).
+
+**Owner decision required — choose one:**
+
+- **(A) RECOMMENDED — approve the authored-macro correction** to the
+  source-scaled 1-cup (174 g) values under the catalog's integer rounding:
+  **kcal 134 → 144 (+10), protein 3 → 3, carbs 26 → 33 (+7), fat 2 → 2,
+  fiber 6 → 7 (+1)**, with the gram weight sourced from SR row 84309
+  (174 g/cup) and full provenance. Reconciliation then passes by
+  construction (est 144.4 / 32.5 / 2.91 / 2.04). Mechanics would follow the
+  standard slice pattern: revision 2 (rev-1 retained — historical logs keep
+  their 134-kcal snapshots), patch `CATALOG_VERSION` bump,
+  artifacts/goldens, manifest provenance. Downstream effect: future 1-cup
+  pomegranate logs record +10 kcal / +7 g carbs / +1 g fiber (~7% kcal
+  increase for this food); generated meal plans using it recalc marginally.
+- **(B) Keep the authored values** (treat 26 g as an intentional net-carbs
+  presentation): the food stays gated forever under the total-carbs
+  reconciliation gate; logging continues via fractional servings.
+- **(C) Reject both** and leave gated pending a future decision.
+
+Until a decision is recorded here, `food.pomegranate` remains gated and
+counted under gate (a).
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
