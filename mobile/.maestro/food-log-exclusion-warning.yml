@@ -39,9 +39,10 @@ appId: com.appfitness.mobile
       id: 'dp-add'
 - tapOn:
     id: 'dp-add'
-- extendedWaitUntil:
-    visible: 'Nuts · category'
-    timeout: 10000
+# The new entry lands in "Your exclusions" below the add card — scroll it into
+# view to confirm it persisted (a static wait would time out off-screen).
+- scrollUntilVisible:
+    element: 'Nuts · category'
 
 # --- Navigate to the food log via dashboard → Nutrition → meal plan ---
 - back
