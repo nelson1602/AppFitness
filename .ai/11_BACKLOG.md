@@ -529,11 +529,26 @@ started.**
   mobile repository/store + sync-applier registration and the backend
   NestJS sync handler are intentionally deferred to **Slice 2**, where they
   are exercisable and testable end-to-end with a data producer/consumer.
-- **Slice 2 — Mobile repository/store + backend sync handler + preference
-  UI:** local repository + store + sync-applier registration; backend
-  payload/mapper/repository/sync-handler + module wiring; the
-  preferences/allergies editor; exclusions summary surface; encryption for
-  free-text notes.
+- **Slice 2A — Repository/store + backend sync handler (NO UI) — IMPLEMENTED
+  2026-07-16 (not yet committed at time of writing):** mobile
+  `dietary-preference.repository` (create / listActive / soft-delete /
+  applyServer / markConflict; encrypts the optional note, enqueues sync ops
+  in-transaction, marked `sensitive`), `dietary-preference.service`
+  (session-scoped) + `dietary-preference.store` (load/add/remove), and
+  `dietary_preferences` sync-applier registration; backend
+  payload/mapper/repository/`DietaryPreferenceSyncHandler` (ownership-scoped
+  CREATE/UPDATE/DELETE, version/conflict via the pipeline, AES-256-GCM note
+  encryption + conflict redaction, ADR-P006) registered in the nutrition
+  module; plus a forward-only Postgres migration
+  `20260716130000_dietary_preferences_sync_seq_trigger` attaching the
+  `sync_seq` trigger the Slice 1 table was missing. Focused tests: mobile
+  repo (create/list/soft-delete/enqueue + note-encryption safety), store
+  orchestration, backend handler (ownership/version/CREATE-validation/
+  UPDATE/DELETE/pull/redaction), sync registration via the module.
+  **No UI, no meal-plan wiring, no food-log behavior.**
+- **Slice 2B — Preference/allergy UI (PENDING):** the preferences/allergies
+  editor + exclusions summary surface, binding to the Slice 2A store. No
+  meal-plan or food-log behavior.
 - **Slice 3 — Meal-plan integration + deterministic regeneration/explanations:**
   feed exclusions into the generator (tag + new catalogKey exclusion) and the
   seed so plans regenerate deterministically; explain what was excluded.
@@ -546,7 +561,8 @@ started.**
 
 - [x] Owner accepts an ADR-P014 option before any implementation begins.
       (Option A accepted 2026-07-16.)
-- [ ] Allergy vs preference sensitivity split honored per ADR-0011.
+- [x] Allergy vs preference sensitivity split honored per ADR-0011.
+      (Slice 2A: `kind` + AES-256-GCM note encryption + conflict redaction.)
 - [ ] Meal plans remain deterministic when exclusions change.
 - [ ] Logging an excluded food warns but never hard-blocks or silently drops.
 - [ ] Additive migrations only; existing users default to no exclusions.
