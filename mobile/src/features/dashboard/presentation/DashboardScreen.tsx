@@ -127,6 +127,14 @@ export function DashboardScreen() {
       >
         Restrictions & injuries
       </AppButton>
+      {/* Dietary preferences & allergies (ADR-P014 Slice 2B). */}
+      <AppButton
+        accessibilityLabel="Manage dietary preferences and allergies"
+        onPress={() => router.push('/dietary-preferences')}
+        variant="secondary"
+      >
+        Dietary preferences
+      </AppButton>
 
       {/* Sign-out clears the session; the dashboard route's session
           guard then redirects to /sign-in — no manual navigation. */}

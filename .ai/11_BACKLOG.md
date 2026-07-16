@@ -546,9 +546,21 @@ started.**
   orchestration, backend handler (ownership/version/CREATE-validation/
   UPDATE/DELETE/pull/redaction), sync registration via the module.
   **No UI, no meal-plan wiring, no food-log behavior.**
-- **Slice 2B — Preference/allergy UI (PENDING):** the preferences/allergies
-  editor + exclusions summary surface, binding to the Slice 2A store. No
-  meal-plan or food-log behavior.
+- **Slice 2B — Preference/allergy UI — IMPLEMENTED 2026-07-16 (not yet
+  committed at time of writing):** session-guarded `/dietary-preferences`
+  route + `DietaryPreferences` management screen binding to the Slice 2A store
+  (`load`/`add`/`remove`) — view active exclusions, add an avoid-tag category
+  exclusion (closed `AVOID_TAGS` vocabulary) or an explicit catalog-food
+  exclusion (search/select over the committed canonical catalog), classify as
+  allergy/sensitivity or preference/dislike (`kind`), optional encrypted note,
+  and soft-delete/remove; plus a "Dietary preferences" dashboard entry point
+  and user copy (personalizes meal planning, not emergency medical advice,
+  saved locally first then synced, plan may not change until Slice 3). All
+  persistence routes through the store → service → repository; the UI never
+  touches SQLite. Focused tests: route guard (unknown/anonymous/authenticated),
+  screen loading/empty/list states, add-avoidTag flow, add-explicit-food-
+  exclusion flow, remove flow, dashboard navigation entry, and a no-direct-
+  SQLite-access guard. **No meal-plan wiring, no food-log behavior.**
 - **Slice 3 — Meal-plan integration + deterministic regeneration/explanations:**
   feed exclusions into the generator (tag + new catalogKey exclusion) and the
   seed so plans regenerate deterministically; explain what was excluded.

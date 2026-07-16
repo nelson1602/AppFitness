@@ -267,6 +267,18 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/nutrition');
   });
 
+  it('navigates to the dietary preferences surface', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Manage dietary preferences and allergies' }),
+    );
+
+    expect(router.push).toHaveBeenCalledWith('/dietary-preferences');
+  });
+
   it('routes to the delete-account surface (never deletes directly)', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({ status: 'ready', data: baseData });
