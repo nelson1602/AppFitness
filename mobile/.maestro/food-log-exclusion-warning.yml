@@ -27,6 +27,11 @@ appId: com.appfitness.mobile
     visible: 'Dietary preferences & allergies'
     timeout: 15000
 # Category exclusion + allergy kind are the defaults; pick the "Nuts" tag.
+# The tag chips sit below the intro copy + mode/kind rows — scroll the chip
+# into view before tapping (same pattern as food-log.yml's submit button).
+- scrollUntilVisible:
+    element:
+      id: 'dp-tag-nut_allergy'
 - tapOn:
     id: 'dp-tag-nut_allergy'
 - scrollUntilVisible:
