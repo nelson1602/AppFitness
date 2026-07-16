@@ -1521,8 +1521,15 @@ replaces the deterministic engine.
   the plan seed only when present, so plans regenerate deterministically when
   exclusions change and are byte-unchanged when none exist; the plan surface
   explains applied exclusions with the non-medical disclaimer intact; no
-  food-log behavior)** are IMPLEMENTED. **Slice 4 (food-log warning behavior +
-  E2E) remains PENDING; each slice needs its own scoped owner authorization.**
+  food-log behavior), and **Slice 4 (food-log excluded-food warning — pure
+  `matchFoodExclusion` helper + a non-blocking `FoodLogAddForm` banner with
+  allergy/sensitivity vs preference/dislike wording; the user can still log the
+  food and the write/sync/persistence path is unchanged; unit/component tests
+  green)** are IMPLEMENTED. **Slice 4 E2E is PENDING** a new EAS `e2e` APK
+  build (a documented, non-CI-wired `food-log-exclusion-warning.yml` Maestro
+  flow exists; a build gate is out of scope), so unit/component coverage is the
+  authoritative verification until the APK is rebuilt. FEATURE-006 is now
+  functionally complete across slices 1–4 (E2E run pending a build).
   Independent of the paused ADR-P013 third-source work (TECHDEBT-004 risk 3
   part 2, still open/paused).
 

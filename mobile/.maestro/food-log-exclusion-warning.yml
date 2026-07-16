@@ -1,0 +1,85 @@
+# ADR-P014 / FEATURE-006 Slice 4 — food-log excluded-food warning (PENDING run).
+#
+# Proves the non-blocking dietary-preference warning on the food log: add a
+# "Nuts" allergy via the dietary-preferences surface (Slice 2B), then open the
+# food log, select a nut food (Almonds → carries avoidFor: nut_allergy), see the
+# allergy/sensitivity warning, and confirm the food can STILL be logged (the
+# warning never hard-blocks). Fake synthetic identity; disposable DB.
+#
+# ── PENDING execution — NOT wired into the CI sequence (mobile-e2e.yml runs a
+#    fixed flow list, so this file is not auto-run). It cannot run against the
+#    current pinned EAS `e2e` APK because that APK predates the Slice 4 warning
+#    UI: running it requires a NEW `e2e` APK build (an EAS build gate that is
+#    explicitly OUT OF SCOPE for this slice — no build/deployment changes).
+#    Until a new e2e APK is built and this flow is added to mobile-e2e.yml,
+#    Slice 4 is verified by the unit/component tests (dietary-preference-match,
+#    FoodLogAddForm, FoodLogScreen specs). Run AFTER onboarding-loop.yml, which
+#    establishes the persisted `onboard` session. No -e vars needed.
+appId: com.appfitness.mobile
+---
+- launchApp
+
+# Session restore → populated dashboard for the onboard account.
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 45000
+
+# --- Add a "Nuts" allergy via the dietary-preferences surface (Slice 2B) ---
+- scrollUntilVisible:
+    element: 'Dietary preferences'
+- tapOn: 'Dietary preferences'
+- extendedWaitUntil:
+    visible: 'Dietary preferences & allergies'
+    timeout: 15000
+# Category exclusion + allergy kind are the defaults; pick the "Nuts" tag.
+- tapOn:
+    id: 'dp-tag-nut_allergy'
+- scrollUntilVisible:
+    element:
+      id: 'dp-add'
+- tapOn:
+    id: 'dp-add'
+- extendedWaitUntil:
+    visible: 'Nuts · category'
+    timeout: 10000
+
+# --- Navigate to the food log via dashboard → Nutrition → meal plan ---
+- tapOn: 'Back'
+- scrollUntilVisible:
+    element: 'Nutrition'
+- tapOn: 'Nutrition'
+- scrollUntilVisible:
+    element: '15-day meal plan'
+- tapOn: '15-day meal plan'
+- extendedWaitUntil:
+    visible:
+      id: 'open-food-log'
+    timeout: 15000
+- tapOn:
+    id: 'open-food-log'
+- extendedWaitUntil:
+    visible: 'Food log'
+    timeout: 15000
+
+# --- Select a nut food → the allergy/sensitivity warning appears ---
+- tapOn:
+    id: 'food-search-input'
+- inputText: 'almonds'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Almonds'
+    timeout: 10000
+- tapOn: 'Almonds'
+- assertVisible: 'Heads up — this matches an allergy or sensitivity'
+# Advisory, not a medical directive.
+- assertVisible: '.*not emergency medical advice.*'
+
+# --- The warning never blocks: the food can still be logged ---
+- scrollUntilVisible:
+    element:
+      id: 'food-log-add-submit'
+- tapOn:
+    id: 'food-log-add-submit'
+- scrollUntilVisible:
+    element: 'Almonds'
+- assertVisible: 'Almonds'

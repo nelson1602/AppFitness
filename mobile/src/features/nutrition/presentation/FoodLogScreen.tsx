@@ -6,6 +6,7 @@ import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
+import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { useFoodLogStore, type FoodLogSyncSummary } from '../application/food-log.store';
 import type { ConsumedMacros, LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS } from '../domain/meal-plan';
@@ -210,10 +211,20 @@ function DailyTotals({ totals }: { totals: ConsumedMacros }) {
 export function FoodLogScreen() {
   const theme = useTheme();
   const { status, items, totals, sync, error, load, addFood, syncNow } = useFoodLogStore();
+  const {
+    status: prefStatus,
+    preferences,
+    load: loadPreferences,
+  } = useDietaryPreferenceStore();
 
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadPreferences();
+  }, [load, loadPreferences]);
+
+  // Advisory only: warnings are shown against active preferences. On a
+  // loading/error preference state we simply show no warning (never block).
+  const activePreferences = prefStatus === 'ready' ? preferences : [];
 
   const grouped = useMemo(
     () => MEAL_SLOTS.map((type) => ({ type, items: items.filter((i) => i.mealType === type) })),
@@ -239,7 +250,10 @@ export function FoodLogScreen() {
         </Banner>
       ) : (
         <>
-          <FoodLogAddForm onAdd={(key, meal, count) => void addFood(key, meal, count)} />
+          <FoodLogAddForm
+            onAdd={(key, meal, count) => void addFood(key, meal, count)}
+            activePreferences={activePreferences}
+          />
 
           {items.length === 0 ? (
             <Card accessibilityLabel="No food logged yet">

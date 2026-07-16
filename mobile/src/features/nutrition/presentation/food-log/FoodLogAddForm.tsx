@@ -2,11 +2,16 @@ import { useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
-import { AppButton, AppText, Card } from '@/shared/presentation';
+import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { search } from '../../application/food-catalog.service';
-import type { FoodItem } from '../../domain/food-catalog';
+import type { DietaryPreference } from '../../domain/dietary-preference';
+import {
+  matchFoodExclusion,
+  type ExclusionMatch,
+} from '../../domain/dietary-preference-match';
+import { AVOID_TAG_LABELS, type FoodItem } from '../../domain/food-catalog';
 import { MEAL_SLOTS } from '../../domain/meal-plan';
 import { ServingStepper } from './ServingStepper';
 
@@ -20,6 +25,36 @@ const MEAL_LABEL: Record<MealTypeName, string> = {
 };
 
 /**
+ * Non-blocking dietary-preference warning for a selected food (ADR-P014
+ * Slice 4). Allergy/sensitivity matches get stronger safety wording;
+ * preference/dislike matches get softer wording. Advisory only — the user can
+ * still log the food. Not emergency medical advice.
+ */
+function ExclusionWarning({ match, foodName }: { match: ExclusionMatch; foodName: string }) {
+  const reasons: string[] = [];
+  if (match.avoidTags.length > 0) {
+    reasons.push(match.avoidTags.map((t) => AVOID_TAG_LABELS[t]).join(', '));
+  }
+  if (match.byCatalogKey) reasons.push('a food you chose to avoid');
+  const reasonText = reasons.join(' and ');
+
+  if (match.severity === 'allergy') {
+    return (
+      <Banner title="Heads up — this matches an allergy or sensitivity" tone="error">
+        {foodName} matches {reasonText}. You can still log it, but double-check it’s safe for you.
+        This is not emergency medical advice.
+      </Banner>
+    );
+  }
+  return (
+    <Banner title="This is on your avoid list" tone="warning">
+      {foodName} matches {reasonText} in your dietary preferences. You can still log it if you’d
+      like.
+    </Banner>
+  );
+}
+
+/**
  * Add-food surface: search the read-only catalog by name, pick a food, choose
  * a meal + serving count, and log it. The UI works in catalog keys/slugs
  * (`FoodItem.id`); the repository maps that to the persisted UUIDv5 identity.
@@ -28,9 +63,12 @@ const MEAL_LABEL: Record<MealTypeName, string> = {
 export function FoodLogAddForm({
   onAdd,
   defaultMealType = 'BREAKFAST',
+  activePreferences = [],
 }: {
   onAdd: (catalogKey: string, mealType: MealTypeName, servingCount: number) => void;
   defaultMealType?: MealTypeName;
+  /** Active dietary preferences used to warn (never block) on a match. */
+  activePreferences?: readonly DietaryPreference[];
 }) {
   const theme = useTheme();
   const [query, setQuery] = useState('');
@@ -39,6 +77,10 @@ export function FoodLogAddForm({
   const [servingCount, setServingCount] = useState(1);
 
   const results = useMemo(() => (query.trim() ? search(query).slice(0, MAX_RESULTS) : []), [query]);
+  const exclusion = useMemo(
+    () => (selected ? matchFoodExclusion(selected, activePreferences) : null),
+    [selected, activePreferences],
+  );
 
   const reset = (): void => {
     setSelected(null);
@@ -148,6 +190,7 @@ export function FoodLogAddForm({
                 {selected.servingSize.unit} · {selected.calories} kcal
               </AppText>
             </View>
+            {exclusion ? <ExclusionWarning match={exclusion} foodName={selected.name} /> : null}
             <ServingStepper
               value={servingCount}
               onChange={setServingCount}

@@ -584,10 +584,29 @@ started.**
   unchanged when no preferences exist, screen loads/applies preferences +
   safe loading/error states. **No schema/backend/sync-protocol changes; no
   food-log warning behavior (Slice 4).**
-- **Slice 4 — Food-log warning behavior + E2E validation:** non-blocking
-  log-time warning for excluded foods (stronger for `allergy` kind); E2E
-  covering set-exclusion → plan reflects it → logging an excluded food warns;
-  conflict-sync coverage.
+- **Slice 4 — Food-log warning behavior + E2E validation — IMPLEMENTED
+  2026-07-16 (unit/component; E2E PENDING a build — not yet committed at time
+  of writing):** a pure `matchFoodExclusion(food, preferences)` domain helper
+  answers whether a catalog food touches an active exclusion (its `avoidFor`
+  intersects an active avoid-tag, or its catalog key is explicitly excluded)
+  and returns a safety-first severity (`allergy` when ANY matching preference
+  is an allergy/sensitivity, else `preference`). `FoodLogAddForm` shows a
+  **non-blocking** warning banner when the selected food matches — stronger
+  allergy/sensitivity wording ("…not emergency medical advice") vs softer
+  preference/dislike wording — and the user can STILL log the food (submit
+  path unchanged). `FoodLogScreen` loads active preferences (advisory only:
+  loading/error → no warning, never blocks the log) and passes them to the
+  form. **Persistence is untouched:** no change to the logged meal-item
+  snapshot/write, sync payloads, or repository/schema. Focused tests: matcher
+  (avoidTag/catalogKey/severity/no-match), form (avoidTag warning, catalogKey
+  warning, allergy copy, preference copy, still-loggable, no-warning-without-
+  match, unchanged default behavior), screen (loads preferences, surfaces the
+  warning). **E2E:** a documented `food-log-exclusion-warning.yml` Maestro flow
+  was added but is **PENDING execution** — it needs a new EAS `e2e` APK
+  containing the Slice 4 warning UI (a build gate, out of scope for this
+  slice), so it is intentionally NOT wired into the CI flow list; unit/
+  component coverage is the authoritative verification until then. **No
+  schema/backend/sync-protocol/catalog-sourcing/ADR-P013 changes.**
 
 ### Acceptance Criteria
 
@@ -598,7 +617,9 @@ started.**
 - [x] Meal plans remain deterministic when exclusions change.
       (Slice 3: exclusions folded into the seed + pure generator; identical
       exclusions → deep-equal plan, changed exclusions → re-seeded plan.)
-- [ ] Logging an excluded food warns but never hard-blocks or silently drops.
+- [x] Logging an excluded food warns but never hard-blocks or silently drops.
+      (Slice 4: `matchFoodExclusion` + non-blocking `FoodLogAddForm` banner;
+      submit/persistence path unchanged. E2E flow pending a new e2e APK build.)
 - [ ] Additive migrations only; existing users default to no exclusions.
 
 ### Related Documents

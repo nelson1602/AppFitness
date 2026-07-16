@@ -1,16 +1,36 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import type { FoodLogState } from '../application/food-log.store';
+import type { DietaryPreferenceState } from '../application/dietary-preference.store';
+import type { DietaryPreference } from '../domain/dietary-preference';
 import type { LoggedMealItem } from '../domain/food-log';
 import { FoodLogScreen } from './FoodLogScreen';
 
 let mockState: FoodLogState;
+let mockPrefs: DietaryPreferenceState;
 let mockNutrition: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
+
+const loadPreferences = jest.fn();
 
 jest.mock('../application/food-log.store', () => ({
   useFoodLogStore: (selector?: (s: FoodLogState) => unknown) =>
     selector ? selector(mockState) : mockState,
 }));
+jest.mock('../application/dietary-preference.store', () => ({
+  useDietaryPreferenceStore: (selector?: (s: DietaryPreferenceState) => unknown) =>
+    selector ? selector(mockPrefs) : mockPrefs,
+}));
+
+function setPrefs(preferences: DietaryPreference[] = [], status: DietaryPreferenceState['status'] = 'ready'): void {
+  mockPrefs = {
+    status,
+    preferences,
+    error: null,
+    load: loadPreferences,
+    add: jest.fn(),
+    remove: jest.fn(),
+  } as unknown as DietaryPreferenceState;
+}
 jest.mock('@/features/dashboard/application/dashboard.store', () => ({
   useDashboardStore: (
     selector?: (
@@ -60,12 +80,43 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockNutrition = { calories: 2000, proteinG: 150, carbsG: 200, fatG: 60 };
   setState();
+  setPrefs();
 });
 
 describe('FoodLogScreen (Slice 4C)', () => {
   it('loads the log on mount', async () => {
     await render(<FoodLogScreen />);
     expect(mockState.load).toHaveBeenCalledTimes(1);
+  });
+
+  it('loads active dietary preferences on mount (ADR-P014 Slice 4)', async () => {
+    await render(<FoodLogScreen />);
+    expect(loadPreferences).toHaveBeenCalledTimes(1);
+  });
+
+  it('surfaces a dietary-preference warning when a matching food is selected', async () => {
+    setPrefs([
+      {
+        id: 'dp-1',
+        userId: 'u1',
+        exclusionType: 'avoid_tag',
+        avoidTag: 'nut_allergy',
+        catalogKey: null,
+        kind: 'allergy',
+        hasNote: false,
+        version: 1,
+        syncStatus: 'pending',
+        updatedAt: '2026-07-16T00:00:00.000Z',
+      },
+    ]);
+    await render(<FoodLogScreen />);
+
+    await fireEvent.changeText(screen.getByTestId('food-search-input'), 'almonds');
+    await fireEvent.press(await screen.findByText('Almonds'));
+
+    expect(
+      screen.getByText('Heads up — this matches an allergy or sensitivity'),
+    ).toBeOnTheScreen();
   });
 
   it('renders a loading state', async () => {
