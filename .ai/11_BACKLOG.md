@@ -481,6 +481,64 @@ internal-test = 13–14; commercial v1 = 13–17; post-v1 = 18–19.
 
 ---
 
+## [FEATURE-006] Dietary Preferences, Allergies, and Food Exclusions
+
+Status: **Blocked — awaiting owner acceptance of ADR-P014** (decision gate
+drafted 2026-07-16, Status: Proposed). No implementation until an option is
+accepted.
+Priority: P2
+Type: Feature
+
+### Problem
+
+Users need to indicate foods / food categories they cannot or will not eat.
+The catalog already carries `avoidFor` tags and the meal generator already
+excludes via `excludeAvoidTags`, but there is no user-facing model, UI,
+persistence, or sync for dietary preferences or allergies, and clinical
+medical restrictions do not map to nutrition avoid tags
+(`restriction-map.ts` returns `[]` today). This is the "separate future
+slice" deliberately carved out of the 2026-07-16 nutrition data-gap UX
+correction.
+
+### Decision gate
+
+See **ADR-P014** for the full decision (entity shape/ownership, sensitivity
+classification, persistence, offline-first sync + conflict, meal-plan
+determinism, log-time behavior for excluded foods, UI surfaces, migration,
+tests). Recommended: **Option A** — a nutrition-domain `DietaryPreference`
+entity (avoid tags + explicit catalogKey exclusions + per-item allergy vs
+preference `kind`), synced offline-first, with allergies treated as
+health-sensitive (ADR-0011) and preferences as wellness.
+
+### Proposed implementation slices (blocked until ADR-P014 accepted)
+
+- **Slice 1 — Schema + sync foundation:** SQLite table + forward-only
+  migration, Postgres table, versioned sync entity + handler (mirrors
+  profile/restriction), encryption for any free-text.
+- **Slice 2 — Mobile repository/store + preference UI:** repository, store,
+  and the preferences/allergies editor; exclusions summary surface.
+- **Slice 3 — Meal-plan integration:** feed exclusions into the generator
+  (tag + new catalogKey exclusion) and the seed for deterministic
+  regeneration; plan explanation of what was excluded; log-time non-blocking
+  warning for excluded foods.
+- **Slice 4 — E2E validation:** set exclusion → plan reflects it → logging an
+  excluded food warns; conflict-sync coverage.
+
+### Acceptance Criteria
+
+- [ ] Owner accepts an ADR-P014 option before any implementation begins.
+- [ ] Allergy vs preference sensitivity split honored per ADR-0011.
+- [ ] Meal plans remain deterministic when exclusions change.
+- [ ] Logging an excluded food warns but never hard-blocks or silently drops.
+- [ ] Additive migrations only; existing users default to no exclusions.
+
+### Related Documents
+
+- .ai/12_DECISIONS.md — ADR-P014 (this decision gate), ADR-P012, ADR-0011
+- mobile/src/features/nutrition/domain/food-catalog.ts / restriction-map.ts / application/meal-generator.ts
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation
@@ -1074,7 +1132,9 @@ fix (no schema/backend/sync/catalog/dependency change):
 **Dietary preferences / food allergies / exclusions remain a SEPARATE future
 slice — explicitly out of scope here.** The gap copy mentions allergies only
 as a non-blocking planned future capability; nothing in this slice implements
-or gates on them.
+or gates on them. That separate slice is now scoped as **FEATURE-006**,
+gated on **ADR-P014** (decision gate drafted 2026-07-16, Status: Proposed —
+implementation blocked until the owner accepts an option).
 
 ### Slice 4B implementation status (2026-07-13) — backend handler landed
 

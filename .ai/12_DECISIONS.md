@@ -4314,6 +4314,166 @@ counted under gate (c).
 
 ---
 
+## ADR-P014 — Dietary Preferences, Allergies, and Food Exclusions
+
+Status: **Proposed** (documentation-only decision gate; NOT Accepted — no
+schema, mobile UI, backend route, sync handler, or catalog change is
+authorized until the owner accepts an option below)
+Date: 2026-07-16
+Owner decision required: accept an option (A/B/C/D), amend, or reject.
+Relates to: ADR-P012 (food-logging / catalog identity / conflict semantics),
+ADR-0011 (health data highly sensitive), ADR-P001 + ADR-P006 (SQLite +
+server field-level encryption), ADR-0006 (offline-first sync). Independent of
+ADR-P013 / TECHDEBT-004 risk 3 (gram-sourcing), which stays paused/open.
+
+### Context
+
+Users need to indicate foods or food categories they cannot or will not eat.
+The catalog and meal generator ALREADY support exclusion mechanically — the
+only gaps are a user-facing data source and per-food exclusion:
+
+- `FoodItem.avoidFor?: AvoidTag[]` with a closed vocabulary of six tags
+  (`nut_allergy`, `shellfish_allergy`, `gluten_sensitive`,
+  `lactose_sensitive`, `high_sodium_sensitive`, `high_purine`) —
+  `mobile/src/features/nutrition/domain/food-catalog.ts`.
+- `generateMealPlan` excludes any food whose `avoidFor` intersects the
+  excluded set, built from `restrictionsToAvoidTags(activeRestrictions)` ∪
+  `input.excludeAvoidTags` — `meal-generator.ts`.
+- `restrictionsToAvoidTags` currently returns `[]` for every restriction and
+  is the **documented integration point** (`restriction-map.ts`): the current
+  clinical model (INJURY / CONDITION / DOCTOR_RESTRICTION + bodyArea/severity)
+  carries NO structured dietary/allergy signal.
+- The generator has **no per-food (catalogKey) exclusion** — only tag-based.
+  Custom "I don't eat this specific food" needs a new mechanism in
+  `buildPools`.
+
+So today there is no entity, persistence, sync, or UI for preferences or
+allergies, and clinical restrictions do not map to nutrition avoid tags.
+
+### Decision drivers
+
+- **Safety.** Allergies are health-relevant; a missed exclusion in a meal
+  plan or an un-warned logged food is a real-world harm, not a cosmetic bug.
+- **Determinism.** Meal plans are pure and seed-stable (ADR-P012); exclusions
+  must feed the plan input in a versioned way so changing them regenerates
+  deterministically rather than drifting.
+- **Reuse.** The `avoidFor` / `excludeAvoidTags` path already exists — the
+  cheapest correct design routes user data into it rather than inventing a
+  parallel filter.
+- **Sensitivity + sync.** Health data is highly sensitive (ADR-0011) and
+  free-text is encrypted (ADR-P001/P006); offline-first sync needs defined
+  conflict semantics (ADR-0006).
+
+### Sensitivity classification (explicit decision — task item 4)
+
+**Proposed: split by kind, not one blanket label.**
+- **Allergies / intolerances** → treated as **health-sensitive** (ADR-0011):
+  any free-text (e.g. an "other allergy" note) is encrypted like medical
+  free-text; structured allergy flags are handled with health-data care
+  (never logged, deletable under ADR-P011). They are SAFETY exclusions.
+- **Dietary preferences** (e.g. vegan, dislikes, "avoid pork") → **wellness
+  preferences**, lower sensitivity, still user-private but not clinical.
+
+This split lets the UI and copy distinguish "I'm allergic" (safety, strong
+warnings) from "I prefer not to" (preference, soft) without forcing all
+preference data through the heavier medical pipeline.
+
+### Options
+
+- **Option A — Nutrition-domain `DietaryPreference` entity (RECOMMENDED).**
+  A new nutrition-owned entity holding: (1) selected `avoidFor` tags, (2)
+  explicit per-food `catalogKey` exclusions, and (3) a per-entry `kind`
+  (`allergy` | `preference`) driving sensitivity + warning strength. Feeds
+  the meal generator through the existing `excludeAvoidTags` plus a new
+  catalogKey-exclusion input; `restrictionsToAvoidTags` stays clinical.
+  Offline-first: local SQLite table + a versioned sync entity mirroring the
+  profile/restriction pattern. Most extensible; reuses the built-in exclusion
+  path; keeps clinical vs dietary concerns separate.
+- **Option B — Profile-owned preference fields only.** Add
+  `avoidTags: AvoidTag[]` (and maybe `excludedFoodKeys: string[]`) to the
+  existing single-row `Profile` (versioned, LWW sync — already wired). Cheap
+  and fast, no new sync entity. But: no per-entry `kind`/sensitivity split,
+  no allergy-specific handling, coarse LWW conflict semantics, and it
+  overloads the profile row. Less extensible.
+- **Option C — Medical-domain allergies/restrictions.** Extend the clinical
+  restriction model (or add an allergy restriction type) so allergies live
+  with evaluations/restrictions. Safest framing for allergies, inherits
+  encryption + conflict handling. But heavy, conflict-sensitive (append-only
+  evaluations / versioned restrictions), and conflates clinical injuries with
+  dietary preferences; preferences don't belong in the medical domain.
+- **Option D — Defer.** Keep exclusions test-only via `excludeAvoidTags`; no
+  user data. Rejected as the standing state, not a resolution.
+
+### Recommendation
+
+**Option A**, with the sensitivity split above. Rationale: it plugs into the
+exclusion machinery that already exists (`avoidFor` / `excludeAvoidTags`),
+keeps the clinical model clean, and the per-entry `kind` handles the
+allergy-vs-preference distinction that Options B and C cannot express well.
+It follows the established versioned offline-first entity pattern
+(profile/restriction) rather than the append-only evaluation pattern, since
+preferences are mutable current-state, not an immutable history.
+
+### Consequences / behaviors the gate commits to (if Option A is accepted)
+
+- **Entity shape & ownership:** nutrition domain owns `DietaryPreference`
+  (one row per user, or a small set of exclusion rows) with `avoidTags`,
+  `excludedCatalogKeys`, and per-item `kind`. Not under profile or medical.
+- **Persistence:** local SQLite table (new forward-only migration) + backend
+  Postgres table; free-text (if any) encrypted per ADR-P001/P006.
+- **Sync:** offline-first via a new versioned sync entity + handler mirroring
+  the profile/restriction handlers; version-based conflict → `conflict`
+  status surfaced to the user (never silent overwrite of an allergy).
+- **Meal-plan determinism:** exclusions become part of the plan input and the
+  meal seed (alongside `CATALOG_VERSION` / `MEAL_RULE_VERSION`), so changing
+  exclusions deterministically regenerates the plan; the plan already reports
+  `excludedAvoidTags` and would also report excluded catalog keys.
+- **Food logging of an excluded food:** ALLOWED but flagged — a non-blocking
+  warning (stronger wording for `allergy` kind), never a hard block and never
+  a silent drop. Users may knowingly log; the app informs, doesn't refuse.
+- **UI surfaces:** a preferences/allergies editor (likely profile- or
+  nutrition-settings-adjacent), an exclusions summary on the nutrition
+  surfaces, and the log-time warning. Copy distinguishes allergy (safety) vs
+  preference (choice).
+- **Generator change:** add per-food catalogKey exclusion to `buildPools`
+  (currently tag-only); extend/replace `restrictionsToAvoidTags` with a
+  `preferencesToAvoidTags` source at the documented integration point.
+- **Migration strategy:** additive forward-only migrations only; no change to
+  existing evaluation/restriction/profile tables; default = no exclusions
+  (behavior identical to today for existing users).
+- **Test/E2E strategy:** deterministic generator tests for tag + catalogKey
+  exclusion and plan regeneration on change; repository/sync unit tests incl.
+  conflict; a log-time warning component test; one E2E covering
+  set-exclusion → plan reflects it → logging an excluded food warns.
+
+### Acceptance criteria (what accepting Option A authorizes)
+
+The owner accepts when satisfied with: (a) nutrition-domain ownership and the
+`DietaryPreference` shape incl. per-item `kind`; (b) the allergy=sensitive /
+preference=wellness split; (c) offline-first versioned sync + conflict
+surfacing; (d) meal-plan determinism via seed/version; (e) non-blocking
+log-time warning behavior; (f) additive-migration + test/E2E strategy.
+Acceptance authorizes the implementation slices below; it changes no code by
+itself.
+
+### Out of scope until Accepted
+
+Any schema/migration, SQLite table, mobile UI/repository/store, backend
+route/sync handler, generator change, catalog change, or dependency. This ADR
+adds no runtime behavior. ADR-P013 third-source / gram-sourcing work remains
+independently paused.
+
+### Related Documents
+
+- .ai/12_DECISIONS.md — ADR-P012 (food logging / catalog identity / conflict), ADR-0011 (health-data sensitivity), ADR-P001 / ADR-P006 (encryption), ADR-0006 (offline-first sync)
+- .ai/11_BACKLOG.md — FEATURE: Dietary preferences & allergies (slices 1–4, blocked on this ADR)
+- mobile/src/features/nutrition/domain/food-catalog.ts — `AvoidTag`, `FoodItem.avoidFor`
+- mobile/src/features/nutrition/domain/restriction-map.ts — documented avoid-tag integration point
+- mobile/src/features/nutrition/application/meal-generator.ts — `excludeAvoidTags`, `buildPools`
+- mobile/src/features/medical/domain/medical.types.ts — clinical restriction model (kept separate)
+
+---
+
 # Rejected Decisions
 
 No rejected decisions documented yet.
