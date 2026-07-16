@@ -514,11 +514,26 @@ started.**
 
 ### Implementation slices (authorized; each needs its own scoped go-ahead)
 
-- **Slice 1 — Schema + sync foundation:** SQLite table + forward-only
-  migration, Postgres table, versioned sync entity + handler (mirrors
-  profile/restriction), encryption for any free-text.
-- **Slice 2 — Mobile repository/store + preference UI:** repository, store,
-  and the preferences/allergies editor; exclusions summary surface.
+- **Slice 1 — Schema + contract foundation — IMPLEMENTED 2026-07-16 (not yet
+  committed at time of writing):** additive forward-only SQLite migration
+  `003-dietary-preferences` + Postgres migration
+  `20260716120000_add_dietary_preferences` creating a nutrition-domain
+  `dietary_preferences` table (SYNCED-columns + `exclusion_type`
+  avoid_tag/catalog_key, `avoid_tag`, `catalog_key`, `kind`
+  allergy/preference, encrypted `note_enc`/`enc_key_id`, CHECK: exactly one
+  target matching type); Prisma `DietaryPreference` model + `User` reverse
+  relation; mobile `DietaryPreferenceRow` type + nutrition-domain
+  `DietaryPreference` contract + pure `rowToDietaryPreference` mapper + test.
+  **No behavior change: no repository/store/sync-applier, no backend sync
+  handler/mapper/module wiring, no UI, no meal-plan/food-log use.** The
+  mobile repository/store + sync-applier registration and the backend
+  NestJS sync handler are intentionally deferred to **Slice 2**, where they
+  are exercisable and testable end-to-end with a data producer/consumer.
+- **Slice 2 — Mobile repository/store + backend sync handler + preference
+  UI:** local repository + store + sync-applier registration; backend
+  payload/mapper/repository/sync-handler + module wiring; the
+  preferences/allergies editor; exclusions summary surface; encryption for
+  free-text notes.
 - **Slice 3 — Meal-plan integration + deterministic regeneration/explanations:**
   feed exclusions into the generator (tag + new catalogKey exclusion) and the
   seed so plans regenerate deterministically; explain what was excluded.

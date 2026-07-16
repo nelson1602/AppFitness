@@ -25,6 +25,10 @@ export type FitnessLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
 export type ActivityLevel = 'SEDENTARY' | 'LIGHT' | 'MODERATE' | 'ACTIVE' | 'VERY_ACTIVE';
 export type RestrictionType = 'INJURY' | 'CONDITION' | 'DOCTOR_RESTRICTION';
 export type RestrictionSeverity = 'MILD' | 'MODERATE' | 'SEVERE';
+/** ADR-P014 dietary exclusion: excludes by catalog avoid-tag or by food key. */
+export type DietaryExclusionType = 'avoid_tag' | 'catalog_key';
+/** ADR-P014 sensitivity/warning class: safety allergy vs wellness preference. */
+export type DietaryPreferenceKind = 'allergy' | 'preference';
 export type ExerciseCategory = 'STRENGTH' | 'CARDIO' | 'FLEXIBILITY' | 'BODYWEIGHT';
 export type MealTypeName = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 export type RecommendationPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -126,6 +130,22 @@ export interface MedicalRestrictionRow extends SyncedRow {
   is_active: SqlBool;
   effective_from: string | null;
   effective_until: string | null;
+}
+
+/**
+ * ADR-P014 / FEATURE-006 Slice 1 — dietary preference/exclusion (nutrition
+ * domain). One row per exclusion: either an `avoid_tag` or an explicit
+ * `catalog_key` (exactly one, matching `exclusion_type`), classified by
+ * `kind`. Optional encrypted free-text note (ADR-P006). Schema-only in this
+ * slice — no repository/store/sync wiring yet.
+ */
+export interface DietaryPreferenceRow extends SyncedRow {
+  exclusion_type: DietaryExclusionType;
+  avoid_tag: string | null;
+  catalog_key: string | null;
+  kind: DietaryPreferenceKind;
+  note_enc: Uint8Array | null;
+  enc_key_id: string | null;
 }
 
 export interface HealthLogRow extends SyncedRow {

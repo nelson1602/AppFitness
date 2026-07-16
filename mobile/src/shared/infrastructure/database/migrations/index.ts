@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { initialMigration } from './001-initial';
 import { nutritionCatalog4aMigration } from './002-nutrition-catalog-4a';
+import { dietaryPreferencesMigration } from './003-dietary-preferences';
 
 export interface Migration {
   version: number;
@@ -19,7 +20,11 @@ export interface Migration {
  * Ordered migration registry. Append new migrations here — never edit a
  * shipped migration (.ai/04_DATABASE.md).
  */
-export const MIGRATIONS: readonly Migration[] = [initialMigration, nutritionCatalog4aMigration];
+export const MIGRATIONS: readonly Migration[] = [
+  initialMigration,
+  nutritionCatalog4aMigration,
+  dietaryPreferencesMigration,
+];
 
 /**
  * Applies pending migrations atomically, tracked via PRAGMA user_version

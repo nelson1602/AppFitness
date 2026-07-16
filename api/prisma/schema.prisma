@@ -187,6 +187,7 @@ model User {
   nutritionLogs       NutritionLog[]
   meals               Meal[]
   mealItems           MealItem[]
+  dietaryPreferences  DietaryPreference[]
   bodyWeights         BodyWeight[]
   bodyMeasurements    BodyMeasurement[]
   progressSnapshots   ProgressSnapshot[]
@@ -686,6 +687,36 @@ model MealItem {
   @@index([mealId], map: "idx_meal_items_meal")
   @@index([userId, syncSeq], map: "idx_meal_items_user_syncseq")
   @@map("meal_items")
+}
+
+/// ADR-P014 / FEATURE-006 Slice 1 — dietary preferences & allergies (schema
+/// foundation). Nutrition-domain, per-user synced entity: one row per
+/// exclusion, either by catalog `avoid_tag` or explicit `catalog_key`,
+/// classified by `kind` ('allergy' safety-sensitive / 'preference' wellness).
+/// Optional AES-256-GCM note ciphertext (ADR-P006). CHECK constraint (exactly
+/// one target matching exclusion_type) is enforced in the migration SQL.
+model DietaryPreference {
+  id            String  @id @db.Uuid // client-generatable
+  userId        String  @map("user_id") @db.Uuid
+  exclusionType String  @map("exclusion_type") // 'avoid_tag' | 'catalog_key'
+  avoidTag      String? @map("avoid_tag")
+  catalogKey    String? @map("catalog_key")
+  kind          String // 'allergy' | 'preference'
+  noteEnc       Bytes?  @map("note_enc") // AES-256-GCM ciphertext (ADR-P006)
+  encKeyId      String? @map("enc_key_id")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_dietary_preferences_user")
+
+  @@index([userId], map: "idx_dietary_preferences_user")
+  @@index([userId, syncSeq], map: "idx_dietary_preferences_user_syncseq")
+  @@map("dietary_preferences")
 }
 
 // ─── Progress ────────────────────────────────────────────────────────────────
