@@ -1513,13 +1513,18 @@ replaces the deterministic engine.
   exclusions + allergy/preference `kind`), synced offline-first. The catalog
   `avoidFor` / `excludeAvoidTags` machinery already exists to receive it.
   **Progress:** Slice 1 (schema+sync foundation), Slice 2A (repository/store +
-  backend sync handler, no UI), and **Slice 2B (preference/allergy management
-  UI — session-guarded `/dietary-preferences` route + screen + dashboard entry,
-  bound to the Slice 2A store; no meal-plan/food-log behavior)** are
-  IMPLEMENTED. **Slice 3 (meal-plan integration + deterministic regeneration)
-  and Slice 4 (food-log warning behavior + E2E) remain PENDING; each slice
-  needs its own scoped owner authorization.** Independent of the paused
-  ADR-P013 third-source work (TECHDEBT-004 risk 3 part 2, still open/paused).
+  backend sync handler, no UI), Slice 2B (preference/allergy management UI —
+  session-guarded `/dietary-preferences` route + screen + dashboard entry,
+  bound to the Slice 2A store), and **Slice 3 (deterministic meal-plan
+  integration — active preferences collapse into sorted avoid-tag +
+  explicit-catalogKey exclusion sets fed to the pure generator and folded into
+  the plan seed only when present, so plans regenerate deterministically when
+  exclusions change and are byte-unchanged when none exist; the plan surface
+  explains applied exclusions with the non-medical disclaimer intact; no
+  food-log behavior)** are IMPLEMENTED. **Slice 4 (food-log warning behavior +
+  E2E) remains PENDING; each slice needs its own scoped owner authorization.**
+  Independent of the paused ADR-P013 third-source work (TECHDEBT-004 risk 3
+  part 2, still open/paused).
 
 ### Dependencies
 Phases 13–14.5; the iCoach nutrition engine (already deterministic).

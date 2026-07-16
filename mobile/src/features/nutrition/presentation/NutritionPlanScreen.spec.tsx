@@ -4,11 +4,14 @@ import type { DashboardState } from '@/features/dashboard/domain/dashboard.types
 
 import type { MealMacros, MealPlan, MealPlanDay, MealSlot } from '../domain/meal-plan';
 import type { MealPlanSelection } from '../application/meal-plan.service';
+import type { DietaryPreferenceState } from '../application/dietary-preference.store';
 import { NutritionPlanScreen } from './NutritionPlanScreen';
 
 const refresh = jest.fn();
+const loadPreferences = jest.fn();
 let mockDash: DashboardState;
 let mockSelection: MealPlanSelection;
+let mockPrefs: DietaryPreferenceState;
 
 jest.mock('@/features/dashboard/application/dashboard.store', () => ({
   useDashboardStore: () => mockDash,
@@ -18,8 +21,28 @@ jest.mock('@/features/authentication', () => ({
 }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('../application/meal-plan.service', () => ({
-  selectMealPlan: () => mockSelection,
+  selectMealPlan: (...args: unknown[]) => {
+    lastSelectArgs = args;
+    return mockSelection;
+  },
 }));
+jest.mock('../application/dietary-preference.store', () => ({
+  useDietaryPreferenceStore: () => mockPrefs,
+}));
+
+let lastSelectArgs: unknown[] = [];
+
+function setPrefs(partial: Partial<DietaryPreferenceState> = {}) {
+  mockPrefs = {
+    status: 'ready',
+    preferences: [],
+    error: null,
+    load: loadPreferences,
+    add: jest.fn(),
+    remove: jest.fn(),
+    ...partial,
+  } as unknown as DietaryPreferenceState;
+}
 
 function macros(c: number, p: number, cb: number, f: number): MealMacros {
   return { calories: c, proteinG: p, carbsG: cb, fatG: f };
@@ -62,6 +85,7 @@ function plan(): MealPlan {
     goalType: 'MAINTENANCE',
     targets: macros(2300, 130, 260, 76),
     excludedAvoidTags: [],
+    excludedCatalogKeys: [],
     days: [day(1), day(2), day(3)],
     rationale: 'Deterministic plan.',
   };
@@ -83,12 +107,57 @@ describe('NutritionPlanScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     setDash({});
+    setPrefs({});
+    lastSelectArgs = [];
     mockSelection = { status: 'ready', plan: plan() };
   });
 
   it('refreshes the assessment on mount', async () => {
     await render(<NutritionPlanScreen />);
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it('loads active dietary preferences on mount and feeds them to plan selection', async () => {
+    const preferences = [{ id: 'dp-1', avoidTag: 'nut_allergy' }];
+    setPrefs({ status: 'ready', preferences: preferences as never });
+
+    await render(<NutritionPlanScreen />);
+
+    await waitFor(() => expect(loadPreferences).toHaveBeenCalledTimes(1));
+    // selectMealPlan receives (assessment, userId, activePreferences).
+    expect(lastSelectArgs[2]).toEqual(preferences);
+  });
+
+  it('shows the loading state until preferences finish loading', async () => {
+    setPrefs({ status: 'loading', preferences: [] });
+    await render(<NutritionPlanScreen />);
+    expect(screen.getByLabelText('Loading meal plan')).toBeOnTheScreen();
+  });
+
+  it('still renders the plan (with no exclusions) when preference loading fails', async () => {
+    setPrefs({ status: 'error', preferences: [], error: 'nope' });
+    await render(<NutritionPlanScreen />);
+    // Plan renders; preferences omitted (empty) → no exclusions card.
+    expect(screen.getByText('Day 1')).toBeOnTheScreen();
+    expect(lastSelectArgs[2]).toEqual([]);
+    expect(screen.queryByLabelText('Applied dietary preferences')).toBeNull();
+  });
+
+  it('explains applied exclusions when the plan removed foods', async () => {
+    mockSelection = {
+      status: 'ready',
+      plan: { ...plan(), excludedAvoidTags: ['nut_allergy'], excludedCatalogKeys: ['food.tofu'] },
+    };
+    await render(<NutritionPlanScreen />);
+    expect(screen.getByLabelText('Applied dietary preferences')).toBeOnTheScreen();
+    expect(screen.getByText(/Avoided categories: Nuts/)).toBeOnTheScreen();
+    expect(screen.getByText(/Excluded foods:/)).toBeOnTheScreen();
+  });
+
+  it('renders no exclusions card when the plan excluded nothing (unchanged ready state)', async () => {
+    await render(<NutritionPlanScreen />);
+    expect(screen.getByText('Day 1')).toBeOnTheScreen();
+    expect(screen.queryByLabelText('Applied dietary preferences')).toBeNull();
   });
 
   it('renders day 1 with all four meal slots, foods, portions, calories and macros', async () => {

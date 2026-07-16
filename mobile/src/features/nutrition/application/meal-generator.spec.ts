@@ -222,6 +222,68 @@ describe('generateMealPlan — restriction / avoidFor handling', () => {
   });
 });
 
+describe('generateMealPlan — dietary preference exclusions (ADR-P014 Slice 3)', () => {
+  // Pick real catalog foods that the baseline plan actually selects, so
+  // excluding them provably changes selection.
+  const selectedIds = (over: Partial<MealPlanInput> = {}): Set<string> =>
+    new Set(
+      generateMealPlan(input(over)).days.flatMap((d) =>
+        d.meals.flatMap((m) => m.foods.map((f) => f.foodId)),
+      ),
+    );
+
+  it('never selects a food whose catalog key is explicitly excluded', () => {
+    const baseline = [...selectedIds()];
+    // Exclude the first three foods the baseline actually used.
+    const excludeCatalogKeys = baseline.slice(0, 3);
+    const plan = generateMealPlan(input({ excludeCatalogKeys }));
+
+    expect(plan.excludedCatalogKeys).toEqual([...excludeCatalogKeys].sort());
+    for (const d of plan.days) {
+      for (const m of d.meals) {
+        for (const f of m.foods) {
+          expect(excludeCatalogKeys).not.toContain(f.foodId);
+        }
+      }
+    }
+  });
+
+  it('all excluded ids are valid catalog ids (guards typos)', () => {
+    const baseline = [...selectedIds()];
+    for (const id of baseline.slice(0, 3)) expect(catalogIds.has(id)).toBe(true);
+  });
+
+  it('is deterministic for identical exclusions and changes when they change', () => {
+    const excl = { excludeAvoidTags: ['nut_allergy'] as const };
+    const a = generateMealPlan(input({ ...excl, seed: 'user-1|avoid:nut_allergy' }));
+    const b = generateMealPlan(input({ ...excl, seed: 'user-1|avoid:nut_allergy' }));
+    expect(a).toEqual(b);
+
+    // A different exclusion set (reflected in the seed) changes the plan.
+    const c = generateMealPlan(
+      input({ excludeAvoidTags: ['shellfish_allergy'], seed: 'user-1|avoid:shellfish_allergy' }),
+    );
+    expect(c).not.toEqual(a);
+  });
+
+  it('emits empty exclusion lists and a clean rationale when no preferences apply', () => {
+    const plan = generateMealPlan(input());
+    expect(plan.excludedAvoidTags).toEqual([]);
+    expect(plan.excludedCatalogKeys).toEqual([]);
+    expect(plan.rationale).not.toMatch(/dietary preferences and allergies shape/i);
+  });
+
+  it('explains applied exclusions in the plan rationale', () => {
+    const plan = generateMealPlan(
+      input({ excludeAvoidTags: ['nut_allergy'], excludeCatalogKeys: ['food.tofu'] }),
+    );
+    expect(plan.rationale).toMatch(/dietary preferences and allergies shape this deterministic plan/i);
+    expect(plan.rationale).toMatch(/nut_allergy/);
+    expect(plan.rationale).toMatch(/food\.tofu/);
+    expect(plan.rationale).toMatch(/not medical or dietary advice/i);
+  });
+});
+
 describe('generateMealPlan — explainability', () => {
   it('includes plan, day, and meal rationale that is non-medical', () => {
     const plan = generateMealPlan(input());

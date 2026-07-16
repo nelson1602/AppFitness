@@ -561,9 +561,29 @@ started.**
   screen loading/empty/list states, add-avoidTag flow, add-explicit-food-
   exclusion flow, remove flow, dashboard navigation entry, and a no-direct-
   SQLite-access guard. **No meal-plan wiring, no food-log behavior.**
-- **Slice 3 — Meal-plan integration + deterministic regeneration/explanations:**
-  feed exclusions into the generator (tag + new catalogKey exclusion) and the
-  seed so plans regenerate deterministically; explain what was excluded.
+- **Slice 3 — Meal-plan integration + deterministic regeneration/explanations
+  — IMPLEMENTED 2026-07-16 (not yet committed at time of writing):** the
+  meal-plan service now loads the user's active dietary preferences and
+  collapses them (via pure `toMealExclusions`) into deterministic, sorted,
+  deduped avoid-tag + explicit-catalogKey exclusion sets. `MealPlanInput`
+  gained `excludeCatalogKeys`; the pure generator removes any food whose
+  catalog id is excluded (alongside the existing avoidFor-tag exclusion) from
+  every selection pool, and the `MealPlan` output now carries
+  `excludedCatalogKeys` plus a conditional exclusion clause in its rationale.
+  `buildMealSeed` folds the sorted exclusion sets into the seed **only when
+  present**, so changing exclusions deterministically re-seeds/regenerates the
+  plan while a user with no preferences keeps their exact pre-Slice-3
+  seed/plan. `NutritionPlanScreen` loads preferences (additive: on
+  loading/error it still builds with no exclusions), gates the loading state
+  on the preference store, and renders an "applied exclusions" explanation
+  card with the non-medical disclaimer intact. Generator stays PURE (no
+  Date.now/Math.random/network/storage). Focused tests: generator excludes
+  avoidTag foods, generator excludes explicit catalogKey foods, deterministic
+  for identical exclusions + changes when exclusions change, service
+  `toMealExclusions`/seed/`selectMealPlan` preference application, ready state
+  unchanged when no preferences exist, screen loads/applies preferences +
+  safe loading/error states. **No schema/backend/sync-protocol changes; no
+  food-log warning behavior (Slice 4).**
 - **Slice 4 — Food-log warning behavior + E2E validation:** non-blocking
   log-time warning for excluded foods (stronger for `allergy` kind); E2E
   covering set-exclusion → plan reflects it → logging an excluded food warns;
@@ -575,7 +595,9 @@ started.**
       (Option A accepted 2026-07-16.)
 - [x] Allergy vs preference sensitivity split honored per ADR-0011.
       (Slice 2A: `kind` + AES-256-GCM note encryption + conflict redaction.)
-- [ ] Meal plans remain deterministic when exclusions change.
+- [x] Meal plans remain deterministic when exclusions change.
+      (Slice 3: exclusions folded into the seed + pure generator; identical
+      exclusions → deep-equal plan, changed exclusions → re-seeded plan.)
 - [ ] Logging an excluded food warns but never hard-blocks or silently drops.
 - [ ] Additive migrations only; existing users default to no exclusions.
 

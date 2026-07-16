@@ -7,9 +7,12 @@ import { useDashboardStore } from '@/features/dashboard/application/dashboard.st
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { MealPlanDay, MealPlanMeal, MealSlot } from '../domain/meal-plan';
+import { AVOID_TAG_LABELS } from '../domain/food-catalog';
+import type { MealPlan, MealPlanDay, MealPlanMeal, MealSlot } from '../domain/meal-plan';
 import { NUTRITION_DISCLAIMER } from '../domain/nutrition-explain';
+import { getById } from '../application/food-catalog.service';
 import { selectMealPlan } from '../application/meal-plan.service';
+import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { NutritionDataGap } from './NutritionDataGap';
 
 const SLOT_LABEL: Record<MealSlot, string> = {
@@ -123,24 +126,77 @@ function DayView({ day }: { day: MealPlanDay }) {
 }
 
 /**
- * 15-day meal plan surface (Phase 15 Slice 3B). A read-only projection of
- * the deterministic generator over the dashboard/iCoach assessment (single
- * source of truth). No recompute, no logging of values, no medical claims.
+ * Applied dietary preferences/allergies (ADR-P014 Slice 3). Renders only when
+ * the deterministic plan actually excluded something, explaining what was
+ * removed. Descriptive copy — not a medical claim.
+ */
+function ExclusionsCard({ plan }: { plan: MealPlan }) {
+  const theme = useTheme();
+  if (plan.excludedAvoidTags.length === 0 && plan.excludedCatalogKeys.length === 0) return null;
+
+  const categories = plan.excludedAvoidTags.map((t) => AVOID_TAG_LABELS[t]);
+  const foods = plan.excludedCatalogKeys.map((k) => getById(k)?.name ?? k);
+
+  return (
+    <Card accessibilityLabel="Applied dietary preferences">
+      <View style={{ gap: theme.spacing.xs }}>
+        <AppText variant="label">Your dietary preferences shaped this plan</AppText>
+        {categories.length > 0 ? (
+          <AppText variant="caption" tone="muted">
+            Avoided categories: {categories.join(', ')}
+          </AppText>
+        ) : null}
+        {foods.length > 0 ? (
+          <AppText variant="caption" tone="muted">
+            Excluded foods: {foods.join(', ')}
+          </AppText>
+        ) : null}
+        <AppText variant="caption" tone="muted">
+          Allergies and preferences deterministically remove foods before selection, so the plan
+          reflects them. Not medical advice.
+        </AppText>
+      </View>
+    </Card>
+  );
+}
+
+/**
+ * 15-day meal plan surface (Phase 15 Slice 3B; dietary preferences ADR-P014
+ * Slice 3). A read-only projection of the deterministic generator over the
+ * dashboard/iCoach assessment (single source of truth) and the user's active
+ * dietary preferences. No recompute, no logging of values, no medical claims.
  */
 export function NutritionPlanScreen() {
   const theme = useTheme();
   const { status, data, error, refresh } = useDashboardStore();
+  const {
+    status: prefStatus,
+    preferences,
+    load: loadPreferences,
+  } = useDietaryPreferenceStore();
   const [selectedDay, setSelectedDay] = useState(1);
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    void loadPreferences();
+  }, [refresh, loadPreferences]);
 
   const userId = getSession()?.user.id ?? null;
   const selection = useMemo(
-    () => selectMealPlan(data?.assessment ?? null, userId),
-    [data?.assessment, userId],
+    () =>
+      // Preferences are additive: only feed them in once the store is ready.
+      // On an error/loading state the plan still builds with no exclusions.
+      selectMealPlan(
+        data?.assessment ?? null,
+        userId,
+        prefStatus === 'ready' ? preferences : [],
+      ),
+    [data?.assessment, userId, prefStatus, preferences],
   );
+
+  // Wait for both the assessment and the (additive) preference load to settle
+  // so the first rendered plan already reflects any exclusions.
+  const preferencesLoading = prefStatus === 'idle' || prefStatus === 'loading';
 
   return (
     <View style={{ gap: theme.spacing.lg }}>
@@ -160,7 +216,7 @@ export function NutritionPlanScreen() {
         Log today’s food
       </AppButton>
 
-      {status === 'loading' || status === 'idle' ? (
+      {status === 'loading' || status === 'idle' || preferencesLoading ? (
         <AppText accessibilityLabel="Loading meal plan">Loading…</AppText>
       ) : error ? (
         <Banner title="Meal plan unavailable" tone="error">
@@ -174,6 +230,7 @@ export function NutritionPlanScreen() {
         <NutritionDataGap missing={data?.missing ?? []} context="plan" />
       ) : (
         <>
+          <ExclusionsCard plan={selection.plan} />
           <DaySelector
             count={selection.plan.days.length}
             selected={selectedDay}

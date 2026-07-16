@@ -5,20 +5,13 @@ import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { DietaryPreference, DietaryPreferenceInput } from '../domain/dietary-preference';
-import { AVOID_TAGS, type AvoidTag } from '../domain/food-catalog';
+import { AVOID_TAGS, AVOID_TAG_LABELS, type AvoidTag } from '../domain/food-catalog';
 import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
 import { search } from '../application/food-catalog.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 
-/** Friendly labels for the closed catalog avoid-tag vocabulary. */
-const TAG_LABEL: Record<AvoidTag, string> = {
-  nut_allergy: 'Nuts',
-  shellfish_allergy: 'Shellfish',
-  gluten_sensitive: 'Gluten',
-  lactose_sensitive: 'Lactose / dairy',
-  high_sodium_sensitive: 'High sodium',
-  high_purine: 'High purine (gout)',
-};
+/** Friendly labels for the closed catalog avoid-tag vocabulary (shared copy). */
+const TAG_LABEL: Record<AvoidTag, string> = AVOID_TAG_LABELS;
 
 const KIND_LABEL: Record<DietaryPreference['kind'], string> = {
   allergy: 'Allergy / sensitivity',

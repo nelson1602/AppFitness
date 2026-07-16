@@ -3,6 +3,7 @@ import type { GoalType } from '@/shared/infrastructure/database/types';
 import {
   CATALOG_VERSION,
   type AvoidTag,
+  type FoodId,
   type FoodItem,
   type FoodTag,
 } from '../domain/food-catalog';
@@ -219,9 +220,11 @@ interface Pools {
 function buildPools(
   catalog: readonly FoodItem[],
   excluded: ReadonlySet<AvoidTag>,
+  excludedKeys: ReadonlySet<FoodId>,
   preferred: readonly FoodTag[],
 ): Pools {
-  const ok = (f: FoodItem): boolean => !(f.avoidFor ?? []).some((a) => excluded.has(a));
+  const ok = (f: FoodItem): boolean =>
+    !excludedKeys.has(f.id) && !(f.avoidFor ?? []).some((a) => excluded.has(a));
   const inCat = (cats: FoodItem['category'][]): FoodItem[] =>
     sortPool(
       catalog.filter((f) => ok(f) && cats.includes(f.category)),
@@ -368,8 +371,9 @@ export function generateMealPlan(input: MealPlanInput): MealPlan {
     ...restrictionsToAvoidTags(input.activeRestrictions),
     ...(input.excludeAvoidTags ?? []),
   ]);
+  const excludedKeys = new Set<FoodId>(input.excludeCatalogKeys ?? []);
 
-  const pools = buildPools(input.catalog, excluded, preferred);
+  const pools = buildPools(input.catalog, excluded, excludedKeys, preferred);
   const hash = seedHash(input.seed);
 
   const daily: MealMacros = {
@@ -378,6 +382,9 @@ export function generateMealPlan(input: MealPlanInput): MealPlan {
     carbsG: input.nutritionPlan.carbsG,
     fatG: input.nutritionPlan.fatG,
   };
+
+  const excludedAvoidTags = [...excluded].sort();
+  const excludedCatalogKeys = [...excludedKeys].sort();
 
   const safetyFloorApplied = input.nutritionPlan.safetyFloorApplied;
   const planDays: MealPlanDay[] = [];
@@ -392,13 +399,25 @@ export function generateMealPlan(input: MealPlanInput): MealPlan {
     planDays.push(day);
   }
 
+  // Only when exclusions are present is the exclusion clause appended, so a
+  // plan with no dietary preferences keeps its exact pre-Slice-3 rationale.
+  const hasExclusions = excludedAvoidTags.length > 0 || excludedCatalogKeys.length > 0;
+  const exclusionClause = hasExclusions
+    ? ` Your dietary preferences and allergies shape this deterministic plan: ${
+        excludedAvoidTags.length > 0 ? `avoided categories [${excludedAvoidTags.join(', ')}]` : ''
+      }${excludedAvoidTags.length > 0 && excludedCatalogKeys.length > 0 ? ' and ' : ''}${
+        excludedCatalogKeys.length > 0 ? `excluded foods [${excludedCatalogKeys.join(', ')}]` : ''
+      } were removed before selection.`
+    : '';
+
   return {
     ruleVersion: MEAL_RULE_VERSION,
     catalogVersion: CATALOG_VERSION,
     goalType: input.goalType,
     targets: daily,
-    excludedAvoidTags: [...excluded].sort(),
+    excludedAvoidTags,
+    excludedCatalogKeys,
     days: planDays,
-    rationale: `Deterministic ${days}-day meal routine from your iCoach targets (${daily.calories} kcal; ${daily.proteinG}g protein, ${daily.carbsG}g carbs, ${daily.fatG}g fat) for ${GOAL_LABEL[input.goalType]}. Foods are chosen from the bundled catalog and portioned to approximate each day's targets; identical inputs always produce the same plan. General guidance, not medical or dietary advice.`,
+    rationale: `Deterministic ${days}-day meal routine from your iCoach targets (${daily.calories} kcal; ${daily.proteinG}g protein, ${daily.carbsG}g carbs, ${daily.fatG}g fat) for ${GOAL_LABEL[input.goalType]}. Foods are chosen from the bundled catalog and portioned to approximate each day's targets; identical inputs always produce the same plan.${exclusionClause} General guidance, not medical or dietary advice.`,
   };
 }

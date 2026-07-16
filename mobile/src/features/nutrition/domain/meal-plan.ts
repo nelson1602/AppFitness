@@ -86,10 +86,17 @@ export interface MealPlanInput {
   /** Plan length in days (default 15). */
   days?: number;
   /**
-   * Explicit avoidFor exclusions (e.g., a future dietary-preference source
-   * or tests). Unioned with any tags derived from `activeRestrictions`.
+   * Explicit avoidFor exclusions (dietary-preference/allergy source — ADR-P014
+   * Slice 3 — or tests). Unioned with any tags derived from
+   * `activeRestrictions`.
    */
   excludeAvoidTags?: readonly AvoidTag[];
+  /**
+   * Explicit per-food exclusions by catalog key/id (dietary-preference source,
+   * ADR-P014 Slice 3). Any food whose catalog id is listed is removed from
+   * every selection pool.
+   */
+  excludeCatalogKeys?: readonly FoodId[];
 }
 
 export interface MealPlan {
@@ -100,6 +107,8 @@ export interface MealPlan {
   targets: MealMacros;
   /** avoidFor tags excluded from selection (restrictions + explicit). */
   excludedAvoidTags: AvoidTag[];
+  /** Catalog keys/ids of foods excluded explicitly (per-food preferences). */
+  excludedCatalogKeys: FoodId[];
   days: MealPlanDay[];
   rationale: string;
 }

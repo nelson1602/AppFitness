@@ -269,6 +269,16 @@ export const AVOID_TAGS: readonly AvoidTag[] = [
   'high_purine',
 ];
 
+/** Human-readable labels for the closed avoid-tag vocabulary (shared copy). */
+export const AVOID_TAG_LABELS: Record<AvoidTag, string> = {
+  nut_allergy: 'Nuts',
+  shellfish_allergy: 'Shellfish',
+  gluten_sensitive: 'Gluten',
+  lactose_sensitive: 'Lactose / dairy',
+  high_sodium_sensitive: 'High sodium',
+  high_purine: 'High purine (gout)',
+};
+
 export const SERVING_UNITS: readonly ServingUnit[] = [
   'g',
   'ml',
