@@ -3716,6 +3716,45 @@ by this closure note:
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
 
+#### Per-Food Gate Work — Closure Note (2026-07-16)
+
+**Gates (a), (b), and (c) are CLOSED.** All per-food decision work resolvable
+under the two pinned sources (SR Legacy `sr_legacy_food_csv_2018-04` + FNDDS
+`survey_food_csv_2024-10-31`) is complete:
+
+- **(a) Class-4 / product-variant — 8 foods, all resolved (2026-07-15):**
+  onion, snow_peas, leeks (raw-label renames, SR raw cups); pomegranate,
+  dragon_fruit (owner Option A authored-macro corrections); and
+  coconut_milk_beverage, oat_milk_unsweet, kombucha_unsweet (owner Option B —
+  authored data correct, only incompatible sweetened/regular variants pinned;
+  re-classified to gate (d)).
+- **(b) Composite-policy — 2 foods, resolved (2026-07-15):**
+  protein_shake_water, vegan_protein_shake (owner Option B — lean
+  powder-in-water composites; prepared RTD records exist but fail
+  reconciliation, and powder+water recipe synthesis is A1-forbidden;
+  re-classified to gate (d)).
+- **(c) Mixed-greens — 1 food, resolved (2026-07-16):** mixed_greens (owner
+  Option A — sourced directly from the exact-name FNDDS record 2709792 that
+  F1 had missed; `food-catalog@1.13.6`).
+
+**Final gate arithmetic: 0 (a) + 0 (b) + 0 (c) + 22 (d) = 22 gated foods**
+(9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`); **168 of 190 non-gram catalog
+foods are now sourced.**
+
+**The remaining 22 foods are NOT resolvable under the current pinned SR
+Legacy and FNDDS sources** — each is a no-record, varietal-fold,
+unavailable-variant, or composite case verified against BOTH pins (see the
+gate-(d) list above and the per-food unmatched reasons in
+`fdc-portion-manifest.json`). No further catalog sourcing is possible without
+a NEW pinned source.
+
+**TECHDEBT-004 risk 3 part 2 remains OPEN**, now blocked SOLELY on a future
+**third-source amendment decision** (gate (d)) — e.g. USDA Foundation Foods,
+Branded Foods, or a non-USDA database, each of which would require its own
+pinned-source amendment with the same manifest/gate/revision discipline.
+Nothing below authorizes or implies that work. Until it lands, the 22 gated
+foods keep `grams_per_serving = null` and log via fractional servings.
+
 #### Gate-(a) Correction Slice 1 (2026-07-15) — food.onion (owner-authorized)
 
 **Root cause proven from both pinned archives before any change** (the

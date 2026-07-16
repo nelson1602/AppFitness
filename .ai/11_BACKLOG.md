@@ -1042,6 +1042,10 @@ it was sourced directly as a normal A1 match (macros unchanged, revision 2,
 no-record/varietal/unavailable-variant/composite residue (incl.
 coconut_milk_beverage, oat_milk_unsweet, kombucha_unsweet,
 protein_shake_water, vegan_protein_shake).
+**Per-food gate work is CLOSED (2026-07-16) — gates (a)/(b)/(c) all empty;
+see ADR-P013 "Per-Food Gate Work — Closure Note". 168/190 sourced; the 22
+remaining foods are not resolvable under the current pinned sources and are
+blocked solely on a future third-source amendment decision.**
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 

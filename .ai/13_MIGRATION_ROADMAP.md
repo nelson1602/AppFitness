@@ -1650,11 +1650,14 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       A1-forbidden), (c) EMPTY — the mixed_greens decision was resolved by
       owner Option A (2026-07-16): a direct FNDDS "Mixed salad greens, raw"
       record (not a proxy) was sourced directly, (d) an optional
-      third-source amendment for the 22-food residue (see ADR-P013
-      "Amendment A1 Matching Track — Closure Note" for the gate ledger).
-      Nothing fabricated; logging uses fractional servings meanwhile. See
-      also the "SR Legacy Sourcing Track — Closure Note" + Amendment A1
-      notes (pin record + Batches F1–F4).
+      third-source amendment for the 22-food residue. **Per-food gate work
+      is CLOSED (2026-07-16) — gates (a)/(b)/(c) all empty; see ADR-P013
+      "Per-Food Gate Work — Closure Note". The 22 remaining foods are not
+      resolvable under the current pinned sources; risk 3 part 2 is blocked
+      solely on a future third-source amendment decision.** Nothing
+      fabricated; logging uses fractional servings meanwhile. See also the
+      "SR Legacy Sourcing Track — Closure Note" + Amendment A1 notes (pin
+      record + Batches F1–F4).
 
 ## Phase 16 — Workout Module  [commercial v1]
 
