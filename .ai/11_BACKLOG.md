@@ -601,13 +601,17 @@ started.**
   (avoidTag/catalogKey/severity/no-match), form (avoidTag warning, catalogKey
   warning, allergy copy, preference copy, still-loggable, no-warning-without-
   match, unchanged default behavior), screen (loads preferences, surfaces the
-  warning). **E2E:** a `food-log-exclusion-warning.yml` Maestro flow is wired
-  into `mobile-e2e.yml` (after `food-log.yml`, same onboard session), but its
-  first green run is **PENDING** — it needs an EAS `e2e` APK built from the
-  Slice 4 commit (878af06) or later; an older APK predating the warning UI
-  fails the assertions. Until that run, unit/component coverage is the
-  authoritative verification. **No schema/backend/sync-protocol/
-  catalog-sourcing/ADR-P013 changes.**
+  warning). **E2E: VERIFIED GREEN** — the `food-log-exclusion-warning.yml`
+  Maestro flow (wired into `mobile-e2e.yml` after `food-log.yml`, same onboard
+  session) passed on-device on **2026-07-16** in workflow run
+  [29535207942](https://github.com/nelson1602/AppFitness/actions/runs/29535207942)
+  (workflow commit `e2646b1`) against EAS `e2e` APK build
+  `59c5e892-69ca-4a1b-9c71-4a52ee5ef298` (built from commit `cf035fa`, which
+  contains the Slice 4 warning UI). The flow adds a "Nuts" allergy, opens the
+  food log, selects a nut food (Almonds), sees the allergy/sensitivity warning
+  banner + non-medical disclaimer, and STILL logs the food (non-blocking
+  confirmed). **No schema/backend/sync-protocol/catalog-sourcing/ADR-P013
+  changes.**
 
 ### Acceptance Criteria
 

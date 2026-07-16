@@ -1526,12 +1526,14 @@ replaces the deterministic engine.
   allergy/sensitivity vs preference/dislike wording; the user can still log the
   food and the write/sync/persistence path is unchanged; unit/component tests
   green)** are IMPLEMENTED. The `food-log-exclusion-warning.yml` Maestro flow
-  is now wired into `mobile-e2e.yml` (after `food-log.yml`), but its **first
-  green run is PENDING** an EAS `e2e` APK built from the Slice 4 commit
-  (878af06) or later — an older APK predating the warning UI fails the
-  assertions — so unit/component coverage is the authoritative verification
-  until that run. FEATURE-006 is now functionally complete across slices 1–4
-  (E2E run pending a fresh build).
+  (wired into `mobile-e2e.yml` after `food-log.yml`) **passed on-device and is
+  VERIFIED GREEN**: workflow run
+  [29535207942](https://github.com/nelson1602/AppFitness/actions/runs/29535207942)
+  on 2026-07-16 (workflow commit `e2646b1`) against EAS `e2e` APK build
+  `59c5e892-69ca-4a1b-9c71-4a52ee5ef298` (commit `cf035fa`) — add a Nuts
+  allergy → select a nut food on the food log → allergy/sensitivity warning +
+  disclaimer shown → still loggable (non-blocking). **FEATURE-006 is now
+  complete and fully verified across slices 1–4, including E2E.**
   Independent of the paused ADR-P013 third-source work (TECHDEBT-004 risk 3
   part 2, still open/paused).
 
