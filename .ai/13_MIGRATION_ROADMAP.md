@@ -1525,11 +1525,13 @@ replaces the deterministic engine.
   `matchFoodExclusion` helper + a non-blocking `FoodLogAddForm` banner with
   allergy/sensitivity vs preference/dislike wording; the user can still log the
   food and the write/sync/persistence path is unchanged; unit/component tests
-  green)** are IMPLEMENTED. **Slice 4 E2E is PENDING** a new EAS `e2e` APK
-  build (a documented, non-CI-wired `food-log-exclusion-warning.yml` Maestro
-  flow exists; a build gate is out of scope), so unit/component coverage is the
-  authoritative verification until the APK is rebuilt. FEATURE-006 is now
-  functionally complete across slices 1–4 (E2E run pending a build).
+  green)** are IMPLEMENTED. The `food-log-exclusion-warning.yml` Maestro flow
+  is now wired into `mobile-e2e.yml` (after `food-log.yml`), but its **first
+  green run is PENDING** an EAS `e2e` APK built from the Slice 4 commit
+  (878af06) or later — an older APK predating the warning UI fails the
+  assertions — so unit/component coverage is the authoritative verification
+  until that run. FEATURE-006 is now functionally complete across slices 1–4
+  (E2E run pending a fresh build).
   Independent of the paused ADR-P013 third-source work (TECHDEBT-004 risk 3
   part 2, still open/paused).
 

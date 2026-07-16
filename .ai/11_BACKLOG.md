@@ -601,12 +601,13 @@ started.**
   (avoidTag/catalogKey/severity/no-match), form (avoidTag warning, catalogKey
   warning, allergy copy, preference copy, still-loggable, no-warning-without-
   match, unchanged default behavior), screen (loads preferences, surfaces the
-  warning). **E2E:** a documented `food-log-exclusion-warning.yml` Maestro flow
-  was added but is **PENDING execution** — it needs a new EAS `e2e` APK
-  containing the Slice 4 warning UI (a build gate, out of scope for this
-  slice), so it is intentionally NOT wired into the CI flow list; unit/
-  component coverage is the authoritative verification until then. **No
-  schema/backend/sync-protocol/catalog-sourcing/ADR-P013 changes.**
+  warning). **E2E:** a `food-log-exclusion-warning.yml` Maestro flow is wired
+  into `mobile-e2e.yml` (after `food-log.yml`, same onboard session), but its
+  first green run is **PENDING** — it needs an EAS `e2e` APK built from the
+  Slice 4 commit (878af06) or later; an older APK predating the warning UI
+  fails the assertions. Until that run, unit/component coverage is the
+  authoritative verification. **No schema/backend/sync-protocol/
+  catalog-sourcing/ADR-P013 changes.**
 
 ### Acceptance Criteria
 

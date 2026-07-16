@@ -1,4 +1,4 @@
-# ADR-P014 / FEATURE-006 Slice 4 — food-log excluded-food warning (PENDING run).
+# ADR-P014 / FEATURE-006 Slice 4 — food-log excluded-food warning.
 #
 # Proves the non-blocking dietary-preference warning on the food log: add a
 # "Nuts" allergy via the dietary-preferences surface (Slice 2B), then open the
@@ -6,15 +6,10 @@
 # allergy/sensitivity warning, and confirm the food can STILL be logged (the
 # warning never hard-blocks). Fake synthetic identity; disposable DB.
 #
-# ── PENDING execution — NOT wired into the CI sequence (mobile-e2e.yml runs a
-#    fixed flow list, so this file is not auto-run). It cannot run against the
-#    current pinned EAS `e2e` APK because that APK predates the Slice 4 warning
-#    UI: running it requires a NEW `e2e` APK build (an EAS build gate that is
-#    explicitly OUT OF SCOPE for this slice — no build/deployment changes).
-#    Until a new e2e APK is built and this flow is added to mobile-e2e.yml,
-#    Slice 4 is verified by the unit/component tests (dietary-preference-match,
-#    FoodLogAddForm, FoodLogScreen specs). Run AFTER onboarding-loop.yml, which
-#    establishes the persisted `onboard` session. No -e vars needed.
+# Wired into mobile-e2e.yml after food-log.yml — reuses the persisted `onboard`
+# session established by onboarding-loop.yml (no -e vars needed). Requires an
+# EAS `e2e` APK built from the Slice 4 commit (878af06) or later; an older APK
+# predating the warning UI will fail the warning assertions.
 appId: com.appfitness.mobile
 ---
 - launchApp
@@ -44,7 +39,7 @@ appId: com.appfitness.mobile
     timeout: 10000
 
 # --- Navigate to the food log via dashboard → Nutrition → meal plan ---
-- tapOn: 'Back'
+- back
 - scrollUntilVisible:
     element: 'Nutrition'
 - tapOn: 'Nutrition'

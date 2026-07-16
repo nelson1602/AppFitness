@@ -128,6 +128,11 @@ jobs:
             # from the meal-plan entry point, log a catalog food, see totals
             # update, confirm a sync attempt keeps the (pending) entry, delete it.
             maestro test .maestro/food-log.yml
+            # ADR-P014 Slice 4 — food-log excluded-food warning. Same onboard
+            # session: add a "Nuts" allergy via the dietary-preferences surface,
+            # then confirm selecting a nut food on the food log shows the
+            # non-blocking allergy/sensitivity warning and can still be logged.
+            maestro test .maestro/food-log-exclusion-warning.yml
             # Phase 14 Slice 2 — medical management surfaces (restrictions +
             # evaluation history), same account/session, all on-device.
             maestro test .maestro/medical-management.yml
