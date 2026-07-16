@@ -1631,23 +1631,25 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       slices 1–5 (2026-07-15, `food-catalog@1.13.1`–`1.13.5`) then corrected
       onion, snow_peas, leeks (renamed raw + SR cup weights 160 g / 98 g /
       89 g), pomegranate (Option A: net → total carbs, SR 174 g arils cup),
-      and dragon_fruit (Option A: one-fruit macros → FNDDS 180 g cup scale):
-      **167/190 non-gram foods sourced; the 23 remaining foods (10 `cup` +
-      5 `tbsp` + 8 `ml`) stay intentionally gated** — TECHDEBT-004 risk 3
-      part 2 stays Open (partially resolved). The remaining gates each need
-      an explicit owner decision (none authorized): (a) EMPTY — all eight
-      original class-4 foods resolved 2026-07-15 (onion/snow_peas/leeks
-      raw-label renames; pomegranate/dragon_fruit Option A macro
-      corrections; coconut_milk_beverage/oat_milk_unsweet/kombucha_unsweet
-      Option B re-classifications to gate (d): authored data correct, only
+      and dragon_fruit (Option A: one-fruit macros → FNDDS 180 g cup scale);
+      the gate-(c) slice (2026-07-16, `food-catalog@1.13.6`) sourced
+      mixed_greens directly from the exact-name FNDDS "Mixed salad greens,
+      raw" record (2 cup = 70 g): **168/190 non-gram foods sourced; the 22
+      remaining foods (9 `cup` + 5 `tbsp` + 8 `ml`) stay intentionally
+      gated** — TECHDEBT-004 risk 3 part 2 stays Open (partially resolved).
+      The remaining gates each need an explicit owner decision (none
+      authorized): (a) EMPTY — all eight original class-4 foods resolved
+      2026-07-15 (onion/snow_peas/leeks raw-label renames;
+      pomegranate/dragon_fruit Option A macro corrections;
+      coconut_milk_beverage/oat_milk_unsweet/kombucha_unsweet Option B
+      re-classifications to gate (d): authored data correct, only
       incompatible sweetened/regular variants pinned), (b) EMPTY — the
       protein-shake composite policy was resolved by owner Option B
       (2026-07-15): both shakes keep authored lean powder-in-water values and
       moved to gate (d) (no pinned RTD reconciles; recipe synthesis
-      A1-forbidden), (c) the mixed_greens decision (investigated 2026-07-15:
-      a direct FNDDS "Mixed salad greens, raw" record exists — not a proxy;
-      Option A recommends sourcing it directly, which would empty gate (c)),
-      (d) an optional
+      A1-forbidden), (c) EMPTY — the mixed_greens decision was resolved by
+      owner Option A (2026-07-16): a direct FNDDS "Mixed salad greens, raw"
+      record (not a proxy) was sourced directly, (d) an optional
       third-source amendment for the 22-food residue (see ADR-P013
       "Amendment A1 Matching Track — Closure Note" for the gate ledger).
       Nothing fabricated; logging uses fractional servings meanwhile. See

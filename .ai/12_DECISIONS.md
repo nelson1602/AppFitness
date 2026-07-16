@@ -3684,12 +3684,11 @@ by this closure note:
   reconciliation as fattier meal-replacements, and powder+water recipe
   synthesis is A1-forbidden and was not authorized). **Gate (b) is now
   EMPTY.**
-- **(c) Mixed-greens decision** (`mixed_greens`): **investigated 2026-07-15
-  — the proxy premise was overturned:** FNDDS carries a direct exact-name
-  record **2709792 "Mixed salad greens, raw"** (missed in F1) that reconciles
-  cleanly at the authored 2-cup / 70 g serving, so this is a normal A1 match,
-  not a proxy/exception. Owner decision gate drafted (Option A: source
-  directly — recommended); see the Gate-(c) Decision Note above.
+- **(c) Mixed-greens decision** (`mixed_greens`): **RESOLVED by owner
+  Option A (2026-07-15) — sourced directly** from the exact-name FNDDS record
+  2709792 "Mixed salad greens, raw" (missed in F1), 2 cup = 70 g, macros
+  unchanged, revision 2, `food-catalog@1.13.6`. **Gate (c) is now EMPTY**;
+  gated count 23 → 22. See the Gate-(c) Decision Note above.
 - **(d) Optional third-source amendment** for the no-record/varietal/
   unavailable-variant/composite residue (22 foods): `basmati_rice`,
   `jasmine_rice`, `farro`, `sorghum`, `couscous_whole`, `lentils_red`,
@@ -3708,8 +3707,11 @@ by this closure note:
   + 17 (d) = 28 gated foods; after correction slices 1–5 (onion, snow_peas,
   leeks, pomegranate, dragon_fruit), the coconut_milk_beverage +
   oat_milk_unsweet + kombucha_unsweet gate-(a) Option B re-classifications,
-  and the protein-shake gate-(b) Option B re-classification:
-  0 (a) + 0 (b) + 1 (c) + 22 (d) = **23 gated**.
+  the protein-shake gate-(b) Option B re-classification, and the
+  gate-(c) mixed_greens direct FNDDS match (sourced, not re-classified —
+  `food-catalog@1.13.6`): 0 (a) + 0 (b) + 0 (c) + 22 (d) = **22 gated**.
+  Gates (a), (b), and (c) are all now EMPTY; only the gate-(d) third-source
+  residue remains.
 
 ADR-P013 and Amendment A1 remain Accepted and in force — any future slice
 under (a)–(d) follows the same manifest/gate/revision discipline.
@@ -4201,9 +4203,16 @@ stays null; NO macro deltas; NO new revisions and NO `CATALOG_VERSION` bump
 Until a decision is recorded here, both protein-shake foods remain gated and
 counted under gate (b).
 
-#### Gate-(c) Decision Note (2026-07-15) — food.mixed_greens (OWNER DECISION REQUIRED)
+#### Gate-(c) Decision Note (2026-07-15) — food.mixed_greens (RESOLVED: Option A)
 
-Status: **Investigated, awaiting owner decision — NO data change made.**
+Status: **Owner chose Option A (2026-07-15) — mixed_greens sourced directly
+from the exact-name FNDDS record 2709792 "Mixed salad greens, raw" as a
+normal A1 match (no proxy). Serving kept at 2 cup, `cupFdc(2, 70)` (35 g/cup
+× 2); macros UNCHANGED; new immutable revision 2; `CATALOG_VERSION` →
+`food-catalog@1.13.6`; artifacts/hash/goldens regenerated; the inaccurate F1
+unmatched reason replaced with full FNDDS provenance. Gated count 23 → 22;
+gate (c) is now EMPTY.** Original investigation:
+
 The investigation OVERTURNS the premise of this gate: a direct exact-name
 FNDDS record exists, so no lettuce-NFS proxy or A1 exception is needed.
 

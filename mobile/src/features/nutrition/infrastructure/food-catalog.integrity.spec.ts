@@ -91,9 +91,10 @@ describe('food catalog integrity', () => {
     // Gate-(a) correction slices 1-3 add onion, snow_peas, and leeks
     // (renamed raw + SR cup weights); slices 4-5 add pomegranate and
     // dragon_fruit (owner-approved Option A authored-macro corrections +
-    // sourced cup weights).
+    // sourced cup weights); the gate-(c) slice adds mixed_greens (direct
+    // exact-name FNDDS "Mixed salad greens, raw" match, 2 cup = 70 g).
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(167);
+    expect(withGrams).toHaveLength(168);
     for (const f of withGrams) {
       expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
@@ -114,7 +115,7 @@ describe('food catalog integrity', () => {
     ]);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(25);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(5);
-    expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(88);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(89);
     expect(withGrams.filter((f) => f.servingSize.unit === 'ml')).toHaveLength(15);
   });
 

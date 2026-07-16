@@ -1126,7 +1126,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 2,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.mixed_greens', 'Mixed salad greens', 'vegetable', cup(2), 1, 2, 0, {
+  food('food.mixed_greens', 'Mixed salad greens', 'vegetable', cupFdc(2, 70), 1, 2, 0, {
     fiber: 1,
     tags: [
       'vegan',

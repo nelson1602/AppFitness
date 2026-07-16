@@ -890,8 +890,10 @@ track; **gate-(a) slices 1–5 implemented 2026-07-15** — onion, snow_peas,
 and leeks renamed raw with SR cup weights (160 g / 98 g / 89 g), pomegranate
 corrected under owner-approved Option A (net → total carbs, SR 174 g arils
 cup), and dragon_fruit corrected under owner-approved Option A (one-fruit
-macros → FNDDS 180 g cup scale); 23 foods still gated: 10 `cup` + 5 `tbsp` +
-8 `ml`). See the status sections below.
+macros → FNDDS 180 g cup scale); **gate-(c) slice implemented 2026-07-16** —
+mixed_greens sourced directly from the exact-name FNDDS "Mixed salad greens,
+raw" record (2 cup = 70 g), closing gate (c); 22 foods still gated: 9 `cup` +
+5 `tbsp` + 8 `ml`). See the status sections below.
 
 ### Slice 4A implementation status (2026-07-13) — item still OPEN
 
@@ -987,7 +989,9 @@ never touched):
      (2026-07-15)** corrected and sourced onion, snow_peas, leeks (renamed
      raw, SR 160 g / 98 g / 89 g cups), pomegranate (Option A: net → total
      carbs, SR 174 g arils cup), and dragon_fruit (Option A: one-fruit
-     macros → FNDDS 180 g cup scale). **23 foods remain gated** (10 `cup` +
+     macros → FNDDS 180 g cup scale); the **gate-(c) slice (2026-07-16)**
+     sourced mixed_greens directly from the exact-name FNDDS "Mixed salad
+     greens, raw" record (2 cup = 70 g). **22 foods remain gated** (9 `cup` +
      5 `tbsp` + 8 `ml`); gram entry stays unavailable for those; the log
      path uses fractional servings meanwhile.
 
@@ -1010,10 +1014,13 @@ resolved onion, snow_peas, leeks (authored macros proven raw cup values;
 renamed raw with SR cup weights 160 g / 98 g / 89 g), pomegranate (owner
 Option A: NET-carbs figure corrected to total carbs 33 + fiber 7, SR 174 g
 arils cup, Atwater kcal 162), and dragon_fruit (owner Option A: one-fruit
-macros corrected to the FNDDS 180 g cup scale — carbs 29, Atwater kcal 120)
-— bringing the total to **167 of 190 non-gram foods sourced; 23 remain
-intentionally gated** (10 `cup` + 5 `tbsp` + 8 `ml`). The remaining gates
-each need an explicit owner decision (none authorized or implied): (a) **EMPTY
+macros corrected to the FNDDS 180 g cup scale — carbs 29, Atwater kcal 120);
+the **gate-(c) slice (2026-07-16, `food-catalog@1.13.6`)** then sourced
+mixed_greens directly from the exact-name FNDDS "Mixed salad greens, raw"
+record (2 cup = 70 g, macros unchanged) — bringing the total to **168 of 190
+non-gram foods sourced; 22 remain intentionally gated** (9 `cup` + 5 `tbsp` +
+8 `ml`). The remaining gates each need an explicit owner decision (none
+authorized or implied): (a) **EMPTY
 — all eight original class-4 foods resolved (2026-07-15): onion, snow_peas,
 leeks (raw-label renames); pomegranate, dragon_fruit (owner Option A
 authored-macro corrections); coconut_milk_beverage, oat_milk_unsweet,
@@ -1024,13 +1031,13 @@ Option B (2026-07-15): protein_shake_water + vegan_protein_shake keep their
 authored lean powder-in-water values and were RE-CLASSIFIED to gate (d)
 third-source residue (prepared RTD records exist but fail reconciliation as
 fattier meal-replacements; powder+water recipe synthesis is A1-forbidden and
-was not authorized)**; (c) the mixed_greens decision (**investigated 2026-07-15: the lettuce-NFS
-proxy premise was OVERTURNED — FNDDS has a direct exact-name record 2709792
-"Mixed salad greens, raw" (missed in F1) that reconciles cleanly at the
-authored 2-cup/70 g serving; a decision gate is drafted in ADR-P013,
-"Gate-(c) Decision Note — food.mixed_greens", recommending Option A: source
-it directly as a normal A1 match, which would decrease the gated count
-23 → 22 and EMPTY gate (c)**);
+was not authorized)**; (c) **EMPTY — the mixed_greens decision was RESOLVED
+by owner Option A (2026-07-16): the lettuce-NFS proxy premise was OVERTURNED —
+FNDDS has a direct exact-name record 2709792 "Mixed salad greens, raw"
+(missed in F1) that reconciles cleanly at the authored 2-cup/70 g serving, so
+it was sourced directly as a normal A1 match (macros unchanged, revision 2,
+`food-catalog@1.13.6`), decreasing the gated count 23 → 22 and emptying gate
+(c)**;
 (d) an optional third-source amendment for the 22-food
 no-record/varietal/unavailable-variant/composite residue (incl.
 coconut_milk_beverage, oat_milk_unsweet, kombucha_unsweet,

@@ -1,5 +1,5 @@
 {
-  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Gate-(a) correction slices 1-3 corrected the preparation labels of food.onion, food.snow_peas, and food.leeks (raw, not cooked) and sourced them from the SR raw records; slices 4-5 applied the owner-approved Option A authored-macro corrections to food.pomegranate (net -> total carbs) and food.dragon_fruit (one-fruit macros -> FNDDS cup scale). Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
+  "$comment": "ADR-P013 Batches 1-7 + tsp semantics mini-slice + poppy-seeds serving-semantics correction slice + Amendment A1 FNDDS pin batch + Batch F1 (cup) - USDA FoodData Central foodPortion gram-weight provenance. The 'source' block is the immutable SR Legacy pin; 'secondarySources' holds the Amendment A1 FNDDS pin; entries WITHOUT a sourceRef are SR Legacy, entries WITH sourceRef cite their secondary pin (Batch F1: food.polenta; Batch F2: food.pesto, food.tzatziki; Batch F3 matched nothing - all 8 ml foods stay gated with FNDDS-verified reasons; Batch F4: food.sourdough_bread). Gate-(a) correction slices 1-3 corrected the preparation labels of food.onion, food.snow_peas, and food.leeks (raw, not cooked) and sourced them from the SR raw records; slices 4-5 applied the owner-approved Option A authored-macro corrections to food.pomegranate (net -> total carbs) and food.dragon_fruit (one-fruit macros -> FNDDS cup scale); the gate-(c) slice sourced food.mixed_greens directly from the exact-name FNDDS 'Mixed salad greens, raw' record. Human-reviewed manifest; the fdc-portion-manifest.spec.ts gate enforces schema, provenance, unit compatibility, gram-weight bounds, macro reconciliation against fdcPer100g, and authored-grams === derivedGramsPerServing. Never edit gram values without re-deriving them from the pinned archive.",
   "source": {
     "dataset": "USDA FoodData Central — SR Legacy (CSV)",
     "releaseLabel": "sr_legacy_food_csv_2018-04",
@@ -2860,6 +2860,27 @@
       },
       "derivedGramsPerServing": 180,
       "reviewNote": "Gate-(a) slice 5 — the owner chose Option A of the dragon_fruit serving-scale decision gate (ADR-P013, 2026-07-15). Root cause: the authored macros (P1/C13/F0, Atwater 56 kcal, fiber 3) described roughly ONE FRUIT — the FNDDS '1 fruit' row (75 g) reconciled on every gated axis — while the serving said 1 cup (FNDDS 180 g); the authored fiber matched a commercial per-100 g label rather than the pinned source. Corrected under Option A: carbs 13 -> 29 (cup-scaled 29.23), protein 1 / fat 0 / fiber 3 unchanged (FNDDS cup-scale fiber 3.24 makes the authored fiber source-consistent), kcal Atwater-derives 56 -> 120. Gram weight from FNDDS row 306141 '1 cup' = 180 g (record attribute 'pitaya'; SR has no dragon-fruit record). Post-correction reconciliation: est 122.4 kcal vs authored 120 (delta 2.4); carbs 29.23 vs 29; protein 1.22 vs 1; fat 0.38 vs 0 — passes."
+    },
+    {
+      "catalogKey": "food.mixed_greens",
+      "fdcId": 2709792,
+      "fdcDataType": "survey_fndds_food",
+      "fdcDescription": "Mixed salad greens, raw",
+      "sourceRef": "fndds_survey_food_csv_2024-10-31",
+      "portion": {
+        "portionRowId": 308285,
+        "amount": 1,
+        "modifier": "1 cup",
+        "gramWeight": 35
+      },
+      "fdcPer100g": {
+        "kcal": 21,
+        "proteinG": 1.31,
+        "carbsG": 3.43,
+        "fatG": 0.21
+      },
+      "derivedGramsPerServing": 70,
+      "reviewNote": "Gate-(c) slice — the owner chose Option A of the mixed_greens decision gate (ADR-P013, 2026-07-15). This corrects the Batch F1 unmatched reason, which INACCURATELY claimed FNDDS had no mixed/spring-mix record: FNDDS 2709792 'Mixed salad greens, raw' (WWEIA 6410) is an exact-name match F1 missed. Direct A1 match (NOT a proxy): portion '1 cup' = 35 g, so the authored 2-cup serving derives 2 x 35 = 70 g. Macros unchanged (authored kept). Reconciliation at 70 g: est 14.7 kcal vs authored 12 (delta 2.7); protein 0.92 vs 1; carbs 2.40 vs 2; fat 0.15 vs 0; fiber 0.98 vs 1 — passes every gate. The generic 'Lettuce, raw' (2709789) proxy F1 considered is moot now that the exact mix record is confirmed."
     }
   ],
   "unmatched": [
@@ -2914,10 +2935,6 @@
     {
       "catalogKey": "food.cannellini_beans",
       "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated. FNDDS re-check (Batch F1): FNDDS has only generic 'White beans' records, attribute-tagged 'Cannellini' among other white beans (deliberately not distinguished); generic rejected under the A1 varietal rule."
-    },
-    {
-      "catalogKey": "food.mixed_greens",
-      "reason": "No SR Legacy record exists for a salad-greens mix; the single-lettuce analogs (green leaf, butterhead, iceberg, romaine) have materially different cup weights (36-57 g) and none represents a mix. Ambiguous — left null and gated. FNDDS re-check (Batch F1): FNDDS has no mixed/spring-mix record either. Generic 'Lettuce, raw' (2709789, 1 cup = 35 g) reconciles NUMERICALLY (est 14.0 kcal vs authored 12 for the 2-cup 70 g serving) but is a single-genus lettuce NFS code, not a greens mix (spring mix includes spinach/arugula/chard) — not clearly acceptable under the A1 matching standard. Accepting the lettuce-NFS proxy would be a separate owner decision."
     },
     {
       "catalogKey": "food.broccolini",

@@ -219,8 +219,14 @@ export interface FoodItem {
  * fiber is 3.24 — the authored fiber is now source-consistent), kcal
  * Atwater-derives 56 -> 120 (est measured 122.4, delta 2.4). Gram weight
  * from FNDDS "1 cup" = 180 g. New immutable revision (2).
+ * 1.13.6 (ADR-P013 gate-(c) slice, food.mixed_greens — owner chose
+ * Option A): direct exact-name FNDDS match "Mixed salad greens, raw"
+ * (2709792) — a normal A1 match, not a proxy (F1 missed the record). Serving
+ * kept at 2 cup, sourced 70 g (35 g/cup x 2); macros UNCHANGED (est 14.7
+ * kcal / 2.40 C vs authored 12 / 2, within tolerance). New immutable
+ * revision (2). Gate (c) closed; 22 third-source-residue foods remain gated.
  */
-export const CATALOG_VERSION = 'food-catalog@1.13.5';
+export const CATALOG_VERSION = 'food-catalog@1.13.6';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

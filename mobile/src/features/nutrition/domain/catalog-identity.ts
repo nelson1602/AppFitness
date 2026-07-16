@@ -255,6 +255,10 @@ export const FOOD_REVISIONS: Readonly<Record<string, number>> = {
   // the FNDDS cup-scaled carbs (29) with the 180 g cup weight (kcal follows
   // Atwater to 120; protein/fat/fiber unchanged).
   'food.dragon_fruit': 2,
+  // ADR-P013 gate-(c) slice — mixed_greens (owner chose Option A): direct
+  // exact-name FNDDS match "Mixed salad greens, raw" (2709792), 2 cup = 70 g
+  // (35 g/cup); macros unchanged (reconciles within tolerance).
+  'food.mixed_greens': 2,
 };
 
 /** The immutable revision of one bundled food (override, else the base). */
