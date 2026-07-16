@@ -483,9 +483,9 @@ internal-test = 13–14; commercial v1 = 13–17; post-v1 = 18–19.
 
 ## [FEATURE-006] Dietary Preferences, Allergies, and Food Exclusions
 
-Status: **Blocked — awaiting owner acceptance of ADR-P014** (decision gate
-drafted 2026-07-16, Status: Proposed). No implementation until an option is
-accepted.
+Status: **Approved — ADR-P014 Accepted (Option A, 2026-07-16 by project
+owner); implementation AUTHORIZED but NOT STARTED.** Each slice below still
+needs its own scoped owner authorization to land.
 Priority: P2
 Type: Feature
 
@@ -500,33 +500,37 @@ medical restrictions do not map to nutrition avoid tags
 slice" deliberately carved out of the 2026-07-16 nutrition data-gap UX
 correction.
 
-### Decision gate
+### Decision gate — ACCEPTED
 
-See **ADR-P014** for the full decision (entity shape/ownership, sensitivity
-classification, persistence, offline-first sync + conflict, meal-plan
-determinism, log-time behavior for excluded foods, UI surfaces, migration,
-tests). Recommended: **Option A** — a nutrition-domain `DietaryPreference`
-entity (avoid tags + explicit catalogKey exclusions + per-item allergy vs
-preference `kind`), synced offline-first, with allergies treated as
-health-sensitive (ADR-0011) and preferences as wellness.
+**ADR-P014 was Accepted (Option A) on 2026-07-16 by the project owner.** The
+accepted design: a nutrition-domain `DietaryPreference` entity (avoid tags +
+explicit catalogKey exclusions + per-item allergy vs preference `kind`),
+synced offline-first, with allergies treated as health-sensitive (ADR-0011)
+and preferences as wellness; meal plans stay deterministic and reflect
+exclusions via `avoidFor` / `excludeAvoidTags` + a new catalogKey exclusion;
+logging an excluded food warns but never hard-blocks. See ADR-P014 for the
+full decision + acceptance resolution. **Implementation authorized, not
+started.**
 
-### Proposed implementation slices (blocked until ADR-P014 accepted)
+### Implementation slices (authorized; each needs its own scoped go-ahead)
 
 - **Slice 1 — Schema + sync foundation:** SQLite table + forward-only
   migration, Postgres table, versioned sync entity + handler (mirrors
   profile/restriction), encryption for any free-text.
 - **Slice 2 — Mobile repository/store + preference UI:** repository, store,
   and the preferences/allergies editor; exclusions summary surface.
-- **Slice 3 — Meal-plan integration:** feed exclusions into the generator
-  (tag + new catalogKey exclusion) and the seed for deterministic
-  regeneration; plan explanation of what was excluded; log-time non-blocking
-  warning for excluded foods.
-- **Slice 4 — E2E validation:** set exclusion → plan reflects it → logging an
-  excluded food warns; conflict-sync coverage.
+- **Slice 3 — Meal-plan integration + deterministic regeneration/explanations:**
+  feed exclusions into the generator (tag + new catalogKey exclusion) and the
+  seed so plans regenerate deterministically; explain what was excluded.
+- **Slice 4 — Food-log warning behavior + E2E validation:** non-blocking
+  log-time warning for excluded foods (stronger for `allergy` kind); E2E
+  covering set-exclusion → plan reflects it → logging an excluded food warns;
+  conflict-sync coverage.
 
 ### Acceptance Criteria
 
-- [ ] Owner accepts an ADR-P014 option before any implementation begins.
+- [x] Owner accepts an ADR-P014 option before any implementation begins.
+      (Option A accepted 2026-07-16.)
 - [ ] Allergy vs preference sensitivity split honored per ADR-0011.
 - [ ] Meal plans remain deterministic when exclusions change.
 - [ ] Logging an excluded food warns but never hard-blocks or silently drops.

@@ -4316,11 +4316,14 @@ counted under gate (c).
 
 ## ADR-P014 — Dietary Preferences, Allergies, and Food Exclusions
 
-Status: **Proposed** (documentation-only decision gate; NOT Accepted — no
-schema, mobile UI, backend route, sync handler, or catalog change is
-authorized until the owner accepts an option below)
+Status: **Accepted** — **Option A** (2026-07-16, by project owner, as
+proposed/recommended). Acceptance is documentation-only: it authorizes the
+implementation slices below but changes no code, schema, or catalog by
+itself; nothing has been implemented as of this acceptance. See the
+Acceptance resolution at the end of this ADR.
 Date: 2026-07-16
-Owner decision required: accept an option (A/B/C/D), amend, or reject.
+Supersedes the Proposed gate; the Options and Recommendation below are
+retained as the decision record.
 Relates to: ADR-P012 (food-logging / catalog identity / conflict semantics),
 ADR-0011 (health data highly sensitive), ADR-P001 + ADR-P006 (SQLite +
 server field-level encryption), ADR-0006 (offline-first sync). Independent of
@@ -4462,6 +4465,28 @@ Any schema/migration, SQLite table, mobile UI/repository/store, backend
 route/sync handler, generator change, catalog change, or dependency. This ADR
 adds no runtime behavior. ADR-P013 third-source / gram-sourcing work remains
 independently paused.
+
+### Acceptance resolution (2026-07-16)
+
+The project owner **accepted Option A as proposed/recommended**, confirming:
+(1) a **nutrition-domain** dietary preference/exclusion model; (2) support
+for both **avoid-tag** exclusions and **explicit catalogKey** food
+exclusions; (3) **allergies/sensitivities are privacy-sensitive** and handled
+with appropriate care (ADR-0011), while **non-medical preferences are
+wellness** data; (4) **offline-first** local SQLite persistence + backend
+sync with versioned conflict surfacing; (5) meal-plan generation stays
+**deterministic** and reflects exclusions through the existing `avoidFor` /
+`excludeAvoidTags` path plus a new catalogKey-exclusion input, fed into the
+seed so changes regenerate deterministically; (6) food logging of an excluded
+food is **not hard-blocked** but shows a clear, actionable warning (stronger
+for the `allergy` kind), never a silent drop.
+
+Acceptance authorizes the four implementation slices (see FEATURE-006);
+**each slice still requires its own scoped owner authorization to land**,
+consistent with how prior multi-slice work was executed. **No implementation
+is included in this acceptance checkpoint.** ADR-P013 third-source /
+gram-sourcing work and TECHDEBT-004 risk 3 part 2 remain separate, paused,
+and unchanged.
 
 ### Related Documents
 

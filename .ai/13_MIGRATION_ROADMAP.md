@@ -1506,14 +1506,15 @@ replaces the deterministic engine.
     API validations GREEN (`db:validate`/`db:generate`/`typecheck`/`lint:check`/
     `jest` 66 tests/`build`). Resolves TECHDEBT-004 risk 2; risk 3 (non-gram
     sourcing) stays open. Remaining for Slice 4: mobile write flow + logging UI.
-- Dietary preferences/allergies: decision gate drafted 2026-07-16 as
-  **ADR-P014** (Status: Proposed) and scoped as **FEATURE-006** (slices 1–4:
-  schema+sync → mobile store/UI → meal-plan integration → E2E), recommending
-  a nutrition-domain `DietaryPreference` entity (avoid tags + catalogKey
-  exclusions + allergy/preference `kind`). **Implementation blocked until the
-  owner accepts an ADR-P014 option;** the catalog `avoidFor` /
-  `excludeAvoidTags` machinery already exists to receive it. Independent of
-  the paused ADR-P013 third-source work.
+- Dietary preferences/allergies: **ADR-P014 ACCEPTED (Option A, 2026-07-16 by
+  project owner)**, scoped as **FEATURE-006** (slices 1–4: schema+sync →
+  mobile store/UI → meal-plan integration → food-log warning + E2E) — a
+  nutrition-domain `DietaryPreference` entity (avoid tags + catalogKey
+  exclusions + allergy/preference `kind`), synced offline-first. The catalog
+  `avoidFor` / `excludeAvoidTags` machinery already exists to receive it.
+  **Implementation authorized but NOT started; each slice needs its own
+  scoped owner authorization.** Independent of the paused ADR-P013
+  third-source work (TECHDEBT-004 risk 3 part 2, still open/paused).
 
 ### Dependencies
 Phases 13–14.5; the iCoach nutrition engine (already deterministic).
