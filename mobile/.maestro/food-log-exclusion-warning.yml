@@ -70,8 +70,13 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Almonds'
     timeout: 10000
-- tapOn: 'Almonds'
-- assertVisible: 'Heads up — this matches an allergy or sensitivity'
+# Select the catalog result by its testID — the plain name "Almonds" collides
+# with the "almonds" search query text, so tap the result row explicitly.
+- tapOn:
+    id: 'food-option-food.almonds'
+# The non-blocking warning renders below the selected food — scroll it in.
+- scrollUntilVisible:
+    element: 'Heads up — this matches an allergy or sensitivity'
 # Advisory, not a medical directive.
 - assertVisible: '.*not emergency medical advice.*'
 
