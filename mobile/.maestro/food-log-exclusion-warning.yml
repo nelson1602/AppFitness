@@ -77,8 +77,10 @@ appId: com.appfitness.mobile
 # The non-blocking warning renders below the selected food — scroll it in.
 - scrollUntilVisible:
     element: 'Heads up — this matches an allergy or sensitivity'
-# Advisory, not a medical directive.
-- assertVisible: '.*not emergency medical advice.*'
+# Advisory, not a medical directive. The disclaimer is the banner's last line,
+# below the title — scroll it into view rather than asserting statically.
+- scrollUntilVisible:
+    element: '.*not emergency medical advice.*'
 
 # --- The warning never blocks: the food can still be logged ---
 - scrollUntilVisible:
