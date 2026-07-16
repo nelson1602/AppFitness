@@ -247,6 +247,16 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/restrictions');
   });
 
+  it('offers a direct "Record evaluation" action to evaluation entry', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await fireEvent.press(screen.getByTestId('dashboard-record-evaluation'));
+
+    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+  });
+
   it('navigates to the nutrition targets surface', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({ status: 'ready', data: baseData });

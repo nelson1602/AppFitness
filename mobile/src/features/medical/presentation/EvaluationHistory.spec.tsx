@@ -12,6 +12,7 @@ let mockStoreState: EvaluationFormState;
 jest.mock('../application/evaluation.store', () => ({
   useEvaluationStore: () => mockStoreState,
 }));
+jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 function setStore(partial: Partial<EvaluationFormState>) {
   mockStoreState = {
@@ -62,6 +63,15 @@ describe('EvaluationHistory', () => {
     setStore({ status: 'ready', evaluations: [] });
     await render(<EvaluationHistory />);
     expect(screen.getByText('No evaluations recorded yet.')).toBeOnTheScreen();
+  });
+
+  it('routes to evaluation entry from "Record new evaluation" (even with no history)', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', evaluations: [] });
+    await render(<EvaluationHistory />);
+
+    fireEvent.press(screen.getByTestId('record-new-evaluation'));
+    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
   });
 
   it('renders date, non-sensitive vitals, and sync status — never free-text', async () => {

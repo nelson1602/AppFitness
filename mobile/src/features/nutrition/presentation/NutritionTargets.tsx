@@ -13,6 +13,7 @@ import {
   NUTRITION_DISCLAIMER,
   SAFETY_FLOOR_NOTE,
 } from '../domain/nutrition-explain';
+import { NutritionDataGap } from './NutritionDataGap';
 
 function MacroRow({ label, grams, kcal }: { label: string; grams: number; kcal: number }) {
   const theme = useTheme();
@@ -59,23 +60,9 @@ export function NutritionTargets() {
         </Banner>
       ) : !assessment ? (
         // Data-gap state: the assessment needs profile + a weight measurement.
-        // Baseline gaps are resolved on the dashboard (single owner of that
-        // routing) — send the user there rather than duplicating it here.
-        <Card accessibilityLabel="Nutrition needs more data">
-          <View style={{ gap: theme.spacing.md }}>
-            <AppText variant="title">Finish your baseline first</AppText>
-            <AppText tone="muted">
-              Add your profile and a weight measurement so your iCoach assessment can calculate
-              nutrition targets.
-            </AppText>
-            <AppButton
-              accessibilityLabel="Go to the dashboard to finish your baseline"
-              onPress={() => router.push('/dashboard')}
-            >
-              Go to dashboard
-            </AppButton>
-          </View>
-        </Card>
+        // Offer direct actions for the specific missing pieces (profile-edit /
+        // evaluation-edit) rather than bouncing the user to the dashboard.
+        <NutritionDataGap missing={data?.missing ?? []} context="targets" />
       ) : (
         <NutritionContent
           nutrition={assessment.assessment.nutrition}

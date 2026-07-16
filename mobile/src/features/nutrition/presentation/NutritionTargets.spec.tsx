@@ -109,7 +109,7 @@ describe('NutritionTargets', () => {
     expect(screen.queryByText('Safe minimum applied')).toBeNull();
   });
 
-  it('shows a data-gap state and routes to the dashboard when no assessment exists', async () => {
+  it('shows a data-gap state and falls back to the dashboard when no specific gaps are known', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({
       status: 'empty',
@@ -123,6 +123,32 @@ describe('NutritionTargets', () => {
       screen.getByRole('button', { name: 'Go to the dashboard to finish your baseline' }),
     );
     expect(router.push).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('offers direct actions for the specific baseline gaps (profile + weight)', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({
+      status: 'empty',
+      data: {
+        assessment: null,
+        missing: [
+          { id: 'birth-date', title: 'Add your birth date', detail: 'Age is required.' },
+          { id: 'height', title: 'Add your height', detail: 'Height is required.' },
+          { id: 'weight', title: 'Record a weight measurement', detail: 'Weight is required.' },
+        ],
+        sync: {},
+      } as unknown as DashboardState['data'],
+    });
+
+    await render(<NutritionTargets />);
+
+    // Profile-side gaps route to profile-edit; the weight gap routes to
+    // evaluation-edit. No vague "go to dashboard" fallback when actions exist.
+    await fireEvent.press(screen.getByTestId('nutrition-gap-profile'));
+    expect(router.push).toHaveBeenCalledWith('/profile-edit');
+    await fireEvent.press(screen.getByTestId('nutrition-gap-weight'));
+    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+    expect(screen.queryByTestId('nutrition-gap-dashboard')).toBeNull();
   });
 
   it('renders a loading state', async () => {

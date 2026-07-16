@@ -128,7 +128,7 @@ describe('NutritionPlanScreen', () => {
     expect(screen.queryByText('Day 1')).toBeNull();
   });
 
-  it('shows a data-gap state and routes to the dashboard', async () => {
+  it('shows a data-gap state and falls back to the dashboard when no specific gaps are known', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setDash({ status: 'empty' });
     mockSelection = { status: 'gap' };
@@ -139,6 +139,29 @@ describe('NutritionPlanScreen', () => {
       screen.getByRole('button', { name: 'Go to the dashboard to finish your baseline' }),
     );
     expect(router.push).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('offers direct actions for the specific baseline gaps (profile + weight)', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setDash({
+      status: 'empty',
+      data: {
+        assessment: null,
+        missing: [
+          { id: 'profile', title: 'Create your profile', detail: 'Profile is required.' },
+          { id: 'weight', title: 'Record a weight measurement', detail: 'Weight is required.' },
+        ],
+        sync: {},
+      } as unknown as DashboardState['data'],
+    });
+    mockSelection = { status: 'gap' };
+
+    await render(<NutritionPlanScreen />);
+    await fireEvent.press(screen.getByTestId('nutrition-gap-profile'));
+    expect(router.push).toHaveBeenCalledWith('/profile-edit');
+    await fireEvent.press(screen.getByTestId('nutrition-gap-weight'));
+    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+    expect(screen.queryByTestId('nutrition-gap-dashboard')).toBeNull();
   });
 
   it('renders a loading state', async () => {

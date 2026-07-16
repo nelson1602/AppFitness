@@ -1049,6 +1049,33 @@ blocked solely on a future third-source amendment decision.**
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 
+### Nutrition/evaluation data-gap UX correction (2026-07-16) — mobile-only
+
+Independent of the gram-sourcing track above. Users could register and enter
+some data but found it unclear WHY nutrition was unavailable; `/nutrition` and
+`/nutrition-plan` only bounced them back to the dashboard. Mobile-presentation
+fix (no schema/backend/sync/catalog/dependency change):
+
+- New shared `NutritionDataGap` component renders the specific missing
+  baseline pieces with DIRECT actions — profile / birth date / height →
+  `/profile-edit`, weight → `/evaluation-edit` — with a `/dashboard` fallback
+  only when no specific gap is known. Used by both `NutritionTargets` and
+  `NutritionPlanScreen`.
+- `EvaluationHistory` gains a prominent "Record new evaluation" action
+  (`/evaluation-edit`); the dashboard gains a direct "Record evaluation"
+  action alongside evaluation history / restrictions.
+- Copy clarifies: targets need profile + weight; doctor notes/restrictions are
+  optional (safety/personalization); the minimum baseline rule is unchanged
+  (profile + birth date + height + weight — NOT a full doctor evaluation).
+- Focused tests added for the data-gap direct-action routing (targets + plan),
+  the evaluation-history record action, and the dashboard record action;
+  existing ready-state behavior unchanged.
+
+**Dietary preferences / food allergies / exclusions remain a SEPARATE future
+slice — explicitly out of scope here.** The gap copy mentions allergies only
+as a non-blocking planned future capability; nothing in this slice implements
+or gates on them.
+
 ### Slice 4B implementation status (2026-07-13) — backend handler landed
 
 The `meal_items` `EntitySyncHandler` is implemented and registered

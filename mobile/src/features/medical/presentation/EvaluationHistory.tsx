@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
@@ -103,6 +104,14 @@ export function EvaluationHistory() {
           Your recorded physical evaluations. Removing one is a soft-delete synced to your account.
         </AppText>
       </View>
+
+      <AppButton
+        accessibilityLabel="Record a new evaluation"
+        testID="record-new-evaluation"
+        onPress={() => router.push('/evaluation-edit')}
+      >
+        Record new evaluation
+      </AppButton>
 
       {error ? (
         <Banner title="Something went wrong" tone="error">

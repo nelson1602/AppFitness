@@ -106,6 +106,14 @@ export function DashboardScreen() {
 
       {/* Medical management surfaces (Phase 14 Slice 2). */}
       <AppButton
+        accessibilityLabel="Record a new evaluation"
+        testID="dashboard-record-evaluation"
+        onPress={() => router.push('/evaluation-edit')}
+        variant="secondary"
+      >
+        Record evaluation
+      </AppButton>
+      <AppButton
         accessibilityLabel="View evaluation history"
         onPress={() => router.push('/evaluation-history')}
         variant="secondary"

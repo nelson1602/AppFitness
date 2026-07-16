@@ -10,6 +10,7 @@ import { useTheme } from '@/shared/theme';
 import type { MealPlanDay, MealPlanMeal, MealSlot } from '../domain/meal-plan';
 import { NUTRITION_DISCLAIMER } from '../domain/nutrition-explain';
 import { selectMealPlan } from '../application/meal-plan.service';
+import { NutritionDataGap } from './NutritionDataGap';
 
 const SLOT_LABEL: Record<MealSlot, string> = {
   BREAKFAST: 'Breakfast',
@@ -170,21 +171,7 @@ export function NutritionPlanScreen() {
           {selection.message}
         </Banner>
       ) : selection.status === 'gap' ? (
-        <Card accessibilityLabel="Meal plan needs more data">
-          <View style={{ gap: theme.spacing.md }}>
-            <AppText variant="title">Finish your baseline first</AppText>
-            <AppText tone="muted">
-              Add your profile and a weight measurement so your iCoach assessment can build a meal
-              plan.
-            </AppText>
-            <AppButton
-              accessibilityLabel="Go to the dashboard to finish your baseline"
-              onPress={() => router.push('/dashboard')}
-            >
-              Go to dashboard
-            </AppButton>
-          </View>
-        </Card>
+        <NutritionDataGap missing={data?.missing ?? []} context="plan" />
       ) : (
         <>
           <DaySelector
