@@ -1727,7 +1727,10 @@ Phases 13–14; dormant `routines`/`routine_exercises`/`workout_logs`/
 Exercise-catalog sourcing; inter-entity FKs; sync ordering.
 
 ### Planning gate (2026-07-17)
-**ADR-P015 — Workout Module (Phase 16) drafted (DRAFT / NOT ACCEPTED)** — see
+**ADR-P015 — Workout Module (Phase 16) ACCEPTED (2026-07-17, as drafted)** —
+implementation is **authorized but NOT started**; the **next authorized slice
+is Slice 1 only** (schema audit + `sync_seq` trigger verification +
+movement-pattern mapping decision), pending its own explicit go-ahead. See
 `.ai/12_DECISIONS.md` and FEATURE-007 in `.ai/11_BACKLOG.md`. Audit: the
 dormant `exercises`/`routines`/`routine_exercises`/`workout_logs`/`workout_sets`
 tables already exist and are sync-shaped (nutrition pattern); the iCoach
@@ -1737,8 +1740,9 @@ rpeCap, daysPerWeek, excludedMovements[] }` deterministically. Key gap:
 to map onto `excludedMovements` (resolved in Slice 1). Workout data is wellness
 (synced, not encrypted); medical/restriction data stays in the medical domain;
 the module **consumes** the `TrainingPlan` and never recomputes it or overrides
-medical restrictions. **Implementation blocked until the owner accepts
-ADR-P015.**
+medical restrictions. **ADR-P015 is ACCEPTED (2026-07-17); implementation is
+authorized but NOT started — Slice 1 is the next authorized slice, pending its
+own go-ahead.**
 
 ### Slice plan (indicative; each its own authorization)
 - **Slice 1** — schema audit + ADR (sync_seq triggers + movement-pattern

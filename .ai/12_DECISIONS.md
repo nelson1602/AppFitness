@@ -4803,9 +4803,15 @@ No superseded decisions documented yet.
 
 ## ADR-P015 — Workout Module (Phase 16)
 
-Status: **Proposed (DRAFT — NOT ACCEPTED).** Planning gate only; implementation
-is blocked until the project owner records an acceptance decision here.
+Status: **Accepted** (2026-07-17, by project owner, as drafted). Acceptance is
+documentation-only: it authorizes the Phase 16 slice plan and decisions
+D1–D5 below, but changes no schema, code, or data. Implementation stays blocked
+until each slice gets its own scoped authorization; the **next authorized slice
+is Slice 1 only** (schema audit + `sync_seq` trigger verification +
+movement-pattern mapping decision). See the Acceptance resolution at the end of
+this ADR.
 Date drafted: 2026-07-17
+Date accepted: 2026-07-17
 Relates to: the deterministic iCoach `TrainingPlan` engine, ADR-0006
 (offline-first sync), ADR-0011 (health-data sensitivity), ADR-P001/P006
 (field-level encryption), and ADR-P012 (catalog-identity precedent). Does not
@@ -4953,6 +4959,40 @@ the medical domain, the module consumes only the derived `TrainingPlan` (D4);
 and (e) the `TrainingPlan`-consumption rule — no recompute, no medical override
 (D5). Acceptance authorizes **Slice 1 only**; each later slice needs its own
 authorization. Until accepted, Phase 16 stays unimplemented.
+
+#### Acceptance resolution (2026-07-17)
+
+The project owner **accepted ADR-P015 as drafted**, explicitly approving the
+Phase 16 Workout Module slice plan and all five decisions:
+
+- **D1 — Schema sufficiency / audit-first:** ACCEPTED. The dormant tables are
+  treated as sufficient pending a Slice 1 audit; a forward-only additive
+  migration is authorized only if that audit requires it (movement-pattern
+  mapping and/or missing `assign_sync_seq` triggers).
+- **D2 — Exercise catalog + movement-pattern strategy:** ACCEPTED. Built-in
+  global catalog + user custom exercises; controlled movement-pattern /
+  equipment / body-area vocabulary; contraindication→`excludedMovements`
+  mapping; custom exercises carry no medical authority.
+- **D3 — Offline-first sync/conflict semantics:** ACCEPTED. Reuse the ADR-0006
+  protocol and the nutrition handler/registry pattern; global exercises are
+  device-read-only reference data; FK-ordered push with `DEPENDENCY_NOT_READY`
+  retry.
+- **D4 — Privacy/sensitivity stance:** ACCEPTED. Workout data is wellness
+  (synced, not field-encrypted); medical/restriction data stays owned by the
+  medical domain (ADR-0011); the module consumes only the derived,
+  redaction-safe `TrainingPlan`.
+- **D5 — Read-only `TrainingPlan` consumption:** ACCEPTED. The module reads the
+  deterministic plan and never recomputes it or overrides medical restrictions;
+  excluded-movement flags are non-blocking; blocked/clearance states are
+  hard-surfaced.
+
+**Scope of this acceptance is documentation-only** — no schema, migration,
+backend, mobile, sync, exercise-catalog, dependency, or deployment change has
+landed. **Phase 16 implementation is authorized but NOT started.** The **next
+authorized slice is Slice 1 only** (schema audit + `sync_seq` trigger
+verification + the movement-pattern mapping decision), and it does not begin
+until it receives its own explicit go-ahead. Each subsequent slice (2–8)
+likewise needs separate authorization. ADR-P013 is untouched.
 
 ---
 

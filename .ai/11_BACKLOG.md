@@ -636,9 +636,11 @@ started.**
 
 ## [FEATURE-007] Workout Module (Phase 16)
 
-Status: **Planning gate drafted — ADR-P015 DRAFT / NOT ACCEPTED (2026-07-17).**
-Implementation is blocked until the owner accepts ADR-P015; each slice then
-needs its own scoped authorization.
+Status: **ADR-P015 ACCEPTED (2026-07-17, as drafted).** Phase 16 implementation
+is **authorized but NOT started**; the **next authorized slice is Slice 1 only**
+(schema audit + `sync_seq` trigger verification + movement-pattern mapping
+decision), pending its own explicit go-ahead. Each subsequent slice (2–8) needs
+separate authorization.
 
 ### Summary
 Exercise catalog + user routines + workout logging, offline-first, consuming
@@ -676,7 +678,8 @@ data stays owned by the medical domain (ADR-0011); the module consumes only the
 derived, redaction-safe `TrainingPlan`.
 
 ### Acceptance criteria
-- [ ] Owner accepts ADR-P015 (slice plan + D1–D5) before any implementation.
+- [x] Owner accepts ADR-P015 (slice plan + D1–D5) before any implementation.
+      (Accepted 2026-07-17; implementation authorized but not started — Slice 1 next.)
 - [ ] Slice 1 audit resolves schema sufficiency (dormant-as-is vs additive migration).
 - [ ] Workout entities sync offline-first; medical restrictions never overridden.
 - [ ] Deterministic `TrainingPlan` reflected (never recomputed) in the workout UI.
