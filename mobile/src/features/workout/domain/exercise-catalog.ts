@@ -66,13 +66,7 @@ export type MovementPattern =
   | 'valsalva_heavy_lifts';
 
 export type Equipment =
-  | 'barbell'
-  | 'dumbbell'
-  | 'kettlebell'
-  | 'machine'
-  | 'cable'
-  | 'bodyweight'
-  | 'none';
+  'barbell' | 'dumbbell' | 'kettlebell' | 'machine' | 'cable' | 'bodyweight' | 'none';
 
 /** Joint / body area chiefly loaded — aligns with the engine's bodyArea keys. */
 export type BodyArea =

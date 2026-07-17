@@ -216,12 +216,10 @@ describe('useWorkoutStore', () => {
 
     mockLogSet.mockResolvedValue(wset({ id: 's2', setNumber: 2 }));
     expect(
-      await useWorkoutStore
-        .getState()
-        .logWorkoutSet('l1', {
-          exerciseId: '75156ac5-8fd5-5e08-a9e8-d6ceb300e4ea',
-          setNumber: 2,
-        }),
+      await useWorkoutStore.getState().logWorkoutSet('l1', {
+        exerciseId: '75156ac5-8fd5-5e08-a9e8-d6ceb300e4ea',
+        setNumber: 2,
+      }),
     ).toBe(true);
     expect(useWorkoutStore.getState().workoutSets.map((s) => s.id)).toEqual(['s1', 's2']);
   });

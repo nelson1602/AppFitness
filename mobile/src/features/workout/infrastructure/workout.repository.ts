@@ -227,7 +227,9 @@ export async function updateWorkoutLog(
       },
       nowIso,
     );
-    const updated = await queryFirst<WorkoutLogRow>(`SELECT * FROM workout_logs WHERE id = ?`, [id]);
+    const updated = await queryFirst<WorkoutLogRow>(`SELECT * FROM workout_logs WHERE id = ?`, [
+      id,
+    ]);
     return updated ? rowToWorkoutLog(updated) : null;
   });
 }

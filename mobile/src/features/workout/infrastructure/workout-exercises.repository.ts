@@ -67,7 +67,18 @@ export async function addRoutineExercise(
       `INSERT INTO routine_exercises (id, user_id, created_at, updated_at, version, sync_status,
          routine_id, exercise_id, order_index, target_sets, target_reps, target_weight_kg)
        VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?)`,
-      [id, userId, nowIso, nowIso, routineId, input.exerciseId, input.order, targetSets, targetReps, targetWeightKg],
+      [
+        id,
+        userId,
+        nowIso,
+        nowIso,
+        routineId,
+        input.exerciseId,
+        input.order,
+        targetSets,
+        targetReps,
+        targetWeightKg,
+      ],
     );
     await enqueue(
       {
@@ -214,7 +225,20 @@ export async function addWorkoutSet(
       `INSERT INTO workout_sets (id, user_id, created_at, updated_at, version, sync_status,
          workout_log_id, exercise_id, set_number, reps, weight_kg, rpe, completed, notes)
        VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, userId, nowIso, nowIso, workoutLogId, input.exerciseId, input.setNumber, reps, weightKg, rpe, completed, notes],
+      [
+        id,
+        userId,
+        nowIso,
+        nowIso,
+        workoutLogId,
+        input.exerciseId,
+        input.setNumber,
+        reps,
+        weightKg,
+        rpe,
+        completed,
+        notes,
+      ],
     );
     await enqueue(
       {
@@ -243,10 +267,7 @@ export async function addWorkoutSet(
   });
 }
 
-export async function listWorkoutSets(
-  userId: string,
-  workoutLogId: string,
-): Promise<WorkoutSet[]> {
+export async function listWorkoutSets(userId: string, workoutLogId: string): Promise<WorkoutSet[]> {
   const rows = await queryAll<WorkoutSetRow>(
     `SELECT * FROM workout_sets
      WHERE workout_log_id = ? AND user_id = ? AND deleted_at IS NULL
@@ -298,7 +319,9 @@ export async function updateWorkoutSet(
       },
       nowIso,
     );
-    const updated = await queryFirst<WorkoutSetRow>(`SELECT * FROM workout_sets WHERE id = ?`, [id]);
+    const updated = await queryFirst<WorkoutSetRow>(`SELECT * FROM workout_sets WHERE id = ?`, [
+      id,
+    ]);
     return updated ? rowToWorkoutSet(updated) : null;
   });
 }

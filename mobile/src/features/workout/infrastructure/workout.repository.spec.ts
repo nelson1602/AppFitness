@@ -200,7 +200,15 @@ describe('pull appliers', () => {
 
   it('applyServerWorkoutLog upserts as synced', async () => {
     await applyServerWorkoutLog(
-      { id: LID, user_id: USER, created_at: NOW, updated_at: NOW, version: 2, name: 'x', started_at: NOW },
+      {
+        id: LID,
+        user_id: USER,
+        created_at: NOW,
+        updated_at: NOW,
+        version: 2,
+        name: 'x',
+        started_at: NOW,
+      },
       false,
     );
     expect(mockRun.mock.calls[0][0]).toContain('INSERT OR REPLACE INTO workout_logs');

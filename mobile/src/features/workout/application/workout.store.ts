@@ -130,7 +130,9 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
     try {
       const updated = await finishWorkout(id);
       set((s) => ({
-        workoutLogs: updated ? s.workoutLogs.map((l) => (l.id === id ? updated : l)) : s.workoutLogs,
+        workoutLogs: updated
+          ? s.workoutLogs.map((l) => (l.id === id ? updated : l))
+          : s.workoutLogs,
         status: 'ready',
         error: null,
       }));
@@ -229,7 +231,9 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
     try {
       const updated = await editWorkoutSet(id, patch);
       set((s) => ({
-        workoutSets: updated ? s.workoutSets.map((w) => (w.id === id ? updated : w)) : s.workoutSets,
+        workoutSets: updated
+          ? s.workoutSets.map((w) => (w.id === id ? updated : w))
+          : s.workoutSets,
         status: 'ready',
         error: null,
       }));

@@ -1,5 +1,8 @@
 import { deriveExerciseId } from '../infrastructure/exercise-uuid.testkit';
-import { BUILT_IN_EXERCISES, getBuiltInExerciseById } from '../infrastructure/exercise-catalog.data';
+import {
+  BUILT_IN_EXERCISES,
+  getBuiltInExerciseById,
+} from '../infrastructure/exercise-catalog.data';
 import { EXERCISE_REVISION, WORKOUT_UUID_NAMESPACE } from './exercise-catalog';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -11,7 +14,7 @@ describe('built-in exercise identity', () => {
     expect(EXERCISE_REVISION).toBe(1);
   });
 
-  it("every built-in id === uuidv5(`key:revision`) — deterministic + runtime-safe", () => {
+  it('every built-in id === uuidv5(`key:revision`) — deterministic + runtime-safe', () => {
     for (const e of BUILT_IN_EXERCISES) {
       expect(e.id).toBe(deriveExerciseId(e.key, EXERCISE_REVISION));
       expect(e.id).toMatch(UUID_RE); // RFC 4122 v5 shape
