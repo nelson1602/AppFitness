@@ -634,6 +634,61 @@ started.**
 
 ---
 
+## [FEATURE-007] Workout Module (Phase 16)
+
+Status: **Planning gate drafted — ADR-P015 DRAFT / NOT ACCEPTED (2026-07-17).**
+Implementation is blocked until the owner accepts ADR-P015; each slice then
+needs its own scoped authorization.
+
+### Summary
+Exercise catalog + user routines + workout logging, offline-first, consuming
+the deterministic iCoach `TrainingPlan` (no recompute, no medical override).
+See **ADR-P015 — Workout Module (Phase 16)** in `.ai/12_DECISIONS.md` for the
+full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
+
+### Audit findings (planning gate)
+- **Dormant tables already exist and are sync-shaped:** `exercises` (global +
+  custom), `routines`, `routine_exercises`, `workout_logs`, `workout_sets` —
+  all with client-UUIDs, denormalized `userId`, `version`/`deletedAt`/
+  `syncSeq`, `[userId, syncSeq]` indexes (nutrition sync pattern).
+- **iCoach `TrainingPlan`** already emits `{ blocked, requiresMedicalClearance,
+  intensity, rpeCap, daysPerWeek, excludedMovements[] }` deterministically, with
+  absolute medical priority — the module consumes it, never recomputes it.
+- **Gap:** `exercises` has only `muscleGroup` + `category`; no
+  `movementPattern`/`equipment`/`bodyArea`/contraindication field to map onto
+  `excludedMovements`. Resolve in Slice 1 (schema columns vs bundled mapping).
+- **Sync-seq triggers** on the 5 workout tables must be audited (a dormant
+  table was found without its trigger during nutrition Slice 2A).
+
+### Slice plan (each its own authorization)
+1. Schema audit + ADR (triggers + movement-pattern mapping decision) — **recommended first**.
+2. Exercise catalog strategy + built-in catalog (+ custom exercises).
+3. Backend sync handlers (routines / routine_exercises / workout_logs / workout_sets / custom exercises).
+4. Mobile repository/store foundation (no UI).
+5. Routine builder UI.
+6. Workout logging UI.
+7. iCoach `TrainingPlan` integration (guidance + blocked/clearance states).
+8. E2E validation (Maestro, wired into `mobile-e2e.yml`).
+
+### Privacy stance
+Workout data = **wellness** (synced, not encrypted). Injury/restriction/medical
+data stays owned by the medical domain (ADR-0011); the module consumes only the
+derived, redaction-safe `TrainingPlan`.
+
+### Acceptance criteria
+- [ ] Owner accepts ADR-P015 (slice plan + D1–D5) before any implementation.
+- [ ] Slice 1 audit resolves schema sufficiency (dormant-as-is vs additive migration).
+- [ ] Workout entities sync offline-first; medical restrictions never overridden.
+- [ ] Deterministic `TrainingPlan` reflected (never recomputed) in the workout UI.
+
+### Related Documents
+- .ai/12_DECISIONS.md — ADR-P015 (this gate), iCoach training engine, ADR-0006/0011
+- .ai/13_MIGRATION_ROADMAP.md — Phase 16 — Workout Module
+- api/prisma/schema.prisma — dormant `exercises`/`routines`/`routine_exercises`/`workout_logs`/`workout_sets`
+- mobile/src/features/icoach/domain/training.ts — `planTraining` / `TrainingPlan`
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation

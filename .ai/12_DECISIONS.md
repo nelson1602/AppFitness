@@ -4801,6 +4801,161 @@ No superseded decisions documented yet.
 
 ---
 
+## ADR-P015 — Workout Module (Phase 16)
+
+Status: **Proposed (DRAFT — NOT ACCEPTED).** Planning gate only; implementation
+is blocked until the project owner records an acceptance decision here.
+Date drafted: 2026-07-17
+Relates to: the deterministic iCoach `TrainingPlan` engine, ADR-0006
+(offline-first sync), ADR-0011 (health-data sensitivity), ADR-P001/P006
+(field-level encryption), and ADR-P012 (catalog-identity precedent). Does not
+touch ADR-P013 (nutrition sourcing) or ADR-P014 (dietary preferences).
+
+> Documentation-only planning gate. No schema, migration, backend module,
+> mobile UI, sync handler, exercise-catalog data, or dependency change has
+> landed or is authorized. This gate defines the Phase 16 slice plan and the
+> decisions to resolve before implementation; acceptance authorizes only the
+> first slice, and each later slice needs its own scoped authorization.
+
+### Context
+
+Phase 15 (nutrition) is complete and stabilized (ADR-P014/FEATURE-006 done and
+E2E-verified; ADR-P013 sourcing tracks closed/exhausted; `food-catalog@1.13.6`;
+168/190 sourced, 22 gated residual). Phase 16 delivers the **Workout Module**:
+an exercise catalog, user routines, and workout logging, all offline-first and
+consuming the existing deterministic iCoach `TrainingPlan` — without recomputing
+it or overriding medical restrictions.
+
+### Current-state audit (findings)
+
+**Postgres/Prisma schema — dormant, sync-shaped tables already exist:**
+- `exercises` — global catalog (`createdBy = null`) + user custom
+  (`createdBy = userId`); `name` unique, `muscleGroup`, `category`
+  (`ExerciseCategory`: STRENGTH / CARDIO / FLEXIBILITY / BODYWEIGHT),
+  `instructions`; SYNCED columns (`version`/`deletedAt`/`syncSeq`); reference
+  data intended to sync to devices.
+- `routines` — user-owned, client-generatable UUID, `name`/`description`; SYNCED.
+- `routine_exercises` — denormalized `userId`, `routineId`, `exerciseId`,
+  `order` (unique per routine), `targetSets`/`targetReps`/`targetWeightKg`;
+  `exercise` `onDelete: Restrict`; SYNCED.
+- `workout_logs` — user-owned, optional `routineId` (`onDelete: SetNull`),
+  `name`/`notes`/`startedAt`/`finishedAt`; SYNCED.
+- `workout_sets` — denormalized `userId`, `workoutLogId`, `exerciseId`,
+  `setNumber`, `reps`, `weightKg`, `rpe`, `completed`, `notes`; SYNCED.
+- All mirror the nutrition sync pattern: client-generatable UUIDs, denormalized
+  `userId` for sync scoping, `version`/`deletedAt`/`deletedBy`/`syncSeq`, and
+  `[userId, syncSeq]` indexes.
+
+**iCoach training engine (`mobile/src/features/icoach/domain/training.ts`):**
+`planTraining(fitnessLevel, goal, restrictionAnalysis, recovery?, daysPref?)`
+→ `TrainingPlan { blocked, requiresMedicalClearance, intensity
+(LOW/MODERATE/HIGH), rpeCap, daysPerWeek, excludedMovements: string[] }`.
+`excludedMovements` is a sorted, deduped movement-token vocabulary (e.g.
+`heavy_hinge`, `deep_squat`, `running`, `jumping`, `max_effort_lifts`) derived
+from active restrictions; **medical caps have absolute priority** over goal and
+recovery nudges. Deterministic; already the single source of truth.
+
+**Key gap:** `exercises` carries only `muscleGroup` + `category` — there is **no
+structured `movementPattern` / `equipment` / `bodyArea` / contraindication
+field** to map catalog exercises onto the engine's `excludedMovements` tokens.
+Wiring exercises to the `TrainingPlan` needs either (a) new additive `exercises`
+columns (schema change) or (b) a bundled mobile-side exercise→movement-pattern
+mapping (no schema change). **This is the central decision (D1/D2).**
+
+**Sync-seq triggers must be audited:** the nutrition Slice 2A work found a
+dormant table shipped without its `assign_sync_seq` trigger. All five workout
+tables' triggers must be verified before pull/push works (a Slice 1 item).
+
+### Decisions to resolve (the gate)
+
+- **D1 — Schema sufficiency.** Are the dormant tables sufficient as-is, or is an
+  ADR-approved **forward-only additive migration** needed to (i) add the
+  movement-pattern/equipment/body-area/contraindication mapping to `exercises`
+  and (ii) attach any missing `assign_sync_seq` triggers? *Recommendation:*
+  Slice 1 audits and decides; expect a small additive migration only if the
+  mapping is stored server-side.
+- **D2 — Exercise catalog strategy.** A curated **built-in global catalog**
+  (`createdBy = null`, synced read-only reference data) plus **user custom
+  exercises** (`createdBy = userId`, user-scoped, synced). A controlled
+  vocabulary for **movement patterns / equipment / body areas**, and a
+  **contraindication mapping** linking each built-in exercise to zero-or-more
+  engine movement tokens. Custom exercises are allowed but carry **no medical
+  authority** — they default to "unmapped", are never auto-excluded, and show
+  only a generic caution. The built-in catalog is a versioned in-repo artifact
+  (like the food catalog); it is NOT an external-source sourcing problem (no
+  USDA-style pinning needed).
+- **D3 — Sync/conflict semantics.** `routines` / `routine_exercises` /
+  `workout_logs` / `workout_sets` (and custom `exercises`) sync via the existing
+  offline-first protocol (ADR-0006: client-UUID, `version`, per-entity
+  conflict handling) using the same handler/registry pattern as
+  `meal_items`/`dietary_preferences`. Global exercises are server-owned
+  reference data pulled to devices (device-read-only). FK ordering on push:
+  exercises → routine_exercises/workout_sets; routines → routine_exercises/
+  workout_logs; workout_logs → workout_sets — unmet parents return the existing
+  `DEPENDENCY_NOT_READY` retryable status (the `meal_items` precedent), never
+  data loss.
+- **D4 — Privacy / sensitivity stance.** Workout data (routines, logs, sets,
+  RPE, workout notes) is **wellness data** — synced normally, **not**
+  field-encrypted. **Injury/restriction and any medical data stay owned by the
+  medical domain** (ADR-0011); the workout module never duplicates raw medical
+  data — it consumes only the derived, redaction-safe `TrainingPlan`
+  (`excludedMovements` are movement tokens, not diagnoses). Workout notes carry
+  no medical claims; if scope later adds medical detail, follow the nutrition
+  note-encryption precedent.
+- **D5 — `TrainingPlan` consumption.** The workout module **reads** the
+  deterministic `TrainingPlan` from the existing assessment (single source of
+  truth) and **never** recomputes `intensity`/`rpeCap`/`daysPerWeek`/
+  `excludedMovements` or overrides medical restrictions. The routine builder
+  **flags (non-blocking, allergy-warning precedent)** exercises whose movement
+  pattern ∈ `excludedMovements`, treats `rpeCap`/`daysPerWeek` as guidance, and
+  **hard-surfaces** the `blocked` / `requiresMedicalClearance` states when the
+  engine sets them.
+
+### Proposed slice plan (indicative; each its own scoped authorization)
+
+- **Slice 1 — Workout/exercise schema audit + ADR:** verify the dormant tables
+  and `assign_sync_seq` triggers; resolve D1 (movement-pattern mapping location);
+  forward-only additive migration only if required. *(Recommended first slice.)*
+- **Slice 2 — Exercise catalog strategy + built-in catalog:** curated global
+  exercises + movement-pattern/equipment/body-area vocabulary +
+  contraindication→`excludedMovements` mapping; versioned in-repo artifact.
+- **Slice 3 — Backend sync handlers** for routines / routine_exercises /
+  workout_logs / workout_sets (+ custom exercises), registered like the
+  nutrition handlers, with FK-ordering/dependency retry.
+- **Slice 4 — Mobile repository/store foundation** (offline-first; no UI).
+- **Slice 5 — Routine builder UI** (build/edit routines; exercise search/select;
+  `excludedMovements` warnings).
+- **Slice 6 — Workout logging UI** (start from a routine or ad-hoc; log
+  sets/reps/weight/RPE; finish).
+- **Slice 7 — iCoach `TrainingPlan` integration** surfaced in the workout UI
+  (intensity/rpeCap/daysPerWeek guidance; blocked/clearance states).
+- **Slice 8 — E2E validation** (Maestro: build routine → log workout → sync →
+  training plan reflected), wired into `mobile-e2e.yml`.
+
+### Out of scope until Accepted
+
+Any schema/migration/backend/mobile/sync/exercise-catalog/dependency/deployment
+change; exercise data import; and the implementation of the D1 mapping decision.
+
+### Recommended first slice
+
+**Slice 1** — the schema audit + trigger verification + movement-pattern mapping
+decision. It resolves D1, unblocks every later slice, and is the lowest-risk
+(audit plus, at most, one forward-only additive migration).
+
+### Acceptance criteria (owner records the decision here)
+
+Owner accepts the slice plan and: (a) the audit-first schema-sufficiency
+approach (D1); (b) the built-in + custom exercise-catalog strategy (D2); (c) the
+sync/conflict semantics reusing the nutrition pattern (D3); (d) the
+wellness-vs-medical privacy stance — workout data is wellness, medical stays in
+the medical domain, the module consumes only the derived `TrainingPlan` (D4);
+and (e) the `TrainingPlan`-consumption rule — no recompute, no medical override
+(D5). Acceptance authorizes **Slice 1 only**; each later slice needs its own
+authorization. Until accepted, Phase 16 stays unimplemented.
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

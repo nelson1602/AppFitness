@@ -1726,9 +1726,36 @@ Phases 13–14; dormant `routines`/`routine_exercises`/`workout_logs`/
 ### Risks
 Exercise-catalog sourcing; inter-entity FKs; sync ordering.
 
+### Planning gate (2026-07-17)
+**ADR-P015 — Workout Module (Phase 16) drafted (DRAFT / NOT ACCEPTED)** — see
+`.ai/12_DECISIONS.md` and FEATURE-007 in `.ai/11_BACKLOG.md`. Audit: the
+dormant `exercises`/`routines`/`routine_exercises`/`workout_logs`/`workout_sets`
+tables already exist and are sync-shaped (nutrition pattern); the iCoach
+`TrainingPlan` already emits `{ blocked, requiresMedicalClearance, intensity,
+rpeCap, daysPerWeek, excludedMovements[] }` deterministically. Key gap:
+`exercises` has no movement-pattern/equipment/body-area/contraindication field
+to map onto `excludedMovements` (resolved in Slice 1). Workout data is wellness
+(synced, not encrypted); medical/restriction data stays in the medical domain;
+the module **consumes** the `TrainingPlan` and never recomputes it or overrides
+medical restrictions. **Implementation blocked until the owner accepts
+ADR-P015.**
+
+### Slice plan (indicative; each its own authorization)
+- **Slice 1** — schema audit + ADR (sync_seq triggers + movement-pattern
+  mapping decision); forward-only additive migration only if needed. *(First.)*
+- **Slice 2** — exercise catalog strategy + built-in catalog (+ custom exercises).
+- **Slice 3** — backend sync handlers (routines / routine_exercises /
+  workout_logs / workout_sets / custom exercises).
+- **Slice 4** — mobile repository/store foundation (no UI).
+- **Slice 5** — routine builder UI.
+- **Slice 6** — workout logging UI.
+- **Slice 7** — iCoach `TrainingPlan` integration (guidance + blocked/clearance).
+- **Slice 8** — E2E validation (Maestro, wired into `mobile-e2e.yml`).
+
 ### Exit Criteria
+- [ ] Owner accepts ADR-P015 before any Phase 16 implementation.
 - [ ] Users build routines and log workouts; syncs offline-first; the
-      engine's training plan is reflected; tests meet thresholds.
+      engine's training plan is reflected (never recomputed); tests meet thresholds.
 
 ## Phase 17 — Progress Monitoring  [commercial v1]
 
