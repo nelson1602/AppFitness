@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { registerMedicalSyncAppliers } from '@/features/medical';
 import { registerNutritionSyncAppliers } from '@/features/nutrition';
 import { registerProfileSyncAppliers } from '@/features/profile';
+import { registerWorkoutSyncAppliers } from '@/features/workout';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
 import { useTheme } from '@/shared/theme';
 
@@ -15,6 +16,7 @@ initMonitoring();
 registerProfileSyncAppliers();
 registerMedicalSyncAppliers();
 registerNutritionSyncAppliers();
+registerWorkoutSyncAppliers();
 
 export default function RootLayout() {
   const theme = useTheme();

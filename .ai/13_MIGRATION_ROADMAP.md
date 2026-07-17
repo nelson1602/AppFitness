@@ -1769,7 +1769,15 @@ own go-ahead.**
   device-read reference data; wellness `notes` redacted from conflict
   snapshots. Custom-exercise push deferred to **Slice 3B**. No schema/migration/
   UI change.
-- **Slice 4** — mobile repository/store foundation (no UI).
+- **Slice 4** — mobile repository/store foundation (no UI). **Slice 4A DONE
+  2026-07-17:** routines + workout_logs mobile repository/service/store
+  (`mobile/src/features/workout/`) — local-first + sync enqueue for the Slice 3
+  handlers + pull appliers (`routines`/`workout_logs`); workout_logs' optional
+  `routine_id` validated locally. No UI. **routine_exercises + workout_sets
+  deferred** — blocked by the `exercise_id → exercises(id)` FK (Slice 2 catalog
+  is code-only, no seeded exercise ids). **Next: a built-in-exercise identity +
+  seed slice** (ADR-P012-style UUIDv5 identity, seeding `exercises` on mobile +
+  backend) before those entities can persist.
 - **Slice 5** — routine builder UI.
 - **Slice 6** — workout logging UI.
 - **Slice 7** — iCoach `TrainingPlan` integration (guidance + blocked/clearance).

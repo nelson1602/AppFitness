@@ -644,10 +644,16 @@ equipment/body-area attributes + pure `matchExerciseExclusion` matcher) under
 `mobile/src/features/workout/`; no backend/repo/UI. **Slice 3 COMPLETE
 (2026-07-17):** backend sync handlers for routines / routine_exercises /
 workout_logs / workout_sets (`api/src/modules/workout/`), registered in the
-sync pipeline; custom-exercise push deferred to Slice 3B. The **next authorized
-slice is Slice 4** (mobile repository/store foundation — offline-first, no UI),
-pending its own explicit go-ahead. Each subsequent slice needs separate
-authorization.
+sync pipeline; custom-exercise push deferred to Slice 3B. **Slice 4A COMPLETE
+(2026-07-17):** mobile routines + workout_logs repository/service/store
+(`mobile/src/features/workout/`), offline-first with sync enqueue + pull
+appliers; no UI. **routine_exercises + workout_sets deferred** (blocked by the
+`exercise_id → exercises(id)` FK; the Slice 2 catalog is code-only with no
+seeded exercise ids). The **next authorized slice is a built-in-exercise
+identity + seed slice** (ADR-P012-style UUIDv5 catalog identity, seeding
+`exercises` on mobile + backend) — a prerequisite before routine_exercises /
+workout_sets repository/handlers can persist; then the routine builder /
+workout logging UI slices. Each needs its own explicit authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:
@@ -711,7 +717,17 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    built-in seed warrant their own slice); routine_exercises/workout_sets treat
    the exercise reference as pre-existing (missing → retryable). No schema/
    migration/UI change.
-4. Mobile repository/store foundation (no UI).
+4. Mobile repository/store foundation (no UI). **Slice 4A DONE 2026-07-17**:
+   routines + workout_logs mobile repository/service/store
+   (`mobile/src/features/workout/`) — local-first writes, client-UUIDs,
+   soft-delete, version/`sync_status`, sync-queue enqueue for the Slice 3
+   handlers, pull appliers (`routines`/`workout_logs`), and workout_logs'
+   optional `routine_id` validated against a locally-present routine. No UI.
+   **routine_exercises + workout_sets deferred** — blocked by the
+   `exercise_id → exercises(id)` FK: the Slice 2 built-in catalog is code-only
+   with no seeded stable exercise ids. Needs a dedicated **built-in-exercise
+   identity + seed slice (likely an ADR-P012-style UUIDv5 catalog identity)**
+   before they can persist runtime-safely; not started.
 5. Routine builder UI.
 6. Workout logging UI.
 7. iCoach `TrainingPlan` integration (guidance + blocked/clearance states).
