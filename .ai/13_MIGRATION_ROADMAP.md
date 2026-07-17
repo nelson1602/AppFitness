@@ -1783,6 +1783,14 @@ own go-ahead.**
   never overwriting custom exercises; mobile/backend id parity test-verified. No
   schema/migration change. **Unblocks routine_exercises/workout_sets** (the next
   slice).
+- **Slice 4B DONE 2026-07-17:** routine_exercises + workout_sets mobile
+  repository/service/store (`mobile/src/features/workout/`) — local-first
+  list/add/update/soft-delete + sync enqueue for the Slice 3 handlers + pull
+  appliers (`routine_exercises`/`workout_sets`); parent routine/workout_log
+  validated as locally present; the built-in exercise is seeded in-transaction
+  before each FK write (`ensureBuiltInExerciseSeeded`), and non-built-in exercise
+  ids are rejected (custom-exercise support deferred to Slice 3B). No UI, no
+  schema/migration change.
 - **Slice 5** — routine builder UI.
 - **Slice 6** — workout logging UI.
 - **Slice 7** — iCoach `TrainingPlan` integration (guidance + blocked/clearance).

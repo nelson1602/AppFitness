@@ -1,16 +1,18 @@
 import type {
+  RoutineExerciseRow,
   RoutineRow,
-  WorkoutLogRow,
+  SqlBool,
   SyncStatus,
+  WorkoutLogRow,
+  WorkoutSetRow,
 } from '@/shared/infrastructure/database/types';
 
 /**
- * Workout domain contract (ADR-P015 Phase 16 Slice 4A). Local-first
- * routines + workout logs. Wellness data (not encrypted). `routine_exercises`
- * and `workout_sets` are intentionally out of Slice 4A — they are blocked by
- * the `exercise_id → exercises(id)` FK until a built-in-exercise seed +
- * identity slice lands (see ADR-P015 / FEATURE-007). No UI, no TrainingPlan
- * wiring consumes this yet.
+ * Workout domain contract (ADR-P015 Phase 16 Slices 4A + 4B). Local-first
+ * routines, workout logs, routine exercises, and workout sets. Wellness data
+ * (not encrypted). Built-in exercise references use the seeded stable
+ * exercise ids (exercise identity/seed slice). Custom exercises remain
+ * deferred (Slice 3B). No UI, no TrainingPlan wiring consumes this yet.
  */
 
 export interface RoutineInput {
@@ -79,4 +81,115 @@ export function rowToWorkoutLog(row: WorkoutLogRow): WorkoutLog {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+// ── routine_exercises ─────────────────────────────────────────────────────────
+export interface RoutineExerciseInput {
+  /** Built-in exercise UUID id (seeded); custom exercises are not supported. */
+  exerciseId: string;
+  order: number;
+  targetSets?: number | null;
+  targetReps?: number | null;
+  targetWeightKg?: number | null;
+}
+
+export interface RoutineExercise {
+  id: string;
+  userId: string;
+  routineId: string;
+  exerciseId: string;
+  order: number;
+  targetSets: number | null;
+  targetReps: number | null;
+  targetWeightKg: number | null;
+  version: number;
+  syncStatus: SyncStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoutineExercisePatch {
+  order?: number;
+  targetSets?: number | null;
+  targetReps?: number | null;
+  targetWeightKg?: number | null;
+}
+
+export function rowToRoutineExercise(row: RoutineExerciseRow): RoutineExercise {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    routineId: row.routine_id,
+    exerciseId: row.exercise_id,
+    order: row.order_index,
+    targetSets: row.target_sets,
+    targetReps: row.target_reps,
+    targetWeightKg: row.target_weight_kg,
+    version: row.version,
+    syncStatus: row.sync_status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+// ── workout_sets ──────────────────────────────────────────────────────────────
+export interface WorkoutSetInput {
+  /** Built-in exercise UUID id (seeded); custom exercises are not supported. */
+  exerciseId: string;
+  setNumber: number;
+  reps?: number | null;
+  weightKg?: number | null;
+  rpe?: number | null;
+  completed?: boolean;
+  notes?: string | null;
+}
+
+export interface WorkoutSet {
+  id: string;
+  userId: string;
+  workoutLogId: string;
+  exerciseId: string;
+  setNumber: number;
+  reps: number | null;
+  weightKg: number | null;
+  rpe: number | null;
+  completed: boolean;
+  notes: string | null;
+  version: number;
+  syncStatus: SyncStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkoutSetPatch {
+  setNumber?: number;
+  reps?: number | null;
+  weightKg?: number | null;
+  rpe?: number | null;
+  completed?: boolean;
+  notes?: string | null;
+}
+
+export function rowToWorkoutSet(row: WorkoutSetRow): WorkoutSet {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    workoutLogId: row.workout_log_id,
+    exerciseId: row.exercise_id,
+    setNumber: row.set_number,
+    reps: row.reps,
+    weightKg: row.weight_kg,
+    rpe: row.rpe,
+    completed: row.completed === 1,
+    notes: row.notes,
+    version: row.version,
+    syncStatus: row.sync_status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** Domain boolean → SQLite 0/1. */
+export function toSqlBool(v: boolean): SqlBool {
+  return v ? 1 : 0;
 }

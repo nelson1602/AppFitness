@@ -655,10 +655,15 @@ mobile `seedBuiltInExercises`/`ensureBuiltInExerciseSeeded` (`INSERT OR IGNORE`,
 never overwrites custom) and a backend `prisma/seed/seed-exercise-catalog.ts`
 artifact (upsert insert-only) from `prisma/seed/exercise-catalog.json`.
 Mobile (pure-JS) and backend (Node-crypto) derive byte-identical ids
-(parity-tested). This unblocks the FK. **routine_exercises + workout_sets
-repository/handlers remain the next slice** (now that exercise ids are stable +
-seeded), followed by the routine builder / workout logging UI. Custom-exercise
-push (Slice 3B) still deferred. Each needs its own explicit authorization.
+(parity-tested). This unblocks the FK. **Slice 4B COMPLETE (2026-07-17):**
+mobile routine_exercises + workout_sets repository/service/store
+(`mobile/src/features/workout/`), offline-first (local-first writes,
+client-UUIDs, soft-delete, version/`sync_status`, sync-queue enqueue for the
+Slice 3 handlers, pull appliers), with the built-in exercise seeded in-transaction
+before each FK write (`ensureBuiltInExerciseSeeded`) and non-built-in exercises
+rejected (custom deferred to Slice 3B). No UI. **The routine builder / workout
+logging UI remain the next slices.** Custom-exercise push (Slice 3B) still
+deferred. Each needs its own explicit authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:
@@ -740,6 +745,18 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    from `exercise-catalog.json`). Idempotent, never overwrites custom
    exercises; mobile/backend id parity is test-verified. No schema/migration
    change. Unblocks routine_exercises/workout_sets.
+4c. Mobile routine_exercises + workout_sets repository/store foundation (no UI).
+   **Slice 4B DONE 2026-07-17**: `workout-exercises.repository.ts` (list/add/
+   update/soft-delete for both entities + pull appliers), service use cases, and
+   `useWorkoutStore` orchestration (`mobile/src/features/workout/`) — local-first
+   writes, client-UUIDs, soft-delete, version/`sync_status`, enqueue in the same
+   transaction for the Slice 3 `routine_exercises`/`workout_sets` handlers, and
+   parent-dependency validation (routine / workout_log must be locally present →
+   otherwise error). The `exercise_id → exercises(id)` FK is honored by seeding
+   the built-in exercise in-transaction before the child insert
+   (`ensureBuiltInExerciseSeeded`, `INSERT OR IGNORE`); non-built-in exercise ids
+   are rejected (custom-exercise support deferred to Slice 3B). No schema/
+   migration/UI change.
 5. Routine builder UI.
 6. Workout logging UI.
 7. iCoach `TrainingPlan` integration (guidance + blocked/clearance states).

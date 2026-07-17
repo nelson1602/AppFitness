@@ -2,14 +2,31 @@ import { create } from 'zustand';
 
 import { logError } from '@/shared/infrastructure/logging';
 
-import type { Routine, RoutineInput, WorkoutLog, WorkoutLogInput } from '../domain/workout';
+import type {
+  Routine,
+  RoutineExercise,
+  RoutineExerciseInput,
+  RoutineInput,
+  WorkoutLog,
+  WorkoutLogInput,
+  WorkoutSet,
+  WorkoutSetInput,
+  WorkoutSetPatch,
+} from '../domain/workout';
 import {
+  addExerciseToRoutine,
   addRoutine,
   deactivateRoutine,
+  editWorkoutSet,
   finishWorkout,
   getMyRoutines,
   getMyWorkoutLogs,
+  getRoutineExercises,
+  getWorkoutSets,
+  logWorkoutSet,
+  removeExerciseFromRoutine,
   removeWorkoutLog,
+  removeWorkoutSetEntry,
   startWorkout,
 } from './workout.service';
 
@@ -26,6 +43,10 @@ export interface WorkoutState {
   status: WorkoutStatus;
   routines: Routine[];
   workoutLogs: WorkoutLog[];
+  /** Exercises of the most recently loaded routine (per-context). */
+  routineExercises: RoutineExercise[];
+  /** Sets of the most recently loaded workout log (per-context). */
+  workoutSets: WorkoutSet[];
   error: string | null;
   load: () => Promise<void>;
   createRoutine: (input: RoutineInput) => Promise<boolean>;
@@ -33,12 +54,21 @@ export interface WorkoutState {
   startWorkout: (input: WorkoutLogInput) => Promise<boolean>;
   finishWorkout: (id: string) => Promise<boolean>;
   removeWorkout: (id: string) => Promise<boolean>;
+  loadRoutineExercises: (routineId: string) => Promise<void>;
+  addRoutineExercise: (routineId: string, input: RoutineExerciseInput) => Promise<boolean>;
+  removeRoutineExercise: (id: string) => Promise<boolean>;
+  loadWorkoutSets: (workoutLogId: string) => Promise<void>;
+  logWorkoutSet: (workoutLogId: string, input: WorkoutSetInput) => Promise<boolean>;
+  updateWorkoutSet: (id: string, patch: WorkoutSetPatch) => Promise<boolean>;
+  removeWorkoutSet: (id: string) => Promise<boolean>;
 }
 
 export const useWorkoutStore = create<WorkoutState>((set) => ({
   status: 'idle',
   routines: [],
   workoutLogs: [],
+  routineExercises: [],
+  workoutSets: [],
   error: null,
 
   load: async () => {
@@ -125,6 +155,105 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
     } catch (error) {
       logError('workout.removeWorkout', error);
       set({ status: 'error', error: 'That workout could not be removed. Please try again.' });
+      return false;
+    }
+  },
+
+  loadRoutineExercises: async (routineId) => {
+    set({ status: 'loading', error: null });
+    try {
+      const routineExercises = await getRoutineExercises(routineId);
+      set({ routineExercises, status: 'ready', error: null });
+    } catch (error) {
+      logError('workout.loadRoutineExercises', error);
+      set({ status: 'error', error: 'Those exercises could not be loaded right now.' });
+    }
+  },
+
+  addRoutineExercise: async (routineId, input) => {
+    set({ status: 'saving', error: null });
+    try {
+      const re = await addExerciseToRoutine(routineId, input);
+      set((s) => ({ routineExercises: [...s.routineExercises, re], status: 'ready', error: null }));
+      return true;
+    } catch (error) {
+      logError('workout.addRoutineExercise', error);
+      set({ status: 'error', error: 'That exercise could not be added. Please try again.' });
+      return false;
+    }
+  },
+
+  removeRoutineExercise: async (id) => {
+    set({ status: 'saving', error: null });
+    try {
+      await removeExerciseFromRoutine(id);
+      set((s) => ({
+        routineExercises: s.routineExercises.filter((e) => e.id !== id),
+        status: 'ready',
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      logError('workout.removeRoutineExercise', error);
+      set({ status: 'error', error: 'That exercise could not be removed. Please try again.' });
+      return false;
+    }
+  },
+
+  loadWorkoutSets: async (workoutLogId) => {
+    set({ status: 'loading', error: null });
+    try {
+      const workoutSets = await getWorkoutSets(workoutLogId);
+      set({ workoutSets, status: 'ready', error: null });
+    } catch (error) {
+      logError('workout.loadWorkoutSets', error);
+      set({ status: 'error', error: 'Those sets could not be loaded right now.' });
+    }
+  },
+
+  logWorkoutSet: async (workoutLogId, input) => {
+    set({ status: 'saving', error: null });
+    try {
+      const wset = await logWorkoutSet(workoutLogId, input);
+      set((s) => ({ workoutSets: [...s.workoutSets, wset], status: 'ready', error: null }));
+      return true;
+    } catch (error) {
+      logError('workout.logWorkoutSet', error);
+      set({ status: 'error', error: 'That set could not be saved. Please try again.' });
+      return false;
+    }
+  },
+
+  updateWorkoutSet: async (id, patch) => {
+    set({ status: 'saving', error: null });
+    try {
+      const updated = await editWorkoutSet(id, patch);
+      set((s) => ({
+        workoutSets: updated ? s.workoutSets.map((w) => (w.id === id ? updated : w)) : s.workoutSets,
+        status: 'ready',
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      logError('workout.updateWorkoutSet', error);
+      set({ status: 'error', error: 'That set could not be updated. Please try again.' });
+      return false;
+    }
+  },
+
+  removeWorkoutSet: async (id) => {
+    set({ status: 'saving', error: null });
+    try {
+      await removeWorkoutSetEntry(id);
+      set((s) => ({
+        workoutSets: s.workoutSets.filter((w) => w.id !== id),
+        status: 'ready',
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      logError('workout.removeWorkoutSet', error);
+      set({ status: 'error', error: 'That set could not be removed. Please try again.' });
       return false;
     }
   },

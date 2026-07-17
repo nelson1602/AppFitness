@@ -2,9 +2,15 @@ import { getSession } from '@/features/authentication';
 
 import type {
   Routine,
+  RoutineExercise,
+  RoutineExerciseInput,
+  RoutineExercisePatch,
   RoutineInput,
   WorkoutLog,
   WorkoutLogInput,
+  WorkoutSet,
+  WorkoutSetInput,
+  WorkoutSetPatch,
 } from '../domain/workout';
 import {
   createRoutine,
@@ -16,6 +22,16 @@ import {
   updateRoutine,
   updateWorkoutLog,
 } from '../infrastructure/workout.repository';
+import {
+  addRoutineExercise,
+  addWorkoutSet,
+  listRoutineExercises,
+  listWorkoutSets,
+  removeRoutineExercise,
+  removeWorkoutSet,
+  updateRoutineExercise,
+  updateWorkoutSet,
+} from '../infrastructure/workout-exercises.repository';
 
 /**
  * Workout use cases (ADR-P015 Slice 4A). Stores/UI call these, never SQLite
@@ -70,4 +86,44 @@ export function editWorkoutLog(
 
 export function removeWorkoutLog(id: string): Promise<void> {
   return deleteWorkoutLog(requireUserId(), id);
+}
+
+// ── routine exercises ─────────────────────────────────────────────────────────
+export function getRoutineExercises(routineId: string): Promise<RoutineExercise[]> {
+  return listRoutineExercises(requireUserId(), routineId);
+}
+
+export function addExerciseToRoutine(
+  routineId: string,
+  input: RoutineExerciseInput,
+): Promise<RoutineExercise> {
+  return addRoutineExercise(requireUserId(), routineId, input);
+}
+
+export function editRoutineExercise(
+  id: string,
+  patch: RoutineExercisePatch,
+): Promise<RoutineExercise | null> {
+  return updateRoutineExercise(requireUserId(), id, patch);
+}
+
+export function removeExerciseFromRoutine(id: string): Promise<void> {
+  return removeRoutineExercise(requireUserId(), id);
+}
+
+// ── workout sets ──────────────────────────────────────────────────────────────
+export function getWorkoutSets(workoutLogId: string): Promise<WorkoutSet[]> {
+  return listWorkoutSets(requireUserId(), workoutLogId);
+}
+
+export function logWorkoutSet(workoutLogId: string, input: WorkoutSetInput): Promise<WorkoutSet> {
+  return addWorkoutSet(requireUserId(), workoutLogId, input);
+}
+
+export function editWorkoutSet(id: string, patch: WorkoutSetPatch): Promise<WorkoutSet | null> {
+  return updateWorkoutSet(requireUserId(), id, patch);
+}
+
+export function removeWorkoutSetEntry(id: string): Promise<void> {
+  return removeWorkoutSet(requireUserId(), id);
 }

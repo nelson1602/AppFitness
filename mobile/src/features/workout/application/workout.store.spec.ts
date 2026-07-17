@@ -1,10 +1,15 @@
-import type { Routine, WorkoutLog } from '../domain/workout';
+import type { Routine, RoutineExercise, WorkoutLog, WorkoutSet } from '../domain/workout';
 import {
+  addExerciseToRoutine,
   addRoutine,
   deactivateRoutine,
   finishWorkout,
   getMyRoutines,
   getMyWorkoutLogs,
+  getRoutineExercises,
+  getWorkoutSets,
+  logWorkoutSet,
+  removeExerciseFromRoutine,
   removeWorkoutLog,
   startWorkout,
 } from './workout.service';
@@ -18,6 +23,14 @@ jest.mock('./workout.service', () => ({
   startWorkout: jest.fn(),
   finishWorkout: jest.fn(),
   removeWorkoutLog: jest.fn(),
+  getRoutineExercises: jest.fn(),
+  addExerciseToRoutine: jest.fn(),
+  editRoutineExercise: jest.fn(),
+  removeExerciseFromRoutine: jest.fn(),
+  getWorkoutSets: jest.fn(),
+  logWorkoutSet: jest.fn(),
+  editWorkoutSet: jest.fn(),
+  removeWorkoutSetEntry: jest.fn(),
 }));
 
 const mockGetRoutines = jest.mocked(getMyRoutines);
@@ -27,6 +40,11 @@ const mockDeactivate = jest.mocked(deactivateRoutine);
 const mockStart = jest.mocked(startWorkout);
 const mockFinish = jest.mocked(finishWorkout);
 const mockRemove = jest.mocked(removeWorkoutLog);
+const mockGetRE = jest.mocked(getRoutineExercises);
+const mockAddRE = jest.mocked(addExerciseToRoutine);
+const mockRemoveRE = jest.mocked(removeExerciseFromRoutine);
+const mockGetSets = jest.mocked(getWorkoutSets);
+const mockLogSet = jest.mocked(logWorkoutSet);
 
 const routine = (o: Partial<Routine> = {}): Routine => ({
   id: 'r1',
@@ -54,9 +72,49 @@ const log = (o: Partial<WorkoutLog> = {}): WorkoutLog => ({
   ...o,
 });
 
+const re = (o: Partial<RoutineExercise> = {}): RoutineExercise => ({
+  id: 're1',
+  userId: 'u1',
+  routineId: 'r1',
+  exerciseId: '75156ac5-8fd5-5e08-a9e8-d6ceb300e4ea',
+  order: 0,
+  targetSets: null,
+  targetReps: null,
+  targetWeightKg: null,
+  version: 1,
+  syncStatus: 'pending',
+  createdAt: '2026-07-17T00:00:00.000Z',
+  updatedAt: '2026-07-17T00:00:00.000Z',
+  ...o,
+});
+const wset = (o: Partial<WorkoutSet> = {}): WorkoutSet => ({
+  id: 's1',
+  userId: 'u1',
+  workoutLogId: 'l1',
+  exerciseId: '75156ac5-8fd5-5e08-a9e8-d6ceb300e4ea',
+  setNumber: 1,
+  reps: 5,
+  weightKg: 100,
+  rpe: null,
+  completed: false,
+  notes: null,
+  version: 1,
+  syncStatus: 'pending',
+  createdAt: '2026-07-17T00:00:00.000Z',
+  updatedAt: '2026-07-17T00:00:00.000Z',
+  ...o,
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
-  useWorkoutStore.setState({ status: 'idle', routines: [], workoutLogs: [], error: null });
+  useWorkoutStore.setState({
+    status: 'idle',
+    routines: [],
+    workoutLogs: [],
+    routineExercises: [],
+    workoutSets: [],
+    error: null,
+  });
 });
 
 describe('useWorkoutStore', () => {
@@ -122,5 +180,49 @@ describe('useWorkoutStore', () => {
     expect(ok).toBe(false);
     expect(useWorkoutStore.getState().status).toBe('error');
     expect(useWorkoutStore.getState().error).toMatch(/could not be saved/);
+  });
+
+  it('loads + adds + removes a routine exercise', async () => {
+    mockGetRE.mockResolvedValue([re({ id: 're1' })]);
+    await useWorkoutStore.getState().loadRoutineExercises('r1');
+    expect(useWorkoutStore.getState().routineExercises.map((e) => e.id)).toEqual(['re1']);
+
+    mockAddRE.mockResolvedValue(re({ id: 're2', order: 1 }));
+    expect(
+      await useWorkoutStore
+        .getState()
+        .addRoutineExercise('r1', { exerciseId: '75156ac5-8fd5-5e08-a9e8-d6ceb300e4ea', order: 1 }),
+    ).toBe(true);
+    expect(useWorkoutStore.getState().routineExercises.map((e) => e.id)).toEqual(['re1', 're2']);
+
+    mockRemoveRE.mockResolvedValue(undefined);
+    expect(await useWorkoutStore.getState().removeRoutineExercise('re1')).toBe(true);
+    expect(useWorkoutStore.getState().routineExercises.map((e) => e.id)).toEqual(['re2']);
+  });
+
+  it('surfaces a safe error when adding a routine exercise fails', async () => {
+    mockAddRE.mockRejectedValue(new Error('boom'));
+    const ok = await useWorkoutStore
+      .getState()
+      .addRoutineExercise('r1', { exerciseId: 'x', order: 0 });
+    expect(ok).toBe(false);
+    expect(useWorkoutStore.getState().error).toMatch(/could not be added/);
+  });
+
+  it('loads + logs a workout set', async () => {
+    mockGetSets.mockResolvedValue([wset({ id: 's1' })]);
+    await useWorkoutStore.getState().loadWorkoutSets('l1');
+    expect(useWorkoutStore.getState().workoutSets.map((s) => s.id)).toEqual(['s1']);
+
+    mockLogSet.mockResolvedValue(wset({ id: 's2', setNumber: 2 }));
+    expect(
+      await useWorkoutStore
+        .getState()
+        .logWorkoutSet('l1', {
+          exerciseId: '75156ac5-8fd5-5e08-a9e8-d6ceb300e4ea',
+          setNumber: 2,
+        }),
+    ).toBe(true);
+    expect(useWorkoutStore.getState().workoutSets.map((s) => s.id)).toEqual(['s1', 's2']);
   });
 });
