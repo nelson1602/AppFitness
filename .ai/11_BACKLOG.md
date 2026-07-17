@@ -1199,6 +1199,16 @@ protein_shake_water, vegan_protein_shake).
 see ADR-P013 "Per-Food Gate Work — Closure Note". 168/190 sourced; the 22
 remaining foods are not resolvable under the current pinned sources and are
 blocked solely on a future third-source amendment decision.**
+**ADR-P013 Amendment A2 — third-source gate — was ACCEPTED (A2a Foundation
+Foods only) 2026-07-17 by the project owner** (the "split" path: A2a accepted,
+**A2b Branded Foods NOT accepted** — deferred to a separate brand-policy
+decision; Open Food Facts / non-USDA and manual corrections / proxies remain
+disallowed). **A2a implementation is authorized but NOT started.** The next
+authorized slice is a **Foundation Foods pin batch ONLY** (archive download +
+manifest `tertiarySources` SHA-256/bytes/license/date pin); **matching stays
+blocked** until that pin lands and is separately authorized. Any residue food
+not cleanly matched under Foundation stays gated. Gated count unchanged at 22
+(9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`).
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 

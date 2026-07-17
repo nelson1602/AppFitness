@@ -4303,19 +4303,29 @@ tolerance, authored values kept); new immutable revision 2 + patch
 Until a decision is recorded here, `food.mixed_greens` remains gated and
 counted under gate (c).
 
-### Amendment A2 (DRAFT — NOT ACCEPTED) — Third-Source Gate for the Gate-(d) Residue (22 foods)
+### Amendment A2 — Third-Source Gate for the Gate-(d) Residue (22 foods)
 
-Status: **Proposed (DRAFT)** — **NOT accepted.** Implementation is blocked
-until the project owner records an acceptance decision here.
+Status: **Accepted — A2a (Foundation Foods) only** (2026-07-17, by project
+owner; the "split by subgroup" recommendation, A2a leg only). **A2b (Branded
+Foods) is NOT accepted** and remains a separate future decision (see the
+Acceptance resolution at the end of this amendment).
 Date drafted: 2026-07-17
+Date accepted: 2026-07-17
 Extends: ADR-P013 + Amendment A1 (does not supersede either; both remain
 Accepted and in force). **ADR-P014 is unrelated and untouched by this gate.**
 
-> Documentation-only gate. No archive has been downloaded, no matching
-> performed, and no catalog/manifest/artifact/golden/test/data/revision/
-> `CATALOG_VERSION` change has landed or is authorized. Until the owner
-> accepts a path below, the 22 gate-(d) foods keep `grams_per_serving = null`
-> and log via fractional servings; TECHDEBT-004 risk 3 part 2 stays OPEN.
+> Acceptance is **documentation-only**. As of acceptance, **no Foundation
+> Foods archive has been downloaded/pinned, no matching has been performed,
+> and no catalog/manifest/artifact/golden/test/data/`FOOD_REVISIONS`/
+> `CATALOG_VERSION` change has landed.** Acceptance authorizes the A2a
+> Foundation-Foods sourcing track to *begin* under the rules below; the next
+> authorized step is a **Foundation Foods pin batch only** (archive
+> download + SHA-256/bytes/license/date pin in the manifest as a
+> `tertiarySources` entry), with matching **still blocked** until that pin
+> lands and is separately authorized. Until foods are actually sourced, the
+> 22 gate-(d) foods keep `grams_per_serving = null` (9 `cup` + 5 `tbsp` +
+> 8 `ml` + 0 `slice`) and log via fractional servings; **TECHDEBT-004 risk 3
+> part 2 stays OPEN.**
 
 #### Problem statement
 
@@ -4493,6 +4503,42 @@ authored-data corrections; and anything touching ADR-P014.
 
 Until a choice is recorded, the 22 foods stay gated and no implementation is
 authorized.
+
+#### Acceptance resolution (2026-07-17)
+
+The project owner **accepted choice (2) "Split" — A2a leg only**: USDA
+**Foundation Foods** is approved as a third pinned source for the eligible
+**whole-commodity** foods among the 22 gate-(d) residues (the grains/legumes/
+seeds/oil that a curated USDA analytical set can plausibly carry). Explicitly:
+
+- **A2a (Foundation Foods) is ACCEPTED.** Foundation Foods may be used under
+  the unchanged ADR-P013/A1 mechanics: pin-before-use; `tertiarySources` +
+  per-entry `sourceRef` provenance; SHA-256/bytes/license/downloadedAt
+  recording; exact food/preparation/varietal matching (generics/proxies stay
+  rejected); unchanged reconciliation tolerances (kcal `max(15%, 25)`, macro
+  `max(20%, 3 g)`); each sourced food as a NEW immutable UUIDv5 revision (prior
+  revisions retained); one MINOR `CATALOG_VERSION` bump per sourced batch;
+  canonical artifact + content-hash + mobile/API golden regeneration under the
+  emitter identity-check-then-transform discipline; and the insert-only /
+  idempotent / immutable seed rules.
+- **A2b (Branded Foods) is NOT accepted** and remains blocked behind a
+  separate future representativeness / brand-selection / label-rounding policy
+  decision. Branded records may not be used until that decision is recorded.
+- **Open Food Facts and all other non-USDA datasets are NOT accepted.**
+- **Manual authored-data corrections, synthetic/recipe assembly, proxy
+  records, and any source-free estimate are NOT authorized.**
+- **Any residue food not cleanly matched under Foundation Foods stays gated**
+  with an updated reason citing all three pins; a further source would need a
+  further amendment.
+
+**Scope of this acceptance is documentation-only.** No archive has been
+pinned, no matching performed, and no catalog/manifest/artifact/revision/
+version change has landed. The **next authorized implementation step is a
+Foundation Foods pin batch ONLY** (download + manifest `tertiarySources` pin
+with SHA-256/bytes/license/date); **matching remains blocked** until that pin
+batch lands and is separately authorized. The gated count is unchanged at
+**22** (9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`) and **TECHDEBT-004 risk 3
+part 2 remains OPEN**.
 
 ### Related Documents
 
