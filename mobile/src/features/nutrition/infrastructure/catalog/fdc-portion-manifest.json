@@ -23,6 +23,19 @@
       "verificationNotes": "Pinned under ADR-P013 Amendment A1 (pin batch, 2026-07-14) as the newest survey cycle. SHA-256 computed twice from the downloaded archive (reproducible); zip extracts cleanly; contains exactly 5,432 survey_fndds_food records (food.csv), 22,046 food_portion rows, and food_nutrient/measure_unit tables in the same shape the SR gates validate. Pin-only slice: NO matching performed, no manifest entries reference this source yet, no catalog data changed."
     }
   ],
+  "tertiarySources": [
+    {
+      "sourceRef": "foundation_food_csv_2025-12-18",
+      "dataset": "USDA FoodData Central — Foundation Foods (CSV)",
+      "releaseLabel": "foundation_food_csv_2025-12-18",
+      "archiveUrl": "https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_csv_2025-12-18.zip",
+      "archiveSha256": "3850de85effd6d9aa471f48aab2a76c20f9bc5feb3f2f52c8ce693f9cf75d52b",
+      "archiveBytes": 3559820,
+      "downloadedAt": "2026-07-17",
+      "license": "Public domain (U.S. Government work)",
+      "verificationNotes": "Pinned under ADR-P013 Amendment A2 (A2a Foundation Foods, accepted 2026-07-17) as the newest Foundation Foods release. SHA-256 computed twice from the downloaded archive (reproducible: 3850de85effd6d9aa471f48aab2a76c20f9bc5feb3f2f52c8ce693f9cf75d52b) and the byte size (3,559,820) matches the server Content-Length; zip extracts cleanly and carries the standard FDC CSV shape (food.csv, foundation_food.csv with 365 foundation food items, food_portion.csv with 10,951 rows, food_nutrient/measure_unit tables) in the same shape the SR/FNDDS gates validate. Pin-only slice: NO matching performed, no manifest entries reference this source yet, no catalog data changed. A2b Branded Foods is NOT accepted."
+    }
+  ],
   "tolerances": {
     "$comment": "Macro-reconciliation gate (ADR-P013 acceptance criterion c). FDC per-100g macros scaled to derivedGramsPerServing must agree with the catalog's authored per-serving macros within these bounds.",
     "caloriesAbsMin": 25,

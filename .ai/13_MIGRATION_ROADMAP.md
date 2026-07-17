@@ -1684,14 +1684,19 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       resolvable under the current pinned sources; risk 3 part 2 is blocked
       solely on a future third-source amendment decision.** **ADR-P013
       Amendment A2 ACCEPTED (A2a Foundation Foods only, 2026-07-17)** — the
-      "split" path: A2a authorized (implementation NOT started; next slice is a
-      Foundation Foods **pin batch only**, matching still blocked until it
-      lands), **A2b Branded Foods NOT accepted** (separate future brand-policy
-      decision); non-USDA sources and manual corrections/proxies remain
-      disallowed. Residue foods not cleanly matched under Foundation stay
-      gated; gated count unchanged at 22, **risk 3 part 2 remains OPEN**.
-      Nothing fabricated; logging uses fractional servings meanwhile. See also
-      the "SR Legacy Sourcing Track — Closure Note" + Amendment A1/A2 notes.
+      "split" path: A2a authorized, **A2b Branded Foods NOT accepted**
+      (separate future brand-policy decision); non-USDA sources and manual
+      corrections/proxies remain disallowed. **A2a Foundation Foods PIN BATCH
+      COMPLETED 2026-07-17** — `foundation_food_csv_2025-12-18` pinned in the
+      manifest `tertiarySources` (SHA-256/bytes verified vs server
+      Content-Length, public-domain); **NO matching performed** (no entries
+      reference it, no catalog/revision/version/artifact change), matching
+      remains a separate blocked slice pending explicit authorization. Residue
+      foods not cleanly matched under Foundation stay gated; gated count
+      unchanged at 22, `food-catalog@1.13.6` unchanged, **risk 3 part 2 remains
+      OPEN**. Nothing fabricated; logging uses fractional servings meanwhile.
+      See also the "SR Legacy Sourcing Track — Closure Note" + Amendment
+      A1/A2 notes.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

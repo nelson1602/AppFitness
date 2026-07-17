@@ -1203,12 +1203,17 @@ blocked solely on a future third-source amendment decision.**
 Foods only) 2026-07-17 by the project owner** (the "split" path: A2a accepted,
 **A2b Branded Foods NOT accepted** — deferred to a separate brand-policy
 decision; Open Food Facts / non-USDA and manual corrections / proxies remain
-disallowed). **A2a implementation is authorized but NOT started.** The next
-authorized slice is a **Foundation Foods pin batch ONLY** (archive download +
-manifest `tertiarySources` SHA-256/bytes/license/date pin); **matching stays
-blocked** until that pin lands and is separately authorized. Any residue food
-not cleanly matched under Foundation stays gated. Gated count unchanged at 22
-(9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`).
+disallowed). **A2a Foundation Foods PIN BATCH COMPLETED 2026-07-17** — the
+newest Foundation Foods release `foundation_food_csv_2025-12-18` is pinned in
+the manifest as a `tertiarySources` entry (archiveUrl, SHA-256
+`3850de85…d52b`, 3,559,820 bytes verified against the server Content-Length,
+downloadedAt, public-domain license; 365 foundation food items). **NO matching
+was performed** — no manifest entry references the Foundation source, no
+catalog data / `FOOD_REVISIONS` / `CATALOG_VERSION` / canonical artifact
+changed. **Matching remains a SEPARATE blocked slice pending explicit
+authorization.** Any residue food not cleanly matched under Foundation stays
+gated. Gated count unchanged at 22 (9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`);
+`food-catalog@1.13.6` unchanged.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 

@@ -68,6 +68,21 @@ interface Manifest {
     downloadedAt: string;
     license: string;
   }[];
+  /**
+   * ADR-P013 Amendment A2 (A2a): pinned tertiary sources (USDA Foundation
+   * Foods). Pin-only until a matching batch lands; entries referencing a
+   * tertiary source will carry a `sourceRef` naming its pin.
+   */
+  tertiarySources?: {
+    sourceRef: string;
+    dataset: string;
+    releaseLabel: string;
+    archiveUrl: string;
+    archiveSha256: string;
+    archiveBytes: number;
+    downloadedAt: string;
+    license: string;
+  }[];
   tolerances: {
     caloriesAbsMin: number;
     caloriesPct: number;
@@ -101,7 +116,10 @@ describe('FDC portion manifest — pinned source provenance', () => {
   });
 
   it('every entry sourceRef names a pinned secondary source, and FNDDS entries carry the survey data type', () => {
-    const pinned = new Set((manifest.secondarySources ?? []).map((s) => s.sourceRef));
+    const pinned = new Set([
+      ...(manifest.secondarySources ?? []).map((s) => s.sourceRef),
+      ...(manifest.tertiarySources ?? []).map((s) => s.sourceRef),
+    ]);
     for (const e of manifest.entries) {
       if (e.sourceRef != null) {
         expect(pinned.has(e.sourceRef)).toBe(true);
@@ -127,6 +145,33 @@ describe('FDC portion manifest — pinned source provenance', () => {
       expect(s.downloadedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(s.license.toLowerCase()).toContain('public domain');
     }
+  });
+
+  it('each Amendment A2a tertiary source (Foundation Foods) pins a specific release: unique ref, label, url, sha256, size, download date, license', () => {
+    const tertiaries = manifest.tertiarySources ?? [];
+    expect(tertiaries.length).toBeGreaterThan(0);
+    const refs = tertiaries.map((s) => s.sourceRef);
+    expect(new Set(refs).size).toBe(refs.length);
+    for (const s of tertiaries) {
+      expect(s.sourceRef.length).toBeGreaterThan(0);
+      expect(s.dataset).toContain('USDA FoodData Central');
+      expect(s.dataset).toContain('Foundation Foods');
+      expect(s.releaseLabel).toMatch(/^foundation_food_csv_\d{4}-\d{2}-\d{2}$/);
+      expect(s.archiveUrl).toMatch(/^https:\/\/fdc\.nal\.usda\.gov\/.+\.zip$/);
+      expect(s.archiveSha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(s.archiveBytes).toBeGreaterThan(0);
+      expect(s.downloadedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(s.license.toLowerCase()).toContain('public domain');
+    }
+  });
+
+  it('is a pin-only slice: no manifest entry references a tertiary (Foundation) source yet', () => {
+    const tertiaryRefs = new Set((manifest.tertiarySources ?? []).map((s) => s.sourceRef));
+    for (const e of manifest.entries) {
+      if (e.sourceRef != null) expect(tertiaryRefs.has(e.sourceRef)).toBe(false);
+    }
+    // No Foundation-sourced entries exist until a matching batch is authorized.
+    expect(manifest.entries.some((e) => e.fdcDataType === 'foundation_food')).toBe(false);
   });
 
   it('every entry carries complete per-food provenance', () => {
