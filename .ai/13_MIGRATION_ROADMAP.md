@@ -1754,7 +1754,13 @@ own go-ahead.**
   in-repo mapping (attributes + contraindication→`excludedMovements`), custom
   exercises neutral; no `exercises` columns added. See ADR-P015 "Slice 1 Audit
   Resolution (2026-07-17)".
-- **Slice 2** — exercise catalog strategy + built-in catalog (+ custom exercises).
+- **Slice 2** — exercise catalog strategy + built-in catalog (+ custom
+  exercises). **DONE 2026-07-17 (foundation only):** bundled
+  `exercise-catalog@0.1.0` (`mobile/src/features/workout/`) — 17 authored
+  built-in exercises with movement-pattern/equipment/body-area attributes + a
+  pure `matchExerciseExclusion` matcher (built-in → excluded/allowed by
+  `TrainingPlan.excludedMovements`; custom/unmapped → neutral), integrity-tested
+  against the iCoach movement vocabulary. No backend/repo/UI/schema change.
 - **Slice 3** — backend sync handlers (routines / routine_exercises /
   workout_logs / workout_sets / custom exercises).
 - **Slice 4** — mobile repository/store foundation (no UI).
