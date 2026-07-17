@@ -1791,7 +1791,15 @@ own go-ahead.**
   before each FK write (`ensureBuiltInExerciseSeeded`), and non-built-in exercise
   ids are rejected (custom-exercise support deferred to Slice 3B). No UI, no
   schema/migration change.
-- **Slice 5** — routine builder UI.
+- **Slice 5** — routine builder UI. **DONE 2026-07-17:** session-guarded
+  `/routines` route + dashboard "Workout routines" entry point + `RoutineBuilder`
+  screen (`mobile/src/features/workout/presentation/`) — list/create/soft-delete
+  routines, view a routine's exercises, add/remove built-in exercises, all via
+  the Slice 4A/4B store (UI never touches SQLite). Exercise selection uses the
+  Slice 2 built-in catalog; the deterministic iCoach `TrainingPlan` is READ from
+  the dashboard store (never recomputed) to show a blocked/clearance notice and
+  a non-blocking excluded-movement caution (`matchExerciseExclusion`). No
+  backend/schema/migration/sync change. Workout logging UI stays Slice 6.
 - **Slice 6** — workout logging UI.
 - **Slice 7** — iCoach `TrainingPlan` integration (guidance + blocked/clearance).
 - **Slice 8** — E2E validation (Maestro, wired into `mobile-e2e.yml`).

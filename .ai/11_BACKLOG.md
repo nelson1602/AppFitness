@@ -661,9 +661,14 @@ mobile routine_exercises + workout_sets repository/service/store
 client-UUIDs, soft-delete, version/`sync_status`, sync-queue enqueue for the
 Slice 3 handlers, pull appliers), with the built-in exercise seeded in-transaction
 before each FK write (`ensureBuiltInExerciseSeeded`) and non-built-in exercises
-rejected (custom deferred to Slice 3B). No UI. **The routine builder / workout
-logging UI remain the next slices.** Custom-exercise push (Slice 3B) still
-deferred. Each needs its own explicit authorization.
+rejected (custom deferred to Slice 3B). No UI. **Slice 5 COMPLETE (2026-07-17):**
+routine builder UI — a session-guarded `/routines` route + dashboard entry point
++ `RoutineBuilder` screen that lists/creates/soft-deletes routines and adds/
+removes built-in exercises via the Slice 4A/4B store (UI never touches SQLite),
+reading the deterministic iCoach `TrainingPlan` (from the dashboard store, never
+recomputed) to surface a blocked/clearance notice and non-blocking
+excluded-movement cautions. **Workout logging UI remains Slice 6.** Custom-exercise
+push (Slice 3B) still deferred. Each needs its own explicit authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:
@@ -757,7 +762,17 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    (`ensureBuiltInExerciseSeeded`, `INSERT OR IGNORE`); non-built-in exercise ids
    are rejected (custom-exercise support deferred to Slice 3B). No schema/
    migration/UI change.
-5. Routine builder UI.
+5. Routine builder UI. **DONE 2026-07-17**: session-guarded `/routines` route
+   (`src/app/routines.tsx`) + a dashboard "Workout routines" entry point +
+   `RoutineBuilder` screen (`mobile/src/features/workout/presentation/`) that
+   lists / creates / soft-deletes routines, views a routine's exercises, and
+   adds/removes built-in exercises — all via the Slice 4A/4B store (UI never
+   touches SQLite). Exercise selection uses the Slice 2 built-in catalog; the
+   deterministic iCoach `TrainingPlan` is READ from the dashboard store (never
+   recomputed) to show a blocked/clearance notice and a non-blocking
+   excluded-movement caution via `matchExerciseExclusion`. Reorder/edit-name and
+   custom exercises are not exposed (deferred). No backend/schema/migration/sync
+   change. **Workout logging UI stays Slice 6.**
 6. Workout logging UI.
 7. iCoach `TrainingPlan` integration (guidance + blocked/clearance states).
 8. E2E validation (Maestro, wired into `mobile-e2e.yml`).

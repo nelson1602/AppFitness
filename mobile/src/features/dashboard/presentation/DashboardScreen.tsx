@@ -135,6 +135,14 @@ export function DashboardScreen() {
       >
         Dietary preferences
       </AppButton>
+      {/* Workout routines (ADR-P015 Phase 16 Slice 5). */}
+      <AppButton
+        accessibilityLabel="Manage workout routines"
+        onPress={() => router.push('/routines')}
+        variant="secondary"
+      >
+        Workout routines
+      </AppButton>
 
       {/* Sign-out clears the session; the dashboard route's session
           guard then redirects to /sign-in — no manual navigation. */}
