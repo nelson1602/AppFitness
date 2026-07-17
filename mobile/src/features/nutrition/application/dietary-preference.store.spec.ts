@@ -69,4 +69,27 @@ describe('useDietaryPreferenceStore', () => {
     expect(s.status).toBe('error');
     expect(s.error).toMatch(/could not be loaded/);
   });
+
+  it('add returns false and surfaces a safe error when the save fails', async () => {
+    mockAdd.mockRejectedValue(new Error('boom'));
+    const ok = await useDietaryPreferenceStore
+      .getState()
+      .add({ exclusionType: 'avoid_tag', avoidTag: 'nut_allergy', kind: 'allergy' });
+    const s = useDietaryPreferenceStore.getState();
+    expect(ok).toBe(false);
+    expect(s.status).toBe('error');
+    expect(s.error).toMatch(/could not be saved/);
+    // The failed entry is not appended to the list.
+    expect(s.preferences).toEqual([]);
+  });
+
+  it('remove returns false and surfaces a safe error when the delete fails', async () => {
+    useDietaryPreferenceStore.setState({ preferences: [pref()] });
+    mockRemove.mockRejectedValue(new Error('boom'));
+    const ok = await useDietaryPreferenceStore.getState().remove('dp-1');
+    const s = useDietaryPreferenceStore.getState();
+    expect(ok).toBe(false);
+    expect(s.status).toBe('error');
+    expect(s.error).toMatch(/could not be removed/);
+  });
 });
