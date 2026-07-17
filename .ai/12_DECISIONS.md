@@ -4303,6 +4303,197 @@ tolerance, authored values kept); new immutable revision 2 + patch
 Until a decision is recorded here, `food.mixed_greens` remains gated and
 counted under gate (c).
 
+### Amendment A2 (DRAFT — NOT ACCEPTED) — Third-Source Gate for the Gate-(d) Residue (22 foods)
+
+Status: **Proposed (DRAFT)** — **NOT accepted.** Implementation is blocked
+until the project owner records an acceptance decision here.
+Date drafted: 2026-07-17
+Extends: ADR-P013 + Amendment A1 (does not supersede either; both remain
+Accepted and in force). **ADR-P014 is unrelated and untouched by this gate.**
+
+> Documentation-only gate. No archive has been downloaded, no matching
+> performed, and no catalog/manifest/artifact/golden/test/data/revision/
+> `CATALOG_VERSION` change has landed or is authorized. Until the owner
+> accepts a path below, the 22 gate-(d) foods keep `grams_per_serving = null`
+> and log via fractional servings; TECHDEBT-004 risk 3 part 2 stays OPEN.
+
+#### Problem statement
+
+Gates (a), (b), and (c) are **CLOSED** (see the Per-Food Gate Work Closure
+Note, 2026-07-16). The **22 remaining gate-(d) foods (9 `cup` + 5 `tbsp` +
+8 `ml` + 0 `slice`)** are unresolvable under BOTH pinned USDA sources —
+SR Legacy `sr_legacy_food_csv_2018-04` and FNDDS `survey_food_csv_2024-10-31`
+— each re-verified against both archives. They are the SOLE remaining blocker
+on TECHDEBT-004 risk 3 part 2. Catalog stays `food-catalog@1.13.6`; 168 of 190
+non-gram foods are sourced.
+
+#### The 22 gate-(d) foods (catalog key · unit · why still gated)
+
+Grouped by failure mode (reasons summarized from `fdc-portion-manifest.json`
+`unmatched`, verified against both pins):
+
+**G1 — Varietal fold, `cup` (8):** the catalog food is a specific varietal;
+both pins carry only generic rows, rejected to preserve varietal specificity.
+- `basmati_rice` · cup · no basmati-specific cooked-rice cup row.
+- `jasmine_rice` · cup · no jasmine-specific cooked-rice cup row.
+- `farro` · cup · no cooked-farro cup row (no wheat-grain substitute).
+- `sorghum` · cup · no cooked-sorghum cup row (only syrup/flour candidates).
+- `couscous_whole` · cup · whole-wheat couscous; only generic cooked couscous.
+- `lentils_red` · cup · no red-lentil-specific cooked cup row.
+- `lentils_green` · cup · no green-lentil-specific cooked cup row.
+- `cannellini_beans` · cup · no cannellini-specific cooked cup row.
+
+**G2 — No record / wrong species, `cup` (1):**
+- `broccolini` · cup · no broccolini record; nearest "Broccoli raab, raw" is a
+  different vegetable and fails reconciliation.
+
+**G3 — Record exists, no usable portion row, `tbsp` (3):**
+- `chia_seeds` · tbsp · SR chia record has no tbsp portion (only oz); FNDDS none.
+- `mct_oil` · tbsp · no MCT / medium-chain-oil tbsp row in either pin.
+- `nutritional_yeast` · tbsp · no nutritional-yeast tbsp; baker's yeast mismatches.
+
+**G4 — Preparation / product mismatch, `tbsp` (2):**
+- `flax_seeds` · tbsp · ground flaxseed; SR ground-tbsp row fails reconciliation.
+- `greek_yogurt_dressing` · tbsp · no matching Greek-yogurt herb-dressing tbsp.
+
+**G5 — Category post-dates pins / no record, `ml` (3):**
+- `pea_milk_unsweet` · ml · no pea-milk record in either pin.
+- `cashew_milk_unsweet` · ml · no cashew-milk record in either pin.
+- `matcha_unsweet` · ml · no matcha record in either pin.
+
+**G6 — Only an incompatible variant pinned, `ml` (3):** (re-classified from
+gate (a) by owner Option B — authored unsweetened/low-sugar data is correct.)
+- `coconut_milk_beverage` · ml · only a SWEETENED SR record; fails unsweetened.
+- `oat_milk_unsweet` · ml · FNDDS oat-milk variant mismatches the unsweetened.
+- `kombucha_unsweet` · ml · FNDDS kombucha is a flavored/sweetened variant.
+
+**G7 — Prepared composite RTD, `ml` (2):** (re-classified from gate (b) by
+owner Option B — lean powder-in-water; recipe synthesis is A1-forbidden.)
+- `protein_shake_water` · ml · only powders exist; RTD records fail as fattier
+  meal-replacements; needs a lean whey-isolate RTD source.
+- `vegan_protein_shake` · ml · nearest soy-protein candidates are unrelated;
+  needs a lean pea-/plant-isolate RTD source.
+
+#### Realistic third-source options (evaluated)
+
+1. **USDA Foundation Foods** (`foundation_food`) — same publisher, public
+   domain, same CSV channel as SR/FNDDS. Highest-quality analytically-measured
+   data. **Plausibly covers** some G1/G3/G4 whole commodities (farro, sorghum,
+   lentils, chia, flax, possibly MCT oil, broccolini). **Unlikely to cover**
+   plant milks, matcha, kombucha, dressings, RTD shakes, or brand-specific rice
+   varietals. Foundation is a small curated set with sparser household portions,
+   so `ml`/volume foods would still need source-backed density derivation.
+2. **USDA Branded Foods** (`branded_food`) — same publisher/public-domain
+   license/channel. **Covers the most residue** (unsweetened plant milks,
+   matcha, kombucha, RTD protein shakes, MCT oil, nutritional yeast, dressings,
+   varietal rice). BUT records are per-product, label-derived (rounded,
+   as-labeled), so choosing one brand as the catalog value is a
+   representativeness decision. **A1 explicitly excluded branded.** Needs an
+   explicit brand-selection/label-tolerance policy before use.
+3. **Newer/alternative SR** — none exists; SR Legacy is frozen (2018-04),
+   superseded by Foundation/FNDDS. Not viable.
+4. **Non-USDA open datasets (e.g. Open Food Facts)** — broad coverage but
+   crowd-sourced, variable quality, and **ODbL-licensed (attribution/
+   share-alike), not public domain** — a licensing obligation the project has
+   not accepted. Not recommended without a provenance/licensing review.
+5. **Manual authored-data correction** — **not applicable.** Unlike the
+   gate-(a) Option-A foods, these 22 are NOT authored-macro defects; the
+   authored macros are believed correct and the gap is a MISSING gram-weight
+   source. Inventing a gram weight is exactly what the whole track forbids.
+6. **Density derivation for `ml` foods** — a method, not a source: it still
+   requires a source-backed density (g/ml); an assumed 1 g/ml is forbidden
+   (ADR-P013). Only unlocks G5/G6 if a pinned source supplies the density.
+7. **Leave the residue gated** — fully acceptable indefinitely. The 22 foods
+   log via fractional servings today; the only cost is no whole-serving gram
+   display/scaling for them. No user-facing breakage.
+
+#### Gate definition (what an acceptance would authorize)
+
+- **Allowed source(s):** USDA **Foundation Foods** for track **A2a**; USDA
+  **Branded Foods** ONLY if track **A2b** is separately accepted with a brand
+  policy. **No** non-USDA source; **no** SR re-pin. A further/other source =
+  a further amendment.
+- **Pinning:** exactly one release per new source, pinned before any matching,
+  with the same fields as the SR/FNDDS pins (`dataset`, `releaseLabel`,
+  `archiveUrl`, `archiveSha256`, `archiveBytes`, `downloadedAt`, `license`);
+  recorded as a new `tertiarySources` array in the manifest; each entry carries
+  a `sourceRef`. The pin is chosen at implementation time and NEVER changed
+  within the track (a re-pin is a new amendment). Existing SR/FNDDS entries stay
+  byte-immutable.
+- **Licensing / provenance:** USDA public domain only. Per-food entry provides
+  `catalogKey`, `fdcId`, `fdcDataType`, `fdcDescription` (verbatim),
+  `sourceRef`, `portion` (row id, amount, modifier verbatim, gramWeight),
+  `fdcPer100g`, `derivedGramsPerServing` (= authored grams exactly), and a
+  `reviewNote` that quotes and supersedes BOTH prior pins' unmatched reasons.
+- **Matching rules:** exact food AND preparation semantic match (cooked/raw,
+  ground/whole, unsweetened/sweetened, whole-wheat/refined); varietal foods
+  match only varietal-specific rows (generics stay rejected); composite/
+  as-consumed rows acceptable only if the source represents the dish — **no
+  recipe synthesis**; prefer the serving-unit portion row; `ml`/volume via
+  source-backed density (US customary volumes; never assumed 1 g/ml); all prior
+  unmatched claims RE-VERIFIED against the new pin, never trusted from notes.
+- **Reconciliation tolerances:** UNCHANGED — kcal within `max(15%, 25)`,
+  per-macro within `max(20%, 3 g)`. No reconciling row → the food STAYS gated
+  with an updated reason citing all pins.
+- **Product/brand records:** **NOT allowed** under A2a (Foundation only).
+  Allowed ONLY under a separately-accepted A2b that first defines brand
+  selection (neutrality/representativeness) and label-rounding handling.
+- **Proxy records:** **NOT allowed.** Generic substitutes for varietals remain
+  rejected — that rejection is precisely why these foods are gated.
+- **Manual corrections:** **NOT allowed / not applicable** (missing-source, not
+  authored-macro defects; fabricating a gram weight is forbidden).
+- **Batching the 22:** track **A2a** batches by unit group (cup grains/legumes,
+  then tbsp seeds/oil), one MINOR `CATALOG_VERSION` bump per batch, residue
+  EXPECTED; track **A2b** (if ever accepted) runs as its own separate track.
+  Any food no source reconciles STAYS gated.
+- **Immutable revision / version mechanics:** identical to Batches 1–7 / A1 —
+  each sourced food ships as a NEW immutable revision (prior revision rows
+  retained; new UUIDv5), one MINOR `CATALOG_VERSION` bump per batch, canonical
+  artifacts + content hash + mobile/API goldens regenerate under the emitter
+  identity-check-then-transform discipline, and canonical/integrity/manifest
+  gate-spec counts update per batch. Seed stays insert-only, idempotent, and
+  immutable; per-batch validation includes the seed simulation, the
+  macros-unchanged-vs-HEAD proof (0/300 — this track sources gram weights
+  only), `git diff --check`, both test suites, typecheck, and lint. **No**
+  schema, migration, sync, backend, dependency, or deployment change.
+
+#### Recommendation
+
+**Split by subgroup.** Pursue **A2a (Foundation Foods)** as the next
+third-source amendment — it is the same-publisher, public-domain, highest-
+quality option and can shrink the residue for the whole-commodity grains/
+legumes/seeds (G1/G3/G4) under the exact A1 discipline, with an expected
+residue. **Defer A2b (Branded Foods)** as a separate future decision, because
+the modern packaged items (G5/G6/G7 plant milks, matcha, kombucha, RTD shakes,
+dressing) can only come from branded records, which need a representativeness/
+label policy the project has not adopted. Everything A2a/A2b do not resolve
+**stays gated (Option 7)** — acceptable indefinitely. If the owner prefers
+minimal effort, **"no further sourcing for now" (Option 7 alone)** is fully
+acceptable: the 22 keep fractional-serving logging and this gate stays a
+documented, ready-to-activate plan.
+
+#### Out of scope until Accepted
+
+Archive download/verification; any matching; any change to catalog data, the
+manifest, canonical artifacts, goldens, tests, `FOOD_REVISIONS`,
+`CATALOG_VERSION`, schema, migrations, UI, sync, backend, dependencies, or
+deployment; branded/non-USDA sourcing (absent a specifically-accepted A2b);
+authored-data corrections; and anything touching ADR-P014.
+
+#### Acceptance criteria (owner records ONE choice here)
+
+1. **A2a only** — authorize the Foundation Foods third source for the
+   whole-commodity residue (grains/legumes/seeds), branded deferred.
+2. **Split** — A2a now + A2b (branded) explicitly deferred to a later decision
+   (the recommended path).
+3. **No further sourcing** — leave all 22 gated; keep this gate as a documented
+   plan; TECHDEBT-004 risk 3 part 2 stays OPEN by choice.
+4. **Full third-source amendment** — accept A2a AND A2b together, including a
+   branded-record selection/label policy defined at acceptance.
+
+Until a choice is recorded, the 22 foods stay gated and no implementation is
+authorized.
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
