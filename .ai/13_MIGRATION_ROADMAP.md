@@ -1745,8 +1745,15 @@ authorized but NOT started — Slice 1 is the next authorized slice, pending its
 own go-ahead.**
 
 ### Slice plan (indicative; each its own authorization)
-- **Slice 1** — schema audit + ADR (sync_seq triggers + movement-pattern
-  mapping decision); forward-only additive migration only if needed. *(First.)*
+- **Slice 1** — schema audit + `sync_seq` trigger verification + movement-pattern
+  mapping decision. **DONE 2026-07-17 (docs-only):** both sides clean — all five
+  workout tables carry their Postgres `sync_seq` triggers (init-migration loop)
+  and the mobile SQLite tables/indexes/types are present and consistent, so
+  **no forward-only migration is needed** (D1: dormant-as-is). Movement-pattern
+  mapping = **Option C (hybrid bundled)**: built-in exercises get a versioned
+  in-repo mapping (attributes + contraindication→`excludedMovements`), custom
+  exercises neutral; no `exercises` columns added. See ADR-P015 "Slice 1 Audit
+  Resolution (2026-07-17)".
 - **Slice 2** — exercise catalog strategy + built-in catalog (+ custom exercises).
 - **Slice 3** — backend sync handlers (routines / routine_exercises /
   workout_logs / workout_sets / custom exercises).

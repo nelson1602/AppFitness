@@ -4994,6 +4994,52 @@ verification + the movement-pattern mapping decision), and it does not begin
 until it receives its own explicit go-ahead. Each subsequent slice (2–8)
 likewise needs separate authorization. ADR-P013 is untouched.
 
+#### Slice 1 Audit Resolution (2026-07-17)
+
+Slice 1 (read-only schema audit + `sync_seq` trigger verification +
+movement-pattern mapping decision) is complete. **No schema or migration change
+resulted; this resolution is documentation-only.**
+
+- **Postgres trigger audit — PASS.** All five workout tables (`exercises`,
+  `routines`, `routine_exercises`, `workout_logs`, `workout_sets`) are in the
+  init-migration (`20260703181824_init`) `assign_sync_seq()` trigger loop, so
+  each already carries its `trg_<table>_sync_seq` BEFORE INSERT/UPDATE trigger
+  and `chk_<table>_version` CHECK. **No missing trigger** — unlike nutrition's
+  later-added `dietary_preferences`, these shipped in the init migration.
+  **No forward-only migration is required.**
+- **Mobile SQLite audit — PASS.** `001-initial.ts` creates all five tables:
+  `exercises` on `CATALOG_COLS` (device-read reference data, `sync_status`
+  default `synced`); `routines`/`routine_exercises`/`workout_logs`/
+  `workout_sets` on `SYNCED_COLS` (id PK, `user_id` FK → `local_user`,
+  `created_at`/`updated_at`, `version` CHECK ≥ 1, `deleted_at`/`deleted_by`,
+  `sync_status` CHECK). Entity indexes + per-table dirty indexes present; row
+  types in `types.ts` match. The mobile `order_index` ↔ Postgres `order`
+  divergence is intentional and documented in the migration.
+- **Consistency — PASS.** Shape matches the established nutrition/medical/
+  profile pattern (mobile `sync_status` ↔ Postgres `sync_seq` trigger;
+  client-generatable UUIDs; denormalized `user_id` scoping).
+
+**D1 resolved: the dormant tables are sufficient as-is — no schema change or
+migration in Phase 16 for sync mechanics.**
+
+- **Movement-pattern mapping — Option C (hybrid) adopted**, concretizing the
+  already-accepted D2: built-in exercises get their movement-pattern /
+  equipment / body-area attributes and their contraindication →
+  `excludedMovements` mapping from a **versioned, in-repo bundled artifact**
+  (the food-catalog precedent), matched to the engine's `excludedMovements`
+  tokens by a pure/deterministic function; **custom exercises are neutral by
+  default** (unmapped, never auto-excluded, generic caution only — they carry
+  no medical authority). **No columns are added to `exercises`.** (Option A —
+  structured `exercises` columns — is explicitly NOT taken; it remains a future
+  additive option only if server-side movement-pattern querying is ever needed,
+  and would not block Option C.)
+
+**No Slice 1B is required** (no migration). The next authorized slice is
+**Slice 2** (exercise catalog strategy + built-in catalog + the bundled
+movement-pattern/contraindication mapping artifact), pending its own explicit
+go-ahead. No backend handler, mobile repository/store, UI, or catalog data was
+created in Slice 1.
+
 ---
 
 # AI Instructions

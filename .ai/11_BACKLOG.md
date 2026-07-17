@@ -636,11 +636,31 @@ started.**
 
 ## [FEATURE-007] Workout Module (Phase 16)
 
-Status: **ADR-P015 ACCEPTED (2026-07-17, as drafted).** Phase 16 implementation
-is **authorized but NOT started**; the **next authorized slice is Slice 1 only**
-(schema audit + `sync_seq` trigger verification + movement-pattern mapping
-decision), pending its own explicit go-ahead. Each subsequent slice (2–8) needs
-separate authorization.
+Status: **ADR-P015 ACCEPTED (2026-07-17).** **Slice 1 audit COMPLETE
+(2026-07-17, docs-only) — schema clean, no migration needed; movement-pattern
+mapping = Option C (hybrid bundled).** The **next authorized slice is Slice 2**
+(exercise catalog strategy + built-in catalog + bundled movement-pattern/
+contraindication mapping artifact), pending its own explicit go-ahead. Each
+subsequent slice needs separate authorization.
+
+**Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
+tables on both sides:
+- **Postgres:** all five tables (`exercises`/`routines`/`routine_exercises`/
+  `workout_logs`/`workout_sets`) are in the init-migration `assign_sync_seq()`
+  trigger loop — each already has its `trg_<t>_sync_seq` trigger + version
+  CHECK. **No missing trigger; no forward-only migration required.**
+- **Mobile SQLite:** all five present in `001-initial.ts` (`exercises` =
+  `CATALOG_COLS`; others = `SYNCED_COLS`) with entity + dirty indexes and
+  matching row types; `order_index`↔`order` divergence documented.
+- **Consistent** with the nutrition/medical/profile pattern (mobile
+  `sync_status` ↔ Postgres `sync_seq` trigger). **D1 resolved: dormant tables
+  sufficient as-is.**
+- **Movement-pattern mapping = Option C (hybrid):** built-in exercises carry a
+  versioned in-repo bundled mapping (attributes + contraindication →
+  `excludedMovements`); custom exercises neutral/unmapped (no medical
+  authority). **No `exercises` columns added; Option A deferred as a future
+  additive-only fallback.** No Slice 1B needed.
+See ADR-P015 "Slice 1 Audit Resolution (2026-07-17)" in `.ai/12_DECISIONS.md`.
 
 ### Summary
 Exercise catalog + user routines + workout logging, offline-first, consuming
@@ -663,7 +683,7 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
   table was found without its trigger during nutrition Slice 2A).
 
 ### Slice plan (each its own authorization)
-1. Schema audit + ADR (triggers + movement-pattern mapping decision) — **recommended first**.
+1. Schema audit + ADR (triggers + movement-pattern mapping decision) — **DONE 2026-07-17** (docs-only; no migration; Option C).
 2. Exercise catalog strategy + built-in catalog (+ custom exercises).
 3. Backend sync handlers (routines / routine_exercises / workout_logs / workout_sets / custom exercises).
 4. Mobile repository/store foundation (no UI).
@@ -680,7 +700,9 @@ derived, redaction-safe `TrainingPlan`.
 ### Acceptance criteria
 - [x] Owner accepts ADR-P015 (slice plan + D1–D5) before any implementation.
       (Accepted 2026-07-17; implementation authorized but not started — Slice 1 next.)
-- [ ] Slice 1 audit resolves schema sufficiency (dormant-as-is vs additive migration).
+- [x] Slice 1 audit resolves schema sufficiency (dormant-as-is vs additive migration).
+      (2026-07-17: dormant-as-is — both sides clean, Postgres triggers present,
+      no migration; movement-pattern mapping = Option C hybrid bundled.)
 - [ ] Workout entities sync offline-first; medical restrictions never overridden.
 - [ ] Deterministic `TrainingPlan` reflected (never recomputed) in the workout UI.
 
