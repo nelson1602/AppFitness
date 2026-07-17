@@ -667,8 +667,14 @@ routine builder UI — a session-guarded `/routines` route + dashboard entry poi
 removes built-in exercises via the Slice 4A/4B store (UI never touches SQLite),
 reading the deterministic iCoach `TrainingPlan` (from the dashboard store, never
 recomputed) to surface a blocked/clearance notice and non-blocking
-excluded-movement cautions. **Workout logging UI remains Slice 6.** Custom-exercise
-push (Slice 3B) still deferred. Each needs its own explicit authorization.
+excluded-movement cautions. **Slice 6 COMPLETE (2026-07-17):** workout logging UI
+— a session-guarded `/workout-log` route + dashboard entry point +
+`WorkoutLogScreen` that starts ad-hoc/from-routine workouts, logs/edits/removes
+sets against built-in exercises, and finishes/soft-deletes logs via the Slice
+4A/4B store (UI never touches SQLite; local-first with per-row "pending sync"
+hints and the same read-only `TrainingPlan` safety surface). **E2E + TrainingPlan
+polish remain Slices 7–8.** Custom-exercise push (Slice 3B) still deferred. Each
+needs its own explicit authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:
@@ -773,7 +779,18 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    excluded-movement caution via `matchExerciseExclusion`. Reorder/edit-name and
    custom exercises are not exposed (deferred). No backend/schema/migration/sync
    change. **Workout logging UI stays Slice 6.**
-6. Workout logging UI.
+6. Workout logging UI. **DONE 2026-07-17**: session-guarded `/workout-log` route
+   (`src/app/workout-log.tsx`) + a dashboard "Log a workout" entry point +
+   `WorkoutLogScreen` (`mobile/src/features/workout/presentation/`) that starts an
+   ad-hoc workout (or from an existing routine), views open/recent logs, and
+   adds/edits (reps + completion)/removes sets against built-in exercises, and
+   finishes/soft-deletes logs — all via the Slice 4A/4B store (UI never touches
+   SQLite; rows show a local `syncStatus` "pending sync" hint). Exercise
+   selection uses the Slice 2 built-in catalog (unchanged); the deterministic
+   iCoach `TrainingPlan` is READ from the dashboard store (never recomputed) to
+   show a blocked/clearance notice and non-blocking excluded-movement cautions.
+   Custom exercises stay deferred (Slice 3B). No backend/schema/migration/sync/
+   dependency/catalog change. **E2E + TrainingPlan polish stay Slices 7–8.**
 7. iCoach `TrainingPlan` integration (guidance + blocked/clearance states).
 8. E2E validation (Maestro, wired into `mobile-e2e.yml`).
 

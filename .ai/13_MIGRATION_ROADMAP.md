@@ -1800,7 +1800,17 @@ own go-ahead.**
   the dashboard store (never recomputed) to show a blocked/clearance notice and
   a non-blocking excluded-movement caution (`matchExerciseExclusion`). No
   backend/schema/migration/sync change. Workout logging UI stays Slice 6.
-- **Slice 6** — workout logging UI.
+- **Slice 6** — workout logging UI. **DONE 2026-07-17:** session-guarded
+  `/workout-log` route + dashboard "Log a workout" entry point + `WorkoutLogScreen`
+  (`mobile/src/features/workout/presentation/`) — start an ad-hoc workout or one
+  from an existing routine, view open/recent logs, add/edit(reps + completion)/
+  remove sets against built-in exercises, and finish/soft-delete logs, all via
+  the Slice 4A/4B store (UI never touches SQLite; per-row `syncStatus` "pending
+  sync" hints). Exercise selection uses the Slice 2 built-in catalog (unchanged);
+  the deterministic iCoach `TrainingPlan` is READ from the dashboard store (never
+  recomputed) for a blocked/clearance notice + non-blocking excluded-movement
+  caution. No backend/schema/migration/sync/dependency/catalog change. E2E +
+  TrainingPlan polish stay Slices 7–8.
 - **Slice 7** — iCoach `TrainingPlan` integration (guidance + blocked/clearance).
 - **Slice 8** — E2E validation (Maestro, wired into `mobile-e2e.yml`).
 

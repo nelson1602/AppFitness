@@ -289,6 +289,16 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/routines');
   });
 
+  it('navigates to the workout logging surface', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Log a workout' }));
+
+    expect(router.push).toHaveBeenCalledWith('/workout-log');
+  });
+
   it('routes to the delete-account surface (never deletes directly)', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({ status: 'ready', data: baseData });
