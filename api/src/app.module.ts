@@ -11,6 +11,7 @@ import { MedicalModule } from './modules/medical/medical.module';
 import { NutritionModule } from './modules/nutrition/nutrition.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { UsersModule } from './modules/users/users.module';
+import { WorkoutModule } from './modules/workout/workout.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { UsersModule } from './modules/users/users.module';
     MedicalModule,
     SyncModule,
     NutritionModule,
+    WorkoutModule,
   ],
   providers: [
     // Preserves Nest's normal HTTP error responses while reporting

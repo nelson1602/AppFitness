@@ -641,10 +641,13 @@ Status: **ADR-P015 ACCEPTED (2026-07-17).** **Slice 1 audit COMPLETE
 C (hybrid bundled). **Slice 2 COMPLETE (2026-07-17, foundation only)** —
 bundled `exercise-catalog@0.1.0` (built-in exercises + movement-pattern/
 equipment/body-area attributes + pure `matchExerciseExclusion` matcher) under
-`mobile/src/features/workout/`; no backend/repo/UI. The **next authorized slice
-is Slice 3** (backend sync handlers: routines / routine_exercises /
-workout_logs / workout_sets / custom exercises), pending its own explicit
-go-ahead. Each subsequent slice needs separate authorization.
+`mobile/src/features/workout/`; no backend/repo/UI. **Slice 3 COMPLETE
+(2026-07-17):** backend sync handlers for routines / routine_exercises /
+workout_logs / workout_sets (`api/src/modules/workout/`), registered in the
+sync pipeline; custom-exercise push deferred to Slice 3B. The **next authorized
+slice is Slice 4** (mobile repository/store foundation — offline-first, no UI),
+pending its own explicit go-ahead. Each subsequent slice needs separate
+authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:
@@ -695,7 +698,19 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    custom/unmapped → neutral, never auto-excluded), and an integrity test
    cross-checking every movement pattern against the iCoach engine vocabulary.
    No schema/migration/sync/UI change.
-3. Backend sync handlers (routines / routine_exercises / workout_logs / workout_sets / custom exercises).
+3. Backend sync handlers (routines / routine_exercises / workout_logs /
+   workout_sets) — **DONE 2026-07-17**: `api/src/modules/workout/` with four
+   `EntitySyncHandler`s (ownership-scoped, client-UUID, soft-delete,
+   pipeline-enforced version/conflict, FK-ordered `DEPENDENCY_NOT_READY` for
+   missing routine/workout_log/exercise parents), one `WorkoutRepositoryPort`
+   (Prisma impl), payload validators, mappers (wellness `notes` redacted from
+   conflict snapshots), and module registration in `app.module`. Global/
+   built-in exercises are reference data (device-read, not user-write synced).
+   **Custom user-owned exercise push is deferred to Slice 3B** (schema supports
+   `createdBy`, but the global-vs-custom write boundary + `name` uniqueness +
+   built-in seed warrant their own slice); routine_exercises/workout_sets treat
+   the exercise reference as pre-existing (missing → retryable). No schema/
+   migration/UI change.
 4. Mobile repository/store foundation (no UI).
 5. Routine builder UI.
 6. Workout logging UI.

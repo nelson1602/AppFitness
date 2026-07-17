@@ -1762,7 +1762,13 @@ own go-ahead.**
   `TrainingPlan.excludedMovements`; custom/unmapped → neutral), integrity-tested
   against the iCoach movement vocabulary. No backend/repo/UI/schema change.
 - **Slice 3** — backend sync handlers (routines / routine_exercises /
-  workout_logs / workout_sets / custom exercises).
+  workout_logs / workout_sets). **DONE 2026-07-17:** `api/src/modules/workout/`
+  — four ownership-scoped `EntitySyncHandler`s with client-UUIDs, soft-delete,
+  pipeline-enforced version/conflict, and FK-ordered `DEPENDENCY_NOT_READY` for
+  missing parents (routine/workout_log/exercise); global exercises stay
+  device-read reference data; wellness `notes` redacted from conflict
+  snapshots. Custom-exercise push deferred to **Slice 3B**. No schema/migration/
+  UI change.
 - **Slice 4** — mobile repository/store foundation (no UI).
 - **Slice 5** — routine builder UI.
 - **Slice 6** — workout logging UI.
