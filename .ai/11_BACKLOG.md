@@ -1210,10 +1210,22 @@ the manifest as a `tertiarySources` entry (archiveUrl, SHA-256
 downloadedAt, public-domain license; 365 foundation food items). **NO matching
 was performed** — no manifest entry references the Foundation source, no
 catalog data / `FOOD_REVISIONS` / `CATALOG_VERSION` / canonical artifact
-changed. **Matching remains a SEPARATE blocked slice pending explicit
-authorization.** Any residue food not cleanly matched under Foundation stays
-gated. Gated count unchanged at 22 (9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`);
-`food-catalog@1.13.6` unchanged.
+changed. **A2a-1 matching batch (whole-commodity grains/legumes/seeds)
+attempted 2026-07-17 → ZERO clean matches.** The 10 eligible residues
+(basmati_rice, jasmine_rice, farro, sorghum, couscous_whole, lentils_red,
+lentils_green, cannellini_beans, chia_seeds, flax_seeds) were checked against
+the pinned `foundation_food_csv_2025-12-18`: rice/couscous have no Foundation
+record; farro/sorghum/lentils exist only as dry-raw or flour (preparation
+mismatch, no varietal specificity); cannellini/chia/flax match the food form
+but Foundation carries **per-100g analytical data with NO cup/tbsp portion
+rows**, so no source-backed grams-per-serving can be derived (assumed volume→
+gram conversion forbidden). All 10 stay gated with an updated
+Foundation-checked reason in `fdc-portion-manifest.json` (manifest reasons
+only; no catalog data, revisions, version, or canonical change). **Matching
+for any remaining eligible residue and the ml/composite residues remains a
+SEPARATE blocked slice pending explicit authorization.** Gated count unchanged
+at 22 (9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`); `food-catalog@1.13.6`
+unchanged.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 

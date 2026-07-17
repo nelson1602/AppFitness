@@ -1689,14 +1689,20 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       corrections/proxies remain disallowed. **A2a Foundation Foods PIN BATCH
       COMPLETED 2026-07-17** — `foundation_food_csv_2025-12-18` pinned in the
       manifest `tertiarySources` (SHA-256/bytes verified vs server
-      Content-Length, public-domain); **NO matching performed** (no entries
-      reference it, no catalog/revision/version/artifact change), matching
-      remains a separate blocked slice pending explicit authorization. Residue
-      foods not cleanly matched under Foundation stay gated; gated count
-      unchanged at 22, `food-catalog@1.13.6` unchanged, **risk 3 part 2 remains
-      OPEN**. Nothing fabricated; logging uses fractional servings meanwhile.
-      See also the "SR Legacy Sourcing Track — Closure Note" + Amendment
-      A1/A2 notes.
+      Content-Length, public-domain). **A2a-1 matching batch (whole-commodity
+      grains/legumes/seeds) attempted 2026-07-17 → ZERO clean matches**: the 10
+      eligible residues (rice ×2, farro, sorghum, couscous_whole, lentils ×2,
+      cannellini_beans, chia_seeds, flax_seeds) have no Foundation record, or
+      only dry-raw/flour (preparation/varietal mismatch), or match the food but
+      Foundation carries per-100g data with **no cup/tbsp portion row** (no
+      source-backed grams-per-serving; assumed conversion forbidden). All 10
+      stay gated with updated Foundation-checked manifest reasons; **no
+      catalog/revision/version/canonical change**. Matching for any remaining
+      residue stays a separate blocked slice pending explicit authorization.
+      Gated count unchanged at 22, `food-catalog@1.13.6` unchanged, **risk 3
+      part 2 remains OPEN**. Nothing fabricated; logging uses fractional
+      servings meanwhile. See also the "SR Legacy Sourcing Track — Closure
+      Note" + Amendment A1/A2 notes.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

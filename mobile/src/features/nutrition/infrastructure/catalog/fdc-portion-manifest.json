@@ -2899,11 +2899,11 @@
   "unmatched": [
     {
       "catalogKey": "food.chia_seeds",
-      "reason": "SR Legacy has a chia seed record but no tbsp/tablespoon portion row in the pinned archive; left null/gated rather than converting from ounces. FNDDS re-check (Batch F2, fndds_survey_food_csv_2024-10-31): 'Chia seeds' (2707590) exists but likewise carries no tablespoon portion (only '1 cup' = 168 g and a quantity-not-specified row); cup->tbsp volume conversion is reserved for liquids under A1, and the converted estimate would fail the kcal gate anyway (est 102.1 vs authored 128, delta 25.9 > 25). Left null/gated."
+      "reason": "SR Legacy has a chia seed record but no tbsp/tablespoon portion row in the pinned archive; left null/gated rather than converting from ounces. FNDDS re-check (Batch F2, fndds_survey_food_csv_2024-10-31): 'Chia seeds' (2707590) exists but likewise carries no tablespoon portion (only '1 cup' = 168 g and a quantity-not-specified row); cup->tbsp volume conversion is reserved for liquids under A1, and the converted estimate would fail the kcal gate anyway (est 102.1 vs authored 128, delta 25.9 > 25). Left null/gated. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): 'Chia seeds, dry, raw' (2710819) matches the food but carries per-100g nutrients only with NO tablespoon portion row; a tbsp gram weight would require a forbidden assumed conversion. Stays gated."
     },
     {
       "catalogKey": "food.flax_seeds",
-      "reason": "Catalog food is ground flaxseed. SR's ground 1 tbsp portion (7 g) fails macro reconciliation against the authored serving, while the passing whole-flaxseed portion is a preparation mismatch; left null/gated. FNDDS re-check (Batch F2): FNDDS 'Flax seeds' (2707588) is the whole-seed record (1 cup = 168 g, whole-seed density) with no tablespoon portion and no ground variant — the whole-vs-ground preparation mismatch persists. Left null/gated."
+      "reason": "Catalog food is ground flaxseed. SR's ground 1 tbsp portion (7 g) fails macro reconciliation against the authored serving, while the passing whole-flaxseed portion is a preparation mismatch; left null/gated. FNDDS re-check (Batch F2): FNDDS 'Flax seeds' (2707588) is the whole-seed record (1 cup = 168 g, whole-seed density) with no tablespoon portion and no ground variant — the whole-vs-ground preparation mismatch persists. Left null/gated. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): 'Flaxseed, ground' (2262075) exactly matches the ground form but carries per-100g nutrients only with NO tablespoon portion row; assumed tbsp conversion forbidden. Stays gated."
     },
     {
       "catalogKey": "food.mct_oil",
@@ -2919,35 +2919,35 @@
     },
     {
       "catalogKey": "food.basmati_rice",
-      "reason": "SR Legacy has no basmati-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated. FNDDS re-check (Batch F1, fndds_survey_food_csv_2024-10-31): no basmati-specific record either — FNDDS attribute-tags its generic 'Rice, white' records as 'basmati or jasmine rice' (deliberately not distinguished), so the generic-row rejection stands under the A1 varietal rule."
+      "reason": "SR Legacy has no basmati-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated. FNDDS re-check (Batch F1, fndds_survey_food_csv_2024-10-31): no basmati-specific record either — FNDDS attribute-tags its generic 'Rice, white' records as 'basmati or jasmine rice' (deliberately not distinguished), so the generic-row rejection stands under the A1 varietal rule. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): no rice record of any kind in the Foundation Foods analytical set; stays gated."
     },
     {
       "catalogKey": "food.jasmine_rice",
-      "reason": "SR Legacy has no jasmine-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated. FNDDS re-check (Batch F1): same finding as basmati — FNDDS folds jasmine into generic 'Rice, white' via attribute tags; generic rejected under the A1 varietal rule."
+      "reason": "SR Legacy has no jasmine-specific cooked rice cup row; generic white-rice rows were rejected to avoid losing varietal specificity. Left null/gated. FNDDS re-check (Batch F1): same finding as basmati — FNDDS folds jasmine into generic 'Rice, white' via attribute tags; generic rejected under the A1 varietal rule. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): no rice record of any kind in Foundation Foods; stays gated."
     },
     {
       "catalogKey": "food.farro",
-      "reason": "Pinned SR Legacy has no cooked farro cup row; left null/gated rather than substituting another wheat grain. FNDDS re-check (Batch F1): FNDDS 2021-2023 contains no farro record at all (food.csv and food_attribute.csv both empty for 'farro')."
+      "reason": "Pinned SR Legacy has no cooked farro cup row; left null/gated rather than substituting another wheat grain. FNDDS re-check (Batch F1): FNDDS 2021-2023 contains no farro record at all (food.csv and food_attribute.csv both empty for 'farro'). Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): only 'Farro, pearled, dry, raw' (2710828) — a dry/raw record (preparation mismatch vs the authored cooked cup) carrying per-100g nutrients with NO cup portion row, so no source-backed cup gram weight; stays gated."
     },
     {
       "catalogKey": "food.sorghum",
-      "reason": "Pinned SR Legacy has no cooked sorghum cup row (only non-serving syrup/flour-style candidates); left null/gated. FNDDS re-check (Batch F1): FNDDS 2021-2023 contains no sorghum record at all."
+      "reason": "Pinned SR Legacy has no cooked sorghum cup row (only non-serving syrup/flour-style candidates); left null/gated. FNDDS re-check (Batch F1): FNDDS 2021-2023 contains no sorghum record at all. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): only 'Flour, sorghum' (2512373) — flour, not the authored cooked whole grain, and no cup portion row; stays gated."
     },
     {
       "catalogKey": "food.couscous_whole",
-      "reason": "Catalog food is whole wheat couscous; pinned SR Legacy provides generic cooked couscous only. Rejected to avoid preparation/grain mismatch; left null/gated. FNDDS re-check (Batch F1): FNDDS likewise provides only generic 'Couscous, plain, cooked' (2708441); no whole-wheat couscous record — rejection stands."
+      "reason": "Catalog food is whole wheat couscous; pinned SR Legacy provides generic cooked couscous only. Rejected to avoid preparation/grain mismatch; left null/gated. FNDDS re-check (Batch F1): FNDDS likewise provides only generic 'Couscous, plain, cooked' (2708441); no whole-wheat couscous record — rejection stands. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): no couscous record of any kind in Foundation Foods; stays gated."
     },
     {
       "catalogKey": "food.lentils_red",
-      "reason": "SR Legacy does not provide a red-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated. FNDDS re-check (Batch F1): FNDDS provides only generic lentil records ('Lentils, NFS' / 'from dried') with no red-lentil-specific row or attribute; generic rejected under the A1 varietal rule."
+      "reason": "SR Legacy does not provide a red-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated. FNDDS re-check (Batch F1): FNDDS provides only generic lentil records ('Lentils, NFS' / 'from dried') with no red-lentil-specific row or attribute; generic rejected under the A1 varietal rule. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): only 'Lentils, dry' (2644283) / 'lentils, brown, dry' — dry/raw and non-red (varietal loss), with no cup portion row; stays gated."
     },
     {
       "catalogKey": "food.lentils_green",
-      "reason": "SR Legacy does not provide a green-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated. FNDDS re-check (Batch F1): same finding as red lentils — only generic lentil records exist; generic rejected under the A1 varietal rule."
+      "reason": "SR Legacy does not provide a green-lentil-specific cooked cup row; generic lentils were not used for this varietal. Left null/gated. FNDDS re-check (Batch F1): same finding as red lentils — only generic lentil records exist; generic rejected under the A1 varietal rule. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): only 'Lentils, dry' / 'lentils, brown, dry' — no green-specific varietal, dry/raw, and no cup portion row; stays gated."
     },
     {
       "catalogKey": "food.cannellini_beans",
-      "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated. FNDDS re-check (Batch F1): FNDDS has only generic 'White beans' records, attribute-tagged 'Cannellini' among other white beans (deliberately not distinguished); generic rejected under the A1 varietal rule."
+      "reason": "Pinned SR Legacy has no cannellini-specific cooked cup row; white/kidney bean substitutes were rejected to avoid varietal mismatch. Left null/gated. FNDDS re-check (Batch F1): FNDDS has only generic 'White beans' records, attribute-tagged 'Cannellini' among other white beans (deliberately not distinguished); generic rejected under the A1 varietal rule. Foundation Foods re-check (A2a-1, foundation_food_csv_2025-12-18): cannellini-specific records exist — 'Beans, cannellini, dry' (2644281) and 'Beans, cannellini, canned, sodium added, drained and rinsed' (2644287) — but NEITHER carries a cup portion row (per-100g only), so no source-backed cup gram weight can be derived; the canned sodium-added form is also a distinct preparation from the authored home-cooked cup. Stays gated."
     },
     {
       "catalogKey": "food.broccolini",
