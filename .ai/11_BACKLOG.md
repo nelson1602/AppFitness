@@ -647,13 +647,18 @@ workout_logs / workout_sets (`api/src/modules/workout/`), registered in the
 sync pipeline; custom-exercise push deferred to Slice 3B. **Slice 4A COMPLETE
 (2026-07-17):** mobile routines + workout_logs repository/service/store
 (`mobile/src/features/workout/`), offline-first with sync enqueue + pull
-appliers; no UI. **routine_exercises + workout_sets deferred** (blocked by the
-`exercise_id → exercises(id)` FK; the Slice 2 catalog is code-only with no
-seeded exercise ids). The **next authorized slice is a built-in-exercise
-identity + seed slice** (ADR-P012-style UUIDv5 catalog identity, seeding
-`exercises` on mobile + backend) — a prerequisite before routine_exercises /
-workout_sets repository/handlers can persist; then the routine builder /
-workout logging UI slices. Each needs its own explicit authorization.
+appliers; no UI. **Exercise identity + seed slice COMPLETE (2026-07-17):**
+built-in exercises now carry a precomputed stable UUIDv5 id
+(`uuidv5(key:EXERCISE_REVISION)` under a shared `WORKOUT_UUID_NAMESPACE`,
+ADR-P012-style), and are seeded into `exercises` idempotently on both sides —
+mobile `seedBuiltInExercises`/`ensureBuiltInExerciseSeeded` (`INSERT OR IGNORE`,
+never overwrites custom) and a backend `prisma/seed/seed-exercise-catalog.ts`
+artifact (upsert insert-only) from `prisma/seed/exercise-catalog.json`.
+Mobile (pure-JS) and backend (Node-crypto) derive byte-identical ids
+(parity-tested). This unblocks the FK. **routine_exercises + workout_sets
+repository/handlers remain the next slice** (now that exercise ids are stable +
+seeded), followed by the routine builder / workout logging UI. Custom-exercise
+push (Slice 3B) still deferred. Each needs its own explicit authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:
@@ -725,9 +730,16 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    optional `routine_id` validated against a locally-present routine. No UI.
    **routine_exercises + workout_sets deferred** — blocked by the
    `exercise_id → exercises(id)` FK: the Slice 2 built-in catalog is code-only
-   with no seeded stable exercise ids. Needs a dedicated **built-in-exercise
-   identity + seed slice (likely an ADR-P012-style UUIDv5 catalog identity)**
-   before they can persist runtime-safely; not started.
+   with no seeded stable exercise ids. Resolved by the exercise identity + seed
+   slice below.
+4b. **Built-in-exercise identity + seed — DONE 2026-07-17.** Precomputed stable
+   UUIDv5 id per built-in (`uuidv5(key:1)` under a shared
+   `WORKOUT_UUID_NAMESPACE`, ADR-P012-style; no runtime derivation), seeded into
+   `exercises` on mobile (`seedBuiltInExercises`/`ensureBuiltInExerciseSeeded`,
+   `INSERT OR IGNORE`) and backend (`seed-exercise-catalog.ts` upsert insert-only
+   from `exercise-catalog.json`). Idempotent, never overwrites custom
+   exercises; mobile/backend id parity is test-verified. No schema/migration
+   change. Unblocks routine_exercises/workout_sets.
 5. Routine builder UI.
 6. Workout logging UI.
 7. iCoach `TrainingPlan` integration (guidance + blocked/clearance states).

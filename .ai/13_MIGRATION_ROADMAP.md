@@ -1774,10 +1774,15 @@ own go-ahead.**
   (`mobile/src/features/workout/`) — local-first + sync enqueue for the Slice 3
   handlers + pull appliers (`routines`/`workout_logs`); workout_logs' optional
   `routine_id` validated locally. No UI. **routine_exercises + workout_sets
-  deferred** — blocked by the `exercise_id → exercises(id)` FK (Slice 2 catalog
-  is code-only, no seeded exercise ids). **Next: a built-in-exercise identity +
-  seed slice** (ADR-P012-style UUIDv5 identity, seeding `exercises` on mobile +
-  backend) before those entities can persist.
+  deferred** — was blocked by the `exercise_id → exercises(id)` FK.
+- **Exercise identity + seed — DONE 2026-07-17:** built-in exercises carry a
+  precomputed stable UUIDv5 id (`uuidv5(key:1)` under a shared
+  `WORKOUT_UUID_NAMESPACE`, ADR-P012-style; no runtime derivation) and are
+  seeded idempotently into `exercises` on mobile (`seedBuiltInExercises`) and
+  backend (`prisma/seed/seed-exercise-catalog.ts` from `exercise-catalog.json`),
+  never overwriting custom exercises; mobile/backend id parity test-verified. No
+  schema/migration change. **Unblocks routine_exercises/workout_sets** (the next
+  slice).
 - **Slice 5** — routine builder UI.
 - **Slice 6** — workout logging UI.
 - **Slice 7** — iCoach `TrainingPlan` integration (guidance + blocked/clearance).
