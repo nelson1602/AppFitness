@@ -43,7 +43,9 @@ describe('matchFoodExclusion', () => {
   });
 
   it('reports preference severity when only preference-kind entries match', () => {
-    const match = matchFoodExclusion(almonds, [pref({ avoidTag: 'nut_allergy', kind: 'preference' })]);
+    const match = matchFoodExclusion(almonds, [
+      pref({ avoidTag: 'nut_allergy', kind: 'preference' }),
+    ]);
     expect(match?.severity).toBe('preference');
   });
 

@@ -169,11 +169,7 @@ function ExclusionsCard({ plan }: { plan: MealPlan }) {
 export function NutritionPlanScreen() {
   const theme = useTheme();
   const { status, data, error, refresh } = useDashboardStore();
-  const {
-    status: prefStatus,
-    preferences,
-    load: loadPreferences,
-  } = useDietaryPreferenceStore();
+  const { status: prefStatus, preferences, load: loadPreferences } = useDietaryPreferenceStore();
   const [selectedDay, setSelectedDay] = useState(1);
 
   useEffect(() => {
@@ -186,11 +182,7 @@ export function NutritionPlanScreen() {
     () =>
       // Preferences are additive: only feed them in once the store is ready.
       // On an error/loading state the plan still builds with no exclusions.
-      selectMealPlan(
-        data?.assessment ?? null,
-        userId,
-        prefStatus === 'ready' ? preferences : [],
-      ),
+      selectMealPlan(data?.assessment ?? null, userId, prefStatus === 'ready' ? preferences : []),
     [data?.assessment, userId, prefStatus, preferences],
   );
 

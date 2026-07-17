@@ -277,7 +277,9 @@ describe('generateMealPlan — dietary preference exclusions (ADR-P014 Slice 3)'
     const plan = generateMealPlan(
       input({ excludeAvoidTags: ['nut_allergy'], excludeCatalogKeys: ['food.tofu'] }),
     );
-    expect(plan.rationale).toMatch(/dietary preferences and allergies shape this deterministic plan/i);
+    expect(plan.rationale).toMatch(
+      /dietary preferences and allergies shape this deterministic plan/i,
+    );
     expect(plan.rationale).toMatch(/nut_allergy/);
     expect(plan.rationale).toMatch(/food\.tofu/);
     expect(plan.rationale).toMatch(/not medical or dietary advice/i);

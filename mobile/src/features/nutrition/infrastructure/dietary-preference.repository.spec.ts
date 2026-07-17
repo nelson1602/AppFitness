@@ -94,13 +94,24 @@ describe('dietary-preference.repository', () => {
       },
     });
     // Domain shape reports note presence, never the text.
-    expect(pref).toMatchObject({ exclusionType: 'avoid_tag', avoidTag: 'nut_allergy', hasNote: true });
+    expect(pref).toMatchObject({
+      exclusionType: 'avoid_tag',
+      avoidTag: 'nut_allergy',
+      hasNote: true,
+    });
     expect(pref as unknown as Record<string, unknown>).not.toHaveProperty('note');
   });
 
   it('createDietaryPreference routes a catalog_key exclusion (no avoid_tag)', async () => {
     mockQueryFirst.mockResolvedValue(
-      row({ exclusion_type: 'catalog_key', avoid_tag: null, catalog_key: 'food.pomegranate', kind: 'preference', note_enc: null, enc_key_id: null }),
+      row({
+        exclusion_type: 'catalog_key',
+        avoid_tag: null,
+        catalog_key: 'food.pomegranate',
+        kind: 'preference',
+        note_enc: null,
+        enc_key_id: null,
+      }),
     );
 
     await createDietaryPreference(
@@ -147,8 +158,17 @@ describe('dietary-preference.repository', () => {
 
   it('applyServerDietaryPreference re-encrypts incoming note plaintext, stored as synced', async () => {
     await applyServerDietaryPreference(
-      { id: 'dp-9', user_id: USER, created_at: NOW, updated_at: NOW, version: 3,
-        exclusion_type: 'avoid_tag', avoid_tag: 'shellfish_allergy', kind: 'allergy', note: SECRET_NOTE },
+      {
+        id: 'dp-9',
+        user_id: USER,
+        created_at: NOW,
+        updated_at: NOW,
+        version: 3,
+        exclusion_type: 'avoid_tag',
+        avoid_tag: 'shellfish_allergy',
+        kind: 'allergy',
+        note: SECRET_NOTE,
+      },
       false,
     );
 

@@ -21,7 +21,10 @@ jest.mock('../application/dietary-preference.store', () => ({
     selector ? selector(mockPrefs) : mockPrefs,
 }));
 
-function setPrefs(preferences: DietaryPreference[] = [], status: DietaryPreferenceState['status'] = 'ready'): void {
+function setPrefs(
+  preferences: DietaryPreference[] = [],
+  status: DietaryPreferenceState['status'] = 'ready',
+): void {
   mockPrefs = {
     status,
     preferences,
@@ -114,9 +117,7 @@ describe('FoodLogScreen (Slice 4C)', () => {
     await fireEvent.changeText(screen.getByTestId('food-search-input'), 'almonds');
     await fireEvent.press(await screen.findByText('Almonds'));
 
-    expect(
-      screen.getByText('Heads up — this matches an allergy or sensitivity'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('Heads up — this matches an allergy or sensitivity')).toBeOnTheScreen();
   });
 
   it('renders a loading state', async () => {

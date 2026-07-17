@@ -58,7 +58,10 @@ export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) =>
       return true;
     } catch (error) {
       logError('dietaryPreference.add', error);
-      set({ status: 'error', error: 'Your dietary preference could not be saved. Please try again.' });
+      set({
+        status: 'error',
+        error: 'Your dietary preference could not be saved. Please try again.',
+      });
       return false;
     }
   },
@@ -71,7 +74,10 @@ export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) =>
       return true;
     } catch (error) {
       logError('dietaryPreference.remove', error);
-      set({ status: 'error', error: 'Your dietary preference could not be removed. Please try again.' });
+      set({
+        status: 'error',
+        error: 'Your dietary preference could not be removed. Please try again.',
+      });
       return false;
     }
   },

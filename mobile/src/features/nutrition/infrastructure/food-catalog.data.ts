@@ -354,9 +354,18 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 5,
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'high_fiber'],
   }),
-  food('food.soy_milk_unsweet', 'Soy milk, unsweetened', 'protein_plant', mlFdc(240, 246.5), 7, 4, 4, {
-    tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'heart_healthy'],
-  }),
+  food(
+    'food.soy_milk_unsweet',
+    'Soy milk, unsweetened',
+    'protein_plant',
+    mlFdc(240, 246.5),
+    7,
+    4,
+    4,
+    {
+      tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'heart_healthy'],
+    },
+  ),
   food('food.pea_milk_unsweet', 'Pea milk, unsweetened', 'protein_plant', ml(240), 8, 0, 5, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
   }),
@@ -1448,10 +1457,19 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     tags: ['vegetarian', 'gluten_free', 'quick_prep'],
     avoid: ['lactose_sensitive'],
   }),
-  food('food.almond_milk_unsweet', 'Almond milk, unsweetened', 'dairy', mlFdc(240, 265.8), 1, 1, 3, {
-    tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb'],
-    avoid: ['nut_allergy'],
-  }),
+  food(
+    'food.almond_milk_unsweet',
+    'Almond milk, unsweetened',
+    'dairy',
+    mlFdc(240, 265.8),
+    1,
+    1,
+    3,
+    {
+      tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_carb'],
+      avoid: ['nut_allergy'],
+    },
+  ),
   food('food.oat_milk_unsweet', 'Oat milk, unsweetened', 'dairy', ml(240), 3, 9, 5, {
     tags: ['vegan', 'vegetarian', 'dairy_free', 'heart_healthy'],
     avoid: ['gluten_sensitive'],
@@ -1776,21 +1794,39 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   food('food.herbal_tea', 'Herbal tea, unsweetened', 'beverage', mlFdc(240, 240.2), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
   }),
-  food('food.sparkling_water', 'Sparkling water, unsweetened', 'beverage', mlFdc(240, 240.2), 0, 0, 0, {
-    tags: [
-      'vegan',
-      'vegetarian',
-      'gluten_free',
-      'dairy_free',
-      'low_sodium',
-      'quick_prep',
-      'budget_friendly',
-    ],
-  }),
-  food('food.tomato_juice_lowsodium', 'Tomato juice, low-sodium', 'beverage', mlFdc(240, 246.5), 2, 10, 0, {
-    fiber: 1,
-    tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
-  }),
+  food(
+    'food.sparkling_water',
+    'Sparkling water, unsweetened',
+    'beverage',
+    mlFdc(240, 240.2),
+    0,
+    0,
+    0,
+    {
+      tags: [
+        'vegan',
+        'vegetarian',
+        'gluten_free',
+        'dairy_free',
+        'low_sodium',
+        'quick_prep',
+        'budget_friendly',
+      ],
+    },
+  ),
+  food(
+    'food.tomato_juice_lowsodium',
+    'Tomato juice, low-sodium',
+    'beverage',
+    mlFdc(240, 246.5),
+    2,
+    10,
+    0,
+    {
+      fiber: 1,
+      tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
+    },
+  ),
   food('food.orange_juice', 'Orange juice, 100%', 'beverage', mlFdc(240, 251.6), 2, 26, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'quick_prep'],
   }),

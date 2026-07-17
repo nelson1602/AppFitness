@@ -163,7 +163,9 @@ describe('FDC portion manifest — gates', () => {
         // Density derivation needs a volume-paired portion (cup / fl oz / ml)
         // regardless of the catalog serving unit (Batch 7: tbsp lemon juice
         // derives from the record's cup row).
-        expect(label).toMatch(/\b(cup|fl oz|fluid ounce|ml|milliliter|tbsp|tablespoon|tsp|teaspoon)\b/);
+        expect(label).toMatch(
+          /\b(cup|fl oz|fluid ounce|ml|milliliter|tbsp|tablespoon|tsp|teaspoon)\b/,
+        );
       else if (food!.servingUnit === 'slice') expect(label).toContain('slice');
       else if (food!.servingUnit === 'tbsp') expect(label).toMatch(/\b(tbsp|tablespoon)\b/);
       else if (food!.servingUnit === 'tsp') expect(label).toMatch(/\b(tsp|teaspoon)\b/);

@@ -73,9 +73,7 @@ describe('FoodLogAddForm — dietary-preference warnings (ADR-P014 Slice 4)', ()
 
   it('warns when the selected food matches an active avoid-tag exclusion', async () => {
     await selectAlmonds([pref({ avoidTag: 'nut_allergy', kind: 'allergy' })]);
-    expect(
-      screen.getByText('Heads up — this matches an allergy or sensitivity'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('Heads up — this matches an allergy or sensitivity')).toBeOnTheScreen();
     expect(screen.getByText(/Nuts/)).toBeOnTheScreen();
   });
 
@@ -96,9 +94,7 @@ describe('FoodLogAddForm — dietary-preference warnings (ADR-P014 Slice 4)', ()
 
   it('uses stronger safety wording for an allergy/sensitivity, without emergency-advice claims', async () => {
     await selectAlmonds([pref({ avoidTag: 'nut_allergy', kind: 'allergy' })]);
-    expect(
-      screen.getByText('Heads up — this matches an allergy or sensitivity'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('Heads up — this matches an allergy or sensitivity')).toBeOnTheScreen();
     expect(screen.getByText(/not emergency medical advice/i)).toBeOnTheScreen();
   });
 
@@ -119,9 +115,7 @@ describe('FoodLogAddForm — dietary-preference warnings (ADR-P014 Slice 4)', ()
     await fireEvent.changeText(screen.getByTestId('food-search-input'), 'almonds');
     await fireEvent.press(await screen.findByText('Almonds'));
     // Warning is shown, but the submit control remains available and works.
-    expect(
-      screen.getByText('Heads up — this matches an allergy or sensitivity'),
-    ).toBeOnTheScreen();
+    expect(screen.getByText('Heads up — this matches an allergy or sensitivity')).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('food-log-add-submit'));
     expect(onAdd).toHaveBeenCalledWith('food.almonds', 'BREAKFAST', 1);
   });

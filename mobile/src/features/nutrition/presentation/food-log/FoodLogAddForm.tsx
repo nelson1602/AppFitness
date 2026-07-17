@@ -7,10 +7,7 @@ import { useTheme } from '@/shared/theme';
 
 import { search } from '../../application/food-catalog.service';
 import type { DietaryPreference } from '../../domain/dietary-preference';
-import {
-  matchFoodExclusion,
-  type ExclusionMatch,
-} from '../../domain/dietary-preference-match';
+import { matchFoodExclusion, type ExclusionMatch } from '../../domain/dietary-preference-match';
 import { AVOID_TAG_LABELS, type FoodItem } from '../../domain/food-catalog';
 import { MEAL_SLOTS } from '../../domain/meal-plan';
 import { ServingStepper } from './ServingStepper';

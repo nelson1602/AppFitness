@@ -41,7 +41,9 @@ export function NutritionDataGap({
 
   return (
     <Card
-      accessibilityLabel={context === 'plan' ? 'Meal plan needs more data' : 'Nutrition needs more data'}
+      accessibilityLabel={
+        context === 'plan' ? 'Meal plan needs more data' : 'Nutrition needs more data'
+      }
     >
       <View style={{ gap: theme.spacing.md }}>
         <AppText variant="title">Finish your baseline first</AppText>

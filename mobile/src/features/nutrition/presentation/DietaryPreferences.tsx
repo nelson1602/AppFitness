@@ -111,8 +111,8 @@ export function DietaryPreferences() {
         <AppText variant="headline">Dietary preferences & allergies</AppText>
         <AppText tone="muted">
           Tell your coach what to avoid. Allergies and sensitivities help personalize your meal
-          planning — this is not emergency medical advice. Entries are saved on your device first and
-          sync to your account later. Meal-plan integration arrives in the next update, so your
+          planning — this is not emergency medical advice. Entries are saved on your device first
+          and sync to your account later. Meal-plan integration arrives in the next update, so your
           current plan may not change yet.
         </AppText>
       </View>

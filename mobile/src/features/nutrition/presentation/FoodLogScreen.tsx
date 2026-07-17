@@ -211,11 +211,7 @@ function DailyTotals({ totals }: { totals: ConsumedMacros }) {
 export function FoodLogScreen() {
   const theme = useTheme();
   const { status, items, totals, sync, error, load, addFood, syncNow } = useFoodLogStore();
-  const {
-    status: prefStatus,
-    preferences,
-    load: loadPreferences,
-  } = useDietaryPreferenceStore();
+  const { status: prefStatus, preferences, load: loadPreferences } = useDietaryPreferenceStore();
 
   useEffect(() => {
     void load();
