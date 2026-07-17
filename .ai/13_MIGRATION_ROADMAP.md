@@ -1703,6 +1703,15 @@ thresholds extended per slice, Maestro nutrition assertion in onboarding-loop.
       part 2 remains OPEN**. Nothing fabricated; logging uses fractional
       servings meanwhile. See also the "SR Legacy Sourcing Track — Closure
       Note" + Amendment A1/A2 notes.
+      **Sourcing closure (2026-07-17):** all three accepted USDA sourcing
+      tracks are now exhausted — SR Legacy (CLOSED), FNDDS/A1 (EXHAUSTED),
+      Foundation Foods/A2a (pin + A2a-1 whole-commodity matching, ZERO clean
+      matches). Sourced portion COMPLETE at **168/190**; the **22-food residue
+      is accepted/deferred and stays gated** (`food-catalog@1.13.6`). **No
+      further sourcing is authorized without a future owner decision** (most
+      plausibly A2b Branded Foods — NOT accepted — or another source-policy
+      amendment); risk 3 part 2 stays **OPEN as accepted residual debt**,
+      blocked solely on that future decision. Nothing here accepts A2b.
 
 ## Phase 16 — Workout Module  [commercial v1]
 

@@ -1229,6 +1229,23 @@ unchanged.
 This item stays OPEN until the remaining foods are actually resolved or
 explicitly carved out.
 
+**Risk 3 part 2 — Sourcing Closure / Status (2026-07-17).** The **sourced
+portion is COMPLETE** to the limit of the accepted USDA sources: **168/190
+non-gram foods carry sourced gram weights**; all three accepted sourcing
+tracks are exhausted — SR Legacy (Batches 1–7, CLOSED), FNDDS/Amendment A1
+(F1–F4 + mixed_greens, EXHAUSTED), and Foundation Foods/Amendment A2a (pin +
+A2a-1 whole-commodity matching, ZERO clean matches — Foundation carries
+per-100g data with no household cup/tbsp portions and no cooked/varietal rows
+for these commodities). The **22-food residue is accepted/deferred and stays
+gated** (9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`; `food-catalog@1.13.6`),
+logging via fractional servings. **No further sourcing is authorized without a
+future owner decision** — most plausibly **A2b Branded Foods** (NOT accepted;
+needs a brand-representativeness/label policy) or another source-policy
+amendment. This item therefore **remains OPEN as accepted residual debt** (per
+the project's status vocabulary — residue still gated), now blocked SOLELY on
+that future source-policy decision; nothing here accepts A2b or authorizes any
+further sourcing/matching/catalog change.
+
 ### Nutrition/evaluation data-gap UX correction (2026-07-16) — mobile-only
 
 Independent of the gram-sourcing track above. Users could register and enter

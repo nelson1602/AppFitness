@@ -4540,6 +4540,46 @@ batch lands and is separately authorized. The gated count is unchanged at
 **22** (9 `cup` + 5 `tbsp` + 8 `ml` + 0 `slice`) and **TECHDEBT-004 risk 3
 part 2 remains OPEN**.
 
+#### ADR-P013 Sourcing — Closure / Status Note (2026-07-17)
+
+**All three accepted USDA sources are now exhausted for the gate-(d)
+residue.** Gram-weight sourcing under ADR-P013 (and Amendments A1/A2a) is
+complete to the limit of what the accepted public-domain USDA datasets can
+provide:
+
+- **SR Legacy `sr_legacy_food_csv_2018-04` — CLOSED** (SR Legacy Sourcing
+  Track Closure Note): 158/190 non-gram foods sourced across Batches 1–7 plus
+  the semantics-correction slices.
+- **FNDDS `survey_food_csv_2024-10-31` (Amendment A1) — EXHAUSTED** (A1
+  Matching Track Closure Note): Batches F1–F4 + the mixed_greens direct match;
+  per-food gates (a)/(b)/(c) all closed.
+- **Foundation Foods `foundation_food_csv_2025-12-18` (Amendment A2a) —
+  EXHAUSTED for the eligible residue**: the A2a pin batch landed (2026-07-17),
+  and the **A2a-1 matching batch (whole-commodity grains/legumes/seeds) found
+  ZERO clean matches** — Foundation Foods carries per-100g analytical data with
+  **no household cup/tbsp portion rows** for these commodities, and no
+  cooked/varietal-specific rows for the grains/legumes; each eligible residue
+  stays gated with a Foundation-checked reason in `fdc-portion-manifest.json`.
+
+**Net catalog state: 168/190 non-gram foods sourced; 22 remain gated** (9 `cup`
++ 5 `tbsp` + 8 `ml` + 0 `slice`); `food-catalog@1.13.6`. The 22 stay gated
+because **every accepted source (SR Legacy, FNDDS, Foundation Foods) lacks an
+acceptable household-portion row and/or an acceptable exact food/preparation/
+varietal match** for each — and proxy/generic-varietal substitution, recipe
+synthesis, and source-free/assumed volume→gram conversions are all forbidden.
+The 22 log via fractional servings meanwhile (no fabricated data; no
+user-facing breakage).
+
+**No further sourcing is authorized under the accepted sources.** Shrinking the
+residue further requires a NEW owner decision — most plausibly **A2b Branded
+Foods** (currently **NOT accepted**; it needs a brand-representativeness /
+label-rounding policy) or another source-policy amendment. **Nothing in this
+note accepts A2b or authorizes any further matching, pinning, or catalog
+change.** ADR-P013 and Amendments A1/A2 remain Accepted and in force.
+**TECHDEBT-004 risk 3 part 2 remains OPEN** as accepted residual debt: the
+*sourcing tracks are exhausted under the accepted sources*, and the 22-food
+residue is intentionally gated pending a future source-policy decision.
+
 ### Related Documents
 
 - .ai/12_DECISIONS.md — ADR-P012 (catalog identity, serving normalization, Risk-3 Normalization Note), ADR-0011 (health-data integrity)
