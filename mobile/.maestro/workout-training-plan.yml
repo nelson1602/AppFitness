@@ -172,16 +172,24 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: 'E2E session'
 - tapOn: 'Log sets'
-# Choose a built-in exercise, enter reps + weight, and add the set.
+# Choose a built-in exercise, then enter reps + weight. The reps/weight inputs
+# render BELOW the built-in exercise catalog, so scroll each into view before
+# tapping (a bare tap on an off-screen input fails).
 - scrollUntilVisible:
     element:
       id: 'set-exercise-exercise.back_squat'
 - tapOn:
     id: 'set-exercise-exercise.back_squat'
+- scrollUntilVisible:
+    element:
+      id: 'set-reps-input'
 - tapOn:
     id: 'set-reps-input'
 - inputText: '5'
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'set-weight-input'
 - tapOn:
     id: 'set-weight-input'
 - inputText: '100'
