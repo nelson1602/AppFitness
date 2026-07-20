@@ -200,13 +200,18 @@ appId: com.appfitness.mobile
 - tapOn:
     id: 'set-add'
 
-# --- 7. The saved set is visible and local-first (pending sync). ---
+# --- 7. The saved set is visible and local-first (pending sync). The set list
+#     renders ABOVE the add-set form, so after tapping "Add set" (at the bottom)
+#     scroll UP to reach the newly-logged set. ---
 - scrollUntilVisible:
+    direction: UP
     element: '1. Back squat'
 - assertVisible: 'Pending sync'
 
-# --- Finish the workout → it moves to "Recent workouts". ---
+# --- Finish the workout → it moves to "Recent workouts". The Finish button sits
+#     in the card header, above the set list, so scroll UP to it. ---
 - scrollUntilVisible:
+    direction: UP
     element: 'Finish'
 - tapOn: 'Finish'
 # Finishing collapses the open card and shifts the layout, so scroll the
