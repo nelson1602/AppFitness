@@ -89,33 +89,40 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: 'Injury · knee'
 
-# Back to the dashboard → its refresh recomputes the assessment with the new
-# active restriction, so the training plan now carries excludedMovements.
+# Back to the dashboard → returning remounts it, so its refresh recomputes the
+# assessment with the new active restriction (the training plan now carries
+# excludedMovements). The dashboard restores its scrolled-down position, so
+# navigate scroll-aware straight to the workout entry point — do NOT assert the
+# assessment header here (it is above the fold after `back`).
 - back
-- extendedWaitUntil:
-    visible: "Today's assessment"
-    timeout: 30000
 
 # --- 1. Navigate: dashboard → Workout routines ---
 - scrollUntilVisible:
     element: 'Workout routines'
 - tapOn: 'Workout routines'
-- extendedWaitUntil:
-    visible: 'Create a routine'
-    timeout: 15000
 
-# --- 2/3. TrainingPlan guidance is surfaced read-only, incl. movements to
-#     avoid derived from the knee restriction. ---
-- scrollUntilVisible:
-    element: 'Your training guidance'
+# --- 2/3. TrainingPlan guidance is surfaced read-only (top of the screen). The
+#     guidance card is reactive to the refreshed dashboard store, so waiting on
+#     it also gates on the recompute completing. "Movements to avoid" only
+#     renders when excludedMovements is non-empty → proves the knee restriction
+#     propagated into the plan. ---
+- extendedWaitUntil:
+    visible: 'Your training guidance'
+    timeout: 30000
 - scrollUntilVisible:
     element: '.*Movements to avoid.*deep_squat.*'
 
 # --- 4. Create a routine, then view its exercises and add a built-in one. ---
+- scrollUntilVisible:
+    element:
+      id: 'routine-name'
 - tapOn:
     id: 'routine-name'
 - inputText: 'E2E push'
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'routine-create'
 - tapOn:
     id: 'routine-create'
 # The created routine lands in "Your routines" below the create card.
@@ -138,10 +145,10 @@ appId: com.appfitness.mobile
     element: 'Back squat'
 
 # --- 5. Navigate: dashboard → Log a workout ---
+# `back` restores the dashboard's scrolled position (near "Workout routines"),
+# so scroll straight to the next entry point rather than asserting the
+# above-the-fold assessment header.
 - back
-- extendedWaitUntil:
-    visible: "Today's assessment"
-    timeout: 30000
 - scrollUntilVisible:
     element: 'Log a workout'
 - tapOn: 'Log a workout'
