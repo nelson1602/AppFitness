@@ -810,7 +810,20 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    Slice 5/6 screens now consume these shared pieces (behavior preserved).
    Medical restrictions are never overridden or reinterpreted; offline-first is
    unchanged. No backend/schema/sync/dependency/catalog change.
-8. E2E validation (Maestro, wired into `mobile-e2e.yml`).
+8. E2E validation (Maestro, wired into `mobile-e2e.yml`). **AUTHORED 2026-07-20
+   (awaiting a fresh e2e APK before it can run):** `mobile/.maestro/
+   workout-training-plan.yml` — reuses the persisted `onboard` session and, on
+   device, adds a knee restriction (deterministic `BODY_AREA_EXCLUSIONS.knee`),
+   opens the routine builder, asserts the read-only `TrainingPlan` guidance card
+   + the non-blocking excluded-movement caution on "Back squat" (`deep_squat`),
+   builds a routine from the built-in catalog, then starts a workout, logs a set,
+   confirms it is saved + pending, and finishes it. Wired into `mobile-e2e.yml`
+   after `medical-management.yml`. **Requires a fresh EAS `e2e` APK built from
+   the Slice 5–7 workout-UI commits** — the current published e2e APK predates
+   the workout module (no `/routines` or `/workout-log`) and would fail; the APK
+   build + e2e dispatch are NOT triggered pending explicit authorization. No
+   app source / schema / backend / dependency / catalog change (flow YAML +
+   workflow wiring only).
 
 ### Privacy stance
 Workout data = **wellness** (synced, not encrypted). Injury/restriction/medical

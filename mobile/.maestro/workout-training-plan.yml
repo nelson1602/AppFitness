@@ -1,0 +1,165 @@
+# Phase 16 Slice 8 — Workout module E2E (ADR-P015).
+#
+# Proves the device-side workout journey end to end, including the read-only
+# iCoach TrainingPlan integration (Slice 7):
+#   1. dashboard → routine builder;
+#   2. TrainingPlan guidance card is visible (never recomputed — read from the
+#      deterministic assessment);
+#   3. a knee restriction (added on-device) makes the plan carry
+#      excludedMovements, so the built-in "Back squat" (deep_squat) shows the
+#      NON-blocking excluded-movement caution — it never blocks the action;
+#   4. create a routine and add a built-in catalog exercise to it;
+#   5. dashboard → workout log;
+#   6. start a workout and log a set against a built-in exercise;
+#   7. the saved set is visible and surfaced as pending (local-first).
+#
+# The knee restriction is deterministic safety data: BODY_AREA_EXCLUSIONS.knee =
+# jumping/deep_squat/lunge/high_impact_cardio (see icoach/domain/restrictions.ts).
+# A MILD injury (no severity → not blocked / no clearance / no cap) keeps the
+# plan in the "ready" guidance state while still excluding those movements.
+#
+# Prereqs (same seeded-local-API setup as the other flows): api/ running on the
+# host, a disposable database, and `adb reverse tcp:3001 tcp:3001`. Run AFTER
+# onboarding-loop.yml — it reuses that flow's persisted `onboard` session (which
+# already has a ready iCoach assessment). No -e vars needed; the session is
+# restored on launch. Fake synthetic identity; disposable DB.
+#
+# Requires an EAS `e2e` APK built from the Phase 16 Slice 5–7 commits (the
+# workout routes/screens) or later; an older APK predating the workout UI will
+# fail immediately (no "Workout routines" entry point).
+appId: com.appfitness.mobile
+---
+- launchApp
+
+# Session restore → populated, ready dashboard for the onboard account.
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 45000
+
+# --- Add an active knee restriction so the TrainingPlan carries
+#     excludedMovements (deterministic: knee → deep_squat, lunge, jumping,
+#     high_impact_cardio). Body area must be exactly "knee" to map. ---
+- scrollUntilVisible:
+    element: 'Restrictions & injuries'
+- tapOn: 'Restrictions & injuries'
+- extendedWaitUntil:
+    visible: 'Add a restriction'
+    timeout: 15000
+# Type defaults to Injury; leave severity unset (MILD-equivalent → no cap,
+# not blocked, no clearance). Only the body area drives the exclusions.
+- tapOn:
+    id: 'field-bodyArea'
+- inputText: 'knee'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Add restriction'
+- tapOn: 'Add restriction'
+# Confirm it persisted into the active list before leaving.
+- scrollUntilVisible:
+    element: 'Injury · knee'
+
+# Back to the dashboard → its refresh recomputes the assessment with the new
+# active restriction, so the training plan now carries excludedMovements.
+- back
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 30000
+
+# --- 1. Navigate: dashboard → Workout routines ---
+- scrollUntilVisible:
+    element: 'Workout routines'
+- tapOn: 'Workout routines'
+- extendedWaitUntil:
+    visible: 'Create a routine'
+    timeout: 15000
+
+# --- 2/3. TrainingPlan guidance is surfaced read-only, incl. movements to
+#     avoid derived from the knee restriction. ---
+- scrollUntilVisible:
+    element: 'Your training guidance'
+- scrollUntilVisible:
+    element: '.*Movements to avoid.*deep_squat.*'
+
+# --- 4. Create a routine, then view its exercises and add a built-in one. ---
+- tapOn:
+    id: 'routine-name'
+- inputText: 'E2E push'
+- hideKeyboard
+- tapOn:
+    id: 'routine-create'
+# The created routine lands in "Your routines" below the create card.
+- scrollUntilVisible:
+    element: 'E2E push'
+- tapOn: 'View exercises'
+
+# --- The built-in catalog list appears; Back squat (deep_squat) shows the
+#     NON-blocking excluded-movement caution. ---
+- scrollUntilVisible:
+    element:
+      id: 'add-exercise-exercise.back_squat'
+- scrollUntilVisible:
+    element: '.*May conflict.*deep_squat.*'
+# Add it to the routine (the warning never blocks the action).
+- tapOn:
+    id: 'add-exercise-exercise.back_squat'
+# The routine now lists the exercise (top of the routine's exercise list).
+- scrollUntilVisible:
+    element: 'Back squat'
+
+# --- 5. Navigate: dashboard → Log a workout ---
+- back
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 30000
+- scrollUntilVisible:
+    element: 'Log a workout'
+- tapOn: 'Log a workout'
+- extendedWaitUntil:
+    visible: 'Start a workout'
+    timeout: 15000
+
+# --- 6. Start an ad-hoc workout and log a set against a built-in exercise. ---
+- tapOn:
+    id: 'workout-name'
+- inputText: 'E2E session'
+- hideKeyboard
+- tapOn:
+    id: 'workout-start'
+# The open workout appears under "Open workouts"; open its set list.
+- scrollUntilVisible:
+    element: 'E2E session'
+- tapOn: 'Log sets'
+# Choose a built-in exercise, enter reps + weight, and add the set.
+- scrollUntilVisible:
+    element:
+      id: 'set-exercise-exercise.back_squat'
+- tapOn:
+    id: 'set-exercise-exercise.back_squat'
+- tapOn:
+    id: 'set-reps-input'
+- inputText: '5'
+- hideKeyboard
+- tapOn:
+    id: 'set-weight-input'
+- inputText: '100'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'set-add'
+- tapOn:
+    id: 'set-add'
+
+# --- 7. The saved set is visible and local-first (pending sync). ---
+- scrollUntilVisible:
+    element: '1. Back squat'
+- assertVisible: 'Pending sync'
+
+# --- Finish the workout → it moves to "Recent workouts". ---
+- scrollUntilVisible:
+    element: 'Finish'
+- tapOn: 'Finish'
+# Finishing collapses the open card and shifts the layout, so scroll the
+# "Recent workouts" section into view rather than asserting statically.
+- scrollUntilVisible:
+    element: 'Recent workouts'
+- assertVisible: 'Finished'
