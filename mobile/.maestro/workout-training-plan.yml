@@ -89,12 +89,17 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: 'Injury · knee'
 
-# Back to the dashboard → returning remounts it, so its refresh recomputes the
-# assessment with the new active restriction (the training plan now carries
-# excludedMovements). The dashboard restores its scrolled-down position, so
-# navigate scroll-aware straight to the workout entry point — do NOT assert the
-# assessment header here (it is above the fold after `back`).
-- back
+# Relaunch so the dashboard REMOUNTS and its mount-time refresh recomputes the
+# assessment WITH the now-active knee restriction — the plan then carries
+# excludedMovements. A plain `back` pop does not remount the dashboard, so its
+# refresh would not re-run and the plan's excludedMovements would stay empty.
+# The re-recorded weight + the knee restriction are persisted locally, so they
+# survive the relaunch (no data re-entry needed). Cold launch lands at the top
+# of a ready dashboard.
+- launchApp
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 45000
 
 # --- 1. Navigate: dashboard → Workout routines ---
 - scrollUntilVisible:
