@@ -1812,6 +1812,16 @@ own go-ahead.**
   caution. No backend/schema/migration/sync/dependency/catalog change. E2E +
   TrainingPlan polish stay Slices 7–8.
 - **Slice 7** — iCoach `TrainingPlan` integration (guidance + blocked/clearance).
+  **DONE 2026-07-20:** shared read-only consumption of the deterministic
+  `TrainingPlan` across the workout UI — `domain/training-guidance.ts`
+  (`toTrainingGuidance`: pure/deterministic, medical priority
+  `blocked > clearance > ready`, safe `unknown` fallback), `application/
+  use-training-plan.ts` (reads the dashboard store's plan; no recompute), and
+  presentation `TrainingPlanCard` (blocked/clearance + intensity/RPE-cap/days
+  guidance) + `ExerciseExclusionNote` (Slice 2 matcher → non-blocking caution).
+  Both Slice 5/6 screens now consume these shared pieces; behavior preserved,
+  medical restrictions never overridden, offline-first unchanged. No
+  backend/schema/sync/dependency/catalog change.
 - **Slice 8** — E2E validation (Maestro, wired into `mobile-e2e.yml`).
 
 ### Exit Criteria

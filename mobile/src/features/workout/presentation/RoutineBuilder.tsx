@@ -1,50 +1,35 @@
 import { useEffect, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
-import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { BuiltInExercise } from '../domain/exercise-catalog';
-import { matchExerciseExclusion } from '../domain/exercise-exclusion';
 import type { Routine, RoutineExercise } from '../domain/workout';
+import { useTrainingPlan } from '../application/use-training-plan';
 import { useWorkoutStore } from '../application/workout.store';
 import {
   getBuiltInExerciseById,
   listBuiltInExercises,
 } from '../infrastructure/exercise-catalog.data';
+import { ExerciseExclusionNote } from './ExerciseExclusionNote';
+import { TrainingPlanCard } from './TrainingPlanCard';
 
 /**
- * Routine builder (ADR-P015 Phase 16 Slice 5). View / create / remove routines
- * and manage a routine's exercises using the Slice 2 built-in catalog. ALL
- * persistence routes through the Slice 4A/4B workout store → service →
- * repository (local-first write, sync enqueue); the UI never touches SQLite.
+ * Routine builder (ADR-P015 Phase 16 Slice 5; TrainingPlan integration in Slice
+ * 7). View / create / remove routines and manage a routine's exercises using
+ * the Slice 2 built-in catalog. ALL persistence routes through the Slice 4A/4B
+ * workout store → service → repository (local-first write, sync enqueue); the
+ * UI never touches SQLite.
  *
- * Safety context is READ from the deterministic iCoach `TrainingPlan` already
- * assembled by the dashboard store — never recomputed here. A blocked /
- * clearance-required plan shows a prominent notice; an exercise whose movement
- * patterns intersect the plan's `excludedMovements` shows a NON-blocking
- * caution (via `matchExerciseExclusion`). Medical restrictions are never
- * overridden. Workout logging (start/finish + sets) belongs to Slice 6.
+ * Safety context is READ from the deterministic iCoach `TrainingPlan` (via
+ * `useTrainingPlan`) — never recomputed here. `TrainingPlanCard` surfaces the
+ * blocked / clearance / intensity / RPE-cap / days-per-week guidance; an
+ * exercise whose movement patterns intersect the plan's `excludedMovements`
+ * shows a NON-blocking caution. Medical restrictions are never overridden.
  */
 
 const CATALOG = listBuiltInExercises();
-
-function ExclusionNote({
-  exercise,
-  excludedMovements,
-}: {
-  exercise: BuiltInExercise | undefined;
-  excludedMovements: readonly string[];
-}) {
-  const match = matchExerciseExclusion(exercise, excludedMovements);
-  if (match.status !== 'excluded') return null;
-  return (
-    <AppText variant="caption" tone="warning">
-      May conflict with your current plan: {match.matchedMovements.join(', ')}
-    </AppText>
-  );
-}
 
 export function RoutineBuilder() {
   const theme = useTheme();
@@ -63,7 +48,7 @@ export function RoutineBuilder() {
 
   // Read-only training safety context (may be absent if the dashboard has not
   // loaded yet). We never recompute it.
-  const training = useDashboardStore((s) => s.data?.assessment?.assessment.training ?? null);
+  const training = useTrainingPlan();
   const excludedMovements = training?.excludedMovements ?? [];
 
   const [name, setName] = useState('');
@@ -115,17 +100,7 @@ export function RoutineBuilder() {
         </Banner>
       ) : null}
 
-      {training?.blocked ? (
-        <Banner title="Training is on hold" tone="error">
-          Your iCoach assessment has paused training based on your medical information. You can
-          still plan routines, but do not start training until your restrictions are cleared.
-        </Banner>
-      ) : training?.requiresMedicalClearance ? (
-        <Banner title="Medical clearance recommended" tone="warning">
-          Your iCoach assessment suggests getting medical clearance before training. Plan carefully
-          and check with a professional first.
-        </Banner>
-      ) : null}
+      <TrainingPlanCard plan={training} />
 
       <Card accessibilityLabel="Create a routine">
         <View style={{ gap: theme.spacing.md }}>
@@ -223,7 +198,7 @@ export function RoutineBuilder() {
                           <AppText variant="caption" tone="muted">
                             {exercise.muscleGroup}
                           </AppText>
-                          <ExclusionNote
+                          <ExerciseExclusionNote
                             exercise={exercise}
                             excludedMovements={excludedMovements}
                           />
@@ -263,7 +238,7 @@ function ExerciseList({
         return (
           <View key={re.id} testID={`routine-exercise-${re.id}`} style={{ gap: theme.spacing.xs }}>
             <AppText variant="label">{exercise?.name ?? 'Exercise'}</AppText>
-            <ExclusionNote exercise={exercise} excludedMovements={excludedMovements} />
+            <ExerciseExclusionNote exercise={exercise} excludedMovements={excludedMovements} />
             <AppButton
               accessibilityLabel={`Remove ${exercise?.name ?? 'exercise'} from routine`}
               testID={`routine-exercise-remove-${re.id}`}
