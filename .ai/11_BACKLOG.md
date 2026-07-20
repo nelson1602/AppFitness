@@ -672,9 +672,15 @@ excluded-movement cautions. **Slice 6 COMPLETE (2026-07-17):** workout logging U
 `WorkoutLogScreen` that starts ad-hoc/from-routine workouts, logs/edits/removes
 sets against built-in exercises, and finishes/soft-deletes logs via the Slice
 4A/4B store (UI never touches SQLite; local-first with per-row "pending sync"
-hints and the same read-only `TrainingPlan` safety surface). **E2E + TrainingPlan
-polish remain Slices 7–8.** Custom-exercise push (Slice 3B) still deferred. Each
-needs its own explicit authorization.
+hints and the same read-only `TrainingPlan` safety surface). **Slice 7 COMPLETE
+(2026-07-20):** iCoach `TrainingPlan` integration — a shared, deterministic
+read-only `toTrainingGuidance` view model (medical priority
+`blocked > clearance > ready`, safe `unknown` fallback), a `useTrainingPlan` hook
+over the dashboard store, and shared `TrainingPlanCard` / `ExerciseExclusionNote`
+components consumed by both workout screens (guidance + blocked/clearance states +
+non-blocking excluded-movement warnings; never recomputed or overridden). **E2E
+remains Slice 8.** Custom-exercise push (Slice 3B) still deferred. Each needs its
+own explicit authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:
@@ -792,6 +798,18 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    Custom exercises stay deferred (Slice 3B). No backend/schema/migration/sync/
    dependency/catalog change. **E2E + TrainingPlan polish stay Slices 7–8.**
 7. iCoach `TrainingPlan` integration (guidance + blocked/clearance states).
+   **DONE 2026-07-20**: shared, read-only consumption of the deterministic
+   `TrainingPlan` across the workout UI. New `domain/training-guidance.ts`
+   (`toTrainingGuidance` — pure, deterministic view model encoding medical
+   priority `blocked > clearance > ready`, with a safe `unknown` fallback when no
+   plan is loaded), `application/use-training-plan.ts` (reads the plan the
+   dashboard store already assembled; never recomputes), and presentation
+   `TrainingPlanCard` (blocked/clearance banners + non-blocking intensity /
+   RPE-cap / days-per-week / movements-to-avoid guidance) + `ExerciseExclusionNote`
+   (Slice 2 `matchExerciseExclusion` → non-blocking per-exercise caution). The
+   Slice 5/6 screens now consume these shared pieces (behavior preserved).
+   Medical restrictions are never overridden or reinterpreted; offline-first is
+   unchanged. No backend/schema/sync/dependency/catalog change.
 8. E2E validation (Maestro, wired into `mobile-e2e.yml`).
 
 ### Privacy stance
@@ -806,7 +824,9 @@ derived, redaction-safe `TrainingPlan`.
       (2026-07-17: dormant-as-is — both sides clean, Postgres triggers present,
       no migration; movement-pattern mapping = Option C hybrid bundled.)
 - [ ] Workout entities sync offline-first; medical restrictions never overridden.
-- [ ] Deterministic `TrainingPlan` reflected (never recomputed) in the workout UI.
+- [x] Deterministic `TrainingPlan` reflected (never recomputed) in the workout UI.
+      (Slice 7, 2026-07-20: read-only `toTrainingGuidance` + `useTrainingPlan` +
+      `TrainingPlanCard`/`ExerciseExclusionNote` across both workout screens.)
 
 ### Related Documents
 - .ai/12_DECISIONS.md — ADR-P015 (this gate), iCoach training engine, ADR-0006/0011
