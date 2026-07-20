@@ -1,18 +1,20 @@
 # Mobile CI (Phase 11 Step 2, ADR-0012).
 # PR quality gate for the Expo app: type-check, lint, format, unit tests
 # with coverage thresholds, expo-doctor, and iOS/Android bundle export.
+#
+# The `quality` and `export` jobs are REQUIRED status checks on `main`. They
+# run on every PR/push (no path filter) so the required contexts are always
+# reported; a lightweight `changes` job decides whether `mobile/**` was
+# actually touched. When it was NOT (e.g. a docs-only PR), the real steps are
+# skipped and the jobs report SUCCESS as a no-op — a skipped *job* would leave
+# the required check unreported and block merges, so the jobs must run and
+# pass. When `mobile/**` IS touched, full validation runs exactly as before.
 name: mobile-ci
 
 on:
   pull_request:
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/mobile-ci.yml'
   push:
     branches: [main]
-    paths:
-      - 'mobile/**'
-      - '.github/workflows/mobile-ci.yml'
 
 env:
   EXPO_NO_TELEMETRY: '1'
@@ -22,71 +24,139 @@ defaults:
     working-directory: mobile
 
 jobs:
+  # Decide whether this event touched mobile-relevant files. Defaults to
+  # `true` whenever the base commit is unavailable so mobile validation is
+  # never weakened by a detection gap (fail-safe: run the real checks).
+  changes:
+    name: Detect mobile changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      mobile: ${{ steps.filter.outputs.mobile }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect mobile-relevant changes
+        id: filter
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base='${{ github.event.pull_request.base.sha }}'
+          else
+            base='${{ github.event.before }}'
+          fi
+          if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "Base commit unavailable; running mobile-ci conservatively (mobile=true)."
+            echo "mobile=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$base" HEAD)"
+          echo "Changed files:"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -qE '^(mobile/|\.github/workflows/mobile-ci\.yml)'; then
+            echo "mobile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mobile=false" >> "$GITHUB_OUTPUT"
+          fi
+
   quality:
     name: Type-check, lint, format, tests
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.mobile == 'true'
 
       - uses: actions/setup-node@v4
+        if: needs.changes.outputs.mobile == 'true'
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: mobile/package-lock.json
 
       - name: Install dependencies
+        if: needs.changes.outputs.mobile == 'true'
         run: npm ci
 
       - name: TypeScript check
+        if: needs.changes.outputs.mobile == 'true'
         run: npx tsc --noEmit
 
       - name: Lint
+        if: needs.changes.outputs.mobile == 'true'
         run: npm run lint
 
       - name: Format check
+        if: needs.changes.outputs.mobile == 'true'
         run: npm run format:check
 
       - name: Unit tests with coverage thresholds
+        if: needs.changes.outputs.mobile == 'true'
         run: npm test -- --coverage
 
       - name: Upload coverage report
-        if: always()
+        if: always() && needs.changes.outputs.mobile == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: mobile-coverage
           path: mobile/coverage/lcov.info
           retention-days: 7
 
+      - name: No-op (mobile unchanged)
+        if: needs.changes.outputs.mobile != 'true'
+        # Runs from the workspace root: checkout is skipped when mobile/ is
+        # untouched, so the default `mobile` working directory does not exist.
+        working-directory: ${{ github.workspace }}
+        run: echo "No mobile/** changes in this event — skipping mobile quality checks."
+
   export:
     name: Expo doctor + bundle export
+    needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        if: needs.changes.outputs.mobile == 'true'
 
       - uses: actions/setup-node@v4
+        if: needs.changes.outputs.mobile == 'true'
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: mobile/package-lock.json
 
       - name: Install dependencies
+        if: needs.changes.outputs.mobile == 'true'
         run: npm ci
 
       - name: Expo doctor
+        if: needs.changes.outputs.mobile == 'true'
         run: npx expo-doctor
 
       - name: Export iOS and Android bundles (build verification)
+        if: needs.changes.outputs.mobile == 'true'
         run: npx expo export --platform ios --platform android
+
+      - name: No-op (mobile unchanged)
+        if: needs.changes.outputs.mobile != 'true'
+        # Runs from the workspace root: checkout is skipped when mobile/ is
+        # untouched, so the default `mobile` working directory does not exist.
+        working-directory: ${{ github.workspace }}
+        run: echo "No mobile/** changes in this event — skipping expo-doctor/export."
 
   # Dependency audit (10_DEPLOYMENT.md CI pipeline). Deterministic gate:
   # fails ONLY on CRITICAL production vulnerabilities. High/moderate
   # findings are surfaced in the log and tracked as documented exceptions
   # in docs/DEPENDENCY_AUDIT.md (no unapproved upgrades). Not a required
-  # status check.
+  # status check, so it may skip entirely when mobile/** is untouched.
   audit:
     name: Dependency audit (prod deps)
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
