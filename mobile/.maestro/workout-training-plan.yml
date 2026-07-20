@@ -19,10 +19,13 @@
 # plan in the "ready" guidance state while still excluding those movements.
 #
 # Prereqs (same seeded-local-API setup as the other flows): api/ running on the
-# host, a disposable database, and `adb reverse tcp:3001 tcp:3001`. Run AFTER
-# onboarding-loop.yml — it reuses that flow's persisted `onboard` session (which
-# already has a ready iCoach assessment). No -e vars needed; the session is
-# restored on launch. Fake synthetic identity; disposable DB.
+# host, a disposable database, and `adb reverse tcp:3001 tcp:3001`. Runs on the
+# persisted `onboard` session (established by onboarding-loop.yml). Because it is
+# sequenced after medical-management.yml — which soft-deletes the onboard weight
+# evaluation — this flow FIRST restores the assessment baseline (re-records a
+# weight) so a TrainingPlan exists, then exercises the workout journey. No -e
+# vars needed; the session is restored on launch. Fake synthetic identity;
+# disposable DB.
 #
 # Requires an EAS `e2e` APK built from the Phase 16 Slice 5–7 commits (the
 # workout routes/screens) or later; an older APK predating the workout UI will
@@ -31,10 +34,38 @@ appId: com.appfitness.mobile
 ---
 - launchApp
 
-# Session restore → populated, ready dashboard for the onboard account.
+# Session restore → the dashboard for the onboard account. This flow runs
+# after medical-management.yml, which soft-deletes the onboard weight
+# evaluation, so the assessment is NOT ready here — the always-present header
+# is the stable landing signal, not "Today's assessment".
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 45000
+
+# --- Restore the assessment baseline: re-record a weight so the deterministic
+#     iCoach assessment returns to `ready` and a TrainingPlan exists (the prior
+#     flow removed it). Uses the dashboard data-gap action, like
+#     onboarding-loop.yml. ---
+- scrollUntilVisible:
+    element:
+      id: 'gap-fix-weight'
+- tapOn:
+    id: 'gap-fix-weight'
+- extendedWaitUntil:
+    visible:
+      id: 'field-weightKg'
+    timeout: 15000
+- tapOn:
+    id: 'field-weightKg'
+- inputText: '82'
+- hideKeyboard
+- scrollUntilVisible:
+    element: 'Save evaluation'
+- tapOn: 'Save evaluation'
+# With a local profile + weight + goal, the assessment reaches `ready`.
 - extendedWaitUntil:
     visible: "Today's assessment"
-    timeout: 45000
+    timeout: 30000
 
 # --- Add an active knee restriction so the TrainingPlan carries
 #     excludedMovements (deterministic: knee → deep_squat, lunge, jumping,
