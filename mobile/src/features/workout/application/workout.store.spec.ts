@@ -168,7 +168,9 @@ describe('useWorkoutStore — custom exercises', () => {
   });
 
   it('createCustomExercise surfaces an error (e.g. duplicate name) without adding', async () => {
-    mockAddCustom.mockRejectedValue(new Error('You already have a custom exercise with that name.'));
+    mockAddCustom.mockRejectedValue(
+      new Error('You already have a custom exercise with that name.'),
+    );
     const ok = await useWorkoutStore
       .getState()
       .createCustomExercise({ name: 'Zercher Squat', muscleGroup: 'legs', category: 'STRENGTH' });

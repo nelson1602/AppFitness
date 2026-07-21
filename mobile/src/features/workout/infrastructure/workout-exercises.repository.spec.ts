@@ -121,17 +121,12 @@ describe('routine_exercises repository', () => {
       .mockResolvedValueOnce({ id: ROUTINE_ID } as RoutineExerciseRow) // parent routine present
       .mockResolvedValueOnce(null); // ownedCustomExerciseExists → not found
     await expect(
-      addRoutineExercise(
-        USER,
-        ROUTINE_ID,
-        { exerciseId: 'unknown-uuid-not-local', order: 0 },
-        NOW,
-      ),
+      addRoutineExercise(USER, ROUTINE_ID, { exerciseId: 'unknown-uuid-not-local', order: 0 }, NOW),
     ).rejects.toThrow(/exercise not found/);
     // No child insert, no enqueue — the transaction rolls back.
-    expect(mockRun.mock.calls.some((c) => String(c[0]).includes('INSERT INTO routine_exercises'))).toBe(
-      false,
-    );
+    expect(
+      mockRun.mock.calls.some((c) => String(c[0]).includes('INSERT INTO routine_exercises')),
+    ).toBe(false);
     expect(mockEnqueue).not.toHaveBeenCalled();
   });
 

@@ -180,10 +180,7 @@ export async function deleteCustomExercise(
  * routine_exercises/workout_sets to satisfy the `exercise_id` FK for customs
  * (built-ins are seeded on demand instead).
  */
-export async function ownedCustomExerciseExists(
-  userId: string,
-  id: string,
-): Promise<boolean> {
+export async function ownedCustomExerciseExists(userId: string, id: string): Promise<boolean> {
   const row = await queryFirst<Pick<ExerciseRow, 'id'>>(
     `SELECT id FROM exercises WHERE id = ? AND created_by = ? AND deleted_at IS NULL`,
     [id, userId],
