@@ -692,7 +692,14 @@ duplicate validation, soft-delete via `deleted_at` only; child `routine_exercise
 verified; unknown id fails safely with `DEPENDENCY_NOT_READY` retry preserved for
 not-yet-synced customs). No UI (a custom-exercise builder UI is a separate future
 slice); no `deleted_by` added; ADR-P013/nutrition untouched. **E2E remains Slice
-8.** Each remaining item needs its own explicit authorization.
+8.** **Slice 9 COMPLETE (2026-07-21):** custom-exercise UI — dedicated
+session-guarded `/exercises` Exercise library, dashboard entry point, inline
+quick-create from routine/workout pickers, grouped Built-in/My exercises lists,
+edit/delete of user-owned custom exercises, owner-scoped duplicate-name UX,
+pending/conflict hints, non-medical iCoach-neutral caution, and
+`"(removed exercise)"` fallback for deleted/missing customs. No schema/backend
+sync/dependency/ADR-P013/nutrition change; Maestro/E2E deferred to a future
+slice. Each remaining item needs its own explicit authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:
@@ -836,6 +843,11 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    build + e2e dispatch are NOT triggered pending explicit authorization. No
    app source / schema / backend / dependency / catalog change (flow YAML +
    workflow wiring only).
+9. Custom-exercise UI. **DONE 2026-07-21:** expose Slice 3B's
+   user-owned custom exercise sync through a dedicated `/exercises` library and
+   inline quick-create from workout pickers. Keep custom exercises neutral for
+   iCoach restrictions, preserve local-first writes/pending sync, and defer E2E
+   to a separate slice.
 
 ### Privacy stance
 Workout data = **wellness** (synced, not encrypted). Injury/restriction/medical

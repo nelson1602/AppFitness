@@ -33,6 +33,7 @@ import {
 import {
   addRoutineExercise,
   addWorkoutSet,
+  countRoutinesUsingExercise,
   listRoutineExercises,
   listWorkoutSets,
   removeRoutineExercise,
@@ -72,6 +73,11 @@ export function editCustomExercise(
 
 export function removeCustomExercise(id: string): Promise<void> {
   return deleteCustomExercise(requireUserId(), id);
+}
+
+/** Active routines that reference an exercise (for the delete warning). */
+export function countRoutineReferences(exerciseId: string): Promise<number> {
+  return countRoutinesUsingExercise(requireUserId(), exerciseId);
 }
 
 export function getMyRoutines(): Promise<Routine[]> {

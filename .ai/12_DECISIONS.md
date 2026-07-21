@@ -5104,6 +5104,40 @@ application of the migration (and the DB-enforced cross-user / built-in-reuse
 allowances) should be run on a disposable database before merge. **ADR-P013 is
 untouched.**
 
+### Slice 9 UI Resolution (2026-07-21) — custom-exercise library + picker integration
+
+**Status:** Implemented as a UI-only follow-up to Slice 3B; no schema/backend
+sync protocol/dependency/ADR-P013/nutrition change.
+
+**Decision applied:** custom exercises are exposed through a dedicated
+session-guarded **Exercise library** surface plus inline quick-create from the
+routine-builder and workout-log pickers. This keeps user-owned exercise
+management in one place while allowing users to stay in flow when building a
+routine or logging a set.
+
+**Accepted UI behavior:**
+
+- `/exercises` shows a user-owned custom-exercise manager and a read-only view
+  of the built-in exercise catalog.
+- Routine and workout-log pickers now group options as **Built-in** and **My
+  exercises**. Pending custom exercises are usable immediately because writes
+  remain local-first and sync asynchronously.
+- Custom exercises remain **iCoach-neutral**: they are not mapped to movement
+  restrictions, are never auto-excluded, and never recompute or override the
+  deterministic `TrainingPlan`. The UI surfaces a non-medical caution directing
+  the user to follow provider guidance.
+- Duplicate-name UX mirrors Slice 3B's owner-scoped uniqueness: the form
+  normalizes names before submit, catches in-memory owner duplicates inline, and
+  still relies on the repository/database as the authoritative race-condition
+  guard.
+- Delete remains non-destructive soft-delete. Existing routines/logs keep their
+  references; deleted or not-yet-loaded custom exercises render the accepted
+  `"(removed exercise)"` fallback. No name snapshot is added in this slice.
+
+**Deferred:** Maestro/E2E coverage and richer custom-exercise medical mapping
+remain separate future slices. Built-in catalog mappings remain the only source
+used for deterministic excluded-movement warnings.
+
 ---
 
 # AI Instructions

@@ -7,9 +7,11 @@ import type {
 } from '../domain/workout';
 import {
   addCustomExercise,
+  countRoutineReferences,
   addExerciseToRoutine,
   addRoutine,
   deactivateRoutine,
+  editCustomExercise,
   finishWorkout,
   getMyCustomExercises,
   getMyRoutines,
@@ -31,6 +33,7 @@ jest.mock('./workout.service', () => ({
   removeCustomExercise: jest.fn(),
   getMyRoutines: jest.fn(),
   getMyWorkoutLogs: jest.fn(),
+  countRoutineReferences: jest.fn(),
   addRoutine: jest.fn(),
   deactivateRoutine: jest.fn(),
   startWorkout: jest.fn(),
@@ -48,7 +51,9 @@ jest.mock('./workout.service', () => ({
 
 const mockGetCustom = jest.mocked(getMyCustomExercises);
 const mockAddCustom = jest.mocked(addCustomExercise);
+const mockEditCustom = jest.mocked(editCustomExercise);
 const mockRemoveCustom = jest.mocked(removeCustomExercise);
+const mockCountRoutineReferences = jest.mocked(countRoutineReferences);
 
 const mockGetRoutines = jest.mocked(getMyRoutines);
 const mockGetLogs = jest.mocked(getMyWorkoutLogs);
@@ -187,6 +192,28 @@ describe('useWorkoutStore — custom exercises', () => {
     const ok = await useWorkoutStore.getState().removeCustomExercise('ce1');
     expect(ok).toBe(true);
     expect(useWorkoutStore.getState().customExercises.map((e) => e.id)).toEqual(['ce2']);
+  });
+
+  it('updateCustomExercise replaces the edited exercise on success', async () => {
+    useWorkoutStore.setState({ customExercises: [customExercise({ id: 'ce1' })] });
+    mockEditCustom.mockResolvedValue(customExercise({ id: 'ce1', name: 'Safety Bar Squat' }));
+
+    const ok = await useWorkoutStore.getState().updateCustomExercise('ce1', {
+      name: 'Safety Bar Squat',
+      muscleGroup: 'legs',
+      category: 'STRENGTH',
+    });
+
+    expect(ok).toBe(true);
+    expect(useWorkoutStore.getState().customExercises[0].name).toBe('Safety Bar Squat');
+  });
+
+  it('countRoutineReferences returns a safe count and falls back to 0 on failure', async () => {
+    mockCountRoutineReferences.mockResolvedValueOnce(2);
+    await expect(useWorkoutStore.getState().countRoutineReferences('ce1')).resolves.toBe(2);
+
+    mockCountRoutineReferences.mockRejectedValueOnce(new Error('boom'));
+    await expect(useWorkoutStore.getState().countRoutineReferences('ce1')).resolves.toBe(0);
   });
 });
 

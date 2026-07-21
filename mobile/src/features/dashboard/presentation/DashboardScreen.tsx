@@ -151,6 +151,14 @@ export function DashboardScreen() {
       >
         Log a workout
       </AppButton>
+      {/* Exercise library — custom exercises (ADR-P015 Phase 16 Slice 9). */}
+      <AppButton
+        accessibilityLabel="Manage your exercise library"
+        onPress={() => router.push('/exercises')}
+        variant="secondary"
+      >
+        Exercise library
+      </AppButton>
 
       {/* Sign-out clears the session; the dashboard route's session
           guard then redirects to /sign-in — no manual navigation. */}

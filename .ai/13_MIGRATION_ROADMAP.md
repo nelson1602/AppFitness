@@ -1851,6 +1851,14 @@ own go-ahead.**
   SQLite migration (local `exercises` already has `created_by`). No UI (custom
   builder UI is a separate future slice). ADR-P013 / nutrition / dependencies /
   deployment untouched. See ADR-P015 "Slice 3B Resolution" in `12_DECISIONS.md`.
+- **Slice 9** — custom-exercise UI. **DONE 2026-07-21:** UI-only
+  follow-up to Slice 3B: session-guarded `/exercises` Exercise library +
+  dashboard entry point, create/edit/soft-delete of user-owned custom exercises,
+  inline quick-create from routine/workout pickers, grouped Built-in/My exercises
+  selection, owner-scoped duplicate-name UX, pending/conflict hints, custom
+  iCoach-neutral caution, and `"(removed exercise)"` fallback for deleted/missing
+  custom references. No schema/backend sync/dependency/ADR-P013/nutrition
+  change; E2E deferred.
 
 ### Exit Criteria
 - [ ] Owner accepts ADR-P015 before any Phase 16 implementation.
