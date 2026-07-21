@@ -62,9 +62,11 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: '.*Custom exercises aren.*checked.*'
 
-# Edit the custom exercise. `eraseText` avoids appending to the prefilled name.
+# Edit the custom exercise. Scroll the row's Edit button fully into view first:
+# tapOn does not auto-scroll and the button sits below the row's name, caption,
+# and neutral-caution note. `eraseText` avoids appending to the prefilled name.
 - scrollUntilVisible:
-    element: 'E2E landmine press'
+    element: 'Edit'
 - tapOn: 'Edit'
 - tapOn:
     id: 'field-name'
@@ -159,11 +161,14 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Exercise library'
     timeout: 15000
+# Scroll the row's Delete button into view before tapping (same reason as Edit).
 - scrollUntilVisible:
-    element: 'E2E landmine row'
+    element: 'Delete'
 - tapOn: 'Delete'
 - scrollUntilVisible:
     element: 'Used in 1 routine'
+- scrollUntilVisible:
+    element: 'Confirm delete'
 - tapOn: 'Confirm delete'
 - scrollUntilVisible:
     element: 'No custom exercises yet. Add one above to use it in your routines and workouts.'
