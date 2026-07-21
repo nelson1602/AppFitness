@@ -74,10 +74,8 @@ appId: com.appfitness.mobile
 - inputText: 'E2E landmine row'
 - hideKeyboard
 - scrollUntilVisible:
-    element:
-      id: 'custom-exercise-submit'
-- tapOn:
-    id: 'custom-exercise-submit'
+    element: 'Save changes'
+- tapOn: 'Save changes'
 - scrollUntilVisible:
     direction: UP
     element: 'E2E landmine row'
