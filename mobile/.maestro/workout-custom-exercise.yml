@@ -82,7 +82,15 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: 'Save changes'
 - tapOn: 'Save changes'
+# After the tall inline edit form collapses, Maestro can land above or below
+# the compact row. Anchor on the custom section header, then scan down slowly so
+# the edited card is not skipped before the built-in catalog begins.
 - scrollUntilVisible:
+    direction: UP
+    element: 'Your custom exercises'
+- scrollUntilVisible:
+    speed: 20
+    visibilityPercentage: 50
     element: 'E2E landmine row'
 
 # --- 3. Use the custom exercise in the routine created by
