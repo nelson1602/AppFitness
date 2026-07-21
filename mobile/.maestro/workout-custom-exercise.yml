@@ -65,18 +65,17 @@ appId: com.appfitness.mobile
 # Edit the custom exercise. Scroll the row's Edit button fully into view first
 # (tapOn does not auto-scroll; it sits below the row's name/caption/caution).
 #
-# The persistent "Add a custom exercise" form and the inline edit form share the
-# `field-name` testID; the create form renders first, so the edit form's name
-# field is the 2nd match (index 1). Without this the rename types into the
-# create form and never applies. The submit button uniquely reads "Save changes"
-# (the create form's reads "Add exercise"). `eraseText` avoids appending to the
-# prefilled name.
+# Wait for the inline edit form before targeting `field-name`: the persistent
+# create form uses the same testID, but after this scroll/tap only the edit form
+# is visible in Maestro's hierarchy. The submit button uniquely reads "Save
+# changes" (the create form's reads "Add exercise"). `eraseText` avoids
+# appending to the prefilled name.
 - scrollUntilVisible:
     element: 'Edit'
 - tapOn: 'Edit'
+- assertVisible: 'Edit exercise'
 - tapOn:
     id: 'field-name'
-    index: 1
 - eraseText
 - inputText: 'E2E landmine row'
 - hideKeyboard
