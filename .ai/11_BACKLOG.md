@@ -678,9 +678,21 @@ read-only `toTrainingGuidance` view model (medical priority
 `blocked > clearance > ready`, safe `unknown` fallback), a `useTrainingPlan` hook
 over the dashboard store, and shared `TrainingPlanCard` / `ExerciseExclusionNote`
 components consumed by both workout screens (guidance + blocked/clearance states +
-non-blocking excluded-movement warnings; never recomputed or overridden). **E2E
-remains Slice 8.** Custom-exercise push (Slice 3B) still deferred. Each needs its
-own explicit authorization.
+non-blocking excluded-movement warnings; never recomputed or overridden). **Slice
+3B COMPLETE (2026-07-21):** custom user-owned exercise push — Option 1 (owner-scoped
+`exercises.name` uniqueness) accepted; one forward-only, data-safe migration
+(`20260721120000_workout_custom_exercise_name_scope`: drop global `uq_exercises_name`;
+add per-owner `uq_exercises_created_by_name`, partial `uq_exercises_global_name`
+where `created_by IS NULL`, and `idx_exercises_created_by_syncseq`). Backend
+`ExerciseSyncHandler` (`entityType "exercises"`, owner-scoped by `created_by`,
+built-in/cross-user mutation rejected, `instructions` redacted in conflicts);
+mobile custom-exercise repository/service/store/applier + enqueue, per-owner
+duplicate validation, soft-delete via `deleted_at` only; child `routine_exercises`/
+`workout_sets` now accept owned custom ids (built-in seeded or owned custom
+verified; unknown id fails safely with `DEPENDENCY_NOT_READY` retry preserved for
+not-yet-synced customs). No UI (a custom-exercise builder UI is a separate future
+slice); no `deleted_by` added; ADR-P013/nutrition untouched. **E2E remains Slice
+8.** Each remaining item needs its own explicit authorization.
 
 **Slice 1 findings (2026-07-17).** Read-only audit of the dormant workout
 tables on both sides:

@@ -1,6 +1,8 @@
 import { getSession } from '@/features/authentication';
 
 import type {
+  CustomExercise,
+  CustomExerciseInput,
   Routine,
   RoutineExercise,
   RoutineExerciseInput,
@@ -12,6 +14,12 @@ import type {
   WorkoutSetInput,
   WorkoutSetPatch,
 } from '../domain/workout';
+import {
+  createCustomExercise,
+  deleteCustomExercise,
+  listCustomExercises,
+  updateCustomExercise,
+} from '../infrastructure/exercise.repository';
 import {
   createRoutine,
   createWorkoutLog,
@@ -44,6 +52,26 @@ function requireUserId(): string {
   const session = getSession();
   if (!session) throw new Error('Not authenticated');
   return session.user.id;
+}
+
+// ── custom exercises (Slice 3B) ───────────────────────────────────────────────
+export function getMyCustomExercises(): Promise<CustomExercise[]> {
+  return listCustomExercises(requireUserId());
+}
+
+export function addCustomExercise(input: CustomExerciseInput): Promise<CustomExercise> {
+  return createCustomExercise(requireUserId(), input);
+}
+
+export function editCustomExercise(
+  id: string,
+  input: CustomExerciseInput,
+): Promise<CustomExercise | null> {
+  return updateCustomExercise(requireUserId(), id, input);
+}
+
+export function removeCustomExercise(id: string): Promise<void> {
+  return deleteCustomExercise(requireUserId(), id);
 }
 
 export function getMyRoutines(): Promise<Routine[]> {

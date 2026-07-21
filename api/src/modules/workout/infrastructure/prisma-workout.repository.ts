@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../database/prisma.service';
 import type {
+  ExerciseCreateInput,
+  ExerciseUpdateInput,
   RoutineCreateInput,
   RoutineExerciseCreateInput,
   RoutineExerciseUpdateInput,
@@ -12,6 +14,7 @@ import type {
 } from '../domain/workout-payload';
 import { WorkoutRepositoryPort } from '../domain/workout.repository';
 import type {
+  CustomExerciseRecord,
   ExerciseRef,
   OwnedParent,
   RoutineExerciseRecord,
@@ -20,6 +23,7 @@ import type {
   WorkoutSetRecord,
 } from '../domain/workout.types';
 import {
+  exerciseRowToRecord,
   routineExerciseRowToRecord,
   routineRowToRecord,
   workoutLogRowToRecord,
@@ -40,6 +44,83 @@ export class PrismaWorkoutRepository extends WorkoutRepositoryPort {
       select: { createdBy: true, deletedAt: true },
     });
     return e ? { createdBy: e.createdBy, deletedAt: e.deletedAt } : null;
+  }
+
+  // ── custom exercises (Slice 3B) ───────────────────────────────────────────
+  async findOwnedExercise(
+    userId: string,
+    id: string,
+  ): Promise<CustomExerciseRecord | null> {
+    // createdBy scoping excludes built-ins (createdBy null) and foreign rows.
+    const e = await this.prisma.exercise.findFirst({
+      where: { id, createdBy: userId },
+    });
+    return e ? exerciseRowToRecord(e) : null;
+  }
+
+  async createExercise(
+    userId: string,
+    id: string,
+    data: ExerciseCreateInput,
+  ): Promise<CustomExerciseRecord> {
+    // created_by is set server-side from the authenticated user, never trusted
+    // from the payload — a client can only ever create its own custom exercise.
+    const e = await this.prisma.exercise.create({
+      data: {
+        id,
+        createdBy: userId,
+        name: data.name,
+        muscleGroup: data.muscleGroup,
+        category: data.category,
+        instructions: data.instructions,
+      },
+    });
+    return exerciseRowToRecord(e);
+  }
+
+  async updateExercise(
+    userId: string,
+    id: string,
+    data: ExerciseUpdateInput,
+    newVersion: number,
+  ): Promise<void> {
+    // updateMany with createdBy scoping is defense-in-depth: even though the
+    // pipeline only calls apply() after an owner-scoped getServerState, a
+    // built-in (createdBy null) or another user's row can never be mutated.
+    await this.prisma.exercise.updateMany({
+      where: { id, createdBy: userId },
+      data: {
+        name: data.name,
+        muscleGroup: data.muscleGroup,
+        category: data.category,
+        instructions: data.instructions,
+        version: newVersion,
+      },
+    });
+  }
+
+  async softDeleteExercise(
+    userId: string,
+    id: string,
+    newVersion: number,
+  ): Promise<void> {
+    await this.prisma.exercise.updateMany({
+      where: { id, createdBy: userId },
+      data: { deletedAt: new Date(), version: newVersion },
+    });
+  }
+
+  async exercisesChangedSince(
+    userId: string,
+    sinceSeq: number,
+    limit: number,
+  ): Promise<CustomExerciseRecord[]> {
+    const rows = await this.prisma.exercise.findMany({
+      where: { createdBy: userId, syncSeq: { gt: BigInt(sinceSeq) } },
+      orderBy: { syncSeq: 'asc' },
+      take: limit,
+    });
+    return rows.map(exerciseRowToRecord);
   }
 
   // ── routines ────────────────────────────────────────────────────────────

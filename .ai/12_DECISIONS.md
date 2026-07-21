@@ -5040,6 +5040,70 @@ movement-pattern/contraindication mapping artifact), pending its own explicit
 go-ahead. No backend handler, mobile repository/store, UI, or catalog data was
 created in Slice 1.
 
+#### Slice 3B Resolution — Custom-exercise push + owner-scoped name uniqueness (2026-07-21)
+
+Slice 3B (custom user-owned exercise push) is implemented, resolving the item
+deferred by Slice 3. It required the **one schema decision** left open at
+Slice-1 audit — the `exercises.name` uniqueness policy — which the project owner
+resolved by **accepting Option 1** (owner-scoped uniqueness via a forward-only,
+data-safe migration). This resolution is code + a single additive migration; it
+does **not** touch ADR-P013, the nutrition catalog, dependencies, or deployment.
+
+- **Name-uniqueness policy (accepted).** The former **global** `uq_exercises_name`
+  is replaced by owner-scoped uniqueness:
+  - built-in / global names (`created_by IS NULL`) stay globally unique among
+    the catalog — **partial** unique index `uq_exercises_global_name`
+    (`(name) WHERE created_by IS NULL`);
+  - custom names are unique **per owner** — composite unique
+    `uq_exercises_created_by_name` (`(created_by, name)`);
+  - different users may use the same custom name, and a custom exercise may
+    reuse a built-in name. Names are normalized (trim + collapse internal
+    whitespace, case preserved) identically on client and server so a name
+    unique locally is unique on the server.
+- **Migration (forward-only, additive, data-safe).**
+  `20260721120000_workout_custom_exercise_name_scope`: drops `uq_exercises_name`;
+  adds `uq_exercises_created_by_name`, the partial `uq_exercises_global_name`,
+  and `idx_exercises_created_by_syncseq` (custom incremental-pull cursor). Not
+  destructive — it only re-scopes uniqueness; existing rows are built-ins with
+  globally-unique names, so no new index can conflict. The partial unique is
+  reviewed raw SQL (Prisma cannot express the `WHERE` predicate — same pattern
+  as `uq_foods_catalog_key_revision`); `schema.prisma` carries the
+  Prisma-expressible composite unique + index and drops the `@unique` on `name`.
+  **`deleted_by` is intentionally NOT added** (the `exercises` catalog table has
+  never carried it — soft-delete records only `deleted_at`, consistent with the
+  mobile SQLite catalog shape). The `sync_seq` trigger already covers
+  `exercises` (init migration), so no trigger change.
+- **Backend.** New `ExerciseSyncHandler` (`entityType = "exercises"`) registered
+  in `WorkoutModule`; repository CRUD scoped by `created_by = userId` (writes use
+  `updateMany` with `created_by` scoping as defense-in-depth). `created_by` is
+  always assigned from the authenticated user on CREATE (never the payload), so
+  cross-user writes are impossible; owner-scoped `getServerState` makes any
+  UPDATE/DELETE of a built-in or another user's exercise a pipeline `NOT_FOUND`.
+  Free-text `instructions` are redacted from conflict snapshots
+  (`redactForConflict`). The `routine_exercises`/`workout_sets` handlers already
+  accepted an owner's custom exercise and return retryable `DEPENDENCY_NOT_READY`
+  for a not-yet-synced custom exercise — unchanged.
+- **Mobile.** New `exercise.repository.ts` (local-first write + `exercises`
+  enqueue in the same transaction, per-owner duplicate validation, soft-delete
+  via `deleted_at` only, pull applier + `markConflict`), wired through
+  service/store; the `exercises` applier is registered. The child-FK guard
+  (`ensureExerciseReference`) now seeds a built-in **or** verifies an owned
+  active custom exercise, rejecting an unknown id so a missing custom exercise
+  fails safely. No SQLite migration was needed — the local `exercises` table
+  already carries `created_by`.
+- **Privacy / iCoach.** Workout data stays wellness (synced, not
+  field-encrypted); custom exercises carry **no medical authority** and remain
+  neutral/unmapped in the deterministic exclusion matcher (D2/D4/D5 unchanged) —
+  no `TrainingPlan` recompute.
+- **No UI** was added (persistence + sync only). A custom-exercise builder UI,
+  if wanted, is a separate future slice.
+
+**Validation:** `prisma validate` PASS; API typecheck/lint PASS; API workout +
+sync tests PASS; mobile typecheck PASS; mobile workout tests PASS. Live-Postgres
+application of the migration (and the DB-enforced cross-user / built-in-reuse
+allowances) should be run on a disposable database before merge. **ADR-P013 is
+untouched.**
+
 ---
 
 # AI Instructions

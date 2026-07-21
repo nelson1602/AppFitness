@@ -1833,6 +1833,24 @@ own go-ahead.**
   published APK predates the workout screens and would fail. The APK build and
   e2e dispatch are held pending explicit authorization. Flow YAML + workflow
   wiring only; no app source / schema / backend / dependency / catalog change.
+- **Slice 3B** — custom user-owned exercise push. **DONE 2026-07-21:** owner-scoped
+  `exercises.name` uniqueness (Option 1) via one forward-only, data-safe migration
+  `20260721120000_workout_custom_exercise_name_scope` (drop global
+  `uq_exercises_name`; add per-owner `uq_exercises_created_by_name`, partial
+  `uq_exercises_global_name` where `created_by IS NULL`, and
+  `idx_exercises_created_by_syncseq`; `schema.prisma` updated accordingly). Backend
+  `ExerciseSyncHandler` (`entityType "exercises"`) + repo/mapper: owner-scoped by
+  `created_by`, `created_by` server-assigned (never from payload), built-in and
+  cross-user mutation rejected (owner-scoped `getServerState` → `NOT_FOUND`),
+  `instructions` redacted from conflict snapshots. Mobile custom-exercise
+  repository/service/store + `exercises` pull applier/enqueue, per-owner duplicate
+  validation, soft-delete via `deleted_at` only (no `deleted_by`); child
+  `routine_exercises`/`workout_sets` now accept an owned custom exercise id
+  (built-in seeded or owned custom verified), unknown id fails safely,
+  `DEPENDENCY_NOT_READY` retry preserved for not-yet-synced customs. No mobile
+  SQLite migration (local `exercises` already has `created_by`). No UI (custom
+  builder UI is a separate future slice). ADR-P013 / nutrition / dependencies /
+  deployment untouched. See ADR-P015 "Slice 3B Resolution" in `12_DECISIONS.md`.
 
 ### Exit Criteria
 - [ ] Owner accepts ADR-P015 before any Phase 16 implementation.

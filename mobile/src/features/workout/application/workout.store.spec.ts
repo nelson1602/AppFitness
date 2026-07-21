@@ -1,14 +1,23 @@
-import type { Routine, RoutineExercise, WorkoutLog, WorkoutSet } from '../domain/workout';
+import type {
+  CustomExercise,
+  Routine,
+  RoutineExercise,
+  WorkoutLog,
+  WorkoutSet,
+} from '../domain/workout';
 import {
+  addCustomExercise,
   addExerciseToRoutine,
   addRoutine,
   deactivateRoutine,
   finishWorkout,
+  getMyCustomExercises,
   getMyRoutines,
   getMyWorkoutLogs,
   getRoutineExercises,
   getWorkoutSets,
   logWorkoutSet,
+  removeCustomExercise,
   removeExerciseFromRoutine,
   removeWorkoutLog,
   startWorkout,
@@ -16,6 +25,10 @@ import {
 import { useWorkoutStore } from './workout.store';
 
 jest.mock('./workout.service', () => ({
+  getMyCustomExercises: jest.fn(),
+  addCustomExercise: jest.fn(),
+  editCustomExercise: jest.fn(),
+  removeCustomExercise: jest.fn(),
   getMyRoutines: jest.fn(),
   getMyWorkoutLogs: jest.fn(),
   addRoutine: jest.fn(),
@@ -32,6 +45,10 @@ jest.mock('./workout.service', () => ({
   editWorkoutSet: jest.fn(),
   removeWorkoutSetEntry: jest.fn(),
 }));
+
+const mockGetCustom = jest.mocked(getMyCustomExercises);
+const mockAddCustom = jest.mocked(addCustomExercise);
+const mockRemoveCustom = jest.mocked(removeCustomExercise);
 
 const mockGetRoutines = jest.mocked(getMyRoutines);
 const mockGetLogs = jest.mocked(getMyWorkoutLogs);
@@ -105,15 +122,71 @@ const wset = (o: Partial<WorkoutSet> = {}): WorkoutSet => ({
   ...o,
 });
 
+const customExercise = (o: Partial<CustomExercise> = {}): CustomExercise => ({
+  id: 'ce1',
+  name: 'Zercher Squat',
+  muscleGroup: 'legs',
+  category: 'STRENGTH',
+  instructions: null,
+  createdBy: 'u1',
+  version: 1,
+  syncStatus: 'pending',
+  createdAt: '2026-07-21T00:00:00.000Z',
+  updatedAt: '2026-07-21T00:00:00.000Z',
+  ...o,
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
   useWorkoutStore.setState({
     status: 'idle',
     routines: [],
     workoutLogs: [],
+    customExercises: [],
     routineExercises: [],
     workoutSets: [],
     error: null,
+  });
+});
+
+describe('useWorkoutStore — custom exercises', () => {
+  it('loadCustomExercises fetches the user’s custom exercises and marks ready', async () => {
+    mockGetCustom.mockResolvedValue([customExercise()]);
+    await useWorkoutStore.getState().loadCustomExercises();
+    const s = useWorkoutStore.getState();
+    expect(s.status).toBe('ready');
+    expect(s.customExercises).toHaveLength(1);
+  });
+
+  it('createCustomExercise appends the new exercise on success', async () => {
+    mockAddCustom.mockResolvedValue(customExercise({ id: 'ce2' }));
+    const ok = await useWorkoutStore
+      .getState()
+      .createCustomExercise({ name: 'Front Squat', muscleGroup: 'legs', category: 'STRENGTH' });
+    expect(ok).toBe(true);
+    expect(useWorkoutStore.getState().customExercises.map((e) => e.id)).toEqual(['ce2']);
+  });
+
+  it('createCustomExercise surfaces an error (e.g. duplicate name) without adding', async () => {
+    mockAddCustom.mockRejectedValue(
+      new Error('You already have a custom exercise with that name.'),
+    );
+    const ok = await useWorkoutStore
+      .getState()
+      .createCustomExercise({ name: 'Zercher Squat', muscleGroup: 'legs', category: 'STRENGTH' });
+    expect(ok).toBe(false);
+    expect(useWorkoutStore.getState().status).toBe('error');
+    expect(useWorkoutStore.getState().customExercises).toHaveLength(0);
+  });
+
+  it('removeCustomExercise drops it from the list', async () => {
+    useWorkoutStore.setState({
+      customExercises: [customExercise({ id: 'ce1' }), customExercise({ id: 'ce2' })],
+    });
+    mockRemoveCustom.mockResolvedValue(undefined);
+    const ok = await useWorkoutStore.getState().removeCustomExercise('ce1');
+    expect(ok).toBe(true);
+    expect(useWorkoutStore.getState().customExercises.map((e) => e.id)).toEqual(['ce2']);
   });
 });
 
