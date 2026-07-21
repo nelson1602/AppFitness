@@ -5134,9 +5134,24 @@ routine or logging a set.
   references; deleted or not-yet-loaded custom exercises render the accepted
   `"(removed exercise)"` fallback. No name snapshot is added in this slice.
 
-**Deferred:** Maestro/E2E coverage and richer custom-exercise medical mapping
-remain separate future slices. Built-in catalog mappings remain the only source
-used for deterministic excluded-movement warnings.
+### Slice 10 E2E Coverage (2026-07-21) — custom-exercise UI flow
+
+**Status:** Authored and wired, pending a fresh EAS `e2e` APK plus manual
+`mobile-e2e` dispatch before it can be marked verified green.
+
+**Coverage authored:** `mobile/.maestro/workout-custom-exercise.yml` runs after
+`workout-training-plan.yml` on the persisted onboard session. It covers
+Dashboard → Exercise library, create/edit of a user-owned custom exercise, use
+from both the routine-builder and workout-log pickers, non-medical
+iCoach-neutral copy, soft-delete with active-routine warning, and the accepted
+`"(removed exercise)"` fallback for historical routine references.
+
+**Scope:** YAML/workflow/docs only. No app source, schema, backend, sync
+protocol, dependency, catalog, nutrition, or ADR-P013 change.
+
+**Still deferred:** richer custom-exercise medical mapping remains a separate
+future decision. Built-in catalog mappings remain the only source used for
+deterministic excluded-movement warnings.
 
 ---
 

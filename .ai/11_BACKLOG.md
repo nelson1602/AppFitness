@@ -848,6 +848,15 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    inline quick-create from workout pickers. Keep custom exercises neutral for
    iCoach restrictions, preserve local-first writes/pending sync, and defer E2E
    to a separate slice.
+10. Custom-exercise E2E validation (Maestro). **AUTHORED 2026-07-21
+    (awaiting a fresh e2e APK + manual `mobile-e2e` dispatch):**
+    `mobile/.maestro/workout-custom-exercise.yml` runs after
+    `workout-training-plan.yml` on the persisted onboard session. It exercises
+    Dashboard → Exercise library, create/edit of a user-owned custom exercise,
+    use from both routine-builder and workout-log pickers, non-medical
+    iCoach-neutral copy, soft-delete with active-routine warning, and the
+    accepted `"(removed exercise)"` fallback. Wired into `mobile-e2e.yml`; no
+    app source / schema / backend / dependency / catalog change.
 
 ### Privacy stance
 Workout data = **wellness** (synced, not encrypted). Injury/restriction/medical

@@ -1,0 +1,178 @@
+# Phase 16 Slice 10 — Custom-exercise UI E2E (ADR-P015).
+#
+# Runs after workout-training-plan.yml on the persisted `onboard` session. That
+# previous flow ends on the Workout log screen with a ready dashboard baseline
+# and a knee restriction already present. This flow proves the Slice 9 custom
+# exercise surface end to end:
+#   1. dashboard → Exercise library;
+#   2. create and edit a user-owned custom exercise;
+#   3. use the custom exercise in a routine picker;
+#   4. use the same custom exercise in a workout-log set picker;
+#   5. soft-delete it with the "used in routine" warning;
+#   6. verify historical routine references fall back to "(removed exercise)".
+#
+# Custom exercises intentionally remain iCoach-neutral: no deterministic
+# excluded-movement matcher is applied to them, and the UI surfaces a
+# non-medical caution instead.
+appId: com.appfitness.mobile
+---
+- launchApp
+
+# Session restore → populated dashboard for the onboard account. Although the
+# previous workout flow finishes on /workout-log, the established suite pattern
+# is to cold-launch each flow and wait for the dashboard landing state.
+- extendedWaitUntil:
+    visible: "Today's assessment"
+    timeout: 45000
+
+# --- 1. Dashboard → Exercise library ---
+- scrollUntilVisible:
+    element: 'Exercise library'
+- tapOn: 'Exercise library'
+- extendedWaitUntil:
+    visible: 'Exercise library'
+    timeout: 15000
+- assertVisible: 'Add a custom exercise'
+
+# --- 2. Create a custom exercise. Category defaults to Strength; keep it. ---
+- scrollUntilVisible:
+    element: 'Name'
+- tapOn:
+    id: 'field-name'
+- inputText: 'E2E landmine press'
+- hideKeyboard
+- tapOn:
+    id: 'field-muscleGroup'
+- inputText: 'shoulders'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'custom-exercise-submit'
+- tapOn:
+    id: 'custom-exercise-submit'
+- scrollUntilVisible:
+    element: 'E2E landmine press'
+- assertVisible: 'Pending sync'
+- scrollUntilVisible:
+    element: '.*Custom exercises aren.*checked.*'
+
+# Edit the custom exercise. `eraseText` avoids appending to the prefilled name.
+- scrollUntilVisible:
+    element: 'E2E landmine press'
+- tapOn: 'Edit'
+- tapOn:
+    id: 'field-name'
+- eraseText
+- inputText: 'E2E landmine row'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'custom-exercise-submit'
+- tapOn:
+    id: 'custom-exercise-submit'
+- scrollUntilVisible:
+    element: 'E2E landmine row'
+
+# --- 3. Use the custom exercise in the routine created by
+# workout-training-plan.yml. Reusing "E2E push" avoids multiple routine cards
+# with identical "View exercises" buttons in this same E2E journey. ---
+- back
+- scrollUntilVisible:
+    element: 'Workout routines'
+- tapOn: 'Workout routines'
+- extendedWaitUntil:
+    visible: 'Workout routines'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'E2E push'
+- tapOn: 'View exercises'
+- scrollUntilVisible:
+    element: 'My exercises'
+- scrollUntilVisible:
+    element: 'E2E landmine row'
+- tapOn: 'E2E landmine row'
+- scrollUntilVisible:
+    direction: UP
+    element: 'E2E landmine row'
+- scrollUntilVisible:
+    element: '.*Custom exercises aren.*checked.*'
+
+# --- 4. Use the custom exercise in a workout-log set. ---
+- back
+- scrollUntilVisible:
+    element: 'Log a workout'
+- tapOn: 'Log a workout'
+- extendedWaitUntil:
+    visible: 'Start a workout'
+    timeout: 15000
+- tapOn:
+    id: 'workout-name'
+- inputText: 'E2E custom session'
+- hideKeyboard
+- tapOn:
+    id: 'workout-start'
+- scrollUntilVisible:
+    element: 'E2E custom session'
+- tapOn: 'Log sets'
+- scrollUntilVisible:
+    element: 'My exercises'
+- scrollUntilVisible:
+    element: 'E2E landmine row'
+- tapOn: 'E2E landmine row'
+- scrollUntilVisible:
+    element:
+      id: 'set-reps-input'
+- tapOn:
+    id: 'set-reps-input'
+- inputText: '8'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'set-add'
+- tapOn:
+    id: 'set-add'
+- scrollUntilVisible:
+    direction: UP
+    element: '1. E2E landmine row'
+- assertVisible: 'Pending sync'
+
+# Finish the ad-hoc workout so the next flows do not inherit an open card.
+- scrollUntilVisible:
+    direction: UP
+    element: 'Finish'
+- tapOn: 'Finish'
+- scrollUntilVisible:
+    element: 'Recent workouts'
+
+# --- 5. Delete the custom exercise. The routine-reference warning should count
+# the active E2E push routine that now references it. ---
+- back
+- scrollUntilVisible:
+    element: 'Exercise library'
+- tapOn: 'Exercise library'
+- extendedWaitUntil:
+    visible: 'Exercise library'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'E2E landmine row'
+- tapOn: 'Delete'
+- scrollUntilVisible:
+    element: 'Used in 1 routine'
+- tapOn: 'Confirm delete'
+- scrollUntilVisible:
+    element: 'No custom exercises yet. Add one above to use it in your routines and workouts.'
+
+# --- 6. Historical routine references remain but resolve through the accepted
+# fallback once the custom exercise is soft-deleted. ---
+- back
+- scrollUntilVisible:
+    element: 'Workout routines'
+- tapOn: 'Workout routines'
+- extendedWaitUntil:
+    visible: 'Workout routines'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'E2E push'
+- tapOn: 'View exercises'
+- scrollUntilVisible:
+    element: '\(removed exercise\)'
