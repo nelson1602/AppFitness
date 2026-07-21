@@ -1823,6 +1823,16 @@ own go-ahead.**
   medical restrictions never overridden, offline-first unchanged. No
   backend/schema/sync/dependency/catalog change.
 - **Slice 8** — E2E validation (Maestro, wired into `mobile-e2e.yml`).
+  **AUTHORED 2026-07-20 (awaiting fresh e2e APK to run):**
+  `mobile/.maestro/workout-training-plan.yml` covers dashboard → routine builder
+  → read-only `TrainingPlan` guidance + non-blocking excluded-movement caution
+  (via an on-device knee restriction) → build a routine from the built-in
+  catalog → dashboard → workout log → log a set (saved + pending) → finish.
+  Wired into `mobile-e2e.yml` after `medical-management.yml`. **Requires a fresh
+  EAS `e2e` APK** built from the Slice 5–7 workout-UI commits — the current
+  published APK predates the workout screens and would fail. The APK build and
+  e2e dispatch are held pending explicit authorization. Flow YAML + workflow
+  wiring only; no app source / schema / backend / dependency / catalog change.
 
 ### Exit Criteria
 - [ ] Owner accepts ADR-P015 before any Phase 16 implementation.
