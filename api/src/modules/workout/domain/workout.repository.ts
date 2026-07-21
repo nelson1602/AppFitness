@@ -1,4 +1,6 @@
 import type {
+  ExerciseCreateInput,
+  ExerciseUpdateInput,
   RoutineCreateInput,
   RoutineExerciseCreateInput,
   RoutineExerciseUpdateInput,
@@ -8,6 +10,7 @@ import type {
   WorkoutSetUpdateInput,
 } from './workout-payload';
 import type {
+  CustomExerciseRecord,
   ExerciseRef,
   OwnedParent,
   RoutineExerciseRecord,
@@ -27,6 +30,40 @@ export abstract class WorkoutRepositoryPort {
   // ── shared reference/parent probes ──────────────────────────────────────
   /** Exercise existence probe (global built-in or a user's custom); null = absent. */
   abstract findExercise(exerciseId: string): Promise<ExerciseRef | null>;
+
+  // ── custom exercises (Slice 3B) ───────────────────────────────────────────
+  /**
+   * Owner-scoped fetch of a user's CUSTOM exercise (createdBy = userId). Returns
+   * null for a built-in (createdBy null) or another user's exercise, so the sync
+   * pipeline rejects UPDATE/DELETE of built-ins/foreign rows as NOT_FOUND.
+   */
+  abstract findOwnedExercise(
+    userId: string,
+    id: string,
+  ): Promise<CustomExerciseRecord | null>;
+  abstract createExercise(
+    userId: string,
+    id: string,
+    data: ExerciseCreateInput,
+  ): Promise<CustomExerciseRecord>;
+  /** Owner-scoped update (never touches a built-in or another user's row). */
+  abstract updateExercise(
+    userId: string,
+    id: string,
+    data: ExerciseUpdateInput,
+    newVersion: number,
+  ): Promise<void>;
+  /** Owner-scoped soft-delete tombstone (no deleted_by column on exercises). */
+  abstract softDeleteExercise(
+    userId: string,
+    id: string,
+    newVersion: number,
+  ): Promise<void>;
+  abstract exercisesChangedSince(
+    userId: string,
+    sinceSeq: number,
+    limit: number,
+  ): Promise<CustomExerciseRecord[]>;
 
   // ── routines ────────────────────────────────────────────────────────────
   abstract findOwnedRoutine(

@@ -1,4 +1,6 @@
 import type {
+  ExerciseCategory,
+  ExerciseRow,
   RoutineExerciseRow,
   RoutineRow,
   SqlBool,
@@ -8,12 +10,69 @@ import type {
 } from '@/shared/infrastructure/database/types';
 
 /**
- * Workout domain contract (ADR-P015 Phase 16 Slices 4A + 4B). Local-first
- * routines, workout logs, routine exercises, and workout sets. Wellness data
- * (not encrypted). Built-in exercise references use the seeded stable
- * exercise ids (exercise identity/seed slice). Custom exercises remain
- * deferred (Slice 3B). No UI, no TrainingPlan wiring consumes this yet.
+ * Workout domain contract (ADR-P015 Phase 16 Slices 4A + 4B + 3B). Local-first
+ * routines, workout logs, routine exercises, workout sets, and USER CUSTOM
+ * exercises. Wellness data (not encrypted). Built-in exercise references use the
+ * seeded stable exercise ids (exercise identity/seed slice); custom exercises
+ * (Slice 3B) are user-owned (`created_by`), carry no medical authority, and are
+ * neutral/unmapped in the iCoach exclusion matcher. No TrainingPlan recompute.
  */
+
+// ── custom exercises (Slice 3B) ───────────────────────────────────────────────
+/** Allowed exercise categories (mirror the SQLite CHECK + Postgres enum). */
+export const EXERCISE_CATEGORIES: readonly ExerciseCategory[] = [
+  'STRENGTH',
+  'CARDIO',
+  'FLEXIBILITY',
+  'BODYWEIGHT',
+];
+
+/**
+ * Normalize a custom exercise name deterministically so the per-owner
+ * duplicate check matches the backend: trim, and collapse internal whitespace
+ * runs to a single space. Case is preserved (names are user-facing labels).
+ * Identical to the backend `normalizeExerciseName` — a name unique locally is
+ * unique on the server and vice versa.
+ */
+export function normalizeExerciseName(raw: string): string {
+  return raw.trim().replace(/\s+/g, ' ');
+}
+
+export interface CustomExerciseInput {
+  name: string;
+  muscleGroup: string;
+  category: ExerciseCategory;
+  instructions?: string | null;
+}
+
+export interface CustomExercise {
+  id: string;
+  name: string;
+  muscleGroup: string;
+  category: ExerciseCategory;
+  instructions: string | null;
+  /** Owning user id (never null for a custom exercise). */
+  createdBy: string;
+  version: number;
+  syncStatus: SyncStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function rowToCustomExercise(row: ExerciseRow): CustomExercise {
+  return {
+    id: row.id,
+    name: row.name,
+    muscleGroup: row.muscle_group,
+    category: row.category,
+    instructions: row.instructions,
+    createdBy: row.created_by ?? '',
+    version: row.version,
+    syncStatus: row.sync_status,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 export interface RoutineInput {
   name: string;
@@ -85,7 +144,7 @@ export function rowToWorkoutLog(row: WorkoutLogRow): WorkoutLog {
 
 // ── routine_exercises ─────────────────────────────────────────────────────────
 export interface RoutineExerciseInput {
-  /** Built-in exercise UUID id (seeded); custom exercises are not supported. */
+  /** Exercise UUID id: a seeded built-in, or the user's own custom exercise. */
   exerciseId: string;
   order: number;
   targetSets?: number | null;
@@ -134,7 +193,7 @@ export function rowToRoutineExercise(row: RoutineExerciseRow): RoutineExercise {
 
 // ── workout_sets ──────────────────────────────────────────────────────────────
 export interface WorkoutSetInput {
-  /** Built-in exercise UUID id (seeded); custom exercises are not supported. */
+  /** Exercise UUID id: a seeded built-in, or the user's own custom exercise. */
   exerciseId: string;
   setNumber: number;
   reps?: number | null;

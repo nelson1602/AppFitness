@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type {
+  CustomExercise,
+  CustomExerciseInput,
   Routine,
   RoutineExercise,
   RoutineExerciseInput,
@@ -14,16 +16,19 @@ import type {
   WorkoutSetPatch,
 } from '../domain/workout';
 import {
+  addCustomExercise,
   addExerciseToRoutine,
   addRoutine,
   deactivateRoutine,
   editWorkoutSet,
   finishWorkout,
+  getMyCustomExercises,
   getMyRoutines,
   getMyWorkoutLogs,
   getRoutineExercises,
   getWorkoutSets,
   logWorkoutSet,
+  removeCustomExercise,
   removeExerciseFromRoutine,
   removeWorkoutLog,
   removeWorkoutSetEntry,
@@ -43,12 +48,17 @@ export interface WorkoutState {
   status: WorkoutStatus;
   routines: Routine[];
   workoutLogs: WorkoutLog[];
+  /** The user's own custom exercises (Slice 3B). */
+  customExercises: CustomExercise[];
   /** Exercises of the most recently loaded routine (per-context). */
   routineExercises: RoutineExercise[];
   /** Sets of the most recently loaded workout log (per-context). */
   workoutSets: WorkoutSet[];
   error: string | null;
   load: () => Promise<void>;
+  loadCustomExercises: () => Promise<void>;
+  createCustomExercise: (input: CustomExerciseInput) => Promise<boolean>;
+  removeCustomExercise: (id: string) => Promise<boolean>;
   createRoutine: (input: RoutineInput) => Promise<boolean>;
   deactivateRoutine: (id: string) => Promise<boolean>;
   startWorkout: (input: WorkoutLogInput) => Promise<boolean>;
@@ -67,6 +77,7 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
   status: 'idle',
   routines: [],
   workoutLogs: [],
+  customExercises: [],
   routineExercises: [],
   workoutSets: [],
   error: null,
@@ -79,6 +90,51 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
     } catch (error) {
       logError('workout.load', error);
       set({ status: 'error', error: 'Your workouts could not be loaded right now.' });
+    }
+  },
+
+  loadCustomExercises: async () => {
+    set({ status: 'loading', error: null });
+    try {
+      const customExercises = await getMyCustomExercises();
+      set({ customExercises, status: 'ready', error: null });
+    } catch (error) {
+      logError('workout.loadCustomExercises', error);
+      set({ status: 'error', error: 'Your exercises could not be loaded right now.' });
+    }
+  },
+
+  createCustomExercise: async (input) => {
+    set({ status: 'saving', error: null });
+    try {
+      const exercise = await addCustomExercise(input);
+      set((s) => ({
+        customExercises: [...s.customExercises, exercise],
+        status: 'ready',
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      logError('workout.createCustomExercise', error);
+      set({ status: 'error', error: 'Your exercise could not be saved. Please try again.' });
+      return false;
+    }
+  },
+
+  removeCustomExercise: async (id) => {
+    set({ status: 'saving', error: null });
+    try {
+      await removeCustomExercise(id);
+      set((s) => ({
+        customExercises: s.customExercises.filter((e) => e.id !== id),
+        status: 'ready',
+        error: null,
+      }));
+      return true;
+    } catch (error) {
+      logError('workout.removeCustomExercise', error);
+      set({ status: 'error', error: 'That exercise could not be removed. Please try again.' });
+      return false;
     }
   },
 

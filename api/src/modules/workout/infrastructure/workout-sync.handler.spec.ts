@@ -7,6 +7,7 @@ import type {
   RoutineRecord,
   WorkoutLogRecord,
 } from '../domain/workout.types';
+import { ExerciseSyncHandler } from './exercise-sync.handler';
 import { RoutineExerciseSyncHandler } from './routine-exercise-sync.handler';
 import { RoutineSyncHandler } from './routine-sync.handler';
 import { WorkoutLogSyncHandler } from './workout-log-sync.handler';
@@ -27,6 +28,11 @@ type MockRepo = { [K in keyof WorkoutRepositoryPort]: jest.Mock };
 function makeRepo(): MockRepo {
   return {
     findExercise: jest.fn(),
+    findOwnedExercise: jest.fn(),
+    createExercise: jest.fn(),
+    updateExercise: jest.fn(),
+    softDeleteExercise: jest.fn(),
+    exercisesChangedSince: jest.fn(),
     findOwnedRoutine: jest.fn(),
     createRoutine: jest.fn(),
     updateRoutine: jest.fn(),
@@ -362,9 +368,10 @@ describe('WorkoutSetSyncHandler — dependencies', () => {
 });
 
 describe('workout handler registration', () => {
-  it('registers all four workout entity handlers with distinct entity types', () => {
+  it('registers all five workout entity handlers with distinct entity types', () => {
     const registry = new SyncEntityRegistry();
     const handlers = [
+      new ExerciseSyncHandler(asPort(repo)),
       new RoutineSyncHandler(asPort(repo)),
       new RoutineExerciseSyncHandler(asPort(repo)),
       new WorkoutLogSyncHandler(asPort(repo)),
@@ -373,6 +380,7 @@ describe('workout handler registration', () => {
     for (const h of handlers) registry.register(h);
 
     for (const t of [
+      'exercises',
       'routines',
       'routine_exercises',
       'workout_logs',

@@ -21,24 +21,41 @@ import {
 } from '../domain/workout';
 import { getBuiltInExerciseById } from './exercise-catalog.data';
 import { ensureBuiltInExerciseSeeded } from './exercise-seed';
+import { ownedCustomExerciseExists } from './exercise.repository';
 
 /**
- * Local-first routine_exercises + workout_sets persistence (ADR-P015 Slice 4B;
- * ADR-0006). Both reference an exercise via the `exercise_id → exercises(id)`
- * FK; before any child write the referenced BUILT-IN exercise is seeded
- * (`ensureBuiltInExerciseSeeded`) inside the same transaction so the FK is
- * satisfiable. Custom exercises are NOT supported yet (a non-built-in id is
- * rejected). Parent (routine / workout_log) must exist locally + active.
- * Wellness data — no encryption. No SQL outside this repository.
+ * Local-first routine_exercises + workout_sets persistence (ADR-P015 Slice 4B +
+ * 3B; ADR-0006). Both reference an exercise via the `exercise_id → exercises(id)`
+ * FK. Before any child write the reference is resolved inside the same
+ * transaction (`ensureExerciseReference`): a BUILT-IN is seeded on demand; a
+ * user CUSTOM exercise (Slice 3B) must already exist locally + owned + active.
+ * An unknown id (neither a built-in nor an owned custom) is rejected so a
+ * missing custom exercise fails safely instead of writing a dangling FK. Parent
+ * (routine / workout_log) must exist locally + active. Wellness data — no
+ * encryption. No SQL outside this repository.
  */
 
 const ROUTINE_EXERCISE_ENTITY = 'routine_exercises';
 const WORKOUT_SET_ENTITY = 'workout_sets';
 
-function requireBuiltIn(exerciseId: string): void {
-  if (!getBuiltInExerciseById(exerciseId)) {
-    throw new Error('exercise is not a known built-in (custom exercises are not supported yet)');
+/**
+ * Ensures the `exercise_id` FK target exists locally before a child insert:
+ * seeds a built-in on demand, or verifies the user owns an active custom
+ * exercise with that id. Throws (rolling back the transaction) for an unknown
+ * id — a not-yet-created/synced custom exercise fails safely, never a dangling
+ * reference.
+ */
+async function ensureExerciseReference(
+  userId: string,
+  exerciseId: string,
+  nowIso: string,
+): Promise<void> {
+  if (getBuiltInExerciseById(exerciseId)) {
+    await ensureBuiltInExerciseSeeded(exerciseId, nowIso);
+    return;
   }
+  if (await ownedCustomExerciseExists(userId, exerciseId)) return;
+  throw new Error('exercise not found (unknown built-in or custom exercise)');
 }
 
 // ── routine_exercises ─────────────────────────────────────────────────────────
@@ -48,7 +65,6 @@ export async function addRoutineExercise(
   input: RoutineExerciseInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<RoutineExercise> {
-  requireBuiltIn(input.exerciseId);
   const id = generateUuid();
   const targetSets = input.targetSets ?? null;
   const targetReps = input.targetReps ?? null;
@@ -60,8 +76,8 @@ export async function addRoutineExercise(
       [routineId, userId],
     );
     if (!routine) throw new Error('routine not found for this user');
-    // Seed the built-in exercise FK target before the child insert.
-    await ensureBuiltInExerciseSeeded(input.exerciseId, nowIso);
+    // Resolve the exercise FK target (built-in seeded, or owned custom verified).
+    await ensureExerciseReference(userId, input.exerciseId, nowIso);
 
     await run(
       `INSERT INTO routine_exercises (id, user_id, created_at, updated_at, version, sync_status,
@@ -205,7 +221,6 @@ export async function addWorkoutSet(
   input: WorkoutSetInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<WorkoutSet> {
-  requireBuiltIn(input.exerciseId);
   const id = generateUuid();
   const reps = input.reps ?? null;
   const weightKg = input.weightKg ?? null;
@@ -219,7 +234,7 @@ export async function addWorkoutSet(
       [workoutLogId, userId],
     );
     if (!log) throw new Error('workout_log not found for this user');
-    await ensureBuiltInExerciseSeeded(input.exerciseId, nowIso);
+    await ensureExerciseReference(userId, input.exerciseId, nowIso);
 
     await run(
       `INSERT INTO workout_sets (id, user_id, created_at, updated_at, version, sync_status,

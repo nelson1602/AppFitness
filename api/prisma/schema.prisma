@@ -444,11 +444,11 @@ model HealthLog {
 
 model Exercise {
   id           String           @id @default(uuid()) @db.Uuid
-  name         String           @unique(map: "uq_exercises_name")
+  name         String
   muscleGroup  String           @map("muscle_group")
   category     ExerciseCategory
   instructions String?
-  createdBy    String?          @map("created_by") @db.Uuid // null = global catalog entry
+  createdBy    String?          @map("created_by") @db.Uuid // null = global catalog entry, non-null = owning user of a custom exercise
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -459,7 +459,16 @@ model Exercise {
   routineExercises RoutineExercise[]
   workoutSets      WorkoutSet[]
 
+  // Owner-scoped name uniqueness (ADR-P015 Slice 3B). This composite unique
+  // covers CUSTOM exercises (created_by non-null): each user's custom names are
+  // unique, different users may reuse a name, and a custom may reuse a built-in
+  // name (NULL created_by rows are distinct here). BUILT-IN global-name
+  // uniqueness (name WHERE created_by IS NULL) is a PARTIAL unique index Prisma
+  // cannot express — it lives in reviewed raw SQL in the Slice 3B migration
+  // (uq_exercises_global_name), mirroring uq_foods_catalog_key_revision.
+  @@unique([createdBy, name], map: "uq_exercises_created_by_name")
   @@index([muscleGroup], map: "idx_exercises_muscle_group")
+  @@index([createdBy, syncSeq], map: "idx_exercises_created_by_syncseq")
   @@map("exercises")
 }
 

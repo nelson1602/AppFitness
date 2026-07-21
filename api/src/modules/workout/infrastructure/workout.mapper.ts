@@ -1,4 +1,5 @@
 import type {
+  Exercise,
   Routine,
   RoutineExercise,
   WorkoutLog,
@@ -6,6 +7,7 @@ import type {
 } from '@prisma/client';
 
 import type {
+  CustomExerciseRecord,
   RoutineExerciseRecord,
   RoutineRecord,
   WorkoutLogRecord,
@@ -22,6 +24,59 @@ import type {
  * snapshot is persisted to sync_conflicts. Pull payloads are NOT redacted
  * (owner-only over TLS).
  */
+
+/**
+ * Custom exercise (Slice 3B). `createdBy` is always non-null here (owner-scoped
+ * queries only return the user's own custom rows). The wire shape matches the
+ * mobile SQLite `exercises` CATALOG row (no `user_id`, no `deleted_by`).
+ */
+export function exerciseRowToRecord(e: Exercise): CustomExerciseRecord {
+  return {
+    id: e.id,
+    createdBy: e.createdBy ?? '',
+    name: e.name,
+    muscleGroup: e.muscleGroup,
+    category: e.category,
+    instructions: e.instructions,
+    version: e.version,
+    syncSeq: Number(e.syncSeq),
+    createdAt: e.createdAt,
+    updatedAt: e.updatedAt,
+    deletedAt: e.deletedAt,
+  };
+}
+
+export function exerciseToWire(
+  r: CustomExerciseRecord,
+): Record<string, unknown> {
+  return {
+    id: r.id,
+    name: r.name,
+    muscle_group: r.muscleGroup,
+    category: r.category,
+    instructions: r.instructions,
+    created_by: r.createdBy,
+    version: r.version,
+    created_at: r.createdAt.toISOString(),
+    updated_at: r.updatedAt.toISOString(),
+    deleted_at: r.deletedAt ? r.deletedAt.toISOString() : null,
+  };
+}
+
+/** Free-text instructions stripped before a snapshot is persisted to sync_conflicts. */
+export function redactExerciseInstructions(
+  payload: Record<string, unknown>,
+): Record<string, unknown> {
+  const out = { ...payload };
+  if (
+    'instructions' in out &&
+    out.instructions !== null &&
+    out.instructions !== undefined
+  ) {
+    out.instructions = '[REDACTED]';
+  }
+  return out;
+}
 
 export function routineRowToRecord(r: Routine): RoutineRecord {
   return {

@@ -37,7 +37,10 @@ export function assertExerciseReady(
     throw new Error('referenced exercise has been deleted');
   }
   // Global catalog (createdBy null) is usable by anyone; a custom exercise is
-  // usable only by its owner. Custom-exercise sync itself is deferred (Slice 3B).
+  // usable only by its owner (custom-exercise sync is Slice 3B). A missing
+  // custom exercise falls through the null check above as retryable
+  // DEPENDENCY_NOT_READY, so a routine_exercise/workout_set that references a
+  // not-yet-synced custom exercise re-applies once the exercise arrives.
   if (ref.createdBy !== null && ref.createdBy !== userId) {
     throw new Error('referenced exercise is not owned by this user');
   }

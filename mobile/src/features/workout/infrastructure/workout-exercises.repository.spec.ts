@@ -98,11 +98,40 @@ describe('routine_exercises repository', () => {
     });
   });
 
-  it('rejects a non-built-in exercise (custom exercises not supported yet)', async () => {
+  it('accepts an OWNED custom exercise id already present locally (no built-in seed, enqueues CREATE)', async () => {
+    const CUSTOM_ID = '99999999-9999-4999-8999-999999999999';
+    mockQueryFirst
+      .mockResolvedValueOnce({ id: ROUTINE_ID } as RoutineExerciseRow) // parent routine probe
+      .mockResolvedValueOnce({ id: CUSTOM_ID } as RoutineExerciseRow) // ownedCustomExerciseExists → present
+      .mockResolvedValueOnce(reRow({ exercise_id: CUSTOM_ID })); // re-read
+    await addRoutineExercise(USER, ROUTINE_ID, { exerciseId: CUSTOM_ID, order: 0 }, NOW);
+
+    // No built-in seed for a custom id — the first write is the child insert.
+    expect(mockRun.mock.calls[0][0]).toContain('INSERT INTO routine_exercises');
+    expect(mockRun.mock.calls.some((c) => String(c[0]).includes('INSERT OR IGNORE'))).toBe(false);
+    expect(mockEnqueue.mock.calls[0][0]).toMatchObject({
+      entityType: 'routine_exercises',
+      operation: 'CREATE',
+      payload: { exercise_id: CUSTOM_ID },
+    });
+  });
+
+  it('rejects an unknown exercise id (neither built-in nor an owned custom) — fails safely', async () => {
+    mockQueryFirst
+      .mockResolvedValueOnce({ id: ROUTINE_ID } as RoutineExerciseRow) // parent routine present
+      .mockResolvedValueOnce(null); // ownedCustomExerciseExists → not found
     await expect(
-      addRoutineExercise(USER, ROUTINE_ID, { exerciseId: 'custom-uuid', order: 0 }, NOW),
-    ).rejects.toThrow(/not a known built-in/);
-    expect(mockRun).not.toHaveBeenCalled();
+      addRoutineExercise(
+        USER,
+        ROUTINE_ID,
+        { exerciseId: 'unknown-uuid-not-local', order: 0 },
+        NOW,
+      ),
+    ).rejects.toThrow(/exercise not found/);
+    // No child insert, no enqueue — the transaction rolls back.
+    expect(mockRun.mock.calls.some((c) => String(c[0]).includes('INSERT INTO routine_exercises'))).toBe(
+      false,
+    );
     expect(mockEnqueue).not.toHaveBeenCalled();
   });
 
@@ -155,6 +184,32 @@ describe('workout_sets repository', () => {
     await expect(
       addWorkoutSet(USER, LOG_ID, { exerciseId: EX_ID, setNumber: 1 }, NOW),
     ).rejects.toThrow(/workout_log not found/);
+    expect(mockEnqueue).not.toHaveBeenCalled();
+  });
+
+  it('logs a set against an OWNED custom exercise (no built-in seed)', async () => {
+    const CUSTOM_ID = '99999999-9999-4999-8999-999999999999';
+    mockQueryFirst
+      .mockResolvedValueOnce({ id: LOG_ID } as WorkoutSetRow) // parent log probe
+      .mockResolvedValueOnce({ id: CUSTOM_ID } as WorkoutSetRow) // ownedCustomExerciseExists → present
+      .mockResolvedValueOnce(setRow({ exercise_id: CUSTOM_ID })); // re-read
+    await addWorkoutSet(USER, LOG_ID, { exerciseId: CUSTOM_ID, setNumber: 1, reps: 5 }, NOW);
+    expect(mockRun.mock.calls[0][0]).toContain('INSERT INTO workout_sets');
+    expect(mockRun.mock.calls.some((c) => String(c[0]).includes('INSERT OR IGNORE'))).toBe(false);
+    expect(mockEnqueue.mock.calls[0][0]).toMatchObject({
+      entityType: 'workout_sets',
+      operation: 'CREATE',
+      payload: { exercise_id: CUSTOM_ID },
+    });
+  });
+
+  it('rejects a set against an unknown exercise id — fails safely', async () => {
+    mockQueryFirst
+      .mockResolvedValueOnce({ id: LOG_ID } as WorkoutSetRow) // parent log present
+      .mockResolvedValueOnce(null); // ownedCustomExerciseExists → not found
+    await expect(
+      addWorkoutSet(USER, LOG_ID, { exerciseId: 'unknown-uuid', setNumber: 1 }, NOW),
+    ).rejects.toThrow(/exercise not found/);
     expect(mockEnqueue).not.toHaveBeenCalled();
   });
 

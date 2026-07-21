@@ -6,10 +6,35 @@
  *
  * Entity-type keys match the mobile sync_queue / SQLite table names.
  */
+import type { ExerciseCategory } from '@prisma/client';
+
+export const EXERCISE_ENTITY_TYPE = 'exercises';
 export const ROUTINE_ENTITY_TYPE = 'routines';
 export const ROUTINE_EXERCISE_ENTITY_TYPE = 'routine_exercises';
 export const WORKOUT_LOG_ENTITY_TYPE = 'workout_logs';
 export const WORKOUT_SET_ENTITY_TYPE = 'workout_sets';
+
+/**
+ * A user-owned CUSTOM exercise (ADR-P015 Slice 3B). Ownership is `createdBy`
+ * (never a denormalized `user_id`, unlike the child tables); built-in/global
+ * catalog rows (`createdBy = null`) are NOT represented here — they are
+ * device-read reference data and can never be mutated through this entity.
+ * The exercises table has no `deleted_by` column, so soft-delete records only
+ * `deletedAt` (consistent with the mobile SQLite catalog shape).
+ */
+export interface CustomExerciseRecord {
+  id: string;
+  createdBy: string;
+  name: string;
+  muscleGroup: string;
+  category: ExerciseCategory;
+  instructions: string | null;
+  version: number;
+  syncSeq: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
 
 export interface RoutineRecord {
   id: string;

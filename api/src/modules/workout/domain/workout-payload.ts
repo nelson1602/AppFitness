@@ -1,11 +1,13 @@
 /**
- * Workout payload parsing/validation (ADR-P015 Phase 16 Slice 3).
+ * Workout payload parsing/validation (ADR-P015 Phase 16 Slice 3 / 3B).
  *
  * Only structural references and mutable fields are read from client payloads;
- * server-controlled columns (version, sync_seq, timestamps, user_id) are never
- * trusted. Wire fields are snake_case and match the mobile SQLite row shape
- * (note `order_index` ↔ Postgres `order`).
+ * server-controlled columns (version, sync_seq, timestamps, user_id/created_by)
+ * are never trusted. Wire fields are snake_case and match the mobile SQLite row
+ * shape (note `order_index` ↔ Postgres `order`).
  */
+
+import { ExerciseCategory } from '@prisma/client';
 
 function requireId(value: unknown, field: string): string {
   if (typeof value !== 'string' || value.length === 0) {
@@ -64,6 +66,60 @@ function requireDate(value: unknown, field: string): Date {
 function optionalDate(value: unknown, field: string): Date | null {
   if (value === null || value === undefined) return null;
   return requireDate(value, field);
+}
+
+// ── custom exercises (Slice 3B) ───────────────────────────────────────────────
+/**
+ * Normalize a custom exercise name so owner-scoped uniqueness is deterministic
+ * across client and server: trim, and collapse internal whitespace runs to a
+ * single space. The mobile repository applies the identical rule before its
+ * per-owner duplicate check, so a name that is unique locally is unique on the
+ * server (and vice versa). Case is preserved (names are user-facing labels).
+ */
+export function normalizeExerciseName(raw: string): string {
+  return raw.trim().replace(/\s+/g, ' ');
+}
+
+function requireExerciseCategory(value: unknown): ExerciseCategory {
+  if (
+    typeof value !== 'string' ||
+    !(Object.values(ExerciseCategory) as string[]).includes(value)
+  ) {
+    throw new Error('category must be a valid exercise category');
+  }
+  return value as ExerciseCategory;
+}
+
+export interface ExerciseCreateInput {
+  name: string;
+  muscleGroup: string;
+  category: ExerciseCategory;
+  instructions: string | null;
+}
+export function parseExerciseCreate(
+  p: Record<string, unknown>,
+): ExerciseCreateInput {
+  const name = normalizeExerciseName(requireString(p.name, 'name'));
+  if (name.length === 0) throw new Error('name is required');
+  return {
+    name,
+    muscleGroup: normalizeExerciseName(
+      requireString(p.muscle_group, 'muscle_group'),
+    ),
+    category: requireExerciseCategory(p.category),
+    instructions: optionalString(p.instructions),
+  };
+}
+export interface ExerciseUpdateInput {
+  name: string;
+  muscleGroup: string;
+  category: ExerciseCategory;
+  instructions: string | null;
+}
+export function parseExerciseUpdate(
+  p: Record<string, unknown>,
+): ExerciseUpdateInput {
+  return parseExerciseCreate(p);
 }
 
 // ── routines ────────────────────────────────────────────────────────────────
