@@ -19,7 +19,9 @@ import {
   addCustomExercise,
   addExerciseToRoutine,
   addRoutine,
+  countRoutineReferences,
   deactivateRoutine,
+  editCustomExercise,
   editWorkoutSet,
   finishWorkout,
   getMyCustomExercises,
@@ -58,7 +60,10 @@ export interface WorkoutState {
   load: () => Promise<void>;
   loadCustomExercises: () => Promise<void>;
   createCustomExercise: (input: CustomExerciseInput) => Promise<boolean>;
+  updateCustomExercise: (id: string, input: CustomExerciseInput) => Promise<boolean>;
   removeCustomExercise: (id: string) => Promise<boolean>;
+  /** Active routines referencing an exercise (read-only; for the delete warning). */
+  countRoutineReferences: (id: string) => Promise<number>;
   createRoutine: (input: RoutineInput) => Promise<boolean>;
   deactivateRoutine: (id: string) => Promise<boolean>;
   startWorkout: (input: WorkoutLogInput) => Promise<boolean>;
@@ -85,8 +90,12 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
   load: async () => {
     set({ status: 'loading', error: null });
     try {
-      const [routines, workoutLogs] = await Promise.all([getMyRoutines(), getMyWorkoutLogs()]);
-      set({ routines, workoutLogs, status: 'ready', error: null });
+      const [routines, workoutLogs, customExercises] = await Promise.all([
+        getMyRoutines(),
+        getMyWorkoutLogs(),
+        getMyCustomExercises(),
+      ]);
+      set({ routines, workoutLogs, customExercises, status: 'ready', error: null });
     } catch (error) {
       logError('workout.load', error);
       set({ status: 'error', error: 'Your workouts could not be loaded right now.' });
@@ -121,6 +130,27 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
     }
   },
 
+  updateCustomExercise: async (id, input) => {
+    set({ status: 'saving', error: null });
+    try {
+      const updated = await editCustomExercise(id, input);
+      // A null result means the row was not an owned, active custom exercise
+      // (e.g. a built-in) — leave the list untouched rather than corrupt it.
+      set((s) => ({
+        customExercises: updated
+          ? s.customExercises.map((e) => (e.id === id ? updated : e))
+          : s.customExercises,
+        status: 'ready',
+        error: null,
+      }));
+      return updated !== null;
+    } catch (error) {
+      logError('workout.updateCustomExercise', error);
+      set({ status: 'error', error: 'Your exercise could not be updated. Please try again.' });
+      return false;
+    }
+  },
+
   removeCustomExercise: async (id) => {
     set({ status: 'saving', error: null });
     try {
@@ -135,6 +165,16 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
       logError('workout.removeCustomExercise', error);
       set({ status: 'error', error: 'That exercise could not be removed. Please try again.' });
       return false;
+    }
+  },
+
+  countRoutineReferences: async (id) => {
+    try {
+      return await countRoutineReferences(id);
+    } catch (error) {
+      // A count failure must not block deletion — default to 0 (no warning).
+      logError('workout.countRoutineReferences', error);
+      return 0;
     }
   },
 

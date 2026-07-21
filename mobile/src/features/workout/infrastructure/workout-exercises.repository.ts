@@ -124,6 +124,27 @@ export async function addRoutineExercise(
   });
 }
 
+/**
+ * Read-only count of the user's ACTIVE routines that reference an exercise
+ * (Slice 9 — used to warn before soft-deleting a custom exercise). Historical
+ * references are preserved regardless; this only informs the delete warning.
+ */
+export async function countRoutinesUsingExercise(
+  userId: string,
+  exerciseId: string,
+): Promise<number> {
+  const row = await queryFirst<{ n: number }>(
+    `SELECT COUNT(DISTINCT re.routine_id) AS n
+     FROM routine_exercises re
+     INNER JOIN routines r ON r.id = re.routine_id
+       AND r.user_id = re.user_id
+       AND r.deleted_at IS NULL
+     WHERE re.exercise_id = ? AND re.user_id = ? AND re.deleted_at IS NULL`,
+    [exerciseId, userId],
+  );
+  return row?.n ?? 0;
+}
+
 export async function listRoutineExercises(
   userId: string,
   routineId: string,

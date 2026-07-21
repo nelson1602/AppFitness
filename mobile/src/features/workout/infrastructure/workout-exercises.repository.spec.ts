@@ -7,6 +7,7 @@ import { BUILT_IN_EXERCISES } from './exercise-catalog.data';
 import {
   addRoutineExercise,
   addWorkoutSet,
+  countRoutinesUsingExercise,
   listRoutineExercises,
   removeRoutineExercise,
   updateWorkoutSet,
@@ -144,6 +145,17 @@ describe('routine_exercises repository', () => {
     await listRoutineExercises(USER, ROUTINE_ID);
     expect(mockQueryAll.mock.calls[0][0]).toContain('ORDER BY order_index ASC');
     expect(mockQueryAll.mock.calls[0][1]).toEqual([ROUTINE_ID, USER]);
+  });
+
+  it('counts only active parent routines before custom-exercise deletion warnings', async () => {
+    mockQueryFirst.mockResolvedValue({ n: 2 });
+
+    await expect(countRoutinesUsingExercise(USER, EX_ID)).resolves.toBe(2);
+
+    expect(mockQueryFirst.mock.calls[0][0]).toContain('INNER JOIN routines r');
+    expect(mockQueryFirst.mock.calls[0][0]).toContain('r.deleted_at IS NULL');
+    expect(mockQueryFirst.mock.calls[0][0]).toContain('re.deleted_at IS NULL');
+    expect(mockQueryFirst.mock.calls[0][1]).toEqual([EX_ID, USER]);
   });
 
   it('removeRoutineExercise soft-deletes + enqueues DELETE with the row version', async () => {

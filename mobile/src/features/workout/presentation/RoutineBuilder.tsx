@@ -4,15 +4,17 @@ import { Pressable, TextInput, View } from 'react-native';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { BuiltInExercise } from '../domain/exercise-catalog';
-import type { Routine, RoutineExercise } from '../domain/workout';
+import type { CustomExercise, Routine, RoutineExercise } from '../domain/workout';
 import { useTrainingPlan } from '../application/use-training-plan';
 import { useWorkoutStore } from '../application/workout.store';
 import {
   getBuiltInExerciseById,
   listBuiltInExercises,
 } from '../infrastructure/exercise-catalog.data';
+import { CustomExerciseForm } from './CustomExerciseForm';
+import { CustomExerciseNote } from './CustomExerciseNote';
 import { ExerciseExclusionNote } from './ExerciseExclusionNote';
+import { resolveExerciseName } from './resolve-exercise-name';
 import { TrainingPlanCard } from './TrainingPlanCard';
 
 /**
@@ -37,9 +39,11 @@ export function RoutineBuilder() {
     status,
     routines,
     routineExercises,
+    customExercises,
     error,
     load,
     createRoutine,
+    createCustomExercise,
     deactivateRoutine,
     loadRoutineExercises,
     addRoutineExercise,
@@ -53,6 +57,7 @@ export function RoutineBuilder() {
 
   const [name, setName] = useState('');
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null);
+  const [showNewExercise, setShowNewExercise] = useState(false);
 
   useEffect(() => {
     void load();
@@ -76,10 +81,10 @@ export function RoutineBuilder() {
     await loadRoutineExercises(routine.id);
   };
 
-  const onAddExercise = (exercise: BuiltInExercise) => {
+  const onAddExerciseById = (exerciseId: string) => {
     if (!selectedRoutineId) return;
     void addRoutineExercise(selectedRoutineId, {
-      exerciseId: exercise.id,
+      exerciseId,
       order: routineExercises.length,
     });
   };
@@ -89,8 +94,8 @@ export function RoutineBuilder() {
       <View style={{ gap: theme.spacing.xs }}>
         <AppText variant="headline">Workout routines</AppText>
         <AppText tone="muted">
-          Build reusable routines from the built-in exercise library. Routines are saved on your
-          device first and sync to your account later. Logging your sets arrives in the next update.
+          Build reusable routines from built-in and your own custom exercises. Routines are saved on
+          your device first and sync to your account later.
         </AppText>
       </View>
 
@@ -173,11 +178,37 @@ export function RoutineBuilder() {
                     <ExerciseList
                       exercises={routineExercises}
                       excludedMovements={excludedMovements}
+                      customExercises={customExercises}
                       onRemove={(id) => void removeRoutineExercise(id)}
                       removing={status === 'saving'}
                     />
                     <AppText variant="label" tone="muted">
                       Add an exercise
+                    </AppText>
+
+                    {showNewExercise ? (
+                      <Card accessibilityLabel="New custom exercise">
+                        <CustomExerciseForm
+                          existing={customExercises}
+                          saving={status === 'saving'}
+                          onSubmit={createCustomExercise}
+                          onDone={() => setShowNewExercise(false)}
+                          onCancel={() => setShowNewExercise(false)}
+                        />
+                      </Card>
+                    ) : (
+                      <AppButton
+                        accessibilityLabel="Create a new custom exercise"
+                        testID="routine-new-custom-exercise"
+                        variant="secondary"
+                        onPress={() => setShowNewExercise(true)}
+                      >
+                        + New exercise
+                      </AppButton>
+                    )}
+
+                    <AppText variant="caption" tone="muted">
+                      Built-in
                     </AppText>
                     <View style={{ gap: theme.spacing.sm }}>
                       {CATALOG.map((exercise) => (
@@ -186,7 +217,7 @@ export function RoutineBuilder() {
                           accessibilityRole="button"
                           accessibilityLabel={`Add ${exercise.name}`}
                           testID={`add-exercise-${exercise.key}`}
-                          onPress={() => onAddExercise(exercise)}
+                          onPress={() => onAddExerciseById(exercise.id)}
                           style={{
                             borderColor: theme.colors.outline,
                             borderRadius: theme.radius.medium,
@@ -205,6 +236,37 @@ export function RoutineBuilder() {
                         </Pressable>
                       ))}
                     </View>
+
+                    <AppText variant="caption" tone="muted">
+                      My exercises
+                    </AppText>
+                    {customExercises.length === 0 ? (
+                      <AppText tone="muted">No custom exercises yet.</AppText>
+                    ) : (
+                      <View style={{ gap: theme.spacing.sm }}>
+                        {customExercises.map((exercise) => (
+                          <Pressable
+                            key={exercise.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Add ${exercise.name}`}
+                            testID={`add-custom-exercise-${exercise.id}`}
+                            onPress={() => onAddExerciseById(exercise.id)}
+                            style={{
+                              borderColor: theme.colors.outline,
+                              borderRadius: theme.radius.medium,
+                              borderWidth: 1,
+                              padding: theme.spacing.sm,
+                            }}
+                          >
+                            <AppText>{exercise.name}</AppText>
+                            <AppText variant="caption" tone="muted">
+                              {exercise.muscleGroup}
+                            </AppText>
+                            <CustomExerciseNote />
+                          </Pressable>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 ) : null}
               </View>
@@ -219,11 +281,13 @@ export function RoutineBuilder() {
 function ExerciseList({
   exercises,
   excludedMovements,
+  customExercises,
   onRemove,
   removing,
 }: {
   exercises: RoutineExercise[];
   excludedMovements: readonly string[];
+  customExercises: readonly CustomExercise[];
   onRemove: (id: string) => void;
   removing: boolean;
 }) {
@@ -234,13 +298,16 @@ function ExerciseList({
   return (
     <View style={{ gap: theme.spacing.sm }}>
       {exercises.map((re) => {
+        // A built-in resolves from the catalog; a custom from the loaded list;
+        // a removed/not-yet-loaded custom shows "(removed exercise)".
         const exercise = getBuiltInExerciseById(re.exerciseId);
+        const displayName = resolveExerciseName(re.exerciseId, customExercises);
         return (
           <View key={re.id} testID={`routine-exercise-${re.id}`} style={{ gap: theme.spacing.xs }}>
-            <AppText variant="label">{exercise?.name ?? 'Exercise'}</AppText>
+            <AppText variant="label">{displayName}</AppText>
             <ExerciseExclusionNote exercise={exercise} excludedMovements={excludedMovements} />
             <AppButton
-              accessibilityLabel={`Remove ${exercise?.name ?? 'exercise'} from routine`}
+              accessibilityLabel={`Remove ${displayName} from routine`}
               testID={`routine-exercise-remove-${re.id}`}
               variant="text"
               loading={removing}

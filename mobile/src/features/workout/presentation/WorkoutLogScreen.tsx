@@ -4,14 +4,17 @@ import { Pressable, TextInput, View } from 'react-native';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { WorkoutLog, WorkoutSet } from '../domain/workout';
+import type { CustomExercise, WorkoutLog, WorkoutSet } from '../domain/workout';
 import { useTrainingPlan } from '../application/use-training-plan';
 import { useWorkoutStore } from '../application/workout.store';
 import {
   getBuiltInExerciseById,
   listBuiltInExercises,
 } from '../infrastructure/exercise-catalog.data';
+import { CustomExerciseForm } from './CustomExerciseForm';
+import { CustomExerciseNote } from './CustomExerciseNote';
 import { ExerciseExclusionNote } from './ExerciseExclusionNote';
+import { resolveExerciseName } from './resolve-exercise-name';
 import { TrainingPlanCard } from './TrainingPlanCard';
 
 /**
@@ -26,8 +29,9 @@ import { TrainingPlanCard } from './TrainingPlanCard';
  * `useTrainingPlan`) — never recomputed. `TrainingPlanCard` surfaces the
  * blocked / clearance / intensity / RPE-cap / days-per-week guidance; an
  * exercise whose movement patterns intersect `excludedMovements` shows a
- * NON-blocking caution. Medical restrictions are never overridden. Custom
- * exercises stay deferred (Slice 3B); the catalog is unchanged (Slice 2).
+ * NON-blocking caution. Medical restrictions are never overridden. The picker
+ * lists built-in and user CUSTOM exercises (Slice 9); customs are neutral
+ * (unmapped) and show a non-medical caution only.
  */
 
 const CATALOG = listBuiltInExercises();
@@ -48,6 +52,7 @@ export function WorkoutLogScreen() {
     routines,
     workoutLogs,
     workoutSets,
+    customExercises,
     error,
     load,
     startWorkout,
@@ -57,6 +62,7 @@ export function WorkoutLogScreen() {
     logWorkoutSet,
     updateWorkoutSet,
     removeWorkoutSet,
+    createCustomExercise,
   } = useWorkoutStore();
 
   // Read-only training safety context (may be absent if the dashboard has not
@@ -69,6 +75,7 @@ export function WorkoutLogScreen() {
   const [exerciseId, setExerciseId] = useState<string | null>(null);
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
+  const [showNewExercise, setShowNewExercise] = useState(false);
 
   useEffect(() => {
     void load();
@@ -234,6 +241,7 @@ export function WorkoutLogScreen() {
                     <SetList
                       sets={workoutSets}
                       excludedMovements={excludedMovements}
+                      customExercises={customExercises}
                       onEditReps={onEditReps}
                       onToggle={(id, completed) => void updateWorkoutSet(id, { completed })}
                       onRemove={(id) => void removeWorkoutSet(id)}
@@ -242,6 +250,31 @@ export function WorkoutLogScreen() {
 
                     <AppText variant="label" tone="muted">
                       Add a set
+                    </AppText>
+
+                    {showNewExercise ? (
+                      <Card accessibilityLabel="New custom exercise">
+                        <CustomExerciseForm
+                          existing={customExercises}
+                          saving={status === 'saving'}
+                          onSubmit={createCustomExercise}
+                          onDone={() => setShowNewExercise(false)}
+                          onCancel={() => setShowNewExercise(false)}
+                        />
+                      </Card>
+                    ) : (
+                      <AppButton
+                        accessibilityLabel="Create a new custom exercise"
+                        testID="set-new-custom-exercise"
+                        variant="secondary"
+                        onPress={() => setShowNewExercise(true)}
+                      >
+                        + New exercise
+                      </AppButton>
+                    )}
+
+                    <AppText variant="caption" tone="muted">
+                      Built-in
                     </AppText>
                     <View style={{ gap: theme.spacing.sm }}>
                       {CATALOG.map((exercise) => (
@@ -274,6 +307,42 @@ export function WorkoutLogScreen() {
                         </Pressable>
                       ))}
                     </View>
+
+                    <AppText variant="caption" tone="muted">
+                      My exercises
+                    </AppText>
+                    {customExercises.length === 0 ? (
+                      <AppText tone="muted">No custom exercises yet.</AppText>
+                    ) : (
+                      <View style={{ gap: theme.spacing.sm }}>
+                        {customExercises.map((exercise) => (
+                          <Pressable
+                            key={exercise.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Choose ${exercise.name}`}
+                            accessibilityState={{ selected: exerciseId === exercise.id }}
+                            testID={`set-custom-exercise-${exercise.id}`}
+                            onPress={() => setExerciseId(exercise.id)}
+                            style={{
+                              backgroundColor:
+                                exerciseId === exercise.id
+                                  ? theme.colors.surfaceVariant
+                                  : 'transparent',
+                              borderColor:
+                                exerciseId === exercise.id
+                                  ? theme.colors.primary
+                                  : theme.colors.outline,
+                              borderRadius: theme.radius.medium,
+                              borderWidth: 1,
+                              padding: theme.spacing.sm,
+                            }}
+                          >
+                            <AppText>{exercise.name}</AppText>
+                            <CustomExerciseNote />
+                          </Pressable>
+                        ))}
+                      </View>
+                    )}
 
                     {selectedExercise ? (
                       <ExerciseExclusionNote
@@ -366,6 +435,7 @@ export function WorkoutLogScreen() {
 function SetList({
   sets,
   excludedMovements,
+  customExercises,
   onEditReps,
   onToggle,
   onRemove,
@@ -373,6 +443,7 @@ function SetList({
 }: {
   sets: WorkoutSet[];
   excludedMovements: readonly string[];
+  customExercises: readonly CustomExercise[];
   onEditReps: (id: string, text: string) => void;
   onToggle: (id: string, completed: boolean) => void;
   onRemove: (id: string) => void;
@@ -386,10 +457,11 @@ function SetList({
     <View style={{ gap: theme.spacing.sm }}>
       {sets.map((set) => {
         const exercise = getBuiltInExerciseById(set.exerciseId);
+        const displayName = resolveExerciseName(set.exerciseId, customExercises);
         return (
           <View key={set.id} testID={`set-${set.id}`} style={{ gap: theme.spacing.xs }}>
             <AppText variant="label">
-              {set.setNumber}. {exercise?.name ?? 'Exercise'}
+              {set.setNumber}. {displayName}
             </AppText>
             <ExerciseExclusionNote exercise={exercise} excludedMovements={excludedMovements} />
             <PendingHint syncStatus={set.syncStatus} />

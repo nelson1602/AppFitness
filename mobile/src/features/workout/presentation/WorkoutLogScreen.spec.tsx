@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import type { TrainingPlan } from '@/features/icoach/domain/types';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 
-import type { Routine, WorkoutLog, WorkoutSet } from '../domain/workout';
+import type { CustomExercise, Routine, WorkoutLog, WorkoutSet } from '../domain/workout';
 import type { WorkoutState } from '../application/workout.store';
 import { WorkoutLogScreen } from './WorkoutLogScreen';
 
@@ -18,6 +18,7 @@ const loadWorkoutSets = jest.fn();
 const logWorkoutSet = jest.fn();
 const updateWorkoutSet = jest.fn();
 const removeWorkoutSet = jest.fn();
+const createCustomExercise = jest.fn();
 
 jest.mock('../application/workout.store', () => ({
   useWorkoutStore: (selector?: (s: WorkoutState) => unknown) =>
@@ -58,8 +59,10 @@ function setStore(partial: Partial<WorkoutState>) {
     error: null,
     load,
     loadCustomExercises: jest.fn(),
-    createCustomExercise: jest.fn(),
+    createCustomExercise,
+    updateCustomExercise: jest.fn(),
     removeCustomExercise: jest.fn(),
+    countRoutineReferences: jest.fn(),
     createRoutine: jest.fn(),
     deactivateRoutine: jest.fn(),
     startWorkout,
@@ -121,6 +124,20 @@ const wset = (o: Partial<WorkoutSet> = {}): WorkoutSet => ({
   ...o,
 });
 
+const customExercise = (o: Partial<CustomExercise> = {}): CustomExercise => ({
+  id: 'ce1',
+  name: 'Zercher Squat',
+  muscleGroup: 'legs',
+  category: 'STRENGTH',
+  instructions: null,
+  createdBy: 'u1',
+  version: 1,
+  syncStatus: 'pending',
+  createdAt: '2026-07-21T00:00:00.000Z',
+  updatedAt: '2026-07-21T00:00:00.000Z',
+  ...o,
+});
+
 const plan = (o: Partial<TrainingPlan> = {}): TrainingPlan => ({
   blocked: false,
   requiresMedicalClearance: false,
@@ -142,6 +159,7 @@ describe('WorkoutLogScreen', () => {
     logWorkoutSet.mockResolvedValue(true);
     updateWorkoutSet.mockResolvedValue(true);
     removeWorkoutSet.mockResolvedValue(true);
+    createCustomExercise.mockResolvedValue(true);
   });
 
   it('loads workout data on mount', async () => {
@@ -207,6 +225,50 @@ describe('WorkoutLogScreen', () => {
       reps: 5,
       weightKg: 100,
     });
+  });
+
+  it('adds a set for a chosen custom exercise through the store', async () => {
+    setStore({
+      status: 'ready',
+      workoutLogs: [log()],
+      workoutSets: [],
+      customExercises: [customExercise()],
+    });
+    await render(<WorkoutLogScreen />);
+
+    await fireEvent.press(screen.getByTestId('workout-select-l1'));
+    expect(screen.getByText('My exercises')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('set-custom-exercise-ce1'));
+    await fireEvent.changeText(screen.getByTestId('set-reps-input'), '6');
+    await fireEvent.press(screen.getByTestId('set-add'));
+
+    expect(logWorkoutSet).toHaveBeenCalledWith('l1', {
+      exerciseId: 'ce1',
+      setNumber: 1,
+      reps: 6,
+      weightKg: null,
+    });
+    expect(screen.getByText(/Custom exercises aren’t checked/)).toBeOnTheScreen();
+  });
+
+  it('quick-creates a custom exercise from the workout set picker', async () => {
+    setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [] });
+    await render(<WorkoutLogScreen />);
+
+    await fireEvent.press(screen.getByTestId('workout-select-l1'));
+    await fireEvent.press(screen.getByTestId('set-new-custom-exercise'));
+    await fireEvent.changeText(screen.getByLabelText('Name'), 'Landmine press');
+    await fireEvent.changeText(screen.getByLabelText('Muscle group'), 'shoulders');
+    await fireEvent.press(screen.getByTestId('custom-exercise-submit'));
+
+    await waitFor(() =>
+      expect(createCustomExercise).toHaveBeenCalledWith({
+        name: 'Landmine press',
+        muscleGroup: 'shoulders',
+        category: 'STRENGTH',
+        instructions: null,
+      }),
+    );
   });
 
   it('keeps "Add set" disabled until an exercise is chosen', async () => {
