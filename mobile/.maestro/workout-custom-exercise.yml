@@ -83,7 +83,6 @@ appId: com.appfitness.mobile
     element: 'Save changes'
 - tapOn: 'Save changes'
 - scrollUntilVisible:
-    direction: UP
     element: 'E2E landmine row'
 
 # --- 3. Use the custom exercise in the routine created by
