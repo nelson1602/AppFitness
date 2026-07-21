@@ -52,7 +52,13 @@ appId: com.appfitness.mobile
     id: 'custom-exercise-submit'
 - scrollUntilVisible:
     element: 'E2E landmine press'
-- assertVisible: 'Pending sync'
+# The library reflects sync state live. A custom exercise has NO sync
+# dependency, so with the CI API reachable it can reach "synced" (badge gone)
+# before this step — the transient "Pending sync" badge is therefore not
+# asserted here. Local-first create is already proven by the row appearing
+# above; pending/offline semantics are covered by the workout-set assertion
+# below (its sync is gated behind the just-started workout_log) and by the
+# dedicated offline-entry / reconnect-sync flows.
 - scrollUntilVisible:
     element: '.*Custom exercises aren.*checked.*'
 
