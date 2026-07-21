@@ -79,6 +79,7 @@ appId: com.appfitness.mobile
 - tapOn:
     id: 'custom-exercise-submit'
 - scrollUntilVisible:
+    direction: UP
     element: 'E2E landmine row'
 
 # --- 3. Use the custom exercise in the routine created by
