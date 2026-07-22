@@ -177,10 +177,20 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: 'Delete'
 - tapOn: 'Delete'
-- scrollUntilVisible:
-    element: 'Used in 1 routine'
+# The confirm block appears immediately with a stable "Confirm delete" button,
+# but its reference-count line resolves asynchronously ("Checking where this
+# exercise is used…" → "Used in N routine…"). Anchor the scroll on the stable
+# button (scrolling for the count text races the async query and overshoots to
+# the built-in list), then WAIT for the count line to populate in place.
 - scrollUntilVisible:
     element: 'Confirm delete'
+# Maestro anchors a text selector to the ELEMENT'S FULL text, so the bare
+# "Used in 1 routine" never matches the longer sentence "Used in 1 routine —
+# existing routines keep it; …" — wildcards are required (as elsewhere in this
+# flow). Wait in place for the async reference count to populate.
+- extendedWaitUntil:
+    visible: '.*Used in 1 routine.*'
+    timeout: 10000
 - tapOn: 'Confirm delete'
 - scrollUntilVisible:
     element: 'No custom exercises yet. Add one above to use it in your routines and workouts.'
