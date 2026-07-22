@@ -848,6 +848,25 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    inline quick-create from workout pickers. Keep custom exercises neutral for
    iCoach restrictions, preserve local-first writes/pending sync, and defer E2E
    to a separate slice.
+10. Custom-exercise E2E validation (Maestro). **AUTHORED 2026-07-21
+    (awaiting a fresh e2e APK + manual `mobile-e2e` dispatch):**
+    `mobile/.maestro/workout-custom-exercise.yml` runs after
+    `workout-training-plan.yml` on the persisted onboard session. It exercises
+    Dashboard → Exercise library, create/edit of a user-owned custom exercise,
+    use from both routine-builder and workout-log pickers, non-medical
+    iCoach-neutral copy, soft-delete with active-routine warning, and the
+    accepted `"(removed exercise)"` fallback. Wired into `mobile-e2e.yml`; no
+    app source / schema / backend / dependency / catalog change.
+    **LOCAL verification GREEN (2026-07-22):** the full chain
+    `registration → onboarding-loop → medical-management → workout-training-plan
+    → workout-custom-exercise` passed on a locally-built e2e APK (from app-source
+    commit `4073209` — the AppButton 44×44 touch-target fix) plus the Maestro
+    flow fix `9f7fa62`, run on the `appfitness` Android emulator against the
+    seeded local API. **This is LOCAL verification only.** GitHub `mobile-e2e` /
+    cloud EAS verification remains **PENDING** because the EAS Android build
+    quota is exhausted (until the monthly reset / a plan upgrade), so no cloud
+    APK containing these fixes could be built. **PR #8 remains unmerged** pending
+    owner decision or cloud verification.
 
 ### Privacy stance
 Workout data = **wellness** (synced, not encrypted). Injury/restriction/medical

@@ -1859,6 +1859,22 @@ own go-ahead.**
   iCoach-neutral caution, and `"(removed exercise)"` fallback for deleted/missing
   custom references. No schema/backend sync/dependency/ADR-P013/nutrition
   change; E2E deferred.
+- **Slice 10** — custom-exercise E2E validation. **AUTHORED 2026-07-21
+  (pending fresh e2e APK + manual `mobile-e2e` run):** new
+  `workout-custom-exercise.yml` flow, wired after `workout-training-plan.yml`,
+  covers Exercise library create/edit/delete, custom exercise use in routine and
+  workout-log pickers, iCoach-neutral copy, active-routine delete warning, and
+  `"(removed exercise)"` fallback. YAML/workflow/docs only; no app source,
+  schema, backend, dependency, catalog, or ADR-P013 change.
+  **LOCAL verification GREEN (2026-07-22):** the local chain
+  `registration → onboarding-loop → medical-management → workout-training-plan →
+  workout-custom-exercise` passed on a locally-built e2e APK (app-source commit
+  `4073209`, the AppButton 44×44 minimum-touch-target fix) with the Maestro flow
+  fix `9f7fa62` on the PR branch, run on the `appfitness` emulator + seeded local
+  API. **LOCAL verification only** — GitHub `mobile-e2e` / cloud EAS verification
+  remains **PENDING** because the EAS Android build quota is exhausted until the
+  reset / a plan upgrade (no cloud APK with these fixes could be built).
+  **PR #8 remains unmerged** pending owner decision or cloud verification.
 
 ### Exit Criteria
 - [ ] Owner accepts ADR-P015 before any Phase 16 implementation.

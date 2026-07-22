@@ -142,6 +142,20 @@ describe('ExerciseLibrary', () => {
     );
   });
 
+  it('selects prefilled text on focus so editing replaces the name cleanly', async () => {
+    // Regression: without selectTextOnFocus, tapping a prefilled field in the
+    // E2E landed a mid-text cursor and eraseText left trailing characters,
+    // mangling the rename (e.g. "E2E landmine row" → "E2E landmine rowess").
+    setStore({ customExercises: [customExercise()] });
+    await render(<ExerciseLibrary />);
+
+    await fireEvent.press(screen.getByTestId('custom-edit-ce1'));
+    const nameFields = screen.getAllByTestId('field-name');
+    // The inline edit form (last field-name match) prefills the value, so it
+    // must select-all on focus.
+    expect(nameFields[nameFields.length - 1].props.selectTextOnFocus).toBe(true);
+  });
+
   it('warns before soft-deleting a referenced custom exercise', async () => {
     countRoutineReferences.mockResolvedValue(2);
     setStore({ customExercises: [customExercise()] });

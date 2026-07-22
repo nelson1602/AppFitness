@@ -143,6 +143,11 @@ jobs:
             # routine from the built-in catalog, then log a workout set and see it
             # saved (pending) before finishing the workout.
             maestro test .maestro/workout-training-plan.yml
+            # Phase 16 Slice 10 — custom-exercise UI. Same onboard session:
+            # create/edit a user-owned custom exercise from the Exercise
+            # library, use it from both workout pickers, soft-delete it, and
+            # verify historical routine references fall back safely.
+            maestro test .maestro/workout-custom-exercise.yml
             # Phase 14.5 — offline data entry. Register online, then DROP the
             # adb-reverse loopback to simulate offline (airplane mode does not
             # sever it): a profile saves locally + sync goes "Offline".
