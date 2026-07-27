@@ -1864,8 +1864,11 @@ own go-ahead.**
   `workout-custom-exercise.yml` flow, wired after `workout-training-plan.yml`,
   covers Exercise library create/edit/delete, custom exercise use in routine and
   workout-log pickers, iCoach-neutral copy, active-routine delete warning, and
-  `"(removed exercise)"` fallback. YAML/workflow/docs only; no app source,
-  schema, backend, dependency, catalog, or ADR-P013 change.
+  `"(removed exercise)"` fallback. The PR also carries two E2E-surfaced product
+  fixes — `AppButton` 44×44 minimum touch target and `FormField` opt-in
+  `selectTextOnFocus` (used by `CustomExerciseForm`) — plus an SDK 57 package
+  alignment (`package.json`/lock) that restored the Expo doctor + bundle-export
+  CI gate. No schema / backend / nutrition / catalog / ADR-P013 change.
   **LOCAL verification GREEN (2026-07-22):** the local chain
   `registration → onboarding-loop → medical-management → workout-training-plan →
   workout-custom-exercise` passed on a locally-built e2e APK (app-source commit

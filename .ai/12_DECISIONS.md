@@ -5136,8 +5136,10 @@ routine or logging a set.
 
 ### Slice 10 E2E Coverage (2026-07-21) — custom-exercise UI flow
 
-**Status:** Authored and wired, pending a fresh EAS `e2e` APK plus manual
-`mobile-e2e` dispatch before it can be marked verified green.
+**Status:** Authored and wired; **local E2E verified green (2026-07-22)** on a
+locally-built e2e APK + emulator + seeded local API. Cloud `mobile-e2e` remains
+pending a fresh EAS `e2e` APK plus manual dispatch after the Android
+build-quota reset — **not yet marked verified green**.
 
 **Coverage authored:** `mobile/.maestro/workout-custom-exercise.yml` runs after
 `workout-training-plan.yml` on the persisted onboard session. It covers
@@ -5146,8 +5148,12 @@ from both the routine-builder and workout-log pickers, non-medical
 iCoach-neutral copy, soft-delete with active-routine warning, and the accepted
 `"(removed exercise)"` fallback for historical routine references.
 
-**Scope:** YAML/workflow/docs only. No app source, schema, backend, sync
-protocol, dependency, catalog, nutrition, or ADR-P013 change.
+**Scope:** the Maestro flow + `mobile-e2e` wiring, plus two E2E-surfaced product
+fixes carried on the PR branch — `AppButton` 44×44 minimum touch target and
+`FormField` opt-in `selectTextOnFocus` (used by `CustomExerciseForm`) — and an
+SDK 57 package alignment (`package.json`/lock) that restored the Expo doctor +
+bundle-export CI gate. No schema, backend, sync protocol, nutrition/catalog, or
+ADR-P013 change.
 
 **Still deferred:** richer custom-exercise medical mapping remains a separate
 future decision. Built-in catalog mappings remain the only source used for

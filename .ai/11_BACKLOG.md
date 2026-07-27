@@ -855,8 +855,12 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
     Dashboard → Exercise library, create/edit of a user-owned custom exercise,
     use from both routine-builder and workout-log pickers, non-medical
     iCoach-neutral copy, soft-delete with active-routine warning, and the
-    accepted `"(removed exercise)"` fallback. Wired into `mobile-e2e.yml`; no
-    app source / schema / backend / dependency / catalog change.
+    accepted `"(removed exercise)"` fallback. Wired into `mobile-e2e.yml`. The PR
+    also carries two E2E-surfaced product fixes — `AppButton` 44×44 minimum touch
+    target and `FormField` opt-in `selectTextOnFocus` (used by
+    `CustomExerciseForm`) — plus an SDK 57 package alignment
+    (`package.json`/lock) that restored the Expo doctor + bundle-export CI gate.
+    No schema / backend / nutrition / catalog / ADR-P013 change.
     **LOCAL verification GREEN (2026-07-22):** the full chain
     `registration → onboarding-loop → medical-management → workout-training-plan
     → workout-custom-exercise` passed on a locally-built e2e APK (from app-source
