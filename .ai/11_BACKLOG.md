@@ -913,7 +913,18 @@ offline-first and deterministic. Reuses the dormant, already-provisioned
 for full context, decisions D1–D6, and architecture references.
 
 ### Proposed slices (each separately authorized)
-1. Schema/sync audit + resolve D1–D6 (no code).
+1. Schema/sync audit + resolve D1–D6 (no code). **DONE 2026-08-03 (read-only
+   audit):** tables + sync envelope present both stores; backend triggers/indexes
+   cover all three. Gaps found: **M1** — mobile `progress_snapshots` lacks a
+   `sync_status` dirty index (needed for D2 push); **M2** — `progress_snapshots`
+   has no `rule_version` column (D2/D6). `period_type` not needed for weekly v1.
+   Local-date columns sufficient but the deterministic derivation rule is pending
+   (before Slice 4). D4 workout/nutrition sources are deterministic for v1. No
+   code changed. See ADR-P016 "Slice 1 audit resolution" + "M2 micro-decision
+   gate" (**M2 ACCEPTED 2026-08-03 = Option A: additive `rule_version`, v1
+   uniqueness `user + week_start + rule_version`, `period_type` deferred**). Next:
+   Slice 2 = additive-only schema activation (M1 required; M2 = accepted) —
+   separately authorized; no migration created yet.
 2. Backend sync handlers (`BodyWeight`, `BodyMeasurement`; `ProgressSnapshot` per D2) + `ProgressModule`.
 3. Mobile `progress` feature — repositories, store, pull/push appliers (local-first + pending sync).
 4. Deterministic weekly-rollup engine (iCoach domain) — volume/calorie/weight/deload; rule-version bump; tests at thresholds.
