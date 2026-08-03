@@ -848,8 +848,7 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    inline quick-create from workout pickers. Keep custom exercises neutral for
    iCoach restrictions, preserve local-first writes/pending sync, and defer E2E
    to a separate slice.
-10. Custom-exercise E2E validation (Maestro). **AUTHORED 2026-07-21
-    (awaiting a fresh e2e APK + manual `mobile-e2e` dispatch):**
+10. Custom-exercise E2E validation (Maestro). **CLOUD-VERIFIED GREEN 2026-08-03:**
     `mobile/.maestro/workout-custom-exercise.yml` runs after
     `workout-training-plan.yml` on the persisted onboard session. It exercises
     Dashboard → Exercise library, create/edit of a user-owned custom exercise,
@@ -861,16 +860,18 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
     `CustomExerciseForm`) — plus an SDK 57 package alignment
     (`package.json`/lock) that restored the Expo doctor + bundle-export CI gate.
     No schema / backend / nutrition / catalog / ADR-P013 change.
-    **LOCAL verification GREEN (2026-07-22):** the full chain
+    **CLOUD verification GREEN (2026-08-03):** GitHub `mobile-e2e` run
+    `30821179350` (PR head `52fdaf1`) passed the full chain
     `registration → onboarding-loop → medical-management → workout-training-plan
-    → workout-custom-exercise` passed on a locally-built e2e APK (from app-source
-    commit `4073209` — the AppButton 44×44 touch-target fix) plus the Maestro
-    flow fix `9f7fa62`, run on the `appfitness` Android emulator against the
-    seeded local API. **This is LOCAL verification only.** GitHub `mobile-e2e` /
-    cloud EAS verification remains **PENDING** because the EAS Android build
-    quota is exhausted (until the monthly reset / a plan upgrade), so no cloud
-    APK containing these fixes could be built. **PR #8 remains unmerged** pending
-    owner decision or cloud verification.
+    → workout-custom-exercise`. It downloaded the latest finished EAS `e2e` APK
+    — build `b31e7c6d-1e26-4d82-8253-15f828ed4883`, built from commit `52fdaf1`
+    (== PR head) — and ran it on the CI Android emulator against a disposable
+    Postgres + live NestJS API. The `workout-custom-exercise.yml` flow completed
+    all six sections (library create/edit, routine + workout-log picker use,
+    active-routine delete warning `.*Used in 1 routine.*`, and the
+    `"(removed exercise)"` fallback), with zero FAILED steps across the suite.
+    This supersedes the earlier LOCAL-only run (2026-07-22). **PR #8 remains
+    unmerged** pending owner review/merge.
 
 ### Privacy stance
 Workout data = **wellness** (synced, not encrypted). Injury/restriction/medical

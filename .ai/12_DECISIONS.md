@@ -5136,10 +5136,14 @@ routine or logging a set.
 
 ### Slice 10 E2E Coverage (2026-07-21) — custom-exercise UI flow
 
-**Status:** Authored and wired; **local E2E verified green (2026-07-22)** on a
-locally-built e2e APK + emulator + seeded local API. Cloud `mobile-e2e` remains
-pending a fresh EAS `e2e` APK plus manual dispatch after the Android
-build-quota reset — **not yet marked verified green**.
+**Status:** Authored, wired, and **cloud E2E verified green (2026-08-03)**.
+GitHub `mobile-e2e` run `30821179350` (PR head `52fdaf1`) ran the latest
+finished EAS `e2e` APK — build `b31e7c6d-1e26-4d82-8253-15f828ed4883`, built
+from commit `52fdaf1` (== PR head) — on the CI Android emulator against a
+disposable Postgres + live NestJS API. The full chain
+`registration → onboarding-loop → medical-management → workout-training-plan →
+workout-custom-exercise` passed with zero FAILED steps, superseding the earlier
+LOCAL-only run (2026-07-22). PR #8 remains unmerged pending owner review/merge.
 
 **Coverage authored:** `mobile/.maestro/workout-custom-exercise.yml` runs after
 `workout-training-plan.yml` on the persisted onboard session. It covers

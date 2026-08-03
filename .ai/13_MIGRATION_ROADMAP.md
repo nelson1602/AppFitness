@@ -1859,8 +1859,8 @@ own go-ahead.**
   iCoach-neutral caution, and `"(removed exercise)"` fallback for deleted/missing
   custom references. No schema/backend sync/dependency/ADR-P013/nutrition
   change; E2E deferred.
-- **Slice 10** — custom-exercise E2E validation. **AUTHORED 2026-07-21
-  (pending fresh e2e APK + manual `mobile-e2e` run):** new
+- **Slice 10** — custom-exercise E2E validation. **CLOUD-VERIFIED GREEN
+  2026-08-03:** new
   `workout-custom-exercise.yml` flow, wired after `workout-training-plan.yml`,
   covers Exercise library create/edit/delete, custom exercise use in routine and
   workout-log pickers, iCoach-neutral copy, active-routine delete warning, and
@@ -1869,15 +1869,15 @@ own go-ahead.**
   `selectTextOnFocus` (used by `CustomExerciseForm`) — plus an SDK 57 package
   alignment (`package.json`/lock) that restored the Expo doctor + bundle-export
   CI gate. No schema / backend / nutrition / catalog / ADR-P013 change.
-  **LOCAL verification GREEN (2026-07-22):** the local chain
+  **CLOUD verification GREEN (2026-08-03):** GitHub `mobile-e2e` run
+  `30821179350` (PR head `52fdaf1`) passed the full chain
   `registration → onboarding-loop → medical-management → workout-training-plan →
-  workout-custom-exercise` passed on a locally-built e2e APK (app-source commit
-  `4073209`, the AppButton 44×44 minimum-touch-target fix) with the Maestro flow
-  fix `9f7fa62` on the PR branch, run on the `appfitness` emulator + seeded local
-  API. **LOCAL verification only** — GitHub `mobile-e2e` / cloud EAS verification
-  remains **PENDING** because the EAS Android build quota is exhausted until the
-  reset / a plan upgrade (no cloud APK with these fixes could be built).
-  **PR #8 remains unmerged** pending owner decision or cloud verification.
+  workout-custom-exercise`. It ran the latest finished EAS `e2e` APK — build
+  `b31e7c6d-1e26-4d82-8253-15f828ed4883`, built from commit `52fdaf1` (== PR
+  head) — on the CI Android emulator against a disposable Postgres + live NestJS
+  API; the `workout-custom-exercise.yml` flow completed all six sections with
+  zero FAILED steps. Supersedes the earlier LOCAL-only run (2026-07-22).
+  **PR #8 remains unmerged** pending owner review/merge.
 
 ### Exit Criteria
 - [ ] Owner accepts ADR-P015 before any Phase 16 implementation.
