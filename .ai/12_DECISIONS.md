@@ -5181,14 +5181,14 @@ deterministic excluded-movement warnings.
 
 ## ADR-P016 — Progress Monitoring (Phase 17)
 
-Status: **Proposed** (planning gate) — **D1–D4 accepted (2026-08-03); D5–D6
+Status: **Proposed** (planning gate) — **D1–D5 accepted (2026-08-03); D6
 pending**. This is a documentation-only planning gate: it proposes the Phase 17
 scope, data model reuse, decisions D1–D6, and slice plan. **No schema, migration,
 backend module, mobile code, sync handler, UI, dependency, or charting library
 has landed or is authorized.** The owner has accepted **D1 = Option A**,
-**D2 = Option A**, **D3 = Option A**, and **D4 = Option A** (see the
-"D1/D2/D3/D4 decision gate" sections below); the ADR stays Proposed overall until
-the remaining required decisions (D5–D6) are resolved/accepted. Acceptance
+**D2 = Option A**, **D3 = Option A**, **D4 = Option A**, and **D5 = Option A**
+(see the "D1–D5 decision gate" sections below); the ADR stays Proposed overall
+until the last required decision (D6) is resolved/accepted. Acceptance
 (owner-only) authorizes the slice plan and, per the established pattern, only the
 first slice; each later slice needs its own scoped authorization.
 Date drafted: 2026-08-03
@@ -5196,6 +5196,7 @@ Date D1 accepted: 2026-08-03
 Date D2 accepted: 2026-08-03
 Date D3 accepted: 2026-08-03
 Date D4 accepted: 2026-08-03
+Date D5 accepted: 2026-08-03
 Relates to: ADR-0006 (offline-first sync), ADR-0011 (health-data sensitivity),
 ADR-P001/P006 (field-level encryption), ADR-P010 (monitoring), and the
 deterministic iCoach engine (`mobile/src/features/icoach/domain`). Reuses the
@@ -5700,8 +5701,22 @@ preserved and v1 read-only; it does **not** resolve D6, enable any plan-affectin
 rule, change code/schema, or authorize a slice. Enabling any progress-driven
 engine rule remains a separate future step behind an `ENGINE_RULE_VERSION` bump.
 
-- [ ] **Owner accepts D5 = Option A** (records the decision in this ADR;
-      implementation still gated per-slice).
+- [x] **Owner accepts D5 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D5 ACCEPTED (2026-08-03, by project owner) = Option A.** Progress Monitoring
+produces deterministic, rule-versioned progress **signals** that iCoach may
+consume as **inputs** (explanations, plateau hints, deload/adherence summaries,
+or future deterministic rules); Progress Monitoring **never** recomputes or
+directly mutates `TrainingPlan`, nutrition targets, medical restrictions, or
+doctor evaluation state. Medical restrictions and safety blockers remain
+authoritative and highest priority. Any future iCoach rule using progress signals
+must be rule-versioned (`ENGINE_RULE_VERSION` bump), explainable, deterministic,
+and test-covered. v1 remains **read-only** (summaries/explanations) unless a
+separate plan-affecting rule is explicitly authorized. This records the
+interaction model only. **ADR-P016 overall remains Proposed** pending D6; D6 is
+unresolved; no code/schema change is made and no slice is authorized (Slice 1
+audit remains the first separately-authorized step).
 
 ### Proposed slice plan (each slice separately authorized)
 

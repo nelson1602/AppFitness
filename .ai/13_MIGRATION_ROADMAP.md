@@ -1926,9 +1926,9 @@ primitives, accessible summaries, no new dependency in v1**); D4 — v1 metric
 scope (**ACCEPTED 2026-08-03 = Option A — focused set: body-weight/waist + weekly
 snapshot primary, other measurements/adherence optional when deterministic;
 medical-trend/diagnostic/predictive/ML excluded**); D5 — iCoach feed (never
-override) (**gate drafted 2026-08-03: recommends Option A — feed-not-override
-deterministic rule-versioned signals; medical/TrainingPlan authority preserved;
-v1 read-only; pending owner acceptance**); D6 — duplicate-date conflict semantics.
+override) (**ACCEPTED 2026-08-03 = Option A — feed-not-override deterministic
+rule-versioned signals; medical/TrainingPlan authority preserved; v1 read-only**);
+D6 — duplicate-date conflict semantics.
 
 ### Exit Criteria
 - [ ] Users see progress trends from their own data; offline-first; tests
