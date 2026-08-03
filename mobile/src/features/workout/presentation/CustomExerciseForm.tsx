@@ -110,6 +110,7 @@ export function CustomExerciseForm({
         label="Name"
         placeholder="e.g. Zercher squat"
         required
+        selectTextOnFocus
       />
       {showNormalizedPreview ? (
         <AppText variant="caption" tone="muted" accessibilityLabel="Name will be saved as">
@@ -122,6 +123,7 @@ export function CustomExerciseForm({
         label="Muscle group"
         placeholder="e.g. legs"
         required
+        selectTextOnFocus
       />
       <FormSelect
         control={control}
@@ -135,6 +137,7 @@ export function CustomExerciseForm({
         name="instructions"
         label="Instructions (optional)"
         placeholder="How to perform it"
+        selectTextOnFocus
       />
 
       <CustomExerciseNote />

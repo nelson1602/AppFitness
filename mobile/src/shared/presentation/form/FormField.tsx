@@ -12,6 +12,13 @@ interface FormFieldProps<T extends FieldValues> {
   placeholder?: string;
   keyboardType?: 'default' | 'numeric' | 'decimal-pad';
   required?: boolean;
+  /**
+   * Select the field's whole value when it gains focus. Opt-in (default off) so
+   * existing create-style forms are unaffected; enable it for edit forms that
+   * prefill a value so tapping in replaces the text deterministically instead
+   * of leaving a mid-cursor that mangles a subsequent overwrite.
+   */
+  selectTextOnFocus?: boolean;
 }
 
 /**
@@ -27,6 +34,7 @@ export function FormField<T extends FieldValues>({
   placeholder,
   keyboardType = 'default',
   required = false,
+  selectTextOnFocus = false,
 }: FormFieldProps<T>) {
   const theme = useTheme();
   return (
@@ -44,6 +52,7 @@ export function FormField<T extends FieldValues>({
             testID={`field-${name}`}
             autoCapitalize="none"
             autoCorrect={false}
+            selectTextOnFocus={selectTextOnFocus}
             keyboardType={keyboardType}
             placeholder={placeholder}
             placeholderTextColor={theme.colors.onSurfaceVariant}

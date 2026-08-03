@@ -1859,6 +1859,25 @@ own go-ahead.**
   iCoach-neutral caution, and `"(removed exercise)"` fallback for deleted/missing
   custom references. No schema/backend sync/dependency/ADR-P013/nutrition
   change; E2E deferred.
+- **Slice 10** — custom-exercise E2E validation. **CLOUD-VERIFIED GREEN
+  2026-08-03:** new
+  `workout-custom-exercise.yml` flow, wired after `workout-training-plan.yml`,
+  covers Exercise library create/edit/delete, custom exercise use in routine and
+  workout-log pickers, iCoach-neutral copy, active-routine delete warning, and
+  `"(removed exercise)"` fallback. The PR also carries two E2E-surfaced product
+  fixes — `AppButton` 44×44 minimum touch target and `FormField` opt-in
+  `selectTextOnFocus` (used by `CustomExerciseForm`) — plus an SDK 57 package
+  alignment (`package.json`/lock) that restored the Expo doctor + bundle-export
+  CI gate. No schema / backend / nutrition / catalog / ADR-P013 change.
+  **CLOUD verification GREEN (2026-08-03):** GitHub `mobile-e2e` run
+  `30821179350` (PR head `52fdaf1`) passed the full chain
+  `registration → onboarding-loop → medical-management → workout-training-plan →
+  workout-custom-exercise`. It ran the latest finished EAS `e2e` APK — build
+  `b31e7c6d-1e26-4d82-8253-15f828ed4883`, built from commit `52fdaf1` (== PR
+  head) — on the CI Android emulator against a disposable Postgres + live NestJS
+  API; the `workout-custom-exercise.yml` flow completed all six sections with
+  zero FAILED steps. Supersedes the earlier LOCAL-only run (2026-07-22).
+  **PR #8 remains unmerged** pending owner review/merge.
 
 ### Exit Criteria
 - [ ] Owner accepts ADR-P015 before any Phase 16 implementation.

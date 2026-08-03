@@ -848,6 +848,30 @@ full gate (audit findings, decisions D1–D5, slice plan, acceptance criteria).
    inline quick-create from workout pickers. Keep custom exercises neutral for
    iCoach restrictions, preserve local-first writes/pending sync, and defer E2E
    to a separate slice.
+10. Custom-exercise E2E validation (Maestro). **CLOUD-VERIFIED GREEN 2026-08-03:**
+    `mobile/.maestro/workout-custom-exercise.yml` runs after
+    `workout-training-plan.yml` on the persisted onboard session. It exercises
+    Dashboard → Exercise library, create/edit of a user-owned custom exercise,
+    use from both routine-builder and workout-log pickers, non-medical
+    iCoach-neutral copy, soft-delete with active-routine warning, and the
+    accepted `"(removed exercise)"` fallback. Wired into `mobile-e2e.yml`. The PR
+    also carries two E2E-surfaced product fixes — `AppButton` 44×44 minimum touch
+    target and `FormField` opt-in `selectTextOnFocus` (used by
+    `CustomExerciseForm`) — plus an SDK 57 package alignment
+    (`package.json`/lock) that restored the Expo doctor + bundle-export CI gate.
+    No schema / backend / nutrition / catalog / ADR-P013 change.
+    **CLOUD verification GREEN (2026-08-03):** GitHub `mobile-e2e` run
+    `30821179350` (PR head `52fdaf1`) passed the full chain
+    `registration → onboarding-loop → medical-management → workout-training-plan
+    → workout-custom-exercise`. It downloaded the latest finished EAS `e2e` APK
+    — build `b31e7c6d-1e26-4d82-8253-15f828ed4883`, built from commit `52fdaf1`
+    (== PR head) — and ran it on the CI Android emulator against a disposable
+    Postgres + live NestJS API. The `workout-custom-exercise.yml` flow completed
+    all six sections (library create/edit, routine + workout-log picker use,
+    active-routine delete warning `.*Used in 1 routine.*`, and the
+    `"(removed exercise)"` fallback), with zero FAILED steps across the suite.
+    This supersedes the earlier LOCAL-only run (2026-07-22). **PR #8 remains
+    unmerged** pending owner review/merge.
 
 ### Privacy stance
 Workout data = **wellness** (synced, not encrypted). Injury/restriction/medical

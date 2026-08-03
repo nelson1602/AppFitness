@@ -10,6 +10,14 @@ import {
 import { useTheme } from '../theme';
 import { AppText } from './app-text';
 
+/**
+ * Mandatory minimum touch target (.ai/08_UI_UX.md — "Minimum touch target:
+ * 44 x 44", WCAG 2.2 AA / Apple HIG). Enforced on every button, including the
+ * bare `text` variant whose label alone would otherwise be well under 44px and
+ * hard to hit (for users and automation alike).
+ */
+const MIN_TOUCH_TARGET = 44;
+
 type ButtonVariant = 'primary' | 'secondary' | 'text' | 'destructive';
 
 interface AppButtonProps extends Omit<PressableProps, 'children' | 'style'> {
@@ -60,7 +68,8 @@ export function AppButton({
         styles.base,
         {
           borderRadius: theme.radius.medium,
-          minHeight: theme.spacing.xl + theme.spacing.md,
+          minHeight: MIN_TOUCH_TARGET,
+          minWidth: MIN_TOUCH_TARGET,
           paddingHorizontal: theme.spacing.lg,
           opacity: isDisabled ? 0.56 : pressed ? 0.84 : 1,
         },
