@@ -1921,8 +1921,8 @@ D2–D6**);
 D2 — snapshot computation on-device (proposed) vs server-computed (**ACCEPTED
 2026-08-03 = Option A — on-device deterministic, synced; backend validates but
 does not recompute in v1**); D3 — charting
-approach (**gate drafted 2026-08-03: recommends Option A — lightweight in-house/
-native primitives, no new dependency; pending owner acceptance**); D4 — v1 metric
+approach (**ACCEPTED 2026-08-03 = Option A — lightweight in-house/native
+primitives, accessible summaries, no new dependency in v1**); D4 — v1 metric
 scope; D5 — iCoach feed (never override); D6 — duplicate-date conflict semantics.
 
 ### Exit Criteria
