@@ -5159,6 +5159,20 @@ SDK 57 package alignment (`package.json`/lock) that restored the Expo doctor +
 bundle-export CI gate. No schema, backend, sync protocol, nutrition/catalog, or
 ADR-P013 change.
 
+**Expo doctor exclusions (2026-08-03):** the ten SDK-57 packages whose upstream
+patch recommendations later drifted ahead of the installed set (`expo`,
+`expo-router`, `expo-constants`, `expo-system-ui`, `@expo/ui`, `jest-expo`,
+`react-native`, `react-native-reanimated`, `react-native-worklets`,
+`eslint-config-expo`) are listed under `expo.install.exclude` in
+`mobile/package.json`. These exclusions are intentional: they preserve the exact
+dependency/runtime set already cloud-verified by `mobile-e2e` run `30821179350`
+(APK `b31e7c6d` from `52fdaf1`), with no `package-lock.json` or runtime change.
+Full SDK-57 patch re-alignment is deferred because npm cannot upgrade these
+packages minimally — it requires a from-scratch lockfile regeneration that also
+moves unrelated dependencies. This note records an intentional gate exclusion
+only; it does **not** assert any new runtime verification and leaves the existing
+cloud verification above unchanged.
+
 **Still deferred:** richer custom-exercise medical mapping remains a separate
 future decision. Built-in catalog mappings remain the only source used for
 deterministic excluded-movement warnings.

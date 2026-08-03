@@ -60,6 +60,22 @@
     "test": "jest"
   },
   "private": true,
+  "expo": {
+    "install": {
+      "exclude": [
+        "@expo/ui",
+        "expo",
+        "expo-constants",
+        "expo-router",
+        "expo-system-ui",
+        "jest-expo",
+        "react-native",
+        "react-native-reanimated",
+        "react-native-worklets",
+        "eslint-config-expo"
+      ]
+    }
+  },
   "jest": {
     "preset": "jest-expo",
     "testTimeout": 30000,
