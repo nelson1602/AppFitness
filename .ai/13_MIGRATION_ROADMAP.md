@@ -1928,7 +1928,10 @@ snapshot primary, other measurements/adherence optional when deterministic;
 medical-trend/diagnostic/predictive/ML excluded**); D5 — iCoach feed (never
 override) (**ACCEPTED 2026-08-03 = Option A — feed-not-override deterministic
 rule-versioned signals; medical/TrainingPlan authority preserved; v1 read-only**);
-D6 — duplicate-date conflict semantics.
+D6 — duplicate-date conflict semantics (**gate drafted 2026-08-03: recommends
+Option A — per-user local-date uniqueness, edit-not-duplicate, explicit
+sync_conflicts (never silent overwrite), user-local-date boundaries,
+deterministic regenerable snapshots; pending owner acceptance**).
 
 ### Exit Criteria
 - [ ] Users see progress trends from their own data; offline-first; tests

@@ -5718,6 +5718,82 @@ interaction model only. **ADR-P016 overall remains Proposed** pending D6; D6 is
 unresolved; no code/schema change is made and no slice is authorized (Slice 1
 audit remains the first separately-authorized step).
 
+### D6 decision gate — duplicate-date & conflict semantics (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D6 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+> D6 is the last open decision; accepting it does **not** by itself make the ADR
+> fully Accepted (see the ADR status line).
+
+**Question.** How do `body_weights`, `body_measurements`, and `progress_snapshots`
+handle duplicate-date entries and offline sync conflicts? The tables carry
+`UNIQUE(user_id, date)` / `UNIQUE(user_id, week_start)`, and the project rule is
+that **health/wellness history is never silently overwritten** (ADR-0006 +
+`00_PROJECT.md` Data Philosophy). The existing sync machinery already models
+version mismatch → `sync_conflicts` row with `redactForConflict` (ADR-P012).
+
+**Option A — Deterministic per-user local-date uniqueness + explicit conflict
+handling. (RECOMMENDED.)**
+- *User-entered body metrics:* one **active** `body_weight` per user per
+  local-date; one **active** `body_measurement` per user per local-date (the
+  table is one row per date carrying all measurement fields); editing a same-day
+  entry **updates the existing record** (version bump) rather than creating
+  silent duplicates.
+- *Snapshots:* one **active** `progress_snapshot` per user per
+  period + `period_start` (local-date) + rule version; snapshots are
+  deterministic rollups (D2) and may be **regenerated** from accepted source
+  records when inputs or the rule version change.
+- *Date boundary:* use the **user-local calendar date** for entry and snapshot
+  periods; **never** UTC day boundaries for user-facing grouping. If the current
+  schema lacks a stored offset/derivation rule, defining the deterministic
+  local-date rule (and any additive column) is a **Slice 1 audit** item.
+- *Conflict behavior:* same-device sequential edits update the existing
+  record/`version`; cross-device concurrent edits that cannot be safely merged
+  become **explicit `sync_conflicts`** for user resolution (reusing the ADR-P012
+  machinery) — **never a silent overwrite** of wellness history.
+- *Backend:* validates uniqueness/conflict shape and `version`; does **not**
+  recompute v1 snapshots (consistent with D2).
+- *Rationale by criterion:* **offline-first correctness** — deterministic local
+  keys let each device write without coordination; **user expectation** — one
+  weigh-in per day, editable; **data integrity** — no silent history loss;
+  **sync-conflict safety** — reuses proven conflict/version machinery; **
+  determinism** — snapshot keys include rule version, so regeneration is
+  reproducible (D2); **timezone** — explicit local-date rule avoids off-by-one
+  day bugs; **privacy** — wellness-only, conflicts redact per existing rules;
+  **testability** — uniqueness + conflict paths are deterministic units;
+  **migration/schema** — likely additive-only (the unique constraints exist);
+  confirming/adding a local-date/offset field is a Slice 1 item.
+
+**Option B — Allow unlimited same-day duplicates, aggregate later. (Not
+recommended.)** Simplifies entry but breaks the `UNIQUE(user_id, date)`
+contract, makes "today's weight" ambiguous, complicates deterministic snapshots,
+and pushes reconciliation into every read. Rejected.
+
+**Option C — Server canonicalizes duplicates silently. (Not recommended.)**
+Violates the no-silent-overwrite rule and the D2 on-device/offline-first model
+(server would need authority over user history); rejected on data-integrity and
+determinism grounds.
+
+**Option D — Defer.** Leaves conflict semantics undefined and blocks safe sync
+design; only if genuinely contested.
+
+**Recommendation: Option A.** It upholds no-silent-overwrite, reuses the existing
+version/`sync_conflicts` machinery, keeps snapshots deterministically
+regenerable (D2), and fixes user-local-date grouping — while confining any schema
+question (a stored local-date/offset rule) to the Slice 1 audit. B and C break
+core integrity/determinism guarantees; D only if contested.
+
+**Scope of accepting D6=A (when authorized):** fixes duplicate-date and conflict
+semantics (per-user local-date uniqueness, edit-not-duplicate, explicit
+conflicts, user-local-date boundaries, deterministic regenerable snapshots,
+backend validates-not-recomputes); it does **not** change code/schema or
+authorize a slice. The exact local-date/offset representation is resolved in the
+Slice 1 audit (additive-only if a change is needed).
+
+- [ ] **Owner accepts D6 = Option A** (records the decision in this ADR;
+      implementation still gated per-slice).
+
 ### Proposed slice plan (each slice separately authorized)
 
 1. **Schema/sync audit + decisions.** Verify triggers/columns on the three
