@@ -5977,8 +5977,17 @@ migration detail (additive/forward-only), not decided here.
 `rule_version` column + v1 uniqueness approach; it does **not** create a
 migration, write code, or authorize other slices.
 
-- [ ] **Owner accepts M2 = Option A** (records the decision; Slice 2 migration
-      still separately authorized).
+- [x] **Owner accepts M2 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision; Slice 2 migration still separately authorized).
+
+**M2 ACCEPTED (2026-08-03, by project owner) = Option A.** Slice 2 will add
+`progress_snapshots.rule_version` as an **additive** schema column (both stores);
+v1 remains **weekly-only** using `week_start` as the period boundary, with v1
+uniqueness `(user_id, week_start, rule_version)`; `period_type` is **deferred** to
+a future multi-period (monthly/quarterly) amendment. This records the decision
+only — **no migration is created and Slice 2 is not started**; the exact
+additive/forward-only constraint form is a Slice 2 detail. Slice 1 remains
+docs-only; ADR-P016 and D1–D6 are unchanged.
 
 ---
 

@@ -1915,9 +1915,10 @@ three. Gaps: **M1** — mobile `progress_snapshots` lacks a `sync_status` dirty
 index (D2 push); **M2** — no `rule_version` column (D2/D6), `period_type` deferred
 past weekly v1. Local-date columns sufficient but the deterministic derivation
 rule is pending (before Slice 4). D4 workout/nutrition sources deterministic for
-v1. **M2 micro-decision gate drafted (recommends Option A — additive
-`rule_version`; owner sign-off pending).** Next: Slice 2 additive-only schema
-activation (M1 required; M2 per gate) — separately authorized.
+v1. **M2 ACCEPTED 2026-08-03 = Option A (additive `rule_version`; v1 uniqueness
+`user + week_start + rule_version`; `period_type` deferred).** Next: Slice 2
+additive-only schema activation (M1 required; M2 accepted) — separately
+authorized; no migration created yet.
 
 **Proposed slices (each separately authorized):** (1) schema/sync audit +
 resolve D1–D6; (2) backend sync handlers + `ProgressModule`; (3) mobile

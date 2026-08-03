@@ -921,8 +921,10 @@ for full context, decisions D1–D6, and architecture references.
    Local-date columns sufficient but the deterministic derivation rule is pending
    (before Slice 4). D4 workout/nutrition sources are deterministic for v1. No
    code changed. See ADR-P016 "Slice 1 audit resolution" + "M2 micro-decision
-   gate" (recommends Option A; owner sign-off pending). Next: Slice 2 =
-   additive-only schema activation (M1 required; M2 per gate).
+   gate" (**M2 ACCEPTED 2026-08-03 = Option A: additive `rule_version`, v1
+   uniqueness `user + week_start + rule_version`, `period_type` deferred**). Next:
+   Slice 2 = additive-only schema activation (M1 required; M2 = accepted) —
+   separately authorized; no migration created yet.
 2. Backend sync handlers (`BodyWeight`, `BodyMeasurement`; `ProgressSnapshot` per D2) + `ProgressModule`.
 3. Mobile `progress` feature — repositories, store, pull/push appliers (local-first + pending sync).
 4. Deterministic weekly-rollup engine (iCoach domain) — volume/calorie/weight/deload; rule-version bump; tests at thresholds.
