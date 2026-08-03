@@ -1877,11 +1877,11 @@ own go-ahead.**
   head) — on the CI Android emulator against a disposable Postgres + live NestJS
   API; the `workout-custom-exercise.yml` flow completed all six sections with
   zero FAILED steps. Supersedes the earlier LOCAL-only run (2026-07-22).
-  **PR #8 remains unmerged** pending owner review/merge.
+  **PR #8 merged via `c130e899`.**
 
 ### Exit Criteria
-- [ ] Owner accepts ADR-P015 before any Phase 16 implementation.
-- [ ] Users build routines and log workouts; syncs offline-first; the
+- [x] Owner accepts ADR-P015 before any Phase 16 implementation.
+- [x] Users build routines and log workouts; syncs offline-first; the
       engine's training plan is reflected (never recomputed); tests meet thresholds.
 
 ## Phase 17 — Progress Monitoring  [commercial v1]
