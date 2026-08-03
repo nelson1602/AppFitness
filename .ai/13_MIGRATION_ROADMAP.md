@@ -1898,13 +1898,16 @@ Phases 13–14 (body/evaluation data); dormant `body_weights`/
 Charting without adding a heavy UI framework (prefer lightweight/native);
 historical-data volume/perf.
 
-### Planning gate — ADR-P016 (Proposed 2026-08-03)
-Documentation-only planning gate drafted; **not accepted, no code/schema change
-authorized**. Data model is already provisioned but dormant
-(`body_weights`/`body_measurements`/`progress_snapshots`, `SYNCED_COLS`, backend
-`assign_sync_seq` triggers present). Mirrors the Phase 16 feature/sync
-architecture. Full context, decisions D1–D6, and architecture references live in
-`.ai/12_DECISIONS.md` (ADR-P016) and `.ai/11_BACKLOG.md` (FEATURE-008).
+### Planning gate — ADR-P016 (ACCEPTED 2026-08-03)
+ADR-P016 **accepted as drafted with D1–D6 = Option A**; documentation-only —
+**no code/schema/package change has landed**. Implementation is authorized but
+not started; the **next authorized step is Slice 1 (audit) only**, and every
+later slice needs its own scoped authorization. Data model is already provisioned
+but dormant (`body_weights`/`body_measurements`/`progress_snapshots`,
+`SYNCED_COLS`, backend `assign_sync_seq` triggers present). Mirrors the Phase 16
+feature/sync architecture. Full context, decisions D1–D6, and the acceptance
+resolution live in `.ai/12_DECISIONS.md` (ADR-P016) and `.ai/11_BACKLOG.md`
+(FEATURE-008).
 
 **Proposed slices (each separately authorized):** (1) schema/sync audit +
 resolve D1–D6; (2) backend sync handlers + `ProgressModule`; (3) mobile
@@ -1918,9 +1921,21 @@ the dashboard adapter reads today) + wellness-vs-medical classification
 (**ACCEPTED 2026-08-03 = Option A — activate wellness tables; keep
 `medical_evaluations` medical-only; ADR-P016 overall still Proposed pending
 D2–D6**);
-D2 — snapshot computation on-device (proposed) vs server-computed; D3 — charting
-approach; D4 — v1 metric scope; D5 — iCoach feed (never override); D6 —
-duplicate-date conflict semantics.
+D2 — snapshot computation on-device (proposed) vs server-computed (**ACCEPTED
+2026-08-03 = Option A — on-device deterministic, synced; backend validates but
+does not recompute in v1**); D3 — charting
+approach (**ACCEPTED 2026-08-03 = Option A — lightweight in-house/native
+primitives, accessible summaries, no new dependency in v1**); D4 — v1 metric
+scope (**ACCEPTED 2026-08-03 = Option A — focused set: body-weight/waist + weekly
+snapshot primary, other measurements/adherence optional when deterministic;
+medical-trend/diagnostic/predictive/ML excluded**); D5 — iCoach feed (never
+override) (**ACCEPTED 2026-08-03 = Option A — feed-not-override deterministic
+rule-versioned signals; medical/TrainingPlan authority preserved; v1 read-only**);
+D6 — duplicate-date conflict semantics (**ACCEPTED 2026-08-03 = Option A —
+per-user local-date uniqueness, edit-not-duplicate, explicit sync_conflicts
+(never silent overwrite), user-local-date boundaries, deterministic regenerable
+snapshots**). **All D1–D6 accepted; ADR-P016 overall remains Proposed pending a
+separate explicit full-acceptance step.**
 
 ### Exit Criteria
 - [ ] Users see progress trends from their own data; offline-first; tests

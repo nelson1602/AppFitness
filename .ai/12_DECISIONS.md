@@ -5181,17 +5181,22 @@ deterministic excluded-movement warnings.
 
 ## ADR-P016 — Progress Monitoring (Phase 17)
 
-Status: **Proposed** (planning gate) — **D1 accepted (2026-08-03); D2–D6
-pending**. This is a documentation-only planning gate: it proposes the Phase 17
-scope, data model reuse, decisions D1–D6, and slice plan. **No schema, migration,
-backend module, mobile code, sync handler, UI, dependency, or charting library
-has landed or is authorized.** The owner has accepted **D1 = Option A** (see the
-"D1 decision gate" below); the ADR stays Proposed overall until the remaining
-required decisions (D2–D6) are resolved/accepted. Acceptance (owner-only)
-authorizes the slice plan and, per the established pattern, only the first slice;
-each later slice needs its own scoped authorization.
+Status: **Accepted** (2026-08-03, by project owner, as drafted with D1–D6
+accepted). Acceptance is documentation-only: it authorizes the Phase 17 slice
+plan and decisions D1–D6 below, but changes no schema, code, package, or data.
+Implementation stays blocked until each slice gets its own scoped authorization;
+the **next authorized slice is Slice 1 only** (audit — see the Acceptance
+resolution at the end of this ADR). All six decisions are accepted = Option A.
+**No schema, migration, backend module, mobile code, sync handler, UI,
+dependency, or charting library has landed or is authorized by this acceptance.**
 Date drafted: 2026-08-03
+Date accepted: 2026-08-03
 Date D1 accepted: 2026-08-03
+Date D2 accepted: 2026-08-03
+Date D3 accepted: 2026-08-03
+Date D4 accepted: 2026-08-03
+Date D5 accepted: 2026-08-03
+Date D6 accepted: 2026-08-03
 Relates to: ADR-0006 (offline-first sync), ADR-0011 (health-data sensitivity),
 ADR-P001/P006 (field-level encryption), ADR-P010 (monitoring), and the
 deterministic iCoach engine (`mobile/src/features/icoach/domain`). Reuses the
@@ -5373,6 +5378,441 @@ Proposed** pending D2–D6; D2–D6 are unresolved; no code/schema change is mad
 no slice is authorized (Slice 1 audit remains the first separately-authorized
 step).
 
+### D2 decision gate — snapshot computation locus (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D2 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+> Builds on the accepted D1 = Option A (wellness tables are the source of truth).
+
+**Question.** Where are the weekly `progress_snapshots` rollups (`avg_weight_kg`,
+`total_volume_kg`, `avg_calories`, `workout_count`, `is_deload_week`) computed —
+on-device, on the server, or both? The dormant schema hints at server-side
+(`ProgressSnapshot.id` is server-`@default(uuid())` and the mobile table has no
+dirty index), but that predates D1 and conflicts with offline-first + on-device
+determinism.
+
+**Option A — On-device deterministic computation, persisted locally, then
+synced. (RECOMMENDED for v1.)** The mobile app computes each snapshot
+deterministically from the D1 wellness source tables plus on-device workout
+volume (`workout_sets`) and calories (`sumDailyTotals`); rows are written to
+`progress_snapshots` and synced through the existing offline-first pipeline. The
+backend accepts synced snapshots and may validate shape/`version`/rule-version
+but does **not** recompute them in v1.
+- *Offline-first:* full functionality with no connectivity — snapshots appear
+  immediately, consistent with the 48-hour offline mandate.
+- *Determinism:* identical local inputs + rule version → identical snapshot
+  (mirrors the `TrainingPlan` engine); reproducible and explainable.
+- *Sync/conflict:* snapshots flow through ADR-0006 like any owned row; needs a
+  `progress_snapshots` mobile dirty index (forward-only migration) and a push
+  applier. Same-`week_start` conflicts resolve by the D6 rule; because outputs
+  are deterministic from synced inputs, divergence is unlikely.
+- *Privacy/security:* stays within the wellness domain; no medical data crosses
+  into the computation; least-privilege preserved.
+- *iCoach boundary:* the deterministic progress engine owns the rollup; medical
+  restrictions remain authoritative and are never recomputed here.
+- *Testability:* pure rollup function unit-tested to icoach-domain thresholds
+  with fixed-input/fixed-output vectors — the strongest determinism story.
+- *Migration/schema impact:* additive only — a mobile dirty index for
+  `progress_snapshots`; backend Prisma model + triggers already exist; no
+  destructive change.
+- *UX responsiveness:* instant, local; no round-trip.
+- *Future scalability:* server-side reconciliation/analytics can be added later
+  as a separate amendment without reworking the client contract.
+
+**Option B — Server-computed snapshots only. (Not recommended for v1.)**
+- *Offline-first:* breaks the mandate — no trends until the device syncs and the
+  server computes; poor first-run/offline UX.
+- *Determinism:* centralized, but requires the server to hold an identical rule
+  engine; client/server rule-version drift risk.
+- *Privacy/iCoach:* pushes the analytics engine server-side, away from the
+  on-device deterministic model the project centers on.
+- *Migration/schema:* needs a backend compute job/worker (BullMQ) — heavier,
+  and leaves the mobile pipeline unused for this entity.
+- *Scalability:* good for heavy cross-user analytics, but premature for v1.
+
+**Option C — Hybrid: device computes provisional snapshots; server reconciles
+canonical later. (Possible later, not v1.)**
+- Best long-term story (fast local UX + authoritative server rollups) but doubles
+  the compute surface, adds provisional-vs-canonical reconciliation and
+  conflict/versioning complexity, and requires the same server engine as B.
+  Defer until a concrete need (e.g. cross-device canonical analytics) exists.
+
+**Option D — Defer.** Leaves the snapshot pipeline undefined; only choose if the
+compute-locus question is genuinely contested.
+
+**Recommendation: Option A for v1.** It is the only option that honors
+offline-first and the on-device deterministic model end-to-end, keeps the
+wellness/medical and iCoach boundaries clean, is additive-only in schema (a
+single mobile dirty index), and gives the strongest testability. The backend
+still validates and stores; server-side recomputation/reconciliation (Option C)
+remains open as a future amendment if cross-device canonical analytics is needed.
+
+**Scope of accepting D2=A (when authorized):** fixes the snapshot compute locus
+as on-device deterministic with sync + server validation (no server recompute in
+v1); it does **not** resolve D3–D6, change any code/schema, or authorize a slice.
+D6 (duplicate/conflict semantics) and the deterministic date-boundary definition
+(`week_start`, timezone) must still be resolved before Slice 4.
+
+- [x] **Owner accepts D2 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D2 ACCEPTED (2026-08-03, by project owner) = Option A.** Progress snapshots are
+computed **on-device deterministically** for v1 from the accepted D1 wellness
+source tables and allowed local inputs, persisted to `progress_snapshots`, and
+synced offline-first; the backend validates shape/`version` and accepts synced
+snapshots but does **not** recompute v1 snapshots. Future server
+reconciliation/hybrid behavior (Option C) is deferred to a future amendment. This
+records the compute-locus decision only. **ADR-P016 overall remains Proposed**
+pending D3–D6; D3–D6 are unresolved; no code/schema change is made and no slice is
+authorized (Slice 1 audit remains the first separately-authorized step). D6
+(duplicate/conflict semantics) and the deterministic `week_start`/timezone
+boundary must still be resolved before Slice 4.
+
+### D3 decision gate — Progress charting approach (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D3 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+
+**Question.** How does Progress Monitoring v1 render trends (body-weight,
+body-fat/waist, weekly volume, calories, workout frequency)? The mobile app has
+**no charting dependency today** — the only presentation primitives are
+`AppText`, `Card`, `Banner`, `AppButton` from `@/shared/presentation`, and the
+roadmap risk note already calls for "charting without adding a heavy UI
+framework."
+
+**Option A — Lightweight in-house/native chart primitives for v1. (RECOMMENDED.)**
+Build simple deterministic trend visuals (line / bar / sparkline) from existing
+React Native primitives and design-system tokens; no new charting dependency;
+accessible text labels/summaries so content is never visual-only; keep the visual
+set limited to what body metrics and weekly snapshots need.
+- *Tech stack / dependency policy:* no new dependency — honors "avoid unnecessary
+  dependencies" and needs no ADR dependency approval (`02_TECH_STACK.md`).
+- *Offline-first:* renders purely from local data with no runtime asset/network
+  need.
+- *Accessibility:* first-class — every chart pairs with an accessible
+  label/summary and the underlying values are available as text (supports the
+  light/dark + a11y mandates in `08_UI_UX.md`); not visual-only.
+- *Performance:* minimal footprint, no heavy render engine; small datasets
+  (weekly points) render trivially.
+- *Design-system consistency:* built from tokens/primitives, so visuals match the
+  rest of the app by construction.
+- *Testability:* pure, deterministic components (fixed data → fixed output);
+  unit/component-testable with RNTL like other presentation code.
+- *Maintenance risk:* low external risk (no third-party upgrade/deprecation
+  treadmill); the cost is owning a small amount of drawing code.
+- *E2E reliability:* Maestro asserts on the accessible text summaries/values, not
+  fragile pixel canvases — more robust flows.
+- *Future extensibility:* if advanced charting is later needed, a third-party
+  dependency can be proposed then via its own ADR (Option B as a future step),
+  without blocking v1.
+
+**Option B — Add a third-party charting dependency now. (Not recommended for v1.)**
+- *Tradeoffs:* rich chart types out of the box, but adds a dependency (approval +
+  `02_TECH_STACK.md`/ADR), bundle weight, and upgrade/deprecation risk; many RN
+  charting libs pull native modules (Skia/SVG/Reanimated) that complicate the
+  managed-Expo build and EAS/E2E. Premature for the small v1 visual set.
+- *Accessibility/E2E:* canvas-based renderers are often screen-reader-opaque and
+  hard to assert in Maestro without extra labeling work anyway.
+
+**Option C — Text/table-first trends only; defer charts. (Fallback.)**
+- *Tradeoffs:* simplest and fully accessible, but weaker UX for trend perception;
+  acceptable as a stop-gap if visuals slip, though Option A already delivers
+  accessible visuals at low cost.
+
+**Option D — Defer.** Leaves the trend-presentation approach undefined; only
+choose if the visualization approach is genuinely contested.
+
+**Recommendation: Option A for v1.** It respects the dependency policy (no new
+dep), is fully offline-first and accessible (values exposed as text, not
+visual-only), matches the design system, is deterministic and testable, and
+yields more reliable E2E than a canvas library — while leaving the door open to a
+separate third-party charting ADR (Option B) if advanced needs emerge. Option C
+remains a fallback; D only if contested.
+
+**Scope of accepting D3=A (when authorized):** fixes the v1 charting approach as
+lightweight in-house/native primitives with accessible summaries and **no new
+charting dependency**; it does **not** resolve D4–D6, change any code/schema, add
+any package, or authorize a slice.
+
+- [x] **Owner accepts D3 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D3 ACCEPTED (2026-08-03, by project owner) = Option A.** Progress Monitoring v1
+renders trends with **lightweight in-house/native React Native chart primitives**
+built from existing primitives and design-system tokens; **no new charting
+dependency** is added in v1. Charts are limited to simple line/bar/sparkline
+visuals for body metrics and snapshots, and each pairs with accessible text
+summaries/labels so progress information is never visual-only. Advanced charting,
+if later needed, requires a separate dependency decision/ADR. This records the
+charting approach only. **ADR-P016 overall remains Proposed** pending D4–D6;
+D4–D6 are unresolved; no code/schema/package change is made and no slice is
+authorized (Slice 1 audit remains the first separately-authorized step).
+
+### D4 decision gate — v1 trend metric scope (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D4 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+
+**Question.** Which metrics ship in Progress Monitoring v1? All must be
+computable **deterministically, offline, from existing local data** (per accepted
+D1 wellness tables + D2 on-device snapshots), rendered with D3 lightweight
+visuals + accessible summaries.
+
+**Option A — Focused v1 metric set. (RECOMMENDED.)**
+- *Required / primary:* **body-weight trend**, **waist trend**, and the **weekly
+  progress snapshot summary** (`avg_weight_kg`, `total_volume_kg`, `avg_calories`,
+  `workout_count`, `is_deload_week`).
+- *Optional, shown only when the data exists:* **body-fat %**; other
+  `body_measurements` already in the table (**chest / hip / arm / neck**);
+  **workout volume/adherence** summary from `workout_sets` (`Σ weight×reps`) +
+  `workout_logs`; **nutrition adherence** summary **only if** existing local
+  nutrition logs/targets provide deterministic inputs (`sumDailyTotals` over
+  synced `meal_items`).
+- *Explicitly excluded from v1:* medical-evaluation trend charts; diagnostic/
+  clinical interpretation; predictive body-composition claims; complex analytics
+  needing new dependencies or backend ML/AI; and any metric that cannot be
+  computed deterministically offline from existing local data.
+- *Rationale by criterion:* **user value** — the metrics users check most, up
+  front, with more shown as data accrues; **data availability** — every primary
+  metric maps to an existing column/source; **offline determinism** — all
+  computable on-device from local data (honors D2); **privacy** — stays wellness,
+  medical-evaluation trends explicitly excluded (honors D1 boundary); **iCoach**
+  — feeds only deterministic snapshot fields (`is_deload_week` etc.), never
+  overrides medical (defers detail to D5); **UI complexity** — small, bounded set
+  fits D3 primitives; **testability** — each metric a pure fixed-input/output
+  function; **E2E reliability** — few, stable, text-summarized surfaces;
+  **launch readiness** — smallest coherent set that delivers the Phase 17 value.
+
+**Option B — Broad metric dashboard now. (Not recommended.)** Maximizes surface
+area but inflates UI/test/E2E scope, risks metrics without deterministic local
+inputs, and delays launch; better delivered incrementally after v1.
+
+**Option C — Body metrics only; defer workout/nutrition adherence. (Fallback.)**
+Simplest, but omits the volume/adherence signal that makes progress actionable
+and that `progress_snapshots` already models; acceptable as a reduced fallback if
+workout/nutrition inputs prove non-deterministic in the Slice 1 audit.
+
+**Option D — Defer.** Leaves v1 scope undefined; only if the metric set is
+genuinely contested.
+
+**Recommendation: Option A.** It is the smallest coherent set that delivers real
+progress value while every metric stays deterministic, offline-capable, and
+within the wellness/privacy boundary — with optional metrics gated on data
+availability and clear v1 exclusions to protect launch readiness. Option C is the
+reduced fallback if the audit finds workout/nutrition inputs non-deterministic; B
+and D are not recommended.
+
+**Scope of accepting D4=A (when authorized):** fixes the v1 metric set (primary +
+data-gated optional + explicit exclusions); it does **not** resolve D5–D6, change
+any code/schema, add any package, or authorize a slice. Whether the optional
+workout/nutrition summaries make v1 depends on the Slice 1 audit confirming
+deterministic local inputs.
+
+- [x] **Owner accepts D4 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D4 ACCEPTED (2026-08-03, by project owner) = Option A.** The v1 metric set is
+focused: **primary/required** = body-weight trend, waist trend, and the weekly
+progress-snapshot summary; **optional (only when deterministic local data
+exists)** = body-fat %, other `body_measurements` (chest/hip/arm/neck), workout
+volume/adherence from `workout_logs`/`workout_sets`, and nutrition adherence
+only if existing local logs/targets provide deterministic inputs; **excluded from
+v1** = medical-evaluation trend charts, diagnostic/clinical interpretation,
+predictive body-composition claims, analytics needing new dependencies or backend
+ML/AI, and any metric not deterministically computable offline from existing
+local data. The optional workout/nutrition summaries are gated on the Slice 1
+audit confirming deterministic local inputs (else the reduced Option C fallback).
+This records the v1 metric scope only. **ADR-P016 overall remains Proposed**
+pending D5–D6; D5–D6 are unresolved; no code/schema change is made and no slice is
+authorized (Slice 1 audit remains the first separately-authorized step).
+
+### D5 decision gate — iCoach interaction (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D5 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+
+**Question.** How does Progress Monitoring interact with the iCoach engine?
+`07_ICOACH.md` mandates that the Deterministic Engine is the primary decision
+maker, its outputs never vary for identical inputs, everything on the dashboard
+originates from deterministic outputs, every rule is versioned/explainable, and
+**medical restrictions can never be overridden**.
+
+**Option A — Feed-not-override deterministic signals. (RECOMMENDED.)** Progress
+Monitoring produces deterministic, rule-versioned progress **signals** from the
+accepted D1 wellness sources and D2 snapshots. iCoach may consume these as
+**inputs** to future deterministic rules (plateau hints, deload suggestions,
+adherence summaries, coaching explanations). Progress Monitoring **never**
+recomputes `TrainingPlan`, nutrition targets, medical restrictions, or doctor
+evaluation state; medical restrictions and safety blockers remain authoritative
+and higher priority. Any iCoach rule using progress signals must be
+rule-versioned (`ENGINE_RULE_VERSION` bump), explainable, deterministic, and
+test-covered. v1 may expose **read-only** explanations/summaries before any
+plan-affecting rule is enabled.
+- *Determinism:* signals are pure functions of local inputs + rule version —
+  identical inputs → identical signals (honors the engine invariant).
+- *Safety / medical priority:* progress is strictly an input; medical caps and
+  the `TrainingPlan` retain absolute authority — nothing here can relax a
+  restriction.
+- *Explainability:* every signal and any consuming rule carries a versioned,
+  human-readable basis, consistent with the recommendations model.
+- *Rule versioning:* new/changed behavior bumps `ENGINE_RULE_VERSION` for
+  traceability (`07_ICOACH.md` §Rule Versioning).
+- *Offline behavior:* signals compute on-device from local data (aligns with
+  D2); no connectivity needed.
+- *Privacy boundary:* consumes only wellness data (D1); medical-evaluation trends
+  stay excluded (D4); no medical data crosses into progress signals.
+- *Testability:* signals + rules are deterministic units testable to
+  icoach-domain thresholds with fixed vectors.
+- *User trust:* deterministic, explainable coaching (no opaque/AI-authored plan
+  changes) builds trust.
+- *Future extensibility:* plan-affecting deterministic rules can be added later,
+  each behind its own version bump and scoped authorization, without reworking
+  the signal contract.
+
+**Option B — Progress module recomputes or directly changes iCoach plans. (NOT
+recommended / prohibited.)** Violates the core invariants: it would let a
+non-engine module mutate `TrainingPlan`/nutrition/medical state, breaking the
+single-source-of-truth engine and risking override of medical restrictions.
+Rejected on safety and determinism grounds.
+
+**Option C — Trends only; no iCoach input in v1. (Acceptable minimal fallback.)**
+Progress displays trends with zero engine coupling in v1. Safest-simplest and a
+valid starting point, but forgoes the coaching value that deterministic signals
+enable; Option A already preserves all safety guarantees while leaving the door
+open, so A is preferred. (A's v1 read-only posture is effectively C plus a
+defined signal contract.)
+
+**Option D — Defer.** Leaves the interaction model undefined; only if contested.
+
+**Recommendation: Option A.** It preserves every iCoach invariant — deterministic,
+explainable, versioned, medical-authoritative — while defining a clean
+feed-not-override signal contract that unlocks future deterministic coaching. v1
+stays read-only (summaries/explanations) until any plan-affecting rule is
+explicitly authorized; B is prohibited; C is the minimal fallback; D only if
+contested.
+
+**Scope of accepting D5=A (when authorized):** fixes the interaction model as
+feed-not-override deterministic signals with medical/`TrainingPlan` authority
+preserved and v1 read-only; it does **not** resolve D6, enable any plan-affecting
+rule, change code/schema, or authorize a slice. Enabling any progress-driven
+engine rule remains a separate future step behind an `ENGINE_RULE_VERSION` bump.
+
+- [x] **Owner accepts D5 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D5 ACCEPTED (2026-08-03, by project owner) = Option A.** Progress Monitoring
+produces deterministic, rule-versioned progress **signals** that iCoach may
+consume as **inputs** (explanations, plateau hints, deload/adherence summaries,
+or future deterministic rules); Progress Monitoring **never** recomputes or
+directly mutates `TrainingPlan`, nutrition targets, medical restrictions, or
+doctor evaluation state. Medical restrictions and safety blockers remain
+authoritative and highest priority. Any future iCoach rule using progress signals
+must be rule-versioned (`ENGINE_RULE_VERSION` bump), explainable, deterministic,
+and test-covered. v1 remains **read-only** (summaries/explanations) unless a
+separate plan-affecting rule is explicitly authorized. This records the
+interaction model only. **ADR-P016 overall remains Proposed** pending D6; D6 is
+unresolved; no code/schema change is made and no slice is authorized (Slice 1
+audit remains the first separately-authorized step).
+
+### D6 decision gate — duplicate-date & conflict semantics (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D6 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+> D6 is the last open decision; accepting it does **not** by itself make the ADR
+> fully Accepted (see the ADR status line).
+
+**Question.** How do `body_weights`, `body_measurements`, and `progress_snapshots`
+handle duplicate-date entries and offline sync conflicts? The tables carry
+`UNIQUE(user_id, date)` / `UNIQUE(user_id, week_start)`, and the project rule is
+that **health/wellness history is never silently overwritten** (ADR-0006 +
+`00_PROJECT.md` Data Philosophy). The existing sync machinery already models
+version mismatch → `sync_conflicts` row with `redactForConflict` (ADR-P012).
+
+**Option A — Deterministic per-user local-date uniqueness + explicit conflict
+handling. (RECOMMENDED.)**
+- *User-entered body metrics:* one **active** `body_weight` per user per
+  local-date; one **active** `body_measurement` per user per local-date (the
+  table is one row per date carrying all measurement fields); editing a same-day
+  entry **updates the existing record** (version bump) rather than creating
+  silent duplicates.
+- *Snapshots:* one **active** `progress_snapshot` per user per
+  period + `period_start` (local-date) + rule version; snapshots are
+  deterministic rollups (D2) and may be **regenerated** from accepted source
+  records when inputs or the rule version change.
+- *Date boundary:* use the **user-local calendar date** for entry and snapshot
+  periods; **never** UTC day boundaries for user-facing grouping. If the current
+  schema lacks a stored offset/derivation rule, defining the deterministic
+  local-date rule (and any additive column) is a **Slice 1 audit** item.
+- *Conflict behavior:* same-device sequential edits update the existing
+  record/`version`; cross-device concurrent edits that cannot be safely merged
+  become **explicit `sync_conflicts`** for user resolution (reusing the ADR-P012
+  machinery) — **never a silent overwrite** of wellness history.
+- *Backend:* validates uniqueness/conflict shape and `version`; does **not**
+  recompute v1 snapshots (consistent with D2).
+- *Rationale by criterion:* **offline-first correctness** — deterministic local
+  keys let each device write without coordination; **user expectation** — one
+  weigh-in per day, editable; **data integrity** — no silent history loss;
+  **sync-conflict safety** — reuses proven conflict/version machinery; **
+  determinism** — snapshot keys include rule version, so regeneration is
+  reproducible (D2); **timezone** — explicit local-date rule avoids off-by-one
+  day bugs; **privacy** — wellness-only, conflicts redact per existing rules;
+  **testability** — uniqueness + conflict paths are deterministic units;
+  **migration/schema** — likely additive-only (the unique constraints exist);
+  confirming/adding a local-date/offset field is a Slice 1 item.
+
+**Option B — Allow unlimited same-day duplicates, aggregate later. (Not
+recommended.)** Simplifies entry but breaks the `UNIQUE(user_id, date)`
+contract, makes "today's weight" ambiguous, complicates deterministic snapshots,
+and pushes reconciliation into every read. Rejected.
+
+**Option C — Server canonicalizes duplicates silently. (Not recommended.)**
+Violates the no-silent-overwrite rule and the D2 on-device/offline-first model
+(server would need authority over user history); rejected on data-integrity and
+determinism grounds.
+
+**Option D — Defer.** Leaves conflict semantics undefined and blocks safe sync
+design; only if genuinely contested.
+
+**Recommendation: Option A.** It upholds no-silent-overwrite, reuses the existing
+version/`sync_conflicts` machinery, keeps snapshots deterministically
+regenerable (D2), and fixes user-local-date grouping — while confining any schema
+question (a stored local-date/offset rule) to the Slice 1 audit. B and C break
+core integrity/determinism guarantees; D only if contested.
+
+**Scope of accepting D6=A (when authorized):** fixes duplicate-date and conflict
+semantics (per-user local-date uniqueness, edit-not-duplicate, explicit
+conflicts, user-local-date boundaries, deterministic regenerable snapshots,
+backend validates-not-recomputes); it does **not** change code/schema or
+authorize a slice. The exact local-date/offset representation is resolved in the
+Slice 1 audit (additive-only if a change is needed).
+
+- [x] **Owner accepts D6 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D6 ACCEPTED (2026-08-03, by project owner) = Option A.** Duplicate-date and
+conflict semantics: one active `body_weight` per user per local-date and one
+active `body_measurement` per user per local-date (all measurement fields on that
+row); same-day edits update the existing record/`version` rather than creating
+silent duplicates; `progress_snapshots` are unique per user + period type +
+`period_start` (local-date) + rule version and are deterministic, regenerable
+rollups from accepted source records; the **user-local calendar date** is the
+grouping boundary (never UTC day); unmergeable cross-device concurrent edits
+become **explicit `sync_conflicts`** (reusing the ADR-P012 machinery), never
+silent overwrites of wellness history; the backend validates uniqueness/`version`
+shape but does not recompute v1 snapshots. The exact local-date/offset
+representation is resolved in the Slice 1 audit (additive-only if a change is
+needed). This records the conflict semantics only.
+
+**All decisions D1–D6 are now accepted (2026-08-03).** **ADR-P016 nonetheless
+remains Proposed** until a separate, explicit owner **full-acceptance step**
+flips the ADR status; this per-decision acceptance changes no code/schema and
+authorizes no slice (Slice 1 audit remains the first separately-authorized step).
+
 ### Proposed slice plan (each slice separately authorized)
 
 1. **Schema/sync audit + decisions.** Verify triggers/columns on the three
@@ -5436,6 +5876,41 @@ fresh EAS `e2e` APK.
 - Charting performance and dependency footprint over long histories (D3).
 - Historical-data volume/perf for trend queries.
 - No runtime verification is asserted by this gate.
+
+### Acceptance resolution (2026-08-03)
+
+The project owner **accepted ADR-P016 as drafted**, with all six decisions
+resolved = **Option A**:
+- **D1** — wellness tables (`body_weights`/`body_measurements`/
+  `progress_snapshots`) are the Progress source of truth; `medical_evaluations`
+  stays medical-only.
+- **D2** — snapshots are computed **on-device deterministically**, synced;
+  backend validates but does not recompute in v1.
+- **D3** — **lightweight in-house/native** charting with accessible summaries; no
+  new charting dependency in v1.
+- **D4** — **focused v1 metric set** (body-weight/waist trends + weekly snapshot
+  primary; body-fat/other measurements + workout/nutrition adherence optional
+  when deterministic; medical-trend/diagnostic/predictive/ML excluded).
+- **D5** — **feed-not-override** deterministic, rule-versioned iCoach signals;
+  medical/`TrainingPlan` authority preserved; v1 read-only.
+- **D6** — per-user **local-date** uniqueness, edit-not-duplicate, explicit
+  `sync_conflicts` (never silent overwrite), deterministic regenerable snapshots.
+
+**Implementation is authorized but not started.** Acceptance is
+documentation-only and changes no schema, code, package, or data. The **next
+authorized implementation step is Slice 1 (audit) ONLY**:
+1. schema/table audit of `body_weights`/`body_measurements`/`progress_snapshots`
+   (both stores);
+2. sync trigger/index audit (verify `assign_sync_seq` triggers + add the
+   `progress_snapshots` mobile dirty index needed by D2, forward-only);
+3. local-date/timezone representation audit (define the deterministic
+   `week_start`/entry-date rule per D2/D6; additive-only if a column is needed);
+4. progress source/input audit for D4's optional workout/nutrition summaries
+   (confirm deterministic local inputs; else the D4 Option C reduced fallback).
+
+Slice 1 produces findings/decisions and any additive-only migration proposal; it
+writes no feature code. **Every later slice (2–6) requires its own separate,
+explicit authorization.** No implementation has started in this acceptance.
 
 ---
 
