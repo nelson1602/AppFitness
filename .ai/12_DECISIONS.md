@@ -5548,6 +5548,70 @@ charting approach only. **ADR-P016 overall remains Proposed** pending D4–D6;
 D4–D6 are unresolved; no code/schema/package change is made and no slice is
 authorized (Slice 1 audit remains the first separately-authorized step).
 
+### D4 decision gate — v1 trend metric scope (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D4 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+
+**Question.** Which metrics ship in Progress Monitoring v1? All must be
+computable **deterministically, offline, from existing local data** (per accepted
+D1 wellness tables + D2 on-device snapshots), rendered with D3 lightweight
+visuals + accessible summaries.
+
+**Option A — Focused v1 metric set. (RECOMMENDED.)**
+- *Required / primary:* **body-weight trend**, **waist trend**, and the **weekly
+  progress snapshot summary** (`avg_weight_kg`, `total_volume_kg`, `avg_calories`,
+  `workout_count`, `is_deload_week`).
+- *Optional, shown only when the data exists:* **body-fat %**; other
+  `body_measurements` already in the table (**chest / hip / arm / neck**);
+  **workout volume/adherence** summary from `workout_sets` (`Σ weight×reps`) +
+  `workout_logs`; **nutrition adherence** summary **only if** existing local
+  nutrition logs/targets provide deterministic inputs (`sumDailyTotals` over
+  synced `meal_items`).
+- *Explicitly excluded from v1:* medical-evaluation trend charts; diagnostic/
+  clinical interpretation; predictive body-composition claims; complex analytics
+  needing new dependencies or backend ML/AI; and any metric that cannot be
+  computed deterministically offline from existing local data.
+- *Rationale by criterion:* **user value** — the metrics users check most, up
+  front, with more shown as data accrues; **data availability** — every primary
+  metric maps to an existing column/source; **offline determinism** — all
+  computable on-device from local data (honors D2); **privacy** — stays wellness,
+  medical-evaluation trends explicitly excluded (honors D1 boundary); **iCoach**
+  — feeds only deterministic snapshot fields (`is_deload_week` etc.), never
+  overrides medical (defers detail to D5); **UI complexity** — small, bounded set
+  fits D3 primitives; **testability** — each metric a pure fixed-input/output
+  function; **E2E reliability** — few, stable, text-summarized surfaces;
+  **launch readiness** — smallest coherent set that delivers the Phase 17 value.
+
+**Option B — Broad metric dashboard now. (Not recommended.)** Maximizes surface
+area but inflates UI/test/E2E scope, risks metrics without deterministic local
+inputs, and delays launch; better delivered incrementally after v1.
+
+**Option C — Body metrics only; defer workout/nutrition adherence. (Fallback.)**
+Simplest, but omits the volume/adherence signal that makes progress actionable
+and that `progress_snapshots` already models; acceptable as a reduced fallback if
+workout/nutrition inputs prove non-deterministic in the Slice 1 audit.
+
+**Option D — Defer.** Leaves v1 scope undefined; only if the metric set is
+genuinely contested.
+
+**Recommendation: Option A.** It is the smallest coherent set that delivers real
+progress value while every metric stays deterministic, offline-capable, and
+within the wellness/privacy boundary — with optional metrics gated on data
+availability and clear v1 exclusions to protect launch readiness. Option C is the
+reduced fallback if the audit finds workout/nutrition inputs non-deterministic; B
+and D are not recommended.
+
+**Scope of accepting D4=A (when authorized):** fixes the v1 metric set (primary +
+data-gated optional + explicit exclusions); it does **not** resolve D5–D6, change
+any code/schema, add any package, or authorize a slice. Whether the optional
+workout/nutrition summaries make v1 depends on the Slice 1 audit confirming
+deterministic local inputs.
+
+- [ ] **Owner accepts D4 = Option A** (records the decision in this ADR;
+      implementation still gated per-slice).
+
 ### Proposed slice plan (each slice separately authorized)
 
 1. **Schema/sync audit + decisions.** Verify triggers/columns on the three
