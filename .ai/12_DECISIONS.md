@@ -5181,22 +5181,24 @@ deterministic excluded-movement warnings.
 
 ## ADR-P016 — Progress Monitoring (Phase 17)
 
-Status: **Proposed** (planning gate) — **D1–D5 accepted (2026-08-03); D6
-pending**. This is a documentation-only planning gate: it proposes the Phase 17
-scope, data model reuse, decisions D1–D6, and slice plan. **No schema, migration,
-backend module, mobile code, sync handler, UI, dependency, or charting library
-has landed or is authorized.** The owner has accepted **D1 = Option A**,
-**D2 = Option A**, **D3 = Option A**, **D4 = Option A**, and **D5 = Option A**
-(see the "D1–D5 decision gate" sections below); the ADR stays Proposed overall
-until the last required decision (D6) is resolved/accepted. Acceptance
-(owner-only) authorizes the slice plan and, per the established pattern, only the
-first slice; each later slice needs its own scoped authorization.
+Status: **Proposed** (planning gate) — **all decisions D1–D6 accepted
+(2026-08-03); ADR full-acceptance pending a separate explicit owner step**. This
+is a documentation-only planning gate: it proposes the Phase 17 scope, data model
+reuse, decisions D1–D6, and slice plan. **No schema, migration, backend module,
+mobile code, sync handler, UI, dependency, or charting library has landed or is
+authorized.** The owner has accepted **D1–D6 = Option A** (see the "D1–D6
+decision gate" sections below); the ADR nonetheless stays **Proposed** overall
+until a separate, explicit owner full-acceptance step flips this status.
+Full acceptance (owner-only) authorizes the slice plan and, per the established
+pattern, only the first slice; each later slice needs its own scoped
+authorization.
 Date drafted: 2026-08-03
 Date D1 accepted: 2026-08-03
 Date D2 accepted: 2026-08-03
 Date D3 accepted: 2026-08-03
 Date D4 accepted: 2026-08-03
 Date D5 accepted: 2026-08-03
+Date D6 accepted: 2026-08-03
 Relates to: ADR-0006 (offline-first sync), ADR-0011 (health-data sensitivity),
 ADR-P001/P006 (field-level encryption), ADR-P010 (monitoring), and the
 deterministic iCoach engine (`mobile/src/features/icoach/domain`). Reuses the
@@ -5791,8 +5793,27 @@ backend validates-not-recomputes); it does **not** change code/schema or
 authorize a slice. The exact local-date/offset representation is resolved in the
 Slice 1 audit (additive-only if a change is needed).
 
-- [ ] **Owner accepts D6 = Option A** (records the decision in this ADR;
-      implementation still gated per-slice).
+- [x] **Owner accepts D6 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D6 ACCEPTED (2026-08-03, by project owner) = Option A.** Duplicate-date and
+conflict semantics: one active `body_weight` per user per local-date and one
+active `body_measurement` per user per local-date (all measurement fields on that
+row); same-day edits update the existing record/`version` rather than creating
+silent duplicates; `progress_snapshots` are unique per user + period type +
+`period_start` (local-date) + rule version and are deterministic, regenerable
+rollups from accepted source records; the **user-local calendar date** is the
+grouping boundary (never UTC day); unmergeable cross-device concurrent edits
+become **explicit `sync_conflicts`** (reusing the ADR-P012 machinery), never
+silent overwrites of wellness history; the backend validates uniqueness/`version`
+shape but does not recompute v1 snapshots. The exact local-date/offset
+representation is resolved in the Slice 1 audit (additive-only if a change is
+needed). This records the conflict semantics only.
+
+**All decisions D1–D6 are now accepted (2026-08-03).** **ADR-P016 nonetheless
+remains Proposed** until a separate, explicit owner **full-acceptance step**
+flips the ADR status; this per-decision acceptance changes no code/schema and
+authorizes no slice (Slice 1 audit remains the first separately-authorized step).
 
 ### Proposed slice plan (each slice separately authorized)
 
