@@ -5181,20 +5181,21 @@ deterministic excluded-movement warnings.
 
 ## ADR-P016 — Progress Monitoring (Phase 17)
 
-Status: **Proposed** (planning gate) — **D1, D2 & D3 accepted (2026-08-03);
-D4–D6 pending**. This is a documentation-only planning gate: it proposes the
-Phase 17 scope, data model reuse, decisions D1–D6, and slice plan. **No schema,
-migration, backend module, mobile code, sync handler, UI, dependency, or charting
-library has landed or is authorized.** The owner has accepted **D1 = Option A**,
-**D2 = Option A**, and **D3 = Option A** (see the "D1/D2/D3 decision gate"
-sections below); the ADR stays Proposed overall until the remaining required
-decisions (D4–D6) are resolved/accepted. Acceptance (owner-only) authorizes the
-slice plan and, per the established pattern, only the first slice; each later
-slice needs its own scoped authorization.
+Status: **Proposed** (planning gate) — **D1–D4 accepted (2026-08-03); D5–D6
+pending**. This is a documentation-only planning gate: it proposes the Phase 17
+scope, data model reuse, decisions D1–D6, and slice plan. **No schema, migration,
+backend module, mobile code, sync handler, UI, dependency, or charting library
+has landed or is authorized.** The owner has accepted **D1 = Option A**,
+**D2 = Option A**, **D3 = Option A**, and **D4 = Option A** (see the
+"D1/D2/D3/D4 decision gate" sections below); the ADR stays Proposed overall until
+the remaining required decisions (D5–D6) are resolved/accepted. Acceptance
+(owner-only) authorizes the slice plan and, per the established pattern, only the
+first slice; each later slice needs its own scoped authorization.
 Date drafted: 2026-08-03
 Date D1 accepted: 2026-08-03
 Date D2 accepted: 2026-08-03
 Date D3 accepted: 2026-08-03
+Date D4 accepted: 2026-08-03
 Relates to: ADR-0006 (offline-first sync), ADR-0011 (health-data sensitivity),
 ADR-P001/P006 (field-level encryption), ADR-P010 (monitoring), and the
 deterministic iCoach engine (`mobile/src/features/icoach/domain`). Reuses the
@@ -5609,8 +5610,23 @@ any code/schema, add any package, or authorize a slice. Whether the optional
 workout/nutrition summaries make v1 depends on the Slice 1 audit confirming
 deterministic local inputs.
 
-- [ ] **Owner accepts D4 = Option A** (records the decision in this ADR;
-      implementation still gated per-slice).
+- [x] **Owner accepts D4 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D4 ACCEPTED (2026-08-03, by project owner) = Option A.** The v1 metric set is
+focused: **primary/required** = body-weight trend, waist trend, and the weekly
+progress-snapshot summary; **optional (only when deterministic local data
+exists)** = body-fat %, other `body_measurements` (chest/hip/arm/neck), workout
+volume/adherence from `workout_logs`/`workout_sets`, and nutrition adherence
+only if existing local logs/targets provide deterministic inputs; **excluded from
+v1** = medical-evaluation trend charts, diagnostic/clinical interpretation,
+predictive body-composition claims, analytics needing new dependencies or backend
+ML/AI, and any metric not deterministically computable offline from existing
+local data. The optional workout/nutrition summaries are gated on the Slice 1
+audit confirming deterministic local inputs (else the reduced Option C fallback).
+This records the v1 metric scope only. **ADR-P016 overall remains Proposed**
+pending D5–D6; D5–D6 are unresolved; no code/schema change is made and no slice is
+authorized (Slice 1 audit remains the first separately-authorized step).
 
 ### Proposed slice plan (each slice separately authorized)
 

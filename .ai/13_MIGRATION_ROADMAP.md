@@ -1923,10 +1923,10 @@ D2 — snapshot computation on-device (proposed) vs server-computed (**ACCEPTED
 does not recompute in v1**); D3 — charting
 approach (**ACCEPTED 2026-08-03 = Option A — lightweight in-house/native
 primitives, accessible summaries, no new dependency in v1**); D4 — v1 metric
-scope (**gate drafted 2026-08-03: recommends Option A — focused set: body-weight/
-waist + weekly snapshot primary, other measurements/adherence optional when
-deterministic; pending owner acceptance**); D5 — iCoach feed (never override);
-D6 — duplicate-date conflict semantics.
+scope (**ACCEPTED 2026-08-03 = Option A — focused set: body-weight/waist + weekly
+snapshot primary, other measurements/adherence optional when deterministic;
+medical-trend/diagnostic/predictive/ML excluded**); D5 — iCoach feed (never
+override); D6 — duplicate-date conflict semantics.
 
 ### Exit Criteria
 - [ ] Users see progress trends from their own data; offline-first; tests
