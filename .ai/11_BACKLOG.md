@@ -919,7 +919,7 @@ for full context, decisions D1–D6, and architecture references.
 6. Maestro E2E wired into `mobile-e2e.yml` (manual dispatch, ADR-P007/P008).
 
 ### Open decisions (owner) — see ADR-P016
-- **D1 (KEY):** body-metric source of truth — activate wellness `body_weights`/`body_measurements` vs reuse medical `medical_evaluations` (adapter precedent); wellness-vs-medical privacy classification.
+- **D1 (KEY):** body-metric source of truth — activate wellness `body_weights`/`body_measurements` vs reuse medical `medical_evaluations` (adapter precedent); wellness-vs-medical privacy classification. **Decision gate drafted 2026-08-03: recommends Option A (activate wellness tables; keep `medical_evaluations` medical-only) — pending owner acceptance; see ADR-P016 "D1 decision gate".**
 - **D2:** snapshot computation — on-device deterministic (proposed) vs server-computed rollup.
 - **D3:** charting approach (lightweight/native vs new dependency).
 - **D4:** v1 trend metric scope. **D5:** iCoach interaction (feed, never override). **D6:** duplicate-date conflict semantics.

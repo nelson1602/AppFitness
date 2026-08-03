@@ -5283,6 +5283,84 @@ charting library is present in the mobile app today.
   `(user_id, week_start)` — define offline conflict handling (last-write-wins by
   `version`, or reject/merge duplicate-date entries) consistent with ADR-0006.
 
+### D1 decision gate — body-metric source of truth (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D1 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+
+**Question.** Where do self-tracked body metrics (weight, body-fat, waist/hip/
+chest/arm/neck) live for Progress Monitoring, given that today the dashboard
+iCoach adapter reads weight/body-fat from the **medical** `medical_evaluations`
+table and the dedicated wellness tables (`body_weights`, `body_measurements`) sit
+dormant?
+
+**Option A — Activate the dormant wellness tables as the Progress source of
+truth; keep `medical_evaluations` medical-only. (RECOMMENDED.)**
+- *Tradeoffs:* clean domain separation and a purpose-built model for frequent
+  self-tracking (one row per date, cheap trend queries via `[user_id, sync_seq]`
+  + `UNIQUE(user_id, date)`); the one-time cost is wiring a new `progress`
+  feature. The dashboard adapter's current weight read stays on
+  `medical_evaluations` and is unaffected until a later, separately-authorized
+  slice optionally overlays wellness points read-only.
+- *Privacy boundary:* body metrics are classified **wellness** (plaintext,
+  synced like workout data), kept out of the encrypted medical domain
+  (ADR-0011/P006). This preserves least-privilege and a crisp HIPAA/GDPR boundary
+  — routine weigh-ins are not commingled with doctor notes / conditions /
+  medications, and are not subject to the medical append-only + erasure semantics
+  (ADR-P011).
+- *Offline-first:* `body_weights`/`body_measurements` already carry `SYNCED_COLS`
+  and per-table dirty indexes — local-first writes + `pending` sync + soft-delete
+  drop straight into the established ADR-0006 pipeline; no new mechanism.
+- *iCoach:* the deterministic progress engine reads wellness body metrics +
+  workout volume + calories; medical restrictions continue to come from the
+  medical domain unchanged and retain absolute priority. Cleanest input boundary.
+- *Migration impact:* **none required to activate** — both stores already have
+  the tables with triggers/indexes present. (A `progress_snapshots` mobile dirty
+  index is a separate D2 concern, not D1.)
+
+**Option B — Reuse `medical_evaluations` for progress. (NOT recommended.)**
+- *Tradeoffs:* no new tables, and the adapter already reads it — but the model is
+  a periodic *clinical* evaluation (BP, HR, sleep, stress, encrypted notes),
+  append-only, and ill-suited to frequent weigh-ins.
+- *Privacy boundary:* **widens exposure of medical-classified data** into
+  progress/dashboard trend surfaces and couples wellness trends to encryption and
+  medical-erasure semantics — the opposite of least-privilege. Main reason to
+  reject.
+- *Offline-first / iCoach:* workable but forces routine self-tracking through the
+  heavier encrypted medical path and blurs domain ownership.
+- *Migration impact:* none, but leaves the dormant wellness tables as permanent
+  dead schema.
+
+**Option C — Hybrid: mirror `medical_evaluations` body fields into the wellness
+tables. (Possible later, not v1.)**
+- *Tradeoffs:* a single trend view spanning clinical + self-tracked points, at
+  the cost of a copy/derivation path, dedup, and source-of-truth ambiguity
+  (which row wins on the same date?).
+- *Privacy/iCoach:* re-introduces medical→wellness data flow that must be
+  explicitly justified; defer until the base wellness path (A) exists.
+- *Migration impact:* needs a deterministic mirror/derivation mechanism — extra
+  complexity not warranted for v1.
+
+**Option D — Defer.** Leaves Phase 17 without a data source; only choose if the
+wellness-vs-medical classification itself is contested.
+
+**Recommendation: Option A.** It is the only option that keeps the wellness and
+medical domains cleanly separated, honors privacy-by-design/least-privilege, uses
+the offline-first pipeline as-is with zero migration to activate, and gives the
+deterministic iCoach a clean input boundary while leaving medical restrictions
+authoritative. Options C/D remain open for a future decision; B is rejected on
+privacy/domain-coupling grounds.
+
+**Scope of accepting D1=A (when authorized):** classifies `body_weights`/
+`body_measurements`/`progress_snapshots` as the wellness Progress source of truth
+and `medical_evaluations` as medical-only; it does **not** resolve D2–D6, change
+any code/schema, or authorize a slice. Slice 1 (audit) remains the first
+separately-authorized step.
+
+- [ ] **Owner accepts D1 = Option A** (records the decision in this ADR;
+      implementation still gated per-slice).
+
 ### Proposed slice plan (each slice separately authorized)
 
 1. **Schema/sync audit + decisions.** Verify triggers/columns on the three
