@@ -5373,6 +5373,85 @@ Proposed** pending D2–D6; D2–D6 are unresolved; no code/schema change is mad
 no slice is authorized (Slice 1 audit remains the first separately-authorized
 step).
 
+### D2 decision gate — snapshot computation locus (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D2 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+> Builds on the accepted D1 = Option A (wellness tables are the source of truth).
+
+**Question.** Where are the weekly `progress_snapshots` rollups (`avg_weight_kg`,
+`total_volume_kg`, `avg_calories`, `workout_count`, `is_deload_week`) computed —
+on-device, on the server, or both? The dormant schema hints at server-side
+(`ProgressSnapshot.id` is server-`@default(uuid())` and the mobile table has no
+dirty index), but that predates D1 and conflicts with offline-first + on-device
+determinism.
+
+**Option A — On-device deterministic computation, persisted locally, then
+synced. (RECOMMENDED for v1.)** The mobile app computes each snapshot
+deterministically from the D1 wellness source tables plus on-device workout
+volume (`workout_sets`) and calories (`sumDailyTotals`); rows are written to
+`progress_snapshots` and synced through the existing offline-first pipeline. The
+backend accepts synced snapshots and may validate shape/`version`/rule-version
+but does **not** recompute them in v1.
+- *Offline-first:* full functionality with no connectivity — snapshots appear
+  immediately, consistent with the 48-hour offline mandate.
+- *Determinism:* identical local inputs + rule version → identical snapshot
+  (mirrors the `TrainingPlan` engine); reproducible and explainable.
+- *Sync/conflict:* snapshots flow through ADR-0006 like any owned row; needs a
+  `progress_snapshots` mobile dirty index (forward-only migration) and a push
+  applier. Same-`week_start` conflicts resolve by the D6 rule; because outputs
+  are deterministic from synced inputs, divergence is unlikely.
+- *Privacy/security:* stays within the wellness domain; no medical data crosses
+  into the computation; least-privilege preserved.
+- *iCoach boundary:* the deterministic progress engine owns the rollup; medical
+  restrictions remain authoritative and are never recomputed here.
+- *Testability:* pure rollup function unit-tested to icoach-domain thresholds
+  with fixed-input/fixed-output vectors — the strongest determinism story.
+- *Migration/schema impact:* additive only — a mobile dirty index for
+  `progress_snapshots`; backend Prisma model + triggers already exist; no
+  destructive change.
+- *UX responsiveness:* instant, local; no round-trip.
+- *Future scalability:* server-side reconciliation/analytics can be added later
+  as a separate amendment without reworking the client contract.
+
+**Option B — Server-computed snapshots only. (Not recommended for v1.)**
+- *Offline-first:* breaks the mandate — no trends until the device syncs and the
+  server computes; poor first-run/offline UX.
+- *Determinism:* centralized, but requires the server to hold an identical rule
+  engine; client/server rule-version drift risk.
+- *Privacy/iCoach:* pushes the analytics engine server-side, away from the
+  on-device deterministic model the project centers on.
+- *Migration/schema:* needs a backend compute job/worker (BullMQ) — heavier,
+  and leaves the mobile pipeline unused for this entity.
+- *Scalability:* good for heavy cross-user analytics, but premature for v1.
+
+**Option C — Hybrid: device computes provisional snapshots; server reconciles
+canonical later. (Possible later, not v1.)**
+- Best long-term story (fast local UX + authoritative server rollups) but doubles
+  the compute surface, adds provisional-vs-canonical reconciliation and
+  conflict/versioning complexity, and requires the same server engine as B.
+  Defer until a concrete need (e.g. cross-device canonical analytics) exists.
+
+**Option D — Defer.** Leaves the snapshot pipeline undefined; only choose if the
+compute-locus question is genuinely contested.
+
+**Recommendation: Option A for v1.** It is the only option that honors
+offline-first and the on-device deterministic model end-to-end, keeps the
+wellness/medical and iCoach boundaries clean, is additive-only in schema (a
+single mobile dirty index), and gives the strongest testability. The backend
+still validates and stores; server-side recomputation/reconciliation (Option C)
+remains open as a future amendment if cross-device canonical analytics is needed.
+
+**Scope of accepting D2=A (when authorized):** fixes the snapshot compute locus
+as on-device deterministic with sync + server validation (no server recompute in
+v1); it does **not** resolve D3–D6, change any code/schema, or authorize a slice.
+D6 (duplicate/conflict semantics) and the deterministic date-boundary definition
+(`week_start`, timezone) must still be resolved before Slice 4.
+
+- [ ] **Owner accepts D2 = Option A** (records the decision in this ADR;
+      implementation still gated per-slice).
+
 ### Proposed slice plan (each slice separately authorized)
 
 1. **Schema/sync audit + decisions.** Verify triggers/columns on the three

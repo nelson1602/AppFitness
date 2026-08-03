@@ -920,7 +920,7 @@ for full context, decisions D1–D6, and architecture references.
 
 ### Open decisions (owner) — see ADR-P016
 - **D1 (KEY):** body-metric source of truth — activate wellness `body_weights`/`body_measurements` vs reuse medical `medical_evaluations` (adapter precedent); wellness-vs-medical privacy classification. **ACCEPTED 2026-08-03 = Option A (activate wellness tables as Progress source of truth; keep `medical_evaluations` medical-only); see ADR-P016 "D1 decision gate". ADR-P016 overall remains Proposed pending D2–D6.**
-- **D2:** snapshot computation — on-device deterministic (proposed) vs server-computed rollup.
+- **D2:** snapshot computation — on-device deterministic (proposed) vs server-computed rollup. **Decision gate drafted 2026-08-03: recommends Option A (on-device deterministic, synced, server validates but does not recompute in v1) — pending owner acceptance; see ADR-P016 "D2 decision gate".**
 - **D3:** charting approach (lightweight/native vs new dependency).
 - **D4:** v1 trend metric scope. **D5:** iCoach interaction (feed, never override). **D6:** duplicate-date conflict semantics.
 
