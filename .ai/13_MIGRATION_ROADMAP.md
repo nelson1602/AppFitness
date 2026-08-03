@@ -1909,6 +1909,16 @@ feature/sync architecture. Full context, decisions D1–D6, and the acceptance
 resolution live in `.ai/12_DECISIONS.md` (ADR-P016) and `.ai/11_BACKLOG.md`
 (FEATURE-008).
 
+**Slice 1 audit DONE 2026-08-03 (read-only, no code):** tables + sync envelope
+present in both stores; backend triggers/`[userId,syncSeq]` indexes cover all
+three. Gaps: **M1** — mobile `progress_snapshots` lacks a `sync_status` dirty
+index (D2 push); **M2** — no `rule_version` column (D2/D6), `period_type` deferred
+past weekly v1. Local-date columns sufficient but the deterministic derivation
+rule is pending (before Slice 4). D4 workout/nutrition sources deterministic for
+v1. **M2 micro-decision gate drafted (recommends Option A — additive
+`rule_version`; owner sign-off pending).** Next: Slice 2 additive-only schema
+activation (M1 required; M2 per gate) — separately authorized.
+
 **Proposed slices (each separately authorized):** (1) schema/sync audit +
 resolve D1–D6; (2) backend sync handlers + `ProgressModule`; (3) mobile
 `progress` feature (repositories/store/appliers, local-first); (4) deterministic

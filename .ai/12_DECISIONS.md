@@ -5912,6 +5912,74 @@ Slice 1 produces findings/decisions and any additive-only migration proposal; it
 writes no feature code. **Every later slice (2–6) requires its own separate,
 explicit authorization.** No implementation has started in this acceptance.
 
+### Slice 1 audit resolution (2026-08-03)
+
+Read-only audit against the actual repository. **No feature code, schema, or
+migration changed.**
+- **Schema/tables — PASS.** `body_weights`, `body_measurements`,
+  `progress_snapshots` exist in both Postgres and mobile SQLite with the expected
+  sync envelope (`user_id`/ownership, `version`, `deleted_at`/`deleted_by`
+  soft-delete, `sync_status`/`sync_seq`). Dormant — no repository/applier/handler/
+  UI references them yet.
+- **Triggers/indexes — PASS.** Backend `assign_sync_seq` triggers and
+  `[userId, syncSeq]` indexes cover all three (init-migration trigger loop).
+- **M1 (mobile dirty-index gap).** `progress_snapshots` lacks a
+  `sync_status` dirty index (`body_weights`/`body_measurements` have theirs) —
+  needed for D2 on-device snapshot push. **Additive-only, forward-only** mobile
+  migration in Slice 2.
+- **M2 (D6/rule-version gap).** `progress_snapshots` has **no `rule_version`
+  column** (only `week_start`), yet D2/D6 require rule-versioned, deterministic,
+  regenerable snapshots. `period_type` is **not** required for v1 (weekly-only
+  uses `week_start`) and can be deferred to a future multi-period amendment. See
+  the M2 micro-decision gate below.
+- **Local-date — structurally sufficient, rule pending.** `date`/`week_start`
+  columns can hold user-local calendar dates, but the deterministic derivation
+  rule (local entry-date + `week_start` boundary) must be defined before Slice 4
+  (D2/D6). No column strictly required (offset persistence optional).
+- **D4 sources — PASS (deterministic).** Workout volume/adherence
+  (`workout_sets` `Σ weight×reps` over completed; `routine_exercises` targets) and
+  nutrition consumed (`sumDailyTotals` over synced `meal_items`) vs iCoach
+  `NUTRITION:calorie_target`/`macro_targets` are all computable offline.
+- **Recommended next:** Slice 2 = additive-only schema activation (M1 required;
+  M2 per the gate below) + the deterministic local-date rule; separately
+  authorized. No hard blockers.
+
+### M2 micro-decision gate — `progress_snapshots.rule_version` (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 is Accepted; this gate resolves an implementation detail surfaced by
+> the Slice 1 audit. It is **not accepted** and authorizes **no migration**; the
+> sign-off below is intentionally unchecked.
+
+**Question.** How is the snapshot rule version represented so D2/D6 deterministic
+regeneration is keyed and traceable, given the table has only `week_start` today?
+
+- **Option A (RECOMMENDED).** Add `progress_snapshots.rule_version` as an
+  **additive** column in Slice 2 (both stores); use weekly-only uniqueness for v1
+  keyed on **`(user_id, week_start, rule_version)`**; **defer `period_type`** to a
+  future multi-period (monthly/quarterly) amendment. Keeps v1 minimal, makes
+  regeneration deterministic and version-traceable, and is additive/forward-only.
+- **Option B (Not recommended).** Keep `rule_version` outside the table (derived/
+  side-tracked). Breaks D6's per-snapshot version keying and makes regeneration
+  provenance ambiguous.
+- **Option C (Possible, broader than v1).** Add both `rule_version` **and**
+  `period_type` now. Future-proofs multi-period but exceeds the D4 weekly-only v1
+  scope and widens the migration.
+- **Option D (Defer).** Leaves snapshot versioning unrepresentable; only if
+  contested.
+
+**Recommendation: Option A** — smallest additive change that satisfies D2/D6
+determinism/regeneration for the weekly v1, with `period_type` cleanly deferred.
+Note: extending the unique key to include `rule_version` changes the existing
+`(user_id, week_start)` constraint — the exact constraint form is a Slice 2
+migration detail (additive/forward-only), not decided here.
+
+**Scope of accepting M2=A (when authorized):** authorizes the Slice 2 additive
+`rule_version` column + v1 uniqueness approach; it does **not** create a
+migration, write code, or authorize other slices.
+
+- [ ] **Owner accepts M2 = Option A** (records the decision; Slice 2 migration
+      still separately authorized).
+
 ---
 
 # AI Instructions
