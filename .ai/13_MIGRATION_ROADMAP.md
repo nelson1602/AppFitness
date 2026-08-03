@@ -1918,9 +1918,9 @@ the dashboard adapter reads today) + wellness-vs-medical classification
 (**ACCEPTED 2026-08-03 = Option A — activate wellness tables; keep
 `medical_evaluations` medical-only; ADR-P016 overall still Proposed pending
 D2–D6**);
-D2 — snapshot computation on-device (proposed) vs server-computed (**gate drafted
-2026-08-03: recommends Option A — on-device deterministic; pending owner
-acceptance**); D3 — charting
+D2 — snapshot computation on-device (proposed) vs server-computed (**ACCEPTED
+2026-08-03 = Option A — on-device deterministic, synced; backend validates but
+does not recompute in v1**); D3 — charting
 approach; D4 — v1 metric scope; D5 — iCoach feed (never override); D6 —
 duplicate-date conflict semantics.
 
