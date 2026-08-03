@@ -5181,14 +5181,17 @@ deterministic excluded-movement warnings.
 
 ## ADR-P016 — Progress Monitoring (Phase 17)
 
-Status: **Proposed** (planning gate — drafted, not accepted). This is a
-documentation-only planning gate: it proposes the Phase 17 scope, data model
-reuse, decisions D1–D6, and slice plan. **No schema, migration, backend module,
-mobile code, sync handler, UI, dependency, or charting library has landed or is
-authorized.** Acceptance (owner-only) would authorize the slice plan and, per the
-established pattern, only the first slice; each later slice needs its own scoped
-authorization.
+Status: **Proposed** (planning gate) — **D1 accepted (2026-08-03); D2–D6
+pending**. This is a documentation-only planning gate: it proposes the Phase 17
+scope, data model reuse, decisions D1–D6, and slice plan. **No schema, migration,
+backend module, mobile code, sync handler, UI, dependency, or charting library
+has landed or is authorized.** The owner has accepted **D1 = Option A** (see the
+"D1 decision gate" below); the ADR stays Proposed overall until the remaining
+required decisions (D2–D6) are resolved/accepted. Acceptance (owner-only)
+authorizes the slice plan and, per the established pattern, only the first slice;
+each later slice needs its own scoped authorization.
 Date drafted: 2026-08-03
+Date D1 accepted: 2026-08-03
 Relates to: ADR-0006 (offline-first sync), ADR-0011 (health-data sensitivity),
 ADR-P001/P006 (field-level encryption), ADR-P010 (monitoring), and the
 deterministic iCoach engine (`mobile/src/features/icoach/domain`). Reuses the
@@ -5358,8 +5361,17 @@ and `medical_evaluations` as medical-only; it does **not** resolve D2–D6, chan
 any code/schema, or authorize a slice. Slice 1 (audit) remains the first
 separately-authorized step.
 
-- [ ] **Owner accepts D1 = Option A** (records the decision in this ADR;
-      implementation still gated per-slice).
+- [x] **Owner accepts D1 = Option A** (accepted 2026-08-03 by project owner;
+      records the decision in this ADR; implementation still gated per-slice).
+
+**D1 ACCEPTED (2026-08-03, by project owner) = Option A.** The wellness tables
+`body_weights` / `body_measurements` / `progress_snapshots` are the Progress
+Monitoring source of truth; `medical_evaluations` remains the medical/doctor
+evaluation source of truth and is untouched. This records the source-of-truth
+and wellness-vs-medical classification only. **ADR-P016 overall remains
+Proposed** pending D2–D6; D2–D6 are unresolved; no code/schema change is made and
+no slice is authorized (Slice 1 audit remains the first separately-authorized
+step).
 
 ### Proposed slice plan (each slice separately authorized)
 

@@ -1915,8 +1915,9 @@ progress entry + trend charts + dashboard card; (6) Maestro E2E.
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification
-(**decision gate drafted 2026-08-03: recommends Option A — activate wellness
-tables; pending owner acceptance**);
+(**ACCEPTED 2026-08-03 = Option A — activate wellness tables; keep
+`medical_evaluations` medical-only; ADR-P016 overall still Proposed pending
+D2–D6**);
 D2 — snapshot computation on-device (proposed) vs server-computed; D3 — charting
 approach; D4 — v1 metric scope; D5 — iCoach feed (never override); D6 —
 duplicate-date conflict semantics.
