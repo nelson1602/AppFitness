@@ -5466,6 +5466,76 @@ authorized (Slice 1 audit remains the first separately-authorized step). D6
 (duplicate/conflict semantics) and the deterministic `week_start`/timezone
 boundary must still be resolved before Slice 4.
 
+### D3 decision gate — Progress charting approach (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D3 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+
+**Question.** How does Progress Monitoring v1 render trends (body-weight,
+body-fat/waist, weekly volume, calories, workout frequency)? The mobile app has
+**no charting dependency today** — the only presentation primitives are
+`AppText`, `Card`, `Banner`, `AppButton` from `@/shared/presentation`, and the
+roadmap risk note already calls for "charting without adding a heavy UI
+framework."
+
+**Option A — Lightweight in-house/native chart primitives for v1. (RECOMMENDED.)**
+Build simple deterministic trend visuals (line / bar / sparkline) from existing
+React Native primitives and design-system tokens; no new charting dependency;
+accessible text labels/summaries so content is never visual-only; keep the visual
+set limited to what body metrics and weekly snapshots need.
+- *Tech stack / dependency policy:* no new dependency — honors "avoid unnecessary
+  dependencies" and needs no ADR dependency approval (`02_TECH_STACK.md`).
+- *Offline-first:* renders purely from local data with no runtime asset/network
+  need.
+- *Accessibility:* first-class — every chart pairs with an accessible
+  label/summary and the underlying values are available as text (supports the
+  light/dark + a11y mandates in `08_UI_UX.md`); not visual-only.
+- *Performance:* minimal footprint, no heavy render engine; small datasets
+  (weekly points) render trivially.
+- *Design-system consistency:* built from tokens/primitives, so visuals match the
+  rest of the app by construction.
+- *Testability:* pure, deterministic components (fixed data → fixed output);
+  unit/component-testable with RNTL like other presentation code.
+- *Maintenance risk:* low external risk (no third-party upgrade/deprecation
+  treadmill); the cost is owning a small amount of drawing code.
+- *E2E reliability:* Maestro asserts on the accessible text summaries/values, not
+  fragile pixel canvases — more robust flows.
+- *Future extensibility:* if advanced charting is later needed, a third-party
+  dependency can be proposed then via its own ADR (Option B as a future step),
+  without blocking v1.
+
+**Option B — Add a third-party charting dependency now. (Not recommended for v1.)**
+- *Tradeoffs:* rich chart types out of the box, but adds a dependency (approval +
+  `02_TECH_STACK.md`/ADR), bundle weight, and upgrade/deprecation risk; many RN
+  charting libs pull native modules (Skia/SVG/Reanimated) that complicate the
+  managed-Expo build and EAS/E2E. Premature for the small v1 visual set.
+- *Accessibility/E2E:* canvas-based renderers are often screen-reader-opaque and
+  hard to assert in Maestro without extra labeling work anyway.
+
+**Option C — Text/table-first trends only; defer charts. (Fallback.)**
+- *Tradeoffs:* simplest and fully accessible, but weaker UX for trend perception;
+  acceptable as a stop-gap if visuals slip, though Option A already delivers
+  accessible visuals at low cost.
+
+**Option D — Defer.** Leaves the trend-presentation approach undefined; only
+choose if the visualization approach is genuinely contested.
+
+**Recommendation: Option A for v1.** It respects the dependency policy (no new
+dep), is fully offline-first and accessible (values exposed as text, not
+visual-only), matches the design system, is deterministic and testable, and
+yields more reliable E2E than a canvas library — while leaving the door open to a
+separate third-party charting ADR (Option B) if advanced needs emerge. Option C
+remains a fallback; D only if contested.
+
+**Scope of accepting D3=A (when authorized):** fixes the v1 charting approach as
+lightweight in-house/native primitives with accessible summaries and **no new
+charting dependency**; it does **not** resolve D4–D6, change any code/schema, add
+any package, or authorize a slice.
+
+- [ ] **Owner accepts D3 = Option A** (records the decision in this ADR;
+      implementation still gated per-slice).
+
 ### Proposed slice plan (each slice separately authorized)
 
 1. **Schema/sync audit + decisions.** Verify triggers/columns on the three
