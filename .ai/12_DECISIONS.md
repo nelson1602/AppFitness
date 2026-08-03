@@ -5628,6 +5628,81 @@ This records the v1 metric scope only. **ADR-P016 overall remains Proposed**
 pending D5–D6; D5–D6 are unresolved; no code/schema change is made and no slice is
 authorized (Slice 1 audit remains the first separately-authorized step).
 
+### D5 decision gate — iCoach interaction (drafted 2026-08-03; owner acceptance PENDING)
+
+> ADR-P016 remains **Proposed**. This subsection records the recommended
+> resolution of D5 for owner review. It is **not accepted** and authorizes **no
+> implementation**; the owner sign-off line below is intentionally unchecked.
+
+**Question.** How does Progress Monitoring interact with the iCoach engine?
+`07_ICOACH.md` mandates that the Deterministic Engine is the primary decision
+maker, its outputs never vary for identical inputs, everything on the dashboard
+originates from deterministic outputs, every rule is versioned/explainable, and
+**medical restrictions can never be overridden**.
+
+**Option A — Feed-not-override deterministic signals. (RECOMMENDED.)** Progress
+Monitoring produces deterministic, rule-versioned progress **signals** from the
+accepted D1 wellness sources and D2 snapshots. iCoach may consume these as
+**inputs** to future deterministic rules (plateau hints, deload suggestions,
+adherence summaries, coaching explanations). Progress Monitoring **never**
+recomputes `TrainingPlan`, nutrition targets, medical restrictions, or doctor
+evaluation state; medical restrictions and safety blockers remain authoritative
+and higher priority. Any iCoach rule using progress signals must be
+rule-versioned (`ENGINE_RULE_VERSION` bump), explainable, deterministic, and
+test-covered. v1 may expose **read-only** explanations/summaries before any
+plan-affecting rule is enabled.
+- *Determinism:* signals are pure functions of local inputs + rule version —
+  identical inputs → identical signals (honors the engine invariant).
+- *Safety / medical priority:* progress is strictly an input; medical caps and
+  the `TrainingPlan` retain absolute authority — nothing here can relax a
+  restriction.
+- *Explainability:* every signal and any consuming rule carries a versioned,
+  human-readable basis, consistent with the recommendations model.
+- *Rule versioning:* new/changed behavior bumps `ENGINE_RULE_VERSION` for
+  traceability (`07_ICOACH.md` §Rule Versioning).
+- *Offline behavior:* signals compute on-device from local data (aligns with
+  D2); no connectivity needed.
+- *Privacy boundary:* consumes only wellness data (D1); medical-evaluation trends
+  stay excluded (D4); no medical data crosses into progress signals.
+- *Testability:* signals + rules are deterministic units testable to
+  icoach-domain thresholds with fixed vectors.
+- *User trust:* deterministic, explainable coaching (no opaque/AI-authored plan
+  changes) builds trust.
+- *Future extensibility:* plan-affecting deterministic rules can be added later,
+  each behind its own version bump and scoped authorization, without reworking
+  the signal contract.
+
+**Option B — Progress module recomputes or directly changes iCoach plans. (NOT
+recommended / prohibited.)** Violates the core invariants: it would let a
+non-engine module mutate `TrainingPlan`/nutrition/medical state, breaking the
+single-source-of-truth engine and risking override of medical restrictions.
+Rejected on safety and determinism grounds.
+
+**Option C — Trends only; no iCoach input in v1. (Acceptable minimal fallback.)**
+Progress displays trends with zero engine coupling in v1. Safest-simplest and a
+valid starting point, but forgoes the coaching value that deterministic signals
+enable; Option A already preserves all safety guarantees while leaving the door
+open, so A is preferred. (A's v1 read-only posture is effectively C plus a
+defined signal contract.)
+
+**Option D — Defer.** Leaves the interaction model undefined; only if contested.
+
+**Recommendation: Option A.** It preserves every iCoach invariant — deterministic,
+explainable, versioned, medical-authoritative — while defining a clean
+feed-not-override signal contract that unlocks future deterministic coaching. v1
+stays read-only (summaries/explanations) until any plan-affecting rule is
+explicitly authorized; B is prohibited; C is the minimal fallback; D only if
+contested.
+
+**Scope of accepting D5=A (when authorized):** fixes the interaction model as
+feed-not-override deterministic signals with medical/`TrainingPlan` authority
+preserved and v1 read-only; it does **not** resolve D6, enable any plan-affecting
+rule, change code/schema, or authorize a slice. Enabling any progress-driven
+engine rule remains a separate future step behind an `ENGINE_RULE_VERSION` bump.
+
+- [ ] **Owner accepts D5 = Option A** (records the decision in this ADR;
+      implementation still gated per-slice).
+
 ### Proposed slice plan (each slice separately authorized)
 
 1. **Schema/sync audit + decisions.** Verify triggers/columns on the three
