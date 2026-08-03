@@ -5181,18 +5181,16 @@ deterministic excluded-movement warnings.
 
 ## ADR-P016 — Progress Monitoring (Phase 17)
 
-Status: **Proposed** (planning gate) — **all decisions D1–D6 accepted
-(2026-08-03); ADR full-acceptance pending a separate explicit owner step**. This
-is a documentation-only planning gate: it proposes the Phase 17 scope, data model
-reuse, decisions D1–D6, and slice plan. **No schema, migration, backend module,
-mobile code, sync handler, UI, dependency, or charting library has landed or is
-authorized.** The owner has accepted **D1–D6 = Option A** (see the "D1–D6
-decision gate" sections below); the ADR nonetheless stays **Proposed** overall
-until a separate, explicit owner full-acceptance step flips this status.
-Full acceptance (owner-only) authorizes the slice plan and, per the established
-pattern, only the first slice; each later slice needs its own scoped
-authorization.
+Status: **Accepted** (2026-08-03, by project owner, as drafted with D1–D6
+accepted). Acceptance is documentation-only: it authorizes the Phase 17 slice
+plan and decisions D1–D6 below, but changes no schema, code, package, or data.
+Implementation stays blocked until each slice gets its own scoped authorization;
+the **next authorized slice is Slice 1 only** (audit — see the Acceptance
+resolution at the end of this ADR). All six decisions are accepted = Option A.
+**No schema, migration, backend module, mobile code, sync handler, UI,
+dependency, or charting library has landed or is authorized by this acceptance.**
 Date drafted: 2026-08-03
+Date accepted: 2026-08-03
 Date D1 accepted: 2026-08-03
 Date D2 accepted: 2026-08-03
 Date D3 accepted: 2026-08-03
@@ -5878,6 +5876,41 @@ fresh EAS `e2e` APK.
 - Charting performance and dependency footprint over long histories (D3).
 - Historical-data volume/perf for trend queries.
 - No runtime verification is asserted by this gate.
+
+### Acceptance resolution (2026-08-03)
+
+The project owner **accepted ADR-P016 as drafted**, with all six decisions
+resolved = **Option A**:
+- **D1** — wellness tables (`body_weights`/`body_measurements`/
+  `progress_snapshots`) are the Progress source of truth; `medical_evaluations`
+  stays medical-only.
+- **D2** — snapshots are computed **on-device deterministically**, synced;
+  backend validates but does not recompute in v1.
+- **D3** — **lightweight in-house/native** charting with accessible summaries; no
+  new charting dependency in v1.
+- **D4** — **focused v1 metric set** (body-weight/waist trends + weekly snapshot
+  primary; body-fat/other measurements + workout/nutrition adherence optional
+  when deterministic; medical-trend/diagnostic/predictive/ML excluded).
+- **D5** — **feed-not-override** deterministic, rule-versioned iCoach signals;
+  medical/`TrainingPlan` authority preserved; v1 read-only.
+- **D6** — per-user **local-date** uniqueness, edit-not-duplicate, explicit
+  `sync_conflicts` (never silent overwrite), deterministic regenerable snapshots.
+
+**Implementation is authorized but not started.** Acceptance is
+documentation-only and changes no schema, code, package, or data. The **next
+authorized implementation step is Slice 1 (audit) ONLY**:
+1. schema/table audit of `body_weights`/`body_measurements`/`progress_snapshots`
+   (both stores);
+2. sync trigger/index audit (verify `assign_sync_seq` triggers + add the
+   `progress_snapshots` mobile dirty index needed by D2, forward-only);
+3. local-date/timezone representation audit (define the deterministic
+   `week_start`/entry-date rule per D2/D6; additive-only if a column is needed);
+4. progress source/input audit for D4's optional workout/nutrition summaries
+   (confirm deterministic local inputs; else the D4 Option C reduced fallback).
+
+Slice 1 produces findings/decisions and any additive-only migration proposal; it
+writes no feature code. **Every later slice (2–6) requires its own separate,
+explicit authorization.** No implementation has started in this acceptance.
 
 ---
 

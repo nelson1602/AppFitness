@@ -1898,13 +1898,16 @@ Phases 13–14 (body/evaluation data); dormant `body_weights`/
 Charting without adding a heavy UI framework (prefer lightweight/native);
 historical-data volume/perf.
 
-### Planning gate — ADR-P016 (Proposed 2026-08-03)
-Documentation-only planning gate drafted; **not accepted, no code/schema change
-authorized**. Data model is already provisioned but dormant
-(`body_weights`/`body_measurements`/`progress_snapshots`, `SYNCED_COLS`, backend
-`assign_sync_seq` triggers present). Mirrors the Phase 16 feature/sync
-architecture. Full context, decisions D1–D6, and architecture references live in
-`.ai/12_DECISIONS.md` (ADR-P016) and `.ai/11_BACKLOG.md` (FEATURE-008).
+### Planning gate — ADR-P016 (ACCEPTED 2026-08-03)
+ADR-P016 **accepted as drafted with D1–D6 = Option A**; documentation-only —
+**no code/schema/package change has landed**. Implementation is authorized but
+not started; the **next authorized step is Slice 1 (audit) only**, and every
+later slice needs its own scoped authorization. Data model is already provisioned
+but dormant (`body_weights`/`body_measurements`/`progress_snapshots`,
+`SYNCED_COLS`, backend `assign_sync_seq` triggers present). Mirrors the Phase 16
+feature/sync architecture. Full context, decisions D1–D6, and the acceptance
+resolution live in `.ai/12_DECISIONS.md` (ADR-P016) and `.ai/11_BACKLOG.md`
+(FEATURE-008).
 
 **Proposed slices (each separately authorized):** (1) schema/sync audit +
 resolve D1–D6; (2) backend sync handlers + `ProgressModule`; (3) mobile
