@@ -897,6 +897,46 @@ derived, redaction-safe `TrainingPlan`.
 
 ---
 
+## [FEATURE-008] Progress Monitoring (Phase 17)
+
+**Status:** PLANNING GATE — ADR-P016 **Proposed** (not accepted). No code/schema
+change authorized. Each slice needs its own scoped authorization after acceptance.
+**Priority:** commercial v1 (follows Phase 16).
+
+### Description
+Body metrics over time, weekly progress snapshots, and trend/dashboard views —
+offline-first and deterministic. Reuses the dormant, already-provisioned
+`body_weights`/`body_measurements`/`progress_snapshots` tables (both stores,
+`SYNCED_COLS`) and mirrors the Phase 16 feature/sync architecture. See ADR-P016
+for full context, decisions D1–D6, and architecture references.
+
+### Proposed slices (each separately authorized)
+1. Schema/sync audit + resolve D1–D6 (no code).
+2. Backend sync handlers (`BodyWeight`, `BodyMeasurement`; `ProgressSnapshot` per D2) + `ProgressModule`.
+3. Mobile `progress` feature — repositories, store, pull/push appliers (local-first + pending sync).
+4. Deterministic weekly-rollup engine (iCoach domain) — volume/calorie/weight/deload; rule-version bump; tests at thresholds.
+5. UI — progress entry + trend charts (lightweight/native) + dashboard trend card.
+6. Maestro E2E wired into `mobile-e2e.yml` (manual dispatch, ADR-P007/P008).
+
+### Open decisions (owner) — see ADR-P016
+- **D1 (KEY):** body-metric source of truth — activate wellness `body_weights`/`body_measurements` vs reuse medical `medical_evaluations` (adapter precedent); wellness-vs-medical privacy classification.
+- **D2:** snapshot computation — on-device deterministic (proposed) vs server-computed rollup.
+- **D3:** charting approach (lightweight/native vs new dependency).
+- **D4:** v1 trend metric scope. **D5:** iCoach interaction (feed, never override). **D6:** duplicate-date conflict semantics.
+
+### Acceptance criteria
+- [ ] Owner accepts ADR-P016 (slice plan + D1–D6) before any implementation.
+- [ ] Users see progress trends from their own data; offline-first; medical restrictions/data never overridden or reclassified without decision.
+- [ ] Snapshots are deterministic (identical inputs → identical outputs); tests meet thresholds.
+
+### Related Documents
+- .ai/12_DECISIONS.md — ADR-P016 (this gate)
+- .ai/13_MIGRATION_ROADMAP.md — Phase 17 — Progress Monitoring
+- api/prisma/schema.prisma — dormant `body_weights`/`body_measurements`/`progress_snapshots`; `MedicalEvaluation` overlap
+- mobile/src/features/dashboard/application/icoach-adapter.ts — current weight/body-fat read from `medical_evaluations`
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation

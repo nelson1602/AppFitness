@@ -1898,6 +1898,27 @@ Phases 13–14 (body/evaluation data); dormant `body_weights`/
 Charting without adding a heavy UI framework (prefer lightweight/native);
 historical-data volume/perf.
 
+### Planning gate — ADR-P016 (Proposed 2026-08-03)
+Documentation-only planning gate drafted; **not accepted, no code/schema change
+authorized**. Data model is already provisioned but dormant
+(`body_weights`/`body_measurements`/`progress_snapshots`, `SYNCED_COLS`, backend
+`assign_sync_seq` triggers present). Mirrors the Phase 16 feature/sync
+architecture. Full context, decisions D1–D6, and architecture references live in
+`.ai/12_DECISIONS.md` (ADR-P016) and `.ai/11_BACKLOG.md` (FEATURE-008).
+
+**Proposed slices (each separately authorized):** (1) schema/sync audit +
+resolve D1–D6; (2) backend sync handlers + `ProgressModule`; (3) mobile
+`progress` feature (repositories/store/appliers, local-first); (4) deterministic
+weekly-rollup engine in the iCoach domain (rule-version bump); (5) UI —
+progress entry + trend charts + dashboard card; (6) Maestro E2E.
+
+**Key open decisions:** D1 — body-metric source of truth (activate wellness
+`body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
+the dashboard adapter reads today) + wellness-vs-medical classification;
+D2 — snapshot computation on-device (proposed) vs server-computed; D3 — charting
+approach; D4 — v1 metric scope; D5 — iCoach feed (never override); D6 —
+duplicate-date conflict semantics.
+
 ### Exit Criteria
 - [ ] Users see progress trends from their own data; offline-first; tests
       meet thresholds.

@@ -5179,6 +5179,176 @@ deterministic excluded-movement warnings.
 
 ---
 
+## ADR-P016 — Progress Monitoring (Phase 17)
+
+Status: **Proposed** (planning gate — drafted, not accepted). This is a
+documentation-only planning gate: it proposes the Phase 17 scope, data model
+reuse, decisions D1–D6, and slice plan. **No schema, migration, backend module,
+mobile code, sync handler, UI, dependency, or charting library has landed or is
+authorized.** Acceptance (owner-only) would authorize the slice plan and, per the
+established pattern, only the first slice; each later slice needs its own scoped
+authorization.
+Date drafted: 2026-08-03
+Relates to: ADR-0006 (offline-first sync), ADR-0011 (health-data sensitivity),
+ADR-P001/P006 (field-level encryption), ADR-P010 (monitoring), and the
+deterministic iCoach engine (`mobile/src/features/icoach/domain`). Reuses the
+Phase 15/16 sync precedents (client-generatable UUIDs, denormalized `userId`,
+`version`/`deletedAt`/`syncSeq`, `EntitySyncHandler` backend + `EntityApplier`
+mobile). Does not touch ADR-P013/P014 (nutrition sourcing/preferences) or
+ADR-P015 (workout module) beyond read-only consumption of workout volume.
+
+> Documentation-only planning gate. No code or schema change is authorized. This
+> gate defines the Phase 17 slice plan and the decisions to resolve before
+> implementation.
+
+### Context
+
+Phase 16 (Workout Module, ADR-P015) is complete, cloud-verified, and merged.
+Phase 17 delivers **Progress Monitoring**: user body metrics over time, weekly
+progress snapshots, and trend/dashboard views — offline-first, deterministic,
+and privacy-respecting. The constitution lists "physical progress monitoring"
+and "dashboard analytics" as core v1 scope.
+
+### Current-state audit (findings)
+
+**Dormant, sync-shaped tables already exist in BOTH stores** — no new tables are
+required for the base metrics:
+- **`body_weights`** (Postgres `BodyWeight` + mobile SQLite): `weight_kg` (>0),
+  `date`, `notes`; SYNCED columns; `UNIQUE(user_id, date)`; mobile has a
+  `sync_status` dirty index → **user-entered, client-push** metric.
+- **`body_measurements`** (Postgres `BodyMeasurement` + mobile SQLite): `date`,
+  `body_fat_pct`, `waist_cm`, `hip_cm`, `chest_cm`, `left_arm_cm`,
+  `right_arm_cm`, `neck_cm`, `notes`; SYNCED; `UNIQUE(user_id, date)`; mobile
+  dirty index present → **user-entered, client-push**.
+- **`progress_snapshots`** (Postgres `ProgressSnapshot` + mobile SQLite):
+  `week_start`, `avg_weight_kg`, `total_volume_kg`, `avg_calories`,
+  `workout_count`, `is_deload_week`; SYNCED; `UNIQUE(user_id, week_start)`.
+  Postgres id is `@default(uuid())` (server-side) and the mobile table has **no**
+  dirty index → the dormant design implies a **server-computed weekly rollup**,
+  pull-only to devices. This conflicts with offline-first + on-device
+  determinism and is the central decision (D2).
+
+**Sync-seq triggers present:** the backend `init` migration's dynamic trigger
+loop already includes `body_weights`, `body_measurements`, and
+`progress_snapshots`, so `assign_sync_seq` fires on all three (unlike the
+dietary-preferences dormant-table gap). Slice 1 should still verify against a
+disposable Postgres, but evidence shows coverage.
+
+**Overlap with the medical domain (ADR-0011):** `MedicalEvaluation` (highest
+sensitivity, encrypted doctor notes/conditions/medications, append-only) already
+captures `weight_kg`, `body_fat_pct`, `muscle_mass_kg` as part of a periodic
+*clinical* evaluation. The dormant `body_weights`/`body_measurements` tables are
+plaintext wellness tables for *high-frequency* self-tracking. The relationship
+(duplication vs. distinct sources; whether trends read wellness data,
+medical data, or both) is a central decision (D1).
+
+**iCoach + dashboard:** the deterministic engine already emits a `TrainingPlan`
+and the schema carries a `recommendations` table (rule-versioned outputs). No
+charting library is present in the mobile app today.
+
+### Decisions to resolve (owner)
+
+- **D1 — Body-metric source of truth & medical overlap (KEY / likely
+  escalation).** Today the dashboard iCoach adapter
+  (`mobile/src/features/dashboard/application/icoach-adapter.ts`) already reads
+  weight/body-fat from the **medical** `medical_evaluations` table — the dormant
+  `body_weights`/`body_measurements` tables are unused. Phase 17 must decide
+  whether to (a) **activate** the dedicated wellness tables as the source of
+  truth for self-tracked trends (roadmap dependency intent; plaintext/synced like
+  workout data), keeping `MedicalEvaluation` medical/encrypted and untouched with
+  no automatic copying (trends may optionally overlay clinical points read-only),
+  or (b) **reuse** `medical_evaluations` for trends (adapter precedent, but
+  medical/encrypted/append-only and clinically framed). Proposed: (a), with a
+  clear wellness-vs-medical privacy boundary. Confirm classification and whether
+  body composition is wellness (plaintext) or medical/encrypted (defers to
+  ADR-P001).
+- **D2 — Snapshot computation locus.** Server-computed rollup (as the dormant
+  design implies) vs **on-device deterministic** weekly rollup. Proposed:
+  compute snapshots **on-device deterministically** (mirroring the `TrainingPlan`
+  engine — offline-first, reproducible, versioned), persisted to
+  `progress_snapshots` and pushed; the server may recompute identically for
+  verification. Requires adding a mobile dirty index for the table (forward-only
+  migration).
+- **D3 — Charting approach.** Prefer a **lightweight/native** renderer
+  (`react-native-svg`-based, hand-rolled sparklines/line charts) over a heavy
+  charting framework. Any new dependency needs its own ADR note.
+- **D4 — v1 trend metric scope.** Proposed v1: body-weight trend, body-fat/waist
+  trend, weekly training volume (from `workout_sets` `reps × weight_kg`), average
+  daily calories (from nutrition logs), and workout frequency. Confirm the set.
+- **D5 — iCoach interaction.** Progress data may *feed* the deterministic engine
+  (e.g., `is_deload_week`, plateau detection) but progress monitoring must never
+  recompute the `TrainingPlan` or override medical restrictions; any progress
+  recommendations are deterministic, rule-versioned, and explainable.
+- **D6 — Conflict/duplicate semantics.** `UNIQUE(user_id, date)` /
+  `(user_id, week_start)` — define offline conflict handling (last-write-wins by
+  `version`, or reject/merge duplicate-date entries) consistent with ADR-0006.
+
+### Proposed slice plan (each slice separately authorized)
+
+1. **Schema/sync audit + decisions.** Verify triggers/columns on the three
+   tables against disposable Postgres and mobile SQLite; resolve D1–D6. No code.
+2. **Backend sync handlers.** `BodyWeightSyncHandler` + `BodyMeasurementSyncHandler`
+   (owner-scoped, SYNCED); `ProgressSnapshot` handler per D2. Handler tests +
+   `app.module` registration.
+3. **Mobile persistence.** `progress` feature (domain/application/infrastructure/
+   presentation) — repositories, Zustand store, pull/push appliers for weights &
+   measurements; local-first writes + pending-sync hints.
+4. **Deterministic progress engine (iCoach domain).** Pure, versioned weekly
+   rollup (avg weight, total volume, avg calories, workout count, deload flag) +
+   trend derivation; identical-input-identical-output tests at the icoach-domain
+   coverage thresholds.
+5. **UI surfaces.** Progress screen (weight/measurement entry + history), trend
+   charts (D3), and a dashboard trend card; light/dark, accessible, no hardcoded
+   values.
+6. **E2E (Maestro).** Enter weigh-ins → view trends → offline-first behavior;
+   wired into `mobile-e2e.yml`; cloud dispatch per ADR-P007/P008 with explicit
+   authorization.
+
+### Architecture references (for implementers)
+
+- Backend sync registry: `api/src/modules/sync/domain/sync-entity-registry.ts`;
+  handler interface `api/src/modules/sync/domain/sync.types.ts`; reference handler
+  `api/src/modules/workout/infrastructure/exercise-sync.handler.ts`; per-module
+  `onModuleInit` registration (mirror `workout.module.ts` → new `ProgressModule`).
+- Mobile pull appliers: `mobile/src/shared/infrastructure/sync/appliers.ts`;
+  per-feature `sync-appliers.ts` with a `register…SyncAppliers()` wired in the
+  composition root `mobile/src/app/_layout.tsx`. Push = repository writes as
+  `sync_status='pending'` + `enqueue(...)` in the same transaction (see
+  `mobile/src/features/workout/infrastructure/workout.repository.ts`).
+- Table columns: `SYNCED_COLS`/`CATALOG_COLS` in
+  `mobile/src/shared/infrastructure/database/migrations/001-initial.ts`
+  (all three progress tables already use `SYNCED_COLS`).
+- Data sources: training volume = `SUM(weight_kg × reps)` over `workout_sets`
+  (no aggregation exists yet); daily calories via `sumDailyTotals()` in
+  `mobile/src/features/nutrition/domain/food-log.ts` over synced `meal_items`.
+  Both inputs are available on-device, supporting D2's on-device computation.
+- iCoach: pure domain in `mobile/src/features/icoach/domain/` with
+  `ENGINE_RULE_VERSION` in `rule-versions.ts`; deload/volume/trend logic is
+  greenfield (`is_deload_week` is unused today) — a new `progress-analysis.ts`
+  module + a rule-version bump would be required.
+- Feature layout to mirror: `mobile/src/features/workout/`
+  (`domain`/`application`/`infrastructure`/`presentation` + `index.ts`).
+
+### Test / E2E strategy
+
+Deterministic rollup engine unit-tested to the icoach-domain thresholds
+(≈95/95/95/90); repository/store/component tests per existing feature norms;
+offline-first verified (local-first write → pending → sync). Maestro E2E is
+manual `workflow_dispatch` (ADR-P007), dispatched only with authorization and a
+fresh EAS `e2e` APK.
+
+### Risks / open items
+
+- D1 medical-overlap ambiguity (wellness vs. encrypted) — resolve before any
+  table is wired.
+- D2 client/server snapshot determinism (timezone/`week_start` boundaries must be
+  defined so both sides compute identical rollups).
+- Charting performance and dependency footprint over long histories (D3).
+- Historical-data volume/perf for trend queries.
+- No runtime verification is asserted by this gate.
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
