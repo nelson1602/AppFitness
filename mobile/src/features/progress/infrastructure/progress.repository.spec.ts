@@ -1,17 +1,26 @@
+import type { WeeklyProgressSnapshot } from '@/features/icoach/domain/progress-analysis';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
-import type { BodyMeasurementRow, BodyWeightRow } from '@/shared/infrastructure/database/types';
+import type {
+  BodyMeasurementRow,
+  BodyWeightRow,
+  ProgressSnapshotRow,
+} from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
 
 import {
   applyServerBodyWeight,
+  applyServerProgressSnapshot,
   bodyWeightForDate,
   createBodyMeasurement,
   createBodyWeight,
   deleteBodyWeight,
   listBodyWeights,
+  listProgressSnapshots,
   markBodyWeightConflict,
+  markProgressSnapshotConflict,
   updateBodyWeight,
+  upsertProgressSnapshot,
 } from './progress.repository';
 
 jest.mock('@/shared/infrastructure/database', () => ({
@@ -201,6 +210,172 @@ describe('progress.repository — body_weights', () => {
       NOW,
       BW_ID,
     ]);
+  });
+});
+
+const SNAP_ID = 'snap-1';
+
+function snap(o: Partial<WeeklyProgressSnapshot> = {}): WeeklyProgressSnapshot {
+  return {
+    weekStart: '2026-08-03',
+    avgWeightKg: 80,
+    totalVolumeKg: 12000,
+    avgCalories: 2100,
+    workoutCount: 3,
+    isDeloadWeek: false,
+    ruleVersion: '1.1.0',
+    ...o,
+  };
+}
+
+function snapRow(o: Partial<ProgressSnapshotRow> = {}): ProgressSnapshotRow {
+  return {
+    id: SNAP_ID,
+    user_id: USER,
+    created_at: NOW,
+    updated_at: NOW,
+    version: 1,
+    deleted_at: null,
+    deleted_by: null,
+    sync_status: 'pending',
+    week_start: '2026-08-03',
+    avg_weight_kg: 80,
+    total_volume_kg: 12000,
+    avg_calories: 2100,
+    workout_count: 3,
+    is_deload_week: 0,
+    rule_version: '1.1.0',
+    ...o,
+  };
+}
+
+describe('progress.repository — progress_snapshots', () => {
+  it('upsert CREATEs a new row (no existing tuple) and enqueues the exact wire payload', async () => {
+    mockUuid.mockReturnValueOnce(SNAP_ID).mockReturnValueOnce('op-snap-1');
+    mockQueryFirst
+      .mockResolvedValueOnce(null) // no existing (user, week_start, rule_version)
+      .mockResolvedValueOnce(snapRow()); // reloaded created row
+
+    const result = await upsertProgressSnapshot(USER, snap(), NOW);
+
+    expect(mockQueryFirst).toHaveBeenCalledWith(
+      expect.stringMatching(/week_start = \? AND rule_version = \? AND deleted_at IS NULL/),
+      [USER, '2026-08-03', '1.1.0'],
+    );
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO progress_snapshots'),
+      [SNAP_ID, USER, NOW, NOW, '2026-08-03', 80, 12000, 2100, 3, 0, '1.1.0'],
+    );
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      {
+        opId: 'op-snap-1',
+        entityType: 'progress_snapshots',
+        entityId: SNAP_ID,
+        operation: 'CREATE',
+        payload: {
+          id: SNAP_ID,
+          week_start: '2026-08-03',
+          avg_weight_kg: 80,
+          total_volume_kg: 12000,
+          avg_calories: 2100,
+          workout_count: 3,
+          is_deload_week: false,
+          rule_version: '1.1.0',
+        },
+        baseVersion: 0,
+      },
+      NOW,
+    );
+    expect(result.id).toBe(SNAP_ID);
+    expect(result.isDeloadWeek).toBe(false);
+  });
+
+  it('upsert UPDATEs the existing tuple row in place (id stable, version+1, enqueue UPDATE)', async () => {
+    mockUuid.mockReturnValueOnce('op-snap-2');
+    mockQueryFirst
+      .mockResolvedValueOnce(snapRow({ version: 2 })) // existing tuple row
+      .mockResolvedValueOnce(snapRow({ version: 3, total_volume_kg: 15000, is_deload_week: 1 })); // reloaded
+
+    const result = await upsertProgressSnapshot(
+      USER,
+      snap({ totalVolumeKg: 15000, isDeloadWeek: true }),
+      NOW,
+    );
+
+    // id NEVER changes across recompute; generateUuid is only used for the opId.
+    expect(mockUuid).toHaveBeenCalledTimes(1);
+    expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('UPDATE progress_snapshots'), [
+      80,
+      15000,
+      2100,
+      3,
+      1,
+      3,
+      NOW,
+      SNAP_ID,
+    ]);
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'progress_snapshots',
+        entityId: SNAP_ID,
+        operation: 'UPDATE',
+        baseVersion: 2,
+        payload: expect.objectContaining({
+          id: SNAP_ID,
+          week_start: '2026-08-03',
+          total_volume_kg: 15000,
+          is_deload_week: true,
+        }),
+      }),
+      NOW,
+    );
+    expect(result.id).toBe(SNAP_ID);
+    expect(result.isDeloadWeek).toBe(true);
+  });
+
+  it('list returns active rows only, mapped (week_start DESC, default limit)', async () => {
+    mockQueryAll.mockResolvedValueOnce([snapRow(), snapRow({ id: 'snap-2' })]);
+    const rows = await listProgressSnapshots(USER);
+    expect(mockQueryAll).toHaveBeenCalledWith(expect.stringContaining('deleted_at IS NULL'), [
+      USER,
+      520,
+    ]);
+    expect(rows).toHaveLength(2);
+    expect(rows[0].ruleVersion).toBe('1.1.0');
+  });
+
+  it('applyServer writes a synced row, coercing the boolean is_deload_week to 0/1', async () => {
+    await applyServerProgressSnapshot(
+      {
+        id: SNAP_ID,
+        user_id: USER,
+        created_at: NOW,
+        updated_at: NOW,
+        version: 5,
+        deleted_at: null,
+        deleted_by: null,
+        week_start: '2026-08-03',
+        avg_weight_kg: 79,
+        total_volume_kg: 13000,
+        avg_calories: 2000,
+        workout_count: 4,
+        is_deload_week: true,
+        rule_version: '1.1.0',
+      },
+      false,
+    );
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringMatching(/INSERT OR REPLACE INTO progress_snapshots[\s\S]*'synced'/),
+      [SNAP_ID, USER, NOW, NOW, 5, null, null, '2026-08-03', 79, 13000, 2000, 4, 1, '1.1.0'],
+    );
+  });
+
+  it('markConflict sets sync_status = conflict', async () => {
+    await markProgressSnapshotConflict(SNAP_ID, NOW);
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringMatching(/progress_snapshots SET sync_status = 'conflict'/),
+      [NOW, SNAP_ID],
+    );
   });
 });
 

@@ -1967,6 +1967,22 @@ redaction/audit), feed-not-override. No schema/migration/app.module/mobile/
 package change. Slice 4c = mobile snapshot repo/applier/store + gathering +
 `recomputeSnapshots`. See ADR-P016 "Slice 4b".
 
+**Slice 4c DONE 2026-08-04 (mobile only; pending validation/commit):**
+`mobile/src/features/progress/` snapshot recompute runtime — `ProgressSnapshot`
+type/mapper/`toSqlBool`; repo `upsertProgressSnapshot` keyed by
+`(user_id, week_start, rule_version)` with a STABLE row id (UPDATE-in-place vs
+new-UUID CREATE), one-transaction local write + sync enqueue, wire payload
+matching Slice 4b exactly, plus `listProgressSnapshots`/
+`applyServerProgressSnapshot`/`markProgressSnapshotConflict` and a third pull
+applier. Gathering service reads body weights + workout logs/sets (completed-set
+volume) + nutrition daily calorie totals via each feature's **public API**,
+resolves workout `started_at` to a **device-local** date, runs the pure 4a engine
+and upserts. Store gains `loadSnapshots`/`recomputeSnapshots`. Authorized
+read-only exports: workout `listRecentWorkoutLogs`/`listWorkoutSets`, nutrition
+`listDailyCalorieTotals`. Feed-not-override (D5). No backend/schema/migration/UI/
+E2E/package change; coverage config unchanged. Slice 5 = UI (entry + trend
+charts + dashboard card). See ADR-P016 "Slice 4c".
+
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification

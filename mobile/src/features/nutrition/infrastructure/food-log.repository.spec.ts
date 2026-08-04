@@ -5,6 +5,7 @@ import { enqueue } from '@/shared/infrastructure/sync';
 
 import {
   applyServerMealItem,
+  listDailyCalorieTotals,
   listLoggedItems,
   logFood,
   markMealItemConflict,
@@ -235,6 +236,30 @@ describe('food-log repository — reads', () => {
     expect(items[0].consumed.calories).toBe(320);
     expect(items[0].consumed.proteinG).toBe(62);
     expect(items[0].consumed.fiberG).toBeNull();
+  });
+
+  it('listDailyCalorieTotals sums each logged day (Progress Slice 4c read surface)', async () => {
+    mockQueryAll
+      // 1) enumerate the user's non-deleted nutrition_logs dates (ASC)
+      .mockResolvedValueOnce([{ date: '2026-07-12' }, { date: DATE }] as never)
+      // 2) items for 2026-07-12 (none logged → 0 kcal)
+      .mockResolvedValueOnce([] as never)
+      // 3) items for DATE: 160 kcal/serving × 2 = 320
+      .mockResolvedValueOnce([
+        { ...mealItemRow({ id: 'a', serving_count: 2 }), meal_type: 'LUNCH' },
+      ] as never);
+
+    const totals = await listDailyCalorieTotals(USER);
+
+    expect(mockQueryAll).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('SELECT date FROM nutrition_logs'),
+      [USER],
+    );
+    expect(totals).toEqual([
+      { date: '2026-07-12', calories: 0 },
+      { date: DATE, calories: 320 },
+    ]);
   });
 
   it('applies a pulled server change as synced (server is authoritative after reconcile)', async () => {

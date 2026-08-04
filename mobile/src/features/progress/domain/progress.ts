@@ -1,6 +1,8 @@
 import type {
   BodyMeasurementRow,
   BodyWeightRow,
+  ProgressSnapshotRow,
+  SqlBool,
   SyncStatus,
 } from '@/shared/infrastructure/database/types';
 
@@ -22,6 +24,7 @@ import type {
 
 export const BODY_WEIGHT_ENTITY = 'body_weights';
 export const BODY_MEASUREMENT_ENTITY = 'body_measurements';
+export const PROGRESS_SNAPSHOT_ENTITY = 'progress_snapshots';
 
 // ── body_weights ──────────────────────────────────────────────────────────────
 export interface BodyWeightInput {
@@ -103,4 +106,46 @@ export function rowToBodyMeasurement(r: BodyMeasurementRow): BodyMeasurement {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
+}
+
+// ── progress_snapshots (Slice 4c) ───────────────────────────────────────────────
+// Deterministic weekly rollups produced ON-DEVICE by the Slice 4a engine and
+// synced to the Slice 4b backend. One active row per user per `weekStart` per
+// `ruleVersion` (D6). Numeric + version-string only.
+export interface ProgressSnapshot {
+  id: string;
+  /** ISO-Monday `YYYY-MM-DD` (user-local calendar). */
+  weekStart: string;
+  avgWeightKg: number | null;
+  totalVolumeKg: number | null;
+  avgCalories: number | null;
+  workoutCount: number;
+  isDeloadWeek: boolean;
+  ruleVersion: string;
+  version: number;
+  syncStatus: SyncStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function rowToProgressSnapshot(r: ProgressSnapshotRow): ProgressSnapshot {
+  return {
+    id: r.id,
+    weekStart: r.week_start,
+    avgWeightKg: r.avg_weight_kg,
+    totalVolumeKg: r.total_volume_kg,
+    avgCalories: r.avg_calories,
+    workoutCount: r.workout_count,
+    isDeloadWeek: r.is_deload_week === 1,
+    ruleVersion: r.rule_version,
+    version: r.version,
+    syncStatus: r.sync_status,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+/** SqlBool helper for persistence (SQLite stores 0/1; the wire carries a boolean). */
+export function toSqlBool(value: boolean): SqlBool {
+  return value ? 1 : 0;
 }

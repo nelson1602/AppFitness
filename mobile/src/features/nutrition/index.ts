@@ -65,3 +65,8 @@ export type {
   MealItemSyncState,
 } from './domain/food-log';
 export { registerNutritionSyncAppliers } from './infrastructure/sync-appliers';
+// Read-only daily calorie totals for the Progress gathering service (ADR-P016 Slice 4c).
+export {
+  listDailyCalorieTotals,
+  type DailyCalorieTotal,
+} from './infrastructure/food-log.repository';
