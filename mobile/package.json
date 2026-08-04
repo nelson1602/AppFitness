@@ -66,6 +66,8 @@
         "@expo/ui",
         "expo",
         "expo-constants",
+        "expo-image",
+        "expo-linking",
         "expo-router",
         "expo-system-ui",
         "jest-expo",
