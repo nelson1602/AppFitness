@@ -2013,6 +2013,20 @@ no backend/schema/migration/package/iCoach-engine/E2E change; coverage config
 unchanged. **Phase 17 UI complete; Slice 6 = Maestro E2E (remaining).** See
 ADR-P016 "Slice 5b".
 
+**Slice 6 DONE 2026-08-04 (E2E + workflow wiring + docs only; pending
+validation/commit):** `mobile/.maestro/progress-monitoring.yml` proves the
+Progress journey on the `onboard` session — dashboard summary card → record body
+weight 83 (auto-recompute) → assert Latest + accessible `1 reading: 83 kg` trend
+text → record waist 82 → `progress-recompute` → assert `weekly-snapshot-summary`
++ Week of/Total volume/Workouts/Deload-week (text, not color-only) → back to the
+dashboard card. Wellness tables only (D1); dynamic dates via regex; never edits
+the shared date field. Wired into `mobile-e2e.yml` after
+`workout-custom-exercise.yml` (before the offline journey); `on:` remains
+`workflow_dispatch` only (ADR-P007/P008). No app/backend/schema/package change
+(all testIDs shipped in 5a/5b). **Cloud green requires a fresh EAS `e2e` APK ≥
+Slice 5b — not built/dispatched here (operator prerequisite).** **Phase 17
+complete.** See ADR-P016 "Slice 6".
+
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification

@@ -1,0 +1,119 @@
+# Phase 17 Slice 6 — Progress Monitoring E2E (ADR-P016).
+#
+# Proves the device-side Progress journey end to end on the wellness
+# `body_weights` / `body_measurements` tables and the deterministic weekly
+# `progress_snapshots` rollup (D1/D2/D6):
+#   1. dashboard → the Progress summary card entry point;
+#   2. record a body weight (local-first); a successful weight save
+#      auto-recomputes the weekly snapshot (Slice 5a);
+#   3. the latest weight + the in-house, accessible trend text are shown
+#      (single reading → text-first "1 reading: 83 kg", never chart-only);
+#   4. record a waist measurement (measurements do NOT recompute);
+#   5. tap "Update weekly insights" to re-run the deterministic recompute;
+#   6. the weekly snapshot summary surfaces avg weight / total volume / workouts
+#      and the deload flag AS TEXT (never color-only);
+#   7. back on the dashboard, the summary card reflects the new weight.
+#
+# Progress uses the wellness tables only — NOT medical_evaluations (D1). The
+# body weight added here is the first wellness `body_weights` row for this
+# account, so the recompute produces a current-week snapshot regardless of prior
+# workout history; any in-week finished workout (from workout-training-plan.yml,
+# sequenced earlier) simply enriches the total-volume figure.
+#
+# Prereqs (same seeded-local-API setup as the other flows): api/ running on the
+# host, a disposable database, and `adb reverse tcp:3001 tcp:3001`. Runs on the
+# persisted `onboard` session (established by onboarding-loop.yml) and is
+# sequenced after workout-custom-exercise.yml. No -e vars needed; the session is
+# restored on launch. Fake synthetic identity; disposable DB.
+#
+# Requires an EAS `e2e` APK built from the Phase 17 Slice 5a/5b commits (the
+# Progress route/screens + dashboard card) or later; an older APK predating the
+# Progress UI will fail at the Progress entry point (no dashboard-progress-card).
+# Dynamic device dates are matched with substrings/regex; the flow never edits
+# the prefilled date field (whose testID is shared across both entry forms).
+appId: com.appfitness.mobile
+---
+- launchApp
+
+# Session restore → the dashboard for the onboard account. The always-present
+# header is the stable landing signal (the assessment may not be "ready" this
+# late in the sequence).
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 45000
+
+# --- 1. Dashboard → Progress via the summary card entry point (Slice 5b). ---
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-progress-card'
+- assertVisible: 'View your progress'
+- tapOn:
+    id: 'dashboard-progress-card'
+- extendedWaitUntil:
+    visible: 'Record weight'
+    timeout: 15000
+
+# --- 2. Record a body weight. The date field is prefilled with today (never
+#     edited here — its testID is shared with the measurement form). Saving
+#     auto-recomputes the weekly snapshot. ---
+- tapOn:
+    id: 'field-weightKg'
+- inputText: '83'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'body-weight-submit'
+- tapOn:
+    id: 'body-weight-submit'
+
+# --- 3. Latest weight (Latest card, above the forms) + accessible trend text
+#     (Trends card, below the forms). A single reading renders the text-first
+#     fallback rather than bars. Dynamic date → substring/regex. ---
+- scrollUntilVisible:
+    direction: UP
+    element: '.*83 kg on.*'
+- scrollUntilVisible:
+    element: '1 reading: 83 kg'
+
+# --- 4. Record a waist measurement (unique field-waistCm; measurements do NOT
+#     trigger a recompute). ---
+- scrollUntilVisible:
+    element: 'Record measurements'
+- tapOn:
+    id: 'field-waistCm'
+- inputText: '82'
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'body-measurement-submit'
+- tapOn:
+    id: 'body-measurement-submit'
+
+# --- 5. Explicitly re-run the deterministic weekly recompute. ---
+- scrollUntilVisible:
+    element:
+      id: 'progress-recompute'
+- tapOn:
+    id: 'progress-recompute'
+
+# --- 6. Weekly snapshot summary: the current week plus the metric rows. The
+#     deload flag is TEXT (Yes/No), never color-only. Dynamic week_start →
+#     substring. ---
+- extendedWaitUntil:
+    visible:
+      id: 'weekly-snapshot-summary'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Week of'
+- assertVisible: 'Total volume'
+- assertVisible: 'Workouts'
+- assertVisible: 'Deload week'
+
+# --- 7. Back on the dashboard, the summary card reflects the new weight (the
+#     card and screen share the same Zustand store, so it updates without a
+#     remount). ---
+- back
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-progress-card'
+- assertVisible: '.*83 kg.*'
