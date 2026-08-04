@@ -6015,6 +6015,29 @@ untouched.
 - **Still deferred:** `period_type` (future multi-period amendment); all feature
   wiring (Slices 3–6). No feature behavior is introduced by this slice.
 
+### Slice 3a — backend body-metric sync handlers (2026-08-04)
+
+Backend sync runtime for the user-entered wellness metrics — **backend only**
+(the recommended 3a/3b split; mobile is Slice 3b). New `api/src/modules/progress/`
+mirrors the workout module: `ProgressRepositoryPort` + `PrismaProgressRepository`,
+payload parsers, mapper, and `EntitySyncHandler`s for **`body_weights`** and
+**`body_measurements`**, registered by `ProgressModule` (`onModuleInit`) and wired
+into `app.module`.
+- **Owner-scoped** reads/writes; `user_id` is server-assigned (never trusted from
+  payload). CREATE payload includes `id`; UPDATE omits it. DELETE is a
+  soft-delete (`deleted_at`/`deleted_by`). Version conflicts handled by the sync
+  pipeline (`getServerState` + `baseVersion`).
+- **Wellness classification (D1):** no field encryption and **no audit** (matches
+  the workout module); `medical_evaluations` untouched.
+- **D6:** a duplicate `(user_id, date)` CREATE hits the DB unique constraint and
+  surfaces as an apply failure — never a silent overwrite. Free-text `notes` is
+  redacted from `sync_conflicts`; pull payloads are not redacted (owner-only over
+  TLS). `date` travels as a `YYYY-MM-DD` user-local calendar string.
+- **No schema/migration change** (Slice 2 already shipped the columns/indexes);
+  no `DEPENDENCY_NOT_READY` (metrics depend only on user ownership).
+- **`progress_snapshots` NOT implemented** — its handler ships with the Slice 4
+  deterministic engine (ADR-P016 D2). No mobile files in this slice.
+
 ---
 
 # AI Instructions

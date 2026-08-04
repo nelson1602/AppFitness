@@ -9,6 +9,7 @@ import { DatabaseModule } from './modules/database/database.module';
 import { HealthModule } from './modules/health/health.module';
 import { MedicalModule } from './modules/medical/medical.module';
 import { NutritionModule } from './modules/nutrition/nutrition.module';
+import { ProgressModule } from './modules/progress/progress.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { UsersModule } from './modules/users/users.module';
 import { WorkoutModule } from './modules/workout/workout.module';
@@ -28,6 +29,7 @@ import { WorkoutModule } from './modules/workout/workout.module';
     SyncModule,
     NutritionModule,
     WorkoutModule,
+    ProgressModule,
   ],
   providers: [
     // Preserves Nest's normal HTTP error responses while reporting
