@@ -4,6 +4,7 @@
  * UI yet.
  */
 export { registerProgressSyncAppliers } from './infrastructure/sync-appliers';
+export { ProgressScreen } from './presentation/ProgressScreen';
 export {
   useProgressStore,
   type ProgressState,

@@ -6143,6 +6143,38 @@ on the client). No backend/schema/migration/UI/E2E/package change.
   `sumDailyTotals`. Coverage config unchanged (`features/progress`/`workout` not
   in the jest coverage set — existing precedent).
 
+### Slice 5a — progress entry UI + navigation (2026-08-04)
+
+Mobile-only, first Progress UI surface (of the 5a/5b split; charts/visualization
+deferred to 5b). Pure presentation over the Slice 3b/4c store — no backend,
+schema, migration, package, iCoach-engine, chart, or E2E change; coverage config
+unchanged.
+- **Route:** `mobile/src/app/progress.tsx` — session-guarded (mirrors
+  `food-log.tsx`), renders `<ProgressScreen/>` inside `<Screen>`.
+- **`ProgressScreen`** binds only to the `useProgressStore` public API (no
+  SQLite/repository imports from presentation): `load()` on mount; loading/error/
+  ready states; a latest-entry text summary; the two entry forms; and a manual
+  **"Update weekly insights"** button → `recomputeSnapshots()`. A **placeholder**
+  weekly-insights text stands in for the real visualization (5b).
+- **Entry forms (RHF + Zod + shared `FormField`):** `BodyWeightForm` (date,
+  `weightKg`, optional notes) and `BodyMeasurementForm` (date, **waist required**;
+  hip/chest/body-fat % optional — arms/neck deferred to keep v1 focused, D4).
+  Validation + submit + reset-on-success; persistence delegated to the caller's
+  `onSubmit` (store action). Zod uses `z.preprocess` + `z.coerce.number` (matches
+  the evaluation form; keeps `z.input` `unknown` so the RHF `Control` stays
+  assignable to the shared `FormField`); numeric mapping lives in the `to…Input`
+  mappers.
+- **Recompute trigger (D-choice):** explicit "Update weekly insights" button
+  **plus** an auto-`recomputeSnapshots()` after a successful **body-weight** add
+  (weight feeds the weekly snapshot). Measurement adds do **not** recompute.
+- **Navigation:** a **"Progress"** `AppButton` on the dashboard → `/progress`
+  (nav button only; a dashboard progress *card* is deferred to 5b). `ProgressScreen`
+  exported from the feature public surface.
+- **Accessibility/theme:** design-system components only; every control has
+  `accessibilityLabel`/`testID`; light/dark via theme tokens; no hardcoded colors.
+  Feed-not-override (D5): records the user's own metrics + recomputes the
+  deterministic snapshot; never mutates plan/nutrition/medical.
+
 ---
 
 # AI Instructions

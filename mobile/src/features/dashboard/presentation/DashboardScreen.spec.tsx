@@ -309,6 +309,16 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/exercises');
   });
 
+  it('navigates to the progress monitoring surface', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Track your progress' }));
+
+    expect(router.push).toHaveBeenCalledWith('/progress');
+  });
+
   it('routes to the delete-account surface (never deletes directly)', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({ status: 'ready', data: baseData });

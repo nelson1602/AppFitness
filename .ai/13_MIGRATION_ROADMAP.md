@@ -1983,6 +1983,20 @@ read-only exports: workout `listRecentWorkoutLogs`/`listWorkoutSets`, nutrition
 E2E/package change; coverage config unchanged. Slice 5 = UI (entry + trend
 charts + dashboard card). See ADR-P016 "Slice 4c".
 
+**Slice 5a DONE 2026-08-04 (mobile only; pending validation/commit):** first
+Progress UI surface (5a/5b split; charts deferred to 5b). `/progress` route
+(session-guarded) + `ProgressScreen` binding only to the `useProgressStore`
+public API (no SQLite/repository in presentation); `BodyWeightForm` +
+`BodyMeasurementForm` (waist required; hip/chest/body-fat optional) via RHF + Zod
++ shared `FormField`; explicit "Update weekly insights" recompute button + auto-
+recompute after a successful body-weight add (measurement adds don't recompute);
+dashboard "Progress" nav button; `ProgressScreen` exported. Accessibility labels/
+testIDs + light/dark theme tokens throughout. No charts/`TrendBars`/
+`WeeklySnapshotSummary`/dashboard card (all Slice 5b), no backend/schema/
+migration/package/iCoach-engine/E2E change; coverage config unchanged. Slice 5b =
+in-house chart primitive + trends + weekly-snapshot visualization + dashboard
+progress card; Slice 6 = Maestro E2E. See ADR-P016 "Slice 5a".
+
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification

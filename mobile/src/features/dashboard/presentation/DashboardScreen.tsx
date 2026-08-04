@@ -159,6 +159,14 @@ export function DashboardScreen() {
       >
         Exercise library
       </AppButton>
+      {/* Progress monitoring — body metrics + weekly insights (ADR-P016 Phase 17 Slice 5a). */}
+      <AppButton
+        accessibilityLabel="Track your progress"
+        onPress={() => router.push('/progress')}
+        variant="secondary"
+      >
+        Progress
+      </AppButton>
 
       {/* Sign-out clears the session; the dashboard route's session
           guard then redirects to /sign-in — no manual navigation. */}
