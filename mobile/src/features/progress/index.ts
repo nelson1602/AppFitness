@@ -5,6 +5,7 @@
  */
 export { registerProgressSyncAppliers } from './infrastructure/sync-appliers';
 export { ProgressScreen } from './presentation/ProgressScreen';
+export { ProgressSummaryCard } from './presentation/ProgressSummaryCard';
 export {
   useProgressStore,
   type ProgressState,

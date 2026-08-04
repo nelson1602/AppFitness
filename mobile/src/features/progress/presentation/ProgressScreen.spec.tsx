@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { ProgressState } from '../application/progress.store';
-import type { BodyWeight } from '../domain/progress';
+import type { BodyWeight, ProgressSnapshot } from '../domain/progress';
 import { ProgressScreen } from './ProgressScreen';
 
 let mockState: ProgressState;
@@ -41,6 +41,21 @@ const weight: BodyWeight = {
   updatedAt: '2026-08-03T00:00:00.000Z',
 };
 
+const week: ProgressSnapshot = {
+  id: 'snap-1',
+  weekStart: '2026-08-03',
+  avgWeightKg: 80,
+  totalVolumeKg: 12000,
+  avgCalories: 2100,
+  workoutCount: 3,
+  isDeloadWeek: false,
+  ruleVersion: '1.1.0',
+  version: 1,
+  syncStatus: 'synced',
+  createdAt: '2026-08-03T00:00:00.000Z',
+  updatedAt: '2026-08-03T00:00:00.000Z',
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   setState();
@@ -68,15 +83,29 @@ describe('ProgressScreen (Slice 5a)', () => {
   it('renders the empty state when nothing is recorded', async () => {
     await render(<ProgressScreen />);
     expect(screen.getByText('No weight recorded yet.')).toBeOnTheScreen();
-    expect(
-      screen.getByText('No weekly insights yet. Add some data, then update your insights.'),
-    ).toBeOnTheScreen();
+    // Weekly summary + both trends fall back to their own text-first empty states.
+    expect(screen.getByText('No weekly insights yet.')).toBeOnTheScreen();
+    expect(screen.getAllByText('No data yet.')).toHaveLength(2);
   });
 
   it('renders the latest recorded weight when present', async () => {
     setState({ bodyWeights: [weight] });
     await render(<ProgressScreen />);
     expect(screen.getByText('80 kg on 2026-08-03')).toBeOnTheScreen();
+  });
+
+  it('renders the weight/volume trends and weekly summary when data exists', async () => {
+    setState({
+      bodyWeights: [weight, { ...weight, id: 'bw-0', date: '2026-08-01', weightKg: 81 }],
+      snapshots: [week],
+    });
+    await render(<ProgressScreen />);
+    // Weight trend (2 points → bars with per-point a11y labels).
+    expect(screen.getByLabelText('2026-08-01: 81 kg')).toBeOnTheScreen();
+    expect(screen.getByLabelText('2026-08-03: 80 kg')).toBeOnTheScreen();
+    // Weekly snapshot summary is rendered.
+    expect(screen.getByTestId('weekly-snapshot-summary')).toBeOnTheScreen();
+    expect(screen.getByText('Week of 2026-08-03')).toBeOnTheScreen();
   });
 
   it('dispatches recompute from the "Update weekly insights" button', async () => {

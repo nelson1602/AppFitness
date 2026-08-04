@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 
 import { signOut } from '@/features/authentication';
+import { ProgressSummaryCard } from '@/features/progress';
 import { AppButton, AppText, Banner, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -94,6 +95,9 @@ export function DashboardScreen() {
           </View>
         </>
       ) : null}
+
+      {/* Progress summary preview (ADR-P016 Phase 17 Slice 5b). */}
+      <ProgressSummaryCard onPress={() => router.push('/progress')} />
 
       {/* Nutrition targets (Phase 15 Slice 1). */}
       <AppButton

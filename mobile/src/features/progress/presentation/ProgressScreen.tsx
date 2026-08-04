@@ -8,6 +8,8 @@ import { useProgressStore } from '../application/progress.store';
 import type { BodyMeasurementInput, BodyWeightInput } from '../domain/progress';
 import { BodyMeasurementForm } from './BodyMeasurementForm';
 import { BodyWeightForm } from './BodyWeightForm';
+import { TrendBars, type TrendPoint } from './TrendBars';
+import { WeeklySnapshotSummary } from './WeeklySnapshotSummary';
 
 /**
  * Resolve today as a user-local `YYYY-MM-DD` at the UI boundary (ADR-P016 D6).
@@ -68,6 +70,15 @@ export function ProgressScreen() {
 
   const latestWeight = bodyWeights[0] ?? null;
 
+  // Charts read ascending (oldest → newest); the store holds both newest-first.
+  const weightTrend: TrendPoint[] = bodyWeights
+    .map((w) => ({ label: w.date, value: w.weightKg }))
+    .reverse();
+  const volumeTrend: TrendPoint[] = snapshots
+    .filter((s) => s.totalVolumeKg !== null)
+    .map((s) => ({ label: s.weekStart, value: s.totalVolumeKg as number }))
+    .reverse();
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
@@ -115,19 +126,23 @@ export function ProgressScreen() {
             />
           </Card>
 
+          <Card accessibilityLabel="Trends">
+            <View style={{ gap: theme.spacing.md }}>
+              <AppText variant="title">Trends</AppText>
+              <TrendBars title="Body weight" data={weightTrend} unit=" kg" testID="weight-trend" />
+              <TrendBars
+                title="Weekly training volume"
+                data={volumeTrend}
+                unit=" kg"
+                testID="volume-trend"
+              />
+            </View>
+          </Card>
+
           <Card accessibilityLabel="Weekly insights">
-            <View style={{ gap: theme.spacing.sm }}>
+            <View style={{ gap: theme.spacing.md }}>
               <AppText variant="title">Weekly insights</AppText>
-              {snapshots.length > 0 ? (
-                <AppText tone="muted">
-                  {snapshots.length} weekly snapshot{snapshots.length === 1 ? '' : 's'} computed.
-                  Trend charts are coming soon.
-                </AppText>
-              ) : (
-                <AppText tone="muted">
-                  No weekly insights yet. Add some data, then update your insights.
-                </AppText>
-              )}
+              <WeeklySnapshotSummary snapshots={snapshots} />
               <AppButton
                 accessibilityLabel="Update weekly insights"
                 testID="progress-recompute"

@@ -19,6 +19,20 @@ jest.mock('@/features/authentication', () => ({
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
 }));
+// Stub the cross-feature progress card so this test doesn't pull the progress
+// store/repository; it only needs the pressable that forwards onPress.
+jest.mock('@/features/progress', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    ProgressSummaryCard: ({ onPress }: { onPress: () => void }) =>
+      React.createElement(
+        RN.Pressable,
+        { accessibilityRole: 'button', accessibilityLabel: 'View your progress', onPress },
+        React.createElement(RN.Text, null, 'Progress'),
+      ),
+  };
+});
 
 const baseData: DashboardData = {
   missing: [],
@@ -315,6 +329,16 @@ describe('DashboardScreen', () => {
 
     await render(<DashboardScreen />);
     await fireEvent.press(screen.getByRole('button', { name: 'Track your progress' }));
+
+    expect(router.push).toHaveBeenCalledWith('/progress');
+  });
+
+  it('navigates to progress from the summary card', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'View your progress' }));
 
     expect(router.push).toHaveBeenCalledWith('/progress');
   });

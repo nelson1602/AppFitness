@@ -6175,6 +6175,38 @@ unchanged.
   Feed-not-override (D5): records the user's own metrics + recomputes the
   deterministic snapshot; never mutates plan/nutrition/medical.
 
+### Slice 5b — progress trend visualizations + dashboard card (2026-08-04)
+
+Mobile-only, completes the Progress UI (charts deferred from 5a). Pure
+presentation over the Slice 3b/4c store — no backend, schema, migration, package,
+chart library / `react-native-svg`, iCoach-engine, or E2E change; coverage config
+unchanged.
+- **`TrendBars` (D3, in-house):** React Native `View`/`Text` only — bars are
+  **min-normalized `<View>` heights** (guards `max === min` and empty). Never
+  visual-only: always renders a **text summary** (latest, min–max range, and
+  direction + delta: up/down/flat) and a **per-bar `accessibilityLabel`**
+  (`"{label}: {value}{unit}"`); color is never the sole signal (latest bar uses
+  the `accent` token). Empty/single-point series → text-first fallback, no bars.
+  Shows the most recent `maxBars` (default 12).
+- **Trends wired (D4 focused):** **body weight** (from `bodyWeights`) and **weekly
+  training volume** (from `snapshots.totalVolumeKg`), both re-sorted ascending in
+  `ProgressScreen`. **No avg-calories trend chart** — avg calories is shown
+  numerically in the summary.
+- **`WeeklySnapshotSummary`:** latest `progress_snapshots` row (avg weight, total
+  volume, avg calories, workout count) + a short earlier-weeks list. **Deload flag
+  as text** ("Yes"/"No"), never color-only; nulls render as "—"; empty state.
+- **`ProgressSummaryCard`** (dashboard): reads the public `useProgressStore`,
+  loads on mount, shows latest weight + latest weekly volume/deload, and is
+  pressable via an `onPress` prop (router stays in `DashboardScreen` → `/progress`,
+  keeping the card router-free/testable). Rendered on the dashboard above the
+  feature-nav buttons (the 5a "Progress" nav button remains).
+- **Integration:** `ProgressScreen` replaces the 5a placeholder with the two
+  `TrendBars` + `WeeklySnapshotSummary`, keeping the recompute button. Only
+  `ProgressScreen` + `ProgressSummaryCard` are exported from the feature; the
+  chart/summary primitives stay feature-internal. Presentation still imports only
+  the public progress API — no SQLite/repository. Wellness data only; no
+  `medical_evaluations` (D1). Feed-not-override (D5): read-and-display.
+
 ---
 
 # AI Instructions
