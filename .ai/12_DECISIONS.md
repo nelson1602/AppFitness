@@ -6207,6 +6207,34 @@ unchanged.
   the public progress API — no SQLite/repository. Wellness data only; no
   `medical_evaluations` (D1). Feed-not-override (D5): read-and-display.
 
+### Slice 6 — Progress Monitoring E2E (2026-08-04)
+
+Final Phase 17 slice. Adds a Maestro flow and wires it into the existing manual
+E2E workflow — **no app/backend/schema/package change** (all testIDs/labels were
+already shipped by 5a/5b).
+- **Flow (`mobile/.maestro/progress-monitoring.yml`):** reuses the persisted
+  `onboard` session (sequenced after `workout-custom-exercise.yml`). Dashboard →
+  `dashboard-progress-card` → record body weight `83` (`field-weightKg` /
+  `body-weight-submit`; the save auto-recomputes) → assert the Latest card
+  (`.*83 kg on.*`) and the accessible single-reading trend text
+  (`1 reading: 83 kg`) → record waist `82` (`field-waistCm` /
+  `body-measurement-submit`) → `progress-recompute` → assert
+  `weekly-snapshot-summary` + "Week of"/"Total volume"/"Workouts"/"Deload week"
+  (deload as TEXT, not color-only) → back to dashboard, card reflects `83 kg`.
+  Wellness tables only (D1); the added body weight guarantees a current-week
+  snapshot independent of workout history. Dynamic dates matched via
+  substrings/regex; the flow never edits the date field (whose testID is shared
+  across both entry forms).
+- **Workflow wiring:** one `maestro test .maestro/progress-monitoring.yml` step
+  added to `mobile-e2e.yml` after the workout flows (before the offline journey),
+  plus the job `name:` extended. **`on:` remains `workflow_dispatch` only**
+  (ADR-P007/P008) — no trigger broadening, no new secrets/services.
+- **Cloud-run prerequisite (operator):** a green `mobile-e2e` run needs a fresh
+  EAS `e2e` APK that includes the Progress UI (≥ Slice 5b). The workflow
+  downloads the "latest finished" APK; if that predates Progress, the flow fails
+  at `dashboard-progress-card`. Building/dispatching the APK is **out of scope
+  here** (no EAS build, no `mobile-e2e` dispatch performed).
+
 ---
 
 # AI Instructions
