@@ -3,8 +3,14 @@ import type {
   BodyMeasurementUpdateInput,
   BodyWeightCreateInput,
   BodyWeightUpdateInput,
+  ProgressSnapshotCreateInput,
+  ProgressSnapshotUpdateInput,
 } from './progress-payload';
-import type { BodyMeasurementRecord, BodyWeightRecord } from './progress.types';
+import type {
+  BodyMeasurementRecord,
+  BodyWeightRecord,
+  ProgressSnapshotRecord,
+} from './progress.types';
 
 /**
  * Repository port for the Progress Monitoring write entities (ADR-P016 Slice
@@ -66,4 +72,31 @@ export abstract class ProgressRepositoryPort {
     sinceSeq: number,
     limit: number,
   ): Promise<BodyMeasurementRecord[]>;
+
+  // ── progress_snapshots (Slice 4b) ─────────────────────────────────────────
+  // Client-computed rollups (Slice 4a); the id is client-minted and honored.
+  abstract findOwnedProgressSnapshot(
+    userId: string,
+    id: string,
+  ): Promise<ProgressSnapshotRecord | null>;
+  abstract createProgressSnapshot(
+    userId: string,
+    id: string,
+    data: ProgressSnapshotCreateInput,
+  ): Promise<ProgressSnapshotRecord>;
+  abstract updateProgressSnapshot(
+    id: string,
+    data: ProgressSnapshotUpdateInput,
+    newVersion: number,
+  ): Promise<void>;
+  abstract softDeleteProgressSnapshot(
+    id: string,
+    deletedBy: string,
+    newVersion: number,
+  ): Promise<void>;
+  abstract progressSnapshotsChangedSince(
+    userId: string,
+    sinceSeq: number,
+    limit: number,
+  ): Promise<ProgressSnapshotRecord[]>;
 }

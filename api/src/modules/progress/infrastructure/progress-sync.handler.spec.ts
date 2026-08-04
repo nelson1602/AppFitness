@@ -27,6 +27,11 @@ function makeRepo(): MockRepo {
     updateBodyMeasurement: jest.fn(),
     softDeleteBodyMeasurement: jest.fn(),
     bodyMeasurementsChangedSince: jest.fn(),
+    findOwnedProgressSnapshot: jest.fn(),
+    createProgressSnapshot: jest.fn(),
+    updateProgressSnapshot: jest.fn(),
+    softDeleteProgressSnapshot: jest.fn(),
+    progressSnapshotsChangedSince: jest.fn(),
   };
 }
 

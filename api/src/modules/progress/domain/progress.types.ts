@@ -14,6 +14,7 @@
 
 export const BODY_WEIGHT_ENTITY_TYPE = 'body_weights';
 export const BODY_MEASUREMENT_ENTITY_TYPE = 'body_measurements';
+export const PROGRESS_SNAPSHOT_ENTITY_TYPE = 'progress_snapshots';
 
 /**
  * A user-owned body-weight entry. One active row per user per local calendar
@@ -51,6 +52,31 @@ export interface BodyMeasurementRecord {
   rightArmCm: number | null;
   neckCm: number | null;
   notes: string | null;
+  version: number;
+  syncSeq: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+}
+
+/**
+ * A weekly progress rollup snapshot (ADR-P016 Slice 4b). Computed ON-DEVICE by
+ * the deterministic Slice 4a engine and synced here; the backend validates and
+ * stores it but NEVER recomputes it (D2). One active row per user per
+ * `weekStart` per `ruleVersion` (enforced by the DB unique constraint, D6).
+ * Numeric + version-string only — no free-text, no encryption/audit/redaction.
+ */
+export interface ProgressSnapshotRecord {
+  id: string;
+  userId: string;
+  /** ISO-Monday of the week (date-only, user-local calendar). */
+  weekStart: Date;
+  avgWeightKg: number | null;
+  totalVolumeKg: number | null;
+  avgCalories: number | null;
+  workoutCount: number;
+  isDeloadWeek: boolean;
+  ruleVersion: string;
   version: number;
   syncSeq: number;
   createdAt: Date;
