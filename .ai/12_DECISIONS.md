@@ -6084,6 +6084,29 @@ repo/store/applier, UI, or E2E**. New `mobile/src/features/icoach/domain/progres
   `ProgressSnapshot` sync = Slice 4b; mobile repo/applier/store + gathering +
   `recomputeSnapshots` trigger = Slice 4c.
 
+### Slice 4b — backend `ProgressSnapshot` sync (2026-08-04)
+
+Backend-only, in the existing `api/src/modules/progress/` module (mirrors the 3a
+body-metric handlers). Adds `ProgressSnapshotSyncHandler` (entityType
+`progress_snapshots`) + repository methods (`findOwned/create/update/softDelete/
+changedSince`) + Prisma impl (`prisma.progressSnapshot`) + payload parsers +
+`progressSnapshotToWire`/`…RowToRecord`, registered in
+`ProgressModule.onModuleInit`.
+- **Validate-not-recompute (D2):** the handler validates payload shape/ranges
+  (`week_start` YYYY-MM-DD; `avg_weight_kg`/`total_volume_kg`/`avg_calories`
+  optional non-negative; `workout_count` non-negative int; `is_deload_week`
+  boolean; `rule_version` non-empty) and stores the client-computed values
+  verbatim — it never runs the 4a engine server-side.
+- **Client-supplied `id` honored** on CREATE; `user_id` server-assigned/owner-
+  scoped; DELETE soft-deletes; version conflicts via the pipeline. A duplicate
+  `(user_id, week_start, rule_version)` CREATE hits the unique constraint and
+  surfaces as an apply failure — never a silent overwrite (D6); a rule-version
+  bump writes a new tuple (history preserved). **Numeric + version-string only →
+  no `redactForConflict`, no encryption/audit.** Feed-not-override (D5).
+- **No schema/migration change** (Slice 2 shipped the columns + unique); no
+  `app.module` change (`ProgressModule` already registered in 3a); no mobile/UI/
+  package change. Mobile persistence + gathering + `recomputeSnapshots` = Slice 4c.
+
 ---
 
 # AI Instructions

@@ -106,3 +106,71 @@ export function parseBodyMeasurementUpdate(
 ): BodyMeasurementUpdateInput {
   return parseBodyMeasurementCreate(p);
 }
+
+// ── progress_snapshots (Slice 4b) ──────────────────────────────────────────────
+// Snapshots are computed on-device (Slice 4a) and only VALIDATED here — the
+// backend never recomputes. Numeric + version-string only.
+
+function requireNonEmptyString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`${field} is required`);
+  }
+  return value;
+}
+
+function requireNonNegativeInt(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+    throw new Error(`${field} must be a non-negative integer`);
+  }
+  return value;
+}
+
+function requireBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new Error(`${field} must be a boolean`);
+  }
+  return value;
+}
+
+function optionalNonNegativeNumber(
+  value: unknown,
+  field: string,
+): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
+    throw new Error(`${field} must be a non-negative number`);
+  }
+  return value;
+}
+
+export interface ProgressSnapshotCreateInput {
+  weekStart: Date;
+  avgWeightKg: number | null;
+  totalVolumeKg: number | null;
+  avgCalories: number | null;
+  workoutCount: number;
+  isDeloadWeek: boolean;
+  ruleVersion: string;
+}
+export function parseProgressSnapshotCreate(
+  p: Record<string, unknown>,
+): ProgressSnapshotCreateInput {
+  return {
+    weekStart: requireCalendarDate(p.week_start, 'week_start'),
+    avgWeightKg: optionalNonNegativeNumber(p.avg_weight_kg, 'avg_weight_kg'),
+    totalVolumeKg: optionalNonNegativeNumber(
+      p.total_volume_kg,
+      'total_volume_kg',
+    ),
+    avgCalories: optionalNonNegativeNumber(p.avg_calories, 'avg_calories'),
+    workoutCount: requireNonNegativeInt(p.workout_count, 'workout_count'),
+    isDeloadWeek: requireBoolean(p.is_deload_week, 'is_deload_week'),
+    ruleVersion: requireNonEmptyString(p.rule_version, 'rule_version'),
+  };
+}
+export type ProgressSnapshotUpdateInput = ProgressSnapshotCreateInput;
+export function parseProgressSnapshotUpdate(
+  p: Record<string, unknown>,
+): ProgressSnapshotUpdateInput {
+  return parseProgressSnapshotCreate(p);
+}

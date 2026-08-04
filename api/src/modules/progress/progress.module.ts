@@ -6,14 +6,16 @@ import { ProgressRepositoryPort } from './domain/progress.repository';
 import { BodyMeasurementSyncHandler } from './infrastructure/body-measurement-sync.handler';
 import { BodyWeightSyncHandler } from './infrastructure/body-weight-sync.handler';
 import { PrismaProgressRepository } from './infrastructure/prisma-progress.repository';
+import { ProgressSnapshotSyncHandler } from './infrastructure/progress-snapshot-sync.handler';
 
 /**
- * Progress Monitoring module (ADR-P016 Phase 17 Slice 3a). Registers the
- * user-owned body-metric write EntitySyncHandlers: `body_weights` and
- * `body_measurements`. No REST write endpoints and no UI. These are WELLNESS
+ * Progress Monitoring module (ADR-P016 Phase 17 Slices 3a + 4b). Registers the
+ * user-owned progress write EntitySyncHandlers: `body_weights` and
+ * `body_measurements` (Slice 3a) plus `progress_snapshots` (Slice 4b — the
+ * on-device deterministic weekly rollup; validated + stored here, NEVER
+ * recomputed, D2). No REST write endpoints and no UI. These are WELLNESS
  * entities — no field encryption and no audit logging (mirrors the workout
- * module). `progress_snapshots` is deliberately NOT registered here — it is an
- * on-device deterministic rollup produced by the Slice 4 engine (ADR-P016 D2).
+ * module).
  */
 @Module({
   imports: [SyncModule],
@@ -21,6 +23,7 @@ import { PrismaProgressRepository } from './infrastructure/prisma-progress.repos
     { provide: ProgressRepositoryPort, useClass: PrismaProgressRepository },
     BodyWeightSyncHandler,
     BodyMeasurementSyncHandler,
+    ProgressSnapshotSyncHandler,
   ],
 })
 export class ProgressModule implements OnModuleInit {
@@ -28,10 +31,12 @@ export class ProgressModule implements OnModuleInit {
     private readonly registry: SyncEntityRegistry,
     private readonly bodyWeightHandler: BodyWeightSyncHandler,
     private readonly bodyMeasurementHandler: BodyMeasurementSyncHandler,
+    private readonly progressSnapshotHandler: ProgressSnapshotSyncHandler,
   ) {}
 
   onModuleInit(): void {
     this.registry.register(this.bodyWeightHandler);
     this.registry.register(this.bodyMeasurementHandler);
+    this.registry.register(this.progressSnapshotHandler);
   }
 }

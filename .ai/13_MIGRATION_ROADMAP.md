@@ -1958,6 +1958,15 @@ feed-not-override. No persistence/backend/mobile-repo/UI/E2E. Slice 4b = backend
 `ProgressSnapshot` sync; Slice 4c = mobile repo/applier/store + gathering +
 `recomputeSnapshots`. See ADR-P016 "Slice 4a".
 
+**Slice 4b DONE 2026-08-04 (backend only; pending validation/commit):**
+`ProgressSnapshotSyncHandler` + repo/mapper/payload for `progress_snapshots` in
+the existing `progress` module (registered in `onModuleInit`); validate-not-
+recompute (D2), client-supplied id honored, owner-scoped, duplicate
+(user, week_start, rule_version) → apply failure, numeric-only (no
+redaction/audit), feed-not-override. No schema/migration/app.module/mobile/
+package change. Slice 4c = mobile snapshot repo/applier/store + gathering +
+`recomputeSnapshots`. See ADR-P016 "Slice 4b".
+
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification

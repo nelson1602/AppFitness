@@ -1,8 +1,13 @@
-import type { BodyMeasurement, BodyWeight } from '@prisma/client';
+import type {
+  BodyMeasurement,
+  BodyWeight,
+  ProgressSnapshot,
+} from '@prisma/client';
 
 import type {
   BodyMeasurementRecord,
   BodyWeightRecord,
+  ProgressSnapshotRecord,
 } from '../domain/progress.types';
 
 /**
@@ -104,4 +109,46 @@ export function redactProgressNotes(
     out.notes = '[REDACTED]';
   }
   return out;
+}
+
+// ── progress_snapshots (Slice 4b) ──────────────────────────────────────────────
+export function progressSnapshotRowToRecord(
+  r: ProgressSnapshot,
+): ProgressSnapshotRecord {
+  return {
+    id: r.id,
+    userId: r.userId,
+    weekStart: r.weekStart,
+    avgWeightKg: r.avgWeightKg,
+    totalVolumeKg: r.totalVolumeKg,
+    avgCalories: r.avgCalories,
+    workoutCount: r.workoutCount,
+    isDeloadWeek: r.isDeloadWeek,
+    ruleVersion: r.ruleVersion,
+    version: r.version,
+    syncSeq: Number(r.syncSeq),
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+    deletedAt: r.deletedAt,
+  };
+}
+
+export function progressSnapshotToWire(
+  r: ProgressSnapshotRecord,
+): Record<string, unknown> {
+  return {
+    id: r.id,
+    user_id: r.userId,
+    week_start: dateOnlyToWire(r.weekStart),
+    avg_weight_kg: r.avgWeightKg,
+    total_volume_kg: r.totalVolumeKg,
+    avg_calories: r.avgCalories,
+    workout_count: r.workoutCount,
+    is_deload_week: r.isDeloadWeek,
+    rule_version: r.ruleVersion,
+    version: r.version,
+    created_at: r.createdAt.toISOString(),
+    updated_at: r.updatedAt.toISOString(),
+    deleted_at: r.deletedAt ? r.deletedAt.toISOString() : null,
+  };
 }
