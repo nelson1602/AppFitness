@@ -1997,6 +1997,22 @@ migration/package/iCoach-engine/E2E change; coverage config unchanged. Slice 5b 
 in-house chart primitive + trends + weekly-snapshot visualization + dashboard
 progress card; Slice 6 = Maestro E2E. See ADR-P016 "Slice 5a".
 
+**Slice 5b DONE 2026-08-04 (mobile only; pending validation/commit):** completes
+the Progress UI. `TrendBars` (React Native View/Text only, D3 — min-normalized
+bars with an always-on text summary [latest, range, direction+delta] + per-bar
+accessibility labels; `max==min`/empty guards; text-first single/empty fallback);
+**body-weight** + **weekly training-volume** trends wired into `ProgressScreen`
+(no avg-calories chart — shown numerically); `WeeklySnapshotSummary` (latest
+snapshot metrics + earlier weeks; deload flag as Yes/No text, nulls as "—");
+`ProgressSummaryCard` on the dashboard (reads the public store, loads on mount,
+pressable → `/progress`). Only `ProgressScreen`/`ProgressSummaryCard` exported;
+chart/summary primitives stay feature-internal. Presentation imports only the
+public progress API (no SQLite/repository); wellness data only (no
+`medical_evaluations`); feed-not-override (D5). No chart library/`react-native-svg`,
+no backend/schema/migration/package/iCoach-engine/E2E change; coverage config
+unchanged. **Phase 17 UI complete; Slice 6 = Maestro E2E (remaining).** See
+ADR-P016 "Slice 5b".
+
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification
