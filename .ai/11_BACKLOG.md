@@ -922,9 +922,19 @@ for full context, decisions D1–D6, and architecture references.
    (before Slice 4). D4 workout/nutrition sources are deterministic for v1. No
    code changed. See ADR-P016 "Slice 1 audit resolution" + "M2 micro-decision
    gate" (**M2 ACCEPTED 2026-08-03 = Option A: additive `rule_version`, v1
-   uniqueness `user + week_start + rule_version`, `period_type` deferred**). Next:
-   Slice 2 = additive-only schema activation (M1 required; M2 = accepted) —
-   separately authorized; no migration created yet.
+   uniqueness `user + week_start + rule_version`, `period_type` deferred**).
+
+   **Schema activation (M1 + M2, additive) — IMPLEMENTED 2026-08-04 (schema
+   foundation only; pending validation/commit).** Precedes the sync-handler work
+   in item 2 below. Backend Prisma migration adds `progress_snapshots.rule_version`
+   (NOT NULL) + replaces the unique with `uq_progress_snapshots_user_week_rule
+   (user_id, week_start, rule_version)`; mobile forward-only migration
+   `004-progress-schema-activation` adds `idx_progress_snapshots_dirty` (M1) and
+   rebuilds `progress_snapshots` for `rule_version` + the 3-column unique (M2),
+   guarded by a non-empty preflight; `ProgressSnapshotRow` updated; deterministic
+   local-date rule documented (device-local date; `week_start` = ISO-Monday in
+   user-local tz). No repository/store/handler/UI/engine/E2E; no `period_type`.
+   See ADR-P016 "Slice 2 — additive schema activation".
 2. Backend sync handlers (`BodyWeight`, `BodyMeasurement`; `ProgressSnapshot` per D2) + `ProgressModule`.
 3. Mobile `progress` feature — repositories, store, pull/push appliers (local-first + pending sync).
 4. Deterministic weekly-rollup engine (iCoach domain) — volume/calorie/weight/deload; rule-version bump; tests at thresholds.

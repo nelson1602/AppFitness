@@ -5989,6 +5989,32 @@ only — **no migration is created and Slice 2 is not started**; the exact
 additive/forward-only constraint form is a Slice 2 detail. Slice 1 remains
 docs-only; ADR-P016 and D1–D6 are unchanged.
 
+### Slice 2 — additive schema activation (2026-08-04)
+
+Schema foundation only — **no repository/store/backend sync handler/UI/charting/
+iCoach rule/E2E**, and no `period_type`. Forward-only; historical migrations
+untouched.
+- **Backend (Prisma):** `ProgressSnapshot` gains `ruleVersion String
+  @map("rule_version")` (NOT NULL); `@@unique([userId, weekStart])` replaced by
+  `@@unique([userId, weekStart, ruleVersion], map:
+  "uq_progress_snapshots_user_week_rule")`. One new forward-only migration
+  (`<date>_progress_snapshot_rule_version`) adds the column, drops
+  `uq_progress_snapshots_user_week`, and creates the new 3-column unique —
+  data-safe because the table is dormant/empty.
+- **Mobile (SQLite):** new forward-only migration `004-progress-schema-activation`
+  (M1) adds `idx_progress_snapshots_dirty` and (M2) rebuilds `progress_snapshots`
+  to add `rule_version` (NOT NULL) and `UNIQUE(user_id, week_start,
+  rule_version)`. The rebuild is **guarded by a `preflight`** that aborts if the
+  table is non-empty (ADR-P012 pattern; dormant → empty everywhere).
+  `ProgressSnapshotRow` gains `rule_version`.
+- **Deterministic local-date rule (v1, documented; no code this slice).**
+  User-facing grouping uses the **user-local calendar date**: the entry `date` is
+  the device-local date at entry time, and `week_start` is the **ISO-Monday** of
+  that date in the **same user-local timezone**. **Never** a UTC day boundary.
+  Consumed by the Slice 4 rollup engine.
+- **Still deferred:** `period_type` (future multi-period amendment); all feature
+  wiring (Slices 3–6). No feature behavior is introduced by this slice.
+
 ---
 
 # AI Instructions

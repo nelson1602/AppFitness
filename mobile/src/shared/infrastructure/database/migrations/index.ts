@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { initialMigration } from './001-initial';
 import { nutritionCatalog4aMigration } from './002-nutrition-catalog-4a';
 import { dietaryPreferencesMigration } from './003-dietary-preferences';
+import { progressSchemaActivationMigration } from './004-progress-schema-activation';
 
 export interface Migration {
   version: number;
@@ -24,6 +25,7 @@ export const MIGRATIONS: readonly Migration[] = [
   initialMigration,
   nutritionCatalog4aMigration,
   dietaryPreferencesMigration,
+  progressSchemaActivationMigration,
 ];
 
 /**
