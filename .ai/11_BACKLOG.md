@@ -935,7 +935,7 @@ for full context, decisions D1–D6, and architecture references.
    local-date rule documented (device-local date; `week_start` = ISO-Monday in
    user-local tz). No repository/store/handler/UI/engine/E2E; no `period_type`.
    See ADR-P016 "Slice 2 — additive schema activation".
-2. Backend sync handlers (`BodyWeight`, `BodyMeasurement`; `ProgressSnapshot` per D2) + `ProgressModule`.
+2. Backend sync handlers (`BodyWeight`, `BodyMeasurement`; `ProgressSnapshot` per D2) + `ProgressModule`. **Slice 3a DONE 2026-08-04 (backend only; pending validation/commit): `body_weights` + `body_measurements` handlers + `ProgressModule` + `app.module` wiring; owner-scoped, wellness (no encryption/audit), notes redacted, duplicate-date CREATE → apply failure; no schema/migration change. `ProgressSnapshot` deferred to Slice 4. Mobile = Slice 3b (separate).** See ADR-P016 "Slice 3a".
 3. Mobile `progress` feature — repositories, store, pull/push appliers (local-first + pending sync).
 4. Deterministic weekly-rollup engine (iCoach domain) — volume/calorie/weight/deload; rule-version bump; tests at thresholds.
 5. UI — progress entry + trend charts (lightweight/native) + dashboard trend card.

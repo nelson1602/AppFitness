@@ -1934,6 +1934,13 @@ resolve D1–D6; (2) backend sync handlers + `ProgressModule`; (3) mobile
 weekly-rollup engine in the iCoach domain (rule-version bump); (5) UI —
 progress entry + trend charts + dashboard card; (6) Maestro E2E.
 
+**Slice 3a DONE 2026-08-04 (backend only; pending validation/commit):**
+`body_weights` + `body_measurements` `EntitySyncHandler`s + `ProgressModule`
+(app.module wired), owner-scoped/wellness (no encryption/audit), notes redacted,
+duplicate-date CREATE → apply failure (D6). No schema/migration change.
+`ProgressSnapshot` deferred to Slice 4; mobile is Slice 3b (separate). See
+ADR-P016 "Slice 3a".
+
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification
