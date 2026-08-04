@@ -8,6 +8,7 @@ import type {
   BodyMeasurementInput,
   BodyWeight,
   BodyWeightInput,
+  ProgressSnapshot,
 } from '../domain/progress';
 import {
   createBodyMeasurement,
@@ -16,9 +17,11 @@ import {
   deleteBodyWeight,
   listBodyMeasurements,
   listBodyWeights,
+  listProgressSnapshots,
   updateBodyMeasurement,
   updateBodyWeight,
 } from '../infrastructure/progress.repository';
+import { recomputeSnapshots as gatherAndUpsertSnapshots } from './progress.gathering';
 
 /**
  * Progress Monitoring orchestration (ADR-P016 Slice 3b). Holds UI/derived state
@@ -40,8 +43,12 @@ export interface ProgressState {
   status: ProgressStatus;
   bodyWeights: BodyWeight[];
   bodyMeasurements: BodyMeasurement[];
+  snapshots: ProgressSnapshot[];
   error: string | null;
   load: () => Promise<void>;
+  loadSnapshots: () => Promise<void>;
+  /** Deterministically recompute weekly snapshots from local data + upsert them. */
+  recomputeSnapshots: () => Promise<boolean>;
   addBodyWeight: (input: BodyWeightInput) => Promise<boolean>;
   editBodyWeight: (id: string, input: BodyWeightInput) => Promise<boolean>;
   removeBodyWeight: (id: string) => Promise<boolean>;
@@ -53,11 +60,12 @@ export interface ProgressState {
 export const useProgressStore = create<ProgressState>((set, get) => {
   async function reload(): Promise<void> {
     const userId = requireUserId();
-    const [bodyWeights, bodyMeasurements] = await Promise.all([
+    const [bodyWeights, bodyMeasurements, snapshots] = await Promise.all([
       listBodyWeights(userId),
       listBodyMeasurements(userId),
+      listProgressSnapshots(userId),
     ]);
-    set({ status: 'ready', bodyWeights, bodyMeasurements, error: null });
+    set({ status: 'ready', bodyWeights, bodyMeasurements, snapshots, error: null });
   }
 
   async function mutate(action: (userId: string) => Promise<void>): Promise<boolean> {
@@ -77,6 +85,7 @@ export const useProgressStore = create<ProgressState>((set, get) => {
     status: 'idle',
     bodyWeights: [],
     bodyMeasurements: [],
+    snapshots: [],
     error: null,
 
     load: async () => {
@@ -88,6 +97,19 @@ export const useProgressStore = create<ProgressState>((set, get) => {
         set({ status: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
       }
     },
+
+    loadSnapshots: async () => {
+      try {
+        const snapshots = await listProgressSnapshots(requireUserId());
+        set({ snapshots });
+      } catch (err) {
+        logError('progress.store loadSnapshots failed', err);
+        set({ status: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
+      }
+    },
+
+    recomputeSnapshots: () =>
+      mutate((userId) => gatherAndUpsertSnapshots(userId).then(() => undefined)),
 
     addBodyWeight: (input) =>
       mutate((userId) => createBodyWeight(userId, input).then(() => undefined)),

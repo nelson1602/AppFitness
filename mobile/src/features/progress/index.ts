@@ -1,7 +1,7 @@
 /**
- * Progress Monitoring feature public surface (ADR-P016 Phase 17 Slice 3b).
- * Local-first body-metric runtime; no UI yet. `progress_snapshots` is deferred
- * to Slice 4 (D2).
+ * Progress Monitoring feature public surface (ADR-P016 Phase 17 Slice 3b/4c).
+ * Local-first body-metric runtime + deterministic weekly snapshot recompute; no
+ * UI yet.
  */
 export { registerProgressSyncAppliers } from './infrastructure/sync-appliers';
 export {
@@ -9,9 +9,11 @@ export {
   type ProgressState,
   type ProgressStatus,
 } from './application/progress.store';
+export { recomputeSnapshots, gatherProgressInputs } from './application/progress.gathering';
 export type {
   BodyWeight,
   BodyWeightInput,
   BodyMeasurement,
   BodyMeasurementInput,
+  ProgressSnapshot,
 } from './domain/progress';

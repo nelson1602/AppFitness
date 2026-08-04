@@ -6107,6 +6107,42 @@ changedSince`) + Prisma impl (`prisma.progressSnapshot`) + payload parsers +
   `app.module` change (`ProgressModule` already registered in 3a); no mobile/UI/
   package change. Mobile persistence + gathering + `recomputeSnapshots` = Slice 4c.
 
+### Slice 4c — mobile snapshot recompute runtime (2026-08-04)
+
+Mobile-only, in `mobile/src/features/progress/` — the on-device persistence +
+deterministic recompute trigger for `progress_snapshots` (closes the 4a→4b loop
+on the client). No backend/schema/migration/UI/E2E/package change.
+- **Domain:** `ProgressSnapshot` type + `rowToProgressSnapshot` mapper +
+  `toSqlBool` (SQLite stores `is_deload_week` as 0/1; the wire carries a boolean).
+- **Repository (local-first, ADR-0006):** `upsertProgressSnapshot` keyed by
+  `(user_id, week_start, rule_version)` — an existing active row is UPDATED in
+  place (**id STABLE**, `version+1`, enqueue `UPDATE`) so the 4b backend never
+  sees a duplicate-tuple CREATE; otherwise a new client-UUID row is created
+  (enqueue `CREATE`). Local write + enqueue happen in **one transaction**. Wire
+  payload matches the 4b parser **exactly** (`id, week_start, avg_weight_kg,
+  total_volume_kg, avg_calories, workout_count, is_deload_week` boolean,
+  `rule_version`). Plus `listProgressSnapshots`, `applyServerProgressSnapshot`
+  (pull → `synced`, boolean→0/1 coercion), `markProgressSnapshotConflict`. Third
+  pull applier registered (`body_weights`, `body_measurements`,
+  `progress_snapshots`).
+- **Gathering service (`application/progress.gathering.ts`):** reads the local
+  wellness sources via their **public APIs** (body weights; workout logs+sets;
+  nutrition daily calorie totals) — never their infrastructure — resolves each
+  workout `started_at` to a **device-local** `YYYY-MM-DD` (v1 decision; a
+  persisted per-row tz offset is a future refinement), sums **completed-set**
+  volume `Σ(weight_kg × reps)`, runs the pure 4a `computeWeeklyProgressSnapshots`,
+  and upserts each result. Feed-not-override (D5): reads other domains, writes
+  only `progress_snapshots`.
+- **Store:** `snapshots` slice loaded in `reload()`; `loadSnapshots` +
+  `recomputeSnapshots` actions (the latter delegates to the gathering service via
+  the shared `mutate` → reload path). No SQL/business rules in the store.
+- **Authorized read-only cross-feature surfaces:** `workout` exports
+  `listRecentWorkoutLogs`/`listWorkoutSets` (+ `WorkoutLog`/`WorkoutSet` types);
+  `nutrition` adds/exports `listDailyCalorieTotals(userId)` (+ `DailyCalorieTotal`)
+  — enumerates non-deleted `nutrition_logs` dates and sums each day via the pure
+  `sumDailyTotals`. Coverage config unchanged (`features/progress`/`workout` not
+  in the jest coverage set — existing precedent).
+
 ---
 
 # AI Instructions

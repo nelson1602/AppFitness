@@ -1,17 +1,26 @@
+import type { WeeklyProgressSnapshot } from '@/features/icoach/domain/progress-analysis';
 import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
-import type { BodyMeasurementRow, BodyWeightRow } from '@/shared/infrastructure/database/types';
+import type {
+  BodyMeasurementRow,
+  BodyWeightRow,
+  ProgressSnapshotRow,
+} from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
 
 import {
   BODY_MEASUREMENT_ENTITY,
   BODY_WEIGHT_ENTITY,
+  PROGRESS_SNAPSHOT_ENTITY,
   rowToBodyMeasurement,
   rowToBodyWeight,
+  rowToProgressSnapshot,
+  toSqlBool,
   type BodyMeasurement,
   type BodyMeasurementInput,
   type BodyWeight,
   type BodyWeightInput,
+  type ProgressSnapshot,
 } from '../domain/progress';
 
 /**
@@ -385,6 +394,170 @@ export async function applyServerBodyMeasurement(
 
 export async function markBodyMeasurementConflict(id: string, nowIso: string): Promise<void> {
   await run(`UPDATE body_measurements SET sync_status = 'conflict', updated_at = ? WHERE id = ?`, [
+    nowIso,
+    id,
+  ]);
+}
+
+// ── progress_snapshots (Slice 4c) ───────────────────────────────────────────────
+// On-device deterministic rollups (Slice 4a) synced to the Slice 4b backend.
+// Upsert keeps the row id STABLE across recomputes for the same
+// (user_id, week_start, rule_version) so the backend sees UPDATEs (never a
+// duplicate-tuple CREATE failure). Wire payload matches the Slice 4b parser:
+// { id, week_start, avg_weight_kg, total_volume_kg, avg_calories, workout_count,
+//   is_deload_week (boolean), rule_version }.
+
+function snapshotWirePayload(id: string, snap: WeeklyProgressSnapshot): Record<string, unknown> {
+  return {
+    id,
+    week_start: snap.weekStart,
+    avg_weight_kg: snap.avgWeightKg,
+    total_volume_kg: snap.totalVolumeKg,
+    avg_calories: snap.avgCalories,
+    workout_count: snap.workoutCount,
+    is_deload_week: snap.isDeloadWeek,
+    rule_version: snap.ruleVersion,
+  };
+}
+
+export async function listProgressSnapshots(
+  userId: string,
+  limit = 520,
+): Promise<ProgressSnapshot[]> {
+  const rows = await queryAll<ProgressSnapshotRow>(
+    `SELECT * FROM progress_snapshots WHERE user_id = ? AND deleted_at IS NULL ORDER BY week_start DESC LIMIT ?`,
+    [userId, limit],
+  );
+  return rows.map(rowToProgressSnapshot);
+}
+
+/**
+ * Insert-or-update a computed weekly snapshot, keyed by
+ * (user_id, week_start, rule_version). An existing active row is UPDATED in
+ * place (same id, version+1, enqueue UPDATE); otherwise a new client-UUID row is
+ * created (enqueue CREATE). Local write + enqueue happen in one transaction.
+ */
+export async function upsertProgressSnapshot(
+  userId: string,
+  snap: WeeklyProgressSnapshot,
+  nowIso: string = new Date().toISOString(),
+): Promise<ProgressSnapshot> {
+  return inTransaction(async () => {
+    const existing = await queryFirst<ProgressSnapshotRow>(
+      `SELECT * FROM progress_snapshots
+        WHERE user_id = ? AND week_start = ? AND rule_version = ? AND deleted_at IS NULL`,
+      [userId, snap.weekStart, snap.ruleVersion],
+    );
+    const deload = toSqlBool(snap.isDeloadWeek);
+
+    if (existing) {
+      const nextVersion = existing.version + 1;
+      await run(
+        `UPDATE progress_snapshots
+            SET avg_weight_kg = ?, total_volume_kg = ?, avg_calories = ?,
+                workout_count = ?, is_deload_week = ?, version = ?, updated_at = ?, sync_status = 'pending'
+          WHERE id = ?`,
+        [
+          snap.avgWeightKg,
+          snap.totalVolumeKg,
+          snap.avgCalories,
+          snap.workoutCount,
+          deload,
+          nextVersion,
+          nowIso,
+          existing.id,
+        ],
+      );
+      await enqueue(
+        {
+          opId: generateUuid(),
+          entityType: PROGRESS_SNAPSHOT_ENTITY,
+          entityId: existing.id,
+          operation: 'UPDATE',
+          payload: snapshotWirePayload(existing.id, snap),
+          baseVersion: existing.version,
+        },
+        nowIso,
+      );
+      const updated = await queryFirst<ProgressSnapshotRow>(
+        `SELECT * FROM progress_snapshots WHERE id = ?`,
+        [existing.id],
+      );
+      if (!updated) throw new Error('progress_snapshot row disappeared mid-transaction');
+      return rowToProgressSnapshot(updated);
+    }
+
+    const id = generateUuid();
+    await run(
+      `INSERT INTO progress_snapshots
+         (id, user_id, created_at, updated_at, version, sync_status,
+          week_start, avg_weight_kg, total_volume_kg, avg_calories, workout_count, is_deload_week, rule_version)
+       VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        userId,
+        nowIso,
+        nowIso,
+        snap.weekStart,
+        snap.avgWeightKg,
+        snap.totalVolumeKg,
+        snap.avgCalories,
+        snap.workoutCount,
+        deload,
+        snap.ruleVersion,
+      ],
+    );
+    await enqueue(
+      {
+        opId: generateUuid(),
+        entityType: PROGRESS_SNAPSHOT_ENTITY,
+        entityId: id,
+        operation: 'CREATE',
+        payload: snapshotWirePayload(id, snap),
+        baseVersion: 0,
+      },
+      nowIso,
+    );
+    const row = await queryFirst<ProgressSnapshotRow>(
+      `SELECT * FROM progress_snapshots WHERE id = ?`,
+      [id],
+    );
+    if (!row) throw new Error('progress_snapshot row disappeared mid-transaction');
+    return rowToProgressSnapshot(row);
+  });
+}
+
+export async function applyServerProgressSnapshot(
+  data: Record<string, unknown>,
+  deleted: boolean,
+): Promise<void> {
+  const row = data as Record<string, unknown> & { id: string; user_id: string };
+  await run(
+    `INSERT OR REPLACE INTO progress_snapshots
+       (id, user_id, created_at, updated_at, version, sync_status, deleted_at, deleted_by,
+        week_start, avg_weight_kg, total_volume_kg, avg_calories, workout_count, is_deload_week, rule_version)
+     VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      row.id,
+      row.user_id,
+      str(row['created_at']),
+      str(row['updated_at']),
+      Number(row['version'] ?? 1),
+      deleted ? (str(row['deleted_at']) ?? new Date().toISOString()) : null,
+      str(row['deleted_by']),
+      str(row['week_start']),
+      num(row['avg_weight_kg']),
+      num(row['total_volume_kg']),
+      num(row['avg_calories']),
+      Number(row['workout_count'] ?? 0),
+      row['is_deload_week'] === true || row['is_deload_week'] === 1 ? 1 : 0,
+      str(row['rule_version']),
+    ],
+  );
+}
+
+export async function markProgressSnapshotConflict(id: string, nowIso: string): Promise<void> {
+  await run(`UPDATE progress_snapshots SET sync_status = 'conflict', updated_at = ? WHERE id = ?`, [
     nowIso,
     id,
   ]);

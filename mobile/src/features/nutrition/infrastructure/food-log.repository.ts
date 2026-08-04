@@ -10,7 +10,12 @@ import {
   type ServingSnapshot,
 } from '../domain/catalog-identity';
 import { MEAL_SLOTS } from '../domain/meal-plan';
-import { itemConsumed, type LoggedMealItem, type MealItemSyncState } from '../domain/food-log';
+import {
+  itemConsumed,
+  sumDailyTotals,
+  type LoggedMealItem,
+  type MealItemSyncState,
+} from '../domain/food-log';
 
 /**
  * Local-first food logging (ADR-0006 + ADR-P012 Slice 4C).
@@ -387,4 +392,29 @@ function str(value: unknown): string | null {
 
 function numOrNull(value: unknown): number | null {
   return typeof value === 'number' ? value : null;
+}
+
+/** One logged day's consumed-calorie total (user-local `date`). */
+export interface DailyCalorieTotal {
+  date: string;
+  calories: number;
+}
+
+/**
+ * Consumed-calorie total per logged day (ADR-P016 Slice 4c read surface).
+ * Read-only: enumerates the user's non-deleted `nutrition_logs` dates and sums
+ * each day's items via the pure `sumDailyTotals`. Used by the Progress
+ * gathering service to build the deterministic weekly rollup input.
+ */
+export async function listDailyCalorieTotals(userId: string): Promise<DailyCalorieTotal[]> {
+  const dateRows = await queryAll<{ date: string }>(
+    `SELECT date FROM nutrition_logs WHERE user_id = ? AND deleted_at IS NULL ORDER BY date ASC`,
+    [userId],
+  );
+  const totals: DailyCalorieTotal[] = [];
+  for (const { date } of dateRows) {
+    const items = await listLoggedItems(userId, date);
+    totals.push({ date, calories: sumDailyTotals(items).calories });
+  }
+  return totals;
 }
