@@ -1916,9 +1916,17 @@ index (D2 push); **M2** — no `rule_version` column (D2/D6), `period_type` defe
 past weekly v1. Local-date columns sufficient but the deterministic derivation
 rule is pending (before Slice 4). D4 workout/nutrition sources deterministic for
 v1. **M2 ACCEPTED 2026-08-03 = Option A (additive `rule_version`; v1 uniqueness
-`user + week_start + rule_version`; `period_type` deferred).** Next: Slice 2
-additive-only schema activation (M1 required; M2 accepted) — separately
-authorized; no migration created yet.
+`user + week_start + rule_version`; `period_type` deferred).**
+
+**Slice 2 (additive schema activation) IMPLEMENTED 2026-08-04 (schema foundation
+only; pending validation/commit):** backend Prisma migration adds
+`progress_snapshots.rule_version` (NOT NULL) + `uq_progress_snapshots_user_week_rule`;
+mobile forward-only `004-progress-schema-activation` adds `idx_progress_snapshots_dirty`
+(M1) and rebuilds `progress_snapshots` for `rule_version` + the 3-column unique
+(M2) under a non-empty preflight guard; deterministic local-date rule documented
+(device-local date; `week_start` = ISO-Monday in user-local tz). No feature code
+(no repository/store/handler/UI/engine/E2E); no `period_type`. Later feature
+slices remain separately authorized.
 
 **Proposed slices (each separately authorized):** (1) schema/sync audit +
 resolve D1–D6; (2) backend sync handlers + `ProgressModule`; (3) mobile

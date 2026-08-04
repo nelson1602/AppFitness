@@ -283,6 +283,8 @@ export interface ProgressSnapshotRow extends SyncedRow {
   avg_calories: number | null;
   workout_count: number;
   is_deload_week: SqlBool;
+  // Deterministic engine rule version that produced this snapshot (ADR-P016 D2/D6/M2).
+  rule_version: string;
 }
 
 // ─── Coach / Engine ──────────────────────────────────────────────────────────
