@@ -1949,6 +1949,15 @@ conflict marking, same-date check-then-edit helpers. No UI/charts/iCoach/E2E; no
 `progress_snapshots`; no backend/schema/package/coverage-config change. See
 ADR-P016 "Slice 3b".
 
+**Slice 4a DONE 2026-08-04 (pure engine only; pending validation/commit):**
+`icoach/domain/progress-analysis.ts` — `computeWeeklyProgressSnapshots` +
+`isoWeekStart`; ISO-Monday weeks; avg weight/calories, total volume, workout
+count, `is_deload_week` (<0.6× mean of prior 3 nonzero-volume weeks, ≥3 history
+else false); `ENGINE_RULE_VERSION` → `icoach-rules@1.1.0`; pure/deterministic,
+feed-not-override. No persistence/backend/mobile-repo/UI/E2E. Slice 4b = backend
+`ProgressSnapshot` sync; Slice 4c = mobile repo/applier/store + gathering +
+`recomputeSnapshots`. See ADR-P016 "Slice 4a".
+
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification

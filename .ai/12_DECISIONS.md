@@ -6060,6 +6060,30 @@ resolves `userId` via the session, delegates all persistence to the repo), and
   schema/migration/package change. Per the workout precedent, `features/progress`
   is **not** added to the jest coverage config (no `package.json` change).
 
+### Slice 4a — deterministic progress-snapshot engine (2026-08-04)
+
+Pure engine only, in the iCoach domain — **no persistence, backend, mobile
+repo/store/applier, UI, or E2E**. New `mobile/src/features/icoach/domain/progress-analysis.ts`:
+`computeWeeklyProgressSnapshots(input)` + `isoWeekStart(localDate)`.
+- **Pure/deterministic** (07_ICOACH): no `Date.now`/argless `new Date()`/IO;
+  identical inputs → identical outputs; input carries **pre-resolved user-local
+  `YYYY-MM-DD` dates** (workout timestamp→local-date resolution is the Slice 4c
+  gathering layer's job, device tz at gather time; stored offset deferred — D6).
+- **Output per week present in inputs** (ascending): `weekStart` (ISO-Monday),
+  `avgWeightKg` (null if none), `totalVolumeKg` (Σ, 0 if none), `avgCalories`
+  (null if none), `workoutCount`, `isDeloadWeek`, `ruleVersion`.
+- **`is_deload_week`** (accepted 4a rule): false unless there are ≥3 prior
+  nonzero-volume weeks and the current week's volume is >0 and
+  `< 0.6 × mean(3 most-recent prior nonzero weekly volumes)`. Descriptive signal
+  only — feed-not-override (D5): no `TrainingPlan`/nutrition/medical mutation.
+- **`ENGINE_RULE_VERSION` bumped `icoach-rules@1.0.0 → 1.1.0`**; every snapshot
+  stamps it; `(user, week_start, rule_version)` uniqueness lets a future bump
+  regenerate without clobbering history. Existing specs assert the imported
+  constant, so they auto-follow (no literal-version test updates needed).
+- Exhaustively unit-tested at the icoach-domain coverage thresholds. Backend
+  `ProgressSnapshot` sync = Slice 4b; mobile repo/applier/store + gathering +
+  `recomputeSnapshots` trigger = Slice 4c.
+
 ---
 
 # AI Instructions
