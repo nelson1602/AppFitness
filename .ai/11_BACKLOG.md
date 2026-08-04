@@ -936,7 +936,7 @@ for full context, decisions D1–D6, and architecture references.
    user-local tz). No repository/store/handler/UI/engine/E2E; no `period_type`.
    See ADR-P016 "Slice 2 — additive schema activation".
 2. Backend sync handlers (`BodyWeight`, `BodyMeasurement`; `ProgressSnapshot` per D2) + `ProgressModule`. **Slice 3a DONE 2026-08-04 (backend only; pending validation/commit): `body_weights` + `body_measurements` handlers + `ProgressModule` + `app.module` wiring; owner-scoped, wellness (no encryption/audit), notes redacted, duplicate-date CREATE → apply failure; no schema/migration change. `ProgressSnapshot` deferred to Slice 4. Mobile = Slice 3b (separate).** See ADR-P016 "Slice 3a".
-3. Mobile `progress` feature — repositories, store, pull/push appliers (local-first + pending sync).
+3. Mobile `progress` feature — repositories, store, pull/push appliers (local-first + pending sync). **Slice 3b DONE 2026-08-04 (mobile only; pending validation/commit): `mobile/src/features/progress/` (domain/repository/store/sync-appliers/index) for `body_weights` + `body_measurements`, wired at `app/_layout.tsx`; local-first write+enqueue in one transaction, payloads match Slice 3a, pull appliers + conflict marking, same-date check-then-edit helpers. No UI/charts/iCoach/E2E; no `progress_snapshots`; no backend/schema/package change (coverage config unchanged per workout precedent).** See ADR-P016 "Slice 3b".
 4. Deterministic weekly-rollup engine (iCoach domain) — volume/calorie/weight/deload; rule-version bump; tests at thresholds.
 5. UI — progress entry + trend charts (lightweight/native) + dashboard trend card.
 6. Maestro E2E wired into `mobile-e2e.yml` (manual dispatch, ADR-P007/P008).

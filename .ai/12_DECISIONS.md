@@ -6038,6 +6038,28 @@ into `app.module`.
 - **`progress_snapshots` NOT implemented** — its handler ships with the Slice 4
   deterministic engine (ADR-P016 D2). No mobile files in this slice.
 
+### Slice 3b — mobile progress feature (2026-08-04)
+
+Mobile-only runtime consuming the Slice 3a backend handlers. New
+`mobile/src/features/progress/` mirrors the workout feature:
+`domain/progress.ts` (types + `rowTo*` mappers), `infrastructure/progress.repository.ts`
+(local-first CRUD + pull appliers), `infrastructure/sync-appliers.ts`
+(`registerProgressSyncAppliers`), `application/progress.store.ts` (Zustand;
+resolves `userId` via the session, delegates all persistence to the repo), and
+`index.ts`; registered at the composition root (`app/_layout.tsx`).
+- **Local-first:** create/update/delete write the row `sync_status='pending'` and
+  `enqueue` the sync op in the **same transaction**; client-minted UUIDs;
+  soft-delete tombstones; `list*` returns active rows (date DESC).
+  `bodyWeightForDate`/`bodyMeasurementForDate` support same-date check-then-edit.
+- **Wire payloads match Slice 3a exactly** (snake_case; `date` as `YYYY-MM-DD`;
+  CREATE includes `id`, UPDATE omits it). Pull appliers use
+  `INSERT OR REPLACE … sync_status='synced'`; `mark*Conflict` sets `'conflict'`.
+  Duplicate same-date CREATE hits the local `UNIQUE(user_id, date)` — surfaced,
+  never a silent overwrite.
+- **No UI/charts**, no iCoach rule, no E2E, no `progress_snapshots`, no backend/
+  schema/migration/package change. Per the workout precedent, `features/progress`
+  is **not** added to the jest coverage config (no `package.json` change).
+
 ---
 
 # AI Instructions

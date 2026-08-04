@@ -1941,6 +1941,14 @@ duplicate-date CREATE → apply failure (D6). No schema/migration change.
 `ProgressSnapshot` deferred to Slice 4; mobile is Slice 3b (separate). See
 ADR-P016 "Slice 3a".
 
+**Slice 3b DONE 2026-08-04 (mobile only; pending validation/commit):**
+`mobile/src/features/progress/` (domain/repository/store/sync-appliers/index) for
+`body_weights` + `body_measurements`, wired at `app/_layout.tsx`; local-first
+write + enqueue in one transaction, payloads match Slice 3a, pull appliers +
+conflict marking, same-date check-then-edit helpers. No UI/charts/iCoach/E2E; no
+`progress_snapshots`; no backend/schema/package/coverage-config change. See
+ADR-P016 "Slice 3b".
+
 **Key open decisions:** D1 — body-metric source of truth (activate wellness
 `body_weights`/`body_measurements` vs reuse medical `medical_evaluations`, which
 the dashboard adapter reads today) + wellness-vs-medical classification
