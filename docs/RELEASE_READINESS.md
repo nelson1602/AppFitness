@@ -10,6 +10,13 @@ initially Slice 1) · Main commit `d5fa45c` (Slices 1–2 merged; Slice 3 in
 progress) · App version `1.0.0` (`mobile/app.json`, set in Slice 3) ·
 Target publication: 2026-08-20.
 
+> **Slice 4 handoff:** the remaining owner/external gates (Sentry, legal
+> sign-off, Play listing/Data Safety/privacy URL, Production env, rollback
+> dry-run, production smoke, mobile production validation, submission approval)
+> are tracked with owner actions + evidence templates in
+> **`docs/PHASE20_EXTERNAL_GATES.md`**. Gate PASS is recorded in *this* matrix
+> once evidence is verified.
+
 > **Supersedes** the 2026-07-08 Phase 12 walkthrough. That edition predated
 > Phases 13.5–17 and is stale: it listed nutrition / workout / progress
 > monitoring as "missing entirely (no code)" and cited `236` mobile tests on
