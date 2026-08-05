@@ -2116,6 +2116,15 @@ drafted `docs/SENTRY_ENABLEMENT.md` (Sentry still inert/not enabled); refreshed
 Production env, rollback dry-run, production smoke, mobile production validation,
 submission approval) remain — Slices 4–5.
 
+**Slice 4 STARTED 2026-08-05 (owner handoff tracker; pending
+validation/commit):** added `docs/PHASE20_EXTERNAL_GATES.md` — an owner-facing
+operational checklist for the 8 external gates (per-gate owner action, evidence
+required, Codex verification, repo files to update, dependencies) + recommended
+A/B/close-out execution order and an evidence-packet template; `RELEASE_READINESS.md`
+points to it. Docs-only; no gate executed, no gate marked PASS, no Sentry/env/
+Play/legal action. Gates remain owner/external until evidence is verified and
+recorded; Slice 5 = close-out when the matrix is all PASS/waived.
+
 ---
 
 # AI Instructions
