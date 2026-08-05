@@ -83,12 +83,25 @@ curl -sf http://127.0.0.1:3002/health
 
 ## Current deployment
 
-- **Development** (the only environment, ADR-P009):
+- **Production** (created 2026-08-05, Phase 20 Gate B1):
+  `https://appfitness-production-5cfa.up.railway.app` — API + PostgreSQL
+  online (US West); `/health` = 200 (independently confirmed); 10 migrations
+  applied, none pending; deployed commit `4ee52a1`. Railway project
+  `68c0d53d-9c53-4f12-8482-be35da190d25` · API deployment
+  `0416691a-5a32-491c-b584-b9e9da5b4754`. Fresh production secrets set in the
+  Railway variable store (never reused from Development; values not recorded
+  here). **Backups/PITR WAIVED (owner-approved 2026-08-05):** Railway daily
+  backups require the Pro plan — owner declined the upgrade; no automated
+  backups and no restore test performed (data-loss risk accepted for v1).
+  Rollback therefore relies on redeploy-previous under the expand-first
+  migration policy (§ Rollback), not on DB snapshot restore.
+- **Development** (the original environment, ADR-P009):
   `https://appfitness-production-1e78.up.railway.app` — verified
   2026-07-07 (health, register/login, profile write, sync pull; HTTPS
   only, plain HTTP 301-redirects). Note: "production" in the hostname is
   Railway's default *environment name*, not our environment tier — this
-  deployment is Development-only and holds disposable data.
+  deployment is Development-only and holds disposable data. Left untouched
+  by the Production setup.
 
 ## Troubleshooting
 
