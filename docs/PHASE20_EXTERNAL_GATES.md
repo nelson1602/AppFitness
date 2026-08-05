@@ -6,15 +6,12 @@
 > (the authoritative gate matrix). **This file does not mark any gate PASS.**
 
 - **Target publication date:** 2026-08-20
-- **Current status:** Phase 20 Slices 1–3 complete & merged (readiness matrix
-  refreshed, legal/data-safety drafts review-ready, release-engineering package
-  incl. app **v1.0.0**, HIGH advisories remediated, CI green on `c22cda8`).
-  **All remaining gates are owner/external** — none can be closed from repo
-  evidence alone.
-- **Critical environment finding:** the only hosted backend today is
-  **Development**. The Railway URL `appfitness-production-1e78.up.railway.app`
-  is Railway's *environment name*, **not** a verified production tier — a real
-  Production environment must still be created and verified (Gate B1).
+- **Current status:** Phase 20 Slices 1–4 complete & merged. Gate B1 is
+  **PASS-WITH-WAIVER**; Gate B2 is **PARTIAL — backend PASS / mobile pending**.
+  All other remaining gates are owner/external.
+- **Production environment:** Railway Production is live and verified at
+  `appfitness-production-5cfa.up.railway.app` (Gate B1). The previous Railway
+  project/Development URL remains separate and untouched.
 
 ## Recommended execution order
 
@@ -122,11 +119,22 @@ need B3 (a published internal build); C2 is last, after every gate is PASS.
   tag; symbolicated mobile stack frames.
 - **Verification (Codex):** `npx jest sentry-scrub` green (both packages);
   `rg -i dsn` shows **no DSN committed**; confirm the plugin is present in
-  `app.json` (once added). *(Adding the plugin is a config change requiring
-  separate authorization.)*
-- **Repo files to update:** `app.json`/`eas.json` (plugin — separate auth);
-  `RELEASE_READINESS.md` item 10 → PASS.
+  `app.config.js`. The plugin is already present; enabling release source-map
+  upload still requires an authorized EAS configuration/credential change.
+- **Repo files to update:** `eas.json` only if source-map upload configuration
+  changes (separate authorization); `RELEASE_READINESS.md` item 10 → PASS.
 - **Blocker/dependency:** **B1** (backend DSN target env).
+- **STATUS — IN PROGRESS; BACKEND PASS (evidence recorded 2026-08-05):** backend
+  Sentry project provisioned; Railway Production variables configured and
+  deployment `2b1ec9ba-a2ab-42d5-a848-6828980e5a39` succeeded on release
+  `1d16b99991dc`. Post-redeploy `/health` = 200; 10 migrations found / none
+  pending. Live issue
+  [`APPFITNESS-API-1`](https://hardtech-solutions.sentry.io/issues/7654812085/), event
+  `c1b6a0116fa34d82bb981f5f17a48083`, arrived with
+  `environment=production`; synthetic `notes`/`token` fields were redacted and
+  no PII/PHI/token was present. Backend scrubber specs: 7/7 green. **B2 remains
+  open for mobile:** EAS environment, source-map upload, production build, and
+  symbolicated scrubbed live-event verification are pending.
 
 ### B3 — Production / internal-track build (`supports item 14`)
 - **Owner action:** `eas build --platform android --profile production` (AAB),

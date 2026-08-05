@@ -69,7 +69,7 @@ Legend:
 | 7 | Migrations tested | **PASS** | `prisma migrate deploy` in the `api-ci` e2e job + local; account-deletion cascade applied & e2e-verified |
 | 8 | Rollback plan exists | **PASS** (plan) / **BLOCKED-OWNER** (tested) | API rollback (`api/DEPLOYMENT.md`) + mobile store-track runbook (`docs/MOBILE_ROLLBACK.md`) documented; **not yet exercised on a live track** — dry-run is an owner action. **Note (B1 waiver):** the DB snapshot/restore fallback is unavailable in Production (no backups/PITR — see item 9); backend rollback therefore relies on redeploy-previous under the expand-first migration policy (unaffected). |
 | 9 | Environment variables verified | **PASS** (dev) / **PASS — with backup/restore WAIVER** (prod) | Railway **Production created + verified 2026-08-05** (Gate B1): URL `https://appfitness-production-5cfa.up.railway.app` (distinct from Dev; US West), API + PostgreSQL online, **`/health` = 200 (independently confirmed)**, **10 migrations applied / none pending**, OpenSSL warning resolved, post-merge API/mobile CI green (deployed commit `4ee52a1`). Railway project `68c0d53d-9c53-4f12-8482-be35da190d25` · API deployment `0416691a-5a32-491c-b584-b9e9da5b4754`; fresh prod secrets set (names per `api/DEPLOYMENT.md`; values not recorded). **WAIVER (owner-approved 2026-08-05):** Railway daily backups / PITR require the Pro plan — owner declined the paid upgrade, so **no automated backups and no restore test were performed** for v1 (data-loss risk explicitly accepted). *Restore verification is NOT claimed.* Staging env not created (optional). |
-| 10 | Monitoring enabled | **BLOCKED-OWNER** | Sentry wired + scrubber-tested but inert — no org/DSN (ADR-P010); **enablement runbook drafted `docs/SENTRY_ENABLEMENT.md` (Phase 20 Slice 3)**; owner must still provision org + DSNs, add the `@sentry/react-native/expo` plugin for source maps, and verify a live event. **Not enabled/verified.** |
+| 10 | Monitoring enabled | **PARTIAL — PASS (backend) / BLOCKED-OWNER (mobile)** | **Backend enabled + live-verified 2026-08-05 (Gate B2):** Railway Production deployment `2b1ec9ba-a2ab-42d5-a848-6828980e5a39` on release `1d16b99991dc`; `/health` 200 after redeploy; Sentry issue [`APPFITNESS-API-1`](https://hardtech-solutions.sentry.io/issues/7654812085/) / event `c1b6a0116fa34d82bb981f5f17a48083` in `production`. The event used the deployed bootstrap + scrubbers; synthetic `notes`/`token` values arrived redacted and no PII/PHI/token was present. Backend scrubber specs: 7/7 green. **Mobile remains blocked:** EAS DSN/environment, source-map upload credentials/config, production build, and a symbolicated scrubbed live event are still required. See `docs/SENTRY_ENABLEMENT.md`. |
 | 11 | Logs reviewed | **PENDING-HUMAN** | hosted Development logs exist; no production logs to review yet |
 | 12 | Store metadata ready | **BLOCKED-OWNER** | `eas.json` `submit` profile present (Android internal/draft); **missing** store-listing assets (screenshots, descriptions, categories), Data Safety form, and a published privacy-policy URL — owner / store-console |
 | 13 | Privacy requirements satisfied | **BLOCKED-EXTERNAL** | account deletion implemented + in-app surfaced (PASS); `docs/legal/*` (privacy, ToS, health disclaimer, Data Safety, data inventory) **refreshed to Phases 13–17 in Phase 20 Slice 2 (2026-08-05)** — now review-ready; still **BLOCKED-EXTERNAL pending legal sign-off** |
@@ -95,8 +95,10 @@ Legend:
 Each item is outside the repo's control and must be completed by the owner or an
 external party before submission. **None performed in this audit.**
 
-1. **Sentry** (item 10) — **BLOCKED-OWNER**: create org, set backend + mobile
-   DSNs, confirm a live event ingests (per ADR-P010).
+1. **Sentry** (item 10) — **PARTIAL — backend PASS / mobile
+   BLOCKED-OWNER**: backend Production DSN/environment and a scrubbed live event
+   are verified; configure the mobile EAS environment + source-map upload and
+   verify a symbolicated scrubbed mobile event (per ADR-P010).
 2. **Legal sign-off** (item 13) — **BLOCKED-EXTERNAL**: finalize + approve
    `docs/legal/{PRIVACY_POLICY,TERMS_OF_USE,HEALTH_DISCLAIMER,PLAY_DATA_SAFETY,DATA_INVENTORY}.md`.
 3. **Play Console** (item 12) — **BLOCKED-OWNER**: create the app; upload
