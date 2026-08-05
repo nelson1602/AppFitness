@@ -433,7 +433,16 @@ Priority: P1
 Type: Feature
 Owner: Unassigned
 Created: 2026-07-09
-Updated: 2026-07-09
+Updated: 2026-08-05
+
+> **Phase 20 (Store-Submission Re-Gate) STARTED 2026-08-05.** Phases 13–17 are
+> complete and E2E-verified (Progress Monitoring / ADR-P016 done, `mobile-e2e`
+> run 31008855392 green on `d5fa45c`). **Slice 1 (docs-only re-gate audit)**
+> refreshed `docs/RELEASE_READINESS.md`: in-repo engineering = COMPLETE; open
+> gates are all owner/external (Sentry, legal sign-off, Play listing/Data
+> Safety/privacy URL, Production env, rollback dry-run, production smoke, mobile
+> production validation, submission approval). Phases 18/19 remain post-v1. See
+> ADR-P016 and `13_MIGRATION_ROADMAP.md` "Phase 20".
 
 ### Description
 
