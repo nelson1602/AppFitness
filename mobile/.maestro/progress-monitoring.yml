@@ -100,17 +100,29 @@ appId: com.appfitness.mobile
     id: 'progress-recompute'
 
 # --- 6. Weekly snapshot summary: the current week plus the metric rows. The
-#     deload flag is TEXT (Yes/No), never color-only. Dynamic week_start →
-#     substring. ---
+#     summary block ("Week of …" + metric rows) sits ABOVE the just-tapped
+#     "Update weekly insights" button, so the viewport is now BELOW it. Assert
+#     the rows by scrolling UP, bottom-to-top (Deload week → Workouts → Total
+#     volume → Week of) so each step moves toward the target and never
+#     overshoots. `scrollUntilVisible` also asserts the element is visible, so
+#     the metric coverage is preserved. Deload flag is TEXT (Yes/No), never
+#     color-only; dynamic week_start → substring. ---
 - extendedWaitUntil:
     visible:
       id: 'weekly-snapshot-summary'
     timeout: 15000
 - scrollUntilVisible:
+    direction: UP
+    element: 'Deload week'
+- scrollUntilVisible:
+    direction: UP
+    element: 'Workouts'
+- scrollUntilVisible:
+    direction: UP
+    element: 'Total volume'
+- scrollUntilVisible:
+    direction: UP
     element: 'Week of'
-- assertVisible: 'Total volume'
-- assertVisible: 'Workouts'
-- assertVisible: 'Deload week'
 
 # --- 7. Back on the dashboard, the summary card reflects the new weight (the
 #     card and screen share the same Zustand store, so it updates without a
