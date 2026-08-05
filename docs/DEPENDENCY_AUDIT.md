@@ -3,7 +3,8 @@
 Deterministic dependency-audit policy for CI (`10_DEPLOYMENT.md` CI
 pipeline / Release Checklist "Security audit reviewed").
 
-Last reviewed: 2026-07-08 (Step 8A — multer high remediated) · Owner: Eng
+Last reviewed: 2026-08-05 (Phase 20 Slice 3 — two HIGH prod advisories
+remediated; refreshed against `9da7482` + Phases 15–17 deps) · Owner: Eng
 (rotate per release)
 
 ## Policy
@@ -24,21 +25,37 @@ Last reviewed: 2026-07-08 (Step 8A — multer high remediated) · Owner: Eng
   - `moderate`/`low` → tracked below; addressed opportunistically.
 - **No dependency upgrades are applied without explicit owner approval.**
   This register records findings; it does not authorize `npm audit fix`.
+  (Phase 20 Slice 3: the owner explicitly authorized the non-breaking
+  `npm audit fix --omit=dev` remediation recorded below.)
 
-## Current exceptions (2026-07-08)
+## Post-remediation state (2026-08-05, Phase 20 Slice 3)
 
-### api (production deps)
+Owner-authorized, non-breaking `npm audit fix --omit=dev` was applied to both
+packages (lockfile-only; no `package.json` changes). Post-remediation
+`npm audit --omit=dev` totals:
 
-| Severity | Package | Advisory | Fix | Disposition |
+| Package | critical | high | moderate | low | total |
+|---|---|---|---|---|---|
+| **api** | 0 | 0 | 0 | 0 | **0** |
+| **mobile** | 0 | 0 | 12 | 0 | **12** |
+
+### HIGH advisories remediated
+
+| Pkg | Package | Advisory | Path | Fix applied |
 |---|---|---|---|---|
-| ~~HIGH~~ | ~~`multer`~~ | ~~DoS advisories~~ | — | **RESOLVED 2026-07-08 (Step 8A):** bumped `@nestjs/platform-express` 11.1.27 → **11.1.28** (patch, same 11.x), which pulls the patched `multer@2.2.0`. No high/critical prod advisories remain. |
-| MODERATE | `prisma`, `@prisma/dev`, `@hono/node-server` | Middleware bypass via repeated slashes in Prisma's dev server (`@hono/node-server`) | only via a **major** `prisma` downgrade (7 → 6.19.3) — rejected | Accepted: these are **Prisma dev-tooling transitives** not used by the production runtime (the app serves via NestJS/Express, not `@prisma/dev`). Do not downgrade Prisma 7. Re-evaluate when Prisma ships a fix on the 7.x line. |
+| api | `fast-uri` 3.1.3 | Host confusion via backslash authority (GHSA-v2hh-gcrm-f6hx / GHSA-7p8r-x3mc-p8w7) | `@prisma/client → prisma → @prisma/dev → @prisma/streams-local → ajv → fast-uri` (Prisma CLI tooling, not the API runtime path) | non-breaking `npm audit fix`; api prod audit now **0** advisories |
+| mobile | `brace-expansion` | ReDoS via exponential `{}` expansion | `expo → @expo/fingerprint → minimatch → brace-expansion` (build/prebuild tooling, not the shipped RN runtime) | non-breaking `npm audit fix`; HIGH cleared |
 
-### mobile (production deps)
+### Remaining exceptions
 
-| Severity | Package | Advisory | Fix | Disposition |
-|---|---|---|---|---|
-| MODERATE (×) | `uuid` (transitive) | Missing buffer bounds check in v3/v5/v6 when `buf` is provided | upstream | Accepted: AppFitness code never calls `uuid` with a caller-provided `buf` (the vulnerable path); pulled transitively by Expo/tooling. Track for an Expo SDK bump. |
+#### api (production deps)
+None — prod audit is clean (0 advisories).
+
+#### mobile (production deps)
+
+| Severity | Scope | Advisory family | Disposition |
+|---|---|---|---|
+| MODERATE (×12) | `@expo/*` config/config-plugins & related tooling transitives (e.g. `@expo/config`, `@expo/prebuild-config`, `expo-splash-screen` plugin chain) | Various transitive advisories in Expo **build/prebuild tooling** | Accepted: these run at build/prebuild time and are **not on the shipped RN app runtime surface**; no non-breaking fix without an Expo SDK bump (`npm audit fix --force` is breaking — not applied). Track for the next Expo SDK upgrade. **Non-critical → CI gate (critical-only) unaffected.** |
 
 ## Review cadence
 
