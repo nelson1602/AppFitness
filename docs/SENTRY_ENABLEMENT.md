@@ -1,32 +1,33 @@
 # AppFitness — Sentry Enablement Runbook
 
-> **Runbook only — Sentry is NOT enabled by this document.** Enabling Sentry
-> is an owner/external gate (ADR-P010; `RELEASE_READINESS.md` item 10).
-> Follow these steps at enablement time; nothing here provisions accounts,
-> secrets, or DSNs.
+> **Operational runbook.** Backend Sentry is enabled and live-verified in
+> Production; mobile enablement remains an owner/external gate (ADR-P010;
+> `RELEASE_READINESS.md` item 10). This document never stores DSNs or tokens.
 
 Last updated: 2026-08-05 · Evidence commit `9da7482` (Phase 20 Slice 3).
 
 ## Current state (as built)
 
-- Sentry is **wired but inert** on both apps — it initializes **only** when a
-  DSN is present, and no DSN is configured, so no events are sent today.
-  - **Mobile:** `mobile/src/shared/infrastructure/monitoring/sentry.ts` calls
-    `Sentry.init` only if `process.env.EXPO_PUBLIC_SENTRY_DSN` is set;
-    environment from `EXPO_PUBLIC_SENTRY_ENVIRONMENT` (falls back to
-    `__DEV__ ? 'development' : 'production'`). Dependency
-    `@sentry/react-native@~7.11.0`.
-  - **Backend:** `api/src/instrument.ts` calls `Sentry.init` only if
-    `process.env.SENTRY_DSN` is set; environment from `SENTRY_ENVIRONMENT`.
+- **Mobile is wired but inert:**
+  `mobile/src/shared/infrastructure/monitoring/sentry.ts` calls
+  `Sentry.init` only if `process.env.EXPO_PUBLIC_SENTRY_DSN` is set;
+  environment from `EXPO_PUBLIC_SENTRY_ENVIRONMENT` (falls back to
+  `__DEV__ ? 'development' : 'production'`). Dependency
+  `@sentry/react-native@~7.11.0`.
+- **Backend is enabled + verified:** Railway Production provides
+  `SENTRY_DSN`/`SENTRY_ENVIRONMENT`; `api/src/instrument.ts` initializes on
+  boot. A scrubbed live event was verified in `production` on 2026-08-05 (see
+  `RELEASE_READINESS.md` item 10). No secret value is recorded here.
 - **Privacy scrubbers** exist on both sides
   (`mobile/src/shared/infrastructure/monitoring/sentry-scrub.ts`,
   `api/src/monitoring/sentry-scrub.ts`): `sendDefaultPii` off,
   `beforeSend`/`beforeBreadcrumb` redact a token/PII/PHI key-list. Medical
   free-text is encrypted before any loggable layer.
-- `mobile/eas.json` sets `SENTRY_DISABLE_AUTO_UPLOAD: "true"` in every build
-  profile. **Gap:** there is **no `@sentry/react-native/expo` config plugin** in
-  `mobile/app.json`, so release source-map upload/symbolication is **not
-  configured yet** (that env var is currently a no-op). See step 4.
+- The `@sentry/react-native/expo` config plugin is already registered in
+  `mobile/app.config.js`. `mobile/eas.json` still sets
+  `SENTRY_DISABLE_AUTO_UPLOAD: "true"` in every build profile, so release
+  source-map upload/symbolication remains disabled pending approved EAS
+  credentials/configuration. See step 4.
 
 ## Enablement steps (owner)
 
@@ -46,14 +47,13 @@ Last updated: 2026-08-05 · Evidence commit `9da7482` (Phase 20 Slice 3).
      profile env), not by editing `eas.json` in the repo with a real DSN.
 
 4. **Source maps / symbolication (required for readable release stack traces):**
-   - Add the `@sentry/react-native/expo` config plugin to `mobile/app.json`
-     `plugins` (this is a **separate config change**, intentionally NOT done in
-     Phase 20 Slice 3).
+   - The `@sentry/react-native/expo` plugin is already registered in
+     `mobile/app.config.js`; do not add a duplicate entry.
    - Provide `SENTRY_ORG`, `SENTRY_PROJECT`, and `SENTRY_AUTH_TOKEN` to the EAS
      build environment so the plugin can upload source maps.
    - The `SENTRY_DISABLE_AUTO_UPLOAD` flags in `eas.json` should be revisited
-     once the plugin is added (they currently gate an upload path that is not
-     yet configured).
+     when upload credentials are approved (they currently keep uploads
+     disabled).
 
 5. **Verify scrubbers BEFORE trusting production events.** Re-run the scrubber
    tests (`sentry-scrub.spec.ts` on both sides) and confirm a test event
@@ -68,7 +68,7 @@ Last updated: 2026-08-05 · Evidence commit `9da7482` (Phase 20 Slice 3).
 ## Do NOT (in this slice / this runbook)
 
 - Do not commit a real DSN, auth token, org, or project slug.
-- Do not add the Expo config plugin as part of Phase 20 Slice 3 (deferred to
-  enablement, step 4).
-- Do not mark `RELEASE_READINESS.md` item 10 complete until a live scrubbed
-  event is verified.
+- Do not duplicate or move the existing Expo config plugin without a separate
+  config-change review.
+- Do not mark `RELEASE_READINESS.md` item 10 complete until scrubbed live events
+  are verified for both backend and mobile, with mobile frames symbolicated.
