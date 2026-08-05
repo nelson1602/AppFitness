@@ -2085,6 +2085,20 @@ Phases 13–17 + the external gates from `docs/RELEASE_READINESS.md`.
 - [ ] `docs/RELEASE_READINESS.md` matrix all PASS or explicitly waived;
       internal → closed → production track progression validated.
 
+**Slice 1 STARTED/DONE 2026-08-05 (docs-only re-gate audit; pending
+validation/commit):** refreshed `docs/RELEASE_READINESS.md` against `d5fa45c`
+(supersedes the stale 2026-07-08 Phase 12 edition) — corrected the
+nutrition/workout/progress "missing" claim and stale test/commit evidence,
+recorded CI green + `mobile-e2e` run 31008855392 success, reclassified every
+gate (PASS / BLOCKED-OWNER / BLOCKED-EXTERNAL / PENDING-HUMAN), and enumerated
+the owner/external action list (Sentry, legal sign-off, Play listing + Data
+Safety + privacy URL, Production env, rollback dry-run, production smoke, mobile
+production validation, release notes + submission approval). In-repo engineering
+= COMPLETE; all open gates are owner/external. No app/api/mobile/schema/package/
+workflow/legal/EAS changes; no external-gate actions performed. Slices 2–5 (legal
+review-readiness, release-eng verification, external-gate execution, close-out)
+remain.
+
 ---
 
 # AI Instructions
