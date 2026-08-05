@@ -64,7 +64,7 @@ Legend:
 | 10 | Monitoring enabled | **BLOCKED-OWNER** | Sentry wired + scrubber-tested but inert — no org/DSN (ADR-P010); owner must provision org + DSNs and verify a live event |
 | 11 | Logs reviewed | **PENDING-HUMAN** | hosted Development logs exist; no production logs to review yet |
 | 12 | Store metadata ready | **BLOCKED-OWNER** | `eas.json` `submit` profile present (Android internal/draft); **missing** store-listing assets (screenshots, descriptions, categories), Data Safety form, and a published privacy-policy URL — owner / store-console |
-| 13 | Privacy requirements satisfied | **BLOCKED-EXTERNAL** | account deletion implemented + in-app surfaced (PASS); `docs/legal/*` (privacy, ToS, health disclaimer, Data Safety, data inventory) are **Draft pending legal sign-off** |
+| 13 | Privacy requirements satisfied | **BLOCKED-EXTERNAL** | account deletion implemented + in-app surfaced (PASS); `docs/legal/*` (privacy, ToS, health disclaimer, Data Safety, data inventory) **refreshed to Phases 13–17 in Phase 20 Slice 2 (2026-08-05)** — now review-ready; still **BLOCKED-EXTERNAL pending legal sign-off** |
 | 14 | Smoke tests completed | **PARTIAL** — **PASS** (cloud E2E) / **BLOCKED-OWNER** (production) | 12-flow Maestro `mobile-e2e` green on `d5fa45c` (run 31008855392); **Production Smoke + Mobile Production Validation not run** (need a deployed prod backend + a closed/prod-track build) |
 
 ## Additional `10_DEPLOYMENT.md` release gates
