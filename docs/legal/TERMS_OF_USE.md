@@ -5,6 +5,9 @@
 > publication or any app-store submission. `[PLACEHOLDER]` fields require
 > business/legal input. Not evidence of legal compliance.
 
+> Draft refreshed 2026-08-05 · Evidence commit `5bc6683` · App state:
+> Phases 13–17 complete (incl. nutrition, workout, progress monitoring).
+
 Effective date: `[PLACEHOLDER]`
 Provider: `[PLACEHOLDER — legal entity, jurisdiction]`
 
@@ -56,9 +59,12 @@ jurisdiction; health-app context requires careful review.]`
 
 ## 9. Termination
 
-You may stop using the app at any time. `[PLACEHOLDER — account closure
-and the data-deletion path are not yet implemented; see Privacy Policy §6
-and internal TECHDEBT-002/ADR-P011.]`
+You may stop using the app at any time. You may also **permanently delete
+your account and all associated data** from the in-app Delete account
+screen; deletion is immediate and irreversible (see Privacy Policy §6 and
+ADR-P011). A separate data-**export** flow is not yet available.
+`[PLACEHOLDER — any post-termination obligations, and confirmation of the
+retention window, to be finalized in legal review.]`
 
 ## 10. Changes
 
