@@ -5,8 +5,9 @@
 > submission approval.** Legal / owner / store-console gates are called out
 > explicitly and remain the owner's to close.
 
-Last updated: 2026-08-05 (Phase 20 Slice 1 — docs-only re-gate audit) ·
-Main commit `d5fa45c` · App version `0.1.0` (`mobile/app.json`) ·
+Last updated: 2026-08-05 (Phase 20 Slice 3 — release-engineering package;
+initially Slice 1) · Main commit `d5fa45c` (Slices 1–2 merged; Slice 3 in
+progress) · App version `1.0.0` (`mobile/app.json`, set in Slice 3) ·
 Target publication: 2026-08-20.
 
 > **Supersedes** the 2026-07-08 Phase 12 walkthrough. That edition predated
@@ -57,11 +58,11 @@ Legend:
 | 3 | TypeScript passes | **PASS** | `tsc --noEmit` both packages (CI) |
 | 4 | Lint passes | **PASS** | expo lint / eslint `--max-warnings 0` (CI) |
 | 5 | Formatting passes | **PASS** | prettier `--check` both packages (CI) |
-| 6 | Security audit reviewed | **PASS** (tracked exceptions) | dependency-audit job in both CI workflows (critical-gated on prod deps); triage in `docs/DEPENDENCY_AUDIT.md`; no high/critical prod advisories at last audit. *Follow-up: the audit triage predates Phases 15–17 dep changes — a refresh pass is advisable before submission (not a blocker; CI gate remains green).* |
+| 6 | Security audit reviewed | **PASS** (tracked exceptions) | dependency-audit job in both CI workflows (critical-gated on prod deps); triage refreshed **2026-08-05 (Phase 20 Slice 3)** in `docs/DEPENDENCY_AUDIT.md`. **Two HIGH prod advisories remediated** (non-breaking `npm audit fix`: api `fast-uri`, mobile `brace-expansion`). Post-remediation: **api 0 advisories; mobile 12 moderate** (Expo build-tooling transitives, non-runtime, tracked). **0 high/critical** either side. |
 | 7 | Migrations tested | **PASS** | `prisma migrate deploy` in the `api-ci` e2e job + local; account-deletion cascade applied & e2e-verified |
 | 8 | Rollback plan exists | **PASS** (plan) / **BLOCKED-OWNER** (tested) | API rollback (`api/DEPLOYMENT.md`) + mobile store-track runbook (`docs/MOBILE_ROLLBACK.md`) documented; **not yet exercised on a live track** — dry-run is an owner action |
 | 9 | Environment variables verified | **PASS** (dev) / **BLOCKED-OWNER** (prod) | Railway Development env set; `/health` + smoke verified. **Production/Staging environments do not exist yet** — owner must create |
-| 10 | Monitoring enabled | **BLOCKED-OWNER** | Sentry wired + scrubber-tested but inert — no org/DSN (ADR-P010); owner must provision org + DSNs and verify a live event |
+| 10 | Monitoring enabled | **BLOCKED-OWNER** | Sentry wired + scrubber-tested but inert — no org/DSN (ADR-P010); **enablement runbook drafted `docs/SENTRY_ENABLEMENT.md` (Phase 20 Slice 3)**; owner must still provision org + DSNs, add the `@sentry/react-native/expo` plugin for source maps, and verify a live event. **Not enabled/verified.** |
 | 11 | Logs reviewed | **PENDING-HUMAN** | hosted Development logs exist; no production logs to review yet |
 | 12 | Store metadata ready | **BLOCKED-OWNER** | `eas.json` `submit` profile present (Android internal/draft); **missing** store-listing assets (screenshots, descriptions, categories), Data Safety form, and a published privacy-policy URL — owner / store-console |
 | 13 | Privacy requirements satisfied | **BLOCKED-EXTERNAL** | account deletion implemented + in-app surfaced (PASS); `docs/legal/*` (privacy, ToS, health disclaimer, Data Safety, data inventory) **refreshed to Phases 13–17 in Phase 20 Slice 2 (2026-08-05)** — now review-ready; still **BLOCKED-EXTERNAL pending legal sign-off** |
@@ -73,7 +74,7 @@ Legend:
 |---|---|---|
 | Production Smoke Tests (10 checks: backend health, auth, profile, SQLite init, dashboard, iCoach recs, offline, sync init, reconnect sync, no critical monitoring errors) | **BLOCKED-OWNER** | requires a deployed Production backend + monitoring — none yet |
 | Mobile Production Validation (10 checks: open, login, nav, dashboard, offline, push permissions, SecureStore, biometric-if-enabled, no debug info, store build matches env) | **BLOCKED-OWNER** | requires a closed/production-track build on a real device |
-| Release Notes | **PASS** (template) / **PENDING-HUMAN** (v1 note) | reusable `docs/RELEASE_NOTES_TEMPLATE.md`; the v1 note (version/date/features/fixes/breaking/migration/known-issues/rollback) must be authored at release time |
+| Release Notes | **PASS** (template + v1 draft) / **PENDING-HUMAN** (deploy-time fields) | reusable `docs/RELEASE_NOTES_TEMPLATE.md`; **v1.0.0 note drafted `docs/releases/v1.0.0.md` (Phase 20 Slice 3)** covering Phases 13–17; deploy-time fields (backend commit/env, actual date, track progression) marked `[SET AT RELEASE]` |
 
 ## Phase 20 Exit Criteria (`13_MIGRATION_ROADMAP.md`)
 

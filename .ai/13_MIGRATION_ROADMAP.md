@@ -2099,6 +2099,23 @@ workflow/legal/EAS changes; no external-gate actions performed. Slices 2–5 (le
 review-readiness, release-eng verification, external-gate execution, close-out)
 remain.
 
+**Slice 2 DONE 2026-08-05 (docs-only):** refreshed the 5 `docs/legal/*` drafts to
+the current app (Phases 13–17) — fixed the account-deletion contradiction, added
+nutrition/workout/progress disclosures, corrected encryption tiers; still DRAFT
+pending legal sign-off (item 13 BLOCKED-EXTERNAL).
+
+**Slice 3 DONE 2026-08-05 (release-engineering package; pending
+validation/commit):** owner-authorized non-breaking dependency remediation
+(`npm audit fix --omit=dev`, lockfile-only) cleared both HIGH prod advisories
+(api `fast-uri`, mobile `brace-expansion`) → api 0 / mobile 12 moderate / 0
+high-critical; bumped `mobile/app.json` `expo.version` 0.1.0 → **1.0.0** (launch
+version; versionCode stays EAS-remote); authored `docs/releases/v1.0.0.md`;
+drafted `docs/SENTRY_ENABLEMENT.md` (Sentry still inert/not enabled); refreshed
+`docs/DEPENDENCY_AUDIT.md` + `docs/RELEASE_READINESS.md`. Owner/external gates
+(legal sign-off, Play listing/Data Safety/privacy URL, Sentry enablement,
+Production env, rollback dry-run, production smoke, mobile production validation,
+submission approval) remain — Slices 4–5.
+
 ---
 
 # AI Instructions
