@@ -30,7 +30,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
         "EXPO_PUBLIC_API_URL": "https://appfitness-production-5cfa.up.railway.app"
       }
     },
