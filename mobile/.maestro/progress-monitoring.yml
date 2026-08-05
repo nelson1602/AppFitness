@@ -72,8 +72,6 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     direction: UP
     element: '.*83 kg on.*'
-- scrollUntilVisible:
-    element: '1 reading: 83 kg'
 
 # --- 4. Record a waist measurement (unique field-waistCm; measurements do NOT
 #     trigger a recompute). ---
@@ -88,6 +86,11 @@ appId: com.appfitness.mobile
       id: 'body-measurement-submit'
 - tapOn:
     id: 'body-measurement-submit'
+
+# The Trends card is below both entry forms; assert it only after measurement
+# entry so the scroll direction matches the screen layout.
+- scrollUntilVisible:
+    element: '1 reading: 83 kg'
 
 # --- 5. Explicitly re-run the deterministic weekly recompute. ---
 - scrollUntilVisible:
