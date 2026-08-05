@@ -102,6 +102,15 @@ need B3 (a published internal build); C2 is last, after every gate is PASS.
 - **Repo files to update:** `api/DEPLOYMENT.md` "Current deployment";
   `RELEASE_READINESS.md` item 9 → PASS (prod).
 - **Blocker/dependency:** none; precedes B2 (backend DSN) and B5 (smoke).
+- **STATUS — PASS-WITH-WAIVER (evidence recorded 2026-08-05):** Production
+  created + verified — URL `https://appfitness-production-5cfa.up.railway.app`
+  (distinct from Dev; US West), `/health` = 200 (independently confirmed), 10
+  migrations applied / none pending, CI green, deployed commit `4ee52a1`;
+  Railway project `68c0d53d-9c53-4f12-8482-be35da190d25`, API deployment
+  `0416691a-5a32-491c-b584-b9e9da5b4754`. **WAIVER (owner-approved):** backups /
+  PITR require Railway Pro — owner declined; **no backups and no restore test**
+  (v1 data-loss risk accepted; restore verification NOT claimed). Previous
+  Railway project left untouched. Recorded in `RELEASE_READINESS.md` item 9.
 
 ### B2 — Sentry enablement + live verification (`item 10`)
 - **Owner action:** follow `docs/SENTRY_ENABLEMENT.md` — create org/projects;
