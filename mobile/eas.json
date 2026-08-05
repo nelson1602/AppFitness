@@ -44,6 +44,18 @@
         "APP_VARIANT": "e2e",
         "EXPO_PUBLIC_API_URL": "http://127.0.0.1:3001"
       }
+    },
+    "sentry-verification": {
+      "extends": "production",
+      "environment": "production",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
+        "EXPO_PUBLIC_SENTRY_VERIFY_EVENT": "true"
+      }
     }
   },
   "submit": {
