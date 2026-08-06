@@ -23,11 +23,13 @@ Last updated: 2026-08-05 · Evidence commit `9da7482` (Phase 20 Slice 3).
   `api/src/monitoring/sentry-scrub.ts`): `sendDefaultPii` off,
   `beforeSend`/`beforeBreadcrumb` redact a token/PII/PHI key-list. Medical
   free-text is encrypted before any loggable layer.
-- The `@sentry/react-native/expo` config plugin is already registered in
-  `mobile/app.config.js`. `mobile/eas.json` still sets
-  `SENTRY_DISABLE_AUTO_UPLOAD: "true"` in every build profile, so release
-  source-map upload/symbolication remains disabled pending approved EAS
-  credentials/configuration. See step 4.
+- The `@sentry/react-native/expo` config plugin is registered in
+  `mobile/app.config.js`. The **production** build profile now sets
+  `SENTRY_DISABLE_AUTO_UPLOAD: "false"` (other profiles keep `"true"`), and
+  source-map upload was **enabled + verified** on 2026-08-06 (Gate B2-mobile):
+  build `db57221a-3f96-4a87-9c93-b1d7186f72ae` FINISHED with the plugin
+  uploading source maps to project `react-native`, and a live event's frames
+  were symbolicated. See step 4.
 
 ## Enablement steps (owner)
 
@@ -70,5 +72,8 @@ Last updated: 2026-08-05 · Evidence commit `9da7482` (Phase 20 Slice 3).
 - Do not commit a real DSN, auth token, org, or project slug.
 - Do not duplicate or move the existing Expo config plugin without a separate
   config-change review.
-- Do not mark `RELEASE_READINESS.md` item 10 complete until scrubbed live events
-  are verified for both backend and mobile, with mobile frames symbolicated.
+- ~~Do not mark `RELEASE_READINESS.md` item 10 complete until scrubbed live
+  events are verified for both backend and mobile, with mobile frames
+  symbolicated.~~ **Satisfied 2026-08-06:** both platforms live-verified
+  (scrubbed events in `production`; mobile frames symbolicated) — item 10 is
+  PASS. Any future Sentry config change must re-verify.

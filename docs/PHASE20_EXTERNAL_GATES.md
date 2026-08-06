@@ -7,7 +7,7 @@
 
 - **Target publication date:** 2026-08-20
 - **Current status:** Phase 20 Slices 1–4 complete & merged. Gate B1 is
-  **PASS-WITH-WAIVER**; Gate B2 is **PARTIAL — backend PASS / mobile pending**.
+  **PASS-WITH-WAIVER**; Gate B2 is **PASS (backend + mobile)** — both live-verified.
   All other remaining gates are owner/external.
 - **Production environment:** Railway Production is live and verified at
   `appfitness-production-5cfa.up.railway.app` (Gate B1). The previous Railway
@@ -124,17 +124,26 @@ need B3 (a published internal build); C2 is last, after every gate is PASS.
 - **Repo files to update:** `eas.json` only if source-map upload configuration
   changes (separate authorization); `RELEASE_READINESS.md` item 10 → PASS.
 - **Blocker/dependency:** **B1** (backend DSN target env).
-- **STATUS — IN PROGRESS; BACKEND PASS (evidence recorded 2026-08-05):** backend
-  Sentry project provisioned; Railway Production variables configured and
-  deployment `2b1ec9ba-a2ab-42d5-a848-6828980e5a39` succeeded on release
-  `1d16b99991dc`. Post-redeploy `/health` = 200; 10 migrations found / none
-  pending. Live issue
+- **STATUS — PASS (backend + mobile) (evidence recorded 2026-08-05 / 2026-08-06):**
+  *Backend:* Sentry project provisioned; Railway Production variables configured
+  and deployment `2b1ec9ba-a2ab-42d5-a848-6828980e5a39` succeeded on release
+  `1d16b99991dc`; `/health` = 200; 10 migrations found / none pending; live issue
   [`APPFITNESS-API-1`](https://hardtech-solutions.sentry.io/issues/7654812085/), event
-  `c1b6a0116fa34d82bb981f5f17a48083`, arrived with
-  `environment=production`; synthetic `notes`/`token` fields were redacted and
-  no PII/PHI/token was present. Backend scrubber specs: 7/7 green. **B2 remains
-  open for mobile:** EAS environment, source-map upload, production build, and
-  symbolicated scrubbed live-event verification are pending.
+  `c1b6a0116fa34d82bb981f5f17a48083`, `environment=production`, synthetic
+  `notes`/`token` redacted, no PII/PHI/token; backend scrubber specs 7/7 green.
+  *Mobile:* EAS build `db57221a-3f96-4a87-9c93-b1d7186f72ae` (profile
+  `sentry-verification`, 1.0.0 / vc3) FINISHED with **source-map upload
+  succeeding** (after rotating the Sentry Organization Token); runtime-verified
+  on `emulator-5554` (no crash/ANR/JS-fatal/transport failure); event
+  `31f94e5b7a9e425b99d8a02ba5758eb1` (issue
+  [`REACT-NATIVE-1`](https://hardtech-solutions.sentry.io/issues/7656864096/)) at
+  `2026-08-06T17:46:06.750Z`, project `react-native`, `environment=production`,
+  release `1.0.0 (3)`; synthetic `notes` **[REDACTED]** / `token` **[Filtered]**;
+  frames **symbolicated** (`sentry.ts`, `_layout.tsx`); exactly one controlled
+  event. Privacy: Sentry captured standard crash/device diagnostics, a
+  pseudonymous device id, and approximate geography; the event held no PHI, no
+  auth token, and no user-entered health data. The temporary `sentry-verification`
+  harness never entered `main` (draft PR #31 closed unmerged).
 
 ### B3 — Production / internal-track build (`supports item 14`)
 - **Owner action:** `eas build --platform android --profile production` (AAB),
