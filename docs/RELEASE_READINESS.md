@@ -73,13 +73,13 @@ Legend:
 | 11 | Logs reviewed | **PENDING-HUMAN** | hosted Development logs exist; no production logs to review yet |
 | 12 | Store metadata ready | **BLOCKED-OWNER** | `eas.json` `submit` profile present (Android internal/draft); **missing** store-listing assets (screenshots, descriptions, categories), Data Safety form, and a published privacy-policy URL — owner / store-console |
 | 13 | Privacy requirements satisfied | **BLOCKED-EXTERNAL** | account deletion implemented + in-app surfaced (PASS); `docs/legal/*` (privacy, ToS, health disclaimer, Data Safety, data inventory) **refreshed to Phases 13–17 in Phase 20 Slice 2 (2026-08-05)** — now review-ready; still **BLOCKED-EXTERNAL pending legal sign-off** |
-| 14 | Smoke tests completed | **PARTIAL** — **PASS** (cloud E2E) / **BLOCKED-OWNER** (production) | 12-flow Maestro `mobile-e2e` green on `d5fa45c` (run 31008855392); **Production Smoke + Mobile Production Validation not run** (need a deployed prod backend + a closed/prod-track build) |
+| 14 | Smoke tests completed | **PARTIAL** — **PASS** (cloud E2E + **backend/API production smoke**) / **BLOCKED-OWNER** (mobile production validation = Gate B6) | 12-flow Maestro `mobile-e2e` green on `d5fa45c` (run 31008855392). **Backend/API Production Smoke — PASS (Gate B5, 2026-08-06):** the `10_DEPLOYMENT.md` server-side smoke ran against the live Production API with **synthetic data only** — 15/15 checks pass (HTTPS + `/health`, register, login, `GET /auth/me`, profile `PUT`/`GET`, `GET /sync/pull` baseline, body-weight `POST /sync/push` + round-trip, missing/invalid-token 401, logout + refresh revocation, `DELETE /auth/account` + post-deletion login rejected); all synthetic accounts/data (incl. an earlier harness orphan) deleted & verified inaccessible; no secrets/PII/PHI recorded (see `PHASE20_EXTERNAL_GATES.md` B5). **Still BLOCKED-OWNER:** Mobile Production Validation (device-side) = **Gate B6** — not run (needs a closed/prod-track build on a real device). |
 
 ## Additional `10_DEPLOYMENT.md` release gates
 
 | Gate | Status | Evidence / gap |
 |---|---|---|
-| Production Smoke Tests (10 checks: backend health, auth, profile, SQLite init, dashboard, iCoach recs, offline, sync init, reconnect sync, no critical monitoring errors) | **BLOCKED-OWNER** | requires a deployed Production backend + monitoring — none yet |
+| Production Smoke Tests (10 checks: backend health, auth, profile, SQLite init, dashboard, iCoach recs, offline, sync init, reconnect sync, no critical monitoring errors) | **PARTIAL** — **PASS** (backend/API subset, Gate B5) / **pending Gate B6** (device-side) | **Backend/API subset PASS (2026-08-06):** backend health, auth, and profile checks (plus sync push/pull round-trip and authz/session-revocation) executed against the live Production API with **synthetic data only** — 15/15 server-side checks (see item 14 + `PHASE20_EXTERNAL_GATES.md` B5); all synthetic data deleted & verified inaccessible. Device-side checks (SQLite init, dashboard, on-device iCoach recs, offline, reconnect sync) and monitoring-error/log review remain **Gate B6** / owner (item 11 log review PENDING-HUMAN). |
 | Mobile Production Validation (10 checks: open, login, nav, dashboard, offline, push permissions, SecureStore, biometric-if-enabled, no debug info, store build matches env) | **BLOCKED-OWNER** | requires a closed/production-track build on a real device |
 | Release Notes | **PASS** (template + v1 draft) / **PENDING-HUMAN** (deploy-time fields) | reusable `docs/RELEASE_NOTES_TEMPLATE.md`; **v1.0.0 note drafted `docs/releases/v1.0.0.md` (Phase 20 Slice 3)** covering Phases 13–17; deploy-time fields (backend commit/env, actual date, track progression) marked `[SET AT RELEASE]` |
 
@@ -108,8 +108,11 @@ external party before submission. **None performed in this audit.**
    + set secrets; only Development exists today.
 5. **Rollback dry-run** (item 8) — **BLOCKED-OWNER**: exercise the API +
    mobile-track rollback runbooks on the first internal track.
-6. **Production Smoke** (item 11/14) — **BLOCKED-OWNER**: run the 10-check smoke
-   against the deployed production backend + review logs.
+6. **Production Smoke** (item 11/14) — **PARTIAL**: the backend/API smoke subset
+   is **PASS (Gate B5, 2026-08-06)** — executed against the live Production API
+   with synthetic data only (all synthetic data deleted & verified inaccessible).
+   Remaining: device-side smoke = **Gate B6**, and production **log review**
+   (item 11) = **PENDING-HUMAN**.
 7. **Mobile Production Validation** (item 14) — **BLOCKED-OWNER**: run the
    10-check validation on a closed/production-track build (push, SecureStore,
    biometric, no-debug, store-build-matches-env).

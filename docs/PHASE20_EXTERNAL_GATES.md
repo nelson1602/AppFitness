@@ -7,8 +7,10 @@
 
 - **Target publication date:** 2026-08-20
 - **Current status:** Phase 20 Slices 1–4 complete & merged. Gate B1 is
-  **PASS-WITH-WAIVER**; Gate B2 is **PASS (backend + mobile)** — both live-verified.
-  All other remaining gates are owner/external.
+  **PASS-WITH-WAIVER**; Gate B2 is **PASS (backend + mobile)** — both live-verified;
+  Gate B5 is **PASS (backend/API production smoke)** — verified 2026-08-06 with
+  synthetic data only (device-side validation remains **Gate B6**; production log
+  review remains PENDING-HUMAN). All other remaining gates are owner/external.
 - **Production environment:** Railway Production is live and verified at
   `appfitness-production-5cfa.up.railway.app` (Gate B1). The previous Railway
   project/Development URL remains separate and untouched.
@@ -176,6 +178,24 @@ need B3 (a published internal build); C2 is last, after every gate is PASS.
 - **Repo files to update:** `docs/releases/v1.0.0.md`; `RELEASE_READINESS.md`
   items 11/14.
 - **Blocker/dependency:** **B1**.
+- **STATUS — PASS (backend/API production smoke) (evidence recorded 2026-08-06):**
+  the server-side portion of the `10_DEPLOYMENT.md` Production Smoke was executed
+  against the live Production API (`https://appfitness-production-5cfa.up.railway.app`)
+  using **synthetic data only** — **15/15 checks PASS**: HTTPS + `/health` 200;
+  registration; login; authenticated identity (`GET /auth/me`); profile create +
+  read-back (`PUT`/`GET /users/me/profile`); baseline `GET /sync/pull`; body-weight
+  `POST /sync/push` applied + round-trip pull; missing-token and invalid-token
+  rejection (401); logout (204) + refresh-token revocation (401); supported account
+  deletion (`DELETE /auth/account`, 204) with the deleted credentials rejected
+  afterward (401). **All synthetic accounts/data — this run plus the earlier
+  harness-attempt orphan — were deleted via `DELETE /auth/account` and verified
+  inaccessible; no synthetic records remain in Production.** No secrets, tokens,
+  credentials, PII, or health data are recorded. **Scope:** backend/API smoke
+  subset only — the device-side checks (SQLite init, dashboard, on-device iCoach
+  recs, offline, reconnect sync) belong to **Gate B6**, and production **log
+  review** (item 11) was **not** performed here (remains PENDING-HUMAN). Recorded
+  in `RELEASE_READINESS.md` item 14 (backend smoke portion) + the Production Smoke
+  Tests row.
 
 ### B6 — Mobile production validation (`item 14`)
 - **Owner action:** install the internal/closed-track build on a real device;
