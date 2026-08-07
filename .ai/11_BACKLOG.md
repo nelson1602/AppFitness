@@ -1110,6 +1110,60 @@ The hook imports concrete modules only; no Metro require-cycle warning.
 
 ---
 
+## [BUG-005] Duplicate Same-Date Body Weight Surfaced a Raw SQLite Error and Broke the Progress Screen
+
+Status: Done
+Priority: P1
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-07
+Updated: 2026-08-07
+
+### Description
+
+Found during Phase 20 Gate B6 device validation (release-candidate APK
+`1e91f274`, versionCode 4). Recording a body weight for a user-local date that
+already had one made `createBodyWeight` INSERT a duplicate, violating
+`body_weights UNIQUE(user_id, date)`. The raw exception ("Call to function
+'NativeStatement.finalizeAsync' has been rejected … UNIQUE constraint failed:
+body_weights.user_id, body_weights.date") reached the UI via the store
+(`error: err.message`) and the whole ProgressScreen fell into the full-screen
+"Progress unavailable" state. `body_measurements` shared the same latent
+pattern. Violates the mobile error-handling standard (no raw internals to
+users; graceful failure) and the TECHDEBT-003 sanitized-error pattern.
+
+### Expected Outcome
+
+Re-entering a weight/measurement for the same date updates that day's entry
+(id-stable upsert; last-write-wins by `version`, ADR-P016 D6) instead of
+throwing. Any unexpected persistence failure shows a safe, generic message and
+leaves the Progress screen usable; raw SQLite/native text never renders.
+
+### Acceptance Criteria
+
+- [x] `createBodyWeight` / `createBodyMeasurement` upsert by `(user_id, date)`:
+      existing active same-date row is UPDATED in place (stable id, version+1,
+      enqueue UPDATE), else INSERT + enqueue CREATE — one transaction, mirrors
+      `upsertProgressSnapshot`. Owner-scoped check (never another user's row).
+      No schema/migration change.
+- [x] Progress store maps failures to safe copy (`LOAD_ERROR` / `SAVE_ERROR`),
+      logs the raw error via `logError` (no swallow), and a save failure keeps
+      `status: 'ready'` (screen usable) rather than wiping it.
+- [x] ProgressScreen renders a save failure as an inline banner; the
+      full-screen "Progress unavailable" is reserved for load failures.
+- [x] Regression tests: repository upsert (insert + same-date update branches,
+      id-stable, owner-scoped, no duplicate INSERT, offline UPDATE enqueue) for
+      weight and measurement; store (screen-usable + sanitized, raw text not
+      surfaced); screen (inline save banner, forms remain).
+
+### Related Documents
+
+- .ai/12_DECISIONS.md (ADR-P016 D6 — conflict/duplicate semantics; ADR-0006)
+- .ai/03_CODING_STANDARDS.md (no silent error swallowing) · .ai/06_MOBILE.md (error handling)
+- [TECHDEBT-003] (sanitized-error pattern)
+
+---
+
 # Security Backlog
 
 ## [SECURITY-001] Local Sensitive Data Protection

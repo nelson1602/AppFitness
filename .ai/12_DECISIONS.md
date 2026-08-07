@@ -5290,6 +5290,15 @@ charting library is present in the mobile app today.
 - **D6 — Conflict/duplicate semantics.** `UNIQUE(user_id, date)` /
   `(user_id, week_start)` — define offline conflict handling (last-write-wins by
   `version`, or reject/merge duplicate-date entries) consistent with ADR-0006.
+  - **Resolved (implementation, 2026-08-07 — Phase 20 B6 / BUG-005):** repeated
+    same-`(user_id, date)` `body_weights` / `body_measurements` entries **merge
+    via id-stable upsert** — the existing active row is UPDATED in place (same
+    client UUID, `version+1`, enqueue an `UPDATE` op), never a duplicate INSERT.
+    This is **last-write-wins by `version`** per ADR-0006 and matches the already-
+    shipped `progress_snapshots` `(user_id, week_start, rule_version)` upsert
+    precedent. No schema/migration change (the `UNIQUE` constraint stays; the
+    repository resolves same-date rows before writing). The check is owner-scoped,
+    so it never overwrites another user's data.
 
 ### D1 decision gate — body-metric source of truth (drafted 2026-08-03; owner acceptance PENDING)
 

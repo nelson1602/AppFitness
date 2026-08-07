@@ -1,4 +1,5 @@
 import { getSession } from '@/features/authentication';
+import { logError } from '@/shared/infrastructure/logging';
 
 import {
   createBodyWeight,
@@ -26,6 +27,7 @@ jest.mock('../infrastructure/progress.repository', () => ({
 jest.mock('./progress.gathering', () => ({ recomputeSnapshots: jest.fn() }));
 
 const mockGetSession = jest.mocked(getSession);
+const mockLogError = jest.mocked(logError);
 const mockListBW = jest.mocked(listBodyWeights);
 const mockListBM = jest.mocked(listBodyMeasurements);
 const mockListSnap = jest.mocked(listProgressSnapshots);
@@ -67,12 +69,15 @@ describe('useProgressStore', () => {
     expect(mockListSnap).toHaveBeenCalledWith(USER);
   });
 
-  it('load sets error when not authenticated', async () => {
+  it('load surfaces a safe, sanitized message on failure (never raw internals)', async () => {
     mockGetSession.mockReturnValueOnce(null as never);
     await useProgressStore.getState().load();
     const s = useProgressStore.getState();
     expect(s.status).toBe('error');
-    expect(s.error).toMatch(/authenticated/i);
+    expect(s.error).toBe('Your progress could not be loaded right now.');
+    // The raw thrown message must not leak to the UI, but must be logged.
+    expect(s.error).not.toMatch(/authenticated/i);
+    expect(mockLogError).toHaveBeenCalled();
   });
 
   it('addBodyWeight delegates to the repository and reloads', async () => {
@@ -85,13 +90,24 @@ describe('useProgressStore', () => {
     expect(useProgressStore.getState().status).toBe('ready');
   });
 
-  it('a failed mutation returns false and surfaces the error (no swallow)', async () => {
-    mockDeleteBW.mockRejectedValueOnce(new Error('db exploded'));
+  it('a failed mutation keeps the screen usable and surfaces a safe message (no swallow, no raw leak)', async () => {
+    // A raw SQLite/native error like the B6 defect must never reach the UI.
+    const raw =
+      "Call to function 'NativeStatement.finalizeAsync' has been rejected. " +
+      'UNIQUE constraint failed: body_weights.user_id, body_weights.date';
+    mockDeleteBW.mockRejectedValueOnce(new Error(raw));
+
     const ok = await useProgressStore.getState().removeBodyWeight('bw-1');
+
     expect(ok).toBe(false);
     const s = useProgressStore.getState();
-    expect(s.status).toBe('error');
-    expect(s.error).toBe('db exploded');
+    // Screen stays usable (not wiped into the full-screen error state).
+    expect(s.status).toBe('ready');
+    // Safe, actionable copy — NOT the raw SQLite/NativeStatement text.
+    expect(s.error).toBe('We could not save your changes. Please try again.');
+    expect(s.error).not.toMatch(/UNIQUE constraint|NativeStatement|finalizeAsync/i);
+    // Not swallowed: the underlying error is logged.
+    expect(mockLogError).toHaveBeenCalled();
   });
 
   it('loadSnapshots refreshes only the snapshots slice', async () => {
@@ -102,12 +118,13 @@ describe('useProgressStore', () => {
     expect(mockListSnap).toHaveBeenCalledWith(USER);
   });
 
-  it('loadSnapshots surfaces the error when the read fails (no swallow)', async () => {
+  it('loadSnapshots surfaces a sanitized error when the read fails (no swallow)', async () => {
     mockListSnap.mockRejectedValueOnce(new Error('snap read failed'));
     await useProgressStore.getState().loadSnapshots();
     const s = useProgressStore.getState();
     expect(s.status).toBe('error');
-    expect(s.error).toBe('snap read failed');
+    expect(s.error).toBe('Your progress could not be loaded right now.');
+    expect(mockLogError).toHaveBeenCalled();
   });
 
   it('recomputeSnapshots delegates to the gathering service and reloads', async () => {
@@ -120,12 +137,13 @@ describe('useProgressStore', () => {
     expect(s.snapshots).toEqual([snapshot]);
   });
 
-  it('recomputeSnapshots returns false and surfaces the error when gathering fails', async () => {
+  it('recomputeSnapshots returns false, keeps the screen usable, and surfaces a safe message', async () => {
     mockRecompute.mockRejectedValueOnce(new Error('recompute failed'));
     const ok = await useProgressStore.getState().recomputeSnapshots();
     expect(ok).toBe(false);
     const s = useProgressStore.getState();
-    expect(s.status).toBe('error');
-    expect(s.error).toBe('recompute failed');
+    expect(s.status).toBe('ready');
+    expect(s.error).toBe('We could not save your changes. Please try again.');
+    expect(mockLogError).toHaveBeenCalled();
   });
 });
