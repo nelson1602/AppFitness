@@ -96,6 +96,11 @@ export function ProgressScreen() {
         </Banner>
       ) : (
         <>
+          {error ? (
+            <Banner title="Couldn't save your changes" tone="error">
+              {error}
+            </Banner>
+          ) : null}
           <Card accessibilityLabel="Your latest progress">
             <View style={{ gap: theme.spacing.xs }}>
               <AppText variant="label">Latest</AppText>

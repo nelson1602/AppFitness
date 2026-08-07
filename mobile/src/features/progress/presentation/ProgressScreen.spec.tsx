@@ -80,6 +80,21 @@ describe('ProgressScreen (Slice 5a)', () => {
     expect(screen.getByText('Your progress could not be loaded right now.')).toBeOnTheScreen();
   });
 
+  it('surfaces a save error inline without wiping the forms (screen stays usable)', async () => {
+    setState({
+      status: 'ready',
+      error: 'We could not save your changes. Please try again.',
+    });
+    await render(<ProgressScreen />);
+    // Inline banner shown…
+    expect(screen.getByText('We could not save your changes. Please try again.')).toBeOnTheScreen();
+    // …but the full-screen "unavailable" state is NOT used, and the entry
+    // forms remain interactive.
+    expect(screen.queryByText('Progress unavailable')).not.toBeOnTheScreen();
+    expect(screen.getByTestId('body-weight-submit')).toBeOnTheScreen();
+    expect(screen.getByTestId('progress-recompute')).toBeOnTheScreen();
+  });
+
   it('renders the empty state when nothing is recorded', async () => {
     await render(<ProgressScreen />);
     expect(screen.getByText('No weight recorded yet.')).toBeOnTheScreen();

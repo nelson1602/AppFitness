@@ -37,6 +37,12 @@ function requireUserId(): string {
   return session.user.id;
 }
 
+// Safe, generic user-facing messages (TECHDEBT-003 pattern): the underlying
+// error is always logged via `logError` (no silent swallow), but raw
+// SQLite/native/internal text is NEVER surfaced to the UI (Phase 20 B6 / BUG-005).
+const LOAD_ERROR = 'Your progress could not be loaded right now.';
+const SAVE_ERROR = 'We could not save your changes. Please try again.';
+
 export type ProgressStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
 
 export interface ProgressState {
@@ -75,8 +81,10 @@ export const useProgressStore = create<ProgressState>((set, get) => {
       await reload();
       return true;
     } catch (err) {
+      // A save failure must not wipe the Progress screen: keep the last-loaded
+      // data visible (status → 'ready') and surface a safe, actionable banner.
       logError('progress.store mutation failed', err);
-      set({ status: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
+      set({ status: 'ready', error: SAVE_ERROR });
       return false;
     }
   }
@@ -94,7 +102,7 @@ export const useProgressStore = create<ProgressState>((set, get) => {
         await reload();
       } catch (err) {
         logError('progress.store load failed', err);
-        set({ status: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
+        set({ status: 'error', error: LOAD_ERROR });
       }
     },
 
@@ -104,7 +112,7 @@ export const useProgressStore = create<ProgressState>((set, get) => {
         set({ snapshots });
       } catch (err) {
         logError('progress.store loadSnapshots failed', err);
-        set({ status: 'error', error: err instanceof Error ? err.message : 'Unknown error' });
+        set({ status: 'error', error: LOAD_ERROR });
       }
     },
 

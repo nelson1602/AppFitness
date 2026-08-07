@@ -64,9 +64,11 @@ beforeEach(() => {
 });
 
 describe('progress.repository — body_weights', () => {
-  it('create writes a pending row and enqueues CREATE in the same transaction', async () => {
+  it('create with no same-date row INSERTs a pending row and enqueues CREATE in one transaction', async () => {
     mockUuid.mockReturnValueOnce(BW_ID).mockReturnValueOnce('op-1');
-    mockQueryFirst.mockResolvedValueOnce(bwRow());
+    mockQueryFirst
+      .mockResolvedValueOnce(null) // owner-scoped same-date check → none
+      .mockResolvedValueOnce(bwRow()); // reloaded created row
 
     const result = await createBodyWeight(
       USER,
@@ -74,6 +76,12 @@ describe('progress.repository — body_weights', () => {
       NOW,
     );
 
+    // Owner-scoped same-(user,date) lookup before writing.
+    expect(mockQueryFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/user_id = \? AND date = \? AND deleted_at IS NULL/),
+      [USER, '2026-08-03'],
+    );
     expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO body_weights'), [
       BW_ID,
       USER,
@@ -96,6 +104,47 @@ describe('progress.repository — body_weights', () => {
     );
     expect(result.weightKg).toBe(80);
     expect(result.date).toBe('2026-08-03');
+  });
+
+  it('create with an existing same-date row UPDATEs it in place (id stable, version+1, enqueue UPDATE, no duplicate INSERT)', async () => {
+    // Only the opId is minted — the row id is REUSED (never a new UUID).
+    mockUuid.mockReturnValueOnce('op-dup');
+    mockQueryFirst
+      .mockResolvedValueOnce(bwRow({ version: 2 })) // existing same-(user,date) row
+      .mockResolvedValueOnce(bwRow({ version: 3, weight_kg: 84 })); // reloaded
+
+    const result = await createBodyWeight(
+      USER,
+      { date: '2026-08-03', weightKg: 84, notes: null },
+      NOW,
+    );
+
+    // No raw UNIQUE-violating INSERT: exactly one write, and it is the UPDATE.
+    expect(mockRun).toHaveBeenCalledTimes(1);
+    expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('UPDATE body_weights SET'), [
+      84,
+      '2026-08-03',
+      null,
+      3,
+      NOW,
+      BW_ID,
+    ]);
+    // id-stable: generateUuid used ONLY for the opId, never for a new row id.
+    expect(mockUuid).toHaveBeenCalledTimes(1);
+    // Offline-first: the queued op is an UPDATE with the prior version as base.
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      {
+        opId: 'op-dup',
+        entityType: 'body_weights',
+        entityId: BW_ID,
+        operation: 'UPDATE',
+        payload: { date: '2026-08-03', weight_kg: 84, notes: null },
+        baseVersion: 2,
+      },
+      NOW,
+    );
+    expect(result.id).toBe(BW_ID);
+    expect(result.weightKg).toBe(84);
   });
 
   it('list returns active rows only, mapped', async () => {
@@ -379,31 +428,43 @@ describe('progress.repository — progress_snapshots', () => {
   });
 });
 
+function bmRow(o: Partial<BodyMeasurementRow> = {}): BodyMeasurementRow {
+  return {
+    id: 'bm-1',
+    user_id: USER,
+    created_at: NOW,
+    updated_at: NOW,
+    version: 1,
+    deleted_at: null,
+    deleted_by: null,
+    sync_status: 'pending',
+    date: '2026-08-03',
+    body_fat_pct: 18,
+    waist_cm: 82,
+    hip_cm: null,
+    chest_cm: null,
+    left_arm_cm: null,
+    right_arm_cm: null,
+    neck_cm: null,
+    notes: null,
+    ...o,
+  } as BodyMeasurementRow;
+}
+
 describe('progress.repository — body_measurements', () => {
-  it('create enqueues the full snake_case payload matching Slice 3a', async () => {
+  it('create with no same-date row enqueues the full snake_case CREATE payload (Slice 3a)', async () => {
     mockUuid.mockReturnValueOnce('bm-1').mockReturnValueOnce('op-4');
-    mockQueryFirst.mockResolvedValueOnce({
-      id: 'bm-1',
-      user_id: USER,
-      created_at: NOW,
-      updated_at: NOW,
-      version: 1,
-      deleted_at: null,
-      deleted_by: null,
-      sync_status: 'pending',
-      date: '2026-08-03',
-      body_fat_pct: 18,
-      waist_cm: 82,
-      hip_cm: null,
-      chest_cm: null,
-      left_arm_cm: null,
-      right_arm_cm: null,
-      neck_cm: null,
-      notes: null,
-    } as BodyMeasurementRow);
+    mockQueryFirst
+      .mockResolvedValueOnce(null) // owner-scoped same-date check → none
+      .mockResolvedValueOnce(bmRow()); // reloaded created row
 
     await createBodyMeasurement(USER, { date: '2026-08-03', bodyFatPct: 18, waistCm: 82 }, NOW);
 
+    expect(mockQueryFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.stringMatching(/user_id = \? AND date = \? AND deleted_at IS NULL/),
+      [USER, '2026-08-03'],
+    );
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-4',
@@ -424,6 +485,41 @@ describe('progress.repository — body_measurements', () => {
         },
         baseVersion: 0,
       },
+      NOW,
+    );
+  });
+
+  it('create with an existing same-date row UPDATEs it in place (id stable, enqueue UPDATE, no duplicate INSERT)', async () => {
+    mockUuid.mockReturnValueOnce('op-bm-dup'); // opId only; row id reused
+    mockQueryFirst
+      .mockResolvedValueOnce(bmRow({ version: 2 })) // existing same-(user,date) row
+      .mockResolvedValueOnce(bmRow({ version: 3, waist_cm: 90 })); // reloaded
+
+    await createBodyMeasurement(USER, { date: '2026-08-03', waistCm: 90 }, NOW);
+
+    expect(mockRun).toHaveBeenCalledTimes(1);
+    expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('UPDATE body_measurements SET'), [
+      '2026-08-03',
+      null,
+      90,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      3,
+      NOW,
+      'bm-1',
+    ]);
+    expect(mockUuid).toHaveBeenCalledTimes(1);
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entityType: 'body_measurements',
+        entityId: 'bm-1',
+        operation: 'UPDATE',
+        baseVersion: 2,
+      }),
       NOW,
     );
   });

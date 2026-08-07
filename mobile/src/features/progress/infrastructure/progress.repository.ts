@@ -41,14 +41,54 @@ function num(value: unknown): number | null {
 }
 
 // ── body_weights ──────────────────────────────────────────────────────────────
+/**
+ * Record a body weight, id-stable **upsert** keyed by (user_id, date)
+ * (ADR-P016 D6; mirrors `upsertProgressSnapshot`). One weigh-in per user-local
+ * date: re-entering a weight for a date that already has an active row UPDATEs
+ * that row in place (same id, version+1, enqueue UPDATE) — last-write-wins by
+ * `version` per ADR-0006 — rather than INSERTing a duplicate that would violate
+ * `UNIQUE(user_id, date)` and surface a raw SQLite error (Phase 20 B6, BUG-005).
+ * The check is owner-scoped, so it never touches another user's row. Local write
+ * + sync enqueue happen in one transaction.
+ */
 export async function createBodyWeight(
   userId: string,
   input: BodyWeightInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<BodyWeight> {
-  const id = generateUuid();
   const notes = input.notes ?? null;
   return inTransaction(async () => {
+    const existing = await queryFirst<BodyWeightRow>(
+      `SELECT * FROM body_weights WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
+      [userId, input.date],
+    );
+
+    if (existing) {
+      const nextVersion = existing.version + 1;
+      await run(
+        `UPDATE body_weights SET weight_kg = ?, date = ?, notes = ?, version = ?, updated_at = ?, sync_status = 'pending'
+         WHERE id = ?`,
+        [input.weightKg, input.date, notes, nextVersion, nowIso, existing.id],
+      );
+      await enqueue(
+        {
+          opId: generateUuid(),
+          entityType: BODY_WEIGHT_ENTITY,
+          entityId: existing.id,
+          operation: 'UPDATE',
+          payload: { date: input.date, weight_kg: input.weightKg, notes },
+          baseVersion: existing.version,
+        },
+        nowIso,
+      );
+      const updated = await queryFirst<BodyWeightRow>(`SELECT * FROM body_weights WHERE id = ?`, [
+        existing.id,
+      ]);
+      if (!updated) throw new Error('body_weight row disappeared mid-transaction');
+      return rowToBodyWeight(updated);
+    }
+
+    const id = generateUuid();
     await run(
       `INSERT INTO body_weights (id, user_id, created_at, updated_at, version, sync_status, weight_kg, date, notes)
        VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?)`,
@@ -187,12 +227,18 @@ export async function markBodyWeightConflict(id: string, nowIso: string): Promis
 }
 
 // ── body_measurements ─────────────────────────────────────────────────────────
+/**
+ * Record body measurements, id-stable **upsert** keyed by (user_id, date)
+ * (ADR-P016 D6; same pattern as `createBodyWeight`). Re-entering measurements
+ * for a date that already has an active row UPDATEs it in place (same id,
+ * version+1, enqueue UPDATE) instead of INSERTing a duplicate that would violate
+ * `UNIQUE(user_id, date)`. Owner-scoped check; single-transaction write+enqueue.
+ */
 export async function createBodyMeasurement(
   userId: string,
   input: BodyMeasurementInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<BodyMeasurement> {
-  const id = generateUuid();
   const p = {
     date: input.date,
     body_fat_pct: input.bodyFatPct ?? null,
@@ -205,6 +251,52 @@ export async function createBodyMeasurement(
     notes: input.notes ?? null,
   };
   return inTransaction(async () => {
+    const existing = await queryFirst<BodyMeasurementRow>(
+      `SELECT * FROM body_measurements WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
+      [userId, input.date],
+    );
+
+    if (existing) {
+      const nextVersion = existing.version + 1;
+      await run(
+        `UPDATE body_measurements SET date = ?, body_fat_pct = ?, waist_cm = ?, hip_cm = ?, chest_cm = ?,
+           left_arm_cm = ?, right_arm_cm = ?, neck_cm = ?, notes = ?, version = ?, updated_at = ?, sync_status = 'pending'
+         WHERE id = ?`,
+        [
+          p.date,
+          p.body_fat_pct,
+          p.waist_cm,
+          p.hip_cm,
+          p.chest_cm,
+          p.left_arm_cm,
+          p.right_arm_cm,
+          p.neck_cm,
+          p.notes,
+          nextVersion,
+          nowIso,
+          existing.id,
+        ],
+      );
+      await enqueue(
+        {
+          opId: generateUuid(),
+          entityType: BODY_MEASUREMENT_ENTITY,
+          entityId: existing.id,
+          operation: 'UPDATE',
+          payload: p,
+          baseVersion: existing.version,
+        },
+        nowIso,
+      );
+      const updated = await queryFirst<BodyMeasurementRow>(
+        `SELECT * FROM body_measurements WHERE id = ?`,
+        [existing.id],
+      );
+      if (!updated) throw new Error('body_measurement row disappeared mid-transaction');
+      return rowToBodyMeasurement(updated);
+    }
+
+    const id = generateUuid();
     await run(
       `INSERT INTO body_measurements
          (id, user_id, created_at, updated_at, version, sync_status,
