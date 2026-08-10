@@ -9,8 +9,11 @@
 - **Current status:** Phase 20 Slices 1–4 complete & merged. Gate B1 is
   **PASS-WITH-WAIVER**; Gate B2 is **PASS (backend + mobile)** — both live-verified;
   Gate B5 is **PASS (backend/API production smoke)** — verified 2026-08-06 with
-  synthetic data only (device-side validation remains **Gate B6**; production log
-  review remains PENDING-HUMAN). All other remaining gates are owner/external.
+  synthetic data only; Gate B6 is **PASS-WITH-LIMITATION (device-side mobile
+  validation)** — verified 2026-08-10 on an emulator with the fixed
+  production-validation APK (**physical-device biometric validation remains
+  pending before store publication**; production log review remains PENDING-HUMAN).
+  All other remaining gates are owner/external.
 - **Production environment:** Railway Production is live and verified at
   `appfitness-production-5cfa.up.railway.app` (Gate B1). The previous Railway
   project/Development URL remains separate and untouched.
@@ -207,6 +210,33 @@ need B3 (a published internal build); C2 is last, after every gate is PASS.
 - **Repo files to update:** `docs/releases/v1.0.0.md`; `RELEASE_READINESS.md`
   item 14 → PASS.
 - **Blocker/dependency:** **B3**.
+- **STATUS — PASS-WITH-LIMITATION (device-side mobile validation) (evidence
+  recorded 2026-08-10):** the device-side portion of the `10_DEPLOYMENT.md` Mobile
+  Production Validation was run against the fixed **production-validation** APK
+  (EAS build `0ad2f78a-…`, source commit `d976c66`, app **1.0.0 / versionCode 4**,
+  Production API + production Sentry) installed on the **appfitness emulator
+  (Android 15 / API 35)** using a single synthetic account. **PASS:** clean cold
+  launch (bundled release — no Metro/dev-client/debug), production
+  registration/login, dashboard + Progress render, force-stop/relaunch session
+  restore via SecureStore, and the two BUG-005 regressions — **same-date weight
+  and same-date measurement each produced exactly one logical server row with the
+  latest values** (no raw SQLite/native error, no "Progress unavailable", screen
+  stayed usable). **Offline→reconnect round-trip PASS:** an offline CREATE (new
+  date) and an offline UPDATE (existing same date) persisted across an offline
+  force-stop/relaunch and synchronized on reconnect — server round-trip shows the
+  correct rows with latest values, **no duplicates, no conflict, no retry loop,
+  no raw SQLite message**. Sentry initialized for `production` (no DSN/token
+  exposed); no AppFitness crash/ANR/native/JS/SQLite/sync/cleartext/Sentry-transport
+  failure. The synthetic account was deleted via the supported in-app flow and its
+  credentials were rejected afterward (no synthetic data remains). No secrets,
+  tokens, synthetic identifiers, or signer fingerprints are recorded.
+  **LIMITATION:** validation used a **sideloaded production-equivalent APK on an
+  emulator** — **not** a Google Play internal-track build and **not** a physical
+  device. **Biometric was NOT APPLICABLE on the emulator; physical-device
+  biometric validation remains pending before store publication.** One transient
+  Android **SystemUI "isn't responding"** dialog was emulator-only (system, not
+  AppFitness). Recorded in `RELEASE_READINESS.md` item 14 + the Mobile Production
+  Validation row.
 
 ### C1 — Fill release-note deploy fields (Phase 20 close-out)
 - **Owner action:** provide the deploy-time values for `docs/releases/v1.0.0.md`
