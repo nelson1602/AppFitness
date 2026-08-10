@@ -5,6 +5,14 @@
 > **verifies the evidence and records the PASS** in `docs/RELEASE_READINESS.md`
 > (the authoritative gate matrix). **This file does not mark any gate PASS.**
 
+> **FROZEN AS HISTORICAL GATE EVIDENCE (2026-08-10):** ADR-P017 reset the public
+> v1 product contract. The gate results below remain valid for the build that was
+> tested, but no store-submission action should continue from this checklist
+> until Phase 21 completes the non-medical public-flow decoupling, Spanish/English
+> localization, iCoach product completion, and a fresh release re-gate. Existing
+> medical code/schema/data is preserved; this notice does not claim it is already
+> disconnected.
+
 - **Target publication date:** 2026-08-20
 - **Current status:** Phase 20 Slices 1–4 complete & merged. Gate B1 is
   **PASS-WITH-WAIVER**; Gate B2 is **PASS (backend + mobile)** — both live-verified;

@@ -1,14 +1,18 @@
 # AppFitness Project Constitution
 
-Version: 1.0
+Version: 1.1
 Status: Active
-Last Updated: 2026-07-03
+Last Updated: 2026-08-10
 
 ---
 
 # Purpose
 
-AppFitness is a production-grade cross-platform mobile application designed to help users improve their health, nutrition, physical condition, and long-term wellness through deterministic coaching, medical data tracking, and evidence-based recommendations.
+AppFitness is a production-grade cross-platform mobile application designed to help users improve their fitness, nutrition, physical condition, and long-term wellness through deterministic coaching, self-entered physical-assessment data, and explainable recommendations.
+
+The public v1 product is a fitness and wellness application. It does not collect doctor notes, medications, medical conditions, blood pressure, professional medical restrictions, diagnoses, or treatment information, and it does not present itself as a medical service or medical device.
+
+The existing medical-domain implementation is preserved as dormant architecture for a possible future, separately authorized product capability. It must not be deleted destructively, exposed in the public v1 experience, or used by public-v1 iCoach rules unless a future ADR, legal review, consent model, and release gate explicitly reactivate it.
 
 The application must provide a fast, secure, offline-first experience while maintaining enterprise-level software quality, scalability, maintainability, and regulatory compliance.
 
@@ -20,11 +24,13 @@ The project is intended for long-term evolution and must be designed to support 
 
 Build one of the most reliable and technically robust personal fitness platforms by combining:
 
-- Medical evaluation tracking
+- Self-entered physical assessment
 - Physical progress monitoring
-- Deterministic coaching
-- Intelligent recommendations
+- Deterministic nutrition guidance for breakfast, lunch, dinner, and optional snacks
+- Deterministic workout-routine generation
+- Explainable iCoach recommendations
 - Offline-first architecture
+- Spanish and English user experiences
 - Modern mobile user experience
 - Enterprise software engineering practices
 
@@ -68,13 +74,9 @@ Synchronization with the backend occurs asynchronously whenever connectivity bec
 
 ## User Ownership
 
-Users own their health data.
+Users own their fitness, nutrition, progress, and wellness data.
 
-The application exists to assist—not replace—medical professionals.
-
-Medical decisions always belong to licensed healthcare providers.
-
-The application must never present itself as a medical diagnosis tool.
+The application provides general fitness and wellness guidance. It must never present suggestions as diagnosis, treatment, medical clearance, or professional medical/dietary advice.
 
 ---
 
@@ -90,7 +92,7 @@ Sensitive information must always be protected both in transit and at rest.
 
 ## Privacy by Design
 
-Personal health information must be handled according to modern privacy standards.
+Personal fitness, nutrition, body-composition, and wellness information must be handled according to modern privacy standards.
 
 The architecture should remain compatible with:
 
@@ -129,21 +131,20 @@ Avoid premature optimization.
 
 # Product Scope
 
-The application includes, but is not limited to:
+The public v1 application includes:
 
 - User authentication
 - User profile management
-- Medical evaluation tracking
-- Physical evaluation tracking
-- Nutrition planning
-- Workout planning
+- Self-entered physical evaluation tracking
+- Nutrition targets and meal suggestions for breakfast, lunch, dinner, and optional snacks
+- Deterministic workout-routine generation and workout logging
 - Progress monitoring
-- Habit tracking
 - Deterministic coaching engine
 - Dashboard analytics
-- Notifications
 - Offline synchronization
-- Future AI-assisted coaching
+- Spanish and English localization
+
+Post-v1 capabilities may include habit tracking, notifications, and optional AI-assisted explanation. The retained medical domain is not part of public v1 and may be reconsidered only through a new approved ADR and the required legal, privacy, security, consent, and release work.
 
 ---
 
@@ -234,7 +235,7 @@ Every architectural decision must be explainable.
 
 # Data Philosophy
 
-Health data is considered highly sensitive.
+Fitness, nutrition, body-composition, and wellness data is considered sensitive. Any retained legacy medical data remains highly sensitive and continues to receive the protections established by ADR-0011, ADR-P001, and ADR-P006.
 
 The application must preserve:
 
@@ -265,9 +266,10 @@ Runs entirely on-device.
 Responsible for:
 
 - Nutrition calculations
-- Workout generation
+- Meal suggestions for breakfast, lunch, dinner, and optional snacks
+- Complete workout-routine generation
 - Progress evaluation
-- Medical restrictions
+- User-declared physical limitation safeguards
 - Calorie calculations
 - Macro calculations
 - Exercise progression
@@ -405,6 +407,10 @@ Provide medical diagnoses.
 
 Replace physicians.
 
+Collect or expose doctor notes, medications, medical conditions, blood pressure, professional medical restrictions, or treatment information in public v1.
+
+Represent fitness, nutrition, or workout suggestions as medical treatment or professional dietary advice.
+
 Depend exclusively on cloud connectivity.
 
 Rely exclusively on AI-generated recommendations.
@@ -437,7 +443,9 @@ The project is considered successful when it achieves:
 - Fast mobile experience
 - Offline reliability
 - Deterministic coaching
-- Secure handling of health data
+- Complete goal-oriented nutrition and workout guidance
+- Spanish and English usability
+- Secure handling of fitness, nutrition, wellness, and any retained legacy medical data
 - Enterprise-level code quality
 - Clear documentation
 - Sustainable long-term evolution

@@ -6246,6 +6246,141 @@ already shipped by 5a/5b).
 
 ---
 
+## ADR-P017 — Public-v1 Wellness Scope and Reversible Medical-Domain Dormancy
+
+Status: Accepted
+Date: 2026-08-10
+Owner: Product / Architecture
+
+### Context
+
+The implemented application contains a medical domain (doctor notes, medical
+conditions, medications, blood pressure, professional restrictions, medical
+clearance states, and rehabilitation-oriented rules). The owner has clarified
+that the public launch is intended to be a fitness, nutrition, and wellness
+product: users enter their own physical-evaluation results, and iCoach provides
+goal-oriented meal suggestions and workout routines.
+
+Removing the medical implementation or its schema now would create unnecessary
+data-integrity and rollback risk, especially while Production has no automated
+backup/PITR. Leaving the medical flows visible would contradict the intended
+product, increase onboarding burden, and expand the initial legal/compliance
+surface. The product must also support Spanish and English before publication.
+
+### Decision
+
+1. **Public-v1 positioning.** AppFitness is a fitness, nutrition, physical-
+   progress, and wellness application. It is not a medical service, medical
+   device, diagnostic tool, treatment service, or substitute for professional
+   advice.
+2. **Public-v1 inputs.** The active experience may collect the minimum inputs
+   needed for deterministic fitness guidance: profile/age/sex inputs required by
+   approved formulas, height, weight, body composition and measurements,
+   activity/fitness level, goal, recovery context, schedule, available
+   equipment, dietary preferences/exclusions, and self-declared injuries or
+   physical limitations.
+3. **Excluded public-v1 inputs.** Doctor notes, medications, medical conditions,
+   blood pressure, professional medical restrictions, diagnoses, treatments,
+   medical clearance, and rehabilitation are not collected, displayed, or used
+   by public-v1 iCoach rules.
+4. **Reversible dormancy.** Existing medical code, tables, migrations, encrypted
+   fields, and historical ADRs are preserved. They are first disconnected from
+   public navigation, onboarding, writes, sync registration, dashboard inputs,
+   and iCoach composition. No destructive schema or data removal is authorized
+   by this ADR.
+5. **Retained-data protection.** Any existing medical rows remain subject to
+   ADR-0011, ADR-P001, ADR-P006, ADR-P011, encryption, access control, deletion,
+   and log/Sentry redaction. Dormant does not mean unprotected.
+6. **iCoach contract.** Public-v1 iCoach consumes structured wellness inputs and
+   produces structured, deterministic, versioned outputs. User-declared physical
+   limitations may conservatively exclude movements or lower workload; they
+   must not be interpreted as diagnoses or professional medical restrictions.
+7. **Product output.** Public v1 must provide goal-oriented suggestions for
+   breakfast, lunch, dinner, and optional snacks, plus a complete deterministic
+   workout routine including schedule, exercises, sets, repetitions, rest,
+   progression, and equipment compatibility.
+8. **Localization.** Spanish and English are launch requirements. Domain and
+   catalog identifiers remain language-neutral; presentation translates labels,
+   explanations, validation, accessibility, dates, numbers, food names, and
+   exercise names. Language changes must not change deterministic calculations.
+9. **Future reactivation.** Medical capabilities may return only through a new
+   approved ADR plus explicit owner authorization, product justification, legal
+   review, consent, privacy/Data Safety updates, security review, migration/data
+   plan, and dedicated validation/release gates.
+10. **Release reset.** Previous Phase 20 evidence remains valid for the build it
+    tested, but that build is no longer the publication candidate. Store
+    submission remains blocked until the public-v1 rebaseline is implemented,
+    localized, re-tested, and re-gated.
+11. **Store-policy accuracy.** Reducing the medical surface does not make
+    AppFitness a non-health app. Nutrition, weight management, body metrics,
+    exercise routines, and fitness progress must still be declared truthfully in
+    Google Play Health Apps, Data Safety, and the public privacy policy.
+
+### Options Considered
+
+1. Delete the medical domain immediately.
+2. Keep the current medical experience in public v1.
+3. Preserve the domain but reversibly disconnect it from public v1.
+
+### Rationale
+
+Option 3 matches the intended launch, reduces unnecessary onboarding and policy
+surface, preserves future optionality, and avoids a destructive migration. It
+also supports incremental, independently tested slices instead of a broad
+rewrite.
+
+### Consequences
+
+Positive:
+
+- Clear fitness/wellness positioning for public v1.
+- Smaller public data-collection surface.
+- Existing medical investment and encrypted historical model preserved.
+- Safer rollback and no destructive database operation.
+- A clean, language-neutral boundary for Spanish/English iCoach output.
+
+Negative:
+
+- Dormant code and schema remain temporarily and must be kept secure.
+- Dashboard, sync, routes, tests, legal drafts, release notes, and Data Safety
+  require a coordinated rebaseline.
+- The existing iCoach training output is insufficient for the complete-routine
+  requirement and needs separate implementation.
+- Release evidence must be rerun after implementation.
+
+### Rollout Boundaries
+
+1. Documentation/ADR rebaseline only.
+2. Spanish/English localization foundation.
+3. Public physical-assessment contract and reversible medical decoupling.
+4. Goal-oriented nutrition-plan completion.
+5. Complete deterministic workout-routine generation.
+6. Bilingual accessibility, unit/integration/E2E, physical-device, privacy, and
+   release revalidation.
+
+Each boundary requires its own authorization, focused branch, validation, and
+review. No slice may silently delete medical data or historical migrations.
+
+### Supersedes / Preserves
+
+- Supersedes the **public-product-scope** portions of ADR-0007 and the original
+  Phase 20 commercial-v1 feature-completeness verdict.
+- Preserves ADR-0011, ADR-P001, ADR-P006, and ADR-P011 for all retained medical
+  structures and data.
+- Preserves the deterministic/offline-first architecture of ADR-0006/0007.
+
+### Related Documents
+
+- `.ai/00_PROJECT.md`
+- `.ai/06_MOBILE.md`
+- `.ai/07_ICOACH.md`
+- `.ai/08_UI_UX.md`
+- `.ai/11_BACKLOG.md`
+- `.ai/13_MIGRATION_ROADMAP.md`
+- `docs/RELEASE_READINESS.md`
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

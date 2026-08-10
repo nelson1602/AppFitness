@@ -2127,6 +2127,87 @@ recorded; Slice 5 = close-out when the matrix is all PASS/waived.
 
 ---
 
+## Phase 21 — Public-v1 Wellness Rebaseline  [pre-publication product correction]
+
+### Status
+
+**STARTED 2026-08-10 — Slice 1 documentation only.** Owner-approved under
+ADR-P017. Phase 20's historical engineering/gate evidence is preserved, but its
+store close-out is suspended because the previously validated build no longer
+matches the clarified public product. Phase 20 Slice 5 may resume only after
+Phase 21 produces and validates a new publication candidate.
+
+### Objective
+
+Launch AppFitness as a bilingual fitness, nutrition, progress, and wellness app.
+Users enter self-assessment data; iCoach provides deterministic meal suggestions
+and complete workout routines. Preserve the existing medical domain as dormant,
+protected architecture without deleting schema or data.
+
+### Required Documents
+
+- `.ai/00_PROJECT.md`
+- `.ai/05_SECURITY.md`
+- `.ai/06_MOBILE.md`
+- `.ai/07_ICOACH.md`
+- `.ai/08_UI_UX.md`
+- `.ai/09_TESTING.md`
+- `.ai/12_DECISIONS.md` (ADR-P017)
+- `docs/RELEASE_READINESS.md`
+
+### Slices
+
+1. **Product contract (docs-only).** Rebaseline constitution/iCoach/design,
+   accept ADR-P017, add backlog/roadmap, and block the old candidate from store
+   submission. No source/schema/legal-text mutation.
+2. **Localization foundation.** Add the approved Spanish/English localization
+   architecture, device-language resolution, fallback, selector, formatting,
+   and focused tests. Do not translate the entire app in one change.
+3. **Physical assessment + reversible medical decoupling.** Define the minimal
+   wellness input contract; remove medical routes/fields from public navigation,
+   onboarding, dashboard, writes, sync registration, and public iCoach inputs.
+   Preserve medical code/tables/data and all protections; no destructive migration.
+4. **Nutrition completion.** Deliver bilingual, goal-oriented breakfast/lunch/
+   dinner/optional-snack suggestions with deterministic portions, preferences,
+   exclusions, explanations, and offline behavior.
+5. **Workout-routine generator.** Deterministically generate schedule,
+   exercises, sets, repetitions, rest, progression, and equipment-compatible
+   substitutions; preserve rule versioning, explainability, and offline behavior.
+6. **Bilingual product audit.** Translate remaining UI/domain presentation,
+   catalogs, validation, errors, and accessibility; run Spanish and English
+   unit/component/E2E flows and physical-device validation.
+7. **Publication re-gate.** Refresh privacy/legal/Data Safety/Health Apps
+   declarations, production logs, backup decision, build, release notes, Play
+   testing, and readiness evidence for the new candidate.
+
+### Constraints
+
+- No medical table, migration, encrypted field, or historical record is deleted
+  merely to reduce the public-v1 surface.
+- Dormant medical data remains encrypted, owner-scoped, redacted, and deletable
+  with the account.
+- No public-v1 screen or iCoach rule may silently fall back to medical inputs.
+- Spanish and English must share stable domain/rule/catalog identifiers; locale
+  changes presentation only, never calculations.
+- Each slice requires separate authorization, focused validation, and review.
+
+### Exit Criteria
+
+- [ ] Public-v1 product and all store/legal copy are fitness/wellness scoped and
+      contain no active doctor/diagnosis/treatment/medical-clearance workflow.
+- [ ] Medical implementation is dormant, unreachable from public flows, and
+      still protected; no destructive migration was required.
+- [ ] Spanish and English are complete across UI, iCoach, validation, errors,
+      accessibility, foods, and exercises.
+- [ ] iCoach provides deterministic goal-oriented meals and complete workout
+      routines with versioned/explainable outputs.
+- [ ] Offline-first, sync, account deletion, security, monitoring, API smoke,
+      bilingual E2E, and physical-device validation pass on a fresh candidate.
+- [ ] `docs/RELEASE_READINESS.md` is refreshed against the new candidate and all
+      publication gates are PASS or explicitly accepted/waived by the owner.
+
+---
+
 # AI Instructions
 
 Every AI agent executing any phase of this roadmap must:
