@@ -972,7 +972,7 @@ for full context, decisions D1–D6, and architecture references.
 
 ## [FEATURE-009] Public-v1 Wellness Rebaseline and Bilingual Product Completion
 
-Status: Approved (planning; Slice 1 documentation authorized 2026-08-10)
+Status: In Progress (Slices 1–2 implemented; later slices pending authorization)
 Priority: P0
 Type: Feature
 Owner: Product / Architecture

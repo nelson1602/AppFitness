@@ -2131,11 +2131,15 @@ recorded; Slice 5 = close-out when the matrix is all PASS/waived.
 
 ### Status
 
-**STARTED 2026-08-10 — Slice 1 documentation only.** Owner-approved under
-ADR-P017. Phase 20's historical engineering/gate evidence is preserved, but its
-store close-out is suspended because the previously validated build no longer
-matches the clarified public product. Phase 20 Slice 5 may resume only after
-Phase 21 produces and validates a new publication candidate.
+**IN PROGRESS 2026-08-10 — Slices 1–2 implemented.** Owner-approved under
+ADR-P017. Slice 2 adds the Spanish/English localization foundation, supported
+device-language resolution, English fallback, persisted in-app selector,
+shared formatting helpers, and a translated authentication proof surface.
+This is not a whole-app localization claim; the remaining bilingual surface is
+reserved for later slices. Phase 20's historical engineering/gate evidence is
+preserved, but its store close-out is suspended because the previously validated
+build no longer matches the clarified public product. Phase 20 Slice 5 may
+resume only after Phase 21 produces and validates a new publication candidate.
 
 ### Objective
 

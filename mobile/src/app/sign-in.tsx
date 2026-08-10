@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { signIn, signUp } from '@/features/authentication';
+import { LanguageSelector, useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 export default function SignInScreen() {
   const theme = useTheme();
+  const { t } = useLocalization();
   const [mode, setMode] = useState<'sign-in' | 'register'>('sign-in');
   // Release-visible surface: fields start empty — never prefilled
   // credentials (10_DEPLOYMENT.md: "No test credentials included").
@@ -15,11 +17,11 @@ export default function SignInScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [authenticationFailed, setAuthenticationFailed] = useState(false);
 
   const submit = async () => {
     setLoading(true);
-    setError(null);
+    setAuthenticationFailed(false);
     try {
       if (mode === 'register') {
         await signUp({ email, username, password });
@@ -28,51 +30,64 @@ export default function SignInScreen() {
       }
       router.replace('/dashboard');
     } catch {
-      setError('Authentication failed. Check your credentials and connection.');
+      setAuthenticationFailed(true);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Screen scroll={false}>
-      <Stack.Screen options={{ title: 'Sign in' }} />
-      <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.lg }}>
+    <Screen>
+      <Stack.Screen options={{ title: t('auth.screenTitle') }} />
+      <View style={{ gap: theme.spacing.lg }}>
         <View>
           <AppText variant="headline">AppFitness</AppText>
-          <AppText tone="muted">Sign in to continue.</AppText>
+          <AppText tone="muted">{t('auth.subtitle')}</AppText>
         </View>
 
-        {error ? (
-          <Banner title="Sign-in error" tone="error">
-            {error}
+        {authenticationFailed ? (
+          <Banner title={t('auth.errorTitle')} tone="error">
+            {t('auth.errorMessage')}
           </Banner>
         ) : null}
 
         <Card>
           <View style={{ gap: theme.spacing.md }}>
             <Input
-              label="Email"
+              label={t('auth.email')}
+              testID="input-email"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
             />
             {mode === 'register' ? (
-              <Input label="Username" value={username} onChangeText={setUsername} />
+              <Input
+                label={t('auth.username')}
+                testID="input-username"
+                value={username}
+                onChangeText={setUsername}
+              />
             ) : null}
-            <Input label="Password" value={password} onChangeText={setPassword} secureTextEntry />
+            <Input
+              label={t('auth.password')}
+              testID="input-password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
             <AppButton loading={loading} onPress={() => void submit()}>
-              {mode === 'register' ? 'Register' : 'Sign in'}
+              {mode === 'register' ? t('auth.register') : t('auth.signIn')}
             </AppButton>
             <AppButton
-              accessibilityLabel="Switch authentication mode"
+              accessibilityLabel={t('auth.switchMode')}
               onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
               variant="text"
             >
-              {mode === 'register' ? 'Use existing account' : 'Create a local account'}
+              {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
             </AppButton>
           </View>
         </Card>
+        <LanguageSelector />
       </View>
     </Screen>
   );
@@ -80,6 +95,7 @@ export default function SignInScreen() {
 
 interface InputProps {
   label: string;
+  testID: string;
   value: string;
   onChangeText: (value: string) => void;
   keyboardType?: 'default' | 'email-address';
@@ -88,6 +104,7 @@ interface InputProps {
 
 function Input({
   label,
+  testID,
   value,
   onChangeText,
   keyboardType = 'default',
@@ -99,7 +116,7 @@ function Input({
       <AppText variant="label">{label}</AppText>
       <TextInput
         accessibilityLabel={label}
-        testID={`input-${label.toLowerCase()}`}
+        testID={testID}
         autoCapitalize="none"
         keyboardType={keyboardType}
         onChangeText={onChangeText}
