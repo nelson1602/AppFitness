@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.0
+Version: 1.1
 Status: Active
-Last Updated: 2026-07-03
+Last Updated: 2026-08-10
 
 ---
 
@@ -38,7 +38,7 @@ Professional
 
 Modern
 
-Medical-grade
+Fitness-focused
 
 Friendly
 
@@ -451,6 +451,24 @@ User Action
 Confidence Level
 
 Never present AI suggestions as medical advice.
+
+Public-v1 copy must use fitness and wellness language. It must not imply diagnosis, treatment, medical clearance, professional medical supervision, or a medical-device purpose.
+
+---
+
+# Localization
+
+Public v1 must support Spanish and English.
+
+Requirements:
+
+- Select the device language when supported.
+- Provide an in-app language selector.
+- Use Spanish as a first-class product language and English as fallback.
+- Keep user-facing strings out of components and domain-generated prose.
+- Localize navigation, forms, validation, errors, accessibility labels, iCoach explanations, food names, exercise names, dates, decimal formats, and measurement units.
+- Stable catalog identifiers and deterministic rule identifiers must not change when the display language changes.
+- Identical domain inputs must produce identical structured outputs regardless of display language.
 
 ---
 

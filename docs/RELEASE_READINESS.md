@@ -1,14 +1,25 @@
-# AppFitness — Release Readiness (Phase 20 Store-Submission Re-Gate)
+# AppFitness — Release Readiness (Phase 20 evidence / Phase 21 publication reset)
 
 > Engineering re-audit of every `10_DEPLOYMENT.md` Release Checklist item and
 > the Phase 20 exit criteria against current repository evidence. **Not a
 > submission approval.** Legal / owner / store-console gates are called out
 > explicitly and remain the owner's to close.
 
-Last updated: 2026-08-05 (Phase 20 Slice 3 — release-engineering package;
-initially Slice 1) · Main commit `d5fa45c` (Slices 1–2 merged; Slice 3 in
-progress) · App version `1.0.0` (`mobile/app.json`, set in Slice 3) ·
-Target publication: 2026-08-20.
+Last updated: 2026-08-10 (Phase 21 Slice 1 product-scope rebaseline) · Current
+main baseline `a8d0b0e` · App version `1.0.0` · Publication date: **not set**.
+
+> **PUBLICATION RESET — ADR-P017 (2026-08-10):** the owner clarified that the
+> public v1 product is fitness, nutrition, progress, and wellness — not a medical
+> product — and must support Spanish and English. The medical implementation is
+> preserved but will be reversibly disconnected from public navigation, writes,
+> sync composition, dashboard inputs, and iCoach. The existing release evidence
+> below remains historically valid for the build tested, but **that build is no
+> longer a publication candidate**. Store submission is blocked until Phase 21
+> implements and revalidates the new product contract.
+
+> **No destructive action is authorized by the reset:** no medical code, table,
+> migration, encrypted field, or retained record is deleted. Existing medical
+> data remains protected under ADR-0011/P001/P006/P011 while dormant.
 
 > **Slice 4 handoff:** the remaining owner/external gates (Sentry, legal
 > sign-off, Play listing/Data Safety/privacy URL, Production env, rollback
@@ -32,7 +43,7 @@ Legend:
 - **WAIVED** — explicitly out of scope (documented).
 - **N/A** — not applicable yet.
 
-## Current engineering evidence (`d5fa45c`)
+## Preserved Phase 20 engineering evidence (`d5fa45c` and later gate evidence)
 
 - **CI:** all required checks green on `d5fa45c` — `api-ci` (Prisma, type-check,
   lint, format, unit tests, build; Migrations + e2e against disposable Postgres;
@@ -87,13 +98,27 @@ Legend:
 
 | Criterion | Status | Evidence / gap |
 |---|---|---|
-| `docs/RELEASE_READINESS.md` matrix all PASS or explicitly waived | **IN PROGRESS** | in-repo engineering items PASS; open gates are all BLOCKED-OWNER / BLOCKED-EXTERNAL / PENDING-HUMAN (see below) |
+| `docs/RELEASE_READINESS.md` matrix all PASS or explicitly waived | **RESET / BLOCKED-PRODUCT** | ADR-P017 changed the public-v1 contract after the Phase 20 candidate was validated. Phase 21 must complete medical decoupling, bilingual support, nutrition/workout completion, and a fresh re-gate. |
 | internal → closed → production track progression validated | **BLOCKED-OWNER** | no track progression exercised yet |
 
 ## Owner / external action list (unresolved gates)
 
-Each item is outside the repo's control and must be completed by the owner or an
-external party before submission. **None performed in this audit.**
+Before these external gates can close, the following **in-repo Phase 21 product
+gates** must pass on a fresh candidate:
+
+1. Public medical routes/fields/writes/sync/iCoach inputs reversibly disconnected.
+2. Self-entered physical-assessment contract active without doctor/diagnosis/
+   treatment/medical-clearance fields.
+3. Spanish and English complete across UI, iCoach, catalogs, validation, errors,
+   accessibility, dates, numbers, and units.
+4. Goal-oriented nutrition suggestions and complete deterministic workout
+   routines validated offline-first.
+5. Fresh bilingual CI/E2E, physical-device, privacy, production-smoke, and
+   release-candidate evidence.
+
+The owner/external items below remain necessary after those product gates. Their
+existing Phase 20 statuses are historical until the Phase 21 re-gate confirms
+which evidence can be reused.
 
 1. **Sentry** (item 10) — **PASS (backend + mobile), 2026-08-06**: backend and
    mobile Sentry are enabled and live-verified — scrubbed events in `production`
@@ -130,18 +155,21 @@ account-deletion path, and the release scaffolding (dependency-audit policy,
 release-notes template, EAS submit profile, rollback runbooks) are done and
 CI-green. The 12-flow Maestro `mobile-e2e` suite passes end-to-end in the cloud.
 
-**2. Feature completeness for commercial v1: MET.** Phases 13–17 are merged and
-E2E-verified: device-side profile/goal entry, medical/physical evaluation entry +
-management, nutrition module, workout module (+ read-only TrainingPlan), and
-progress monitoring (deterministic weekly snapshots, entry UI, in-house trend
-charts, dashboard card). Phases 18 (Habit) and 19 (Notifications) are post-v1 and
-correctly out of scope; AI-assisted coaching is deferred by scope.
+**2. Feature completeness for the former Phase 20 candidate: historically MET;
+for the clarified public v1: NOT YET.** The tested build includes the former
+medical/physical evaluation experience and English-only copy. ADR-P017 now
+requires a non-medical public physical-assessment flow, Spanish + English, and a
+complete deterministic workout routine rather than the current read-only
+TrainingPlan guidance. Nutrition already has deterministic breakfast/lunch/
+dinner/snack planning but must be carried through the bilingual product audit.
 
-**3. Production / store-submission readiness: NOT YET.** All open gates are
-owner/external: Sentry live verification, finalized legal artifacts, a Production
-environment, Play listing + Data Safety + privacy URL, a *tested* rollback,
-production smoke, and mobile production validation. See the action list above.
+**3. Production / store-submission readiness: BLOCKED-PRODUCT.** Phase 20
+infrastructure and operational evidence remains useful, but a new candidate must
+be built after Phase 21. Legal drafts, Data Safety, Health Apps declaration,
+store copy, screenshots, device validation, logs, release notes, and track testing
+must describe and validate that new candidate rather than the former medical-
+surface build.
 
-**4. Audit scope honored.** This is a docs-only re-gate: no legal approval
-recorded, no Play submission, no Sentry enablement, no production deploy, and no
-rollback test executed. Statuses reflect current repository evidence only.
+**4. Rebaseline scope honored.** Phase 21 Slice 1 is documentation-only. It does
+not claim the medical domain is already disconnected, does not alter legal text,
+and does not change source, schemas, migrations, production, or store state.

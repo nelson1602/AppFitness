@@ -970,6 +970,75 @@ for full context, decisions D1–D6, and architecture references.
 
 ---
 
+## [FEATURE-009] Public-v1 Wellness Rebaseline and Bilingual Product Completion
+
+Status: Approved (planning; Slice 1 documentation authorized 2026-08-10)
+Priority: P0
+Type: Feature
+Owner: Product / Architecture
+Created: 2026-08-10
+Updated: 2026-08-10
+
+### Description
+
+Rebaseline AppFitness for a public fitness, nutrition, progress, and wellness
+launch under ADR-P017. Preserve the implemented medical domain as dormant,
+protected architecture while removing it from the public-v1 experience and
+iCoach composition. Complete Spanish/English localization, the goal-oriented
+meal experience, and deterministic workout-routine generation before a new
+store-submission re-gate.
+
+### Problem
+
+The current validated build still exposes medical evaluation/doctor-oriented
+concepts, generates user-facing copy directly in English, and surfaces only
+training guidance rather than a complete iCoach-generated routine. Publishing
+that build would contradict the owner's clarified product intent.
+
+### Scope
+
+1. Documentation/ADR product contract.
+2. Spanish/English localization foundation and language-neutral domain output.
+3. Reversible public-v1 medical decoupling plus a self-entered physical-
+   assessment contract.
+4. Breakfast/lunch/dinner/optional-snack nutrition experience completion.
+5. Complete deterministic workout-routine generator.
+6. Bilingual accessibility, unit/integration/E2E, physical-device, privacy,
+   legal, Data Safety, and release revalidation.
+
+### Non-Goals
+
+- Delete medical tables, migrations, encrypted fields, tests, or historical ADRs.
+- Migrate or destroy retained medical data in the documentation slice.
+- Present fitness guidance as diagnosis, treatment, medical clearance, or
+  professional medical/dietary advice.
+- Start Google Play submission before the rebaseline passes its own release gate.
+
+### Acceptance Criteria
+
+- [ ] Public navigation/onboarding/dashboard do not expose or request excluded
+      medical inputs.
+- [ ] Public-v1 iCoach does not read the dormant medical domain.
+- [ ] Dormant medical data remains protected and account deletion remains valid.
+- [ ] Spanish and English cover all user-facing/accessibility/error content.
+- [ ] iCoach supplies goal-oriented meal suggestions and a complete deterministic
+      workout routine.
+- [ ] Existing offline-first, sync, security, deletion, and monitoring guarantees
+      remain green.
+- [ ] A fresh production candidate passes bilingual E2E, physical-device
+      validation, privacy/legal review, and store-readiness re-gating.
+
+### Related Documents
+
+- `.ai/00_PROJECT.md`
+- `.ai/07_ICOACH.md`
+- `.ai/08_UI_UX.md`
+- `.ai/12_DECISIONS.md` (ADR-P017)
+- `.ai/13_MIGRATION_ROADMAP.md` (Phase 21)
+- `docs/RELEASE_READINESS.md`
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation

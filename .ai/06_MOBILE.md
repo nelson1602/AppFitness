@@ -616,11 +616,23 @@ Prevent screenshots of sensitive screens where applicable.
 
 # Internationalization
 
-Support multiple languages.
+Public v1 must support Spanish and English as first-class languages.
+
+Use the supported device locale by default, provide an in-app language selector,
+and fall back to English when a translation key is unavailable.
 
 Never hardcode strings.
 
 All user-facing text must be translatable.
+
+Domain calculations and stable rule/catalog identifiers must remain locale-
+independent. Translate presentation labels, explanations, validation, errors,
+accessibility content, dates, numbers, food names, exercise names, and units.
+
+The existing `medical/` feature is retained as dormant architecture under
+ADR-P017. Until a future reactivation ADR is approved, it must not be reachable
+from public-v1 navigation/onboarding or registered as a public-v1 write/sync/
+iCoach input path.
 
 ---
 
