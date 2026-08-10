@@ -1155,6 +1155,12 @@ leaves the Progress screen usable; raw SQLite/native text never renders.
       id-stable, owner-scoped, no duplicate INSERT, offline UPDATE enqueue) for
       weight and measurement; store (screen-usable + sanitized, raw text not
       surfaced); screen (inline save banner, forms remain).
+- [x] Device-verified on-device in the Phase 20 Gate B6 revalidation
+      (2026-08-10): the fixed production-validation APK (source `d976c66`) on the
+      appfitness emulator reproduced the same-date weight/measurement scenarios
+      with one logical server row each (latest values, no raw error / no screen
+      wipe) and the offline→reconnect round-trip synced with no duplicates or
+      conflicts. See `docs/PHASE20_EXTERNAL_GATES.md` Gate B6.
 
 ### Related Documents
 

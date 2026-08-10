@@ -73,14 +73,14 @@ Legend:
 | 11 | Logs reviewed | **PENDING-HUMAN** | hosted Development logs exist; no production logs to review yet |
 | 12 | Store metadata ready | **BLOCKED-OWNER** | `eas.json` `submit` profile present (Android internal/draft); **missing** store-listing assets (screenshots, descriptions, categories), Data Safety form, and a published privacy-policy URL — owner / store-console |
 | 13 | Privacy requirements satisfied | **BLOCKED-EXTERNAL** | account deletion implemented + in-app surfaced (PASS); `docs/legal/*` (privacy, ToS, health disclaimer, Data Safety, data inventory) **refreshed to Phases 13–17 in Phase 20 Slice 2 (2026-08-05)** — now review-ready; still **BLOCKED-EXTERNAL pending legal sign-off** |
-| 14 | Smoke tests completed | **PARTIAL** — **PASS** (cloud E2E + **backend/API production smoke**) / **BLOCKED-OWNER** (mobile production validation = Gate B6) | 12-flow Maestro `mobile-e2e` green on `d5fa45c` (run 31008855392). **Backend/API Production Smoke — PASS (Gate B5, 2026-08-06):** the `10_DEPLOYMENT.md` server-side smoke ran against the live Production API with **synthetic data only** — 15/15 checks pass (HTTPS + `/health`, register, login, `GET /auth/me`, profile `PUT`/`GET`, `GET /sync/pull` baseline, body-weight `POST /sync/push` + round-trip, missing/invalid-token 401, logout + refresh revocation, `DELETE /auth/account` + post-deletion login rejected); all synthetic accounts/data (incl. an earlier harness orphan) deleted & verified inaccessible; no secrets/PII/PHI recorded (see `PHASE20_EXTERNAL_GATES.md` B5). **Still BLOCKED-OWNER:** Mobile Production Validation (device-side) = **Gate B6** — not run (needs a closed/prod-track build on a real device). |
+| 14 | Smoke tests completed | **PASS-WITH-LIMITATION** — **PASS** (cloud E2E + **backend/API production smoke**, Gate B5) + **PASS-WITH-LIMITATION** (device-side mobile validation, Gate B6) | 12-flow Maestro `mobile-e2e` green on `d5fa45c` (run 31008855392). **Backend/API Production Smoke — PASS (Gate B5, 2026-08-06):** the `10_DEPLOYMENT.md` server-side smoke ran against the live Production API with **synthetic data only** — 15/15 checks pass (HTTPS + `/health`, register, login, `GET /auth/me`, profile `PUT`/`GET`, `GET /sync/pull` baseline, body-weight `POST /sync/push` + round-trip, missing/invalid-token 401, logout + refresh revocation, `DELETE /auth/account` + post-deletion login rejected); synthetic data deleted & verified inaccessible; no secrets/PII/PHI recorded (see `PHASE20_EXTERNAL_GATES.md` B5). **Device-side Mobile Production Validation — PASS-WITH-LIMITATION (Gate B6, 2026-08-10):** the fixed production-validation APK (EAS `0ad2f78a-…`, source `d976c66`, 1.0.0 / vc4, Production API + Sentry) on the appfitness **emulator (Android 15 / API 35)** — clean cold launch (bundled release, no Metro/dev-client), production register/login, dashboard + Progress render, SecureStore session restore, the BUG-005 same-date weight & measurement regressions (one logical server row each, latest values, no raw SQLite error / no screen wipe), and the **offline CREATE + UPDATE → reconnect round-trip** (persisted across offline relaunch, synced with no duplicates/conflict/retry loop). Synthetic account deleted & rejected afterward. **LIMITATION:** sideloaded production-equivalent APK on an **emulator** — **not** a Play internal-track build and **not** a physical device; **biometric NOT APPLICABLE on the emulator — physical-device biometric validation remains pending before store publication** (see `PHASE20_EXTERNAL_GATES.md` B6). |
 
 ## Additional `10_DEPLOYMENT.md` release gates
 
 | Gate | Status | Evidence / gap |
 |---|---|---|
-| Production Smoke Tests (10 checks: backend health, auth, profile, SQLite init, dashboard, iCoach recs, offline, sync init, reconnect sync, no critical monitoring errors) | **PARTIAL** — **PASS** (backend/API subset, Gate B5) / **pending Gate B6** (device-side) | **Backend/API subset PASS (2026-08-06):** backend health, auth, and profile checks (plus sync push/pull round-trip and authz/session-revocation) executed against the live Production API with **synthetic data only** — 15/15 server-side checks (see item 14 + `PHASE20_EXTERNAL_GATES.md` B5); all synthetic data deleted & verified inaccessible. Device-side checks (SQLite init, dashboard, on-device iCoach recs, offline, reconnect sync) and monitoring-error/log review remain **Gate B6** / owner (item 11 log review PENDING-HUMAN). |
-| Mobile Production Validation (10 checks: open, login, nav, dashboard, offline, push permissions, SecureStore, biometric-if-enabled, no debug info, store build matches env) | **BLOCKED-OWNER** | requires a closed/production-track build on a real device |
+| Production Smoke Tests (10 checks: backend health, auth, profile, SQLite init, dashboard, iCoach recs, offline, sync init, reconnect sync, no critical monitoring errors) | **PASS-WITH-LIMITATION** — backend/API subset PASS (Gate B5) + device-side PASS (Gate B6, emulator) | **Backend/API subset PASS (2026-08-06, B5):** health, auth, profile + sync push/pull round-trip + authz/session-revocation against the live Production API with **synthetic data only** (15/15; synthetic data deleted & verified inaccessible). **Device-side PASS (2026-08-10, B6):** SQLite init, dashboard render, on-device Progress/iCoach, offline entry, and reconnect sync verified on the appfitness **emulator** with the production-validation APK (see item 14 + `PHASE20_EXTERNAL_GATES.md` B6). **Remaining:** production **log / monitoring-error review** (item 11) = **PENDING-HUMAN**; physical-device pass pending. |
+| Mobile Production Validation (10 checks: open, login, nav, dashboard, offline, push permissions, SecureStore, biometric-if-enabled, no debug info, store build matches env) | **PASS-WITH-LIMITATION** (Gate B6, 2026-08-10) | Validated on the appfitness **emulator (Android 15 / API 35)** with the fixed production-validation APK (source `d976c66`, 1.0.0 / vc4): open, login (Production), navigation, dashboard, offline entry + reconnect sync, SecureStore session restore, **no debug info** (bundled release, no Metro/dev-client), and **store-build-matches-env** (Production API + Sentry). **LIMITATION:** sideloaded APK on an **emulator** — **not** a Play internal-track build and **not** a physical device; **biometric NOT APPLICABLE on the emulator (physical-device biometric validation remains pending before store publication)**; push-permission behavior not exercised (notifications are post-v1). |
 | Release Notes | **PASS** (template + v1 draft) / **PENDING-HUMAN** (deploy-time fields) | reusable `docs/RELEASE_NOTES_TEMPLATE.md`; **v1.0.0 note drafted `docs/releases/v1.0.0.md` (Phase 20 Slice 3)** covering Phases 13–17; deploy-time fields (backend commit/env, actual date, track progression) marked `[SET AT RELEASE]` |
 
 ## Phase 20 Exit Criteria (`13_MIGRATION_ROADMAP.md`)
@@ -108,14 +108,17 @@ external party before submission. **None performed in this audit.**
    + set secrets; only Development exists today.
 5. **Rollback dry-run** (item 8) — **BLOCKED-OWNER**: exercise the API +
    mobile-track rollback runbooks on the first internal track.
-6. **Production Smoke** (item 11/14) — **PARTIAL**: the backend/API smoke subset
-   is **PASS (Gate B5, 2026-08-06)** — executed against the live Production API
-   with synthetic data only (all synthetic data deleted & verified inaccessible).
-   Remaining: device-side smoke = **Gate B6**, and production **log review**
-   (item 11) = **PENDING-HUMAN**.
-7. **Mobile Production Validation** (item 14) — **BLOCKED-OWNER**: run the
-   10-check validation on a closed/production-track build (push, SecureStore,
-   biometric, no-debug, store-build-matches-env).
+6. **Production Smoke** (item 11/14) — **PASS-WITH-LIMITATION**: backend/API
+   subset **PASS (Gate B5, 2026-08-06)** and device-side subset **PASS (Gate B6,
+   2026-08-10, emulator)** — both with synthetic data only (deleted & verified
+   inaccessible). Remaining: production **log / monitoring-error review** (item 11)
+   = **PENDING-HUMAN**.
+7. **Mobile Production Validation** (item 14) — **PASS-WITH-LIMITATION (Gate B6,
+   2026-08-10)**: device-side validation passed on the appfitness **emulator**
+   with the fixed production-validation APK (open/login/nav/dashboard/offline+
+   reconnect/SecureStore/no-debug/env-match). **Physical-device biometric
+   validation remains pending before store publication**; not run on a Play
+   internal-track build.
 8. **Release notes + submission approval** — **PENDING-HUMAN**: author the v1
    release note from the template and record explicit owner submission approval.
 
