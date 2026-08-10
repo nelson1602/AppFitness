@@ -6361,6 +6361,24 @@ Negative:
 Each boundary requires its own authorization, focused branch, validation, and
 review. No slice may silently delete medical data or historical migrations.
 
+### Slice 2 Implementation Record — Localization Foundation
+
+The mobile localization boundary uses the approved `i18next` engine with
+`expo-localization` for supported device-language detection. English (`en`) is
+the explicit missing/unsupported-language fallback and Spanish (`es`) is a
+first-class resource. The user may select Device language, Español, or English;
+the preference is persisted under a dedicated Expo SecureStore key and restored
+at the composition root. Shared `Intl` number/date formatters receive the
+resolved presentation language explicitly. Translation and formatting remain in
+the presentation/shared boundary and do not alter domain inputs, calculations,
+rule versions, or catalog identifiers.
+
+Slice 2 intentionally translates only the authentication proof surface and its
+accessible language selector. Remaining screens, validation, iCoach prose, food
+and exercise catalogs, dates, units, and accessibility strings remain work for
+the later bilingual product audit; this record is not a whole-app localization
+claim.
+
 ### Supersedes / Preserves
 
 - Supersedes the **public-product-scope** portions of ADR-0007 and the original

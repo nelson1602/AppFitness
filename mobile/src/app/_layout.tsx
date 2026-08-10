@@ -7,6 +7,7 @@ import { registerProgressSyncAppliers } from '@/features/progress';
 import { registerProfileSyncAppliers } from '@/features/profile';
 import { registerWorkoutSyncAppliers } from '@/features/workout';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
+import { useLocalization } from '@/shared/localization';
 import { useTheme } from '@/shared/theme';
 
 // Composition root: features register their sync appliers once at app
@@ -22,6 +23,7 @@ registerProgressSyncAppliers();
 
 export default function RootLayout() {
   const theme = useTheme();
+  useLocalization();
 
   // Bridge our design tokens into the navigation container so native
   // navigation surfaces (headers, backgrounds) match the app theme.

@@ -15,6 +15,7 @@ module.exports = ({ config }) => ({
   ...config,
   plugins: [
     ...(config.plugins ?? []),
+    'expo-localization',
     // Native Sentry SDK wiring (ADR-P010). No org/project/auth options:
     // source-map upload stays disabled until credentials are approved;
     // the JS SDK itself is a no-op without a DSN (see
