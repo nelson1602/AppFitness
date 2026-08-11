@@ -20,6 +20,35 @@ export const TRAINING_EQUIPMENT = [
 
 export type TrainingEquipment = (typeof TRAINING_EQUIPMENT)[number];
 
+export const WORKOUT_TRAINING_PATTERNS = [
+  'SQUAT',
+  'HINGE',
+  'HORIZONTAL_PUSH',
+  'VERTICAL_PUSH',
+  'HORIZONTAL_PULL',
+  'VERTICAL_PULL',
+  'UPPER_BACK',
+  'CORE',
+  'CARRY',
+  'CONDITIONING',
+  'MOBILITY',
+] as const;
+
+export type WorkoutTrainingPattern = (typeof WORKOUT_TRAINING_PATTERNS)[number];
+
+/** Minimal language-neutral catalog shape consumed by the pure generator. */
+export interface WorkoutRoutineExerciseCandidate {
+  key: string;
+  trainingPatterns: readonly WorkoutTrainingPattern[];
+  movementPatterns: readonly string[];
+  equipment: readonly TrainingEquipment[];
+}
+
+export interface WorkoutRoutineCatalog {
+  version: string;
+  exercises: readonly WorkoutRoutineExerciseCandidate[];
+}
+
 export interface EquipmentNormalizationResult {
   /** Recognized canonical ids, de-duplicated in stable vocabulary order. */
   equipment: TrainingEquipment[];

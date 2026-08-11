@@ -1,5 +1,8 @@
 import type { ExerciseCategory } from '@/shared/infrastructure/database/types';
-import type { TrainingEquipment } from '@/features/icoach/domain/workout-routine';
+import type {
+  TrainingEquipment,
+  WorkoutTrainingPattern,
+} from '@/features/icoach/domain/workout-routine';
 
 /**
  * Built-in exercise catalog contract + movement-pattern vocabulary
@@ -74,18 +77,7 @@ export type Equipment = TrainingEquipment;
  * generator. These ids describe why an exercise is selected; they carry no
  * medical or exclusion meaning.
  */
-export type TrainingPattern =
-  | 'SQUAT'
-  | 'HINGE'
-  | 'HORIZONTAL_PUSH'
-  | 'VERTICAL_PUSH'
-  | 'HORIZONTAL_PULL'
-  | 'VERTICAL_PULL'
-  | 'UPPER_BACK'
-  | 'CORE'
-  | 'CARRY'
-  | 'CONDITIONING'
-  | 'MOBILITY';
+export type TrainingPattern = WorkoutTrainingPattern;
 
 /** Joint / body area chiefly loaded — aligns with the engine's bodyArea keys. */
 export type BodyArea =
