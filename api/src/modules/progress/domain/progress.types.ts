@@ -45,6 +45,7 @@ export interface BodyMeasurementRecord {
   /** User-local calendar date (date-only). */
   date: Date;
   bodyFatPct: number | null;
+  muscleMassKg: number | null;
   waistCm: number | null;
   hipCm: number | null;
   chestCm: number | null;

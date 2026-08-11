@@ -33,9 +33,15 @@ function requirePositiveNumber(value: unknown, field: string): number {
   return value;
 }
 
-function optionalPositiveNumber(value: unknown, field: string): number | null {
+function optionalPositiveNumber(
+  value: unknown,
+  field: string,
+  max = Number.POSITIVE_INFINITY,
+): number | null {
   if (value === null || value === undefined) return null;
-  return requirePositiveNumber(value, field);
+  const parsed = requirePositiveNumber(value, field);
+  if (parsed > max) throw new Error(`${field} must be at most ${max}`);
+  return parsed;
 }
 
 function optionalPercent(value: unknown, field: string): number | null {
@@ -77,6 +83,7 @@ export function parseBodyWeightUpdate(
 export interface BodyMeasurementCreateInput {
   date: Date;
   bodyFatPct: number | null;
+  muscleMassKg: number | null;
   waistCm: number | null;
   hipCm: number | null;
   chestCm: number | null;
@@ -91,6 +98,11 @@ export function parseBodyMeasurementCreate(
   return {
     date: requireCalendarDate(p.date, 'date'),
     bodyFatPct: optionalPercent(p.body_fat_pct, 'body_fat_pct'),
+    muscleMassKg: optionalPositiveNumber(
+      p.muscle_mass_kg,
+      'muscle_mass_kg',
+      300,
+    ),
     waistCm: optionalPositiveNumber(p.waist_cm, 'waist_cm'),
     hipCm: optionalPositiveNumber(p.hip_cm, 'hip_cm'),
     chestCm: optionalPositiveNumber(p.chest_cm, 'chest_cm'),
@@ -100,11 +112,38 @@ export function parseBodyMeasurementCreate(
     notes: optionalString(p.notes),
   };
 }
-export type BodyMeasurementUpdateInput = BodyMeasurementCreateInput;
+export type BodyMeasurementUpdateInput = Omit<
+  BodyMeasurementCreateInput,
+  'muscleMassKg'
+> & {
+  /** Missing preserves a value written by a newer client; null clears it explicitly. */
+  muscleMassKg?: number | null;
+};
 export function parseBodyMeasurementUpdate(
   p: Record<string, unknown>,
 ): BodyMeasurementUpdateInput {
-  return parseBodyMeasurementCreate(p);
+  const parsed = parseBodyMeasurementCreate(p);
+  const base: Omit<BodyMeasurementCreateInput, 'muscleMassKg'> = {
+    date: parsed.date,
+    bodyFatPct: parsed.bodyFatPct,
+    waistCm: parsed.waistCm,
+    hipCm: parsed.hipCm,
+    chestCm: parsed.chestCm,
+    leftArmCm: parsed.leftArmCm,
+    rightArmCm: parsed.rightArmCm,
+    neckCm: parsed.neckCm,
+    notes: parsed.notes,
+  };
+  return Object.prototype.hasOwnProperty.call(p, 'muscle_mass_kg')
+    ? {
+        ...base,
+        muscleMassKg: optionalPositiveNumber(
+          p.muscle_mass_kg,
+          'muscle_mass_kg',
+          300,
+        ),
+      }
+    : base;
 }
 
 // ── progress_snapshots (Slice 4b) ──────────────────────────────────────────────

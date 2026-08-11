@@ -68,25 +68,48 @@ export function blankBodyWeightValues(date: string): BodyWeightFormInput {
 }
 
 // ── Body measurement ────────────────────────────────────────────────────────
-// v1 focused scope (D4): waist required; hip/chest/body-fat optional. The domain
+// Public-v1 focused scope: at least one visible wellness metric is required;
 // also supports arms/neck — deferred to a later slice to keep the form small.
-export const bodyMeasurementFormSchema = z.object({
-  date: dateField,
-  waistCm: z.preprocess(
-    (v) => (v === '' || v === null || v === undefined ? undefined : v),
-    z.coerce.number().positive('Enter a waist measurement greater than 0').max(500, 'Too large'),
-  ),
-  hipCm: optionalNumber(
-    z.coerce.number().positive('Enter a hip measurement greater than 0').max(500, 'Too large'),
-  ),
-  chestCm: optionalNumber(
-    z.coerce.number().positive('Enter a chest measurement greater than 0').max(500, 'Too large'),
-  ),
-  bodyFatPct: optionalNumber(
-    z.coerce.number().positive().max(100, 'Enter a body-fat % between 0 and 100'),
-  ),
-  notes: optionalText,
-});
+export function createBodyMeasurementFormSchema(
+  muscleMassRangeMessage = 'Enter muscle mass greater than 0 and at most 300 kg',
+  atLeastOneMessage = 'Enter at least one body measurement',
+) {
+  return z
+    .object({
+      date: dateField,
+      waistCm: optionalNumber(
+        z.coerce
+          .number()
+          .positive('Enter a waist measurement greater than 0')
+          .max(500, 'Too large'),
+      ),
+      hipCm: optionalNumber(
+        z.coerce.number().positive('Enter a hip measurement greater than 0').max(500, 'Too large'),
+      ),
+      chestCm: optionalNumber(
+        z.coerce
+          .number()
+          .positive('Enter a chest measurement greater than 0')
+          .max(500, 'Too large'),
+      ),
+      bodyFatPct: optionalNumber(
+        z.coerce.number().positive().max(100, 'Enter a body-fat % between 0 and 100'),
+      ),
+      muscleMassKg: optionalNumber(
+        z.coerce.number().positive(muscleMassRangeMessage).max(300, muscleMassRangeMessage),
+      ),
+      notes: optionalText,
+    })
+    .refine(
+      (values) =>
+        [values.waistCm, values.hipCm, values.chestCm, values.bodyFatPct, values.muscleMassKg].some(
+          (value) => value !== undefined,
+        ),
+      { message: atLeastOneMessage, path: ['waistCm'] },
+    );
+}
+
+export const bodyMeasurementFormSchema = createBodyMeasurementFormSchema();
 
 export type BodyMeasurementFormInput = z.input<typeof bodyMeasurementFormSchema>;
 export type BodyMeasurementFormOutput = z.output<typeof bodyMeasurementFormSchema>;
@@ -94,10 +117,11 @@ export type BodyMeasurementFormOutput = z.output<typeof bodyMeasurementFormSchem
 export function toBodyMeasurementInput(values: BodyMeasurementFormOutput): BodyMeasurementInput {
   return {
     date: values.date,
-    waistCm: values.waistCm,
+    waistCm: values.waistCm ?? null,
     hipCm: values.hipCm ?? null,
     chestCm: values.chestCm ?? null,
     bodyFatPct: values.bodyFatPct ?? null,
+    muscleMassKg: values.muscleMassKg ?? null,
     notes: text(values.notes),
   };
 }
@@ -109,6 +133,7 @@ export function blankBodyMeasurementValues(date: string): BodyMeasurementFormInp
     hipCm: '' as unknown as BodyMeasurementFormInput['hipCm'],
     chestCm: '' as unknown as BodyMeasurementFormInput['chestCm'],
     bodyFatPct: '' as unknown as BodyMeasurementFormInput['bodyFatPct'],
+    muscleMassKg: '' as unknown as BodyMeasurementFormInput['muscleMassKg'],
     notes: '',
   };
 }

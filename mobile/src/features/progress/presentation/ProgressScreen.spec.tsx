@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { ProgressState } from '../application/progress.store';
-import type { BodyWeight, ProgressSnapshot } from '../domain/progress';
+import type { BodyMeasurement, BodyWeight, ProgressSnapshot } from '../domain/progress';
 import { ProgressScreen } from './ProgressScreen';
 
 let mockState: ProgressState;
@@ -56,6 +56,24 @@ const week: ProgressSnapshot = {
   updatedAt: '2026-08-03T00:00:00.000Z',
 };
 
+const measurement: BodyMeasurement = {
+  id: 'bm-1',
+  date: '2026-08-03',
+  bodyFatPct: 18,
+  muscleMassKg: 36,
+  waistCm: 82,
+  hipCm: null,
+  chestCm: null,
+  leftArmCm: null,
+  rightArmCm: null,
+  neckCm: null,
+  notes: null,
+  version: 1,
+  syncStatus: 'synced',
+  createdAt: '2026-08-03T00:00:00.000Z',
+  updatedAt: '2026-08-03T00:00:00.000Z',
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   setState();
@@ -100,7 +118,7 @@ describe('ProgressScreen (Slice 5a)', () => {
     expect(screen.getByText('No weight recorded yet.')).toBeOnTheScreen();
     // Weekly summary + both trends fall back to their own text-first empty states.
     expect(screen.getByText('No weekly insights yet.')).toBeOnTheScreen();
-    expect(screen.getAllByText('No data yet.')).toHaveLength(2);
+    expect(screen.getAllByText('No data yet.')).toHaveLength(3);
   });
 
   it('renders the latest recorded weight when present', async () => {
@@ -121,6 +139,14 @@ describe('ProgressScreen (Slice 5a)', () => {
     // Weekly snapshot summary is rendered.
     expect(screen.getByTestId('weekly-snapshot-summary')).toBeOnTheScreen();
     expect(screen.getByText('Week of 2026-08-03')).toBeOnTheScreen();
+  });
+
+  it('renders the optional muscle-mass trend without feeding weekly snapshots', async () => {
+    setState({ bodyMeasurements: [measurement] });
+    await render(<ProgressScreen />);
+
+    expect(screen.getByText('1 reading: 36 kg')).toBeOnTheScreen();
+    expect(screen.getByTestId('muscle-mass-trend')).toBeOnTheScreen();
   });
 
   it('dispatches recompute from the "Update weekly insights" button', async () => {

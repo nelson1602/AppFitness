@@ -9,6 +9,7 @@ import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
 
 import {
+  applyServerBodyMeasurement,
   applyServerBodyWeight,
   applyServerProgressSnapshot,
   bodyWeightForDate,
@@ -440,6 +441,7 @@ function bmRow(o: Partial<BodyMeasurementRow> = {}): BodyMeasurementRow {
     sync_status: 'pending',
     date: '2026-08-03',
     body_fat_pct: 18,
+    muscle_mass_kg: 36,
     waist_cm: 82,
     hip_cm: null,
     chest_cm: null,
@@ -458,7 +460,11 @@ describe('progress.repository — body_measurements', () => {
       .mockResolvedValueOnce(null) // owner-scoped same-date check → none
       .mockResolvedValueOnce(bmRow()); // reloaded created row
 
-    await createBodyMeasurement(USER, { date: '2026-08-03', bodyFatPct: 18, waistCm: 82 }, NOW);
+    await createBodyMeasurement(
+      USER,
+      { date: '2026-08-03', bodyFatPct: 18, muscleMassKg: 36, waistCm: 82 },
+      NOW,
+    );
 
     expect(mockQueryFirst).toHaveBeenNthCalledWith(
       1,
@@ -475,6 +481,7 @@ describe('progress.repository — body_measurements', () => {
           id: 'bm-1',
           date: '2026-08-03',
           body_fat_pct: 18,
+          muscle_mass_kg: 36,
           waist_cm: 82,
           hip_cm: null,
           chest_cm: null,
@@ -501,6 +508,7 @@ describe('progress.repository — body_measurements', () => {
     expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('UPDATE body_measurements SET'), [
       '2026-08-03',
       null,
+      null,
       90,
       null,
       null,
@@ -522,5 +530,42 @@ describe('progress.repository — body_measurements', () => {
       }),
       NOW,
     );
+  });
+
+  it('applies muscle mass from a server pull and tolerates an older payload without it', async () => {
+    await applyServerBodyMeasurement(
+      {
+        id: 'bm-1',
+        user_id: USER,
+        created_at: NOW,
+        updated_at: NOW,
+        version: 2,
+        date: '2026-08-03',
+        body_fat_pct: 18,
+        muscle_mass_kg: 36,
+      },
+      false,
+    );
+    const newClientParams = mockRun.mock.calls[0]?.[1];
+    expect(Array.isArray(newClientParams)).toBe(true);
+    if (!Array.isArray(newClientParams)) throw new Error('expected positional SQLite params');
+    expect(newClientParams[9]).toBe(36);
+
+    mockRun.mockClear();
+    await applyServerBodyMeasurement(
+      {
+        id: 'bm-2',
+        user_id: USER,
+        created_at: NOW,
+        updated_at: NOW,
+        version: 1,
+        date: '2026-08-04',
+      },
+      false,
+    );
+    const oldClientParams = mockRun.mock.calls[0]?.[1];
+    expect(Array.isArray(oldClientParams)).toBe(true);
+    if (!Array.isArray(oldClientParams)) throw new Error('expected positional SQLite params');
+    expect(oldClientParams[9]).toBeNull();
   });
 });

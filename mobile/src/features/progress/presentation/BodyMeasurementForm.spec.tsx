@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { es } from '@/shared/localization/resources/es';
+
 import { BodyMeasurementForm } from './BodyMeasurementForm';
+import { createBodyMeasurementFormSchema } from './progress-forms.schema';
 
 const DATE = '2026-08-04';
 
@@ -50,6 +53,7 @@ describe('BodyMeasurementForm', () => {
       hipCm: null,
       chestCm: null,
       bodyFatPct: null,
+      muscleMassKg: null,
       notes: null,
     });
   });
@@ -61,12 +65,64 @@ describe('BodyMeasurementForm', () => {
     await fireEvent.changeText(screen.getByTestId('field-waistCm'), '82');
     await fireEvent.changeText(screen.getByTestId('field-hipCm'), '96');
     await fireEvent.changeText(screen.getByTestId('field-bodyFatPct'), '18');
+    await fireEvent.changeText(screen.getByTestId('field-muscleMassKg'), '36');
     await fireEvent.press(screen.getByRole('button', { name: 'Save body measurements' }));
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ waistCm: 82, hipCm: 96, bodyFatPct: 18, chestCm: null }),
+      expect.objectContaining({
+        waistCm: 82,
+        hipCm: 96,
+        bodyFatPct: 18,
+        muscleMassKg: 36,
+        chestCm: null,
+      }),
     );
+  });
+
+  it('allows a muscle-mass-only assessment entry', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(true);
+    await render(<BodyMeasurementForm defaultDate={DATE} saving={false} onSubmit={onSubmit} />);
+
+    await fireEvent.changeText(screen.getByTestId('field-muscleMassKg'), '36');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save body measurements' }));
+
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ waistCm: null, muscleMassKg: 36 }),
+    );
+  });
+
+  it('rejects muscle mass outside the supported wellness range', async () => {
+    const onSubmit = jest.fn();
+    await render(<BodyMeasurementForm defaultDate={DATE} saving={false} onSubmit={onSubmit} />);
+
+    await fireEvent.changeText(screen.getByTestId('field-waistCm'), '82');
+    await fireEvent.changeText(screen.getByTestId('field-muscleMassKg'), '301');
+    await fireEvent.press(screen.getByRole('button', { name: 'Save body measurements' }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('Enter muscle mass greater than 0 and at most 300 kg'),
+      ).toBeOnTheScreen(),
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('exposes the new muscle-mass validation in Spanish', () => {
+    const schema = createBodyMeasurementFormSchema(es['progress.measurements.muscleMassRange']);
+    const result = schema.safeParse({
+      date: DATE,
+      waistCm: '82',
+      muscleMassKg: '301',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        'Ingresa una masa muscular mayor que 0 y de hasta 300 kg',
+      );
+    }
   });
 
   it('rejects a body-fat % over 100', async () => {

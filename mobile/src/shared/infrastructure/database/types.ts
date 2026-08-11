@@ -267,6 +267,7 @@ export interface BodyWeightRow extends SyncedRow {
 export interface BodyMeasurementRow extends SyncedRow {
   date: string;
   body_fat_pct: number | null;
+  muscle_mass_kg: number | null;
   waist_cm: number | null;
   hip_cm: number | null;
   chest_cm: number | null;
