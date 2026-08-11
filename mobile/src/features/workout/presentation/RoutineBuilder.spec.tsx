@@ -7,6 +7,7 @@ import type { WorkoutState } from '../application/workout.store';
 import { RoutineBuilder } from './RoutineBuilder';
 
 let mockState: WorkoutState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 const load = jest.fn();
 const createRoutine = jest.fn();
@@ -20,6 +21,19 @@ jest.mock('../application/workout.store', () => ({
   useWorkoutStore: (selector?: (s: WorkoutState) => unknown) =>
     selector ? selector(mockState) : mockState,
 }));
+
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
 
 jest.mock('./GeneratedWorkoutPlan', () => ({ GeneratedWorkoutPlan: () => null }));
 
@@ -110,6 +124,7 @@ const customExercise = (o: Partial<CustomExercise> = {}): CustomExercise => ({
 describe('RoutineBuilder', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
     createRoutine.mockResolvedValue(true);
     deactivateRoutine.mockResolvedValue(true);
     loadRoutineExercises.mockResolvedValue(undefined);
@@ -181,6 +196,26 @@ describe('RoutineBuilder', () => {
     });
   });
 
+  it('renders Spanish presentation copy while preserving routine and exercise identities', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'ready', routines: [routine({ name: 'Mi fuerza' })], routineExercises: [] });
+    await render(<RoutineBuilder />);
+
+    expect(screen.getByText('Rutinas de ejercicios')).toBeOnTheScreen();
+    expect(screen.getByText('Tus rutinas')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByText('Ver ejercicios'));
+
+    expect(screen.getByText('Integrados')).toBeOnTheScreen();
+    expect(screen.getByText('Sentadilla trasera')).toBeOnTheScreen();
+    expect(screen.getAllByText('Cuádriceps').length).toBeGreaterThan(0);
+    await fireEvent.press(screen.getByLabelText('Agregar Sentadilla trasera'));
+
+    expect(addRoutineExercise).toHaveBeenCalledWith('r1', {
+      exerciseId: BACK_SQUAT_ID,
+      order: 0,
+    });
+  });
+
   it('adds a custom exercise to the selected routine', async () => {
     setStore({
       status: 'ready',
@@ -243,6 +278,12 @@ describe('RoutineBuilder', () => {
     });
     await render(<RoutineBuilder />);
     expect(screen.getByText('Something went wrong')).toBeOnTheScreen();
+    expect(
+      screen.queryByText('Your workouts could not be loaded right now.'),
+    ).not.toBeOnTheScreen();
+    expect(
+      screen.getByText('Your routines could not be loaded right now. Try again.'),
+    ).toBeOnTheScreen();
   });
 
   it('never accesses SQLite directly from the UI while driving its flows', async () => {
