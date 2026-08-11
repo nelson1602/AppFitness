@@ -5,7 +5,6 @@ import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { CustomExercise, Routine, RoutineExercise } from '../domain/workout';
-import { useTrainingPlan } from '../application/use-training-plan';
 import { useWorkoutStore } from '../application/workout.store';
 import {
   getBuiltInExerciseById,
@@ -14,8 +13,8 @@ import {
 import { CustomExerciseForm } from './CustomExerciseForm';
 import { CustomExerciseNote } from './CustomExerciseNote';
 import { ExerciseExclusionNote } from './ExerciseExclusionNote';
+import { GeneratedWorkoutPlan } from './GeneratedWorkoutPlan';
 import { resolveExerciseName } from './resolve-exercise-name';
-import { TrainingPlanCard } from './TrainingPlanCard';
 
 /**
  * Routine builder (ADR-P015 Phase 16 Slice 5; TrainingPlan integration in Slice
@@ -24,11 +23,9 @@ import { TrainingPlanCard } from './TrainingPlanCard';
  * workout store → service → repository (local-first write, sync enqueue); the
  * UI never touches SQLite.
  *
- * Safety context is READ from the deterministic iCoach `TrainingPlan` (via
- * `useTrainingPlan`) — never recomputed here. `TrainingPlanCard` surfaces the
- * blocked / clearance / intensity / RPE-cap / days-per-week guidance; an
- * exercise whose movement patterns intersect the plan's `excludedMovements`
- * shows a NON-blocking caution. Medical restrictions are never overridden.
+ * Public-v1 iCoach output is rendered by `GeneratedWorkoutPlan`. This public
+ * surface deliberately does not read the retained medical `TrainingPlan`;
+ * future wellness-owned movement limitations require an explicit contract.
  */
 
 const CATALOG = listBuiltInExercises();
@@ -50,10 +47,9 @@ export function RoutineBuilder() {
     removeRoutineExercise,
   } = useWorkoutStore();
 
-  // Read-only training safety context (may be absent if the dashboard has not
-  // loaded yet). We never recompute it.
-  const training = useTrainingPlan();
-  const excludedMovements = training?.excludedMovements ?? [];
+  // Public v1 never sources limitations from the retained medical contract.
+  // A future wellness-owned limitation contract can replace this empty list.
+  const excludedMovements: readonly string[] = [];
 
   const [name, setName] = useState('');
   const [selectedRoutineId, setSelectedRoutineId] = useState<string | null>(null);
@@ -105,7 +101,7 @@ export function RoutineBuilder() {
         </Banner>
       ) : null}
 
-      <TrainingPlanCard plan={training} />
+      <GeneratedWorkoutPlan />
 
       <Card accessibilityLabel="Create a routine">
         <View style={{ gap: theme.spacing.md }}>

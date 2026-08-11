@@ -1,6 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import type { TrainingPlan } from '@/features/icoach/domain/types';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 
 import type { CustomExercise, Routine, RoutineExercise } from '../domain/workout';
@@ -8,7 +7,6 @@ import type { WorkoutState } from '../application/workout.store';
 import { RoutineBuilder } from './RoutineBuilder';
 
 let mockState: WorkoutState;
-let mockTraining: TrainingPlan | null;
 
 const load = jest.fn();
 const createRoutine = jest.fn();
@@ -23,18 +21,7 @@ jest.mock('../application/workout.store', () => ({
     selector ? selector(mockState) : mockState,
 }));
 
-// The dashboard store is the read-only source of the deterministic TrainingPlan.
-type DashSlice = {
-  data: { assessment: { assessment: { training: TrainingPlan } } | null } | null;
-};
-jest.mock('@/features/dashboard/application/dashboard.store', () => ({
-  useDashboardStore: (selector?: (s: DashSlice) => unknown) => {
-    const state: DashSlice = {
-      data: mockTraining ? { assessment: { assessment: { training: mockTraining } } } : null,
-    };
-    return selector ? selector(state) : state;
-  },
-}));
+jest.mock('./GeneratedWorkoutPlan', () => ({ GeneratedWorkoutPlan: () => null }));
 
 // Direct SQLite access from the UI is forbidden — persistence must route
 // through the store. Spy on the database module to prove the screen never calls it.
@@ -120,20 +107,9 @@ const customExercise = (o: Partial<CustomExercise> = {}): CustomExercise => ({
   ...o,
 });
 
-const plan = (o: Partial<TrainingPlan> = {}): TrainingPlan => ({
-  blocked: false,
-  requiresMedicalClearance: false,
-  intensity: 'MODERATE',
-  rpeCap: 8,
-  daysPerWeek: 4,
-  excludedMovements: [],
-  ...o,
-});
-
 describe('RoutineBuilder', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockTraining = null;
     createRoutine.mockResolvedValue(true);
     deactivateRoutine.mockResolvedValue(true);
     loadRoutineExercises.mockResolvedValue(undefined);
@@ -257,31 +233,6 @@ describe('RoutineBuilder', () => {
     await fireEvent.press(screen.getByTestId('routine-exercise-remove-re1'));
 
     expect(removeRoutineExercise).toHaveBeenCalledWith('re1');
-  });
-
-  it('shows a non-blocking excluded-movement caution when the plan excludes a movement', async () => {
-    mockTraining = plan({ excludedMovements: ['deep_squat'] });
-    setStore({ status: 'ready', routines: [routine()] });
-    await render(<RoutineBuilder />);
-
-    await fireEvent.press(screen.getByTestId('routine-select-r1'));
-
-    const backSquat = screen.getByTestId('add-exercise-exercise.back_squat');
-    expect(within(backSquat).getByText(/May conflict.*deep_squat/)).toBeOnTheScreen();
-  });
-
-  it('shows a blocked-training notice when the plan is blocked', async () => {
-    mockTraining = plan({ blocked: true });
-    setStore({ status: 'ready', routines: [] });
-    await render(<RoutineBuilder />);
-    expect(screen.getByText('Training is on hold')).toBeOnTheScreen();
-  });
-
-  it('shows a medical-clearance notice when the plan requires clearance', async () => {
-    mockTraining = plan({ requiresMedicalClearance: true });
-    setStore({ status: 'ready', routines: [] });
-    await render(<RoutineBuilder />);
-    expect(screen.getByText('Medical clearance recommended')).toBeOnTheScreen();
   });
 
   it('surfaces a safe error banner', async () => {

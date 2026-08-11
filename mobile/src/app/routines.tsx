@@ -3,6 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { RoutineBuilder } from '@/features/workout';
+import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
 /**
@@ -12,6 +13,7 @@ import { Screen } from '@/shared/presentation';
  */
 export default function RoutinesRoute() {
   const { status } = useSession();
+  const { t } = useLocalization();
 
   if (status === 'unknown') {
     return (
@@ -24,7 +26,7 @@ export default function RoutinesRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Workout routines' }} />
+      <Stack.Screen options={{ title: t('workout.plan.routeTitle') }} />
       <Screen>
         <RoutineBuilder />
       </Screen>
