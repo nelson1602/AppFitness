@@ -12,9 +12,14 @@ const CATALOG_PATH = join(
   __dirname,
   '../../../../prisma/seed/exercise-catalog.json',
 );
+const MOBILE_CATALOG_PATH = join(
+  __dirname,
+  '../../../../../mobile/src/features/workout/infrastructure/exercise-catalog.data.ts',
+);
 const catalog = JSON.parse(
   readFileSync(CATALOG_PATH, 'utf8'),
 ) as BuiltInExerciseSeed[];
+const mobileCatalogSource = readFileSync(MOBILE_CATALOG_PATH, 'utf8');
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
@@ -48,5 +53,25 @@ describe('built-in exercise identity (backend seed artifact)', () => {
       expect(e.name.length).toBeGreaterThan(0);
       expect(e.muscleGroup.length).toBeGreaterThan(0);
     }
+  });
+
+  it('mirrors mobile catalog identity and seed attributes in the same stable order', () => {
+    const capture = (field: string): string[] =>
+      Array.from(
+        mobileCatalogSource.matchAll(
+          new RegExp(`^\\s+${field}: (["'])(.*?)\\1,`, 'gm'),
+        ),
+        (match) => match[2],
+      );
+
+    expect(capture('id')).toEqual(catalog.map((exercise) => exercise.id));
+    expect(capture('key')).toEqual(catalog.map((exercise) => exercise.key));
+    expect(capture('name')).toEqual(catalog.map((exercise) => exercise.name));
+    expect(capture('muscleGroup')).toEqual(
+      catalog.map((exercise) => exercise.muscleGroup),
+    );
+    expect(capture('category')).toEqual(
+      catalog.map((exercise) => exercise.category),
+    );
   });
 });

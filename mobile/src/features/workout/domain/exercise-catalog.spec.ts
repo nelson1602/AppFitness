@@ -1,6 +1,11 @@
 import { BODY_AREA_EXCLUSIONS } from '@/features/icoach/domain/restrictions';
 
-import { EXERCISE_CATALOG_VERSION, type MovementPattern } from './exercise-catalog';
+import {
+  EXERCISE_CATALOG_VERSION,
+  type Equipment,
+  type MovementPattern,
+  type TrainingPattern,
+} from './exercise-catalog';
 import {
   BUILT_IN_EXERCISES,
   getBuiltInExercise,
@@ -20,9 +25,30 @@ const ENGINE_MOVEMENT_TOKENS = new Set<string>([
   'valsalva_heavy_lifts',
 ]);
 
+const TRAINING_PATTERNS = new Set<TrainingPattern>([
+  'SQUAT',
+  'HINGE',
+  'HORIZONTAL_PUSH',
+  'VERTICAL_PUSH',
+  'HORIZONTAL_PULL',
+  'VERTICAL_PULL',
+  'UPPER_BACK',
+  'CORE',
+  'CARRY',
+  'CONDITIONING',
+  'MOBILITY',
+]);
+
+const hasPattern = (equipment: readonly Equipment[], pattern: TrainingPattern): boolean =>
+  BUILT_IN_EXERCISES.some(
+    (exercise) =>
+      exercise.equipment.some((item) => equipment.includes(item)) &&
+      exercise.trainingPatterns.includes(pattern),
+  );
+
 describe('built-in exercise catalog', () => {
   it('is a versioned, non-empty artifact', () => {
-    expect(EXERCISE_CATALOG_VERSION).toMatch(/^exercise-catalog@\d+\.\d+\.\d+$/);
+    expect(EXERCISE_CATALOG_VERSION).toBe('exercise-catalog@0.2.0');
     expect(BUILT_IN_EXERCISES.length).toBeGreaterThan(0);
     expect(listBuiltInExercises()).toBe(BUILT_IN_EXERCISES);
   });
@@ -51,9 +77,44 @@ describe('built-in exercise catalog', () => {
     for (const e of BUILT_IN_EXERCISES) {
       expect(categories.has(e.category)).toBe(true);
       expect(e.muscleGroup.length).toBeGreaterThan(0);
+      expect(e.trainingPatterns.length).toBeGreaterThan(0);
+      expect(e.trainingPatterns.every((pattern) => TRAINING_PATTERNS.has(pattern))).toBe(true);
       expect(e.equipment.length).toBeGreaterThan(0);
       expect(e.bodyAreas.length).toBeGreaterThan(0);
     }
+  });
+
+  it('supports a balanced no-equipment public-v1 routine', () => {
+    const noEquipment: Equipment[] = ['bodyweight', 'none'];
+    for (const pattern of [
+      'SQUAT',
+      'HINGE',
+      'HORIZONTAL_PUSH',
+      'CORE',
+      'CONDITIONING',
+      'MOBILITY',
+    ] as const) {
+      expect(hasPattern(noEquipment, pattern)).toBe(true);
+    }
+    expect(
+      hasPattern(noEquipment, 'HORIZONTAL_PULL') || hasPattern(noEquipment, 'UPPER_BACK'),
+    ).toBe(true);
+  });
+
+  it.each([
+    ['barbell', ['barbell']],
+    ['dumbbell', ['dumbbell']],
+    ['kettlebell', ['kettlebell']],
+    ['machine/cable', ['machine', 'cable']],
+  ] as const)('covers lower, push, and pull programming roles for %s', (_name, equipment) => {
+    expect(hasPattern(equipment, 'SQUAT')).toBe(true);
+    expect(hasPattern(equipment, 'HINGE')).toBe(true);
+    expect(hasPattern(equipment, 'HORIZONTAL_PUSH') || hasPattern(equipment, 'VERTICAL_PUSH')).toBe(
+      true,
+    );
+    expect(hasPattern(equipment, 'HORIZONTAL_PULL') || hasPattern(equipment, 'VERTICAL_PULL')).toBe(
+      true,
+    );
   });
 
   it('looks up built-ins by key and reports membership', () => {

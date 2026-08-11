@@ -19,7 +19,7 @@ import type { TrainingEquipment } from '@/features/icoach/domain/workout-routine
  * catalog and are treated as neutral (never auto-excluded) by the matcher.
  */
 
-export const EXERCISE_CATALOG_VERSION = 'exercise-catalog@0.1.0';
+export const EXERCISE_CATALOG_VERSION = 'exercise-catalog@0.2.0';
 
 /**
  * Deterministic built-in exercise identity (ADR-P015 Phase 16 exercise
@@ -69,6 +69,24 @@ export type MovementPattern =
 /** Backward-compatible catalog alias; the canonical vocabulary is owned by iCoach. */
 export type Equipment = TrainingEquipment;
 
+/**
+ * Language-neutral programming role used by the deterministic routine
+ * generator. These ids describe why an exercise is selected; they carry no
+ * medical or exclusion meaning.
+ */
+export type TrainingPattern =
+  | 'SQUAT'
+  | 'HINGE'
+  | 'HORIZONTAL_PUSH'
+  | 'VERTICAL_PUSH'
+  | 'HORIZONTAL_PULL'
+  | 'VERTICAL_PULL'
+  | 'UPPER_BACK'
+  | 'CORE'
+  | 'CARRY'
+  | 'CONDITIONING'
+  | 'MOBILITY';
+
 /** Joint / body area chiefly loaded — aligns with the engine's bodyArea keys. */
 export type BodyArea =
   | 'knee'
@@ -97,6 +115,8 @@ export interface BuiltInExercise {
   category: ExerciseCategory;
   /** Compatible with the `exercises.muscle_group` column. */
   muscleGroup: string;
+  /** Deterministic programming roles; presentation translates their labels. */
+  trainingPatterns: readonly TrainingPattern[];
   /** Movement patterns this exercise involves (⊆ engine vocabulary). */
   movementPatterns: readonly MovementPattern[];
   equipment: readonly Equipment[];
