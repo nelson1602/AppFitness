@@ -3,6 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { NutritionPlanScreen } from '@/features/nutrition/presentation/NutritionPlanScreen';
+import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
 /**
@@ -11,6 +12,7 @@ import { Screen } from '@/shared/presentation';
  */
 export default function NutritionPlanRoute() {
   const { status } = useSession();
+  const { t } = useLocalization();
 
   if (status === 'unknown') {
     return (
@@ -23,7 +25,7 @@ export default function NutritionPlanRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Meal plan' }} />
+      <Stack.Screen options={{ title: t('nutrition.plan.routeTitle') }} />
       <Screen>
         <NutritionPlanScreen />
       </Screen>

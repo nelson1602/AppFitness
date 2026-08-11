@@ -972,7 +972,7 @@ for full context, decisions D1–D6, and architecture references.
 
 ## [FEATURE-009] Public-v1 Wellness Rebaseline and Bilingual Product Completion
 
-Status: In Progress (Slices 1–2 implemented; later slices pending authorization)
+Status: In Progress (Slices 1–3B-1 and 4A implemented; later slices pending authorization)
 Priority: P0
 Type: Feature
 Owner: Product / Architecture
@@ -1012,6 +1012,13 @@ that build would contradict the owner's clarified product intent.
    the dormant medical field or changing iCoach calculations. Structured
    self-declared physical limitations remain separately deferred.
 4. Breakfast/lunch/dinner/optional-snack nutrition experience completion.
+   **Slice 4A IMPLEMENTED 2026-08-11 (pending commit/review):** the existing
+   deterministic 15-day meal-plan surface now presents its route, meals,
+   portions, macro/target summaries, preference exclusions, baseline gaps,
+   errors, disclaimer, and accessibility text in English or Spanish. Locale
+   changes presentation only; the selected plan, rule output, stable catalog
+   identifiers, offline behavior, and calculations are unchanged. Canonical
+   food names remain English until the focused catalog-localization Slice 4B.
 5. Complete deterministic workout-routine generator.
 6. Bilingual accessibility, unit/integration/E2E, physical-device, privacy,
    legal, Data Safety, and release revalidation.
