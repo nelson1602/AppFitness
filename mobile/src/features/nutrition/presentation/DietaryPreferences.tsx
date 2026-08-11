@@ -1,31 +1,50 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
-import { useLocalization, type SupportedLanguage } from '@/shared/localization';
+import {
+  useLocalization,
+  type SupportedLanguage,
+  type TranslationKey,
+} from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { DietaryPreference, DietaryPreferenceInput } from '../domain/dietary-preference';
-import { AVOID_TAGS, AVOID_TAG_LABELS, type AvoidTag } from '../domain/food-catalog';
 import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
-import { foodDisplayName, searchFoodsForDisplay } from '../application/food-display.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
+import { foodDisplayName, searchFoodsForDisplay } from '../application/food-display.service';
+import type { DietaryPreference, DietaryPreferenceInput } from '../domain/dietary-preference';
+import { AVOID_TAGS, type AvoidTag } from '../domain/food-catalog';
 
-/** Friendly labels for the closed catalog avoid-tag vocabulary (shared copy). */
-const TAG_LABEL: Record<AvoidTag, string> = AVOID_TAG_LABELS;
+type Translate = (key: TranslationKey) => string;
 
-const KIND_LABEL: Record<DietaryPreference['kind'], string> = {
-  allergy: 'Allergy / sensitivity',
-  preference: 'Preference / dislike',
+const TAG_KEY: Record<AvoidTag, TranslationKey> = {
+  nut_allergy: 'nutrition.avoid.nuts',
+  shellfish_allergy: 'nutrition.avoid.shellfish',
+  gluten_sensitive: 'nutrition.avoid.gluten',
+  lactose_sensitive: 'nutrition.avoid.lactose',
+  high_sodium_sensitive: 'nutrition.avoid.sodium',
+  high_purine: 'nutrition.avoid.purine',
 };
 
-function exclusionLabel(p: DietaryPreference, language: SupportedLanguage): string {
-  if (p.avoidTag) return `${TAG_LABEL[p.avoidTag] ?? p.avoidTag} · category`;
-  if (p.catalogKey) {
-    const food = getCanonicalByCatalogKey(p.catalogKey);
-    return `${food ? foodDisplayName(food, language) : p.catalogKey} · food`;
+const KIND_KEY: Record<DietaryPreference['kind'], TranslationKey> = {
+  allergy: 'nutrition.preferences.allergy',
+  preference: 'nutrition.preferences.preference',
+};
+
+function exclusionLabel(
+  preference: DietaryPreference,
+  language: SupportedLanguage,
+  t: Translate,
+): string {
+  if (preference.avoidTag) {
+    return `${t(TAG_KEY[preference.avoidTag])} · ${t('nutrition.preferences.categorySuffix')}`;
   }
-  return 'Exclusion';
+  if (preference.catalogKey) {
+    const food = getCanonicalByCatalogKey(preference.catalogKey);
+    const name = food ? foodDisplayName(food, language) : preference.catalogKey;
+    return `${name} · ${t('nutrition.preferences.foodSuffix')}`;
+  }
+  return t('nutrition.preferences.exclusion');
 }
 
 function Chip({
@@ -62,18 +81,10 @@ function Chip({
   );
 }
 
-/**
- * Dietary preferences & allergies management (ADR-P014 / FEATURE-006 Slice
- * 2B). View / add / remove exclusions — either a catalog avoid-tag category or
- * a specific food — classified as an allergy/sensitivity or a
- * preference/dislike. ALL persistence goes through the Slice 2A store →
- * service → repository (local-first write, note encryption, sync enqueue); the
- * UI never touches SQLite. Not yet connected to meal-plan generation (Slice 3)
- * or food logging (Slice 4).
- */
+/** Local-first dietary exclusions; presentation language never changes stored identity. */
 export function DietaryPreferences() {
   const theme = useTheme();
-  const { language } = useLocalization();
+  const { language, t } = useLocalization();
   const { status, preferences, error, load, add, remove } = useDietaryPreferenceStore();
 
   const [mode, setMode] = useState<'category' | 'food'>('category');
@@ -115,37 +126,32 @@ export function DietaryPreferences() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">Dietary preferences & allergies</AppText>
-        <AppText tone="muted">
-          Tell your coach what to avoid. Allergies and sensitivities help personalize your meal
-          planning — this is not emergency medical advice. Entries are saved on your device first
-          and sync to your account later. Meal-plan integration arrives in the next update, so your
-          current plan may not change yet.
-        </AppText>
+        <AppText variant="headline">{t('nutrition.preferences.title')}</AppText>
+        <AppText tone="muted">{t('nutrition.preferences.subtitle')}</AppText>
       </View>
 
       {error ? (
-        <Banner title="Something went wrong" tone="error">
-          {error}
+        <Banner title={t('nutrition.preferences.errorTitle')} tone="error">
+          {t('nutrition.preferences.errorMessage')}
         </Banner>
       ) : null}
 
-      <Card accessibilityLabel="Add an exclusion">
+      <Card accessibilityLabel={t('nutrition.preferences.addAccessibility')}>
         <View style={{ gap: theme.spacing.md }}>
-          <AppText variant="title">Add an exclusion</AppText>
+          <AppText variant="title">{t('nutrition.preferences.addTitle')}</AppText>
 
           <AppText variant="label" tone="muted">
-            What are you excluding?
+            {t('nutrition.preferences.what')}
           </AppText>
           <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <Chip
-              label="A category"
+              label={t('nutrition.preferences.categoryChoice')}
               testID="dp-mode-category"
               active={mode === 'category'}
               onPress={() => setMode('category')}
             />
             <Chip
-              label="A specific food"
+              label={t('nutrition.preferences.foodChoice')}
               testID="dp-mode-food"
               active={mode === 'food'}
               onPress={() => setMode('food')}
@@ -153,17 +159,17 @@ export function DietaryPreferences() {
           </View>
 
           <AppText variant="label" tone="muted">
-            Why?
+            {t('nutrition.preferences.why')}
           </AppText>
           <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <Chip
-              label={KIND_LABEL.allergy}
+              label={t(KIND_KEY.allergy)}
               testID="dp-kind-allergy"
               active={kind === 'allergy'}
               onPress={() => setKind('allergy')}
             />
             <Chip
-              label={KIND_LABEL.preference}
+              label={t(KIND_KEY.preference)}
               testID="dp-kind-preference"
               active={kind === 'preference'}
               onPress={() => setKind('preference')}
@@ -173,16 +179,16 @@ export function DietaryPreferences() {
           {mode === 'category' ? (
             <View style={{ gap: theme.spacing.sm }}>
               <AppText variant="label" tone="muted">
-                Category
+                {t('nutrition.preferences.category')}
               </AppText>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                {AVOID_TAGS.map((t) => (
+                {AVOID_TAGS.map((avoidTag) => (
                   <Chip
-                    key={t}
-                    label={TAG_LABEL[t]}
-                    testID={`dp-tag-${t}`}
-                    active={tag === t}
-                    onPress={() => setTag(t)}
+                    key={avoidTag}
+                    label={t(TAG_KEY[avoidTag])}
+                    testID={`dp-tag-${avoidTag}`}
+                    active={tag === avoidTag}
+                    onPress={() => setTag(avoidTag)}
                   />
                 ))}
               </View>
@@ -190,16 +196,16 @@ export function DietaryPreferences() {
           ) : (
             <View style={{ gap: theme.spacing.sm }}>
               <AppText variant="label" tone="muted">
-                Find a food
+                {t('nutrition.preferences.findFood')}
               </AppText>
               <TextInput
-                accessibilityLabel="Search foods to exclude"
+                accessibilityLabel={t('nutrition.preferences.searchAccessibility')}
                 testID="dp-food-search"
-                placeholder="Search foods…"
+                placeholder={t('nutrition.preferences.searchPlaceholder')}
                 placeholderTextColor={theme.colors.outline}
                 value={query}
-                onChangeText={(t) => {
-                  setQuery(t);
+                onChangeText={(text) => {
+                  setQuery(text);
                   setFood(null);
                 }}
                 style={{
@@ -212,18 +218,18 @@ export function DietaryPreferences() {
               />
               {food ? (
                 <AppText tone="muted">
-                  Selected:{' '}
+                  {t('nutrition.preferences.selected')}:{' '}
                   {selectedFood ? foodDisplayName(selectedFood, language) : food.catalogKey}
                 </AppText>
               ) : (
-                results.map((f) => (
+                results.map((result) => (
                   <Pressable
-                    key={f.id}
+                    key={result.id}
                     accessibilityRole="button"
-                    testID={`dp-food-result-${f.id}`}
-                    onPress={() => setFood({ catalogKey: f.id })}
+                    testID={`dp-food-result-${result.id}`}
+                    onPress={() => setFood({ catalogKey: result.id })}
                   >
-                    <AppText>{foodDisplayName(f, language)}</AppText>
+                    <AppText>{foodDisplayName(result, language)}</AppText>
                   </Pressable>
                 ))
               )}
@@ -231,9 +237,9 @@ export function DietaryPreferences() {
           )}
 
           <TextInput
-            accessibilityLabel="Optional note"
+            accessibilityLabel={t('nutrition.preferences.noteAccessibility')}
             testID="dp-note"
-            placeholder="Optional note (encrypted on your device)"
+            placeholder={t('nutrition.preferences.notePlaceholder')}
             placeholderTextColor={theme.colors.outline}
             value={note}
             onChangeText={setNote}
@@ -247,44 +253,55 @@ export function DietaryPreferences() {
           />
 
           <AppButton
-            accessibilityLabel="Add exclusion"
+            accessibilityLabel={t('nutrition.preferences.addAccessibility')}
             testID="dp-add"
             disabled={!canAdd}
             loading={status === 'saving'}
             onPress={() => void onAdd()}
           >
-            Add exclusion
+            {t('nutrition.preferences.addButton')}
           </AppButton>
         </View>
       </Card>
 
       <View style={{ gap: theme.spacing.md }}>
-        <AppText variant="title">Your exclusions</AppText>
+        <AppText variant="title">{t('nutrition.preferences.listTitle')}</AppText>
         {initialLoading ? (
-          <AppText accessibilityLabel="Loading dietary preferences">Loading…</AppText>
+          <AppText accessibilityLabel={t('nutrition.preferences.loadingAccessibility')}>
+            {t('nutrition.plan.loading')}
+          </AppText>
         ) : preferences.length === 0 ? (
-          <AppText tone="muted">No exclusions yet.</AppText>
+          <AppText tone="muted">{t('nutrition.preferences.empty')}</AppText>
         ) : (
-          preferences.map((p) => (
-            <Card key={p.id} accessibilityLabel={`Exclusion: ${exclusionLabel(p, language)}`}>
-              <View style={{ gap: theme.spacing.xs }}>
-                <AppText variant="label">{exclusionLabel(p, language)}</AppText>
-                <AppText variant="caption" tone={p.kind === 'allergy' ? 'warning' : 'muted'}>
-                  {KIND_LABEL[p.kind]}
-                  {p.hasNote ? ' · note saved' : ''}
-                </AppText>
-                <AppButton
-                  accessibilityLabel={`Remove exclusion: ${exclusionLabel(p, language)}`}
-                  testID={`dp-remove-${p.id}`}
-                  variant="text"
-                  loading={status === 'saving'}
-                  onPress={() => void remove(p.id)}
-                >
-                  Remove
-                </AppButton>
-              </View>
-            </Card>
-          ))
+          preferences.map((preference) => {
+            const label = exclusionLabel(preference, language, t);
+            return (
+              <Card
+                key={preference.id}
+                accessibilityLabel={`${t('nutrition.preferences.exclusion')}: ${label}`}
+              >
+                <View style={{ gap: theme.spacing.xs }}>
+                  <AppText variant="label">{label}</AppText>
+                  <AppText
+                    variant="caption"
+                    tone={preference.kind === 'allergy' ? 'warning' : 'muted'}
+                  >
+                    {t(KIND_KEY[preference.kind])}
+                    {preference.hasNote ? ` · ${t('nutrition.preferences.noteSaved')}` : ''}
+                  </AppText>
+                  <AppButton
+                    accessibilityLabel={`${t('nutrition.preferences.removeAccessibility')}: ${label}`}
+                    testID={`dp-remove-${preference.id}`}
+                    variant="text"
+                    loading={status === 'saving'}
+                    onPress={() => void remove(preference.id)}
+                  >
+                    {t('nutrition.preferences.remove')}
+                  </AppButton>
+                </View>
+              </Card>
+            );
+          })
         )}
       </View>
     </View>

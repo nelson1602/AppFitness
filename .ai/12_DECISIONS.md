@@ -6458,6 +6458,24 @@ changes display/search only while submitted and stored catalog identities stay
 identical. General food-log and preference-screen copy remains part of the
 later whole-product bilingual audit.
 
+### Slice 4C Implementation Record — Bilingual Nutrition UI Completion
+
+The remaining general nutrition presentation now resolves through the shared
+English/Spanish localization boundary: nutrition targets and structured goal
+explanations, dietary-exclusion management, food-log sync/empty/error states,
+meal and macro labels, add-food controls, serving accessibility, preference
+warnings, and wellness disclaimers. Raw store errors are not rendered directly;
+each locale receives a stable, non-technical recovery message.
+
+Locale selection remains presentation-only. The same deterministic target and
+macro values, stable catalog keys, canonical snapshots, dietary-preference
+inputs, local-first writes, and sync actions are used in both languages. The
+previous preference-screen statement that meal-plan integration was pending is
+removed because preferences already shape deterministic plan selection. This
+slice adds no dependency, schema, migration, backend, iCoach-rule, catalog-data,
+or persistence change. It completes the nutrition-feature copy audit, not the
+whole-app bilingual audit.
+
 ### Supersedes / Preserves
 
 - Supersedes the **public-product-scope** portions of ADR-0007 and the original

@@ -1024,6 +1024,14 @@ that build would contradict the owner's clarified product intent.
    specific-food preference selection use the locale label. Spanish search is
    accent-insensitive and still accepts English names; writes/sync continue to
    carry the same catalog IDs and canonical immutable snapshots.
+   **Slice 4C IMPLEMENTED 2026-08-11 (pending commit/review):** nutrition
+   targets, dietary exclusions, food-log status/content, add-food controls,
+   serving accessibility, warnings, empty/loading/error states, and safe
+   wellness disclaimers now resolve through the shared English/Spanish
+   localization boundary. Goal explanations are assembled from structured
+   iCoach output at presentation time. The outdated message claiming dietary
+   preferences were not yet connected to meal planning was removed. No target,
+   macro, preference, catalog, persistence, sync, or iCoach behavior changed.
 5. Complete deterministic workout-routine generator.
 6. Bilingual accessibility, unit/integration/E2E, physical-device, privacy,
    legal, Data Safety, and release revalidation.

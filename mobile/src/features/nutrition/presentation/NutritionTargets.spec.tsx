@@ -7,11 +7,28 @@ import { NutritionTargets } from './NutritionTargets';
 const refresh = jest.fn();
 
 let mockState: DashboardState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('@/features/dashboard/application/dashboard.store', () => ({
   useDashboardStore: () => mockState,
 }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+jest.mock('@/shared/localization', () => {
+  const { en } = jest.requireActual('@/shared/localization/resources/en') as {
+    en: Record<string, string>;
+  };
+  const { es } = jest.requireActual('@/shared/localization/resources/es') as {
+    es: Record<string, string>;
+  };
+  return {
+    formatNumber: (value: number, language: 'en' | 'es') =>
+      new Intl.NumberFormat(language === 'es' ? 'es' : 'en-US').format(value),
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
+    }),
+  };
+});
 
 function nutrition(overrides: Record<string, unknown> = {}) {
   return {
@@ -60,6 +77,7 @@ function setStore(partial: Partial<DashboardState>) {
 describe('NutritionTargets', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
   });
 
   it('refreshes the assessment on mount', async () => {
@@ -83,7 +101,7 @@ describe('NutritionTargets', () => {
 
     await render(<NutritionTargets />);
 
-    expect(screen.getByText('2500 kcal')).toBeOnTheScreen();
+    expect(screen.getByText('2,500 kcal')).toBeOnTheScreen();
     expect(
       screen.getByText('Calories are set 20% below maintenance to support fat loss.'),
     ).toBeOnTheScreen();
@@ -161,5 +179,22 @@ describe('NutritionTargets', () => {
     setStore({ status: 'error', error: 'The dashboard could not be loaded right now.' });
     await render(<NutritionTargets />);
     expect(screen.getByText('Nutrition unavailable')).toBeOnTheScreen();
+  });
+
+  it('renders targets, goal explanation, and controls in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'ready', data: readyData() as unknown as DashboardState['data'] });
+
+    await render(<NutritionTargets />);
+
+    expect(screen.getByText('Objetivos nutricionales')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Las calorías se establecen 20% por debajo del nivel de mantenimiento para apoyar la pérdida de grasa.',
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', { name: 'Ver tu plan alimentario de 15 días' }),
+    ).toBeOnTheScreen();
   });
 });
