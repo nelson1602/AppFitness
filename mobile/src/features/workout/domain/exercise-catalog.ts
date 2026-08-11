@@ -1,4 +1,5 @@
 import type { ExerciseCategory } from '@/shared/infrastructure/database/types';
+import type { TrainingEquipment } from '@/features/icoach/domain/workout-routine';
 
 /**
  * Built-in exercise catalog contract + movement-pattern vocabulary
@@ -65,8 +66,8 @@ export type MovementPattern =
   | 'max_effort_lifts'
   | 'valsalva_heavy_lifts';
 
-export type Equipment =
-  'barbell' | 'dumbbell' | 'kettlebell' | 'machine' | 'cable' | 'bodyweight' | 'none';
+/** Backward-compatible catalog alias; the canonical vocabulary is owned by iCoach. */
+export type Equipment = TrainingEquipment;
 
 /** Joint / body area chiefly loaded — aligns with the engine's bodyArea keys. */
 export type BodyArea =
