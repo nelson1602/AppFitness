@@ -5,9 +5,20 @@ import { FoodLogAddForm } from './FoodLogAddForm';
 
 let mockLanguage: 'en' | 'es' = 'en';
 
-jest.mock('@/shared/localization', () => ({
-  useLocalization: () => ({ language: mockLanguage }),
-}));
+jest.mock('@/shared/localization', () => {
+  const { en } = jest.requireActual('@/shared/localization/resources/en') as {
+    en: Record<string, string>;
+  };
+  const { es } = jest.requireActual('@/shared/localization/resources/es') as {
+    es: Record<string, string>;
+  };
+  return {
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
+    }),
+  };
+});
 
 beforeEach(() => {
   mockLanguage = 'en';
@@ -82,6 +93,8 @@ describe('FoodLogAddForm (Slice 4D)', () => {
     await fireEvent.press(await screen.findByText('Pechuga de pollo, cocida'));
     await fireEvent.press(screen.getByTestId('food-log-add-submit'));
 
+    expect(screen.getByText('Agregar alimento')).toBeOnTheScreen();
+    expect(screen.getByText('Desayuno')).toBeOnTheScreen();
     expect(onAdd).toHaveBeenCalledWith('food.chicken_breast', 'BREAKFAST', 1);
   });
 });

@@ -21,9 +21,20 @@ jest.mock('../application/dietary-preference.store', () => ({
   useDietaryPreferenceStore: (selector?: (s: DietaryPreferenceState) => unknown) =>
     selector ? selector(mockPrefs) : mockPrefs,
 }));
-jest.mock('@/shared/localization', () => ({
-  useLocalization: () => ({ language: mockLanguage }),
-}));
+jest.mock('@/shared/localization', () => {
+  const { en } = jest.requireActual('@/shared/localization/resources/en') as {
+    en: Record<string, string>;
+  };
+  const { es } = jest.requireActual('@/shared/localization/resources/es') as {
+    es: Record<string, string>;
+  };
+  return {
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
+    }),
+  };
+});
 
 function setPrefs(
   preferences: DietaryPreference[] = [],
@@ -155,7 +166,9 @@ describe('FoodLogScreen (Slice 4C)', () => {
 
     await render(<FoodLogScreen />);
 
+    expect(screen.getByText('Registro de alimentos')).toBeOnTheScreen();
     expect(screen.getByText('Pechuga de pollo, cocida')).toBeOnTheScreen();
+    expect(screen.getByText('Eliminar')).toBeOnTheScreen();
     expect(logged.catalogKey).toBe('food.chicken_breast');
     expect(logged.name).toBe('Chicken breast, cooked');
   });
@@ -187,7 +200,7 @@ describe('FoodLogScreen (Slice 4C)', () => {
       sync: { state: 'action_required', pending: 0, actionRequired: 1 },
     });
     await render(<FoodLogScreen />);
-    expect(screen.getByText(/can’t sync because the food isn’t available/)).toBeOnTheScreen();
+    expect(screen.getByText(/cannot sync because the food is not available/)).toBeOnTheScreen();
     expect(screen.getByLabelText('Sync action required')).toBeOnTheScreen();
   });
 

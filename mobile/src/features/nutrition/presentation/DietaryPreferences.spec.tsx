@@ -17,9 +17,20 @@ jest.mock('../application/dietary-preference.store', () => ({
   useDietaryPreferenceStore: (selector?: (s: DietaryPreferenceState) => unknown) =>
     selector ? selector(mockState) : mockState,
 }));
-jest.mock('@/shared/localization', () => ({
-  useLocalization: () => ({ language: mockLanguage }),
-}));
+jest.mock('@/shared/localization', () => {
+  const { en } = jest.requireActual('@/shared/localization/resources/en') as {
+    en: Record<string, string>;
+  };
+  const { es } = jest.requireActual('@/shared/localization/resources/es') as {
+    es: Record<string, string>;
+  };
+  return {
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
+    }),
+  };
+});
 
 // Direct SQLite access from the UI is forbidden (persistence must route
 // through the store → service → repository). Spy on the database module to
@@ -134,6 +145,7 @@ describe('DietaryPreferences', () => {
     await fireEvent.press(await screen.findByText('Semillas de granada'));
     await fireEvent.press(screen.getByTestId('dp-add'));
 
+    expect(screen.getByText('Preferencias y alergias alimentarias')).toBeOnTheScreen();
     expect(add).toHaveBeenCalledWith({
       exclusionType: 'catalog_key',
       catalogKey: 'food.pomegranate',

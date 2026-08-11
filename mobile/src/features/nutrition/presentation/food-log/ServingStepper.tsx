@@ -1,5 +1,6 @@
 import { Pressable, View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -28,6 +29,7 @@ export function ServingStepper({
   disabled?: boolean;
 }) {
   const theme = useTheme();
+  const { t } = useLocalization();
 
   const button = (sign: -1 | 1, label: string, testID: string): React.ReactElement => {
     const atFloor = sign === -1 && value <= MIN;
@@ -61,16 +63,16 @@ export function ServingStepper({
 
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
-      {button(-1, 'Decrease servings', `${testIDPrefix}-dec`)}
+      {button(-1, t('nutrition.log.decreaseServings'), `${testIDPrefix}-dec`)}
       <AppText
         variant="label"
         testID={`${testIDPrefix}-value`}
-        accessibilityLabel={`${formatServingCount(value)} servings`}
+        accessibilityLabel={`${formatServingCount(value)} ${t('nutrition.log.servings')}`}
         style={{ minWidth: theme.spacing.x3l, textAlign: 'center' }}
       >
         {formatServingCount(value)}×
       </AppText>
-      {button(1, 'Increase servings', `${testIDPrefix}-inc`)}
+      {button(1, t('nutrition.log.increaseServings'), `${testIDPrefix}-inc`)}
     </View>
   );
 }
