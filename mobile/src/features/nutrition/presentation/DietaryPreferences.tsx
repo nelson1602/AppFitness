@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
+import { useLocalization, type SupportedLanguage } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { DietaryPreference, DietaryPreferenceInput } from '../domain/dietary-preference';
 import { AVOID_TAGS, AVOID_TAG_LABELS, type AvoidTag } from '../domain/food-catalog';
 import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
-import { search } from '../application/food-catalog.service';
+import { foodDisplayName, searchFoodsForDisplay } from '../application/food-display.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 
 /** Friendly labels for the closed catalog avoid-tag vocabulary (shared copy). */
@@ -18,10 +19,11 @@ const KIND_LABEL: Record<DietaryPreference['kind'], string> = {
   preference: 'Preference / dislike',
 };
 
-function exclusionLabel(p: DietaryPreference): string {
+function exclusionLabel(p: DietaryPreference, language: SupportedLanguage): string {
   if (p.avoidTag) return `${TAG_LABEL[p.avoidTag] ?? p.avoidTag} · category`;
   if (p.catalogKey) {
-    return `${getCanonicalByCatalogKey(p.catalogKey)?.name ?? p.catalogKey} · food`;
+    const food = getCanonicalByCatalogKey(p.catalogKey);
+    return `${food ? foodDisplayName(food, language) : p.catalogKey} · food`;
   }
   return 'Exclusion';
 }
@@ -71,20 +73,25 @@ function Chip({
  */
 export function DietaryPreferences() {
   const theme = useTheme();
+  const { language } = useLocalization();
   const { status, preferences, error, load, add, remove } = useDietaryPreferenceStore();
 
   const [mode, setMode] = useState<'category' | 'food'>('category');
   const [kind, setKind] = useState<DietaryPreference['kind']>('allergy');
   const [tag, setTag] = useState<AvoidTag | null>(null);
   const [query, setQuery] = useState('');
-  const [food, setFood] = useState<{ catalogKey: string; name: string } | null>(null);
+  const [food, setFood] = useState<{ catalogKey: string } | null>(null);
   const [note, setNote] = useState('');
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const results = useMemo(() => (query.trim() ? search(query).slice(0, 8) : []), [query]);
+  const results = useMemo(
+    () => (query.trim() ? searchFoodsForDisplay(query, language).slice(0, 8) : []),
+    [language, query],
+  );
+  const selectedFood = food ? getCanonicalByCatalogKey(food.catalogKey) : null;
   const canAdd = mode === 'category' ? tag !== null : food !== null;
   const initialLoading = status === 'loading' && preferences.length === 0;
 
@@ -204,16 +211,19 @@ export function DietaryPreferences() {
                 }}
               />
               {food ? (
-                <AppText tone="muted">Selected: {food.name}</AppText>
+                <AppText tone="muted">
+                  Selected:{' '}
+                  {selectedFood ? foodDisplayName(selectedFood, language) : food.catalogKey}
+                </AppText>
               ) : (
                 results.map((f) => (
                   <Pressable
                     key={f.id}
                     accessibilityRole="button"
                     testID={`dp-food-result-${f.id}`}
-                    onPress={() => setFood({ catalogKey: f.id, name: f.name })}
+                    onPress={() => setFood({ catalogKey: f.id })}
                   >
-                    <AppText>{f.name}</AppText>
+                    <AppText>{foodDisplayName(f, language)}</AppText>
                   </Pressable>
                 ))
               )}
@@ -256,15 +266,15 @@ export function DietaryPreferences() {
           <AppText tone="muted">No exclusions yet.</AppText>
         ) : (
           preferences.map((p) => (
-            <Card key={p.id} accessibilityLabel={`Exclusion: ${exclusionLabel(p)}`}>
+            <Card key={p.id} accessibilityLabel={`Exclusion: ${exclusionLabel(p, language)}`}>
               <View style={{ gap: theme.spacing.xs }}>
-                <AppText variant="label">{exclusionLabel(p)}</AppText>
+                <AppText variant="label">{exclusionLabel(p, language)}</AppText>
                 <AppText variant="caption" tone={p.kind === 'allergy' ? 'warning' : 'muted'}>
                   {KIND_LABEL[p.kind]}
                   {p.hasNote ? ' · note saved' : ''}
                 </AppText>
                 <AppButton
-                  accessibilityLabel={`Remove exclusion: ${exclusionLabel(p)}`}
+                  accessibilityLabel={`Remove exclusion: ${exclusionLabel(p, language)}`}
                   testID={`dp-remove-${p.id}`}
                   variant="text"
                   loading={status === 'saving'}

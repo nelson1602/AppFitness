@@ -11,10 +11,14 @@ const add = jest.fn();
 const remove = jest.fn();
 
 let mockState: DietaryPreferenceState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('../application/dietary-preference.store', () => ({
   useDietaryPreferenceStore: (selector?: (s: DietaryPreferenceState) => unknown) =>
     selector ? selector(mockState) : mockState,
+}));
+jest.mock('@/shared/localization', () => ({
+  useLocalization: () => ({ language: mockLanguage }),
 }));
 
 // Direct SQLite access from the UI is forbidden (persistence must route
@@ -55,6 +59,7 @@ const tagPref: DietaryPreference = {
 describe('DietaryPreferences', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
     add.mockResolvedValue(true);
     remove.mockResolvedValue(true);
   });
@@ -115,6 +120,24 @@ describe('DietaryPreferences', () => {
       exclusionType: 'catalog_key',
       catalogKey: 'food.pomegranate',
       kind: 'preference',
+      note: null,
+    });
+  });
+
+  it('searches a Spanish food label while persisting only its stable catalog key', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'ready', preferences: [] });
+    await render(<DietaryPreferences />);
+
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+    fireEvent.changeText(screen.getByTestId('dp-food-search'), 'granada');
+    await fireEvent.press(await screen.findByText('Semillas de granada'));
+    await fireEvent.press(screen.getByTestId('dp-add'));
+
+    expect(add).toHaveBeenCalledWith({
+      exclusionType: 'catalog_key',
+      catalogKey: 'food.pomegranate',
+      kind: 'allergy',
       note: null,
     });
   });

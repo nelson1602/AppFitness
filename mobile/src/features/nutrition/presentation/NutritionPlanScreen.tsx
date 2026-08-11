@@ -11,6 +11,7 @@ import { useTheme } from '@/shared/theme';
 import type { AvoidTag, ServingUnit } from '../domain/food-catalog';
 import type { MealPlan, MealPlanDay, MealPlanMeal, MealSlot } from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
+import { foodDisplayName } from '../application/food-display.service';
 import { selectMealPlan } from '../application/meal-plan.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { NutritionDataGap } from './NutritionDataGap';
@@ -96,7 +97,7 @@ function MealCard({ meal }: { meal: MealPlanMeal }) {
         <AppText variant="label">{slotLabel}</AppText>
         {meal.foods.map((f, idx) => (
           <View key={`${f.foodId}-${idx}`} style={{ gap: 2 }}>
-            <AppText>{f.name}</AppText>
+            <AppText>{foodDisplayName({ id: f.foodId, name: f.name }, language)}</AppText>
             <AppText variant="caption" tone="muted">
               {formatNumber(f.serving.amount, language)} {t(UNIT_KEY[f.serving.unit])} ·{' '}
               {formatNumber(f.servings, language)}× · {formatNumber(f.macros.calories, language)}{' '}
@@ -167,11 +168,14 @@ function DayView({ day }: { day: MealPlanDay }) {
  */
 function ExclusionsCard({ plan }: { plan: MealPlan }) {
   const theme = useTheme();
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
   if (plan.excludedAvoidTags.length === 0 && plan.excludedCatalogKeys.length === 0) return null;
 
   const categories = plan.excludedAvoidTags.map((tag) => t(AVOID_TAG_KEY[tag]));
-  const foods = plan.excludedCatalogKeys.map((k) => getById(k)?.name ?? k);
+  const foods = plan.excludedCatalogKeys.map((key) => {
+    const food = getById(key);
+    return food ? foodDisplayName(food, language) : key;
+  });
 
   return (
     <Card accessibilityLabel={t('nutrition.plan.preferencesAccessibility')}>

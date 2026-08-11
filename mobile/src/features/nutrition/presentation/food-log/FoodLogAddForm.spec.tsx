@@ -3,6 +3,16 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { DietaryPreference } from '../../domain/dietary-preference';
 import { FoodLogAddForm } from './FoodLogAddForm';
 
+let mockLanguage: 'en' | 'es' = 'en';
+
+jest.mock('@/shared/localization', () => ({
+  useLocalization: () => ({ language: mockLanguage }),
+}));
+
+beforeEach(() => {
+  mockLanguage = 'en';
+});
+
 function pref(over: Partial<DietaryPreference> = {}): DietaryPreference {
   return {
     id: 'dp-1',
@@ -61,6 +71,18 @@ describe('FoodLogAddForm (Slice 4D)', () => {
     expect(onAdd).toHaveBeenCalledWith('food.chicken_breast', 'BREAKFAST', 1);
     // Selection cleared → the submit button is gone until another food is picked.
     expect(screen.queryByTestId('food-log-add-submit')).toBeNull();
+  });
+
+  it('searches and presents Spanish food names without changing the submitted catalog key', async () => {
+    mockLanguage = 'es';
+    const onAdd = jest.fn();
+    await render(<FoodLogAddForm onAdd={onAdd} />);
+
+    await fireEvent.changeText(screen.getByTestId('food-search-input'), 'pechuga de pollo');
+    await fireEvent.press(await screen.findByText('Pechuga de pollo, cocida'));
+    await fireEvent.press(screen.getByTestId('food-log-add-submit'));
+
+    expect(onAdd).toHaveBeenCalledWith('food.chicken_breast', 'BREAKFAST', 1);
   });
 });
 

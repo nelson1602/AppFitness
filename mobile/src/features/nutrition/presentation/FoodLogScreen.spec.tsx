@@ -9,6 +9,7 @@ import { FoodLogScreen } from './FoodLogScreen';
 let mockState: FoodLogState;
 let mockPrefs: DietaryPreferenceState;
 let mockNutrition: { calories: number; proteinG: number; carbsG: number; fatG: number } | null;
+let mockLanguage: 'en' | 'es' = 'en';
 
 const loadPreferences = jest.fn();
 
@@ -19,6 +20,9 @@ jest.mock('../application/food-log.store', () => ({
 jest.mock('../application/dietary-preference.store', () => ({
   useDietaryPreferenceStore: (selector?: (s: DietaryPreferenceState) => unknown) =>
     selector ? selector(mockPrefs) : mockPrefs,
+}));
+jest.mock('@/shared/localization', () => ({
+  useLocalization: () => ({ language: mockLanguage }),
 }));
 
 function setPrefs(
@@ -81,6 +85,7 @@ function setState(overrides: Partial<FoodLogState> = {}): void {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockLanguage = 'en';
   mockNutrition = { calories: 2000, proteinG: 150, carbsG: 200, fatG: 60 };
   setState();
   setPrefs();
@@ -141,6 +146,18 @@ describe('FoodLogScreen (Slice 4C)', () => {
     expect(screen.getByTestId('logged-item-i1')).toBeOnTheScreen();
     expect(screen.getByText('Chicken breast, cooked')).toBeOnTheScreen();
     expect(screen.getByText('320 / 2000 kcal')).toBeOnTheScreen();
+  });
+
+  it('presents a logged catalog item in Spanish without changing its stored snapshot', async () => {
+    mockLanguage = 'es';
+    const logged = item();
+    setState({ items: [logged] });
+
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText('Pechuga de pollo, cocida')).toBeOnTheScreen();
+    expect(logged.catalogKey).toBe('food.chicken_breast');
+    expect(logged.name).toBe('Chicken breast, cooked');
   });
 
   it('edits a serving count via the stepper', async () => {

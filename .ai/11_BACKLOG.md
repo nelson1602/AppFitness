@@ -972,7 +972,7 @@ for full context, decisions D1–D6, and architecture references.
 
 ## [FEATURE-009] Public-v1 Wellness Rebaseline and Bilingual Product Completion
 
-Status: In Progress (Slices 1–3B-1 and 4A implemented; later slices pending authorization)
+Status: In Progress (Slices 1–3B-1 and 4A–4B implemented; later slices pending authorization)
 Priority: P0
 Type: Feature
 Owner: Product / Architecture
@@ -1017,8 +1017,13 @@ that build would contradict the owner's clarified product intent.
    portions, macro/target summaries, preference exclusions, baseline gaps,
    errors, disclaimer, and accessibility text in English or Spanish. Locale
    changes presentation only; the selected plan, rule output, stable catalog
-   identifiers, offline behavior, and calculations are unchanged. Canonical
-   food names remain English until the focused catalog-localization Slice 4B.
+   identifiers, offline behavior, and calculations are unchanged.
+   **Slice 4B IMPLEMENTED 2026-08-11 (pending commit/review):** all 300 stable
+   catalog IDs have an authored Spanish presentation name with canonical-English
+   fallback. Meal plans, food-log search/selection and logged entries, and
+   specific-food preference selection use the locale label. Spanish search is
+   accent-insensitive and still accepts English names; writes/sync continue to
+   carry the same catalog IDs and canonical immutable snapshots.
 5. Complete deterministic workout-routine generator.
 6. Bilingual accessibility, unit/integration/E2E, physical-device, privacy,
    legal, Data Safety, and release revalidation.
