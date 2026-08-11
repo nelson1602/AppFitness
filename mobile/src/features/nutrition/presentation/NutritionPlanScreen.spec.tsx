@@ -276,6 +276,13 @@ describe('NutritionPlanScreen', () => {
 
   it('renders the structured meal-plan presentation in Spanish', async () => {
     mockLanguage = 'es';
+    const localizedPlan = plan();
+    localizedPlan.days[0].meals[0].foods[0] = {
+      ...localizedPlan.days[0].meals[0].foods[0],
+      foodId: 'food.chicken_breast',
+      name: 'Chicken breast, cooked',
+    };
+    mockSelection = { status: 'ready', plan: localizedPlan };
     await render(<NutritionPlanScreen />);
 
     expect(screen.getByText('Plan alimentario de 15 días')).toBeOnTheScreen();
@@ -289,6 +296,8 @@ describe('NutritionPlanScreen', () => {
         'Día 1 objetivo: 2300 kcal · Proteína 130 g · Carbohidratos 260 g · Grasa 76 g.',
       ),
     ).toBeOnTheScreen();
+    expect(screen.getByText('Pechuga de pollo, cocida')).toBeOnTheScreen();
+    expect(localizedPlan.days[0].meals[0].foods[0].foodId).toBe('food.chicken_breast');
     expect(screen.queryByText(day(1).rationale.summary)).toBeNull();
   });
 

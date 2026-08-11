@@ -6440,6 +6440,24 @@ surfaces. Food names remain stable English catalog data until Slice 4B adds
 locale-ready catalog presentation. Focused English/Spanish component tests
 prove the same selected plan is rendered under both locales.
 
+### Slice 4B Implementation Record — Bilingual Food-Catalog Presentation
+
+All 300 bundled catalog IDs now have an authored Spanish presentation label in
+a dedicated locale resource. The canonical `FoodItem.name`, catalog ID,
+revision, version, serving data, macros, persisted snapshot, plan seed, and sync
+payload remain unchanged. A presentation service resolves English to the
+canonical name and Spanish to the authored label with a canonical fallback for
+future/unmapped IDs.
+
+Meal-plan foods and explicit exclusions, food-log search/selection and logged
+rows, and specific-food dietary-preference selection now use that resolver.
+Spanish catalog search is accent-insensitive and matches both Spanish and
+canonical English text, returning the original `FoodItem` in stable catalog
+order. Tests enforce exact 300/300 translation-key coverage and prove locale
+changes display/search only while submitted and stored catalog identities stay
+identical. General food-log and preference-screen copy remains part of the
+later whole-product bilingual audit.
+
 ### Supersedes / Preserves
 
 - Supersedes the **public-product-scope** portions of ADR-0007 and the original

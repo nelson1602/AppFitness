@@ -3,10 +3,13 @@ import { Pressable, View } from 'react-native';
 
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
+import { foodDisplayName } from '../application/food-display.service';
+import { getById } from '../application/food-catalog.service';
 import { useFoodLogStore, type FoodLogSyncSummary } from '../application/food-log.store';
 import type { ConsumedMacros, LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS } from '../domain/meal-plan';
@@ -83,19 +86,22 @@ function ItemSyncChip({ item }: { item: LoggedMealItem }) {
 
 function LoggedItemRow({ item }: { item: LoggedMealItem }) {
   const theme = useTheme();
+  const { language } = useLocalization();
   const editServing = useFoodLogStore((s) => s.editServing);
   const removeItem = useFoodLogStore((s) => s.removeItem);
+  const canonical = item.catalogKey ? getById(item.catalogKey) : undefined;
+  const displayName = canonical ? foodDisplayName(canonical, language) : item.name;
 
   return (
     <View
-      accessibilityLabel={`${item.name}, ${formatServingCount(item.servingCount)} servings`}
+      accessibilityLabel={`${displayName}, ${formatServingCount(item.servingCount)} servings`}
       testID={`logged-item-${item.id}`}
       style={{ gap: theme.spacing.sm }}
     >
       <View
         style={{ flexDirection: 'row', justifyContent: 'space-between', gap: theme.spacing.sm }}
       >
-        <AppText style={{ flexShrink: 1 }}>{item.name}</AppText>
+        <AppText style={{ flexShrink: 1 }}>{displayName}</AppText>
         <ItemSyncChip item={item} />
       </View>
       <AppText variant="caption" tone="muted">
@@ -111,7 +117,7 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
         />
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Remove ${item.name}`}
+          accessibilityLabel={`Remove ${displayName}`}
           testID={`remove-item-${item.id}`}
           onPress={() => void removeItem(item.id)}
           style={{ padding: theme.spacing.sm }}

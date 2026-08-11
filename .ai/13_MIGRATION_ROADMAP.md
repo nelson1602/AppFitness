@@ -2131,7 +2131,7 @@ recorded; Slice 5 = close-out when the matrix is all PASS/waived.
 
 ### Status
 
-**IN PROGRESS 2026-08-11 — Slices 1–3B-1 and 4A implemented.** Owner-approved under
+**IN PROGRESS 2026-08-11 — Slices 1–3B-1 and 4A–4B implemented.** Owner-approved under
 ADR-P017. Slice 2 adds the Spanish/English localization foundation, supported
 device-language resolution, English fallback, persisted in-app selector,
 shared formatting helpers, and a translated authentication proof surface.
@@ -2148,7 +2148,11 @@ Slice 4A localizes the existing deterministic 15-day meal-plan presentation in
 English and Spanish (including portions, macro summaries, preference
 exclusions, baseline gaps, errors, disclaimer, and accessibility) while keeping
 plan selection, calculations, rule versions, catalog identifiers, and offline
-behavior unchanged. Canonical food-name localization remains Slice 4B.
+behavior unchanged. Slice 4B adds authored Spanish presentation names for all
+300 catalog IDs across meal-plan, food-log, and specific-food preference
+surfaces. Spanish search accepts localized or canonical English names without
+changing the returned/persisted catalog identity. General nutrition-screen copy
+outside the meal-plan remains for the later bilingual product audit.
 This is not a whole-app localization claim; the remaining bilingual surface is
 reserved for later slices. Phase 20's historical engineering/gate evidence is
 preserved, but its store close-out is suspended because the previously validated

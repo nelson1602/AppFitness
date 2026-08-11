@@ -2,10 +2,11 @@ import { useMemo, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import { search } from '../../application/food-catalog.service';
+import { foodDisplayName, searchFoodsForDisplay } from '../../application/food-display.service';
 import type { DietaryPreference } from '../../domain/dietary-preference';
 import { matchFoodExclusion, type ExclusionMatch } from '../../domain/dietary-preference-match';
 import { AVOID_TAG_LABELS, type FoodItem } from '../../domain/food-catalog';
@@ -68,16 +69,21 @@ export function FoodLogAddForm({
   activePreferences?: readonly DietaryPreference[];
 }) {
   const theme = useTheme();
+  const { language } = useLocalization();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<FoodItem | null>(null);
   const [mealType, setMealType] = useState<MealTypeName>(defaultMealType);
   const [servingCount, setServingCount] = useState(1);
 
-  const results = useMemo(() => (query.trim() ? search(query).slice(0, MAX_RESULTS) : []), [query]);
+  const results = useMemo(
+    () => (query.trim() ? searchFoodsForDisplay(query, language).slice(0, MAX_RESULTS) : []),
+    [language, query],
+  );
   const exclusion = useMemo(
     () => (selected ? matchFoodExclusion(selected, activePreferences) : null),
     [selected, activePreferences],
   );
+  const selectedDisplayName = selected ? foodDisplayName(selected, language) : null;
 
   const reset = (): void => {
     setSelected(null);
@@ -152,7 +158,7 @@ export function FoodLogAddForm({
               <Pressable
                 key={food.id}
                 accessibilityRole="button"
-                accessibilityLabel={`Choose ${food.name}`}
+                accessibilityLabel={`Choose ${foodDisplayName(food, language)}`}
                 testID={`food-option-${food.id}`}
                 onPress={() => setSelected(food)}
                 style={{
@@ -162,7 +168,7 @@ export function FoodLogAddForm({
                   padding: theme.spacing.md,
                 }}
               >
-                <AppText>{food.name}</AppText>
+                <AppText>{foodDisplayName(food, language)}</AppText>
                 <AppText variant="caption" tone="muted">
                   {food.servingSize.amount}
                   {food.servingSize.unit} · {food.calories} kcal
@@ -181,20 +187,22 @@ export function FoodLogAddForm({
         {selected ? (
           <View style={{ gap: theme.spacing.md }}>
             <View style={{ gap: 2 }}>
-              <AppText variant="label">{selected.name}</AppText>
+              <AppText variant="label">{selectedDisplayName}</AppText>
               <AppText variant="caption" tone="muted">
                 1 serving = {selected.servingSize.amount}
                 {selected.servingSize.unit} · {selected.calories} kcal
               </AppText>
             </View>
-            {exclusion ? <ExclusionWarning match={exclusion} foodName={selected.name} /> : null}
+            {exclusion && selectedDisplayName ? (
+              <ExclusionWarning match={exclusion} foodName={selectedDisplayName} />
+            ) : null}
             <ServingStepper
               value={servingCount}
               onChange={setServingCount}
               testIDPrefix="add-serving"
             />
             <AppButton
-              accessibilityLabel={`Log ${selected.name}`}
+              accessibilityLabel={`Log ${selectedDisplayName}`}
               testID="food-log-add-submit"
               onPress={submit}
             >
