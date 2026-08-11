@@ -242,6 +242,7 @@ export async function createBodyMeasurement(
   const p = {
     date: input.date,
     body_fat_pct: input.bodyFatPct ?? null,
+    muscle_mass_kg: input.muscleMassKg ?? null,
     waist_cm: input.waistCm ?? null,
     hip_cm: input.hipCm ?? null,
     chest_cm: input.chestCm ?? null,
@@ -259,12 +260,13 @@ export async function createBodyMeasurement(
     if (existing) {
       const nextVersion = existing.version + 1;
       await run(
-        `UPDATE body_measurements SET date = ?, body_fat_pct = ?, waist_cm = ?, hip_cm = ?, chest_cm = ?,
+        `UPDATE body_measurements SET date = ?, body_fat_pct = ?, muscle_mass_kg = ?, waist_cm = ?, hip_cm = ?, chest_cm = ?,
            left_arm_cm = ?, right_arm_cm = ?, neck_cm = ?, notes = ?, version = ?, updated_at = ?, sync_status = 'pending'
          WHERE id = ?`,
         [
           p.date,
           p.body_fat_pct,
+          p.muscle_mass_kg,
           p.waist_cm,
           p.hip_cm,
           p.chest_cm,
@@ -300,8 +302,8 @@ export async function createBodyMeasurement(
     await run(
       `INSERT INTO body_measurements
          (id, user_id, created_at, updated_at, version, sync_status,
-          date, body_fat_pct, waist_cm, hip_cm, chest_cm, left_arm_cm, right_arm_cm, neck_cm, notes)
-       VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          date, body_fat_pct, muscle_mass_kg, waist_cm, hip_cm, chest_cm, left_arm_cm, right_arm_cm, neck_cm, notes)
+       VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
@@ -309,6 +311,7 @@ export async function createBodyMeasurement(
         nowIso,
         p.date,
         p.body_fat_pct,
+        p.muscle_mass_kg,
         p.waist_cm,
         p.hip_cm,
         p.chest_cm,
@@ -376,6 +379,7 @@ export async function updateBodyMeasurement(
     const p = {
       date: input.date,
       body_fat_pct: input.bodyFatPct ?? null,
+      muscle_mass_kg: input.muscleMassKg ?? null,
       waist_cm: input.waistCm ?? null,
       hip_cm: input.hipCm ?? null,
       chest_cm: input.chestCm ?? null,
@@ -386,12 +390,13 @@ export async function updateBodyMeasurement(
     };
     const nextVersion = row.version + 1;
     await run(
-      `UPDATE body_measurements SET date = ?, body_fat_pct = ?, waist_cm = ?, hip_cm = ?, chest_cm = ?,
+      `UPDATE body_measurements SET date = ?, body_fat_pct = ?, muscle_mass_kg = ?, waist_cm = ?, hip_cm = ?, chest_cm = ?,
          left_arm_cm = ?, right_arm_cm = ?, neck_cm = ?, notes = ?, version = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [
         p.date,
         p.body_fat_pct,
+        p.muscle_mass_kg,
         p.waist_cm,
         p.hip_cm,
         p.chest_cm,
@@ -461,8 +466,8 @@ export async function applyServerBodyMeasurement(
   await run(
     `INSERT OR REPLACE INTO body_measurements
        (id, user_id, created_at, updated_at, version, sync_status, deleted_at, deleted_by,
-        date, body_fat_pct, waist_cm, hip_cm, chest_cm, left_arm_cm, right_arm_cm, neck_cm, notes)
-     VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        date, body_fat_pct, muscle_mass_kg, waist_cm, hip_cm, chest_cm, left_arm_cm, right_arm_cm, neck_cm, notes)
+     VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       row.id,
       row.user_id,
@@ -473,6 +478,7 @@ export async function applyServerBodyMeasurement(
       str(row['deleted_by']),
       str(row['date']),
       num(row['body_fat_pct']),
+      num(row['muscle_mass_kg']),
       num(row['waist_cm']),
       num(row['hip_cm']),
       num(row['chest_cm']),

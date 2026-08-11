@@ -2,13 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, FormField } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { BodyMeasurementInput } from '../domain/progress';
 import {
   blankBodyMeasurementValues,
-  bodyMeasurementFormSchema,
+  createBodyMeasurementFormSchema,
   toBodyMeasurementInput,
   type BodyMeasurementFormInput,
   type BodyMeasurementFormOutput,
@@ -24,19 +25,25 @@ interface BodyMeasurementFormProps {
 
 /**
  * Body-measurement entry form (ADR-P016 Phase 17 Slice 5a). RHF + Zod with the
- * design-system `FormField`. v1 focused scope (D4): waist is the required
- * primary metric; hip, chest, and body-fat % are optional. Persistence is
+ * design-system `FormField`. Public-v1 wellness scope: at least one visible
+ * metric is required; waist, hip, chest, body-fat %, and muscle mass are
+ * independently optional. Persistence is
  * delegated to the caller's `onSubmit` — the UI never touches SQLite. Resets to
  * a blank form (date re-prefilled) after a successful save.
  */
 export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasurementFormProps) {
   const theme = useTheme();
+  const { t } = useLocalization();
+  const schema = createBodyMeasurementFormSchema(
+    t('progress.measurements.muscleMassRange'),
+    t('progress.measurements.atLeastOne'),
+  );
   const { control, handleSubmit, reset } = useForm<
     BodyMeasurementFormInput,
     unknown,
     BodyMeasurementFormOutput
   >({
-    resolver: zodResolver(bodyMeasurementFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: blankBodyMeasurementValues(defaultDate),
   });
 
@@ -47,56 +54,72 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
   };
 
   return (
-    <View style={{ gap: theme.spacing.md }} accessibilityLabel="Record body measurements">
-      <AppText variant="title">Record measurements</AppText>
-      <FormField control={control} name="date" label="Date" placeholder="YYYY-MM-DD" required />
+    <View
+      style={{ gap: theme.spacing.md }}
+      accessibilityLabel={t('progress.measurements.accessibility')}
+    >
+      <AppText variant="title">{t('progress.measurements.title')}</AppText>
+      <FormField
+        control={control}
+        name="date"
+        label={t('progress.measurements.date')}
+        placeholder="YYYY-MM-DD"
+        required
+      />
       <FormField
         control={control}
         name="waistCm"
-        label="Waist (cm)"
-        placeholder="e.g. 82"
+        label={t('progress.measurements.waist')}
+        placeholder={t('progress.measurements.waistPlaceholder')}
         keyboardType="decimal-pad"
-        required
         selectTextOnFocus
       />
       <FormField
         control={control}
         name="hipCm"
-        label="Hip (cm, optional)"
-        placeholder="e.g. 96"
+        label={t('progress.measurements.hip')}
+        placeholder={t('progress.measurements.hipPlaceholder')}
         keyboardType="decimal-pad"
         selectTextOnFocus
       />
       <FormField
         control={control}
         name="chestCm"
-        label="Chest (cm, optional)"
-        placeholder="e.g. 100"
+        label={t('progress.measurements.chest')}
+        placeholder={t('progress.measurements.chestPlaceholder')}
         keyboardType="decimal-pad"
         selectTextOnFocus
       />
       <FormField
         control={control}
         name="bodyFatPct"
-        label="Body fat (%, optional)"
-        placeholder="e.g. 18"
+        label={t('progress.measurements.bodyFat')}
+        placeholder={t('progress.measurements.bodyFatPlaceholder')}
+        keyboardType="decimal-pad"
+        selectTextOnFocus
+      />
+      <FormField
+        control={control}
+        name="muscleMassKg"
+        label={t('progress.measurements.muscleMass')}
+        placeholder={t('progress.measurements.muscleMassPlaceholder')}
         keyboardType="decimal-pad"
         selectTextOnFocus
       />
       <FormField
         control={control}
         name="notes"
-        label="Notes (optional)"
-        placeholder="Anything worth remembering"
+        label={t('progress.measurements.notes')}
+        placeholder={t('progress.measurements.notesPlaceholder')}
         selectTextOnFocus
       />
       <AppButton
-        accessibilityLabel="Save body measurements"
+        accessibilityLabel={t('progress.measurements.saveAccessibility')}
         testID="body-measurement-submit"
         loading={saving}
         onPress={() => void handleSubmit(submit)()}
       >
-        Save measurements
+        {t('progress.measurements.save')}
       </AppButton>
     </View>
   );

@@ -68,6 +68,7 @@ const bmRec = (
   userId: USER,
   date: new Date('2026-08-03T00:00:00.000Z'),
   bodyFatPct: 18,
+  muscleMassKg: 36,
   waistCm: 82,
   hipCm: null,
   chestCm: null,
@@ -222,6 +223,7 @@ describe('BodyMeasurementSyncHandler', () => {
           id: BM_ID,
           date: '2026-08-03',
           body_fat_pct: 18,
+          muscle_mass_kg: 36,
           waist_cm: 82,
         },
       }),
@@ -229,6 +231,7 @@ describe('BodyMeasurementSyncHandler', () => {
     expect(repo.createBodyMeasurement).toHaveBeenCalledWith(USER, BM_ID, {
       date: new Date('2026-08-03T00:00:00.000Z'),
       bodyFatPct: 18,
+      muscleMassKg: 36,
       waistCm: 82,
       hipCm: null,
       chestCm: null,
@@ -251,10 +254,69 @@ describe('BodyMeasurementSyncHandler', () => {
     ).rejects.toThrow(/body_fat_pct/);
   });
 
+  it('rejects muscle mass outside the wellness measurement range', async () => {
+    await expect(
+      handler.apply(
+        USER,
+        op({
+          entityId: BM_ID,
+          payload: { id: BM_ID, date: '2026-08-03', muscle_mass_kg: 301 },
+        }),
+      ),
+    ).rejects.toThrow(/muscle_mass_kg/);
+  });
+
+  it('preserves muscle mass when an older client omits it on UPDATE', async () => {
+    await handler.apply(
+      USER,
+      op({
+        operation: 'UPDATE',
+        entityId: BM_ID,
+        baseVersion: 2,
+        payload: { date: '2026-08-03', body_fat_pct: 17, waist_cm: 81 },
+      }),
+    );
+
+    expect(repo.updateBodyMeasurement).toHaveBeenCalledWith(
+      BM_ID,
+      {
+        date: new Date('2026-08-03T00:00:00.000Z'),
+        bodyFatPct: 17,
+        waistCm: 81,
+        hipCm: null,
+        chestCm: null,
+        leftArmCm: null,
+        rightArmCm: null,
+        neckCm: null,
+        notes: null,
+      },
+      3,
+    );
+  });
+
+  it('allows a newer client to clear muscle mass explicitly', async () => {
+    await handler.apply(
+      USER,
+      op({
+        operation: 'UPDATE',
+        entityId: BM_ID,
+        baseVersion: 2,
+        payload: { date: '2026-08-03', muscle_mass_kg: null },
+      }),
+    );
+
+    expect(repo.updateBodyMeasurement).toHaveBeenCalledWith(
+      BM_ID,
+      expect.objectContaining({ muscleMassKg: null }),
+      3,
+    );
+  });
+
   it('getServerState redacts notes', async () => {
     repo.findOwnedBodyMeasurement.mockResolvedValue(bmRec());
     const state = await handler.getServerState(USER, BM_ID);
     expect(state?.snapshot.notes).toBe('[REDACTED]');
     expect(state?.snapshot.body_fat_pct).toBe(18);
+    expect(state?.snapshot.muscle_mass_kg).toBe(36);
   });
 });

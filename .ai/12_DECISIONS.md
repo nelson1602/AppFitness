@@ -6401,10 +6401,27 @@ is reversible wiring dormancy, not deletion or reclassification.
 
 Public onboarding and workout E2E definitions now consume wellness weight and
 do not invoke the retained medical-management journey. Self-declared physical
-limitations and muscle-mass capture remain contract/UI work for a later focused
-slice; they must use a wellness-owned model and must not reuse medical tables.
-Until then public-v1 iCoach receives no limitation input, which is safer than
-silently treating historical medical records as wellness declarations.
+limitations remain contract/UI work for a later focused slice; they must use a
+wellness-owned model and must not reuse medical tables. Until then public-v1
+iCoach receives no limitation input, which is safer than silently treating
+historical medical records as wellness declarations.
+
+### Slice 3B-1 Implementation Record — Wellness Muscle-Mass Capture
+
+Public v1 extends the existing wellness-owned `body_measurements` record with
+optional `muscle_mass_kg`; the similarly named dormant medical-evaluation field
+is not read, migrated, or reused. PostgreSQL and SQLite receive forward-only,
+nullable, range-constrained columns. The existing local-first repository and
+sync contract carry the field through create/update/pull, with an explicit
+compatibility rule: an older client's UPDATE that omits `muscle_mass_kg`
+preserves the server value, while an explicit `null` clears it.
+
+The Progress measurement form and muscle-mass trend use English/Spanish
+presentation keys. At least one visible body metric is required, allowing a
+muscle-mass-only entry without requiring a waist measurement. Muscle mass is
+recorded as user-entered wellness progress only: it does not replace lean body
+mass, alter iCoach formulas, or change nutrition/training recommendations in
+this slice. Self-declared physical limitations remain separately deferred.
 
 ### Supersedes / Preserves
 

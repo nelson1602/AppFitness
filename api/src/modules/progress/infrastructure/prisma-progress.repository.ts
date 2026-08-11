@@ -119,6 +119,7 @@ export class PrismaProgressRepository extends ProgressRepositoryPort {
         userId,
         date: data.date,
         bodyFatPct: data.bodyFatPct,
+        muscleMassKg: data.muscleMassKg,
         waistCm: data.waistCm,
         hipCm: data.hipCm,
         chestCm: data.chestCm,
@@ -141,6 +142,9 @@ export class PrismaProgressRepository extends ProgressRepositoryPort {
       data: {
         date: data.date,
         bodyFatPct: data.bodyFatPct,
+        ...(data.muscleMassKg !== undefined
+          ? { muscleMassKg: data.muscleMassKg }
+          : {}),
         waistCm: data.waistCm,
         hipCm: data.hipCm,
         chestCm: data.chestCm,

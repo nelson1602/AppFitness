@@ -63,6 +63,7 @@ export interface BodyMeasurementInput {
   /** User-local calendar date, `YYYY-MM-DD`. */
   date: string;
   bodyFatPct?: number | null;
+  muscleMassKg?: number | null;
   waistCm?: number | null;
   hipCm?: number | null;
   chestCm?: number | null;
@@ -76,6 +77,7 @@ export interface BodyMeasurement {
   id: string;
   date: string;
   bodyFatPct: number | null;
+  muscleMassKg: number | null;
   waistCm: number | null;
   hipCm: number | null;
   chestCm: number | null;
@@ -94,6 +96,7 @@ export function rowToBodyMeasurement(r: BodyMeasurementRow): BodyMeasurement {
     id: r.id,
     date: r.date,
     bodyFatPct: r.body_fat_pct,
+    muscleMassKg: r.muscle_mass_kg,
     waistCm: r.waist_cm,
     hipCm: r.hip_cm,
     chestCm: r.chest_cm,

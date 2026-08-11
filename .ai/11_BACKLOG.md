@@ -1006,6 +1006,11 @@ that build would contradict the owner's clarified product intent.
    composition-root sync registration are removed from public v1. Medical
    feature code, schema, migrations, encrypted fields, tests, and retained data
    remain intact. Public E2E onboarding/workout paths use wellness data only.
+   **Slice 3B-1 IMPLEMENTED 2026-08-11 (pending commit/review):** optional
+   muscle mass now extends the wellness `body_measurements` flow end-to-end
+   (additive schemas, offline sync, bilingual entry and trend) without reading
+   the dormant medical field or changing iCoach calculations. Structured
+   self-declared physical limitations remain separately deferred.
 4. Breakfast/lunch/dinner/optional-snack nutrition experience completion.
 5. Complete deterministic workout-routine generator.
 6. Bilingual accessibility, unit/integration/E2E, physical-device, privacy,

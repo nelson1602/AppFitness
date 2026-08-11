@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -35,6 +36,7 @@ function todayLocalDate(): string {
  */
 export function ProgressScreen() {
   const theme = useTheme();
+  const { t } = useLocalization();
   const {
     status,
     bodyWeights,
@@ -77,6 +79,13 @@ export function ProgressScreen() {
   const volumeTrend: TrendPoint[] = snapshots
     .filter((s) => s.totalVolumeKg !== null)
     .map((s) => ({ label: s.weekStart, value: s.totalVolumeKg as number }))
+    .reverse();
+  const muscleMassTrend: TrendPoint[] = bodyMeasurements
+    .filter((measurement) => measurement.muscleMassKg !== null)
+    .map((measurement) => ({
+      label: measurement.date,
+      value: measurement.muscleMassKg as number,
+    }))
     .reverse();
 
   return (
@@ -135,6 +144,12 @@ export function ProgressScreen() {
             <View style={{ gap: theme.spacing.md }}>
               <AppText variant="title">Trends</AppText>
               <TrendBars title="Body weight" data={weightTrend} unit=" kg" testID="weight-trend" />
+              <TrendBars
+                title={t('progress.trends.muscleMass')}
+                data={muscleMassTrend}
+                unit=" kg"
+                testID="muscle-mass-trend"
+              />
               <TrendBars
                 title="Weekly training volume"
                 data={volumeTrend}

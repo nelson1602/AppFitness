@@ -752,17 +752,18 @@ model BodyWeight {
 }
 
 model BodyMeasurement {
-  id         String   @id @db.Uuid // client-generatable
-  userId     String   @map("user_id") @db.Uuid
-  date       DateTime @db.Date
-  bodyFatPct Float?   @map("body_fat_pct")
-  waistCm    Float?   @map("waist_cm")
-  hipCm      Float?   @map("hip_cm")
-  chestCm    Float?   @map("chest_cm")
-  leftArmCm  Float?   @map("left_arm_cm")
-  rightArmCm Float?   @map("right_arm_cm")
-  neckCm     Float?   @map("neck_cm")
-  notes      String?
+  id           String   @id @db.Uuid // client-generatable
+  userId       String   @map("user_id") @db.Uuid
+  date         DateTime @db.Date
+  bodyFatPct   Float?   @map("body_fat_pct")
+  muscleMassKg Float?   @map("muscle_mass_kg")
+  waistCm      Float?   @map("waist_cm")
+  hipCm        Float?   @map("hip_cm")
+  chestCm      Float?   @map("chest_cm")
+  leftArmCm    Float?   @map("left_arm_cm")
+  rightArmCm   Float?   @map("right_arm_cm")
+  neckCm       Float?   @map("neck_cm")
+  notes        String?
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)

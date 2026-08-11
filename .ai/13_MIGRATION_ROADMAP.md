@@ -2139,6 +2139,11 @@ Slice 3 moves public dashboard/iCoach weight and body-fat inputs to the wellness
 Progress source of truth, removes public medical routes/actions and medical sync
 registration, and preserves all medical code/schema/data protections without a
 destructive migration.
+Slice 3B-1 adds optional muscle-mass capture to the wellness Progress source of
+truth with additive PostgreSQL/SQLite migrations, backward-compatible sync,
+and an English/Spanish entry + trend surface. It does not read the dormant
+medical field or alter iCoach calculations. Self-declared physical limitations
+remain a later, separately authorized slice.
 This is not a whole-app localization claim; the remaining bilingual surface is
 reserved for later slices. Phase 20's historical engineering/gate evidence is
 preserved, but its store close-out is suspended because the previously validated
