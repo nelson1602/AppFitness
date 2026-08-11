@@ -13,6 +13,7 @@ export {
   normalizeTrainingEquipment,
   TRAINING_EQUIPMENT,
   WORKOUT_ROUTINE_CONTRACT_VERSION,
+  WORKOUT_TRAINING_PATTERNS,
 } from './domain/workout-routine';
 export type {
   EquipmentNormalizationResult,
@@ -24,6 +25,15 @@ export type {
   WorkoutExerciseSubstitution,
   WorkoutProgressionRule,
   WorkoutRoutineRequest,
+  WorkoutRoutineCatalog,
+  WorkoutRoutineExerciseCandidate,
   WorkoutScheduleDay,
   WorkoutSessionPrescription,
+  WorkoutTrainingPattern,
 } from './domain/workout-routine';
+export {
+  generateWorkoutRoutine,
+  WORKOUT_ROUTINE_RULE_VERSION,
+  WorkoutRoutineGenerationError,
+} from './domain/workout-routine-generator';
+export type { WorkoutRoutineGenerationErrorCode } from './domain/workout-routine-generator';
