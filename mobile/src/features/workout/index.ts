@@ -6,3 +6,8 @@ export type { WorkoutLog, WorkoutSet } from './domain/workout';
 export { ExerciseLibrary } from './presentation/ExerciseLibrary';
 export { RoutineBuilder } from './presentation/RoutineBuilder';
 export { WorkoutLogScreen } from './presentation/WorkoutLogScreen';
+export {
+  selectWorkoutRoutine,
+  type WorkoutRoutinePreferences,
+  type WorkoutRoutineSelection,
+} from './application/workout-routine.service';
