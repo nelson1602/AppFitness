@@ -1,15 +1,12 @@
 import type { Goal } from '@/features/profile/domain/goal.types';
 import type { Profile } from '@/features/profile/domain/profile.types';
-import type { Evaluation, Restriction } from '@/features/medical/domain/medical.types';
+import type { PhysicalAssessmentMetrics } from '@/features/progress';
 import { evaluate } from '@/features/icoach/domain/engine';
 import type {
   ActivityLevel,
   EngineInput,
   FitnessLevel,
   GoalType,
-  RestrictionInput,
-  RestrictionSeverity,
-  RestrictionType,
   Sex,
 } from '@/features/icoach/domain/types';
 
@@ -18,8 +15,7 @@ import type { DashboardAssessment, DataRequirement } from '../domain/dashboard.t
 interface AdapterSources {
   profile: Profile | null;
   activeGoal: Goal | null;
-  latestEvaluation: Evaluation | null;
-  activeRestrictions: Restriction[];
+  physicalAssessment: PhysicalAssessmentMetrics;
   today: string;
 }
 
@@ -52,7 +48,7 @@ export function buildDashboardAssessment(sources: AdapterSources): AdapterResult
       detail: 'Height is required for BMI and calorie calculations.',
     });
   }
-  if (!sources.latestEvaluation?.weightKg) {
+  if (!sources.physicalAssessment.weightKg) {
     missing.push({
       id: 'weight',
       title: 'Record a weight measurement',
@@ -63,8 +59,8 @@ export function buildDashboardAssessment(sources: AdapterSources): AdapterResult
   if (missing.length > 0) return { status: 'incomplete', missing };
 
   const profile = sources.profile;
-  const evaluation = sources.latestEvaluation;
-  if (!profile || !profile.birthDate || !profile.heightCm || !evaluation?.weightKg) {
+  const physicalAssessment = sources.physicalAssessment;
+  if (!profile || !profile.birthDate || !profile.heightCm || !physicalAssessment.weightKg) {
     return { status: 'incomplete', missing };
   }
   const age = calculateAge(profile.birthDate, sources.today);
@@ -89,20 +85,15 @@ export function buildDashboardAssessment(sources: AdapterSources): AdapterResult
       age,
       sex: mapSex(profile.gender),
       heightCm: profile.heightCm,
-      weightKg: evaluation.weightKg,
-      bodyFatPct: evaluation.bodyFatPct ?? undefined,
+      weightKg: physicalAssessment.weightKg,
+      bodyFatPct: physicalAssessment.bodyFatPct ?? undefined,
     },
     activityLevel: mapActivity(profile.activityLevel),
     goal: mapGoal(sources.activeGoal?.goalType),
     fitnessLevel: mapFitness(profile.fitnessLevel),
-    restrictions: sources.activeRestrictions.map(mapRestriction),
-    bloodPressure:
-      evaluation.bloodPressureSystolic && evaluation.bloodPressureDiastolic
-        ? {
-            systolic: evaluation.bloodPressureSystolic,
-            diastolic: evaluation.bloodPressureDiastolic,
-          }
-        : undefined,
+    // Public v1 uses wellness inputs only. The retained medical feature is
+    // dormant and cannot feed iCoach until a future, separately approved slice.
+    restrictions: [],
     recovery: {
       sleepHours: profile.sleepHoursBaseline ?? undefined,
       stressLevel: profile.stressLevelBaseline ?? undefined,
@@ -145,13 +136,6 @@ function mapFitness(level: Profile['fitnessLevel']): FitnessLevel {
 }
 
 function mapGoal(goal: Goal['goalType'] | undefined): GoalType {
+  if (goal === 'REHABILITATION') return 'GENERAL_HEALTH';
   return goal ?? 'MAINTENANCE';
-}
-
-function mapRestriction(restriction: Restriction): RestrictionInput {
-  return {
-    type: restriction.type as RestrictionType,
-    bodyArea: restriction.bodyArea,
-    severity: restriction.severity as RestrictionSeverity | null,
-  };
 }

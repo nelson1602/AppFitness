@@ -6379,6 +6379,33 @@ and exercise catalogs, dates, units, and accessibility strings remain work for
 the later bilingual product audit; this record is not a whole-app localization
 claim.
 
+### Slice 3 Implementation Record — Wellness Baseline and Medical Dormancy
+
+Public v1 now resolves the iCoach baseline from the existing wellness Progress
+source of truth (`body_weights` plus optional `body_measurements.body_fat_pct`)
+and the non-medical profile/goal contracts. The dashboard no longer imports or
+reads medical evaluations or restrictions, and it never supplies blood pressure
+or retained medical restrictions to public-v1 iCoach. Missing weight routes to
+the existing local-first Progress surface; dev sample data also writes only
+wellness Progress entities. The public goal form excludes rehabilitation; any
+retained rehabilitation goal is conservatively presented and evaluated as
+general health without altering the historical stored row.
+
+The three medical route adapters and dashboard actions were removed, and the
+medical sync appliers are no longer registered at the public composition root.
+Because pull is scoped to registered entity appliers, public sync neither pulls
+nor writes the dormant medical entities. The medical feature implementation,
+repository tests, SQLite/PostgreSQL tables, historical migrations, encryption,
+authorization, redaction, and account-deletion behavior remain unchanged. This
+is reversible wiring dormancy, not deletion or reclassification.
+
+Public onboarding and workout E2E definitions now consume wellness weight and
+do not invoke the retained medical-management journey. Self-declared physical
+limitations and muscle-mass capture remain contract/UI work for a later focused
+slice; they must use a wellness-owned model and must not reuse medical tables.
+Until then public-v1 iCoach receives no limitation input, which is safer than
+silently treating historical medical records as wellness declarations.
+
 ### Supersedes / Preserves
 
 - Supersedes the **public-product-scope** portions of ADR-0007 and the original

@@ -143,11 +143,11 @@ describe('NutritionTargets', () => {
     await render(<NutritionTargets />);
 
     // Profile-side gaps route to profile-edit; the weight gap routes to
-    // evaluation-edit. No vague "go to dashboard" fallback when actions exist.
+    // Progress. No vague "go to dashboard" fallback when actions exist.
     await fireEvent.press(screen.getByTestId('nutrition-gap-profile'));
     expect(router.push).toHaveBeenCalledWith('/profile-edit');
     await fireEvent.press(screen.getByTestId('nutrition-gap-weight'));
-    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+    expect(router.push).toHaveBeenCalledWith('/progress');
     expect(screen.queryByTestId('nutrition-gap-dashboard')).toBeNull();
   });
 

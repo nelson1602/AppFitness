@@ -61,7 +61,7 @@ export function NutritionTargets() {
       ) : !assessment ? (
         // Data-gap state: the assessment needs profile + a weight measurement.
         // Offer direct actions for the specific missing pieces (profile-edit /
-        // evaluation-edit) rather than bouncing the user to the dashboard.
+        // Progress) rather than bouncing the user to the dashboard.
         <NutritionDataGap missing={data?.missing ?? []} context="targets" />
       ) : (
         <NutritionContent

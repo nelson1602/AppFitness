@@ -19,7 +19,6 @@ export const GOAL_TYPES = [
   'STRENGTH',
   'ENDURANCE',
   'GENERAL_HEALTH',
-  'REHABILITATION',
   'MAINTENANCE',
 ] as const;
 
@@ -62,7 +61,8 @@ export function goalToFormValues(goal: Goal | null): GoalFormInput {
   const numStr = (n: number | null | undefined): string =>
     n === null || n === undefined ? '' : String(n);
   return {
-    goalType: goal?.goalType ?? 'GENERAL_HEALTH',
+    goalType:
+      goal?.goalType && goal.goalType !== 'REHABILITATION' ? goal.goalType : 'GENERAL_HEALTH',
     targetWeightKg: numStr(goal?.targetWeightKg) as unknown as GoalFormInput['targetWeightKg'],
     targetDate: goal?.targetDate ?? '',
   };

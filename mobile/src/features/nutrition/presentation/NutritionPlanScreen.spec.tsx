@@ -229,7 +229,7 @@ describe('NutritionPlanScreen', () => {
     await fireEvent.press(screen.getByTestId('nutrition-gap-profile'));
     expect(router.push).toHaveBeenCalledWith('/profile-edit');
     await fireEvent.press(screen.getByTestId('nutrition-gap-weight'));
-    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+    expect(router.push).toHaveBeenCalledWith('/progress');
     expect(screen.queryByTestId('nutrition-gap-dashboard')).toBeNull();
   });
 

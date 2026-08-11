@@ -22,7 +22,6 @@ const GOAL_OPTIONS = [
   { label: 'Strength', value: 'STRENGTH' },
   { label: 'Endurance', value: 'ENDURANCE' },
   { label: 'General health', value: 'GENERAL_HEALTH' },
-  { label: 'Rehabilitation', value: 'REHABILITATION' },
   { label: 'Maintenance', value: 'MAINTENANCE' },
 ] as const;
 

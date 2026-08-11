@@ -39,6 +39,12 @@ describe('goalFormSchema', () => {
     );
   });
 
+  it('excludes the retained rehabilitation goal from the public-v1 form', () => {
+    expect(goalFormSchema.safeParse({ ...validValues, goalType: 'REHABILITATION' }).success).toBe(
+      false,
+    );
+  });
+
   it('coerces a provided target weight to a number', () => {
     const result = goalFormSchema.safeParse({ ...validValues, targetWeightKg: '78' });
     expect(result.success).toBe(true);
@@ -116,6 +122,12 @@ describe('goalToFormValues', () => {
     expect(values.goalType).toBe('GENERAL_HEALTH');
     expect(values.targetWeightKg).toBe('');
     expect(values.targetDate).toBe('');
+  });
+
+  it('maps a retained rehabilitation goal to the public general-health option', () => {
+    expect(goalToFormValues({ ...goal, goalType: 'REHABILITATION' }).goalType).toBe(
+      'GENERAL_HEALTH',
+    );
   });
 
   it('round-trips a goal back through the schema without validation errors', () => {

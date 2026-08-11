@@ -1,7 +1,6 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import { registerMedicalSyncAppliers } from '@/features/medical';
 import { registerNutritionSyncAppliers } from '@/features/nutrition';
 import { registerProgressSyncAppliers } from '@/features/progress';
 import { registerProfileSyncAppliers } from '@/features/profile';
@@ -16,7 +15,6 @@ import { useTheme } from '@/shared/theme';
 // (ADR-P010) — dev, tests, and E2E builds run without it.
 initMonitoring();
 registerProfileSyncAppliers();
-registerMedicalSyncAppliers();
 registerNutritionSyncAppliers();
 registerWorkoutSyncAppliers();
 registerProgressSyncAppliers();

@@ -1000,7 +1000,12 @@ that build would contradict the owner's clarified product intent.
 1. Documentation/ADR product contract.
 2. Spanish/English localization foundation and language-neutral domain output.
 3. Reversible public-v1 medical decoupling plus a self-entered physical-
-   assessment contract.
+   assessment contract. **IMPLEMENTED 2026-08-10 (pending commit/review):**
+   dashboard/iCoach now read weight and body-fat only from the wellness Progress
+   repositories; weight gaps route to `/progress`; medical routes/actions and
+   composition-root sync registration are removed from public v1. Medical
+   feature code, schema, migrations, encrypted fields, tests, and retained data
+   remain intact. Public E2E onboarding/workout paths use wellness data only.
 4. Breakfast/lunch/dinner/optional-snack nutrition experience completion.
 5. Complete deterministic workout-routine generator.
 6. Bilingual accessibility, unit/integration/E2E, physical-device, privacy,
@@ -1016,10 +1021,10 @@ that build would contradict the owner's clarified product intent.
 
 ### Acceptance Criteria
 
-- [ ] Public navigation/onboarding/dashboard do not expose or request excluded
+- [x] Public navigation/onboarding/dashboard do not expose or request excluded
       medical inputs.
-- [ ] Public-v1 iCoach does not read the dormant medical domain.
-- [ ] Dormant medical data remains protected and account deletion remains valid.
+- [x] Public-v1 iCoach does not read the dormant medical domain.
+- [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.
 - [ ] iCoach supplies goal-oriented meal suggestions and a complete deterministic
       workout routine.
