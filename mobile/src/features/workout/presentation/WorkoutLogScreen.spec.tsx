@@ -335,7 +335,7 @@ describe('WorkoutLogScreen', () => {
     await fireEvent.press(screen.getByTestId('workout-select-l1'));
 
     const backSquat = screen.getByTestId('set-exercise-exercise.back_squat');
-    expect(within(backSquat).getByText(/May conflict.*deep_squat/)).toBeOnTheScreen();
+    expect(within(backSquat).getByText(/May conflict.*deep squat/)).toBeOnTheScreen();
   });
 
   it('shows a blocked-training notice when the plan is blocked', async () => {

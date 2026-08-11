@@ -18,17 +18,24 @@ import {
  * that separately before submit, and the repository/DB is the final guard.
  */
 
-const requiredName = z
-  .string()
-  .transform((v) => normalizeExerciseName(v))
-  .refine((v) => v.length > 0, 'Required');
+export function createCustomExerciseFormSchema(requiredMessage = 'Required') {
+  const requiredName = z
+    .string()
+    .transform((v) => normalizeExerciseName(v))
+    .refine((v) => v.length > 0, requiredMessage);
 
-export const customExerciseFormSchema = z.object({
-  name: requiredName,
-  muscleGroup: requiredName,
-  category: z.enum(EXERCISE_CATEGORIES as unknown as [string, ...string[]]),
-  instructions: z.preprocess((v) => (typeof v === 'string' ? v.trim() : v), z.string().optional()),
-});
+  return z.object({
+    name: requiredName,
+    muscleGroup: requiredName,
+    category: z.enum(EXERCISE_CATEGORIES as unknown as [string, ...string[]]),
+    instructions: z.preprocess(
+      (v) => (typeof v === 'string' ? v.trim() : v),
+      z.string().optional(),
+    ),
+  });
+}
+
+export const customExerciseFormSchema = createCustomExerciseFormSchema();
 
 export type CustomExerciseFormInput = z.input<typeof customExerciseFormSchema>;
 export type CustomExerciseFormOutput = z.output<typeof customExerciseFormSchema>;

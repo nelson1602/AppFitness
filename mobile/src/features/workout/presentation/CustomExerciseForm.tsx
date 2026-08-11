@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, FormField, FormSelect } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -14,24 +15,12 @@ import {
 } from '../domain/workout';
 import { CustomExerciseNote } from './CustomExerciseNote';
 import {
-  customExerciseFormSchema,
+  createCustomExerciseFormSchema,
   customExerciseToFormValues,
   toCustomExerciseInput,
   type CustomExerciseFormInput,
   type CustomExerciseFormOutput,
 } from './custom-exercise-form.schema';
-
-const CATEGORY_LABELS: Record<CustomExercise['category'], string> = {
-  STRENGTH: 'Strength',
-  CARDIO: 'Cardio',
-  FLEXIBILITY: 'Flexibility',
-  BODYWEIGHT: 'Bodyweight',
-};
-
-const CATEGORY_OPTIONS = EXERCISE_CATEGORIES.map((c) => ({
-  label: CATEGORY_LABELS[c],
-  value: c,
-}));
 
 interface CustomExerciseFormProps {
   /** Editing an existing custom exercise, or null/undefined to create. */
@@ -65,12 +54,24 @@ export function CustomExerciseForm({
   onCancel,
 }: CustomExerciseFormProps) {
   const theme = useTheme();
+  const { t } = useLocalization();
+  const schema = createCustomExerciseFormSchema(t('workout.custom.required'));
+  const categoryLabels: Record<CustomExercise['category'], string> = {
+    STRENGTH: t('workout.custom.categoryStrength'),
+    CARDIO: t('workout.custom.categoryCardio'),
+    FLEXIBILITY: t('workout.custom.categoryFlexibility'),
+    BODYWEIGHT: t('workout.custom.categoryBodyweight'),
+  };
+  const categoryOptions = EXERCISE_CATEGORIES.map((category) => ({
+    label: categoryLabels[category],
+    value: category,
+  }));
   const { control, handleSubmit, reset, setError } = useForm<
     CustomExerciseFormInput,
     unknown,
     CustomExerciseFormOutput
   >({
-    resolver: zodResolver(customExerciseFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: customExerciseToFormValues(initial ?? null),
   });
 
@@ -89,7 +90,7 @@ export function CustomExerciseForm({
     if (clash) {
       setError('name', {
         type: 'duplicate',
-        message: 'You already have a custom exercise with that name.',
+        message: t('workout.custom.duplicateName'),
       });
       return;
     }
@@ -107,36 +108,40 @@ export function CustomExerciseForm({
       <FormField
         control={control}
         name="name"
-        label="Name"
-        placeholder="e.g. Zercher squat"
+        label={t('workout.custom.name')}
+        placeholder={t('workout.custom.namePlaceholder')}
         required
         selectTextOnFocus
       />
       {showNormalizedPreview ? (
-        <AppText variant="caption" tone="muted" accessibilityLabel="Name will be saved as">
-          Will be saved as: {normalizedName}
+        <AppText
+          variant="caption"
+          tone="muted"
+          accessibilityLabel={t('workout.custom.normalizedAccessibility')}
+        >
+          {t('workout.custom.normalizedPrefix')}: {normalizedName}
         </AppText>
       ) : null}
       <FormField
         control={control}
         name="muscleGroup"
-        label="Muscle group"
-        placeholder="e.g. legs"
+        label={t('workout.custom.muscleGroup')}
+        placeholder={t('workout.custom.muscleGroupPlaceholder')}
         required
         selectTextOnFocus
       />
       <FormSelect
         control={control}
         name="category"
-        label="Category"
-        options={CATEGORY_OPTIONS}
+        label={t('workout.custom.category')}
+        options={categoryOptions}
         required
       />
       <FormField
         control={control}
         name="instructions"
-        label="Instructions (optional)"
-        placeholder="How to perform it"
+        label={t('workout.custom.instructions')}
+        placeholder={t('workout.custom.instructionsPlaceholder')}
         selectTextOnFocus
       />
 
@@ -144,21 +149,23 @@ export function CustomExerciseForm({
 
       <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
         <AppButton
-          accessibilityLabel={initial ? 'Save changes' : 'Add custom exercise'}
+          accessibilityLabel={
+            initial ? t('workout.custom.saveChanges') : t('workout.custom.addExerciseAccessibility')
+          }
           testID="custom-exercise-submit"
           loading={saving}
           onPress={() => void handleSubmit(submit)()}
         >
-          {initial ? 'Save changes' : 'Add exercise'}
+          {initial ? t('workout.custom.saveChanges') : t('workout.custom.addExercise')}
         </AppButton>
         {onCancel ? (
           <AppButton
-            accessibilityLabel="Cancel"
+            accessibilityLabel={t('workout.custom.cancel')}
             testID="custom-exercise-cancel"
             variant="text"
             onPress={onCancel}
           >
-            Cancel
+            {t('workout.custom.cancel')}
           </AppButton>
         ) : null}
       </View>
