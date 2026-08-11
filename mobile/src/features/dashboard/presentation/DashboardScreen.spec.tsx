@@ -183,7 +183,7 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/profile-edit');
   });
 
-  it('deep-links the weight data gap to the evaluation edit screen', async () => {
+  it('deep-links the weight data gap to the wellness progress screen', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({
       status: 'empty',
@@ -203,7 +203,7 @@ describe('DashboardScreen', () => {
     await render(<DashboardScreen />);
     fireEvent.press(screen.getByRole('button', { name: 'Fix: Record a weight measurement' }));
 
-    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+    expect(router.push).toHaveBeenCalledWith('/progress');
   });
 
   it('deep-links the default-goal assessment note to the goal edit screen', async () => {
@@ -249,26 +249,13 @@ describe('DashboardScreen', () => {
     expect(jest.mocked(signOut)).toHaveBeenCalledTimes(1);
   });
 
-  it('navigates to the medical management surfaces', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+  it('does not expose dormant medical management actions', async () => {
     setStore({ status: 'ready', data: baseData });
 
     await render(<DashboardScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'View evaluation history' }));
-    await fireEvent.press(screen.getByRole('button', { name: 'Manage restrictions and injuries' }));
-
-    expect(router.push).toHaveBeenCalledWith('/evaluation-history');
-    expect(router.push).toHaveBeenCalledWith('/restrictions');
-  });
-
-  it('offers a direct "Record evaluation" action to evaluation entry', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    await fireEvent.press(screen.getByTestId('dashboard-record-evaluation'));
-
-    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+    expect(screen.queryByText('Record evaluation')).toBeNull();
+    expect(screen.queryByText('Evaluation history')).toBeNull();
+    expect(screen.queryByText('Restrictions & injuries')).toBeNull();
   });
 
   it('navigates to the nutrition targets surface', async () => {

@@ -1,7 +1,7 @@
 # ADR-P008 / TEST-004 — full device-side onboarding loop.
 #
 # Proves the complete production-path loop that Phases 13–14 unlocked: a
-# brand new account enters its profile, physical evaluation (weight), and
+# brand new account enters its profile, wellness progress (weight), and
 # goal ENTIRELY ON THE DEVICE through the dashboard gap actions; the iCoach
 # assessment reaches `ready` from purely local data (no server seeding);
 # local changes sync and the pending state clears; and the account can sign
@@ -64,21 +64,22 @@ appId: com.appfitness.mobile
 - assertNotVisible: 'Add your height'
 - assertVisible: 'Record a weight measurement'
 
-# --- 2. Record a physical evaluation (weight) through the gap action ---
+# --- 2. Record body weight through the wellness Progress surface ---
 - tapOn:
     id: 'gap-fix-weight'
 - extendedWaitUntil:
     visible:
       id: 'field-weightKg'
     timeout: 15000
-# The evaluation date defaults to today; only weight is required.
+# The progress date defaults to today; only weight is required.
 - tapOn:
     id: 'field-weightKg'
 - inputText: '82'
 - hideKeyboard
 - scrollUntilVisible:
-    element: 'Save evaluation'
-- tapOn: 'Save evaluation'
+    element: 'Save weight'
+- tapOn: 'Save weight'
+- back
 
 # Back on the dashboard: with a local profile + local weight, the iCoach
 # assessment reaches `ready` from purely local data — no server round-trip.

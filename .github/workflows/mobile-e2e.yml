@@ -133,15 +133,9 @@ jobs:
             # then confirm selecting a nut food on the food log shows the
             # non-blocking allergy/sensitivity warning and can still be logged.
             maestro test .maestro/food-log-exclusion-warning.yml
-            # Phase 14 Slice 2 — medical management surfaces (restrictions +
-            # evaluation history), same account/session, all on-device.
-            maestro test .maestro/medical-management.yml
             # Phase 16 Slice 8 — workout module + read-only iCoach TrainingPlan
-            # integration. Same onboard session: add a knee restriction (so the
-            # plan carries excludedMovements), open the routine builder, confirm
-            # the guidance card + non-blocking excluded-movement caution, build a
-            # routine from the built-in catalog, then log a workout set and see it
-            # saved (pending) before finishing the workout.
+            # integration. Medical management remains retained but dormant for
+            # public v1, so this journey uses wellness inputs only.
             maestro test .maestro/workout-training-plan.yml
             # Phase 16 Slice 10 — custom-exercise UI. Same onboard session:
             # create/edit a user-owned custom exercise from the Exercise

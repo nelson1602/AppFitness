@@ -22,12 +22,12 @@ import { SyncStatusBanner } from './components/sync-status-banner';
  */
 const PROFILE_EDIT_GAPS = new Set(['profile', 'birth-date', 'height']);
 const GOAL_EDIT_GAPS = new Set(['default-goal']);
-const EVALUATION_EDIT_GAPS = new Set(['weight']);
+const PROGRESS_EDIT_GAPS = new Set(['weight']);
 
 function resolveGapFix(gap: DataRequirement): (() => void) | undefined {
   if (PROFILE_EDIT_GAPS.has(gap.id)) return () => router.push('/profile-edit');
   if (GOAL_EDIT_GAPS.has(gap.id)) return () => router.push('/goal-edit');
-  if (EVALUATION_EDIT_GAPS.has(gap.id)) return () => router.push('/evaluation-edit');
+  if (PROGRESS_EDIT_GAPS.has(gap.id)) return () => router.push('/progress');
   return undefined;
 }
 
@@ -108,29 +108,6 @@ export function DashboardScreen() {
         Nutrition
       </AppButton>
 
-      {/* Medical management surfaces (Phase 14 Slice 2). */}
-      <AppButton
-        accessibilityLabel="Record a new evaluation"
-        testID="dashboard-record-evaluation"
-        onPress={() => router.push('/evaluation-edit')}
-        variant="secondary"
-      >
-        Record evaluation
-      </AppButton>
-      <AppButton
-        accessibilityLabel="View evaluation history"
-        onPress={() => router.push('/evaluation-history')}
-        variant="secondary"
-      >
-        Evaluation history
-      </AppButton>
-      <AppButton
-        accessibilityLabel="Manage restrictions and injuries"
-        onPress={() => router.push('/restrictions')}
-        variant="secondary"
-      >
-        Restrictions & injuries
-      </AppButton>
       {/* Dietary preferences & allergies (ADR-P014 Slice 2B). */}
       <AppButton
         accessibilityLabel="Manage dietary preferences and allergies"

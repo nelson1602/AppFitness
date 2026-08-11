@@ -12,6 +12,12 @@ export {
   type ProgressStatus,
 } from './application/progress.store';
 export { recomputeSnapshots, gatherProgressInputs } from './application/progress.gathering';
+export {
+  getMyLatestPhysicalAssessment,
+  recordMyBodyMeasurement,
+  recordMyBodyWeight,
+  type PhysicalAssessmentMetrics,
+} from './application/progress.service';
 export type {
   BodyWeight,
   BodyWeightInput,

@@ -539,6 +539,10 @@ Test implementation details unnecessarily
 
 Use real medical data
 
+Expose dormant medical routes in public-v1 journeys
+
+Feed retained medical records into public-v1 iCoach tests
+
 Ignore flaky tests
 
 Ship without testing offline behavior

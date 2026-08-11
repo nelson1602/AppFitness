@@ -24,25 +24,9 @@ const profile = {
   updatedAt: '2026-07-06T00:00:00.000Z',
 };
 
-const evaluation = {
-  id: 'eval-1',
-  userId: 'user-1',
-  evaluationDate: '2026-07-06',
+const physicalAssessment = {
   weightKg: 82,
   bodyFatPct: 21,
-  muscleMassKg: 36,
-  bloodPressureSystolic: 122,
-  bloodPressureDiastolic: 78,
-  restingHeartRate: 62,
-  sleepQuality: 4,
-  stressLevel: 2,
-  activityLevel: 'MODERATE' as const,
-  doctorNotes: null,
-  medicalConditions: null,
-  medications: null,
-  version: 1,
-  syncStatus: 'synced' as const,
-  createdAt: '2026-07-06T00:00:00.000Z',
 };
 
 describe('buildDashboardAssessment', () => {
@@ -61,15 +45,13 @@ describe('buildDashboardAssessment', () => {
         version: 1,
         syncStatus: 'synced',
       },
-      latestEvaluation: evaluation,
-      activeRestrictions: [],
+      physicalAssessment,
       today: '2026-07-06',
     });
     const second = buildDashboardAssessment({
       profile,
       activeGoal: null,
-      latestEvaluation: evaluation,
-      activeRestrictions: [],
+      physicalAssessment,
       today: '2026-07-06',
     });
 
@@ -81,36 +63,43 @@ describe('buildDashboardAssessment', () => {
     }
   });
 
-  it('flows a user-created active restriction into the engine input', () => {
+  it('never feeds retained medical inputs into the public-v1 engine contract', () => {
     const result = buildDashboardAssessment({
       profile,
       activeGoal: null,
-      latestEvaluation: evaluation,
-      activeRestrictions: [
-        {
-          id: 'restriction-1',
-          userId: 'user-1',
-          type: 'INJURY',
-          bodyArea: 'left knee',
-          severity: 'MODERATE',
-          notes: 'no deep squats',
-          isActive: true,
-          effectiveFrom: '2026-07-01',
-          effectiveUntil: null,
-          version: 1,
-          syncStatus: 'pending',
-        },
-      ],
+      physicalAssessment,
       today: '2026-07-06',
     });
 
     expect(result.status).toBe('ready');
     if (result.status === 'ready') {
-      // The engine receives the mapped restriction (type/bodyArea/severity);
-      // sensitive notes are NOT part of the engine input.
-      expect(result.data.engineInput.restrictions).toEqual([
-        { type: 'INJURY', bodyArea: 'left knee', severity: 'MODERATE' },
-      ]);
+      expect(result.data.engineInput.restrictions).toEqual([]);
+      expect(result.data.engineInput.bloodPressure).toBeUndefined();
+    }
+  });
+
+  it('does not feed a retained rehabilitation goal into public-v1 iCoach', () => {
+    const result = buildDashboardAssessment({
+      profile,
+      activeGoal: {
+        id: 'goal-legacy',
+        userId: 'user-1',
+        goalType: 'REHABILITATION',
+        targetWeightKg: null,
+        targetDate: null,
+        isActive: true,
+        startedAt: '2026-07-01T00:00:00.000Z',
+        endedAt: null,
+        version: 1,
+        syncStatus: 'synced',
+      },
+      physicalAssessment,
+      today: '2026-07-06',
+    });
+
+    expect(result.status).toBe('ready');
+    if (result.status === 'ready') {
+      expect(result.data.engineInput.goal).toBe('GENERAL_HEALTH');
     }
   });
 
@@ -118,8 +107,7 @@ describe('buildDashboardAssessment', () => {
     const result = buildDashboardAssessment({
       profile: null,
       activeGoal: null,
-      latestEvaluation: null,
-      activeRestrictions: [],
+      physicalAssessment: { weightKg: null, bodyFatPct: null },
       today: '2026-07-06',
     });
 

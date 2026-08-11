@@ -1,6 +1,10 @@
 import { getSession } from '@/features/authentication';
 import { evaluate } from '@/features/icoach/domain/engine';
-import { getMyEvaluations, recordEvaluation } from '@/features/medical';
+import {
+  getMyLatestPhysicalAssessment,
+  recordMyBodyMeasurement,
+  recordMyBodyWeight,
+} from '@/features/progress';
 import { saveMyProfile, setGoal } from '@/features/profile';
 import { countByStatus, listPendingConflicts } from '@/shared/infrastructure/sync';
 
@@ -13,10 +17,12 @@ jest.mock('@/features/authentication', () => ({
 jest.mock('@/features/icoach/domain/engine', () => ({
   evaluate: jest.fn(),
 }));
-jest.mock('@/features/medical', () => ({
-  getMyActiveRestrictions: jest.fn(() => Promise.resolve([])),
-  getMyEvaluations: jest.fn(() => Promise.resolve([])),
-  recordEvaluation: jest.fn(),
+jest.mock('@/features/progress', () => ({
+  getMyLatestPhysicalAssessment: jest.fn(() =>
+    Promise.resolve({ weightKg: null, bodyFatPct: null }),
+  ),
+  recordMyBodyMeasurement: jest.fn(),
+  recordMyBodyWeight: jest.fn(),
 }));
 jest.mock('@/features/profile', () => ({
   getActiveGoal: jest.fn(() => Promise.resolve(null)),
@@ -124,7 +130,7 @@ describe('dashboard service', () => {
     });
   });
 
-  it('loadSampleDashboardData seeds profile, goal, and evaluation through real use cases', async () => {
+  it('loadSampleDashboardData seeds profile, goal, and wellness metrics through real use cases', async () => {
     mockAdapter.mockReturnValue(readyResult());
 
     await loadSampleDashboardData(NOW);
@@ -134,11 +140,14 @@ describe('dashboard service', () => {
       'user-1',
       expect.objectContaining({ goalType: 'RECOMPOSITION' }),
     );
-    expect(jest.mocked(recordEvaluation)).toHaveBeenCalledWith(
-      expect.objectContaining({ evaluationDate: '2026-07-06' }),
+    expect(jest.mocked(recordMyBodyWeight)).toHaveBeenCalledWith(
+      expect.objectContaining({ date: '2026-07-06', weightKg: 82 }),
+    );
+    expect(jest.mocked(recordMyBodyMeasurement)).toHaveBeenCalledWith(
+      expect.objectContaining({ date: '2026-07-06', bodyFatPct: 21 }),
     );
     // The seed forces one deterministic engine call so type drift fails early.
     expect(jest.mocked(evaluate)).toHaveBeenCalledWith({ some: 'input' });
-    expect(jest.mocked(getMyEvaluations)).toHaveBeenCalled();
+    expect(jest.mocked(getMyLatestPhysicalAssessment)).toHaveBeenCalled();
   });
 });

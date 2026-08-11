@@ -2131,10 +2131,14 @@ recorded; Slice 5 = close-out when the matrix is all PASS/waived.
 
 ### Status
 
-**IN PROGRESS 2026-08-10 — Slices 1–2 implemented.** Owner-approved under
+**IN PROGRESS 2026-08-10 — Slices 1–3 implemented.** Owner-approved under
 ADR-P017. Slice 2 adds the Spanish/English localization foundation, supported
 device-language resolution, English fallback, persisted in-app selector,
 shared formatting helpers, and a translated authentication proof surface.
+Slice 3 moves public dashboard/iCoach weight and body-fat inputs to the wellness
+Progress source of truth, removes public medical routes/actions and medical sync
+registration, and preserves all medical code/schema/data protections without a
+destructive migration.
 This is not a whole-app localization claim; the remaining bilingual surface is
 reserved for later slices. Phase 20's historical engineering/gate evidence is
 preserved, but its store close-out is suspended because the previously validated

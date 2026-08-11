@@ -1,6 +1,10 @@
 import { getSession } from '@/features/authentication';
 import { evaluate } from '@/features/icoach/domain/engine';
-import { getMyActiveRestrictions, getMyEvaluations, recordEvaluation } from '@/features/medical';
+import {
+  getMyLatestPhysicalAssessment,
+  recordMyBodyMeasurement,
+  recordMyBodyWeight,
+} from '@/features/progress';
 import { getActiveGoal, getMyProfile, saveMyProfile, setGoal } from '@/features/profile';
 import { countByStatus, listPendingConflicts } from '@/shared/infrastructure/sync';
 
@@ -11,22 +15,18 @@ export async function loadDashboardData(now: Date = new Date()): Promise<Dashboa
   const session = getSession();
   if (!session) throw new Error('Not authenticated');
 
-  const [profile, activeGoal, evaluations, restrictions, queueCounts, conflicts] =
-    await Promise.all([
-      getMyProfile(),
-      getActiveGoal(session.user.id),
-      getMyEvaluations(),
-      getMyActiveRestrictions(),
-      countByStatus(),
-      listPendingConflicts(),
-    ]);
+  const [profile, activeGoal, physicalAssessment, queueCounts, conflicts] = await Promise.all([
+    getMyProfile(),
+    getActiveGoal(session.user.id),
+    getMyLatestPhysicalAssessment(),
+    countByStatus(),
+    listPendingConflicts(),
+  ]);
 
-  const latestEvaluation = evaluations[0] ?? null;
   const adapter = buildDashboardAssessment({
     profile,
     activeGoal,
-    latestEvaluation,
-    activeRestrictions: restrictions,
+    physicalAssessment,
     today: now.toISOString().slice(0, 10),
   });
 
@@ -61,17 +61,14 @@ export async function loadSampleDashboardData(now: Date = new Date()): Promise<v
     targetWeightKg: 78,
     targetDate: '2026-12-31',
   });
-  await recordEvaluation({
-    evaluationDate: today,
+  await recordMyBodyWeight({
+    date: today,
     weightKg: 82,
+  });
+  await recordMyBodyMeasurement({
+    date: today,
     bodyFatPct: 21,
-    muscleMassKg: 36,
-    bloodPressureSystolic: 122,
-    bloodPressureDiastolic: 78,
-    restingHeartRate: 62,
-    sleepQuality: 4,
-    stressLevel: 2,
-    activityLevel: 'MODERATE',
+    waistCm: 84,
   });
 
   // Force one engine call in dev seed so type drift between fixtures and

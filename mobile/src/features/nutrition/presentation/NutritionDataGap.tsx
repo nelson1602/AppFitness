@@ -8,7 +8,7 @@ import { useTheme } from '@/shared/theme';
 /**
  * Baseline gaps that block nutrition. Profile-side gaps (profile / birth date
  * / height) are fixed on the profile-edit screen; a missing weight is fixed
- * by recording an evaluation. Routing knowledge lives here so the nutrition
+ * in Progress. Routing knowledge lives here so the nutrition
  * surfaces give users a DIRECT action instead of bouncing them to the
  * dashboard. Kept in sync with the dashboard's own gap ids (icoach-adapter).
  */
@@ -20,11 +20,9 @@ const WEIGHT_GAP_IDS = new Set(['weight']);
  * (UX correction, 2026-07-16). Explains WHY nutrition is unavailable and
  * offers direct actions for the specific missing pieces:
  *   - profile / birth date / height  → /profile-edit
- *   - weight                         → /evaluation-edit
+ *   - weight                         → /progress
  * The minimum baseline rule is unchanged (profile + birth date + height +
- * weight); a full doctor evaluation is NOT required. Food allergies and
- * preferences are intentionally out of scope — mentioned only as a
- * non-blocking future capability.
+ * weight). Medical or professional records are not requested by public v1.
  */
 export function NutritionDataGap({
   missing,
@@ -80,12 +78,12 @@ export function NutritionDataGap({
               </AppText>
             ))}
             <AppButton
-              accessibilityLabel="Record a new evaluation"
+              accessibilityLabel="Record your body weight"
               testID="nutrition-gap-weight"
               variant="secondary"
-              onPress={() => router.push('/evaluation-edit')}
+              onPress={() => router.push('/progress')}
             >
-              Record evaluation
+              Record weight
             </AppButton>
           </View>
         ) : null}
@@ -103,9 +101,8 @@ export function NutritionDataGap({
         )}
 
         <AppText variant="caption" tone="muted">
-          Doctor notes and restrictions are optional — they improve safety and personalization but
-          are not required for targets. Food allergies and preferences aren’t available yet; they’re
-          a planned future option and don’t block nutrition today.
+          AppFitness uses self-entered wellness data for these suggestions. It does not request
+          diagnoses, prescriptions, doctor notes, or professional medical restrictions.
         </AppText>
       </View>
     </Card>
