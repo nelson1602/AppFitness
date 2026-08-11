@@ -4,22 +4,41 @@ import { Pressable, View } from 'react-native';
 
 import { getSession } from '@/features/authentication';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
+import { formatNumber, useLocalization, type TranslationKey } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import { AVOID_TAG_LABELS } from '../domain/food-catalog';
+import type { AvoidTag, ServingUnit } from '../domain/food-catalog';
 import type { MealPlan, MealPlanDay, MealPlanMeal, MealSlot } from '../domain/meal-plan';
-import { NUTRITION_DISCLAIMER } from '../domain/nutrition-explain';
 import { getById } from '../application/food-catalog.service';
 import { selectMealPlan } from '../application/meal-plan.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { NutritionDataGap } from './NutritionDataGap';
 
-const SLOT_LABEL: Record<MealSlot, string> = {
-  BREAKFAST: 'Breakfast',
-  LUNCH: 'Lunch',
-  DINNER: 'Dinner',
-  SNACK: 'Snack',
+const SLOT_KEY: Record<MealSlot, TranslationKey> = {
+  BREAKFAST: 'nutrition.plan.breakfast',
+  LUNCH: 'nutrition.plan.lunch',
+  DINNER: 'nutrition.plan.dinner',
+  SNACK: 'nutrition.plan.snack',
+};
+
+const UNIT_KEY: Record<ServingUnit, TranslationKey> = {
+  g: 'nutrition.unit.g',
+  ml: 'nutrition.unit.ml',
+  piece: 'nutrition.unit.piece',
+  cup: 'nutrition.unit.cup',
+  tbsp: 'nutrition.unit.tbsp',
+  tsp: 'nutrition.unit.tsp',
+  slice: 'nutrition.unit.slice',
+};
+
+const AVOID_TAG_KEY: Record<AvoidTag, TranslationKey> = {
+  nut_allergy: 'nutrition.avoid.nuts',
+  shellfish_allergy: 'nutrition.avoid.shellfish',
+  gluten_sensitive: 'nutrition.avoid.gluten',
+  lactose_sensitive: 'nutrition.avoid.lactose',
+  high_sodium_sensitive: 'nutrition.avoid.sodium',
+  high_purine: 'nutrition.avoid.purine',
 };
 
 function DaySelector({
@@ -32,6 +51,7 @@ function DaySelector({
   onSelect: (day: number) => void;
 }) {
   const theme = useTheme();
+  const { t } = useLocalization();
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
       {Array.from({ length: count }, (_, i) => i + 1).map((day) => {
@@ -40,7 +60,7 @@ function DaySelector({
           <Pressable
             key={day}
             accessibilityRole="button"
-            accessibilityLabel={`Show day ${day}`}
+            accessibilityLabel={`${t('nutrition.plan.showDay')} ${day}`}
             accessibilityState={{ selected: active }}
             testID={`plan-day-${day}`}
             onPress={() => onSelect(day)}
@@ -68,22 +88,26 @@ function DaySelector({
 
 function MealCard({ meal }: { meal: MealPlanMeal }) {
   const theme = useTheme();
+  const { language, t } = useLocalization();
+  const slotLabel = t(SLOT_KEY[meal.slot]);
   return (
-    <Card accessibilityLabel={`${SLOT_LABEL[meal.slot]} meal`}>
+    <Card accessibilityLabel={`${slotLabel} ${t('nutrition.plan.meal')}`}>
       <View style={{ gap: theme.spacing.sm }}>
-        <AppText variant="label">{SLOT_LABEL[meal.slot]}</AppText>
+        <AppText variant="label">{slotLabel}</AppText>
         {meal.foods.map((f, idx) => (
           <View key={`${f.foodId}-${idx}`} style={{ gap: 2 }}>
             <AppText>{f.name}</AppText>
             <AppText variant="caption" tone="muted">
-              {f.serving.amount}
-              {f.serving.unit} · {f.servings}× · {f.macros.calories} kcal · P {f.macros.proteinG}g /
-              C {f.macros.carbsG}g / F {f.macros.fatG}g
+              {formatNumber(f.serving.amount, language)} {t(UNIT_KEY[f.serving.unit])} ·{' '}
+              {formatNumber(f.servings, language)}× · {formatNumber(f.macros.calories, language)}{' '}
+              kcal · {t('nutrition.plan.protein')} {formatNumber(f.macros.proteinG, language)} g /{' '}
+              {t('nutrition.plan.carbs')} {formatNumber(f.macros.carbsG, language)} g /{' '}
+              {t('nutrition.plan.fat')} {formatNumber(f.macros.fatG, language)} g
             </AppText>
           </View>
         ))}
         <AppText variant="caption" tone="muted">
-          Meal total: {meal.totals.calories} kcal
+          {t('nutrition.plan.mealTotal')}: {formatNumber(meal.totals.calories, language)} kcal
         </AppText>
       </View>
     </Card>
@@ -92,33 +116,44 @@ function MealCard({ meal }: { meal: MealPlanMeal }) {
 
 function DayView({ day }: { day: MealPlanDay }) {
   const theme = useTheme();
+  const { language, t } = useLocalization();
   return (
     <View style={{ gap: theme.spacing.lg }}>
-      <AppText variant="title">Day {day.day}</AppText>
+      <AppText variant="title">
+        {t('nutrition.plan.day')} {day.day}
+      </AppText>
 
       {day.meals.map((meal) => (
         <MealCard key={meal.slot} meal={meal} />
       ))}
 
-      <Card accessibilityLabel="Day totals versus targets">
+      <Card accessibilityLabel={t('nutrition.plan.dayTotalsAccessibility')}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="label">Day total vs target</AppText>
+          <AppText variant="label">{t('nutrition.plan.dayTotalTarget')}</AppText>
           <AppText tone="muted">
-            {day.totals.calories} / {day.targets.calories} kcal
+            {t('nutrition.plan.calories')}: {formatNumber(day.totals.calories, language)} /{' '}
+            {formatNumber(day.targets.calories, language)} kcal
           </AppText>
           <AppText variant="caption" tone="muted">
-            Protein {day.totals.proteinG} / {day.targets.proteinG}g · Carbs {day.totals.carbsG} /{' '}
-            {day.targets.carbsG}g · Fat {day.totals.fatG} / {day.targets.fatG}g
+            {t('nutrition.plan.protein')} {formatNumber(day.totals.proteinG, language)} /{' '}
+            {formatNumber(day.targets.proteinG, language)} g · {t('nutrition.plan.carbs')}{' '}
+            {formatNumber(day.totals.carbsG, language)} /{' '}
+            {formatNumber(day.targets.carbsG, language)} g · {t('nutrition.plan.fat')}{' '}
+            {formatNumber(day.totals.fatG, language)} / {formatNumber(day.targets.fatG, language)} g
           </AppText>
         </View>
       </Card>
 
       <AppText variant="caption" tone="muted">
-        {day.rationale.summary}
+        {t('nutrition.plan.day')} {day.day} {t('nutrition.plan.targetSummary')}:{' '}
+        {formatNumber(day.targets.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
+        {formatNumber(day.targets.proteinG, language)} g · {t('nutrition.plan.carbs')}{' '}
+        {formatNumber(day.targets.carbsG, language)} g · {t('nutrition.plan.fat')}{' '}
+        {formatNumber(day.targets.fatG, language)} g.
       </AppText>
       {day.rationale.safetyFloorApplied ? (
-        <Banner title="Safe minimum applied" tone="info">
-          {day.rationale.notes.join(' ')}
+        <Banner title={t('nutrition.plan.safeMinimumTitle')} tone="info">
+          {t('nutrition.plan.safeMinimumMessage')}
         </Banner>
       ) : null}
     </View>
@@ -132,28 +167,28 @@ function DayView({ day }: { day: MealPlanDay }) {
  */
 function ExclusionsCard({ plan }: { plan: MealPlan }) {
   const theme = useTheme();
+  const { t } = useLocalization();
   if (plan.excludedAvoidTags.length === 0 && plan.excludedCatalogKeys.length === 0) return null;
 
-  const categories = plan.excludedAvoidTags.map((t) => AVOID_TAG_LABELS[t]);
+  const categories = plan.excludedAvoidTags.map((tag) => t(AVOID_TAG_KEY[tag]));
   const foods = plan.excludedCatalogKeys.map((k) => getById(k)?.name ?? k);
 
   return (
-    <Card accessibilityLabel="Applied dietary preferences">
+    <Card accessibilityLabel={t('nutrition.plan.preferencesAccessibility')}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="label">Your dietary preferences shaped this plan</AppText>
+        <AppText variant="label">{t('nutrition.plan.preferencesTitle')}</AppText>
         {categories.length > 0 ? (
           <AppText variant="caption" tone="muted">
-            Avoided categories: {categories.join(', ')}
+            {t('nutrition.plan.avoidedCategories')}: {categories.join(', ')}
           </AppText>
         ) : null}
         {foods.length > 0 ? (
           <AppText variant="caption" tone="muted">
-            Excluded foods: {foods.join(', ')}
+            {t('nutrition.plan.excludedFoods')}: {foods.join(', ')}
           </AppText>
         ) : null}
         <AppText variant="caption" tone="muted">
-          Allergies and preferences deterministically remove foods before selection, so the plan
-          reflects them. Not medical advice.
+          {t('nutrition.plan.preferencesExplanation')}
         </AppText>
       </View>
     </Card>
@@ -168,6 +203,7 @@ function ExclusionsCard({ plan }: { plan: MealPlan }) {
  */
 export function NutritionPlanScreen() {
   const theme = useTheme();
+  const { t } = useLocalization();
   const { status, data, error, refresh } = useDashboardStore();
   const { status: prefStatus, preferences, load: loadPreferences } = useDietaryPreferenceStore();
   const [selectedDay, setSelectedDay] = useState(1);
@@ -193,30 +229,30 @@ export function NutritionPlanScreen() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">15-day meal plan</AppText>
-        <AppText tone="muted">
-          A deterministic routine built from your iCoach targets and the local food catalog.
-        </AppText>
+        <AppText variant="headline">{t('nutrition.plan.title')}</AppText>
+        <AppText tone="muted">{t('nutrition.plan.subtitle')}</AppText>
       </View>
 
       <AppButton
-        accessibilityLabel="Log the food you ate today"
+        accessibilityLabel={t('nutrition.plan.logTodayAccessibility')}
         testID="open-food-log"
         variant="secondary"
         onPress={() => router.push('/food-log')}
       >
-        Log today’s food
+        {t('nutrition.plan.logToday')}
       </AppButton>
 
       {status === 'loading' || status === 'idle' || preferencesLoading ? (
-        <AppText accessibilityLabel="Loading meal plan">Loading…</AppText>
+        <AppText accessibilityLabel={t('nutrition.plan.loadingAccessibility')}>
+          {t('nutrition.plan.loading')}
+        </AppText>
       ) : error ? (
-        <Banner title="Meal plan unavailable" tone="error">
-          {error}
+        <Banner title={t('nutrition.plan.unavailable')} tone="error">
+          {t('nutrition.plan.errorMessage')}
         </Banner>
       ) : selection.status === 'error' ? (
-        <Banner title="Meal plan unavailable" tone="error">
-          {selection.message}
+        <Banner title={t('nutrition.plan.unavailable')} tone="error">
+          {t('nutrition.plan.errorMessage')}
         </Banner>
       ) : selection.status === 'gap' ? (
         <NutritionDataGap missing={data?.missing ?? []} context="plan" />
@@ -233,7 +269,7 @@ export function NutritionPlanScreen() {
       )}
 
       <AppText variant="caption" tone="muted">
-        {NUTRITION_DISCLAIMER}
+        {t('nutrition.plan.disclaimer')}
       </AppText>
     </View>
   );

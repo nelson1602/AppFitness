@@ -12,6 +12,7 @@ const loadPreferences = jest.fn();
 let mockDash: DashboardState;
 let mockSelection: MealPlanSelection;
 let mockPrefs: DietaryPreferenceState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('@/features/dashboard/application/dashboard.store', () => ({
   useDashboardStore: () => mockDash,
@@ -29,6 +30,22 @@ jest.mock('../application/meal-plan.service', () => ({
 jest.mock('../application/dietary-preference.store', () => ({
   useDietaryPreferenceStore: () => mockPrefs,
 }));
+jest.mock('@/shared/localization', () => {
+  const { en } = jest.requireActual('@/shared/localization/resources/en') as {
+    en: Record<string, string>;
+  };
+  const { es } = jest.requireActual('@/shared/localization/resources/es') as {
+    es: Record<string, string>;
+  };
+  return {
+    formatNumber: (value: number, language: 'en' | 'es') =>
+      new Intl.NumberFormat(language === 'es' ? 'es' : 'en-US').format(value),
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
+    }),
+  };
+});
 
 let lastSelectArgs: unknown[] = [];
 
@@ -106,6 +123,7 @@ function setDash(partial: Partial<DashboardState>) {
 describe('NutritionPlanScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
     setDash({});
     setPrefs({});
     lastSelectArgs = [];
@@ -169,21 +187,23 @@ describe('NutritionPlanScreen', () => {
     }
     expect(screen.getByText('BREAKFAST food 1')).toBeOnTheScreen();
     // portion + servings + calories + macros line (one per meal → 4)
-    expect(screen.getAllByText(/150g · 1\.5× · 300 kcal · P 20g \/ C 30g \/ F 8g/)).toHaveLength(4);
+    expect(
+      screen.getAllByText(/150 g · 1\.5× · 300 kcal · Protein 20 g \/ Carbs 30 g \/ Fat 8 g/),
+    ).toHaveLength(4);
   });
 
   it('renders day totals versus targets', async () => {
     await render(<NutritionPlanScreen />);
-    expect(screen.getByText('2312 / 2300 kcal')).toBeOnTheScreen();
+    expect(screen.getByText('Calories: 2,312 / 2,300 kcal')).toBeOnTheScreen();
     expect(
-      screen.getByText('Protein 128 / 130g · Carbs 262 / 260g · Fat 74 / 76g'),
+      screen.getByText('Protein 128 / 130 g · Carbs 262 / 260 g · Fat 74 / 76 g'),
     ).toBeOnTheScreen();
   });
 
   it('renders the day rationale and the non-medical disclaimer', async () => {
     await render(<NutritionPlanScreen />);
     expect(
-      screen.getByText('Day 1 targets 2300 kcal (130g protein, 260g carbs, 76g fat).'),
+      screen.getByText('Day 1 target: 2,300 kcal · Protein 130 g · Carbs 260 g · Fat 76 g.'),
     ).toBeOnTheScreen();
     expect(screen.getByText(/not medical or dietary advice/)).toBeOnTheScreen();
   });
@@ -249,6 +269,37 @@ describe('NutritionPlanScreen', () => {
     mockSelection = { status: 'error', message: 'Your meal plan could not be built right now.' };
     await render(<NutritionPlanScreen />);
     expect(screen.getByText('Meal plan unavailable')).toBeOnTheScreen();
-    expect(screen.getByText('Your meal plan could not be built right now.')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Your meal plan could not be built right now. Try again later.'),
+    ).toBeOnTheScreen();
+  });
+
+  it('renders the structured meal-plan presentation in Spanish', async () => {
+    mockLanguage = 'es';
+    await render(<NutritionPlanScreen />);
+
+    expect(screen.getByText('Plan alimentario de 15 días')).toBeOnTheScreen();
+    expect(screen.getByText('Día 1')).toBeOnTheScreen();
+    for (const label of ['Desayuno', 'Almuerzo', 'Cena', 'Merienda']) {
+      expect(screen.getByText(label)).toBeOnTheScreen();
+    }
+    expect(screen.getByText('Calorías: 2312 / 2300 kcal')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Día 1 objetivo: 2300 kcal · Proteína 130 g · Carbohidratos 260 g · Grasa 76 g.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(day(1).rationale.summary)).toBeNull();
+  });
+
+  it('changes only presentation locale while preserving deterministic plan selection', async () => {
+    const selectedPlan = plan();
+    mockSelection = { status: 'ready', plan: selectedPlan };
+    mockLanguage = 'es';
+    await render(<NutritionPlanScreen />);
+
+    expect(screen.getByText('BREAKFAST food 1')).toBeOnTheScreen();
+    expect(lastSelectArgs[0]).toBe(mockDash.data?.assessment);
+    expect(mockSelection).toEqual({ status: 'ready', plan: selectedPlan });
   });
 });

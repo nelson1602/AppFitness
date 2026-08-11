@@ -6423,6 +6423,23 @@ recorded as user-entered wellness progress only: it does not replace lean body
 mass, alter iCoach formulas, or change nutrition/training recommendations in
 this slice. Self-declared physical limitations remain separately deferred.
 
+### Slice 4A Implementation Record — Bilingual Meal-Plan Presentation
+
+The existing deterministic 15-day nutrition plan is now presented in English
+and Spanish without changing its domain contract or generation. The route,
+meal-slot labels, portions and serving units, macro/target summaries, applied
+preference categories, baseline-gap actions, loading/error states, wellness
+disclaimer, and accessibility labels resolve through the shared localization
+boundary. Structured targets are rendered locally instead of displaying the
+engine's English rationale prose, so changing locale cannot alter plan inputs,
+selection, calculations, rule versions, or stable catalog identifiers.
+
+This slice intentionally does not translate canonical food names, the food
+catalog browser, food logging, dietary-preference management, or workout
+surfaces. Food names remain stable English catalog data until Slice 4B adds
+locale-ready catalog presentation. Focused English/Spanish component tests
+prove the same selected plan is rendered under both locales.
+
 ### Supersedes / Preserves
 
 - Supersedes the **public-product-scope** portions of ADR-0007 and the original

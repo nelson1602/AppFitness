@@ -15,6 +15,9 @@ jest.mock('expo-router', () => ({
 jest.mock('@/features/authentication', () => ({
   useSession: () => ({ status: mockSessionStatus }),
 }));
+jest.mock('@/shared/localization', () => ({
+  useLocalization: () => ({ t: () => 'Meal plan' }),
+}));
 
 jest.mock('@/features/nutrition/presentation/NutritionPlanScreen', () => ({
   NutritionPlanScreen: () => {

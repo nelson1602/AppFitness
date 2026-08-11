@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 
 import type { DataRequirement } from '@/features/dashboard/domain/dashboard.types';
+import { useLocalization, type TranslationKey } from '@/shared/localization';
 import { AppButton, AppText, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -14,6 +15,13 @@ import { useTheme } from '@/shared/theme';
  */
 const PROFILE_GAP_IDS = new Set(['profile', 'birth-date', 'height']);
 const WEIGHT_GAP_IDS = new Set(['weight']);
+
+const GAP_DETAIL_KEY: Readonly<Record<string, TranslationKey>> = {
+  profile: 'nutrition.gap.profileDetail',
+  'birth-date': 'nutrition.gap.birthDateDetail',
+  height: 'nutrition.gap.heightDetail',
+  weight: 'nutrition.gap.weightDetail',
+};
 
 /**
  * Shared data-gap surface for the nutrition targets and meal-plan screens
@@ -32,6 +40,7 @@ export function NutritionDataGap({
   context: 'targets' | 'plan';
 }) {
   const theme = useTheme();
+  const { t } = useLocalization();
 
   const profileGaps = missing.filter((g) => PROFILE_GAP_IDS.has(g.id));
   const weightGaps = missing.filter((g) => WEIGHT_GAP_IDS.has(g.id));
@@ -39,51 +48,53 @@ export function NutritionDataGap({
 
   return (
     <Card
-      accessibilityLabel={
-        context === 'plan' ? 'Meal plan needs more data' : 'Nutrition needs more data'
-      }
+      accessibilityLabel={t(
+        context === 'plan'
+          ? 'nutrition.gap.planAccessibility'
+          : 'nutrition.gap.targetsAccessibility',
+      )}
     >
       <View style={{ gap: theme.spacing.md }}>
-        <AppText variant="title">Finish your baseline first</AppText>
+        <AppText variant="title">{t('nutrition.gap.title')}</AppText>
         <AppText tone="muted">
-          Nutrition targets need your profile (birth date and height) and a recent weight.
-          {context === 'plan' ? ' Your 15-day meal plan builds on those targets.' : ''}
+          {t('nutrition.gap.description')}
+          {context === 'plan' ? ` ${t('nutrition.gap.planSuffix')}` : ''}
         </AppText>
 
         {profileGaps.length > 0 ? (
           <View style={{ gap: theme.spacing.xs }}>
-            <AppText variant="label">Add your profile details</AppText>
+            <AppText variant="label">{t('nutrition.gap.profileTitle')}</AppText>
             {profileGaps.map((gap) => (
               <AppText key={gap.id} variant="caption" tone="muted">
-                {gap.detail}
+                {GAP_DETAIL_KEY[gap.id] ? t(GAP_DETAIL_KEY[gap.id]) : gap.detail}
               </AppText>
             ))}
             <AppButton
-              accessibilityLabel="Create or edit your profile"
+              accessibilityLabel={t('nutrition.gap.profileAccessibility')}
               testID="nutrition-gap-profile"
               variant="secondary"
               onPress={() => router.push('/profile-edit')}
             >
-              Create or edit profile
+              {t('nutrition.gap.profileButton')}
             </AppButton>
           </View>
         ) : null}
 
         {weightGaps.length > 0 ? (
           <View style={{ gap: theme.spacing.xs }}>
-            <AppText variant="label">Record a weight</AppText>
+            <AppText variant="label">{t('nutrition.gap.weightTitle')}</AppText>
             {weightGaps.map((gap) => (
               <AppText key={gap.id} variant="caption" tone="muted">
-                {gap.detail}
+                {GAP_DETAIL_KEY[gap.id] ? t(GAP_DETAIL_KEY[gap.id]) : gap.detail}
               </AppText>
             ))}
             <AppButton
-              accessibilityLabel="Record your body weight"
+              accessibilityLabel={t('nutrition.gap.weightAccessibility')}
               testID="nutrition-gap-weight"
               variant="secondary"
               onPress={() => router.push('/progress')}
             >
-              Record weight
+              {t('nutrition.gap.weightButton')}
             </AppButton>
           </View>
         ) : null}
@@ -92,17 +103,16 @@ export function NutritionDataGap({
           // No specific gaps surfaced (e.g. still resolving) — fall back to the
           // dashboard, which is the single owner of baseline-gap routing.
           <AppButton
-            accessibilityLabel="Go to the dashboard to finish your baseline"
+            accessibilityLabel={t('nutrition.gap.dashboardAccessibility')}
             testID="nutrition-gap-dashboard"
             onPress={() => router.push('/dashboard')}
           >
-            Go to dashboard
+            {t('nutrition.gap.dashboardButton')}
           </AppButton>
         )}
 
         <AppText variant="caption" tone="muted">
-          AppFitness uses self-entered wellness data for these suggestions. It does not request
-          diagnoses, prescriptions, doctor notes, or professional medical restrictions.
+          {t('nutrition.gap.wellnessNotice')}
         </AppText>
       </View>
     </Card>
