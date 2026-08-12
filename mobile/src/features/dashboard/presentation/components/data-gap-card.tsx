@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { type TranslationKey, useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -17,33 +18,52 @@ interface DataGapCardProps {
   resolveFix?: (gap: DataRequirement) => (() => void) | undefined;
 }
 
+const GAP_COPY: Record<string, { title: TranslationKey; detail: TranslationKey }> = {
+  profile: { title: 'dashboard.gap.profileTitle', detail: 'dashboard.gap.profileDetail' },
+  'birth-date': {
+    title: 'dashboard.gap.birthDateTitle',
+    detail: 'dashboard.gap.birthDateDetail',
+  },
+  height: { title: 'dashboard.gap.heightTitle', detail: 'dashboard.gap.heightDetail' },
+  weight: { title: 'dashboard.gap.weightTitle', detail: 'dashboard.gap.weightDetail' },
+  'default-goal': {
+    title: 'dashboard.gap.goalTitle',
+    detail: 'dashboard.gap.goalDetail',
+  },
+  'default-sex': {
+    title: 'dashboard.gap.sexTitle',
+    detail: 'dashboard.gap.sexDetail',
+  },
+};
+
 export function DataGapCard({ gaps, loading, onLoadSampleData, resolveFix }: DataGapCardProps) {
   const theme = useTheme();
+  const { t } = useLocalization();
   return (
-    <Card accessibilityLabel="Dashboard setup requirements">
+    <Card accessibilityLabel={t('dashboard.gap.accessibility')}>
       <View style={{ gap: theme.spacing.md }}>
-        <AppText variant="title">Finish your baseline</AppText>
-        <AppText tone="muted">
-          The dashboard runs entirely from local data. Add the basics below to unlock your first
-          iCoach assessment.
-        </AppText>
+        <AppText variant="title">{t('dashboard.gap.title')}</AppText>
+        <AppText tone="muted">{t('dashboard.gap.description')}</AppText>
         <View style={{ gap: theme.spacing.sm }}>
           {gaps.map((gap) => {
             const fix = resolveFix?.(gap);
+            const copy = GAP_COPY[gap.id];
+            const title = copy ? t(copy.title) : gap.title;
+            const detail = copy ? t(copy.detail) : gap.detail;
             return (
               <View key={gap.id} style={{ gap: theme.spacing.xs }}>
-                <AppText variant="label">{gap.title}</AppText>
+                <AppText variant="label">{title}</AppText>
                 <AppText variant="caption" tone="muted">
-                  {gap.detail}
+                  {detail}
                 </AppText>
                 {fix ? (
                   <AppButton
-                    accessibilityLabel={`Fix: ${gap.title}`}
+                    accessibilityLabel={`${t('dashboard.gap.fixAccessibility')}: ${title}`}
                     testID={`gap-fix-${gap.id}`}
                     onPress={fix}
                     variant="secondary"
                   >
-                    Add now
+                    {t('dashboard.gap.addNow')}
                   </AppButton>
                 ) : null}
               </View>
@@ -52,11 +72,11 @@ export function DataGapCard({ gaps, loading, onLoadSampleData, resolveFix }: Dat
         </View>
         {__DEV__ && onLoadSampleData ? (
           <AppButton
-            accessibilityLabel="Load fake sample dashboard data"
+            accessibilityLabel={t('dashboard.gap.sampleAccessibility')}
             loading={loading}
             onPress={onLoadSampleData}
           >
-            Load sample data
+            {t('dashboard.gap.sampleButton')}
           </AppButton>
         ) : null}
       </View>
