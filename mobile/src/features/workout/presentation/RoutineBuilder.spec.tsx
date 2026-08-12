@@ -214,6 +214,27 @@ describe('RoutineBuilder', () => {
       exerciseId: BACK_SQUAT_ID,
       order: 0,
     });
+
+    await fireEvent.press(screen.getByTestId('routine-new-custom-exercise'));
+    expect(screen.getByLabelText('Nombre')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Grupo muscular')).toBeOnTheScreen();
+    expect(screen.getByText('Fuerza')).toBeOnTheScreen();
+    expect(screen.getByText(/limitaciones físicas declaradas/)).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('custom-exercise-submit'));
+    expect((await screen.findAllByText('Obligatorio')).length).toBeGreaterThanOrEqual(2);
+
+    await fireEvent.changeText(screen.getByLabelText('Nombre'), 'Press landmine');
+    await fireEvent.changeText(screen.getByLabelText('Grupo muscular'), 'hombros');
+    await fireEvent.press(screen.getByTestId('custom-exercise-submit'));
+
+    await waitFor(() =>
+      expect(createCustomExercise).toHaveBeenCalledWith({
+        name: 'Press landmine',
+        muscleGroup: 'hombros',
+        category: 'STRENGTH',
+        instructions: null,
+      }),
+    );
   });
 
   it('adds a custom exercise to the selected routine', async () => {
