@@ -578,4 +578,58 @@ export const es = {
   'dashboard.sync.failedMany': 'reintentos fallidos.',
   'dashboard.sync.readyTitle': 'Datos locales disponibles',
   'dashboard.sync.readyMessage': 'El panel está disponible sin conexión.',
+  'dashboard.assessment.accessibility': 'Resumen de la evaluación de hoy',
+  'dashboard.assessment.title': 'Evaluación de hoy',
+  'dashboard.assessment.bmi': 'IMC',
+  'dashboard.assessment.protein': 'Proteína',
+  'dashboard.assessment.carbs': 'Carbohidratos',
+  'dashboard.assessment.fat': 'Grasa',
+  'dashboard.assessment.training': 'Entrenamiento',
+  'dashboard.training.blocked': 'Bloqueado',
+  'dashboard.bmi.underweight': 'peso bajo',
+  'dashboard.bmi.normal': 'normal',
+  'dashboard.bmi.overweight': 'sobrepeso',
+  'dashboard.bmi.obese': 'obesidad',
+  'dashboard.intensity.low': 'baja',
+  'dashboard.intensity.moderate': 'moderada',
+  'dashboard.intensity.high': 'alta',
+  'dashboard.recommendation.accessibility': 'recomendación',
+  'dashboard.recommendation.evidence': 'Fundamento',
+  'dashboard.recommendation.category.safety': 'Seguridad',
+  'dashboard.recommendation.category.nutrition': 'Nutrición',
+  'dashboard.recommendation.category.training': 'Entrenamiento',
+  'dashboard.recommendation.category.recovery': 'Recuperación',
+  'dashboard.recommendation.category.body': 'Composición corporal',
+  'dashboard.recommendation.priority.low': 'Baja',
+  'dashboard.recommendation.priority.medium': 'Media',
+  'dashboard.recommendation.priority.high': 'Alta',
+  'dashboard.recommendation.priority.critical': 'Crítica',
+  'dashboard.recommendation.calorieTitle': 'Objetivo diario de calorías',
+  'dashboard.recommendation.calorieExplanation':
+    'Tu gasto diario estimado es de {tdee} kcal, con un ajuste de {adjustment}% según tu objetivo.',
+  'dashboard.recommendation.calorieSafetyFloor':
+    'Tu objetivo implica un déficit, pero iCoach elevó el valor hasta un límite energético conservador.',
+  'dashboard.recommendation.calorieEvidence':
+    'Fórmula determinista de metabolismo basal con un multiplicador estándar de actividad.',
+  'dashboard.recommendation.macrosTitle':
+    'Macros: {protein} g de proteína / {carbs} g de carbohidratos / {fat} g de grasa',
+  'dashboard.recommendation.macrosExplanation':
+    'La proteína se basa en el peso corporal, la grasa cubre funciones esenciales y los carbohidratos completan el objetivo energético restante.',
+  'dashboard.recommendation.macrosEvidence':
+    'Guía de la ISSN sobre proteína y distribución de macronutrientes.',
+  'dashboard.recommendation.trainingTitle': 'Entrena {days}× por semana con intensidad {intensity}',
+  'dashboard.recommendation.trainingExplanation':
+    'El plan usa tu nivel físico y objetivo, con ajustes conservadores cuando la recuperación lo requiere.',
+  'dashboard.recommendation.trainingEvidence':
+    'Sobrecarga progresiva con autorregulación basada en RPE.',
+  'dashboard.recommendation.sleepTitle': 'Prioriza el sueño',
+  'dashboard.recommendation.sleepExplanation':
+    'Un promedio de {hours} horas de sueño puede limitar la recuperación y el rendimiento, por lo que se ajustó la intensidad.',
+  'dashboard.recommendation.sleepEvidence':
+    'La duración del sueño influye en la recuperación, la regulación energética y la adaptación al entrenamiento.',
+  'dashboard.recommendation.underweightTitle': 'No se recomienda perder grasa con tu IMC actual',
+  'dashboard.recommendation.underweightExplanation':
+    'Tu IMC ({bmi}) está en el rango de peso bajo. Un déficit calórico podría ser inseguro; elige un objetivo de mantenimiento o aumento.',
+  'dashboard.recommendation.underweightEvidence':
+    'Clasificación de IMC de la OMS y orientación conservadora sobre balance energético.',
 } as const satisfies Record<TranslationKey, string>;
