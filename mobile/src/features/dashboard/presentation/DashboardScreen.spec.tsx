@@ -9,6 +9,7 @@ const syncNow = jest.fn();
 const loadSampleData = jest.fn();
 
 let mockStoreState: DashboardState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('../application/dashboard.store', () => ({
   useDashboardStore: () => mockStoreState,
@@ -16,6 +17,18 @@ jest.mock('../application/dashboard.store', () => ({
 jest.mock('@/features/authentication', () => ({
   signOut: jest.fn(),
 }));
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
 }));
@@ -125,6 +138,7 @@ function setStore(partial: Partial<DashboardState>) {
 describe('DashboardScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
   });
 
   it('refreshes on mount and renders the loading skeleton', async () => {
@@ -340,6 +354,22 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/delete-account');
   });
 
+  it('renders Spanish shell copy while preserving navigation routes', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    mockLanguage = 'es';
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    fireEvent.press(screen.getByRole('button', { name: 'Ver objetivos de nutrición' }));
+
+    expect(screen.getByText('Tu evaluación local de iCoach')).toBeOnTheScreen();
+    expect(screen.getByText('Recomendaciones de iCoach')).toBeOnTheScreen();
+    expect(screen.getByText('Preferencias alimentarias')).toBeOnTheScreen();
+    expect(screen.getByText('Rutinas de ejercicios')).toBeOnTheScreen();
+    expect(screen.getByText('Cerrar sesión')).toBeOnTheScreen();
+    expect(router.push).toHaveBeenCalledWith('/nutrition');
+  });
+
   it('surfaces dashboard and sync error states with safe copy', async () => {
     setStore({
       status: 'error',
@@ -357,7 +387,10 @@ describe('DashboardScreen', () => {
     await render(<DashboardScreen />);
 
     expect(screen.getByText('Dashboard unavailable')).toBeOnTheScreen();
-    expect(screen.getByText('The dashboard could not be loaded right now.')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Your dashboard could not be loaded right now. Please try again.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('The dashboard could not be loaded right now.')).toBeNull();
     expect(screen.getByText('Sync needs attention')).toBeOnTheScreen();
   });
 });

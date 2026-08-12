@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import { ProgressSummaryCard } from '@/features/progress';
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -33,6 +34,7 @@ function resolveGapFix(gap: DataRequirement): (() => void) | undefined {
 
 export function DashboardScreen() {
   const theme = useTheme();
+  const { t } = useLocalization();
   const { status, data, error, refresh, syncNow, loadSampleData } = useDashboardStore();
 
   useEffect(() => {
@@ -43,14 +45,14 @@ export function DashboardScreen() {
     <Screen>
       <View style={{ gap: theme.spacing.xs }}>
         <AppText variant="headline">AppFitness</AppText>
-        <AppText tone="muted">Your local iCoach assessment</AppText>
+        <AppText tone="muted">{t('dashboard.subtitle')}</AppText>
       </View>
 
       {status === 'loading' || status === 'idle' ? <DashboardSkeleton /> : null}
 
       {error ? (
-        <Banner title="Dashboard unavailable" tone="error">
-          {error}
+        <Banner title={t('dashboard.unavailable')} tone="error">
+          {t('dashboard.errorMessage')}
         </Banner>
       ) : null}
 
@@ -58,14 +60,14 @@ export function DashboardScreen() {
         <>
           <SyncStatusBanner sync={data.sync} />
           <AppButton
-            accessibilityLabel="Synchronize local changes"
+            accessibilityLabel={t('dashboard.syncAccessibility')}
             loading={data.sync.status === 'syncing'}
             onPress={() => {
               void syncNow();
             }}
             variant="secondary"
           >
-            Sync now
+            {t('dashboard.syncNow')}
           </AppButton>
         </>
       ) : null}
@@ -88,7 +90,7 @@ export function DashboardScreen() {
             <DataGapCard gaps={data.missing} resolveFix={resolveGapFix} />
           ) : null}
           <View style={{ gap: theme.spacing.md }}>
-            <AppText variant="title">iCoach recommendations</AppText>
+            <AppText variant="title">{t('dashboard.recommendations')}</AppText>
             {data.assessment.assessment.recommendations.map((recommendation) => (
               <RecommendationCard key={recommendation.id} recommendation={recommendation} />
             ))}
@@ -101,71 +103,71 @@ export function DashboardScreen() {
 
       {/* Nutrition targets (Phase 15 Slice 1). */}
       <AppButton
-        accessibilityLabel="View nutrition targets"
+        accessibilityLabel={t('dashboard.nutritionAccessibility')}
         onPress={() => router.push('/nutrition')}
         variant="secondary"
       >
-        Nutrition
+        {t('dashboard.nutrition')}
       </AppButton>
 
       {/* Dietary preferences & allergies (ADR-P014 Slice 2B). */}
       <AppButton
-        accessibilityLabel="Manage dietary preferences and allergies"
+        accessibilityLabel={t('dashboard.preferencesAccessibility')}
         onPress={() => router.push('/dietary-preferences')}
         variant="secondary"
       >
-        Dietary preferences
+        {t('dashboard.preferences')}
       </AppButton>
       {/* Workout routines (ADR-P015 Phase 16 Slice 5). */}
       <AppButton
-        accessibilityLabel="Manage workout routines"
+        accessibilityLabel={t('dashboard.routinesAccessibility')}
         onPress={() => router.push('/routines')}
         variant="secondary"
       >
-        Workout routines
+        {t('dashboard.routines')}
       </AppButton>
       {/* Workout logging (ADR-P015 Phase 16 Slice 6). */}
       <AppButton
-        accessibilityLabel="Log a workout"
+        accessibilityLabel={t('dashboard.workoutLogAccessibility')}
         onPress={() => router.push('/workout-log')}
         variant="secondary"
       >
-        Log a workout
+        {t('dashboard.workoutLog')}
       </AppButton>
       {/* Exercise library — custom exercises (ADR-P015 Phase 16 Slice 9). */}
       <AppButton
-        accessibilityLabel="Manage your exercise library"
+        accessibilityLabel={t('dashboard.exercisesAccessibility')}
         onPress={() => router.push('/exercises')}
         variant="secondary"
       >
-        Exercise library
+        {t('dashboard.exercises')}
       </AppButton>
       {/* Progress monitoring — body metrics + weekly insights (ADR-P016 Phase 17 Slice 5a). */}
       <AppButton
-        accessibilityLabel="Track your progress"
+        accessibilityLabel={t('dashboard.progressAccessibility')}
         onPress={() => router.push('/progress')}
         variant="secondary"
       >
-        Progress
+        {t('dashboard.progress')}
       </AppButton>
 
       {/* Sign-out clears the session; the dashboard route's session
           guard then redirects to /sign-in — no manual navigation. */}
       <AppButton
-        accessibilityLabel="Sign out of your account"
+        accessibilityLabel={t('dashboard.signOutAccessibility')}
         onPress={() => {
           void signOut();
         }}
         variant="text"
       >
-        Sign out
+        {t('dashboard.signOut')}
       </AppButton>
       <AppButton
-        accessibilityLabel="Delete your account"
+        accessibilityLabel={t('dashboard.deleteAccountAccessibility')}
         onPress={() => router.push('/delete-account')}
         variant="text"
       >
-        Delete account
+        {t('dashboard.deleteAccount')}
       </AppButton>
     </Screen>
   );
