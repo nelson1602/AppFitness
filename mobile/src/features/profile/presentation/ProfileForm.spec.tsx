@@ -8,10 +8,24 @@ const load = jest.fn();
 const save = jest.fn();
 
 let mockStoreState: ProfileFormState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('../application/profile.store', () => ({
   useProfileStore: () => mockStoreState,
 }));
+
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
 
 function setStore(partial: Partial<ProfileFormState>) {
   mockStoreState = {
@@ -51,6 +65,7 @@ const existingProfile: Profile = {
 describe('ProfileForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
   });
 
   it('loads the profile on mount', async () => {
@@ -116,6 +131,43 @@ describe('ProfileForm', () => {
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
   });
 
+  it('renders Spanish copy and preserves stable enum values in the saved profile', async () => {
+    mockLanguage = 'es';
+    save.mockResolvedValue(true);
+    setStore({ status: 'ready', profile: null });
+
+    await render(<ProfileForm onSaved={jest.fn()} />);
+
+    expect(screen.getByText('Crea tu perfil')).toBeOnTheScreen();
+    expect(screen.getByText('Nivel de condición física *')).toBeOnTheScreen();
+    expect(screen.getByText('Intermedio')).toBeOnTheScreen();
+    await fireEvent.changeText(screen.getByTestId('field-birthDate'), '1990-05-14');
+    await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
+    await fireEvent.press(screen.getByTestId('option-fitnessLevel-ADVANCED'));
+    await fireEvent.press(screen.getByTestId('option-activityLevel-ACTIVE'));
+    await fireEvent.press(screen.getByRole('button', { name: 'Guardar perfil' }));
+
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fitnessLevel: 'ADVANCED',
+          activityLevel: 'ACTIVE',
+        }),
+      ),
+    );
+  });
+
+  it('renders localized Spanish validation messages', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'ready', profile: null });
+
+    await render(<ProfileForm onSaved={jest.fn()} />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Guardar perfil' }));
+
+    await waitFor(() => expect(screen.getByText('Usa AAAA-MM-DD')).toBeOnTheScreen());
+    expect(save).not.toHaveBeenCalled();
+  });
+
   it('does not navigate away when the save fails', async () => {
     const onSaved = jest.fn();
     save.mockResolvedValue(false);
@@ -142,7 +194,10 @@ describe('ProfileForm', () => {
 
     expect(screen.getByText('Couldn’t save')).toBeOnTheScreen();
     expect(
-      screen.getByText('Your profile could not be saved. Please try again.'),
+      screen.getByText('Your profile could not be saved right now. Try again.'),
     ).toBeOnTheScreen();
+    expect(
+      screen.queryByText('Your profile could not be saved. Please try again.'),
+    ).not.toBeOnTheScreen();
   });
 });

@@ -12,6 +12,26 @@ import type { Profile, ProfileInput } from '../domain/profile.types';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+interface ProfileValidationMessages {
+  dateFormat: string;
+  validDate: string;
+  greaterThanZero: string;
+  tooLarge: string;
+  cannotBeNegative: string;
+  maxSeven: string;
+  scaleOneToFive: string;
+}
+
+const DEFAULT_MESSAGES: ProfileValidationMessages = {
+  dateFormat: 'Use YYYY-MM-DD',
+  validDate: 'Enter a valid date',
+  greaterThanZero: 'Must be greater than 0',
+  tooLarge: 'Too large',
+  cannotBeNegative: 'Cannot be negative',
+  maxSeven: 'Max 7',
+  scaleOneToFive: 'Scale 1–5',
+};
+
 // Optional numeric: blank input ('' / null / undefined) → undefined; else coerce + validate.
 const optionalNumber = <T extends z.ZodType>(schema: T) =>
   z.preprocess(
@@ -19,28 +39,34 @@ const optionalNumber = <T extends z.ZodType>(schema: T) =>
     schema.optional(),
   );
 
-export const profileFormSchema = z.object({
-  // Required for the iCoach engine (BMR/BMI + safety).
-  birthDate: z
-    .string()
-    .regex(DATE_RE, 'Use YYYY-MM-DD')
-    .refine((v) => !Number.isNaN(Date.parse(v)), 'Enter a valid date'),
-  heightCm: z.preprocess(
-    (v) => (v === '' || v === null || v === undefined ? undefined : v),
-    z.coerce.number().positive('Must be greater than 0').max(300, 'Too large'),
-  ),
-  // Optional / defaulted.
-  gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'UNDISCLOSED']).optional(),
-  fitnessLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
-  activityLevel: z.enum(['SEDENTARY', 'LIGHT', 'MODERATE', 'ACTIVE', 'VERY_ACTIVE']),
-  yearsTraining: optionalNumber(z.coerce.number().min(0, 'Cannot be negative').max(80)),
-  trainingDaysPerWeek: optionalNumber(z.coerce.number().int().min(0).max(7, 'Max 7')),
-  sessionDurationMins: optionalNumber(z.coerce.number().int().positive().max(600)),
-  sleepHoursBaseline: optionalNumber(z.coerce.number().min(0).max(24)),
-  stressLevelBaseline: optionalNumber(z.coerce.number().int().min(1).max(5, 'Scale 1–5')),
-  occupation: z.string().max(120).optional(),
-  equipment: z.string().optional(), // comma-separated in the UI; split in the adapter
-});
+export function createProfileFormSchema(messages: ProfileValidationMessages = DEFAULT_MESSAGES) {
+  return z.object({
+    // Required for the iCoach engine (BMR/BMI + safety).
+    birthDate: z
+      .string()
+      .regex(DATE_RE, messages.dateFormat)
+      .refine((v) => !Number.isNaN(Date.parse(v)), messages.validDate),
+    heightCm: z.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? undefined : v),
+      z.coerce.number().positive(messages.greaterThanZero).max(300, messages.tooLarge),
+    ),
+    // Optional / defaulted.
+    gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'UNDISCLOSED']).optional(),
+    fitnessLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
+    activityLevel: z.enum(['SEDENTARY', 'LIGHT', 'MODERATE', 'ACTIVE', 'VERY_ACTIVE']),
+    yearsTraining: optionalNumber(z.coerce.number().min(0, messages.cannotBeNegative).max(80)),
+    trainingDaysPerWeek: optionalNumber(z.coerce.number().int().min(0).max(7, messages.maxSeven)),
+    sessionDurationMins: optionalNumber(z.coerce.number().int().positive().max(600)),
+    sleepHoursBaseline: optionalNumber(z.coerce.number().min(0).max(24)),
+    stressLevelBaseline: optionalNumber(
+      z.coerce.number().int().min(1).max(5, messages.scaleOneToFive),
+    ),
+    occupation: z.string().max(120).optional(),
+    equipment: z.string().optional(), // comma-separated in the UI; split in the adapter
+  });
+}
+
+export const profileFormSchema = createProfileFormSchema();
 
 export type ProfileFormInput = z.input<typeof profileFormSchema>;
 export type ProfileFormOutput = z.output<typeof profileFormSchema>;

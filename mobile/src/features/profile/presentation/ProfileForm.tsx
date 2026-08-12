@@ -3,36 +3,18 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, FormField, FormSelect } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useProfileStore } from '../application/profile.store';
 import {
-  profileFormSchema,
+  createProfileFormSchema,
   profileToFormValues,
   toProfileInput,
   type ProfileFormInput,
   type ProfileFormOutput,
 } from './profile-form.schema';
-
-const GENDER = [
-  { label: 'Male', value: 'MALE' },
-  { label: 'Female', value: 'FEMALE' },
-  { label: 'Other', value: 'OTHER' },
-  { label: 'Prefer not to say', value: 'UNDISCLOSED' },
-] as const;
-const FITNESS = [
-  { label: 'Beginner', value: 'BEGINNER' },
-  { label: 'Intermediate', value: 'INTERMEDIATE' },
-  { label: 'Advanced', value: 'ADVANCED' },
-] as const;
-const ACTIVITY = [
-  { label: 'Sedentary', value: 'SEDENTARY' },
-  { label: 'Light', value: 'LIGHT' },
-  { label: 'Moderate', value: 'MODERATE' },
-  { label: 'Active', value: 'ACTIVE' },
-  { label: 'Very active', value: 'VERY_ACTIVE' },
-] as const;
 
 interface ProfileFormProps {
   /** Called after a successful local save (navigation is the caller's job). */
@@ -46,10 +28,38 @@ interface ProfileFormProps {
  */
 export function ProfileForm({ onSaved }: ProfileFormProps) {
   const theme = useTheme();
+  const { t } = useLocalization();
   const { status, profile, error, load, save } = useProfileStore();
+  const schema = createProfileFormSchema({
+    dateFormat: t('profile.validation.dateFormat'),
+    validDate: t('profile.validation.validDate'),
+    greaterThanZero: t('profile.validation.greaterThanZero'),
+    tooLarge: t('profile.validation.tooLarge'),
+    cannotBeNegative: t('profile.validation.cannotBeNegative'),
+    maxSeven: t('profile.validation.maxSeven'),
+    scaleOneToFive: t('profile.validation.scaleOneToFive'),
+  });
+  const genderOptions = [
+    { label: t('profile.gender.male'), value: 'MALE' },
+    { label: t('profile.gender.female'), value: 'FEMALE' },
+    { label: t('profile.gender.other'), value: 'OTHER' },
+    { label: t('profile.gender.undisclosed'), value: 'UNDISCLOSED' },
+  ] as const;
+  const fitnessOptions = [
+    { label: t('profile.fitness.beginner'), value: 'BEGINNER' },
+    { label: t('profile.fitness.intermediate'), value: 'INTERMEDIATE' },
+    { label: t('profile.fitness.advanced'), value: 'ADVANCED' },
+  ] as const;
+  const activityOptions = [
+    { label: t('profile.activity.sedentary'), value: 'SEDENTARY' },
+    { label: t('profile.activity.light'), value: 'LIGHT' },
+    { label: t('profile.activity.moderate'), value: 'MODERATE' },
+    { label: t('profile.activity.active'), value: 'ACTIVE' },
+    { label: t('profile.activity.veryActive'), value: 'VERY_ACTIVE' },
+  ] as const;
 
   const { control, handleSubmit, reset } = useForm<ProfileFormInput, unknown, ProfileFormOutput>({
-    resolver: zodResolver(profileFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: profileToFormValues(null),
   });
 
@@ -68,7 +78,11 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
   };
 
   if (status === 'loading' || status === 'idle') {
-    return <AppText accessibilityLabel="Loading profile">Loading…</AppText>;
+    return (
+      <AppText accessibilityLabel={t('profile.loadingAccessibility')}>
+        {t('profile.loading')}
+      </AppText>
+    );
   }
 
   const saving = status === 'saving';
@@ -76,86 +90,91 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{profile ? 'Edit profile' : 'Create your profile'}</AppText>
-        <AppText tone="muted">
-          Saved on your device first, then synced. Required fields unlock your iCoach assessment.
+        <AppText variant="headline">
+          {profile ? t('profile.editTitle') : t('profile.createTitle')}
         </AppText>
+        <AppText tone="muted">{t('profile.subtitle')}</AppText>
       </View>
 
       {error ? (
-        <Banner title="Couldn’t save" tone="error">
-          {error}
+        <Banner title={t('profile.errorTitle')} tone="error">
+          {t('profile.errorMessage')}
         </Banner>
       ) : null}
 
       <FormField
         control={control}
         name="birthDate"
-        label="Birth date"
+        label={t('profile.birthDate')}
         placeholder="YYYY-MM-DD"
         required
       />
       <FormField
         control={control}
         name="heightCm"
-        label="Height (cm)"
+        label={t('profile.heightCm')}
         keyboardType="numeric"
         required
       />
-      <FormSelect control={control} name="gender" label="Gender" options={GENDER} />
+      <FormSelect
+        control={control}
+        name="gender"
+        label={t('profile.gender')}
+        options={genderOptions}
+      />
       <FormSelect
         control={control}
         name="fitnessLevel"
-        label="Fitness level"
-        options={FITNESS}
+        label={t('profile.fitnessLevel')}
+        options={fitnessOptions}
         required
       />
       <FormSelect
         control={control}
         name="activityLevel"
-        label="Activity level"
-        options={ACTIVITY}
+        label={t('profile.activityLevel')}
+        options={activityOptions}
         required
       />
       <FormField
         control={control}
         name="yearsTraining"
-        label="Years training"
+        label={t('profile.yearsTraining')}
         keyboardType="decimal-pad"
       />
       <FormField
         control={control}
         name="trainingDaysPerWeek"
-        label="Training days / week"
+        label={t('profile.trainingDaysPerWeek')}
         keyboardType="numeric"
       />
       <FormField
         control={control}
         name="sessionDurationMins"
-        label="Session length (min)"
+        label={t('profile.sessionDurationMins')}
         keyboardType="numeric"
       />
       <FormField
         control={control}
         name="sleepHoursBaseline"
-        label="Typical sleep (hours)"
+        label={t('profile.sleepHoursBaseline')}
         keyboardType="decimal-pad"
       />
       <FormField
         control={control}
         name="stressLevelBaseline"
-        label="Typical stress (1–5)"
+        label={t('profile.stressLevelBaseline')}
         keyboardType="numeric"
       />
-      <FormField control={control} name="occupation" label="Occupation" />
-      <FormField control={control} name="equipment" label="Equipment (comma separated)" />
+      <FormField control={control} name="occupation" label={t('profile.occupation')} />
+      <FormField control={control} name="equipment" label={t('profile.equipment')} />
 
       <AppButton
-        accessibilityLabel="Save profile"
+        accessibilityLabel={t('profile.save')}
         loading={saving}
         onPress={() => void handleSubmit(onSubmit)()}
       >
-        Save profile
+        {t('profile.save')}
       </AppButton>
     </View>
   );
