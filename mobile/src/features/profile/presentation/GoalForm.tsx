@@ -3,27 +3,18 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, FormField, FormSelect } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useGoalStore } from '../application/goal.store';
 import {
-  goalFormSchema,
+  createGoalFormSchema,
   goalToFormValues,
   toGoalInput,
   type GoalFormInput,
   type GoalFormOutput,
 } from './goal-form.schema';
-
-const GOAL_OPTIONS = [
-  { label: 'Fat loss', value: 'FAT_LOSS' },
-  { label: 'Muscle gain', value: 'MUSCLE_GAIN' },
-  { label: 'Recomposition', value: 'RECOMPOSITION' },
-  { label: 'Strength', value: 'STRENGTH' },
-  { label: 'Endurance', value: 'ENDURANCE' },
-  { label: 'General health', value: 'GENERAL_HEALTH' },
-  { label: 'Maintenance', value: 'MAINTENANCE' },
-] as const;
 
 interface GoalFormProps {
   /** Called after a successful local save (navigation is the caller's job). */
@@ -38,10 +29,26 @@ interface GoalFormProps {
  */
 export function GoalForm({ onSaved }: GoalFormProps) {
   const theme = useTheme();
+  const { t } = useLocalization();
   const { status, goal, error, load, save } = useGoalStore();
+  const schema = createGoalFormSchema({
+    greaterThanZero: t('goal.validation.greaterThanZero'),
+    tooLarge: t('goal.validation.tooLarge'),
+    dateFormat: t('goal.validation.dateFormat'),
+    validDate: t('goal.validation.validDate'),
+  });
+  const goalOptions = [
+    { label: t('goal.type.fatLoss'), value: 'FAT_LOSS' },
+    { label: t('goal.type.muscleGain'), value: 'MUSCLE_GAIN' },
+    { label: t('goal.type.recomposition'), value: 'RECOMPOSITION' },
+    { label: t('goal.type.strength'), value: 'STRENGTH' },
+    { label: t('goal.type.endurance'), value: 'ENDURANCE' },
+    { label: t('goal.type.generalHealth'), value: 'GENERAL_HEALTH' },
+    { label: t('goal.type.maintenance'), value: 'MAINTENANCE' },
+  ] as const;
 
   const { control, handleSubmit, reset } = useForm<GoalFormInput, unknown, GoalFormOutput>({
-    resolver: zodResolver(goalFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: goalToFormValues(null),
   });
 
@@ -60,7 +67,9 @@ export function GoalForm({ onSaved }: GoalFormProps) {
   };
 
   if (status === 'loading' || status === 'idle') {
-    return <AppText accessibilityLabel="Loading goal">Loading…</AppText>;
+    return (
+      <AppText accessibilityLabel={t('goal.loadingAccessibility')}>{t('goal.loading')}</AppText>
+    );
   }
 
   const saving = status === 'saving';
@@ -68,48 +77,55 @@ export function GoalForm({ onSaved }: GoalFormProps) {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{goal ? 'Edit goal' : 'Set your goal'}</AppText>
-        <AppText tone="muted">
-          Saved on your device first, then synced automatically. Your goal personalizes calorie and
-          training adjustments.
-        </AppText>
+        <AppText variant="headline">{goal ? t('goal.editTitle') : t('goal.createTitle')}</AppText>
+        <AppText tone="muted">{t('goal.subtitle')}</AppText>
       </View>
 
       {error ? (
-        <Banner title="Couldn’t save" tone="error">
-          {error}
+        <Banner title={t('goal.errorTitle')} tone="error">
+          {t('goal.errorMessage')}
         </Banner>
       ) : null}
 
       {/* Conflict wins over the pending hint: an unresolved conflict is the
           more important thing for the user to understand. */}
       {!error && goal?.syncStatus === 'conflict' ? (
-        <Banner title="Sync conflict" tone="warning">
-          This goal has a sync conflict. Saving records a fresh goal on this device and re-queues it
-          for sync.
+        <Banner title={t('goal.conflictTitle')} tone="warning">
+          {t('goal.conflictMessage')}
         </Banner>
       ) : null}
       {!error && goal?.syncStatus === 'pending' ? (
-        <Banner title="Saved on this device" tone="info">
-          Your latest goal is saved locally and waiting to sync.
+        <Banner title={t('goal.pendingTitle')} tone="info">
+          {t('goal.pendingMessage')}
         </Banner>
       ) : null}
 
-      <FormSelect control={control} name="goalType" label="Goal" options={GOAL_OPTIONS} required />
+      <FormSelect
+        control={control}
+        name="goalType"
+        label={t('goal.typeLabel')}
+        options={goalOptions}
+        required
+      />
       <FormField
         control={control}
         name="targetWeightKg"
-        label="Target weight (kg)"
+        label={t('goal.targetWeightKg')}
         keyboardType="decimal-pad"
       />
-      <FormField control={control} name="targetDate" label="Target date" placeholder="YYYY-MM-DD" />
+      <FormField
+        control={control}
+        name="targetDate"
+        label={t('goal.targetDate')}
+        placeholder={t('goal.targetDatePlaceholder')}
+      />
 
       <AppButton
-        accessibilityLabel="Save goal"
+        accessibilityLabel={t('goal.save')}
         loading={saving}
         onPress={() => void handleSubmit(onSubmit)()}
       >
-        Save goal
+        {t('goal.save')}
       </AppButton>
     </View>
   );
