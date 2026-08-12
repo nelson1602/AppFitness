@@ -7,6 +7,7 @@ import type { WorkoutState } from '../application/workout.store';
 import { ExerciseLibrary } from './ExerciseLibrary';
 
 let mockState: WorkoutState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 const load = jest.fn();
 const createCustomExercise = jest.fn();
@@ -17,6 +18,19 @@ const countRoutineReferences = jest.fn();
 jest.mock('../application/workout.store', () => ({
   useWorkoutStore: () => mockState,
 }));
+
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
 
 // UI must route persistence through the workout store, never SQLite directly.
 jest.mock('@/shared/infrastructure/database', () => ({
@@ -75,6 +89,7 @@ function setStore(partial: Partial<WorkoutState>) {
 describe('ExerciseLibrary', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
     createCustomExercise.mockResolvedValue(true);
     updateCustomExercise.mockResolvedValue(true);
     removeCustomExercise.mockResolvedValue(true);
@@ -104,6 +119,34 @@ describe('ExerciseLibrary', () => {
       expect(createCustomExercise).toHaveBeenCalledWith({
         name: 'Zercher Squat',
         muscleGroup: 'legs',
+        category: 'STRENGTH',
+        instructions: null,
+      }),
+    );
+  });
+
+  it('renders Spanish copy and labels while preserving custom and catalog identities', async () => {
+    mockLanguage = 'es';
+    setStore({ customExercises: [customExercise({ muscleGroup: 'mis piernas' })] });
+    await render(<ExerciseLibrary />);
+
+    expect(screen.getByText('Biblioteca de ejercicios')).toBeOnTheScreen();
+    expect(screen.getByText('Tus ejercicios personalizados')).toBeOnTheScreen();
+    expect(screen.getByText('Zercher Squat')).toBeOnTheScreen();
+    expect(screen.getByText('mis piernas · Fuerza')).toBeOnTheScreen();
+    expect(screen.getByText('Pendiente de sincronización')).toBeOnTheScreen();
+    expect(screen.getByText('Ejercicios integrados')).toBeOnTheScreen();
+    expect(screen.getByText('Sentadilla trasera')).toBeOnTheScreen();
+    expect(screen.getAllByText('Cuádriceps · Fuerza').length).toBeGreaterThan(0);
+
+    await fireEvent.press(screen.getByTestId('custom-edit-ce1'));
+    await fireEvent.changeText(screen.getByDisplayValue('Zercher Squat'), 'Sentadilla personal');
+    await fireEvent.press(screen.getAllByTestId('custom-exercise-submit')[1]);
+
+    await waitFor(() =>
+      expect(updateCustomExercise).toHaveBeenCalledWith('ce1', {
+        name: 'Sentadilla personal',
+        muscleGroup: 'mis piernas',
         category: 'STRENGTH',
         instructions: null,
       }),
@@ -175,6 +218,15 @@ describe('ExerciseLibrary', () => {
 
     expect(screen.getByLabelText('Sync pending')).toBeOnTheScreen();
     expect(screen.getAllByText(/Custom exercises aren’t checked/).length).toBeGreaterThan(0);
+  });
+
+  it('shows a localized stable error instead of the raw store error', async () => {
+    setStore({ status: 'error', error: 'SQLITE_INTERNAL_SECRET_DETAIL' });
+    await render(<ExerciseLibrary />);
+
+    expect(screen.getByText('Something went wrong')).toBeOnTheScreen();
+    expect(screen.getByText(/library could not be loaded/)).toBeOnTheScreen();
+    expect(screen.queryByText('SQLITE_INTERNAL_SECRET_DETAIL')).not.toBeOnTheScreen();
   });
 
   it('never accesses SQLite directly from the screen', async () => {
