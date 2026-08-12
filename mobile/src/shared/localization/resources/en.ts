@@ -525,6 +525,18 @@ export const en = {
   'dashboard.signOut': 'Sign out',
   'dashboard.deleteAccountAccessibility': 'Delete your account',
   'dashboard.deleteAccount': 'Delete account',
+  'account.delete.screenTitle': 'Delete account',
+  'account.delete.title': 'Delete account',
+  'account.delete.description':
+    'This permanently deletes your account and all your data. This cannot be undone.',
+  'account.delete.errorTitle': 'Deletion failed',
+  'account.delete.errorMessage': 'We could not delete your account. Please try again.',
+  'account.delete.confirmInstruction': 'Type {phrase} to confirm',
+  'account.delete.confirmationAccessibility': 'Deletion confirmation phrase',
+  'account.delete.deleteAccessibility': 'Permanently delete account',
+  'account.delete.deleteButton': 'Delete my account',
+  'account.delete.cancelAccessibility': 'Cancel account deletion',
+  'account.delete.cancel': 'Cancel',
   'dashboard.gap.accessibility': 'Dashboard setup requirements',
   'dashboard.gap.title': 'Finish your baseline',
   'dashboard.gap.description':

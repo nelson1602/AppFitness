@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { deleteAccount, useSession } from '@/features/authentication';
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -17,6 +18,7 @@ const CONFIRM_PHRASE = 'DELETE';
  */
 export default function DeleteAccountScreen() {
   const theme = useTheme();
+  const { t } = useLocalization();
   const { status } = useSession();
   const [phrase, setPhrase] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,33 +36,33 @@ export default function DeleteAccountScreen() {
       await deleteAccount();
       router.replace('/sign-in');
     } catch {
-      setError('We could not delete your account. Please try again.');
+      setError(t('account.delete.errorMessage'));
       setLoading(false);
     }
   };
 
   return (
     <Screen scroll={false}>
-      <Stack.Screen options={{ title: 'Delete account' }} />
+      <Stack.Screen options={{ title: t('account.delete.screenTitle') }} />
       <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">Delete account</AppText>
-          <AppText tone="muted">
-            This permanently deletes your account and all your data. This cannot be undone.
-          </AppText>
+          <AppText variant="headline">{t('account.delete.title')}</AppText>
+          <AppText tone="muted">{t('account.delete.description')}</AppText>
         </View>
 
         {error ? (
-          <Banner title="Deletion failed" tone="error">
+          <Banner title={t('account.delete.errorTitle')} tone="error">
             {error}
           </Banner>
         ) : null}
 
         <Card>
           <View style={{ gap: theme.spacing.md }}>
-            <AppText variant="label">Type {CONFIRM_PHRASE} to confirm</AppText>
+            <AppText variant="label">
+              {t('account.delete.confirmInstruction').replace('{phrase}', CONFIRM_PHRASE)}
+            </AppText>
             <TextInput
-              accessibilityLabel="Deletion confirmation phrase"
+              accessibilityLabel={t('account.delete.confirmationAccessibility')}
               testID="input-confirm-phrase"
               autoCapitalize="characters"
               autoCorrect={false}
@@ -78,20 +80,20 @@ export default function DeleteAccountScreen() {
               }}
             />
             <AppButton
-              accessibilityLabel="Permanently delete account"
+              accessibilityLabel={t('account.delete.deleteAccessibility')}
               disabled={!confirmed}
               loading={loading}
               onPress={() => void submit()}
               variant="destructive"
             >
-              Delete my account
+              {t('account.delete.deleteButton')}
             </AppButton>
             <AppButton
-              accessibilityLabel="Cancel account deletion"
+              accessibilityLabel={t('account.delete.cancelAccessibility')}
               onPress={() => router.back()}
               variant="text"
             >
-              Cancel
+              {t('account.delete.cancel')}
             </AppButton>
           </View>
         </Card>
