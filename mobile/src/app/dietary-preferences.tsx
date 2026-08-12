@@ -3,6 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { DietaryPreferences } from '@/features/nutrition/presentation/DietaryPreferences';
+import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
 /**
@@ -12,6 +13,7 @@ import { Screen } from '@/shared/presentation';
  */
 export default function DietaryPreferencesRoute() {
   const { status } = useSession();
+  const { t } = useLocalization();
 
   if (status === 'unknown') {
     return (
@@ -24,7 +26,7 @@ export default function DietaryPreferencesRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Dietary preferences' }} />
+      <Stack.Screen options={{ title: t('nutrition.preferences.routeTitle') }} />
       <Screen>
         <DietaryPreferences />
       </Screen>

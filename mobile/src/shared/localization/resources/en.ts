@@ -321,6 +321,7 @@ export const en = {
   'workout.log.done': 'Done',
   'workout.log.markDone': 'Mark done',
   'workout.log.removeSetAccessibility': 'Remove set',
+  'nutrition.routeTitle': 'Nutrition',
   'nutrition.plan.routeTitle': 'Meal plan',
   'nutrition.plan.title': '15-day meal plan',
   'nutrition.plan.subtitle':
@@ -382,6 +383,7 @@ export const en = {
   'nutrition.goal.generalHealth': 'general wellness',
   'nutrition.goal.rehabilitation': 'recovery',
   'nutrition.goal.maintenance': 'maintenance',
+  'nutrition.preferences.routeTitle': 'Dietary preferences',
   'nutrition.preferences.title': 'Dietary preferences & allergies',
   'nutrition.preferences.subtitle':
     'Tell iCoach what to avoid. Allergies and preferences shape your meal suggestions and show advisory warnings without blocking your choices. Entries are saved on your device first and sync to your account later.',
