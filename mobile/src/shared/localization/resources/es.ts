@@ -426,6 +426,7 @@ export const es = {
   'nutrition.preferences.noteSaved': 'nota guardada',
   'nutrition.preferences.remove': 'Eliminar',
   'nutrition.preferences.removeAccessibility': 'Eliminar exclusión',
+  'nutrition.log.routeTitle': 'Registro de alimentos',
   'nutrition.log.title': 'Registro de alimentos',
   'nutrition.log.subtitle':
     'Registra lo que consumes hoy. Se guarda primero en tu dispositivo y se sincroniza cuando haya conexión.',
@@ -521,6 +522,7 @@ export const es = {
   'nutrition.gap.weightDetail': 'Se requiere un peso reciente.',
   'nutrition.gap.wellnessNotice':
     'AppFitness usa datos de bienestar ingresados por ti para estas sugerencias. No solicita diagnósticos, recetas, notas médicas ni restricciones médicas profesionales.',
+  'dashboard.routeTitle': 'Panel',
   'dashboard.subtitle': 'Tu evaluación local de iCoach',
   'dashboard.unavailable': 'Panel no disponible',
   'dashboard.errorMessage': 'No se pudo cargar tu panel en este momento. Inténtalo de nuevo.',

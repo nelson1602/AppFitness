@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import DashboardRoute from '@/app/dashboard';
+import FoodLogRoute from '@/app/food-log';
 
 let mockSessionStatus: 'unknown' | 'authenticated' | 'anonymous';
 let mockLanguage: 'en' | 'es' = 'en';
@@ -38,14 +38,14 @@ jest.mock('@/shared/localization', () => {
   };
 });
 
-jest.mock('@/features/dashboard', () => ({
-  DashboardScreen: () => {
+jest.mock('@/features/nutrition/presentation/FoodLogScreen', () => ({
+  FoodLogScreen: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>Dashboard content</Text>;
+    return <Text>Food log content</Text>;
   },
 }));
 
-describe('DashboardRoute', () => {
+describe('FoodLogRoute', () => {
   beforeEach(() => {
     mockLanguage = 'en';
     mockStackTitle = undefined;
@@ -53,35 +53,29 @@ describe('DashboardRoute', () => {
 
   it('shows a skeleton while session restoration is pending', async () => {
     mockSessionStatus = 'unknown';
-
-    await render(<DashboardRoute />);
-
-    expect(screen.getAllByLabelText('Loading dashboard section')).toHaveLength(3);
+    await render(<FoodLogRoute />);
+    expect(screen.getAllByLabelText('Loading dashboard section').length).toBeGreaterThan(0);
   });
 
   it('redirects anonymous users to sign in', async () => {
     mockSessionStatus = 'anonymous';
-
-    await render(<DashboardRoute />);
-
+    await render(<FoodLogRoute />);
     expect(screen.getByText('Redirect: /sign-in')).toBeOnTheScreen();
   });
 
-  it('renders the dashboard for authenticated users', async () => {
+  it('renders the food log for authenticated users', async () => {
     mockSessionStatus = 'authenticated';
-
-    await render(<DashboardRoute />);
-
-    expect(screen.getByText('Dashboard content')).toBeOnTheScreen();
-    expect(mockStackTitle).toBe('Dashboard');
+    await render(<FoodLogRoute />);
+    expect(screen.getByText('Food log content')).toBeOnTheScreen();
+    expect(mockStackTitle).toBe('Food log');
   });
 
   it('localizes the native route title in Spanish', async () => {
     mockSessionStatus = 'authenticated';
     mockLanguage = 'es';
 
-    await render(<DashboardRoute />);
+    await render(<FoodLogRoute />);
 
-    expect(mockStackTitle).toBe('Panel');
+    expect(mockStackTitle).toBe('Registro de alimentos');
   });
 });

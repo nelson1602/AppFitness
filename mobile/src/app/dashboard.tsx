@@ -3,10 +3,12 @@ import { Redirect, Stack } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardScreen } from '@/features/dashboard';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
+import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
 export default function DashboardRoute() {
   const { status } = useSession();
+  const { t } = useLocalization();
 
   if (status === 'unknown') {
     return (
@@ -19,7 +21,7 @@ export default function DashboardRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Dashboard' }} />
+      <Stack.Screen options={{ title: t('dashboard.routeTitle') }} />
       <DashboardScreen />
     </>
   );
