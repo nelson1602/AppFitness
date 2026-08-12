@@ -19,6 +19,7 @@ export const en = {
   'auth.errorMessage': 'Authentication failed. Check your credentials and connection.',
   'profile.loading': 'Loading…',
   'profile.loadingAccessibility': 'Loading profile',
+  'profile.routeTitle': 'Profile',
   'profile.createTitle': 'Create your profile',
   'profile.editTitle': 'Edit profile',
   'profile.subtitle':
@@ -59,6 +60,7 @@ export const en = {
   'profile.validation.scaleOneToFive': 'Scale 1–5',
   'goal.loading': 'Loading…',
   'goal.loadingAccessibility': 'Loading goal',
+  'goal.routeTitle': 'Goal',
   'goal.createTitle': 'Set your goal',
   'goal.editTitle': 'Edit goal',
   'goal.subtitle':

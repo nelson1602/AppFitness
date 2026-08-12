@@ -3,6 +3,7 @@ import { Redirect, Stack, router } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { ProfileForm } from '@/features/profile/presentation/ProfileForm';
+import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
 /**
@@ -12,6 +13,7 @@ import { Screen } from '@/shared/presentation';
  */
 export default function ProfileEditRoute() {
   const { status } = useSession();
+  const { t } = useLocalization();
 
   if (status === 'unknown') {
     return (
@@ -24,7 +26,7 @@ export default function ProfileEditRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Profile' }} />
+      <Stack.Screen options={{ title: t('profile.routeTitle') }} />
       <Screen>
         <ProfileForm onSaved={() => router.replace('/dashboard')} />
       </Screen>

@@ -3,6 +3,7 @@ import { Redirect, Stack, router } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { GoalForm } from '@/features/profile/presentation/GoalForm';
+import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
 /**
@@ -13,6 +14,7 @@ import { Screen } from '@/shared/presentation';
  */
 export default function GoalEditRoute() {
   const { status } = useSession();
+  const { t } = useLocalization();
 
   if (status === 'unknown') {
     return (
@@ -25,7 +27,7 @@ export default function GoalEditRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Goal' }} />
+      <Stack.Screen options={{ title: t('goal.routeTitle') }} />
       <Screen>
         <GoalForm onSaved={() => router.replace('/dashboard')} />
       </Screen>
