@@ -3,6 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { ExerciseLibrary } from '@/features/workout';
+import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
 /**
@@ -13,6 +14,7 @@ import { Screen } from '@/shared/presentation';
  */
 export default function ExercisesRoute() {
   const { status } = useSession();
+  const { t } = useLocalization();
 
   if (status === 'unknown') {
     return (
@@ -25,7 +27,7 @@ export default function ExercisesRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Exercise library' }} />
+      <Stack.Screen options={{ title: t('workout.library.routeTitle') }} />
       <Screen>
         <ExerciseLibrary />
       </Screen>
