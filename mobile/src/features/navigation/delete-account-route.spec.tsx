@@ -4,6 +4,7 @@ import { deleteAccount } from '@/features/authentication';
 import DeleteAccountScreen from '../../app/delete-account';
 
 let mockSessionStatus: 'authenticated' | 'unauthenticated' | 'unknown' = 'authenticated';
+let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
@@ -14,6 +15,21 @@ jest.mock('@/features/authentication', () => ({
   deleteAccount: jest.fn(),
   useSession: () => ({ status: mockSessionStatus, session: null }),
 }));
+jest.mock('@/shared/localization', () => {
+  const { en } = jest.requireActual<typeof import('@/shared/localization/resources/en')>(
+    '@/shared/localization/resources/en',
+  );
+  const { es } = jest.requireActual<typeof import('@/shared/localization/resources/es')>(
+    '@/shared/localization/resources/es',
+  );
+
+  return {
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es : en)[key],
+    }),
+  };
+});
 
 const mockDeleteAccount = jest.mocked(deleteAccount);
 
@@ -21,6 +37,7 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSessionStatus = 'authenticated';
+    mockLanguage = 'en';
   });
 
   it('does not delete until the confirmation phrase is typed exactly', async () => {
@@ -87,6 +104,22 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
 
     expect(router.back).toHaveBeenCalledTimes(1);
     expect(mockDeleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('renders the complete destructive action surface in Spanish', async () => {
+    mockLanguage = 'es';
+    await render(<DeleteAccountScreen />);
+
+    expect(screen.getByText('Eliminar cuenta')).toBeOnTheScreen();
+    expect(screen.getByText('Escribe DELETE para confirmar')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Frase de confirmación para eliminar la cuenta')).toHaveProp(
+      'testID',
+      'input-confirm-phrase',
+    );
+    expect(screen.getByRole('button', { name: 'Eliminar cuenta permanentemente' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Cancelar la eliminación de la cuenta' }),
+    ).toBeOnTheScreen();
   });
 
   it('redirects to sign-in when unauthenticated', async () => {

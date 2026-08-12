@@ -537,6 +537,18 @@ export const es = {
   'dashboard.signOut': 'Cerrar sesión',
   'dashboard.deleteAccountAccessibility': 'Eliminar tu cuenta',
   'dashboard.deleteAccount': 'Eliminar cuenta',
+  'account.delete.screenTitle': 'Eliminar cuenta',
+  'account.delete.title': 'Eliminar cuenta',
+  'account.delete.description':
+    'Esto elimina permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.',
+  'account.delete.errorTitle': 'No se pudo eliminar la cuenta',
+  'account.delete.errorMessage': 'No pudimos eliminar tu cuenta. Inténtalo de nuevo.',
+  'account.delete.confirmInstruction': 'Escribe {phrase} para confirmar',
+  'account.delete.confirmationAccessibility': 'Frase de confirmación para eliminar la cuenta',
+  'account.delete.deleteAccessibility': 'Eliminar cuenta permanentemente',
+  'account.delete.deleteButton': 'Eliminar mi cuenta',
+  'account.delete.cancelAccessibility': 'Cancelar la eliminación de la cuenta',
+  'account.delete.cancel': 'Cancelar',
   'dashboard.gap.accessibility': 'Requisitos de configuración del panel',
   'dashboard.gap.title': 'Completa tus datos iniciales',
   'dashboard.gap.description':
