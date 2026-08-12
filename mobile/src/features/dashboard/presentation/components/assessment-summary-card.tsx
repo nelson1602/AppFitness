@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { formatNumber, type TranslationKey, useLocalization } from '@/shared/localization';
 import { AppText, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -11,31 +12,45 @@ interface AssessmentSummaryCardProps {
 
 export function AssessmentSummaryCard({ assessment }: AssessmentSummaryCardProps) {
   const theme = useTheme();
+  const { language, t } = useLocalization();
   const result = assessment.assessment;
+  const bmiCategory = t(
+    `dashboard.bmi.${result.bodyComposition.bmiCategory.toLowerCase()}` as TranslationKey,
+  );
+  const trainingValue = result.training.blocked
+    ? t('dashboard.training.blocked')
+    : `${formatNumber(result.training.daysPerWeek, language)}× / ${t(
+        `dashboard.intensity.${result.training.intensity.toLowerCase()}` as TranslationKey,
+      )}`;
   return (
-    <Card accessibilityLabel="Today assessment summary">
+    <Card accessibilityLabel={t('dashboard.assessment.accessibility')}>
       <View style={{ gap: theme.spacing.md }}>
         <View>
           <AppText variant="label" tone="muted">
-            Today&apos;s assessment
+            {t('dashboard.assessment.title')}
           </AppText>
-          <AppText variant="headline">{result.nutrition.calories} kcal</AppText>
+          <AppText variant="headline">
+            {formatNumber(result.nutrition.calories, language)} kcal
+          </AppText>
           <AppText tone="muted">
-            BMI {result.bodyComposition.bmi} / {result.bodyComposition.bmiCategory.toLowerCase()}
+            {t('dashboard.assessment.bmi')} {formatNumber(result.bodyComposition.bmi, language)} /{' '}
+            {bmiCategory}
           </AppText>
         </View>
         <View style={{ gap: theme.spacing.sm }}>
-          <Metric label="Protein" value={`${result.nutrition.proteinG}g`} />
-          <Metric label="Carbs" value={`${result.nutrition.carbsG}g`} />
-          <Metric label="Fat" value={`${result.nutrition.fatG}g`} />
           <Metric
-            label="Training"
-            value={
-              result.training.blocked
-                ? 'Blocked'
-                : `${result.training.daysPerWeek}x / ${result.training.intensity}`
-            }
+            label={t('dashboard.assessment.protein')}
+            value={`${formatNumber(result.nutrition.proteinG, language)} g`}
           />
+          <Metric
+            label={t('dashboard.assessment.carbs')}
+            value={`${formatNumber(result.nutrition.carbsG, language)} g`}
+          />
+          <Metric
+            label={t('dashboard.assessment.fat')}
+            value={`${formatNumber(result.nutrition.fatG, language)} g`}
+          />
+          <Metric label={t('dashboard.assessment.training')} value={trainingValue} />
         </View>
       </View>
     </Card>

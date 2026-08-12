@@ -561,6 +561,60 @@ export const en = {
   'dashboard.sync.failedMany': 'failed retries.',
   'dashboard.sync.readyTitle': 'Local data ready',
   'dashboard.sync.readyMessage': 'Dashboard is available offline.',
+  'dashboard.assessment.accessibility': "Today's assessment summary",
+  'dashboard.assessment.title': "Today's assessment",
+  'dashboard.assessment.bmi': 'BMI',
+  'dashboard.assessment.protein': 'Protein',
+  'dashboard.assessment.carbs': 'Carbs',
+  'dashboard.assessment.fat': 'Fat',
+  'dashboard.assessment.training': 'Training',
+  'dashboard.training.blocked': 'Blocked',
+  'dashboard.bmi.underweight': 'underweight',
+  'dashboard.bmi.normal': 'normal',
+  'dashboard.bmi.overweight': 'overweight',
+  'dashboard.bmi.obese': 'obese',
+  'dashboard.intensity.low': 'low',
+  'dashboard.intensity.moderate': 'moderate',
+  'dashboard.intensity.high': 'high',
+  'dashboard.recommendation.accessibility': 'recommendation',
+  'dashboard.recommendation.evidence': 'Evidence',
+  'dashboard.recommendation.category.safety': 'Safety',
+  'dashboard.recommendation.category.nutrition': 'Nutrition',
+  'dashboard.recommendation.category.training': 'Training',
+  'dashboard.recommendation.category.recovery': 'Recovery',
+  'dashboard.recommendation.category.body': 'Body composition',
+  'dashboard.recommendation.priority.low': 'Low',
+  'dashboard.recommendation.priority.medium': 'Medium',
+  'dashboard.recommendation.priority.high': 'High',
+  'dashboard.recommendation.priority.critical': 'Critical',
+  'dashboard.recommendation.calorieTitle': 'Daily calorie target',
+  'dashboard.recommendation.calorieExplanation':
+    'Your estimated daily expenditure is {tdee} kcal, with a {adjustment}% goal adjustment.',
+  'dashboard.recommendation.calorieSafetyFloor':
+    'Your goal implies a deficit, but iCoach raised the target to a conservative energy floor.',
+  'dashboard.recommendation.calorieEvidence':
+    'Deterministic basal-metabolism formula with a standard activity multiplier.',
+  'dashboard.recommendation.macrosTitle':
+    'Macros: {protein} g protein / {carbs} g carbs / {fat} g fat',
+  'dashboard.recommendation.macrosExplanation':
+    'Protein is based on body weight, fat supports essential functions, and carbohydrates complete the remaining energy target.',
+  'dashboard.recommendation.macrosEvidence':
+    'ISSN guidance on protein and macronutrient distribution.',
+  'dashboard.recommendation.trainingTitle': 'Train {days}× per week at {intensity} intensity',
+  'dashboard.recommendation.trainingExplanation':
+    'The plan uses your fitness level and goal, with conservative adjustments when recovery requires them.',
+  'dashboard.recommendation.trainingEvidence':
+    'Progressive overload with RPE-based autoregulation.',
+  'dashboard.recommendation.sleepTitle': 'Prioritize sleep',
+  'dashboard.recommendation.sleepExplanation':
+    'An average of {hours} hours of sleep can limit recovery and performance, so training intensity was adjusted.',
+  'dashboard.recommendation.sleepEvidence':
+    'Sleep duration influences recovery, energy regulation, and training adaptation.',
+  'dashboard.recommendation.underweightTitle': 'Fat loss is not recommended at your current BMI',
+  'dashboard.recommendation.underweightExplanation':
+    'Your BMI ({bmi}) is in the underweight range. A calorie deficit could be unsafe; choose a maintenance or gain-oriented goal.',
+  'dashboard.recommendation.underweightEvidence':
+    'WHO BMI classification and conservative energy-balance guidance.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

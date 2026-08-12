@@ -3,6 +3,21 @@ import { render, screen } from '@testing-library/react-native';
 import type { DashboardAssessment } from '../../domain/dashboard.types';
 import { AssessmentSummaryCard } from './assessment-summary-card';
 
+let mockLanguage: 'en' | 'es' = 'en';
+
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
+
 const assessment: DashboardAssessment = {
   engineInput: {
     subject: {
@@ -55,14 +70,18 @@ const assessment: DashboardAssessment = {
 };
 
 describe('AssessmentSummaryCard', () => {
+  beforeEach(() => {
+    mockLanguage = 'en';
+  });
+
   it('renders nutrition and training summary from the iCoach assessment', async () => {
     await render(<AssessmentSummaryCard assessment={assessment} />);
 
-    expect(screen.getByLabelText('Today assessment summary')).toBeOnTheScreen();
-    expect(screen.getByText('2500 kcal')).toBeOnTheScreen();
+    expect(screen.getByLabelText("Today's assessment summary")).toBeOnTheScreen();
+    expect(screen.getByText('2,500 kcal')).toBeOnTheScreen();
     expect(screen.getByText('BMI 25.9 / overweight')).toBeOnTheScreen();
-    expect(screen.getByText('164g')).toBeOnTheScreen();
-    expect(screen.getByText('4x / MODERATE')).toBeOnTheScreen();
+    expect(screen.getByText('164 g')).toBeOnTheScreen();
+    expect(screen.getByText('4× / moderate')).toBeOnTheScreen();
   });
 
   it('shows blocked training when medical restrictions prevent training', async () => {
@@ -83,5 +102,17 @@ describe('AssessmentSummaryCard', () => {
     );
 
     expect(screen.getByText('Blocked')).toBeOnTheScreen();
+  });
+
+  it('localizes labels, enums and decimal formatting in Spanish', async () => {
+    mockLanguage = 'es';
+
+    await render(<AssessmentSummaryCard assessment={assessment} />);
+
+    expect(screen.getByLabelText('Resumen de la evaluación de hoy')).toBeOnTheScreen();
+    expect(screen.getByText('Evaluación de hoy')).toBeOnTheScreen();
+    expect(screen.getByText('IMC 25,9 / sobrepeso')).toBeOnTheScreen();
+    expect(screen.getByText('Proteína')).toBeOnTheScreen();
+    expect(screen.getByText('4× / moderada')).toBeOnTheScreen();
   });
 });

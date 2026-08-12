@@ -248,7 +248,7 @@ describe('DashboardScreen', () => {
     await render(<DashboardScreen />);
     fireEvent.press(screen.getByRole('button', { name: 'Synchronize local changes' }));
 
-    expect(screen.getByText('2500 kcal')).toBeOnTheScreen();
+    expect(screen.getByText('2,500 kcal')).toBeOnTheScreen();
     expect(screen.getByText('iCoach recommendations')).toBeOnTheScreen();
     expect(screen.getByText('Protect sleep consistency')).toBeOnTheScreen();
     expect(syncNow).toHaveBeenCalledTimes(1);
