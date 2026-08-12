@@ -329,6 +329,7 @@ export const es = {
   'workout.log.done': 'Completada',
   'workout.log.markDone': 'Marcar completada',
   'workout.log.removeSetAccessibility': 'Eliminar serie',
+  'nutrition.routeTitle': 'Nutrición',
   'nutrition.plan.routeTitle': 'Plan alimentario',
   'nutrition.plan.title': 'Plan alimentario de 15 días',
   'nutrition.plan.subtitle':
@@ -392,6 +393,7 @@ export const es = {
   'nutrition.goal.generalHealth': 'el bienestar general',
   'nutrition.goal.rehabilitation': 'la recuperación',
   'nutrition.goal.maintenance': 'el mantenimiento',
+  'nutrition.preferences.routeTitle': 'Preferencias alimentarias',
   'nutrition.preferences.title': 'Preferencias y alergias alimentarias',
   'nutrition.preferences.subtitle':
     'Indica a iCoach qué debe evitar. Las alergias y preferencias adaptan tus sugerencias de comidas y muestran advertencias informativas sin bloquear tus decisiones. Los datos se guardan primero en tu dispositivo y luego se sincronizan con tu cuenta.',
