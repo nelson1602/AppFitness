@@ -416,6 +416,7 @@ export const en = {
   'nutrition.preferences.noteSaved': 'note saved',
   'nutrition.preferences.remove': 'Remove',
   'nutrition.preferences.removeAccessibility': 'Remove exclusion',
+  'nutrition.log.routeTitle': 'Food log',
   'nutrition.log.title': 'Food log',
   'nutrition.log.subtitle':
     'Log what you eat today. Saved on your device first, synced when online.',
@@ -509,6 +510,7 @@ export const en = {
   'nutrition.gap.weightDetail': 'A recent weight is required.',
   'nutrition.gap.wellnessNotice':
     'AppFitness uses self-entered wellness data for these suggestions. It does not request diagnoses, prescriptions, doctor notes, or professional medical restrictions.',
+  'dashboard.routeTitle': 'Dashboard',
   'dashboard.subtitle': 'Your local iCoach assessment',
   'dashboard.unavailable': 'Dashboard unavailable',
   'dashboard.errorMessage': 'Your dashboard could not be loaded right now. Please try again.',
