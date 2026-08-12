@@ -8,10 +8,24 @@ const load = jest.fn();
 const save = jest.fn();
 
 let mockStoreState: GoalFormState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('../application/goal.store', () => ({
   useGoalStore: () => mockStoreState,
 }));
+
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
 
 function setStore(partial: Partial<GoalFormState>) {
   mockStoreState = {
@@ -40,6 +54,7 @@ const activeGoal: Goal = {
 describe('GoalForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
   });
 
   it('loads the active goal on mount', async () => {
@@ -92,6 +107,40 @@ describe('GoalForm', () => {
       expect.objectContaining({ goalType: 'FAT_LOSS', targetWeightKg: 78 }),
     );
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+  });
+
+  it('renders Spanish copy while preserving stable goal values and history behavior', async () => {
+    mockLanguage = 'es';
+    save.mockResolvedValue(true);
+    setStore({ status: 'ready', goal: null });
+
+    await render(<GoalForm onSaved={jest.fn()} />);
+
+    expect(screen.getByText('Define tu objetivo')).toBeOnTheScreen();
+    expect(screen.getByText('Recomposición corporal')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('option-goalType-RECOMPOSITION'));
+    await fireEvent.changeText(screen.getByTestId('field-targetWeightKg'), '75');
+    await fireEvent.press(screen.getByRole('button', { name: 'Guardar objetivo' }));
+
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith({
+        goalType: 'RECOMPOSITION',
+        targetWeightKg: 75,
+        targetDate: null,
+      }),
+    );
+  });
+
+  it('renders localized Spanish validation messages', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'ready', goal: null });
+
+    await render(<GoalForm onSaved={jest.fn()} />);
+    await fireEvent.changeText(screen.getByTestId('field-targetDate'), '31-12-2026');
+    await fireEvent.press(screen.getByRole('button', { name: 'Guardar objetivo' }));
+
+    await waitFor(() => expect(screen.getByText('Usa AAAA-MM-DD')).toBeOnTheScreen());
+    expect(save).not.toHaveBeenCalled();
   });
 
   it('blocks submission and shows a validation error for a bad target date', async () => {
@@ -147,6 +196,11 @@ describe('GoalForm', () => {
     await render(<GoalForm onSaved={jest.fn()} />);
 
     expect(screen.getByText('Couldn’t save')).toBeOnTheScreen();
-    expect(screen.getByText('Your goal could not be saved. Please try again.')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Your goal could not be saved right now. Try again.'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByText('Your goal could not be saved. Please try again.'),
+    ).not.toBeOnTheScreen();
   });
 });

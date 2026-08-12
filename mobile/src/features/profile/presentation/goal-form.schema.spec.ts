@@ -1,5 +1,6 @@
 import type { Goal } from '../domain/goal.types';
 import {
+  createGoalFormSchema,
   goalFormSchema,
   goalToFormValues,
   toGoalInput,
@@ -74,6 +75,19 @@ describe('goalFormSchema', () => {
     ['soon', 'non-date'],
   ])('rejects target date %p (%s)', (targetDate) => {
     expect(goalFormSchema.safeParse({ ...validValues, targetDate }).success).toBe(false);
+  });
+
+  it('uses caller-provided localized validation messages without changing the contract', () => {
+    const schema = createGoalFormSchema({
+      greaterThanZero: 'Debe ser mayor que 0',
+      tooLarge: 'El valor es demasiado alto',
+      dateFormat: 'Usa AAAA-MM-DD',
+      validDate: 'Introduce una fecha válida',
+    });
+    const result = schema.safeParse({ ...validValues, targetDate: '31-12-2026' });
+
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0]?.message).toBe('Usa AAAA-MM-DD');
   });
 });
 

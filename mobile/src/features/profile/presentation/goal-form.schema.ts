@@ -23,26 +23,43 @@ export const GOAL_TYPES = [
 ] as const;
 
 // Optional target weight: blank input ('' / null / undefined) → undefined; else coerce + validate.
-const optionalWeight = z.preprocess(
-  (v) => (v === '' || v === null || v === undefined ? undefined : v),
-  z.coerce.number().positive('Must be greater than 0').max(500, 'Too large').optional(),
-);
+interface GoalValidationMessages {
+  greaterThanZero: string;
+  tooLarge: string;
+  dateFormat: string;
+  validDate: string;
+}
 
-// Optional target date: blank → undefined; else must be a real YYYY-MM-DD.
-const optionalDate = z.preprocess(
-  (v) => (v === '' || v === null || v === undefined ? undefined : v),
-  z
-    .string()
-    .regex(DATE_RE, 'Use YYYY-MM-DD')
-    .refine((v) => !Number.isNaN(Date.parse(v)), 'Enter a valid date')
-    .optional(),
-);
+const DEFAULT_MESSAGES: GoalValidationMessages = {
+  greaterThanZero: 'Must be greater than 0',
+  tooLarge: 'Too large',
+  dateFormat: 'Use YYYY-MM-DD',
+  validDate: 'Enter a valid date',
+};
 
-export const goalFormSchema = z.object({
-  goalType: z.enum(GOAL_TYPES),
-  targetWeightKg: optionalWeight,
-  targetDate: optionalDate,
-});
+export function createGoalFormSchema(messages: GoalValidationMessages = DEFAULT_MESSAGES) {
+  const optionalWeight = z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z.coerce.number().positive(messages.greaterThanZero).max(500, messages.tooLarge).optional(),
+  );
+
+  const optionalDate = z.preprocess(
+    (v) => (v === '' || v === null || v === undefined ? undefined : v),
+    z
+      .string()
+      .regex(DATE_RE, messages.dateFormat)
+      .refine((v) => !Number.isNaN(Date.parse(v)), messages.validDate)
+      .optional(),
+  );
+
+  return z.object({
+    goalType: z.enum(GOAL_TYPES),
+    targetWeightKg: optionalWeight,
+    targetDate: optionalDate,
+  });
+}
+
+export const goalFormSchema = createGoalFormSchema();
 
 export type GoalFormInput = z.input<typeof goalFormSchema>;
 export type GoalFormOutput = z.output<typeof goalFormSchema>;
