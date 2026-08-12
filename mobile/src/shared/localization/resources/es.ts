@@ -232,6 +232,7 @@ export const es = {
   'workout.movement.bridging': 'puentes',
   'workout.movement.maxEffortLifts': 'levantamientos de esfuerzo máximo',
   'workout.movement.valsalvaHeavyLifts': 'levantamientos pesados conteniendo la respiración',
+  'workout.library.routeTitle': 'Biblioteca de ejercicios',
   'workout.library.title': 'Biblioteca de ejercicios',
   'workout.library.subtitle':
     'Crea tus propios ejercicios para usarlos en rutinas y entrenamientos. Se guardan primero en tu dispositivo y luego se sincronizan con tu cuenta.',
@@ -278,6 +279,7 @@ export const es = {
   'workout.muscle.quadriceps': 'Cuádriceps',
   'workout.muscle.shoulders': 'Hombros',
   'workout.muscle.triceps': 'Tríceps',
+  'workout.log.routeTitle': 'Registrar un entrenamiento',
   'workout.log.title': 'Registrar un entrenamiento',
   'workout.log.subtitle':
     'Registra tus series mientras entrenas. Todo se guarda primero en tu dispositivo y se sincroniza después con tu cuenta.',
