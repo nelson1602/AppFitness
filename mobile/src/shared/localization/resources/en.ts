@@ -503,6 +503,28 @@ export const en = {
   'nutrition.gap.weightDetail': 'A recent weight is required.',
   'nutrition.gap.wellnessNotice':
     'AppFitness uses self-entered wellness data for these suggestions. It does not request diagnoses, prescriptions, doctor notes, or professional medical restrictions.',
+  'dashboard.subtitle': 'Your local iCoach assessment',
+  'dashboard.unavailable': 'Dashboard unavailable',
+  'dashboard.errorMessage': 'Your dashboard could not be loaded right now. Please try again.',
+  'dashboard.syncAccessibility': 'Synchronize local changes',
+  'dashboard.syncNow': 'Sync now',
+  'dashboard.recommendations': 'iCoach recommendations',
+  'dashboard.nutritionAccessibility': 'View nutrition targets',
+  'dashboard.nutrition': 'Nutrition',
+  'dashboard.preferencesAccessibility': 'Manage dietary preferences and allergies',
+  'dashboard.preferences': 'Dietary preferences',
+  'dashboard.routinesAccessibility': 'Manage workout routines',
+  'dashboard.routines': 'Workout routines',
+  'dashboard.workoutLogAccessibility': 'Log a workout',
+  'dashboard.workoutLog': 'Log a workout',
+  'dashboard.exercisesAccessibility': 'Manage your exercise library',
+  'dashboard.exercises': 'Exercise library',
+  'dashboard.progressAccessibility': 'Track your progress',
+  'dashboard.progress': 'Progress',
+  'dashboard.signOutAccessibility': 'Sign out of your account',
+  'dashboard.signOut': 'Sign out',
+  'dashboard.deleteAccountAccessibility': 'Delete your account',
+  'dashboard.deleteAccount': 'Delete account',
 } as const;
 
 export type TranslationKey = keyof typeof en;
