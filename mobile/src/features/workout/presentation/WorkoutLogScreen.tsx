@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { CustomExercise, WorkoutLog, WorkoutSet } from '../domain/workout';
-import { useTrainingPlan } from '../application/use-training-plan';
+import { exerciseDisplayName } from '../application/exercise-display.service';
 import { useWorkoutStore } from '../application/workout.store';
 import {
   getBuiltInExerciseById,
@@ -13,40 +14,38 @@ import {
 } from '../infrastructure/exercise-catalog.data';
 import { CustomExerciseForm } from './CustomExerciseForm';
 import { CustomExerciseNote } from './CustomExerciseNote';
-import { ExerciseExclusionNote } from './ExerciseExclusionNote';
-import { resolveExerciseName } from './resolve-exercise-name';
-import { TrainingPlanCard } from './TrainingPlanCard';
 
 /**
- * Workout logging (ADR-P015 Phase 16 Slice 6; TrainingPlan integration in Slice
- * 7). Start an ad-hoc workout (or from a routine), log sets against built-in
+ * Bilingual workout logging (ADR-P015 Phase 16 Slice 6). Start an ad-hoc
+ * workout (or from a routine), log sets against built-in
  * exercises, edit/remove sets, and finish the workout. ALL persistence routes
  * through the Slice 4A/4B workout store → service → repository (local-first
  * write, sync enqueue); the UI never touches SQLite. Rows carry their local
- * `syncStatus`, surfaced as a "pending sync" hint.
- *
- * Safety context is READ from the deterministic iCoach `TrainingPlan` (via
- * `useTrainingPlan`) — never recomputed. `TrainingPlanCard` surfaces the
- * blocked / clearance / intensity / RPE-cap / days-per-week guidance; an
- * exercise whose movement patterns intersect `excludedMovements` shows a
- * NON-blocking caution. Medical restrictions are never overridden. The picker
- * lists built-in and user CUSTOM exercises (Slice 9); customs are neutral
- * (unmapped) and show a non-medical caution only.
+ * `syncStatus`, surfaced as a localized pending-sync hint. Public wellness v1
+ * intentionally does not consume the retained medical TrainingPlan domain;
+ * that architecture remains dormant for possible future use behind a separate
+ * approved product contract.
  */
 
 const CATALOG = listBuiltInExercises();
 
 function PendingHint({ syncStatus }: { syncStatus: WorkoutSet['syncStatus'] }) {
+  const { t } = useLocalization();
   if (syncStatus !== 'pending') return null;
   return (
-    <AppText variant="caption" tone="muted" accessibilityLabel="Sync pending">
-      Pending sync
+    <AppText
+      variant="caption"
+      tone="muted"
+      accessibilityLabel={t('workout.log.syncPendingAccessibility')}
+    >
+      {t('workout.log.syncPending')}
     </AppText>
   );
 }
 
 export function WorkoutLogScreen() {
   const theme = useTheme();
+  const { language, t } = useLocalization();
   const {
     status,
     routines,
@@ -65,11 +64,6 @@ export function WorkoutLogScreen() {
     createCustomExercise,
   } = useWorkoutStore();
 
-  // Read-only training safety context (may be absent if the dashboard has not
-  // loaded yet). We never recompute it.
-  const training = useTrainingPlan();
-  const excludedMovements = training?.excludedMovements ?? [];
-
   const [name, setName] = useState('');
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
   const [exerciseId, setExerciseId] = useState<string | null>(null);
@@ -84,10 +78,8 @@ export function WorkoutLogScreen() {
   const initialLoading = status === 'loading' && workoutLogs.length === 0;
   const openLogs = workoutLogs.filter((l) => !l.finishedAt);
   const finishedLogs = workoutLogs.filter((l) => l.finishedAt);
-  const selectedExercise = exerciseId ? getBuiltInExerciseById(exerciseId) : undefined;
-
   const onStart = async (routineId: string | null) => {
-    const trimmed = name.trim() || 'Workout';
+    const trimmed = name.trim() || t('workout.log.defaultName');
     const ok = await startWorkout(routineId ? { name: trimmed, routineId } : { name: trimmed });
     if (ok) setName('');
   };
@@ -125,28 +117,23 @@ export function WorkoutLogScreen() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">Log a workout</AppText>
-        <AppText tone="muted">
-          Track your sets as you train. Everything is saved on your device first and syncs to your
-          account later.
-        </AppText>
+        <AppText variant="headline">{t('workout.log.title')}</AppText>
+        <AppText tone="muted">{t('workout.log.subtitle')}</AppText>
       </View>
 
       {error ? (
-        <Banner title="Something went wrong" tone="error">
-          {error}
+        <Banner title={t('workout.log.errorTitle')} tone="error">
+          {t('workout.log.errorMessage')}
         </Banner>
       ) : null}
 
-      <TrainingPlanCard plan={training} />
-
-      <Card accessibilityLabel="Start a workout">
+      <Card accessibilityLabel={t('workout.log.startAccessibility')}>
         <View style={{ gap: theme.spacing.md }}>
-          <AppText variant="title">Start a workout</AppText>
+          <AppText variant="title">{t('workout.log.startTitle')}</AppText>
           <TextInput
-            accessibilityLabel="Workout name"
+            accessibilityLabel={t('workout.log.name')}
             testID="workout-name"
-            placeholder="e.g. Morning session"
+            placeholder={t('workout.log.namePlaceholder')}
             placeholderTextColor={theme.colors.outline}
             value={name}
             onChangeText={setName}
@@ -159,23 +146,23 @@ export function WorkoutLogScreen() {
             }}
           />
           <AppButton
-            accessibilityLabel="Start workout"
+            accessibilityLabel={t('workout.log.startButton')}
             testID="workout-start"
             loading={status === 'saving'}
             onPress={() => void onStart(null)}
           >
-            Start workout
+            {t('workout.log.startButton')}
           </AppButton>
 
           {routines.length > 0 ? (
             <View style={{ gap: theme.spacing.sm }}>
               <AppText variant="label" tone="muted">
-                Or start from a routine
+                {t('workout.log.fromRoutine')}
               </AppText>
               {routines.map((routine) => (
                 <AppButton
                   key={routine.id}
-                  accessibilityLabel={`Start workout from ${routine.name}`}
+                  accessibilityLabel={`${t('workout.log.startFromAccessibility')} ${routine.name}`}
                   testID={`workout-start-routine-${routine.id}`}
                   variant="secondary"
                   onPress={() => void onStart(routine.id)}
@@ -189,50 +176,57 @@ export function WorkoutLogScreen() {
       </Card>
 
       <View style={{ gap: theme.spacing.md }}>
-        <AppText variant="title">Open workouts</AppText>
+        <AppText variant="title">{t('workout.log.openTitle')}</AppText>
         {initialLoading ? (
-          <AppText accessibilityLabel="Loading workouts">Loading…</AppText>
+          <AppText accessibilityLabel={t('workout.log.loadingAccessibility')}>
+            {t('workout.log.loading')}
+          </AppText>
         ) : openLogs.length === 0 ? (
-          <AppText tone="muted">No open workouts.</AppText>
+          <AppText tone="muted">{t('workout.log.openEmpty')}</AppText>
         ) : (
           openLogs.map((log) => (
-            <Card key={log.id} accessibilityLabel={`Workout: ${log.name}`}>
+            <Card
+              key={log.id}
+              accessibilityLabel={`${t('workout.log.workoutAccessibility')} ${log.name}`}
+            >
               <View style={{ gap: theme.spacing.sm }}>
                 <AppText variant="label">{log.name}</AppText>
                 {log.syncStatus === 'pending' ? (
                   <AppText
                     variant="caption"
                     tone="muted"
-                    accessibilityLabel="Workout saved on this device"
+                    accessibilityLabel={t('workout.log.savedAccessibility')}
                   >
-                    Saved on this device
+                    {t('workout.log.savedOnDevice')}
                   </AppText>
                 ) : null}
                 <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                   <AppButton
-                    accessibilityLabel={`Log sets for ${log.name}`}
+                    accessibilityLabel={`${t('workout.log.logSetsAccessibility')} ${log.name}`}
                     testID={`workout-select-${log.id}`}
                     variant="secondary"
                     onPress={() => void onSelectLog(log)}
                   >
-                    {selectedLogId === log.id ? 'Hide sets' : 'Log sets'}
+                    {selectedLogId === log.id
+                      ? t('workout.log.hideSets')
+                      : t('workout.log.logSets')}
                   </AppButton>
                   <AppButton
-                    accessibilityLabel={`Finish workout ${log.name}`}
+                    accessibilityLabel={`${t('workout.log.finishAccessibility')} ${log.name}`}
                     testID={`workout-finish-${log.id}`}
                     loading={status === 'saving'}
                     onPress={() => void finishWorkout(log.id)}
                   >
-                    Finish
+                    {t('workout.log.finish')}
                   </AppButton>
                   <AppButton
-                    accessibilityLabel={`Remove workout ${log.name}`}
+                    accessibilityLabel={`${t('workout.log.removeWorkoutAccessibility')} ${log.name}`}
                     testID={`workout-remove-${log.id}`}
                     variant="text"
                     loading={status === 'saving'}
                     onPress={() => void removeWorkout(log.id)}
                   >
-                    Remove
+                    {t('workout.log.remove')}
                   </AppButton>
                 </View>
 
@@ -240,7 +234,6 @@ export function WorkoutLogScreen() {
                   <View style={{ gap: theme.spacing.md, marginTop: theme.spacing.sm }}>
                     <SetList
                       sets={workoutSets}
-                      excludedMovements={excludedMovements}
                       customExercises={customExercises}
                       onEditReps={onEditReps}
                       onToggle={(id, completed) => void updateWorkoutSet(id, { completed })}
@@ -249,11 +242,11 @@ export function WorkoutLogScreen() {
                     />
 
                     <AppText variant="label" tone="muted">
-                      Add a set
+                      {t('workout.log.addSetTitle')}
                     </AppText>
 
                     {showNewExercise ? (
-                      <Card accessibilityLabel="New custom exercise">
+                      <Card accessibilityLabel={t('workout.log.newCustomAccessibility')}>
                         <CustomExerciseForm
                           existing={customExercises}
                           saving={status === 'saving'}
@@ -264,62 +257,61 @@ export function WorkoutLogScreen() {
                       </Card>
                     ) : (
                       <AppButton
-                        accessibilityLabel="Create a new custom exercise"
+                        accessibilityLabel={t('workout.log.createCustomAccessibility')}
                         testID="set-new-custom-exercise"
                         variant="secondary"
                         onPress={() => setShowNewExercise(true)}
                       >
-                        + New exercise
+                        {t('workout.log.newExercise')}
                       </AppButton>
                     )}
 
                     <AppText variant="caption" tone="muted">
-                      Built-in
+                      {t('workout.log.builtIn')}
                     </AppText>
                     <View style={{ gap: theme.spacing.sm }}>
-                      {CATALOG.map((exercise) => (
-                        <Pressable
-                          key={exercise.id}
-                          accessibilityRole="button"
-                          accessibilityLabel={`Choose ${exercise.name}`}
-                          accessibilityState={{ selected: exerciseId === exercise.id }}
-                          testID={`set-exercise-${exercise.key}`}
-                          onPress={() => setExerciseId(exercise.id)}
-                          style={{
-                            backgroundColor:
-                              exerciseId === exercise.id
-                                ? theme.colors.surfaceVariant
-                                : 'transparent',
-                            borderColor:
-                              exerciseId === exercise.id
-                                ? theme.colors.primary
-                                : theme.colors.outline,
-                            borderRadius: theme.radius.medium,
-                            borderWidth: 1,
-                            padding: theme.spacing.sm,
-                          }}
-                        >
-                          <AppText>{exercise.name}</AppText>
-                          <ExerciseExclusionNote
-                            exercise={exercise}
-                            excludedMovements={excludedMovements}
-                          />
-                        </Pressable>
-                      ))}
+                      {CATALOG.map((exercise) => {
+                        const displayName = exerciseDisplayName(exercise.key, language);
+                        return (
+                          <Pressable
+                            key={exercise.id}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${t('workout.log.chooseAccessibility')} ${displayName}`}
+                            accessibilityState={{ selected: exerciseId === exercise.id }}
+                            testID={`set-exercise-${exercise.key}`}
+                            onPress={() => setExerciseId(exercise.id)}
+                            style={{
+                              backgroundColor:
+                                exerciseId === exercise.id
+                                  ? theme.colors.surfaceVariant
+                                  : 'transparent',
+                              borderColor:
+                                exerciseId === exercise.id
+                                  ? theme.colors.primary
+                                  : theme.colors.outline,
+                              borderRadius: theme.radius.medium,
+                              borderWidth: 1,
+                              padding: theme.spacing.sm,
+                            }}
+                          >
+                            <AppText>{displayName}</AppText>
+                          </Pressable>
+                        );
+                      })}
                     </View>
 
                     <AppText variant="caption" tone="muted">
-                      My exercises
+                      {t('workout.log.myExercises')}
                     </AppText>
                     {customExercises.length === 0 ? (
-                      <AppText tone="muted">No custom exercises yet.</AppText>
+                      <AppText tone="muted">{t('workout.log.customEmpty')}</AppText>
                     ) : (
                       <View style={{ gap: theme.spacing.sm }}>
                         {customExercises.map((exercise) => (
                           <Pressable
                             key={exercise.id}
                             accessibilityRole="button"
-                            accessibilityLabel={`Choose ${exercise.name}`}
+                            accessibilityLabel={`${t('workout.log.chooseAccessibility')} ${exercise.name}`}
                             accessibilityState={{ selected: exerciseId === exercise.id }}
                             testID={`set-custom-exercise-${exercise.id}`}
                             onPress={() => setExerciseId(exercise.id)}
@@ -344,18 +336,11 @@ export function WorkoutLogScreen() {
                       </View>
                     )}
 
-                    {selectedExercise ? (
-                      <ExerciseExclusionNote
-                        exercise={selectedExercise}
-                        excludedMovements={excludedMovements}
-                      />
-                    ) : null}
-
                     <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                       <TextInput
-                        accessibilityLabel="Reps"
+                        accessibilityLabel={t('workout.log.reps')}
                         testID="set-reps-input"
-                        placeholder="Reps"
+                        placeholder={t('workout.log.reps')}
                         placeholderTextColor={theme.colors.outline}
                         keyboardType="numeric"
                         value={reps}
@@ -370,9 +355,9 @@ export function WorkoutLogScreen() {
                         }}
                       />
                       <TextInput
-                        accessibilityLabel="Weight (kg)"
+                        accessibilityLabel={t('workout.log.weightKg')}
                         testID="set-weight-input"
-                        placeholder="Weight (kg)"
+                        placeholder={t('workout.log.weightKg')}
                         placeholderTextColor={theme.colors.outline}
                         keyboardType="numeric"
                         value={weight}
@@ -388,13 +373,13 @@ export function WorkoutLogScreen() {
                       />
                     </View>
                     <AppButton
-                      accessibilityLabel="Add set"
+                      accessibilityLabel={t('workout.log.addSet')}
                       testID="set-add"
                       disabled={!exerciseId}
                       loading={status === 'saving'}
                       onPress={() => void onAddSet()}
                     >
-                      Add set
+                      {t('workout.log.addSet')}
                     </AppButton>
                   </View>
                 ) : null}
@@ -406,22 +391,25 @@ export function WorkoutLogScreen() {
 
       {finishedLogs.length > 0 ? (
         <View style={{ gap: theme.spacing.md }}>
-          <AppText variant="title">Recent workouts</AppText>
+          <AppText variant="title">{t('workout.log.recentTitle')}</AppText>
           {finishedLogs.map((log) => (
-            <Card key={log.id} accessibilityLabel={`Finished workout: ${log.name}`}>
+            <Card
+              key={log.id}
+              accessibilityLabel={`${t('workout.log.finishedWorkoutAccessibility')} ${log.name}`}
+            >
               <View style={{ gap: theme.spacing.xs }}>
                 <AppText variant="label">{log.name}</AppText>
                 <AppText variant="caption" tone="muted">
-                  Finished
+                  {t('workout.log.finished')}
                 </AppText>
                 <AppButton
-                  accessibilityLabel={`Remove workout ${log.name}`}
+                  accessibilityLabel={`${t('workout.log.removeWorkoutAccessibility')} ${log.name}`}
                   testID={`workout-remove-${log.id}`}
                   variant="text"
                   loading={status === 'saving'}
                   onPress={() => void removeWorkout(log.id)}
                 >
-                  Remove
+                  {t('workout.log.remove')}
                 </AppButton>
               </View>
             </Card>
@@ -434,7 +422,6 @@ export function WorkoutLogScreen() {
 
 function SetList({
   sets,
-  excludedMovements,
   customExercises,
   onEditReps,
   onToggle,
@@ -442,7 +429,6 @@ function SetList({
   saving,
 }: {
   sets: WorkoutSet[];
-  excludedMovements: readonly string[];
   customExercises: readonly CustomExercise[];
   onEditReps: (id: string, text: string) => void;
   onToggle: (id: string, completed: boolean) => void;
@@ -450,24 +436,27 @@ function SetList({
   saving: boolean;
 }) {
   const theme = useTheme();
+  const { language, t } = useLocalization();
   if (sets.length === 0) {
-    return <AppText tone="muted">No sets logged yet.</AppText>;
+    return <AppText tone="muted">{t('workout.log.setsEmpty')}</AppText>;
   }
   return (
     <View style={{ gap: theme.spacing.sm }}>
       {sets.map((set) => {
         const exercise = getBuiltInExerciseById(set.exerciseId);
-        const displayName = resolveExerciseName(set.exerciseId, customExercises);
+        const customExercise = customExercises.find((item) => item.id === set.exerciseId);
+        const displayName = exercise
+          ? exerciseDisplayName(exercise.key, language)
+          : (customExercise?.name ?? t('workout.builder.removedExercise'));
         return (
           <View key={set.id} testID={`set-${set.id}`} style={{ gap: theme.spacing.xs }}>
             <AppText variant="label">
               {set.setNumber}. {displayName}
             </AppText>
-            <ExerciseExclusionNote exercise={exercise} excludedMovements={excludedMovements} />
             <PendingHint syncStatus={set.syncStatus} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
               <TextInput
-                accessibilityLabel={`Reps for set ${set.setNumber}`}
+                accessibilityLabel={`${t('workout.log.repsForSetAccessibility')} ${set.setNumber}`}
                 testID={`set-reps-${set.id}`}
                 keyboardType="numeric"
                 defaultValue={set.reps === null ? '' : String(set.reps)}
@@ -483,22 +472,26 @@ function SetList({
               />
               <AppText tone="muted">{set.weightKg === null ? '—' : `${set.weightKg} kg`}</AppText>
               <AppButton
-                accessibilityLabel={`Mark set ${set.setNumber} ${set.completed ? 'not done' : 'done'}`}
+                accessibilityLabel={`${t(
+                  set.completed
+                    ? 'workout.log.markNotDoneAccessibility'
+                    : 'workout.log.markDoneAccessibility',
+                )} ${set.setNumber}`}
                 testID={`set-toggle-${set.id}`}
                 variant="secondary"
                 loading={saving}
                 onPress={() => onToggle(set.id, !set.completed)}
               >
-                {set.completed ? 'Done' : 'Mark done'}
+                {set.completed ? t('workout.log.done') : t('workout.log.markDone')}
               </AppButton>
               <AppButton
-                accessibilityLabel={`Remove set ${set.setNumber}`}
+                accessibilityLabel={`${t('workout.log.removeSetAccessibility')} ${set.setNumber}`}
                 testID={`set-remove-${set.id}`}
                 variant="text"
                 loading={saving}
                 onPress={() => onRemove(set.id)}
               >
-                Remove
+                {t('workout.log.remove')}
               </AppButton>
             </View>
           </View>
