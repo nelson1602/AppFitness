@@ -170,7 +170,7 @@ describe('DashboardScreen', () => {
     fireEvent.press(screen.getByRole('button', { name: 'Load fake sample dashboard data' }));
 
     expect(screen.getByText('Finish your baseline')).toBeOnTheScreen();
-    expect(screen.getByText('Add current weight')).toBeOnTheScreen();
+    expect(screen.getByText('Record a weight measurement')).toBeOnTheScreen();
     expect(loadSampleData).toHaveBeenCalledTimes(1);
   });
 
