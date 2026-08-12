@@ -3,6 +3,8 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import ProfileEditRoute from '@/app/profile-edit';
 
 let mockSessionStatus: 'unknown' | 'authenticated' | 'anonymous';
+let mockLanguage: 'en' | 'es' = 'en';
+let mockStackTitle: string | undefined;
 
 jest.mock('expo-router', () => ({
   Redirect: ({ href }: { href: string }) => {
@@ -10,7 +12,10 @@ jest.mock('expo-router', () => ({
     return <Text>Redirect: {href}</Text>;
   },
   Stack: {
-    Screen: () => null,
+    Screen: ({ options }: { options: { title: string } }) => {
+      mockStackTitle = options.title;
+      return null;
+    },
   },
   router: { replace: jest.fn() },
 }));
@@ -18,6 +23,21 @@ jest.mock('expo-router', () => ({
 jest.mock('@/features/authentication', () => ({
   useSession: () => ({ status: mockSessionStatus }),
 }));
+jest.mock('@/shared/localization', () => {
+  const { en } = jest.requireActual<typeof import('@/shared/localization/resources/en')>(
+    '@/shared/localization/resources/en',
+  );
+  const { es } = jest.requireActual<typeof import('@/shared/localization/resources/es')>(
+    '@/shared/localization/resources/es',
+  );
+
+  return {
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es : en)[key],
+    }),
+  };
+});
 
 // Render a stand-in that exposes the onSaved callback so we can assert the
 // route navigates to the dashboard after a successful save.
@@ -35,6 +55,8 @@ jest.mock('@/features/profile/presentation/ProfileForm', () => ({
 describe('ProfileEditRoute', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockLanguage = 'en';
+    mockStackTitle = undefined;
   });
 
   it('shows a skeleton while session restoration is pending', async () => {
@@ -59,6 +81,16 @@ describe('ProfileEditRoute', () => {
     await render(<ProfileEditRoute />);
 
     expect(screen.getByText('Profile form')).toBeOnTheScreen();
+    expect(mockStackTitle).toBe('Profile');
+  });
+
+  it('localizes the native route title in Spanish', async () => {
+    mockSessionStatus = 'authenticated';
+    mockLanguage = 'es';
+
+    await render(<ProfileEditRoute />);
+
+    expect(mockStackTitle).toBe('Perfil');
   });
 
   it('returns to the dashboard after a successful save', async () => {

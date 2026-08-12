@@ -21,6 +21,7 @@ export const es = {
   'auth.errorMessage': 'No se pudo autenticar. Revisa tus credenciales y conexión.',
   'profile.loading': 'Cargando…',
   'profile.loadingAccessibility': 'Cargando perfil',
+  'profile.routeTitle': 'Perfil',
   'profile.createTitle': 'Crea tu perfil',
   'profile.editTitle': 'Editar perfil',
   'profile.subtitle':
@@ -61,6 +62,7 @@ export const es = {
   'profile.validation.scaleOneToFive': 'Escala de 1 a 5',
   'goal.loading': 'Cargando…',
   'goal.loadingAccessibility': 'Cargando objetivo',
+  'goal.routeTitle': 'Objetivo',
   'goal.createTitle': 'Define tu objetivo',
   'goal.editTitle': 'Editar objetivo',
   'goal.subtitle':
