@@ -1,6 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import type { TrainingPlan } from '@/features/icoach/domain/types';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 
 import type { CustomExercise, Routine, WorkoutLog, WorkoutSet } from '../domain/workout';
@@ -8,7 +7,7 @@ import type { WorkoutState } from '../application/workout.store';
 import { WorkoutLogScreen } from './WorkoutLogScreen';
 
 let mockState: WorkoutState;
-let mockTraining: TrainingPlan | null;
+let mockLanguage: 'en' | 'es' = 'en';
 
 const load = jest.fn();
 const startWorkout = jest.fn();
@@ -25,17 +24,18 @@ jest.mock('../application/workout.store', () => ({
     selector ? selector(mockState) : mockState,
 }));
 
-type DashSlice = {
-  data: { assessment: { assessment: { training: TrainingPlan } } | null } | null;
-};
-jest.mock('@/features/dashboard/application/dashboard.store', () => ({
-  useDashboardStore: (selector?: (s: DashSlice) => unknown) => {
-    const state: DashSlice = {
-      data: mockTraining ? { assessment: { assessment: { training: mockTraining } } } : null,
-    };
-    return selector ? selector(state) : state;
-  },
-}));
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
 
 // Direct SQLite access from the UI is forbidden — persistence must route
 // through the store. Spy on the database module to prove the screen never calls it.
@@ -138,20 +138,10 @@ const customExercise = (o: Partial<CustomExercise> = {}): CustomExercise => ({
   ...o,
 });
 
-const plan = (o: Partial<TrainingPlan> = {}): TrainingPlan => ({
-  blocked: false,
-  requiresMedicalClearance: false,
-  intensity: 'MODERATE',
-  rpeCap: 8,
-  daysPerWeek: 4,
-  excludedMovements: [],
-  ...o,
-});
-
 describe('WorkoutLogScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockTraining = null;
+    mockLanguage = 'en';
     startWorkout.mockResolvedValue(true);
     finishWorkout.mockResolvedValue(true);
     removeWorkout.mockResolvedValue(true);
@@ -327,22 +317,33 @@ describe('WorkoutLogScreen', () => {
     expect(removeWorkout).toHaveBeenCalledWith('l1');
   });
 
-  it('shows a non-blocking excluded-movement caution for a matching exercise', async () => {
-    mockTraining = plan({ excludedMovements: ['deep_squat'] });
-    setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [] });
+  it('renders Spanish copy and localized catalog names without changing store identities', async () => {
+    mockLanguage = 'es';
+    setStore({
+      status: 'ready',
+      workoutLogs: [log()],
+      workoutSets: [wset({ id: 's1' })],
+      customExercises: [customExercise()],
+    });
     await render(<WorkoutLogScreen />);
 
+    expect(screen.getByText('Registrar un entrenamiento')).toBeOnTheScreen();
+    expect(screen.getByText('Entrenamientos abiertos')).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('workout-select-l1'));
+    expect(screen.getAllByText('Sentadilla trasera').length).toBeGreaterThan(0);
+    expect(screen.getByText('Zercher Squat')).toBeOnTheScreen();
 
-    const backSquat = screen.getByTestId('set-exercise-exercise.back_squat');
-    expect(within(backSquat).getByText(/May conflict.*deep squat/)).toBeOnTheScreen();
-  });
+    await fireEvent.press(screen.getByTestId('set-exercise-exercise.back_squat'));
+    await fireEvent.changeText(screen.getByTestId('set-reps-input'), '7');
+    await fireEvent.press(screen.getByTestId('set-add'));
 
-  it('shows a blocked-training notice when the plan is blocked', async () => {
-    mockTraining = plan({ blocked: true });
-    setStore({ status: 'ready', workoutLogs: [] });
-    await render(<WorkoutLogScreen />);
-    expect(screen.getByText('Training is on hold')).toBeOnTheScreen();
+    expect(logWorkoutSet).toHaveBeenCalledWith('l1', {
+      exerciseId: BACK_SQUAT_ID,
+      setNumber: 2,
+      reps: 7,
+      weightKg: null,
+    });
+    expect(screen.queryByText('Training is on hold')).not.toBeOnTheScreen();
   });
 
   it('surfaces a pending-sync hint on locally-saved sets', async () => {
@@ -365,6 +366,12 @@ describe('WorkoutLogScreen', () => {
     });
     await render(<WorkoutLogScreen />);
     expect(screen.getByText('Something went wrong')).toBeOnTheScreen();
+    expect(
+      screen.getByText('Your workouts could not be loaded right now. Try again.'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.queryByText('Your workouts could not be loaded right now.'),
+    ).not.toBeOnTheScreen();
   });
 
   it('never accesses SQLite directly from the UI while driving its flows', async () => {
