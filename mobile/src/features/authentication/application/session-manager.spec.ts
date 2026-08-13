@@ -131,6 +131,28 @@ describe('session-manager local_user mirroring', () => {
     expect(mockEnsureLocalUser).not.toHaveBeenCalled();
     expect(getStatus()).toBe('unauthenticated');
   });
+
+  it('restoreSession fails safe to unauthenticated when secure storage is unavailable (e.g. Web)', async () => {
+    // Expo Web has no SecureStore backend, so loadSession rejects. The app
+    // must not crash on startup — it degrades deterministically to signed-out.
+    mockLoadSession.mockRejectedValue(
+      new Error('ExpoSecureStore.getValueWithKeyAsync is not a function'),
+    );
+
+    await expect(restoreSession()).resolves.toBeNull();
+
+    expect(getStatus()).toBe('unauthenticated');
+    expect(getAccessToken()).toBeNull();
+    // No refresh attempt and no local_user mirroring on a storage failure.
+    expect(mockRefresh).not.toHaveBeenCalled();
+    expect(mockEnsureLocalUser).not.toHaveBeenCalled();
+    // The underlying error is reported through the sanitized logging boundary,
+    // never thrown to the caller/UI.
+    expect(jest.mocked(logError)).toHaveBeenCalledWith(
+      'auth.restoreSession.load',
+      expect.anything(),
+    );
+  });
 });
 
 describe('session-manager token rotation and sign-out', () => {
