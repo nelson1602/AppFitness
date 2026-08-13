@@ -6496,6 +6496,168 @@ whole-app bilingual audit.
 
 ---
 
+## ADR-P018 — Web Platform Storage and Authentication
+
+Status: Accepted
+Date: 2026-08-13
+Owner: Architecture / Security
+
+### Context
+
+AppFitness ships React Native / Expo builds for Android and iOS, where sensitive
+material (access tokens, refresh tokens, session payloads, and the AES-256
+medical field-encryption key of ADR-P006) is held exclusively in the device
+keystore through `expo-secure-store` (SECURITY-001, `.ai/05_SECURITY.md`).
+
+Expo Web has no `expo-secure-store` backend. On the web target the SecureStore
+calls reject at runtime (`ExpoSecureStore.getValueWithKeyAsync is not a
+function`), which previously crashed app startup. The startup crash itself was
+already resolved defensively: session restoration now fails safe to
+`unauthenticated` when secure storage is unavailable, and language
+initialization already falls back to the system locale. Those guards keep the
+app from crashing, but they do not define how — or whether — Web is allowed to
+store data or authenticate. Doing that safely requires a recorded decision,
+because the naive fix (a generic `localStorage` fallback for everything that
+used SecureStore) would place tokens, sessions, and the medical key in
+JS-readable web storage and directly violate SECURITY-001 and ADR-P006.
+
+This ADR is documentation-only. It records the approved target architecture for
+Web storage and authentication and authorizes a sequence of small,
+independently reviewed implementation slices. It does not change any runtime,
+API, CORS, cookie, or storage behavior, and it does not declare Web a supported
+platform.
+
+### Decision
+
+1. **Platform status.** Android and iOS remain the primary, supported platforms.
+   Web is a future target that stays gated until its security and compatibility
+   requirements are met. No offline-first parity is claimed for Web; the
+   offline-first guarantees of ADR-0006/0007 continue to describe native only.
+
+2. **Language preference on Web.** Web may persist only the non-sensitive UI
+   language preference in `localStorage`. This is the sole value approved for
+   JS-readable persistent web storage. Native platforms keep their existing
+   approved storage (the SecureStore-backed language preference) unchanged.
+
+3. **Interim Web authentication.** Access tokens, refresh tokens, session
+   payloads, credentials, and encryption keys must never be written to
+   `localStorage` or `sessionStorage`. An interim Web session may hold a Bearer
+   access token in memory only. Reloading the page or closing the tab ends the
+   interim Web session by design. No persistent authenticated Web session may be
+   claimed or advertised for the interim adapter.
+
+4. **Dormant medical encryption on Web.** No ephemeral Web encryption key may be
+   created. An ephemeral or regenerated key would render previously encrypted
+   medical data unreadable after reload and could silently corrupt the
+   protection model of ADR-P006. The retained medical functionality (dormant per
+   ADR-P017) remains inaccessible on Web. If dormant medical encryption is
+   invoked on Web, it must fail safely and deterministically rather than
+   fabricate a key or degrade protection.
+
+5. **Production Web authentication (future, owner-gated).** The approved
+   persistent design for production Web is backend-issued, HttpOnly, Secure,
+   `SameSite` session cookies. That design additionally requires refresh-token
+   rotation, cookie clearing on logout, explicit-origin credentialed CORS, and
+   CSRF protection. It is a separate, owner-gated effort and is explicitly not
+   part of the interim adapter work.
+
+6. **CORS.** The backend must never use wildcard origins. Only explicitly
+   configured Web origins are allowed. Interim Bearer-based Web calls require
+   `Authorization`-header support; the later cookie-based design additionally
+   requires credentialed CORS plus CSRF protection. Development and production
+   origins are configured separately; no origin values are established by this
+   ADR.
+
+7. **Explicitly rejected approaches.** The following are rejected and must not be
+   introduced:
+   - `localStorage` for tokens or session payloads.
+   - `sessionStorage` for tokens or session payloads.
+   - Any JS-readable persistent storage of authenticated session state.
+   - `localStorage` (or any JS-readable storage) for encryption keys.
+   - A single generic `localStorage` fallback shared by all SecureStore
+     consumers.
+   - Permissive wildcard (`*`) CORS.
+
+8. **Planned implementation slices.** This ADR authorizes, but does not
+   implement, the following separately reviewed slices:
+   - **Slice 2A** — a Web adapter for the non-sensitive language preference
+     only (`localStorage`), with native behavior unchanged.
+   - **Slice 2B** — a memory-only Web session adapter plus safe rejection of
+     dormant medical-encryption invocation on Web.
+   - **Slice 3** — explicit-origin backend CORS supporting interim Bearer Web
+     authentication.
+   - **Slice 4** — future HttpOnly-cookie Web authentication with refresh
+     rotation, logout clearing, credentialed CORS, and CSRF protection
+     (owner-gated).
+   - **Separate cleanup** — diagnose and fix the dormant `/evaluation-edit`
+     typed-route error without exposing medical navigation. Tracked
+     independently of this ADR and of the slices above.
+
+### Options Considered
+
+1. **Generic `localStorage` fallback for all SecureStore consumers.** Simplest to
+   implement, but places tokens, session payloads, and the medical key in
+   JS-readable storage. Rejected: violates SECURITY-001 and ADR-P006.
+2. **Memory-only interim Web auth now, HttpOnly cookies for production later
+   (selected).** Keeps sensitive material out of JS-readable storage, permits an
+   interim signed-in Web experience, and reserves a secure persistent design for
+   a dedicated future slice.
+3. **Block Web entirely until cookie auth ships.** Safe but delays any Web
+   progress and provides no incremental, reviewable path. Rejected in favor of
+   the gated slice sequence.
+
+### Rationale
+
+Option 2 satisfies the security constraints while allowing incremental,
+independently reviewed progress. Memory-only interim tokens keep sensitive data
+out of JS-readable storage and accept a deliberate limitation (session ends on
+reload) instead of weakening the security model. Persisting only the
+non-sensitive language preference is a bounded, low-risk exception. Deferring
+persistent Web auth to an HttpOnly-cookie design keeps tokens unreachable from
+JavaScript and aligns with OWASP API/Mobile guidance. Refusing to create an
+ephemeral Web encryption key preserves the integrity of previously encrypted
+medical data under ADR-P006.
+
+### Consequences
+
+Positive:
+
+- Sensitive material (tokens, sessions, credentials, encryption keys) never
+  enters JS-readable web storage; SECURITY-001 and ADR-P006 remain intact.
+- Provides a clear, small-slice implementation path (2A, 2B, 3, 4) that can each
+  be reviewed and merged independently.
+- Preserves native behavior unchanged; no platform is downgraded.
+- Records an explicit, secure target for production Web authentication.
+
+Negative:
+
+- The interim Web session does not survive reload or tab close; no persistent
+  authenticated Web session is available until the cookie-based slice ships.
+- Retained medical functionality stays inaccessible on Web.
+- Full secure Web authentication requires backend work (cookies, credentialed
+  CORS, CSRF) that is deferred and owner-gated.
+
+### Supersedes / Preserves
+
+- Preserves SECURITY-001, ADR-P006 (medical field encryption), and the
+  SecureStore-only token/key policy for all platforms.
+- Preserves ADR-P017 medical-domain dormancy: this ADR does not reactivate any
+  medical functionality on any platform.
+- Preserves the deterministic, offline-first native architecture of
+  ADR-0006/0007; it adds no offline-first claim for Web.
+
+### Related Documents
+
+- `.ai/00_PROJECT.md`
+- `.ai/01_ARCHITECTURE.md`
+- `.ai/05_SECURITY.md`
+- `.ai/06_MOBILE.md`
+- `.ai/10_DEPLOYMENT.md`
+- `.ai/11_BACKLOG.md`
+- `docs/RELEASE_READINESS.md`
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
