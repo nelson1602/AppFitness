@@ -83,7 +83,18 @@ export async function signIn(input: { email: string; password: string }): Promis
  * (48h offline operation, .ai/06_MOBILE.md). Clears only on explicit 401.
  */
 export async function restoreSession(): Promise<Session | null> {
-  const stored = await loadSession();
+  let stored: Session | null;
+  try {
+    stored = await loadSession();
+  } catch (error) {
+    // Secure storage unavailable (e.g. Expo Web has no SecureStore backend):
+    // fail safe to unauthenticated instead of crashing the app on startup.
+    // The underlying error is logged through the sanitized boundary only.
+    logError('auth.restoreSession.load', error);
+    setState('unauthenticated', null);
+    return null;
+  }
+
   if (!stored) {
     setState('unauthenticated', null);
     return null;
