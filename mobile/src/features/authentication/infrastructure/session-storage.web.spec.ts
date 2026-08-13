@@ -56,6 +56,15 @@ describe('web session storage (memory only — ADR-P018 Slice 2B1)', () => {
     });
   });
 
+  it('saveTokens is a safe no-op when no session exists (never half-restores)', async () => {
+    await expect(
+      storage.saveTokens({ accessToken: 'access-2', refreshToken: 'refresh-2' }),
+    ).resolves.toBeUndefined();
+
+    // Rotating tokens without a prior session must not fabricate a session.
+    await expect(storage.loadSession()).resolves.toBeNull();
+  });
+
   it('clear removes the session', async () => {
     await storage.saveSession(session);
     await storage.clearSession();
