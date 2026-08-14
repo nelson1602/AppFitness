@@ -304,6 +304,12 @@ SQLite
 
 Repositories own persistence.
 
+Platform scope (ADR-P019): SQLite persistence is native-only. On Web the local
+database is dormant/unsupported — the auth path creates no local user, no
+sensitive data is persisted in the browser, and DB-backed screens must show an
+explicit bilingual "unavailable on Web" state (never crash, never silently
+no-op, never fabricate data). Native behavior is unchanged.
+
 ---
 
 # Offline First

@@ -66,6 +66,14 @@ Responsible for:
 
 SQLite is considered the source of truth while offline.
 
+Platform scope (ADR-P019): the local SQLite database is a **native-only**
+(Android/iOS) capability. On Web it is **unsupported and dormant** — Web stores
+no local database and must not persist fitness, nutrition, workout, progress, or
+other sensitive data in `localStorage`, IndexedDB, OPFS, or any plaintext store.
+Web authentication uses the memory-only session (ADR-P018) without creating a
+local user row, and DB-backed features render an explicit "unavailable on Web"
+state. Full Web data support is deferred to a future ADR.
+
 ---
 
 ## Remote Database

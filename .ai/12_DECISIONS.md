@@ -6658,6 +6658,162 @@ Negative:
 
 ---
 
+## ADR-P019 — Interim Web Local-Data Dormancy
+
+Status: Accepted
+Date: 2026-08-14
+Owner: Architecture / Security
+
+### Context
+
+Native (Android/iOS) uses a local Expo SQLite database as the offline-first
+operational store (ADR-0006/0007, `.ai/04_DATABASE.md`): every session-establishing
+path mirrors the account into `local_user` (so FK-checked local writes succeed),
+and all feature repositories (profile, goal, nutrition, workout, progress, the
+sync/offline queue, and the dormant medical module) read and write through it.
+
+`expo-sqlite` has no working Web backend in this build (its Web WASM path needs
+cross-origin isolation that is not configured). Database initialization is lazy,
+so the Web app boots and the signed-out screen renders, but the first database
+access — `ensureLocalUser()` during sign-up/sign-in — throws. Because the auth
+screen catches every error as a generic failure, a registration that already
+succeeded on the server is presented to the user as "authentication failed," and
+the authenticated shell is unreachable on Web. Dashboard hydration would fail at
+the next database access regardless.
+
+ADR-P018 already established the Web posture for the adjacent concerns: language
+preference in `localStorage`, memory-only Web sessions, and fail-safe dormant
+medical encryption. This ADR extends that posture to the local database so Web
+authentication can establish a session and render an honest, limited shell —
+without persisting sensitive data in the browser and without changing native.
+
+### Decision
+
+1. **Native unchanged.** Native remains SQLite-backed and offline-first. Native
+   repositories, migrations, the synchronization queue, and offline behavior are
+   untouched by this decision.
+
+2. **Web auth needs no local SQLite user.** On Web, authentication may use the
+   existing memory-only session (ADR-P018) without creating a local SQLite
+   `local_user` row. `ensureLocalUser()` is a safe no-op on Web because there is
+   no local database to satisfy.
+
+3. **No sensitive Web persistence.** Web must not persist fitness, nutrition,
+   workout, progress, or other sensitive user data in `localStorage`,
+   `sessionStorage`, IndexedDB, OPFS, files, or any plaintext store. (The only
+   Web persistence approved anywhere remains the non-sensitive language
+   preference in `localStorage`, per ADR-P018.)
+
+4. **Local database is dormant/unsupported on Web.** Until a separately approved
+   full Web-data architecture exists, the local-database capability is
+   unsupported and dormant on Web.
+
+5. **DB-backed Web features fail visibly.** Every database-backed feature must,
+   on Web, render an explicit bilingual (EN/ES) "unavailable on Web" state. It
+   must never crash, never silently no-op, never fabricate or sample data, and
+   never imply full parity.
+
+6. **Account deletion still deletes the server account.** On Web, account
+   deletion must still delete the server-side account; the local-database
+   cleanup step (`wipeDatabase`) is an explicit safe no-op on Web because Web
+   stores no local database.
+
+7. **Medical/encryption dormancy preserved.** The dormant medical domain
+   (ADR-P017) and fail-safe dormant field encryption on Web (ADR-P018 Slice 2B2)
+   are unchanged and remain unavailable on Web.
+
+8. **Honest interim goal.** The interim goal is safe authentication plus an
+   honest, limited shell — not full Web product support and not offline
+   capability on Web.
+
+### Options Considered
+
+1. **Web-only `ensureLocalUser` no-op alone.** Unblocks login but the dashboard
+   and every feature screen still fail at their first database read. Rejected as
+   insufficient on its own — it would present a broken shell.
+2. **Fail-safe dormant Web database boundary + explicit "unavailable on Web"
+   features (selected).** A `database.web.ts` boundary makes database operations
+   fail deterministically; the auth path no-ops `ensureLocalUser`; DB-backed
+   screens degrade to an explicit unavailable state. Consistent with ADR-P018's
+   dormant pattern; no sensitive persistence; native untouched.
+3. **Ephemeral in-memory Web database.** Could make features function against
+   throwaway data, but depends on the (currently non-functional) expo-sqlite Web
+   runtime and risks implying parity for data that is silently lost on reload.
+   Deferred.
+4. **Browser-persistent database (OPFS / expo-sqlite Web).** Would persist
+   health-adjacent data in the browser, conflicting with the memory-only session
+   model and requiring cross-origin-isolation headers plus a security/privacy
+   review. Deferred to a separate ADR.
+5. **API-first Web repositories.** Real parity from the server with no local
+   persistence, but requires substantial new backend endpoints and a repository
+   rewrite. Deferred to a separate ADR.
+
+### Rationale
+
+Option 2 is the smallest change that unblocks Web authentication while remaining
+truthful about capability. It reuses the established `.web.ts` platform-file seam
+(as with session storage, field encryption, and language storage), keeps all
+sensitive data out of browser storage, preserves native behavior byte-for-byte,
+and fails visibly rather than silently. Options 3–5 either depend on unproven Web
+runtime support or introduce persistence/architecture changes that require their
+own ADR and security review.
+
+### Consequences
+
+Positive:
+
+- Web authentication can establish a session and render a shell instead of
+  falsely reporting a successful registration as a failure.
+- No sensitive user data is persisted in the browser; native and offline-first
+  behavior are unchanged.
+- Web limitations are explicit and honest (no implied parity).
+
+Negative:
+
+- Web has no working data features in the interim — DB-backed screens show an
+  "unavailable on Web" state.
+- No offline capability on Web.
+- Full Web product support requires a future, separately approved architecture.
+
+### Implementation Sequence (separately reviewed slices)
+
+1. **2B3A** — Web database boundary + authentication unblock: add the Web
+   database adapter (deterministic "unsupported on Web" for DB operations; safe
+   no-op `closeDatabase`/`wipeDatabase`) and the Web `ensureLocalUser` no-op so a
+   successful server auth establishes the memory-only session.
+2. **2B3B** — centralized Web capability / route degradation, beginning with the
+   dashboard: DB-backed surfaces detect the dormant Web database and render the
+   explicit bilingual "unavailable on Web" state, without touching protected
+   Progress work.
+3. **Additional feature-specific Web degradation slices** (profile/goal,
+   nutrition, workout, progress) as needed, each separately reviewed.
+4. **2B4** — distinguish credential errors from unexpected post-auth failures on
+   the sign-in surface, so a successful server auth is never mislabeled and
+   non-credential errors are reported distinctly (and logged, not swallowed).
+5. **Future full Web parity** (browser-persistent database or API-first Web
+   repositories) only under a new ADR with a security/privacy review and an
+   implementation plan.
+
+### Supersedes / Preserves
+
+- Extends ADR-P018 (Web storage & authentication) to the local database; adds no
+  new sensitive Web persistence.
+- Preserves ADR-0006/0007 native offline-first SQLite architecture, ADR-P017
+  medical-domain dormancy, and ADR-P006 field-encryption policy.
+- Preserves `.ai/04_DATABASE.md` and `.ai/06_MOBILE.md` for native; this ADR only
+  scopes Web behavior as dormant.
+
+### Related Documents
+
+- `.ai/00_PROJECT.md`
+- `.ai/04_DATABASE.md`
+- `.ai/06_MOBILE.md`
+- `.ai/05_SECURITY.md`
+- `.ai/11_BACKLOG.md`
+- `docs/RELEASE_READINESS.md`
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
