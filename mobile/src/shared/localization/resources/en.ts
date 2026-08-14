@@ -514,6 +514,9 @@ export const en = {
   'dashboard.subtitle': 'Your local iCoach assessment',
   'dashboard.unavailable': 'Dashboard unavailable',
   'dashboard.errorMessage': 'Your dashboard could not be loaded right now. Please try again.',
+  'dashboard.webUnavailableTitle': "Dashboard isn't available on the web",
+  'dashboard.webUnavailableBody':
+    'Your dashboard data lives on your device. Use the AppFitness mobile app for the full offline experience.',
   'dashboard.syncAccessibility': 'Synchronize local changes',
   'dashboard.syncNow': 'Sync now',
   'dashboard.recommendations': 'iCoach recommendations',

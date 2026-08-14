@@ -370,6 +370,42 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/nutrition');
   });
 
+  it('renders a distinct web-unavailable state in English with no retry or fabricated data (ADR-P019)', async () => {
+    setStore({ status: 'web-unavailable', data: null, error: null });
+
+    await render(<DashboardScreen />);
+
+    expect(screen.getByText("Dashboard isn't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Your dashboard data lives on your device. Use the AppFitness mobile app for the full offline experience.',
+      ),
+    ).toBeOnTheScreen();
+    // Not treated as a generic error, and offers no retry / sync control.
+    expect(screen.queryByText('Dashboard unavailable')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Synchronize local changes' })).toBeNull();
+    expect(screen.queryByText(/try again/i)).toBeNull();
+    // No fabricated dashboard data.
+    expect(screen.queryByText('iCoach recommendations')).toBeNull();
+    expect(screen.queryByText('2,500 kcal')).toBeNull();
+    // Loading skeleton is not shown in this state.
+    expect(screen.queryByLabelText('Loading dashboard section')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'web-unavailable', data: null, error: null });
+
+    await render(<DashboardScreen />);
+
+    expect(screen.getByText('El panel no está disponible en la web')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Los datos de tu panel se guardan en tu dispositivo. Usa la app móvil de AppFitness para la experiencia completa sin conexión.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
   it('surfaces dashboard and sync error states with safe copy', async () => {
     setStore({
       status: 'error',

@@ -1,6 +1,8 @@
 import type { CoachAssessment, EngineInput } from '@/features/icoach/domain/types';
 
-export type DashboardStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error';
+// 'web-unavailable' is a distinct, non-error state: the local database is
+// dormant on Web (ADR-P019), so dashboard data cannot be loaded there.
+export type DashboardStatus = 'idle' | 'loading' | 'ready' | 'empty' | 'error' | 'web-unavailable';
 export type SyncUiStatus = 'idle' | 'syncing' | 'offline' | 'error';
 
 export interface DataRequirement {
