@@ -157,6 +157,9 @@ export const en = {
     'Build reusable routines from built-in and your own custom exercises. Routines are saved on your device first and sync to your account later.',
   'workout.builder.errorTitle': 'Something went wrong',
   'workout.builder.errorMessage': 'Your routines could not be loaded right now. Try again.',
+  'workout.builder.webUnavailableTitle': "Workout routines aren't available on the web",
+  'workout.builder.webUnavailableBody':
+    'Use the AppFitness mobile app to build and manage your routines.',
   'workout.builder.createAccessibility': 'Create a routine',
   'workout.builder.createTitle': 'Create a routine',
   'workout.builder.name': 'Routine name',
@@ -232,6 +235,9 @@ export const en = {
     'Create your own exercises to use in routines and workouts. They are saved on your device first and synced to your account later.',
   'workout.library.errorTitle': 'Something went wrong',
   'workout.library.errorMessage': 'Your exercise library could not be loaded right now. Try again.',
+  'workout.library.webUnavailableTitle': "The exercise library isn't available on the web",
+  'workout.library.webUnavailableBody':
+    'Use the AppFitness mobile app to create and manage your exercises.',
   'workout.library.addAccessibility': 'Add a custom exercise',
   'workout.library.addTitle': 'Add a custom exercise',
   'workout.library.yourExercises': 'Your custom exercises',

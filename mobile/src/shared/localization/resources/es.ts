@@ -163,6 +163,9 @@ export const es = {
   'workout.builder.errorTitle': 'Algo salió mal',
   'workout.builder.errorMessage':
     'No se pudieron cargar tus rutinas en este momento. Inténtalo de nuevo.',
+  'workout.builder.webUnavailableTitle': 'Las rutinas de ejercicios no están disponibles en la web',
+  'workout.builder.webUnavailableBody':
+    'Usa la app móvil de AppFitness para crear y gestionar tus rutinas.',
   'workout.builder.createAccessibility': 'Crear una rutina',
   'workout.builder.createTitle': 'Crear una rutina',
   'workout.builder.name': 'Nombre de la rutina',
@@ -239,6 +242,9 @@ export const es = {
   'workout.library.errorTitle': 'Algo salió mal',
   'workout.library.errorMessage':
     'No se pudo cargar tu biblioteca de ejercicios en este momento. Inténtalo de nuevo.',
+  'workout.library.webUnavailableTitle': 'La biblioteca de ejercicios no está disponible en la web',
+  'workout.library.webUnavailableBody':
+    'Usa la app móvil de AppFitness para crear y gestionar tus ejercicios.',
   'workout.library.addAccessibility': 'Agregar un ejercicio personalizado',
   'workout.library.addTitle': 'Agregar un ejercicio personalizado',
   'workout.library.yourExercises': 'Tus ejercicios personalizados',

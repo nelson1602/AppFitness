@@ -240,4 +240,36 @@ describe('ExerciseLibrary', () => {
     expect(jest.mocked(queryFirst)).not.toHaveBeenCalled();
     expect(jest.mocked(run)).not.toHaveBeenCalled();
   });
+
+  it('renders a distinct web-unavailable state in English with no controls or data (ADR-P019)', async () => {
+    setStore({ status: 'web-unavailable', customExercises: [] });
+
+    await render(<ExerciseLibrary />);
+
+    expect(screen.getByText("The exercise library isn't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText('Use the AppFitness mobile app to create and manage your exercises.'),
+    ).toBeOnTheScreen();
+    // Header preserved.
+    expect(screen.getByText('Exercise library')).toBeOnTheScreen();
+    // No forms, lists, or catalog controls.
+    expect(screen.queryByText('Add a custom exercise')).toBeNull();
+    expect(screen.queryByText('Your custom exercises')).toBeNull();
+    expect(screen.queryByText('Built-in exercises')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'web-unavailable', customExercises: [] });
+
+    await render(<ExerciseLibrary />);
+
+    expect(
+      screen.getByText('La biblioteca de ejercicios no está disponible en la web'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText('Usa la app móvil de AppFitness para crear y gestionar tus ejercicios.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Add a custom exercise')).toBeNull();
+  });
 });

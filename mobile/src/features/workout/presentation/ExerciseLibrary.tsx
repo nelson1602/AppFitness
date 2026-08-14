@@ -109,6 +109,22 @@ export function ExerciseLibrary() {
     }
   };
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no forms, lists, editing controls, or retry.
+  if (status === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('workout.library.title')}</AppText>
+          <AppText tone="muted">{t('workout.library.subtitle')}</AppText>
+        </View>
+        <Banner title={t('workout.library.webUnavailableTitle')} tone="info">
+          {t('workout.library.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>

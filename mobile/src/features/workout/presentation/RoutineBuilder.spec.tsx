@@ -329,4 +329,36 @@ describe('RoutineBuilder', () => {
     expect(jest.mocked(queryFirst)).not.toHaveBeenCalled();
     expect(jest.mocked(run)).not.toHaveBeenCalled();
   });
+
+  it('renders a distinct web-unavailable state in English with no controls or data (ADR-P019)', async () => {
+    setStore({ status: 'web-unavailable', routines: [] });
+
+    await render(<RoutineBuilder />);
+
+    expect(screen.getByText("Workout routines aren't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText('Use the AppFitness mobile app to build and manage your routines.'),
+    ).toBeOnTheScreen();
+    // Header preserved.
+    expect(screen.getByText('Workout routines')).toBeOnTheScreen();
+    // No forms, lists, or controls.
+    expect(screen.queryByText('Create a routine')).toBeNull();
+    expect(screen.queryByText('Your routines')).toBeNull();
+    expect(screen.queryByText('No routines yet.')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'web-unavailable', routines: [] });
+
+    await render(<RoutineBuilder />);
+
+    expect(
+      screen.getByText('Las rutinas de ejercicios no están disponibles en la web'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText('Usa la app móvil de AppFitness para crear y gestionar tus rutinas.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Create a routine')).toBeNull();
+  });
 });
