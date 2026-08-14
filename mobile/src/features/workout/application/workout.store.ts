@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type {
@@ -44,7 +45,9 @@ import {
  * workout logs only; no UI binds to it yet.
  */
 
-export type WorkoutStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
+// 'web-unavailable' is a distinct, non-error state: the local database is
+// dormant on Web (ADR-P019), so workout logging cannot load there.
+export type WorkoutStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error' | 'web-unavailable';
 
 export interface WorkoutState {
   status: WorkoutStatus;
@@ -97,6 +100,19 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
       ]);
       set({ routines, workoutLogs, customExercises, status: 'ready', error: null });
     } catch (error) {
+      if (isDatabaseUnsupportedOnWebError(error)) {
+        // Web has no local database (ADR-P019): an expected, distinct state —
+        // not logged as a runtime error and not auto-retried. Clear any data
+        // so the screen renders no fabricated content or editing controls.
+        set({
+          status: 'web-unavailable',
+          routines: [],
+          workoutLogs: [],
+          customExercises: [],
+          error: null,
+        });
+        return;
+      }
       logError('workout.load', error);
       set({ status: 'error', error: 'Your workouts could not be loaded right now.' });
     }

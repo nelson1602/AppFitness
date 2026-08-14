@@ -374,6 +374,42 @@ describe('WorkoutLogScreen', () => {
     ).not.toBeOnTheScreen();
   });
 
+  it('renders a distinct web-unavailable state in English with no error copy or controls (ADR-P019)', async () => {
+    setStore({ status: 'web-unavailable', workoutLogs: [], error: null });
+
+    await render(<WorkoutLogScreen />);
+
+    expect(screen.getByText("Workout logging isn't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Use the AppFitness mobile app for the complete workout-logging experience.',
+      ),
+    ).toBeOnTheScreen();
+    // Not treated as a generic error.
+    expect(screen.queryByText('Something went wrong')).toBeNull();
+    // No forms / data / editing controls while unavailable.
+    expect(screen.queryByTestId('workout-name')).toBeNull();
+    expect(screen.queryByTestId('workout-start')).toBeNull();
+    expect(screen.queryByText('Open workouts')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'web-unavailable', workoutLogs: [], error: null });
+
+    await render(<WorkoutLogScreen />);
+
+    expect(
+      screen.getByText('El registro de entrenamientos no está disponible en la web'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Usa la app móvil de AppFitness para la experiencia completa de registro de entrenamientos.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByTestId('workout-start')).toBeNull();
+  });
+
   it('never accesses SQLite directly from the UI while driving its flows', async () => {
     setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [wset({ id: 's1' })] });
     await render(<WorkoutLogScreen />);
