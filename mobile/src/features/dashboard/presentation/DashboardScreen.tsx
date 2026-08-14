@@ -56,6 +56,14 @@ export function DashboardScreen() {
         </Banner>
       ) : null}
 
+      {/* Local database is dormant on Web (ADR-P019): a distinct, non-error
+          informational state — no retry control and no fabricated data. */}
+      {status === 'web-unavailable' ? (
+        <Banner title={t('dashboard.webUnavailableTitle')} tone="info">
+          {t('dashboard.webUnavailableBody')}
+        </Banner>
+      ) : null}
+
       {data ? (
         <>
           <SyncStatusBanner sync={data.sync} />

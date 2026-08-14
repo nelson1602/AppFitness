@@ -526,6 +526,9 @@ export const es = {
   'dashboard.subtitle': 'Tu evaluación local de iCoach',
   'dashboard.unavailable': 'Panel no disponible',
   'dashboard.errorMessage': 'No se pudo cargar tu panel en este momento. Inténtalo de nuevo.',
+  'dashboard.webUnavailableTitle': 'El panel no está disponible en la web',
+  'dashboard.webUnavailableBody':
+    'Los datos de tu panel se guardan en tu dispositivo. Usa la app móvil de AppFitness para la experiencia completa sin conexión.',
   'dashboard.syncAccessibility': 'Sincronizar cambios locales',
   'dashboard.syncNow': 'Sincronizar ahora',
   'dashboard.recommendations': 'Recomendaciones de iCoach',

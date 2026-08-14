@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { getAccessToken, refreshTokens } from '@/features/authentication';
+import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
 
@@ -17,6 +18,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const data = await loadDashboardData();
       set({ data, status: data.assessment ? 'ready' : 'empty', error: null });
     } catch (error) {
+      if (isDatabaseUnsupportedOnWebError(error)) {
+        // Web has no local database (ADR-P019). This is an expected, distinct
+        // state — not a generic failure: don't log it as an unexpected runtime
+        // error and don't auto-retry.
+        set({ status: 'web-unavailable', data: null, error: null });
+        return;
+      }
       logError('dashboard.refresh', error);
       set({ status: 'error', error: 'The dashboard could not be loaded right now.' });
     }

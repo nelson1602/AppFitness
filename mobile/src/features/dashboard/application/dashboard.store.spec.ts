@@ -4,6 +4,8 @@ import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
 import type { SyncOutcome, SyncReport } from '@/shared/infrastructure/sync';
 
+import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
+
 import type { DashboardData } from '../domain/dashboard.types';
 import { loadDashboardData, loadSampleDashboardData } from './dashboard.service';
 import { useDashboardStore } from './dashboard.store';
@@ -160,6 +162,21 @@ describe('dashboard store syncNow', () => {
     expect(jest.mocked(logError)).toHaveBeenCalledWith('dashboard.refresh', underlying);
     expect(state.status).toBe('error');
     expect(state.error).toBe('The dashboard could not be loaded right now.');
+  });
+
+  it('maps the dormant Web database error to a distinct web-unavailable state (ADR-P019)', async () => {
+    mockLoadDashboardData.mockRejectedValue(new DatabaseUnsupportedOnWebError());
+
+    await useDashboardStore.getState().refresh();
+
+    const state = useDashboardStore.getState();
+    // Distinct, deterministic state — not a generic error.
+    expect(state.status).toBe('web-unavailable');
+    expect(state.data).toBeNull();
+    expect(state.error).toBeNull();
+    // Not logged as an unexpected runtime error, and no automatic retry.
+    expect(jest.mocked(logError)).not.toHaveBeenCalled();
+    expect(mockLoadDashboardData).toHaveBeenCalledTimes(1);
   });
 
   it('maps an offline outcome to the offline banner state', async () => {
