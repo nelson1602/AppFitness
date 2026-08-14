@@ -278,6 +278,9 @@ export const en = {
     'Track your sets as you train. Everything is saved on your device first and syncs to your account later.',
   'workout.log.errorTitle': 'Something went wrong',
   'workout.log.errorMessage': 'Your workouts could not be loaded right now. Try again.',
+  'workout.log.webUnavailableTitle': "Workout logging isn't available on the web",
+  'workout.log.webUnavailableBody':
+    'Use the AppFitness mobile app for the complete workout-logging experience.',
   'workout.log.defaultName': 'Workout',
   'workout.log.startAccessibility': 'Start a workout',
   'workout.log.startTitle': 'Start a workout',

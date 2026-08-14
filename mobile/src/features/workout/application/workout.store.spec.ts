@@ -1,3 +1,6 @@
+import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
+import { logError } from '@/shared/infrastructure/logging';
+
 import type {
   CustomExercise,
   Routine,
@@ -47,6 +50,10 @@ jest.mock('./workout.service', () => ({
   logWorkoutSet: jest.fn(),
   editWorkoutSet: jest.fn(),
   removeWorkoutSetEntry: jest.fn(),
+}));
+jest.mock('@/shared/infrastructure/logging', () => ({
+  logError: jest.fn(),
+  logWarn: jest.fn(),
 }));
 
 const mockGetCustom = jest.mocked(getMyCustomExercises);
@@ -272,6 +279,26 @@ describe('useWorkoutStore', () => {
     const s = useWorkoutStore.getState();
     expect(s.status).toBe('error');
     expect(s.error).toMatch(/could not be loaded/);
+    expect(jest.mocked(logError)).toHaveBeenCalledWith('workout.load', expect.anything());
+  });
+
+  it('maps the dormant Web database error to a distinct web-unavailable state (ADR-P019)', async () => {
+    mockGetRoutines.mockRejectedValue(new DatabaseUnsupportedOnWebError());
+    mockGetLogs.mockResolvedValue([]);
+    mockGetCustom.mockResolvedValue([]);
+
+    await useWorkoutStore.getState().load();
+
+    const s = useWorkoutStore.getState();
+    // Distinct, expected state — not a generic error.
+    expect(s.status).toBe('web-unavailable');
+    expect(s.error).toBeNull();
+    // No fabricated data left behind.
+    expect(s.routines).toEqual([]);
+    expect(s.workoutLogs).toEqual([]);
+    expect(s.customExercises).toEqual([]);
+    // Not logged as a runtime error (expected Web dormancy).
+    expect(jest.mocked(logError)).not.toHaveBeenCalled();
   });
 
   it('createRoutine returns false + safe error on failure', async () => {

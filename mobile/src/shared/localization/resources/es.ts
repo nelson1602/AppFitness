@@ -286,6 +286,9 @@ export const es = {
   'workout.log.errorTitle': 'Algo salió mal',
   'workout.log.errorMessage':
     'Tus entrenamientos no se pudieron cargar en este momento. Inténtalo de nuevo.',
+  'workout.log.webUnavailableTitle': 'El registro de entrenamientos no está disponible en la web',
+  'workout.log.webUnavailableBody':
+    'Usa la app móvil de AppFitness para la experiencia completa de registro de entrenamientos.',
   'workout.log.defaultName': 'Entrenamiento',
   'workout.log.startAccessibility': 'Iniciar un entrenamiento',
   'workout.log.startTitle': 'Iniciar un entrenamiento',

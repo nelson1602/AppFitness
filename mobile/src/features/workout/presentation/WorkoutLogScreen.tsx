@@ -114,6 +114,22 @@ export function WorkoutLogScreen() {
     void updateWorkoutSet(id, { reps: next });
   };
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no forms, data, editing controls, or retry.
+  if (status === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('workout.log.title')}</AppText>
+          <AppText tone="muted">{t('workout.log.subtitle')}</AppText>
+        </View>
+        <Banner title={t('workout.log.webUnavailableTitle')} tone="info">
+          {t('workout.log.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
