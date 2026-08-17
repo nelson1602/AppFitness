@@ -102,6 +102,22 @@ export function RoutineBuilder() {
     });
   };
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no forms, lists, editing controls, or retry.
+  if (status === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('workout.builder.title')}</AppText>
+          <AppText tone="muted">{t('workout.builder.subtitle')}</AppText>
+        </View>
+        <Banner title={t('workout.builder.webUnavailableTitle')} tone="info">
+          {t('workout.builder.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
