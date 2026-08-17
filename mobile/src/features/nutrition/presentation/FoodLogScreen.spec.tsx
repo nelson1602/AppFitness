@@ -209,4 +209,51 @@ describe('FoodLogScreen (Slice 4C)', () => {
     await render(<FoodLogScreen />);
     expect(screen.getByText('Food log unavailable')).toBeOnTheScreen();
   });
+
+  it('renders a distinct web-unavailable state in English with no sync, form, entries, or controls (ADR-P019)', async () => {
+    setState({ status: 'web-unavailable', items: [], error: null });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText("Food logging isn't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Use the AppFitness mobile app to log meals and track your daily nutrition.',
+      ),
+    ).toBeOnTheScreen();
+    // Header preserved.
+    expect(screen.getByText('Food log')).toBeOnTheScreen();
+    // No sync banner, add form, entries, empty state, sync/write controls, or disclaimer.
+    expect(screen.queryByText('Log up to date')).toBeNull();
+    expect(screen.queryByTestId('food-search-input')).toBeNull();
+    expect(screen.queryByText('Nothing logged yet')).toBeNull();
+    expect(screen.queryByTestId('food-log-sync-now')).toBeNull();
+    expect(screen.queryByText('Food log unavailable')).toBeNull();
+    expect(screen.queryByText(/not medical or dietary advice/)).toBeNull();
+  });
+
+  it('degrades to web-unavailable when the dietary-preference store is web-unavailable (ADR-P019)', async () => {
+    setState({ status: 'ready', items: [] });
+    setPrefs([], 'web-unavailable');
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText("Food logging isn't available on the web")).toBeOnTheScreen();
+    expect(screen.queryByTestId('food-log-sync-now')).toBeNull();
+    expect(screen.queryByTestId('food-search-input')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setState({ status: 'web-unavailable', items: [], error: null });
+    await render(<FoodLogScreen />);
+
+    expect(
+      screen.getByText('El registro de alimentos no está disponible en la web'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Usa la app móvil de AppFitness para registrar tus comidas y seguir tu nutrición diaria.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByTestId('food-log-sync-now')).toBeNull();
+  });
 });

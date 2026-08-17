@@ -1,3 +1,6 @@
+import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
+import { logError } from '@/shared/infrastructure/logging';
+
 import type { DietaryPreference } from '../domain/dietary-preference';
 import {
   addDietaryPreference,
@@ -6,6 +9,7 @@ import {
 } from './dietary-preference.service';
 import { useDietaryPreferenceStore } from './dietary-preference.store';
 
+jest.mock('@/shared/infrastructure/logging', () => ({ logError: jest.fn(), logWarn: jest.fn() }));
 jest.mock('./dietary-preference.service', () => ({
   addDietaryPreference: jest.fn(),
   getMyDietaryPreferences: jest.fn(),
@@ -68,6 +72,24 @@ describe('useDietaryPreferenceStore', () => {
     const s = useDietaryPreferenceStore.getState();
     expect(s.status).toBe('error');
     expect(s.error).toMatch(/could not be loaded/);
+    // A genuine failure is still logged (unchanged behavior).
+    expect(jest.mocked(logError)).toHaveBeenCalledWith('dietaryPreference.load', expect.any(Error));
+  });
+
+  it('maps the dormant Web database error to a distinct web-unavailable state (ADR-P019)', async () => {
+    useDietaryPreferenceStore.setState({ status: 'ready', preferences: [pref()], error: null });
+    mockList.mockRejectedValue(new DatabaseUnsupportedOnWebError());
+
+    await useDietaryPreferenceStore.getState().load();
+
+    const s = useDietaryPreferenceStore.getState();
+    // Distinct, expected state — not a generic error.
+    expect(s.status).toBe('web-unavailable');
+    expect(s.error).toBeNull();
+    // No fabricated exclusions left behind.
+    expect(s.preferences).toEqual([]);
+    // Expected Web dormancy is not logged as a runtime error.
+    expect(jest.mocked(logError)).not.toHaveBeenCalled();
   });
 
   it('add returns false and surfaces a safe error when the save fails', async () => {

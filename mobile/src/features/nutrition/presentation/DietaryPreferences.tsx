@@ -123,6 +123,22 @@ export function DietaryPreferences() {
     if (ok) reset();
   };
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no add form, exclusions list, or remove controls.
+  if (status === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('nutrition.preferences.title')}</AppText>
+          <AppText tone="muted">{t('nutrition.preferences.subtitle')}</AppText>
+        </View>
+        <Banner title={t('nutrition.preferences.webUnavailableTitle')} tone="info">
+          {t('nutrition.preferences.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>

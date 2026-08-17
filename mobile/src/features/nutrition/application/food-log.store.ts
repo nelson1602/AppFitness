@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { getAccessToken, getSession, refreshTokens } from '@/features/authentication';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
+import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
 
@@ -20,7 +21,7 @@ import {
  * the day is re-read from SQLite; sync is best-effort and never blocks a write.
  */
 
-export type FoodLogUiStatus = 'idle' | 'loading' | 'ready' | 'error';
+export type FoodLogUiStatus = 'idle' | 'loading' | 'ready' | 'error' | 'web-unavailable';
 export type FoodLogSyncState =
   'idle' | 'syncing' | 'pending' | 'action_required' | 'offline' | 'error';
 
@@ -96,6 +97,19 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         error: null,
       });
     } catch (error) {
+      if (isDatabaseUnsupportedOnWebError(error)) {
+        // Web has no local database (ADR-P019): an expected, distinct state —
+        // not logged as a runtime error and not auto-retried. Clear the day so
+        // the screen renders no fabricated entries, totals, sync, or controls.
+        set({
+          status: 'web-unavailable',
+          items: [],
+          totals: EMPTY_TOTALS,
+          sync: { state: 'idle', pending: 0, actionRequired: 0 },
+          error: null,
+        });
+        return;
+      }
       logError('nutrition.foodLog.load', error);
       set({ status: 'error', error: 'Your food log could not be loaded right now.' });
     }

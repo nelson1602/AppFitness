@@ -1,4 +1,6 @@
 import { refreshTokens } from '@/features/authentication';
+import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
+import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
 
 import type { LoggedMealItem } from '../domain/food-log';
@@ -154,6 +156,30 @@ describe('food-log store (Slice 4C)', () => {
     const s = useFoodLogStore.getState();
     expect(s.status).toBe('error');
     expect(s.error).toBe('Your food log could not be loaded right now.');
+  });
+
+  it('maps the dormant Web database error to a distinct web-unavailable state (ADR-P019)', async () => {
+    // Seed a ready day so we can prove the fabricated content is cleared.
+    useFoodLogStore.setState({
+      status: 'ready',
+      items: [loggedItem()],
+      totals: { calories: 320, proteinG: 62, carbsG: 0, fatG: 8, fiberG: null },
+      sync: { state: 'pending', pending: 1, actionRequired: 0 },
+    });
+    mockList.mockRejectedValue(new DatabaseUnsupportedOnWebError());
+
+    await useFoodLogStore.getState().load();
+
+    const s = useFoodLogStore.getState();
+    // Distinct, expected state — not a generic error.
+    expect(s.status).toBe('web-unavailable');
+    expect(s.error).toBeNull();
+    // No fabricated entries, totals, or pending sync left behind.
+    expect(s.items).toEqual([]);
+    expect(s.totals).toEqual({ calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: null });
+    expect(s.sync).toEqual({ state: 'idle', pending: 0, actionRequired: 0 });
+    // Expected Web dormancy is not logged as a runtime error.
+    expect(jest.mocked(logError)).not.toHaveBeenCalled();
   });
 
   it('surfaces a safe error when a write fails (add / edit / remove)', async () => {

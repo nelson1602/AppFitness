@@ -193,4 +193,39 @@ describe('DietaryPreferences', () => {
     expect(jest.mocked(queryFirst)).not.toHaveBeenCalled();
     expect(jest.mocked(run)).not.toHaveBeenCalled();
   });
+
+  it('renders a distinct web-unavailable state in English with no form, list, or controls (ADR-P019)', async () => {
+    setStore({ status: 'web-unavailable', preferences: [] });
+    await render(<DietaryPreferences />);
+
+    expect(screen.getByText("Dietary preferences aren't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Use the AppFitness mobile app to manage your allergies and food preferences.',
+      ),
+    ).toBeOnTheScreen();
+    // Header preserved.
+    expect(screen.getByText('Dietary preferences & allergies')).toBeOnTheScreen();
+    // Not a generic error; no add form, no exclusions list, no remove controls.
+    expect(screen.queryByText('Something went wrong')).toBeNull();
+    expect(screen.queryByTestId('dp-add')).toBeNull();
+    expect(screen.queryByTestId('dp-mode-category')).toBeNull();
+    expect(screen.queryByText('No exclusions yet.')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'web-unavailable', preferences: [] });
+    await render(<DietaryPreferences />);
+
+    expect(
+      screen.getByText('Las preferencias alimentarias no están disponibles en la web'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Usa la app móvil de AppFitness para gestionar tus alergias y preferencias de alimentos.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByTestId('dp-add')).toBeNull();
+  });
 });
