@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { Profile, ProfileInput } from '../domain/profile.types';
@@ -12,7 +13,7 @@ import { getMyProfile, saveMyProfile } from './profile.service';
  * components; .ai/06_MOBILE.md). Mirrors the dashboard-store pattern.
  */
 
-export type ProfileStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
+export type ProfileStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error' | 'web-unavailable';
 
 export interface ProfileFormState {
   status: ProfileStatus;
@@ -32,6 +33,13 @@ export const useProfileStore = create<ProfileFormState>((set) => ({
       const profile = await getMyProfile();
       set({ profile, status: 'ready', error: null });
     } catch (error) {
+      if (isDatabaseUnsupportedOnWebError(error)) {
+        // Web has no local database (ADR-P019): an expected, distinct state —
+        // not logged as a runtime error and not auto-retried. Clear any loaded
+        // profile so the screen renders no editable form or fabricated data.
+        set({ status: 'web-unavailable', profile: null, error: null });
+        return;
+      }
       logError('profile.load', error);
       set({ status: 'error', error: 'Your profile could not be loaded right now.' });
     }

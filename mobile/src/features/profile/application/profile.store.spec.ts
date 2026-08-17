@@ -1,3 +1,4 @@
+import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { Profile, ProfileInput } from '../domain/profile.types';
@@ -77,6 +78,23 @@ describe('profile store', () => {
     expect(state.error).toBe('Your profile could not be loaded right now.');
     expect(state.error).not.toContain('sqlite');
     expect(mockLogError).toHaveBeenCalledWith('profile.load', expect.any(Error));
+  });
+
+  it('maps the dormant Web database error to a distinct web-unavailable state (ADR-P019)', async () => {
+    // Seed a ready profile so we can prove the loaded data is cleared.
+    useProfileStore.setState({ status: 'ready', profile, error: null });
+    mockGetMyProfile.mockRejectedValue(new DatabaseUnsupportedOnWebError());
+
+    await useProfileStore.getState().load();
+
+    const state = useProfileStore.getState();
+    // Distinct, expected state — not a generic error.
+    expect(state.status).toBe('web-unavailable');
+    expect(state.error).toBeNull();
+    // No fabricated profile left behind.
+    expect(state.profile).toBeNull();
+    // Expected Web dormancy is not logged as a runtime error.
+    expect(mockLogError).not.toHaveBeenCalled();
   });
 
   it('saves, stores the returned profile, and reports success', async () => {
