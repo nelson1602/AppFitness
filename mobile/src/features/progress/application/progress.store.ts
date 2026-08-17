@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { getSession } from '@/features/authentication';
+import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type {
@@ -43,7 +44,7 @@ function requireUserId(): string {
 const LOAD_ERROR = 'Your progress could not be loaded right now.';
 const SAVE_ERROR = 'We could not save your changes. Please try again.';
 
-export type ProgressStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
+export type ProgressStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error' | 'web-unavailable';
 
 export interface ProgressState {
   status: ProgressStatus;
@@ -101,6 +102,20 @@ export const useProgressStore = create<ProgressState>((set, get) => {
       try {
         await reload();
       } catch (err) {
+        if (isDatabaseUnsupportedOnWebError(err)) {
+          // Web has no local database (ADR-P019): an expected, distinct state —
+          // not logged as a runtime error and not auto-retried. Clear all
+          // Progress data so no stale/fabricated metrics, trends, or snapshots
+          // render.
+          set({
+            status: 'web-unavailable',
+            bodyWeights: [],
+            bodyMeasurements: [],
+            snapshots: [],
+            error: null,
+          });
+          return;
+        }
         logError('progress.store load failed', err);
         set({ status: 'error', error: LOAD_ERROR });
       }

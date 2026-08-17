@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppText, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -24,11 +25,28 @@ function fmt(n: number): string {
  */
 export function ProgressSummaryCard({ onPress }: ProgressSummaryCardProps) {
   const theme = useTheme();
+  const { t } = useLocalization();
   const { status, bodyWeights, snapshots, load } = useProgressStore();
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Local database is dormant on Web (ADR-P019): a compact, honest state — no
+  // metrics, setup prompt, loading, or tap-to-open affordance implying it works
+  // on Web. The "Progress" label stays the card's normal (English-only) label.
+  if (status === 'web-unavailable') {
+    return (
+      <Card>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="label" tone="muted">
+            Progress
+          </AppText>
+          <AppText tone="muted">{t('progress.webUnavailableCard')}</AppText>
+        </View>
+      </Card>
+    );
+  }
 
   const latestWeight = bodyWeights[0] ?? null;
   const latestWeek = snapshots[0] ?? null;

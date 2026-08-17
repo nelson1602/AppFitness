@@ -57,6 +57,23 @@ export function ProgressScreen() {
   // mid-session; a new session/mount picks up the new day.
   const defaultDate = useMemo(() => todayLocalDate(), []);
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no forms, metrics, trends, snapshots, retry, or recompute.
+  // The heading stays the screen's normal (English-only) title; full Progress
+  // localization is a separate future slice.
+  if (status === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">Progress</AppText>
+        </View>
+        <Banner title={t('progress.webUnavailableTitle')} tone="info">
+          {t('progress.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   const saving = status === 'saving';
 
   // Auto-recompute after a successful weight entry (weight feeds the weekly
