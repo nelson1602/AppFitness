@@ -1,3 +1,4 @@
+import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { Goal, GoalInput } from '../domain/goal.types';
@@ -69,6 +70,23 @@ describe('goal store', () => {
     expect(state.error).toBe('Your goal could not be loaded right now.');
     expect(state.error).not.toContain('sqlite');
     expect(mockLogError).toHaveBeenCalledWith('goal.load', expect.any(Error));
+  });
+
+  it('maps the dormant Web database error to a distinct web-unavailable state (ADR-P019)', async () => {
+    // Seed a ready goal so we can prove the loaded data is cleared.
+    useGoalStore.setState({ status: 'ready', goal, error: null });
+    mockGetMyActiveGoal.mockRejectedValue(new DatabaseUnsupportedOnWebError());
+
+    await useGoalStore.getState().load();
+
+    const state = useGoalStore.getState();
+    // Distinct, expected state — not a generic error.
+    expect(state.status).toBe('web-unavailable');
+    expect(state.error).toBeNull();
+    // No fabricated goal left behind.
+    expect(state.goal).toBeNull();
+    // Expected Web dormancy is not logged as a runtime error.
+    expect(mockLogError).not.toHaveBeenCalled();
   });
 
   it('saves, stores the returned goal, and reports success', async () => {

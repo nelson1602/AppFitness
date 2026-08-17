@@ -66,6 +66,22 @@ export function GoalForm({ onSaved }: GoalFormProps) {
     if (ok) onSaved();
   };
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no form fields, validation, retry, sync hints, or save
+  // controls, and nothing implying the data could persist on Web.
+  if (status === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('goal.routeTitle')}</AppText>
+        </View>
+        <Banner title={t('goal.webUnavailableTitle')} tone="info">
+          {t('goal.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   if (status === 'loading' || status === 'idle') {
     return (
       <AppText accessibilityLabel={t('goal.loadingAccessibility')}>{t('goal.loading')}</AppText>

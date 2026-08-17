@@ -77,6 +77,22 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
     if (ok) onSaved();
   };
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no form fields, validation, retry, or save controls, and
+  // nothing implying the data could persist on Web.
+  if (status === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('profile.routeTitle')}</AppText>
+        </View>
+        <Banner title={t('profile.webUnavailableTitle')} tone="info">
+          {t('profile.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   if (status === 'loading' || status === 'idle') {
     return (
       <AppText accessibilityLabel={t('profile.loadingAccessibility')}>

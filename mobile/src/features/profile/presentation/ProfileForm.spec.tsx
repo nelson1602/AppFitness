@@ -200,4 +200,39 @@ describe('ProfileForm', () => {
       screen.queryByText('Your profile could not be saved. Please try again.'),
     ).not.toBeOnTheScreen();
   });
+
+  it('renders a distinct web-unavailable state in English with no form, validation, or save controls (ADR-P019)', async () => {
+    setStore({ status: 'web-unavailable', profile: null });
+
+    await render(<ProfileForm onSaved={jest.fn()} />);
+
+    // Neutral heading preserved.
+    expect(screen.getByText('Profile')).toBeOnTheScreen();
+    expect(screen.getByText("Profile editing isn't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText('Use the AppFitness mobile app to create and update your profile.'),
+    ).toBeOnTheScreen();
+    // No form fields, save control, generic error, or create/edit copy.
+    expect(screen.queryByTestId('field-birthDate')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save profile' })).toBeNull();
+    expect(screen.queryByText('Couldn’t save')).toBeNull();
+    expect(screen.queryByText('Create your profile')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'web-unavailable', profile: null });
+
+    await render(<ProfileForm onSaved={jest.fn()} />);
+
+    expect(screen.getByText('Perfil')).toBeOnTheScreen();
+    expect(
+      screen.getByText('La edición del perfil no está disponible en la web'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText('Usa la app móvil de AppFitness para crear y actualizar tu perfil.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByTestId('field-birthDate')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Guardar perfil' })).toBeNull();
+  });
 });

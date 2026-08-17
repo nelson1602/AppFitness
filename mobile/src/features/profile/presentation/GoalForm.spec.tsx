@@ -203,4 +203,40 @@ describe('GoalForm', () => {
       screen.queryByText('Your goal could not be saved. Please try again.'),
     ).not.toBeOnTheScreen();
   });
+
+  it('renders a distinct web-unavailable state in English with no form, validation, sync, or save controls (ADR-P019)', async () => {
+    setStore({ status: 'web-unavailable', goal: null });
+
+    await render(<GoalForm onSaved={jest.fn()} />);
+
+    // Neutral heading preserved.
+    expect(screen.getByText('Goal')).toBeOnTheScreen();
+    expect(screen.getByText("Goal editing isn't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText('Use the AppFitness mobile app to set and update your goal.'),
+    ).toBeOnTheScreen();
+    // No form fields, save control, generic error, create copy, or sync hints.
+    expect(screen.queryByTestId('field-targetWeightKg')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Save goal' })).toBeNull();
+    expect(screen.queryByText('Couldn’t save')).toBeNull();
+    expect(screen.queryByText('Set your goal')).toBeNull();
+    expect(screen.queryByText('Saved on this device')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'web-unavailable', goal: null });
+
+    await render(<GoalForm onSaved={jest.fn()} />);
+
+    expect(screen.getByText('Objetivo')).toBeOnTheScreen();
+    expect(
+      screen.getByText('La edición del objetivo no está disponible en la web'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText('Usa la app móvil de AppFitness para definir y actualizar tu objetivo.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByTestId('field-targetWeightKg')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Guardar objetivo' })).toBeNull();
+  });
 });

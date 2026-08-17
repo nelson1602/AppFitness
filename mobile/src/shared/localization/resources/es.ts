@@ -28,6 +28,8 @@ export const es = {
     'Se guarda primero en tu dispositivo y luego se sincroniza. Los campos obligatorios habilitan tu evaluación de iCoach.',
   'profile.errorTitle': 'No se pudo guardar',
   'profile.errorMessage': 'Tu perfil no se pudo guardar en este momento. Inténtalo de nuevo.',
+  'profile.webUnavailableTitle': 'La edición del perfil no está disponible en la web',
+  'profile.webUnavailableBody': 'Usa la app móvil de AppFitness para crear y actualizar tu perfil.',
   'profile.birthDate': 'Fecha de nacimiento',
   'profile.heightCm': 'Estatura (cm)',
   'profile.gender': 'Género',
@@ -69,6 +71,9 @@ export const es = {
     'Se guarda primero en tu dispositivo y luego se sincroniza automáticamente. Tu objetivo personaliza los ajustes de calorías y entrenamiento.',
   'goal.errorTitle': 'No se pudo guardar',
   'goal.errorMessage': 'Tu objetivo no se pudo guardar en este momento. Inténtalo de nuevo.',
+  'goal.webUnavailableTitle': 'La edición del objetivo no está disponible en la web',
+  'goal.webUnavailableBody':
+    'Usa la app móvil de AppFitness para definir y actualizar tu objetivo.',
   'goal.conflictTitle': 'Conflicto de sincronización',
   'goal.conflictMessage':
     'Este objetivo tiene un conflicto de sincronización. Al guardar se registra un objetivo nuevo en este dispositivo y se vuelve a poner en cola.',

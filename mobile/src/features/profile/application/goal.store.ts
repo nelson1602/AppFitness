@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { Goal, GoalInput } from '../domain/goal.types';
@@ -12,7 +13,7 @@ import { getMyActiveGoal, setMyGoal } from './goal.service';
  * components; .ai/06_MOBILE.md). Mirrors the profile-store pattern.
  */
 
-export type GoalStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
+export type GoalStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error' | 'web-unavailable';
 
 export interface GoalFormState {
   status: GoalStatus;
@@ -32,6 +33,13 @@ export const useGoalStore = create<GoalFormState>((set) => ({
       const goal = await getMyActiveGoal();
       set({ goal, status: 'ready', error: null });
     } catch (error) {
+      if (isDatabaseUnsupportedOnWebError(error)) {
+        // Web has no local database (ADR-P019): an expected, distinct state —
+        // not logged as a runtime error and not auto-retried. Clear any loaded
+        // goal so the screen renders no editable form or fabricated data.
+        set({ status: 'web-unavailable', goal: null, error: null });
+        return;
+      }
       logError('goal.load', error);
       set({ status: 'error', error: 'Your goal could not be loaded right now.' });
     }

@@ -26,6 +26,8 @@ export const en = {
     'Saved on your device first, then synced. Required fields unlock your iCoach assessment.',
   'profile.errorTitle': 'Couldn’t save',
   'profile.errorMessage': 'Your profile could not be saved right now. Try again.',
+  'profile.webUnavailableTitle': "Profile editing isn't available on the web",
+  'profile.webUnavailableBody': 'Use the AppFitness mobile app to create and update your profile.',
   'profile.birthDate': 'Birth date',
   'profile.heightCm': 'Height (cm)',
   'profile.gender': 'Gender',
@@ -67,6 +69,8 @@ export const en = {
     'Saved on your device first, then synced automatically. Your goal personalizes calorie and training adjustments.',
   'goal.errorTitle': 'Couldn’t save',
   'goal.errorMessage': 'Your goal could not be saved right now. Try again.',
+  'goal.webUnavailableTitle': "Goal editing isn't available on the web",
+  'goal.webUnavailableBody': 'Use the AppFitness mobile app to set and update your goal.',
   'goal.conflictTitle': 'Sync conflict',
   'goal.conflictMessage':
     'This goal has a sync conflict. Saving records a fresh goal on this device and queues it for sync again.',
