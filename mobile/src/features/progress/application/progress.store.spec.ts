@@ -1,4 +1,5 @@
 import { getSession } from '@/features/authentication';
+import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
 import {
@@ -78,6 +79,30 @@ describe('useProgressStore', () => {
     // The raw thrown message must not leak to the UI, but must be logged.
     expect(s.error).not.toMatch(/authenticated/i);
     expect(mockLogError).toHaveBeenCalled();
+  });
+
+  it('maps the dormant Web database error to a distinct web-unavailable state (ADR-P019)', async () => {
+    // Seed ready data so we can prove every Progress slice is cleared.
+    useProgressStore.setState({
+      status: 'ready',
+      bodyWeights: [bw],
+      bodyMeasurements: [{ id: 'bm-1' } as never],
+      snapshots: [snapshot],
+    });
+    mockListBW.mockRejectedValueOnce(new DatabaseUnsupportedOnWebError());
+
+    await useProgressStore.getState().load();
+
+    const s = useProgressStore.getState();
+    // Distinct, expected state — not a generic error.
+    expect(s.status).toBe('web-unavailable');
+    expect(s.error).toBeNull();
+    // No fabricated metrics, measurements, or snapshots left behind.
+    expect(s.bodyWeights).toEqual([]);
+    expect(s.bodyMeasurements).toEqual([]);
+    expect(s.snapshots).toEqual([]);
+    // Expected Web dormancy is not logged as a runtime error.
+    expect(mockLogError).not.toHaveBeenCalled();
   });
 
   it('addBodyWeight delegates to the repository and reloads', async () => {

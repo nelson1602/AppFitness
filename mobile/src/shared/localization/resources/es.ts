@@ -117,6 +117,10 @@ export const es = {
   'progress.measurements.save': 'Guardar medidas',
   'progress.measurements.saveAccessibility': 'Guardar medidas corporales',
   'progress.trends.muscleMass': 'Masa muscular',
+  'progress.webUnavailableTitle': 'El progreso no está disponible en la web',
+  'progress.webUnavailableBody':
+    'Usa la app móvil de AppFitness para registrar y seguir tu progreso.',
+  'progress.webUnavailableCard': 'No disponible en la web',
   'workout.plan.accessibility': 'Tu plan determinista de ejercicios de iCoach',
   'workout.plan.routeTitle': 'Rutinas de ejercicios',
   'workout.plan.title': 'Tu plan semanal de iCoach',

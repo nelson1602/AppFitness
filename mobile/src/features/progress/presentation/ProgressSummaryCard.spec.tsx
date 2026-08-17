@@ -5,10 +5,24 @@ import type { BodyWeight, ProgressSnapshot } from '../domain/progress';
 import { ProgressSummaryCard } from './ProgressSummaryCard';
 
 let mockState: ProgressState;
+let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('../application/progress.store', () => ({
   useProgressStore: () => mockState,
 }));
+
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
 
 function setState(overrides: Partial<ProgressState> = {}): void {
   mockState = {
@@ -58,6 +72,7 @@ const week: ProgressSnapshot = {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockLanguage = 'en';
   setState();
 });
 
@@ -86,5 +101,29 @@ describe('ProgressSummaryCard', () => {
     await render(<ProgressSummaryCard onPress={onPress} />);
     fireEvent.press(screen.getByTestId('dashboard-progress-card'));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders a compact web-unavailable state in English with no metrics, prompt, or tap affordance (ADR-P019)', async () => {
+    const onPress = jest.fn();
+    setState({ status: 'web-unavailable', bodyWeights: [weight], snapshots: [week] });
+    await render(<ProgressSummaryCard onPress={onPress} />);
+
+    expect(screen.getByText('Not available on the web')).toBeOnTheScreen();
+    // No metrics, setup prompt, loading, or pressable navigation affordance.
+    expect(screen.queryByText('80 kg')).toBeNull();
+    expect(screen.queryByText('No weight yet')).toBeNull();
+    expect(screen.queryByText('Tap to record and track your progress.')).toBeNull();
+    expect(screen.queryByText('Loading…')).toBeNull();
+    expect(screen.queryByTestId('dashboard-progress-card')).toBeNull();
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('renders the compact web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setState({ status: 'web-unavailable' });
+    await render(<ProgressSummaryCard onPress={jest.fn()} />);
+
+    expect(screen.getByText('No disponible en la web')).toBeOnTheScreen();
+    expect(screen.queryByTestId('dashboard-progress-card')).toBeNull();
   });
 });
