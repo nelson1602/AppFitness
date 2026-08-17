@@ -311,4 +311,49 @@ describe('NutritionPlanScreen', () => {
     expect(lastSelectArgs[0]).toBe(mockDash.data?.assessment);
     expect(mockSelection).toEqual({ status: 'ready', plan: selectedPlan });
   });
+
+  it('renders a distinct web-unavailable state in English with no plan, gap, error, or controls (ADR-P019)', async () => {
+    setDash({ status: 'web-unavailable', data: null });
+    await render(<NutritionPlanScreen />);
+
+    expect(screen.getByText("Your meal plan isn't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText('Use the AppFitness mobile app to view and follow your 15-day meal plan.'),
+    ).toBeOnTheScreen();
+    // Header preserved.
+    expect(screen.getByText('15-day meal plan')).toBeOnTheScreen();
+    // No food-log link, no plan/day content, no gap, no error, no disclaimer.
+    expect(screen.queryByTestId('open-food-log')).toBeNull();
+    expect(screen.queryByText('Day 1')).toBeNull();
+    expect(screen.queryByText('Meal plan unavailable')).toBeNull();
+    expect(screen.queryByText('Finish your baseline first')).toBeNull();
+    expect(screen.queryByText(/not medical or dietary advice/)).toBeNull();
+  });
+
+  it('degrades to web-unavailable when the dietary-preference store is web-unavailable (ADR-P019)', async () => {
+    // Dashboard ready but the preference store is dormant on Web: still degrade,
+    // never render a plan built from a half-available local database.
+    setDash({ status: 'ready' });
+    setPrefs({ status: 'web-unavailable', preferences: [] });
+    await render(<NutritionPlanScreen />);
+
+    expect(screen.getByText("Your meal plan isn't available on the web")).toBeOnTheScreen();
+    expect(screen.queryByText('Day 1')).toBeNull();
+    expect(screen.queryByTestId('open-food-log')).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setDash({ status: 'web-unavailable', data: null });
+    await render(<NutritionPlanScreen />);
+
+    expect(screen.getByText('Tu plan alimentario no está disponible en la web')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Usa la app móvil de AppFitness para ver y seguir tu plan alimentario de 15 días.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByTestId('open-food-log')).toBeNull();
+    expect(screen.queryByText('Día 1')).toBeNull();
+  });
 });

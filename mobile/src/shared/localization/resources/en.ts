@@ -343,6 +343,9 @@ export const en = {
   'nutrition.plan.loadingAccessibility': 'Loading meal plan',
   'nutrition.plan.unavailable': 'Meal plan unavailable',
   'nutrition.plan.errorMessage': 'Your meal plan could not be built right now. Try again later.',
+  'nutrition.plan.webUnavailableTitle': "Your meal plan isn't available on the web",
+  'nutrition.plan.webUnavailableBody':
+    'Use the AppFitness mobile app to view and follow your 15-day meal plan.',
   'nutrition.plan.day': 'Day',
   'nutrition.plan.showDay': 'Show day',
   'nutrition.plan.breakfast': 'Breakfast',
@@ -375,6 +378,9 @@ export const en = {
   'nutrition.targets.loadingAccessibility': 'Loading nutrition targets',
   'nutrition.targets.unavailable': 'Nutrition unavailable',
   'nutrition.targets.errorMessage': 'Your nutrition targets could not be loaded right now.',
+  'nutrition.targets.webUnavailableTitle': "Nutrition targets aren't available on the web",
+  'nutrition.targets.webUnavailableBody':
+    'Use the AppFitness mobile app to view your personalized calorie and macro targets.',
   'nutrition.targets.calorieAccessibility': 'Daily calorie target',
   'nutrition.targets.dailyCalories': 'Daily calories',
   'nutrition.targets.macrosAccessibility': 'Macronutrient breakdown',
@@ -400,6 +406,9 @@ export const en = {
     'Tell iCoach what to avoid. Allergies and preferences shape your meal suggestions and show advisory warnings without blocking your choices. Entries are saved on your device first and sync to your account later.',
   'nutrition.preferences.errorTitle': 'Something went wrong',
   'nutrition.preferences.errorMessage': 'Your dietary preferences could not be loaded right now.',
+  'nutrition.preferences.webUnavailableTitle': "Dietary preferences aren't available on the web",
+  'nutrition.preferences.webUnavailableBody':
+    'Use the AppFitness mobile app to manage your allergies and food preferences.',
   'nutrition.preferences.addAccessibility': 'Add an exclusion',
   'nutrition.preferences.addTitle': 'Add an exclusion',
   'nutrition.preferences.what': 'What are you excluding?',
@@ -459,6 +468,9 @@ export const en = {
   'nutrition.log.loadingAccessibility': 'Loading food log',
   'nutrition.log.unavailable': 'Food log unavailable',
   'nutrition.log.errorMessage': 'Your food log could not be loaded right now. Please try again.',
+  'nutrition.log.webUnavailableTitle': "Food logging isn't available on the web",
+  'nutrition.log.webUnavailableBody':
+    'Use the AppFitness mobile app to log meals and track your daily nutrition.',
   'nutrition.log.emptyAccessibility': 'No food logged yet',
   'nutrition.log.emptyTitle': 'Nothing logged yet',
   'nutrition.log.emptyMessage':

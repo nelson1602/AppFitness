@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { DietaryPreference, DietaryPreferenceInput } from '../domain/dietary-preference';
@@ -21,7 +22,8 @@ import {
  * preference values (a note may be sensitive allergy free-text).
  */
 
-export type DietaryPreferenceStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
+export type DietaryPreferenceStatus =
+  'idle' | 'loading' | 'ready' | 'saving' | 'error' | 'web-unavailable';
 
 export interface DietaryPreferenceState {
   status: DietaryPreferenceStatus;
@@ -42,6 +44,13 @@ export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) =>
       const preferences = await getMyDietaryPreferences();
       set({ preferences, status: 'ready', error: null });
     } catch (error) {
+      if (isDatabaseUnsupportedOnWebError(error)) {
+        // Web has no local database (ADR-P019): an expected, distinct state —
+        // not logged as a runtime error and not auto-retried. Clear the list so
+        // the screen renders no fabricated exclusions or editing controls.
+        set({ status: 'web-unavailable', preferences: [], error: null });
+        return;
+      }
       logError('dietaryPreference.load', error);
       set({ status: 'error', error: 'Your dietary preferences could not be loaded right now.' });
     }

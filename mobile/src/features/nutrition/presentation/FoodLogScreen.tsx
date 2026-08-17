@@ -254,6 +254,22 @@ export function FoodLogScreen() {
     [items],
   );
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no sync banner, add form, entries, sync, or write controls.
+  if (status === 'web-unavailable' || prefStatus === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('nutrition.log.title')}</AppText>
+          <AppText tone="muted">{t('nutrition.log.subtitle')}</AppText>
+        </View>
+        <Banner title={t('nutrition.log.webUnavailableTitle')} tone="info">
+          {t('nutrition.log.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>

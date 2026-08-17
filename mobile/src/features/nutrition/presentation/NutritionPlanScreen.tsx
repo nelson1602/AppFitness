@@ -230,6 +230,24 @@ export function NutritionPlanScreen() {
   // so the first rendered plan already reflects any exclusions.
   const preferencesLoading = prefStatus === 'idle' || prefStatus === 'loading';
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no plan, day controls, food-log link, data-gap, or error.
+  // Either the dashboard assessment or the (additive) preferences being
+  // web-unavailable means the local database is unreachable.
+  if (status === 'web-unavailable' || prefStatus === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('nutrition.plan.title')}</AppText>
+          <AppText tone="muted">{t('nutrition.plan.subtitle')}</AppText>
+        </View>
+        <Banner title={t('nutrition.plan.webUnavailableTitle')} tone="info">
+          {t('nutrition.plan.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>

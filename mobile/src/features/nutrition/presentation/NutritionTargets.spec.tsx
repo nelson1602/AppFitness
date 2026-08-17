@@ -197,4 +197,39 @@ describe('NutritionTargets', () => {
       screen.getByRole('button', { name: 'Ver tu plan alimentario de 15 días' }),
     ).toBeOnTheScreen();
   });
+
+  it('renders a distinct web-unavailable state in English with no data, gap, error, or controls (ADR-P019)', async () => {
+    setStore({ status: 'web-unavailable', data: null });
+    await render(<NutritionTargets />);
+
+    expect(screen.getByText("Nutrition targets aren't available on the web")).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Use the AppFitness mobile app to view your personalized calorie and macro targets.',
+      ),
+    ).toBeOnTheScreen();
+    // Header preserved.
+    expect(screen.getByText('Nutrition targets')).toBeOnTheScreen();
+    // Not a generic error, no data-gap, no plan navigation, no disclaimer/content.
+    expect(screen.queryByText('Nutrition unavailable')).toBeNull();
+    expect(screen.queryByText('Finish your baseline first')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'View your 15-day meal plan' })).toBeNull();
+    expect(screen.queryByText(/not medical or dietary advice/)).toBeNull();
+  });
+
+  it('renders the web-unavailable state in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'web-unavailable', data: null });
+    await render(<NutritionTargets />);
+
+    expect(
+      screen.getByText('Los objetivos nutricionales no están disponibles en la web'),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Usa la app móvil de AppFitness para ver tus objetivos personalizados de calorías y macronutrientes.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Ver tu plan alimentario de 15 días' })).toBeNull();
+  });
 });

@@ -352,6 +352,9 @@ export const es = {
   'nutrition.plan.unavailable': 'Plan alimentario no disponible',
   'nutrition.plan.errorMessage':
     'No se pudo crear tu plan alimentario en este momento. Inténtalo más tarde.',
+  'nutrition.plan.webUnavailableTitle': 'Tu plan alimentario no está disponible en la web',
+  'nutrition.plan.webUnavailableBody':
+    'Usa la app móvil de AppFitness para ver y seguir tu plan alimentario de 15 días.',
   'nutrition.plan.day': 'Día',
   'nutrition.plan.showDay': 'Mostrar día',
   'nutrition.plan.breakfast': 'Desayuno',
@@ -384,6 +387,10 @@ export const es = {
   'nutrition.targets.loadingAccessibility': 'Cargando objetivos nutricionales',
   'nutrition.targets.unavailable': 'Nutrición no disponible',
   'nutrition.targets.errorMessage': 'No se pudieron cargar tus objetivos nutricionales.',
+  'nutrition.targets.webUnavailableTitle':
+    'Los objetivos nutricionales no están disponibles en la web',
+  'nutrition.targets.webUnavailableBody':
+    'Usa la app móvil de AppFitness para ver tus objetivos personalizados de calorías y macronutrientes.',
   'nutrition.targets.calorieAccessibility': 'Objetivo diario de calorías',
   'nutrition.targets.dailyCalories': 'Calorías diarias',
   'nutrition.targets.macrosAccessibility': 'Distribución de macronutrientes',
@@ -410,6 +417,10 @@ export const es = {
     'Indica a iCoach qué debe evitar. Las alergias y preferencias adaptan tus sugerencias de comidas y muestran advertencias informativas sin bloquear tus decisiones. Los datos se guardan primero en tu dispositivo y luego se sincronizan con tu cuenta.',
   'nutrition.preferences.errorTitle': 'Algo salió mal',
   'nutrition.preferences.errorMessage': 'No se pudieron cargar tus preferencias alimentarias.',
+  'nutrition.preferences.webUnavailableTitle':
+    'Las preferencias alimentarias no están disponibles en la web',
+  'nutrition.preferences.webUnavailableBody':
+    'Usa la app móvil de AppFitness para gestionar tus alergias y preferencias de alimentos.',
   'nutrition.preferences.addAccessibility': 'Agregar una exclusión',
   'nutrition.preferences.addTitle': 'Agregar una exclusión',
   'nutrition.preferences.what': '¿Qué deseas excluir?',
@@ -471,6 +482,9 @@ export const es = {
   'nutrition.log.loadingAccessibility': 'Cargando registro de alimentos',
   'nutrition.log.unavailable': 'Registro de alimentos no disponible',
   'nutrition.log.errorMessage': 'No se pudo cargar tu registro de alimentos. Inténtalo de nuevo.',
+  'nutrition.log.webUnavailableTitle': 'El registro de alimentos no está disponible en la web',
+  'nutrition.log.webUnavailableBody':
+    'Usa la app móvil de AppFitness para registrar tus comidas y seguir tu nutrición diaria.',
   'nutrition.log.emptyAccessibility': 'Todavía no hay alimentos registrados',
   'nutrition.log.emptyTitle': 'Todavía no has registrado alimentos',
   'nutrition.log.emptyMessage':

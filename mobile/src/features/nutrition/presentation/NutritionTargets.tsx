@@ -66,6 +66,22 @@ export function NutritionTargets() {
 
   const assessment = data?.assessment;
 
+  // Local database is dormant on Web (ADR-P019): render an honest, info-tone
+  // bilingual state — no targets, data-gap, error, or navigation controls.
+  if (status === 'web-unavailable') {
+    return (
+      <View style={{ gap: theme.spacing.lg }}>
+        <View style={{ gap: theme.spacing.xs }}>
+          <AppText variant="headline">{t('nutrition.targets.title')}</AppText>
+          <AppText tone="muted">{t('nutrition.targets.subtitle')}</AppText>
+        </View>
+        <Banner title={t('nutrition.targets.webUnavailableTitle')} tone="info">
+          {t('nutrition.targets.webUnavailableBody')}
+        </Banner>
+      </View>
+    );
+  }
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
