@@ -35,9 +35,6 @@ function dateFieldWith(dateFormatMessage: string, validDateMessage: string) {
     .refine((v) => !Number.isNaN(Date.parse(v)), validDateMessage);
 }
 
-// Default (English) date field retained for the body-measurement schema.
-const dateField = dateFieldWith('Use the date format YYYY-MM-DD', 'Enter a valid date');
-
 function text(v: string | undefined): string | null {
   const t = v?.trim();
   return t ? t : null;
@@ -98,33 +95,53 @@ export function blankBodyWeightValues(date: string): BodyWeightFormInput {
 // ── Body measurement ────────────────────────────────────────────────────────
 // Public-v1 focused scope: at least one visible wellness metric is required;
 // also supports arms/neck — deferred to a later slice to keep the form small.
+/** Localizable validation messages for the body-measurement form (bounds fixed). */
+export interface BodyMeasurementFormMessages {
+  dateFormat: string;
+  validDate: string;
+  waistPositive: string;
+  hipPositive: string;
+  chestPositive: string;
+  tooLarge: string;
+  bodyFatPositive: string;
+  bodyFatRange: string;
+  muscleMassRange: string;
+  atLeastOne: string;
+}
+
+const BODY_MEASUREMENT_DEFAULT_MESSAGES: BodyMeasurementFormMessages = {
+  dateFormat: 'Use the date format YYYY-MM-DD',
+  validDate: 'Enter a valid date',
+  waistPositive: 'Enter a waist measurement greater than 0',
+  hipPositive: 'Enter a hip measurement greater than 0',
+  chestPositive: 'Enter a chest measurement greater than 0',
+  tooLarge: 'Too large',
+  bodyFatPositive: 'Enter a body-fat % greater than 0',
+  bodyFatRange: 'Enter a body-fat % between 0 and 100',
+  muscleMassRange: 'Enter muscle mass greater than 0 and at most 300 kg',
+  atLeastOne: 'Enter at least one body measurement',
+};
+
 export function createBodyMeasurementFormSchema(
-  muscleMassRangeMessage = 'Enter muscle mass greater than 0 and at most 300 kg',
-  atLeastOneMessage = 'Enter at least one body measurement',
+  messages: BodyMeasurementFormMessages = BODY_MEASUREMENT_DEFAULT_MESSAGES,
 ) {
   return z
     .object({
-      date: dateField,
+      date: dateFieldWith(messages.dateFormat, messages.validDate),
       waistCm: optionalNumber(
-        z.coerce
-          .number()
-          .positive('Enter a waist measurement greater than 0')
-          .max(500, 'Too large'),
+        z.coerce.number().positive(messages.waistPositive).max(500, messages.tooLarge),
       ),
       hipCm: optionalNumber(
-        z.coerce.number().positive('Enter a hip measurement greater than 0').max(500, 'Too large'),
+        z.coerce.number().positive(messages.hipPositive).max(500, messages.tooLarge),
       ),
       chestCm: optionalNumber(
-        z.coerce
-          .number()
-          .positive('Enter a chest measurement greater than 0')
-          .max(500, 'Too large'),
+        z.coerce.number().positive(messages.chestPositive).max(500, messages.tooLarge),
       ),
       bodyFatPct: optionalNumber(
-        z.coerce.number().positive().max(100, 'Enter a body-fat % between 0 and 100'),
+        z.coerce.number().positive(messages.bodyFatPositive).max(100, messages.bodyFatRange),
       ),
       muscleMassKg: optionalNumber(
-        z.coerce.number().positive(muscleMassRangeMessage).max(300, muscleMassRangeMessage),
+        z.coerce.number().positive(messages.muscleMassRange).max(300, messages.muscleMassRange),
       ),
       notes: optionalText,
     })
@@ -133,7 +150,7 @@ export function createBodyMeasurementFormSchema(
         [values.waistCm, values.hipCm, values.chestCm, values.bodyFatPct, values.muscleMassKg].some(
           (value) => value !== undefined,
         ),
-      { message: atLeastOneMessage, path: ['waistCm'] },
+      { message: messages.atLeastOne, path: ['waistCm'] },
     );
 }
 

@@ -109,18 +109,49 @@ describe('BodyMeasurementForm', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it('exposes the new muscle-mass validation in Spanish', () => {
-    const schema = createBodyMeasurementFormSchema(es['progress.measurements.muscleMassRange']);
-    const result = schema.safeParse({
-      date: DATE,
-      waistCm: '82',
-      muscleMassKg: '301',
-    });
+  it('exposes localized (Spanish) validation messages via the messages object', () => {
+    const esMessages = {
+      dateFormat: es['progress.validation.dateFormat'],
+      validDate: es['progress.validation.validDate'],
+      waistPositive: es['progress.validation.waistPositive'],
+      hipPositive: es['progress.validation.hipPositive'],
+      chestPositive: es['progress.validation.chestPositive'],
+      tooLarge: es['progress.validation.tooLarge'],
+      bodyFatPositive: es['progress.validation.bodyFatPositive'],
+      bodyFatRange: es['progress.validation.bodyFatRange'],
+      muscleMassRange: es['progress.measurements.muscleMassRange'],
+      atLeastOne: es['progress.measurements.atLeastOne'],
+    };
+    const schema = createBodyMeasurementFormSchema(esMessages);
+    const messagesFor = (input: Record<string, string>): string[] => {
+      const result = schema.safeParse({ date: DATE, ...input });
+      return result.success ? [] : result.error.issues.map((i) => i.message);
+    };
 
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0]?.message).toBe(
-        'Ingresa una masa muscular mayor que 0 y de hasta 300 kg',
+    // Muscle mass out of range (unchanged rule, localized message).
+    expect(messagesFor({ waistCm: '82', muscleMassKg: '301' })).toContain(
+      'Ingresa una masa muscular mayor que 0 y de hasta 300 kg',
+    );
+    // Newly localized messages:
+    expect(messagesFor({ waistCm: '0' })).toContain('Introduce una medida de cintura mayor que 0');
+    expect(messagesFor({ hipCm: '0' })).toContain('Introduce una medida de cadera mayor que 0');
+    expect(messagesFor({ chestCm: '0' })).toContain('Introduce una medida de pecho mayor que 0');
+    expect(messagesFor({ bodyFatPct: '-5' })).toContain(
+      'Introduce un % de grasa corporal mayor que 0',
+    );
+    expect(messagesFor({ bodyFatPct: '150' })).toContain(
+      'Introduce un % de grasa corporal entre 0 y 100',
+    );
+    expect(messagesFor({ waistCm: '600' })).toContain('Valor demasiado alto');
+    // Localized date-format message (rule unchanged).
+    expect(messagesFor({ ...{}, waistCm: '82' })).not.toContain(
+      'Usa el formato de fecha AAAA-MM-DD',
+    );
+    const badDate = schema.safeParse({ date: '31-12-2026', waistCm: '82' });
+    expect(badDate.success).toBe(false);
+    if (!badDate.success) {
+      expect(badDate.error.issues.map((i) => i.message)).toContain(
+        'Usa el formato de fecha AAAA-MM-DD',
       );
     }
   });
