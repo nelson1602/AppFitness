@@ -3,6 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { ProgressScreen } from '@/features/progress';
+import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
 /**
@@ -12,6 +13,7 @@ import { Screen } from '@/shared/presentation';
  */
 export default function ProgressRoute() {
   const { status } = useSession();
+  const { t } = useLocalization();
 
   if (status === 'unknown') {
     return (
@@ -24,7 +26,7 @@ export default function ProgressRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Progress' }} />
+      <Stack.Screen options={{ title: t('progress.routeTitle') }} />
       <Screen>
         <ProgressScreen />
       </Screen>

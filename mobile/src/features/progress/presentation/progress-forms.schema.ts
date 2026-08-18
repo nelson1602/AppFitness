@@ -28,10 +28,15 @@ const optionalText = z.preprocess(
   z.string().max(2000).optional(),
 );
 
-const dateField = z
-  .string()
-  .regex(DATE_RE, 'Use the date format YYYY-MM-DD')
-  .refine((v) => !Number.isNaN(Date.parse(v)), 'Enter a valid date');
+function dateFieldWith(dateFormatMessage: string, validDateMessage: string) {
+  return z
+    .string()
+    .regex(DATE_RE, dateFormatMessage)
+    .refine((v) => !Number.isNaN(Date.parse(v)), validDateMessage);
+}
+
+// Default (English) date field retained for the body-measurement schema.
+const dateField = dateFieldWith('Use the date format YYYY-MM-DD', 'Enter a valid date');
 
 function text(v: string | undefined): string | null {
   const t = v?.trim();
@@ -39,14 +44,37 @@ function text(v: string | undefined): string | null {
 }
 
 // ── Body weight ─────────────────────────────────────────────────────────────
-export const bodyWeightFormSchema = z.object({
-  date: dateField,
-  weightKg: z.preprocess(
-    (v) => (v === '' || v === null || v === undefined ? undefined : v),
-    z.coerce.number().positive('Enter a weight greater than 0').max(1000, 'Too large'),
-  ),
-  notes: optionalText,
-});
+/** Localizable validation messages for the body-weight form (bounds are fixed). */
+export interface BodyWeightFormMessages {
+  dateFormat: string;
+  validDate: string;
+  weightPositive: string;
+  tooLarge: string;
+}
+
+const BODY_WEIGHT_DEFAULT_MESSAGES: BodyWeightFormMessages = {
+  dateFormat: 'Use the date format YYYY-MM-DD',
+  validDate: 'Enter a valid date',
+  weightPositive: 'Enter a weight greater than 0',
+  tooLarge: 'Too large',
+};
+
+// Factory mirrors createBodyMeasurementFormSchema so the form can inject
+// localized messages; validation bounds are unchanged.
+export function createBodyWeightFormSchema(
+  messages: BodyWeightFormMessages = BODY_WEIGHT_DEFAULT_MESSAGES,
+) {
+  return z.object({
+    date: dateFieldWith(messages.dateFormat, messages.validDate),
+    weightKg: z.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? undefined : v),
+      z.coerce.number().positive(messages.weightPositive).max(1000, messages.tooLarge),
+    ),
+    notes: optionalText,
+  });
+}
+
+export const bodyWeightFormSchema = createBodyWeightFormSchema();
 
 export type BodyWeightFormInput = z.input<typeof bodyWeightFormSchema>;
 export type BodyWeightFormOutput = z.output<typeof bodyWeightFormSchema>;

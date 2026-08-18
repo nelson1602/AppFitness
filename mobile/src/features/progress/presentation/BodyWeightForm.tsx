@@ -2,13 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
+import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, FormField } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { BodyWeightInput } from '../domain/progress';
 import {
   blankBodyWeightValues,
-  bodyWeightFormSchema,
+  createBodyWeightFormSchema,
   toBodyWeightInput,
   type BodyWeightFormInput,
   type BodyWeightFormOutput,
@@ -31,12 +32,19 @@ interface BodyWeightFormProps {
  */
 export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightFormProps) {
   const theme = useTheme();
+  const { t } = useLocalization();
+  const schema = createBodyWeightFormSchema({
+    dateFormat: t('progress.validation.dateFormat'),
+    validDate: t('progress.validation.validDate'),
+    weightPositive: t('progress.validation.weightPositive'),
+    tooLarge: t('progress.validation.tooLarge'),
+  });
   const { control, handleSubmit, reset } = useForm<
     BodyWeightFormInput,
     unknown,
     BodyWeightFormOutput
   >({
-    resolver: zodResolver(bodyWeightFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: blankBodyWeightValues(defaultDate),
   });
 
@@ -47,14 +55,20 @@ export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightForm
   };
 
   return (
-    <View style={{ gap: theme.spacing.md }} accessibilityLabel="Record body weight">
-      <AppText variant="title">Record weight</AppText>
-      <FormField control={control} name="date" label="Date" placeholder="YYYY-MM-DD" required />
+    <View style={{ gap: theme.spacing.md }} accessibilityLabel={t('progress.weight.accessibility')}>
+      <AppText variant="title">{t('progress.weight.title')}</AppText>
+      <FormField
+        control={control}
+        name="date"
+        label={t('progress.weight.date')}
+        placeholder={t('progress.weight.datePlaceholder')}
+        required
+      />
       <FormField
         control={control}
         name="weightKg"
-        label="Weight (kg)"
-        placeholder="e.g. 80.5"
+        label={t('progress.weight.weightKg')}
+        placeholder={t('progress.weight.weightPlaceholder')}
         keyboardType="decimal-pad"
         required
         selectTextOnFocus
@@ -62,17 +76,17 @@ export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightForm
       <FormField
         control={control}
         name="notes"
-        label="Notes (optional)"
-        placeholder="Anything worth remembering"
+        label={t('progress.weight.notes')}
+        placeholder={t('progress.weight.notesPlaceholder')}
         selectTextOnFocus
       />
       <AppButton
-        accessibilityLabel="Save body weight"
+        accessibilityLabel={t('progress.weight.saveAccessibility')}
         testID="body-weight-submit"
         loading={saving}
         onPress={() => void handleSubmit(submit)()}
       >
-        Save weight
+        {t('progress.weight.save')}
       </AppButton>
     </View>
   );
