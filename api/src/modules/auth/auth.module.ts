@@ -18,6 +18,32 @@ const DEV_ONLY_FALLBACK_SECRET =
   'dev-only-jwt-secret-never-use-in-production-0001';
 
 /**
+ * Resolve the JWT access-token signing secret, failing closed (C-2).
+ *
+ * A configured secret is always used verbatim. When none is set, the
+ * dev-only fallback is permitted ONLY for `development`/`test`; every other
+ * `NODE_ENV` — `production`, `staging`, `preview`, an unknown value, or
+ * unset — throws at boot rather than silently signing tokens with a
+ * committed constant. Pure by design (primitives in, string out) so the
+ * fail-closed behavior is directly unit-testable.
+ */
+export function resolveJwtSecret(
+  secret: string | undefined,
+  nodeEnv: string | undefined,
+): string {
+  const allowDevFallback = nodeEnv === 'development' || nodeEnv === 'test';
+  if (!secret) {
+    if (!allowDevFallback) {
+      throw new Error(
+        'JWT_ACCESS_SECRET is required (fail-closed outside development/test)',
+      );
+    }
+    return DEV_ONLY_FALLBACK_SECRET;
+  }
+  return secret;
+}
+
+/**
  * Authentication module (Phase 6): Argon2 credentials, JWT access tokens,
  * single-use rotating refresh tokens with reuse detection, RBAC baseline.
  *
@@ -30,14 +56,14 @@ const DEV_ONLY_FALLBACK_SECRET =
       global: true,
       inject: [ConfigService],
       useFactory: (config: ConfigService): JwtModuleOptions => {
-        const secret = config.get<string>('JWT_ACCESS_SECRET');
-        if (!secret && config.get<string>('NODE_ENV') === 'production') {
-          throw new Error('JWT_ACCESS_SECRET is required in production');
-        }
+        const secret = resolveJwtSecret(
+          config.get<string>('JWT_ACCESS_SECRET'),
+          config.get<string>('NODE_ENV'),
+        );
         const expiresIn = (config.get<string>('JWT_ACCESS_EXPIRES_IN') ??
           '15m') as JwtSignOptions['expiresIn'];
         return {
-          secret: secret ?? DEV_ONLY_FALLBACK_SECRET,
+          secret,
           signOptions: { expiresIn },
         };
       },
