@@ -9,7 +9,7 @@ import {
   saveSession,
   saveTokens,
 } from '../infrastructure/session-storage';
-import type { Session, SessionStatus } from '../domain/session.types';
+import type { AuthUser, Session, SessionStatus } from '../domain/session.types';
 
 /**
  * Session state foundation (Phase 6). Holds the current session in
@@ -47,34 +47,92 @@ export function subscribe(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+/**
+ * Auth failure reasons surfaced to the UI (Slice 2B4). A stable, safe enum —
+ * never raw server text. Classification is by error type/HTTP status only, so
+ * the UI can show honest copy without exposing details or account existence.
+ */
+export type AuthErrorReason =
+  'invalid-credentials' | 'registration-unavailable' | 'connectivity' | 'server' | 'unexpected';
+
+export class AuthError extends Error {
+  constructor(readonly reason: AuthErrorReason) {
+    // `message` is the safe enum reason only — never raw error/server text.
+    super(reason);
+    this.name = 'AuthError';
+  }
+}
+
+/**
+ * Classify an API-stage failure (login/register) by type/status ONLY — never by
+ * message text. Invalid login → invalid-credentials; register 400/409 →
+ * registration-unavailable (non-enumerating); network TypeError → connectivity;
+ * any other API response failure → server; anything else → unexpected.
+ */
+function classifyApiError(error: unknown, mode: 'sign-in' | 'register'): AuthError {
+  if (error instanceof AuthApiError) {
+    if (mode === 'sign-in' && error.status === 401) return new AuthError('invalid-credentials');
+    if (mode === 'register' && (error.status === 400 || error.status === 409)) {
+      return new AuthError('registration-unavailable');
+    }
+    return new AuthError('server');
+  }
+  if (error instanceof TypeError) return new AuthError('connectivity');
+  return new AuthError('unexpected');
+}
+
+/**
+ * Establish the session AFTER a successful server authentication: persist it and
+ * mirror the local user, then go authenticated. A failure here is post-auth
+ * (the credentials were valid) — surfaced as `unexpected`, never as a credential
+ * error. Success behavior (persistence + local_user mirroring) is unchanged.
+ */
+async function establishSession(result: {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+}): Promise<Session> {
+  const session: Session = {
+    accessToken: result.accessToken,
+    refreshToken: result.refreshToken,
+    user: result.user,
+  };
+  try {
+    await saveSession(session);
+    await ensureLocalUser(session.user);
+  } catch {
+    // Post-auth local failure (SecureStore/SQLite): do not establish the
+    // session, and never surface it as a credential error. Not swallowed —
+    // re-thrown as a typed, safe reason; the raw error is not logged (no
+    // tokens/details leak).
+    throw new AuthError('unexpected');
+  }
+  setState('authenticated', session);
+  return session;
+}
+
 export async function signUp(input: {
   email: string;
   username: string;
   password: string;
 }): Promise<Session> {
-  const result = await authApi.register(input);
-  const session: Session = {
-    accessToken: result.accessToken,
-    refreshToken: result.refreshToken,
-    user: result.user,
-  };
-  await saveSession(session);
-  await ensureLocalUser(session.user);
-  setState('authenticated', session);
-  return session;
+  let result: Awaited<ReturnType<typeof authApi.register>>;
+  try {
+    result = await authApi.register(input);
+  } catch (error) {
+    throw classifyApiError(error, 'register');
+  }
+  return establishSession(result);
 }
 
 export async function signIn(input: { email: string; password: string }): Promise<Session> {
-  const result = await authApi.login(input);
-  const session: Session = {
-    accessToken: result.accessToken,
-    refreshToken: result.refreshToken,
-    user: result.user,
-  };
-  await saveSession(session);
-  await ensureLocalUser(session.user);
-  setState('authenticated', session);
-  return session;
+  let result: Awaited<ReturnType<typeof authApi.login>>;
+  try {
+    result = await authApi.login(input);
+  } catch (error) {
+    throw classifyApiError(error, 'sign-in');
+  }
+  return establishSession(result);
 }
 
 /**

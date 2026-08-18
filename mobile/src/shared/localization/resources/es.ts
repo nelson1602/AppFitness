@@ -17,8 +17,20 @@ export const es = {
   'auth.useExistingAccount': 'Usar una cuenta existente',
   'auth.createAccount': 'Crear una cuenta local',
   'auth.switchMode': 'Cambiar modo de autenticación',
-  'auth.errorTitle': 'Error de inicio de sesión',
-  'auth.errorMessage': 'No se pudo autenticar. Revisa tus credenciales y conexión.',
+  'auth.error.invalidCredentialsTitle': 'Error de inicio de sesión',
+  'auth.error.invalidCredentialsBody':
+    'El correo o la contraseña no son correctos. Inténtalo de nuevo.',
+  'auth.error.connectivityTitle': 'Sin conexión',
+  'auth.error.connectivityBody':
+    'No pudimos conectar con AppFitness. Revisa tu conexión a internet e inténtalo de nuevo.',
+  'auth.error.serverTitle': 'Algo salió mal',
+  'auth.error.serverBody':
+    'AppFitness tiene problemas en este momento. Inténtalo de nuevo en un momento.',
+  'auth.error.registrationTitle': 'No se pudo crear la cuenta',
+  'auth.error.registrationBody': 'No pudimos crear tu cuenta con esos datos. Prueba con otros.',
+  'auth.error.unexpectedTitle': 'Algo salió mal',
+  'auth.error.unexpectedBody':
+    'No pudimos completar el inicio de sesión en este dispositivo. Inténtalo de nuevo.',
   'profile.loading': 'Cargando…',
   'profile.loadingAccessibility': 'Cargando perfil',
   'profile.routeTitle': 'Perfil',

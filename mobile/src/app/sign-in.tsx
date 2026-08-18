@@ -2,10 +2,26 @@ import { Stack, router } from 'expo-router';
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
-import { signIn, signUp } from '@/features/authentication';
-import { LanguageSelector, useLocalization } from '@/shared/localization';
+import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
+import { LanguageSelector, type TranslationKey, useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+
+// Reason → localized banner copy (Slice 2B4). Distinct, honest, non-enumerating
+// messages; raw errors/tokens/server details are never shown.
+const ERROR_COPY: Record<AuthErrorReason, { title: TranslationKey; body: TranslationKey }> = {
+  'invalid-credentials': {
+    title: 'auth.error.invalidCredentialsTitle',
+    body: 'auth.error.invalidCredentialsBody',
+  },
+  'registration-unavailable': {
+    title: 'auth.error.registrationTitle',
+    body: 'auth.error.registrationBody',
+  },
+  connectivity: { title: 'auth.error.connectivityTitle', body: 'auth.error.connectivityBody' },
+  server: { title: 'auth.error.serverTitle', body: 'auth.error.serverBody' },
+  unexpected: { title: 'auth.error.unexpectedTitle', body: 'auth.error.unexpectedBody' },
+};
 
 export default function SignInScreen() {
   const theme = useTheme();
@@ -17,11 +33,11 @@ export default function SignInScreen() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authenticationFailed, setAuthenticationFailed] = useState(false);
+  const [errorReason, setErrorReason] = useState<AuthErrorReason | null>(null);
 
   const submit = async () => {
     setLoading(true);
-    setAuthenticationFailed(false);
+    setErrorReason(null);
     try {
       if (mode === 'register') {
         await signUp({ email, username, password });
@@ -29,8 +45,9 @@ export default function SignInScreen() {
         await signIn({ email, password });
       }
       router.replace('/dashboard');
-    } catch {
-      setAuthenticationFailed(true);
+    } catch (error) {
+      // Only the typed, safe reason is used — never the raw error/message.
+      setErrorReason(error instanceof AuthError ? error.reason : 'unexpected');
     } finally {
       setLoading(false);
     }
@@ -45,9 +62,9 @@ export default function SignInScreen() {
           <AppText tone="muted">{t('auth.subtitle')}</AppText>
         </View>
 
-        {authenticationFailed ? (
-          <Banner title={t('auth.errorTitle')} tone="error">
-            {t('auth.errorMessage')}
+        {errorReason ? (
+          <Banner title={t(ERROR_COPY[errorReason].title)} tone="error">
+            {t(ERROR_COPY[errorReason].body)}
           </Banner>
         ) : null}
 
