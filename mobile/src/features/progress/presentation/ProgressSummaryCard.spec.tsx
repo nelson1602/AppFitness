@@ -88,12 +88,13 @@ describe('ProgressSummaryCard', () => {
     expect(screen.getByText('Tap to record and track your progress.')).toBeOnTheScreen();
   });
 
-  it('renders the latest weight and weekly volume when present', async () => {
+  it('renders the latest weight and weekly volume with localized date/number when present', async () => {
     setState({ bodyWeights: [weight], snapshots: [week] });
     await render(<ProgressSummaryCard onPress={jest.fn()} />);
     expect(screen.getByText('80 kg')).toBeOnTheScreen();
-    expect(screen.getByText('as of 2026-08-03')).toBeOnTheScreen();
-    expect(screen.getByText(/This week: 12000 kg volume · 3 workouts/)).toBeOnTheScreen();
+    expect(screen.getByText('as of Aug 3, 2026')).toBeOnTheScreen();
+    // Localized thousands separator (en): 12,000.
+    expect(screen.getByText(/This week: 12,000 kg volume · 3 workouts/)).toBeOnTheScreen();
   });
 
   it('fires onPress when tapped', async () => {
@@ -101,6 +102,30 @@ describe('ProgressSummaryCard', () => {
     await render(<ProgressSummaryCard onPress={onPress} />);
     fireEvent.press(screen.getByTestId('dashboard-progress-card'));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders the latest weight and weekly summary in Spanish (decimal comma, thousands dot, one/many)', async () => {
+    mockLanguage = 'es';
+    setState({
+      bodyWeights: [{ ...weight, weightKg: 80.5 }],
+      snapshots: [{ ...week, workoutCount: 1 }],
+    });
+    await render(<ProgressSummaryCard onPress={jest.fn()} />);
+    expect(screen.getByText('80,5 kg')).toBeOnTheScreen();
+    // Connector "al" + day 3 (local parse, no UTC shift).
+    expect(screen.getByText(/^al 3\b.*2026$/)).toBeOnTheScreen();
+    // Spanish thousands dot + singular "entrenamiento".
+    expect(
+      screen.getByText(/^Esta semana: 12\.000 kg de volumen · 1 entrenamiento$/),
+    ).toBeOnTheScreen();
+  });
+
+  it('renders the Spanish empty prompt when nothing is recorded', async () => {
+    mockLanguage = 'es';
+    setState({});
+    await render(<ProgressSummaryCard onPress={jest.fn()} />);
+    expect(screen.getByText('Sin peso aún')).toBeOnTheScreen();
+    expect(screen.getByText('Toca para registrar y seguir tu progreso.')).toBeOnTheScreen();
   });
 
   it('renders a compact web-unavailable state in English with no metrics, prompt, or tap affordance (ADR-P019)', async () => {

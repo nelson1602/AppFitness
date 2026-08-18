@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { useLocalization } from '@/shared/localization';
+import { formatDate, formatNumber, useLocalization } from '@/shared/localization';
 import { AppText, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -12,8 +12,11 @@ interface ProgressSummaryCardProps {
   onPress: () => void;
 }
 
-function fmt(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+/** Parse a stored `YYYY-MM-DD` as a user-local date for display only — never a
+ *  UTC timestamp, so the shown day can't shift across time zones (ADR-P016 D6). */
+function parseLocalDate(iso: string): Date {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day);
 }
 
 /**
@@ -25,7 +28,7 @@ function fmt(n: number): string {
  */
 export function ProgressSummaryCard({ onPress }: ProgressSummaryCardProps) {
   const theme = useTheme();
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
   const { status, bodyWeights, snapshots, load } = useProgressStore();
 
   useEffect(() => {
@@ -40,7 +43,7 @@ export function ProgressSummaryCard({ onPress }: ProgressSummaryCardProps) {
       <Card>
         <View style={{ gap: theme.spacing.xs }}>
           <AppText variant="label" tone="muted">
-            Progress
+            {t('progress.card.label')}
           </AppText>
           <AppText tone="muted">{t('progress.webUnavailableCard')}</AppText>
         </View>
@@ -54,37 +57,50 @@ export function ProgressSummaryCard({ onPress }: ProgressSummaryCardProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="View your progress"
+      accessibilityLabel={t('progress.card.accessibility')}
       testID="dashboard-progress-card"
       onPress={onPress}
     >
       <Card>
         <View style={{ gap: theme.spacing.xs }}>
           <AppText variant="label" tone="muted">
-            Progress
+            {t('progress.card.label')}
           </AppText>
           {status === 'loading' || status === 'idle' ? (
-            <AppText tone="muted">Loading…</AppText>
+            <AppText tone="muted">{t('progress.card.loading')}</AppText>
           ) : (
             <>
               <AppText variant="headline">
-                {latestWeight ? `${fmt(latestWeight.weightKg)} kg` : 'No weight yet'}
+                {latestWeight
+                  ? `${formatNumber(latestWeight.weightKg, language)} kg`
+                  : t('progress.card.noWeight')}
               </AppText>
               {latestWeight ? (
                 <AppText variant="caption" tone="muted">
-                  as of {latestWeight.date}
+                  {t('progress.card.asOf')}{' '}
+                  {formatDate(parseLocalDate(latestWeight.date), language, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </AppText>
               ) : null}
               {latestWeek ? (
                 <AppText tone="muted">
-                  This week:{' '}
-                  {latestWeek.totalVolumeKg === null ? '—' : fmt(latestWeek.totalVolumeKg)} kg
-                  volume · {latestWeek.workoutCount} workout
-                  {latestWeek.workoutCount === 1 ? '' : 's'}
-                  {latestWeek.isDeloadWeek ? ' · deload' : ''}
+                  {t('progress.card.thisWeek')}{' '}
+                  {latestWeek.totalVolumeKg === null
+                    ? '—'
+                    : formatNumber(latestWeek.totalVolumeKg, language)}{' '}
+                  kg {t('progress.card.volume')} · {formatNumber(latestWeek.workoutCount, language)}{' '}
+                  {t(
+                    latestWeek.workoutCount === 1
+                      ? 'progress.card.workoutOne'
+                      : 'progress.card.workoutMany',
+                  )}
+                  {latestWeek.isDeloadWeek ? ` · ${t('progress.card.deload')}` : ''}
                 </AppText>
               ) : (
-                <AppText tone="muted">Tap to record and track your progress.</AppText>
+                <AppText tone="muted">{t('progress.card.prompt')}</AppText>
               )}
             </>
           )}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 
-import { useLocalization } from '@/shared/localization';
+import { formatDate, formatNumber, useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -26,6 +26,16 @@ function todayLocalDate(): string {
 }
 
 /**
+ * Parse a stored `YYYY-MM-DD` as a user-local calendar date for display only —
+ * never a UTC timestamp, so the shown day cannot shift across time zones
+ * (ADR-P016 D6). Presentation-only; stored values/sort order are unchanged.
+ */
+export function parseLocalDate(iso: string): Date {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
  * Progress Monitoring entry surface (ADR-P016 Phase 17 Slice 5a). Local-first
  * body-weight + body-measurement entry plus a manual weekly-insights recompute.
  * Binds only to the `useProgressStore` public API — no SQLite/repository access
@@ -36,7 +46,7 @@ function todayLocalDate(): string {
  */
 export function ProgressScreen() {
   const theme = useTheme();
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
   const {
     status,
     bodyWeights,
@@ -65,7 +75,7 @@ export function ProgressScreen() {
     return (
       <View style={{ gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">Progress</AppText>
+          <AppText variant="headline">{t('progress.screen.title')}</AppText>
         </View>
         <Banner title={t('progress.webUnavailableTitle')} tone="info">
           {t('progress.webUnavailableBody')}
@@ -108,39 +118,55 @@ export function ProgressScreen() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">Progress</AppText>
-        <AppText tone="muted">
-          Record your weight and measurements. Saved on your device first, synced when online.
-        </AppText>
+        <AppText variant="headline">{t('progress.screen.title')}</AppText>
+        <AppText tone="muted">{t('progress.screen.subtitle')}</AppText>
       </View>
 
       {status === 'loading' || status === 'idle' ? (
-        <AppText accessibilityLabel="Loading progress">Loading…</AppText>
+        <AppText accessibilityLabel={t('progress.screen.loadingAccessibility')}>
+          {t('progress.screen.loading')}
+        </AppText>
       ) : status === 'error' ? (
-        <Banner title="Progress unavailable" tone="error">
-          {error ?? 'Please try again.'}
+        // Localized copy only — never render the store's raw/internal error text.
+        <Banner title={t('progress.screen.loadErrorTitle')} tone="error">
+          {t('progress.screen.loadErrorBody')}
         </Banner>
       ) : (
         <>
           {error ? (
-            <Banner title="Couldn't save your changes" tone="error">
-              {error}
+            // Save failure: distinct localized copy; the raw store string is never shown.
+            <Banner title={t('progress.screen.saveErrorTitle')} tone="error">
+              {t('progress.screen.saveErrorBody')}
             </Banner>
           ) : null}
-          <Card accessibilityLabel="Your latest progress">
+          <Card accessibilityLabel={t('progress.screen.latestAccessibility')}>
             <View style={{ gap: theme.spacing.xs }}>
-              <AppText variant="label">Latest</AppText>
+              <AppText variant="label">{t('progress.screen.latest')}</AppText>
               {latestWeight ? (
                 <AppText>
-                  {latestWeight.weightKg} kg on {latestWeight.date}
+                  {formatNumber(latestWeight.weightKg, language)} kg {t('progress.screen.on')}{' '}
+                  {formatDate(parseLocalDate(latestWeight.date), language, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </AppText>
               ) : (
-                <AppText tone="muted">No weight recorded yet.</AppText>
+                <AppText tone="muted">{t('progress.screen.noWeight')}</AppText>
               )}
               <AppText variant="caption" tone="muted">
-                {bodyWeights.length} weight entr{bodyWeights.length === 1 ? 'y' : 'ies'} ·{' '}
-                {bodyMeasurements.length} measurement entr
-                {bodyMeasurements.length === 1 ? 'y' : 'ies'}
+                {formatNumber(bodyWeights.length, language)}{' '}
+                {t(
+                  bodyWeights.length === 1
+                    ? 'progress.screen.weightEntryOne'
+                    : 'progress.screen.weightEntryMany',
+                )}{' '}
+                · {formatNumber(bodyMeasurements.length, language)}{' '}
+                {t(
+                  bodyMeasurements.length === 1
+                    ? 'progress.screen.measurementEntryOne'
+                    : 'progress.screen.measurementEntryMany',
+                )}
               </AppText>
             </View>
           </Card>
@@ -157,10 +183,15 @@ export function ProgressScreen() {
             />
           </Card>
 
-          <Card accessibilityLabel="Trends">
+          <Card accessibilityLabel={t('progress.screen.trends')}>
             <View style={{ gap: theme.spacing.md }}>
-              <AppText variant="title">Trends</AppText>
-              <TrendBars title="Body weight" data={weightTrend} unit=" kg" testID="weight-trend" />
+              <AppText variant="title">{t('progress.screen.trends')}</AppText>
+              <TrendBars
+                title={t('progress.screen.trendWeight')}
+                data={weightTrend}
+                unit=" kg"
+                testID="weight-trend"
+              />
               <TrendBars
                 title={t('progress.trends.muscleMass')}
                 data={muscleMassTrend}
@@ -168,7 +199,7 @@ export function ProgressScreen() {
                 testID="muscle-mass-trend"
               />
               <TrendBars
-                title="Weekly training volume"
+                title={t('progress.screen.trendVolume')}
                 data={volumeTrend}
                 unit=" kg"
                 testID="volume-trend"
@@ -176,18 +207,18 @@ export function ProgressScreen() {
             </View>
           </Card>
 
-          <Card accessibilityLabel="Weekly insights">
+          <Card accessibilityLabel={t('progress.screen.weekly')}>
             <View style={{ gap: theme.spacing.md }}>
-              <AppText variant="title">Weekly insights</AppText>
+              <AppText variant="title">{t('progress.screen.weekly')}</AppText>
               <WeeklySnapshotSummary snapshots={snapshots} />
               <AppButton
-                accessibilityLabel="Update weekly insights"
+                accessibilityLabel={t('progress.screen.recompute')}
                 testID="progress-recompute"
                 variant="secondary"
                 loading={saving}
                 onPress={() => void recomputeSnapshots()}
               >
-                Update weekly insights
+                {t('progress.screen.recompute')}
               </AppButton>
             </View>
           </Card>
