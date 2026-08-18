@@ -34,10 +34,18 @@ interface BodyMeasurementFormProps {
 export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasurementFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
-  const schema = createBodyMeasurementFormSchema(
-    t('progress.measurements.muscleMassRange'),
-    t('progress.measurements.atLeastOne'),
-  );
+  const schema = createBodyMeasurementFormSchema({
+    dateFormat: t('progress.validation.dateFormat'),
+    validDate: t('progress.validation.validDate'),
+    waistPositive: t('progress.validation.waistPositive'),
+    hipPositive: t('progress.validation.hipPositive'),
+    chestPositive: t('progress.validation.chestPositive'),
+    tooLarge: t('progress.validation.tooLarge'),
+    bodyFatPositive: t('progress.validation.bodyFatPositive'),
+    bodyFatRange: t('progress.validation.bodyFatRange'),
+    muscleMassRange: t('progress.measurements.muscleMassRange'),
+    atLeastOne: t('progress.measurements.atLeastOne'),
+  });
   const { control, handleSubmit, reset } = useForm<
     BodyMeasurementFormInput,
     unknown,
