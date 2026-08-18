@@ -21,10 +21,18 @@ export class FieldCipherService {
   constructor(config: ConfigService) {
     const encoded = config.get<string>('MEDICAL_ENC_KEY');
     if (!encoded) {
-      if (config.get<string>('NODE_ENV') === 'production') {
-        throw new Error('MEDICAL_ENC_KEY is required in production (ADR-P006)');
+      // Fail closed (C-2): the dev-only ephemeral key is permitted ONLY for
+      // `development`/`test`. Any other NODE_ENV — production, staging,
+      // preview, an unknown value, or unset — throws at boot rather than
+      // silently encrypting with a key that vanishes on restart.
+      const nodeEnv = config.get<string>('NODE_ENV');
+      const allowDevFallback = nodeEnv === 'development' || nodeEnv === 'test';
+      if (!allowDevFallback) {
+        throw new Error(
+          'MEDICAL_ENC_KEY is required (ADR-P006; fail-closed outside development/test)',
+        );
       }
-      // Dev-only ephemeral key: encrypted rows become unreadable after a
+      // Dev/test-only ephemeral key: encrypted rows become unreadable after a
       // restart — loud warning, never silent.
       this.key = randomBytes(32);
       this.keyId = 'ephemeral-dev';

@@ -55,4 +55,42 @@ describe('FieldCipherService', () => {
       makeService({ MEDICAL_ENC_KEY: Buffer.alloc(16, 1).toString('base64') }),
     ).toThrow('32 bytes');
   });
+
+  describe('MEDICAL_ENC_KEY fail-closed configuration (C-2)', () => {
+    it('uses the configured key regardless of NODE_ENV (success path)', () => {
+      for (const nodeEnv of [
+        'development',
+        'test',
+        'production',
+        'staging',
+        undefined,
+      ]) {
+        const svc = makeService({
+          MEDICAL_ENC_KEY: KEY_B64,
+          ...(nodeEnv ? { NODE_ENV: nodeEnv } : {}),
+        });
+        expect(svc.decrypt(svc.encrypt('ok'))).toBe('ok');
+      }
+    });
+
+    it('allows the ephemeral dev key only for development and test', () => {
+      for (const nodeEnv of ['development', 'test']) {
+        const svc = makeService({ NODE_ENV: nodeEnv });
+        expect(svc.keyId).toBe('ephemeral-dev');
+      }
+    });
+
+    it.each(['production', 'staging', 'preview', 'weird-value'])(
+      'throws when the key is absent under NODE_ENV=%s',
+      (nodeEnv) => {
+        expect(() => makeService({ NODE_ENV: nodeEnv })).toThrow(
+          'MEDICAL_ENC_KEY',
+        );
+      },
+    );
+
+    it('throws when the key is absent and NODE_ENV is unset', () => {
+      expect(() => makeService({})).toThrow('MEDICAL_ENC_KEY');
+    });
+  });
 });
