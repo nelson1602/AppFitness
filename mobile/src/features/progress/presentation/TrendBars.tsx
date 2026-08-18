@@ -1,5 +1,6 @@
 import { View } from 'react-native';
 
+import { formatNumber, useLocalization } from '@/shared/localization';
 import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -23,11 +24,6 @@ const CHART_HEIGHT = 64;
 const MIN_BAR = 4;
 const DEFAULT_MAX_BARS = 12;
 
-/** Compact numeric formatter: integers as-is, else one decimal. */
-function fmt(n: number): string {
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
-}
-
 /**
  * In-house trend chart (ADR-P016 Phase 17 Slice 5b, D3) — React Native
  * `View`/`Text` only, NO charting library or SVG. Bars are min-normalized
@@ -35,7 +31,9 @@ function fmt(n: number): string {
  * summary (latest, range, direction + delta) and a per-bar accessibility label,
  * and color is never the sole signal. Empty/single-point series fall back to
  * text with no bars. Pure/presentational — the caller supplies pre-resolved
- * points from the progress store.
+ * points from the progress store. Copy is localized; numeric values use the
+ * active language's formatting while the caller-supplied `label`/`unit` and all
+ * chart math are unchanged.
  */
 export function TrendBars({
   title,
@@ -45,6 +43,7 @@ export function TrendBars({
   testID,
 }: TrendBarsProps) {
   const theme = useTheme();
+  const { t, language } = useLocalization();
   const points = data.slice(-maxBars);
 
   // Text-first fallback for empty / single-point series (no meaningful trend).
@@ -53,10 +52,10 @@ export function TrendBars({
       <View style={{ gap: theme.spacing.xs }} testID={testID}>
         <AppText variant="label">{title}</AppText>
         {points.length === 0 ? (
-          <AppText tone="muted">No data yet.</AppText>
+          <AppText tone="muted">{t('progress.trends.noData')}</AppText>
         ) : (
           <AppText tone="muted">
-            1 reading: {fmt(points[0].value)}
+            {t('progress.trends.oneReading')}: {formatNumber(points[0].value, language)}
             {unit}
           </AppText>
         )}
@@ -72,10 +71,18 @@ export function TrendBars({
   const latest = values[values.length - 1];
   const delta = latest - first;
   const direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+  const directionLabel = t(
+    direction === 'up'
+      ? 'progress.trends.directionUp'
+      : direction === 'down'
+        ? 'progress.trends.directionDown'
+        : 'progress.trends.directionFlat',
+  );
 
   const summary =
-    `Latest ${fmt(latest)}${unit} · range ${fmt(min)}–${fmt(max)}${unit} · ` +
-    `${direction} ${fmt(Math.abs(delta))}${unit}`;
+    `${t('progress.trends.latest')} ${formatNumber(latest, language)}${unit} · ` +
+    `${t('progress.trends.range')} ${formatNumber(min, language)}–${formatNumber(max, language)}${unit} · ` +
+    `${directionLabel} ${formatNumber(Math.abs(delta), language)}${unit}`;
 
   return (
     <View style={{ gap: theme.spacing.xs }} testID={testID}>
@@ -99,7 +106,7 @@ export function TrendBars({
             <View
               key={`${p.label}-${i}`}
               accessible
-              accessibilityLabel={`${p.label}: ${fmt(p.value)}${unit}`}
+              accessibilityLabel={`${p.label}: ${formatNumber(p.value, language)}${unit}`}
               style={{
                 flex: 1,
                 height,

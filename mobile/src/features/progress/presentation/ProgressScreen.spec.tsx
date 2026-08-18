@@ -155,7 +155,7 @@ describe('ProgressScreen (Slice 5a)', () => {
     expect(screen.getByLabelText('2026-08-03: 80 kg')).toBeOnTheScreen();
     // Weekly snapshot summary is rendered.
     expect(screen.getByTestId('weekly-snapshot-summary')).toBeOnTheScreen();
-    expect(screen.getByText('Week of 2026-08-03')).toBeOnTheScreen();
+    expect(screen.getByText('Week of Aug 3, 2026')).toBeOnTheScreen();
   });
 
   it('renders the optional muscle-mass trend without feeding weekly snapshots', async () => {

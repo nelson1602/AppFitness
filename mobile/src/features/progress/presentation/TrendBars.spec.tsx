@@ -2,11 +2,30 @@ import { render, screen } from '@testing-library/react-native';
 
 import { TrendBars, type TrendPoint } from './TrendBars';
 
+let mockLanguage: 'en' | 'es' = 'en';
+
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const { en } = jest.requireActual('@/shared/localization/resources/en');
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: keyof typeof en) => (mockLanguage === 'es' ? es[key] : en[key]),
+    }),
+  };
+});
+
 function points(values: number[]): TrendPoint[] {
   return values.map((v, i) => ({ label: `2026-08-0${i + 1}`, value: v }));
 }
 
 describe('TrendBars', () => {
+  beforeEach(() => {
+    mockLanguage = 'en';
+  });
+
   it('renders a text-first fallback for an empty series (no bars)', async () => {
     await render(<TrendBars title="Body weight" data={[]} unit=" kg" testID="t" />);
     expect(screen.getByText('No data yet.')).toBeOnTheScreen();
@@ -56,5 +75,44 @@ describe('TrendBars', () => {
     expect(screen.queryByLabelText('d0: 0')).toBeNull();
     expect(screen.getByLabelText('d3: 3')).toBeOnTheScreen();
     expect(screen.getByLabelText('d14: 14')).toBeOnTheScreen();
+  });
+
+  it('renders the Spanish empty and one-reading states (decimal comma)', async () => {
+    mockLanguage = 'es';
+    const { rerender } = await render(<TrendBars title="Peso" data={[]} unit=" kg" testID="t" />);
+    expect(screen.getByText('Sin datos aún.')).toBeOnTheScreen();
+
+    await rerender(<TrendBars title="Peso" data={points([80.5])} unit=" kg" testID="t" />);
+    expect(screen.getByText('1 lectura: 80,5 kg')).toBeOnTheScreen();
+  });
+
+  it('summarizes latest/range with a downward "baja" direction in Spanish', async () => {
+    mockLanguage = 'es';
+    await render(<TrendBars title="Peso" data={points([80, 82, 79])} unit=" kg" testID="t" />);
+    expect(screen.getByText('Último 79 kg · rango 79–82 kg · baja 1 kg')).toBeOnTheScreen();
+  });
+
+  it('localizes the up ("sube") and flat ("estable") direction labels in Spanish', async () => {
+    mockLanguage = 'es';
+    const { rerender } = await render(
+      <TrendBars title="V" data={points([80, 79, 82])} unit=" kg" testID="t" />,
+    );
+    // first 80 → latest 82 → +2 → "sube"
+    expect(screen.getByText('Último 82 kg · rango 79–82 kg · sube 2 kg')).toBeOnTheScreen();
+
+    await rerender(<TrendBars title="V" data={points([80, 85, 80])} unit=" kg" testID="t" />);
+    expect(screen.getByText('Último 80 kg · rango 80–85 kg · estable 0 kg')).toBeOnTheScreen();
+  });
+
+  it('formats thousands with the Spanish separator in the summary', async () => {
+    mockLanguage = 'es';
+    await render(
+      <TrendBars title="V" data={points([10000, 12000, 11000])} unit=" kg" testID="t" />,
+    );
+    // first 10000 → latest 11000 → +1000 → "sube"; 5-digit values grouped
+    // (11.000 / 10.000 / 12.000), but the 4-digit delta 1000 is ungrouped in es.
+    expect(
+      screen.getByText('Último 11.000 kg · rango 10.000–12.000 kg · sube 1000 kg'),
+    ).toBeOnTheScreen();
   });
 });
