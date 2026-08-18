@@ -4,8 +4,9 @@ import type { AuthUser, Session } from '../domain/session.types';
 import * as authApi from '../infrastructure/auth-api';
 import { AuthApiError } from '../infrastructure/auth-api';
 import { ensureLocalUser } from '../infrastructure/local-user.repository';
-import { clearSession, loadSession } from '../infrastructure/session-storage';
+import { clearSession, loadSession, saveSession } from '../infrastructure/session-storage';
 import {
+  AuthError,
   deleteAccount,
   getAccessToken,
   getStatus,
@@ -58,6 +59,7 @@ const mockRefresh = jest.mocked(authApi.refresh);
 const mockLoadSession = jest.mocked(loadSession);
 const mockClearSession = jest.mocked(clearSession);
 const mockEnsureLocalUser = jest.mocked(ensureLocalUser);
+const mockSaveSession = jest.mocked(saveSession);
 
 /**
  * Regression: sessions were established without mirroring the account
@@ -257,5 +259,89 @@ describe('session-manager token rotation and sign-out', () => {
     expect(jest.mocked(wipeDatabase)).not.toHaveBeenCalled();
     expect(mockClearSession).not.toHaveBeenCalled();
     expect(getStatus()).toBe('authenticated');
+  });
+});
+
+/**
+ * Slice 2B4: stage-aware, type/status-only classification. Invalid credentials,
+ * connectivity, server, and post-auth (local) failures each map to a distinct
+ * safe reason — never raw server text, never account existence.
+ */
+describe('session-manager auth error classification (Slice 2B4)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSaveSession.mockResolvedValue(undefined);
+    mockEnsureLocalUser.mockResolvedValue(undefined);
+  });
+
+  const creds = { email: user.email, password: 'password12345' };
+  const reg = { email: user.email, username: user.username, password: 'password12345' };
+
+  it('signIn 401 → invalid-credentials without attempting session establishment', async () => {
+    mockLogin.mockRejectedValue(new AuthApiError(401, 'Unauthorized'));
+    await expect(signIn(creds)).rejects.toMatchObject({
+      name: 'AuthError',
+      reason: 'invalid-credentials',
+    });
+    expect(mockSaveSession).not.toHaveBeenCalled();
+    expect(mockEnsureLocalUser).not.toHaveBeenCalled();
+  });
+
+  it('signIn network TypeError → connectivity', async () => {
+    mockLogin.mockRejectedValue(new TypeError('Network request failed'));
+    await expect(signIn(creds)).rejects.toMatchObject({ reason: 'connectivity' });
+  });
+
+  it('signIn non-401 API response → server', async () => {
+    mockLogin.mockRejectedValue(new AuthApiError(500, 'boom'));
+    await expect(signIn(creds)).rejects.toMatchObject({ reason: 'server' });
+  });
+
+  it('signIn unknown non-API error → unexpected', async () => {
+    mockLogin.mockRejectedValue(new Error('weird'));
+    await expect(signIn(creds)).rejects.toMatchObject({ reason: 'unexpected' });
+  });
+
+  it('signIn post-auth saveSession failure → unexpected (server auth succeeded, not a credential error)', async () => {
+    mockLogin.mockResolvedValue({ accessToken: 'a1', refreshToken: 'r1', user });
+    mockSaveSession.mockRejectedValue(new Error('SecureStore write failed'));
+    await expect(signIn(creds)).rejects.toMatchObject({ reason: 'unexpected' });
+    expect(mockSaveSession).toHaveBeenCalledTimes(1);
+    expect(mockEnsureLocalUser).not.toHaveBeenCalled();
+  });
+
+  it('signIn post-auth ensureLocalUser failure → unexpected', async () => {
+    mockLogin.mockResolvedValue({ accessToken: 'a1', refreshToken: 'r1', user });
+    mockEnsureLocalUser.mockRejectedValue(new Error('sqlite write failed'));
+    await expect(signIn(creds)).rejects.toMatchObject({ reason: 'unexpected' });
+    expect(mockEnsureLocalUser).toHaveBeenCalledTimes(1);
+  });
+
+  it('signUp 409 and 400 → registration-unavailable (non-enumerating)', async () => {
+    mockRegister.mockRejectedValueOnce(new AuthApiError(409, 'conflict'));
+    await expect(signUp(reg)).rejects.toMatchObject({ reason: 'registration-unavailable' });
+    mockRegister.mockRejectedValueOnce(new AuthApiError(400, 'bad request'));
+    await expect(signUp(reg)).rejects.toMatchObject({ reason: 'registration-unavailable' });
+  });
+
+  it('signUp 500 → server; network TypeError → connectivity', async () => {
+    mockRegister.mockRejectedValueOnce(new AuthApiError(500, 'boom'));
+    await expect(signUp(reg)).rejects.toMatchObject({ reason: 'server' });
+    mockRegister.mockRejectedValueOnce(new TypeError('Network request failed'));
+    await expect(signUp(reg)).rejects.toMatchObject({ reason: 'connectivity' });
+  });
+
+  it('AuthError exposes only the safe reason — never raw server text', async () => {
+    mockLogin.mockRejectedValue(new AuthApiError(401, 'demo@x not found — secret detail'));
+    let caught: unknown;
+    try {
+      await signIn(creds);
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(AuthError);
+    expect((caught as AuthError).reason).toBe('invalid-credentials');
+    expect((caught as AuthError).message).toBe('invalid-credentials');
+    expect((caught as AuthError).message).not.toMatch(/secret detail|not found|demo@x/i);
   });
 });

@@ -15,8 +15,19 @@ export const en = {
   'auth.useExistingAccount': 'Use existing account',
   'auth.createAccount': 'Create a local account',
   'auth.switchMode': 'Switch authentication mode',
-  'auth.errorTitle': 'Sign-in error',
-  'auth.errorMessage': 'Authentication failed. Check your credentials and connection.',
+  'auth.error.invalidCredentialsTitle': 'Sign-in failed',
+  'auth.error.invalidCredentialsBody': 'That email or password is incorrect. Please try again.',
+  'auth.error.connectivityTitle': 'No connection',
+  'auth.error.connectivityBody':
+    "We couldn't reach AppFitness. Check your internet connection and try again.",
+  'auth.error.serverTitle': 'Something went wrong',
+  'auth.error.serverBody': 'AppFitness is having trouble right now. Please try again in a moment.',
+  'auth.error.registrationTitle': "Couldn't create account",
+  'auth.error.registrationBody':
+    "We couldn't create your account with those details. Try different ones.",
+  'auth.error.unexpectedTitle': 'Something went wrong',
+  'auth.error.unexpectedBody':
+    "We couldn't finish signing you in on this device. Please try again.",
   'profile.loading': 'Loading…',
   'profile.loadingAccessibility': 'Loading profile',
   'profile.routeTitle': 'Profile',

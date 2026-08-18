@@ -15,10 +15,27 @@ jest.mock('expo-router', () => ({
   },
 }));
 
-jest.mock('@/features/authentication', () => ({
-  signIn: (...args: unknown[]) => mockSignIn(...args),
-  signUp: (...args: unknown[]) => mockSignUp(...args),
-}));
+jest.mock('@/features/authentication', () => {
+  // Real-shaped AuthError so `error instanceof AuthError` works in the screen.
+  // Factory-local, mock-prefixed name to satisfy babel-jest-hoist.
+  class MockAuthError extends Error {
+    reason: string;
+    constructor(reason: string) {
+      super(reason);
+      this.name = 'AuthError';
+      this.reason = reason;
+    }
+  }
+  return {
+    AuthError: MockAuthError,
+    signIn: (...args: unknown[]) => mockSignIn(...args),
+    signUp: (...args: unknown[]) => mockSignUp(...args),
+  };
+});
+
+const { AuthError } = jest.requireMock<{
+  AuthError: new (reason: string) => Error & { reason: string };
+}>('@/features/authentication');
 
 describe('SignInScreen', () => {
   beforeEach(() => {
@@ -73,16 +90,80 @@ describe('SignInScreen', () => {
     expect(mockReplace).toHaveBeenCalledWith('/dashboard');
   });
 
-  it('shows a safe generic error when authentication fails', async () => {
-    mockSignIn.mockRejectedValue(new Error('network timeout with token abc123'));
+  it('shows a distinct invalid-credentials error on sign-in 401', async () => {
+    mockSignIn.mockRejectedValue(new AuthError('invalid-credentials'));
 
     await render(<SignInScreen />);
     await fireEvent.press(screen.getByText('Sign in'));
 
-    expect(await screen.findByText('Sign-in error')).toBeOnTheScreen();
+    expect(await screen.findByText('Sign-in failed')).toBeOnTheScreen();
     expect(
-      screen.getByText('Authentication failed. Check your credentials and connection.'),
+      screen.getByText('That email or password is incorrect. Please try again.'),
     ).toBeOnTheScreen();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('shows a connectivity error when the network is unreachable', async () => {
+    mockSignIn.mockRejectedValue(new AuthError('connectivity'));
+
+    await render(<SignInScreen />);
+    await fireEvent.press(screen.getByText('Sign in'));
+
+    expect(await screen.findByText('No connection')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        "We couldn't reach AppFitness. Check your internet connection and try again.",
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows a server error on an unexpected API response', async () => {
+    mockSignIn.mockRejectedValue(new AuthError('server'));
+
+    await render(<SignInScreen />);
+    await fireEvent.press(screen.getByText('Sign in'));
+
+    expect(await screen.findByText('Something went wrong')).toBeOnTheScreen();
+    expect(
+      screen.getByText('AppFitness is having trouble right now. Please try again in a moment.'),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows an unexpected (post-auth) error and never leaks raw error text', async () => {
+    // A post-auth/local failure surfaces as a plain Error → mapped to unexpected;
+    // credentials were valid, so it must NOT read as a credential error.
+    mockSignIn.mockRejectedValue(new Error('SecureStore write failed: token abc123'));
+
+    await render(<SignInScreen />);
+    await fireEvent.press(screen.getByText('Sign in'));
+
+    expect(await screen.findByText('Something went wrong')).toBeOnTheScreen();
+    expect(
+      screen.getByText("We couldn't finish signing you in on this device. Please try again."),
+    ).toBeOnTheScreen();
+    // Raw error text/token never rendered; not misclassified as invalid credentials.
     expect(screen.queryByText(/abc123/i)).toBeNull();
+    expect(screen.queryByText('Sign-in failed')).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('shows a non-enumerating registration error on register conflict', async () => {
+    mockSignUp.mockRejectedValue(new AuthError('registration-unavailable'));
+
+    await render(<SignInScreen />);
+    await fireEvent.press(screen.getByLabelText('Switch authentication mode'));
+    await fireEvent.changeText(screen.getByLabelText('Email'), 'taken@appfitness.local');
+    await fireEvent.changeText(screen.getByLabelText('Username'), 'taken-user');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
+    await fireEvent.press(screen.getByText('Register'));
+
+    expect(await screen.findByText("Couldn't create account")).toBeOnTheScreen();
+    expect(
+      screen.getByText("We couldn't create your account with those details. Try different ones."),
+    ).toBeOnTheScreen();
+    // No account-existence disclosure / no echoed identifiers.
+    expect(screen.queryByText(/already (exists|registered|taken)/i)).toBeNull();
+    expect(screen.queryByText(/taken@appfitness\.local/)).toBeNull();
+    expect(screen.queryByText(/taken-user/)).toBeNull();
   });
 });
