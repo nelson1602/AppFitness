@@ -39,9 +39,20 @@ environments (05_SECURITY.md).
 4. Set the environment variables above (reference the Postgres plugin
    for `DATABASE_URL`).
 5. Set the **pre-deploy command** (runs in the built image before it
-   receives traffic): `npx prisma@7 migrate deploy`
-   — the image ships `prisma/` (schema + migrations) and
-   `prisma.config.ts` for exactly this step.
+   receives traffic): **`npm run db:deploy`** (= `prisma migrate deploy`).
+   The runtime image ships `prisma/` (schema + migrations) and
+   `prisma.config.ts`, and `npm ci --omit=dev` installs the **Prisma CLI at
+   the lockfile-pinned version** (the lockfile resolves `prisma` into the
+   production tree). So this command runs the **image-resident** CLI and
+   resolves its version **locally, with no registry access at deploy time**.
+   Note: the older command `npx prisma@7 migrate deploy` floats the CLI
+   version and reaches npm on every deploy — avoid it.
+   The Docker build **intentionally fails** (via a runtime-stage assertion)
+   if a future lockfile change drops the CLI from the production tree, so
+   this can never regress silently to a deploy-time failure.
+   **Railway's live pre-deploy setting is NOT changed by this commit;** it
+   is updated to `npm run db:deploy` in a separate, Development-first
+   rollout step (see the deterministic-CLI rollout notes).
 6. Set the **health check path** to `/health`. Deployments only go live
    when it returns 200.
 7. Enable database backups (Railway Postgres daily backups) and verify
@@ -55,7 +66,12 @@ environments (05_SECURITY.md).
 - Policy stays expand-first/additive (04_DATABASE.md): the previous
   image must be able to run against the newer schema so rollbacks stay
   one-click. Destructive migrations require an explicitly approved plan.
-- Locally/CI the same step is `npm run db:deploy`.
+- Locally/CI the same step is `npm run db:deploy`. The production runtime
+  image already contains the lockfile-pinned Prisma CLI (installed by
+  `npm ci --omit=dev`), so this command is also the deterministic pre-deploy
+  step in Railway — no floating version, no deploy-time download. A
+  runtime-stage build assertion fails the image if that CLI ever goes
+  missing, keeping the guarantee enforced without pinning a second version.
 
 ## Rollback
 
