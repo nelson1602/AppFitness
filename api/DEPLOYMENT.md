@@ -24,6 +24,7 @@ injected via environment variables.
 | `SENTRY_DSN` | Optional (ADR-P010). Sentry is fully disabled when unset; all events pass privacy scrubbers |
 | `SENTRY_ENVIRONMENT` | e.g. `development` |
 | `WEB_CORS_ORIGINS` | Optional (ADR-P018 Slice 3). Comma-separated EXACT browser origins for interim Web Bearer auth (no wildcard/path/trailing slash). Unset/empty ⇒ fail-closed (no cross-origin browser access; native unaffected). Configure per environment. For local Expo Web QA set it on the **Development** service only: `http://localhost:8081,http://127.0.0.1:8081`. Leave **Production** unset unless a hosted Web origin is approved |
+| `API_DOCS_ENABLED` | Optional (H-2). Swagger UI (`/docs`) + OpenAPI JSON (`/docs-json`) are served ONLY when this is the exact string `true`; any other value (unset, empty, `false`, `TRUE`, `1`, …) keeps them disabled. Intended for LOCAL development only. **Leave unset on BOTH hosted tiers** so the API surface is never published in Development or Production. Generate the OpenAPI spec locally (flag on) for client codegen rather than serving it live |
 
 Rules: secrets exist ONLY in Railway's variable store. Never reuse
 local `.env` values, never commit values, never share keys between
