@@ -3,9 +3,9 @@ import './instrument';
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
+import { setupApiDocs } from './config/api-docs.config';
 import { buildWebCorsOptions } from './config/cors.config';
 
 async function bootstrap(): Promise<void> {
@@ -27,19 +27,10 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('AppFitness API')
-    .setDescription(
-      'AppFitness backend (NestJS) — migration target architecture per ADR-0003/ADR-0013',
-    )
-    .setVersion('0.1.0')
-    .addBearerAuth()
-    .build();
-  SwaggerModule.setup(
-    'docs',
-    app,
-    SwaggerModule.createDocument(app, swaggerConfig),
-  );
+  // API docs (Swagger `/docs` + `/docs-json`) are fail-closed (H-2): mounted
+  // ONLY when API_DOCS_ENABLED === 'true' (local development). Unset on both
+  // hosted Railway tiers, so docs stay off in Development and Production.
+  setupApiDocs(app, process.env.API_DOCS_ENABLED);
 
   // 3001 by default so the legacy Express MVP (3000) can run alongside.
   await app.listen(process.env.PORT ?? 3001);
