@@ -6,6 +6,7 @@ import {
   type JwtModuleOptions,
   type JwtSignOptions,
 } from '@nestjs/jwt';
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { AuthService } from './application/auth.service';
 import { PasswordService } from './infrastructure/password.service';
@@ -74,6 +75,10 @@ export function resolveJwtSecret(
     AuthService,
     PasswordService,
     TokenService,
+    // Guard order matters: multiple APP_GUARD entries in one providers array
+    // execute top-to-bottom. ThrottlerGuard is first so rate limiting runs
+    // BEFORE the JWT/Roles guards and before any Argon2/DB work (ADR-P020).
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
