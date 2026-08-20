@@ -6814,6 +6814,227 @@ Negative:
 
 ---
 
+## ADR-P020 — API Rate Limiting and Brute-Force Protection
+
+Status: Accepted
+Date: 2026-08-20
+Owner: Architecture / Security
+
+### Context
+
+`.ai/05_SECURITY.md` requires rate limiting on every endpoint ("API Security"),
+and `.ai/10_DEPLOYMENT.md` lists rate limiting as a mandatory backend runtime
+requirement. The NestJS API (the migration-target backend) currently enforces
+**no** rate limiting: `api/src/main.ts` wires only `ValidationPipe`, CORS, and
+Swagger; the global guards (`api/src/modules/auth/auth.module.ts`) are
+`JwtAuthGuard` then `RolesGuard`, neither of which throttles. The only precedent
+in the repository is the retired Express MVP (`server/src/middlewares/rateLimiter.ts`,
+`express-rate-limit`: auth 20/15 min, general 120/60 s), which does not run in
+the NestJS API.
+
+The public auth surface is the primary brute-force target: `POST /auth/register`,
+`POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout` are all `@Public()`
+(`api/src/modules/auth/presentation/auth.controller.ts`). `login` is already
+uniform-failure / non-enumerating (`auth.service.ts` — "Invalid credentials" for
+every failure mode), and refresh-token reuse already revokes the session family;
+but nothing bounds request volume, so online password guessing, account-farming
+registration, and refresh/sync flooding are unmitigated.
+
+Infrastructure reality (`api/DEPLOYMENT.md`, `api/docker-compose.yml`,
+`api/package.json`): hosting is Railway with a **single instance per
+environment** (Development and Production each one service), the edge proxy
+terminates TLS and forwards `X-Forwarded-For`, and **no Redis is provisioned or
+depended upon** (no `redis`/`ioredis`/`bullmq` in the API; only PostgreSQL + `pg`).
+Redis and BullMQ appear in the aspirational stack but are not deployed.
+
+### Decision
+
+1. **Library.** Adopt `@nestjs/throttler` `6.5.x` (latest 6.x; its
+   `peerDependencies` include `@nestjs/common`/`@nestjs/core` `^11.0.0`, matching
+   the API's NestJS 11). No new infrastructure dependency: throttler ships an
+   in-memory storage backend; no Redis is added by this decision.
+
+2. **Single unnamed/default throttler.** Configure exactly one default throttler
+   (`ThrottlerModule.forRoot([{ ttl: seconds(60), limit: 120 }])`) and apply
+   per-route caps with route-level `@Throttle({ default: { limit, ttl } })`
+   overrides. **No named global buckets** are configured — named buckets emit
+   `-{name}`-suffixed headers and risk unintended application to routes that were
+   never meant to carry them; a single default throttler avoids both.
+
+3. **Per-handler, per-IP keys (not one API-wide counter).** In `@nestjs/throttler`
+   6.5.0 the guard computes
+   `generateKey = sha256("${class}-${handler}-${name}-${tracker}")`, so each
+   (controller class + handler + client IP) pair has its **own independent
+   counter**. There is no single aggregate API-wide counter: exhausting one
+   route's budget for one IP never affects a different route or a different IP.
+
+4. **Client-IP tracking (corrected fact).** In `@nestjs/throttler` 6.5.0 the
+   default `getTracker` returns **`req.ip`** directly (verified against the
+   `v6.5.0` tag; not the spoofable leftmost `req.ips[0]` that appears on the
+   library's `master` branch). With Express `trust proxy = 1`, `req.ip` resolves
+   to the client address attributed by the single trusted Railway proxy (the
+   right-most, proxy-appended `X-Forwarded-For` hop), which the client cannot
+   spoof. Therefore **no custom tracker and no `ThrottlerGuard` subclass are
+   required** for correct per-client keying, unless the C-1A implementation tests
+   disprove this expected Express/throttler behavior — in which case a minimal
+   `getTracker` override is added and re-verified.
+
+5. **Proxy configuration, gated by a live test.** Set `app.set('trust proxy', 1)`
+   (exactly one hop). This assumption — that Railway fronts the app with exactly
+   one proxy — is **gated by a Development live spoofed-`X-Forwarded-For` test
+   (Decision 9 / Implementation) that must pass before Production**. Trusting the
+   full forwarded chain is rejected because it would let clients spoof their
+   source IP and evade limits.
+
+6. **Limits (per route, per IP).** Brute-force protection is prioritized for the
+   guessable-secret routes (login/register); refresh and sync carry high-entropy,
+   single-use / authenticated tokens, so their caps are abuse/DoS ceilings set
+   generously to tolerate shared-NAT traffic:
+
+   | Route | Limit / Window | Basis |
+   |---|---|---|
+   | `POST /auth/login` | 20 / 15 min | brute-force cap; matches retired legacy MVP; Argon2 is the deeper backstop |
+   | `POST /auth/register` | 10 / 60 min | anti-account-farming; one signup + validation retries |
+   | `POST /auth/refresh` | 120 / 15 min | 1 refresh/device per ~15 min (15 m access TTL) ⇒ ~120 devices per IP; reuse already self-revokes |
+   | `POST /sync/push`, `GET /sync/pull` | 240 / 60 s | reconnect drains queue (≤100 ops/req, `@ArrayMaxSize(100)`; paged pulls) — a single-device reconnect ≈ 15–30 req, leaving headroom for a few concurrent devices per IP |
+   | default (all other routes) | 120 / 60 s | normal authed navigation/reads |
+
+   Limits are compile-time constants. **Sync stays IP-keyed in this decision**
+   (see Decision 8).
+
+7. **Exemptions.** `GET /health` is exempt via `@SkipThrottle()` (Railway's
+   liveness probe hits it continuously). For CORS preflight: `app.enableCors()`
+   registers the `cors` middleware, which runs **before** guards and terminates a
+   preflight (`preflightContinue: false` default) so `ThrottlerGuard` never sees
+   an `OPTIONS` request. **An explicit `OPTIONS` guard skip is added only if a
+   C-1A test proves preflight reaches the guard.**
+
+8. **IP-based only; user-keyed sync deferred.** `ThrottlerGuard` runs as a global
+   guard ordered **before** authentication so unauthenticated `/auth/*` is
+   protected and Argon2/JWT work is gated behind the limiter. Because the
+   throttler runs before JWT, `req.user` is unset inside the tracker, so
+   **per-user keying is not possible in this ordering and is explicitly not
+   claimed to work**. User-keyed sync limiting is deferred to a future slice
+   (C-1B) that must first design an explicit guard order (e.g. a second throttler
+   ordered after `JwtAuthGuard` for sync routes, or independent JWT identity
+   extraction).
+
+9. **Always enabled; no kill switch.** Rate limiting is enabled by default in
+   every deployed environment with compiled secure defaults. There is **no
+   environment flag that disables the control and no runtime override of the
+   limit values**. Rollback is a previous-image redeployment (expand-first; this
+   slice adds no schema change), never a runtime disable.
+
+10. **Storage.** In-memory (per-instance) throttler storage is accepted **only
+    while each environment runs a single instance** (current Railway topology).
+    The consequences — counters reset on container restart, and per-IP limits do
+    not aggregate legitimate users behind a shared CGNAT — are **explicitly
+    accepted** for v1. Moving to shared (Redis) storage is a separate future
+    slice, required before any environment scales beyond one instance.
+
+11. **429 behavior.** Over-limit requests receive a generic, **non-enumerating**
+    `429 Too Many Requests` (identical body regardless of whether an account
+    exists), carrying `X-RateLimit-Limit` / `X-RateLimit-Remaining` /
+    `X-RateLimit-Reset` and `Retry-After` (throttler 6.5 default header behavior).
+    429 is an `HttpException`, so the existing `SentryGlobalFilter` does not report
+    it as an error.
+
+12. **Guard-order is proven by test, not assumed.** A required C-1A test must
+    prove `ThrottlerGuard` executes **before** costly authentication work — i.e.
+    an over-limit unauthenticated request to `/auth/login` returns `429` without
+    performing password hashing / JWT verification. `APP_GUARD` registration order
+    is **not** assumed to guarantee this; it is asserted by the test.
+
+13. **Out of scope (separate future slices).** Registration-response enumeration
+    remediation (`register` distinguishing email vs username collision),
+    429/abuse logging and monitoring, user-keyed sync limiting, and Redis-backed
+    shared storage are each deferred to their own separately-reviewed slices.
+
+### Options Considered
+
+1. **`@nestjs/throttler` single default throttler, IP-keyed, in-memory
+   (selected).** Nest-native, no new infrastructure, per-route/per-IP counters,
+   clean headers, minimal surface.
+2. **Multiple global named buckets.** Rejected — suffixed headers and the risk of
+   a bucket applying to routes it was not intended for; per-route `@Throttle`
+   overrides on a single default throttler achieve the same segmentation safely.
+3. **Custom / hand-rolled limiter.** Rejected — reinvents a maintained, official
+   Nest package; higher risk, no benefit (`.ai/05_SECURITY.md` dependency-review
+   bar favors the official module).
+4. **`express-rate-limit` (the legacy MVP approach).** Rejected — not Nest-native;
+   bypasses guard/DI integration and per-route decorators.
+5. **Email/username-keyed login lockout.** Rejected — lets an attacker lock a
+   victim out by guessing their email (targeted denial of service); IP-keying
+   avoids victim-targeted lockout.
+6. **Redis-backed storage now.** Rejected for v1 — no Redis is provisioned and
+   each environment is single-instance, so in-memory is correct until scaling;
+   introducing Redis prematurely adds unjustified infrastructure.
+
+### Rationale
+
+`@nestjs/throttler` with one default throttler and per-route overrides is the
+smallest change that satisfies the standing `.ai/05_SECURITY.md` /
+`.ai/10_DEPLOYMENT.md` mandate without adding infrastructure. Verified 6.5.0
+behavior (`req.ip` tracker + per-class/handler/IP key) means correct per-client,
+per-route limiting needs only `trust proxy = 1` — no custom code — and the design
+fails secure (always on, no disable path). The accepted limitations (per-instance
+counters, CGNAT coarseness) are bounded by the current single-instance topology
+and are carried as explicit future slices rather than hidden.
+
+### Consequences
+
+Positive:
+
+- The standing security/deployment mandate for rate limiting is satisfied on the
+  target backend; brute-force, registration-farming, and flood traffic are bounded.
+- No new infrastructure (no Redis); additive, no schema change; one-click rollback.
+- Per-route/per-IP isolation; generic non-enumerating 429s; standard rate-limit
+  headers.
+
+Negative / accepted:
+
+- Per-instance in-memory counters reset on container restart and are correct only
+  while each environment runs one instance.
+- IP-keying can throttle legitimate users sharing a CGNAT IP (worst for
+  refresh/sync); resolved only by the future user-keyed slice.
+- Correct client attribution depends on `trust proxy = 1` matching Railway's
+  actual hop depth — must be proven by the Development live test before Production.
+
+### Implementation Sequence (separately reviewed slices)
+
+1. **ADR-P020 (this document, documentation-only).**
+2. **C-1A** — add `@nestjs/throttler` `6.5.x`; configure the single default
+   throttler with IP-based auth/sync route overrides; set `trust proxy = 1`;
+   `@SkipThrottle()` on `/health`; unit + e2e tests, including: guard-runs-before-
+   auth (Decision 12), the spoofed-`X-Forwarded-For` shared-bucket test, the
+   non-enumerating-429 test, and the OPTIONS-preflight probe (Decision 7).
+3. **Development live verification** — confirm `/health` stays unthrottled under
+   Railway probes and run the live spoofed-`X-Forwarded-For` proxy test proving
+   `trust proxy = 1` matches Railway; then **Production**.
+4. **C-1B** — 429/abuse logging and monitoring, and — **only after** an explicit
+   guard-order design — optional user-keyed sync limiting.
+5. **Future** — Redis-backed shared throttler storage, required before any
+   environment scales beyond one instance.
+
+### Supersedes / Preserves
+
+- Fulfills the rate-limiting requirement in `.ai/05_SECURITY.md` (API Security)
+  and `.ai/10_DEPLOYMENT.md` (Backend Runtime Requirements) for the NestJS API.
+- Preserves the retired Express MVP limiter (`server/`) as historical precedent
+  only; it is not reactivated.
+- Adds no new ADR-level dependency on Redis; the aspirational Redis/BullMQ stack
+  is untouched and remains a future slice.
+
+### Related Documents
+
+- `.ai/00_PROJECT.md`
+- `.ai/05_SECURITY.md`
+- `.ai/10_DEPLOYMENT.md`
+- `api/DEPLOYMENT.md`
+- `.ai/11_BACKLOG.md`
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
