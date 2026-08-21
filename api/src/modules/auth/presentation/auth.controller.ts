@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Post } from '@nestjs/common';
+import { Throttle, seconds } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { AuthService, type AuthResult } from '../application/auth.service';
@@ -18,6 +19,8 @@ import { RegisterDto } from './dto/register.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // Anti-account-farming cap: 10 registrations / 60 min per IP (ADR-P020).
+  @Throttle({ default: { limit: 10, ttl: seconds(3600) } })
   @Public()
   @Post('register')
   @ApiOperation({ summary: 'Create an account and receive a token pair' })
@@ -25,6 +28,8 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  // Brute-force cap: 20 login attempts / 15 min per IP (ADR-P020).
+  @Throttle({ default: { limit: 20, ttl: seconds(900) } })
   @Public()
   @Post('login')
   @HttpCode(200)
@@ -33,6 +38,10 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  // Abuse ceiling for token rotation: 120 / 15 min per IP (ADR-P020) — high
+  // because refresh tokens are high-entropy, single-use, and reuse revokes
+  // the session family.
+  @Throttle({ default: { limit: 120, ttl: seconds(900) } })
   @Public()
   @Post('refresh')
   @HttpCode(200)

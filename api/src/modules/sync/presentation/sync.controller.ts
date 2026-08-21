@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { Throttle, seconds } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
@@ -24,6 +25,9 @@ const DEFAULT_PULL_LIMIT = 100;
 export class SyncController {
   constructor(private readonly syncService: SyncService) {}
 
+  // Reconnect-burst ceiling: 240 / 60 s per IP (ADR-P020) — a device draining
+  // its offline queue (≤100 ops/req) fits with headroom for a few devices/IP.
+  @Throttle({ default: { limit: 240, ttl: seconds(60) } })
   @Post('push')
   @ApiOperation({
     summary: 'Push queued client operations (idempotent by opId)',
@@ -35,6 +39,9 @@ export class SyncController {
     return this.syncService.push(user.id, dto.deviceId ?? null, dto.operations);
   }
 
+  // Reconnect-burst ceiling: 240 / 60 s per IP (ADR-P020) — cursor-paged
+  // pulls (limit 100) across entity types stay within one active device.
+  @Throttle({ default: { limit: 240, ttl: seconds(60) } })
   @Get('pull')
   @ApiOperation({
     summary: 'Pull changes since a sync_seq cursor (incremental)',

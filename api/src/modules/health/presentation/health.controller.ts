@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Public } from '../../auth/presentation/decorators/public.decorator';
@@ -9,6 +10,9 @@ export interface HealthStatus {
   uptimeSeconds: number;
 }
 
+// Railway's liveness probe polls /health continuously; exempt it from rate
+// limiting so probe traffic never consumes or trips a bucket (ADR-P020).
+@SkipThrottle()
 @ApiTags('health')
 @Controller('health')
 export class HealthController {
