@@ -6868,23 +6868,36 @@ Redis and BullMQ appear in the aspirational stack but are not deployed.
    counter**. There is no single aggregate API-wide counter: exhausting one
    route's budget for one IP never affects a different route or a different IP.
 
-4. **Client-IP tracking (corrected fact).** In `@nestjs/throttler` 6.5.0 the
-   default `getTracker` returns **`req.ip`** directly (verified against the
-   `v6.5.0` tag; not the spoofable leftmost `req.ips[0]` that appears on the
-   library's `master` branch). With Express `trust proxy = 1`, `req.ip` resolves
-   to the client address attributed by the single trusted Railway proxy (the
-   right-most, proxy-appended `X-Forwarded-For` hop), which the client cannot
-   spoof. Therefore **no custom tracker and no `ThrottlerGuard` subclass are
-   required** for correct per-client keying, unless the C-1A implementation tests
-   disprove this expected Express/throttler behavior — in which case a minimal
-   `getTracker` override is added and re-verified.
+4. **Client-IP tracking (corrected 2026-08-21).** The original decision keyed on
+   `req.ip` with Express `trust proxy = 1` (trusting one Railway hop as the
+   right-most `X-Forwarded-For` entry). **The 2026-08-21 Development live test
+   disproved that assumption:** login requests fragmented across multiple tracker
+   keys (non-monotonic `X-RateLimit-Remaining`/`-Reset`, request 21 never `429`),
+   because Railway's proxy depth does not match a single hop and `req.ip`
+   resolved to a *varying* internal address. A fixed-`X-Forwarded-For` control
+   reproduced the fragmentation, proving the cause was tracker-key fragmentation
+   — **not** multiple replicas and **not** a failure of in-memory storage.
+   **Corrected design:** a small, pure, Railway-aware `getTracker`
+   (`api/src/config/throttler.config.ts`) supplied through the ThrottlerModule's
+   supported module-level `getTracker` option (no `AuthModule`/guard change).
+   Per Railway's current platform contract, its edge sanitizes `X-Forwarded-For`
+   and places the real connecting client IP in the FIRST (left-most) entry:
+   - **On Railway** (detected by the auto-injected `RAILWAY_ENVIRONMENT_ID`
+     marker): use the first XFF entry, strictly validated with Node's `net.isIP`.
+   - **Off Railway:** use `req.ip`; never trust arbitrary client XFF directly.
+   - **Fail closed:** if Railway's XFF is missing, non-string, empty, array-valued,
+     or its first entry is not a valid IPv4/IPv6, return ONE deterministic shared
+     key — never a varying proxy address. Raw IPs are never logged or exposed.
+   No `X-Real-IP`, no Fastly-specific header, no numeric-hop assumption, no new
+   dependency, no Redis, no env kill switch.
 
-5. **Proxy configuration, gated by a live test.** Set `app.set('trust proxy', 1)`
-   (exactly one hop). This assumption — that Railway fronts the app with exactly
-   one proxy — is **gated by a Development live spoofed-`X-Forwarded-For` test
-   (Decision 9 / Implementation) that must pass before Production**. Trusting the
-   full forwarded chain is rejected because it would let clients spoof their
-   source IP and evade limits.
+5. **No `trust proxy` hop assumption.** `app.set('trust proxy', 1)` (introduced
+   solely for the original C-1A tracker) is **removed** — it was disproven above.
+   Client attribution now comes from the Railway-aware `getTracker` (Decision 4),
+   not from an Express proxy-hop count. The corrected behavior remains **gated by
+   the Development-first live test** (Implementation step 3) before Production:
+   one stable sanitized client must reach `429` at request 21 across varying
+   trailing hops, and two distinct sanitized clients must get independent buckets.
 
 6. **Limits (per route, per IP).** Brute-force protection is prioritized for the
    guessable-secret routes (login/register); refresh and sync carry high-entropy,
@@ -6974,12 +6987,15 @@ Redis and BullMQ appear in the aspirational stack but are not deployed.
 
 `@nestjs/throttler` with one default throttler and per-route overrides is the
 smallest change that satisfies the standing `.ai/05_SECURITY.md` /
-`.ai/10_DEPLOYMENT.md` mandate without adding infrastructure. Verified 6.5.0
-behavior (`req.ip` tracker + per-class/handler/IP key) means correct per-client,
-per-route limiting needs only `trust proxy = 1` — no custom code — and the design
-fails secure (always on, no disable path). The accepted limitations (per-instance
-counters, CGNAT coarseness) are bounded by the current single-instance topology
-and are carried as explicit future slices rather than hidden.
+`.ai/10_DEPLOYMENT.md` mandate without adding infrastructure. Correct per-client,
+per-route limiting is achieved by the Railway-aware `getTracker` (Decision 4,
+corrected 2026-08-21 after the `trust proxy = 1` approach was disproven live);
+the design fails secure (always on, no disable path; unresolved client → one
+shared fail-closed key). The accepted limitations (per-instance counters, CGNAT
+coarseness) are bounded by the current single-instance topology — **in-memory
+single-instance storage was not disproven and remains accepted; Redis stays
+deferred until scaling** — and are carried as explicit future slices rather than
+hidden.
 
 ### Consequences
 
@@ -6994,23 +7010,32 @@ Positive:
 Negative / accepted:
 
 - Per-instance in-memory counters reset on container restart and are correct only
-  while each environment runs one instance.
+  while each environment runs one instance (accepted; not disproven by the
+  2026-08-21 live test — Redis stays deferred until scaling).
 - IP-keying can throttle legitimate users sharing a CGNAT IP (worst for
   refresh/sync); resolved only by the future user-keyed slice.
-- Correct client attribution depends on `trust proxy = 1` matching Railway's
-  actual hop depth — must be proven by the Development live test before Production.
+- Correct client attribution depends on Railway's platform contract that its edge
+  sanitizes `X-Forwarded-For` and puts the real client first; if that contract
+  changes, the Railway-aware `getTracker` (Decision 4) must be revisited. The
+  corrected tracker must still pass the Development-first live test before
+  Production (the earlier `trust proxy = 1` approach failed it on 2026-08-21).
 
 ### Implementation Sequence (separately reviewed slices)
 
 1. **ADR-P020 (this document, documentation-only).**
 2. **C-1A** — add `@nestjs/throttler` `6.5.x`; configure the single default
-   throttler with IP-based auth/sync route overrides; set `trust proxy = 1`;
+   throttler with IP-based auth/sync route overrides; the Railway-aware
+   `getTracker` (Decision 4, corrected 2026-08-21 — no `trust proxy`);
    `@SkipThrottle()` on `/health`; unit + e2e tests, including: guard-runs-before-
-   auth (Decision 12), the spoofed-`X-Forwarded-For` shared-bucket test, the
-   non-enumerating-429 test, and the OPTIONS-preflight probe (Decision 7).
-3. **Development live verification** — confirm `/health` stays unthrottled under
-   Railway probes and run the live spoofed-`X-Forwarded-For` proxy test proving
-   `trust proxy = 1` matches Railway; then **Production**.
+   auth (Decision 12), the Railway sanitized-first-XFF tracker tests
+   (stable client → `429` at 21 across varying trailing hops; distinct clients →
+   independent buckets; fail-closed on invalid XFF), the non-enumerating-429
+   test, and the OPTIONS-preflight probe (Decision 7).
+3. **Development live verification (PENDING)** — confirm `/health` stays
+   unthrottled under Railway probes and run the live test proving the
+   Railway-aware tracker enforces one bucket per sanitized client (request 21 →
+   `429`) and cannot be evaded by trailing-hop manipulation; **the gate remains
+   pending until the corrected commit passes this live test**; then **Production**.
 4. **C-1B** — 429/abuse logging and monitoring, and — **only after** an explicit
    guard-order design — optional user-keyed sync limiting.
 5. **Future** — Redis-backed shared throttler storage, required before any

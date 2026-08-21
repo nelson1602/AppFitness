@@ -13,31 +13,29 @@ import { PasswordService } from './../src/modules/auth/infrastructure/password.s
 import { buildWebCorsOptions } from './../src/config/cors.config';
 
 /**
- * ADR-P020 C-1A end-to-end proof of API rate limiting.
+ * ADR-P020 C-1A end-to-end proof of API rate limiting with the corrected
+ * Railway-aware client tracker.
  *
  * The REAL guard chain (ThrottlerGuard -> JwtAuthGuard -> RolesGuard),
  * controllers, routing, and ThrottlerModule are exercised. Only the leaf
  * AuthService + PasswordService are replaced with controlled test doubles so
  * the suite never creates a real account, never runs Argon2, and never reaches
- * an external service — yet still proves that the throttler short-circuits the
- * request before any of that work runs.
+ * an external service.
  *
- * `trust proxy = 1` is set on the Express instance here to mirror main.ts (the
- * e2e harness does not run main.ts). Each test uses its own trusted client IP
- * (right-most X-Forwarded-For entry) so per-IP buckets never collide.
+ * Railway mode is modeled by setting RAILWAY_ENVIRONMENT_ID before module
+ * initialization (restored afterwards). In that mode the tracker keys on the
+ * sanitized FIRST X-Forwarded-For entry (Railway's real connecting client),
+ * so tests drive per-client buckets via the left-most XFF value.
  */
 describe('Rate limiting (e2e, ADR-P020 C-1A)', () => {
   let app: INestApplication<App>;
+  let priorRailwayEnv: string | undefined;
 
-  // Password verify spy — the "expensive work" the throttler must gate.
   const passwordSpy = {
     hash: jest.fn().mockResolvedValue('$argon2-fake'),
     verify: jest.fn().mockResolvedValue(false),
   };
 
-  // Deterministic auth fake: no DB, no real account creation, no Argon2.
-  // login() calls the password spy (models the costly path); register()/
-  // refresh() fail deterministically without any persistence or network.
   const fakeAuthService = {
     login: async (dto: { password?: string }) => {
       await passwordSpy.verify('$argon2-fake', dto.password ?? '');
@@ -52,6 +50,10 @@ describe('Rate limiting (e2e, ADR-P020 C-1A)', () => {
   const ALLOWED_ORIGIN = 'http://localhost:8081';
 
   beforeAll(async () => {
+    // Model Railway mode before module initialization.
+    priorRailwayEnv = process.env.RAILWAY_ENVIRONMENT_ID;
+    process.env.RAILWAY_ENVIRONMENT_ID = 'e2e-test-environment';
+
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     })
@@ -62,58 +64,60 @@ describe('Rate limiting (e2e, ADR-P020 C-1A)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    // Mirror main.ts: trust exactly one proxy hop so req.ip = right-most XFF.
-    (
-      app.getHttpAdapter().getInstance() as {
-        set: (k: string, v: unknown) => void;
-      }
-    ).set('trust proxy', 1);
+    // No `trust proxy` here: the corrected tracker reads Railway's sanitized
+    // X-Forwarded-For directly (the 2026-08-21 live test disproved trust proxy).
     app.enableCors(buildWebCorsOptions(ALLOWED_ORIGIN));
     await app.init();
   });
 
   afterAll(async () => {
     await app.close();
+    // Restore environment state.
+    if (priorRailwayEnv === undefined) {
+      delete process.env.RAILWAY_ENVIRONMENT_ID;
+    } else {
+      process.env.RAILWAY_ENVIRONMENT_ID = priorRailwayEnv;
+    }
   });
 
   const http = () => request(app.getHttpServer());
-  // Single-entry XFF: with trust proxy=1 and a loopback socket, req.ip resolves
-  // to this value, giving each test its own isolated per-IP bucket.
-  const loginFrom = (ip: string) =>
+  // In Railway mode the tracker uses the sanitized FIRST XFF entry; a
+  // single-entry XFF therefore gives each test its own isolated client bucket.
+  const loginFrom = (client: string) =>
     http()
       .post('/auth/login')
-      .set('X-Forwarded-For', ip)
+      .set('X-Forwarded-For', client)
       .send({ email: 'user@appfitness.local', password: 'pw' });
 
   it('login: first 20 stay below-limit (401, not 429); the 21st is 429', async () => {
-    const ip = '198.51.100.1';
+    const client = '198.51.100.1';
     for (let i = 0; i < 20; i++) {
-      const res = await loginFrom(ip);
+      const res = await loginFrom(client);
       expect(res.status).not.toBe(429);
       expect(res.status).toBe(401);
     }
-    const blocked = await loginFrom(ip);
+    const blocked = await loginFrom(client);
     expect(blocked.status).toBe(429);
     expect(blocked.headers['retry-after']).toBeDefined();
   });
 
   it('login over-limit returns 429 BEFORE password hashing runs; below-limit invokes it', async () => {
-    const ip = '198.51.100.2';
+    const client = '198.51.100.2';
     passwordSpy.verify.mockClear();
     for (let i = 0; i < 20; i++) {
-      const res = await loginFrom(ip);
+      const res = await loginFrom(client);
       expect(res.status).toBe(401);
     }
     expect(passwordSpy.verify).toHaveBeenCalledTimes(20); // invoked below limit
-    const blocked = await loginFrom(ip);
+    const blocked = await loginFrom(client);
     expect(blocked.status).toBe(429);
     expect(passwordSpy.verify).toHaveBeenCalledTimes(20); // NOT invoked at limit
   });
 
   it('register: 10 stay below-limit (409, not 429); the 11th is 429 — no real accounts created', async () => {
-    const ip = '198.51.100.3';
+    const client = '198.51.100.3';
     const registerFrom = () =>
-      http().post('/auth/register').set('X-Forwarded-For', ip).send({
+      http().post('/auth/register').set('X-Forwarded-For', client).send({
         email: 'reg@appfitness.local',
         username: 'reguser',
         password: 'pw',
@@ -128,12 +132,12 @@ describe('Rate limiting (e2e, ADR-P020 C-1A)', () => {
   });
 
   it('429 is identical for an existing vs a non-existent identity (no enumeration)', async () => {
-    const exhaust = async (ip: string, email: string) => {
-      let last = await loginFrom(ip);
+    const exhaust = async (client: string, email: string) => {
+      let last = await loginFrom(client);
       for (let i = 0; i < 20; i++) {
         last = await http()
           .post('/auth/login')
-          .set('X-Forwarded-For', ip)
+          .set('X-Forwarded-For', client)
           .send({ email, password: 'pw' });
       }
       return last;
@@ -147,104 +151,94 @@ describe('Rate limiting (e2e, ADR-P020 C-1A)', () => {
     expect(a.headers['x-ratelimit-limit']).toBe(b.headers['x-ratelimit-limit']);
   });
 
-  it('spoofed left-most X-Forwarded-For shares one bucket under trust proxy=1', async () => {
-    const trustedClient = '203.0.113.50';
-    const spoofed = (i: number) =>
+  it('a stable sanitized client reaches 429 at request 21 across varying trailing proxy hops', async () => {
+    // Railway places the real client first; trailing hops vary per request but
+    // must NOT create new buckets — the sanitized first value is the key.
+    const client = '203.0.113.150';
+    const withHops = (i: number) =>
       http()
         .post('/auth/login')
-        .set('X-Forwarded-For', `${i}.${i}.${i}.${i}, ${trustedClient}`)
+        .set('X-Forwarded-For', `${client}, 10.0.0.${i}, 172.16.${i}.9`)
         .send({ email: 'user@appfitness.local', password: 'pw' });
     for (let i = 1; i <= 20; i++) {
-      const res = await spoofed(i);
-      expect(res.status).toBe(401); // varying spoofed left-most, same bucket
+      const res = await withHops(i);
+      expect(res.status).toBe(401); // varying trailing hops, same client bucket
     }
-    const blocked = await spoofed(99);
-    expect(blocked.status).toBe(429); // 21st still 429 => same bucket
+    const blocked = await withHops(99);
+    expect(blocked.status).toBe(429); // 21st still 429 => trailing hops cannot evade
   });
 
-  it('two different trusted right-most client IPs get independent buckets', async () => {
+  it('two different sanitized first client IPs get independent buckets', async () => {
     const exhaust = async (client: string) => {
-      let last = await http()
-        .post('/auth/login')
-        .set('X-Forwarded-For', `10.0.0.9, ${client}`)
-        .send({ email: 'user@appfitness.local', password: 'pw' });
-      for (let i = 0; i < 20; i++) {
-        last = await http()
-          .post('/auth/login')
-          .set('X-Forwarded-For', `10.0.0.9, ${client}`)
-          .send({ email: 'user@appfitness.local', password: 'pw' });
-      }
+      let last = await loginFrom(client);
+      for (let i = 0; i < 20; i++) last = await loginFrom(client);
       return last;
     };
-    const first = await exhaust('203.0.113.60');
+    const first = await exhaust('203.0.113.160');
     expect(first.status).toBe(429);
-    // A different trusted client starts fresh.
-    const other = await http()
-      .post('/auth/login')
-      .set('X-Forwarded-For', '10.0.0.9, 203.0.113.61')
-      .send({ email: 'user@appfitness.local', password: 'pw' });
+    // A different sanitized client starts fresh.
+    const other = await loginFrom('203.0.113.161');
     expect(other.status).toBe(401);
   });
 
   it('handler isolation: exhausting login does not exhaust register', async () => {
-    const ip = '198.51.100.6';
-    for (let i = 0; i < 21; i++) await loginFrom(ip);
+    const client = '198.51.100.6';
+    for (let i = 0; i < 21; i++) await loginFrom(client);
     const reg = await http()
       .post('/auth/register')
-      .set('X-Forwarded-For', ip)
+      .set('X-Forwarded-For', client)
       .send({ email: 'r@appfitness.local', username: 'r', password: 'pw' });
     expect(reg.status).not.toBe(429);
     expect(reg.status).toBe(409);
   });
 
   it('/health is exempt: stays 200 well beyond the default limit', async () => {
-    const ip = '198.51.100.7';
+    const client = '198.51.100.7';
     for (let i = 0; i < 130; i++) {
-      const res = await http().get('/health').set('X-Forwarded-For', ip);
+      const res = await http().get('/health').set('X-Forwarded-For', client);
       expect(res.status).toBe(200);
     }
   });
 
   it('CORS OPTIONS preflight is not throttled and does not consume the login bucket', async () => {
-    const ip = '198.51.100.8';
+    const client = '198.51.100.8';
     for (let i = 0; i < 25; i++) {
       const res = await http()
         .options('/auth/login')
         .set('Origin', ALLOWED_ORIGIN)
         .set('Access-Control-Request-Method', 'POST')
-        .set('X-Forwarded-For', ip);
+        .set('X-Forwarded-For', client);
       expect(res.status).toBe(204); // >20 preflights, never 429
     }
-    // The login bucket for this IP is untouched: first login sees remaining=19.
-    const res = await loginFrom(ip);
+    // The login bucket for this client is untouched: first login sees remaining=19.
+    const res = await loginFrom(client);
     expect(res.status).toBe(401);
     expect(res.headers['x-ratelimit-remaining']).toBe('19');
   });
 
   it('standard rate-limit headers present on allowed responses; Retry-After on 429', async () => {
-    const ip = '198.51.100.9';
-    const first = await loginFrom(ip);
+    const client = '198.51.100.9';
+    const first = await loginFrom(client);
     expect(first.headers['x-ratelimit-limit']).toBeDefined();
     expect(first.headers['x-ratelimit-remaining']).toBeDefined();
     expect(first.headers['x-ratelimit-reset']).toBeDefined();
-    for (let i = 0; i < 19; i++) await loginFrom(ip);
-    const blocked = await loginFrom(ip);
+    for (let i = 0; i < 19; i++) await loginFrom(client);
+    const blocked = await loginFrom(client);
     expect(blocked.status).toBe(429);
     expect(blocked.headers['retry-after']).toBeDefined();
   });
 
   // Every configured route limit + TTL, proven observably via first-response
-  // headers (limit) and the reset window (TTL), plus enforcement above. This
-  // does not depend on internal throttler metadata keys.
+  // headers (limit) and the reset window (TTL), plus enforcement above.
   it('each route exposes its configured limit and TTL via headers', async () => {
     const firstHeaders = async (
       method: 'post' | 'get',
       path: string,
-      ip: string,
+      client: string,
     ) => {
       const req =
         method === 'post' ? http().post(path).send({}) : http().get(path);
-      const res = await req.set('X-Forwarded-For', ip);
+      const res = await req.set('X-Forwarded-For', client);
       return {
         limit: res.headers['x-ratelimit-limit'],
         reset: Number(res.headers['x-ratelimit-reset']),

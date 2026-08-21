@@ -3,21 +3,13 @@ import './instrument';
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
 import { setupApiDocs } from './config/api-docs.config';
 import { buildWebCorsOptions } from './config/cors.config';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-
-  // Trust exactly one proxy hop (Railway's edge). This makes Express `req.ip`
-  // resolve to the client address Railway attributes (the proxy-appended,
-  // right-most X-Forwarded-For entry), which the throttler uses as its default
-  // per-IP key (ADR-P020). Trusting the full chain would let clients spoof
-  // their source IP and evade rate limits.
-  app.set('trust proxy', 1);
+  const app = await NestFactory.create(AppModule);
 
   // Explicit-origin CORS for interim Web Bearer auth (ADR-P018 Slice 3).
   // Exact origins only from WEB_CORS_ORIGINS; fail-closed (no cross-origin
