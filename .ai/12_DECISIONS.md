@@ -7078,6 +7078,230 @@ Negative / accepted:
 
 ---
 
+## ADR-P021 — API HTTP Hardening and Graceful Shutdown
+
+Status: Accepted
+Date: 2026-08-21
+Owner: Architecture / Security
+
+### Context
+
+`.ai/05_SECURITY.md` (API Security) and `.ai/02_TECH_STACK.md` (API Security:
+Helmet, Rate Limiting, CORS) require HTTP security headers; `.ai/10_DEPLOYMENT.md`
+lists request validation and graceful runtime behavior as backend runtime
+requirements. Audit finding **H-1** flagged three gaps in the NestJS API
+(`origin/main` `ac2df31`):
+
+1. **No security headers.** Verified on the live Development `/health`: the API
+   returns `X-Powered-By: Express` (a framework info-leak) and **none** of the
+   standard security headers (`X-Content-Type-Options`, `X-Frame-Options`,
+   `Strict-Transport-Security`, `Referrer-Policy`, `Cross-Origin-*`, etc.).
+2. **No explicit body-parser limit.** `api/src/main.ts` sets no parser options.
+   **Correction:** this is not "unlimited" — the stack is Express `5.2.1` under
+   NestJS 11, whose adapter registers `json`/`urlencoded` parsers at Express's
+   **default `100kb`** limit, already in effect. `body-parser` is already
+   lockfile-resolved to the patched `2.3.0`.
+3. **No graceful shutdown.** `app.enableShutdownHooks()` is absent;
+   `PrismaService implements OnModuleDestroy` with `onModuleDestroy()` →
+   `$disconnect()`, and connect is lazy (no `onModuleInit`).
+
+H-1 also raised **API versioning** (unversioned routes `/auth/*`, `/users/me/*`,
+`/medical/*`, `/sync/{push,pull}`, `/health`). That is a breaking change and is
+explicitly **out of H-1A** (see Decision 5).
+
+### Decision
+
+**1. Scope.** H-1A is **one non-breaking security slice** covering (a) Helmet
+security headers, (b) explicit request-parser limits that preserve current
+behavior, and (c) NestJS graceful-shutdown hooks. It **excludes** API
+versioning, rate-limit changes (C-1A/ADR-P020), authentication/email work,
+sync-protocol changes, health-readiness work (H-7), mobile code, UI/UX, Redis,
+migrations, Railway settings, and deployment-topology changes.
+
+**2. Helmet.**
+- Add the already-approved `helmet` package in the later implementation, target
+  **`helmet` 8.3.0** (MIT, zero runtime dependencies), following the repo's
+  normal manifest/lockfile convention (no separate ADR — Helmet is already in
+  `02_TECH_STACK.md` §API Security; this ADR records the H-1A decision by the
+  same precedent as ADR-P020 for the pre-approved rate limiter).
+- Register Helmet **before** CORS, the body parsers, Swagger setup, and routes.
+- Preserve Helmet's applicable default security headers (e.g.
+  `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`,
+  `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy`,
+  `Cross-Origin-Resource-Policy`, `X-DNS-Prefetch-Control`, `X-Download-Options`,
+  `X-Permitted-Cross-Domain-Policies`, `X-XSS-Protection: 0`) and **remove
+  `X-Powered-By`**.
+- The app **cannot** remove Railway's infrastructure-provided `Server` header;
+  H-1A makes no claim about it.
+- **CSP** stays **enabled** whenever API docs are disabled. CSP is disabled
+  **only** when the existing exact gate `API_DOCS_ENABLED === 'true'` enables
+  local Swagger, reusing `isApiDocsEnabled` (`api/src/config/api-docs.config.ts`)
+  rather than duplicating the flag contract — Helmet's default CSP would
+  otherwise break the local Swagger UI's inline assets. Hosted Development and
+  Production leave docs disabled, so **CSP remains enabled there**.
+- **HSTS** uses an explicit conservative policy: `maxAge: 31536000`,
+  `includeSubDomains: false`, `preload: false`. Browsers honor HSTS only when it
+  is received over HTTPS (Railway terminates TLS and 301-redirects HTTP→HTTPS;
+  the header is inert on local HTTP). `includeSubDomains` remains disabled as a
+  conservative policy so HSTS is not automatically extended to future subdomains
+  of whichever API hostname or custom domain is in use; `preload` remains
+  disabled to avoid an external preload commitment.
+- Helmet does **not** supply `Permissions-Policy`; H-1A does not claim it.
+
+**3. Request-body limits.**
+- Nest/Express already enforces Express's default **`100kb`** JSON and
+  URL-encoded limit. H-1A makes that existing limit **explicit and testable**;
+  it introduces **no new, smaller** limit.
+- Configure via `NestExpressApplication.useBodyParser`: JSON `limit: '100kb'`;
+  URL-encoded `limit: '100kb', extended: true`. Do **not** add direct
+  `express.json()` or `body-parser` middleware (avoids a double parser / an
+  ineffective post-parser limit). `body-parser` is already lockfile-resolved to
+  `2.3.0` — no separate dependency update.
+- Oversized bodies return **413**; malformed JSON returns **400** without
+  internal-detail leakage.
+- `@ArrayMaxSize(100)` on `PushSyncDto.operations` limits the operation **count**
+  but does **not** prove that every possible 100-operation payload fits below
+  `100kb` (each `payload` is an unbounded object). H-1A **preserves today's
+  effective payload ceiling**; changing that ceiling requires measured evidence
+  and a **separate** decision.
+
+**4. Graceful shutdown.**
+- Call `app.enableShutdownHooks()` during bootstrap.
+- Reuse the existing `PrismaService.onModuleDestroy()` (`$disconnect()`); add
+  **no** custom signal handlers, **no** duplicate Prisma cleanup, and **no** new
+  shutdown dependency.
+- Note: `app.close()` exercises Nest lifecycle cleanup but does **not** by
+  itself prove OS-signal (SIGTERM/SIGINT) listeners were registered; the two are
+  verified separately (Validation).
+
+**5. API versioning — deferred.** H-1A introduces **no** `/v1`, global prefix,
+header versioning, or route aliases. Current mobile builds, the Web preview,
+Railway health checks, Swagger, CORS, and tests all depend on the **unversioned**
+paths. Versioning is a future breaking API-evolution slice requiring its **own
+ADR** and a coordinated client migration. No silent route migration.
+
+**6. Implementation shape.** The later implementation is expected to use a
+small, reusable security/bootstrap configuration boundary so E2E tests exercise
+the **same** Helmet and parser configuration as production bootstrap (no
+duplicated security config in tests). Do not introduce an unnecessary
+abstraction or move unrelated bootstrap logic.
+
+**7. Validation contract (for the later implementation).**
+- Security headers present on normal API responses; **`X-Powered-By` absent**.
+- Hosted-mode **CSP present**; local Swagger mode usable with CSP omitted **only**
+  under the exact `API_DOCS_ENABLED === 'true'` gate; `/docs` and `/docs-json`
+  remain **404** when the flag is unset.
+- Oversized **JSON and URL-encoded** bodies return **413**; malformed JSON
+  returns **400**.
+- Representative **below-limit** payloads continue reaching the expected
+  route/guard pipeline. Do **not** claim a test proves that *all* possible
+  100-operation sync payloads fit under `100kb`.
+- **CORS preflight** stays **204** with the existing allow-origin behavior.
+- Existing throttling, authentication, health, CORS, sync, account-deletion,
+  unit, and disposable-Postgres E2E suites remain green; type-check, lint,
+  format, build, dependency audit, production Docker build, and the Prisma
+  runtime guard pass.
+- Verify **shutdown-hook registration separately** from Prisma lifecycle
+  cleanup; avoid a fragile process-signal test unless repository evidence makes
+  it deterministic.
+
+**8. Rollout & rollback (topology-safe, Development-first).** Both hosted
+services follow `main`, so the sequence is:
+- **Before merge**, deploy the exact candidate commit to **Development only**
+  using the proven commit-specific mechanism
+  `serviceInstanceDeployV2(commitSha)` (or its verified equivalent). Do **not**
+  use `railway up` (CLI-upload deployments previously failed at Metal-builder
+  scheduling — see ADR-P020's live history).
+- Verify Development health, critical headers, absence of `X-Powered-By`, hosted
+  CSP present, `/docs` remaining 404, normal below-limit behavior, and 413 for an
+  oversized **synthetic** request. Do **not** send authentication,
+  account-creation, destructive, or sensitive-data traffic merely to validate
+  H-1A.
+- **Only after** the Development gate passes, authorize merge separately. The
+  normal `main` triggers then deploy the merge commit to **both** Development and
+  Production; verify CI, deployment success, `/health`, and non-sensitive
+  response headers.
+- **Rollback** is revert/redeploy of the previous image; there is **no** database
+  rollback (H-1A is additive, no schema/migration change).
+
+### Options Considered
+
+1. **Helmet (CSP conditional) + explicit `100kb` parity limits + shutdown hooks
+   (selected).** Smallest non-breaking slice; one pre-approved MIT zero-dep
+   package; behavior-preserving parser limits.
+2. **Global lower body limit (e.g. 10kb, as the retired Express MVP used).**
+   Rejected — it would reduce the current effective 100 KB request envelope and
+   could reject requests currently accepted between 10 KB and 100 KB, including
+   larger valid sync batches. No measured evidence supports narrowing the
+   existing ceiling.
+3. **Per-route body limits only.** Rejected for H-1A — more surface for no
+   security gain over an explicit global parity limit; can be revisited with
+   measured evidence.
+4. **Bundle API versioning (`/v1`) into H-1A.** Rejected — breaking for all
+   current clients, no immediate security benefit; deferred to its own ADR.
+5. **Custom SIGTERM handlers / manual Prisma disconnect.** Rejected — Nest
+   lifecycle hooks + the existing `onModuleDestroy` are sufficient; custom
+   signals would duplicate cleanup.
+
+### Rationale
+
+Helmet is the approved, Nest-native way to add standard security headers and
+strip `X-Powered-By`; conditioning CSP on the existing docs gate keeps local
+Swagger usable while keeping CSP on in both hosted tiers. Making the already-in-
+effect `100kb` parser limit explicit satisfies H-1 without any behavior change
+or regression risk. Enabling shutdown hooks lets Nest drive the existing Prisma
+`$disconnect` cleanly on Railway deployment replacement. Versioning is separated
+because it is breaking and orthogonal to security.
+
+### Consequences
+
+Positive:
+- Standard security headers on every response; `X-Powered-By` removed; the
+  standing security/deployment header mandate is satisfied.
+- Body-parser limit is explicit, documented, and testable; oversized/malformed
+  requests fail cleanly (413/400).
+- Cleaner shutdown on SIGTERM via existing Prisma cleanup; additive, one-click
+  rollback.
+
+Negative / accepted:
+- CSP is intentionally omitted only in the local docs mode; the app cannot remove
+  Railway's `Server` header; `Permissions-Policy` is not provided by Helmet.
+- The `100kb` ceiling is preserved as-is; if a legitimate `>100kb` `/sync/push`
+  batch is ever needed, it requires measured evidence and a separate decision.
+
+### Implementation Sequence (later slice, separately authorized)
+
+1. **ADR-P021 (this document, documentation-only).**
+2. **H-1A implementation** — Helmet (CSP gated by `isApiDocsEnabled`, explicit
+   HSTS), `useBodyParser` `100kb` json/urlencoded, `enableShutdownHooks()`, via a
+   small reusable bootstrap/security boundary; add `helmet@^8.3.0`; unit + E2E
+   per the Validation contract.
+3. **Development-first live verification** (§Decision 8) before merge; then merge
+   → normal `main` deploy to both tiers.
+4. **API versioning** — a separate future ADR/slice (breaking; coordinated client
+   migration), not part of H-1A.
+
+### Supersedes / Preserves
+
+- Fulfills the security-header requirement in `.ai/05_SECURITY.md` /
+  `.ai/02_TECH_STACK.md` for the NestJS API; records the H-1A hardening decision.
+- Preserves ADR-P018/P019 (Web posture), **ADR-P020** (rate limiting — Helmet
+  registers before the ThrottlerGuard chain; no rate-limit/tracker change), and
+  the **H-2** fail-closed Swagger gate (`API_DOCS_ENABLED`), which this ADR
+  reuses rather than modifies. No CORS, auth, or deployment-topology change.
+
+### Related Documents
+
+- `.ai/05_SECURITY.md`
+- `.ai/02_TECH_STACK.md`
+- `.ai/10_DEPLOYMENT.md`
+- `.ai/11_BACKLOG.md` (H-1)
+- `api/src/main.ts`, `api/src/config/api-docs.config.ts`,
+  `api/src/modules/database/prisma.service.ts`,
+  `api/src/modules/sync/presentation/dto/push-sync.dto.ts`
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
