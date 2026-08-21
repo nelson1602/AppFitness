@@ -6945,12 +6945,16 @@ Redis and BullMQ appear in the aspirational stack but are not deployed.
     accepted** for v1. Moving to shared (Redis) storage is a separate future
     slice, required before any environment scales beyond one instance.
 
-11. **429 behavior.** Over-limit requests receive a generic, **non-enumerating**
-    `429 Too Many Requests` (identical body regardless of whether an account
-    exists), carrying `X-RateLimit-Limit` / `X-RateLimit-Remaining` /
-    `X-RateLimit-Reset` and `Retry-After` (throttler 6.5 default header behavior).
-    429 is an `HttpException`, so the existing `SentryGlobalFilter` does not report
-    it as an error.
+11. **429 behavior + headers.** Allowed / below-limit responses carry
+    `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset`.
+    Over-limit requests receive a generic, **non-enumerating** `429 Too Many
+    Requests` (identical body regardless of whether an account exists) with
+    `Retry-After`. This is the verified default behavior of `@nestjs/throttler`
+    6.5.0: on a blocked request the guard sets `Retry-After` and immediately
+    throws the throttling exception, so the normal `X-RateLimit-*`
+    header-setting block (which runs after that throw) is not reached for the 429
+    response. 429 is an `HttpException`, so the existing `SentryGlobalFilter` does
+    not report the expected 429 as an application error.
 
 12. **Guard-order is proven by test, not assumed.** A required C-1A test must
     prove `ThrottlerGuard` executes **before** costly authentication work — i.e.
