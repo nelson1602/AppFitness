@@ -6894,10 +6894,12 @@ Redis and BullMQ appear in the aspirational stack but are not deployed.
 5. **No `trust proxy` hop assumption.** `app.set('trust proxy', 1)` (introduced
    solely for the original C-1A tracker) is **removed** — it was disproven above.
    Client attribution now comes from the Railway-aware `getTracker` (Decision 4),
-   not from an Express proxy-hop count. The corrected behavior remains **gated by
-   the Development-first live test** (Implementation step 3) before Production:
-   one stable sanitized client must reach `429` at request 21 across varying
-   trailing hops, and two distinct sanitized clients must get independent buckets.
+   not from an Express proxy-hop count. The corrected behavior **passed the
+   Development-first live test on 2026-08-21** (Implementation step 3): one stable
+   sanitized client reached `429` at request 21 across varying trailing/spoofed
+   `X-Forwarded-For` values; distinct-client bucket independence remains covered
+   by the validated unit/E2E suite (the live IPv6 sub-proof did not run — no IPv6
+   connectivity from the test client).
 
 6. **Limits (per route, per IP).** Brute-force protection is prioritized for the
    guessable-secret routes (login/register); refresh and sync carry high-entropy,
@@ -7021,8 +7023,9 @@ Negative / accepted:
 - Correct client attribution depends on Railway's platform contract that its edge
   sanitizes `X-Forwarded-For` and puts the real client first; if that contract
   changes, the Railway-aware `getTracker` (Decision 4) must be revisited. The
-  corrected tracker must still pass the Development-first live test before
-  Production (the earlier `trust proxy = 1` approach failed it on 2026-08-21).
+  corrected tracker **passed** the Development-first live test on 2026-08-21
+  (Implementation step 3), whereas the earlier `trust proxy = 1` approach **failed**
+  it on the same day.
 
 ### Implementation Sequence (separately reviewed slices)
 
@@ -7035,11 +7038,22 @@ Negative / accepted:
    (stable client → `429` at 21 across varying trailing hops; distinct clients →
    independent buckets; fail-closed on invalid XFF), the non-enumerating-429
    test, and the OPTIONS-preflight probe (Decision 7).
-3. **Development live verification (PENDING)** — confirm `/health` stays
-   unthrottled under Railway probes and run the live test proving the
-   Railway-aware tracker enforces one bucket per sanitized client (request 21 →
-   `429`) and cannot be evaded by trailing-hop manipulation; **the gate remains
-   pending until the corrected commit passes this live test**; then **Production**.
+3. **Development live verification — SATISFIED (2026-08-21).** The corrected
+   C-1A runtime at commit `78f350940356083bcf672c2b77514299b615bbcc` passed the
+   Railway Development-first gate through the real edge (Development deployment
+   `8e3e495d-f2f3-4ed3-bc7b-1e85fc9398fd`): 125/125 `/health` requests returned
+   200; 25/25 CORS preflights returned 204 without consuming login capacity;
+   allowed login responses produced a single **monotonic** `X-RateLimit-Remaining`
+   sequence from 19 down to 0 **despite varied client-supplied `X-Forwarded-For`**
+   (Railway sanitizes the header, so all requests shared one server-side client
+   bucket); request 21 returned the generic **429 with `Retry-After`**; handler
+   isolation held (a malformed registration returned 400, not 429) and **no
+   account/session/token/database row was created**. Genuine IPv4-vs-IPv6 source
+   independence was **not** exercised in the live environment because the test
+   client lacked IPv6 connectivity (that sub-proof did **not** run); distinct-client
+   bucket independence remains covered by the validated unit/E2E suite. **The
+   Development-first gate is `SATISFIED`.** Production rollout remains pending the
+   separately authorized PR merge and normal `main` deployment.
 4. **C-1B** — 429/abuse logging and monitoring, and — **only after** an explicit
    guard-order design — optional user-keyed sync limiting.
 5. **Future** — Redis-backed shared throttler storage, required before any
