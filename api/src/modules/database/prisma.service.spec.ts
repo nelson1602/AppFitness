@@ -1,4 +1,6 @@
-import { resolveDatabaseUrl } from './prisma.service';
+import type { ConfigService } from '@nestjs/config';
+
+import { PrismaService, resolveDatabaseUrl } from './prisma.service';
 
 const DEV_ONLY_PLACEHOLDER_URL =
   'postgresql://placeholder:placeholder@localhost:5433/appfitness_dev';
@@ -47,5 +49,22 @@ describe('resolveDatabaseUrl (DATABASE_URL fail-closed config, C-2)', () => {
     for (const nodeEnv of ['production', 'staging', 'preview', undefined]) {
       expect(() => resolveDatabaseUrl(undefined, nodeEnv)).toThrow();
     }
+  });
+});
+
+describe('PrismaService.onModuleDestroy (graceful shutdown, ADR-P021 H-1A)', () => {
+  it('calls $disconnect exactly once', async () => {
+    // Dev/test allows the placeholder URL; the lazy client never connects here.
+    const config = {
+      get: (key: string) => (key === 'NODE_ENV' ? 'test' : undefined),
+    } as unknown as ConfigService;
+    const service = new PrismaService(config);
+    const disconnect = jest
+      .spyOn(service, '$disconnect')
+      .mockResolvedValue(undefined);
+
+    await service.onModuleDestroy();
+
+    expect(disconnect).toHaveBeenCalledTimes(1);
   });
 });

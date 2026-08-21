@@ -3,13 +3,28 @@ import './instrument';
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
 import { setupApiDocs } from './config/api-docs.config';
 import { buildWebCorsOptions } from './config/cors.config';
+import {
+  configureHttpHardening,
+  registerGracefulShutdown,
+} from './config/http-hardening.config';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+  // `bodyParser: false` so the explicit parsers registered by
+  // configureHttpHardening are authoritative (no double parser). Express
+  // application so Helmet + `useBodyParser` are available (ADR-P021 H-1A).
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
+
+  // API HTTP hardening (ADR-P021 H-1A): Helmet security headers FIRST, then the
+  // explicit 100kb JSON/URL-encoded parsers. CSP is disabled only in local
+  // docs mode via the same API_DOCS_ENABLED gate used below.
+  configureHttpHardening(app, process.env.API_DOCS_ENABLED);
 
   // Explicit-origin CORS for interim Web Bearer auth (ADR-P018 Slice 3).
   // Exact origins only from WEB_CORS_ORIGINS; fail-closed (no cross-origin
@@ -31,6 +46,10 @@ async function bootstrap(): Promise<void> {
   // ONLY when API_DOCS_ENABLED === 'true' (local development). Unset on both
   // hosted Railway tiers, so docs stay off in Development and Production.
   setupApiDocs(app, process.env.API_DOCS_ENABLED);
+
+  // Graceful shutdown (ADR-P021 H-1A): Nest drives the existing Prisma
+  // onModuleDestroy ($disconnect) on SIGTERM/SIGINT (Railway deploy replacement).
+  registerGracefulShutdown(app);
 
   // 3001 by default so the legacy Express MVP (3000) can run alongside.
   await app.listen(process.env.PORT ?? 3001);
