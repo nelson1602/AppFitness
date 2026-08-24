@@ -7302,6 +7302,353 @@ Negative / accepted:
 
 ---
 
+## ADR-P022 — AppFitness V1 Visual Direction and Design-System Evolution
+
+Status: Accepted
+Date: 2026-08-24
+Owner: Product / Design / Architecture
+
+### Context
+
+`ADR-0010` established Material Design 3 as the base design language and recorded
+its own accepted negative: MD3 "requires customization to avoid generic
+appearance" and the result "must still feel polished and premium". That
+customization was never decided, so the shipped mobile UI is an unstyled MD3
+skeleton.
+
+A read-only UI/UX audit of the `origin/main` tree at
+`9dbe22588326530ee88ba575a86e1b5f99ad4504` established the visual baseline. All
+figures below were verified with `git show origin/main:<path>` and
+`git grep … origin/main -- mobile/src`:
+
+- **Token modules exist and are complete in shape**
+  (`mobile/src/shared/theme/`): 27 semantic colour roles in light and dark, a
+  six-step type scale, an 11-step 8-point spacing scale, five radius steps, six
+  elevation levels, three motion durations.
+- **The palette is largely unexercised.** The `secondary`, `onSecondary`,
+  `tertiary`, `onTertiary`, and `primaryContainer` roles have **zero** consumers
+  in any `.tsx` file.
+- **No visual identity has been applied.** Across `mobile/src` there are **zero**
+  matches for icon imports, `expo-image`/`<Image`, `expo-haptics`,
+  `react-native-reanimated`/`Animated.`, and `useFonts`/`expo-font`.
+  `mobile/src/shared/theme/motion.ts` has **zero** consumers.
+  `mobile/src/shared/theme/typography.ts` states in its own header comment that
+  "Inter is not yet bundled — tokens use the platform default"; it also documents
+  a tabular-figures intent that no code implements (`fontVariant` appears
+  nowhere).
+- **Elevation is shadow-only.** `elevation.ts` expresses every level as a black
+  `shadowColor` with `shadowOpacity` 0.08–0.16, which is effectively invisible
+  against the dark-theme surfaces `#101416`/`#191C1F`/`#24282C`.
+- **Accessibility scaffolding is partial.** 142 `accessibilityLabel`, 18
+  `accessibilityRole`, 8 `accessibilityState`, and **0** `accessibilityHint`
+  across 6,685 lines of non-spec UI; `AppText` sets `allowFontScaling`;
+  `AppButton` enforces a 44×44 minimum target. There are **zero** matches for
+  `AccessibilityInfo`, reduce-motion detection, `Appearance`/`setColorScheme`,
+  `useWindowDimensions`/`Dimensions`/`maxWidth`, or `Platform.OS` in `mobile/src`.
+- **Bilingual delivery is complete for public v1.** `resources/en.ts` and
+  `resources/es.ts` each hold 696 entries with byte-identical sorted key sets.
+  The only remaining literals in public-v1 UI are the `"AppFitness"` brand name
+  and code that is dormant under ADR-P017.
+- **Contrast is unverified and partly failing.** A reproducible WCAG 2.2
+  relative-luminance audit of the shipped palette (method, sRGB linearization
+  breakpoint `0.04045`, and full table in `.ai/08_UI_UX.md`) shows the dark theme
+  passing throughout, and the light theme failing AA in **five pairs across four
+  semantic roles**: `warning` on `surface` (4.24:1), `primary` on `surface`
+  (3.53:1), `onPrimary` on `primary` (3.53:1), `primary` on `surfaceVariant`
+  (3.12:1), and `accent` on `surface` (2.998:1 — below even the 3:1 non-text
+  threshold).
+
+The product therefore needs a recorded visual direction before any component or
+token code is written, so that the component work has a specification to satisfy
+rather than inventing one implicitly. This ADR is **documentation-only**.
+
+### Decision
+
+**1. Visual direction — `Confident Clarity`.** The approved V1 visual direction
+is `Confident Clarity`: a restrained, data-trusting foundation with a strictly
+bounded energy accent. The product must feel **modern, trustworthy, energetic,
+bilingual, accessible, fitness-focused, and data-driven**. It must **not** look
+clinical, medical, sterile, or diagnostically authoritative. Trustworthiness is
+carried by explainability, typographic precision, and honest states — never by
+adopting a clinical aesthetic.
+
+**2. Relationship to ADR-0010 — extends, does not supersede.** Material Design 3
+remains the base design language. `Confident Clarity` is expressed by *assigning
+meaning to MD3 semantic roles that already exist in
+`mobile/src/shared/theme/colors.ts`*, not by replacing the role model. ADR-0010
+stays Accepted and unmodified; this ADR discharges ADR-0010's recorded
+"requires customization" consequence.
+
+**3. V1 platforms — mobile-first iOS and Android.** Web remains the honest,
+capability-limited surface defined by ADR-P018 and ADR-P019. **No Web parity is
+authorized by this ADR.** Web renders the design system, but the local database
+stays dormant on Web, Web sessions stay memory-only, and every database-backed
+surface keeps its explicit bilingual "unavailable on Web" state. Visual
+responsiveness must never be presented as evidence of Web feature parity.
+
+**4. Wellness-not-medical posture (visual and content).** Consistent with
+ADR-P017 and `00_PROJECT.md` §Non-Goals, the visual language and its copy must
+read as fitness and wellness guidance. Forbidden: chart-review/clinical-record
+aesthetics, diagnostic framing, risk-score presentation, and any visual
+treatment that implies medical authority, clearance, or supervision. The dormant
+medical domain gains no visual surface from this ADR.
+
+**5. Energy accent — strict permitted list.** The energy accent is permitted
+**only** for:
+
+1. achievements,
+2. positive progress deltas,
+3. the primary action — **as subordinate, non-exclusive emphasis only** (see
+   Decision 5a),
+4. selected navigation.
+
+**5a. `primary` versus `accent` — no ambiguity about the filled CTA.** The
+owner-approved rule that the accent may emphasize the primary action stands, but
+it is subordinate and non-exclusive, never a substitution:
+
+- **`primary` / `onPrimary` is the canonical semantic pair for a filled primary
+  CTA** — `primary` background, `onPrimary` label. It is the only approved
+  pairing for that component.
+- **`accent` never replaces `primary` / `onPrimary`** — not as background, label,
+  border, or pressed state.
+- **`accent` must never become the CTA label colour or the filled CTA background
+  merely because the action is primary.** Being "primary" is a role assignment,
+  not an accent trigger.
+- Accent emphasis, where used, is an **additional** signal and requires an
+  explicitly approved, contrast-safe foreground/background pairing.
+- **The primary action must remain fully recognizable without any accent.**
+- **There is no shipped `onAccent` role.** `accent` is the only one of the 27
+  shipped roles without a matching `on*` foreground, so no approved foreground
+  exists for an accent-filled surface. **This ADR neither introduces nor approves
+  an `onAccent` token.**
+- **Status: accent emphasis on primary actions is BLOCKED in both themes** until
+  (a) the light-theme `accent` value is approved — it measures 2.998:1 on
+  `surface`, below even the 3:1 non-text threshold — and (b) an accessible
+  foreground/background pairing for accent is approved. The block covers both
+  themes deliberately, even though the shipped dark `accent #4DD0D0` measures
+  9.17:1, so the semantic rule is identical in light and dark and the themes
+  cannot drift apart.
+
+**6. Energy accent — strict forbidden list.** The accent is **forbidden** on
+neutral information, ordinary containers, warnings, and errors. It is likewise
+forbidden as the background or label of a filled primary CTA (Decision 5a).
+Semantic state colours (`success`, `warning`, `error`, `info`) keep their own
+roles and must never be replaced by, or blended with, the accent. Where the
+accent would collide with a semantic state on the same element, the semantic
+state wins.
+
+**7. Non-colour redundancy.** Selected, success, warning, and error states must
+never be conveyed by colour alone. Each requires at least one non-colour signal —
+shape, weight, border, position, icon fill, or text. This applies specifically to
+selected navigation (accent **plus** icon fill **plus** label weight) and
+restates the existing `08_UI_UX.md` anti-pattern "Depend on color alone" as a
+testable requirement. It also underwrites Decision 5a: because the primary action
+must stay recognizable without accent, its prominence can never rest on accent
+colour alone.
+
+**8. Typography direction.** Inter is the approved target typeface. Metrics use
+tabular figures so digits do not shift between readings. Layouts must remain
+readable in both Spanish and English, and must survive OS dynamic-type scaling
+without clipping or truncating meaning. **Inter font assets and their runtime
+integration are a separate, separately authorized implementation slice; no font
+asset, `expo-font` wiring, or `fontVariant` change is authorized here.** Until
+that slice lands, the platform default face remains in effect.
+
+**9. Icon direction.** Icons are outlined by default; filled only for selection
+or active state; always meaningful, never decorative. Icons that convey meaning
+require an accessible text equivalent; purely decorative marks must be hidden
+from assistive technology.
+
+**Material Symbols remains the approved V1 visual icon vocabulary/family**, as
+already specified in `.ai/08_UI_UX.md` §Icons and listed in `02_TECH_STACK.md`
+§Design System. This ADR confirms it; it does not reopen it, and no alternative
+visual vocabulary is under consideration.
+
+**The cross-platform React Native delivery mechanism remains unresolved and is
+separately gated. UX-1B1 selects no package, asset format, dependency, or
+per-platform mapping.** Per current official Expo and Google documentation, none
+of the available routes is a free choice, and none is selected here:
+
+- `@expo/vector-icons` is referenced by `02_TECH_STACK.md`, but Expo's current
+  documentation states it "will be deprecated and is not recommended", and it
+  bundles legacy/popular icon sets (Ionicons, FontAwesome, Glyphicons and
+  similar) rather than Material Symbols. **That `02_TECH_STACK.md` entry must be
+  reconciled during the future icon-delivery slice and must not be silently
+  treated as the selected solution.**
+- `expo-symbols`, already present in `mobile/package.json`, is **not
+  automatically the selected solution**: it uses SF Symbols on iOS and Material
+  Symbols on Android and Web, so it does **not** provide one identical Material
+  Symbols family across every platform.
+- Current Expo alternatives such as `@expo/ui`'s universal `Icon` with
+  `@expo/material-symbols` are platform-specific (SF Symbol on iOS, Material
+  Symbol on Android, documented as not rendering on Web) and must be evaluated in
+  the later slice for Web support, stability, accessibility, tree-shaking, bundle
+  size, and native parity.
+- Google also distributes Material Symbols directly as variable/static font,
+  SVG/PNG, Android vector drawable, and Apple Symbols assets under the Apache
+  License 2.0, but **bundling or generating those assets is not authorized by
+  UX-1B1**.
+
+The future icon-delivery slice must: compare the currently supported Expo
+mechanisms; determine whether AppFitness renders identical Material Symbols on
+every platform or platform-native equivalents behind a shared semantic mapping;
+reconcile `.ai/02_TECH_STACK.md`; and request an ADR / technology update if the
+selected mechanism falls outside or supersedes the approved stack.
+
+No icon runtime of any kind is currently used in `mobile/src` — zero icon imports
+at `origin/main` `9dbe2258`.
+
+**10. Surface hierarchy — low shadow, tinted dark.** Hierarchy is communicated
+primarily by surface colour, border, and spacing, with shadow used sparingly.
+The approved target for dark mode is a **surface-tint** strategy: dark elevation
+raises a surface by lightening it, because the shipped shadow-only elevation
+scale is effectively invisible on dark surfaces. **This is a target; no change to
+`elevation.ts` is authorized here.**
+
+**11. Motion — functional only, with reduced-motion equivalence.** Motion must
+communicate state change, navigation, feedback, hierarchy, or continuity, and
+must never delay input. Decorative motion is not permitted in V1. Every animated
+affordance must have a reduced-motion equivalent that conveys the same
+information without movement. **The three shipped duration tokens currently have
+no consumers; adopting them, and any Reanimated usage, is a later slice.**
+
+**12. Imagery — no photography or exercise-illustration pipeline in V1.** V1
+ships no photographic or per-exercise illustrative asset pipeline: there is no
+licensing path, no asset budget, and no bundle allowance for one. Data and
+typography carry the visual interest. Small empty-state illustrations may be
+**separately evaluated** later; they are not approved here.
+
+**13. Distinctiveness must come from typography, numerics, and one
+data-visualization signature** — not from imagery or from widening the accent.
+This is the mitigation for ADR-0010's "generic appearance" risk and for the
+`Confident Clarity` guardrail against sterility.
+
+**14. Scope — what this ADR does NOT authorize.** No dependency addition, font
+asset, icon delivery mechanism or icon asset, token-code change, component
+implementation, navigation or IA change, mockup, screen change, or any
+mobile/API/schema/sync/CI/EAS/Railway/deployment change. This ADR authorizes
+documentation only. Nothing in it may be read as a claim that proposed token
+values, Inter, an icon runtime, motion, navigation, or shared components already
+exist in code.
+
+**15. Implementation ladder.** Each rung requires its own scoped authorization:
+
+- **UX-1B1** — visual-foundation documentation (this ADR + the
+  `08_UI_UX.md` visual foundation + the backlog stream item).
+- **UX-1B2** — state-pattern and component contracts (component anatomy,
+  variants, states, props, accessibility, test hooks; the canonical
+  loading/empty/error/offline/pending-sync/web-unavailable contracts).
+- **UX-1C** — shared component implementation against the frozen UX-1B2
+  contracts.
+- **UX-2** — low-fidelity product flows.
+- **UX-3** — high-fidelity specifications.
+- **UX-4** — authentication / onboarding / dashboard pilot.
+- **UX-5** — progressive feature migration.
+
+### Options Considered
+
+1. **Restrained data-trust foundation with no accent allowance.** Maximally safe
+   for contrast and for the non-medical posture, but leaves ADR-0010's
+   "generic appearance" risk unmitigated and reads as sterile — precisely the
+   outcome the owner excluded.
+2. **Energetic, dark-first, performance-led direction with photography.**
+   Strong emotional pull and store presence, but requires an imagery pipeline
+   (licensing, asset budget, per-exercise art) that does not exist, and its
+   directive tone risks implying prescriptive authority, which conflicts with
+   ADR-P017.
+3. **Warm, habit-friendly direction.** Approachable, but weakest at presenting
+   dense metrics, and a warm dark palette is the hardest of the three to keep
+   accessible.
+4. **`Confident Clarity` — restrained foundation plus a strictly bounded energy
+   accent (selected).** Keeps option 1's accessibility and posture advantages,
+   repairs its sterility with a rule-bounded accent, and needs no imagery
+   pipeline.
+
+### Rationale
+
+Option 4 is the shortest distance from the code that already exists: the shipped
+palette is already a blue/neutral MD3 set with unused `secondary`, `tertiary`,
+and `primaryContainer` roles into which a bounded accent can be assigned without
+inventing tokens or amending ADR-0010. It carries no asset-licensing dependency.
+A low-chroma base with a single accent keeps WCAG 2.2 AA tractable in both
+themes, and the restrained type scale and generous line-heights tolerate Spanish
+strings that typically run longer than their English source — which the shipped
+696/696 bilingual catalogue makes a first-class constraint rather than an
+afterthought. Bounding the accent by *meaning* rather than by *component* is what
+prevents drift back toward option 2 and keeps the accent legible as a signal.
+
+### Consequences
+
+Positive:
+
+- ADR-0010's recorded "requires customization" consequence is finally
+  discharged, with a named direction and enforceable rules.
+- The accent rules are testable, so accent creep can be caught in review rather
+  than argued about, and `primary` versus `accent` cannot be resolved differently
+  by two implementers.
+- Non-colour redundancy converts an existing anti-pattern into a verifiable
+  requirement, improving accessibility for colour-vision deficiency.
+- No dependency, asset, or licensing commitment is incurred by the decision
+  itself; every cost-bearing step stays separately gated.
+- The component work in UX-1B2/UX-1C inherits a specification instead of
+  improvising one.
+
+Negative / accepted:
+
+- Distinctiveness now depends on typographic and numeric craft plus one
+  data-visualization signature. If those are not executed well, the result will
+  still look like default MD3.
+- The light theme has verified AA failures: **five failing pairs across four
+  semantic roles** — `primary`, `onPrimary`, `warning`, and `accent` (`primary`
+  fails against both `surface` and `surfaceVariant`). Fixing them requires a
+  later token-value change that will shift the app's visual tone slightly; this
+  ADR records the failures honestly rather than adjusting values it is not
+  authorized to change.
+- "Selected navigation" presupposes a navigation shell that does not exist; that
+  accent role is specified now and applied only in UX-4.
+- Accent emphasis on the primary action is specified but blocked in both themes
+  (Decision 5a), so V1 primary CTAs will use `primary` / `onPrimary` alone until
+  the accent value and an accessible pairing are approved. Accepted: the CTA must
+  be recognizable without accent anyway.
+- No photography or exercise illustration in V1 forgoes some aspirational appeal
+  relative to competing products.
+- Inter, the icon runtime, motion, and surface-tint elevation remain
+  unimplemented after this slice, so the shipped app's appearance does not
+  change.
+
+### Supersedes / Preserves
+
+- **Extends ADR-0010** (Material Design 3 base). Does not supersede, amend, or
+  weaken it; MD3 semantic roles, theming, and accessibility foundation are
+  retained.
+- **Preserves ADR-P017** — public-v1 wellness scope and reversible
+  medical-domain dormancy. No dormant medical surface is exposed or restyled.
+- **Preserves ADR-P018 and ADR-P019** — Web storage/authentication posture and
+  interim Web local-data dormancy. No Web parity, no new Web persistence, and no
+  change to any shipped "unavailable on Web" state.
+- **Preserves ADR-P020 and ADR-P021** — API rate limiting and API HTTP
+  hardening/graceful shutdown. This ADR touches no `api/` file and makes no
+  backend claim; H-1A stays closed.
+- **Preserves ADR-P016 D3** — no new charting dependency in v1. The
+  data-visualization signature must be achievable with in-house primitives and
+  keep its accessible text summary.
+- **Preserves ADR-0005/0006/0007** — native offline-first architecture and
+  deterministic iCoach behaviour; this is a presentation decision only.
+
+### Related Documents
+
+- `.ai/00_PROJECT.md`
+- `.ai/02_TECH_STACK.md` (§Design System — Material Design 3, Material Symbols,
+  Inter, 8px grid)
+- `.ai/06_MOBILE.md` (§Theme, §Design System, §Accessibility)
+- `.ai/08_UI_UX.md` (the visual foundation this ADR authorizes)
+- `.ai/11_BACKLOG.md` (FEATURE-010 — UX stream and the UX-1B1…UX-5 ladder)
+- `mobile/src/shared/theme/` (`colors.ts`, `typography.ts`, `spacing.ts`,
+  `radius.ts`, `elevation.ts`, `motion.ts`, `use-theme.ts`) — the shipped token
+  values quoted by this decision
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

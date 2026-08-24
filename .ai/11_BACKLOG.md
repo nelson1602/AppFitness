@@ -1069,6 +1069,224 @@ that build would contradict the owner's clarified product intent.
 
 ---
 
+## [FEATURE-010] V1 Visual Design Foundation and Design-System Evolution (UX Stream)
+
+Status: In Progress
+Priority: P1
+Type: Feature
+Owner: Product / Design / Architecture
+Created: 2026-08-24
+Updated: 2026-08-24
+
+> **ADR-P022 ACCEPTED 2026-08-24** — visual direction `Confident Clarity`,
+> mobile-first V1, explicit Web non-parity, wellness-not-medical visual posture,
+> strict energy-accent rules (with `primary`/`onPrimary` reserved as the canonical
+> filled-CTA pair), non-colour redundancy, Inter as target typeface,
+> Material Symbols confirmed as the V1 icon vocabulary with its cross-platform
+> React Native delivery mechanism unresolved and separately gated (no package,
+> asset format, dependency, or per-platform mapping selected), low-shadow
+> surfaces with a dark
+> surface-tint target, functional-motion-only with reduced-motion equivalence,
+> and no photography/exercise-illustration pipeline for V1.
+> **UX-1B1 is the only rung in progress. Every later rung needs its own scoped
+> authorization. No code, dependency, asset, or token value has changed.**
+
+### Description
+
+Establish the V1 visual foundation and evolve the design system from an unstyled
+Material Design 3 skeleton into a specified, testable, bilingual, accessible
+design language — then implement it progressively, feature by feature, without a
+broad UI rewrite.
+
+Phase-level detail lives in `.ai/08_UI_UX.md` (the specification) and
+`.ai/12_DECISIONS.md` (ADR-P022, the decision) and is not duplicated here.
+
+### Problem
+
+ADR-0010 selected Material Design 3 and recorded its own accepted negative — it
+"requires customization to avoid generic appearance" — but that customization was
+never decided. Verified at `origin/main` `9dbe22588326530ee88ba575a86e1b5f99ad4504`:
+the token modules are complete in shape yet largely unexercised (`secondary`,
+`tertiary`, and `primaryContainer` have zero consumers); there are zero icons,
+zero images, zero animations, zero haptics, and zero font loading anywhere in
+`mobile/src`; the three motion duration tokens have zero consumers;
+`typography.ts` states in its own header that Inter is not bundled; elevation is
+shadow-only and therefore invisible on dark surfaces; and the light-theme palette
+fails WCAG 2.2 AA in **five pairs across four semantic roles** — `warning` on
+`surface` (4.24:1), `primary` on `surface` (3.53:1), `onPrimary` on `primary`
+(3.53:1), `primary` on `surfaceVariant` (3.12:1), and `accent` on `surface`
+(2.998:1).
+
+Without a recorded direction and specification, component work would invent its
+own contract implicitly, and the accessibility failures would ship unexamined.
+
+### Expected Outcome
+
+A named, owner-approved visual direction with enforceable rules; a design system
+specification precise enough to test against; shared components built to that
+specification; and every feature surface migrated to it incrementally, with
+bilingual and accessibility verification at each step.
+
+### Scope
+
+Included:
+
+- Visual direction decision and design-system specification (documentation)
+- State-pattern and component contracts (documentation)
+- Shared component implementation against frozen contracts
+- Low-fidelity flows and high-fidelity specifications
+- An authentication / onboarding / dashboard pilot
+- Progressive per-feature migration to the new components
+
+Excluded:
+
+- Web feature parity (ADR-P018 / ADR-P019 remain in force; no parity authorized)
+- Any change to the dormant medical domain (ADR-P017)
+- Backend, schema, sync, CI, EAS, Railway, or deployment work
+- Reopening Progress localization, Progress Web degradation, Slice 2B4, or H-1A
+- A new charting dependency (ADR-P016 D3 stands)
+- Photography or per-exercise illustration assets
+
+### Implementation ladder (each rung separately authorized)
+
+1. **UX-1B1 — Visual foundation documentation. Status: In Progress.** ADR-P022
+   appended to `.ai/12_DECISIONS.md`; `.ai/08_UI_UX.md` evolved to v1.2 with the
+   `Confident Clarity` identity, semantic role usage, the energy-accent
+   allowed/forbidden matrix, non-colour redundancy, light/dark surface hierarchy,
+   a reproducible WCAG 2.2 AA contrast audit of the shipped palette with honest
+   pass/fail, typography hierarchy plus the Inter delivery target and tabular
+   figures for metrics, Spanish/English length and reflow safety, spacing and
+   radius usage with content-measure and density principles, elevation behaviour
+   per theme, motion semantics with reduced-motion equivalence, the Material
+   Symbols icon visual contract with its delivery mechanism deferred, the imagery
+   policy, accessibility verification
+   expectations, and explicit SHIPPED / TARGET / PROPOSED labelling. Documentation
+   only — no code, dependency, asset, or token value changed.
+2. **UX-1B2 — State and component contracts. Status: Proposed.** Canonical
+   state-pattern specifications (loading, empty, data-gap, error, offline,
+   pending-sync, web-unavailable, success, permission-denied) and per-component
+   contracts (anatomy, variants, sizes, states, props, accessibility, test hooks).
+   Must consolidate the 11 duplicated `webUnavailable*` title/body key pairs into
+   one contract. Documentation only.
+3. **UX-1C — Shared component implementation. Status: Proposed.** Build against
+   the frozen UX-1B2 contracts, starting with the text-input primitive that would
+   retire the raw `TextInput` usages currently spread across 7 files (11
+   `<TextInput` occurrences at `origin/main`, 10 of them outside the shared
+   `FormField`). Must
+   preserve every existing `accessibilityLabel` query path and the `input-*` /
+   `field-*` testIDs that route specs and Maestro flows depend on.
+4. **UX-2 — Low-fidelity product flows. Status: Proposed.** Onboarding,
+   authentication including verification and recovery surfaces, navigation and
+   information architecture, workout logging inner loop, nutrition logging,
+   progress. Text specifications in `.ai/`; no design tooling.
+5. **UX-3 — High-fidelity specifications. Status: Proposed.** Per-screen
+   blueprints, state matrices, EN/ES copy decks, accessibility annotations,
+   motion specifications.
+6. **UX-4 — Authentication / onboarding / dashboard pilot. Status: Proposed.**
+   First applied surfaces, including the navigation shell where the selected-
+   navigation accent role finally has somewhere to live.
+7. **UX-5 — Progressive feature migration. Status: Proposed.** One feature per
+   slice, behaviour preserved, with bilingual, dark-theme, and accessibility
+   verification per slice.
+
+### Acceptance Criteria
+
+- [x] Owner approves a named visual direction before any visual code is written.
+      (`Confident Clarity` accepted 2026-08-24 via ADR-P022.)
+- [x] The visual foundation is recorded with reproducible contrast evidence and
+      honest pass/fail verdicts. (UX-1B1, `.ai/08_UI_UX.md` v1.2.)
+- [ ] Component and state contracts are frozen before component code is written.
+- [ ] Shared components satisfy their contracts, including contrast in both
+      themes and non-colour redundancy for selected/success/warning/error.
+- [ ] The five light-theme AA failing pairs across four roles (`primary` on
+      `surface` and on `surfaceVariant`, `onPrimary` on `primary`, `warning`,
+      `accent`) are resolved by an authorized token-value decision, or recorded as
+      accepted exceptions with the exemption cited.
+- [ ] Inter delivery, the Material Symbols cross-platform delivery mechanism
+      (including reconciling the `.ai/02_TECH_STACK.md` icon entry and an
+      ADR/technology update if the choice falls outside the approved stack),
+      motion adoption, and the dark surface-tint ramp each land under their own
+      authorization.
+- [ ] Every migrated surface is verified in Spanish and English, in light and
+      dark, at default and large text scale.
+- [ ] No feature loses behaviour, offline-first guarantees, or its
+      "unavailable on Web" state during migration.
+
+### Technical Notes
+
+`Confident Clarity` extends ADR-0010; it does not supersede it. The energy accent
+is carried by the existing `accent` semantic role, so no new colour role is
+introduced. The accent is bounded by **meaning** — achievements, positive progress
+deltas, the primary action, selected navigation — and is forbidden on neutral
+information, ordinary containers, warnings, and errors.
+
+**`primary` versus `accent` (ADR-P022 Decision 5a).** `primary` / `onPrimary` is
+the canonical pair for a filled primary CTA; `accent` never replaces it, and must
+never become a CTA background or label. Accent on a primary action is subordinate,
+non-exclusive emphasis only, and the CTA must remain recognizable without it.
+**There is no shipped `onAccent` role and none is introduced here.**
+
+The accent is currently **unusable in the light theme** (`#00A6A6` measures
+2.998:1 on `#FFFFFF`, below even the 3:1 non-text threshold), so UX-1C cannot ship
+an accent-bearing surface in light mode until the token-value decision in the
+acceptance criteria is taken. Accent emphasis on primary actions is blocked in
+**both** themes until that value *and* an accessible foreground/background pairing
+are approved, so the rule stays identical across themes. Candidate values recorded
+in `.ai/08_UI_UX.md` are labelled PROPOSED and are not approved.
+
+Coverage note for later rungs: `mobile/package.json` includes neither
+`src/features/workout` nor `src/features/progress` in `collectCoverageFrom` or
+`coverageThreshold`, and no EN/ES key-parity spec exists. Both are worth closing
+before UX-5 touches those surfaces.
+
+### Risks
+
+- Distinctiveness depends on typographic and numeric craft plus one
+  data-visualization signature; executed weakly, the result still looks like
+  default MD3.
+- Accent creep — the accent spreading beyond its four permitted meanings — would
+  collapse the direction. Mitigated by the allowed/forbidden matrix and the
+  frequency rule.
+- Resolving the light-theme contrast failures shifts the app's visual tone
+  slightly; the change must be taken deliberately rather than absorbed silently.
+- UX-1C touches `sign-in.tsx`, whose spec asserts exact localized error copy for
+  five distinct authentication reasons; a careless refactor breaks it.
+- Maestro flows are `workflow_dispatch`-only and need an operator-built EAS `e2e`
+  APK, so UI restructuring must be batched to limit APK builds.
+- The font slice and the Material Symbols delivery slice both add bundle size,
+  and delivery may add a dependency, bundled assets, or both; each needs a
+  measured budget.
+- Icon delivery has no obviously correct route: `@expo/vector-icons` is
+  documented by Expo as deprecated / not recommended and does not provide
+  Material Symbols; the already-installed `expo-symbols` maps to SF Symbols on
+  iOS and Material Symbols on Android/Web, so it is not one identical family
+  everywhere; `@expo/ui`'s `Icon` (with `@expo/material-symbols`) is documented
+  as not rendering on Web. The slice may therefore have to choose between
+  identical Material Symbols everywhere and platform-native equivalents behind a
+  shared semantic mapping — and may surface an `.ai/02_TECH_STACK.md`
+  contradiction requiring an ADR/technology update.
+
+### Dependencies
+
+- ADR-0010 (Accepted) — Material Design 3 base, extended by ADR-P022
+- ADR-P017 (Accepted) — public-v1 wellness scope; medical domain stays dormant
+- ADR-P018 / ADR-P019 (Accepted) — Web storage and local-data dormancy; no parity
+- ADR-P016 D3 (Accepted) — no new charting dependency in v1
+- ADR-P022 (Accepted) — this stream's decision
+- Owner authorization for each rung from UX-1B2 onward
+
+### Related Documents
+
+- `.ai/00_PROJECT.md`
+- `.ai/02_TECH_STACK.md`
+- `.ai/06_MOBILE.md`
+- `.ai/08_UI_UX.md` (v1.2 — the visual foundation)
+- `.ai/12_DECISIONS.md` (ADR-P022; ADR-0010; ADR-P016 D3; ADR-P017; ADR-P018;
+  ADR-P019)
+- `mobile/src/shared/theme/` — the shipped token values this stream evolves
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation
