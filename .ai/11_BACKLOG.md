@@ -1088,8 +1088,11 @@ Updated: 2026-08-24
 > surfaces with a dark
 > surface-tint target, functional-motion-only with reduced-motion equivalence,
 > and no photography/exercise-illustration pipeline for V1.
-> **UX-1B1 is the only rung in progress. Every later rung needs its own scoped
-> authorization. No code, dependency, asset, or token value has changed.**
+> **UX-1B1 is COMPLETE — merged through PR #90 at merge SHA
+> `2692e5896af6b099e2f7cce6c934407d504340ef`. UX-1B2 is now split into UX-1B2A /
+> UX-1B2B / UX-1B2C; UX-1B2A is the only rung in progress. Every later rung needs
+> its own scoped authorization. No code, dependency, asset, or token value has
+> changed.**
 
 ### Description
 
@@ -1149,7 +1152,8 @@ Excluded:
 
 ### Implementation ladder (each rung separately authorized)
 
-1. **UX-1B1 — Visual foundation documentation. Status: In Progress.** ADR-P022
+1. **UX-1B1 — Visual foundation documentation. Status: COMPLETE (merged 2026-08-24
+   via PR #90, merge SHA `2692e5896af6b099e2f7cce6c934407d504340ef`).** ADR-P022
    appended to `.ai/12_DECISIONS.md`; `.ai/08_UI_UX.md` evolved to v1.2 with the
    `Confident Clarity` identity, semantic role usage, the energy-accent
    allowed/forbidden matrix, non-colour redundancy, light/dark surface hierarchy,
@@ -1162,12 +1166,38 @@ Excluded:
    policy, accessibility verification
    expectations, and explicit SHIPPED / TARGET / PROPOSED labelling. Documentation
    only — no code, dependency, asset, or token value changed.
-2. **UX-1B2 — State and component contracts. Status: Proposed.** Canonical
-   state-pattern specifications (loading, empty, data-gap, error, offline,
-   pending-sync, web-unavailable, success, permission-denied) and per-component
-   contracts (anatomy, variants, sizes, states, props, accessibility, test hooks).
-   Must consolidate the 11 duplicated `webUnavailable*` title/body key pairs into
-   one contract. Documentation only.
+2. **UX-1B2 — State and component contracts. Split into three documentation
+   slices after the UX-1B2 scoping audit showed the full set was too broad for one
+   slice.** Documentation only throughout; each sub-slice needs its own scoped
+   authorization.
+
+   - **UX-1B2A — Canonical state contracts. Status: In Progress.**
+     `.ai/08_UI_UX.md` → v1.3: exactly **eight** canonical states (loading, empty,
+     data-gap, error, offline, pending sync, conflict, Web unavailable) with cause,
+     data trustworthiness, user action, recovery path, semantic tone, confusion
+     boundaries, and native/Web applicability; plus exactly **six** component
+     contracts — `StateView`, `LoadingState`, `EmptyState`, `ErrorState`,
+     `WebUnavailableNotice`, `SyncStatusHint`. `StateView` is a layout primitive
+     only: no `kind`, tone mapping, store value, localization key, router
+     destination, retry semantics, or business behaviour. Includes reconciliation
+     **notes** for the shipped `SyncStatusBanner` (unchanged, remains the
+     surface/aggregate component) and the two shipped data-gap components (shared
+     semantics recorded; no third component invented, no migration chosen).
+     **`WebUnavailableNotice` consolidates layout and structural guarantees only —
+     it preserves all 11 feature-specific EN/ES `webUnavailable` title/body pairs
+     plus `progress.webUnavailableCard`, carries no default or generic copy, and
+     has no retry or action prop at all (ADR-P019 §5).** Success-confirmation and
+     permission-denied are named as future flow needs with insufficient current
+     evidence; **no placeholder API or anatomy is defined for either**.
+   - **UX-1B2B — Form/input contracts. Status: Proposed.** `AppTextInput`
+     (controlled and uncontrolled forms), `FormField` reconciliation preserving the
+     React Hook Form boundary, `FormSelect`, the frozen-testID register, and
+     unification of the two divergent shipped input style families. The direct
+     prerequisite for UX-1C's first code slice.
+   - **UX-1B2C — Existing primitive reconciliation. Status: Proposed.** `Screen`,
+     `Card`, `AppText`, `AppButton`, and `Banner` — including `Banner`'s complete
+     contract and its info-tone title contrast finding — plus the 10-state matrix
+     required by `08_UI_UX.md` §Component States.
 3. **UX-1C — Shared component implementation. Status: Proposed.** Build against
    the frozen UX-1B2 contracts, starting with the text-input primitive that would
    retire the raw `TextInput` usages currently spread across 7 files (11
@@ -1233,6 +1263,26 @@ acceptance criteria is taken. Accent emphasis on primary actions is blocked in
 **both** themes until that value *and* an accessible foreground/background pairing
 are approved, so the rule stays identical across themes. Candidate values recorded
 in `.ai/08_UI_UX.md` are labelled PROPOSED and are not approved.
+
+**UX-1B2A light-theme blockers — OPEN, not resolved by this slice.** Four of the
+five recorded failing pairs land directly on the state surfaces UX-1B2A specifies
+(detail in `.ai/08_UI_UX.md` §Impact on the canonical state UI):
+
+- `EmptyState`'s creation action and `ErrorState`'s retry are **blocked from AA
+  completion** — a filled primary action fails AA in the light theme, and a
+  text-style action fails too, so there is no in-palette escape.
+- `WebUnavailableNotice` inherits an **existing** failure: the shipped `Banner`
+  info tone renders its title in a role/size combination that fails AA in the
+  light theme, on all 12 surfaces that use it today.
+- `SyncStatusHint`'s **conflict** variant uses the warning role, also a recorded
+  light-theme failure. Its pending variant is unblocked.
+- The accent is **not used by any UX-1B2A contract**, so the accent block does not
+  gate this work.
+
+Consequence for UX-1C: the **copy-only** state forms may proceed; **no
+action-bearing state form may be declared AA-complete in the light theme** until
+the owner-gated token-value decision in the acceptance criteria above is taken.
+No contract claims otherwise, and no candidate value is approved here.
 
 Coverage note for later rungs: `mobile/package.json` includes neither
 `src/features/workout` nor `src/features/progress` in `collectCoverageFrom` or

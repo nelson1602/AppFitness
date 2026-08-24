@@ -1,6 +1,6 @@
 # AppFitness Design System Specification
 
-Version: 1.2
+Version: 1.3
 Status: Active
 Last Updated: 2026-08-24
 
@@ -37,11 +37,13 @@ Included in v1.2:
 - Accessibility verification expectations
 
 **Deferred to UX-1B2** (do not add here): component anatomy, variants, props, and
-per-component contracts; and the canonical state-pattern specifications
-(loading / empty / data-gap / error / offline / pending-sync / web-unavailable /
-success / permission-denied). The existing component and state sections below are
-**preserved as the standing v1.1 requirements**; UX-1B2 replaces them with formal
-contracts.
+per-component contracts. UX-1B2 was subsequently split into three documentation
+slices — **UX-1B2A** (canonical state patterns and the six state-component
+contracts), **UX-1B2B** (form/input contracts: `AppTextInput`, `FormField`,
+`FormSelect`), and **UX-1B2C** (reconciliation of the existing primitives
+`Screen`, `Card`, `AppText`, `AppButton`, `Banner`). The existing component and
+state sections below remain the **standing v1.1 requirements** until the slice
+that owns each one replaces it.
 
 ## Evidence labels used in this document
 
@@ -50,13 +52,51 @@ not interchangeable.
 
 | Label | Meaning |
 |---|---|
-| **SHIPPED** | Verified present in the `origin/main` tree at `9dbe22588326530ee88ba575a86e1b5f99ad4504`, quoted from `mobile/src/`. |
+| **SHIPPED** | Verified present in the `origin/main` Git tree, quoted from `mobile/src/`. v1.2 evidence was taken at `9dbe22588326530ee88ba575a86e1b5f99ad4504`; v1.3 evidence at `2692e5896af6b099e2f7cce6c934407d504340ef`. |
 | **TARGET** | Approved behaviour that code must eventually satisfy. **Not implemented.** |
 | **PROPOSED** | A candidate value or approach that is **not approved and not in code**. Requires its own decision before use. |
 
 Nothing labelled TARGET or PROPOSED exists in the mobile application today.
 Inter, icons, motion adoption, surface-tint elevation, navigation, and shared
 components are **all** unimplemented as of this revision.
+
+---
+
+# Revision Scope (v1.3 — UX-1B2A)
+
+This revision records the **canonical state patterns** and the **six state-component
+contracts** that follow from them. It is documentation-only, authorized by
+**ADR-P022** Decision 15 (the UX-1B2 rung); it introduces no new decision and
+needs no new ADR.
+
+Included in v1.3:
+
+- §Canonical State Patterns — exactly **eight** evidenced states with cause,
+  data trustworthiness, user action, recovery path, semantic tone, confusion
+  boundaries, and native/Web applicability
+- §State Component Contracts (UX-1B2A) — exactly **six** contracts: `StateView`,
+  `LoadingState`, `EmptyState`, `ErrorState`, `WebUnavailableNotice`,
+  `SyncStatusHint`
+- Reconciliation notes for the shipped `SyncStatusBanner` and the two shipped
+  data-gap components (documented, not redesigned)
+- The evidence-backed link between the recorded light-theme contrast failures and
+  today's state UI (§Contrast Requirements)
+
+**Not** in v1.3, and explicitly deferred:
+
+- Form and input contracts — `AppTextInput`, `FormField`, `FormSelect`
+  (**UX-1B2B**)
+- Contracts for the existing primitives `Screen`, `Card`, `AppText`, `AppButton`,
+  and `Banner` — including `Banner`'s own complete contract (**UX-1B2C**)
+- Any success-confirmation or permission-denied component. Both are named in
+  §Canonical State Patterns only as **future flow needs with insufficient current
+  evidence**; no API, anatomy, or placeholder contract is defined for either.
+- Every runtime concern: no component implementation, no token value change, no
+  localization key change, no dependency, asset, font, or icon package.
+
+**Evidence baseline for v1.3.** Every SHIPPED count in the new sections was
+reproduced from `origin/main` at `2692e589` with read-only `git grep` /
+`git show` / `git ls-tree`.
 
 ---
 
@@ -476,6 +516,31 @@ Four roles, five pairs — `primary` fails against two different backgrounds.
 - `divider` is exempt only while it remains decorative. If a divider ever becomes
   the sole boundary of an interactive element, it must meet 3:1 or an `outline`
   must be used instead.
+
+## Impact on the canonical state UI (UX-1B2A)
+
+The five failing pairs recorded above are not abstract — four of them land
+directly on the state surfaces specified in §State Component Contracts (UX-1B2A).
+This subsection adds only that evidence-backed connection; it approves no value
+and changes no token.
+
+| Failing pair (light) | Where it lands in today's state UI | Consequence |
+|---|---|---|
+| `primary` on `surfaceVariant` (3.12:1) | The shipped `Banner` renders an **info**-tone title in the `primary` tone at `label` size on a recessed ground. **18 of the 55 shipped banner usages are info-tone**, and that includes the Web-unavailable notice on **all 12** surfaces. | `WebUnavailableNotice`'s own title is a failing pair in the light theme today. Recorded, not worked around. |
+| `onPrimary` on `primary` (3.53:1) | Any filled primary action at `label` size. | Blocks AA completion of `EmptyState`'s creation action and `ErrorState`'s retry. |
+| `primary` on `surface` (3.53:1) | A text-style action or `primary`-toned link at `body`/`label`/`caption` size. | There is **no in-palette escape**: a text-style retry fails too, so the block cannot be avoided by changing button variant. |
+| `warning` on `surface` (4.24:1) | `SyncStatusHint`'s **conflict** variant and the offline banner. | Conflict and offline are definable but cannot be claimed accessible in the light theme. |
+| `accent` on `surface` (2.998:1) | **Nowhere in these contracts.** None of the eight states is an achievement, positive delta, primary action, or selected navigation, so no UX-1B2A contract uses the accent. | The accent failure and the accent block do **not** gate UX-1B2A. |
+
+What is **not** blocked: the `error` role passes AA in both themes (6.46:1 light),
+so the **copy-only** `ErrorState` is unblocked; `LoadingState` and `StateView` use
+only passing roles; `EmptyState`'s and `WebUnavailableNotice`'s **body** copy uses
+passing roles. The dark theme passes throughout.
+
+The consequence for sequencing: **UX-1C may implement the copy-only forms, but no
+action-bearing state form can be declared AA-complete in the light theme until the
+owner-gated token-value decision lands.** No contract in this document claims
+otherwise.
 
 ## Candidate remedies — PROPOSED, not approved, not in code
 
@@ -1205,7 +1270,326 @@ Avoid excessive vibration.
 
 ---
 
+# Canonical State Patterns
+
+Approved by **ADR-P022** Decision 15 (UX-1B2). These are the **eight** states a
+surface may be in. There are exactly eight; a ninth is not introduced by adding a
+new tone or a new message.
+
+Each state answers a different question. **Collapsing any two destroys information
+the user needs**, so a generic "something is up" state is forbidden.
+
+## The eight states
+
+| State | Cause | Trustworthy data present? | User action | Recovery path | Semantic tone | Native / Web |
+|---|---|---|---|---|---|---|
+| **Loading** | A read is in flight | Not yet — unknown | Wait | The read completing | Neutral surface; no semantic tone | Both |
+| **Empty** | The read **succeeded** and the collection is genuinely empty | Yes — an empty set is a true answer | Create the first item | The user adding content | Neutral / muted | Both |
+| **Data-gap** | A prerequisite input is missing, so the feature **cannot compute output** | No — output is not derivable | Supply the **named** missing input, on the screen that owns it | The user completing that specific input elsewhere | `info`, with a per-gap action | Both |
+| **Error** | An operation failed | Unknown or stale | Retry, or abandon | A retry succeeding, or the cause being fixed | `error` | Both |
+| **Offline** | No connectivity; local SQLite is the primary operational source | **Yes, for continued offline operation** — locally available data is trustworthy to keep working from. **Remote freshness is unknown until synchronization resumes**, so no claim of globally complete, current, or server-reconciled data is made | **Nothing.** Keep working | Connectivity returning | `warning`, informational — never alarming | Native (offline-first). Web has no offline model |
+| **Pending sync** | A local write is queued and **not lost** | **Yes** — the local write is fully stored on device | **Nothing.** Optionally sync now | The queue draining | `info` | Native only (Web has no local queue) |
+| **Conflict** | Two versions diverged; the system **refuses to silently overwrite** | Yes, but **ambiguous** | **Review and choose** | An explicit user decision | `warning` — never `error` | Native only |
+| **Web unavailable** | The capability is dormant on this platform **by decision** (ADR-P019 §4–5) | **None, and none will arrive** | Use the mobile app | **Nothing the user can do on this surface** | `info` | **Web only** |
+
+## Non-negotiable distinctions
+
+These are requirements, not guidance. Each is testable.
+
+1. **Loading ≠ Empty.** A list that is still loading must never render as empty.
+   The **SHIPPED** idiom `status === 'loading' && items.length === 0` exists in
+   **six** screens — four of them public-v1, two in the dormant medical domain —
+   precisely to prevent that flash; the contracts below make it explicit rather
+   than leaving it to each screen to rediscover.
+2. **Empty ≠ Data-gap.** Empty invites creation *here*. Data-gap names a *specific*
+   missing prerequisite and routes *elsewhere*. The **37 SHIPPED `*.gap.*`
+   localization keys** (19 `dashboard.gap.*` + 18 `nutrition.gap.*`, matched by 37
+   in ES) exist because generic emptiness was not sufficient.
+3. **Offline ≠ Error.** Offline is a **healthy** state: local SQLite is the primary
+   operational data source and native operates offline for at least 48 hours
+   (`00_PROJECT.md` §Offline First; ADR-0006). Rendering offline as `error`
+   misrepresents the architecture to the user. Equally, offline copy must not
+   over-promise: it may say the user can keep working from locally available data,
+   but it must **not** claim the data is globally complete, current, or reconciled
+   with the server — **remote freshness is unknown until synchronization
+   resumes**. Queued local writes and diverged records are the separate
+   **Pending sync** and **Conflict** states and must never be folded into Offline.
+4. **Pending sync ≠ Error.** Pending means **safely stored**. Its copy must
+   reassure, never alarm.
+5. **Conflict ≠ Error.** A conflict is a *both-versions-preserved* outcome awaiting
+   a decision, per the "historical records must never be silently overwritten"
+   data philosophy (`00_PROJECT.md`; ADR-P016 D6). It is `warning`, not `error`.
+6. **Web unavailable ≠ Error and ≠ Empty.** It is neither a failure nor an empty
+   collection. It is a declared platform boundary.
+7. **Web unavailable has no retry and never fabricates data.** Per ADR-P019 §5 it
+   must "never crash, never silently no-op, never fabricate or sample data, and
+   never imply full parity." No retry, refresh, sample-data, or
+   continue-anyway affordance may exist on that surface — the **SHIPPED**
+   `DashboardScreen` already records this intent in an inline comment.
+8. **Raw store / error / exception text is never rendered directly.** The store's
+   `error` field is a **discriminant**, not display copy; the presentation layer
+   supplies localized title and body via `t()`. This is already the **SHIPPED**
+   public-v1 pattern (the Progress screen comments that it must "never render the
+   store's raw/internal error text"). It keeps business logic out of the UI
+   (`06_MOBILE.md`) and prevents internal details reaching users
+   (`08_UI_UX.md` §Error States: "Never expose technical errors").
+
+## Current implementation evidence (SHIPPED at `2692e589`)
+
+Reproducible with read-only `git grep` / `git show` against `origin/main`.
+
+| Observation | Count |
+|---|---|
+| `<Banner >` JSX usages — the de-facto universal state container | **55**, across **21** consumer files |
+| Banner tone distribution | `error` 26 · `info` 18 · `warning` 9 · `success` 2 |
+| Presentation surfaces with a Web-unavailable branch | **12** |
+| Web-unavailable layout shapes | **11** early-return + **1** inline conditional; of the early returns, one is a compact card |
+| Web-unavailable localization keys | **23** = **11** `Title`/`Body` pairs + `progress.webUnavailableCard` |
+| Specs asserting Web-unavailable behaviour | **19** |
+| Route files importing `DashboardSkeleton` as their session loader | **12** |
+| Row-level sync-hint implementations | **3** (two named local components + one inline) |
+| Data-gap components | **2** |
+| Retry-related localization keys | **0** — no retry affordance exists anywhere |
+| Permission / denied localization keys | **0** — no permission state exists |
+| `accessibilityLiveRegion` / `announceForAccessibility` occurrences | **0** — state changes and errors are never announced |
+| `accessibilityState` occurrences | **8** (`selected` ×6, `disabled` ×2). **`busy`: 0** |
+| `accessibilityHint` occurrences | **0** |
+
+Two states in the table above therefore have **no implementation at all** today:
+a retry affordance for **Error**, and any announcement of state change to
+assistive technology.
+
+## Future flow needs with insufficient current evidence
+
+**Success confirmation** and **permission denied** are real future needs — the
+first for verification and recovery flows, the second for notification
+permissions — but the evidence does not yet justify a contract. Success has only
+two shipped `saved*` keys and no confirmation pattern to generalise; permission
+has **zero** keys, zero handling, and no owning flow. **No API, anatomy, variant,
+or placeholder contract is defined for either in this revision.** They are named
+here so a future slice does not mistake their absence for an oversight.
+
+---
+
+# State Component Contracts (UX-1B2A)
+
+Exactly **six** contracts. All are **TARGET** — none is implemented. These are
+specifications to build against, not descriptions of shipped code.
+
+## Composition model
+
+`Banner` remains the shipped atom; its own complete contract is **UX-1B2C**. The
+duplication these contracts remove is the *layout* repeated around it and the
+*status → tone + copy* mapping, not the banner itself.
+
+```
+Banner (SHIPPED atom)   AppText / Card / AppButton (SHIPPED)
+        │
+        └── StateView  (layout primitive: spacing + composition only)
+                 ├── LoadingState
+                 ├── EmptyState
+                 ├── ErrorState
+                 └── WebUnavailableNotice
+
+SyncStatusHint  (separate inline row-level component — NOT a StateView wrapper)
+```
+
+**A single `<StateBlock kind="…">` god component is rejected.** The anatomies are
+incompatible: Loading has no copy and no action; Pending sync is an inline row
+chip with no title; Error needs a retry plus an announcement; Web unavailable must
+make retry *structurally impossible*. One component with mutually exclusive props
+per `kind` is the "God Component" that `06_MOBILE.md` §Anti-Patterns and
+`03_CODING_STANDARDS.md` §Components forbid, and it would demote ADR-P019's
+no-retry guarantee from a type-level guarantee to a convention.
+
+## Rules common to all six contracts
+
+- **Tokens:** semantic roles only (§Color System). No raw hex, no new role. **No
+  contract here uses the energy accent** — none of the eight states is an
+  achievement, a positive delta, a primary action, or selected navigation, so the
+  accent rules and the accent's light-theme block do not gate this work.
+- **Icons:** a contract may specify an icon **slot** and its meaning. It must not
+  name a package: the Material Symbols vocabulary is approved, its cross-platform
+  delivery is unresolved (§Icons).
+- **EN/ES:** no single-line assumption; wrap, never clip, never truncate meaning.
+  Budget from the measured **SHIPPED** catalogue: mean ES/EN length delta **+33.9%**
+  across 696 keys, and worse in exactly these families — pending **+67%**
+  (worst single key **+125%**), conflict **+65%**, empty **+59%**, offline **+52%**,
+  data-gap **+28%**, Web-unavailable **+17%** (worst title **+38%**).
+- **Dynamic type:** `allowFontScaling` inherited from `AppText`; no fixed heights
+  on text-bearing containers.
+- **Responsive:** single column, inheriting `Screen` padding. Content measure and
+  breakpoints remain deferred (§Content measure).
+- **Test hooks:** every new hook below is verified not to collide with any of the
+  **76** distinct `testID` patterns already in `mobile/src` (40 static literals +
+  36 template forms). **All existing consumer and Maestro `testID`s are frozen and
+  unchanged by this revision** — including the **38** ids referenced by Maestro
+  flows. No existing id is renamed, removed, or re-scoped.
+- **Native / Web:** identical rendering unless a contract states otherwise.
+
+---
+
+## 1. `StateView`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | Vertical layout for a full-surface state: an optional heading, an optional subheading, one content slot, and at most one action slot. It owns **spacing and composition only**. |
+| **Non-responsibilities** | No `kind` or state discriminant. No tone selection or tone mapping. No localization keys or copy. No store or hook access. No router destination or navigation. No retry semantics. No loading, empty, error, or platform logic. No business behaviour of any kind. It must never become a god component. |
+| **Anatomy** | `block`: outer block → optional [heading + subheading] group → content slot → optional action slot. `compact`: outer block → content slot → optional action slot (no heading group). |
+| **Variants** | Exactly two: `block` (default, full surface) · `compact` (for use inside a card). The shape differs per variant — see below. |
+| **Required props (conceptual)** | the content slot, in **both** variants. |
+| **Optional props (conceptual)** | **Variant-specific, not generic:** `block` accepts an optional heading, an optional subheading, one optional action slot, and a test hook. `compact` accepts one optional action slot and a test hook only — **it does not accept a heading or a subheading**, and passing either must be inexpressible rather than silently ignored. |
+| **State behavior** | Stateless and effect-free. Renders exactly what it is given. |
+| **Semantic token roles** | Spacing scale only; all colour delegated to its children. |
+| **Accessibility** | No role of its own — it must not announce itself as a region or summary. Children own their semantics. Reading order in `block` is heading → subheading → content → action; in `compact` it is content → action. |
+| **EN/ES + dynamic type** | Height is content-driven; the heading and subheading wrap. No fixed heights. |
+| **Responsive** | Single column; inherits `Screen` padding. |
+| **Test hooks** | Pass-through only: it forwards a caller-supplied hook and defines none of its own. |
+| **Unit / component regression** | `block`: renders with and without heading, subheading, and action. `compact`: renders content with and without an action, and **renders no heading or subheading** — the regression must not assert or imply that `compact` can render either. Both variants forward the test hook and render no tone and no copy of their own. |
+| **Native / Web** | Identical. |
+| **Blockers** | **None.** Layout and spacing only; every token it uses passes AA in both themes. |
+
+---
+
+## 2. `LoadingState`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | Communicate that content is arriving, and announce that fact to assistive technology. |
+| **Non-responsibilities** | No action of any kind. No error, empty, or gap copy. It never decides *what* is loading. It must **never imply that data is empty**. |
+| **Anatomy** | `skeleton`: N placeholder blocks matching the shipped shape (a wider then a narrower bar inside a card). `text`: a single muted line. |
+| **Variants** | `skeleton` · `text`. Only these two — they are the only forms evidenced in `mobile/src`. In-button spinners stay a concern of the button and are **not** a variant here. |
+| **Required props (conceptual)** | a **localized** accessible loading description. There is deliberately **no default**. |
+| **Optional props (conceptual)** | **Variant-specific, not generic:** `skeleton` accepts an optional block count (shipped default is 3), plus variant and test hook. `text` accepts variant and test hook only — **it does not accept a block count**, because it renders no placeholder blocks; passing one must be inexpressible rather than silently ignored. The localized accessible loading description is required by **both** variants. |
+| **State behavior** | Renders only while a read is genuinely in flight. Callers must distinguish first load from refresh; the contract codifies the **SHIPPED** `loading && items.length === 0` idiom so a loading list never renders as an empty one. |
+| **Semantic token roles** | Recessed surface for placeholder blocks, medium radius, spacing scale. No semantic state tone. |
+| **Accessibility** | Requires a **localized** accessible description — this **replaces the hardcoded English `accessibilityLabel` on the shipped dashboard skeleton**, which is currently announced on **12** route surfaces regardless of the selected language and regardless of which feature is loading. Requires a **platform-appropriate busy contract**: the busy condition must be conveyed by the mechanism each platform actually honours (an accessibility state on the container, a live region, or a platform announcement API), chosen per platform at implementation time. **No single API is prescribed as universally correct for iOS, Android, and Web**; the requirement is that the busy condition is perceivable on each. `accessibilityState.busy` is unused in `mobile/src` today (**0** occurrences). |
+| **EN/ES + dynamic type** | Loading copy runs **+23%** longer in ES on average (worst accessible label **+88%**). The text variant wraps; skeleton blocks are proportional, never fixed-pixel to a string. |
+| **Responsive** | Placeholder widths are percentage-based, as shipped. |
+| **Test hooks** | `state-loading` (new; no collision). |
+| **Unit / component regression** | Both variants render. `skeleton`: the block count is honoured, including its default. `text`: renders the single line and **accepts no block count** — the regression must construct `text` without one and must not assert any block-count behaviour for it. Both: the localized description is announced, the busy condition is set, and the empty message is **never** rendered. |
+| **Native / Web** | Identical rendering. The announcement mechanism may differ per platform by design. |
+| **Blockers** | **None** — recessed-surface and muted-text roles pass AA in both themes. |
+
+---
+
+## 3. `EmptyState`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | Explain that a **successfully loaded** collection is genuinely empty, and offer the action that creates the first item. |
+| **Non-responsibilities** | Never represents a missing prerequisite (that is data-gap), a failure, an offline condition, or Web dormancy. Never renders while a read is in flight. No retry. No sync copy. |
+| **Anatomy** | `block`: `StateView` (block) → title → body explaining **what the user can do next** → **zero or one** optional creation action. `inline`: a single muted message element, with **no** title/body pair and **no** action. In neither variant is there a second action, an action array, or an action group — consistent with `StateView`'s "at most one action slot" rule. |
+| **Variants** | Exactly two: `block` (full surface) · `inline` (the shipped compact single-message form used inside a card or list). The shape differs per variant — see below. No additional variant is introduced for the action-bearing form; in `block` the action is a prop, not a variant. |
+| **Required props (conceptual)** | **Variant-specific:** `block` requires a localized title **and** a localized body — the body is required because §Empty States mandates explaining what the user can do next, and an empty state with no next step is incomplete. `inline` requires **one** localized visible message and accepts no title/body pair. |
+| **Optional props (conceptual)** | `block`: **one** optional creation action (handler + localized label), plus variant and test hook. `inline`: variant and test hook only — **it accepts no action at all**, and passing one must be inexpressible rather than silently ignored. |
+| **State behavior** | Rendered only when a load has completed successfully **and** the collection is empty. |
+| **Semantic token roles** | `block`: default surface and on-surface for the title; muted on-surface-variant for the body. `inline`: muted on-surface-variant for the single message. A filled action — possible only in `block` — uses the canonical **primary / on-primary** pair; the accent may never substitute for it. |
+| **Accessibility** | `block`: title then body in reading order; an action, when present, carries the button role and meets the 44×44 minimum. `inline`: the single message is announced as text; nothing is focusable, because there is nothing to do. Never colour-only in either variant. |
+| **EN/ES + dynamic type** | **The empty family is the second-worst measured: +59% mean, worst key +100%.** No fixed-height container, no single-line assumption, and no ellipsis — in **either** variant. The `inline` message must still explain the meaningful empty condition or the next step, so it **may wrap onto multiple lines and must never be constrained to one physical line** despite being the compact form. |
+| **Responsive** | Single column in both variants; the `block` body and the `inline` message both wrap freely. |
+| **Test hooks** | `state-empty` (new; no collision). |
+| **Unit / component regression** | `block`: renders title and body; renders with **zero** and with **one** action; renders **no** second action in any configuration. `inline`: renders the single localized message, renders **no** title/body pair, and **renders no action** in any configuration; wraps rather than truncating. Both variants render in ES without clipping and are **not** rendered while loading. |
+| **Native / Web** | Identical. |
+| **Blockers** | **The action-bearing `block` form is blocked from AA completion.** A filled primary action fails AA in the light theme at the shipped token values (see §Contrast Requirements), and no in-palette button treatment currently passes. The **copy-only `block`** form and the whole **`inline`** variant are unblocked — `inline` carries no action by contract. The action-bearing form cannot be claimed accessible until the owner-gated light-theme action-token decision lands. |
+
+---
+
+## 4. `ErrorState`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | Report that an operation failed, in localized public copy, and optionally offer a retry. |
+| **Non-responsibilities** | **Never renders raw error, store, or exception text.** Never used for offline, pending sync, conflict, or Web unavailable. Never retries by itself — it invokes a caller-supplied handler. Never exposes a status code, stack, or internal identifier. |
+| **Anatomy** | `Banner` in the error tone (title + body), optionally followed by **at most one** retry action. The `block` variant wraps that in `StateView`. |
+| **Variants** | `banner` · `block` (full surface). **Exactly two.** There is deliberately no `banner-with-retry` variant: retry presence has **one** source of truth — the optional retry pair below — so it can never disagree with a variant name. |
+| **Required props (conceptual)** | localized public title, localized public body. |
+| **Optional props (conceptual)** | **one** optional retry pair — a caller-supplied retry handler **and** a localized retry label — plus variant and test hook. The pair is all-or-nothing: the implementation must make a partial pair invalid, so the retry is either fully supplied (**both** values) or fully absent (**neither**). A handler without a label, or a label without a handler, must not be expressible. |
+| **State behavior** | **A retry action may be exposed only when retry is meaningful** — that is, when repeating the operation could plausibly succeed. Where it cannot (a validation failure, a declared platform boundary, an unrecoverable state), the retry must be absent rather than inert. **At most one retry action exists**, and the component **never retries automatically** — it only invokes the caller's handler on an explicit press. The store's `error` field is consumed as a **discriminant**; the copy always comes from the localization catalogue. |
+| **Semantic token roles** | The error presentation consumes the existing **recessed** `Banner` atom, so: `surfaceVariant` for the recessed background; `error` for the banner's border and its title; `onSurfaceVariant` (the existing muted text role) for the body. `primary` / `onPrimary` are used **only** by the optional retry action. **`onError` is not used by this contract** — it applies only to content rendered on a filled `error` background, which this contract does not define. |
+| **Accessibility** | **Requires error announcement.** The failure must be conveyed to assistive technology by a **platform-appropriate mechanism** — a live region, a platform announcement call, or focus movement to the message — selected per platform at implementation time. **No single API is prescribed as universally correct for iOS, Android, and Web.** This closes a real gap: there are **0** `accessibilityLiveRegion` / `announceForAccessibility` occurrences in `mobile/src` today, while `09_TESTING.md` §Accessibility Testing requires "Error announcement". Any retry carries the button role and the 44×44 minimum. |
+| **EN/ES + dynamic type** | Error copy runs **+16%** longer in ES on average, worst title **+93%**. Titles wrap; the retry label wraps or grows and is never clipped. |
+| **Responsive** | Single column; the action sits below the copy, never beside it at narrow widths. |
+| **Test hooks** | `state-error`, `state-error-retry` (new; no collision). |
+| **Unit / component regression** | Renders localized title and body; **renders no raw store string**; retry invoked exactly once per press and **never invoked automatically**; **at most one** retry action rendered; retry absent when the retry pair is absent; a partial retry pair is not expressible; the announcement path is exercised; **both** variants. |
+| **Native / Web** | Identical rendering; the announcement mechanism differs per platform by design. |
+| **Blockers** | **Retry implementation is blocked from AA completion.** Both a filled and a text-style retry fail AA in the light theme at the shipped token values (see §Contrast Requirements). The **copy-only** error form is unblocked — the error role itself passes AA in both themes. |
+
+---
+
+## 5. `WebUnavailableNotice`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | Render the ADR-P019 §5 honest platform-dormancy state, consolidating **layout and structural guarantees only**. |
+| **Non-responsibilities** | **Supplies no copy.** It owns **no** default, fallback, or generic message. Never an error or warning tone. **No retry, refresh, reload, sync, sample-data, or continue-anyway affordance — and no action prop exists in its shape at all.** No loading state. Never fabricates, samples, or infers data. Never implies parity with native. |
+| **Anatomy** | `block`: `StateView` (optional heading, optional subheading) → `Banner` in the info tone (title + body). `compact`: card → muted label + body, with **no** heading group. `inline`: bare `Banner` in the info tone, with **no** heading group. |
+| **Variants** | Exactly the **three shapes evidenced** in `mobile/src`: `block` (the repeated early-return form), `compact` (the dashboard summary-card form), `inline` (the conditional-banner form). No fourth variant. |
+| **Required props (conceptual)** | **caller-supplied localized title and body, in all three variants.** Both are required specifically so a caller cannot fall back to a generic message. |
+| **Optional props (conceptual)** | **Variant-specific, not generic:** `block` may accept an optional heading and an optional subheading, plus variant and test hook. `compact` and `inline` accept variant and test hook only — **neither accepts a heading or a subheading**, because neither renders a heading group; passing either must be inexpressible rather than silently ignored. All three accept the test hook, because all three render output. **There is deliberately no action, retry, handler, refresh, or sample-data prop in any variant, and no default or generic copy anywhere** — the ADR-P019 guarantee is enforced by the component's shape, not by reviewer vigilance. |
+| **State behavior** | Rendered only when a store reports the dormant-Web condition. It performs no detection itself and holds no state. |
+| **Semantic token roles** | Info role for the banner accent, recessed surface as ground, muted on-surface-variant for body. |
+| **Accessibility** | Title and body are both announced; the banner keeps its summary semantics. Nothing focusable is rendered, because there is nothing to do. |
+| **EN/ES + dynamic type** | **All 11 feature-specific EN/ES title/body pairs and `progress.webUnavailableCard` are preserved unchanged.** Component consolidation is **not** copy consolidation: per-feature wording is required by ADR-P019 §5 so the user learns *which* capability is unavailable; it is asserted by **19** existing specs; and ES titles already run up to **+38%** longer (one title reaches 58 characters), so a single generic title would be either vague or long in both languages. Titles must wrap. |
+| **Responsive** | Single column in all three variants. |
+| **Test hooks** | `state-web-unavailable` (new; no collision). |
+| **Unit / component regression** | All three variants render, each with the caller's localized title and body. `block`: renders with and without a heading and subheading. `compact` and `inline`: **render no heading or subheading** and accept none — the regression must construct them without either. **No action, retry, or pressable element is rendered in any variant**; the absence of a retry prop is enforced at the type level; **all 19 existing Web-unavailable specs must remain green unchanged**. |
+| **Native / Web** | Reachable only on Web by construction (native never reports the dormant condition). It renders identically if exercised in a native test. |
+| **Blockers** | **The shipped `Banner` info tone renders its title in a role/size combination that fails AA in the light theme** (see §Contrast Requirements). This affects the notice's own title on every surface that uses it today. The contract is definable now; a fully AA-compliant light-theme rendering awaits the owner-gated token decision. Recorded, not worked around. |
+
+---
+
+## 6. `SyncStatusHint`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | Convey **one row's** local sync condition inline: pending, conflict, or nothing. |
+| **Non-responsibilities** | **Not a `StateView` wrapper** — it is an inline row-level element, not a block. No aggregate counts. No surface-level banner (that remains `SyncStatusBanner`). No retry. No error. No offline. No navigation. |
+| **Anatomy** | A short caption-sized text element with an accessible description, rendered inside a list row. |
+| **Variants** | `pending` · `conflict` · **`synced` → renders `null`**. The null case matches all three shipped implementations. |
+| **Required props (conceptual)** | **Condition-specific, not generic.** `pending`: the condition plus a **localized** visible label and a **localized** accessible description. `conflict`: the condition plus a **localized** visible label and a **localized** accessible description. `synced`: the condition **only**. A caller must not be obliged to supply display copy that will never be shown. |
+| **Optional props (conceptual)** | **Condition-specific:** `pending` and `conflict` accept a test hook. `synced` accepts **nothing beyond its condition** — no visible label, no accessible description, and **no test hook**, because it renders `null` and there is no node to hook, label, or announce. Passing any of them must be inexpressible rather than silently ignored. |
+| **State behavior** | Pure projection of the row's condition. No effects, no store subscription, no polling. |
+| **Semantic token roles** | Muted on-surface-variant for pending; the warning role for conflict. |
+| **Accessibility** | **Pending and conflict always include text — never colour alone.** This satisfies the standing anti-pattern "Depend on color alone" and the non-colour redundancy rule (§Color System). **Each rendered variant — that is, `pending` and `conflict` — carries a localized accessible description.** `synced` renders nothing, so it has no accessible description and announces nothing. |
+| **EN/ES + dynamic type** | **The highest overflow risk in the product: the shipped pending label is 12 characters in EN and 27 in ES (+125%).** The contract therefore forbids fixed-width chips, single-line assumptions, and truncation; the hint wraps or the row grows. |
+| **Responsive** | Wraps within its row; never forces horizontal scrolling. |
+| **Test hooks** | `sync-hint` (new, parameterizable by row; no collision) — available to the **rendered** conditions `pending` and `conflict` only. Existing row-level `testID`s are unchanged. |
+| **Unit / component regression** | Renders for `pending` and for `conflict`, each with visible text alongside its colour and each reachable by its test hook. **`synced` is constructed with its condition alone — no label, no accessible description, no test hook — and renders `null`**, proving none of those props is required or consumed. ES label renders without clipping. |
+| **Native / Web** | **Native-meaningful.** Absent on Web, where no local write queue exists (ADR-P019). It must not be shown on Web merely because a row rendered. |
+| **Blockers** | The **conflict** variant uses the warning role, which is a recorded light-theme AA failure at the shipped value (see §Contrast Requirements). The pending variant is unblocked. The conflict variant is definable now and cannot be claimed accessible in the light theme until the token decision lands. |
+
+---
+
+## Reconciliation notes (documented, not redesigned)
+
+- **`SyncStatusBanner` remains the surface / aggregate component.** It already
+  centralises the syncing, offline, error, conflict-count, pending-count, and
+  ready outcomes into the correct tones, and it is covered by its own spec. This
+  slice **does not replace, redesign, wrap, or migrate it**. `SyncStatusHint` is
+  its row-level counterpart, not its successor. A future reconciliation may share
+  the status→tone mapping between them; that is not decided here.
+- **The two data-gap components remain.** Both express the same semantics: name
+  the specific missing prerequisite, explain why the feature is blocked, and offer
+  a direct action that routes to the screen owning that input. They currently
+  duplicate their gap-id → destination maps. This slice records the **shared
+  semantics and the future need to reconcile them**; it does **not** invent a
+  third component, choose a winner, or select a code migration.
+- **`Banner` remains the underlying atom.** Its complete contract — variants,
+  tones, title role, anatomy, and the light-theme title finding — is **UX-1B2C**.
+  The contracts above consume it; they do not redefine it.
+
+---
+
 # Empty States
+
+> **UX-1B2A:** the normative empty-state semantics and the `EmptyState` contract
+> are in §Canonical State Patterns and §State Component Contracts (UX-1B2A). The
+> requirements below remain in force, with one narrowing: the `EmptyState`
+> **component** contract supports **zero or one** optional creation action, in
+> line with `StateView`'s "at most one action slot" rule. A screen may still offer
+> a further route elsewhere in its layout; the component itself renders no second
+> action.
 
 Every empty screen should explain:
 
@@ -1223,6 +1607,10 @@ Never display blank screens.
 
 # Loading States
 
+> **UX-1B2A:** the normative loading semantics and the `LoadingState` contract are
+> in §Canonical State Patterns and §State Component Contracts (UX-1B2A). The
+> requirements below remain in force.
+
 Use
 
 Skeletons
@@ -1236,6 +1624,11 @@ Avoid blocking the interface unnecessarily.
 ---
 
 # Error States
+
+> **UX-1B2A:** the normative error semantics and the `ErrorState` contract are in
+> §Canonical State Patterns and §State Component Contracts (UX-1B2A) — including
+> the rule that raw store, error, or exception text is never rendered. The
+> requirements below remain in force.
 
 Every error should include:
 
@@ -1572,12 +1965,13 @@ Every screen must verify:
 
 # Change Control and Slice Boundaries
 
-## What v1.2 (UX-1B1) authorizes
+## What v1.2 (UX-1B1) and v1.3 (UX-1B2A) authorize
 
-Documentation only. This revision records the approved visual foundation. It
-changes no code and no dependency.
+Documentation only. v1.2 records the approved visual foundation; v1.3 records the
+canonical state patterns and the six state-component contracts. Neither changes
+code, tokens, localization keys, or dependencies.
 
-## What v1.2 explicitly does NOT authorize
+## What v1.2 and v1.3 explicitly do NOT authorize
 
 No dependency addition, font asset, icon delivery mechanism or icon asset,
 token-value change, component implementation, navigation or
@@ -1616,12 +2010,23 @@ Each requires its own authorization before any code:
 
 ## Where the rest of the design system lands
 
-- **UX-1B2** — state-pattern and component contracts. The component sections in
-  this document (Buttons, Inputs, Cards, Lists) and the state sections (Empty,
-  Loading, Error) remain the standing v1.1 requirements until UX-1B2 replaces
-  them with formal contracts.
-- **UX-1C** — shared component implementation against the frozen UX-1B2
-  contracts.
+UX-1B2 is delivered as three documentation slices:
+
+- **UX-1B2A — canonical state patterns and the six state-component contracts.
+  Delivered by this revision (v1.3).** The legacy state sections (Empty, Loading,
+  Error) remain in force and now point to it.
+- **UX-1B2B — form and input contracts** (`AppTextInput`, `FormField`,
+  `FormSelect`). Not started; the direct prerequisite for UX-1C's first code
+  slice.
+- **UX-1B2C — reconciliation of the existing primitives** (`Screen`, `Card`,
+  `AppText`, `AppButton`, `Banner`), including `Banner`'s complete contract and
+  the 10-state matrix in §Component States. Not started. The component sections
+  in this document (Buttons, Inputs, Cards, Lists) remain the standing v1.1
+  requirements until then.
+- **UX-1C** — shared component implementation against the frozen UX-1B2A/B/C
+  contracts. Copy-only state forms may proceed; no action-bearing state form can
+  be declared AA-complete in the light theme until the token-value decision lands
+  (§Impact on the canonical state UI).
 - **UX-2 / UX-3** — low-fidelity flows, then high-fidelity specifications.
 - **UX-4** — authentication / onboarding / dashboard pilot.
 - **UX-5** — progressive feature migration.
