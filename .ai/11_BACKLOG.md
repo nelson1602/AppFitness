@@ -1090,10 +1090,11 @@ Updated: 2026-08-24
 > and no photography/exercise-illustration pipeline for V1.
 > **UX-1B1 is COMPLETE — merged through PR #90 at merge SHA
 > `2692e5896af6b099e2f7cce6c934407d504340ef`. UX-1B2A is COMPLETE — merged through
-> PR #91 at merge SHA `6316f7826ea9fe9825ad5b484f5283fa38ddd1a1`. UX-1B2B is the
-> only rung in progress; UX-1B2C, UX-1C, and every later rung remain Proposed and
-> need their own scoped authorization. No code, dependency, asset, or token value
-> has changed.**
+> PR #91 at merge SHA `6316f7826ea9fe9825ad5b484f5283fa38ddd1a1`. UX-1B2B is
+> COMPLETE — merged through PR #92 at merge SHA
+> `19cea4b0569e527481aaed9b4755b132072ed66a`. UX-1B2C is the only rung in
+> progress; UX-1C and every later rung remain Proposed and need their own scoped
+> authorization. No code, dependency, asset, or token value has changed.**
 
 ### Description
 
@@ -1191,7 +1192,9 @@ Excluded:
      has no retry or action prop at all (ADR-P019 §5).** Success-confirmation and
      permission-denied are named as future flow needs with insufficient current
      evidence; **no placeholder API or anatomy is defined for either**.
-   - **UX-1B2B — Form/input contracts. Status: In Progress.** `.ai/08_UI_UX.md`
+   - **UX-1B2B — Form/input contracts. Status: COMPLETE (merged 2026-08-25 via
+     PR #92, merge SHA `19cea4b0569e527481aaed9b4755b132072ed66a`).**
+     `.ai/08_UI_UX.md`
      → v1.4: exactly **three** contracts — `AppTextInput`, `FormField`,
      `FormSelect` — frozen against a reproducible shipped-evidence snapshot (7
      files / 11 raw `TextInput`; 7 files / 40 `FormField` usages; 5 files / 8
@@ -1232,10 +1235,51 @@ Excluded:
      those surfaces are activated). Raw store/repository exceptions are never
      rendered as validation copy. Documentation only — no component, migration,
      token, or localization change.
-   - **UX-1B2C — Existing primitive reconciliation. Status: Proposed.** `Screen`,
-     `Card`, `AppText`, `AppButton`, and `Banner` — including `Banner`'s complete
-     contract and its info-tone title contrast finding — plus the 10-state matrix
-     required by `08_UI_UX.md` §Component States.
+   - **UX-1B2C — Existing primitive reconciliation. Status: In Progress.**
+     `.ai/08_UI_UX.md` → v1.5: exactly **five** contracts — `Screen`, `Card`,
+     `AppText`, `AppButton`, `Banner` — plus the **ten-state applicability
+     matrix** with exactly **50** classified cells (REQUIRED 10 / COMPOSED 8 /
+     NOT APPLICABLE 32 / DEFERRED-BLOCKED 0). `Screen` and `Card` are confirmed
+     **passive structural primitives**: every product state is **composed as a
+     child** and **no state prop is added to either**. The frozen UX-1B2A
+     components cover their accepted **loading / empty / error / Web-unavailable**
+     semantics; **success remains feature-owned composition today** (commonly the
+     shipped `Banner tone="success"`), because **success-confirmation remains
+     deferred and undefined** — UX-1B2A records it as a future flow need with
+     insufficient evidence and no API or anatomy, and UX-1B2C introduces none. `AppText` and `Banner` keep **semantic tones, not
+     behavioural states** — their Error/Success cells are NOT APPLICABLE while
+     `error`/`success` remain SHIPPED tones. `AppButton` is the only primitive
+     with genuine interaction states and is documented with **exactly four**
+     shipped variants (`primary`, `secondary`, `text`, `destructive`), with
+     loading and disabled as props; no Error/Success/Selected button variant is
+     introduced or implied. Narrow correction notes were added to the legacy
+     `# Component States` and `# Buttons` sections, which list aspirational
+     primitives, states, and variants (Tertiary, Outlined, Loading, Disabled) that
+     the shipped code does not have. Documentation only — no component, token,
+     localization, dependency, or asset change.
+
+     **Open gaps recorded by UX-1B2C (not fixed here):**
+     - `AppButton` **focus**: no focus treatment exists; a visible, non-colour
+       indicator is a TARGET with a platform-validated mechanism.
+     - `AppButton` **hover**: no hover handling exists; a hover affordance is a
+       TARGET on hover-capable **Web** only, not a native requirement.
+     - `AppButton` **loading accessibility**: when the accessible name is derived
+       from visible children, replacing the label with the spinner removes that
+       default name; an explicitly supplied caller `accessibilityLabel` survives
+       through `PressableProps`. The component supplies no default preserved name
+       and no programmatic busy outcome (`accessibilityState.busy` has zero
+       occurrences).
+     - `AppText` **dynamic type**: `allowFontScaling` is **default-on but
+       currently overridable**, because the remaining `TextProps` are spread after
+       the explicit prop. **Zero consumers disable it.** Preventing silent opt-out
+       is a TARGET whose API mechanism belongs to UX-1C.
+     - `AppText` **tone completeness**: caller `style` can override the semantic
+       tone colour, and that is used deliberately where a needed semantic
+       foreground role is missing. No new tone and no hardcoded colour is
+       approved.
+     - `Card` **grouping semantics**: `accessibilityLabel` pass-through is proven
+       by spec, but equivalent screen-reader grouping is not proven on every
+       platform; `Card` must not become an accessibility element by default.
 3. **UX-1C — Shared component implementation. Status: Proposed.** Build against
    the frozen UX-1B2 contracts, starting with the text-input primitive that would
    retire the raw `TextInput` usages currently spread across 7 files (11
@@ -1346,6 +1390,36 @@ selected-chip pairing. They must not be folded into the count of five. Detail in
    shipped placeholder sites use `outline`.
 
 **No code is fixed by UX-1B2B**; both findings are documentation-only records.
+
+**UX-1B2C additional usage-level contrast findings — OPEN.** The primitive audit
+measured every tone/ground pairing the five shipped primitives actually produce
+and found **exactly three more** light-theme pairings, all on grounds not
+previously measured. Detail in `.ai/08_UI_UX.md` §Usage-level contrast findings
+(UX-1B2C).
+
+1. **`primary` on `background` — 3.38:1.** Lands on the `AppButton` `text`
+   variant when it sits directly on a `Screen` ground (16 shipped `text` usages).
+2. **`warning` on `surfaceVariant` — 3.74:1.** Lands on the `Banner` `warning`
+   title (9 usages).
+3. **`success` on `surfaceVariant` — 4.04:1.** Lands on the `Banner` `success`
+   title (2 usages).
+
+**Corrected running totals:** **five** original owner-gated token pairs, plus
+**six** additional usage-level pairings (three from UX-1B2B and three from
+UX-1B2C).
+
+**Counting correction:** the `Banner` `info` title (`primary` on `surfaceVariant`,
+3.12:1) is an **application of one of the original five owner-gated pairs**, not
+an additional usage finding, and must **not** be counted twice.
+
+Also recorded: `success` on `surface` remains a narrow pass at 4.58:1, which does
+**not** imply it passes on `surfaceVariant`; all relevant dark-theme text pairings
+pass across all five primitives; `AppButton` disabled composites (1.99:1 light /
+3.35:1 dark) are **WCAG-exempt for inactive controls but remain a usability
+concern**; the weak `Card` boundary is **exempt only while decorative** and needs
+reassessment if it becomes semantically necessary or interactive. **No candidate
+token, replacement pairing, or runtime remedy is approved, and no code or token
+value is changed.**
 
 Coverage note for later rungs: `mobile/package.json` includes neither
 `src/features/workout` nor `src/features/progress` in `collectCoverageFrom` or
