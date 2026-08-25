@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.4
+Version: 1.5
 Status: Active
-Last Updated: 2026-08-24
+Last Updated: 2026-08-25
 
 ---
 
@@ -136,6 +136,47 @@ Included in v1.4:
 was reproduced with read-only `git grep` / `git show` / `git ls-tree` against tree
 `a4339be12215da705775a69fbdf81c6f5788a327` — the tree of merge commit
 `6316f7826ea9fe9825ad5b484f5283fa38ddd1a1`.
+
+---
+
+# Revision Scope (v1.5 — UX-1B2C)
+
+This revision records the **presentation primitive contracts** and the
+**ten-state applicability matrix**. It is documentation-only, authorized by
+**ADR-P022** Decision 15 (the UX-1B2 rung); it introduces no new decision and
+needs no new ADR — the UX-1B2C scoping audit found no architectural
+contradiction.
+
+Included in v1.5:
+
+- §Presentation Primitive Contracts (UX-1B2C) — exactly **five** contracts:
+  `Screen`, `Card`, `AppText`, `AppButton`, `Banner`
+- §Ten-State Applicability Matrix — exactly **50** classified cells
+- Three **additional usage-level** contrast findings, recorded separately from
+  the original owner-gated token set and from the UX-1B2B usage findings
+  (§Contrast Requirements)
+- Narrow correction notes on the legacy `# Component States` and `# Buttons`
+  sections, which list aspirational primitives and variants that the shipped
+  code does not have
+
+**Not** in v1.5, and explicitly deferred:
+
+- Any change to the six **UX-1B2A** state contracts or the eight canonical
+  product states (v1.3), or to the three **UX-1B2B** form/input contracts (v1.4).
+  Both remain frozen; only cross-references are added.
+- A sixth primitive contract, or any contract for a state, form, navigation,
+  chart, or feature component
+- Every runtime concern: no component implementation, no migration, no token
+  value change, no localization key change, no dependency, asset, font, or icon
+  package
+
+**Evidence baseline for v1.5.** Every SHIPPED count, behaviour, and ratio in the
+new sections was reproduced with read-only `git ls-remote` / `git show` /
+`git grep` / `git ls-tree` against tree
+`5e33cc1d9018b311b379dd5e13dbe20b40a294c4` — the tree of merge commit
+`19cea4b0569e527481aaed9b4755b132072ed66a`. The five primitive modules and all
+seven theme modules are **byte-identical** to every earlier baseline in this
+stream, so no prior measurement is invalidated.
 
 ---
 
@@ -645,6 +686,63 @@ eight shipped placeholder sites use `outline`; two already use
 This is a **usage correction, not a token-value change**. Both findings are
 tracked in **FEATURE-010**.
 
+## Usage-level contrast findings (UX-1B2C)
+
+The UX-1B2C primitive audit measured every tone/ground pairing the five shipped
+primitives actually produce, in both themes. It found **exactly three additional
+light-theme pairings**, all on grounds that earlier revisions had not measured.
+Like the UX-1B2B findings, these are **usage-level** — the roles are already
+known to be marginal, and the failure comes from the *ground* they are placed on.
+
+| # | Pairing (light) | Measured | Threshold | Where it lands |
+|---|---|---|---|---|
+| 1 | `primary` on **`background`** | **3.38 : 1** | 4.5 : 1 | The `AppButton` `text` variant when it sits directly on a `Screen` ground (16 shipped `text` usages), and any `primary`-toned text placed on the screen rather than on a card |
+| 2 | `warning` on **`surfaceVariant`** | **3.74 : 1** | 4.5 : 1 | The `Banner` `warning` title (9 shipped usages); also `AppText tone="warning"` on a banner or input ground |
+| 3 | `success` on **`surfaceVariant`** | **4.04 : 1** | 4.5 : 1 | The `Banner` `success` title (2 shipped usages); also `AppText tone="success"` on a banner or input ground |
+
+### Running totals — stated precisely
+
+- **Original owner-gated token set:** **five** light-theme failing pairs across
+  four foreground roles. Unchanged, still unresolved, **no candidate approved**.
+- **Additional usage-level pairings:** **six** in total — the **three** recorded
+  by UX-1B2B plus the **three** recorded here.
+
+### Critical correction — the `Banner` info title
+
+The `Banner` `info` title renders `primary` on `surfaceVariant` at **3.12 : 1**.
+That pairing **is one of the original five owner-gated pairs**, applied by a
+component. It is therefore **an application of an original pair, not an
+additional usage finding, and it must not be counted a second time.** The
+UX-1B2B additional count remains **three** — two placeholder pairings and the
+dark selected-chip pairing — and the UX-1B2C additional count is **three**, as
+tabulated above. This statement is recorded because the `Banner` info title is
+referenced from several sections and is the pairing most likely to be
+double-counted.
+
+### Also recorded
+
+- **`success` on `surface` remains a narrow pass at 4.58 : 1.** That does **not**
+  imply `success` passes on `surfaceVariant`, where it measures **4.04 : 1** and
+  fails. The v1.2 note that `success` "passes with a narrow margin and must not be
+  lightened" was measured on `surface` only; it is accurate but incomplete.
+- **All relevant dark-theme text pairings pass** across all five primitives — the
+  lowest measured dark text pairing is 6.95 : 1 (`onPrimary` on `primary`).
+- **`AppButton` disabled composites are exempt but poor.** `opacity 0.56`
+  composites both fill and label against the ground, yielding label-on-fill
+  ratios of **1.99 : 1** (light) and **3.35 : 1** (dark). WCAG 1.4.3 exempts
+  inactive controls, so these are **not failures** — they remain a **usability
+  concern**, and opacity is currently the only disabled signal.
+- **The `Card` boundary is exempt while decorative.** `surface` on `background`
+  (1.05 : 1 light / 1.08 : 1 dark) and the `divider` border (1.22 / 1.39) are far
+  below 3 : 1, but a passive grouping boundary is not information required to
+  identify a component or state. **Reassess if it ever becomes semantically
+  necessary or interactive.**
+- **`Banner` left tone borders pass** the 3 : 1 non-text threshold in both themes
+  for all four tones (lowest 3.74 : 1, light `warning`).
+- **No candidate token, replacement pairing, or runtime remedy is approved**, and
+  **no code or token value is changed** by this revision. All three findings are
+  tracked in **FEATURE-010**.
+
 ## Candidate remedies — PROPOSED, not approved, not in code
 
 These are worked candidates only. **None is approved, and none exists in
@@ -1080,6 +1178,16 @@ Keep component trees shallow.
 
 # Component States
 
+> **UX-1B2C correction.** The ten states below are the right *vocabulary*, but
+> "every interactive component must support" all ten is not achievable or
+> desirable for the shipped primitives: four of the five are **not interactive**.
+> The normative applicability is §Ten-State Applicability Matrix (UX-1B2C), which
+> classifies all 50 primitive/state cells and **supersedes this list where they
+> conflict**. In particular: `Screen` and `Card` take product loading/error/
+> success/empty by **composition**, never as props; `AppText` and `Banner` carry
+> semantic **tones**, not behavioural states; and `AppButton` is the only
+> primitive with genuine interaction states.
+
 Every interactive component must support:
 
 Default
@@ -1105,6 +1213,14 @@ Empty
 ---
 
 # Buttons
+
+> **UX-1B2C correction.** The list below is aspirational and does not describe the
+> shipped component. `AppButton` ships **exactly four** variants — `primary`,
+> `secondary`, `text`, `destructive` — and **`loading` and `disabled` are props,
+> not variants**. **Tertiary and Outlined do not exist**, and neither Loading nor
+> Disabled is a shipped variant. The normative contract is the `AppButton`
+> contract in §Presentation Primitive Contracts (UX-1B2C), which **supersedes
+> this list where they conflict**.
 
 Variants
 
@@ -1936,6 +2052,230 @@ Additional preservation requirements:
 
 ---
 
+# Presentation Primitive Contracts (UX-1B2C)
+
+Exactly **five** contracts: `Screen`, `Card`, `AppText`, `AppButton`, `Banner`.
+There is no sixth. This section reconciles the **already-shipped** primitives; it
+does not reopen the six UX-1B2A state contracts or the three UX-1B2B form/input
+contracts, and it introduces no runtime code.
+
+## Shipped-evidence snapshot
+
+Reproducible from tree `5e33cc1d` with read-only `git grep` / `git show`.
+
+| Primitive | Public API (SHIPPED) | Consumer files | Usages | Own spec assertions | Own a11y props |
+|---|---|---|---|---|---|
+| `Screen` | `children`, `scroll?` (default `true`), `style?: ViewStyle` | 15 | 25 | 2 | none |
+| `Card` | `children` + full `ViewProps` spread | 21 | 40 | 2 | none — passes the caller's through |
+| `AppText` | `children`, `variant?` (default `body`), `tone?` (default `default`), `align?` + full `TextProps` | 38 | **257** | 3 | none of its own; sets `allowFontScaling` |
+| `AppButton` | `children`, `variant?` (default `primary`), `loading?` (default `false`), `disabled?`, `style?` + `PressableProps` less `children`/`style` | 23 | 57 | 9 (incl. 4 parameterised) | `accessibilityRole="button"` (overridable) |
+| `Banner` | `title` (required), `children?`, `tone?` (default `info`) | 21 | 55 | 3 | `accessibilityRole="summary"` |
+
+Prop-usage distribution: `AppText` variants — `caption` 57, `label` 52, `title`
+31, `headline` 31, **`display` 0**, `body` 0 explicit (86 usages take the
+default). `AppText` tones — `muted` 117 of 127 total. **`tone="primary"` has zero
+direct consumers**; it is produced only *internally* by `Banner` (info title) and
+`AppButton` (secondary/text label). `AppButton` variants — `secondary` 21,
+`text` 16, `destructive` 2, `primary` 18 via default; `loading=` 29, `disabled=`
+7. `Banner` tones — `error` 26, `info` 18, `warning` 9, `success` 2. `Screen`
+`scroll={false}` used **once**; `Screen` `style` **0 usages**; `Card` `style`
+**0 usages**; `Card accessibilityLabel` **25 usages**.
+
+**Zero occurrences inside all five primitives:** `onHoverIn`/`onHoverOut`,
+`onFocus`/`onBlur`, `focusable`, `Platform`, `Animated`, `cursor`,
+`outlineStyle`, `accessibilityLiveRegion`. `Screen` contains no
+`KeyboardAvoidingView`, no `RefreshControl`, and no `maxWidth`.
+
+**The five primitives own no `testID`.** Every hook comes from a consumer, so no
+spec or Maestro flow depends on a primitive-internal id. What must survive is
+**pass-through and precedence**, not an id register.
+
+## Rules common to the five contracts
+
+- Clean Architecture: no primitive touches SQLite, a repository, a store, or
+  navigation. No hardcoded copy, colour, spacing, or string — semantic roles only.
+- Light and dark both specified; EN/ES reflow and dynamic type preserved.
+- 44×44 minimum for anything interactive; **never colour alone** for any state
+  that applies (§Non-colour redundancy).
+- Accessibility is expressed as a **platform outcome**. No universal React Native
+  prop is prescribed unless verified against the installed Expo / React Native
+  versions on iOS, Android, and Web.
+- Product state experiences are **composed as children**, never as props on a
+  structural primitive. Precisely:
+  - **Loading, empty, error, and Web-unavailable** experiences use the applicable
+    **frozen UX-1B2A components** (`LoadingState`, `EmptyState`, `ErrorState`,
+    `WebUnavailableNotice`).
+  - **Success presentation is currently feature-owned composition** — including
+    the shipped `Banner tone="success"` where appropriate. **No `SuccessState` or
+    success-confirmation contract exists**, and none is introduced here:
+    success-confirmation **remains deferred exactly as UX-1B2A records it**
+    (§Future flow needs with insufficient current evidence).
+  - **None** of these product states becomes a `Screen` or `Card` prop.
+
+---
+
+## 1. `Screen`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | The screen shell: it owns **safe-area insets**, the screen **background** ground, the single content column, and the default `lg` padding / `lg` gap rhythm. |
+| **Non-responsibilities** | No product state, no navigation, no header, no keyboard handling, no refresh, no responsive container, no per-screen background variant. |
+| **Anatomy (SHIPPED)** | `SafeAreaView` (from `react-native-safe-area-context`, `flex: 1`, `background` fill) → when `scroll` is `true` (the default) a `ScrollView` whose `contentContainerStyle` carries `padding: lg` + `gap: lg`; when `scroll` is `false` a `flex: 1` `View` carrying the same content style. The background role is applied on the safe area and again on the scroll/inner container. |
+| **Variants** | `scroll` (default) · non-scroll. Exactly these two; the non-scroll form is used once, by the account-deletion surface, which centres a fixed form. |
+| **Props** | required: `children`. optional: `scroll`, `style`. |
+| **`style` — accurate statement** | `style` is merged **into the content container**, *after* the default content style, so a caller can override the padding and gap rhythm. **Zero consumers currently use it.** It is **preserved for compatibility in this slice**; narrowing it (for example to a documented override-only escape hatch) or removing it is a **later implementation decision**, not a silent deletion here. |
+| **State behavior** | Stateless — every product state surface is a **child**, never a prop. `LoadingState`, `EmptyState`, `ErrorState`, and `WebUnavailableNotice` remain the child compositions for their **respective frozen semantics** (loading, empty, error, and platform dormancy); 12 route files already compose a loading child this way. A **success notice is feature-owned composition today**, commonly a `Banner tone="success"` — this **does not define or imply a `SuccessState`**, and `WebUnavailableNotice` is **not** a success component. **No `loading`, `empty`, `error`, `success`, or Web-unavailable prop is added to `Screen`.** |
+| **Semantic token roles** | `background` ground; `spacing.lg` padding and gap. No text, border, or elevation of its own. |
+| **Accessibility** | Sets no accessibility props and must not: it is a layout shell, and making it an accessibility element could collapse descendant semantics. Safe-area handling is its accessibility-relevant contribution. |
+| **EN/ES + dynamic type** | Content-driven height; the single column lets long ES copy wrap freely. |
+| **Responsive / Web** | Identical on all platforms today; `Platform` has zero occurrences. **Content measure / max width is DEFERRED** — no shipped evidence (`maxWidth` count is zero), so no breakpoint or measure is specified. |
+| **Test hooks** | None of its own; it forwards nothing. Its spec asserts children render in both the scroll and non-scroll forms. |
+| **Unit / component regression** | Children render in both forms; the background role is applied; the default padding and gap are present; a caller `style` overrides them (documenting current behaviour, not endorsing it). |
+| **Rejected — zero evidence** | keyboard avoidance · refresh control / pull-to-refresh · headers · navigation · background variants · safe-area edge selection · responsive-container APIs. Each requires its own evidence and authorization. |
+| **Blockers** | None. Its only token pairing is a ground colour with no foreground of its own. |
+
+---
+
+## 2. `Card`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | A **passive** structural container that groups related content on a surface. |
+| **Non-responsibilities** | **No press handling, no selection, no expansion or disclosure, no media slot, no header/footer, no action slot.** It renders a `View`. |
+| **Anatomy (SHIPPED)** | `View` — `surface` fill, **1 px** `divider` border, `radius.large`, `padding: lg`, `elevations.level1` — with the caller's `style` merged **after** the defaults and the remaining `ViewProps` spread onto the node. |
+| **Variants** | None. A single passive form. |
+| **Props** | required: `children`. optional: the full `ViewProps` surface, including `style` (0 usages today) and `accessibilityLabel` (25 usages). |
+| **Pressable / selected surfaces** | These are **external compositions, never `Card` variants**. The shipped progress summary wraps `Card` in an outer `Pressable` that owns the press, the role, and the `dashboard-progress-card` hook. That separation is correct and is preserved, not absorbed. |
+| **State behavior** | Stateless. Product states are **composed inside** it — the shipped `inline` empty form sits within a card, and a success notice would be feature-owned content (commonly `Banner tone="success"`), since **no frozen success-confirmation component exists**. **No state prop may be added.** |
+| **Semantic token roles** | `surface` fill · `divider` border · `radius.large` · `spacing.lg` padding · `elevations.level1`. |
+| **Accessibility — precise** | `accessibilityLabel` pass-through is preserved, and its spec proves the **prop and query path** survive. That is **not** proof of equivalent screen-reader **grouping semantics on every platform**: React Native derives grouping from `accessible`, which `Card` does **not** set. **`Card` must not become an accessibility element by default** — doing so could collapse or hide descendant semantics. Caller-owned grouping semantics therefore require **platform validation**, and this contract states the outcome rather than prescribing a prop. |
+| **EN/ES + dynamic type** | Height is content-driven; padding is a floor, never a ceiling. |
+| **Responsive / Web** | Identical on all platforms. |
+| **Test hooks** | None of its own; `testID` and `accessibilityLabel` pass through. |
+| **Unit / component regression** | Children render; a caller `accessibilityLabel` is queryable; caller `style` merges after the defaults; no press affordance exists in any configuration. |
+| **Contrast note** | The card boundary is weak: `surface` on `background` and the `divider` border are both far below 3:1 in either theme. It is **not currently classified as an AA failure** *only* because the boundary is decorative grouping — it is not required to identify a component, information, or a state. **Reassessment is required if the boundary ever becomes semantically necessary or interactive** (for example the sole indicator of selection), at which point 3:1 applies. |
+| **Blockers** | `elevations.level1` is shadow-only and therefore effectively invisible on dark surfaces. The **dark surface-tint TARGET** (§Elevation) applies; **no tint value is chosen here.** |
+
+---
+
+## 3. `AppText`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | The typographic primitive: it maps a **variant** to the type scale and a **tone** to a semantic foreground role, and renders accessible text. |
+| **Non-responsibilities** | No layout, no state, no interaction, no copy ownership. |
+| **Anatomy (SHIPPED)** | `Text` with `allowFontScaling`, then `style={[typography[variant], { color: tone, textAlign: align }, style]}`, then the remaining `TextProps` spread. |
+| **Variants (6, all SHIPPED)** | `display` · `headline` · `title` · `body` (default) · `label` · `caption`. **`display` has zero consumers — recorded as SHIPPED but unexercised, not removed.** |
+| **Tones (6, all SHIPPED)** | `default` (on-surface) · `muted` (on-surface-variant) · `primary` · `success` · `warning` · `error`. |
+| **Props** | required: `children`. optional: `variant`, `tone`, `align`, and the `TextProps` compatibility surface its consumers rely on. |
+| **Style precedence — accurate** | The caller's `style` is applied **after** the variant and tone, so **caller style can override the semantic tone colour**. This is used deliberately today where a needed semantic foreground role is missing: the language selector injects `onPrimary` for its selected chip because no `onPrimary` tone exists. That usage is **preserved**; it is evidence that the tone set is incomplete, not licence to hardcode. **No new tone and no hardcoded colour is approved here** — tone-set completeness is an implementation concern for a later slice. |
+| **Dynamic type — corrected** | **SHIPPED behaviour is default-on**: `allowFontScaling` is set explicitly. **But because the remaining `TextProps` are spread *after* that explicit prop, a caller can currently override it** and switch scaling off. **Zero consumers do so.** **TARGET:** dynamic type must remain enabled and silent opt-out must be prevented — the exact TypeScript or API mechanism (omitting the prop from the public type, re-ordering the spread, or another approach) belongs to **UX-1C**, not to this contract. |
+| **Semantic tones are not states** | `error`, `success`, and `warning` are **semantic presentation choices**, not behavioural component states. `tone="error"` on a caption is a colour role; the *error state* is owned by `FormField` (UX-1B2B) or `ErrorState` (UX-1B2A). See §Ten-State Applicability Matrix. |
+| **Typography TARGETs (undelivered)** | **Inter** remains a target and is **not delivered** — `typography.ts` says so in its own header and there are zero `useFonts` / `expo-font` usages. **Tabular figures** for metrics likewise remain unimplemented. |
+| **EN/ES + dynamic type** | Text wraps; no fixed heights on text-bearing containers; no truncation of meaning. |
+| **Responsive / Web** | Identical on all platforms. |
+| **Test hooks** | None of its own; `testID` passes through. Its spec asserts the tone resolves to a theme colour and that `allowFontScaling` is `true` by default. |
+| **Unit / component regression** | All six variants and six tones render; the tone resolves to a theme role; scaling is on by default; caller style still wins over tone (documenting current precedence); `display` is covered even though unexercised in production. |
+| **Blockers** | Several tone/ground pairings fail AA in the light theme — see §Contrast Requirements. The dark theme passes throughout. No candidate value is approved. |
+
+---
+
+## 4. `AppButton`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | The action primitive: a pressable control with a label, four visual variants, and the loading / disabled treatments. |
+| **Non-responsibilities** | No icon, no navigation, no business logic, no selection or toggle semantics, no motion, no haptics. |
+| **Variants — exactly four, all SHIPPED** | `primary` (default) · `secondary` · `text` · `destructive`. **`loading` and `disabled` are props/states, not variants** — the legacy `# Buttons` prose lists them (and Tertiary/Outlined) as variants; that list is aspirational and superseded here. |
+| **Anatomy (SHIPPED)** | `Pressable` with `accessibilityRole="button"` (destructured with that default, so a caller may override it), `disabled={disabled \|\| loading}`, and a style function producing `minHeight`/`minWidth` 44, `radius.medium`, `paddingHorizontal: lg`, hairline border, and `opacity` = `0.56` when disabled-or-loading, `0.84` when pressed, else `1`; the variant style and then the caller's `style` merge after; the remaining `PressableProps` spread onto the node. The child is an `ActivityIndicator` while loading, otherwise an `AppText variant="label"`. |
+| **Props** | required: `children`. optional: `variant`, `loading`, `disabled`, `style`, and the `PressableProps` compatibility surface — including the caller's `testID` and `accessibilityLabel`. |
+| **Preserved exactly** | `PressableProps` compatibility · caller `testID` (the node behind many Maestro-frozen consumer ids) · the default `button` role · style precedence · the **44×44 floor on all four variants** · press prevention when disabled **and** when loading · pressed opacity · the loading spinner · the disabled treatment. |
+| **Loading accessibility — precise** | When the accessible name is **derived from the visible children**, replacing the label with the spinner **removes that default name**. An **explicitly supplied caller `accessibilityLabel` may remain**, because it flows through `PressableProps` and is not destructured away. The component **does not currently supply a default preserved name and exposes no programmatic busy outcome** — `accessibilityState.busy` has zero occurrences anywhere in `mobile/src`. **TARGET:** preserve an accessible name throughout loading, and expose busy/loading meaning through a mechanism **verified for the installed Expo / React Native versions** on each platform. No universal prop is prescribed. |
+| **Focus — TARGET, currently missing** | There is **no focus treatment at all** (`onFocus`, `focusable`, `outlineStyle` all zero). **TARGET:** a **visible, non-colour** focus indicator (§Non-colour redundancy requires more than a colour-role swap). Mechanism platform-validated; no universal prop prescribed. |
+| **Hover — TARGET on hover-capable Web** | No hover handling exists (`onHoverIn`/`onHoverOut` zero). **TARGET:** a hover affordance **on hover-capable Web**, without inventing a native-only requirement — hover is **not applicable to touch-only interaction**. Implementation platform-validated. |
+| **Disabled treatment** | SHIPPED as press prevention plus `opacity 0.56`, with the disabled condition reaching assistive technology through the `Pressable`'s `disabled` prop. Opacity is a non-colour-role change, which satisfies the non-colour-alone requirement; the resulting composite is low-contrast (see §Contrast Requirements) — a usability concern, and WCAG-exempt for inactive controls. |
+| **Semantic token roles** | `primary`: `primary` fill + `onPrimary` label. `destructive`: `error` fill + `onPrimary` label. `secondary`: `surfaceVariant` fill, `outline` border, `primary` label. `text`: transparent fill and border, `primary` label on whatever ground is behind it. |
+| **EN/ES + dynamic type** | Labels wrap or the button grows; never clipped or ellipsized. The 44 floor grows with the text scale. |
+| **Responsive / Web** | Rendering identical; hover is Web-only by nature. |
+| **Test hooks** | None of its own; the caller's `testID` passes through and must land on the `Pressable`. |
+| **Unit / component regression** | All four variants render and keep their label; press fires once; press blocked when disabled and when loading; the disabled condition is exposed; the 44×44 floor holds for every variant (already asserted parameterised); **TARGET additions** — an accessible name survives loading, busy is exposed, and a focus indicator is present. |
+| **Rejected — zero evidence** | icons · icon-only buttons · new variants · selection/toggle behaviour · haptics · animation · size scales · a full-width prop · any dependency. |
+| **Blockers** | Three of its four label pairings fail AA in the light theme (`primary`, `secondary`, `text`); `destructive` passes. All pass in dark. See §Contrast Requirements. No candidate value is approved. |
+
+---
+
+## 5. `Banner`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | The passive notice atom: a toned, recessed block carrying a **required title** and an **optional textual body** supplied entirely by the caller. |
+| **Non-responsibilities** | **No actions, no dismissal, no icons, no navigation.** It owns **no copy**. It makes **no live-region guarantee**, and it has nothing to do with a Permissions-Policy header. |
+| **Anatomy (SHIPPED)** | `View` — `surfaceVariant` fill, **left** tone border of `spacing.xs` (4 px), `radius.medium`, `padding: md`, `gap: xs`, `accessibilityRole="summary"` → title as `AppText variant="label"` with `titleTone = tone === 'info' ? 'primary' : tone` → optional body as `AppText variant="caption" tone="muted"`. |
+| **Tones — exactly four, all SHIPPED** | `info` (default, 18 usages) · `success` (2) · `warning` (9) · `error` (26). |
+| **Props** | required: `title`. optional: `children`, `tone`. |
+| **Body slot — accurate** | `children?: ReactNode` is **rendered inside an `AppText`**. The body is therefore **textual content, not an arbitrary layout or action slot**; passing a pressable or a layout tree would nest it inside a `Text`. |
+| **State behavior** | Stateless and passive. It is the **atom**; `SyncStatusBanner`, `WebUnavailableNotice`, `ErrorState`, and the other UX-1B2A components are **compositions above it** and remain distinct — `Banner` must not absorb their status logic, copy, or structural guarantees. |
+| **Semantic token roles** | `surfaceVariant` ground · tone role on the left border · title in the tone role (`primary` for `info`) · body in `onSurfaceVariant`. |
+| **Accessibility — platform outcome** | The `summary` role and the resulting query path are **preserved**. This contract does **not** claim that `summary` creates a **live announcement**: `accessibilityLiveRegion` and `announceForAccessibility` have **zero** occurrences in `mobile/src`. Where a notice must be *announced* on appearance, that is an outcome to be **verified per platform** and belongs to the composing state component (for example `ErrorState`), not to this atom. |
+| **EN/ES + dynamic type** | Title and body both wrap; the block grows with the text scale. Measured Web-unavailable titles run up to +38% longer in ES. |
+| **Responsive / Web** | Identical on all platforms. |
+| **Test hooks** | None of its own. Its spec asserts title-only renders without an empty body node and that all four tones render. |
+| **Unit / component regression** | All four tones render; title-only omits the body node; caller copy appears verbatim; no action, dismissal, or pressable element exists in any tone. |
+| **Blockers** | **Three of four titles fail AA in the light theme** — `info` (an application of an original owner-gated pair), plus `warning` and `success` (new usage-level findings). `error` passes. All four pass in dark, and all four left borders clear the 3:1 non-text threshold in both themes. See §Contrast Requirements. |
+
+---
+
+# Ten-State Applicability Matrix (UX-1B2C)
+
+Exactly **50 cells** — five primitives × ten states. Each cell carries exactly
+one of **REQUIRED**, **COMPOSED**, **NOT APPLICABLE**, **DEFERRED/BLOCKED**.
+
+**This matrix is about component interaction and rendering applicability. It is
+not a second copy of the eight canonical product states** (§Canonical State
+Patterns). The two are related only where a product state is *composed* inside a
+structural primitive.
+
+Guiding conclusions from the evidence: **`AppButton` is the only primitive with
+genuine interaction states.** `Screen` and `Card` are passive structural
+primitives that host product states by composition. `AppText` and `Banner` carry
+**semantic tones**, not behavioural states.
+
+| State | `Screen` | `Card` | `AppText` | `AppButton` | `Banner` |
+|---|---|---|---|---|---|
+| **Default** | **REQUIRED** — safe area, `background` ground, `lg` padding/gap | **REQUIRED** — `surface`, 1 px `divider`, `radius.large`, `lg` padding, `level1` | **REQUIRED** — variant × tone × align | **REQUIRED** — four variants | **REQUIRED** — four tones, title + optional body |
+| **Hover** | **NOT APPLICABLE** — non-interactive layout shell | **NOT APPLICABLE** — passive `View`; hover belongs to any wrapping pressable | **NOT APPLICABLE** — non-interactive text | **REQUIRED** on hover-capable **Web**; **not applicable to touch-only interaction**. No hover handling ships today; the implementation remains platform-validated | **NOT APPLICABLE** — passive and actionless |
+| **Pressed** | **NOT APPLICABLE** | **NOT APPLICABLE** — the composition owns press feedback | **NOT APPLICABLE** | **REQUIRED — SHIPPED** as `opacity 0.84` while pressed | **NOT APPLICABLE** |
+| **Focused** | **NOT APPLICABLE** — nothing focusable | **NOT APPLICABLE** — nothing focusable | **NOT APPLICABLE** — nothing focusable | **REQUIRED — TARGET, currently missing.** No focus treatment exists; must be visible and not colour-only; mechanism platform-validated | **NOT APPLICABLE** — nothing focusable |
+| **Disabled** | **NOT APPLICABLE** | **NOT APPLICABLE** | **NOT APPLICABLE** — a disabled label is the control's concern, not the text primitive's | **REQUIRED — SHIPPED**: press prevented, disabled condition exposed, `opacity 0.56` | **NOT APPLICABLE** |
+| **Loading** | **COMPOSED** — via `LoadingState` as a child; never a `Screen` prop | **COMPOSED** — a card may contain a skeleton; never a `Card` prop | **NOT APPLICABLE** | **REQUIRED — SHIPPED** (spinner + press blocked), **with accessibility gaps**: the derived name is lost and no busy outcome is exposed | **NOT APPLICABLE** — `Banner` has no loading state |
+| **Error** | **COMPOSED** — via `ErrorState` as a child; never a `Screen` prop | **COMPOSED** — may contain an error block; never a `Card` prop | **NOT APPLICABLE as a state** — `tone="error"` remains a **SHIPPED semantic tone**, not behaviour | **NOT APPLICABLE** — there is no error-state button; error belongs to the field or surface | **NOT APPLICABLE as a state** — `tone="error"` remains a **SHIPPED semantic tone**, documented in the `Banner` contract |
+| **Success** | **COMPOSED** — a success notice is a child; **feature-owned content today** (commonly `Banner tone="success"`). **No frozen success-confirmation component exists** | **COMPOSED** — may contain a success notice; **feature-owned content today**, with **no frozen success-confirmation component** | **NOT APPLICABLE as a state** — `tone="success"` remains a **SHIPPED semantic tone** | **NOT APPLICABLE** — there is no success-state button | **NOT APPLICABLE as a state** — `tone="success"` remains a **SHIPPED semantic tone**, documented in the `Banner` contract |
+| **Selected** | **NOT APPLICABLE** | **NOT APPLICABLE** — selection lives in the wrapping pressable or in `FormSelect` (UX-1B2B) | **NOT APPLICABLE** | **NOT APPLICABLE** — `AppButton` has no toggle or selection semantics | **NOT APPLICABLE** |
+| **Empty** | **COMPOSED** — via `EmptyState` as a child; never a `Screen` prop | **COMPOSED** — the shipped `inline` empty form sits inside a card | **NOT APPLICABLE** | **NOT APPLICABLE** | **NOT APPLICABLE** |
+
+Cell tally: **REQUIRED 10 · COMPOSED 8 · NOT APPLICABLE 32 · DEFERRED/BLOCKED 0**
+= **50**.
+
+The ten REQUIRED cells are the five Default cells plus `AppButton`'s Hover,
+Pressed, Focused, Disabled, and Loading. The eight COMPOSED cells are `Screen`
+and `Card` across Loading, Error, Success, and Empty. No cell is
+DEFERRED/BLOCKED: every state is either genuinely applicable, composed, or
+inapplicable on the evidence.
+
+Two rules this matrix makes explicit:
+
+1. **No state prop may be added to `Screen` or `Card`.** Every COMPOSED cell is
+   satisfied **through child composition, never a structural-primitive state
+   prop**. Loading, empty, error, and Web-unavailable use their **frozen UX-1B2A
+   components** where applicable; **success currently uses feature-owned
+   composition** (commonly `Banner tone="success"`). **No success-confirmation
+   component contract is introduced** — it remains deferred as UX-1B2A records.
+2. **`AppText` and `Banner` never gain behavioural Error or Success states.**
+   Their `error` / `success` / `warning` tones are semantic presentation and stay
+   exactly as shipped.
+
+---
+
 # Empty States
 
 > **UX-1B2A:** the normative empty-state semantics and the `EmptyState` contract
@@ -2325,14 +2665,15 @@ Every screen must verify:
 
 # Change Control and Slice Boundaries
 
-## What v1.2 (UX-1B1), v1.3 (UX-1B2A), and v1.4 (UX-1B2B) authorize
+## What v1.2 (UX-1B1) through v1.5 (UX-1B2C) authorize
 
-Documentation only. v1.2 records the approved visual foundation; v1.3 records the
-canonical state patterns and the six state-component contracts; v1.4 records the
-three form and input contracts. None changes code, tokens, localization keys, or
+Documentation only. v1.2 records the approved visual foundation; v1.3 the
+canonical state patterns and the six state-component contracts; v1.4 the three
+form and input contracts; v1.5 the five presentation primitive contracts and the
+ten-state applicability matrix. None changes code, tokens, localization keys, or
 dependencies.
 
-## What v1.2, v1.3, and v1.4 explicitly do NOT authorize
+## What v1.2 through v1.5 explicitly do NOT authorize
 
 No dependency addition, font asset, icon delivery mechanism or icon asset,
 token-value change, component implementation, navigation or
@@ -2385,9 +2726,11 @@ UX-1B2 is delivered as three documentation slices:
   prerequisite for UX-1C's first code slice.
 - **UX-1B2C — reconciliation of the existing primitives** (`Screen`, `Card`,
   `AppText`, `AppButton`, `Banner`), including `Banner`'s complete contract and
-  the 10-state matrix in §Component States. Not started. The component sections
-  in this document (Buttons, Inputs, Cards, Lists) remain the standing v1.1
-  requirements until then.
+  the ten-state applicability matrix. **Delivered by this revision (v1.5).** The
+  legacy `# Component States` and `# Buttons` sections remain in the document with
+  correction notes; the UX-1B2C contracts and matrix supersede them where they
+  conflict. `# Inputs` and `# Forms` were already narrowed by v1.4; `# Cards` and
+  `# Lists` remain the standing v1.1 requirements.
 - **UX-1C** — shared component implementation against the frozen UX-1B2A/B/C
   contracts. Copy-only state forms may proceed; no action-bearing state form can
   be declared AA-complete in the light theme until the token-value decision lands
