@@ -1,6 +1,6 @@
 # AppFitness Design System Specification
 
-Version: 1.5
+Version: 1.6
 Status: Active
 Last Updated: 2026-08-25
 
@@ -177,6 +177,57 @@ new sections was reproduced with read-only `git ls-remote` / `git show` /
 `19cea4b0569e527481aaed9b4755b132072ed66a`. The five primitive modules and all
 seven theme modules are **byte-identical** to every earlier baseline in this
 stream, so no prior measurement is invalidated.
+
+---
+
+# Revision Scope (v1.6 — UX-1B2D)
+
+This revision reconciles the frozen UX-1B2B input contracts with a **verified
+platform limitation** in the installed React Native stack. It is
+documentation-only and is decided by **ADR-P023 — Platform-Honest Input
+Accessibility Staging**.
+
+The limitation was found by pre-implementation verification, before any runtime
+code was written: on `react-native@0.86.2` / `react-native-web@0.21.2` /
+`expo@57.0.13` there is **no supported, typed mechanism** that exposes equivalent
+programmatic **required** or **invalid** state on native iOS and Android.
+Programmatic **disabled** exposure is available on every platform and remains
+required.
+
+Included in v1.6:
+
+- §Verified platform capability matrix (UX-1B2D) — the checked outcomes, per
+  platform, with the mechanism that satisfies each
+- Narrow amendments to the clauses the limitation makes unachievable, in
+  §Non-colour redundancy, §1 `AppTextInput`, §2 `FormField`, and §3 `FormSelect`
+- The **UX-1C-1 staging rule**: both control models are mandatory; `required` and
+  `invalid` must not be published as props with partial or no-op semantics
+- §Verification expectations — an explicit separation of **prop presence** from
+  real VoiceOver / TalkBack / browser-AT behaviour, and a manual-verification
+  requirement before any completion claim
+- The unresolved native outcome recorded as a **V1 accessibility release-review
+  gate** and as owner-gated decision 10 (§Change Control)
+
+**Not** in v1.6, and explicitly deferred:
+
+- Any selected mechanism for the native gap. **No** announcement strategy,
+  accessible-copy strategy, dependency, or stack upgrade is chosen, planned, or
+  authorized. UX-1C-2 must evaluate this before `FormField` migrates.
+- Any change to the eight canonical product states (v1.3), the six UX-1B2A state
+  contracts, the five UX-1B2C primitive contracts, or the ten-state matrix
+- Any contrast resolution. The **five** owner-gated light-theme pairs and the
+  **six** usage-level pairings stand exactly as recorded, and this revision does
+  **not** unblock `FormSelect` or UX-1C-3.
+- Every runtime concern: no component implementation, no migration, no token
+  value change, no localization key change, no dependency, asset, font, or icon
+  package
+
+**Evidence baseline for v1.6.** Verified read-only against tree
+`8214dec01f98da473ee2d35a35b295b3670da0b0` — the tree of merge commit
+`7f2f53adfd0e58c9342ab872f2884d97b75305aa` (UX-1B2C, PR #93). Platform capability
+was read from the installed React Native type declarations and from the resolved
+`mobile/package-lock.json` versions, and corroborated against the official React
+Native `Accessibility` and `TextInput` documentation. No runtime module changed.
 
 ---
 
@@ -1885,14 +1936,50 @@ and no icon dependency**.
 |---|---|
 | **Default input border** | 1 px border. |
 | **Focused input** | A border **visibly thicker than the default 1 px**, so focus is never a colour-role swap alone. |
-| **Invalid text field** | The visual border treatment **plus** adjacent error copy **plus** programmatic invalid exposure. All three, not any one. |
-| **Required field** | A visible required indicator **plus** programmatic required exposure. The indicator alone is insufficient — see §2. |
-| **Disabled control or option** | Interaction is **prevented** (not merely styled), the disabled condition is **exposed programmatically**, and the visible treatment is **not solely a change of semantic colour role** (e.g. reduced opacity, as the shipped button already does). |
+| **Invalid text field** | The visual border treatment **plus** adjacent error copy **plus** programmatic invalid exposure. All three, not any one. **UX-1B2D amendment (ADR-P023):** the first two are implementable now and remain required. The third is **BLOCKED on native** — no typed mechanism exists on iOS or Android (§Verified platform capability matrix). The requirement is **not withdrawn**; it is a named unresolved blocker and a V1 release-review gate. The visible treatment and the adjacent copy must never be presented as satisfying it. |
+| **Required field** | A visible required indicator **plus** programmatic required exposure. The indicator alone is insufficient — see §2. **UX-1B2D amendment (ADR-P023):** the visible indicator is implementable now and remains required. Programmatic required exposure is **BLOCKED on native** for the same verified reason, remains the target, and is a named unresolved blocker. |
+| **Disabled control or option** | Interaction is **prevented** (not merely styled), the disabled condition is **exposed programmatically**, and the visible treatment is **not solely a change of semantic colour role** (e.g. reduced opacity, as the shipped button already does). **Unaffected by UX-1B2D:** all three parts are implementable on iOS, Android, and Web — `accessibilityState={{ disabled }}` together with `editable={false}` — and remain fully required and tested. |
 | **Selected radio chip** | Programmatic selected state **plus** a **visible geometric distinction** from the unselected 1 px chip border — for example a thicker border — so selection is not conveyed by fill colour alone. **BLOCKED detail:** the exact border role/width for the selected chip cannot be proven from the accepted token set, so it is **not specified here** and must not be invented. The selected-chip **foreground** contrast blocker stands unchanged (§Usage-level contrast findings). |
 
 Thickness values beyond "thicker than 1 px" are deliberately unspecified: the
 accepted token set contains no border-width scale, and inventing one would be a
 token decision, which is out of scope for this slice.
+
+## Verified platform capability matrix (UX-1B2D)
+
+Decided by **ADR-P023**. Verified read-only against the versions
+`mobile/package-lock.json` resolves for `npm ci` — **`react-native@0.86.2`**,
+**`react-native-web@0.21.2`**, **`expo@57.0.13`** — from the installed React
+Native type declarations, corroborated against the official React Native
+`Accessibility` and `TextInput` documentation. This matrix states what the stack
+**can** do today; it is not a statement about what the design requires.
+
+| Outcome | iOS | Android | Web | Supported typed mechanism |
+|---|---|---|---|---|
+| **Disabled** | Yes | Yes | Yes | `accessibilityState={{ disabled }}` **plus** `editable={false}` |
+| **Invalid** | **No** | **No** | Runtime only, **untyped** | None. `AccessibilityState` declares only `disabled`, `selected`, `checked`, `busy`, `expanded`; `react-native-web` forwards `aria-invalid` to the DOM, but no typed route exists from a codebase importing `TextInput` from `react-native` |
+| **Required** | **No** | **No** | Runtime only, **untyped** | None. Same finding, for `aria-required` |
+| **Error-message association** | **No** | Android-only partial | Runtime only, **untyped** | `accessibilityLabelledBy` / `aria-labelledby` is documented **Android only**; `aria-errormessage` and `aria-describedby` are absent from React Native entirely |
+
+Consequences, stated plainly so no reader mistakes staging for compliance:
+
+- The **disabled** outcome is met on all three platforms and is not deferred.
+- The **required** and **invalid** outcomes remain the accepted target and are
+  **currently unachievable on native**. They are **not** withdrawn, downgraded, or
+  satisfied by visible signals alone.
+- Web ARIA behaviour **does not exist on native**. A capability that works only in
+  `react-native-web` must never be described as cross-platform.
+- Fabricating support is forbidden: no `any`, no unsafe cast, no suppression
+  comment, no module augmentation of an unimplemented API, no private native API,
+  no unsupported ARIA injection, no `.web.tsx` input variant, no
+  `accessibilityValue.text`, and no accessible-name suffix (which would break the
+  frozen label queries in §Input frozen-hook register). See ADR-P023 §Rejected
+  mechanisms.
+- The unresolved native outcome is an **accessibility release-review gate before
+  V1 store submission** (§Change Control, owner-gated decision 10) and is tracked
+  as an open risk in `.ai/11_BACKLOG.md` FEATURE-010.
+- Re-evaluation is triggered by a supported upstream API, an approved
+  accessible-copy strategy, or a stack upgrade. **None is planned or authorized.**
 
 ## Validation-copy boundary — what is SHIPPED versus TARGET
 
@@ -1928,18 +2015,19 @@ Stated precisely, because the shipped inventory is **not** uniform:
 | **Responsibility** | A theme-aware React Native text-control primitive. It owns the input node, value entry, the visual input states, its semantic tokens, its accessible name, and native `TextInput` behaviour. |
 | **Non-responsibilities** | Owns **no** visible field label, **no** helper text, **no** validation message, **no** schema, **no** React Hook Form controller, **no** store or repository access, **no** navigation, and **no** business logic. |
 | **Anatomy** | A single-line text control only. No surrounding label, no message row, no adornment slots. |
-| **Control models (discriminated — never mixed)** | **Controlled:** requires `value` **and** a change callback; **does not accept** `defaultValue`. **Uncontrolled commit-on-end:** requires `defaultValue` **and** the end-edit commit callback; **does not accept** the controlled `value`/change pair. A partial or mixed pair must be **inexpressible**, not silently resolved. The uncontrolled shape exists only because one shipped consumer needs it (the per-set reps editor); it must not be widened into a general uncontrolled API. |
+| **Control models (discriminated — never mixed)** | **Controlled:** requires `value` **and** a change callback; **does not accept** `defaultValue`. **Uncontrolled commit-on-end:** requires `defaultValue` **and** the end-edit commit callback; **does not accept** the controlled `value`/change pair. A partial or mixed pair must be **inexpressible**, not silently resolved. The uncontrolled shape exists only because one shipped consumer needs it (the per-set reps editor); it must not be widened into a general uncontrolled API. **UX-1B2D confirmation (ADR-P023 Decision 6 and 10):** **both** models are **mandatory in UX-1C-1**, with component regression coverage for each — the uncontrolled member is an accepted contract backed by an existing consumer, not a speculative abstraction, and is **not** deferrable. Migration of that consumer (the per-set reps editor in `WorkoutLogScreen.tsx`) remains **UX-5**, so the uncontrolled member ships with coverage and no caller. |
 | **Evidenced optional configuration** | placeholder · secure text entry · auto-capitalization · auto-correction · `selectTextOnFocus` · blur and end-edit callbacks. Keyboard types: **default, numeric, decimal-pad, email-address** — these four only. |
 | **States** | default · focused · populated · error/invalid · **disabled**. Disabled is a TARGET standard state and is **currently unexercised** — there are zero shipped `editable`/`readOnly` usages, so no consumer proves its behaviour yet. A distinct **read-only** state (non-editable but not de-emphasised) is **deferred**; it must not be treated as a synonym for disabled. |
 | **Semantic token roles (FULL family is canonical)** | `surfaceVariant` fill · `onSurface` value text · **`onSurfaceVariant` placeholder text** · `outline` border at **1 px** by default · `error` border in the invalid state · a **thicker-than-default** border when focused (§Non-colour redundancy) · medium radius · `spacing.x5l` minimum height · horizontal `spacing.md` · body typography. **`outline` must not be used for placeholder text** — that pairing is a measured contrast failure (§Usage-level contrast findings). |
-| **Semantic-state interface (explicit)** | The contract is small, but it must accept **enough semantic input to express**: (a) the **accessible name**; (b) the **required** state, when applicable; (c) the **invalid** state; (d) the **disabled** state; (e) an **optional `testID`**. These are the semantic inputs — not native prop names. The exact native mapping per condition stays **implementation-gated** and must be validated separately on iOS, Android, and Web. **No generic catch-all native-props surface** is added: the primitive does not spread arbitrary `TextInput` props, because that would silently reintroduce every API this contract rejects. |
+| **Semantic-state interface (explicit)** | The contract is small, but it must accept **enough semantic input to express**: (a) the **accessible name**; (b) the **required** state, when applicable; (c) the **invalid** state; (d) the **disabled** state; (e) an **optional `testID`**. These are the semantic inputs — not native prop names. The exact native mapping per condition stays **implementation-gated** and must be validated separately on iOS, Android, and Web. **No generic catch-all native-props surface** is added: the primitive does not spread arbitrary `TextInput` props, because that would silently reintroduce every API this contract rejects. **UX-1B2D amendment (ADR-P023 Decision 5):** that validation has now been performed, and (b) and (c) have **no supported typed native mechanism** (§Verified platform capability matrix). Therefore **UX-1C-1 must not publish `required` or `invalid` props** — a prop that appears to expose state while being inert on iOS and Android is worse than its absence. (a), (d), and (e) are unaffected and are published. This does **not** remove (b) and (c) from the contract; it defers their public API to the slice that can make them truthful. |
 | **Ownership chain** | `FormField` owns the **visible label**, the **required indication**, and the **error message**. It passes the **accessible-name, required, invalid, and disabled outcomes** into `AppTextInput`. `AppTextInput` owns the **native control** and is responsible for exposing those outcomes to assistive technology. Neither side duplicates the other's job: `AppTextInput` never renders a label or a message, and `FormField` never reaches into the native control's accessibility surface directly. |
-| **Accessibility** | A meaningful accessible name is **conceptually required** on the control. 44×44 minimum. Focus, invalid, required, and disabled meaning must never rest on colour alone — see §Non-colour redundancy for the minimum signals. **Required and invalid conditions must be exposed programmatically as well as visibly.** This contract deliberately does **not** prescribe `accessibilityState.required`, `accessibilityState.invalid`, or any other single React Native prop, and does not claim one API works universally: the requirement is the **outcome** — that assistive technology on iOS, Android, and Web can perceive the required, invalid, and disabled conditions. The exact mechanism must be validated against the installed React Native / Expo version for each platform during implementation. Today there are **zero** occurrences of `accessibilityHint`, required exposure, and invalid exposure across `mobile/src`. |
+| **Accessibility** | A meaningful accessible name is **conceptually required** on the control. 44×44 minimum. Focus, invalid, required, and disabled meaning must never rest on colour alone — see §Non-colour redundancy for the minimum signals. **Required and invalid conditions must be exposed programmatically as well as visibly.** This contract deliberately does **not** prescribe `accessibilityState.required`, `accessibilityState.invalid`, or any other single React Native prop, and does not claim one API works universally: the requirement is the **outcome** — that assistive technology on iOS, Android, and Web can perceive the required, invalid, and disabled conditions. Today there are **zero** occurrences of `accessibilityHint`, required exposure, and invalid exposure across `mobile/src`. **UX-1B2D amendment (ADR-P023):** the per-platform validation this clause demanded is complete. **Disabled** is achievable on iOS, Android, and Web and remains fully required. **Required** and **invalid** have **no supported typed mechanism on native iOS or Android** and are therefore a **named unresolved blocker**, not a satisfied outcome and not a withdrawn one (§Verified platform capability matrix). Fabricating support by any of the routes listed in ADR-P023 §Rejected mechanisms is forbidden. |
 | **EN/ES + dynamic type** | Labels and error copy live with the caller and must wrap; the control's own height is a floor, never a ceiling, so it grows with the OS text scale. 18 EN / 18 ES placeholder keys already exist and are unchanged. |
 | **Responsive / Web** | Identical on all platforms. There is no Web-specific input variant today (`Platform.OS` has **zero** occurrences in any `.tsx`), and none is introduced. Only two shipped inputs render on Web at all; the rest sit behind `web-unavailable` gates or in the dormant medical domain. |
 | **Test hooks** | `testID` is an **optional pass-through**. When supplied it must land on the **actual `TextInput` node**, alongside the accessible name and the `value` prop, because shipped specs assert `.props.value` on the node reached by that id. No new id is required where none exists today. |
-| **Unit / component regression** | Controlled and uncontrolled shapes each render and commit correctly; a mixed pair is not expressible; each of the four keyboard types; secure entry masks; `selectTextOnFocus` honoured when opted in; the invalid state changes the border **and** is exposed programmatically; the disabled state is covered even though no consumer exercises it; ES rendering at a large text scale does not clip. |
-| **Blockers** | None from tokens for the control itself — fill, value, placeholder (using `onSurfaceVariant`), border, and error border all pass AA in both themes. The **placeholder-via-`outline`** pairing used by six shipped inputs fails in light and must not be carried into the primitive. |
+| **Unit / component regression** | Controlled and uncontrolled shapes each render and commit correctly; a mixed pair is not expressible; each of the four keyboard types; secure entry masks; `selectTextOnFocus` honoured when opted in; the invalid state changes the border **and** is exposed programmatically; the disabled state is covered even though no consumer exercises it; ES rendering at a large text scale does not clip. **This row states the full contract's regression set. It is not achievable in full today** — see the UX-1C-1 scope row immediately below and §Verified platform capability matrix. |
+| **Unit / component regression — UX-1C-1 scope (ADR-P023)** | **Both control models are mandatory** and each is covered: controlled renders and reports every change; uncontrolled renders from `defaultValue` and commits the final text **once** on end-edit, never per keystroke; a mixed or partial pair fails `tsc`. Also covered: the four keyboard types; secure entry masks; `selectTextOnFocus` when opted in; the **focused** border is thicker than the default 1 px; **disabled** prevents editing **and** exposes `accessibilityState.disabled`; ES rendering at a large text scale does not clip. **Deferred, not satisfied:** the **entire** invalid-state regression — both the **visual error border** and **programmatic invalid exposure** — because UX-1C-1 publishes no `invalid` API, and an internal-only or test-only trigger would be exactly the hidden, partially truthful behaviour ADR-P023 Decision 5 forbids. Both remain part of the full contract and move **together** to UX-1C-2, after the mandatory accessibility follow-up (§2) defines a truthful semantic interface. The **error-border token pairing stays verified and contrast-unblocked** (see Blockers) — it is deferred because the semantic API is blocked, **not** because its colours fail. `required` is likewise absent from the UX-1C-1 public API. A passing property assertion is **never** evidence of an assistive-technology announcement (§Verification expectations). |
+| **Blockers** | None from tokens for the control itself — fill, value, placeholder (using `onSurfaceVariant`), border, and error border all pass AA in both themes. The **placeholder-via-`outline`** pairing used by six shipped inputs fails in light and must not be carried into the primitive. **Accessibility blocker (UX-1B2D / ADR-P023):** programmatic **required** and **invalid** exposure is unavailable on native iOS and Android on the installed stack. Consequently **`AppTextInput` is not contract-complete after UX-1C-1**, which is an explicitly **staged partial implementation**; the blocker is a V1 accessibility release-review gate. |
 
 **Rejected from this contract** (zero shipped evidence): multiline ·
 `numberOfLines` · `maxLength` · return-key and submit behaviour · clear button ·
@@ -1963,15 +2051,15 @@ those flows.
 | **Non-responsibilities** | No validation, no schema, no coercion, no persistence. It composes `AppTextInput`; **it is not replaced by it**. |
 | **Preserved exactly** | `Controller` ownership · the `Control<T>` / `FieldPath<T>` generic surface, including the current `z.input`-as-`unknown` assignability that lets numeric schemas stay assignable to the shared field · label ownership · the `field-${name}` hook **on the actual `TextInput` node** · the accessibility-label query path (the label is passed through as the control's accessible name) · all **11** `selectTextOnFocus` call sites and its opt-in default-off semantics · the keyboard configuration its existing consumers rely on · the **`fieldState.error.message` rendering path** and the feature-owned validation boundary exactly as shipped (see §Validation-copy boundary — the copy's localization is a call-site guarantee today, not a schema-level one). |
 | **Anatomy** | label (with required indication) → `AppTextInput` → adjacent error message when invalid. |
-| **Required indication** | Keep the visible indication. **Add a platform-appropriate programmatic required contract** so assistive technology perceives it. Required must not rest on the asterisk glyph or on colour alone. Do not freeze an unsupported universal React Native prop — state the outcome and validate the mechanism per platform at implementation time. Today the asterisk is appended to the *visible* label only while the accessible name receives the raw label, so screen readers never hear it. |
-| **Invalid / error behaviour** | `FormField` owns the adjacent error rendering; `AppTextInput` receives only the visual and programmatic invalid state, per the ownership chain in §1. The message must be **associated with its field** and **announced through a platform-appropriate mechanism**, and the invalid state must carry all three signals required by §Non-colour redundancy. **Raw store or repository exceptions, stack details, and technical failure text are never rendered as field validation copy.** Copy comes from the field's validation — the Zod schema or an explicit `setError` — and is **TARGET-localized for public surfaces**; see §Validation-copy boundary for what is and is not already localized. |
+| **Required indication** | Keep the visible indication. **Add a platform-appropriate programmatic required contract** so assistive technology perceives it. Required must not rest on the asterisk glyph or on colour alone. Do not freeze an unsupported universal React Native prop — state the outcome and validate the mechanism per platform at implementation time. Today the asterisk is appended to the *visible* label only while the accessible name receives the raw label, so screen readers never hear it. **UX-1B2D amendment (ADR-P023):** validation is complete and **no supported typed native mechanism exists**. `FormField` therefore **retains the visible required indication** — unchanged — while programmatic required exposure stays **unresolved and cannot be declared complete**. The accessible name must **not** be modified to carry the state: that would break the frozen label-query paths (§Input frozen-hook register). |
+| **Invalid / error behaviour** | `FormField` owns the adjacent error rendering; `AppTextInput` receives only the visual and programmatic invalid state, per the ownership chain in §1. The message must be **associated with its field** and **announced through a platform-appropriate mechanism**, and the invalid state must carry all three signals required by §Non-colour redundancy. **Raw store or repository exceptions, stack details, and technical failure text are never rendered as field validation copy.** Copy comes from the field's validation — the Zod schema or an explicit `setError` — and is **TARGET-localized for public surfaces**; see §Validation-copy boundary for what is and is not already localized. **UX-1B2D amendment (ADR-P023 Decision 7) — mandatory UX-1C-2 evaluation.** Before `FormField` migrates, UX-1C-2 must evaluate announcement of the **already-rendered localized error copy** through supported platform mechanisms. That evaluation must add **no duplicate error copy**, alter **no** frozen accessible name, introduce **no** unauthorized EN/ES key, and must not treat a Jest property assertion as proof of VoiceOver or TalkBack behaviour. **No mechanism is selected, pre-approved, or implied here.** Until it resolves, the invalid outcome and the field↔message relationship remain **unresolved** and the adjacent visible message must not be presented as proving announcement. |
 | **Helper text** | **No helper-text contract.** Zero shipped evidence. |
 | **Control model** | Controlled through RHF only. The uncontrolled `AppTextInput` shape is not exposed here. |
 | **Semantic token roles** | Label uses on-surface; the control uses the FULL family; the error message uses the error role at caption size on its surrounding ground. All pass AA in both themes. |
 | **EN/ES + dynamic type** | Label, required indication, and error copy all wrap; no fixed heights on text. |
 | **Test hooks** | `field-${name}` frozen, on the control node. |
-| **Unit / component regression** | Renders label, control, and error; required is exposed both visibly and programmatically; **no raw store/repository exception or stack text is ever rendered as validation copy**; for a public-v1 surface the rendered message is the localized string its call site injected; focus renders a thicker-than-default border; `selectTextOnFocus` passes through; `Control` assignability holds for numeric schemas; every existing `field-*` id and label query still resolves. |
-| **Blockers** | None from tokens. |
+| **Unit / component regression** | Renders label, control, and error; required is exposed **visibly** — programmatic native exposure is unresolved per the UX-1B2D amendment above and must not be asserted as met; **no raw store/repository exception or stack text is ever rendered as validation copy**; for a public-v1 surface the rendered message is the localized string its call site injected; focus renders a thicker-than-default border; `selectTextOnFocus` passes through; `Control` assignability holds for numeric schemas; every existing `field-*` id and label query still resolves. |
+| **Blockers** | None from tokens. **Accessibility blocker (UX-1B2D / ADR-P023):** programmatic **required** and **invalid** exposure, and the field↔error-message relationship, are unavailable on native iOS and Android on the installed stack. `FormField` therefore **cannot be declared complete** on migration, and UX-1C-2 must run the mandatory evaluation above first. Carried to the V1 accessibility release-review gate. |
 
 ---
 
@@ -1987,12 +2075,12 @@ those flows.
 | **Disabled options** | **TARGET**, supported by the shipped sibling radio-chip pattern in the language selector, which pairs `disabled` with a programmatic disabled state. Stated honestly: the current shared `FormSelect` option type is `{ label, value }` and **does not implement option-level disabled today**. When added, a disabled option must expose its state **programmatically and visibly** and must **not** invoke selection. This must **not** be generalised into a disabled-field or read-only API — no evidence supports either. |
 | **Anatomy** | label (with required indication) → wrapping chip row → adjacent error message when invalid. |
 | **Semantic token roles** | Unselected chip: `surfaceVariant` fill, `outline` border at **1 px**, muted on-surface-variant label — passes AA in both themes. Selected chip: `primary` fill **plus a visible geometric distinction from the 1 px unselected border** (§Non-colour redundancy); the exact selected border role/width is **BLOCKED** — it cannot be proven from the accepted token set and must not be invented here. The selected chip's **foreground pairing is also blocked** — see §Usage-level contrast findings. |
-| **Accessibility — required outcomes** | Assistive technology must be able to perceive **all** of: (a) the **field/group label**; (b) that the options form **one single-choice group**; (c) **each option's name**; (d) each option's **selected** and, when implemented, **disabled** state; (e) the **required** and **invalid** state of the field/group; (f) the **relationship between the invalid group and its adjacent error message**. These are outcomes, not APIs: this contract does **not** prescribe a universal `radiogroup` role, any `aria-*` attribute, or any specific React Native prop, and none may be adopted without verification against the installed Expo / React Native versions on iOS, Android, and Web. The shipped component already provides the radio role per option, the programmatic selected state, and `${label}: ${option}` names; group identity, required, invalid, and the error relationship are the outcomes still to be satisfied. 44×44 minimum. Selection must never be conveyed by colour alone — see §Non-colour redundancy. |
+| **Accessibility — required outcomes** | Assistive technology must be able to perceive **all** of: (a) the **field/group label**; (b) that the options form **one single-choice group**; (c) **each option's name**; (d) each option's **selected** and, when implemented, **disabled** state; (e) the **required** and **invalid** state of the field/group; (f) the **relationship between the invalid group and its adjacent error message**. These are outcomes, not APIs: this contract does **not** prescribe a universal `radiogroup` role, any `aria-*` attribute, or any specific React Native prop, and none may be adopted without verification against the installed Expo / React Native versions on iOS, Android, and Web. The shipped component already provides the radio role per option, the programmatic selected state, and `${label}: ${option}` names; group identity, required, invalid, and the error relationship are the outcomes still to be satisfied. 44×44 minimum. Selection must never be conveyed by colour alone — see §Non-colour redundancy. **UX-1B2D amendment (ADR-P023):** outcomes **(e)** required/invalid and **(f)** the invalid-group↔message relationship are subject to the same verified native limitation (§Verified platform capability matrix) and remain **unsatisfied**. UX-1B2D selects no mechanism for `FormSelect` and **does not unblock UX-1C-3**; group identity and option-level disabled remain separate open outcomes. |
 | **EN/ES + dynamic type** | Chips wrap and grow; option labels are never clipped or ellipsized. |
 | **Responsive / Web** | Identical on all platforms; **no Web-specific variant**. |
 | **Test hooks** | `option-${name}-${value}` frozen, on the pressable node. |
 | **Unit / component regression** | Required and optional models both render, the optional one with **no initial selection**; selecting sets the value once; the selected state is exposed programmatically **and** carries a visible geometric distinction; the six accessibility outcomes above are each asserted; **no raw store/repository exception is rendered as validation copy**; ES option labels wrap without clipping; when option-level disabled lands, a disabled option announces its state and cannot be selected. |
-| **Blockers** | **The selected chip cannot be declared AA-complete in both themes** until the owner-gated `primary`/`onPrimary` token decision resolves — see §Usage-level contrast findings. The unselected chip is unblocked. |
+| **Blockers** | **The selected chip cannot be declared AA-complete in both themes** until the owner-gated `primary`/`onPrimary` token decision resolves — see §Usage-level contrast findings. The unselected chip is unblocked. **Unchanged by UX-1B2D:** this contrast blocker stands exactly as recorded and ADR-P023 resolves none of it. **Additional accessibility blocker (UX-1B2D / ADR-P023):** required, invalid, and the invalid-group↔message relationship are unavailable on native. `FormSelect` therefore carries **two independent blockers**, and **UX-1C-3 remains blocked**. |
 
 **Explicitly rejected** (zero shipped evidence): search · multi-select ·
 async/remote options · virtualization · icons · native picker · new package ·
@@ -2387,6 +2475,27 @@ Accessibility is verified, not asserted. WCAG 2.2 AA is the floor.
 7. **Keyboard / focus** — where a platform exposes focus (Web, external keyboard),
    focus order follows reading order and focus is visibly indicated.
 
+**Prop presence is not assistive-technology behaviour (UX-1B2D / ADR-P023).** This
+distinction is mandatory in every completion claim, review, and commit message:
+
+- An automated assertion that a component renders `accessibilityState`,
+  `accessibilityLabel`, `accessibilityRole`, or any `aria-*` property proves
+  **only that the property is present on the node**. Under `jest-expo` such an
+  assertion passes identically whether or not the platform maps that property to
+  anything.
+- A property that a platform does not implement is **inert**, not partial. Web
+  ARIA behaviour under `react-native-web` is **not** evidence for iOS or Android.
+- An **adjacent visible message does not prove announcement**. Visible copy and an
+  announced state are different outcomes; neither substitutes for the other.
+- Therefore **no accessibility outcome may be reported as satisfied on the
+  strength of a unit or component test alone.** Claiming an announced state
+  requires **manual verification on the platform concerned** — VoiceOver on iOS,
+  TalkBack on Android, and a browser screen reader on Web — recorded per surface
+  with the OS/AT version used. Where that verification has not been performed, the
+  outcome is reported as **unverified**, never as met.
+- Any outcome recorded as **BLOCKED** in a contract must not be marked SHIPPED,
+  complete, or AA-complete on the basis of a green test suite.
+
 **Current scaffolding (SHIPPED).** Verified at `origin/main` `9dbe2258` across
 6,685 lines of non-spec UI: 142 `accessibilityLabel`, 18 `accessibilityRole`,
 8 `accessibilityState`, **0** `accessibilityHint`. `AppText` sets
@@ -2395,8 +2504,11 @@ Accessibility is verified, not asserted. WCAG 2.2 AA is the floor.
 **Known gaps (TARGET work, not yet implemented).** No reduce-motion detection, no
 high-contrast handling, no manual theme override, and no responsive/reflow
 handling exist in `mobile/src`; the light-theme contrast failures recorded in
-§Contrast Requirements are open. These are stated so no reader mistakes the
-current state for compliance.
+§Contrast Requirements are open. **Programmatic required and invalid exposure is
+unavailable on native iOS and Android on the installed stack** (§Verified platform
+capability matrix, ADR-P023) and is an **accessibility release-review gate before
+V1 store submission**. These are stated so no reader mistakes the current state
+for compliance.
 
 ---
 
@@ -2665,15 +2777,16 @@ Every screen must verify:
 
 # Change Control and Slice Boundaries
 
-## What v1.2 (UX-1B1) through v1.5 (UX-1B2C) authorize
+## What v1.2 (UX-1B1) through v1.6 (UX-1B2D) authorize
 
 Documentation only. v1.2 records the approved visual foundation; v1.3 the
 canonical state patterns and the six state-component contracts; v1.4 the three
 form and input contracts; v1.5 the five presentation primitive contracts and the
-ten-state applicability matrix. None changes code, tokens, localization keys, or
-dependencies.
+ten-state applicability matrix; v1.6 the verified platform capability matrix and
+the narrow input-accessibility amendments decided by **ADR-P023**. None changes
+code, tokens, localization keys, or dependencies.
 
-## What v1.2 through v1.5 explicitly do NOT authorize
+## What v1.2 through v1.6 explicitly do NOT authorize
 
 No dependency addition, font asset, icon delivery mechanism or icon asset,
 token-value change, component implementation, navigation or
@@ -2712,18 +2825,28 @@ Each requires its own authorization before any code:
 8. Navigation model and information architecture (the "selected navigation"
    accent role has no surface until then).
 9. An in-app theme override, if ever wanted.
+10. **Programmatic required / invalid exposure on native iOS and Android** — no
+    supported typed mechanism exists on `react-native@0.86.2` /
+    `react-native-web@0.21.2` / `expo@57.0.13` (§Verified platform capability
+    matrix, ADR-P023). The objective stands; the mechanism does not exist yet. The
+    owner must choose between a supported upstream API when one appears, an
+    approved accessible-copy strategy with authorized EN/ES keys and an
+    announcement policy, or a stack upgrade — **none of which is planned or
+    authorized**. This is an **accessibility release-review gate before V1 store
+    submission** and must be reviewed there whether or not it is resolved.
 
 ## Where the rest of the design system lands
 
-UX-1B2 is delivered as three documentation slices:
+UX-1B2 is delivered as four documentation slices:
 
 - **UX-1B2A — canonical state patterns and the six state-component contracts.
   Delivered by this revision (v1.3).** The legacy state sections (Empty, Loading,
   Error) remain in force and now point to it.
 - **UX-1B2B — form and input contracts** (`AppTextInput`, `FormField`,
   `FormSelect`). **Delivered by this revision (v1.4).** The legacy Inputs and
-  Forms sections remain in force and now point to it. It is the direct
-  prerequisite for UX-1C's first code slice.
+  Forms sections remain in force and now point to it. It froze the contracts that
+  UX-1C's first code slice builds against; **UX-1B2D then amended them** where a
+  verified platform limitation made a clause unachievable.
 - **UX-1B2C — reconciliation of the existing primitives** (`Screen`, `Card`,
   `AppText`, `AppButton`, `Banner`), including `Banner`'s complete contract and
   the ten-state applicability matrix. **Delivered by this revision (v1.5).** The
@@ -2731,18 +2854,33 @@ UX-1B2 is delivered as three documentation slices:
   correction notes; the UX-1B2C contracts and matrix supersede them where they
   conflict. `# Inputs` and `# Forms` were already narrowed by v1.4; `# Cards` and
   `# Lists` remain the standing v1.1 requirements.
+- **UX-1B2D — reconciliation of the input contracts with the verified platform
+  limitation. Delivered by this revision (v1.6)**, decided by **ADR-P023**. It
+  amends only the clauses the limitation makes unachievable, adds the capability
+  matrix and the prop-presence-versus-announcement rule, and selects **no**
+  mechanism. It is the direct prerequisite for UX-1C's first code slice.
 - **UX-1C** — shared component implementation against the frozen UX-1B2A/B/C
-  contracts. Copy-only state forms may proceed; no action-bearing state form can
-  be declared AA-complete in the light theme until the token-value decision lands
-  (§Impact on the canonical state UI). UX-1C may implement the shared input
-  primitives, but **migrating the seven REDUCED-family feature inputs is UX-5**
-  and needs separate per-feature authorization.
+  contracts as amended by UX-1B2D. Copy-only state forms may proceed; no
+  action-bearing state form can be declared AA-complete in the light theme until
+  the token-value decision lands (§Impact on the canonical state UI). UX-1C may
+  implement the shared input primitives, but **migrating the seven REDUCED-family
+  feature inputs is UX-5** and needs separate per-feature authorization. It is
+  sequenced as three code slices:
+  - **UX-1C-1** — the safe `AppTextInput` foundation: **both** control models with
+    component tests, the barrel export, `disabled` support, and migration of
+    **only** `sign-in` and `delete-account`. It publishes **no** `required` or
+    `invalid` prop, and is a **staged partial implementation** — never
+    contract-complete.
+  - **UX-1C-2** — `FormField` and `FoodLogAddForm`, **contingent** on the
+    mandatory accessibility evaluation in §2.
+  - **UX-1C-3** — `FormSelect`, still **blocked** by its recorded contrast and
+    accessibility outcomes.
 - **UX-2 / UX-3** — low-fidelity flows, then high-fidelity specifications.
 - **UX-4** — authentication / onboarding / dashboard pilot.
 - **UX-5** — progressive feature migration.
 
-Tracked as **FEATURE-010** in `.ai/11_BACKLOG.md`; decided by **ADR-P022** in
-`.ai/12_DECISIONS.md`.
+Tracked as **FEATURE-010** in `.ai/11_BACKLOG.md`; decided by **ADR-P022** and,
+for the input-accessibility staging, **ADR-P023** in `.ai/12_DECISIONS.md`.
 
 ---
 

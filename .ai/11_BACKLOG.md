@@ -1076,7 +1076,7 @@ Priority: P1
 Type: Feature
 Owner: Product / Design / Architecture
 Created: 2026-08-24
-Updated: 2026-08-24
+Updated: 2026-08-25
 
 > **ADR-P022 ACCEPTED 2026-08-24** — visual direction `Confident Clarity`,
 > mobile-first V1, explicit Web non-parity, wellness-not-medical visual posture,
@@ -1092,9 +1092,23 @@ Updated: 2026-08-24
 > `2692e5896af6b099e2f7cce6c934407d504340ef`. UX-1B2A is COMPLETE — merged through
 > PR #91 at merge SHA `6316f7826ea9fe9825ad5b484f5283fa38ddd1a1`. UX-1B2B is
 > COMPLETE — merged through PR #92 at merge SHA
-> `19cea4b0569e527481aaed9b4755b132072ed66a`. UX-1B2C is the only rung in
+> `19cea4b0569e527481aaed9b4755b132072ed66a`. UX-1B2C is COMPLETE — merged
+> through PR #93 at merge SHA
+> `7f2f53adfd0e58c9342ab872f2884d97b75305aa`. UX-1B2D is the only rung in
 > progress; UX-1C and every later rung remain Proposed and need their own scoped
 > authorization. No code, dependency, asset, or token value has changed.**
+>
+> **ADR-P023 ACCEPTED 2026-08-25 — Platform-Honest Input Accessibility
+> Staging.** Pre-implementation verification established that on
+> `react-native@0.86.2` / `react-native-web@0.21.2` / `expo@57.0.13` there is
+> **no supported, typed mechanism** for programmatic **required** or **invalid**
+> state on native iOS and Android; programmatic **disabled** is available on every
+> platform and remains required. The objective is **preserved, not retired**: the
+> gap is recorded as an open accessibility risk and a **V1 release-review gate**.
+> UX-1C-1 may build the safe `AppTextInput` foundation and is an explicitly
+> **staged partial implementation** — never contract-complete. **UX-1C remains
+> Proposed until UX-1B2D is merged.** No mechanism, dependency, copy, token, or
+> stack upgrade is selected, planned, or authorized.
 
 ### Description
 
@@ -1235,7 +1249,9 @@ Excluded:
      those surfaces are activated). Raw store/repository exceptions are never
      rendered as validation copy. Documentation only — no component, migration,
      token, or localization change.
-   - **UX-1B2C — Existing primitive reconciliation. Status: In Progress.**
+   - **UX-1B2C — Existing primitive reconciliation. Status: COMPLETE (merged
+     2026-08-25 via PR #93, merge SHA
+     `7f2f53adfd0e58c9342ab872f2884d97b75305aa`).**
      `.ai/08_UI_UX.md` → v1.5: exactly **five** contracts — `Screen`, `Card`,
      `AppText`, `AppButton`, `Banner` — plus the **ten-state applicability
      matrix** with exactly **50** classified cells (REQUIRED 10 / COMPOSED 8 /
@@ -1280,13 +1296,63 @@ Excluded:
      - `Card` **grouping semantics**: `accessibilityLabel` pass-through is proven
        by spec, but equivalent screen-reader grouping is not proven on every
        platform; `Card` must not become an accessibility element by default.
-3. **UX-1C — Shared component implementation. Status: Proposed.** Build against
-   the frozen UX-1B2 contracts, starting with the text-input primitive that would
-   retire the raw `TextInput` usages currently spread across 7 files (11
-   `<TextInput` occurrences at `origin/main`, 10 of them outside the shared
-   `FormField`). Must
+
+   - **UX-1B2D — Input-contract reconciliation with the verified platform
+     limitation. Status: In Progress (documentation / decision only).**
+     `.ai/08_UI_UX.md` → v1.6, decided by **ADR-P023**. Pre-implementation
+     verification of the resolved stack — `react-native@0.86.2`,
+     `react-native-web@0.21.2`, `expo@57.0.13` — established the capability
+     matrix: programmatic **disabled** is expressible on iOS, Android, and Web
+     (`accessibilityState={{ disabled }}` plus `editable={false}`), while
+     programmatic **required** and **invalid** have **no supported typed
+     mechanism on native**. `react-native-web` forwards `aria-invalid` /
+     `aria-required`, which is a Web runtime capability and **not**
+     cross-platform. The slice amends only the clauses the limitation makes
+     unachievable (§Non-colour redundancy, §1 `AppTextInput`, §2 `FormField`,
+     §3 `FormSelect`), adds the capability matrix and a mandatory
+     prop-presence-versus-announcement rule to §Verification expectations, and
+     records the gap as owner-gated decision 10 and a release-review gate.
+     **Fabricated support is rejected outright:** no `any`, unsafe cast,
+     suppression comment, module augmentation of an unimplemented API, private
+     native API, unsupported ARIA injection, `.web.tsx` input variant,
+     `accessibilityValue.text`, or accessible-name suffix. **No mechanism is
+     selected**, and no dependency, token, copy, or stack upgrade is planned or
+     authorized. Documentation only — no component, token, localization,
+     dependency, or asset change, and **no runtime implementation is completed by
+     this slice**.
+
+3. **UX-1C — Shared component implementation. Status: Proposed — remains
+   Proposed until UX-1B2D is merged.** Build against the frozen UX-1B2A/B/C
+   contracts **as amended by UX-1B2D**, starting with the text-input primitive
+   that would retire the raw `TextInput` usages currently spread across 7 files
+   (11 `<TextInput` occurrences, 10 of them outside the shared `FormField`). Must
    preserve every existing `accessibilityLabel` query path and the `input-*` /
-   `field-*` testIDs that route specs and Maestro flows depend on.
+   `field-*` testIDs that route specs and Maestro flows depend on. Sequenced as
+   three code slices, each separately authorized:
+
+   1. **UX-1C-1 — `AppTextInput` safe foundation.** Both the **controlled** and
+      the **uncontrolled commit-on-end** models (both mandatory per ADR-P023,
+      with a type-level guarantee that mixed or partial pairs are inexpressible),
+      component tests for each, the barrel export, **`disabled` support**
+      (programmatically exposed and interaction-prevented), and migration of
+      **only** `mobile/src/app/sign-in.tsx` and
+      `mobile/src/app/delete-account.tsx`. It publishes **no `required` or
+      `invalid` public API**, because either would be a no-op on native or only
+      partially truthful. This is a **staged partial implementation** and must
+      never be described as completing the `AppTextInput` contract.
+   2. **UX-1C-2 — `FormField` + `FoodLogAddForm`. Contingent** on the mandatory
+      accessibility follow-up: evaluate announcement of the **already-rendered**
+      localized error copy through supported platform mechanisms, adding **no
+      duplicate error copy**, altering **no** frozen accessible name, and
+      treating no Jest property assertion as proof of VoiceOver or TalkBack
+      behaviour.
+   3. **UX-1C-3 — `FormSelect`. Still blocked** by its recorded selected-chip
+      contrast decision **and** by the unresolved required / invalid / group
+      accessibility outcomes. UX-1B2D unblocks neither.
+   4. **UX-5 — all seven REDUCED-family inputs**, including migration of the
+      existing uncontrolled workout consumer (the per-set reps editor in
+      `WorkoutLogScreen.tsx`). Per-feature authorization, behaviour-visible
+      because those inputs gain a 48px floor and a type token.
 4. **UX-2 — Low-fidelity product flows. Status: Proposed.** Onboarding,
    authentication including verification and recovery surfaces, navigation and
    information architecture, workout logging inner loop, nutrition logging,
@@ -1319,6 +1385,14 @@ Excluded:
       ADR/technology update if the choice falls outside the approved stack),
       motion adoption, and the dark surface-tint ramp each land under their own
       authorization.
+- [ ] Programmatic **required** and **invalid** exposure on native iOS and
+      Android is either resolved by a supported mechanism or consciously accepted
+      as an exception at the **V1 accessibility release-review gate** (ADR-P023).
+      Programmatic **disabled** exposure is implemented and tested on every
+      platform.
+- [ ] No accessibility outcome is reported as satisfied on the strength of a unit
+      or component test alone; announced states are confirmed by manual VoiceOver,
+      TalkBack, and browser-AT verification, recorded per surface.
 - [ ] Every migrated surface is verified in Spanish and English, in light and
       dark, at default and large text scale.
 - [ ] No feature loses behaviour, offline-first guarantees, or its
@@ -1421,6 +1495,36 @@ reassessment if it becomes semantically necessary or interactive. **No candidate
 token, replacement pairing, or runtime remedy is approved, and no code or token
 value is changed.**
 
+**UX-1B2D native input-accessibility limitation — OPEN, and a V1
+release-review gate.** Separate from every contrast item above; this one is a
+**platform capability gap**, not a token or pairing question. Verified read-only
+before any runtime code, against the versions `mobile/package-lock.json` resolves:
+`react-native@0.86.2`, `react-native-web@0.21.2`, `expo@57.0.13`.
+
+- **Disabled — available.** `accessibilityState={{ disabled }}` plus
+  `editable={false}` works on iOS, Android, and Web. Not deferred; remains
+  required and tested.
+- **Required and invalid — unavailable on native.** React Native's
+  `AccessibilityState` declares only `disabled`, `selected`, `checked`, `busy`,
+  `expanded`; there is no typed `invalid`/`required` prop and no
+  error-message-association prop. `react-native-web` forwards `aria-invalid` and
+  `aria-required` to the DOM — a **Web runtime** capability that **does not exist
+  on native** and must never be described as cross-platform.
+- **Consequence.** `AppTextInput` is **not contract-complete** after UX-1C-1;
+  `FormField`'s required/invalid outcomes **cannot be declared complete**; and
+  `FormSelect` outcomes (e) and (f) stay unsatisfied. Screen-reader users on iOS
+  and Android receive the visible required indicator and the adjacent error
+  message, **not** field state — and adjacent visible text does **not** prove
+  announcement.
+- **Gate.** This is an explicit **accessibility release-review gate before V1
+  store submission**, consistent with `.ai/09_TESTING.md` (accessibility is a
+  release requirement; error announcement is a per-screen check). It must be
+  resolved or consciously accepted at that gate.
+- **Re-evaluation trigger:** a supported upstream API, an approved
+  accessible-copy strategy with authorized EN/ES keys, or a stack upgrade.
+  **None is planned or authorized.** Decided by **ADR-P023**; detail in
+  `.ai/08_UI_UX.md` §Verified platform capability matrix (UX-1B2D).
+
 Coverage note for later rungs: `mobile/package.json` includes neither
 `src/features/workout` nor `src/features/progress` in `collectCoverageFrom` or
 `coverageThreshold`, and no EN/ES key-parity spec exists. Both are worth closing
@@ -1438,6 +1542,14 @@ before UX-5 touches those surfaces.
   slightly; the change must be taken deliberately rather than absorbed silently.
 - UX-1C touches `sign-in.tsx`, whose spec asserts exact localized error copy for
   five distinct authentication reasons; a careless refactor breaks it.
+- **Native required/invalid accessibility gap (ADR-P023).** Screen-reader users on
+  iOS and Android cannot perceive these as field state on the installed stack.
+  The risk is that a green Jest suite is mistaken for compliance: a property
+  assertion proves the property, never the announcement. Mitigated by the
+  prop-presence-versus-announcement rule in `.ai/08_UI_UX.md` §Verification
+  expectations, by forbidding any fabricated mechanism, by labelling UX-1C-1 a
+  staged partial implementation, and by the V1 release-review gate. **Not** closed
+  by this documentation slice.
 - Maestro flows are `workflow_dispatch`-only and need an operator-built EAS `e2e`
   APK, so UI restructuring must be batched to limit APK builds.
 - The font slice and the Material Symbols delivery slice both add bundle size,
@@ -1460,6 +1572,8 @@ before UX-5 touches those surfaces.
 - ADR-P018 / ADR-P019 (Accepted) — Web storage and local-data dormancy; no parity
 - ADR-P016 D3 (Accepted) — no new charting dependency in v1
 - ADR-P022 (Accepted) — this stream's decision
+- ADR-P023 (Accepted) — platform-honest input accessibility staging; gates the
+  UX-1C-1/2/3 sequence and adds the V1 accessibility release-review gate
 - Owner authorization for each rung from UX-1B2 onward
 
 ### Related Documents

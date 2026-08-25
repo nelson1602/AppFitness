@@ -7649,6 +7649,219 @@ Negative / accepted:
 
 ---
 
+## ADR-P023 — Platform-Honest Input Accessibility Staging
+
+Status: Accepted
+Date: 2026-08-25
+Owner: Product Design / Accessibility
+
+### Context
+
+**ADR-P022** Decision 15 places shared component implementation at the **UX-1C**
+rung, to be built against the frozen UX-1B2 contracts. UX-1B2B
+(`.ai/08_UI_UX.md` v1.4) froze the `AppTextInput`, `FormField`, and `FormSelect`
+contracts and required — as an **outcome**, deliberately not as an API — that
+assistive technology on **iOS, Android, and Web** perceive a field's **required**,
+**invalid**, and **disabled** conditions. That contract explicitly instructed that
+the mechanism be validated against the installed React Native / Expo versions
+before implementation, and prescribed no prop.
+
+That validation was performed read-only, **before any runtime code was written**,
+against the verified `origin/main` tree
+`7f2f53adfd0e58c9342ab872f2884d97b75305aa`. The versions checked are the ones
+`mobile/package-lock.json` resolves for `npm ci`: **`react-native@0.86.2`**,
+**`react-native-web@0.21.2`**, **`expo@57.0.13`** (pins in `mobile/package.json`
+are `react-native 0.86.2`, `react-native-web ~0.21.0`, `expo ~57.0.8`).
+
+**Verified capability matrix.**
+
+| Outcome | iOS | Android | Web | Supported typed mechanism |
+|---|---|---|---|---|
+| **Disabled** | Yes | Yes | Yes | `accessibilityState={{ disabled }}` (or `aria-disabled`) **plus** `editable={false}` so interaction is prevented, not merely styled |
+| **Invalid** | **No** | **No** | Runtime only, **untyped** | None. React Native exposes no `invalid` state; `react-native-web` forwards `aria-invalid` to the DOM, but no typed route exists from a codebase importing `TextInput` from `react-native` |
+| **Required** | **No** | **No** | Runtime only, **untyped** | None. Same finding as invalid, for `aria-required` |
+| **Error-message association** | **No** | Android-only partial | Runtime only, **untyped** | `accessibilityLabelledBy` / `aria-labelledby` is declared `@platform android`; `aria-errormessage` / `aria-describedby` are absent from React Native entirely |
+
+**Evidence.** `AccessibilityState` in `react-native` declares exactly `disabled`,
+`selected`, `checked`, `busy`, `expanded` — no `invalid`, no `required`. An
+exhaustive search of every `*.d.ts` in the installed `react-native` package for
+`accessibilityInvalid|accessibilityRequired|accessibilityErrorMessage|aria-invalid|aria-required|aria-errormessage|aria-describedby`
+returns **zero** matches. The complete typed accessibility surface is
+`accessibilityActions · ElementsHidden · Hint · IgnoresInvertColors · Label ·
+LabelledBy · Language · LargeContentTitle · LiveRegion · RespondsToUserInteraction
+· Role · ShowsLargeContentViewer · State · Value · ViewIsModal · role ·
+aria-{busy,checked,disabled,expanded,hidden,label,labelledby,live,modal,selected,valuemax,valuemin,valuenow,valuetext}`.
+Official React Native `Accessibility` and `TextInput` documentation confirms the
+same list, confirms no documented invalid / required / error-association prop on
+any platform, and confirms `accessibilityLabelledBy` and `accessibilityLiveRegion`
+as **Android only**. `react-native-web@0.21.2` does forward `aria-invalid` and
+`aria-required` to the DOM, which is a **Web runtime** capability and not a
+cross-platform one.
+
+The gap is therefore a **platform limitation**, not a design or specification
+defect. It was found by pre-implementation verification working as intended.
+
+### Decision
+
+**1. Never fabricate support.** No `any`, no unsafe cast, no suppression comment,
+no module augmentation declaring an API React Native does not implement, no
+private native API, no injection of unsupported ARIA props, and no `.web.tsx`
+presentation variant. Web-only behaviour is never described as cross-platform.
+
+**2. The long-term target is preserved unchanged.** Required and invalid
+conditions **should** be perceivable by assistive technology on iOS, Android, and
+Web. This ADR does **not** retire that objective, reduce its priority, or declare
+it satisfied.
+
+**3. The current limitation is recorded, not worked around.** On
+`react-native@0.86.2` / `react-native-web@0.21.2` / `expo@57.0.13` there is no
+supported, typed mechanism that exposes equivalent programmatic **required** or
+**invalid** state on native iOS and Android.
+
+**4. Programmatic disabled exposure remains required** and is implementable on
+every platform, via `accessibilityState.disabled` together with
+`editable={false}`. It is not deferred and must be covered by tests.
+
+**5. No partial public API.** UX-1C-1 must **not** publish `required` or `invalid`
+props on `AppTextInput` if they would be no-ops on native or only partially
+truthful. A prop that appears to expose state while doing nothing on two of three
+platforms is worse than its absence, because it invites callers to believe the
+outcome is met.
+
+**6. Staged implementation.** UX-1C-1 may implement the safe `AppTextInput`
+foundation — **both** the controlled and the uncontrolled commit-on-end models are
+mandatory, with component tests for each and a type-level guarantee that mixed or
+partial pairs are inexpressible — plus the barrel export, and may migrate **only**
+`mobile/src/app/sign-in.tsx` and `mobile/src/app/delete-account.tsx`. Neither
+route passes a required or invalid condition today, so no user-facing surface
+depends on the unresolved outcome. **UX-1C-1 is a staged partial implementation of
+the `AppTextInput` contract and must never be described as contract-complete.**
+Migration of the uncontrolled model's existing consumer (the per-set reps editor
+in `WorkoutLogScreen.tsx`) remains **UX-5**, with the other REDUCED-family inputs.
+
+**7. UX-1C-2 must revisit invalid and required before `FormField` migrates.**
+That evaluation must: assess announcement of the **already-rendered** localized
+error copy through supported platform mechanisms; add **no duplicate error copy**;
+alter **no** frozen accessible name; and treat a Jest property assertion as proof
+of a prop only — never as proof of VoiceOver or TalkBack behaviour. No mechanism
+is selected or pre-approved by this ADR.
+
+**8. Release-review gate.** The unresolved native required / invalid outcome is an
+**explicit accessibility release-review gate before V1 store submission**. It must
+be reviewed and consciously accepted or resolved at that gate, and it must appear
+as an open item in `.ai/08_UI_UX.md` and `.ai/11_BACKLOG.md` until then.
+`.ai/09_TESTING.md` already states that accessibility is a release requirement and
+lists error announcement among the per-screen checks, so this gate refines an
+existing obligation rather than creating a new one.
+
+**9. Re-evaluation trigger.** This staging is revisited when any of the following
+occurs: a **supported upstream API** appears in React Native or Expo; an
+**approved accessible-copy strategy** (with authorized EN/ES keys and an
+announcement policy) is decided; or a **stack upgrade** changes the capability
+matrix above. Neither an upgrade nor a copy strategy is planned or authorized by
+this ADR.
+
+**10. This ADR introduces no dependency, no token value, no copy, no runtime
+change, and no platform-parity claim.** It is documentation only.
+
+**This ADR narrows implementation sequencing. It does not declare the
+accessibility objective achieved.**
+
+### Rejected mechanisms
+
+Each was evaluated against the installed stack and rejected for a stated reason —
+none may be reintroduced without a new decision.
+
+| Mechanism | Why rejected |
+|---|---|
+| `any`, unsafe casts, suppression comments | Fabricates type-level support for an absent platform capability; forbidden by `.ai/03_CODING_STANDARDS.md` |
+| Module augmentation of `TextInputProps` for `aria-invalid` / `aria-required` | Type-checks, but declares an API React Native does not implement — a type-level falsehood that stays silently inert on iOS and Android |
+| Private or unexported native APIs | Unsupported, unversioned, breaks on upgrade |
+| Injecting unsupported ARIA props through untyped spreads | Untyped property injection; native ignores them ⇒ Web-only semantics |
+| `.web.tsx` presentation variant | UX-1B2B §1 forbids a Web-specific input variant; would encode Web-only accessibility as if it were the contract |
+| `accessibilityValue.text` | It is the **value** channel — `text` overrides the announced value, misrepresenting or exposing the entered text, unacceptable on the password field; also requires new bilingual copy |
+| Accessible-name suffixes (e.g. appending "required" or "invalid") | Breaks frozen exact-label query paths (`getByLabelText('Correo electrónico')`, `'Frase de confirmación para eliminar la cuenta'`) and adds unauthorized EN/ES copy |
+| Describing property-level Jest assertions as assistive-technology proof | Under `jest-expo` a prop assertion passes while the native outcome is entirely unmet; it certifies a prop, never an announcement |
+| `@expo/ui` `TextField` / `SecureField` | `expo-module.config.json` declares `"platforms": ["apple","android"]` — **no Web**; replaces the host node, breaking every frozen `testID`, `.props.value`, and label query; exposes no validation-state prop either |
+
+### Options Considered
+
+1. **Platform-honest staging (chosen).** Record the verified limitation, ship only
+   what is truthful, keep the objective and add a release gate. Costs an explicit,
+   owner-signed reduction of the near-term iOS/Android outcome; gains honesty, an
+   unblocked safe foundation, zero new copy, and zero type fiction.
+2. **Block all input implementation until the outcome is achievable.** Maximally
+   strict, but stalls the entire UX-1C rung on an upstream platform gap while the
+   safe, behaviour-preserving parts of the primitive are ready and independently
+   valuable.
+3. **State-bearing accessible copy now** (`accessibilityHint` or value-text
+   suffixes). Would genuinely announce state on native, but requires new EN/ES
+   keys, an announcement policy, and heavy manual AT validation; the value-text
+   form is unacceptable on the password field and the label form breaks frozen
+   queries. Deferred to UX-1C-2 as one candidate, not adopted here.
+
+### Rationale
+
+`.ai/00_PROJECT.md` §Decision Hierarchy places **user safety** and
+**correctness** above developer convenience. A prop that claims to expose invalid
+state and silently does nothing on iOS and Android is a correctness failure that
+would be discovered by a screen-reader user, not by CI. Recording the limitation
+keeps the documentation trustworthy, which is the property the SHIPPED / TARGET /
+PROPOSED labelling exists to protect. Staging also preserves real value: both
+control models, the disabled outcome, the FULL-family token consolidation, and the
+retirement of two raw inputs are all fully truthful today.
+
+### Consequences
+
+**Positive.** Pre-implementation verification prevented an unsatisfiable contract
+clause from being written into code. UX-1C-1 proceeds with an honest, testable
+scope. Every frozen accessible name, `input-*`, `field-*`, `option-*`, and
+`set-reps-*` hook is preserved, so no spec or Maestro flow changes.
+
+**Negative — accepted.** Screen-reader users on iOS and Android will not perceive
+required or invalid as **field state**; they receive the visible required
+indicator and the adjacent error message only, and the latter is perceivable only
+if they navigate to it. `AppTextInput` is not contract-complete after UX-1C-1.
+`FormField`'s required and invalid outcomes stay unresolved and cannot be declared
+complete. The gap must be carried openly until the release-review gate.
+
+**Neutral.** No shipped behaviour changes on acceptance of this ADR; it is
+documentation only.
+
+### Supersedes / Preserves
+
+- **Extends ADR-P022** (V1 visual direction and its UX-1B1…UX-5 ladder). Does not
+  supersede or weaken it; the visual direction is untouched.
+- **Amends the UX-1B2B contracts in `.ai/08_UI_UX.md` (v1.4 → v1.6)** only where
+  the verified limitation makes a clause unachievable. It does **not** reopen the
+  eight canonical states, the six UX-1B2A state contracts, the five UX-1B2C
+  primitive contracts, the ten-state matrix, or any token.
+- **Preserves the five owner-gated light-theme contrast pairs and the six
+  usage-level pairings** exactly as recorded. This ADR resolves none of them and
+  does **not** unblock `FormSelect` or UX-1C-3.
+- **Preserves ADR-P017** — public-v1 wellness scope and medical-domain dormancy.
+- **Preserves ADR-P018 / ADR-P019** — Web posture and interim Web local-data
+  dormancy; no Web parity is claimed or introduced.
+- **Preserves ADR-0010** — Material Design 3 base and its accessibility
+  foundation.
+- **Preserves UX-5 ownership** of all seven REDUCED-family input migrations.
+
+### Related Documents
+
+- `.ai/08_UI_UX.md` (v1.6 — §Form and Input Contracts, §Verified platform
+  capability matrix, §Accessibility)
+- `.ai/06_MOBILE.md` (§Accessibility — screen readers, large fonts, VoiceOver,
+  TalkBack are mandatory)
+- `.ai/09_TESTING.md` (§Accessibility Testing — accessibility is a release
+  requirement; error announcement is a per-screen check)
+- `.ai/11_BACKLOG.md` (FEATURE-010 — UX-1B2D, the UX-1C-1/2/3 sequence, and the
+  release-review gate)
+- `.ai/12_DECISIONS.md` ADR-P022 (the stream decision this one extends)
+- `mobile/package.json`, `mobile/package-lock.json` — the resolved versions the
+  capability matrix was verified against
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
