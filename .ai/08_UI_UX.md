@@ -1,6 +1,6 @@
 # AppFitness Design System Specification
 
-Version: 1.3
+Version: 1.4
 Status: Active
 Last Updated: 2026-08-24
 
@@ -97,6 +97,45 @@ Included in v1.3:
 **Evidence baseline for v1.3.** Every SHIPPED count in the new sections was
 reproduced from `origin/main` at `2692e589` with read-only `git grep` /
 `git show` / `git ls-tree`.
+
+---
+
+# Revision Scope (v1.4 — UX-1B2B)
+
+This revision records the **form and input contracts**. It is documentation-only,
+authorized by **ADR-P022** Decision 15 (the UX-1B2 rung); it introduces no new
+decision and needs no new ADR — the UX-1B2B scoping audit found no architectural
+contradiction.
+
+Included in v1.4:
+
+- §Form and Input Contracts (UX-1B2B) — exactly **three** contracts:
+  `AppTextInput`, `FormField`, `FormSelect`
+- The shipped-evidence snapshot those contracts are frozen against
+- The minimum implementable **non-colour redundancy** behaviour for input, field,
+  and chip states
+- The **validation-copy boundary** — what is SHIPPED versus TARGET for localized
+  error copy, stated without overclaiming
+- The FULL / REDUCED input style-family reconciliation, with migration assigned
+  to UX-5
+- The input-related frozen-hook register
+- Two **usage-level** contrast findings, recorded separately from the original
+  owner-gated token set (§Contrast Requirements)
+
+**Not** in v1.4, and explicitly deferred:
+
+- Contracts for the existing primitives `Screen`, `Card`, `AppText`, `AppButton`,
+  and `Banner` (**UX-1B2C**)
+- Any change to the six UX-1B2A state contracts, which remain as published in
+  v1.3
+- Every runtime concern: no component implementation, no input migration, no
+  token value change, no localization key change, no dependency, asset, font, or
+  icon package
+
+**Evidence baseline for v1.4.** Every SHIPPED count and ratio in the new sections
+was reproduced with read-only `git grep` / `git show` / `git ls-tree` against tree
+`a4339be12215da705775a69fbdf81c6f5788a327` — the tree of merge commit
+`6316f7826ea9fe9825ad5b484f5283fa38ddd1a1`.
 
 ---
 
@@ -541,6 +580,70 @@ The consequence for sequencing: **UX-1C may implement the copy-only forms, but n
 action-bearing state form can be declared AA-complete in the light theme until the
 owner-gated token-value decision lands.** No contract in this document claims
 otherwise.
+
+## Usage-level contrast findings (UX-1B2B)
+
+These are **distinct from the five failing pairs above** and must never be folded
+into that count. The five are the **original owner-gated token set**: five
+light-theme pairs across four foreground roles, awaiting a token-value decision.
+The findings here are **usage errors** — a component pairing roles incorrectly, or
+using a role outside its intended purpose. They are corrected by changing the
+*pairing*, not the token values.
+
+Running total, stated precisely:
+
+- **Original owner-gated token set:** five light-theme pairs across four
+  foreground roles (unchanged, still unresolved, no candidate approved).
+- **Additional usage findings:** **three** failing role/background pairings — two
+  light-theme placeholder pairings and one dark-theme selected-chip pairing.
+
+**No code is fixed in this documentation slice.**
+
+### Finding 1 — selected-chip foreground misuse (dark theme)
+
+Four shipped choice surfaces fill with the `primary` role but render their label
+through the default text tone, which resolves to **`onSurface`**, not
+`onPrimary`. Measured:
+
+| Pairing | Light | Dark |
+|---|---|---|
+| `onSurface` on `primary` (as shipped) | **4.84:1 — passes** | **1.42:1 — fails** |
+| `onPrimary` on `primary` (the canonical pair) | 3.53:1 — fails (already in the original five) | 6.95:1 — passes |
+
+The affected surfaces are the shared `FormSelect` plus three feature choice rows;
+the language selector and `AppButton` already pair `primary` with `onPrimary`
+correctly, which is why the correct pairing is not in doubt.
+
+This is a **semantic role-pairing defect, not a new token-value defect** — the
+selected-chip direction remains `primary`, and `primary`/`onPrimary` is already
+the recorded canonical filled pair (ADR-P022 Decision 5a). But correcting the
+dark misuse moves the light theme onto `onPrimary` over `primary`, which is
+**already one of the original five failures at 3.53:1**.
+
+**Consequence:** the selected `FormSelect` state **cannot be declared AA-complete
+in both themes** until the existing owner-gated `primary`/`onPrimary` decision is
+resolved. This revision does **not** choose `primaryContainer`, another fill, or a
+new token — that would be a token decision, which is out of scope here.
+
+### Finding 2 — placeholder role misuse (light theme)
+
+Placeholder text rendered through the `outline` role fails AA **as text** in the
+light theme:
+
+| Pairing | Measured | Threshold | Verdict |
+|---|---|---|---|
+| `outline` placeholder on `surfaceVariant` | 3.96:1 | 4.5:1 | **fails** |
+| `outline` placeholder on `surface` | 4.49:1 | 4.5:1 | **fails** — WCAG ratios are not rounded upward |
+| `onSurfaceVariant` placeholder on `surfaceVariant` | 8.23:1 | 4.5:1 | passes |
+
+`outline` remains **valid for non-text borders** at the 3:1 threshold — the
+failure is specific to using it as *text*. **`onSurfaceVariant` is the canonical
+placeholder-text role**, and the `AppTextInput` contract requires it. Six of the
+eight shipped placeholder sites use `outline`; two already use
+`onSurfaceVariant`.
+
+This is a **usage correction, not a token-value change**. Both findings are
+tracked in **FEATURE-010**.
 
 ## Candidate remedies — PROPOSED, not approved, not in code
 
@@ -1026,6 +1129,15 @@ Buttons should communicate priority.
 ---
 
 # Inputs
+
+> **UX-1B2B:** the normative input contracts are in §Form and Input Contracts
+> (UX-1B2B). The aspirations below remain the standing v1.1 direction, narrowed
+> where shipped evidence does not yet support them: **helper text, auto focus,
+> and autofill have zero shipped occurrences** and are therefore **not** part of
+> the evidence-frozen `AppTextInput` contract — autofill is recorded there as a
+> named future requirement for the authentication verification and recovery flow.
+> "Never rely solely on color for validation" is restated in that section as a
+> testable requirement covering focus, error, required, selected, and disabled.
 
 Support
 
@@ -1581,6 +1693,249 @@ no-retry guarantee from a type-level guarantee to a convention.
 
 ---
 
+# Form and Input Contracts (UX-1B2B)
+
+Exactly **three** contracts: `AppTextInput`, `FormField`, `FormSelect`. All are
+**TARGET** — none is implemented. There is no fourth contract, and this section
+introduces no runtime code.
+
+## Shipped-evidence snapshot
+
+Every figure below is reproducible from tree `a4339be1` with read-only `git grep`.
+The contracts are frozen against this evidence; anything absent from it is
+rejected or deferred, never invented.
+
+| Observation | Count |
+|---|---|
+| Non-spec files containing raw `TextInput` | **7** |
+| Raw `<TextInput>` occurrences | **11** |
+| `FormField` consumer files / usages | **7** / **40** |
+| `FormSelect` consumer files / usages | **5** / **8** |
+| Input styling families | **2** — FULL and REDUCED |
+| Radio-role selection implementations | **3** |
+| Selected-state-only choice surfaces (no radio role) | **4** |
+| Zod schema modules (validation lives here, never in a UI primitive) | **6**, plus **4** dedicated schema specs (10 files matching `*schema*`) |
+| Localized validation keys | **20 EN / 20 ES** |
+| Placeholder keys | **18 EN / 18 ES** |
+| Spec files querying inputs by accessibility label | **19** |
+| Spec files coupled to `field-` / `input-` / `option-` hooks | **10** |
+| Maestro flows coupled to input-related ids | **9 of 12** |
+| Password fields | **1**, with **no** visibility affordance |
+
+**Zero shipped occurrences** of: multiline, `numberOfLines`, autofill
+(`autoComplete` / `textContentType` / `importantForAutofill`), explicit
+read-only (`editable` / `readOnly`), helper text, input masks, character
+counters, leading/trailing icon slots, select search, multi-select, async or
+remote options, and any native picker. Each is therefore rejected or deferred
+below rather than specified.
+
+## Rules common to the three contracts
+
+- **Clean Architecture.** Business logic stays out of the UI. No primitive
+  touches SQLite, a repository, a store, or navigation. Validation and
+  transformation remain in the feature-owned Zod schemas.
+- **No hardcoded copy, colour, spacing, or string.** Semantic roles only; light
+  and dark both specified.
+- **44×44 minimum** interactive target.
+- **Never colour alone** for focus, error, required, selected, or disabled. The
+  minimum implementable behaviour is specified in §Non-colour redundancy —
+  minimum target behaviour below.
+- **EN/ES reflow and dynamic type** required — the measured catalogue-wide ES/EN
+  length delta is **+33.9%**. The wrapping rule applies to **surrounding text**,
+  not to the text-entry control:
+  - **Must wrap and reflow, and must never truncate meaning:** visible field
+    labels, required indications, validation/error messages, select-option and
+    chip labels, and helper copy if it is ever authorized.
+  - **`AppTextInput` itself is intentionally single-line.** That is not a
+    truncation-of-meaning exception: the control scrolls its own value
+    horizontally as the platform does, and multiline has **zero shipped
+    evidence** and is **deferred** (§1). Nothing here introduces multiline
+    support.
+  - The control's height is a floor that grows with the OS text scale, never a
+    ceiling.
+- **No icon may enter an input API.** Material Symbols is the approved vocabulary
+  but its runtime delivery is unresolved (§Icons).
+- **Test hooks:** `testID` is an **optional pass-through**, never globally
+  mandatory. Every hook that exists today is frozen — see §Input frozen-hook
+  register.
+
+## Non-colour redundancy — minimum target behaviour
+
+"Never colour alone" is only enforceable if the redundant signal is named. The
+following is the **minimum** each state must carry. It introduces **no new token
+and no icon dependency**.
+
+| State | Required signals |
+|---|---|
+| **Default input border** | 1 px border. |
+| **Focused input** | A border **visibly thicker than the default 1 px**, so focus is never a colour-role swap alone. |
+| **Invalid text field** | The visual border treatment **plus** adjacent error copy **plus** programmatic invalid exposure. All three, not any one. |
+| **Required field** | A visible required indicator **plus** programmatic required exposure. The indicator alone is insufficient — see §2. |
+| **Disabled control or option** | Interaction is **prevented** (not merely styled), the disabled condition is **exposed programmatically**, and the visible treatment is **not solely a change of semantic colour role** (e.g. reduced opacity, as the shipped button already does). |
+| **Selected radio chip** | Programmatic selected state **plus** a **visible geometric distinction** from the unselected 1 px chip border — for example a thicker border — so selection is not conveyed by fill colour alone. **BLOCKED detail:** the exact border role/width for the selected chip cannot be proven from the accepted token set, so it is **not specified here** and must not be invented. The selected-chip **foreground** contrast blocker stands unchanged (§Usage-level contrast findings). |
+
+Thickness values beyond "thicker than 1 px" are deliberately unspecified: the
+accepted token set contains no border-width scale, and inventing one would be a
+token decision, which is out of scope for this slice.
+
+## Validation-copy boundary — what is SHIPPED versus TARGET
+
+Stated precisely, because the shipped inventory is **not** uniform:
+
+- **SHIPPED:** `FormField` and `FormSelect` render whatever
+  `fieldState.error.message` the field's validation produces — from the
+  feature-owned Zod schema, or from an explicit React-Hook-Form `setError` call
+  (the custom-exercise duplicate-name check uses the latter). That rendering path
+  is preserved exactly.
+- **SHIPPED, and narrower than it may appear:** localization of that copy is a
+  **call-site** guarantee, not a schema-level one. Of the six schema modules,
+  three accept an injected messages object (`profile`, `goal`, `progress`) and one
+  accepts an injected required-message argument (`custom-exercise`) — and even
+  those retain **English defaults/fallbacks** used when nothing is injected. The
+  two dormant medical schemas (`evaluation`, `restriction`) have **no injection
+  mechanism at all** and carry **hardcoded English** validation copy.
+- **TARGET for public surfaces:** schemas provide user-safe **localized EN/ES**
+  validation copy for every public-v1 field.
+- **Always, both SHIPPED and TARGET:** raw store or repository exceptions, stack
+  details, and technical failure text are **never** rendered as field validation
+  copy.
+- **Out of scope:** dormant medical localization remains outside this slice under
+  **ADR-P017** and must be resolved before those surfaces are activated.
+- **UX-1B2B performs no localization change and no runtime migration.**
+
+---
+
+## 1. `AppTextInput`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | A theme-aware React Native text-control primitive. It owns the input node, value entry, the visual input states, its semantic tokens, its accessible name, and native `TextInput` behaviour. |
+| **Non-responsibilities** | Owns **no** visible field label, **no** helper text, **no** validation message, **no** schema, **no** React Hook Form controller, **no** store or repository access, **no** navigation, and **no** business logic. |
+| **Anatomy** | A single-line text control only. No surrounding label, no message row, no adornment slots. |
+| **Control models (discriminated — never mixed)** | **Controlled:** requires `value` **and** a change callback; **does not accept** `defaultValue`. **Uncontrolled commit-on-end:** requires `defaultValue` **and** the end-edit commit callback; **does not accept** the controlled `value`/change pair. A partial or mixed pair must be **inexpressible**, not silently resolved. The uncontrolled shape exists only because one shipped consumer needs it (the per-set reps editor); it must not be widened into a general uncontrolled API. |
+| **Evidenced optional configuration** | placeholder · secure text entry · auto-capitalization · auto-correction · `selectTextOnFocus` · blur and end-edit callbacks. Keyboard types: **default, numeric, decimal-pad, email-address** — these four only. |
+| **States** | default · focused · populated · error/invalid · **disabled**. Disabled is a TARGET standard state and is **currently unexercised** — there are zero shipped `editable`/`readOnly` usages, so no consumer proves its behaviour yet. A distinct **read-only** state (non-editable but not de-emphasised) is **deferred**; it must not be treated as a synonym for disabled. |
+| **Semantic token roles (FULL family is canonical)** | `surfaceVariant` fill · `onSurface` value text · **`onSurfaceVariant` placeholder text** · `outline` border at **1 px** by default · `error` border in the invalid state · a **thicker-than-default** border when focused (§Non-colour redundancy) · medium radius · `spacing.x5l` minimum height · horizontal `spacing.md` · body typography. **`outline` must not be used for placeholder text** — that pairing is a measured contrast failure (§Usage-level contrast findings). |
+| **Semantic-state interface (explicit)** | The contract is small, but it must accept **enough semantic input to express**: (a) the **accessible name**; (b) the **required** state, when applicable; (c) the **invalid** state; (d) the **disabled** state; (e) an **optional `testID`**. These are the semantic inputs — not native prop names. The exact native mapping per condition stays **implementation-gated** and must be validated separately on iOS, Android, and Web. **No generic catch-all native-props surface** is added: the primitive does not spread arbitrary `TextInput` props, because that would silently reintroduce every API this contract rejects. |
+| **Ownership chain** | `FormField` owns the **visible label**, the **required indication**, and the **error message**. It passes the **accessible-name, required, invalid, and disabled outcomes** into `AppTextInput`. `AppTextInput` owns the **native control** and is responsible for exposing those outcomes to assistive technology. Neither side duplicates the other's job: `AppTextInput` never renders a label or a message, and `FormField` never reaches into the native control's accessibility surface directly. |
+| **Accessibility** | A meaningful accessible name is **conceptually required** on the control. 44×44 minimum. Focus, invalid, required, and disabled meaning must never rest on colour alone — see §Non-colour redundancy for the minimum signals. **Required and invalid conditions must be exposed programmatically as well as visibly.** This contract deliberately does **not** prescribe `accessibilityState.required`, `accessibilityState.invalid`, or any other single React Native prop, and does not claim one API works universally: the requirement is the **outcome** — that assistive technology on iOS, Android, and Web can perceive the required, invalid, and disabled conditions. The exact mechanism must be validated against the installed React Native / Expo version for each platform during implementation. Today there are **zero** occurrences of `accessibilityHint`, required exposure, and invalid exposure across `mobile/src`. |
+| **EN/ES + dynamic type** | Labels and error copy live with the caller and must wrap; the control's own height is a floor, never a ceiling, so it grows with the OS text scale. 18 EN / 18 ES placeholder keys already exist and are unchanged. |
+| **Responsive / Web** | Identical on all platforms. There is no Web-specific input variant today (`Platform.OS` has **zero** occurrences in any `.tsx`), and none is introduced. Only two shipped inputs render on Web at all; the rest sit behind `web-unavailable` gates or in the dormant medical domain. |
+| **Test hooks** | `testID` is an **optional pass-through**. When supplied it must land on the **actual `TextInput` node**, alongside the accessible name and the `value` prop, because shipped specs assert `.props.value` on the node reached by that id. No new id is required where none exists today. |
+| **Unit / component regression** | Controlled and uncontrolled shapes each render and commit correctly; a mixed pair is not expressible; each of the four keyboard types; secure entry masks; `selectTextOnFocus` honoured when opted in; the invalid state changes the border **and** is exposed programmatically; the disabled state is covered even though no consumer exercises it; ES rendering at a large text scale does not clip. |
+| **Blockers** | None from tokens for the control itself — fill, value, placeholder (using `onSurfaceVariant`), border, and error border all pass AA in both themes. The **placeholder-via-`outline`** pairing used by six shipped inputs fails in light and must not be carried into the primitive. |
+
+**Rejected from this contract** (zero shipped evidence): multiline ·
+`numberOfLines` · `maxLength` · return-key and submit behaviour · clear button ·
+autofocus · leading/trailing visual slots · password visibility toggle ·
+character counters · input masks · autofill props · any broad catch-all prop
+surface.
+
+**Autofill is a named future requirement, not part of this contract.** The
+authentication verification and recovery flows will need
+password-manager-compatible configuration; there are **zero** such props today,
+so specifying them now would be speculative. They belong to the slice that owns
+those flows.
+
+---
+
+## 2. `FormField`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | The React Hook Form adapter for a single text field: it owns `Controller`, the visible label, the required indication, and the **adjacent validation-error rendering**. It does **not** own localization — producing user-safe localized copy remains the responsibility of the feature schema and its call site for public-v1 surfaces (§Validation-copy boundary). |
+| **Non-responsibilities** | No validation, no schema, no coercion, no persistence. It composes `AppTextInput`; **it is not replaced by it**. |
+| **Preserved exactly** | `Controller` ownership · the `Control<T>` / `FieldPath<T>` generic surface, including the current `z.input`-as-`unknown` assignability that lets numeric schemas stay assignable to the shared field · label ownership · the `field-${name}` hook **on the actual `TextInput` node** · the accessibility-label query path (the label is passed through as the control's accessible name) · all **11** `selectTextOnFocus` call sites and its opt-in default-off semantics · the keyboard configuration its existing consumers rely on · the **`fieldState.error.message` rendering path** and the feature-owned validation boundary exactly as shipped (see §Validation-copy boundary — the copy's localization is a call-site guarantee today, not a schema-level one). |
+| **Anatomy** | label (with required indication) → `AppTextInput` → adjacent error message when invalid. |
+| **Required indication** | Keep the visible indication. **Add a platform-appropriate programmatic required contract** so assistive technology perceives it. Required must not rest on the asterisk glyph or on colour alone. Do not freeze an unsupported universal React Native prop — state the outcome and validate the mechanism per platform at implementation time. Today the asterisk is appended to the *visible* label only while the accessible name receives the raw label, so screen readers never hear it. |
+| **Invalid / error behaviour** | `FormField` owns the adjacent error rendering; `AppTextInput` receives only the visual and programmatic invalid state, per the ownership chain in §1. The message must be **associated with its field** and **announced through a platform-appropriate mechanism**, and the invalid state must carry all three signals required by §Non-colour redundancy. **Raw store or repository exceptions, stack details, and technical failure text are never rendered as field validation copy.** Copy comes from the field's validation — the Zod schema or an explicit `setError` — and is **TARGET-localized for public surfaces**; see §Validation-copy boundary for what is and is not already localized. |
+| **Helper text** | **No helper-text contract.** Zero shipped evidence. |
+| **Control model** | Controlled through RHF only. The uncontrolled `AppTextInput` shape is not exposed here. |
+| **Semantic token roles** | Label uses on-surface; the control uses the FULL family; the error message uses the error role at caption size on its surrounding ground. All pass AA in both themes. |
+| **EN/ES + dynamic type** | Label, required indication, and error copy all wrap; no fixed heights on text. |
+| **Test hooks** | `field-${name}` frozen, on the control node. |
+| **Unit / component regression** | Renders label, control, and error; required is exposed both visibly and programmatically; **no raw store/repository exception or stack text is ever rendered as validation copy**; for a public-v1 surface the rendered message is the localized string its call site injected; focus renders a thicker-than-default border; `selectTextOnFocus` passes through; `Control` assignability holds for numeric schemas; every existing `field-*` id and label query still resolves. |
+| **Blockers** | None from tokens. |
+
+---
+
+## 3. `FormSelect`
+
+| Aspect | Contract |
+|---|---|
+| **Responsibility** | The React Hook Form adapter for single-choice enum selection, rendered as a wrapping row of pressable radio chips. |
+| **Non-responsibilities** | No validation, no schema, no persistence, no navigation. No native picker and no new dependency. |
+| **Preserved exactly** | `Controller` ownership · single-selection behaviour · label and visible required indication · the adjacent `fieldState.error.message` rendering path (rendering is preserved; localization of that copy is the schema/call-site responsibility described in §Validation-copy boundary) · the pressable radio-chip layout with wrapping · `accessibilityRole="radio"` · programmatic selected state · `${label}: ${option}` accessible labels · `option-${name}-${value}` hooks · the minimum interactive target. |
+| **Selection models (both shipped)** | **Required single selection** — a value is always present (e.g. the profile fitness-level and activity-level fields default to a concrete enum member). **Optional single selection** — the field may **begin with no option selected**. The optional model is shipped evidence, not inference: `ProfileForm.gender`, `EvaluationForm.activityLevel`, and `RestrictionForm.severity` are each declared `.optional()` in their Zod schema, each initialise to `undefined` in their blank-values factory, and each map `undefined → null` on submit. The contract must therefore render a valid **initial unselected** state. |
+| **Deliberately NOT inferred from the optional model** | No clear/deselect action once a choice is made · no synthetic "None" option · no placeholder UI · no null-option rendering · no modal or list picker. There is **no interaction evidence** for any of these, so each remains **deferred**. Optional means "may start empty", nothing more. |
+| **Disabled options** | **TARGET**, supported by the shipped sibling radio-chip pattern in the language selector, which pairs `disabled` with a programmatic disabled state. Stated honestly: the current shared `FormSelect` option type is `{ label, value }` and **does not implement option-level disabled today**. When added, a disabled option must expose its state **programmatically and visibly** and must **not** invoke selection. This must **not** be generalised into a disabled-field or read-only API — no evidence supports either. |
+| **Anatomy** | label (with required indication) → wrapping chip row → adjacent error message when invalid. |
+| **Semantic token roles** | Unselected chip: `surfaceVariant` fill, `outline` border at **1 px**, muted on-surface-variant label — passes AA in both themes. Selected chip: `primary` fill **plus a visible geometric distinction from the 1 px unselected border** (§Non-colour redundancy); the exact selected border role/width is **BLOCKED** — it cannot be proven from the accepted token set and must not be invented here. The selected chip's **foreground pairing is also blocked** — see §Usage-level contrast findings. |
+| **Accessibility — required outcomes** | Assistive technology must be able to perceive **all** of: (a) the **field/group label**; (b) that the options form **one single-choice group**; (c) **each option's name**; (d) each option's **selected** and, when implemented, **disabled** state; (e) the **required** and **invalid** state of the field/group; (f) the **relationship between the invalid group and its adjacent error message**. These are outcomes, not APIs: this contract does **not** prescribe a universal `radiogroup` role, any `aria-*` attribute, or any specific React Native prop, and none may be adopted without verification against the installed Expo / React Native versions on iOS, Android, and Web. The shipped component already provides the radio role per option, the programmatic selected state, and `${label}: ${option}` names; group identity, required, invalid, and the error relationship are the outcomes still to be satisfied. 44×44 minimum. Selection must never be conveyed by colour alone — see §Non-colour redundancy. |
+| **EN/ES + dynamic type** | Chips wrap and grow; option labels are never clipped or ellipsized. |
+| **Responsive / Web** | Identical on all platforms; **no Web-specific variant**. |
+| **Test hooks** | `option-${name}-${value}` frozen, on the pressable node. |
+| **Unit / component regression** | Required and optional models both render, the optional one with **no initial selection**; selecting sets the value once; the selected state is exposed programmatically **and** carries a visible geometric distinction; the six accessibility outcomes above are each asserted; **no raw store/repository exception is rendered as validation copy**; ES option labels wrap without clipping; when option-level disabled lands, a disabled option announces its state and cannot be selected. |
+| **Blockers** | **The selected chip cannot be declared AA-complete in both themes** until the owner-gated `primary`/`onPrimary` token decision resolves — see §Usage-level contrast findings. The unselected chip is unblocked. |
+
+**Explicitly rejected** (zero shipped evidence): search · multi-select ·
+async/remote options · virtualization · icons · native picker · new package ·
+Web-specific variant.
+
+---
+
+## Input style-family reconciliation
+
+Two divergent families ship today.
+
+| Family | Where | Shape |
+|---|---|---|
+| **FULL** — canonical TARGET | sign-in, delete-account, `FormField`, `FoodLogAddForm` | `surfaceVariant` fill · `minHeight: spacing.x5l` · horizontal `spacing.md` · body typography |
+| **REDUCED** | 7 raw inputs across 3 files | `padding: spacing.sm` · **no fill, no minimum height, no typography token** |
+
+The REDUCED family therefore sits **below the 44×44 floor** and **outside the type
+scale**, and six of the eight shipped `placeholderTextColor` sites use the
+`outline` role.
+
+**FULL is the canonical target.** Sequencing is explicit:
+
+- **UX-1C** may implement the shared primitives (`AppTextInput`, and `FormField` /
+  `FormSelect` composing it) against these contracts.
+- **Migrating the seven REDUCED feature consumers is UX-5 work**, requires
+  separate per-feature authorization, and is a **behaviour-visible** change
+  because those inputs gain a 48px floor and a type token.
+- **No runtime migration occurs in UX-1B2B.**
+
+---
+
+## Input frozen-hook register
+
+Every hook and query path below exists today and is **frozen**: none may be
+renamed, removed, re-scoped, or moved onto a wrapper node. New components may
+accept an optional pass-through hook; **no new id is required where none exists**.
+
+| Hook / path | Where | Coupled to |
+|---|---|---|
+| `input-email`, `input-username`, `input-password` | sign-in | Maestro + route specs |
+| `input-confirm-phrase` | delete-account | route spec (asserts the id on the labelled node) |
+| `field-${name}` — incl. `field-birthDate`, `field-heightCm`, `field-weightKg`, `field-waistCm`, `field-name`, `field-muscleGroup`, `field-bodyArea` | `FormField` | Maestro + component specs |
+| `option-${name}-${value}` — incl. `option-gender-MALE`, `option-goalType-FAT_LOSS` | `FormSelect` | Maestro + component specs |
+| `food-search-input` | `FoodLogAddForm` | Maestro |
+| `routine-name`, `workout-name`, `set-reps-input`, `set-weight-input` | workout surfaces | Maestro |
+| `set-reps-${set.id}` | per-set reps editor (uncontrolled) | component spec |
+| `dp-food-search`, `dp-note`, `dp-tag-${tag}`, `dp-add` | dietary preferences | Maestro (`dp-tag-*`, `dp-add`) + component specs |
+
+Additional preservation requirements:
+
+- **19** spec files resolve inputs through the **accessibility-label** query path;
+  those labels must stay on the control node.
+- **10** spec files query `field-` / `input-` / `option-` hooks, and several assert
+  **`.props.value` directly on the node reached by that id** — so id, accessible
+  name, and `value` must remain on the same native control.
+- **9 of 12** Maestro flows depend on the ids above.
+
+---
+
 # Empty States
 
 > **UX-1B2A:** the normative empty-state semantics and the `EmptyState` contract
@@ -1815,6 +2170,11 @@ Avoid notification fatigue.
 
 # Forms
 
+> **UX-1B2B:** the `FormField` and `FormSelect` contracts are in §Form and Input
+> Contracts (UX-1B2B). Validation and transformation remain in the feature-owned
+> Zod schemas — never in a UI primitive. Autofill and draft persistence have zero
+> shipped implementation and are not specified by those contracts.
+
 Forms should:
 
 Reduce typing
@@ -1965,13 +2325,14 @@ Every screen must verify:
 
 # Change Control and Slice Boundaries
 
-## What v1.2 (UX-1B1) and v1.3 (UX-1B2A) authorize
+## What v1.2 (UX-1B1), v1.3 (UX-1B2A), and v1.4 (UX-1B2B) authorize
 
 Documentation only. v1.2 records the approved visual foundation; v1.3 records the
-canonical state patterns and the six state-component contracts. Neither changes
-code, tokens, localization keys, or dependencies.
+canonical state patterns and the six state-component contracts; v1.4 records the
+three form and input contracts. None changes code, tokens, localization keys, or
+dependencies.
 
-## What v1.2 and v1.3 explicitly do NOT authorize
+## What v1.2, v1.3, and v1.4 explicitly do NOT authorize
 
 No dependency addition, font asset, icon delivery mechanism or icon asset,
 token-value change, component implementation, navigation or
@@ -1999,7 +2360,10 @@ Each requires its own authorization before any code:
    — `primary` (on `surface` and on `surfaceVariant`), `onPrimary`, `warning`,
    and `accent` (candidates in §Contrast Requirements are PROPOSED only). This
    decision also unblocks accent emphasis on primary actions, which additionally
-   requires an approved, contrast-safe foreground/background pairing.
+   requires an approved, contrast-safe foreground/background pairing, **and it
+   gates the selected `FormSelect` chip** (§Usage-level contrast findings). The
+   two usage-level findings recorded in v1.4 are **not** part of this decision —
+   they are pairing corrections, not token-value questions.
 4. The dark-mode surface-tint elevation ramp.
 5. Motion adoption, including easing curves and reduce-motion detection.
 6. Responsive rules — breakpoints and the concrete content measure.
@@ -2016,8 +2380,9 @@ UX-1B2 is delivered as three documentation slices:
   Delivered by this revision (v1.3).** The legacy state sections (Empty, Loading,
   Error) remain in force and now point to it.
 - **UX-1B2B — form and input contracts** (`AppTextInput`, `FormField`,
-  `FormSelect`). Not started; the direct prerequisite for UX-1C's first code
-  slice.
+  `FormSelect`). **Delivered by this revision (v1.4).** The legacy Inputs and
+  Forms sections remain in force and now point to it. It is the direct
+  prerequisite for UX-1C's first code slice.
 - **UX-1B2C — reconciliation of the existing primitives** (`Screen`, `Card`,
   `AppText`, `AppButton`, `Banner`), including `Banner`'s complete contract and
   the 10-state matrix in §Component States. Not started. The component sections
@@ -2026,7 +2391,9 @@ UX-1B2 is delivered as three documentation slices:
 - **UX-1C** — shared component implementation against the frozen UX-1B2A/B/C
   contracts. Copy-only state forms may proceed; no action-bearing state form can
   be declared AA-complete in the light theme until the token-value decision lands
-  (§Impact on the canonical state UI).
+  (§Impact on the canonical state UI). UX-1C may implement the shared input
+  primitives, but **migrating the seven REDUCED-family feature inputs is UX-5**
+  and needs separate per-feature authorization.
 - **UX-2 / UX-3** — low-fidelity flows, then high-fidelity specifications.
 - **UX-4** — authentication / onboarding / dashboard pilot.
 - **UX-5** — progressive feature migration.

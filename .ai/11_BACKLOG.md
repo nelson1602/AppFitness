@@ -1089,10 +1089,11 @@ Updated: 2026-08-24
 > surface-tint target, functional-motion-only with reduced-motion equivalence,
 > and no photography/exercise-illustration pipeline for V1.
 > **UX-1B1 is COMPLETE — merged through PR #90 at merge SHA
-> `2692e5896af6b099e2f7cce6c934407d504340ef`. UX-1B2 is now split into UX-1B2A /
-> UX-1B2B / UX-1B2C; UX-1B2A is the only rung in progress. Every later rung needs
-> its own scoped authorization. No code, dependency, asset, or token value has
-> changed.**
+> `2692e5896af6b099e2f7cce6c934407d504340ef`. UX-1B2A is COMPLETE — merged through
+> PR #91 at merge SHA `6316f7826ea9fe9825ad5b484f5283fa38ddd1a1`. UX-1B2B is the
+> only rung in progress; UX-1B2C, UX-1C, and every later rung remain Proposed and
+> need their own scoped authorization. No code, dependency, asset, or token value
+> has changed.**
 
 ### Description
 
@@ -1171,7 +1172,8 @@ Excluded:
    slice.** Documentation only throughout; each sub-slice needs its own scoped
    authorization.
 
-   - **UX-1B2A — Canonical state contracts. Status: In Progress.**
+   - **UX-1B2A — Canonical state contracts. Status: COMPLETE (merged 2026-08-24
+     via PR #91, merge SHA `6316f7826ea9fe9825ad5b484f5283fa38ddd1a1`).**
      `.ai/08_UI_UX.md` → v1.3: exactly **eight** canonical states (loading, empty,
      data-gap, error, offline, pending sync, conflict, Web unavailable) with cause,
      data trustworthiness, user action, recovery path, semantic tone, confusion
@@ -1189,11 +1191,47 @@ Excluded:
      has no retry or action prop at all (ADR-P019 §5).** Success-confirmation and
      permission-denied are named as future flow needs with insufficient current
      evidence; **no placeholder API or anatomy is defined for either**.
-   - **UX-1B2B — Form/input contracts. Status: Proposed.** `AppTextInput`
-     (controlled and uncontrolled forms), `FormField` reconciliation preserving the
-     React Hook Form boundary, `FormSelect`, the frozen-testID register, and
-     unification of the two divergent shipped input style families. The direct
-     prerequisite for UX-1C's first code slice.
+   - **UX-1B2B — Form/input contracts. Status: In Progress.** `.ai/08_UI_UX.md`
+     → v1.4: exactly **three** contracts — `AppTextInput`, `FormField`,
+     `FormSelect` — frozen against a reproducible shipped-evidence snapshot (7
+     files / 11 raw `TextInput`; 7 files / 40 `FormField` usages; 5 files / 8
+     `FormSelect` usages; 2 style families; 3 radio-role and 4 selected-state-only
+     choice surfaces; 6 Zod schema modules + 4 schema specs; 20 EN / 20 ES
+     validation keys; 18 EN /
+     18 ES placeholder keys; 19 label-query spec files; 10 hook-coupled spec
+     files; **9 of 12 Maestro flows** coupled to input ids; 1 password field with
+     no visibility affordance).
+     `AppTextInput` is the text-control primitive with **discriminated** controlled
+     and uncontrolled commit-on-end shapes — it owns no visible label, helper
+     text, validation message, schema, RHF controller, store, or navigation.
+     `FormField` remains the RHF adapter, keeps `Controller`, composes
+     `AppTextInput` rather than being replaced by it, and preserves `Control<T>` /
+     `FieldPath<T>` assignability, label ownership, `field-${name}`, the
+     accessibility-label query path, and all 11 `selectTextOnFocus` call sites.
+     `FormSelect` reconciles the shipped pressable radio-chip pattern and records
+     **both shipped selection models — required, and optional beginning with no
+     selection** (`ProfileForm.gender`, `EvaluationForm.activityLevel`,
+     `RestrictionForm.severity` are each `.optional()`, initialise to `undefined`,
+     and map `undefined → null`); no clear/deselect action, synthetic "None"
+     option, placeholder UI, or modal picker is inferred. Option-level disabled is
+     a TARGET, recorded honestly as **not implemented in the current shared option
+     type**. FULL is the canonical style family; **migrating the seven REDUCED-family
+     raw inputs is UX-5**, per-feature authorized.
+     Also records the minimum implementable **non-colour redundancy** behaviour
+     (1 px default border, thicker focus border, invalid = border + adjacent copy
+     + programmatic exposure, required = indicator + programmatic exposure,
+     disabled = prevented interaction + programmatic exposure + a non-colour-only
+     visible treatment, selected chip = programmatic state + geometric
+     distinction, with the exact selected border role marked **BLOCKED** rather
+     than invented), and the **validation-copy boundary**: `FormField` /
+     `FormSelect` render `fieldState.error.message` as shipped, but localization
+     is today a **call-site** guarantee — three schema modules accept injected
+     messages and one an injected required-message, all retaining English
+     fallbacks, while the **two dormant medical schemas hardcode English with no
+     injection mechanism** (out of scope under ADR-P017, to be resolved before
+     those surfaces are activated). Raw store/repository exceptions are never
+     rendered as validation copy. Documentation only — no component, migration,
+     token, or localization change.
    - **UX-1B2C — Existing primitive reconciliation. Status: Proposed.** `Screen`,
      `Card`, `AppText`, `AppButton`, and `Banner` — including `Banner`'s complete
      contract and its info-tone title contrast finding — plus the 10-state matrix
@@ -1283,6 +1321,31 @@ Consequence for UX-1C: the **copy-only** state forms may proceed; **no
 action-bearing state form may be declared AA-complete in the light theme** until
 the owner-gated token-value decision in the acceptance criteria above is taken.
 No contract claims otherwise, and no candidate value is approved here.
+
+**UX-1B2B usage-level contrast findings — OPEN, tracked separately from the five.**
+The five failing pairs above are the **original owner-gated token set** (five
+light-theme pairs across four foreground roles). The UX-1B2B audit found **three
+additional failing role/background pairings** that are **usage errors, not
+token-value defects** — two light-theme placeholder pairings and one dark-theme
+selected-chip pairing. They must not be folded into the count of five. Detail in
+`.ai/08_UI_UX.md` §Usage-level contrast findings.
+
+1. **Selected-chip foreground misuse.** Four shipped choice surfaces (the shared
+   `FormSelect` plus three feature choice rows) fill with `primary` but render the
+   label through the default text tone, resolving to `onSurface`: **4.84:1 in
+   light (passes) but 1.42:1 in dark (fails)**. Pairing `primary` with `onPrimary`
+   — as the language selector and `AppButton` already do — fixes dark (6.95:1) but
+   lands on the already-recorded light failure (3.53:1). **Therefore the selected
+   `FormSelect` state cannot be declared AA-complete in both themes until the
+   existing owner-gated `primary`/`onPrimary` decision resolves.** No alternative
+   fill or new token is chosen.
+2. **Placeholder role misuse.** `outline` as placeholder **text** fails in light —
+   3.96:1 on `surfaceVariant` and 4.49:1 on `surface` (WCAG ratios are not rounded
+   upward). `outline` stays valid for non-text borders at 3:1. `onSurfaceVariant`
+   is the canonical placeholder-text role and passes at 8.23:1. Six of eight
+   shipped placeholder sites use `outline`.
+
+**No code is fixed by UX-1B2B**; both findings are documentation-only records.
 
 Coverage note for later rungs: `mobile/package.json` includes neither
 `src/features/workout` nor `src/features/progress` in `collectCoverageFrom` or
