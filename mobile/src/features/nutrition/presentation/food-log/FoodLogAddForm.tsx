@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import { useLocalization, type TranslationKey } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
+import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { foodDisplayName, searchFoodsForDisplay } from '../../application/food-display.service';
@@ -138,26 +138,15 @@ export function FoodLogAddForm({
           })}
         </View>
 
-        <TextInput
+        <AppTextInput
           accessibilityLabel={t('nutrition.log.searchAccessibility')}
           testID="food-search-input"
           placeholder={t('nutrition.log.searchPlaceholder')}
-          placeholderTextColor={theme.colors.onSurfaceVariant}
           autoCorrect={false}
           value={query}
           onChangeText={(text) => {
             setQuery(text);
             setSelected(null);
-          }}
-          style={{
-            backgroundColor: theme.colors.surfaceVariant,
-            borderColor: theme.colors.outline,
-            borderRadius: theme.radius.medium,
-            borderWidth: 1,
-            color: theme.colors.onSurface,
-            minHeight: theme.spacing.x5l,
-            paddingHorizontal: theme.spacing.md,
-            ...theme.typography.body,
           }}
         />
 
