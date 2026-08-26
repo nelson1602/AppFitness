@@ -1076,7 +1076,7 @@ Priority: P1
 Type: Feature
 Owner: Product / Design / Architecture
 Created: 2026-08-24
-Updated: 2026-08-25
+Updated: 2026-08-26
 
 > **ADR-P022 ACCEPTED 2026-08-24** — visual direction `Confident Clarity`,
 > mobile-first V1, explicit Web non-parity, wellness-not-medical visual posture,
@@ -1094,9 +1094,14 @@ Updated: 2026-08-25
 > COMPLETE — merged through PR #92 at merge SHA
 > `19cea4b0569e527481aaed9b4755b132072ed66a`. UX-1B2C is COMPLETE — merged
 > through PR #93 at merge SHA
-> `7f2f53adfd0e58c9342ab872f2884d97b75305aa`. UX-1B2D is the only rung in
-> progress; UX-1C and every later rung remain Proposed and need their own scoped
-> authorization. No code, dependency, asset, or token value has changed.**
+> `7f2f53adfd0e58c9342ab872f2884d97b75305aa`. UX-1B2D is COMPLETE — merged
+> through PR #94 at merge SHA
+> `ed77aef0d2c04fc6af60fb0163c80e6bf0a4372e`. UX-1C-1 is COMPLETE — merged
+> through PR #96 at merge SHA
+> `24b08e8d5b71ee3e3e1bdcbb654a408f35d0bfcd`. UX-1C-2A is COMPLETE — merged
+> through PR #97 at merge SHA
+> `84a211518a2c6235203797062da5f7507b015044`. Every later rung remains Proposed
+> or blocked and needs its own scoped authorization.**
 >
 > **ADR-P023 ACCEPTED 2026-08-25 — Platform-Honest Input Accessibility
 > Staging.** Pre-implementation verification established that on
@@ -1106,9 +1111,27 @@ Updated: 2026-08-25
 > platform and remains required. The objective is **preserved, not retired**: the
 > gap is recorded as an open accessibility risk and a **V1 release-review gate**.
 > UX-1C-1 may build the safe `AppTextInput` foundation and is an explicitly
-> **staged partial implementation** — never contract-complete. **UX-1C remains
-> Proposed until UX-1B2D is merged.** No mechanism, dependency, copy, token, or
-> stack upgrade is selected, planned, or authorized.
+> **staged partial implementation** — never contract-complete. No mechanism,
+> dependency, copy, token, or stack upgrade is selected, planned, or authorized.
+>
+> **ADR-P024 ACCEPTED 2026-08-26 — Validation Error Announcement Staging.** The
+> announcement evaluation ADR-P023 Decision 7 required is complete, and it
+> **relocated the blocker**. `FormField` renders
+> `borderColor: error ? error : outline`, while the shipped `AppTextInput` renders
+> `outline` unconditionally and publishes **no `invalid`, no `required`, no
+> `style`** — so migrating it today would **silently delete the error border**
+> across the **7** consumer files (no spec asserts it). Restoring it would need a
+> border-only `invalid` prop, the partial API **ADR-P023 Decision 5 forbids**, or
+> a complete one whose programmatic half does not exist on native. UX-1C-2 is
+> therefore split: **2B-a (announcement only) is AUTHORIZED** — typed
+> `aria-live="polite"` on the existing localized error `AppText`, **Android and
+> Web only**, iOS unmet — and **2B-b (`FormField` migration) is BLOCKED** pending
+> a separate owner decision/ADR or a supported upstream capability.
+> **`aria-live` is not an unblocker.** No `AccessibilityInfo` imperative
+> announcement, `assertive` policy, new copy, duplicated message,
+> `invalid`/`required` prop, field↔message association claim, input migration, or
+> error-border change is authorized. A Jest assertion proves prop presence only,
+> never a TalkBack or browser-AT announcement.
 
 ### Description
 
@@ -1340,19 +1363,45 @@ Excluded:
       `invalid` public API**, because either would be a no-op on native or only
       partially truthful. This is a **staged partial implementation** and must
       never be described as completing the `AppTextInput` contract.
-   2. **UX-1C-2 — `FormField` + `FoodLogAddForm`. Contingent** on the mandatory
-      accessibility follow-up: evaluate announcement of the **already-rendered**
-      localized error copy through supported platform mechanisms, adding **no
-      duplicate error copy**, altering **no** frozen accessible name, and
-      treating no Jest property assertion as proof of VoiceOver or TalkBack
-      behaviour.
-   3. **UX-1C-3 — `FormSelect`. Still blocked** by its recorded selected-chip
+      **Status: COMPLETE** (PR #96, merge SHA
+      `24b08e8d5b71ee3e3e1bdcbb654a408f35d0bfcd`).
+   2. **UX-1C-2A — `FoodLogAddForm` migration. Status: COMPLETE** (PR #97, merge
+      SHA `84a211518a2c6235203797062da5f7507b015044`). One file; the raw
+      `TextInput` replaced by `AppTextInput` with localization, `food-search-input`,
+      controlled query updates, selection clearing, and every nutrition workflow
+      preserved. The form has **no field validation**, so it needed no invalid or
+      required state and **narrowed no accessibility gate**.
+   3. **UX-1C-2B-a — announcement only. Status: AUTHORIZED** by **ADR-P024**, not
+      yet implemented. Adds typed `aria-live="polite"` to the **existing**
+      localized error `AppText` that `FormField` already renders, reaching it
+      through `AppText`'s existing `TextProps` surface. **Android and Web only —
+      iOS announcement remains unmet.** `FormField` keeps its raw `TextInput` and
+      its error border unchanged. Forbidden: `AccessibilityInfo` imperative
+      announcement, `assertive` policy, new EN/ES copy, a duplicated message, any
+      `invalid`/`required` prop, any field↔message association claim, any input
+      migration, and any error-border change. A Jest assertion proves prop
+      presence only.
+   4. **UX-1C-2B-b — `FormField` → `AppTextInput` migration. Status: BLOCKED.**
+      `FormField` renders `borderColor: error ? error : outline`; the shipped
+      `AppTextInput` renders `outline` unconditionally and publishes no
+      `invalid`/`required`/`style`, so migration would **silently delete the error
+      border** across its **7** consumer files — no spec asserts that border.
+      Restoring it requires either a border-only `invalid` prop (forbidden by
+      **ADR-P023 Decision 5**) or a complete one whose programmatic half does not
+      exist on native. Needs a **separate owner decision/ADR** defining a
+      complete, honest `invalid` contract, or a supported upstream capability, or
+      a stack upgrade. **`aria-live` is not an unblocker.**
+   5. **UX-1C-3 — `FormSelect`. Still blocked** by its recorded selected-chip
       contrast decision **and** by the unresolved required / invalid / group
-      accessibility outcomes. UX-1B2D unblocks neither.
-   4. **UX-5 — all seven REDUCED-family inputs**, including migration of the
+      accessibility outcomes. Neither UX-1B2D nor ADR-P024 unblocks it.
+   6. **UX-5 — all seven REDUCED-family inputs**, including migration of the
       existing uncontrolled workout consumer (the per-set reps editor in
       `WorkoutLogScreen.tsx`). Per-feature authorization, behaviour-visible
-      because those inputs gain a 48px floor and a type token.
+      because those inputs gain a 48px floor and a type token. **Confirmed
+      unaffected by the error-border blocker** — in `DietaryPreferences.tsx`,
+      `RoutineBuilder.tsx` and `WorkoutLogScreen.tsx` the `error` references are
+      screen-level messages, not input borders — so **`FormField` is the only
+      remaining consumer with an error border**.
 4. **UX-2 — Low-fidelity product flows. Status: Proposed.** Onboarding,
    authentication including verification and recovery surfaces, navigation and
    information architecture, workout logging inner loop, nutrition logging,
@@ -1525,6 +1574,23 @@ before any runtime code, against the versions `mobile/package-lock.json` resolve
   **None is planned or authorized.** Decided by **ADR-P023**; detail in
   `.ai/08_UI_UX.md` §Verified platform capability matrix (UX-1B2D).
 
+**`FormField` error-border migration blocker — OPEN (ADR-P024).** Distinct from
+the limitation above: this one blocks a **refactor**, not an outcome.
+`form/FormField.tsx` renders `borderColor: error ? error : outline`, while the
+shipped `app-text-input.tsx` renders `outline` unconditionally and publishes no
+`invalid`, `required`, or `style`. Migrating `FormField` would therefore delete a
+live visual signal across its **7** consumer files, and — because **no spec
+asserts that border** — the regression would pass CI silently. Restoring it needs
+either a border-only `invalid` prop (the partial API **ADR-P023 Decision 5**
+forbids) or a complete one whose programmatic half does not exist on native.
+**UX-1C-2B-b is blocked**; **UX-1C-2B-a (announcement only) is authorized**.
+Re-evaluation trigger: a separate owner decision/ADR defining a complete, honest
+`invalid` contract, a supported upstream capability, or a stack upgrade.
+**`aria-live` is not an unblocker** — it announces a message, exposes no invalid
+state, and restores no border. Confirmed alongside this: the seven
+REDUCED-family inputs have **no** error border, so `FormField` is the only
+blocked consumer.
+
 Coverage note for later rungs: `mobile/package.json` includes neither
 `src/features/workout` nor `src/features/progress` in `collectCoverageFrom` or
 `coverageThreshold`, and no EN/ES key-parity spec exists. Both are worth closing
@@ -1574,6 +1640,9 @@ before UX-5 touches those surfaces.
 - ADR-P022 (Accepted) — this stream's decision
 - ADR-P023 (Accepted) — platform-honest input accessibility staging; gates the
   UX-1C-1/2/3 sequence and adds the V1 accessibility release-review gate
+- ADR-P024 (Accepted) — validation error announcement staging; authorizes
+  UX-1C-2B-a (announcement only) and records UX-1C-2B-b as blocked by the
+  `FormField` error border
 - Owner authorization for each rung from UX-1B2 onward
 
 ### Related Documents

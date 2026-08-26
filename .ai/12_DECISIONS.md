@@ -7862,6 +7862,183 @@ documentation only.
 
 ---
 
+## ADR-P024 — Validation Error Announcement Staging
+
+Status: Accepted
+Date: 2026-08-26
+Owner: Product Design / Accessibility
+
+### Context
+
+**ADR-P023** staged input accessibility honestly: `disabled` is expressible on
+iOS, Android and Web, while programmatic **required** and **invalid** state have
+no supported typed mechanism on native. Its **Decision 5** forbids publishing a
+`required` or `invalid` prop that would be a no-op or only partially truthful,
+and **Decision 7** required UX-1C-2 to evaluate announcement of the
+already-rendered localized error copy before `FormField` migrates.
+
+That evaluation is complete, and it changed the picture. Two facts, both
+verified read-only at `origin/main`
+`84a211518a2c6235203797062da5f7507b015044`:
+
+**1. `UX-1C-2A` is complete.** `FoodLogAddForm` migrated to `AppTextInput`
+(merged via PR #97). That form has **no field validation** — its only `error`
+token is a `Banner tone="error"` allergy warning — so it needed no invalid or
+required state and narrowed no accessibility gate.
+
+**2. The binding blocker for `FormField` is not announcement — it is the error
+border.** `form/FormField.tsx:64` renders
+`borderColor: error ? theme.colors.error : theme.colors.outline`. The shipped
+`app-text-input.tsx:155` renders `borderColor: theme.colors.outline`
+**unconditionally**, its public surface contains **no `invalid`, no `required`
+and no `style`**, its only spread is an internally-built control-model object
+rather than a caller-controlled native-prop surface, and
+`app-text-input.spec.tsx:397` positively asserts the border is **never** the
+`error` role. Migrating `FormField` today would therefore **delete a live
+visual signal** across the **7** consumer files that render it, and — because
+**no spec anywhere asserts that border** — the regression would pass CI
+silently.
+
+Every route to preserving the border is already closed: a border-only `invalid`
+prop is precisely the partial API Decision 5 forbids; a complete `invalid` prop
+is unreachable because its programmatic half does not exist on native; and
+`style`, prop injection, casts, `any` and `.web.tsx` divergence are all
+forbidden. `.ai/08_UI_UX.md` additionally binds the visual border and
+programmatic exposure **together**, so a border-only migration would be
+non-compliant even where technically possible.
+
+Announcement is a **separate, narrower** question that touches only the message
+node. A typed *mechanism* for it can be selected today; whether assistive
+technology actually announces is a distinct question that only manual
+verification can answer.
+
+### Decision
+
+**1. UX-1C-2A is COMPLETE.** No further work, and no accessibility claim, is
+attached to it.
+
+**2. UX-1C-2 splits into two independently gated slices.**
+
+- **UX-1C-2B-a — announcement only. AUTHORIZED by this ADR.**
+- **UX-1C-2B-b — `FormField` → `AppTextInput` migration. BLOCKED.**
+
+**3. What 2B-a may do — and only this.** Add the typed React Native prop
+`aria-live="polite"` to the **existing localized error `AppText`** that
+`FormField` already renders. `AppText` is declared `extends TextProps` and
+spreads its remaining props, so the prop reaches the message node through the
+existing API. `FormField` keeps its raw `TextInput` and its error border exactly
+as shipped.
+
+**4. Honest platform scope.** `aria-live` is declared `@platform android` by
+React Native and is mapped to the DOM `aria-live` attribute by
+`react-native-web@0.21.2`. So 2B-a targets **Android and Web only**.
+**iOS announcement remains unmet** and is not claimed.
+
+**5. What 2B-a must NOT do.** No `AccessibilityInfo.announceForAccessibility` or
+any imperative announcement (it is additionally a verified no-op under
+`react-native-web@0.21.2`); no `assertive` policy; no new EN/ES copy; no second
+or duplicated rendering of the message; no `invalid` or `required` prop on any
+component; no claim of field↔message association; no input migration; and **no
+change to the error border**.
+
+**6. Evidence discipline.** A Jest assertion that `aria-live` is present on the
+message node proves **prop presence only**. It is never evidence that TalkBack
+or a browser screen reader announced anything. No completion claim may rest on
+it.
+
+**7. What remains a V1 accessibility release-review gate.** Programmatic
+**invalid** state; programmatic **required** state; **field↔message
+association**; **iOS error announcement**; and **manual VoiceOver / TalkBack /
+browser-AT verification**. This ADR closes none of them and narrows none of
+them.
+
+**8. 2B-b requires its own decision.** Unblocking the `FormField` migration
+requires either a **separate owner decision / ADR** defining a complete and
+honest `invalid` contract — including what "complete" means when native exposure
+is impossible — or a **supported upstream capability** in React Native / Expo,
+or a stack upgrade that changes the ADR-P023 capability matrix. **`aria-live` is
+explicitly not an unblocker:** it announces a message, exposes no invalid state,
+and restores no border.
+
+**9. This ADR is documentation only and changes no runtime.** It introduces no
+dependency, token, copy, or platform-parity claim, and it ships nothing. What it
+does is **authorize the future single-prop addition described in Decision 3**, to
+be implemented under its own scoped authorization as UX-1C-2B-a. It does not
+weaken ADR-P023; it applies it.
+
+### Options Considered
+
+1. **Announcement-only now, migration separately gated (chosen).** Authorizes a
+   **typed candidate intended to request polite announcements on Android and
+   Web**, at near-zero risk, while keeping the border and the invalid contract
+   untouched. **No assistive-technology outcome is proven by this choice** — the
+   request is only a request until manual TalkBack and browser-AT verification is
+   performed and recorded. Costs: iOS is not addressed at all, the rung remains
+   visibly incomplete, and the candidate may yet prove ineffective in practice.
+2. **Bundle announcement with an `invalid` prop to unblock migration.** Would
+   let `FormField` migrate immediately, but only by publishing a partial or
+   border-only `invalid` API — exactly what ADR-P023 Decision 5 forbids, and the
+   failure mode that decision exists to prevent.
+3. **Do nothing until the invalid contract is decided.** Maximally conservative
+   and fully defensible, but leaves an available, typed, zero-copy improvement
+   unshipped for no accessibility benefit.
+
+### Rationale
+
+`.ai/00_PROJECT.md` §Decision Hierarchy places correctness above developer
+convenience. Deleting a shipped error border to satisfy a refactor — invisibly,
+with green CI — is a correctness regression discovered by users rather than by
+tests. Separating the two questions lets the safe half ship truthfully while the
+blocked half stays blocked for a stated reason, which is the same discipline
+ADR-P023 established.
+
+### Consequences
+
+**Positive.** The `FormField` blocker is now recorded accurately as the error
+border rather than as announcement. **After UX-1C-2B-a is implemented**, Android
+and Web will receive the typed `aria-live="polite"` **request** on the error
+message — with no new copy, no dependency, and no change to the input — while
+**actual announcement remains unverified until manual TalkBack and browser-AT
+testing is performed**. UX-5's
+seven REDUCED-family inputs are confirmed unaffected — their `error` references
+are screen-level messages, not input borders — so `FormField` is the **only**
+remaining consumer with an error border, and the only blocked one.
+
+**Negative — accepted.** iOS users gain nothing from 2B-a. `FormField` is not
+migrated and cannot be declared complete. `AppTextInput` remains a staged
+partial implementation. The five gates in Decision 7 stay open.
+
+**Neutral.** No shipped behaviour changes on acceptance; this ADR is
+documentation only.
+
+### Supersedes / Preserves
+
+- **Applies and preserves ADR-P023** in full. Decision 5's no-partial-invalid-API
+  rule is the reason 2B-b is blocked, and is not weakened, narrowed, or waived.
+- **Extends ADR-P022** and its UX ladder; the visual direction is untouched.
+- **Preserves ADR-P017** (medical-domain dormancy). The two dormant medical
+  schemas still carry hardcoded English validation copy, so any announcement on
+  those surfaces would speak English into a Spanish session; they remain out of
+  scope.
+- **Preserves the five owner-gated light-theme contrast pairs and the six
+  usage-level pairings**, and does **not** unblock `FormSelect` or UX-1C-3.
+- **Preserves UX-5 ownership** of all seven REDUCED-family input migrations.
+
+### Related Documents
+
+- `.ai/08_UI_UX.md` (v1.7 — §2 `FormField`, §Verified platform capability
+  matrix, §Change Control)
+- `.ai/11_BACKLOG.md` (FEATURE-010 — UX-1C-2A complete, 2B-a authorized,
+  2B-b blocked)
+- `.ai/12_DECISIONS.md` ADR-P023 (the staging decision this one applies)
+- `.ai/09_TESTING.md` (§Accessibility Testing — accessibility is a release
+  requirement; error announcement is a per-screen check)
+- `mobile/src/shared/presentation/form/FormField.tsx`,
+  `mobile/src/shared/presentation/app-text-input.tsx` — the shipped code the
+  border finding was verified against
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

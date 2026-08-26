@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.6
+Version: 1.7
 Status: Active
-Last Updated: 2026-08-25
+Last Updated: 2026-08-26
 
 ---
 
@@ -228,6 +228,63 @@ Included in v1.6:
 was read from the installed React Native type declarations and from the resolved
 `mobile/package-lock.json` versions, and corroborated against the official React
 Native `Accessibility` and `TextInput` documentation. No runtime module changed.
+
+---
+
+# Revision Scope (v1.7 — ADR-P024)
+
+This revision records the outcome of the announcement evaluation that **ADR-P023
+Decision 7** required before `FormField` could migrate. It is documentation-only
+and is decided by **ADR-P024 — Validation Error Announcement Staging**.
+
+The evaluation **relocated the blocker**. A typed announcement *mechanism* is
+selectable today — its effect on assistive technology is a separate, unverified
+question — while the binding obstacle to migrating `FormField` is its **shipped
+error border**:
+
+- `form/FormField.tsx` renders `borderColor: error ? error : outline`.
+- `app-text-input.tsx` renders `borderColor: outline` **unconditionally**, and
+  its public surface has **no `invalid`, no `required` and no `style`**; its only
+  spread is an internally-built control-model object, not a caller-controlled
+  native-prop surface. `app-text-input.spec.tsx` positively asserts the border is
+  **never** the `error` role.
+- Migrating today would therefore delete a live visual signal across the **7**
+  files that render `FormField`, and because **no spec asserts that border** the
+  regression would pass CI silently.
+- Restoring it would require a border-only `invalid` prop — precisely the partial
+  API **ADR-P023 Decision 5** forbids — or a complete one, whose programmatic
+  half does not exist on native.
+
+Included in v1.7:
+
+- **UX-1C-2A recorded COMPLETE** (`FoodLogAddForm` migrated; it has no field
+  validation, so it needed no invalid or required state).
+- **UX-1C-2B split** into **2B-a — announcement only, authorized** and
+  **2B-b — `FormField` migration, blocked**.
+- The narrow 2B-a permission: typed `aria-live="polite"` on the **existing
+  localized error `AppText`** only, reaching the message node through
+  `AppText`'s existing `TextProps` surface. **Android and Web only; iOS
+  announcement remains unmet.**
+- Amendments to §2 `FormField` recording the border blocker and the split.
+
+**Not** in v1.7, and explicitly not authorized:
+
+- Any `invalid` or `required` prop, on any component, in any form.
+- Any change to `FormField`'s error border, or any input migration.
+- `AccessibilityInfo` imperative announcement (additionally a verified no-op
+  under `react-native-web@0.21.2`), `assertive` policy, new EN/ES copy, a
+  duplicated message, or any field↔message association claim.
+- Any weakening of **ADR-P023**. Decision 5 is the reason 2B-b is blocked and is
+  neither narrowed nor waived.
+- Any contrast resolution. The **five** owner-gated pairs and **six** usage-level
+  pairings stand exactly as recorded, and `FormSelect` / UX-1C-3 stay blocked.
+
+**Evidence baseline for v1.7.** Verified read-only against merge commit
+`84a211518a2c6235203797062da5f7507b015044` (UX-1C-2A, PR #97), including the
+shipped `FormField` and `AppTextInput` sources, the absence of any border
+assertion in the spec suite, and the installed `react-native@0.86.2` /
+`react-native-web@0.21.2` / `expo@57.0.13` declarations. No runtime module
+changed.
 
 ---
 
@@ -2052,14 +2109,14 @@ those flows.
 | **Preserved exactly** | `Controller` ownership · the `Control<T>` / `FieldPath<T>` generic surface, including the current `z.input`-as-`unknown` assignability that lets numeric schemas stay assignable to the shared field · label ownership · the `field-${name}` hook **on the actual `TextInput` node** · the accessibility-label query path (the label is passed through as the control's accessible name) · all **11** `selectTextOnFocus` call sites and its opt-in default-off semantics · the keyboard configuration its existing consumers rely on · the **`fieldState.error.message` rendering path** and the feature-owned validation boundary exactly as shipped (see §Validation-copy boundary — the copy's localization is a call-site guarantee today, not a schema-level one). |
 | **Anatomy** | label (with required indication) → `AppTextInput` → adjacent error message when invalid. |
 | **Required indication** | Keep the visible indication. **Add a platform-appropriate programmatic required contract** so assistive technology perceives it. Required must not rest on the asterisk glyph or on colour alone. Do not freeze an unsupported universal React Native prop — state the outcome and validate the mechanism per platform at implementation time. Today the asterisk is appended to the *visible* label only while the accessible name receives the raw label, so screen readers never hear it. **UX-1B2D amendment (ADR-P023):** validation is complete and **no supported typed native mechanism exists**. `FormField` therefore **retains the visible required indication** — unchanged — while programmatic required exposure stays **unresolved and cannot be declared complete**. The accessible name must **not** be modified to carry the state: that would break the frozen label-query paths (§Input frozen-hook register). |
-| **Invalid / error behaviour** | `FormField` owns the adjacent error rendering; `AppTextInput` receives only the visual and programmatic invalid state, per the ownership chain in §1. The message must be **associated with its field** and **announced through a platform-appropriate mechanism**, and the invalid state must carry all three signals required by §Non-colour redundancy. **Raw store or repository exceptions, stack details, and technical failure text are never rendered as field validation copy.** Copy comes from the field's validation — the Zod schema or an explicit `setError` — and is **TARGET-localized for public surfaces**; see §Validation-copy boundary for what is and is not already localized. **UX-1B2D amendment (ADR-P023 Decision 7) — mandatory UX-1C-2 evaluation.** Before `FormField` migrates, UX-1C-2 must evaluate announcement of the **already-rendered localized error copy** through supported platform mechanisms. That evaluation must add **no duplicate error copy**, alter **no** frozen accessible name, introduce **no** unauthorized EN/ES key, and must not treat a Jest property assertion as proof of VoiceOver or TalkBack behaviour. **No mechanism is selected, pre-approved, or implied here.** Until it resolves, the invalid outcome and the field↔message relationship remain **unresolved** and the adjacent visible message must not be presented as proving announcement. |
+| **Invalid / error behaviour** | `FormField` owns the adjacent error rendering; `AppTextInput` receives only the visual and programmatic invalid state, per the ownership chain in §1. The message must be **associated with its field** and **announced through a platform-appropriate mechanism**, and the invalid state must carry all three signals required by §Non-colour redundancy. **Raw store or repository exceptions, stack details, and technical failure text are never rendered as field validation copy.** Copy comes from the field's validation — the Zod schema or an explicit `setError` — and is **TARGET-localized for public surfaces**; see §Validation-copy boundary for what is and is not already localized. **UX-1B2D amendment (ADR-P023 Decision 7) — mandatory UX-1C-2 evaluation.** Before `FormField` migrates, UX-1C-2 must evaluate announcement of the **already-rendered localized error copy** through supported platform mechanisms. That evaluation must add **no duplicate error copy**, alter **no** frozen accessible name, introduce **no** unauthorized EN/ES key, and must not treat a Jest property assertion as proof of VoiceOver or TalkBack behaviour. **No mechanism is selected, pre-approved, or implied here.** Until it resolves, the invalid outcome and the field↔message relationship remain **unresolved** and the adjacent visible message must not be presented as proving announcement. **ADR-P024 amendment — evaluation complete.** The authorized outcome is **announcement only**, as **UX-1C-2B-a**: typed `aria-live="polite"` on the **existing** localized error `AppText`, reaching it through `AppText`'s existing `TextProps` surface. **Android and Web only — iOS announcement remains unmet and is not claimed.** Forbidden in 2B-a: `AccessibilityInfo` imperative announcement, `assertive` policy, new copy, a duplicated message, any `invalid`/`required` prop, any field↔message association claim, any input migration, and **any change to the error border**. The **field↔message association** outcome stays unresolved. |
 | **Helper text** | **No helper-text contract.** Zero shipped evidence. |
 | **Control model** | Controlled through RHF only. The uncontrolled `AppTextInput` shape is not exposed here. |
 | **Semantic token roles** | Label uses on-surface; the control uses the FULL family; the error message uses the error role at caption size on its surrounding ground. All pass AA in both themes. |
 | **EN/ES + dynamic type** | Label, required indication, and error copy all wrap; no fixed heights on text. |
 | **Test hooks** | `field-${name}` frozen, on the control node. |
 | **Unit / component regression** | Renders label, control, and error; required is exposed **visibly** — programmatic native exposure is unresolved per the UX-1B2D amendment above and must not be asserted as met; **no raw store/repository exception or stack text is ever rendered as validation copy**; for a public-v1 surface the rendered message is the localized string its call site injected; focus renders a thicker-than-default border; `selectTextOnFocus` passes through; `Control` assignability holds for numeric schemas; every existing `field-*` id and label query still resolves. |
-| **Blockers** | None from tokens. **Accessibility blocker (UX-1B2D / ADR-P023):** programmatic **required** and **invalid** exposure, and the field↔error-message relationship, are unavailable on native iOS and Android on the installed stack. `FormField` therefore **cannot be declared complete** on migration, and UX-1C-2 must run the mandatory evaluation above first. Carried to the V1 accessibility release-review gate. |
+| **Blockers** | None from tokens. **Accessibility blocker (UX-1B2D / ADR-P023):** programmatic **required** and **invalid** exposure, and the field↔error-message relationship, are unavailable on native iOS and Android on the installed stack. `FormField` therefore **cannot be declared complete** on migration. Carried to the V1 accessibility release-review gate. **Migration blocker (ADR-P024) — the binding one.** `FormField` renders `borderColor: error ? error : outline`; the shipped `AppTextInput` renders `outline` unconditionally and publishes no `invalid`, no `required` and no `style`, so **migrating would silently delete the error border** across the **7** consumer files — no spec asserts it. Restoring it needs either a border-only `invalid` prop (the partial API **ADR-P023 Decision 5** forbids) or a complete one whose programmatic half does not exist on native. **`FormField` → `AppTextInput` migration is therefore BLOCKED as UX-1C-2B-b**, pending a separate owner decision/ADR defining a complete, honest `invalid` contract, or a supported upstream capability. **`aria-live` is not an unblocker** — it announces a message, exposes no invalid state, and restores no border. |
 
 ---
 
@@ -2475,8 +2532,11 @@ Accessibility is verified, not asserted. WCAG 2.2 AA is the floor.
 7. **Keyboard / focus** — where a platform exposes focus (Web, external keyboard),
    focus order follows reading order and focus is visibly indicated.
 
-**Prop presence is not assistive-technology behaviour (UX-1B2D / ADR-P023).** This
-distinction is mandatory in every completion claim, review, and commit message:
+**Prop presence is not assistive-technology behaviour (UX-1B2D / ADR-P023,
+reaffirmed by ADR-P024).** This distinction is mandatory in every completion
+claim, review, and commit message, and it applies without exception to the
+`aria-live` prop authorized for UX-1C-2B-a: asserting it is present proves the
+prop, never a TalkBack or browser-AT announcement.
 
 - An automated assertion that a component renders `accessibilityState`,
   `accessibilityLabel`, `accessibilityRole`, or any `aria-*` property proves
@@ -2777,16 +2837,18 @@ Every screen must verify:
 
 # Change Control and Slice Boundaries
 
-## What v1.2 (UX-1B1) through v1.6 (UX-1B2D) authorize
+## What v1.2 (UX-1B1) through v1.7 (ADR-P024) authorize
 
 Documentation only. v1.2 records the approved visual foundation; v1.3 the
 canonical state patterns and the six state-component contracts; v1.4 the three
 form and input contracts; v1.5 the five presentation primitive contracts and the
 ten-state applicability matrix; v1.6 the verified platform capability matrix and
-the narrow input-accessibility amendments decided by **ADR-P023**. None changes
-code, tokens, localization keys, or dependencies.
+the narrow input-accessibility amendments decided by **ADR-P023**; v1.7 the
+announcement-evaluation **result** decided by **ADR-P024** — UX-1C-2A complete,
+UX-1C-2B split into an authorized-but-unimplemented announcement-only slice and a
+blocked migration. None changes code, tokens, localization keys, or dependencies.
 
-## What v1.2 through v1.6 explicitly do NOT authorize
+## What v1.2 through v1.7 explicitly do NOT authorize
 
 No dependency addition, font asset, icon delivery mechanism or icon asset,
 token-value change, component implementation, navigation or
@@ -2871,16 +2933,30 @@ UX-1B2 is delivered as four documentation slices:
     **only** `sign-in` and `delete-account`. It publishes **no** `required` or
     `invalid` prop, and is a **staged partial implementation** — never
     contract-complete.
-  - **UX-1C-2** — `FormField` and `FoodLogAddForm`, **contingent** on the
-    mandatory accessibility evaluation in §2.
+  - **UX-1C-2A** — `FoodLogAddForm` migration. **COMPLETE** (PR #97, merge SHA
+    `84a211518a2c6235203797062da5f7507b015044`). The form has no field
+    validation, so it required no invalid or required state and narrowed no
+    accessibility gate.
+  - **UX-1C-2B-a** — **announcement only. AUTHORIZED** by **ADR-P024**: typed
+    `aria-live="polite"` on the existing localized error `AppText`, **Android and
+    Web only**, with iOS announcement unmet. `FormField` keeps its raw
+    `TextInput` and its error border untouched.
+  - **UX-1C-2B-b** — `FormField` → `AppTextInput` migration. **BLOCKED** by the
+    error-border finding in §2, pending a separate owner decision/ADR or a
+    supported upstream capability. **`aria-live` is not an unblocker.**
   - **UX-1C-3** — `FormSelect`, still **blocked** by its recorded contrast and
     accessibility outcomes.
 - **UX-2 / UX-3** — low-fidelity flows, then high-fidelity specifications.
 - **UX-4** — authentication / onboarding / dashboard pilot.
-- **UX-5** — progressive feature migration.
+- **UX-5** — progressive feature migration. Its **seven** REDUCED-family inputs
+  are confirmed **unaffected by the error-border blocker** — their `error`
+  references are screen-level messages, not input borders — so `FormField` is the
+  **only** remaining consumer with an error border. UX-5 still needs its own
+  per-feature authorization.
 
-Tracked as **FEATURE-010** in `.ai/11_BACKLOG.md`; decided by **ADR-P022** and,
-for the input-accessibility staging, **ADR-P023** in `.ai/12_DECISIONS.md`.
+Tracked as **FEATURE-010** in `.ai/11_BACKLOG.md`; decided by **ADR-P022**, and
+for input accessibility by **ADR-P023** (staging) and **ADR-P024** (announcement
+staging) in `.ai/12_DECISIONS.md`.
 
 ---
 
