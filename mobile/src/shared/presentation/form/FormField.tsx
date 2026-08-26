@@ -71,7 +71,13 @@ export function FormField<T extends FieldValues>({
             }}
           />
           {error ? (
-            <AppText variant="caption" tone="error">
+            // UX-1C-2B-a (ADR-P024 Decision 3): request a polite announcement of
+            // the already-rendered message. Typed prop, Android and Web only —
+            // React Native declares `aria-live` `@platform android` and
+            // react-native-web maps it to the DOM attribute. iOS is unaffected,
+            // and no announcement is proven until manual TalkBack / browser-AT
+            // verification is performed.
+            <AppText aria-live="polite" variant="caption" tone="error">
               {error.message}
             </AppText>
           ) : null}
