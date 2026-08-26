@@ -1,10 +1,10 @@
 import { Redirect, Stack, router } from 'expo-router';
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { View } from 'react-native';
 
 import { deleteAccount, useSession } from '@/features/authentication';
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card, Screen } from '@/shared/presentation';
+import { AppButton, AppText, AppTextInput, Banner, Card, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 const CONFIRM_PHRASE = 'DELETE';
@@ -61,23 +61,13 @@ export default function DeleteAccountScreen() {
             <AppText variant="label">
               {t('account.delete.confirmInstruction').replace('{phrase}', CONFIRM_PHRASE)}
             </AppText>
-            <TextInput
+            <AppTextInput
               accessibilityLabel={t('account.delete.confirmationAccessibility')}
               testID="input-confirm-phrase"
               autoCapitalize="characters"
               autoCorrect={false}
               onChangeText={setPhrase}
               value={phrase}
-              style={{
-                backgroundColor: theme.colors.surfaceVariant,
-                borderColor: theme.colors.outline,
-                borderRadius: theme.radius.medium,
-                borderWidth: 1,
-                color: theme.colors.onSurface,
-                minHeight: theme.spacing.x5l,
-                paddingHorizontal: theme.spacing.md,
-                ...theme.typography.body,
-              }}
             />
             <AppButton
               accessibilityLabel={t('account.delete.deleteAccessibility')}
