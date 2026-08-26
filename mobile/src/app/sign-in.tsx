@@ -1,10 +1,10 @@
 import { Stack, router } from 'expo-router';
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
 import { LanguageSelector, type TranslationKey, useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card, Screen } from '@/shared/presentation';
+import { AppButton, AppText, AppTextInput, Banner, Card, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 // Reason → localized banner copy (Slice 2B4). Distinct, honest, non-enumerating
@@ -131,23 +131,13 @@ function Input({
   return (
     <View style={{ gap: theme.spacing.xs }}>
       <AppText variant="label">{label}</AppText>
-      <TextInput
+      <AppTextInput
         accessibilityLabel={label}
         testID={testID}
         autoCapitalize="none"
         keyboardType={keyboardType}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
-        style={{
-          backgroundColor: theme.colors.surfaceVariant,
-          borderColor: theme.colors.outline,
-          borderRadius: theme.radius.medium,
-          borderWidth: 1,
-          color: theme.colors.onSurface,
-          minHeight: theme.spacing.x5l,
-          paddingHorizontal: theme.spacing.md,
-          ...theme.typography.body,
-        }}
         value={value}
       />
     </View>
