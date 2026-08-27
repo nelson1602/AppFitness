@@ -8039,6 +8039,210 @@ documentation only.
 
 ---
 
+## ADR-P025 — FormField Primitive Migration Deferred from V1
+
+Status: Accepted
+Date: 2026-08-26
+Owner: Product Design / Accessibility
+
+### Context
+
+**ADR-P024** split UX-1C-2 and left **UX-1C-2B-b** — migrating `FormField` from
+its raw `TextInput` to the shared `AppTextInput` — blocked, requiring "a separate
+owner decision/ADR defining a truthful invalid-state contract, or a supported
+upstream capability." This ADR is that decision. It answers **whether to migrate
+in V1**, and the answer is **no**.
+
+A read-only audit at `origin/main`
+`95c81622f4c932bf6d2ffdb2f4dde791d5effb1a` established the following.
+
+**The blocker is a shipped visual signal.**
+`mobile/src/shared/presentation/form/FormField.tsx` renders
+`borderColor: error ? theme.colors.error : theme.colors.outline`. The shipped
+`mobile/src/shared/presentation/app-text-input.tsx` renders
+`borderColor: theme.colors.outline` **unconditionally**; its public surface is
+exactly `accessibilityLabel · testID · placeholder · keyboardType ·
+secureTextEntry · autoCapitalize · autoCorrect · selectTextOnFocus · onBlur ·
+disabled` plus one control model, with **no `invalid`, no `required` and no
+`style`**, and its only spread is an internally-built control-model object rather
+than a caller-controlled native-prop surface. Its own spec positively asserts
+that the border is **never** the `error` role and that `aria-invalid` /
+`aria-required` are absent. Migrating today would therefore delete a live visual
+signal across the **7** consumer files that render `FormField` — and because **no
+spec anywhere asserts that border**, the regression would pass CI silently.
+
+**Verified capability matrix.** Resolved locally from installed type
+declarations and corroborated against official React Native documentation:
+**`react-native@0.86.2`**, **`react-native-web@0.21.2`**, **`expo@57.0.13`**.
+
+| Outcome | iOS | Android | Web | Typed in React Native? |
+|---|---|---|---|---|
+| **Disabled state** | Yes | Yes | Yes | Yes — `accessibilityState.disabled` plus `editable={false}` |
+| **Invalid state** | **No** | **No** | Runtime only | **No** — `AccessibilityState` is exactly `{disabled, selected, checked, busy, expanded}`; **zero** files in the React Native type tree mention `aria-invalid` or `accessibilityInvalid` |
+| **Required state** | **No** | **No** | Runtime only | **No** — same search, zero hits for `aria-required` |
+| **Field↔message association** | **No** | Partial | Runtime only | `accessibilityLabelledBy` / `aria-labelledby` are declared inside `AccessibilityPropsAndroid` with `@platform android`; `aria-errormessage` and `aria-describedby` are absent from React Native entirely |
+| **Announcement via `aria-live`** | **No** (`@platform android`) | Yes | Yes — `react-native-web` forwards `aria-live` to the DOM | Yes |
+| **Announcement via `AccessibilityInfo`** | Yes | Yes | **No — verified no-op**: `react-native-web` ships `announceForAccessibility` with an empty body | Yes |
+
+`react-native-web` does forward `aria-invalid`, `aria-required`,
+`aria-errormessage` and `aria-describedby` at runtime, but **no typed route
+reaches them** from a codebase importing `TextInput` from `react-native`; doing so
+would require untyped injection or module augmentation, both forbidden by
+**ADR-P023**. `@expo/ui` declares `"platforms": ["apple", "android"]` — no Web —
+so it offers no cross-platform path either.
+
+**Blast radius if migrated.** `FormField` has **40 usages across 7 consumer
+files**; **9** specs are coupled to `field-*` hooks; **21** spec files resolve
+inputs through `getByLabelText`; **5** Maestro flows reference `field-*`.
+
+### Decision
+
+**1. The shipped raw-`TextInput` `FormField` is kept for V1.** It is not
+migrated to `AppTextInput`.
+
+**2. Its behaviour is preserved exactly as shipped:** the
+`error ? error : outline` **error border**; the React Hook Form `Controller`
+contract including the `Control<T>` / `FieldPath<T>` generic surface and its
+`z.input`-as-`unknown` assignability; the frozen `field-${name}` hook and
+accessible-label query paths; the visible label and required indicator; the
+localized `fieldState.error.message` rendering path; and the
+**`aria-live="polite"` message request merged by UX-1C-2B-a**, which stays in
+place unchanged.
+
+**3. UX-1C-2B-b is DEFERRED FROM V1 and remains BLOCKED.** Deferred and blocked
+are both true and neither is "complete": the migration is not scheduled for V1,
+*and* the truthful-invalid-contract precondition is still unmet. No document may
+describe it as done, delivered, or resolved.
+
+**4. A visual-only error prop is REJECTED for V1.** A prop on `AppTextInput`
+scoped solely to the error border — however honestly named — is rejected because
+it delivers **no user-visible launch benefit**, **closes no accessibility gate**,
+and exists **only to enable an internal refactor**. Spending V1 risk budget on a
+change whose entire payoff is internal consistency is not justified, and it would
+split the invalid state so the visual half lives in the primitive while the
+semantic half lives nowhere. This rejection is scoped to V1 and is not a
+permanent judgement on the idea.
+
+**5. ADR-P023 and ADR-P024 are preserved unchanged in meaning.** ADR-P023's
+Decision 5 — no `required`/`invalid` public API that would be a no-op or only
+partially truthful — stands verbatim and is neither narrowed nor waived.
+ADR-P024's authorization of UX-1C-2B-a, its Android/Web-only scope, and its
+explicit non-claim of any assistive-technology outcome all stand.
+
+**6. All five V1 accessibility release-review gates remain OPEN:** programmatic
+**invalid** state · programmatic **required** state · **field↔message
+association** · **iOS error announcement** · **manual VoiceOver / TalkBack /
+browser-AT verification**. This ADR closes none of them and narrows none of them.
+
+**7. Nothing else is authorized.** No `FormField` or `AppTextInput` code change,
+no platform-specific file or `Platform.OS` branch, no ARIA injection or type
+augmentation, no new EN/ES copy, no dependency, no test change, no UX-5 work, no
+authentication work, and no Railway or EAS action.
+
+**8. Re-evaluation trigger.** This deferral is revisited when **any** of the
+following exists: a **supported typed upstream capability** in React Native or
+Expo for programmatic invalid/required state; an **approved localized
+accessible-copy strategy** (with authorized EN/ES keys and an announcement
+policy); or a **relevant stack upgrade** that changes the matrix above. None is
+planned or authorized by this ADR.
+
+**9. This ADR is documentation only and changes no runtime.**
+
+### Why this is scope control, not abandonment of accessibility
+
+The distinction matters and is recorded deliberately.
+
+- **Nothing regresses.** Users keep the visible error border, the visible
+  required indicator, the adjacent localized message, and the Android/Web
+  announcement request. Deferring the migration removes no signal; *performing*
+  it would have removed one.
+- **No gate is closed, downgraded, or reworded.** The five outcomes stay open at
+  the same severity, and the release-review gate still applies before V1 store
+  submission. Accessibility work is postponed **as a refactor**, not as an
+  obligation.
+- **The obstruction is upstream, not local.** The verified matrix shows no
+  supported typed mechanism exists on native for invalid or required. No amount
+  of V1 effort in this repository creates one; only options that fabricate
+  support would, and those are forbidden.
+- **The genuinely user-facing option remains available.** A localized
+  accessible-copy strategy (Decision 8) is the one path that could reach iOS. It
+  is deferred for lack of an approved copy and announcement policy — not
+  dismissed — and it needs manual VoiceOver/TalkBack proof, which no automated
+  suite can substitute for.
+- **Honesty is the point.** Recording an unmet outcome as unmet keeps the
+  SHIPPED / TARGET / PROPOSED labelling trustworthy. The failure mode this stream
+  has guarded against throughout is a green test suite being mistaken for an
+  accessible product; deferring with the gap stated is the opposite of that.
+
+### Options Considered
+
+1. **Defer the migration, change nothing (chosen).** Zero regression risk, zero
+   copy impact, all frozen hooks untouched. Costs: two input style families
+   persist through V1, and `FormField` does not reach the shared primitive.
+2. **Migrate with a visual-only error prop.** Would unblock the refactor and
+   remove the style duplication, but delivers no launch-visible benefit, closes
+   no gate, requires amending `.ai/08_UI_UX.md` to separate the visual border
+   from programmatic exposure, and spends V1 risk on internal consistency —
+   rejected by Decision 4.
+3. **Migrate with a reduced, Web-only semantic contract.** Would require a typed
+   route to `aria-invalid` that does not exist, so it reduces to untyped
+   injection or type augmentation — forbidden by ADR-P023, which this ADR
+   preserves.
+4. **Localized accessible-copy semantics now.** The only option that could reach
+   iOS, but it needs new EN/ES keys, an announcement policy, and heavy manual AT
+   validation; the two dormant medical schemas still carry hardcoded English, so
+   it would speak English into a Spanish session. Deferred to its own decision,
+   not rejected.
+5. **Platform-specific implementations.** Highest cost and lowest confidence:
+   `.web.tsx` divergence is forbidden by ADR-P023, `Platform.OS` has zero
+   occurrences in any `.tsx` today, and Jest exercises one platform preset, so
+   the other branches would ship effectively untested.
+
+### Consequences
+
+**Positive.** No behaviour change and no regression risk in V1. Every frozen
+hook, accessible-label query path, and Maestro flow keeps working with no edit.
+The 40 `FormField` usages across 7 consumer files are untouched. The accessibility
+gap is documented at the same severity rather than quietly absorbed by a refactor.
+
+**Negative — accepted.** Two input style families persist through V1: the FULL
+family in `AppTextInput` (`sign-in`, `delete-account`, `FoodLogAddForm`) and the
+raw-`TextInput` `FormField`. The FULL-family consolidation is therefore
+incomplete, `AppTextInput` remains a **staged partial implementation**, and its
+focused-border and disabled behaviours never reach `FormField`'s 40 usages in V1.
+
+**Neutral.** No shipped behaviour changes on acceptance; this ADR is
+documentation only.
+
+### Supersedes / Preserves
+
+- **Applies and preserves ADR-P023** in full, Decision 5 included and unweakened.
+- **Applies and preserves ADR-P024** in full: UX-1C-2A stays complete, UX-1C-2B-a
+  stays authorized and its merged `aria-live` request stays in place, UX-1C-2B-b
+  stays blocked — now additionally deferred from V1.
+- **Extends ADR-P022** and its UX ladder; the visual direction is untouched.
+- **Preserves ADR-P017** — dormant medical surfaces keep hardcoded English
+  validation copy and stay out of scope.
+- **Preserves the five owner-gated light-theme contrast pairs and the six
+  usage-level pairings**; `FormSelect` and UX-1C-3 stay blocked.
+- **Preserves UX-5 ownership** of all seven REDUCED-family input migrations,
+  which are confirmed to carry **no** input error border and are therefore
+  unaffected by this blocker.
+
+### Related Documents
+
+- `.ai/08_UI_UX.md` (v1.8 — §2 `FormField`, §Verified platform capability matrix,
+  §Change Control)
+- `.ai/11_BACKLOG.md` (FEATURE-010 — UX-1C-2B-b deferred from V1 and blocked)
+- `.ai/12_DECISIONS.md` ADR-P023 and ADR-P024 (the decisions this one applies)
+- `.ai/09_TESTING.md` (§Accessibility Testing — accessibility is a release
+  requirement)
+- `mobile/src/shared/presentation/form/FormField.tsx`,
+  `mobile/src/shared/presentation/app-text-input.tsx` — the shipped code the
+  matrix and border finding were verified against
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
