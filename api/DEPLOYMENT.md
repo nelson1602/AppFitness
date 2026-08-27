@@ -25,10 +25,78 @@ injected via environment variables.
 | `SENTRY_ENVIRONMENT` | e.g. `development` |
 | `WEB_CORS_ORIGINS` | Optional (ADR-P018 Slice 3). Comma-separated EXACT browser origins for interim Web Bearer auth (no wildcard/path/trailing slash). Unset/empty ⇒ fail-closed (no cross-origin browser access; native unaffected). Configure per environment. For local Expo Web QA set it on the **Development** service only: `http://localhost:8081,http://127.0.0.1:8081`. Leave **Production** unset unless a hosted Web origin is approved |
 | `API_DOCS_ENABLED` | Optional (H-2). Swagger UI (`/docs`) + OpenAPI JSON (`/docs-json`) are served ONLY when this is the exact string `true`; any other value (unset, empty, `false`, `TRUE`, `1`, …) keeps them disabled. Intended for LOCAL development only. **Leave unset on BOTH hosted tiers** so the API surface is never published in Development or Production. Generate the OpenAPI spec locally (flag on) for client codegen rather than serving it live |
+| `MAIL_PROVIDER` | Optional (ADR-P026 Vertical 1). `disabled` (default when unset) or `postmark`. While `disabled`, `POST /auth/forgot-password` answers a single generic `503` **before any account lookup** — it never pretends a message was sent. Setting `postmark` REQUIRES the four `POSTMARK_*` / `MAIL_*` values below; a missing or malformed one **throws at boot** rather than starting a mailer that silently drops mail |
+| `POSTMARK_SERVER_TOKEN` | Required when `MAIL_PROVIDER=postmark`. Postmark **server** token. Secret — never logged, never included in an error. **Set on Development first** and validate against the provider sandbox before Production (ADR-P026 Decision 17) |
+| `MAIL_FROM_ADDRESS` | Required when enabled. A single bare address on the **owned sending subdomain** with SPF/DKIM/DMARC verified, e.g. `no-reply@mail.<owned-domain>`. Display names and lists are rejected |
+| `MAIL_PUBLIC_BASE_URL` | Required when enabled. **HTTPS only** (plain HTTP is refused — a reset link is a bearer credential), no query string, no fragment, no embedded credentials. Reset links are built as `<base>/reset-password#token=…` — the token is in the **URL fragment**, which never reaches a server or proxy log. The path resolves to the Expo Web fallback route. A trailing slash is normalized away |
+| `POSTMARK_MESSAGE_STREAM` | Optional; defaults to `outbound`. Must be a **transactional** stream — never a broadcast one |
 
 Rules: secrets exist ONLY in Railway's variable store. Never reuse
 local `.env` values, never commit values, never share keys between
 environments (05_SECURITY.md).
+
+
+## Transactional email activation (ADR-P026 Vertical 1)
+
+Password recovery ships **inert**: with `MAIL_PROVIDER` unset the code path is
+present, tested, and fail-closed, and no message can leave the process. Turning
+it on is a sequence of owner actions that ADR-P026 deliberately does **not**
+authorize on its own:
+
+1. **Own a domain** and create a **sending subdomain** (e.g. `mail.<domain>`).
+2. Configure and verify **SPF, DKIM and DMARC** on that subdomain — required
+   *before* any Development-live send.
+3. Create the **Postmark** account and choose a plan; use a **transactional**
+   message stream.
+4. Set `MAIL_PROVIDER=postmark` plus the three required values on the
+   **Development** service only, and validate against the **provider sandbox**.
+5. Replace the privacy-contact placeholder in `docs/legal/PRIVACY_POLICY.md`
+   before AppFitness sends mail in its own name.
+6. Only then repeat on **Production** with its own separate token.
+
+Five properties are worth keeping in mind when operating this:
+
+- **CI never sends email.** `FakeMailTransport` is the only transport bound in
+  unit and e2e tests; the Postmark adapter is unreachable from a test run.
+- **Emailed links need `MAIL_PUBLIC_BASE_URL` to point at a surface that serves
+  the Expo Web export**, because `/reset-password` is the Web fallback route.
+  Native **Universal / App Links** — which would let the same HTTPS link open
+  the installed app — require domain ownership plus a **native rebuild** and are
+  NOT configured (`app.json` declares no `intentFilters`/`associatedDomains`).
+  Until then a tapped link opens the Web page, while the app's own
+  `appfitness://reset-password?token=…` scheme handles in-app navigation. The
+  native scheme keeps a query parameter deliberately: a custom-scheme URL is
+  handed straight to the app by the OS and never traverses an HTTP server or
+  proxy, so there is no log to leak into.
+- **The token travels in the URL fragment (`#token=…`), and provider click
+  tracking MUST stay off for this stream.** A fragment is never placed in the
+  HTTP request-line, so it cannot land in the web server's access log, a
+  reverse-proxy log, or a `Referer` header — which is exactly why a `?token=`
+  query string was rejected. A click-tracking redirect rewrites the href, and a
+  rewritten URL is not guaranteed to carry the fragment through: enabling
+  tracking on this stream would silently break every reset link. Verify tracking
+  is disabled before the first Development-live send.
+- **Delivery is best-effort, not guaranteed.** Sends are dispatched outside the
+  request path (so provider latency cannot become an account-enumeration timing
+  signal), with **no persistence, no retry, and no dead-letter path** — ADR-P026
+  Decision 12 rules out a queue. A send in flight is lost if the process
+  crashes, is OOM-killed, or is hard-killed; a provider error is logged and
+  dropped. `drain()` runs on `SIGTERM` via Nest's shutdown hook, which covers an
+  ordinary Railway deploy replacement but not a hard kill. The user-visible
+  failure is an email that never arrives after a `202`; the remedy is to request
+  another link. A durable outbox is the real fix and needs its own decision.
+- **Rapid repeat requests: multiple emails, only the newest link works.** Each
+  issuance invalidates the account's previous reset token, and a partial unique
+  index enforces at most one active token per user. If someone taps "send reset
+  link" several times in quick succession they will receive **several emails**,
+  and because sends are dispatched outside the request path they **may arrive
+  out of order** — the newest link is not necessarily the last one to land in
+  the inbox. Only the **most recently issued** token is still valid; opening a
+  superseded link shows the generic "this link no longer works" state and the
+  user must request another one. This is neither guaranteed nor ordered
+  delivery: the ordering above is unmanaged, and the delivery caveat in the
+  previous bullet still applies to every one of those messages. The per-account
+  ceiling (5/hour) bounds how many can be produced.
 
 ## Railway setup (one-time, owner account required)
 

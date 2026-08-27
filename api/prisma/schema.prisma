@@ -138,6 +138,8 @@ enum AuditAction {
   LOGOUT
   AUTH_FAILURE
   PASSWORD_CHANGE
+  PASSWORD_RESET_REQUEST
+  PASSWORD_RESET_SUCCESS
   ACCOUNT_UPDATE
   PROFILE_UPDATE
   GOAL_CHANGE
@@ -174,6 +176,7 @@ model User {
   goals               Goal[]
   devices             Device[]
   refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
   syncOperations      SyncOperation[]
   syncConflicts       SyncConflict[]
   auditLogs           AuditLog[]
@@ -233,6 +236,27 @@ model RefreshToken {
 
   @@index([userId], map: "idx_refresh_tokens_user")
   @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id            String    @id @default(uuid()) @db.Uuid
+  tokenHash     String    @unique(map: "uq_password_reset_tokens_token_hash") @map("token_hash") // SHA-256 hex — the raw token exists only in the emailed link
+  userId        String    @map("user_id") @db.Uuid
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6) // issuance + 30 min (ADR-P026 Decision 6)
+  consumedAt    DateTime? @map("consumed_at") @db.Timestamptz(6) // single-use marker, set atomically on redemption
+  invalidatedAt DateTime? @map("invalidated_at") @db.Timestamptz(6) // superseded by a newer issuance, or by a completed reset
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_password_reset_tokens_user")
+
+  @@index([userId], map: "idx_password_reset_tokens_user")
+  @@index([expiresAt], map: "idx_password_reset_tokens_expires") // supports lazy purge of aged rows
+  // Also enforced in raw SQL (migration 20260827120100): a PARTIAL UNIQUE index
+  // `uq_password_reset_tokens_one_active_per_user` on (user_id) WHERE
+  // consumed_at IS NULL AND invalidated_at IS NULL. Prisma cannot express a
+  // partial index, so it lives in the migration only — see the file header.
+  @@map("password_reset_tokens")
 }
 
 // ─── Sync Infrastructure (server side of ADR-0006) ──────────────────────────

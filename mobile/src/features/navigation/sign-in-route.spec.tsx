@@ -3,12 +3,14 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import SignInScreen from '@/app/sign-in';
 
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 const mockSignIn = jest.fn();
 const mockSignUp = jest.fn();
 
 jest.mock('expo-router', () => ({
   router: {
     replace: (href: string) => mockReplace(href),
+    push: (href: string) => mockPush(href),
   },
   Stack: {
     Screen: () => null,
@@ -165,5 +167,25 @@ describe('SignInScreen', () => {
     expect(screen.queryByText(/already (exists|registered|taken)/i)).toBeNull();
     expect(screen.queryByText(/taken@appfitness\.local/)).toBeNull();
     expect(screen.queryByText(/taken-user/)).toBeNull();
+  });
+
+  // Password-recovery entry point (ADR-P026 Vertical 1).
+  it('offers password recovery from sign-in and routes to the request screen', async () => {
+    await render(<SignInScreen />);
+
+    const link = screen.getByLabelText('Forgot your password?');
+    expect(link).toBeOnTheScreen();
+
+    await fireEvent.press(link);
+    expect(mockPush).toHaveBeenCalledWith('/forgot-password');
+  });
+
+  it('hides the recovery entry point while creating an account', async () => {
+    await render(<SignInScreen />);
+
+    await fireEvent.press(screen.getByLabelText('Switch authentication mode'));
+
+    // Nothing to recover before the account exists.
+    expect(screen.queryByLabelText('Forgot your password?')).toBeNull();
   });
 });
