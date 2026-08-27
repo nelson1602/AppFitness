@@ -135,6 +135,22 @@ Cache
 
 - Redis
 
+Transactional Email (ADR-P026)
+
+- Postmark — approved provider, reached over its **REST API** only
+
+Consumed exclusively through a provider-agnostic `MailTransport` port, so the
+vendor is replaceable without touching call sites. **No vendor SDK is required
+or approved**; the REST call is made with the platform `fetch`. A
+`FakeMailTransport` is the only transport bound in tests and CI.
+
+**Resend** is a recorded, evaluated **fallback only**. Adopting it requires its
+own decision — naming it here does not approve it.
+
+Out of scope of this entry: marketing email, scheduled reports, digests,
+preference centres, and any queue or scheduler. BullMQ and Redis remain approved
+but **unbuilt**, and ADR-P026 does not introduce them.
+
 Logging
 
 - Pino

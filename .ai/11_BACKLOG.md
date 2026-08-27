@@ -1699,6 +1699,138 @@ before UX-5 touches those surfaces.
 
 ---
 
+## [FEATURE-011] V1 Transactional Email, Password Recovery, and Email Verification
+
+Status: Proposed
+Priority: P1
+Type: Feature
+Owner: Product / Security / Architecture
+Created: 2026-08-27
+Updated: 2026-08-27
+
+> **ADR-P026 ACCEPTED 2026-08-27 — V1 Transactional Email, Password Recovery,
+> and Email Verification.** Both capabilities are **V1 launch requirements**.
+> **Postmark** is the approved provider, consumed over its **REST API** through a
+> provider-agnostic **`MailTransport` port** — **no vendor SDK**. **Resend** is an
+> evaluated **fallback only** and needs its own decision before use. The ADR
+> authorizes **no provider account, paid plan, DNS record, or secret**, and **no
+> code, migration, route, template, or UI**. Delivery is two cohesive verticals,
+> each separately authorized, both requiring **Development-first
+> provider-sandbox validation before Production**. No email is ever sent from CI.
+
+### Description
+
+Add password recovery and email verification to the shipped auth module, on a
+provider-agnostic transactional-email foundation that a later reports or
+notifications capability can reuse without transport changes.
+
+Decision detail lives in `.ai/12_DECISIONS.md` (ADR-P026) and is not duplicated
+here.
+
+### Problem
+
+Audited at `origin/main` `f1e7214ee25136c7938b32005a4bff5c90a1ee19`:
+
+- **No email capability exists** — no mail dependency in `api/package.json`, and
+  no mailer, SMTP client, or email vendor referenced anywhere under `api/`.
+- **No recovery path.** A forgotten password permanently orphans the account, and
+  `docs/legal/PRIVACY_POLICY.md` still carries a placeholder privacy contact, so
+  there is no support channel either.
+- **No verification state.** `User` has no `emailVerified`/`emailVerifiedAt`;
+  `UserStatus` is `ACTIVE | SUSPENDED | PENDING_DELETION`; no verification or
+  reset token model; no verify/resend/forgot/reset endpoint; no mobile route; and
+  none of the 20 `auth.*` localization keys covers either flow.
+- **No deep-link completion.** `app.json` declares `scheme: appfitness` but no
+  `intentFilters` and no `associatedDomains`, and `expo-linking` is unused in
+  `mobile/src`.
+
+### Scope — two cohesive verticals
+
+1. **Vertical 1 — Mail foundation + password recovery (end to end).**
+   `MailTransport` port, `FakeMailTransport`, EN/ES templates, reset-token
+   migration, `forgot-password` / `reset-password` endpoints, mobile routes and
+   copy. Reset tokens: 32-byte `randomBytes` base64url, **SHA-256 stored**,
+   `@unique`, **single-use**, **30-minute TTL**; a successful reset **revokes
+   every refresh token** for that user.
+2. **Vertical 2 — Email verification (end to end).** `emailVerifiedAt` column and
+   verification-token migration, `resend-verification` / `verify-email`
+   endpoints, persistent soft-gate reminder, legacy backfill. Verification
+   tokens: same storage design, **single-use**, **24-hour TTL**.
+
+New issuance **invalidates prior active tokens** of that family.
+`forgot-password` and `resend-verification` **always return the same `202`** and
+are rate limited **per IP and per account**. **Raw tokens and email bodies are
+never logged**; the `AuditAction` enum and `sentry-scrub.ts` are extended during
+implementation.
+
+### Out of scope
+
+Email-address change flows · marketing email · scheduled or digest reports ·
+preference centres · queues and schedulers, **including Redis and BullMQ** (both
+remain approved-but-unbuilt) · roadmap Phase 19 notifications, which stays
+post-v1.
+
+### Policy
+
+Existing accounts are backfilled `emailVerifiedAt = NULL` as legacy-unverified
+and are **never locked out**; **no `PENDING_VERIFICATION` is added to
+`UserStatus`**. New and unverified users keep **core access** with a persistent
+reminder. Verification becomes **mandatory before any future email report or
+account-notification feature**.
+
+### Acceptance Criteria
+
+- [ ] `MailTransport` port with `FakeMailTransport` bound in all unit and e2e
+      tests; **no real email sent from CI**, asserted
+- [ ] Reset tokens: 32-byte base64url, SHA-256-only storage, `@unique`,
+      single-use, 30-minute TTL
+- [ ] Verification tokens: same storage design, single-use, 24-hour TTL
+- [ ] New issuance invalidates prior active tokens of the same family
+- [ ] Successful password reset revokes every `RefreshToken` for the user
+- [ ] `forgot-password` and `resend-verification` return an identical `202`
+      regardless of account existence, rate limited per IP **and** per account
+- [ ] No raw token or email body in any log, audit row, or Sentry event;
+      `sentry-scrub.ts` extended and specs green
+- [ ] Existing accounts remain able to sign in with `emailVerifiedAt = NULL`
+- [ ] Owned sending subdomain with **SPF, DKIM and DMARC** verified before any
+      Development-live send
+- [ ] Development provider-sandbox validation passes **before** Production
+- [ ] Privacy-contact placeholder resolved in `docs/legal/PRIVACY_POLICY.md`
+- [ ] EN/ES templates and UX states reviewed in both locales
+- [ ] Every frozen `input-*` / `field-*` hook and accessibility-label query path
+      still resolves
+
+### Risks
+
+- **External prerequisites outside the repository**: an owned domain, DNS
+  records, a Postmark account and a paid plan (~$15/month at entry). None is
+  authorized by ADR-P026.
+- **Universal / App Links need a native rebuild** — not OTA-eligible.
+- **Token cleanup without a job runner** must be an in-process schedule or lazy
+  deletion; introducing BullMQ/Redis is a separate decision.
+- **Enumeration and mailbombing** are the principal abuse vectors; per-account
+  limits are required, not just per-IP.
+
+### Dependencies
+
+- ADR-P026 (Accepted) — this feature's decision
+- ADR-P020 (Accepted) — rate-limiting posture the new endpoints adopt
+- ADR-P011 (Accepted) — account deletion remains immediate and irreversible
+- ADR-P018 / ADR-P019 (Accepted) — Web stays constrained; the Web fallback is a
+  link-landing surface only
+- TECHDEBT-001 — closed in intent by ADR-P026's explicit strategy decision
+- Owner authorization for each vertical
+
+### Related Documents
+
+- `.ai/12_DECISIONS.md` (ADR-P026)
+- `.ai/02_TECH_STACK.md` (§Backend — Transactional Email)
+- `.ai/05_SECURITY.md`
+- `docs/RELEASE_READINESS.md`
+- `docs/legal/PRIVACY_POLICY.md`
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation
@@ -1932,6 +2064,13 @@ Define and implement secure storage rules for sensitive local data.
 # Technical Debt Backlog
 
 ## [TECHDEBT-001] MVP Email Domain Validation Is Resolution-Only, Not Deliverability-Aware
+
+> **Strategy decided 2026-08-27 by ADR-P026.** The email-verification strategy is
+> now an explicit decision rather than inherited MVP behaviour: a
+> **confirmation-email flow** (single-use, hash-only, 24-hour token) replaces
+> reliance on domain resolution as a proxy for deliverability. Delivery is tracked
+> under **FEATURE-011**; this item closes when Vertical 2 ships and the fail-open
+> DNS behaviour is deliberately re-decided or removed.
 
 Status: Proposed
 Priority: P3

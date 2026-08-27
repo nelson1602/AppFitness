@@ -8243,6 +8243,230 @@ documentation only.
 
 ---
 
+## ADR-P026 — V1 Transactional Email, Password Recovery, and Email Verification
+
+Status: Accepted
+Date: 2026-08-27
+Owner: Product / Security / Architecture
+
+### Context
+
+A read-only audit at `origin/main`
+`f1e7214ee25136c7938b32005a4bff5c90a1ee19` established the following.
+
+**What ships today.** `api/src/modules/auth` exposes six endpoints — register,
+login, refresh, logout, me, delete-account — each rate-limited under **ADR-P020**
+(register 10/hour, login 20/15 min, refresh 120/15 min). Passwords are Argon2
+(`password.service.ts`). Refresh tokens are **opaque random values whose SHA-256
+hash alone is persisted** (`token.service.ts`; `RefreshToken.tokenHash` is
+`@unique`, with a `replacedById` rotation chain for reuse detection). The audit
+trail carries 17 `AuditAction` values including `PASSWORD_CHANGE` and
+`AUTH_FAILURE`, and `api/src/monitoring/sentry-scrub.ts` provides a proven
+redaction precedent. The mobile client surfaces only a safe typed
+`AuthErrorReason` enum, never raw server text.
+
+**What is missing.** There is **no email capability of any kind**: no mail
+dependency in `api/package.json`, and no reference to any mailer, SMTP client, or
+email vendor anywhere under `api/`. The `User` model has **no `emailVerified` or
+`emailVerifiedAt` field**; `UserStatus` is `ACTIVE | SUSPENDED |
+PENDING_DELETION` with no pending-verification state; there is no
+verification-token or password-reset-token model, and no verify/resend/forgot/
+reset endpoint. The mobile app has none of the corresponding routes, and its 20
+`auth.*` localization keys contain nothing for verification or recovery. The
+resolved environment inventory (`DATABASE_URL`, `JWT_*`, `MEDICAL_ENC_KEY*`,
+`SENTRY_*`, `WEB_CORS_ORIGINS`, `API_DOCS_ENABLED`, `PORT`, `NODE_ENV`) contains
+no mail variable. `app.json` declares `scheme: appfitness` but **no
+`intentFilters` and no `associatedDomains`**, and `expo-linking` is not used
+anywhere in `mobile/src`.
+
+**Why this needs a decision.** `.ai/02_TECH_STACK.md` named no email vendor, so a
+provider could not be adopted without an ADR. **TECHDEBT-001** additionally
+requires that the email-verification strategy be *explicitly decided, not
+inherited by default*. And the practical consequence of the gap is concrete: a
+user who forgets their password today has **no recovery path at all** — the
+account is permanently unreachable, and `docs/legal/PRIVACY_POLICY.md` still
+carries a placeholder privacy contact, so there is not even a support channel.
+
+### Decision
+
+**1. Both capabilities are V1 launch requirements.** Password recovery **and**
+email verification are in V1 scope and are added to the release checklist. This
+is a deliberate expansion: `docs/RELEASE_READINESS.md` previously recorded no
+such gate.
+
+**2. Postmark is the approved transactional provider**, consumed over its
+**REST API** through a provider-agnostic **`MailTransport` port**. **No vendor
+SDK is required or approved** — the REST call uses the platform `fetch`. Chosen
+for transactional-first deliverability, a sandbox on every plan, and
+transactional/marketing stream separation that a later reports capability would
+need.
+
+**3. Resend is an evaluated fallback only.** Switching to it requires its own
+decision. Naming it here does not approve it.
+
+**4. This ADR authorizes no account, plan, DNS record, or secret.** No provider
+account is created, no paid plan is purchased, no DNS is modified, and no
+credential is generated, stored, or recorded. Those are separate owner actions.
+
+**5. Sending identity.** Mail is sent from an **owned sending subdomain** (for
+example `mail.<owned-domain>`) with **SPF, DKIM and DMARC** configured and
+verified **before any Development-live send**. Subdomain isolation protects the
+root domain's reputation. **AppFitness owns no verified sending domain today**;
+this is a rollout prerequisite, not an implementation detail.
+
+**6. Token design — extend the shipped refresh-token pattern, do not invent a
+new one.** Both token families use a **32-byte `randomBytes` value encoded
+base64url**, delivered **only** in the emailed link, with **only its SHA-256
+hash persisted** in a `@unique` column, and each token **single-use** via a
+`consumedAt` marker set atomically on redemption.
+
+- **Password reset TTL: 30 minutes.**
+- **Email verification TTL: 24 hours.**
+
+**7. Invalidation and revocation.** Issuing a new token of either family
+**invalidates all prior active tokens of that family for that user**. A
+**successful password reset revokes every `RefreshToken` for that user**, reusing
+the shipped logout revocation path — a reset must end all sessions.
+
+**8. Enumeration resistance.** `forgot-password` and `resend-verification`
+**always return the same `202`**, whether or not the address exists, and are rate
+limited. Limits are applied **per IP and per account**, because IP-only
+throttling still permits mailbombing a single address from many sources.
+
+**9. Logging discipline.** **Raw tokens and email bodies are never logged**, never
+placed in audit rows, and never sent to Sentry. Implementation extends the
+`AuditAction` enum with request/success actions for both families — recording
+**user id and outcome only** — and extends `sentry-scrub.ts` to cover the new
+token fields.
+
+**10. Existing accounts stay accessible.** Backfill is `emailVerifiedAt = NULL`,
+treated as legacy-unverified. **No account is locked out**, and **no
+`PENDING_VERIFICATION` value is added to `UserStatus`** — a nullable timestamp is
+sufficient and avoids changing a shipped enum consumed across sync.
+
+**11. Unverified-user policy — soft gate.** New and unverified users keep **core
+app access** and receive a **persistent reminder**. Verification becomes
+**mandatory before any future email report or account-notification feature**, not
+before ordinary use.
+
+**12. Explicitly out of scope.** Email-address change flows, marketing email,
+scheduled or digest reports, preference centres, and any queue or scheduler —
+including **Redis and BullMQ**, which remain approved-but-unbuilt. Token cleanup
+in V1 is therefore either an in-process scheduled purge or lazy deletion on
+access, decided at implementation time; introducing a job runner is not
+authorized here.
+
+**13. Link strategy.** The target is **HTTPS links with a Web fallback**, so a
+link works when the app is absent. **Native Universal Links / App Links and
+domain ownership are rollout prerequisites** — `intentFilters` and
+`associatedDomains` are absent today, and adding them requires a **native
+rebuild** (not OTA-eligible).
+
+**14. Privacy-contact resolution is a release gate.** The
+`[PLACEHOLDER — privacy contact email]` in `docs/legal/PRIVACY_POLICY.md` must be
+replaced before AppFitness sends mail in its own name.
+
+**15. CI never sends email.** A **`FakeMailTransport` is the only transport bound
+in unit and e2e tests**, asserting recipient, template id, locale, and that no
+raw token reaches logs or audit rows. The real adapter runs only in Development
+against the provider sandbox.
+
+**16. Implementation is two cohesive verticals**, each separately authorized:
+
+- **Vertical 1 — Mail foundation + password recovery, end to end.** The
+  `MailTransport` port, `FakeMailTransport`, EN/ES templates, the reset-token
+  migration, `forgot-password` / `reset-password` endpoints, mobile routes and
+  copy.
+- **Vertical 2 — Email verification, end to end.** The `emailVerifiedAt` column
+  and verification-token migration, `resend-verification` / `verify-email`
+  endpoints, the soft-gate reminder, and legacy backfill.
+
+Recovery precedes verification because it is the user-facing gap: verification is
+hygiene, whereas an unrecoverable password is a dead account.
+
+**17. Both verticals require Development-first provider-sandbox validation before
+Production.** No Production send occurs until Development has been validated
+against the sandbox with SPF/DKIM/DMARC verified.
+
+**18. This ADR is documentation only and changes no runtime.** It authorizes no
+code, migration, route, template, UI, dependency, or infrastructure change.
+
+### Options Considered
+
+1. **Postmark over REST behind a port (chosen).** Transactional-first
+   deliverability, sandbox on every plan, stream separation for later reports;
+   ~$15/month at entry. Costs a paid plan and DNS work.
+2. **Resend.** Comparable API ergonomics and a larger free allowance, but the
+   free tier is capped at 100 emails/day and its test addresses consume quota.
+   Retained as the fallback.
+3. **Amazon SES.** Cheapest per message by a wide margin, but new accounts are
+   **sandboxed to verified recipients only** (200 messages/day, 1/second) until a
+   support review grants production access — an external approval on the critical
+   path. Dedicated IPs require a 256-IP minimum, irrelevant at this scale.
+   Rejected for V1.
+4. **Self-hosted SMTP.** Rejected: deliverability, warm-up, and abuse handling
+   become our problem for no benefit.
+5. **Ship V1 with no recovery.** Rejected: it leaves every forgotten password an
+   unrecoverable account with no support channel.
+
+### Rationale
+
+`.ai/00_PROJECT.md` §Decision Hierarchy places **user safety** and **data
+integrity** above developer convenience. An account that cannot be recovered is
+a data-loss event for the user, and the shipped refresh-token design already
+demonstrates the exact hash-only, single-use, rotation-aware pattern these tokens
+need — so the secure path is also the smaller one. Choosing a provider-agnostic
+port keeps the vendor decision reversible, which matters because Resend remains a
+live fallback.
+
+### Consequences
+
+**Positive.** Users gain a recovery path and a verified-address signal. The token
+design reuses a proven pattern rather than inventing one. The `MailTransport`
+port makes the provider replaceable and makes CI mail-free by construction. The
+same foundation later carries reports and notifications as new template ids
+without transport changes.
+
+**Negative — accepted.** V1 now depends on external prerequisites outside the
+repository: an owned domain, DNS records, a provider account, and a paid plan
+(~$15/month). Universal/App Links need a native rebuild. Token cleanup without a
+job runner is less elegant than a queued purge. Two new V1 release-checklist
+items must pass before submission.
+
+**Neutral.** No shipped behaviour changes on acceptance; this ADR is
+documentation only.
+
+### Supersedes / Preserves
+
+- **Extends `.ai/02_TECH_STACK.md`** with the transactional-email entry; the
+  Deprecation Policy is respected because the addition arrives through this ADR.
+- **Addresses TECHDEBT-001** by deciding the email-verification strategy
+  explicitly rather than inheriting the MVP's resolution-only domain check.
+- **Preserves ADR-P020** — new endpoints adopt the existing throttling posture.
+- **Preserves ADR-P011** — immediate irreversible account deletion is unchanged;
+  recovery is a password path, not an account-restoration path.
+- **Preserves ADR-P018 / ADR-P019** — Web remains constrained; the Web fallback
+  is a link-landing surface only and introduces no Web token storage.
+- **Preserves ADR-P006 and SECURITY-001** — no change to medical-field encryption
+  or secure-storage posture.
+- **Preserves ADR-P017** — dormant medical surfaces are untouched.
+- Does **not** introduce Redis or BullMQ, and does **not** advance roadmap
+  Phase 19 (notifications), which remains post-v1.
+
+### Related Documents
+
+- `.ai/02_TECH_STACK.md` (§Backend — Transactional Email)
+- `.ai/05_SECURITY.md` (§Authentication, §Session Management, §Logging,
+  §Audit Trail)
+- `.ai/11_BACKLOG.md` (FEATURE-011 — the two verticals; TECHDEBT-001)
+- `docs/RELEASE_READINESS.md` (the two new V1 checklist items)
+- `docs/legal/PRIVACY_POLICY.md` (privacy-contact placeholder — release gate)
+- `api/src/modules/auth/infrastructure/token.service.ts`,
+  `api/prisma/schema.prisma` — the shipped hash-only token pattern this decision
+  extends
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
