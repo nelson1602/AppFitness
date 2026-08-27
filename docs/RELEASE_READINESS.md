@@ -93,6 +93,10 @@ Legend:
 | Production Smoke Tests (10 checks: backend health, auth, profile, SQLite init, dashboard, iCoach recs, offline, sync init, reconnect sync, no critical monitoring errors) | **PASS-WITH-LIMITATION** — backend/API subset PASS (Gate B5) + device-side PASS (Gate B6, emulator) | **Backend/API subset PASS (2026-08-06, B5):** health, auth, profile + sync push/pull round-trip + authz/session-revocation against the live Production API with **synthetic data only** (15/15; synthetic data deleted & verified inaccessible). **Device-side PASS (2026-08-10, B6):** SQLite init, dashboard render, on-device Progress/iCoach, offline entry, and reconnect sync verified on the appfitness **emulator** with the production-validation APK (see item 14 + `PHASE20_EXTERNAL_GATES.md` B6). **Remaining:** production **log / monitoring-error review** (item 11) = **PENDING-HUMAN**; physical-device pass pending. |
 | Mobile Production Validation (10 checks: open, login, nav, dashboard, offline, push permissions, SecureStore, biometric-if-enabled, no debug info, store build matches env) | **PASS-WITH-LIMITATION** (Gate B6, 2026-08-10) | Validated on the appfitness **emulator (Android 15 / API 35)** with the fixed production-validation APK (source `d976c66`, 1.0.0 / vc4): open, login (Production), navigation, dashboard, offline entry + reconnect sync, SecureStore session restore, **no debug info** (bundled release, no Metro/dev-client), and **store-build-matches-env** (Production API + Sentry). **LIMITATION:** sideloaded APK on an **emulator** — **not** a Play internal-track build and **not** a physical device; **biometric NOT APPLICABLE on the emulator (physical-device biometric validation remains pending before store publication)**; push-permission behavior not exercised (notifications are post-v1). |
 | Release Notes | **PASS** (template + v1 draft) / **PENDING-HUMAN** (deploy-time fields) | reusable `docs/RELEASE_NOTES_TEMPLATE.md`; **v1.0.0 note drafted `docs/releases/v1.0.0.md` (Phase 20 Slice 3)** covering Phases 13–17; deploy-time fields (backend commit/env, actual date, track progression) marked `[SET AT RELEASE]` |
+| **Password recovery available (ADR-P026, FEATURE-011 Vertical 1)** | **NOT STARTED — V1 gate** | Added as a V1 launch requirement by **ADR-P026 (2026-08-27)**. Audited at `f1e7214`: **no email capability exists** (no mail dependency in `api/package.json`; no mailer/SMTP/vendor reference under `api/`) and **no reset flow** — a forgotten password permanently orphans the account. Requires: `MailTransport` port + `FakeMailTransport`, reset-token migration (32-byte base64url, **SHA-256-only storage**, `@unique`, single-use, **30-min TTL**), `forgot-password` / `reset-password` endpoints (identical `202`, rate limited per IP **and** per account), mobile routes, EN/ES templates, and **successful reset revoking every refresh token**. **External prerequisites (not authorized by the ADR):** owned sending subdomain with **SPF/DKIM/DMARC**, a Postmark account and paid plan. **Development provider-sandbox validation must pass before Production. No email is ever sent from CI.** |
+| **Email verification available (ADR-P026, FEATURE-011 Vertical 2)** | **NOT STARTED — V1 gate** | Added as a V1 launch requirement by **ADR-P026 (2026-08-27)**; also resolves **TECHDEBT-001**'s requirement that the verification strategy be explicitly decided. Audited at `f1e7214`: `User` has **no `emailVerified`/`emailVerifiedAt`**, no verification-token model, no verify/resend endpoint, and no mobile route or copy. Requires: `emailVerifiedAt` column + verification-token migration (same storage design, single-use, **24-h TTL**), `resend-verification` / `verify-email` endpoints, persistent soft-gate reminder, and legacy backfill. **Policy:** existing accounts are backfilled `emailVerifiedAt = NULL` and are **never locked out**; **no `PENDING_VERIFICATION` `UserStatus`**; unverified users keep **core access**, with verification mandatory only before future email-report / account-notification features. |
+| **Deep-link completion for emailed links (ADR-P026)** | **NOT STARTED — V1 gate (native rebuild)** | `mobile/app.json` declares `scheme: appfitness` but **no `intentFilters` and no `associatedDomains`**, and `expo-linking` is unused in `mobile/src` — so a link tapped in an email would not open the app today. Target is **HTTPS links with a Web fallback**; native **Universal / App Links require domain ownership and a native rebuild (not OTA-eligible)**. |
+| **Privacy contact resolved (ADR-P026 Decision 14)** | **BLOCKED-OWNER — V1 gate** | `docs/legal/PRIVACY_POLICY.md` still carries `Contact: [PLACEHOLDER — privacy contact email]`. Must be a real address **before AppFitness sends mail in its own name**. Related to item 13 (privacy requirements). |
 
 ## Phase 20 Exit Criteria (`13_MIGRATION_ROADMAP.md`)
 
@@ -146,6 +150,19 @@ which evidence can be reused.
    internal-track build.
 8. **Release notes + submission approval** — **PENDING-HUMAN**: author the v1
    release note from the template and record explicit owner submission approval.
+9. **Transactional email prerequisites** (ADR-P026 / FEATURE-011) — **NEW,
+   BLOCKED-OWNER**: password recovery and email verification are now **V1 launch
+   requirements**, and each depends on owner actions that **ADR-P026 deliberately
+   does not authorize**: (a) register/confirm an **owned domain** and create a
+   **sending subdomain** with **SPF, DKIM and DMARC**; (b) create the **Postmark**
+   account and select a plan (~$15/month at entry; the free tier is 100
+   emails/month, viable for Development only); (c) provide the **API key as a
+   Development secret first**, never committed; (d) replace the **privacy-contact
+   placeholder**; (e) accept that native **Universal / App Links need a native
+   rebuild**. Implementation is two separately authorized verticals, each
+   requiring **Development provider-sandbox validation before Production**. **No
+   email is ever sent from CI** — a fake transport is the only one bound in
+   tests.
 
 ## Verdicts (four distinct dimensions — do not conflate)
 
