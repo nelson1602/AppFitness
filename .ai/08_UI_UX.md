@@ -1,6 +1,6 @@
 # AppFitness Design System Specification
 
-Version: 1.7
+Version: 1.8
 Status: Active
 Last Updated: 2026-08-26
 
@@ -283,6 +283,65 @@ Included in v1.7:
 `84a211518a2c6235203797062da5f7507b015044` (UX-1C-2A, PR #97), including the
 shipped `FormField` and `AppTextInput` sources, the absence of any border
 assertion in the spec suite, and the installed `react-native@0.86.2` /
+`react-native-web@0.21.2` / `expo@57.0.13` declarations. No runtime module
+changed.
+
+---
+
+# Revision Scope (v1.8 — ADR-P025)
+
+This revision records the **V1 scope decision** that **ADR-P024** deferred to a
+separate ADR: whether to migrate `FormField` from its raw `TextInput` to the
+shared `AppTextInput`. It is documentation-only and is decided by **ADR-P025 —
+FormField Primitive Migration Deferred from V1**. The answer is **no, not in
+V1**.
+
+Included in v1.8:
+
+- **UX-1C-2B-b is recorded as DEFERRED FROM V1 and still BLOCKED** — both are
+  true, and neither is "complete".
+- The shipped raw-`TextInput` `FormField` is **kept for V1** with its error
+  border, React Hook Form contract, frozen hooks, visible label and required
+  indicator, and the **`aria-live="polite"` request merged by UX-1C-2B-a**, all
+  unchanged.
+- A **visual-only error prop on `AppTextInput` is rejected for V1**: it would
+  deliver no user-visible launch benefit, close no accessibility gate, and exist
+  only to enable an internal refactor.
+- The consequence is stated plainly: **two input style families persist through
+  V1** — the FULL family in `AppTextInput` (`sign-in`, `delete-account`,
+  `FoodLogAddForm`) and the raw-`TextInput` `FormField` — so the FULL-family
+  consolidation is incomplete and `AppTextInput` remains a **staged partial
+  implementation**.
+
+**Not** in v1.8, and explicitly not authorized:
+
+- Any `FormField` or `AppTextInput` code change, including a visual-only error
+  prop, an `invalid`/`required` prop, a `style` prop, or any caller-supplied
+  styling.
+- Any platform-specific file, `Platform.OS` branch, ARIA injection, or type
+  augmentation.
+- Any new EN/ES copy, dependency, token change, test change, UX-5 work,
+  authentication work, or Railway/EAS action.
+- Any weakening of **ADR-P023** or **ADR-P024**. Both are preserved unchanged in
+  meaning; ADR-P023 Decision 5 stands verbatim.
+- Any contrast resolution. The **five** owner-gated pairs and **six**
+  usage-level pairings stand as recorded, and `FormSelect` / UX-1C-3 stay
+  blocked.
+
+**This is deliberate V1 scope control, not abandonment of accessibility.**
+Nothing regresses — every visible signal and the merged announcement request are
+retained — and **all five V1 accessibility release-review gates remain open at
+the same severity**: programmatic invalid, programmatic required, field↔message
+association, iOS announcement, and manual VoiceOver / TalkBack / browser-AT
+verification. The obstruction is upstream: no supported typed native mechanism
+exists for invalid or required state on the installed stack, and the options that
+would fabricate one are forbidden.
+
+**Evidence baseline for v1.8.** Verified read-only against merge commit
+`95c81622f4c932bf6d2ffdb2f4dde791d5effb1a` (UX-1C-2B-a, PR #99), including the
+shipped `FormField` and `AppTextInput` sources, the continued absence of any
+border assertion outside `app-text-input.spec.tsx`, the 40 `FormField` usages
+across 7 consumer files, and the installed `react-native@0.86.2` /
 `react-native-web@0.21.2` / `expo@57.0.13` declarations. No runtime module
 changed.
 
@@ -2116,7 +2175,7 @@ those flows.
 | **EN/ES + dynamic type** | Label, required indication, and error copy all wrap; no fixed heights on text. |
 | **Test hooks** | `field-${name}` frozen, on the control node. |
 | **Unit / component regression** | Renders label, control, and error; required is exposed **visibly** — programmatic native exposure is unresolved per the UX-1B2D amendment above and must not be asserted as met; **no raw store/repository exception or stack text is ever rendered as validation copy**; for a public-v1 surface the rendered message is the localized string its call site injected; focus renders a thicker-than-default border; `selectTextOnFocus` passes through; `Control` assignability holds for numeric schemas; every existing `field-*` id and label query still resolves. |
-| **Blockers** | None from tokens. **Accessibility blocker (UX-1B2D / ADR-P023):** programmatic **required** and **invalid** exposure, and the field↔error-message relationship, are unavailable on native iOS and Android on the installed stack. `FormField` therefore **cannot be declared complete** on migration. Carried to the V1 accessibility release-review gate. **Migration blocker (ADR-P024) — the binding one.** `FormField` renders `borderColor: error ? error : outline`; the shipped `AppTextInput` renders `outline` unconditionally and publishes no `invalid`, no `required` and no `style`, so **migrating would silently delete the error border** across the **7** consumer files — no spec asserts it. Restoring it needs either a border-only `invalid` prop (the partial API **ADR-P023 Decision 5** forbids) or a complete one whose programmatic half does not exist on native. **`FormField` → `AppTextInput` migration is therefore BLOCKED as UX-1C-2B-b**, pending a separate owner decision/ADR defining a complete, honest `invalid` contract, or a supported upstream capability. **`aria-live` is not an unblocker** — it announces a message, exposes no invalid state, and restores no border. |
+| **Blockers** | None from tokens. **Accessibility blocker (UX-1B2D / ADR-P023):** programmatic **required** and **invalid** exposure, and the field↔error-message relationship, are unavailable on native iOS and Android on the installed stack. `FormField` therefore **cannot be declared complete** on migration. Carried to the V1 accessibility release-review gate. **Migration blocker (ADR-P024) — the binding one.** `FormField` renders `borderColor: error ? error : outline`; the shipped `AppTextInput` renders `outline` unconditionally and publishes no `invalid`, no `required` and no `style`, so **migrating would silently delete the error border** across the **7** consumer files — no spec asserts it. Restoring it needs either a border-only `invalid` prop (the partial API **ADR-P023 Decision 5** forbids) or a complete one whose programmatic half does not exist on native. **`FormField` → `AppTextInput` migration is therefore BLOCKED as UX-1C-2B-b**, pending a separate owner decision/ADR defining a complete, honest `invalid` contract, or a supported upstream capability. **`aria-live` is not an unblocker** — it announces a message, exposes no invalid state, and restores no border. **V1 scope decision (ADR-P025):** UX-1C-2B-b is **DEFERRED FROM V1 and remains BLOCKED** — both, and neither is "complete". The shipped raw-`TextInput` `FormField` is **kept for V1** with this error border, the RHF contract, the frozen hooks, and the merged `aria-live="polite"` request all unchanged. A **visual-only error prop on `AppTextInput` is rejected for V1** (no user-visible launch benefit, closes no gate, serves only an internal refactor). Revisit only on a supported typed upstream capability, an approved localized accessible-copy strategy, or a relevant stack upgrade. |
 
 ---
 
@@ -2837,7 +2896,7 @@ Every screen must verify:
 
 # Change Control and Slice Boundaries
 
-## What v1.2 (UX-1B1) through v1.7 (ADR-P024) authorize
+## What v1.2 (UX-1B1) through v1.8 (ADR-P025) authorize
 
 Documentation only. v1.2 records the approved visual foundation; v1.3 the
 canonical state patterns and the six state-component contracts; v1.4 the three
@@ -2846,9 +2905,12 @@ ten-state applicability matrix; v1.6 the verified platform capability matrix and
 the narrow input-accessibility amendments decided by **ADR-P023**; v1.7 the
 announcement-evaluation **result** decided by **ADR-P024** — UX-1C-2A complete,
 UX-1C-2B split into an authorized-but-unimplemented announcement-only slice and a
-blocked migration. None changes code, tokens, localization keys, or dependencies.
+blocked migration; v1.8 the **V1 scope decision** taken by **ADR-P025** —
+UX-1C-2B-b **deferred from V1 and still blocked**, the shipped raw-`TextInput`
+`FormField` kept for V1, and a visual-only error prop rejected for V1. None
+changes code, tokens, localization keys, or dependencies.
 
-## What v1.2 through v1.7 explicitly do NOT authorize
+## What v1.2 through v1.8 explicitly do NOT authorize
 
 No dependency addition, font asset, icon delivery mechanism or icon asset,
 token-value change, component implementation, navigation or
@@ -2937,13 +2999,21 @@ UX-1B2 is delivered as four documentation slices:
     `84a211518a2c6235203797062da5f7507b015044`). The form has no field
     validation, so it required no invalid or required state and narrowed no
     accessibility gate.
-  - **UX-1C-2B-a** — **announcement only. AUTHORIZED** by **ADR-P024**: typed
-    `aria-live="polite"` on the existing localized error `AppText`, **Android and
-    Web only**, with iOS announcement unmet. `FormField` keeps its raw
-    `TextInput` and its error border untouched.
-  - **UX-1C-2B-b** — `FormField` → `AppTextInput` migration. **BLOCKED** by the
-    error-border finding in §2, pending a separate owner decision/ADR or a
-    supported upstream capability. **`aria-live` is not an unblocker.**
+  - **UX-1C-2B-a** — **announcement only. COMPLETE** (PR #99, merge SHA
+    `95c81622f4c932bf6d2ffdb2f4dde791d5effb1a`), authorized by **ADR-P024**:
+    typed `aria-live="polite"` on the existing localized error `AppText`,
+    **Android and Web only**, with iOS announcement unmet and **no
+    assistive-technology outcome claimed**. `FormField` keeps its raw `TextInput`
+    and its error border untouched.
+  - **UX-1C-2B-b** — `FormField` → `AppTextInput` migration. **DEFERRED FROM V1
+    and still BLOCKED** by **ADR-P025** — both, and neither is "complete". The
+    shipped raw-`TextInput` `FormField` is **kept for V1** with its error border,
+    RHF contract, frozen hooks and merged `aria-live="polite"` request unchanged;
+    a **visual-only error prop is rejected for V1**. Consequence: **two input
+    style families persist through V1** and `AppTextInput` stays a staged partial
+    implementation. **`aria-live` is not an unblocker.** Revisit only on a
+    supported typed upstream capability, an approved localized accessible-copy
+    strategy, or a relevant stack upgrade.
   - **UX-1C-3** — `FormSelect`, still **blocked** by its recorded contrast and
     accessibility outcomes.
 - **UX-2 / UX-3** — low-fidelity flows, then high-fidelity specifications.
@@ -2955,8 +3025,8 @@ UX-1B2 is delivered as four documentation slices:
   per-feature authorization.
 
 Tracked as **FEATURE-010** in `.ai/11_BACKLOG.md`; decided by **ADR-P022**, and
-for input accessibility by **ADR-P023** (staging) and **ADR-P024** (announcement
-staging) in `.ai/12_DECISIONS.md`.
+for input accessibility by **ADR-P023** (staging), **ADR-P024** (announcement
+staging) and **ADR-P025** (V1 migration deferral) in `.ai/12_DECISIONS.md`.
 
 ---
 
