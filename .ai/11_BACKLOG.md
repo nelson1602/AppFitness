@@ -1515,8 +1515,58 @@ Excluded:
      key**, invents no conflict-resolution flow, leaves progress-chart
      equivalence to UX-3D, defers recovery until PR #102 merges, and leaves
      verification copy behind ADR-P026 Vertical 2 authorization.
-   - **UX-3D — Progress-chart non-visual equivalent.** The largest unspecified
-     accessibility surface; colour and shape alone are insufficient.
+   - **UX-3D — Progress-chart non-visual equivalent. DELIVERED as a
+     documentation candidate** (`.ai/20_PROGRESS_NONVISUAL.md` v1.0, audited
+     against `origin/main` `d41efc69df4a48c0b0fb4f4ca2ad8884c6e648b7`). Audits
+     what the three trend charts and the weekly snapshot summary communicate
+     visually, then specifies the non-visual equivalent: grouping, reading and
+     focus order, per-point labels, units, period type, window honesty, dynamic
+     updates, maximum Spanish text scale and native/Web expectation. Adds **no
+     runtime, catalogue key, test, asset or dependency**, and creates no ADR.
+     - A **partial equivalent is already SHIPPED** — `TrendBars` always renders a
+       latest / range / direction summary and a per-bar accessibility label. UX-3D
+       closes four gaps rather than starting from nothing: ordering, count and
+       window, period type, and series identity at point level.
+     - **No unsafe nested accessibility.** Per the React Native accessibility
+       documentation, an accessible `View` groups its children and stops them
+       being separately selectable, and nested accessibility elements are not
+       reliably reachable on iOS. The specification therefore marks no
+       container accessible when it owns independently traversable descendants.
+       Individual bars remain separate leaves; each metric row is one intentional
+       accessible leaf combining only its own label/value text. Meaning is also
+       carried by document order plus visible text. **R-12** guards this boundary.
+     - **`WeeklySnapshotSummary` needs no separate alternative rendering** — it is
+       text-first, with the deload flag as text and nulls as an em dash — but it
+       is **not semantically complete**: a `null` metric must announce localized
+       "not recorded" rather than "dash", the newest-first earlier-weeks order
+       must be stated, and the metric rows must be individually accessible.
+     - **Window truncation is a sighted-user problem too**, so the shown-count
+       descriptor and the truncation notice are **visible** text, not an
+       accessibility-only affordance.
+     - **Seven PROPOSED keys**, absent from both 696-key catalogues with EN/ES
+       parity, worded in `.ai/19_COPY_DECKS.md` v1.1 §Progress — five for the
+       trend series, two for the weekly summary. `progress.weekly.weekOf` and
+       `progress.weekly.earlierWeeks` are reused rather than duplicated. Three
+       keys from an earlier draft were **dropped** once the no-nesting rule
+       removed the wrappers they would have named, rather than being kept as dead
+       copy.
+     - **F-1 → BUG-013.** The per-bar accessible label exposes a raw
+       `YYYY-MM-DD` — the only unlocalized date on the Progress surface, and one
+       only assistive-technology users reach.
+     - **F-2 — the `accent` role is in use.** `theme.colors.accent` has exactly
+       one consumer, `TrendBars.tsx:113` (the latest bar). **ADR-P027**'s
+       consequence bullet said it "remains unused"; that clause is corrected.
+       Its conclusion is unchanged — ADR-P022's accent question stays open — and
+       **no new ADR is required**, because that decision gate already exists.
+     - **Platform.** The component contract is platform-neutral — no
+       `Platform.OS` branch — while the public V1 product path is native-only,
+       because Web terminates at Web unavailable (ADR-P019). Browser AT is `n/a`
+       for the product path; that is a reachability statement, not a claim that
+       the equivalent works on Web.
+     - **Equivalent ≠ outcome.** No VoiceOver, TalkBack, browser-AT, visual or
+       large-text result is claimed; all remain unverified until **UX-4C**. The
+       no-nesting rule reduces a documented risk; it does not prove the safe
+       pattern works.
 6. **UX-4 — Authentication / onboarding / dashboard pilot. Status: Proposed.**
    First applied surfaces. **Note:** ADR-P027 defers the tab shell, so the
    selected-navigation accent role still has nowhere to live in V1 — that
@@ -2676,6 +2726,77 @@ one, from at least one surface, without either version being silently discarded.
 - `.ai/00_PROJECT.md` (§Decision Hierarchy — data integrity)
 - `.ai/12_DECISIONS.md` (ADR-P016 D6 — historical records are never silently
   overwritten)
+
+---
+
+## [BUG-013] Trend-Chart Point Labels Expose a Raw `YYYY-MM-DD` to Assistive Technology
+
+Status: Open
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-28
+Updated: 2026-08-28
+
+### Description
+
+Opened by the **UX-3D** audit (`.ai/20_PROGRESS_NONVISUAL.md` §Findings F-1),
+verified against `origin/main` `d41efc69df4a48c0b0fb4f4ca2ad8884c6e648b7`.
+
+`ProgressScreen.tsx:104`, `:108` and `:113` pass each stored `YYYY-MM-DD`
+string straight through as `TrendPoint.label`, and `TrendBars.tsx:108` renders
+it verbatim inside the per-bar `accessibilityLabel`:
+
+```
+accessibilityLabel={`${p.label}: ${formatNumber(p.value, language)}${unit}`}
+```
+
+Every other date on the Progress surface is localized — the latest-weight line
+(`ProgressScreen.tsx:148-152`) and `WeeklySnapshotSummary` (`:44-46`) both call
+`formatDate` with the active language. The bar label is the **only** date on
+this surface exposed in raw storage format, and it is exposed on a path that
+**only assistive-technology users reach**: the bars carry no visible text.
+
+The volume chart compounds it. Its label is a **week start**
+(`ProgressScreen.tsx:108`) announced as if it were a point date, with nothing
+marking it as a week.
+
+P3 because it is invisible to sighted users and affects no data — but it is a
+bilingual-parity and accessibility defect on the surface UX-3D exists to make
+perceivable, and it is a precondition of that specification rather than part of
+it.
+
+### Evidence
+
+- `TrendBars.tsx:107-109` — the per-bar `accessible` + `accessibilityLabel`
+- `ProgressScreen.tsx:103-117` — all three series map raw `date` / `weekStart`
+  into `TrendPoint.label`
+- `WeeklySnapshotSummary.tsx:41-46` — `parseLocalDate` + `formatDate`, the
+  correct pattern already in the same feature
+- EN/ES catalogues: **696 keys each**, exact parity; no key is involved — this is
+  a formatting defect, not a missing string
+
+### Expected Outcome
+
+Every date a user can perceive on the Progress surface, visually or through
+assistive technology, is formatted in the active language; week-period points
+are identifiable as weeks.
+
+### Acceptance Criteria
+
+- [ ] Point labels render a localized date via `formatDate` +
+      `parseLocalDate` — no UTC day shift (ADR-P016 D6).
+- [ ] Week-period points are prefixed with `progress.weekly.weekOf`.
+- [ ] Regression specs assert the localized label in **EN and ES** (UX-3D R-1,
+      R-2).
+- [ ] No accessibility **outcome** is claimed before the **UX-4C** manual pass.
+
+### Related Documents
+
+- `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D — F-1, and the point-label
+  specification)
+- `.ai/06_MOBILE.md` (§Internationalization)
+- `.ai/12_DECISIONS.md` (ADR-P016 D6 — local calendar dates)
 
 ---
 

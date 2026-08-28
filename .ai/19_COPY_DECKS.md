@@ -1,6 +1,6 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.0
+Version: 1.1
 Status: Active
 Last Updated: 2026-08-28
 
@@ -36,8 +36,11 @@ not make the key or behaviour exist.
 - **Not conflict resolution.** BUG-012 requires a separate flow and data
   decision. This deck specifies reporting copy only and defines no review
   action, choose-version, keep-mine or keep-server control.
-- **Not UX-3D.** The non-visual equivalent for `TrendBars` and
-  `WeeklySnapshotSummary` remains the next specification slice.
+- **Not the UX-3D specification.** `.ai/20_PROGRESS_NONVISUAL.md` owns the
+  non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` — its
+  structure, accessibility semantics, ordering and test contract, including the
+  rule that no wrapper may be marked accessible. This deck owns only the
+  **wording** of the seven keys that equivalent proposes, listed under §Progress.
 - **Not password-recovery or verification copy.** Recovery remains outside
   `main` in PR #102; verification awaits ADR-P026 Vertical 2 authorization.
 - **Not accessibility proof.** Labels are specified or exposed by source. Their
@@ -375,7 +378,46 @@ change without praise, diagnosis or instruction.
 | `progress.syncConflictAccessibility` | Progress entry sync conflict | Conflicto de sincronización del registro de progreso | **PROPOSED** — BUG-011 |
 
 Pending and Conflict apply to listed weight, measurement and snapshot rows, not
-to the aggregate dashboard card. The non-visual trend equivalent remains UX-3D.
+to the aggregate dashboard card.
+
+## Progress trends and weekly semantics (UX-3D)
+
+Seven keys proposed by `.ai/20_PROGRESS_NONVISUAL.md`. That document owns
+composition — where each string renders and whether it is visible, announced or
+both; this table owns wording. All seven are absent from both 696-key catalogues
+and carry EN/ES parity.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `progress.trends.orderOldestFirst` | oldest to newest | de la más antigua a la más reciente | **PROPOSED** — UX-3D |
+| `progress.trends.readingOne` | reading | lectura | **PROPOSED** — UX-3D |
+| `progress.trends.readingMany` | readings | lecturas | **PROPOSED** — UX-3D |
+| `progress.trends.windowNotice` | Showing only the most recent readings | Mostrando solo las lecturas más recientes | **PROPOSED** — UX-3D |
+| `progress.trends.latestMarker` | latest | última | **PROPOSED** — UX-3D |
+| `progress.weekly.notRecorded` | Not recorded | Sin registrar | **PROPOSED** — UX-3D |
+| `progress.weekly.newestFirst` | newest first | de la más reciente a la más antigua | **PROPOSED** — UX-3D |
+
+`progress.weekly.weekOf` ("Week of" / "Semana del") and
+`progress.weekly.earlierWeeks` ("Earlier weeks" / "Semanas anteriores") are
+**reused** and stay **SHIPPED** — no duplicate key is proposed for either.
+
+Copy notes:
+
+- **Descriptive, never evaluative.** None of these strings characterises a trend
+  as good, bad or expected (ADR-P017).
+- **Five of the seven are visible text**, not accessibility-only. The window
+  notice in particular is visible, because truncation misleads sighted users too.
+  Only `latestMarker` (inside a bar label) and `notRecorded` (the accessible
+  value where `—` is shown) are announced without being separately visible.
+- **`latest` and the two order phrases are lower-case** in both languages
+  because each is appended after a separator, never used as a heading.
+- **ES gender.** `última` agrees with *lectura*, and both order phrases agree
+  with *lectura* / *semana*; none may be rewritten to a masculine form without
+  re-checking agreement against the noun it follows.
+- **`notRecorded` is not "zero", "none" or "unknown".** The visible `—` means
+  the value was never recorded; any other wording would be an invention.
+- The window notice is deliberately unquantified — it states that truncation
+  happened, while the descriptor beside it states how many readings are shown.
 
 ---
 
@@ -451,7 +493,7 @@ share this document.
 | Password recovery | TARGET in PR #102, not on `main`; reconcile after merge against the effective implementation. |
 | Email verification | ADR-P026 Vertical 2 is not authorized. |
 | Conflict resolution actions/screens | BUG-012 needs a separately authorized flow and repository decision. |
-| Trend-chart non-visual equivalent | UX-3D owns the complete equivalent, not a few isolated labels. |
+| Trend-chart and weekly structure | Specified in `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D). Its seven proposed keys are worded above; composition, accessibility structure and the no-nesting rule are not repeated here. |
 | Bottom tabs | Deferred by ADR-P027; the non-binding map is not a copy target. |
 | Dormant medical domain | Out of public V1 under ADR-P017. |
 
