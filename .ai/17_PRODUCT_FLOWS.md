@@ -1,6 +1,6 @@
 # AppFitness Low-Fidelity Product Flows (V1)
 
-Version: 1.1
+Version: 1.2
 Status: Active
 Last Updated: 2026-08-28
 
@@ -71,10 +71,27 @@ PR #102 head `a0af271` (52 files, +5566/−29, OPEN/CLEAN) on 2026-08-28.
 `74f684dfd0a51dca353cb747c550229630f72016` after the UX-3A decision audit. Only
 those two flows changed; every other status in this document is unchanged.
 
+**v1.2 (UX-3B).** The per-surface audit in `.ai/18_SCREEN_STATE_MATRICES.md`,
+run against `origin/main` `fb02097593ff9a2735f54620d6350d880cf3a030`, corrected
+**three** claims in this document, recorded there as **C-1**, **C-2** and
+**C-6**:
+
+- **§Flow 5 §States** asserted an **Offline** state that workout logging does not
+  implement (**C-1**).
+- **§Flow 7 §States** asserted **Offline** and **Pending sync** states that no
+  progress surface renders (**C-2**).
+- **§Flow 4 §States** and **§Flow 3** put the dashboard at **six** of the eight
+  canonical states, omitting **Data-gap**; the correct figure is **seven**
+  (**C-6**). §Flow 4's table gained a Data-gap row.
+
+Four sections therefore changed in v1.2 — §Flow 3, §Flow 4, §Flow 5 and §Flow 7 —
+plus this baseline note, §Related documents, and the UX-3 follow-up list. Every
+other flow, status and claim is unchanged.
+
 Inspected: `mobile/src/app/` (15 files — 14 user-facing routes plus
 `_layout.tsx`), `mobile/src/features/*`,
 `mobile/src/shared/localization/resources/{en,es}.ts` (**696 keys each — full
-parity**), `api/src/modules/*`, and ADR-P017 through ADR-P026.
+parity**), `api/src/modules/*`, and ADR-P017 through ADR-P027.
 
 Two facts that set the SHIPPED boundary and are easy to get wrong:
 
@@ -511,8 +528,9 @@ Four reasons, per ADR-P027 Decision 3:
    **16 route spec files** live in `features/navigation/`.
 3. **Web dead destinations.** Under ADR-P019 four of five tabs would advertise
    surfaces that render **Web unavailable**.
-4. **Dashboard status role.** The dashboard reaches six of the eight canonical
-   states; tabs demote it to one peer of five.
+4. **Dashboard status role.** The dashboard reaches **seven** of the eight
+   canonical states — Empty is the only absent one (corrected in v1.2; see
+   §Flow 4) — so tabs demote it to one peer of five.
 
 ### Non-binding future tab map
 
@@ -570,23 +588,31 @@ workout log, exercises) → account actions (sign out, delete account).
 
 ## States
 
-The dashboard can enter **six** of the eight canonical states, which is why it
-is the reference implementation for the state model:
+The dashboard can enter **seven** of the eight canonical states, which is why it
+is the reference implementation for the state model. **Empty is the only state it
+does not reach**: the dashboard renders no user-owned collection that can succeed
+and be empty.
 
 | State | Trigger | Behaviour |
 |---|---|---|
 | **Loading** | Read in flight (`loading` / `idle`) | Skeleton — never an empty-looking dashboard |
+| **Data-gap** | A prerequisite input is missing, so the assessment cannot compute | `DataGapCard` **within** the content, naming the input and routing to the screen that owns it — not a dashboard-level banner |
 | **Error** | Read failed | `error` banner, no fabricated content |
 | **Web unavailable** | Local DB dormant on Web | `info` banner, **no retry control** |
-| **Offline** | No connectivity | `warning`, informational — keep working |
+| **Offline** | No connectivity, after an explicit sync attempt | `warning`, informational — keep working |
 | **Pending sync** | Local writes queued | `info` with counts; data is safe on device |
 | **Conflict** | Divergent versions | `warning`, never `error` — user chooses |
 
-Plus a **Ready** confirmation (`success`) when the queue is drained.
+Plus a **Ready** confirmation (`success`) when the queue is drained. Ready is a
+sync confirmation, not a ninth state.
 
-**Data-gap** appears not as a dashboard-level banner but **within** the content
-that cannot compute — the assessment and recommendation cards name the missing
-input and route to the screen that owns it.
+**Corrected in v1.2: the count is seven, not six.** Earlier revisions said "six"
+and gave a table with no **Data-gap** row, while the paragraph beneath it
+described Data-gap anyway. The UX-3B audit resolved the inconsistency in favour
+of the evidence — Data-gap renders on two dashboard branches — and the same
+correction was applied to §Flow 3 and to **ADR-P027** Decision 3. It is an
+**evidence correction to supporting rationale**; ADR-P027's navigation decision
+is unchanged.
 
 **Copy intent for sync.** Pending sync must reassure: the write **is** saved
 locally and nothing is lost. Conflict must invite a decision, never imply
@@ -628,9 +654,16 @@ per-set reps editor), which UX-5 is scheduled to migrate.
 ## States
 
 Loading, Empty (no routines yet → invite creating one; no custom exercises →
-`workout.log.customEmpty`), Error, Offline, Pending sync, Web unavailable.
+`workout.log.customEmpty`), Error, Pending sync, Web unavailable.
 Logging is **local-first**: a set is stored on device immediately and syncs
 later. Copy must never suggest a set is "not saved" while it is merely queued.
+
+**Corrected in v1.2: there is no Offline state here.** Earlier revisions listed
+one. The UX-3B audit found no offline branch anywhere in
+`mobile/src/features/workout/presentation/` and no `workout.*offline*`
+localization key. Pending sync **is** present, as two row-level hints. The
+absence is recorded as a gap (C-1), not as correct-by-design — but UX-3 must not
+specify copy for a state the surface cannot enter.
 
 **Copy intent.** Action-first and brief — this is used mid-set, often one-handed,
 sometimes with a phone on a bench. ES must stay short here; `.ai/08_UI_UX.md`
@@ -707,8 +740,29 @@ contact with progress. It must degrade honestly: when there is no weight yet it
 
 ## States
 
-Loading, Empty (no entries → prompt the first weigh-in), Error, Offline,
-Pending sync, Web unavailable (both full-screen and card variants).
+Loading, Empty (no entries → prompt the first weigh-in), Error, Web unavailable.
+
+Two of those differ between the two progress surfaces, and the difference is
+specification-relevant:
+
+- **Web unavailable — SHIPPED on both**, in two shapes: the full-screen state on
+  `/progress`, and a **distinct compact card variant** on the dashboard summary
+  card, which also drops the tap-to-open affordance.
+- **Error — SHIPPED full-screen only.** `/progress` renders a load error and a
+  **separate** inline save error. The **summary card has no Error treatment**: a
+  failed read falls through to the ready arm and renders as Empty. That card
+  treatment is **PROPOSED**, owned by **BUG-009** — applicable, not implemented.
+
+**Corrected in v1.2: Progress renders neither Offline nor Pending sync.** Earlier
+revisions listed both. The progress *data layer* does produce them — every write
+lands as `sync_status = 'pending'`, and three `mark*Conflict` helpers are wired
+into `sync-appliers.ts` — but no progress presentation file renders a pending
+hint, an offline banner or a conflict affordance. Pending sync and Conflict are
+**PROPOSED** on `/progress` and owned by **BUG-011**. Offline is different: no
+authoritative connectivity signal reaches either progress surface at this commit,
+so there is nothing for them to render — that is recorded as not applicable
+*today*, not as a permanent limit. See **C-2** and **C-5** in
+`.ai/18_SCREEN_STATE_MATRICES.md`.
 
 **Copy intent.** Trends are **descriptive, not evaluative** — report what
 changed, never praise or admonish. The deload signal is **informational**, not
@@ -811,8 +865,9 @@ step de-risks the next:
    already load-bearing. Recovery copy follows PR #102's merge; verification
    copy waits for Vertical 2 authorization.
 3. **Write per-screen state matrices** binding each surface to its subset of the
-   eight canonical states, with the exact trigger for each. The dashboard is the
-   reference: it reaches six.
+   eight canonical states, with the exact trigger for each. **Delivered as
+   UX-3B** — `.ai/18_SCREEN_STATE_MATRICES.md`, covering **10** state-bearing
+   surfaces. The dashboard is the reference: it reaches **seven**.
 4. **Specify the non-visual equivalent for progress charts** — the largest
    unspecified accessibility surface in the product.
 5. **Schedule the manual AT verification pass** (VoiceOver, TalkBack,
@@ -831,8 +886,10 @@ distinction intact, and must not promote intent into a verified outcome.
 
 - `.ai/08_UI_UX.md` — design system, canonical state patterns, component and
   form contracts, contrast evidence
+- `.ai/18_SCREEN_STATE_MATRICES.md` — the UX-3B per-surface refinement of the
+  §States sections above, with triggers, treatments and evidence
 - `.ai/11_BACKLOG.md` — FEATURE-010 (UX stream), FEATURE-011 (recovery)
-- `.ai/12_DECISIONS.md` — ADR-P017 through ADR-P026
+- `.ai/12_DECISIONS.md` — ADR-P017 through ADR-P027
 - `.ai/06_MOBILE.md` — offline-first expectations
 - `.ai/00_PROJECT.md` — product scope and decision hierarchy
 
