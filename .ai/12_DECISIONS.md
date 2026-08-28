@@ -8572,9 +8572,20 @@ reasons, in order of weight:
   **Web unavailable** state. A persistent bar pointing at four dead ends is
   worse Web information architecture than the current hub.
 - **Dashboard status role.** The dashboard is not a menu; it is the surface that
-  reaches six of the eight canonical states (loading, error, offline, pending
-  sync, conflict, web unavailable). Tabs demote it to one peer of five and
-  dilute that role.
+  reaches **seven** of the eight canonical states (loading, **data-gap**, error,
+  offline, pending sync, conflict, web unavailable); **Empty** is the only one it
+  does not reach. Tabs demote it to one peer of five and dilute that role.
+
+  *Evidence correction (2026-08-28, UX-3B).* This bullet originally read "six"
+  and omitted **Data-gap**. The per-surface audit in
+  `.ai/18_SCREEN_STATE_MATRICES.md`, against `origin/main`
+  `fb02097593ff9a2735f54620d6350d880cf3a030`, showed the dashboard renders
+  Data-gap on two branches (`DashboardScreen.tsx:81-90` and `:96-98`), backed by
+  19 `dashboard.gap.*` keys and three deep-link specs. The count is used here as
+  **supporting rationale**, and it supports the same conclusion at seven as at
+  six — the dashboard's status role is if anything stronger. **The navigation
+  decision in this ADR is unchanged**: hub-and-spoke is still retained, bottom
+  tabs are still deferred, and no revisit trigger is affected.
 
 **4. The five-tab map is recorded as NON-BINDING**, so that the deferral is
 informed rather than vague. It is a starting point for a future decision, not an

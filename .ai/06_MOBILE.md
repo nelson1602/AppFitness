@@ -1,8 +1,8 @@
 # AppFitness Mobile Engineering Handbook
 
-Version: 1.0
+Version: 1.1
 Status: Active
-Last Updated: 2026-07-03
+Last Updated: 2026-08-28
 
 ---
 
@@ -532,23 +532,49 @@ Never distract users.
 
 # Error Handling
 
-Every screen should handle:
+Every screen must handle **its applicable subset** of the eight canonical states
+fixed by ADR-P022 and defined in `.ai/08_UI_UX.md` §Canonical State Patterns:
 
 Loading
 
 Empty
 
+Data-gap
+
+Error
+
 Offline
 
-Success
+Pending sync
 
-Failure
+Conflict
 
-Permission denied
+Web unavailable
 
-Unexpected errors
+**Applicable subset, not all eight.** A screen can enter a canonical state only
+where an **authoritative source for that state is exposed to the screen**.
+Pending sync requires accessible queued-write state; Offline requires an
+authoritative connectivity or sync signal. Neither may be inferred from the
+*kind* of surface — establish it from the store, the domain type and the sync
+wiring, for that screen, as it stands.
+
+The per-surface bindings — trigger, source state, rendered treatment, exit
+condition and platform — are recorded in `.ai/18_SCREEN_STATE_MATRICES.md`, and
+a state recorded there as not applicable carries the reason it is not.
+
+**Do not invent a ninth state.** A new tone, message or transient sub-phase is
+not a new state. Success confirmations, hydration and session-resolution phases,
+write sub-phases, forms and field validation are classified in that document and
+are none of the eight.
 
 Never leave users without feedback.
+
+*v1.1 (2026-08-28).* This section previously listed "Loading, Empty, Offline,
+Success, Failure, Permission denied, Unexpected errors". **Success** and
+**Permission denied** are not canonical states — `.ai/08_UI_UX.md` records both
+as future needs with no API, anatomy, variant or placeholder contract, and
+permission has zero localization keys and zero handling in the codebase. The list
+predated the state model and is replaced by it. No new state was created.
 
 ---
 

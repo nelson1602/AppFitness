@@ -1460,10 +1460,51 @@ Excluded:
    ADR-P027 changed **no runtime**; the checklist and the shortcut are approved
    in principle and remain **PROPOSED until implemented**.
    Remaining UX-3 specification slices, in order:
-   - **UX-3B — Per-screen state matrices.** Bind dashboard, workout log,
-     nutrition and progress to their subset of the eight ADR-P022 canonical
-     states, with the exact trigger for each. The dashboard is the reference: it
-     reaches six.
+   - **UX-3B — Per-screen state matrices. DELIVERED as a documentation
+     candidate** (`.ai/18_SCREEN_STATE_MATRICES.md` v1.1, audited against
+     `origin/main` `fb02097593ff9a2735f54620d6350d880cf3a030`). Binds **ten
+     state-bearing surfaces — seven feature screens plus three independently
+     stateful embedded surfaces** — to their exact subset of the eight ADR-P022
+     canonical states, each with trigger, source state, rendered treatment, exit
+     condition, platform scope and code/test/localization evidence. The route
+     session gate is documented as a **cross-cutting pre-screen phase** and is
+     **not** counted, because it enters none of the eight. Food Log's sync banner
+     and item chips are treatments inside the Food Log matrix, not a separate
+     surface. **Changed no runtime.**
+     - **Status taxonomy:** SHIPPED · SHIPPED — non-conformant · PROPOSED
+       (applicable but unimplemented, always with a named backlog owner) · n/a
+       (genuinely not applicable, always justified). `n/a` is never used for a
+       gap. **Seven** PROPOSED treatments and **one** non-conformant treatment
+       are recorded, every one with a named owner — BUG-008 ×1, BUG-009 ×1,
+       BUG-011 ×5, BUG-007 ×1.
+     - **Eight findings, C-1 … C-8.** Four were documentation contradictions and
+       are **reconciled** in this change (C-1, C-2, C-6, C-7); four are runtime
+       defects and remain open as **BUG-007** … **BUG-010**. None needs a new
+       ADR: each violates a rule ADR-P022's state model already fixes.
+     - **C-6 resolved by owner direction.** Counting the complete dashboard
+       composition consistently — including the embedded treatments already
+       counted for its sync states — the dashboard reaches **seven of eight**;
+       Empty is the only absent state. A narrow factual correction was applied to
+       **ADR-P027** Decision 3 (six → seven, Data-gap added to its enumeration)
+       and to `.ai/17_PRODUCT_FLOWS.md` §Flow 3 and §Flow 4. This is an
+       **evidence correction to supporting rationale, not a change to ADR-P027's
+       navigation decision** — hub-and-spoke is still retained, tabs are still
+       deferred, and no revisit trigger is affected.
+     - **C-7 reconciled.** `.ai/06_MOBILE.md` v1.1 replaces the obsolete
+       "Loading / Empty / Offline / Success / Failure / Permission denied" list
+       with the requirement that each screen handle its **applicable subset** of
+       the eight canonical states, pointing at `.ai/08_UI_UX.md` and the
+       matrices. No new state was created, and no screen must implement all
+       eight.
+     - **C-1 and C-2 reconciled as documentation, not closed as behaviour.**
+       `.ai/17_PRODUCT_FLOWS.md` v1.2 removes the Offline claim from Flow 5 and
+       the Offline + Pending-sync claims from Flow 7. The **coverage gaps** they
+       exposed are separate and remain open as **BUG-011**. The Offline half is
+       *not* a coverage gap: no authoritative connectivity signal is exposed to
+       those surfaces at this commit, so there is nothing for them to render —
+       recorded as justified `n/a`, describing what they currently receive.
+     - **BUG-011** and **BUG-012** were opened by this audit for the two
+       state-model gaps that are missing behaviour rather than wrong behaviour.
    - **UX-3C — EN/ES copy decks** for those four SHIPPED surfaces first, then
      the first-run checklist and the Food Log shortcut. Recovery copy follows
      PR #102; verification copy waits for ADR-P026 Vertical 2 authorization.
@@ -2165,6 +2206,458 @@ push (or the dead component) and leave the domain dormant.
 - `.ai/17_PRODUCT_FLOWS.md` (UX-2 — where this was found)
 - `.ai/12_DECISIONS.md` (ADR-P017 — public-v1 dormancy of medical surfaces)
 - `.ai/06_MOBILE.md` (navigation expectations)
+
+---
+
+## [BUG-007] Food Log Renders a Sync Conflict as `error`, and Merges It with an Unrelated Failure
+
+Status: Open
+Priority: P2
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-28
+Updated: 2026-08-28
+
+### Description
+
+Found during the **UX-3B** state-matrix audit
+(`.ai/18_SCREEN_STATE_MATRICES.md`, contradiction **C-3**), verified against
+`origin/main` `fb02097593ff9a2735f54620d6350d880cf3a030`.
+
+`.ai/08_UI_UX.md` §Canonical State Patterns, non-negotiable distinction 5:
+*"Conflict ≠ Error. A conflict is a both-versions-preserved outcome awaiting a
+decision … It is `warning`, not `error`."*
+
+Food Log breaks that rule in two ways.
+
+1. **Wrong tone.** `mobile/src/features/nutrition/infrastructure/food-log.repository.ts:255`
+   writes `sync_status = 'conflict'`, and `:369` maps `'conflict'` to the domain
+   state `'action_required'`. `FoodLogScreen.tsx:41-51` renders that state as
+   `<Banner tone="error">`, and `:79-87` renders the per-item chip with
+   `tone="error"`. Both other conflict surfaces in the product are conformant:
+   the dashboard sync banner (`sync-status-banner.tsx:32`, `warning`) and
+   `ExerciseLibrary` (`ExerciseLibrary.tsx:46`, `warning`). Food Log is the
+   outlier.
+2. **Two causes collapsed into one state.**
+   `mobile/src/features/nutrition/domain/food-log.ts:33-37` documents
+   `action_required` as covering *"`CATALOG_REVISION_UNSUPPORTED` **or** a
+   version conflict"*. Those need different user actions, and the state model's
+   opening rule is that *"collapsing any two destroys information the user
+   needs"*.
+
+P2 because it misrepresents a data-integrity outcome: a conflict is a
+both-versions-preserved state, and presenting it as a failure invites the user to
+assume data was lost.
+
+### Evidence
+
+- `food-log.repository.ts:255` — `UPDATE meal_items SET sync_status = 'conflict'`
+- `food-log.repository.ts:369` — `if (status === 'conflict') return 'action_required';`
+- `FoodLogScreen.tsx:41-51` — `case 'action_required':` → `<Banner … tone="error">`
+- `FoodLogScreen.tsx:79-87` — `ItemSyncChip` → `tone="error"`
+- `sync-status-banner.tsx:30-36` and `ExerciseLibrary.tsx:43-52` — the two
+  conformant conflict surfaces, both `warning`
+- `.ai/08_UI_UX.md` §Canonical State Patterns, distinctions 1 and 5
+
+### Expected Outcome
+
+A sync conflict renders with `warning` tone and copy that invites a decision
+without implying damage. A catalog-revision failure is a separate state with its
+own copy. Neither is presented as the other.
+
+### Acceptance Criteria
+
+- [ ] Conflict-derived state in Food Log renders `warning`, not `error`.
+- [ ] `CATALOG_REVISION_UNSUPPORTED` and version conflict are distinguishable to
+      the user.
+- [ ] A regression test asserts the tone for each.
+- [ ] EN/ES copy for both is specified under **UX-3C** before implementation.
+
+### Related Documents
+
+- `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — C-3, and surface 8)
+- `.ai/08_UI_UX.md` (§Canonical State Patterns)
+- `.ai/12_DECISIONS.md` (ADR-P022 — the state model)
+
+---
+
+## [BUG-008] Food Log Write Failures Are Silent
+
+Status: Open
+Priority: P2
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-28
+Updated: 2026-08-28
+
+### Description
+
+Found during the **UX-3B** state-matrix audit
+(`.ai/18_SCREEN_STATE_MATRICES.md`, contradiction **C-4**), verified against
+`origin/main` `fb02097593ff9a2735f54620d6350d880cf3a030`.
+
+`mobile/src/features/nutrition/application/food-log.store.ts` sets the store's
+`error` field when a write fails — `addFood` (`:124-125`), `editServing`
+(`:134-136`) and `removeItem` (`:145-147`), each with its own localizable
+message.
+
+`FoodLogScreen.tsx` **never reads that field**. Its only error branch is
+`status === 'error'` (`:286-289`), and `status` is set to `'error'` only by
+`load()` (`food-log.store.ts:114`).
+
+**Effect:** a failed add, serving edit or removal renders nothing at all. The
+user's action silently does not take effect, with no explanation and no way to
+tell a failure from a no-op. `.ai/06_MOBILE.md` §Error Handling: *"Never leave
+users without feedback."*
+
+This is not a house convention. `ProgressScreen` implements the correct
+two-branch pattern — a load error (`ProgressScreen.tsx:129-133`) and a
+**separate** inline save error that does not wipe the forms (`:136-140`), each
+with its own spec. Food Log is missing the second half.
+
+P2 because it affects the daily write path of a daily-use feature and can cause
+a user to believe data was recorded when it was not.
+
+### Evidence
+
+- `food-log.store.ts:124-125`, `:134-136`, `:145-147` — `set({ error: … })` on
+  each write failure
+- `FoodLogScreen.tsx` — no reference to the store's `error` field anywhere
+- `FoodLogScreen.tsx:286-289` — the only error branch, gated on `status`
+- `food-log.store.ts:114` — the only assignment of `status: 'error'`
+- `ProgressScreen.tsx:129-140` and its specs *"surfaces a localized load
+  error…"* / *"surfaces a localized save error inline (distinct from load)…"* —
+  the reference pattern
+
+### Expected Outcome
+
+A failed food-log write surfaces a localized, non-technical message that is
+distinguishable from a load failure and does not discard the user's input.
+
+### Acceptance Criteria
+
+- [ ] Add, serving-edit and remove failures each surface a user-visible state.
+- [ ] The message is localized EN/ES and never renders the store's raw string.
+- [ ] Write-error copy is distinguishable from load-error copy.
+- [ ] Regression specs cover at least one failing write per operation.
+
+### Related Documents
+
+- `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — C-4, and surfaces 8 and 10)
+- `.ai/06_MOBILE.md` (§Error Handling)
+
+---
+
+## [BUG-009] Progress Summary Card Renders a Failed Read as "Nothing Recorded"
+
+Status: Open
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-28
+Updated: 2026-08-28
+
+### Description
+
+Found during the **UX-3B** state-matrix audit
+(`.ai/18_SCREEN_STATE_MATRICES.md`, contradiction **C-5**), verified against
+`origin/main` `fb02097593ff9a2735f54620d6350d880cf3a030`.
+
+`mobile/src/features/progress/presentation/ProgressSummaryCard.tsx` branches on
+`status === 'web-unavailable'` (`:41-52`) and on `status === 'loading' || 'idle'`
+(`:67-68`). It has **no `status === 'error'` branch**, so a failed read falls
+through to the same arm as a successful one. With empty arrays in the store the
+card then renders `progress.card.noWeight` and `progress.card.prompt` — telling
+the user they have recorded nothing, when in fact the read failed.
+
+This is the Loading-versus-Empty confusion the state model forbids, applied to
+Error: a failure is presented as a true answer. `.ai/08_UI_UX.md` §Canonical
+State Patterns is explicit that Empty means *"the read **succeeded** and the
+collection is genuinely empty"*.
+
+The card's Loading branch is additionally **untested** — no spec in
+`ProgressSummaryCard.spec.tsx` asserts it.
+
+P3 because the card is a preview surface and the full Progress screen one tap
+away does report the error correctly — but it is the dashboard's only progress
+signal, and it currently misreports failure as absence.
+
+The matrix records the card's Error state as **PROPOSED** — applicable, because
+`ProgressStatus` includes `'error'` and the card runs its own read, but
+unimplemented — with this bug as its owner.
+
+### Evidence
+
+- `ProgressSummaryCard.tsx:41-107` — branches for `web-unavailable` and
+  `loading`/`idle` only; no `error` branch
+- `progress.store.ts:47` — the status union does include `'error'`
+- `ProgressSummaryCard.spec.tsx` — eight tests, none for loading or error
+- `.ai/08_UI_UX.md` §Canonical State Patterns — Empty requires a **succeeded**
+  read
+
+### Expected Outcome
+
+A failed progress read renders a distinct, localized state on the card that a
+user cannot mistake for "you have not recorded anything yet".
+
+### Acceptance Criteria
+
+- [ ] The card renders a distinct state when `status === 'error'`.
+- [ ] Empty is reachable only after a successful read.
+- [ ] Specs cover the card's loading and error branches.
+- [ ] EN/ES copy is specified under **UX-3C** before implementation.
+
+### Related Documents
+
+- `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — C-5, and surface 4)
+- `.ai/08_UI_UX.md` (§Canonical State Patterns)
+
+---
+
+## [BUG-010] Shared Loading Skeleton Carries a Hardcoded English Accessibility Label
+
+Status: Open
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-28
+Updated: 2026-08-28
+
+### Description
+
+Found during the **UX-3B** state-matrix audit
+(`.ai/18_SCREEN_STATE_MATRICES.md`, contradiction **C-8**), verified against
+`origin/main` `fb02097593ff9a2735f54620d6350d880cf3a030`.
+
+`mobile/src/features/dashboard/presentation/components/dashboard-skeleton.tsx:11`
+sets `accessibilityLabel="Loading dashboard section"` as a hardcoded English
+string literal, repeated on each of the three placeholder cards.
+
+`DashboardSkeleton` is not only the dashboard's loading treatment: it is the
+**session-resolution loader for 12 routes**, so on a Spanish-locale device this
+English string is **exposed to assistive technology** on essentially every
+authenticated entry into the app.
+
+**What is claimed and what is not.** The label is set, and it is exposed — that
+is verifiable from the source. Whether, when, or how a given screen reader
+*announces* it is **not** claimed here: no manual VoiceOver, TalkBack or
+browser-AT pass has been run, and that verification is the **UX-4C** gate.
+
+It is the only unlocalized user-exposed string among the ten state-bearing
+surfaces audited and the cross-cutting session-resolution phase. The catalogue is
+otherwise at exact EN/ES parity (696 keys each).
+
+`.ai/06_MOBILE.md` §Internationalization and the repository mobile rules both
+forbid hardcoded user-facing strings.
+
+P3 because it is invisible to sighted users and does not affect data — but it is
+a bilingual-parity and accessibility defect on the most frequently rendered
+component in the app.
+
+### Evidence
+
+- `dashboard-skeleton.tsx:11` — `accessibilityLabel="Loading dashboard section"`
+- `rg "DashboardSkeleton" mobile/src/app` → **12** route files
+- EN/ES catalogues: **696 keys each**, exact parity; no key covers this string
+- `.ai/06_MOBILE.md` §Internationalization
+
+### Expected Outcome
+
+The skeleton's accessible label comes from the localization catalogue in both
+languages, like every other user-exposed string, so nothing English is exposed to
+assistive technology on a Spanish-locale device.
+
+### Acceptance Criteria
+
+- [ ] The label is supplied via `t()` from a new key.
+- [ ] EN and ES entries are added together, preserving exact parity.
+- [ ] No hardcoded user-facing string remains in the component.
+- [ ] The key's copy is specified under **UX-3C**; no accessibility **outcome**
+      may be claimed before the **UX-4C** manual AT pass.
+
+### Related Documents
+
+- `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — C-8, §Cross-cutting and surface 1)
+- `.ai/06_MOBILE.md` (§Internationalization)
+- `.ai/12_DECISIONS.md` (ADR-P023 / ADR-P024 — accessibility staging)
+
+---
+
+## [BUG-011] Local-First Row State Is Never Surfaced on Three Screens That Carry It
+
+Status: Open
+Priority: P2
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-28
+Updated: 2026-08-28
+
+### Description
+
+Opened by the **UX-3B** state-matrix audit
+(`.ai/18_SCREEN_STATE_MATRICES.md`, surfaces 5, 9 and 10; findings **C-1** and
+**C-2**), verified against `origin/main`
+`fb02097593ff9a2735f54620d6350d880cf3a030`.
+
+Three screens list rows the user wrote, those rows expose a `syncStatus`
+(`'pending' | 'synced' | 'conflict'`, `database/types.ts:11`), and the sync
+appliers set it — yet the screens render **no treatment** for it:
+
+| Screen | Pending sync | Conflict |
+|---|---|---|
+| Workout Log | SHIPPED — two row-level hints | **missing** |
+| Dietary Preferences | **missing** | **missing** |
+| Progress | **missing** | **missing** |
+
+The matrices record each missing treatment as **PROPOSED** with this bug as its
+owner — applicable, because the source state provably reaches the surface, but
+unimplemented.
+
+**Offline is deliberately excluded from this bug.** No authoritative connectivity
+or sync signal is exposed to the three surfaces above at this commit, so there is
+nothing for them to render — the matrices record that as justified `n/a`,
+describing what those surfaces **currently receive** rather than what they could
+ever receive. Exposing that signal more widely is a design change with no owning
+slice, not a conformance defect, and it is out of scope here.
+
+P2 because it silently withholds data-integrity information: a user whose
+weigh-in is queued, or whose exclusion diverged from the server, is shown a row
+that looks identical to a fully synced one. Progress is the sharpest case — it is
+the most staleness-sensitive surface in the product and the least able to express
+it.
+
+### Evidence
+
+- `database/types.ts:11` — `SyncStatus = 'pending' | 'synced' | 'conflict'`
+- Workout: `workout.ts:57`, `:111`; `workout/infrastructure/sync-appliers.ts:47`,
+  `:59`; `workout/infrastructure/workout.repository.ts:325`. `WorkoutLogScreen.tsx:32-43` and `:210-217`
+  read the same field for `'pending'` and ignore `'conflict'`.
+- Dietary preferences: `dietary-preference.ts:49`, `:67` (the row exposes
+  `syncStatus`); `nutrition/infrastructure/dietary-preference.repository.ts:107` (writes re-mark the row
+  `pending`) and `:158` (`sync_status = 'conflict'`);
+  `nutrition/infrastructure/sync-appliers.ts:32` registers the applier. No hint
+  of any kind in `DietaryPreferences.tsx`.
+- Progress: `progress.ts:43`, `:89`, `:129`; `progress/infrastructure/progress.repository.ts:69`, `:94`,
+  `:146`, `:180` (writes land `pending`), `:222`, `:493`, `:657`
+  (`mark*Conflict`); `progress/infrastructure/sync-appliers.ts:29`, `:35`, `:41`.
+  No hint of any kind in `ProgressScreen.tsx`.
+- `.ai/08_UI_UX.md` §Canonical State Patterns — Pending sync must reassure;
+  Conflict is `warning` and awaits a decision.
+
+### Expected Outcome
+
+Every screen that lists rows carrying a `syncStatus` surfaces the pending and
+conflict conditions with the tones the state model requires, consistently with
+the two row-level hints Workout Log already ships.
+
+### Acceptance Criteria
+
+- [ ] Workout Log renders a Conflict treatment on workout and set rows.
+- [ ] Dietary Preferences renders Pending sync and Conflict on exclusion rows.
+- [ ] Progress renders Pending sync and Conflict on body weights, measurements
+      and weekly snapshots.
+- [ ] Conflict uses `warning`, never `error` (see BUG-007).
+- [ ] EN/ES copy is specified under **UX-3C** before implementation.
+- [ ] Specs cover each new treatment; no accessibility outcome is claimed before
+      the **UX-4C** manual AT pass.
+
+### Related Documents
+
+- `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — surfaces 5, 9, 10; C-1, C-2)
+- `.ai/08_UI_UX.md` (§Canonical State Patterns)
+- `.ai/06_MOBILE.md` (§Offline First, §Synchronization)
+
+---
+
+## [BUG-012] No Conflict Resolution Path Exists in Public V1
+
+Status: Open
+Priority: P2
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-28
+Updated: 2026-08-28
+
+### Description
+
+Opened by the **UX-3B** state-matrix audit
+(`.ai/18_SCREEN_STATE_MATRICES.md` §Residual risks), verified against
+`origin/main` `fb02097593ff9a2735f54620d6350d880cf3a030`.
+
+**Scope: public V1 only.** This bug is about the reachable public-v1 product. It
+makes **no claim about, and requires no change to, the dormant medical domain**,
+which stays dormant under **ADR-P017** and is out of scope here exactly as it is
+in the matrices.
+
+`.ai/08_UI_UX.md` §Canonical State Patterns defines Conflict as *"Two versions
+diverged; the system **refuses to silently overwrite**"*, with the required user
+action **"Review and choose"** and the recovery path *"An explicit user
+decision"*.
+
+Three public-v1 surfaces **report** a conflict — the dashboard sync banner
+(`sync-status-banner.tsx:30-36`), Food Log's banner and item chip
+(`FoodLogScreen.tsx:41-51`, `:79-87`), and `ExerciseLibrary`'s badge
+(`ExerciseLibrary.tsx:43-52`). **None of them, and no other public-v1 surface,
+lets the user review the two versions or choose one.** There is no resolution
+screen, no per-row choose action, and no localization key family for one.
+
+The state's required user action is therefore unimplemented across public V1. A
+user told that a record diverged has no path forward from any reachable surface.
+
+P2 because it leaves a data-integrity decision permanently pending: both versions
+are preserved by design (`00_PROJECT.md`; ADR-P016 D6), so nothing is lost — but
+nothing can be resolved either, and the count can only grow.
+
+This is **missing behaviour, not wrong behaviour**, which is why it is separate
+from BUG-007 (wrong tone) and BUG-011 (missing reporting).
+
+**This bug does not authorize a design.** A resolution path changes screen
+inventory, navigation and data semantics. Its flow, screens, behaviour and copy
+require a **separately authorized product/architecture specification** before any
+implementation. In particular, **UX-3C may specify only the existing
+conflict-reporting copy** — the banners and badges listed above — and **must not
+invent resolution-screen copy or a resolution flow**.
+
+### Evidence
+
+- `.ai/08_UI_UX.md` §Canonical State Patterns — Conflict: user action *"Review
+  and choose"*, recovery *"An explicit user decision"*
+- Reporting surfaces: `sync-status-banner.tsx:30-36`,
+  `FoodLogScreen.tsx:41-51` and `:79-87`, `ExerciseLibrary.tsx:43-52`
+- `mark*Conflict` writers exist across the workout, nutrition, progress and
+  profile slices (`*/infrastructure/sync-appliers.ts`), so conflicts are
+  producible in four public-v1 feature slices
+- Localization: **5** keys contain `conflict`, all of them reporting copy; none
+  offers a choice
+- No route in `mobile/src/app/` addresses conflict resolution
+
+### Expected Outcome
+
+A user who is told a record diverged can review the diverging versions and choose
+one, from at least one surface, without either version being silently discarded.
+
+### Acceptance Criteria
+
+- [ ] A separately authorized specification defines the resolution flow, its
+      screen inventory, its behaviour and its copy **before** any implementation.
+- [ ] A resolution path exists and is reachable from the public-v1 surfaces that
+      report a conflict.
+- [ ] Both versions remain preserved until the user chooses; nothing is
+      auto-resolved.
+- [ ] The choice is recorded through the repository layer, never by direct
+      SQLite access from the UI.
+- [ ] The dormant medical domain stays dormant (**ADR-P017**); nothing here makes
+      a medical surface reachable.
+- [ ] **UX-3C** specifies only the existing conflict-**reporting** copy and adds
+      no resolution-screen copy.
+
+### Related Documents
+
+- `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — §Residual risks; surfaces 2 and 8)
+- `.ai/08_UI_UX.md` (§Canonical State Patterns)
+- `.ai/00_PROJECT.md` (§Decision Hierarchy — data integrity)
+- `.ai/12_DECISIONS.md` (ADR-P016 D6 — historical records are never silently
+  overwritten)
 
 ---
 
