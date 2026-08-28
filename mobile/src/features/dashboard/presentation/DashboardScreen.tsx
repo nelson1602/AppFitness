@@ -118,6 +118,16 @@ export function DashboardScreen() {
         {t('dashboard.nutrition')}
       </AppButton>
 
+      {/* Direct daily food-log shortcut (ADR-P027 / UX-4A). The existing
+          nutrition targets → plan → food-log path remains available. */}
+      <AppButton
+        accessibilityLabel={t('dashboard.foodLogAccessibility')}
+        onPress={() => router.push('/food-log')}
+        variant="secondary"
+      >
+        {t('dashboard.foodLog')}
+      </AppButton>
+
       {/* Dietary preferences & allergies (ADR-P014 Slice 2B). */}
       <AppButton
         accessibilityLabel={t('dashboard.preferencesAccessibility')}

@@ -282,6 +282,16 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/nutrition');
   });
 
+  it("navigates directly to today's food log", async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: "Open today's food log" }));
+
+    expect(router.push).toHaveBeenCalledWith('/food-log');
+  });
+
   it('navigates to the dietary preferences surface', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({ status: 'ready', data: baseData });
@@ -364,6 +374,10 @@ describe('DashboardScreen', () => {
 
     expect(screen.getByText('Tu evaluación local de iCoach')).toBeOnTheScreen();
     expect(screen.getByText('Recomendaciones de iCoach')).toBeOnTheScreen();
+    expect(
+      screen.getByRole('button', { name: 'Abrir el registro de alimentos de hoy' }),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('Registrar alimentos')).toBeOnTheScreen();
     expect(screen.getByText('Preferencias alimentarias')).toBeOnTheScreen();
     expect(screen.getByText('Rutinas de ejercicios')).toBeOnTheScreen();
     expect(screen.getByText('Cerrar sesión')).toBeOnTheScreen();

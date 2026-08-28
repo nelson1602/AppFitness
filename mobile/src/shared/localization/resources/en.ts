@@ -635,6 +635,8 @@ export const en = {
   'dashboard.recommendations': 'iCoach recommendations',
   'dashboard.nutritionAccessibility': 'View nutrition targets',
   'dashboard.nutrition': 'Nutrition',
+  'dashboard.foodLogAccessibility': "Open today's food log",
+  'dashboard.foodLog': 'Log food',
   'dashboard.preferencesAccessibility': 'Manage dietary preferences and allergies',
   'dashboard.preferences': 'Dietary preferences',
   'dashboard.routinesAccessibility': 'Manage workout routines',

@@ -653,6 +653,8 @@ export const es = {
   'dashboard.recommendations': 'Recomendaciones de iCoach',
   'dashboard.nutritionAccessibility': 'Ver objetivos de nutrición',
   'dashboard.nutrition': 'Nutrición',
+  'dashboard.foodLogAccessibility': 'Abrir el registro de alimentos de hoy',
+  'dashboard.foodLog': 'Registrar alimentos',
   'dashboard.preferencesAccessibility': 'Administrar preferencias y exclusiones alimentarias',
   'dashboard.preferences': 'Preferencias alimentarias',
   'dashboard.routinesAccessibility': 'Administrar rutinas de ejercicios',
