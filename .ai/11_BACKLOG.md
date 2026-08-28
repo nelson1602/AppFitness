@@ -1449,9 +1449,43 @@ Excluded:
 5. **UX-3 — High-fidelity specifications. Status: Proposed.** Per-screen
    blueprints, state matrices, EN/ES copy decks, accessibility annotations,
    motion specifications.
+   **UX-3A is DECIDED (ADR-P027, Accepted 2026-08-28)** — the two blocking
+   decisions UX-2 handed forward are resolved: onboarding is **advisory**
+   (a dashboard checklist reusing existing Data-gap routing, **no onboarding
+   routes**), and V1 **keeps hub-and-spoke** with a direct `/food-log` shortcut
+   approved for UX-4A. **Bottom tabs are deferred, not unavailable** — they need
+   no new dependency (`expo-router@57` vendors bottom-tabs), but activating the
+   Selected-navigation `accent` role would land V1 on an unresolved **2.998:1**
+   AA failure. `.ai/17_PRODUCT_FLOWS.md` v1.1 reconciles Flow 1 and Flow 3.
+   ADR-P027 changed **no runtime**; the checklist and the shortcut are approved
+   in principle and remain **PROPOSED until implemented**.
+   Remaining UX-3 specification slices, in order:
+   - **UX-3B — Per-screen state matrices.** Bind dashboard, workout log,
+     nutrition and progress to their subset of the eight ADR-P022 canonical
+     states, with the exact trigger for each. The dashboard is the reference: it
+     reaches six.
+   - **UX-3C — EN/ES copy decks** for those four SHIPPED surfaces first, then
+     the first-run checklist and the Food Log shortcut. Recovery copy follows
+     PR #102; verification copy waits for ADR-P026 Vertical 2 authorization.
+   - **UX-3D — Progress-chart non-visual equivalent.** The largest unspecified
+     accessibility surface; colour and shape alone are insufficient.
 6. **UX-4 — Authentication / onboarding / dashboard pilot. Status: Proposed.**
-   First applied surfaces, including the navigation shell where the selected-
-   navigation accent role finally has somewhere to live.
+   First applied surfaces. **Note:** ADR-P027 defers the tab shell, so the
+   selected-navigation accent role still has nowhere to live in V1 — that
+   sentence in earlier revisions of this list anticipated tabs that are now
+   deferred. Slices, in order, none implemented:
+   - **UX-4A — `/food-log` dashboard shortcut. Not implemented.** Will reduce
+     the daily food-logging loop from three pushes to one and will return the
+     product to its own documented three-level limit. Will touch
+     `DashboardScreen.tsx`, its spec,
+     `features/navigation/dashboard-route.spec.tsx`, and the EN/ES resources.
+     Additive: the targets → plan → food-log chain will be preserved.
+   - **UX-4B — First-run checklist card. Not implemented.** Will implement the
+     advisory onboarding shape decided by ADR-P027, reusing `resolveGapFix` and
+     the existing gap sets. No new routes.
+   - **UX-4C — Manual AT verification pass.** VoiceOver, TalkBack and browser-AT,
+     recorded per surface. **Until this runs, no accessibility outcome anywhere
+     in the UX stream may be reported as satisfied** (ADR-P023 / ADR-P024).
 7. **UX-5 — Progressive feature migration. Status: Proposed.** One feature per
    slice, behaviour preserved, with bilingual, dark-theme, and accessibility
    verification per slice.

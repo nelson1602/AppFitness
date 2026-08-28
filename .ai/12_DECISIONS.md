@@ -8466,6 +8466,233 @@ documentation only.
   extends
 
 ---
+## ADR-P027 — V1 Advisory Onboarding and Hub-and-Spoke Navigation; Bottom Tabs Deferred
+
+Status: Accepted
+Date: 2026-08-28
+Owner: Product / UX / Architecture
+
+### Context
+
+A read-only UX-3A audit at `origin/main`
+`74f684dfd0a51dca353cb747c550229630f72016` resolved the two blocking decisions
+that **UX-2** (`.ai/17_PRODUCT_FLOWS.md` v1.0) deliberately handed forward:
+onboarding **advisory vs blocking**, and navigation **hub-and-spoke vs direct
+dashboard shortcuts vs native bottom tabs**. Both change screen inventory, so
+neither could be settled inside a high-fidelity specification.
+
+**Onboarding.** No onboarding surface exists — a repository-wide search for
+`onboarding` under `mobile/src` returns nothing. A newly registered account
+lands on the dashboard, which renders **Data-gap** states for the inputs it is
+missing. That routing is already implemented and localized:
+`DashboardScreen.tsx` maps five gap ids to the three screens that own them —
+`profile` / `birth-date` / `height` → `/profile-edit`, `default-goal` →
+`/goal-edit`, `weight` → `/progress`. What is missing is **sequencing**, not
+routing.
+
+**Navigation.** V1 ships a **hub-and-spoke stack**; there is no tab navigator
+(`_layout.tsx` renders `<Stack>`). The dashboard is the hub and already carries
+seven navigation actions plus two account actions. One depth problem is real:
+
+```
+dashboard(L1) → nutrition(L2) → nutrition-plan(L3) → food-log(L4)
+```
+
+Food logging is **three pushes / four levels** from the hub, which exceeds
+`.ai/08_UI_UX.md` **"Avoid more than three navigation levels."** It is the only
+documented information-architecture violation in the product, and it sits on a
+daily task. Workout logging does **not** share the problem: `DashboardScreen`
+already pushes `/workout-log` directly, so it is **one tap**. UX-2 described two
+deep daily loops; only one is deep.
+
+**Tabs are available, not blocked by capability.** `expo-router@57` resolves
+`build/layouts/Tabs.js`, `build/layouts/TabsClient.js`, and a **vendored**
+`build/react-navigation/bottom-tabs`. `@react-navigation/bottom-tabs` is neither
+declared in `mobile/package.json` nor installed as a separate package — Expo
+Router bundles it. Adopting tabs therefore needs **no new dependency**. The
+question is a design and cost decision, not a technical one.
+
+**What tabs would activate.** `.ai/08_UI_UX.md` defines a **Selected
+navigation** contract — `accent`, with filled icon **and** heavier label weight.
+Nothing uses it today. The same document records
+`accent #00A6A6` on `surface #FFFFFF` at **2.998:1 — FAIL at 4.5 and below the
+3:1 non-text threshold**, and states that this failure does not gate current
+work *precisely because* "None of the eight states is … selected navigation, so
+no UX-1B2A contract uses the accent." Introducing a persistent selected-tab
+indicator would activate that role and land V1 on one of ADR-P022's five
+unresolved AA pairs.
+
+### Decision
+
+**1. Onboarding is advisory, and its approved target shape is a dashboard
+checklist.** Nothing is implemented: the shape is **PROPOSED** and stays
+PROPOSED until **UX-4B** ships it. As specified, first run is **non-blocking**:
+the dashboard is reachable immediately and no step gates it. The checklist is
+**resumable** by construction, because it will be derived from the same Data-gap
+state the dashboard already computes — an unresolved prerequisite simply remains
+listed. It is **skippable**: dismissing or ignoring it never blocks any
+surface.
+
+It **will reuse the existing Data-gap routing** (`resolveGapFix` and the three
+gap sets above) rather than introducing a parallel mechanism, and it will add
+**no onboarding routes**. A separate welcome → profile → goal → ready sequence, as
+sketched in UX-2, is **rejected**.
+
+**Exact visual treatment, dismissal semantics (per-session vs persistent vs
+completion-only), ordering, and all EN/ES copy remain UX-3 specification work**
+and are not decided here.
+
+**2. V1 keeps hub-and-spoke navigation.** The dashboard remains the hub and
+retains its status role. **Workout Log stays one tap** — it already is.
+A **direct `/food-log` dashboard shortcut is approved for UX-4A**: one added
+dashboard action that **will reduce** the daily food-logging loop from three
+pushes to one and **will return** the product to its own documented three-level
+limit when UX-4A ships it. This ADR implements none of it. The existing
+targets → plan → food-log chain **will be preserved** for users who arrive that
+way; the shortcut is additive.
+
+**3. Bottom tabs are deferred — explicitly not rejected as unavailable.** Four
+reasons, in order of weight:
+
+- **Unresolved selected-navigation accent contrast.** Tabs would activate the
+  `accent` role at **2.998:1**, below even the 3:1 non-text threshold. Non-colour
+  redundancy (filled icon plus heavier label) addresses colour-*alone*
+  dependence; it does not make a 2.998:1 indicator conformant.
+- **Nested-navigation and migration cost.** `.ai/06_MOBILE.md` states "Avoid
+  nested navigation complexity". The tab shell anticipated here — the
+  non-binding five-tab map below, in which Workout, Nutrition and Profile each
+  own several routes — would add a **tab/stack nesting layer** over today's
+  single `<Stack>`, together with the migration that implies. That is a
+  property of the design anticipated here, not a claim that every possible tabs
+  architecture must take the same shape.
+  **20 files** reference route paths and **16 route spec files** live in
+  `features/navigation/` — all re-validated by a migration.
+- **Web dead destinations.** Under ADR-P019 the local database is dormant on
+  Web, so four of five tabs would advertise destinations that render the
+  **Web unavailable** state. A persistent bar pointing at four dead ends is
+  worse Web information architecture than the current hub.
+- **Dashboard status role.** The dashboard is not a menu; it is the surface that
+  reaches six of the eight canonical states (loading, error, offline, pending
+  sync, conflict, web unavailable). Tabs demote it to one peer of five and
+  dilute that role.
+
+**4. The five-tab map is recorded as NON-BINDING**, so that the deferral is
+informed rather than vague. It is a starting point for a future decision, not an
+approved design:
+
+| Tab (non-binding) | Would own |
+|---|---|
+| Home | `dashboard` (+ `index` redirect) |
+| Workout | `routines`, `workout-log`, `exercises` |
+| Nutrition | `nutrition`, `nutrition-plan`, `food-log`, `dietary-preferences` |
+| Progress | `progress` |
+| Profile | `profile-edit`, `goal-edit`, `delete-account` |
+
+`sign-in` stays outside any tab shell. All twelve non-authentication routes map
+without leftovers, and the grouping keeps the non-binding candidate bounded to
+five top-level destinations.
+
+**Revisit triggers — all three required before tabs are reconsidered:**
+
+- **Resolve the `accent` token decision** (one of ADR-P022's five open
+  light-theme AA pairs), or record an authorized exception covering selected
+  navigation specifically.
+- **Decide Web tab behaviour** explicitly — whether the shell renders with
+  dormant tabs marked, or Web keeps hub-and-spoke.
+- **Authorize the migration separately**, with the 20-file / 16-spec surface
+  costed, because it is behaviour-visible on every screen.
+
+**5. This ADR changes no runtime.** It authorizes no code, route, dependency,
+localization key, asset, configuration, infrastructure, or accessibility
+outcome. It is documentation only. The `/food-log` shortcut and the onboarding
+checklist are **approved in principle and remain PROPOSED** until implemented
+under UX-4A and UX-4B respectively.
+
+### Options Considered
+
+1. **Advisory onboarding as a dashboard checklist (chosen).** Would reuse a
+   shipped, tested mechanism; would add no routes; skippable and resumable for
+   free.
+2. **Blocking onboarding.** Rejected: it builds a second mechanism for a job the
+   Data-gap states already do, which `.ai/00_PROJECT.md` §Decision Hierarchy
+   disfavours at **#5 Maintainability**. No user-safety, data-integrity or
+   security argument (#1–#3) supports gating a wellness product (ADR-P017).
+3. **UX-2's four-screen onboarding sequence.** Rejected: ≥3 new routes and a new
+   navigation surface for an outcome the checklist reaches with none.
+4. **Hub-and-spoke plus one `/food-log` shortcut (chosen for navigation).**
+   Smallest change that would fix the only documented IA violation.
+5. **Promoting several loops to the dashboard.** Rejected for now: workout log is
+   already direct, and the hub already carries nine actions; more would need the
+   grouping decision that UX-3 owns.
+6. **Bottom tabs in V1.** Deferred, per Decision 3.
+
+### Rationale
+
+`.ai/00_PROJECT.md` §Decision Hierarchy ranks **Maintainability (#5)** above
+**Performance (#7)** and **Developer convenience (#8)**, and no higher principle
+is engaged by either question. Both decisions therefore favour reusing shipped,
+verified mechanisms over building parallel ones.
+
+The navigation decision is additionally forced by accessibility: tabs cannot be
+adopted in V1 without either accepting a **2.998:1** selected-state indicator or
+pre-empting an open ADR-P022 token decision. Deferring costs one dashboard
+button; adopting costs an unresolved AA failure across every screen.
+
+### Consequences
+
+**Positive — two on acceptance, two only on implementation.** Taking effect on
+acceptance: the `accent` AA failure stays out of the critical path, and the
+future tab map is recorded, so a later decision starts from evidence.
+
+Taking effect only when the UX-4 slices ship, **not on acceptance of this ADR**:
+
+- The only documented navigation-depth violation is **not yet fixed**. It has an
+  **approved remedy** — one additive `/food-log` dashboard action — which
+  removes the violation only when **UX-4A** ships. Until then the four-level
+  food-logging path stands exactly as it does on `main` today.
+- Onboarding has **not yet gained sequencing**. It has an **approved shape**
+  that supplies the missing sequencing without new routes or a second
+  prerequisite mechanism, and that shape becomes real only when **UX-4B** ships.
+  Until then a new account still lands on a dashboard of unsequenced Data-gap
+  states.
+
+**Negative — accepted.** When **UX-4A** ships the shortcut the dashboard will
+grow to ten actions, increasing hub density until UX-3 specifies grouping; it
+carries nine today. Hub-and-spoke persists through V1, so
+switching context between two features still routes through the hub. The
+`accent` role remains unused, so ADR-P022's accent question stays open.
+
+**Neutral.** No shipped behaviour changes on acceptance; this ADR is
+documentation only.
+
+### Supersedes / Preserves
+
+- **Resolves the two open UX-2 decisions** recorded in `.ai/17_PRODUCT_FLOWS.md`
+  §Flow 1 and §Flow 3; that document is updated in the same change.
+- **Preserves ADR-P022** — the eight canonical states, the Selected navigation
+  contract, and the five open AA pairs are unchanged; this ADR declines to
+  consume the accent role rather than redefining it.
+- **Preserves ADR-P019** — Web stays constrained; no tab shell is introduced that
+  would advertise dormant Web destinations.
+- **Preserves ADR-P017** — no dormant medical surface becomes reachable.
+  **BUG-006** stays open and is unaffected.
+- **Preserves ADR-P023 / P024 / P025** — no accessibility outcome is claimed,
+  and the two V1 input style families are untouched.
+- Does **not** advance FEATURE-011 (password recovery), which remains TARGET in
+  PR #102 and is not modified by this decision.
+
+### Related Documents
+
+- `.ai/17_PRODUCT_FLOWS.md` (UX-2 — Flow 1 onboarding, Flow 3 navigation)
+- `.ai/08_UI_UX.md` (Selected navigation contract; accent contrast; "Avoid more
+  than three navigation levels"; dashboard priorities incl. Quick Actions)
+- `.ai/06_MOBILE.md` ("Avoid nested navigation complexity"; Expo Router)
+- `.ai/11_BACKLOG.md` (FEATURE-010 UX stream; UX-3A/B/C/D and UX-4A/B/C slices)
+- `.ai/00_PROJECT.md` (§Decision Hierarchy)
+- `.ai/12_DECISIONS.md` (ADR-P017, ADR-P019, ADR-P022, ADR-P023–P025)
+
+---
+
 
 # AI Instructions
 
