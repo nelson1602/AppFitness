@@ -8670,8 +8670,20 @@ Taking effect only when the UX-4 slices ship, **not on acceptance of this ADR**:
 **Negative — accepted.** When **UX-4A** ships the shortcut the dashboard will
 grow to ten actions, increasing hub density until UX-3 specifies grouping; it
 carries nine today. Hub-and-spoke persists through V1, so
-switching context between two features still routes through the hub. The
-`accent` role remains unused, so ADR-P022's accent question stays open.
+switching context between two features still routes through the hub. ADR-P022's
+accent question stays open.
+
+  *Evidence correction (2026-08-28, UX-3D).* This bullet originally read "The
+  `accent` role remains unused, so ADR-P022's accent question stays open." The
+  first clause is wrong: `theme.colors.accent` has exactly **one** consumer in
+  `mobile/src` — `TrendBars.tsx:113`, which fills the **latest bar** of each
+  Progress trend chart. `.ai/08_UI_UX.md` records that pair at **2.998 : 1**, below
+  the 3:1 non-text threshold. The **conclusion is unchanged and is if anything
+  reinforced**: ADR-P022's accent question stays open, and this ADR's navigation
+  decision — hub-and-spoke retained, bottom tabs deferred, revisit triggers
+  unchanged — is not affected. Whether that specific chart usage requires 3:1
+  belongs to the open accent question, not to this ADR; see
+  `.ai/20_PROGRESS_NONVISUAL.md` §Findings F-2.
 
 **Neutral.** No shipped behaviour changes on acceptance; this ADR is
 documentation only.

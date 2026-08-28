@@ -1,6 +1,6 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.2
+Version: 1.3
 Status: Active
 Last Updated: 2026-08-28
 
@@ -495,7 +495,10 @@ a house style.
 `TrendBars` and `WeeklySnapshotSummary` are embedded **presentational**
 components with no state source of their own; they render only when the screen
 is in its ready arm. They are not separate surfaces for the purposes of this
-document. Their non-visual equivalent is **UX-3D**, not UX-3B.
+document. Their non-visual equivalent is **UX-3D**, specified in
+`.ai/20_PROGRESS_NONVISUAL.md` — which also records that the empty and
+single-point series are **content conditions inside this screen's ready arm**,
+not canonical states of their own.
 
 ---
 
@@ -684,7 +687,7 @@ Not defects — specification work this document deliberately does not do.
 | Gap | Owning slice |
 |---|---|
 | EN/ES copy for every state named above | **UX-3C — delivered as `.ai/19_COPY_DECKS.md` v1.0 documentation candidate** |
-| Non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` | **UX-3D** |
+| Non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` | **UX-3D — delivered as `.ai/20_PROGRESS_NONVISUAL.md` v1.0 documentation candidate** |
 | Whether a first-run checklist introduces a new state (it must not — `.ai/17_PRODUCT_FLOWS.md` §Flow 1 already requires this) | **UX-4B** |
 | Manual VoiceOver / TalkBack / browser-AT verification of every state above | **UX-4C** |
 
@@ -815,5 +818,6 @@ document after a new commit, re-verify the evidence baseline first: the counts i
 ## Scope reminder
 
 This document is UX-3B. Copy is the separate UX-3C deliverable
-`.ai/19_COPY_DECKS.md`; the progress-chart non-visual equivalent is UX-3D, and
-implementation is UX-4. None of them is authorized by this file.
+`.ai/19_COPY_DECKS.md`; the progress-chart non-visual equivalent is the UX-3D
+deliverable `.ai/20_PROGRESS_NONVISUAL.md`; implementation is UX-4. None of them
+is authorized by this file.
