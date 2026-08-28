@@ -1,6 +1,6 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.1
+Version: 1.2
 Status: Active
 Last Updated: 2026-08-28
 
@@ -28,7 +28,8 @@ reconciled.
   live in `.ai/08_UI_UX.md` §State Component Contracts (UX-1B2A). Visual
   treatment is referenced here only as *which shipped component renders*, never
   restated.
-- **Not copy.** EN/ES copy decks are **UX-3C**.
+- **Not copy.** EN/ES copy decks are delivered separately in
+  `.ai/19_COPY_DECKS.md` (**UX-3C**).
 - **Not an accessibility certification.** No outcome here is verified; see
   §Accessibility scope.
 - **Not implementation.** Nothing here authorizes a code, localization,
@@ -682,7 +683,7 @@ Not defects — specification work this document deliberately does not do.
 
 | Gap | Owning slice |
 |---|---|
-| EN/ES copy for every state named above | **UX-3C** |
+| EN/ES copy for every state named above | **UX-3C — delivered as `.ai/19_COPY_DECKS.md` v1.0 documentation candidate** |
 | Non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` | **UX-3D** |
 | Whether a first-run checklist introduces a new state (it must not — `.ai/17_PRODUCT_FLOWS.md` §Flow 1 already requires this) | **UX-4B** |
 | Manual VoiceOver / TalkBack / browser-AT verification of every state above | **UX-4C** |
@@ -757,6 +758,8 @@ Per `.ai/17_PRODUCT_FLOWS.md` §Accessibility posture and ADR-P023 / ADR-P024:
   Component Contracts (UX-1B2A). The authority for anything visual.
 - `.ai/17_PRODUCT_FLOWS.md` — flow-level state declarations that these matrices
   refine to the surface level.
+- `.ai/19_COPY_DECKS.md` — exact EN/ES copy for the states and proposed gaps
+  inventoried here.
 - `.ai/06_MOBILE.md` — §Error Handling (the applicable-subset rule),
   offline-first, synchronization and screen principles.
 - `.ai/12_DECISIONS.md` — ADR-P019 (Web dormancy), ADR-P022 (state model,
@@ -811,5 +814,6 @@ document after a new commit, re-verify the evidence baseline first: the counts i
 
 ## Scope reminder
 
-This document is UX-3B. Copy is UX-3C, the progress-chart non-visual equivalent
-is UX-3D, and implementation is UX-4. None of them is authorized by this file.
+This document is UX-3B. Copy is the separate UX-3C deliverable
+`.ai/19_COPY_DECKS.md`; the progress-chart non-visual equivalent is UX-3D, and
+implementation is UX-4. None of them is authorized by this file.

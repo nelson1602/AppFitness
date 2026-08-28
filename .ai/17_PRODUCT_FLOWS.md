@@ -1,6 +1,6 @@
 # AppFitness Low-Fidelity Product Flows (V1)
 
-Version: 1.2
+Version: 1.3
 Status: Active
 Last Updated: 2026-08-28
 
@@ -87,6 +87,11 @@ run against `origin/main` `fb02097593ff9a2735f54620d6350d880cf3a030`, corrected
 Four sections therefore changed in v1.2 — §Flow 3, §Flow 4, §Flow 5 and §Flow 7 —
 plus this baseline note, §Related documents, and the UX-3 follow-up list. Every
 other flow, status and claim is unchanged.
+
+**v1.3 (UX-3C).** The UX-3 follow-up list and §Related documents now point to
+the separate exact-copy specification in `.ai/19_COPY_DECKS.md`. No flow,
+screen inventory, state applicability or SHIPPED / TARGET / PROPOSED status
+changed in this revision.
 
 Inspected: `mobile/src/app/` (15 files — 14 user-facing routes plus
 `_layout.tsx`), `mobile/src/features/*`,
@@ -855,20 +860,17 @@ alone are insufficient. Specifying that equivalent is **UX-3 work**; it is
 UX-3 (high-fidelity specifications) should proceed in this order, because each
 step de-risks the next:
 
-1. **Resolve the two blocking decisions first**, since both change screen
-   inventory and neither is a visual question:
-   - onboarding **advisory vs blocking** (this document recommends advisory);
-   - **hub-and-spoke vs tabs**, which also gives the ADR-P022
-     selected-navigation accent role somewhere to live.
-2. **Author the EN/ES copy deck** for the SHIPPED surfaces first — dashboard,
-   workout log, nutrition, progress — because they are live and their copy is
-   already load-bearing. Recovery copy follows PR #102's merge; verification
-   copy waits for Vertical 2 authorization.
-3. **Write per-screen state matrices** binding each surface to its subset of the
-   eight canonical states, with the exact trigger for each. **Delivered as
-   UX-3B** — `.ai/18_SCREEN_STATE_MATRICES.md`, covering **10** state-bearing
-   surfaces. The dashboard is the reference: it reaches **seven**.
-4. **Specify the non-visual equivalent for progress charts** — the largest
+1. **Blocking decisions — delivered as UX-3A.** ADR-P027 chooses advisory
+   onboarding, retains hub-and-spoke and defers bottom tabs.
+2. **Per-screen state matrices — delivered as UX-3B.**
+   `.ai/18_SCREEN_STATE_MATRICES.md` covers **10** state-bearing surfaces and
+   binds each to its applicable subset of the eight states.
+3. **EN/ES copy decks — delivered as the UX-3C documentation candidate.**
+   `.ai/19_COPY_DECKS.md` ratifies the shipped state copy and specifies the
+   missing copy for the recorded conformance gaps, advisory checklist and Food
+   Log shortcut. Recovery still follows PR #102's merge; verification copy
+   still waits for ADR-P026 Vertical 2 authorization.
+4. **Next: specify the non-visual equivalent for progress charts** — the largest
    unspecified accessibility surface in the product.
 5. **Schedule the manual AT verification pass** (VoiceOver, TalkBack,
    browser-AT), recorded per surface. Until it runs, no accessibility outcome in
@@ -888,6 +890,8 @@ distinction intact, and must not promote intent into a verified outcome.
   form contracts, contrast evidence
 - `.ai/18_SCREEN_STATE_MATRICES.md` — the UX-3B per-surface refinement of the
   §States sections above, with triggers, treatments and evidence
+- `.ai/19_COPY_DECKS.md` — the UX-3C exact EN/ES state copy and proposed-key
+  handoff
 - `.ai/11_BACKLOG.md` — FEATURE-010 (UX stream), FEATURE-011 (recovery)
 - `.ai/12_DECISIONS.md` — ADR-P017 through ADR-P027
 - `.ai/06_MOBILE.md` — offline-first expectations

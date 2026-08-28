@@ -1505,9 +1505,16 @@ Excluded:
        recorded as justified `n/a`, describing what they currently receive.
      - **BUG-011** and **BUG-012** were opened by this audit for the two
        state-model gaps that are missing behaviour rather than wrong behaviour.
-   - **UX-3C — EN/ES copy decks** for those four SHIPPED surfaces first, then
-     the first-run checklist and the Food Log shortcut. Recovery copy follows
-     PR #102; verification copy waits for ADR-P026 Vertical 2 authorization.
+   - **UX-3C — EN/ES copy decks. DELIVERED as a documentation candidate**
+     (`.ai/19_COPY_DECKS.md` v1.0, audited against `origin/main`
+     `a24b4b69f477028cbc5022186773486b4f2f1a14`). Ratifies the exact shipped
+     state copy across Dashboard, Workout Log, Nutrition and Progress; defines
+     **33 PROPOSED keys** split among BUG-007/008/009/010/011 and UX-4A/4B;
+     specifies the advisory first-run checklist and direct Food Log shortcut;
+     and preserves exact status boundaries. It adds **no runtime or catalogue
+     key**, invents no conflict-resolution flow, leaves progress-chart
+     equivalence to UX-3D, defers recovery until PR #102 merges, and leaves
+     verification copy behind ADR-P026 Vertical 2 authorization.
    - **UX-3D — Progress-chart non-visual equivalent.** The largest unspecified
      accessibility surface; colour and shape alone are insufficient.
 6. **UX-4 — Authentication / onboarding / dashboard pilot. Status: Proposed.**
@@ -2271,11 +2278,14 @@ own copy. Neither is presented as the other.
 - [ ] `CATALOG_REVISION_UNSUPPORTED` and version conflict are distinguishable to
       the user.
 - [ ] A regression test asserts the tone for each.
-- [ ] EN/ES copy for both is specified under **UX-3C** before implementation.
+- [x] EN/ES copy for both is specified under **UX-3C** before implementation
+      (`.ai/19_COPY_DECKS.md`; catalog incompatibility stays on the shipped
+      `action*` family and Conflict receives a separate proposed family).
 
 ### Related Documents
 
 - `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — C-3, and surface 8)
+- `.ai/19_COPY_DECKS.md` (UX-3C — Food Log catalog/Conflict copy split)
 - `.ai/08_UI_UX.md` (§Canonical State Patterns)
 - `.ai/12_DECISIONS.md` (ADR-P022 — the state model)
 
@@ -2344,6 +2354,7 @@ distinguishable from a load failure and does not discard the user's input.
 ### Related Documents
 
 - `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — C-4, and surfaces 8 and 10)
+- `.ai/19_COPY_DECKS.md` (UX-3C — distinct add/edit/remove failure copy)
 - `.ai/06_MOBILE.md` (§Error Handling)
 
 ---
@@ -2405,11 +2416,13 @@ user cannot mistake for "you have not recorded anything yet".
 - [ ] The card renders a distinct state when `status === 'error'`.
 - [ ] Empty is reachable only after a successful read.
 - [ ] Specs cover the card's loading and error branches.
-- [ ] EN/ES copy is specified under **UX-3C** before implementation.
+- [x] EN/ES copy is specified under **UX-3C** before implementation
+      (`progress.card.errorTitle` / `errorBody` in `.ai/19_COPY_DECKS.md`).
 
 ### Related Documents
 
 - `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — C-5, and surface 4)
+- `.ai/19_COPY_DECKS.md` (UX-3C — Progress summary card)
 - `.ai/08_UI_UX.md` (§Canonical State Patterns)
 
 ---
@@ -2472,12 +2485,14 @@ assistive technology on a Spanish-locale device.
 - [ ] The label is supplied via `t()` from a new key.
 - [ ] EN and ES entries are added together, preserving exact parity.
 - [ ] No hardcoded user-facing string remains in the component.
-- [ ] The key's copy is specified under **UX-3C**; no accessibility **outcome**
+- [x] The key's copy is specified under **UX-3C**
+      (`common.loadingContentAccessibility`); no accessibility **outcome**
       may be claimed before the **UX-4C** manual AT pass.
 
 ### Related Documents
 
 - `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — C-8, §Cross-cutting and surface 1)
+- `.ai/19_COPY_DECKS.md` (UX-3C — cross-cutting session resolution)
 - `.ai/06_MOBILE.md` (§Internationalization)
 - `.ai/12_DECISIONS.md` (ADR-P023 / ADR-P024 — accessibility staging)
 
@@ -2557,13 +2572,15 @@ the two row-level hints Workout Log already ships.
 - [ ] Progress renders Pending sync and Conflict on body weights, measurements
       and weekly snapshots.
 - [ ] Conflict uses `warning`, never `error` (see BUG-007).
-- [ ] EN/ES copy is specified under **UX-3C** before implementation.
+- [x] EN/ES copy is specified under **UX-3C** before implementation for Workout
+      Log, Dietary Preferences and Progress (`.ai/19_COPY_DECKS.md`).
 - [ ] Specs cover each new treatment; no accessibility outcome is claimed before
       the **UX-4C** manual AT pass.
 
 ### Related Documents
 
 - `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — surfaces 5, 9, 10; C-1, C-2)
+- `.ai/19_COPY_DECKS.md` (UX-3C — row-level Pending/Conflict reporting)
 - `.ai/08_UI_UX.md` (§Canonical State Patterns)
 - `.ai/06_MOBILE.md` (§Offline First, §Synchronization)
 
@@ -2648,12 +2665,13 @@ one, from at least one surface, without either version being silently discarded.
       SQLite access from the UI.
 - [ ] The dormant medical domain stays dormant (**ADR-P017**); nothing here makes
       a medical surface reachable.
-- [ ] **UX-3C** specifies only the existing conflict-**reporting** copy and adds
+- [x] **UX-3C** specifies only conflict-**reporting** copy and adds
       no resolution-screen copy.
 
 ### Related Documents
 
 - `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — §Residual risks; surfaces 2 and 8)
+- `.ai/19_COPY_DECKS.md` (UX-3C — reporting-only boundary)
 - `.ai/08_UI_UX.md` (§Canonical State Patterns)
 - `.ai/00_PROJECT.md` (§Decision Hierarchy — data integrity)
 - `.ai/12_DECISIONS.md` (ADR-P016 D6 — historical records are never silently
