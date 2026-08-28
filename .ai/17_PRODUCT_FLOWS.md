@@ -1,6 +1,6 @@
 # AppFitness Low-Fidelity Product Flows (V1)
 
-Version: 1.0
+Version: 1.1
 Status: Active
 Last Updated: 2026-08-28
 
@@ -66,6 +66,10 @@ until it lands on `main`.
 Everything below was verified against `origin/main` at commit
 `4c319e94bc06ba0f3224ea7ea8101f62c9919fe1`; TARGET evidence re-verified against
 PR #102 head `a0af271` (52 files, +5566/−29, OPEN/CLEAN) on 2026-08-28.
+
+**v1.1 (ADR-P027).** Flow 1 and Flow 3 were reconciled against `origin/main`
+`74f684dfd0a51dca353cb747c550229630f72016` after the UX-3A decision audit. Only
+those two flows changed; every other status in this document is unchanged.
 
 Inspected: `mobile/src/app/` (15 files — 14 user-facing routes plus
 `_layout.tsx`), `mobile/src/features/*`,
@@ -194,6 +198,12 @@ verification is **PROPOSED** and unscheduled.
 **Status: PROPOSED in its entirety.** No onboarding surface exists on `main`; a
 repository-wide search for `onboarding` returns nothing.
 
+**Shape decided by ADR-P027 (2026-08-28); implementation still PROPOSED.** The
+decision settles *what* onboarding is — advisory, non-blocking, resumable, a
+dashboard checklist reusing the existing Data-gap routing, with no onboarding
+routes. It makes nothing reachable: no code exists, and the status stays
+PROPOSED until UX-4B ships it.
+
 ## What happens today (SHIPPED)
 
 There is no onboarding. A newly registered account lands directly on the
@@ -206,54 +216,74 @@ This is a real V1 product gap, not merely a polish item: the first-run
 experience is a dashboard mostly composed of prerequisites the user has not been
 asked for yet.
 
-## Proposed flow
+## Decided shape — advisory dashboard checklist (ADR-P027)
 
-A short, **skippable, resumable** first-run sequence between successful
-registration and the dashboard. Skippable because a user who wants to look
-around first must be able to; resumable because the dashboard's existing
-Data-gap states already route to exactly these screens.
+**ADR-P027 (Accepted 2026-08-28) resolves the open UX-2 decision: onboarding is
+ADVISORY, non-blocking and resumable, and its approved target shape is a
+dashboard checklist that will reuse the existing Data-gap routing. There are no
+onboarding routes.**
+
+The decided shape is **not** the multi-screen sequence UX-2 sketched. That
+sketch is superseded and is retained below only as a rejected alternative.
 
 ```
 register success
       │
       ▼
- [welcome] ──skip──────────────────────────────┐
-      │ continue                               │
-      ▼                                        │
- [profile essentials]  ──────────────────────► │
-      │ (height, birth date, sex, activity)    │
-      ▼                                        │
- [goal]  ─────────────────────────────────────►│
-      │ (goal type, target)                    │
-      ▼                                        ▼
- [ready] ──────────────────────────────► dashboard
+  dashboard  ← reachable immediately; nothing gates it
+      │
+      ├─ [first-run checklist]   ← derived from the SAME Data-gap state
+      │        │                    the dashboard already computes
+      │        ├─ profile essentials ──► /profile-edit
+      │        ├─ goal              ──► /goal-edit
+      │        └─ first weigh-in    ──► /progress
+      │
+      └─ everything else remains usable throughout
 ```
 
-- **Welcome** — states what AppFitness does and that it works offline. No
-  account creation here; that already happened.
-- **Profile essentials** — the smallest input set the iCoach engine needs.
-  **Must reuse the existing profile form surface**, not a parallel one.
-- **Goal** — goal type and target. Same reuse rule.
-- **Ready** — confirms setup and hands off to the dashboard.
+Why this shape, in one line: the sequencing was the only thing missing —
+`DashboardScreen.tsx` already maps `profile` / `birth-date` / `height` →
+`/profile-edit`, `default-goal` → `/goal-edit`, and `weight` → `/progress`.
 
-**Copy intent (EN/ES).** Welcoming, concrete, honest about offline capability.
-Never promise medical or diagnostic value. Skip must read as a legitimate
-choice, not a warning.
+The three properties follow from that reuse rather than from new machinery:
 
-**States.** Loading (restoring session), Error (a save fails — stay on the step,
-never advance silently), Offline (setup is local-first, so it must remain
-completable offline). Web: onboarding is only meaningful if the underlying
-surfaces work, so on Web it inherits **Web unavailable**.
+- **Non-blocking** — the dashboard is reachable immediately; no step gates it.
+- **Resumable** — the checklist will be derived from live Data-gap state, so an
+  unresolved prerequisite simply remains listed. Nothing needs to be persisted
+  to "remember where the user was".
+- **Skippable** — dismissing or ignoring it never blocks any surface.
 
-**Accessibility intent.** Step position announced ("step 2 of 3"); focus moves
-to the new step heading on transition; skip reachable without traversing every
-field. All three are **unverified intent**.
+**Status: PROPOSED.** ADR-P027 approves the shape; **no implementation exists**,
+and it stays PROPOSED until UX-4B ships it. Nothing here is reachable by a user
+today.
 
-**Open decision for UX-3.** Whether onboarding is *blocking* (dashboard
-unreachable until complete) or *advisory* (skippable, with the dashboard's
-Data-gap states as the fallback path). This specification recommends
-**advisory**, because the Data-gap states are already SHIPPED and correct, and a
-blocking gate would add a second, redundant mechanism for the same problem.
+**Left to UX-3 specification, deliberately not decided by ADR-P027:** the visual
+treatment; dismissal semantics (per-session, persistent, or completion-only);
+item ordering; and all EN/ES copy.
+
+**States.** Loading (dashboard read in flight), plus the Data-gap state that
+already drives the routing. The checklist will add no new state and must not
+introduce a ninth — see §Global conventions.
+
+**Accessibility intent.** Progress through the list should be conveyed
+non-visually (for example "2 of 3 complete"), and each item should name the
+prerequisite it resolves rather than relying on position. **Unverified intent**;
+no outcome may be claimed before the UX-4C manual AT pass.
+
+## Rejected alternative — blocking onboarding
+
+Rejected by ADR-P027: it would build a second mechanism for a job the Data-gap
+states already do, which `.ai/00_PROJECT.md` §Decision Hierarchy disfavours at
+**#5 Maintainability**. No user-safety, data-integrity or security argument
+(#1–#3) supports gating a wellness product (ADR-P017).
+
+## Rejected alternative — the UX-2 four-screen sequence
+
+The original sketch was a `welcome → profile essentials → goal → ready`
+sequence between registration and the dashboard. Rejected by ADR-P027: it needs
+at least three new routes and a new navigation surface to reach an outcome the
+dashboard checklist reaches with none. Recorded here so the decision is
+traceable, not to keep it on the table.
 
 ---
 
@@ -414,16 +444,96 @@ Spoke-to-spoke transitions exist where a task genuinely continues:
 nutrition targets → nutrition plan → food log; nutrition data-gap →
 profile-edit or progress; progress card → progress.
 
-**Assessment.** Hub-and-spoke is defensible for V1: seven surfaces is at the
-upper end of what a hub carries comfortably, and the dashboard doubles as
-status. Its weakness is depth — reaching the food log is dashboard → nutrition →
-plan → food log, which is three taps from the hub for a **daily** task.
+**Assessment.** Hub-and-spoke is defensible for V1: the hub carries seven
+navigation actions plus two account actions, and the dashboard doubles as
+status. Its weakness is depth on one loop.
 
-**PROPOSED for UX-3 consideration, not decided here:** promote the two
-highest-frequency inner loops (log a workout, log food) to direct dashboard
-actions, or introduce tabs. Tabs would be a genuine IA change and need their own
-authorization — ADR-P022 notes the selected-navigation accent role currently has
-nowhere to live, which is a symptom of exactly this gap.
+**Correction to the original UX-2 assessment.** UX-2 named two deep daily loops.
+Only one is deep. `DashboardScreen.tsx` already pushes `/workout-log`
+directly, so **logging a workout is one tap**. Food logging is the outlier:
+
+```
+dashboard(L1) → nutrition(L2) → nutrition-plan(L3) → food-log(L4)
+```
+
+That is **three pushes / four levels**, which exceeds `.ai/08_UI_UX.md`
+**"Avoid more than three navigation levels"** — the only documented information-
+architecture violation in the product, and it sits on a daily task.
+
+## Decided model — hub-and-spoke retained (ADR-P027)
+
+**ADR-P027 (Accepted 2026-08-28) resolves the open UX-2 decision.**
+
+- **V1 keeps hub-and-spoke. Status: SHIPPED** — this is the model running today
+  and it is unchanged by the decision.
+- **Workout Log stays one tap** — already true, no work required.
+- **A direct `/food-log` dashboard shortcut is approved for UX-4A.
+  Status: PROPOSED** — approved in principle, **not implemented**; it stays
+  PROPOSED until UX-4A ships it. It is additive: the existing
+  targets → plan → food-log chain is preserved for users who arrive that way.
+
+## Bottom tabs — DEFERRED, not unavailable
+
+Tabs are **technically available with no new dependency**. `expo-router@57`
+resolves `build/layouts/Tabs.js`, `build/layouts/TabsClient.js`, and a
+**vendored** `build/react-navigation/bottom-tabs`; `@react-navigation/bottom-tabs`
+is neither declared in `mobile/package.json` nor separately installed. The
+deferral is a design and cost decision, not a capability limit — UX-3 must not
+record tabs as "impossible".
+
+**`DEFERRED` is an ADR-P027 decision outcome, not a fourth product-flow
+status.** The vocabulary of this document remains SHIPPED / TARGET / PROPOSED
+(see §Status vocabulary), and **no tab-shell or tab-navigation implementation
+carries any of them**: no tab navigator, no tab layout and no tab bar is
+SHIPPED, TARGET or PROPOSED.
+
+This says nothing about the destinations themselves. `dashboard`,
+`workout-log`, `progress` and the other named routes **keep the statuses
+documented for them elsewhere in this file**, and the deferral does not alter
+any of them. The five-tab map below is **informational and non-binding**: it
+groups already-statused routes to record evidence for a future decision, and it
+assigns them **no tab-navigation status** of any kind.
+
+Four reasons, per ADR-P027 Decision 3:
+
+1. **Unresolved selected-navigation accent contrast.** `.ai/08_UI_UX.md` defines
+   a **Selected navigation** contract (`accent` + filled icon + heavier label)
+   that nothing currently uses, and records `accent` on `surface` at
+   **2.998:1 — FAIL**, below even the 3:1 non-text threshold. Tabs would
+   activate that role and land V1 on one of ADR-P022's five open AA pairs.
+   Non-colour redundancy addresses colour-*alone* dependence; it does not make a
+   2.998:1 indicator conformant.
+2. **Nested-navigation and migration cost.** `.ai/06_MOBILE.md` — "Avoid nested
+   navigation complexity". The tab shell anticipated below would add a
+   tab/stack nesting layer over today's single `<Stack>`, since three of its
+   five tabs own several routes each; that is a property of *this* anticipated
+   design, not of tabs in general. **20 files** reference route paths and
+   **16 route spec files** live in `features/navigation/`.
+3. **Web dead destinations.** Under ADR-P019 four of five tabs would advertise
+   surfaces that render **Web unavailable**.
+4. **Dashboard status role.** The dashboard reaches six of the eight canonical
+   states; tabs demote it to one peer of five.
+
+### Non-binding future tab map
+
+Recorded by ADR-P027 so a later decision starts from evidence. **Not approved,
+not a target** — informational only.
+
+| Tab (non-binding) | Would own |
+|---|---|
+| Home | `dashboard` (+ `index` redirect) |
+| Workout | `routines`, `workout-log`, `exercises` |
+| Nutrition | `nutrition`, `nutrition-plan`, `food-log`, `dietary-preferences` |
+| Progress | `progress` |
+| Profile | `profile-edit`, `goal-edit`, `delete-account` |
+
+`sign-in` stays outside any tab shell. All twelve non-authentication routes map
+without leftovers.
+
+**Revisit triggers — all three required:** resolve the `accent` token decision
+(or record an authorized exception covering selected navigation); decide Web tab
+behaviour explicitly; and authorize the migration separately with the
+20-file / 16-spec surface costed.
 
 ## Known repository defect — NOT a product flow (BUG-006)
 
