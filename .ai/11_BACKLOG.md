@@ -1428,10 +1428,24 @@ Excluded:
       `RoutineBuilder.tsx` and `WorkoutLogScreen.tsx` the `error` references are
       screen-level messages, not input borders — so **`FormField` is the only
       remaining consumer with an error border**.
-4. **UX-2 — Low-fidelity product flows. Status: Proposed.** Onboarding,
-   authentication including verification and recovery surfaces, navigation and
-   information architecture, workout logging inner loop, nutrition logging,
-   progress. Text specifications in `.ai/`; no design tooling.
+4. **UX-2 — Low-fidelity product flows. Status: DELIVERED 2026-08-28 —
+   `.ai/17_PRODUCT_FLOWS.md` v1.0.** Onboarding, authentication including
+   verification and recovery surfaces, navigation and information architecture,
+   workout logging inner loop, nutrition logging, progress. Text specification
+   in `.ai/`; no design tooling, no runtime change.
+   Every flow is tagged **SHIPPED / TARGET / PROPOSED** against `origin/main`
+   `4c319e94`. Boundary facts worth carrying forward: **onboarding does not
+   exist** (no surface on `main` — first-run is a dashboard of Data-gap states);
+   **password recovery is TARGET**, living in PR #102, not on `main`; **email
+   verification is PROPOSED** with no implementation anywhere; navigation is
+   **hub-and-spoke, not tabs**. The specification reuses the eight ADR-P022
+   canonical states rather than defining new ones, and records accessibility as
+   **intent only** — ADR-P023/P024 outcomes stay unverified pending the manual
+   VoiceOver / TalkBack / browser-AT pass, which remains unscheduled. It also
+   records a live defect: `EvaluationHistory` is imported by no route and pushes
+   to the non-existent `/evaluation-edit`.
+   Two blocking decisions are handed to UX-3: onboarding **advisory vs
+   blocking**, and **hub-and-spoke vs tabs**.
 5. **UX-3 — High-fidelity specifications. Status: Proposed.** Per-screen
    blueprints, state matrices, EN/ES copy decks, accessibility annotations,
    motion specifications.
@@ -2028,6 +2042,95 @@ leaves the Progress screen usable; raw SQLite/native text never renders.
 - .ai/12_DECISIONS.md (ADR-P016 D6 — conflict/duplicate semantics; ADR-0006)
 - .ai/03_CODING_STANDARDS.md (no silent error swallowing) · .ai/06_MOBILE.md (error handling)
 - [TECHDEBT-003] (sanitized-error pattern)
+
+---
+
+## [BUG-006] Dormant EvaluationHistory Is Unrouted and Pushes to a Non-Existent `/evaluation-edit`
+
+Status: Open
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-08-28
+Updated: 2026-08-28
+
+### Description
+
+Found during the **UX-2** product-flow review (`.ai/17_PRODUCT_FLOWS.md` v1.0),
+verified against `origin/main` `4c319e94`.
+
+`mobile/src/features/medical/presentation/EvaluationHistory.tsx` exports
+`EvaluationHistory()`, but **no route or screen imports it** — the only
+repository reference to the symbol is its own declaration. It is therefore
+**user-unreachable**: there is no navigation path to it from any of the 14
+user-facing routes in `mobile/src/app/`.
+
+The component also calls `router.push('/evaluation-edit')`, and
+**`mobile/src/app/evaluation-edit.tsx` does not exist**. Expo Router resolves
+routes from that directory, so the push targets a route with no file behind it.
+
+**No user is affected today.** The medical domain is dormant for public-v1 by
+**ADR-P017**, and the component is unreachable, so this is a **latent repository
+defect**, not a product regression and not shipped behaviour. It is recorded
+explicitly because the UX-2 specification needed to state that it is *not* an IA
+decision, and because it is a trap for whoever revives the medical domain:
+wiring the surface up without first providing the route would send users into a
+dead navigation target.
+
+P3 because impact is currently zero and the fix is small; it is tracked rather
+than fixed silently so the constraint below is not lost.
+
+### Evidence
+
+- `rg "EvaluationHistory" mobile/src` → matches in **two files only**: the single
+  production declaration (`features/medical/presentation/EvaluationHistory.tsx`,
+  `export function EvaluationHistory()`) and its own test file
+  (`EvaluationHistory.spec.tsx`, which imports and renders it several times).
+  The command returns **several** lines, not one — the point is that **no route
+  or screen imports it**; the component's only consumer is its spec.
+- `ls mobile/src/app/evaluation-edit.tsx` → **no such file**; the 14 route files
+  do not include it.
+- `EvaluationHistory.tsx` contains `router.push('/evaluation-edit')`.
+- `.ai/17_PRODUCT_FLOWS.md` §"Known repository defect" and §Unresolved risks.
+
+### Expected Outcome
+
+The repository contains no navigation target that cannot resolve. Either the
+dangling push is removed while the domain stays dormant, or — if and only if the
+medical domain is later revived under its own authorization — the route exists
+before the surface becomes reachable. In neither case does a user encounter a
+push to a missing route.
+
+### Acceptance Criteria
+
+- [ ] No source file pushes to `/evaluation-edit` while
+      `mobile/src/app/evaluation-edit.tsx` does not exist.
+- [ ] A check proves the invariant generally: every `router.push` /
+      `router.replace` string literal in `mobile/src` resolves to a file in
+      `mobile/src/app/`. Manual verification is acceptable for V1; a test or lint
+      rule is preferred.
+- [ ] `EvaluationHistory` is either (a) left dormant with the dangling push
+      removed, or (b) deleted, or (c) routed — **(c) only under a separate
+      authorization that lifts ADR-P017 dormancy**.
+- [ ] Whichever option is taken, **no medical surface becomes user-reachable in
+      public-v1** as a side effect.
+- [ ] No change to medical data handling, encryption, or the medical schema.
+- [ ] `.ai/17_PRODUCT_FLOWS.md` is updated if the resolution changes what the
+      flow document asserts.
+
+### Constraints
+
+**ADR-P017 (public-v1 wellness rebaseline) governs this.** Medical surfaces are
+**dormant for public-v1**, so the fix is **not** "create `/evaluation-edit`".
+Adding that route would make a dormant medical surface reachable and would
+contradict an accepted ADR. The default resolution is to remove the dangling
+push (or the dead component) and leave the domain dormant.
+
+### Related Documents
+
+- `.ai/17_PRODUCT_FLOWS.md` (UX-2 — where this was found)
+- `.ai/12_DECISIONS.md` (ADR-P017 — public-v1 dormancy of medical surfaces)
+- `.ai/06_MOBILE.md` (navigation expectations)
 
 ---
 
