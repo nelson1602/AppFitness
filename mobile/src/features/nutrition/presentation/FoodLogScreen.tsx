@@ -10,7 +10,11 @@ import { useTheme } from '@/shared/theme';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { foodDisplayName } from '../application/food-display.service';
 import { getById } from '../application/food-catalog.service';
-import { useFoodLogStore, type FoodLogSyncSummary } from '../application/food-log.store';
+import {
+  useFoodLogStore,
+  type FoodLogSyncSummary,
+  type FoodLogWriteOperation,
+} from '../application/food-log.store';
 import type { ConsumedMacros, LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS } from '../domain/meal-plan';
 import { FoodLogAddForm } from './food-log/FoodLogAddForm';
@@ -73,6 +77,40 @@ function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
         </Banner>
       );
   }
+}
+
+/**
+ * A failed write is reported distinctly from a failed read (BUG-008): the day is
+ * still on screen and the user's input is still valid, so this renders ALONGSIDE
+ * the content rather than replacing it. Copy is per-operation — "couldn't add"
+ * and "couldn't remove" are different facts and must not be collapsed.
+ */
+const WRITE_ERROR_COPY: Record<
+  FoodLogWriteOperation,
+  { title: TranslationKey; body: TranslationKey }
+> = {
+  add: {
+    title: 'nutrition.log.writeError.addTitle',
+    body: 'nutrition.log.writeError.addBody',
+  },
+  servings: {
+    title: 'nutrition.log.writeError.servingsTitle',
+    body: 'nutrition.log.writeError.servingsBody',
+  },
+  remove: {
+    title: 'nutrition.log.writeError.removeTitle',
+    body: 'nutrition.log.writeError.removeBody',
+  },
+};
+
+function WriteErrorBanner({ operation }: { operation: FoodLogWriteOperation }) {
+  const { t } = useLocalization();
+  const copy = WRITE_ERROR_COPY[operation];
+  return (
+    <Banner title={t(copy.title)} tone="error">
+      {t(copy.body)}
+    </Banner>
+  );
 }
 
 function ItemSyncChip({ item }: { item: LoggedMealItem }) {
@@ -239,7 +277,7 @@ function DailyTotals({ totals }: { totals: ConsumedMacros }) {
 export function FoodLogScreen() {
   const theme = useTheme();
   const { t } = useLocalization();
-  const { status, items, totals, sync, load, addFood, syncNow } = useFoodLogStore();
+  const { status, items, totals, sync, writeError, load, addFood, syncNow } = useFoodLogStore();
   const { status: prefStatus, preferences, load: loadPreferences } = useDietaryPreferenceStore();
 
   useEffect(() => {
@@ -278,6 +316,9 @@ export function FoodLogScreen() {
       </View>
 
       <SyncBanner sync={sync} />
+
+      {/* Write failures surface here, above the content they did not destroy. */}
+      {writeError ? <WriteErrorBanner operation={writeError} /> : null}
 
       {status === 'loading' || status === 'idle' ? (
         <AppText accessibilityLabel={t('nutrition.log.loadingAccessibility')}>

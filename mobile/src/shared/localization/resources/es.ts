@@ -578,6 +578,14 @@ export const es = {
   'nutrition.log.loadingAccessibility': 'Cargando registro de alimentos',
   'nutrition.log.unavailable': 'Registro de alimentos no disponible',
   'nutrition.log.errorMessage': 'No se pudo cargar tu registro de alimentos. Inténtalo de nuevo.',
+  'nutrition.log.writeError.addTitle': 'No se pudo agregar el alimento',
+  'nutrition.log.writeError.addBody':
+    'El alimento no se agregó. Tus selecciones siguen aquí. Inténtalo de nuevo.',
+  'nutrition.log.writeError.servingsTitle': 'No se pudieron actualizar las porciones',
+  'nutrition.log.writeError.servingsBody':
+    'El cambio de porciones no se guardó. Inténtalo de nuevo.',
+  'nutrition.log.writeError.removeTitle': 'No se pudo eliminar el alimento',
+  'nutrition.log.writeError.removeBody': 'El alimento sigue en tu registro. Inténtalo de nuevo.',
   'nutrition.log.webUnavailableTitle': 'El registro de alimentos no está disponible en la web',
   'nutrition.log.webUnavailableBody':
     'Usa la app móvil de AppFitness para registrar tus comidas y seguir tu nutrición diaria.',

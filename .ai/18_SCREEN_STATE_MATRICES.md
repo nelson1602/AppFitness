@@ -1,8 +1,8 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.3
+Version: 1.4
 Status: Active
-Last Updated: 2026-08-28
+Last Updated: 2026-08-31
 
 ---
 
@@ -431,7 +431,7 @@ the richest state surface after the dashboard.
 | **Loading** | `status === 'loading'` or `'idle'` | `nutrition.log.loading` text in the content slot | `load()` resolves | Both | `FoodLogScreen.tsx:282-285`; spec *"renders a loading state"* | SHIPPED |
 | **Empty** | Read succeeded, no items logged for the selected day | `<Card>` with `nutrition.log.emptyTitle` / `emptyMessage` | User logs the first item | Native | `FoodLogScreen.tsx:296-302`; spec *"renders the empty state when nothing is logged"* | SHIPPED |
 | **Error** — load | `status === 'error'`, set **only** by `load()` | `<Banner tone="error">`, `nutrition.log.unavailable` / `errorMessage` | Next successful load | Both | `FoodLogScreen.tsx:286-289`; spec *"surfaces a load error"* | SHIPPED |
-| **Error** — writes | `error` set by `addFood` / `editServing` / `removeItem` | **No treatment.** The screen never reads the store's `error` field, so a failed write renders nothing | — | Native | `food-log.store.ts:124-147`; no reader in `FoodLogScreen.tsx`; **owner: BUG-008** | **PROPOSED** |
+| **Error** — writes | `writeError` set to `add` / `servings` / `remove` by the write that failed | A **separate** `<Banner tone="error">` per operation — `nutrition.log.writeError.{add,servings,remove}{Title,Body}` — rendered **alongside** the log, which is not cleared | The next write attempt, or the next successful read | Native | `food-log.store.ts:30`, `:48`, `:129-160`; `FoodLogScreen.tsx:88-112`, `:321`; specs *"reports a failed add without hiding the log (BUG-008)"*, *"reports a failed serving change (BUG-008)"*, *"reports a failed removal and says the food is still logged (BUG-008)"*, *"localizes the write-failure banner in Spanish (BUG-008)"* | SHIPPED |
 | **Error** — sync | `sync.state === 'error'` | `<Banner tone="error">`, `nutrition.log.syncErrorTitle/Message` | Next successful sync | Native | `FoodLogScreen.tsx:52-56` | SHIPPED |
 | **Offline** | `sync.state === 'offline'` — set only by an explicit `syncNow()` | `<Banner tone="warning">`, `nutrition.log.offlineTitle/Message` | A later successful sync | Native | `FoodLogScreen.tsx:34-40`; `food-log.store.ts:163-164` | SHIPPED |
 | **Pending sync** — banner | `sync.state === 'pending'`, derived on load from item states | `<Banner tone="info">` with a pending count, one/many pluralized | Queue drains | Native | `FoodLogScreen.tsx:57-68`; `food-log.store.ts:66-68`; spec *"shows a sync-pending banner and a per-item pending chip"* | SHIPPED |
@@ -521,18 +521,19 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 9 | Dietary Preferences | S | S | — | S | — | **P** | **P** | S |
 | 10 | Progress | S | S | — | S | — | **P** | **P** | S |
 
-¹ load and sync errors are SHIPPED; **write** errors are **PROPOSED** (BUG-008).
+¹ load, write and sync errors are all SHIPPED. Write errors ship as three
+separate per-operation treatments (BUG-008), each distinct from the load error.
 ² rendered by the embedded sync status banner (surface 2), which is part of the
 dashboard composition — the same treatments counted once at surface 2 and once
 in the dashboard's seven-of-eight total.
 
-**Totals.** **PROPOSED: seven**, every one owned:
+**Totals.** **PROPOSED: six**, every one owned. Surface 8's Error — writes row
+was the seventh and has since shipped (BUG-008).
 
 | Surface | State | Owner |
 |---|---|---|
 | 4 Progress summary card | Error | BUG-009 |
 | 5 Workout Log | Conflict | BUG-011 |
-| 8 Food Log | Error — writes | BUG-008 |
 | 9 Dietary Preferences | Pending sync | BUG-011 |
 | 9 Dietary Preferences | Conflict | BUG-011 |
 | 10 Progress | Pending sync | BUG-011 |
@@ -553,15 +554,16 @@ is exposed to only those two surfaces.
 # Findings
 
 **Eight findings, C-1 through C-8.** Four were documentation contradictions and
-are **reconciled** in this change; four are **runtime defects** tracked in
-`.ai/11_BACKLOG.md`.
+are **reconciled** in this change; four were **runtime defects** tracked in
+`.ai/11_BACKLOG.md`. Of those four, **C-4 has since been fixed** (BUG-008);
+C-3, C-5 and C-8 remain open.
 
 | # | Finding | Kind | Disposition |
 |---|---|---|---|
 | **C-1** | Flow 5 claimed an Offline state Workout Log does not have | Documentation | **Reconciled** — `.ai/17_PRODUCT_FLOWS.md` v1.2 |
 | **C-2** | Flow 7 claimed Offline and Pending sync that Progress does not render | Documentation | **Reconciled** — `.ai/17_PRODUCT_FLOWS.md` v1.2 |
 | **C-3** | Food Log renders Conflict as `error` and merges it with an unrelated failure | Runtime defect | **BUG-007** |
-| **C-4** | Food Log write failures are silent | Runtime defect | **BUG-008** |
+| **C-4** | Food Log write failures are silent | Runtime defect | **BUG-008 — fixed**, see §C-4 |
 | **C-5** | Progress summary card renders a failed read as Empty | Runtime defect | **BUG-009** |
 | **C-6** | "six of the eight canonical states" undercounted the dashboard | Documentation | **Reconciled** — ADR-P027 + Flow 3 + Flow 4 |
 | **C-7** | `06_MOBILE.md` §Error Handling listed non-canonical states | Documentation | **Reconciled** — `.ai/06_MOBILE.md` v1.1 |
@@ -624,7 +626,15 @@ exists in ADR-P022's state model, so this is conformance work.
 `.ai/06_MOBILE.md` §Error Handling: *"Never leave users without feedback."*
 `ProgressScreen` demonstrates the correct two-branch pattern.
 
-**Runtime defect — BUG-008.**
+**Runtime defect — BUG-008. Fixed.** The line references above are as audited at
+the evidence baseline; the fix moved them. The store now carries a
+`FoodLogWriteOperation` discriminant (`food-log.store.ts:30`, `:48`) set by each
+failing write (`:129-160`) and cleared on the next write attempt or the next
+successful read (`:98`). `FoodLogScreen.tsx` maps it to one of three localized
+title/body pairs (`:88-112`) rendered **after** the sync banner and **above** the
+content (`:321`), so a failed write no longer takes the day off the screen. Nine
+regression specs cover the three operations, both cleared paths, the preserved
+day, Spanish, and the no-banner case.
 
 ## C-5 — Progress summary card renders a read failure as Empty
 

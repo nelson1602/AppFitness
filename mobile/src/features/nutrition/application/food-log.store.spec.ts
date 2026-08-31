@@ -72,6 +72,7 @@ beforeEach(() => {
     totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: null },
     sync: { state: 'idle', pending: 0, actionRequired: 0 },
     error: null,
+    writeError: null,
   });
 });
 
@@ -194,6 +195,62 @@ describe('food-log store (Slice 4C)', () => {
     mockRemove.mockRejectedValue(new Error('x'));
     await useFoodLogStore.getState().removeItem('i1');
     expect(useFoodLogStore.getState().error).toBe('That item could not be removed right now.');
+  });
+
+  // BUG-008: a failed write must be reported distinctly from a failed read, and
+  // must say WHICH write failed so the screen can tell the user what survived.
+  it('records which write failed so the screen can report it (BUG-008)', async () => {
+    mockList.mockResolvedValue([]);
+
+    mockLog.mockRejectedValue(new Error('x'));
+    await useFoodLogStore.getState().addFood('food.x', 'LUNCH', 1);
+    expect(useFoodLogStore.getState().writeError).toBe('add');
+
+    mockUpdate.mockRejectedValue(new Error('x'));
+    await useFoodLogStore.getState().editServing('i1', 2);
+    expect(useFoodLogStore.getState().writeError).toBe('servings');
+
+    mockRemove.mockRejectedValue(new Error('x'));
+    await useFoodLogStore.getState().removeItem('i1');
+    expect(useFoodLogStore.getState().writeError).toBe('remove');
+  });
+
+  it('clears the write error when the next write attempt succeeds (BUG-008)', async () => {
+    mockList.mockResolvedValue([]);
+    mockLog.mockRejectedValueOnce(new Error('x'));
+
+    await useFoodLogStore.getState().addFood('food.x', 'LUNCH', 1);
+    expect(useFoodLogStore.getState().writeError).toBe('add');
+
+    mockLog.mockResolvedValue(undefined as never);
+    await useFoodLogStore.getState().addFood('food.x', 'LUNCH', 1);
+    expect(useFoodLogStore.getState().writeError).toBeNull();
+  });
+
+  it('clears a stale write error once a read succeeds (BUG-008)', async () => {
+    mockList.mockResolvedValue([]);
+    mockRemove.mockRejectedValue(new Error('x'));
+
+    await useFoodLogStore.getState().removeItem('i1');
+    expect(useFoodLogStore.getState().writeError).toBe('remove');
+
+    await useFoodLogStore.getState().load('2026-07-14');
+    expect(useFoodLogStore.getState().writeError).toBeNull();
+    expect(useFoodLogStore.getState().status).toBe('ready');
+  });
+
+  it('leaves the loaded day intact when a write fails (BUG-008)', async () => {
+    mockList.mockResolvedValue([loggedItem()]);
+    await useFoodLogStore.getState().load('2026-07-13');
+
+    mockLog.mockRejectedValue(new Error('x'));
+    await useFoodLogStore.getState().addFood('food.x', 'LUNCH', 1);
+
+    const s = useFoodLogStore.getState();
+    // The read succeeded; only the write failed. The day must still be on screen.
+    expect(s.status).toBe('ready');
+    expect(s.items).toHaveLength(1);
+    expect(s.totals.calories).toBe(320);
   });
 
   it('retries sync once after rotating an expired token', async () => {

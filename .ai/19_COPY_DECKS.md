@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.1
+Version: 1.2
 Status: Active
-Last Updated: 2026-08-28
+Last Updated: 2026-08-31
 
 ---
 
@@ -328,16 +328,20 @@ flow.
 ### Write failures
 
 These messages are separate from the shipped load failure and never render raw
-store text.
+store text. **Shipped by BUG-008**: the store exposes a `FoodLogWriteOperation`
+discriminant (`food-log.store.ts:30`) that the screen maps to one of the three
+title/body pairs below (`FoodLogScreen.tsx:88-112`). The banner renders
+**alongside** the log rather than in place of it, which is what lets the add
+copy promise *"Your selections are still here."*
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `nutrition.log.writeError.addTitle` | Couldn't add food | No se pudo agregar el alimento | **PROPOSED** — BUG-008 |
-| `nutrition.log.writeError.addBody` | Your food wasn't added. Your selections are still here. Try again. | El alimento no se agregó. Tus selecciones siguen aquí. Inténtalo de nuevo. | **PROPOSED** — BUG-008 |
-| `nutrition.log.writeError.servingsTitle` | Couldn't update servings | No se pudieron actualizar las porciones | **PROPOSED** — BUG-008 |
-| `nutrition.log.writeError.servingsBody` | Your serving change wasn't saved. Try again. | El cambio de porciones no se guardó. Inténtalo de nuevo. | **PROPOSED** — BUG-008 |
-| `nutrition.log.writeError.removeTitle` | Couldn't remove food | No se pudo eliminar el alimento | **PROPOSED** — BUG-008 |
-| `nutrition.log.writeError.removeBody` | The food is still in your log. Try again. | El alimento sigue en tu registro. Inténtalo de nuevo. | **PROPOSED** — BUG-008 |
+| `nutrition.log.writeError.addTitle` | Couldn't add food | No se pudo agregar el alimento | SHIPPED |
+| `nutrition.log.writeError.addBody` | Your food wasn't added. Your selections are still here. Try again. | El alimento no se agregó. Tus selecciones siguen aquí. Inténtalo de nuevo. | SHIPPED |
+| `nutrition.log.writeError.servingsTitle` | Couldn't update servings | No se pudieron actualizar las porciones | SHIPPED |
+| `nutrition.log.writeError.servingsBody` | Your serving change wasn't saved. Try again. | El cambio de porciones no se guardó. Inténtalo de nuevo. | SHIPPED |
+| `nutrition.log.writeError.removeTitle` | Couldn't remove food | No se pudo eliminar el alimento | SHIPPED |
+| `nutrition.log.writeError.removeBody` | The food is still in your log. Try again. | El alimento sigue en tu registro. Inténtalo de nuevo. | SHIPPED |
 
 ## Dietary Preferences
 
@@ -477,8 +481,8 @@ Nutrition or remove the targets → plan → log path.
 
 # Proposed-key handoff
 
-UX-3C handed off **33** proposed keys. **Nine have since shipped**, leaving
-**24 outstanding**. They belong to their existing owners rather than one broad
+UX-3C handed off **33** proposed keys. **Fifteen have since shipped**, leaving
+**18 outstanding**. They belong to their existing owners rather than one broad
 migration:
 
 | Owner | Keys | Purpose | Status |
@@ -486,7 +490,7 @@ migration:
 | BUG-010 | 1 | Shared bilingual loading label | outstanding |
 | BUG-009 | 2 | Progress-card Error distinct from Empty | outstanding |
 | BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | outstanding |
-| BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | outstanding |
+| BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | **SHIPPED** |
 | BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | outstanding |
 | UX-4B | 7 | Advisory first-run checklist | **SHIPPED** |
 | UX-4A | 2 | Direct Food Log dashboard shortcut | **SHIPPED** |
