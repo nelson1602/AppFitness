@@ -8,6 +8,7 @@ import {
 import { saveMyProfile, setGoal } from '@/features/profile';
 import { countByStatus, listPendingConflicts } from '@/shared/infrastructure/sync';
 
+import type { DataRequirement } from '../domain/dashboard.types';
 import { buildDashboardAssessment } from './icoach-adapter';
 import { loadDashboardData, loadSampleDashboardData } from './dashboard.service';
 
@@ -71,11 +72,12 @@ function readyResult(): AdapterResult {
   } as unknown as AdapterResult;
 }
 
-function incompleteResult(): AdapterResult {
+function incompleteResult(notes: DataRequirement[] = []) {
   return {
-    status: 'incomplete',
+    status: 'incomplete' as const,
     missing: [{ id: 'profile', title: 'Create your profile', detail: 'Required' }],
-  } as unknown as AdapterResult;
+    notes,
+  };
 }
 
 describe('dashboard service', () => {
@@ -110,6 +112,21 @@ describe('dashboard service', () => {
 
     expect(data.assessment).toBeNull();
     expect(data.missing[0].id).toBe('profile');
+  });
+
+  it('surfaces advisory notes alongside blocking gaps while incomplete', async () => {
+    // Regression: an unset goal used to vanish on the incomplete path, so a
+    // first-run surface could not tell "no goal yet" from "goal already set".
+    mockAdapter.mockReturnValue(
+      incompleteResult([
+        { id: 'default-goal', title: 'Using maintenance goal', detail: 'Advisory' },
+        { id: 'default-sex', title: 'Using undisclosed sex coefficients', detail: 'Advisory' },
+      ]),
+    );
+
+    const data = await loadDashboardData(NOW);
+
+    expect(data.missing.map((item) => item.id)).toEqual(['profile', 'default-goal', 'default-sex']);
   });
 
   it('maps queue counts and conflicts into the sync summary', async () => {

@@ -150,7 +150,7 @@ describe('DashboardScreen', () => {
     expect(screen.getAllByLabelText('Loading dashboard section')).toHaveLength(3);
   });
 
-  it('renders the empty state and dev sample action', async () => {
+  it('renders the first-run checklist and dev sample action on the empty state', async () => {
     setStore({
       status: 'empty',
       data: {
@@ -169,9 +169,73 @@ describe('DashboardScreen', () => {
     await render(<DashboardScreen />);
     fireEvent.press(screen.getByRole('button', { name: 'Load fake sample dashboard data' }));
 
-    expect(screen.getByText('Finish your baseline')).toBeOnTheScreen();
-    expect(screen.getByText('Record a weight measurement')).toBeOnTheScreen();
+    expect(screen.getByText('Finish setting up AppFitness')).toBeOnTheScreen();
+    expect(screen.getByTestId('onboarding-step-weight')).toBeOnTheScreen();
     expect(loadSampleData).toHaveBeenCalledTimes(1);
+  });
+
+  it('counts resolved steps and drops them from the checklist', async () => {
+    setStore({
+      status: 'empty',
+      data: {
+        ...baseData,
+        assessment: null,
+        // Profile and goal are resolved; only the weight step remains.
+        missing: [
+          {
+            id: 'weight',
+            title: 'Add current weight',
+            detail: 'A recent evaluation is required.',
+          },
+        ],
+      },
+    });
+
+    await render(<DashboardScreen />);
+
+    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('2 of 3 complete');
+    expect(screen.getByTestId('onboarding-step-weight')).toBeOnTheScreen();
+    expect(screen.queryByTestId('onboarding-step-profile')).toBeNull();
+    expect(screen.queryByTestId('onboarding-step-goal')).toBeNull();
+  });
+
+  it('groups the three profile-side gaps into a single checklist step', async () => {
+    setStore({
+      status: 'empty',
+      data: {
+        ...baseData,
+        assessment: null,
+        missing: [
+          { id: 'profile', title: 'Create your profile', detail: '' },
+          { id: 'birth-date', title: 'Add your birth date', detail: '' },
+          { id: 'height', title: 'Add your height', detail: '' },
+        ],
+      },
+    });
+
+    await render(<DashboardScreen />);
+
+    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('2 of 3 complete');
+    expect(screen.getAllByTestId(/^onboarding-step-/)).toHaveLength(1);
+    expect(screen.getByTestId('onboarding-step-profile')).toBeOnTheScreen();
+  });
+
+  it('renders the checklist in Spanish with localized counts', async () => {
+    mockLanguage = 'es';
+    setStore({
+      status: 'empty',
+      data: {
+        ...baseData,
+        assessment: null,
+        missing: [{ id: 'default-goal', title: 'Elige tu objetivo', detail: '' }],
+      },
+    });
+
+    await render(<DashboardScreen />);
+
+    expect(screen.getByText('Termina de configurar AppFitness')).toBeOnTheScreen();
+    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('2 de 3 completados');
+    expect(screen.getByTestId('onboarding-step-goal')).toHaveTextContent('Elige tu objetivo');
   });
 
   it('deep-links a profile data gap to the profile edit screen', async () => {
@@ -192,7 +256,7 @@ describe('DashboardScreen', () => {
     });
 
     await render(<DashboardScreen />);
-    fireEvent.press(screen.getByRole('button', { name: 'Fix: Create your profile' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Fix: Add your profile basics' }));
 
     expect(router.push).toHaveBeenCalledWith('/profile-edit');
   });
@@ -215,7 +279,7 @@ describe('DashboardScreen', () => {
     });
 
     await render(<DashboardScreen />);
-    fireEvent.press(screen.getByRole('button', { name: 'Fix: Record a weight measurement' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Fix: Record your first weight' }));
 
     expect(router.push).toHaveBeenCalledWith('/progress');
   });

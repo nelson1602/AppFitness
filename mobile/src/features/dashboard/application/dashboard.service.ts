@@ -32,7 +32,11 @@ export async function loadDashboardData(now: Date = new Date()): Promise<Dashboa
 
   return {
     assessment: adapter.status === 'ready' ? adapter.data : null,
-    missing: adapter.status === 'incomplete' ? adapter.missing : adapter.data.notes,
+    // Incomplete: blocking prerequisites first, then the advisory notes, so a
+    // first-run surface sees every outstanding item. Ready: the notes are the
+    // only outstanding items left.
+    missing:
+      adapter.status === 'incomplete' ? [...adapter.missing, ...adapter.notes] : adapter.data.notes,
     sync: buildSyncSummary(queueCounts, conflicts.length),
   };
 }

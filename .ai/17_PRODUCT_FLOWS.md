@@ -489,10 +489,11 @@ architecture violation in the product, and it sits on a daily task.
 - **V1 keeps hub-and-spoke. Status: SHIPPED** — this is the model running today
   and it is unchanged by the decision.
 - **Workout Log stays one tap** — already true, no work required.
-- **A direct `/food-log` dashboard shortcut is approved for UX-4A.
-  Status: PROPOSED** — approved in principle, **not implemented**; it stays
-  PROPOSED until UX-4A ships it. It is additive: the existing
-  targets → plan → food-log chain is preserved for users who arrive that way.
+- **A direct `/food-log` dashboard shortcut. Status: SHIPPED** — delivered by
+  UX-4A in PR #110, merged at `5643303a7d173690fba5921e4c97c737288e5f00`. It is
+  additive: the existing targets → plan → food-log chain is preserved for users
+  who arrive that way, and the daily food-logging loop is now one push rather
+  than three.
 
 ## Bottom tabs — DEFERRED, not unavailable
 
