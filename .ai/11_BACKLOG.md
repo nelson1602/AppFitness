@@ -1475,8 +1475,9 @@ Excluded:
        (applicable but unimplemented, always with a named backlog owner) · n/a
        (genuinely not applicable, always justified). `n/a` is never used for a
        gap. **Seven** PROPOSED treatments and **one** non-conformant treatment
-       are recorded, every one with a named owner — BUG-008 ×1, BUG-009 ×1,
-       BUG-011 ×5, BUG-007 ×1.
+       were recorded, every one with a named owner — BUG-008 ×1, BUG-009 ×1,
+       BUG-011 ×5, BUG-007 ×1. **BUG-008 has since shipped**, leaving **six**
+       PROPOSED in `.ai/18_SCREEN_STATE_MATRICES.md` v1.4.
      - **Eight findings, C-1 … C-8.** Four were documentation contradictions and
        are **reconciled** in this change (C-1, C-2, C-6, C-7); four are runtime
        defects and remain open as **BUG-007** … **BUG-010**. None needs a new
@@ -2443,12 +2444,12 @@ own copy. Neither is presented as the other.
 
 ## [BUG-008] Food Log Write Failures Are Silent
 
-Status: Open
+Status: **Done** (2026-08-31 — fixed in this change; see Resolution)
 Priority: P2
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-08-28
+Updated: 2026-08-31
 
 ### Description
 
@@ -2496,10 +2497,36 @@ distinguishable from a load failure and does not discard the user's input.
 
 ### Acceptance Criteria
 
-- [ ] Add, serving-edit and remove failures each surface a user-visible state.
-- [ ] The message is localized EN/ES and never renders the store's raw string.
-- [ ] Write-error copy is distinguishable from load-error copy.
-- [ ] Regression specs cover at least one failing write per operation.
+- [x] Add, serving-edit and remove failures each surface a user-visible state.
+- [x] The message is localized EN/ES and never renders the store's raw string.
+- [x] Write-error copy is distinguishable from load-error copy.
+- [x] Regression specs cover at least one failing write per operation.
+
+### Resolution
+
+Fixed on `codex/fix-food-log-write-errors`. Line references in the Description
+and Evidence sections above are as audited at
+`fb02097593ff9a2735f54620d6350d880cf3a030`; the fix moved them.
+
+- `food-log.store.ts` gains `FoodLogWriteOperation` (`:30`) and a `writeError`
+  field (`:48`). Each write clears it on entry and sets its own discriminant on
+  failure (`:129-160`). `load()` clears it (`:98`), so a successful read
+  supersedes a stale write failure. The existing `error` strings are unchanged
+  and still asserted by their original specs.
+- `FoodLogScreen.tsx` maps the discriminant to one of three localized
+  title/body pairs (`:88-112`) and renders the banner after the sync banner and
+  above the content (`:321`). A failed write no longer removes the day from the
+  screen — which is what the add copy's *"Your selections are still here"*
+  promises.
+- Six EN and six ES keys added at exact parity (711/711),
+  `nutrition.log.writeError.*`, verbatim from `.ai/19_COPY_DECKS.md`.
+- Nine regression specs: the three operations, both cleared paths, the
+  preserved day, Spanish, and the no-banner case.
+
+Reconciled in the same change: `.ai/18_SCREEN_STATE_MATRICES.md` v1.4 (surface 8
+"Error — writes" PROPOSED → SHIPPED; PROPOSED total seven → six; C-4 marked
+fixed) and `.ai/19_COPY_DECKS.md` v1.2 (six rows SHIPPED; outstanding proposed
+keys 24 → 18).
 
 ### Related Documents
 

@@ -560,6 +560,13 @@ export const en = {
   'nutrition.log.loadingAccessibility': 'Loading food log',
   'nutrition.log.unavailable': 'Food log unavailable',
   'nutrition.log.errorMessage': 'Your food log could not be loaded right now. Please try again.',
+  'nutrition.log.writeError.addTitle': "Couldn't add food",
+  'nutrition.log.writeError.addBody':
+    "Your food wasn't added. Your selections are still here. Try again.",
+  'nutrition.log.writeError.servingsTitle': "Couldn't update servings",
+  'nutrition.log.writeError.servingsBody': "Your serving change wasn't saved. Try again.",
+  'nutrition.log.writeError.removeTitle': "Couldn't remove food",
+  'nutrition.log.writeError.removeBody': 'The food is still in your log. Try again.',
   'nutrition.log.webUnavailableTitle': "Food logging isn't available on the web",
   'nutrition.log.webUnavailableBody':
     'Use the AppFitness mobile app to log meals and track your daily nutrition.',

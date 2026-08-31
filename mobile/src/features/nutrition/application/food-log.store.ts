@@ -22,6 +22,12 @@ import {
  */
 
 export type FoodLogUiStatus = 'idle' | 'loading' | 'ready' | 'error' | 'web-unavailable';
+/**
+ * Which write failed, as a DISCRIMINANT for the presentation layer — never
+ * display copy. A failed write must be reported distinctly from a failed read
+ * (BUG-008): the day is still on screen and the user's input is still valid.
+ */
+export type FoodLogWriteOperation = 'add' | 'servings' | 'remove';
 export type FoodLogSyncState =
   'idle' | 'syncing' | 'pending' | 'action_required' | 'offline' | 'error';
 
@@ -38,6 +44,8 @@ export interface FoodLogState {
   totals: ConsumedMacros;
   sync: FoodLogSyncSummary;
   error: string | null;
+  /** Set when a write fails; cleared by the next write attempt or successful read. */
+  writeError: FoodLogWriteOperation | null;
   load: (date?: string) => Promise<void>;
   addFood: (catalogKey: string, mealType: MealTypeName, servingCount: number) => Promise<void>;
   editServing: (id: string, servingCount: number) => Promise<void>;
@@ -82,10 +90,12 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   totals: EMPTY_TOTALS,
   sync: { state: 'idle', pending: 0, actionRequired: 0 },
   error: null,
+  writeError: null,
 
   load: async (date) => {
     const targetDate = date ?? get().date;
-    set({ status: 'loading', date: targetDate, error: null });
+    // A fresh successful read supersedes any stale write failure.
+    set({ status: 'loading', date: targetDate, error: null, writeError: null });
     try {
       const userId = requireUserId();
       const items = await listLoggedItems(userId, targetDate);
@@ -116,35 +126,38 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   },
 
   addFood: async (catalogKey, mealType, servingCount) => {
+    set({ writeError: null });
     try {
       const userId = requireUserId();
       await logFood(userId, { date: get().date, mealType, catalogKey, servingCount });
       await get().load();
     } catch (error) {
       logError('nutrition.foodLog.add', error);
-      set({ error: 'That food could not be logged right now.' });
+      set({ error: 'That food could not be logged right now.', writeError: 'add' });
     }
   },
 
   editServing: async (id, servingCount) => {
+    set({ writeError: null });
     try {
       const userId = requireUserId();
       await updateServingCount(userId, id, servingCount);
       await get().load();
     } catch (error) {
       logError('nutrition.foodLog.edit', error);
-      set({ error: 'That change could not be saved right now.' });
+      set({ error: 'That change could not be saved right now.', writeError: 'servings' });
     }
   },
 
   removeItem: async (id) => {
+    set({ writeError: null });
     try {
       const userId = requireUserId();
       await removeMealItem(userId, id);
       await get().load();
     } catch (error) {
       logError('nutrition.foodLog.remove', error);
-      set({ error: 'That item could not be removed right now.' });
+      set({ error: 'That item could not be removed right now.', writeError: 'remove' });
     }
   },
 

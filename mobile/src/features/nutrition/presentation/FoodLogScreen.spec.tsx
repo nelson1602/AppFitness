@@ -85,6 +85,7 @@ function setState(overrides: Partial<FoodLogState> = {}): void {
     totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: null },
     sync: { state: 'idle', pending: 0, actionRequired: 0 },
     error: null,
+    writeError: null,
     load: jest.fn(),
     addFood: jest.fn(),
     editServing: jest.fn(),
@@ -255,5 +256,56 @@ describe('FoodLogScreen (Slice 4C)', () => {
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('food-log-sync-now')).toBeNull();
+  });
+  // BUG-008: write failures were silent. They now surface per-operation, ALONGSIDE
+  // the content — a failed write does not take the day off the screen.
+  it('reports a failed add without hiding the log (BUG-008)', async () => {
+    setState({ writeError: 'add', items: [item()] });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText("Couldn't add food")).toBeOnTheScreen();
+    expect(
+      screen.getByText("Your food wasn't added. Your selections are still here. Try again."),
+    ).toBeOnTheScreen();
+    // The logged day is still rendered underneath the banner.
+    expect(screen.getByText('Chicken breast, cooked')).toBeOnTheScreen();
+  });
+
+  it('reports a failed serving change (BUG-008)', async () => {
+    setState({ writeError: 'servings', items: [item()] });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText("Couldn't update servings")).toBeOnTheScreen();
+    expect(screen.getByText("Your serving change wasn't saved. Try again.")).toBeOnTheScreen();
+  });
+
+  it('reports a failed removal and says the food is still logged (BUG-008)', async () => {
+    setState({ writeError: 'remove', items: [item()] });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText("Couldn't remove food")).toBeOnTheScreen();
+    expect(screen.getByText('The food is still in your log. Try again.')).toBeOnTheScreen();
+  });
+
+  it('localizes the write-failure banner in Spanish (BUG-008)', async () => {
+    mockLanguage = 'es';
+    setState({ writeError: 'add', items: [item()] });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText('No se pudo agregar el alimento')).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'El alimento no se agregó. Tus selecciones siguen aquí. Inténtalo de nuevo.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows no write-failure banner when no write has failed (BUG-008)', async () => {
+    setState({ items: [item()] });
+    await render(<FoodLogScreen />);
+
+    expect(screen.queryByText("Couldn't add food")).toBeNull();
+    expect(screen.queryByText("Couldn't update servings")).toBeNull();
+    expect(screen.queryByText("Couldn't remove food")).toBeNull();
   });
 });
