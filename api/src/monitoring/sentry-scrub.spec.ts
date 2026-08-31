@@ -140,7 +140,7 @@ describe('sentry scrubbing (ADR-P010)', () => {
       outcome: 'accepted',
       mailRecipient: 'person@example.com',
       recipient: 'person@example.com',
-      subject: 'Reset your AppFitness password',
+      subject: 'Reset your AppFitnessRD password',
       textBody: 'click https://app.example.com/reset-password?token=raw',
       htmlBody:
         '<a href="https://app.example.com/reset-password?token=raw">x</a>',

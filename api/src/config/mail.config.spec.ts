@@ -91,7 +91,7 @@ describe('mail.config', () => {
       expect(() =>
         resolveMailConfig({
           ...postmarkEnv,
-          MAIL_FROM_ADDRESS: 'AppFitness <no-reply@mail.example.com>',
+          MAIL_FROM_ADDRESS: 'AppFitnessRD <no-reply@mail.example.com>',
         }),
       ).toThrow(/Invalid MAIL_FROM_ADDRESS/);
     });

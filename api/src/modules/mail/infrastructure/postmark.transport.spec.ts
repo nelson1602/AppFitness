@@ -15,7 +15,7 @@ const CONFIG: PostmarkMailConfig = {
 
 const MESSAGE: MailMessage = {
   to: 'user@example.com',
-  subject: 'Reset your AppFitness password',
+  subject: 'Reset your AppFitnessRD password',
   textBody: 'text with https://app.example.com/reset-password#token=raw-token',
   htmlBody: '<p>html</p>',
   templateId: 'password-reset',

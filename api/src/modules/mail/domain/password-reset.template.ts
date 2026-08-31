@@ -43,30 +43,30 @@ interface Copy {
 
 const COPY: Record<MailLocale, Copy> = {
   en: {
-    subject: 'Reset your AppFitness password',
+    subject: 'Reset your AppFitnessRD password',
     heading: 'Reset your password',
     intro:
-      'We received a request to reset the password for this AppFitness account.',
+      'We received a request to reset the password for this AppFitnessRD account.',
     action: 'Choose a new password',
     expiry: (minutes) =>
       `This link expires in ${minutes} minutes and can be used once.`,
     ignore:
       'If you did not request this, you can ignore this email — your password stays unchanged.',
     fallback: 'If the button does not work, copy this link into your browser:',
-    signoff: 'The AppFitness team',
+    signoff: 'The AppFitnessRD team',
   },
   es: {
-    subject: 'Restablece tu contraseña de AppFitness',
+    subject: 'Restablece tu contraseña de AppFitnessRD',
     heading: 'Restablece tu contraseña',
     intro:
-      'Recibimos una solicitud para restablecer la contraseña de esta cuenta de AppFitness.',
+      'Recibimos una solicitud para restablecer la contraseña de esta cuenta de AppFitnessRD.',
     action: 'Elegir una nueva contraseña',
     expiry: (minutes) =>
       `Este enlace caduca en ${minutes} minutos y solo puede usarse una vez.`,
     ignore:
       'Si no lo solicitaste, puedes ignorar este correo: tu contraseña no cambiará.',
     fallback: 'Si el botón no funciona, copia este enlace en tu navegador:',
-    signoff: 'El equipo de AppFitness',
+    signoff: 'El equipo de AppFitnessRD',
   },
 };
 

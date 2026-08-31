@@ -18,7 +18,7 @@ describe('password-reset template', () => {
     expect(message.to).toBe('user@example.com');
     expect(message.locale).toBe('en');
     expect(message.templateId).toBe('password-reset');
-    expect(message.subject).toBe('Reset your AppFitness password');
+    expect(message.subject).toBe('Reset your AppFitnessRD password');
     expect(message.textBody).toContain(RESET_URL);
     expect(message.htmlBody).toContain('href=');
     expect(message.textBody).toContain('expires in 30 minutes');
@@ -34,7 +34,7 @@ describe('password-reset template', () => {
     });
 
     expect(message.locale).toBe('es');
-    expect(message.subject).toBe('Restablece tu contraseña de AppFitness');
+    expect(message.subject).toBe('Restablece tu contraseña de AppFitnessRD');
     expect(message.textBody).toContain('caduca en 30 minutos');
     expect(message.textBody).toContain(RESET_URL);
   });

@@ -51,7 +51,7 @@ authorize on its own:
 4. Set `MAIL_PROVIDER=postmark` plus the three required values on the
    **Development** service only, and validate against the **provider sandbox**.
 5. Replace the privacy-contact placeholder in `docs/legal/PRIVACY_POLICY.md`
-   before AppFitness sends mail in its own name.
+   before AppFitnessRD sends mail in its own name.
 6. Only then repeat on **Production** with its own separate token.
 
 Five properties are worth keeping in mind when operating this:
