@@ -1638,17 +1638,32 @@ Excluded:
      `[PLACEHOLDER]` effective dates and all non-brand wording are preserved
      verbatim.** They are what a store reviewer reads, so they must carry the
      commercial name before submission.
-   - **UX-4B-3 — Branded email copy. Not implemented. Blocks enabling or sending
-     recovery email.** ADR-P028 slice **5c**: reconcile the password-recovery
-     email copy carried by **PR #102** — EN/ES subjects, bodies, sign-offs (*"The
-     AppFitness team"* / *"El equipo de AppFitness"*) and the
-     `MAIL_FROM_ADDRESS` display name.
-     - **Preferred sequencing: a separate follow-up commit on PR #102's existing
-       branch, before that PR merges**, so branded copy never reaches `main`
-       under the old name. It does **not** need to wait for the merge.
+   - **UX-4B-3 — Branded email copy. Implemented on PR #102, pending merge.
+     Blocks enabling or sending recovery email.** ADR-P028 slice **5c**:
+     reconcile the password-recovery email copy carried by **PR #102**. The brand
+     surfaces are exactly the **EN/ES subjects, bodies and sign-offs** (*"The
+     AppFitness team"* / *"El equipo de AppFitness"*).
+     - **Correction (2026-08-31): the sender is not a brand surface.** An earlier
+       revision of this entry and of ADR-P028 slice 5c listed the
+       `MAIL_FROM_ADDRESS` display name. **That surface does not exist.**
+       Verified read-only against PR #102 at `aea1778`:
+       `MAIL_FROM_ADDRESS` is **one bare mailbox**; `parseFromAddress` throws
+       *"Expected a single bare address"* for anything else; `api/DEPLOYMENT.md`
+       records "Display names and lists are rejected"; a negative test asserts
+       the rejection; and `api/.env.example` defines no `MAIL_` variables.
+       **Display names and recipient lists are rejected by design**, and no slice
+       may add one without separately authorizing a change to that contract.
+     - **Implementation:** commit `aea1778` on
+       `codex/auth-password-recovery-v1` — 6 files, +12/−12, every changed line a
+       brand-token-only substitution. **Pending merge; PR #102 is not merged.**
+     - **Sequencing, as delivered:** a follow-up commit on PR #102's existing
+       branch, before that PR merges, so branded copy never reaches `main`
+       under the old name.
      - **Binding deadline:** complete before recovery email is enabled or any
        recovery email is sent.
-     - ADR-P028 inspected PR #102 read-only and modified nothing in it.
+     - This correction changes no sender configuration, mail delivery, Postmark,
+       DNS, recovery behaviour or security control. ADR-P028 inspected PR #102
+       read-only and modified nothing in it.
    - **UX-4B-4 — API Swagger branding. Not implemented.** ADR-P028 slice **5d**:
      update **both** current public branding occurrences in
      `api/src/config/api-docs.config.ts` — `.setTitle('AppFitness API')` (line

@@ -8819,7 +8819,7 @@ repository evidence:
 | Mobile test + Maestro expectations | assertions across 15 spec files; `.maestro/registration.yml` and `smoke-auth-surface.yml` both assert `visible: 'AppFitness'` | **32** + **2** flows | **shipped / current** — must change *with* the visible name or CI breaks |
 | API Swagger branding | `api/src/config/api-docs.config.ts:35,37` — `.setTitle('AppFitness API')` and its description | 2 | **shipped / current** — the API is deployed to Railway |
 | Legal documents | `docs/legal/` — Privacy Policy, Terms of Use, Health Disclaimer, Play Data Safety, Data Inventory | **5 docs** | **draft / legal** — every one is headed **DRAFT**, with `[PLACEHOLDER]` effective dates |
-| Password-recovery email copy | **PR #102**, not on `main`: EN/ES subjects, body, sign-offs (*"The AppFitness team"* / *"El equipo de AppFitness"*) and a `MAIL_FROM_ADDRESS` display name | — | **TARGET** — branded email that ships when #102 merges |
+| Password-recovery email copy | **PR #102**, not on `main`: EN/ES subjects, bodies and sign-offs (*"The AppFitness team"* / *"El equipo de AppFitness"*). **Not the sender**: `MAIL_FROM_ADDRESS` is one bare mailbox and carries no brand | — | **TARGET** — branded email that ships when #102 merges |
 | Web / PWA client | `client/` — `index.html` title and `apple-mobile-web-app-title`, `manifest.json` name/short_name, `usePageTitle.ts`, landing + onboarding pages, `i18n` appName in EN and ES | **9 files** | **dormant / legacy** — the React web SPA is the migration *source* (`.ai/14_CURRENT_MVP_BASELINE.md`, `legacy-mvp-baseline` tag); no CI job builds it |
 | Legacy server email | `server/src/services/email.service.ts` — `FROM = 'AppFitness <noreply@appfitness.local>'`, header logo, footer, reminder body | 4 | **dormant / legacy** — no CI job builds `server/` |
 | Internal / historical | `.ai` phase history; `appfitness.local` demo addresses; Railway hostnames in `mobile/eas.json`; GitHub repository name; comment banners in `api/prisma/schema.prisma`, `api/Dockerfile`, `api/.env.example`, `catalog-identity.ts`; engineering reports under `docs/` | — | **internal / historical** — not renamed |
@@ -8895,13 +8895,37 @@ dates and all non-brand wording are preserved verbatim**; only the product name
 changes. **Must close before store publication**; they are the documents a
 reviewer reads.
 
-**5c — Branded email.** Reconcile the PR #102 recovery copy — EN/ES subjects,
-bodies, sign-offs and the `MAIL_FROM_ADDRESS` display name. **Preferably as a
-separate follow-up commit on PR #102's existing branch, before that PR merges**,
-so the branded copy never lands on `main` under the old name. It does **not**
-need to wait for the merge. The binding deadline is that it **must be complete
-before recovery email is enabled or any recovery email is sent**. This ADR task
-inspected PR #102 read-only and leaves it untouched.
+**5c — Branded email.** Reconcile the PR #102 recovery copy. The brand surfaces
+are exactly three per locale — the **EN/ES subjects, bodies and sign-offs** — and
+nothing else.
+
+**Correction (2026-08-31).** An earlier revision of this slice, and of
+`.ai/11_BACKLOG.md` UX-4B-3, listed "the `MAIL_FROM_ADDRESS` display name" as a
+brand surface. **That surface does not exist, and creating one is forbidden by
+the configuration contract.** Verified read-only against PR #102 at
+`aea17781c721cdccae40e1e62f1b97c1dd522b32`:
+
+- `MAIL_FROM_ADDRESS` is **one bare mailbox**. `parseFromAddress` throws
+  *"Invalid MAIL_FROM_ADDRESS … Expected a single bare address like
+  no-reply@mail.example.com"* for anything else.
+- **Display names and recipient lists are rejected by design** — `api/DEPLOYMENT.md`
+  states "Display names and lists are rejected", and a dedicated negative test,
+  *"rejects a display-name or multi-recipient sending address"*, asserts it.
+- The only display-name string in the tree is that **rejection fixture**; it is
+  never sent. `api/.env.example` defines no `MAIL_` variables at all.
+
+So the sender stays unbranded, and **no slice may add a display name** without
+first changing that contract under its own authorization.
+
+**Status: the copy change is implemented on PR #102 at `aea1778`, pending
+merge** — a follow-up commit on that branch, so branded copy never lands on
+`main` under the old name. The binding deadline is unchanged: it **must be
+complete before recovery email is enabled or any recovery email is sent**.
+
+**This correction authorizes nothing operational.** It changes no sender
+configuration, no mail delivery, no Postmark or DNS setting, no recovery
+behaviour and no security control. This ADR still inspects PR #102 read-only and
+does not mark it merged.
 
 **5d — API Swagger branding.** Update **both** current public branding
 occurrences in `api/src/config/api-docs.config.ts` — the `.setTitle(...)` value
