@@ -1599,9 +1599,76 @@ Excluded:
        need 2 new keys and is a UX-3C decision, not a UX-4B one.
      - The 7 `dashboard.onboarding.*` keys move **PROPOSED → SHIPPED**;
        catalogues go 698 → **705 / 705**, parity preserved.
+   - **UX-4B-1 — Native and mobile identity. Not implemented. BLOCKS UX-4C.**
+     Implements **ADR-P028** (Accepted 2026-08-31) slice **5a**: display name →
+     `AppFitnessRD`, `expo.android.package` → and a new
+     `expo.ios.bundleIdentifier` → `com.appfitnessrd.mobile`. Preserves the
+     `appfitness` slug and scheme, the EAS owner and project ID, and every
+     repository, Railway, database and internal name.
+     - **What it blocks, precisely:** Expo documents that EAS CLI *"will prompt
+       you to specify"* a missing `ios.bundleIdentifier` at first build
+       (<https://docs.expo.dev/build-reference/build-configuration/>), so it is
+       wrong to say no iOS build is possible. What is missing is a
+       **predeclared, owner-approved iOS identity in the app config** — without
+       it a UX-4C artifact is not deterministic, reviewable or traceable to a
+       decision.
+     - **Validation is non-mutating.** Confirm the identifiers through a resolved
+       Expo-config read; **do not run a build to reconfirm documented prompt
+       behaviour.** Credential, app-registration and build creation remain
+       separately authorized and are out of this slice.
+     - Scope: `mobile/app.json`; the **38** mobile production-copy sites (18 EN +
+       18 ES values and 2 headline literals at `sign-in.tsx:61` and
+       `DashboardScreen.tsx:48`) with exact EN/ES parity; and the **32 dependent
+       spec assertions across 15 spec files plus 2 Maestro flows**
+       (`registration.yml`, `smoke-auth-surface.yml`, both asserting
+       `visible: 'AppFitness'`) **in the same commit**, so CI never observes a
+       mismatched state. No infrastructure rename, no historical rewrite.
+     - **Existing internal Android installs must be uninstalled and reinstalled**;
+       device-local SQLite and SecureStore data will not migrate. Acceptable
+       pre-publication only.
+     - **External gates, not assumed:** identifier availability on Google Play and
+       Apple, developer-account enrolment, and trademark clearance for
+       `AppFitnessRD` must each be checked by a human against the live consoles
+       before implementation.
+   - **UX-4B-2 — Legal draft branding. Not implemented. Blocks store
+     publication.** ADR-P028 slice **5b**: update **every current product-name
+     reference** in the five `docs/legal/` drafts (Privacy Policy, Terms of Use,
+     Health Disclaimer, Play Data Safety, Data Inventory) — titles **and** body
+     prose, not the titles alone. **Legal meaning, DRAFT status, dates,
+     `[PLACEHOLDER]` effective dates and all non-brand wording are preserved
+     verbatim.** They are what a store reviewer reads, so they must carry the
+     commercial name before submission.
+   - **UX-4B-3 — Branded email copy. Not implemented. Blocks enabling or sending
+     recovery email.** ADR-P028 slice **5c**: reconcile the password-recovery
+     email copy carried by **PR #102** — EN/ES subjects, bodies, sign-offs (*"The
+     AppFitness team"* / *"El equipo de AppFitness"*) and the
+     `MAIL_FROM_ADDRESS` display name.
+     - **Preferred sequencing: a separate follow-up commit on PR #102's existing
+       branch, before that PR merges**, so branded copy never reaches `main`
+       under the old name. It does **not** need to wait for the merge.
+     - **Binding deadline:** complete before recovery email is enabled or any
+       recovery email is sent.
+     - ADR-P028 inspected PR #102 read-only and modified nothing in it.
+   - **UX-4B-4 — API Swagger branding. Not implemented.** ADR-P028 slice **5d**:
+     update **both** current public branding occurrences in
+     `api/src/config/api-docs.config.ts` — `.setTitle('AppFitness API')` (line
+     35) and the `.setDescription(...)` text (line 37) — plus any directly
+     dependent test assertion. At this commit `api-docs.config.spec.ts` stubs
+     `setTitle`/`setDescription` rather than asserting their strings, so none
+     needs changing today; re-check at implementation time. **No API behaviour and
+     no hosted-doc exposure change** — the `isApiDocsEnabled` gate is untouched.
+     The API is deployed, so this is live branding, but it is independently
+     schedulable.
+     **Dormant surfaces are excluded** from every slice above: the `client/` Web
+     SPA (9 files) and `server/` email service are legacy migration sources that
+     no CI job builds. Renaming them would edit dead code; their branding belongs
+     to any future revival.
    - **UX-4C — Manual AT verification pass.** VoiceOver, TalkBack and browser-AT,
      recorded per surface. **Until this runs, no accessibility outcome anywhere
      in the UX stream may be reported as satisfied** (ADR-P023 / ADR-P024).
+     **Blocked on UX-4B-1** for the iOS/VoiceOver column; the Android/TalkBack
+     and browser-AT columns are not blocked by identity, but running them before
+     the rename would verify an artifact that is about to be replaced.
 7. **UX-5 — Progressive feature migration. Status: Proposed.** One feature per
    slice, behaviour preserved, with bilingual, dark-theme, and accessibility
    verification per slice.

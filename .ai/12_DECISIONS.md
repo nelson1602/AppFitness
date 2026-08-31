@@ -8716,6 +8716,296 @@ documentation only.
 
 ---
 
+## ADR-P028 — AppFitnessRD Commercial and Native Identity Freeze
+
+Status: Accepted
+Date: 2026-08-31
+Owner: Product / Mobile Architecture
+
+### Context
+
+**UX-4C cannot start without a device build, and a device build stamps identity
+permanently.** The manual VoiceOver / TalkBack pass scheduled as UX-4C needs an
+installable artifact. The moment one is uploaded to a store, the identifiers
+baked into it stop being editable — so the identity has to be settled *before*
+the first build, not discovered during publication.
+
+**The repository's current identity is inconsistent and partly absent**, verified
+read-only against `origin/main` `94b052c54bdb1dc1e935292e35ace6d1b14f7af7`:
+
+| Field | Current value | Problem |
+|---|---|---|
+| `expo.name` (display) | `AppFitness` | Not the commercial name |
+| `expo.android.package` | `com.appfitness.mobile` | Not the commercial namespace |
+| `expo.ios.bundleIdentifier` | **absent** — the `ios` block contains only `icon` | **No predeclared iOS identity** (see below) |
+| `expo.slug` | `appfitness` | Correct; load-bearing (see below) |
+| `expo.scheme` | `appfitness` | Correct; the only deep-link mechanism that exists |
+| `expo.owner` | `nelson1602` | Correct |
+| `extra.eas.projectId` | `edf05078-6821-4bcc-b501-1d737badd36a` | Correct |
+
+**EAS identity, confirmed read-only** with `eas whoami` and `eas project:info`
+(no credential, app or build was created):
+
+```
+account   nelson1602 / nelson16@gmail.com
+fullName  @nelson1602/appfitness
+ID        edf05078-6821-4bcc-b501-1d737badd36a
+```
+
+`fullName` is derived from **owner + slug**. Expo documents two distinct forms:
+`currentFullName` is *"the auto generated Expo account name and slug used for
+display purposes … For published projects, this value **may change** when a
+project is transferred between accounts or renamed"*, while `originalFullName`
+is used *"for services like Notifications and AuthSession proxy … this value
+**will not change** when a project is transferred between accounts or renamed"*
+(<https://docs.expo.dev/versions/latest/config/app/>).
+
+**No claim is made that renaming the slug destroys or detaches the durable
+`projectId`** — the Expo documentation checked does not say that, so this ADR
+does not assert it. The slug is preserved for three plainer reasons: it retains
+the existing `@nelson1602/appfitness` handle, it avoids an EAS project-rename
+plus app-config mismatch that nothing here needs, and it minimises external
+change during an identity freeze whose whole purpose is to reduce moving parts.
+
+**What the missing iOS identifier actually blocks.** It is *not* accurate to say
+no iOS build is possible: EAS may prompt interactively for a missing
+`ios.bundleIdentifier` during first-build configuration. What the repository
+lacks is a **predeclared, owner-approved iOS identity committed to the app
+config**. Without one, a UX-4C artifact would be built from a value invented at
+the prompt — not deterministic, not reviewable, and not traceable to a decision.
+That is the blocker: reproducibility, not capability.
+
+Expo documents this prompt directly: when `android.package` or
+`ios.bundleIdentifier` is absent, *"EAS CLI will prompt you to specify them when
+you create your first build"*
+(<https://docs.expo.dev/build-reference/build-configuration/>). That page does
+not state where the supplied value is persisted, so this ADR makes no claim about
+persistence either.
+
+**The prompt is precisely why the identifier must be committed first.** An
+identifier typed at a prompt is chosen by whoever happens to run the build, is
+not reviewable in a diff, and is not traceable to an owner decision — so a UX-4C
+artifact built that way is not reproducible. Committing an owner-approved value
+removes the prompt from the path entirely. **No empirical build is scheduled to
+reconfirm documented behaviour**, and **no EAS build, credential, app
+registration or configuration command is authorized by this ADR.**
+
+**Why the identifiers are effectively permanent.** Both platform vendors say so
+directly:
+
+- **Android** — *"Once you publish your app, you should never change the
+  application ID. If you change the application ID, Google Play Store treats the
+  upload as a completely different app."* The ID *"uniquely identifies your app
+  on the device and in the Google Play Store."*
+  (<https://developer.android.com/build/configure-app-module>)
+- **Apple** — of the App Store Connect Bundle ID: *"You can't change this
+  property after you upload a build."*
+  (<https://developer.apple.com/help/app-store-connect/reference/app-information/>)
+- **Expo** — `android.package` must be a *"Reverse DNS notation unique name …
+  Valid Android Application ID"*, and `ios.bundleIdentifier` is the equivalent
+  iOS field; both are required for standalone builds and store deployment.
+  (<https://docs.expo.dev/versions/latest/config/app/>)
+
+**Branding surface, audited and classified.** The often-quoted figure of **38**
+is the **mobile production-copy count only** — 18 EN + 18 ES localization values
+plus 2 hardcoded headline literals (`mobile/src/app/sign-in.tsx:61`,
+`mobile/src/features/dashboard/presentation/DashboardScreen.tsx:48`). **It is not
+the product-wide user-facing surface.** The full inventory, classified from
+repository evidence:
+
+| Surface | Evidence | Count | Class |
+|---|---|---:|---|
+| Mobile production copy | 18 EN + 18 ES values; 2 headline literals | **38** | **shipped / current** |
+| Mobile test + Maestro expectations | assertions across 15 spec files; `.maestro/registration.yml` and `smoke-auth-surface.yml` both assert `visible: 'AppFitness'` | **32** + **2** flows | **shipped / current** — must change *with* the visible name or CI breaks |
+| API Swagger branding | `api/src/config/api-docs.config.ts:35,37` — `.setTitle('AppFitness API')` and its description | 2 | **shipped / current** — the API is deployed to Railway |
+| Legal documents | `docs/legal/` — Privacy Policy, Terms of Use, Health Disclaimer, Play Data Safety, Data Inventory | **5 docs** | **draft / legal** — every one is headed **DRAFT**, with `[PLACEHOLDER]` effective dates |
+| Password-recovery email copy | **PR #102**, not on `main`: EN/ES subjects, body, sign-offs (*"The AppFitness team"* / *"El equipo de AppFitness"*) and a `MAIL_FROM_ADDRESS` display name | — | **TARGET** — branded email that ships when #102 merges |
+| Web / PWA client | `client/` — `index.html` title and `apple-mobile-web-app-title`, `manifest.json` name/short_name, `usePageTitle.ts`, landing + onboarding pages, `i18n` appName in EN and ES | **9 files** | **dormant / legacy** — the React web SPA is the migration *source* (`.ai/14_CURRENT_MVP_BASELINE.md`, `legacy-mvp-baseline` tag); no CI job builds it |
+| Legacy server email | `server/src/services/email.service.ts` — `FROM = 'AppFitness <noreply@appfitness.local>'`, header logo, footer, reminder body | 4 | **dormant / legacy** — no CI job builds `server/` |
+| Internal / historical | `.ai` phase history; `appfitness.local` demo addresses; Railway hostnames in `mobile/eas.json`; GitHub repository name; comment banners in `api/prisma/schema.prisma`, `api/Dockerfile`, `api/.env.example`, `catalog-identity.ts`; engineering reports under `docs/` | — | **internal / historical** — not renamed |
+
+**Not every non-mobile occurrence is internal or historical.** Three classes are
+genuinely user-facing and are scheduled separately in `.ai/11_BACKLOG.md`: the
+legal drafts and the recovery email must be closed **before publication or before
+any branded email is sent**, and the Swagger title is live today.
+
+### Decision
+
+**1. The commercial and native identity is frozen at these exact values.**
+
+| Field | Frozen value |
+|---|---|
+| Commercial / display name | **`AppFitnessRD`** |
+| `expo.android.package` | **`com.appfitnessrd.mobile`** |
+| `expo.ios.bundleIdentifier` | **`com.appfitnessrd.mobile`** |
+
+Both identifiers are reverse-DNS, lowercase, and satisfy the Android Application
+ID character rules Expo documents. Using one string for both platforms keeps a
+single namespace to defend.
+
+**2. These are preserved unchanged, deliberately.**
+
+| Field | Value | Why it is not renamed |
+|---|---|---|
+| `expo.slug` | `appfitness` | Anchors `@nelson1602/appfitness`; renaming detaches the EAS project path |
+| `expo.scheme` | `appfitness` | The only working deep-link mechanism; renaming breaks `appfitness://reset-password` |
+| `expo.owner` | `nelson1602` | Existing EAS account |
+| `extra.eas.projectId` | `edf05078-6821-4bcc-b501-1d737badd36a` | Existing EAS project |
+| GitHub repository, Railway projects/services, databases, internal package names | as-is | Infrastructure identity, not user-facing branding |
+
+**Preserving `scheme: appfitness` preserves the custom scheme and nothing more.**
+Universal Links and App Links remain **unconfigured** — `app.json` declares no
+`intentFilters` and no `associatedDomains` — so an emailed HTTPS link still opens
+the Web route, exactly as `.ai/17_PRODUCT_FLOWS.md` §Flow 2 records. This ADR
+does not change that and does not authorize configuring it.
+
+**3. The Android identity change breaks existing internal installs, and that is
+accepted.** Android treats a changed application ID as a different app. Every
+current internal APK install must be **uninstalled and reinstalled**; the
+device-local **SQLite database and SecureStore entries will not migrate** and are
+lost. This is acceptable **only because the app is pre-publication**: those
+installs are internal test artifacts, not user data. No migration path is
+specified, because none is warranted.
+
+**4. Store identifier availability is an external gate, not an assumed outcome.**
+This ADR records the *intended* identifiers. It does **not** claim that
+`com.appfitnessrd.mobile` is available on Google Play or registrable as an Apple
+Bundle ID, that any Apple Developer or Play Console account exists or is enrolled,
+or that the display name `AppFitnessRD` is free of trademark conflict. Each is an
+external registration that must be checked by a human against the live consoles.
+If any is unavailable, this ADR is revisited **before** implementation, not
+worked around.
+
+**5. Implementation is split into four separately authorized slices.** The
+native/mobile identity slice stays narrow; the other surfaces are not folded into
+it.
+
+**5a — Native and mobile identity (narrow; blocks UX-4C).**
+- `expo.name` → `AppFitnessRD`; `expo.android.package` → and a new
+  `expo.ios.bundleIdentifier` → `com.appfitnessrd.mobile`.
+- The **38** mobile production-copy sites, EN/ES parity preserved.
+- The **32** dependent spec assertions and **2** Maestro flows, updated in the
+  same commit so CI never observes a mismatched state.
+- Nothing else.
+
+**5b — Legal drafts.** Update **every current product-name reference** in the five
+`docs/legal/` drafts — titles, body prose and any in-text mention — not the
+titles alone. **Legal meaning, DRAFT status, dates, `[PLACEHOLDER]` effective
+dates and all non-brand wording are preserved verbatim**; only the product name
+changes. **Must close before store publication**; they are the documents a
+reviewer reads.
+
+**5c — Branded email.** Reconcile the PR #102 recovery copy — EN/ES subjects,
+bodies, sign-offs and the `MAIL_FROM_ADDRESS` display name. **Preferably as a
+separate follow-up commit on PR #102's existing branch, before that PR merges**,
+so the branded copy never lands on `main` under the old name. It does **not**
+need to wait for the merge. The binding deadline is that it **must be complete
+before recovery email is enabled or any recovery email is sent**. This ADR task
+inspected PR #102 read-only and leaves it untouched.
+
+**5d — API Swagger branding.** Update **both** current public branding
+occurrences in `api/src/config/api-docs.config.ts` — the `.setTitle(...)` value
+and the `.setDescription(...)` text — plus any directly dependent test
+assertion. At this commit `api-docs.config.spec.ts` **stubs** `setTitle` and
+`setDescription` rather than asserting their strings, so no assertion needs
+changing today; that must be re-checked at implementation time. **No API
+behaviour and no hosted-documentation exposure changes** — the
+`isApiDocsEnabled` gate is untouched. Independently schedulable.
+
+**Dormant surfaces are deliberately excluded from all four.** The `client/` Web
+SPA and `server/` email service are legacy migration sources that no CI job
+builds; renaming them would edit dead code. If either is ever revived, its
+branding is part of that revival.
+
+No slice renames the GitHub repository, Railway projects or services, databases,
+internal package names, `appfitness.local` demo addresses, or the historical
+record in `.ai`. Documentation describing what a past phase did keeps its
+original wording.
+
+**6. This ADR changes no runtime.** No dependency, build, EAS credential, DNS,
+Railway, Postmark, database or store mutation is authorized or performed here.
+It is documentation only.
+
+**7. Rollback window.** These values may be revised freely **until the first
+store registration or upload**. After an Android publish or an iOS build upload,
+the identifiers become immutable release identity per the vendor documentation
+above, and any change would create a *different* app with a different install
+base. There is no post-publication rollback.
+
+### Options Considered
+
+1. **Freeze `AppFitnessRD` with `com.appfitnessrd.mobile` on both platforms
+   (chosen).** One namespace, both stores, consistent with the commercial name.
+2. **Keep `com.appfitness.mobile` and change only the display name.** Rejected:
+   it permanently pins the package namespace to a name the product no longer
+   uses, and the iOS identifier still has to be invented from scratch.
+3. **Rename the slug and scheme to match.** Rejected: it detaches the EAS project
+   path and breaks the only deep-link mechanism that exists, for no user-visible
+   benefit.
+4. **Defer the decision until store submission.** Rejected: UX-4C needs a build
+   first, and a build made under the wrong identity either wastes the pass or
+   forces a rebuild.
+
+### Rationale
+
+`.ai/00_PROJECT.md` §Decision Hierarchy ranks **Data integrity (#2)** and
+**Correctness (#4)** above **Developer convenience (#8)**. Deciding identity now
+costs one narrow implementation slice and some internal reinstalls; deciding it
+after publication is not possible at all. The asymmetry is total: pre-publication
+the change is cheap, post-publication it is impossible.
+
+The missing `ios.bundleIdentifier` also makes this urgent independently of
+naming — it is a hard blocker on the VoiceOver half of UX-4C.
+
+### Consequences
+
+**Positive.** A predeclared, owner-approved iOS identity makes a deterministic
+and reviewable UX-4C artifact possible for the first time. Display name, Android
+package and iOS bundle identifier become mutually consistent under one commercial
+namespace. The EAS project, custom scheme and all infrastructure identity survive
+untouched.
+
+**Negative — accepted.** Existing internal Android installs must be uninstalled
+and reinstalled, losing local SQLite and SecureStore state. The 38 mobile copy
+sites must change with exact EN/ES parity, **together with 32 spec assertions and
+2 Maestro flows** in the same commit. Three further user-facing surfaces — legal
+drafts, branded email, Swagger title — carry their own slices and their own
+deadlines. Store availability remains unverified until someone checks the
+consoles.
+
+**Neutral.** No shipped behaviour changes on acceptance; this ADR is
+documentation only.
+
+### Supersedes / Preserves
+
+- **Preserves ADR-P019** — Web dormancy is untouched; no platform boundary moves.
+- **Preserves ADR-P022** — the visual direction and design system are unaffected;
+  this is naming, not visual identity.
+- **Preserves ADR-P026** — the reset deep link keeps the `appfitness` scheme, and
+  the Universal/App Links gap is unchanged and still recorded.
+- **Preserves ADR-P027** — navigation is untouched.
+- Supersedes no accepted ADR. No previous decision fixed the commercial name or
+  the native identifiers; this is the first.
+
+### Related Documents
+
+- `.ai/06_MOBILE.md` (Expo configuration; deep links)
+- `.ai/10_DEPLOYMENT.md` (build and release path)
+- `.ai/11_BACKLOG.md` (FEATURE-010 UX stream; UX-4C; the implementation slice)
+- `.ai/17_PRODUCT_FLOWS.md` (§Flow 2 — custom scheme vs Universal/App Links)
+- `.ai/00_PROJECT.md` (§Decision Hierarchy)
+- Expo app config, incl. `currentFullName` / `originalFullName` —
+  <https://docs.expo.dev/versions/latest/config/app/>
+- Expo build setup — <https://docs.expo.dev/build/setup/>
+- `docs/legal/` (five drafts requiring slice 5b)
+- PR #102 (branded recovery email requiring slice 5c; inspected read-only, not
+  modified)
+- Android application ID — <https://developer.android.com/build/configure-app-module>
+- App Store Connect app information —
+  <https://developer.apple.com/help/app-store-connect/reference/app-information/>
+
+---
+
 
 # AI Instructions
 
