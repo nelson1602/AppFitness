@@ -21,7 +21,7 @@ interface AdapterSources {
 
 export type AdapterResult =
   | { status: 'ready'; data: DashboardAssessment }
-  | { status: 'incomplete'; missing: DataRequirement[] };
+  | { status: 'incomplete'; missing: DataRequirement[]; notes: DataRequirement[] };
 
 export function buildDashboardAssessment(sources: AdapterSources): AdapterResult {
   const missing: DataRequirement[] = [];
@@ -56,15 +56,12 @@ export function buildDashboardAssessment(sources: AdapterSources): AdapterResult
     });
   }
 
-  if (missing.length > 0) return { status: 'incomplete', missing };
-
-  const profile = sources.profile;
-  const physicalAssessment = sources.physicalAssessment;
-  if (!profile || !profile.birthDate || !profile.heightCm || !physicalAssessment.weightKg) {
-    return { status: 'incomplete', missing };
-  }
-  const age = calculateAge(profile.birthDate, sources.today);
-
+  // Advisory notes are computed BEFORE the blocking early return. They never
+  // gate the assessment — a missing goal still falls back to MAINTENANCE — but
+  // they must be reported even while blocking prerequisites are outstanding, so
+  // a first-run surface can tell "goal not set yet" from "goal already chosen".
+  // Computing them after the early return made them unreachable whenever the
+  // dashboard was incomplete, which is exactly the first-run case.
   if (!sources.activeGoal) {
     notes.push({
       id: 'default-goal',
@@ -72,13 +69,22 @@ export function buildDashboardAssessment(sources: AdapterSources): AdapterResult
       detail: 'Set a goal to personalize calorie and training adjustments.',
     });
   }
-  if (!profile.gender) {
+  if (!sources.profile?.gender) {
     notes.push({
       id: 'default-sex',
       title: 'Using undisclosed sex coefficients',
       detail: 'Add sex in your profile to improve BMR precision.',
     });
   }
+
+  if (missing.length > 0) return { status: 'incomplete', missing, notes };
+
+  const profile = sources.profile;
+  const physicalAssessment = sources.physicalAssessment;
+  if (!profile || !profile.birthDate || !profile.heightCm || !physicalAssessment.weightKg) {
+    return { status: 'incomplete', missing, notes };
+  }
+  const age = calculateAge(profile.birthDate, sources.today);
 
   const input: EngineInput = {
     subject: {

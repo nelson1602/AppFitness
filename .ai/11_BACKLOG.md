@@ -1572,15 +1572,33 @@ Excluded:
    selected-navigation accent role still has nowhere to live in V1 — that
    sentence in earlier revisions of this list anticipated tabs that are now
    deferred. Slices, in order, none implemented:
-   - **UX-4A — `/food-log` dashboard shortcut. Not implemented.** Will reduce
-     the daily food-logging loop from three pushes to one and will return the
-     product to its own documented three-level limit. Will touch
-     `DashboardScreen.tsx`, its spec,
-     `features/navigation/dashboard-route.spec.tsx`, and the EN/ES resources.
-     Additive: the targets → plan → food-log chain will be preserved.
-   - **UX-4B — First-run checklist card. Not implemented.** Will implement the
-     advisory onboarding shape decided by ADR-P027, reusing `resolveGapFix` and
-     the existing gap sets. No new routes.
+   - **UX-4A — `/food-log` dashboard shortcut. SHIPPED** (PR #110, merged
+     `5643303a7d173690fba5921e4c97c737288e5f00`). Reduces the daily food-logging
+     loop from three pushes to one and returns the product to its own documented
+     three-level limit. Touched `DashboardScreen.tsx`, its spec and the EN/ES
+     resources — 4 files, +28/−0. Additive: the targets → plan → food-log chain
+     is preserved.
+   - **UX-4B — First-run checklist card. SHIPPED.** Implements the advisory
+     onboarding shape decided by **ADR-P027 Decision 1**, reusing `resolveGapFix`
+     and the existing gap sets. **No new route, no persistence, no dismissal
+     control** — ADR-P027 leaves dismissal semantics undecided, so none is
+     invented.
+     - `OnboardingChecklistCard` becomes the **Data-gap treatment on the
+       first-run branch** (`status === 'empty'`), where the assessment cannot
+       compute yet. The `status === 'ready'` branch keeps `DataGapCard`
+       unchanged, so a partially-configured account with an assessment still
+       gets the detailed per-gap list.
+     - The five gap ids group into the **three copy-level steps** UX-3C
+       specified, without changing any routing. `default-sex` stays out: it has
+       no entry screen in `resolveGapFix`, so it is not a step a user can
+       complete.
+     - **Only outstanding steps render a row**; completion is carried by the
+       text line "{completed} of {total} complete". This keeps the slice inside
+       UX-3C's approved 7 keys and invents no status word, at the cost of the
+       list shrinking as it is completed. A per-step "done"/"to do" tag would
+       need 2 new keys and is a UX-3C decision, not a UX-4B one.
+     - The 7 `dashboard.onboarding.*` keys move **PROPOSED → SHIPPED**;
+       catalogues go 698 → **705 / 705**, parity preserved.
    - **UX-4C — Manual AT verification pass.** VoiceOver, TalkBack and browser-AT,
      recorded per surface. **Until this runs, no accessibility outcome anywhere
      in the UX stream may be reported as satisfied** (ADR-P023 / ADR-P024).

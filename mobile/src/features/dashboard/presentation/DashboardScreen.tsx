@@ -13,6 +13,7 @@ import { useDashboardStore } from '../application/dashboard.store';
 import { AssessmentSummaryCard } from './components/assessment-summary-card';
 import { DashboardSkeleton } from './components/dashboard-skeleton';
 import { DataGapCard } from './components/data-gap-card';
+import { OnboardingChecklistCard } from './components/onboarding-checklist-card';
 import { RecommendationCard } from './components/recommendation-card';
 import { SyncStatusBanner } from './components/sync-status-banner';
 
@@ -80,8 +81,11 @@ export function DashboardScreen() {
         </>
       ) : null}
 
+      {/* First run: the assessment cannot compute yet, so the advisory
+          checklist (ADR-P027 Decision 1) is the Data-gap treatment here. It is
+          non-blocking and adds no route — every other surface stays usable. */}
       {status === 'empty' && data ? (
-        <DataGapCard
+        <OnboardingChecklistCard
           gaps={data.missing}
           loading={false}
           onLoadSampleData={() => {

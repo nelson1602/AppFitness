@@ -121,4 +121,76 @@ describe('buildDashboardAssessment', () => {
       ]);
     }
   });
+
+  it('reports advisory notes while still incomplete, so first run sees an unset goal', () => {
+    const result = buildDashboardAssessment({
+      profile: null,
+      activeGoal: null,
+      physicalAssessment: { weightKg: null, bodyFatPct: null },
+      today: '2026-07-06',
+    });
+
+    // Regression: the notes used to be computed AFTER the blocking early
+    // return, so an unset goal was unreachable in exactly the first-run case.
+    expect(result.status).toBe('incomplete');
+    if (result.status === 'incomplete') {
+      expect(result.notes.map((item) => item.id)).toEqual(['default-goal', 'default-sex']);
+    }
+  });
+
+  it('keeps a missing goal advisory — blocking gaps never include it', () => {
+    const result = buildDashboardAssessment({
+      profile: null,
+      activeGoal: null,
+      physicalAssessment: { weightKg: null, bodyFatPct: null },
+      today: '2026-07-06',
+    });
+
+    expect(result.status).toBe('incomplete');
+    if (result.status === 'incomplete') {
+      expect(result.missing.map((item) => item.id)).not.toContain('default-goal');
+      expect(result.missing.map((item) => item.id)).not.toContain('default-sex');
+    }
+  });
+
+  it('omits the goal note once a goal exists, even while other prerequisites are missing', () => {
+    const result = buildDashboardAssessment({
+      profile: null,
+      activeGoal: {
+        id: 'goal-1',
+        userId: 'user-1',
+        goalType: 'RECOMPOSITION',
+        targetWeightKg: 78,
+        targetDate: null,
+        isActive: true,
+        startedAt: '2026-07-06T00:00:00.000Z',
+        endedAt: null,
+        version: 1,
+        syncStatus: 'synced' as const,
+      },
+      physicalAssessment: { weightKg: null, bodyFatPct: null },
+      today: '2026-07-06',
+    });
+
+    expect(result.status).toBe('incomplete');
+    if (result.status === 'incomplete') {
+      expect(result.notes.map((item) => item.id)).toEqual(['default-sex']);
+    }
+  });
+
+  it('still reaches a ready assessment with no goal, defaulting to maintenance', () => {
+    const result = buildDashboardAssessment({
+      profile,
+      activeGoal: null,
+      physicalAssessment,
+      today: '2026-07-06',
+    });
+
+    // The goal stays advisory: it must never block a ready assessment.
+    expect(result.status).toBe('ready');
+    if (result.status === 'ready') {
+      expect(result.data.engineInput.goal).toBe('MAINTENANCE');
+      expect(result.data.notes.map((item) => item.id)).toEqual(['default-goal']);
+    }
+  });
 });

@@ -421,7 +421,7 @@ Copy notes:
 
 ---
 
-# First-run checklist — approved shape, proposed copy
+# First-run checklist — shipped copy
 
 ADR-P027 approves an advisory dashboard checklist derived from the existing
 Data-gap source. UX-3C specifies three copy-level steps by grouping the five
@@ -433,56 +433,68 @@ gap ids without changing their routing:
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `dashboard.onboarding.accessibility` | Getting started checklist | Lista de primeros pasos | **PROPOSED** — UX-4B |
-| `dashboard.onboarding.title` | Finish setting up AppFitness | Termina de configurar AppFitness | **PROPOSED** — UX-4B |
-| `dashboard.onboarding.description` | Complete these steps at your pace. You can use the rest of the app now. | Completa estos pasos a tu ritmo. Ya puedes usar el resto de la app. | **PROPOSED** — UX-4B |
-| `dashboard.onboarding.progress` | {completed} of {total} complete | {completed} de {total} completados | **PROPOSED** — UX-4B |
-| `dashboard.onboarding.profile` | Add your profile basics | Agrega los datos básicos de tu perfil | **PROPOSED** — UX-4B |
-| `dashboard.onboarding.goal` | Choose your goal | Elige tu objetivo | **PROPOSED** — UX-4B |
-| `dashboard.onboarding.weight` | Record your first weight | Registra tu primer peso | **PROPOSED** — UX-4B |
+| `dashboard.onboarding.accessibility` | Getting started checklist | Lista de primeros pasos | **SHIPPED** |
+| `dashboard.onboarding.title` | Finish setting up AppFitness | Termina de configurar AppFitness | **SHIPPED** |
+| `dashboard.onboarding.description` | Complete these steps at your pace. You can use the rest of the app now. | Completa estos pasos a tu ritmo. Ya puedes usar el resto de la app. | **SHIPPED** |
+| `dashboard.onboarding.progress` | {completed} of {total} complete | {completed} de {total} completados | **SHIPPED** |
+| `dashboard.onboarding.profile` | Add your profile basics | Agrega los datos básicos de tu perfil | **SHIPPED** |
+| `dashboard.onboarding.goal` | Choose your goal | Elige tu objetivo | **SHIPPED** |
+| `dashboard.onboarding.weight` | Record your first weight | Registra tu primer peso | **SHIPPED** |
 
-`{completed}` and `{total}` are value placeholders. UX-4B must resolve them
-with the repository's existing manual-replacement/local-formatter pattern; this
-copy contract does not authorize a localization API change.
+`{completed}` and `{total}` are value placeholders. **UX-4B resolves them** with
+the repository's existing manual-replacement pattern — a local `template()`
+reducer over `String.replaceAll`, matching `recommendation-copy.ts`, with counts
+formatted by `formatNumber` in the active language. **No localization API
+changed.**
 
 The checklist adds no “welcome”, “skip”, “dismiss” or completion-celebration
 copy. ADR-P027 leaves persistence/dismissal semantics undecided, and UX-3C does
 not decide behaviour through strings. The progress sentence supplies
 non-visual intent only; its actual AT output remains a UX-4C gate.
 
+**UX-4B implementation note.** Because no status word was approved, the shipped
+card renders a row **only for an outstanding step**; a resolved step disappears
+and is counted in the progress line instead. Adding a per-step “done” / “to do”
+tag would require two further keys and is a **UX-3C** copy decision, not a UX-4B
+one.
+
 ---
 
-# Direct Food Log dashboard shortcut — proposed copy
+# Direct Food Log dashboard shortcut — shipped copy
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `dashboard.foodLog` | Log food | Registrar alimentos | **PROPOSED** — UX-4A |
-| `dashboard.foodLogAccessibility` | Open today's food log | Abrir el registro de alimentos de hoy | **PROPOSED** — UX-4A |
+| `dashboard.foodLog` | Log food | Registrar alimentos | **SHIPPED** |
+| `dashboard.foodLogAccessibility` | Open today's food log | Abrir el registro de alimentos de hoy | **SHIPPED** |
 
 The shortcut is additive and routes directly to `/food-log`. It does not rename
 Nutrition or remove the targets → plan → log path.
+
+**Shipped by UX-4A** in PR #110, merged at
+`5643303a7d173690fba5921e4c97c737288e5f00` — 4 mobile files, +28/−0.
 
 ---
 
 # Proposed-key handoff
 
-The **33** proposed keys in this document form the complete UX-3C runtime
-handoff. They belong to their existing owners rather than one broad migration:
+UX-3C handed off **33** proposed keys. **Nine have since shipped**, leaving
+**24 outstanding**. They belong to their existing owners rather than one broad
+migration:
 
-| Owner | Keys | Purpose |
-|---|---:|---|
-| BUG-010 | 1 | Shared bilingual loading label |
-| BUG-009 | 2 | Progress-card Error distinct from Empty |
-| BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility |
-| BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure |
-| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress |
-| UX-4B | 7 | Advisory first-run checklist |
-| UX-4A | 2 | Direct Food Log dashboard shortcut |
+| Owner | Keys | Purpose | Status |
+|---|---:|---|---|
+| BUG-010 | 1 | Shared bilingual loading label | outstanding |
+| BUG-009 | 2 | Progress-card Error distinct from Empty | outstanding |
+| BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | outstanding |
+| BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | outstanding |
+| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | outstanding |
+| UX-4B | 7 | Advisory first-run checklist | **SHIPPED** |
+| UX-4A | 2 | Direct Food Log dashboard shortcut | **SHIPPED** |
 
 Every implementation slice must add EN and ES entries together, preserve exact
 key parity, add component/regression coverage, and keep raw technical messages
-out of presentation. No owning slice may import all 33 keys merely because they
-share this document.
+out of presentation. No owning slice may import the remaining keys merely
+because they share this document.
 
 ---
 
