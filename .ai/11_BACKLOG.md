@@ -2731,8 +2731,9 @@ assistive technology on a Spanish-locale device.
 
 ## [BUG-011] Local-First Row State Is Never Surfaced on Three Screens That Carry It
 
-Status: **Open** — Workout Log and Dietary Preferences slices shipped
-2026-09-01; Progress outstanding (see Progress by feature slice)
+Status: **Open** — all three feature slices shipped 2026-09-01; one residual
+remains: Progress lists no individual body-measurement row (see Progress by
+feature slice)
 Priority: P2
 Type: Bug
 Owner: Unassigned
@@ -2801,13 +2802,16 @@ the two row-level hints Workout Log already ships.
 
 - [x] Workout Log renders a Conflict treatment on workout and set rows.
 - [x] Dietary Preferences renders Pending sync and Conflict on exclusion rows.
-- [ ] Progress renders Pending sync and Conflict on body weights, measurements
-      and weekly snapshots.
+- [~] Progress renders Pending sync and Conflict on body weights, measurements
+      and weekly snapshots. **Weights and snapshots: done.** Measurements are
+      **never listed individually** on the screen, so no measurement row exists
+      to annotate — see the residual below. This criterion was written assuming
+      a measurement list that does not exist.
 - [x] Conflict uses `warning`, never `error` (see BUG-007) — satisfied for the
       Workout Log slice; re-asserted per slice as the remaining two land.
 - [x] EN/ES copy is specified under **UX-3C** before implementation for Workout
       Log, Dietary Preferences and Progress (`.ai/19_COPY_DECKS.md`).
-- [ ] Specs cover each new treatment; no accessibility outcome is claimed before
+- [x] Specs cover each new treatment; no accessibility outcome is claimed before
       the **UX-4C** manual AT pass.
 
 ### Progress by feature slice
@@ -2819,7 +2823,7 @@ stays Open until all three are done.**
 |---|---|---:|---|
 | Workout Log | Conflict (workout rows + set rows) | 2 | **SHIPPED** 2026-09-01 |
 | Dietary Preferences | Pending sync, Conflict | 4 | **SHIPPED** 2026-09-01 |
-| Progress | Pending sync, Conflict (body weights, measurements, snapshots) | 4 | Outstanding |
+| Progress | Pending sync, Conflict (listed body weight + snapshot rows) | 4 | **SHIPPED** 2026-09-01, with a residual |
 
 **Workout Log slice (shipped).** Workout Log already shipped both Pending sync
 treatments, so Conflict was its only gap — which is why it was taken first as
@@ -2839,9 +2843,34 @@ never alarm — and `warning` for Conflict. Four EN and four ES keys added at ex
 parity (722/722). Six regression specs, two of which assert the rendered
 **colour**, plus one proving a synced row gets no hint at all.
 
-**BUG-012 preserved.** In both shipped slices the conflict hint is report-only —
-the bare localized word, no choose action and no CTA — and a spec in each asserts
-exactly that. No resolution affordance was added.
+**Progress slice (shipped, with one residual).** Both states were missing, so
+both were added together in a shared `SyncHint`
+(`progress/presentation/SyncHint.tsx`) used by the two listed row kinds so they
+cannot drift apart: the latest body weight (`ProgressScreen.tsx:158`) and the
+snapshot rows (`WeeklySnapshotSummary.tsx:107`, `:127` — latest week and each
+earlier week). `muted` for Pending, `warning` for Conflict. Four EN and four ES
+keys added at exact parity (726/726). Nine regression specs across the two
+files, four of which assert the rendered **colour**, plus two proving fully
+synced rows get no hint at all.
+
+**Residual — this is why BUG-011 is still open.** `bodyMeasurements` reaches the
+UI only as a **count** (`ProgressScreen.tsx:164`) and as the aggregated
+`muscleMassTrend` series (`:110`). **No individual measurement row is rendered
+anywhere**, so the shipped treatment has nothing to attach to for that entity.
+This is an absent surface, not an unimplemented treatment. Both
+`.ai/18_SCREEN_STATE_MATRICES.md` and `.ai/19_COPY_DECKS.md` had assumed a
+measurement list that does not exist; both are corrected in this change.
+Closing BUG-011 requires a decision that is **not** conformance work: either add
+a measurement list (a design change needing copy the deck does not contain), or
+correct the acceptance criterion. Deliberately **not** decided here.
+
+**Surface 4 untouched.** The embedded Progress summary card has its own store and
+its failed-read-as-Empty defect is **BUG-009**'s. It was audited before editing
+and deliberately not absorbed into this slice.
+
+**BUG-012 preserved.** In all three shipped slices the conflict hint is
+report-only — the bare localized word, no choose action and no CTA — and a spec
+in each asserts exactly that. No resolution affordance was added.
 
 **Offline stays out of scope** for every slice, for the reason given above.
 

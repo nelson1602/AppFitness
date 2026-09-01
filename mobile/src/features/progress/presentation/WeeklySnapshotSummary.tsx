@@ -10,6 +10,7 @@ import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { ProgressSnapshot } from '../domain/progress';
+import { SyncHint } from './SyncHint';
 
 interface WeeklySnapshotSummaryProps {
   /** Snapshots newest-first (as the store returns them). */
@@ -103,6 +104,7 @@ export function WeeklySnapshotSummary({
           label={t('progress.weekly.deloadWeek')}
           value={latest.isDeloadWeek ? t('progress.weekly.yes') : t('progress.weekly.no')}
         />
+        <SyncHint syncStatus={latest.syncStatus} />
       </View>
 
       {recent.length > 0 ? (
@@ -111,14 +113,19 @@ export function WeeklySnapshotSummary({
             {t('progress.weekly.earlierWeeks')}
           </AppText>
           {recent.map((s) => (
-            <AppText key={s.id} variant="caption" tone="muted">
-              {formatWeek(s.weekStart, language)}: {num(s.totalVolumeKg, ' kg', language)}{' '}
-              {t('progress.weekly.volume')} · {formatNumber(s.workoutCount, language)}{' '}
-              {t(
-                s.workoutCount === 1 ? 'progress.weekly.workoutOne' : 'progress.weekly.workoutMany',
-              )}
-              {s.isDeloadWeek ? ` · ${t('progress.weekly.deloadTag')}` : ''}
-            </AppText>
+            <View key={s.id} style={{ gap: theme.spacing.xs }}>
+              <AppText variant="caption" tone="muted">
+                {formatWeek(s.weekStart, language)}: {num(s.totalVolumeKg, ' kg', language)}{' '}
+                {t('progress.weekly.volume')} · {formatNumber(s.workoutCount, language)}{' '}
+                {t(
+                  s.workoutCount === 1
+                    ? 'progress.weekly.workoutOne'
+                    : 'progress.weekly.workoutMany',
+                )}
+                {s.isDeloadWeek ? ` · ${t('progress.weekly.deloadTag')}` : ''}
+              </AppText>
+              <SyncHint syncStatus={s.syncStatus} />
+            </View>
           ))}
         </View>
       ) : null}

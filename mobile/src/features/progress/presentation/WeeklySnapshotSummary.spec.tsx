@@ -1,4 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
+import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
+
+import { lightTheme } from '@/shared/theme';
 
 import type { ProgressSnapshot } from '../domain/progress';
 import { WeeklySnapshotSummary } from './WeeklySnapshotSummary';
@@ -17,6 +20,11 @@ jest.mock('@/shared/localization', () => {
     }),
   };
 });
+
+/** Resolved text colour, so tone is asserted as rendered behaviour (BUG-011). */
+function colorOf(node: { props: { style?: StyleProp<TextStyle> } }): TextStyle['color'] {
+  return StyleSheet.flatten(node.props.style)?.color;
+}
 
 function snap(overrides: Partial<ProgressSnapshot> = {}): ProgressSnapshot {
   return {
@@ -135,5 +143,52 @@ describe('WeeklySnapshotSummary', () => {
     expect(
       screen.getByText(/27\b.*2026: 9000 kg de volumen · 1 entrenamiento · descarga/),
     ).toBeOnTheScreen();
+  });
+
+  // BUG-011: snapshots are listed rows carrying `syncStatus`, both for the
+  // latest week and for each earlier week.
+  it('reports a diverged latest snapshot as warning, not error (BUG-011)', async () => {
+    await render(<WeeklySnapshotSummary snapshots={[snap({ syncStatus: 'conflict' })]} />);
+
+    const hint = screen.getByLabelText('Progress entry sync conflict');
+    expect(hint).toBeOnTheScreen();
+    expect(colorOf(hint)).toBe(lightTheme.colors.warning);
+    expect(colorOf(hint)).not.toBe(lightTheme.colors.error);
+  });
+
+  it('reassures that a queued latest snapshot is safely stored (BUG-011)', async () => {
+    await render(<WeeklySnapshotSummary snapshots={[snap({ syncStatus: 'pending' })]} />);
+
+    const hint = screen.getByLabelText('Progress entry saved on this device; sync pending');
+    expect(colorOf(hint)).toBe(lightTheme.colors.onSurfaceVariant);
+  });
+
+  it('reports an earlier week that diverged (BUG-011)', async () => {
+    await render(
+      <WeeklySnapshotSummary
+        snapshots={[
+          snap({ id: 'latest', syncStatus: 'synced' }),
+          snap({ id: 'older', weekStart: '2026-07-27', syncStatus: 'conflict' }),
+        ]}
+      />,
+    );
+
+    // Exactly one hint: the earlier row, not the synced latest block.
+    const hints = screen.getAllByLabelText('Progress entry sync conflict');
+    expect(hints).toHaveLength(1);
+    expect(colorOf(hints[0])).toBe(lightTheme.colors.warning);
+  });
+
+  it('leaves fully synced snapshots with no sync hint at all (BUG-011)', async () => {
+    await render(
+      <WeeklySnapshotSummary
+        snapshots={[snap({ id: 'a' }), snap({ id: 'b', weekStart: '2026-07-27' })]}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Progress entry sync conflict')).not.toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText('Progress entry saved on this device; sync pending'),
+    ).not.toBeOnTheScreen();
   });
 });

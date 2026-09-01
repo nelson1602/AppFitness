@@ -169,6 +169,11 @@ export const es = {
   'progress.screen.latest': 'Lo más reciente',
   'progress.screen.on': 'el',
   'progress.screen.noWeight': 'Aún no has registrado tu peso.',
+  'progress.syncPending': 'Guardado en este dispositivo',
+  'progress.syncPendingAccessibility':
+    'Registro de progreso guardado en este dispositivo; sincronización pendiente',
+  'progress.syncConflict': 'Conflicto',
+  'progress.syncConflictAccessibility': 'Conflicto de sincronización del registro de progreso',
   'progress.screen.weightEntryOne': 'entrada de peso',
   'progress.screen.weightEntryMany': 'entradas de peso',
   'progress.screen.measurementEntryOne': 'entrada de medidas',
