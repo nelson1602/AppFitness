@@ -542,6 +542,12 @@ export const es = {
   'nutrition.preferences.categorySuffix': 'categoría',
   'nutrition.preferences.foodSuffix': 'alimento',
   'nutrition.preferences.noteSaved': 'nota guardada',
+  'nutrition.preferences.syncPending': 'Guardado en este dispositivo',
+  'nutrition.preferences.syncPendingAccessibility':
+    'Preferencia guardada en este dispositivo; sincronización pendiente',
+  'nutrition.preferences.syncConflict': 'Conflicto',
+  'nutrition.preferences.syncConflictAccessibility':
+    'Conflicto de sincronización de la preferencia alimentaria',
   'nutrition.preferences.remove': 'Eliminar',
   'nutrition.preferences.removeAccessibility': 'Eliminar exclusión',
   'nutrition.log.routeTitle': 'Registro de alimentos',

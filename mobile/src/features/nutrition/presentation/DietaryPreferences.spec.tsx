@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
 
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import { lightTheme } from '@/shared/theme';
 
 import type { DietaryPreference } from '../domain/dietary-preference';
 import type { DietaryPreferenceState } from '../application/dietary-preference.store';
@@ -52,6 +54,15 @@ function setStore(partial: Partial<DietaryPreferenceState>) {
     remove,
     ...partial,
   };
+}
+
+/**
+ * Resolved text colour. Tone is asserted as rendered behaviour rather than by
+ * prop name, so "Conflict is warning, never error" cannot regress silently
+ * through a rename (BUG-007, applied here by BUG-011).
+ */
+function colorOf(node: { props: { style?: StyleProp<TextStyle> } }): TextStyle['color'] {
+  return StyleSheet.flatten(node.props.style)?.color;
 }
 
 const tagPref: DietaryPreference = {
@@ -227,5 +238,71 @@ describe('DietaryPreferences', () => {
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('dp-add')).toBeNull();
+  });
+
+  // BUG-011: exclusions are local-first writes that enqueue, and the rows
+  // expose `syncStatus` — but the screen rendered nothing for it, so a queued
+  // or diverged exclusion looked identical to a fully synced one.
+  it('reassures that a queued exclusion is safely stored (BUG-011)', async () => {
+    setStore({ preferences: [{ ...tagPref, syncStatus: 'pending' }] });
+    await render(<DietaryPreferences />);
+
+    const hint = screen.getByLabelText('Preference saved on this device; sync pending');
+    expect(hint).toBeOnTheScreen();
+    // Pending means safely stored — it must reassure, never alarm.
+    expect(colorOf(hint)).toBe(lightTheme.colors.onSurfaceVariant);
+    expect(colorOf(hint)).not.toBe(lightTheme.colors.error);
+  });
+
+  it('reports a diverged exclusion as warning, not error (BUG-011)', async () => {
+    setStore({ preferences: [{ ...tagPref, syncStatus: 'conflict' }] });
+    await render(<DietaryPreferences />);
+
+    const hint = screen.getByLabelText('Dietary preference sync conflict');
+    expect(hint).toBeOnTheScreen();
+    expect(colorOf(hint)).toBe(lightTheme.colors.warning);
+    expect(colorOf(hint)).not.toBe(lightTheme.colors.error);
+    // A conflicted row is not also reported as merely pending.
+    expect(
+      screen.queryByLabelText('Preference saved on this device; sync pending'),
+    ).not.toBeOnTheScreen();
+  });
+
+  it('leaves a synced exclusion with no sync hint at all (BUG-011)', async () => {
+    setStore({ preferences: [{ ...tagPref, syncStatus: 'synced' }] });
+    await render(<DietaryPreferences />);
+
+    expect(screen.queryByLabelText('Dietary preference sync conflict')).not.toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText('Preference saved on this device; sync pending'),
+    ).not.toBeOnTheScreen();
+  });
+
+  it('reports the conflict without offering a resolution (BUG-012 stays open)', async () => {
+    setStore({ preferences: [{ ...tagPref, syncStatus: 'conflict' }] });
+    await render(<DietaryPreferences />);
+
+    // Report-only: the hint is the bare localized word, with no choose action.
+    expect(screen.getByLabelText('Dietary preference sync conflict')).toHaveTextContent('Conflict');
+  });
+
+  it('localizes the conflict hint in Spanish (BUG-011)', async () => {
+    mockLanguage = 'es';
+    setStore({ preferences: [{ ...tagPref, syncStatus: 'conflict' }] });
+    await render(<DietaryPreferences />);
+
+    expect(
+      screen.getByLabelText('Conflicto de sincronización de la preferencia alimentaria'),
+    ).toHaveTextContent('Conflicto');
+  });
+
+  it('localizes the pending hint in Spanish (BUG-011)', async () => {
+    mockLanguage = 'es';
+    setStore({ preferences: [{ ...tagPref, syncStatus: 'pending' }] });
+    await render(<DietaryPreferences />);
+
+    expect(
+      screen.getByLabelText('Preferencia guardada en este dispositivo; sincronización pendiente'),
+    ).toHaveTextContent('Guardado en este dispositivo');
   });
 });

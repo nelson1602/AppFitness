@@ -9,6 +9,8 @@ import {
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
+import type { SyncStatus } from '@/shared/infrastructure/database/types';
+
 import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { foodDisplayName, searchFoodsForDisplay } from '../application/food-display.service';
@@ -30,6 +32,43 @@ const KIND_KEY: Record<DietaryPreference['kind'], TranslationKey> = {
   allergy: 'nutrition.preferences.allergy',
   preference: 'nutrition.preferences.preference',
 };
+
+/**
+ * Row-level local-first state (BUG-011). Exclusions are local-first writes that
+ * enqueue, and the listed rows expose `syncStatus` — but the screen rendered
+ * nothing for it, so a queued or diverged exclusion looked identical to a
+ * synced one.
+ *
+ * Pending reassures (`muted`, "safely stored"); Conflict is `warning`, never
+ * `error`, because both versions are preserved (`.ai/08_UI_UX.md`
+ * distinctions 4 and 5). Conflict is report-only — no resolution flow is
+ * authorized anywhere in v1 (BUG-012).
+ */
+function SyncHint({ syncStatus, t }: { syncStatus: SyncStatus; t: Translate }) {
+  if (syncStatus === 'conflict') {
+    return (
+      <AppText
+        variant="caption"
+        tone="warning"
+        accessibilityLabel={t('nutrition.preferences.syncConflictAccessibility')}
+      >
+        {t('nutrition.preferences.syncConflict')}
+      </AppText>
+    );
+  }
+  if (syncStatus === 'pending') {
+    return (
+      <AppText
+        variant="caption"
+        tone="muted"
+        accessibilityLabel={t('nutrition.preferences.syncPendingAccessibility')}
+      >
+        {t('nutrition.preferences.syncPending')}
+      </AppText>
+    );
+  }
+  return null;
+}
 
 function exclusionLabel(
   preference: DietaryPreference,
@@ -305,6 +344,7 @@ export function DietaryPreferences() {
                     {t(KIND_KEY[preference.kind])}
                     {preference.hasNote ? ` · ${t('nutrition.preferences.noteSaved')}` : ''}
                   </AppText>
+                  <SyncHint syncStatus={preference.syncStatus} t={t} />
                   <AppButton
                     accessibilityLabel={`${t('nutrition.preferences.removeAccessibility')}: ${label}`}
                     testID={`dp-remove-${preference.id}`}
