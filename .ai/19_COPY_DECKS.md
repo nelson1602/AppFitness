@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.2
+Version: 1.3
 Status: Active
-Last Updated: 2026-08-31
+Last Updated: 2026-09-01
 
 ---
 
@@ -304,21 +304,23 @@ Shared Data-gap deck:
 ### Catalog incompatibility versus Conflict
 
 The existing `action*` keys describe a server-catalog incompatibility and stay
-assigned to that cause. They must no longer carry a version conflict after
-BUG-007 implementation.
+assigned to that cause. **BUG-007 shipped**, so they no longer carry a version
+conflict: the repository separates the two causes at the read
+(`food-log.repository.ts:205-215`, `:389`) and the screen renders the catalog
+cause as `error` and the conflict as `warning`.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `nutrition.log.actionTitle` | Action needed | Acción necesaria | **SHIPPED — non-conformant while causes remain collapsed** |
+| `nutrition.log.actionTitle` | Action needed | Acción necesaria | **SHIPPED** — catalog incompatibility only, since BUG-007 |
 | `nutrition.log.actionMessageOne` | item cannot sync because the food is not available on the server. Remove and re-add it to continue. | elemento no puede sincronizarse porque el alimento no está disponible en el servidor. Elimínalo y agrégalo nuevamente para continuar. | **SHIPPED** — catalog incompatibility only |
 | `nutrition.log.actionMessageMany` | items cannot sync because the food is not available on the server. Remove and re-add them to continue. | elementos no pueden sincronizarse porque el alimento no está disponible en el servidor. Elimínalos y agrégalos nuevamente para continuar. | **SHIPPED** — catalog incompatibility only |
-| `nutrition.log.actionShort` | Action needed | Acción necesaria | **SHIPPED — non-conformant while causes remain collapsed** |
-| `nutrition.log.actionAccessibility` | Sync action required | Se requiere una acción de sincronización | **SHIPPED — non-conformant while causes remain collapsed** |
-| `nutrition.log.conflictTitle` | Food log conflict | Conflicto en el registro de alimentos | **PROPOSED** — BUG-007 |
-| `nutrition.log.conflictMessageOne` | food log item has changes from another device. Both versions are preserved. | elemento del registro tiene cambios de otro dispositivo. Ambas versiones se conservan. | **PROPOSED** — BUG-007 |
-| `nutrition.log.conflictMessageMany` | food log items have changes from another device. Both versions are preserved. | elementos del registro tienen cambios de otro dispositivo. Ambas versiones se conservan. | **PROPOSED** — BUG-007 |
-| `nutrition.log.conflictShort` | Conflict | Conflicto | **PROPOSED** — BUG-007 |
-| `nutrition.log.conflictAccessibility` | Food log sync conflict | Conflicto de sincronización del registro de alimentos | **PROPOSED** — BUG-007 |
+| `nutrition.log.actionShort` | Action needed | Acción necesaria | **SHIPPED** — catalog incompatibility only, since BUG-007 |
+| `nutrition.log.actionAccessibility` | Sync action required | Se requiere una acción de sincronización | **SHIPPED** — catalog incompatibility only, since BUG-007 |
+| `nutrition.log.conflictTitle` | Food log conflict | Conflicto en el registro de alimentos | SHIPPED |
+| `nutrition.log.conflictMessageOne` | food log item has changes from another device. Both versions are preserved. | elemento del registro tiene cambios de otro dispositivo. Ambas versiones se conservan. | SHIPPED |
+| `nutrition.log.conflictMessageMany` | food log items have changes from another device. Both versions are preserved. | elementos del registro tienen cambios de otro dispositivo. Ambas versiones se conservan. | SHIPPED |
+| `nutrition.log.conflictShort` | Conflict | Conflicto | SHIPPED |
+| `nutrition.log.conflictAccessibility` | Food log sync conflict | Conflicto de sincronización del registro de alimentos | SHIPPED |
 
 The banner prepends the localized count, matching the shipped `*One` / `*Many`
 composition pattern. The Conflict copy is deliberately report-only. There is no
@@ -481,15 +483,15 @@ Nutrition or remove the targets → plan → log path.
 
 # Proposed-key handoff
 
-UX-3C handed off **33** proposed keys. **Fifteen have since shipped**, leaving
-**18 outstanding**. They belong to their existing owners rather than one broad
+UX-3C handed off **33** proposed keys. **Twenty have since shipped**, leaving
+**13 outstanding**. They belong to their existing owners rather than one broad
 migration:
 
 | Owner | Keys | Purpose | Status |
 |---|---:|---|---|
 | BUG-010 | 1 | Shared bilingual loading label | outstanding |
 | BUG-009 | 2 | Progress-card Error distinct from Empty | outstanding |
-| BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | outstanding |
+| BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | **SHIPPED** |
 | BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | **SHIPPED** |
 | BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | outstanding |
 | UX-4B | 7 | Advisory first-run checklist | **SHIPPED** |

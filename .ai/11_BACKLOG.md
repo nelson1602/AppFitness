@@ -1476,8 +1476,9 @@ Excluded:
        (genuinely not applicable, always justified). `n/a` is never used for a
        gap. **Seven** PROPOSED treatments and **one** non-conformant treatment
        were recorded, every one with a named owner — BUG-008 ×1, BUG-009 ×1,
-       BUG-011 ×5, BUG-007 ×1. **BUG-008 has since shipped**, leaving **six**
-       PROPOSED in `.ai/18_SCREEN_STATE_MATRICES.md` v1.4.
+       BUG-011 ×5, BUG-007 ×1. **BUG-007 and BUG-008 have since shipped**,
+       leaving **six** PROPOSED and **no** non-conformant treatments in
+       `.ai/18_SCREEN_STATE_MATRICES.md` v1.5.
      - **Eight findings, C-1 … C-8.** Four were documentation contradictions and
        are **reconciled** in this change (C-1, C-2, C-6, C-7); four are runtime
        defects and remain open as **BUG-007** … **BUG-010**. None needs a new
@@ -2369,12 +2370,12 @@ push (or the dead component) and leave the domain dormant.
 
 ## [BUG-007] Food Log Renders a Sync Conflict as `error`, and Merges It with an Unrelated Failure
 
-Status: Open
+Status: **Done** (2026-09-01 — fixed in this change; see Resolution)
 Priority: P2
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-08-28
+Updated: 2026-09-01
 
 ### Description
 
@@ -2425,13 +2426,66 @@ own copy. Neither is presented as the other.
 
 ### Acceptance Criteria
 
-- [ ] Conflict-derived state in Food Log renders `warning`, not `error`.
-- [ ] `CATALOG_REVISION_UNSUPPORTED` and version conflict are distinguishable to
+- [x] Conflict-derived state in Food Log renders `warning`, not `error`.
+- [x] `CATALOG_REVISION_UNSUPPORTED` and version conflict are distinguishable to
       the user.
-- [ ] A regression test asserts the tone for each.
+- [x] A regression test asserts the tone for each.
 - [x] EN/ES copy for both is specified under **UX-3C** before implementation
       (`.ai/19_COPY_DECKS.md`; catalog incompatibility stays on the shipped
       `action*` family and Conflict receives a separate proposed family).
+
+### Resolution
+
+Fixed on `codex/fix-food-log-conflict-reporting`. Line references in the
+Description and Evidence sections above are as audited at
+`fb02097593ff9a2735f54620d6350d880cf3a030`; the fix moved them.
+
+**The audit understated problem 2.** The two causes were not only rendered
+together, they were **indistinguishable in the data**:
+`shared/infrastructure/sync/sync-worker.ts` calls the same applier
+`markConflict` for a `CONFLICT` push result and for a `REJECTED` /
+`CATALOG_REVISION_UNSUPPORTED` result, so both write `sync_status = 'conflict'`
+on the `meal_items` row. Only the **queue** row separates them, and only the
+rejection records its code there (`markActionRequired`). A presentation-only fix
+could therefore not have been made correct. The fix starts at the read:
+
+- `shared/infrastructure/sync/sync-queue.ts:151` adds a read-only
+  `listParkedEntityIds(entityType, code)`, exported from the sync module index.
+  Nothing existing changed signature, and the nutrition layer does not reach
+  into `sync_queue` directly.
+- `nutrition/infrastructure/food-log.repository.ts:205-215` consults it — only
+  when at least one row is actually marked — and `:389` maps a marked row to
+  `action_required` when parked by the catalog code, and to the new `conflict`
+  state otherwise. **Absent evidence defaults to Conflict**, because Conflict
+  copy is report-only while the catalog copy tells the user to remove and re-add
+  a food.
+- `nutrition/domain/food-log.ts:26-45` splits `MealItemSyncState` into
+  `action_required` (catalog) and `conflict` (diverged version); the comment no
+  longer claims one state covers both.
+- `nutrition/application/food-log.store.ts:78-96` counts them separately.
+  Catalog incompatibility outranks conflict for the banner, because it is the
+  only one of the two that asks the user to act — but the counts are never
+  folded together.
+- `nutrition/presentation/FoodLogScreen.tsx:59-72` and `:146-158` render
+  Conflict as `warning` with `nutrition.log.conflict*`, matching the two
+  already-conformant conflict surfaces (`sync-status-banner.tsx`,
+  `ExerciseLibrary.tsx`).
+- Five EN and five ES keys added at exact parity (716/716),
+  `nutrition.log.conflict*`, verbatim from `.ai/19_COPY_DECKS.md`.
+- Ten regression specs. The tone assertions read the **rendered colour** against
+  `lightTheme.colors`, not a prop name, so the rule cannot regress silently.
+
+**BUG-012 remains open and is explicitly preserved.** This slice makes a
+conflict *legible*; it does not make it *resolvable*. No resolution affordance
+was added here or anywhere else, the Conflict copy carries no CTA, and the spec
+*"reports the conflict without offering a resolution (BUG-012 stays open)"*
+asserts that the banner offers none.
+
+Reconciled in the same change: `.ai/18_SCREEN_STATE_MATRICES.md` v1.5 (surface 8
+Conflict SHIPPED — non-conformant → SHIPPED, plus a separate "Error — catalog
+incompatibility" row; the non-conformant total falls to zero; C-3 marked fixed)
+and `.ai/19_COPY_DECKS.md` v1.3 (five conflict rows SHIPPED, the three `action*`
+rows lose their non-conformant qualifier, outstanding proposed keys 18 → 13).
 
 ### Related Documents
 

@@ -556,6 +556,13 @@ export const es = {
     'elemento no puede sincronizarse porque el alimento no está disponible en el servidor. Elimínalo y agrégalo nuevamente para continuar.',
   'nutrition.log.actionMessageMany':
     'elementos no pueden sincronizarse porque el alimento no está disponible en el servidor. Elimínalos y agrégalos nuevamente para continuar.',
+  'nutrition.log.conflictTitle': 'Conflicto en el registro de alimentos',
+  'nutrition.log.conflictMessageOne':
+    'elemento del registro tiene cambios de otro dispositivo. Ambas versiones se conservan.',
+  'nutrition.log.conflictMessageMany':
+    'elementos del registro tienen cambios de otro dispositivo. Ambas versiones se conservan.',
+  'nutrition.log.conflictShort': 'Conflicto',
+  'nutrition.log.conflictAccessibility': 'Conflicto de sincronización del registro de alimentos',
   'nutrition.log.syncErrorTitle': 'La sincronización necesita atención',
   'nutrition.log.syncErrorMessage':
     'Tu registro está guardado localmente. Lo intentaremos de nuevo.',

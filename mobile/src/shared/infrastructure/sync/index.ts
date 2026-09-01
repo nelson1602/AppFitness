@@ -3,6 +3,7 @@ export {
   countByStatus,
   enqueue,
   hasPendingOpFor,
+  listParkedEntityIds,
   markActionRequired,
   markApplied,
   markConflict,

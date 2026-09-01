@@ -1,7 +1,7 @@
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type { MealItemRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
-import { enqueue } from '@/shared/infrastructure/sync';
+import { enqueue, listParkedEntityIds } from '@/shared/infrastructure/sync';
 
 import {
   applyServerMealItem,
@@ -20,12 +20,17 @@ jest.mock('@/shared/infrastructure/database', () => ({
   run: jest.fn(),
 }));
 jest.mock('@/shared/infrastructure/ids', () => ({ generateUuid: jest.fn() }));
-jest.mock('@/shared/infrastructure/sync', () => ({ enqueue: jest.fn() }));
+jest.mock('@/shared/infrastructure/sync', () => ({
+  enqueue: jest.fn(),
+  listParkedEntityIds: jest.fn(),
+  SYNC_ERROR_CODES: { CATALOG_REVISION_UNSUPPORTED: 'CATALOG_REVISION_UNSUPPORTED' },
+}));
 
 const mockQueryFirst = jest.mocked(queryFirst);
 const mockQueryAll = jest.mocked(queryAll);
 const mockRun = jest.mocked(run);
 const mockEnqueue = jest.mocked(enqueue);
+const mockParked = jest.mocked(listParkedEntityIds);
 const mockUuid = jest.mocked(generateUuid);
 
 const NOW = '2026-07-13T12:00:00.000Z';
@@ -236,6 +241,55 @@ describe('food-log repository — reads', () => {
     expect(items[0].consumed.calories).toBe(320);
     expect(items[0].consumed.proteinG).toBe(62);
     expect(items[0].consumed.fiberG).toBeNull();
+  });
+
+  // BUG-007: `sync_status='conflict'` is written for BOTH a version conflict and
+  // a CATALOG_REVISION_UNSUPPORTED rejection. The queue row is the only thing
+  // that tells them apart, and the two must not be collapsed.
+  it('reads a marked row with no parked op as a version conflict (BUG-007)', async () => {
+    mockQueryAll.mockResolvedValueOnce([
+      { ...mealItemRow({ id: 'a', sync_status: 'conflict' }), meal_type: 'LUNCH' },
+    ] as never);
+    mockParked.mockResolvedValue([]);
+
+    const items = await listLoggedItems(USER, DATE);
+
+    expect(items[0].syncState).toBe('conflict');
+    expect(mockParked).toHaveBeenCalledWith('meal_items', 'CATALOG_REVISION_UNSUPPORTED');
+  });
+
+  it('reads a marked row parked by the catalog code as action_required (BUG-007)', async () => {
+    mockQueryAll.mockResolvedValueOnce([
+      { ...mealItemRow({ id: 'a', sync_status: 'conflict' }), meal_type: 'LUNCH' },
+    ] as never);
+    mockParked.mockResolvedValue(['a']);
+
+    const items = await listLoggedItems(USER, DATE);
+
+    expect(items[0].syncState).toBe('action_required');
+  });
+
+  it('separates the two causes within one day (BUG-007)', async () => {
+    mockQueryAll.mockResolvedValueOnce([
+      { ...mealItemRow({ id: 'a', sync_status: 'conflict' }), meal_type: 'LUNCH' },
+      { ...mealItemRow({ id: 'b', sync_status: 'conflict' }), meal_type: 'DINNER' },
+    ] as never);
+    mockParked.mockResolvedValue(['b']);
+
+    const items = await listLoggedItems(USER, DATE);
+
+    expect(items.map((i) => i.syncState)).toEqual(['conflict', 'action_required']);
+  });
+
+  it('does not query the parked queue when no row is marked (BUG-007)', async () => {
+    mockQueryAll.mockResolvedValueOnce([
+      { ...mealItemRow({ id: 'a', sync_status: 'pending' }), meal_type: 'LUNCH' },
+    ] as never);
+
+    const items = await listLoggedItems(USER, DATE);
+
+    expect(items[0].syncState).toBe('pending');
+    expect(mockParked).not.toHaveBeenCalled();
   });
 
   it('listDailyCalorieTotals sums each logged day (Progress Slice 4c read surface)', async () => {

@@ -1,7 +1,7 @@
 import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type { MealItemRow, MealTypeName } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
-import { enqueue } from '@/shared/infrastructure/sync';
+import { enqueue, listParkedEntityIds, SYNC_ERROR_CODES } from '@/shared/infrastructure/sync';
 
 import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
 import {
@@ -202,7 +202,18 @@ export async function listLoggedItems(userId: string, date: string): Promise<Log
       ORDER BY m.order_index ASC, mi.created_at ASC`,
     [userId, date],
   );
-  return rows.map((row) => rowToLoggedItem(row, row.meal_type));
+  // `sync_status = 'conflict'` is written for BOTH a version conflict and a
+  // CATALOG_REVISION_UNSUPPORTED rejection, so the entity row alone cannot
+  // tell them apart (BUG-007). Only the rejection records its code on the
+  // queue row, so that is the discriminator — and it is queried only when at
+  // least one row is actually marked.
+  const marked = rows.some((row) => row.sync_status === 'conflict');
+  const catalogBlocked = marked
+    ? new Set(
+        await listParkedEntityIds('meal_items', SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED),
+      )
+    : new Set<string>();
+  return rows.map((row) => rowToLoggedItem(row, row.meal_type, catalogBlocked.has(row.id)));
 }
 
 // ─── Pull-side applier (sync worker integration) ─────────────────────────────
@@ -365,13 +376,27 @@ function rowSnapshot(row: MealItemRow): ServingSnapshot {
   };
 }
 
-function syncStateOf(status: MealItemRow['sync_status']): MealItemSyncState {
-  if (status === 'conflict') return 'action_required';
+/**
+ * `catalogBlocked` carries the queue-side evidence that this row was parked by
+ * CATALOG_REVISION_UNSUPPORTED. Without it a marked row is a true version
+ * conflict — the safer default, because Conflict copy is report-only while the
+ * catalog copy tells the user to remove and re-add the food (BUG-007).
+ */
+function syncStateOf(
+  status: MealItemRow['sync_status'],
+  catalogBlocked: boolean,
+): MealItemSyncState {
+  if (status === 'conflict') return catalogBlocked ? 'action_required' : 'conflict';
   if (status === 'synced') return 'synced';
   return 'pending';
 }
 
-function rowToLoggedItem(row: MealItemRow, mealType: MealTypeName): LoggedMealItem {
+function rowToLoggedItem(
+  row: MealItemRow,
+  mealType: MealTypeName,
+  // The single-item write paths read back a row they just set to 'pending'.
+  catalogBlocked = false,
+): LoggedMealItem {
   const snapshot = rowSnapshot(row);
   return {
     id: row.id,
@@ -382,7 +407,7 @@ function rowToLoggedItem(row: MealItemRow, mealType: MealTypeName): LoggedMealIt
     servingCount: row.serving_count,
     serving: { amount: row.serving_amount_snapshot, unit: row.serving_unit_snapshot },
     consumed: itemConsumed(snapshot, row.serving_count),
-    syncState: syncStateOf(row.sync_status),
+    syncState: syncStateOf(row.sync_status, catalogBlocked),
   };
 }
 

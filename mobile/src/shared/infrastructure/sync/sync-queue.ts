@@ -138,6 +138,25 @@ export async function hasPendingOpFor(entityId: string): Promise<boolean> {
   return (row?.n ?? 0) > 0;
 }
 
+/**
+ * Entity ids whose queued op is parked with a specific terminal error code
+ * (see `markActionRequired`). Read-only.
+ *
+ * This is the POSITIVE evidence that separates a catalog-revision rejection
+ * from a true version conflict (BUG-007): the push loop marks the *entity*
+ * row identically for both — `markConflict` on the registered applier — but
+ * only the rejection records its code on the *queue* row. Callers must not
+ * infer the rejection from the entity row alone.
+ */
+export async function listParkedEntityIds(entityType: string, code: string): Promise<string[]> {
+  const rows = await queryAll<{ entity_id: string }>(
+    `SELECT DISTINCT entity_id FROM sync_queue
+     WHERE entity_type = ? AND status = 'CONFLICT' AND last_error = ?`,
+    [entityType, code],
+  );
+  return rows.map((row) => row.entity_id);
+}
+
 export async function countByStatus(): Promise<Record<string, number>> {
   const rows = await queryAll<{ status: string; n: number }>(
     `SELECT status, COUNT(*) AS n FROM sync_queue GROUP BY status`,

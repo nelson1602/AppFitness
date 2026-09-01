@@ -1,8 +1,8 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.4
+Version: 1.5
 Status: Active
-Last Updated: 2026-08-31
+Last Updated: 2026-09-01
 
 ---
 
@@ -436,7 +436,8 @@ the richest state surface after the dashboard.
 | **Offline** | `sync.state === 'offline'` — set only by an explicit `syncNow()` | `<Banner tone="warning">`, `nutrition.log.offlineTitle/Message` | A later successful sync | Native | `FoodLogScreen.tsx:34-40`; `food-log.store.ts:163-164` | SHIPPED |
 | **Pending sync** — banner | `sync.state === 'pending'`, derived on load from item states | `<Banner tone="info">` with a pending count, one/many pluralized | Queue drains | Native | `FoodLogScreen.tsx:57-68`; `food-log.store.ts:66-68`; spec *"shows a sync-pending banner and a per-item pending chip"* | SHIPPED |
 | **Pending sync** — row chip | `item.syncState === 'pending'` | `ItemSyncChip`, muted caption, `nutrition.log.pendingShort` + `pendingAccessibility` | Same | Native | `FoodLogScreen.tsx:88-98` | SHIPPED |
-| **Conflict** | `item.syncState === 'action_required'`, produced by `sync_status = 'conflict'` (`food-log.repository.ts:255`, mapped at `:369`) | `<Banner tone="error">` plus a row chip with `tone="error"` — **not `warning`** — and the same state also carries `CATALOG_REVISION_UNSUPPORTED` | User intervention — **no resolution UI exists**, see BUG-012 | Native | `FoodLogScreen.tsx:41-51`, `:79-87`; `food-log.ts:33-37`; spec *"shows an action-required (failed) banner when a food is unsupported server-side"*; violates `.ai/08_UI_UX.md` distinction 5; **owner: BUG-007** | **SHIPPED — non-conformant** |
+| **Error** — catalog incompatibility | `item.syncState === 'action_required'`, i.e. the row is marked **and** its queue op is parked with `CATALOG_REVISION_UNSUPPORTED` | `<Banner tone="error">` plus a row chip with `tone="error"`, `nutrition.log.action*` — the food is not on the server, so the user is told to remove and re-add it | The user removing and re-adding the food | Native | `food-log.repository.ts:205-215`, `:389`; `FoodLogScreen.tsx:45-58`, `:132-144`; spec *"shows an action-required (failed) banner when a food is unsupported server-side"*, which also asserts the `error` colour | SHIPPED |
+| **Conflict** | `item.syncState === 'conflict'`, i.e. `sync_status = 'conflict'` (`food-log.repository.ts:266`) with **no** parked catalog op | `<Banner tone="warning">` plus a row chip with `tone="warning"`, `nutrition.log.conflict*`. **Report-only**: both versions are preserved and no resolution is offered | **None on this surface** — no resolution UI exists anywhere, see BUG-012 | Native | `food-log.repository.ts:389`; `food-log.ts:26-45`; `FoodLogScreen.tsx:59-72`, `:146-158`; specs *"renders a sync conflict as warning, not error (BUG-007)"*, *"gives the conflict row chip its own label and warning tone (BUG-007)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* | SHIPPED |
 | **Data-gap** | — | — | — | — | Logging never blocks on a missing prerequisite. Targets shown for comparison come from the dashboard store and simply do not render when absent | **n/a** |
 
 **Sync banner priority** (`FoodLogScreen.tsx:26-73`), highest first: `syncing` →
@@ -517,12 +518,14 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 5 | Workout Log | S | S | — | S | — | S | **P** | S |
 | 6 | Nutrition Targets | S | — | S | S | — | — | — | S |
 | 7 | Nutrition Plan | S | — | S | S | — | — | — | S |
-| 8 | Food Log | S | S | — | S¹ | S | S | **S!** | S |
+| 8 | Food Log | S | S | — | S¹ | S | S | S | S |
 | 9 | Dietary Preferences | S | S | — | S | — | **P** | **P** | S |
 | 10 | Progress | S | S | — | S | — | **P** | **P** | S |
 
-¹ load, write and sync errors are all SHIPPED. Write errors ship as three
-separate per-operation treatments (BUG-008), each distinct from the load error.
+¹ load, write, sync and catalog-incompatibility errors are all SHIPPED. Write
+errors ship as three separate per-operation treatments (BUG-008), each distinct
+from the load error; catalog incompatibility is separate again and is no longer
+folded into Conflict (BUG-007).
 ² rendered by the embedded sync status banner (surface 2), which is part of the
 dashboard composition — the same treatments counted once at surface 2 and once
 in the dashboard's seven-of-eight total.
@@ -539,9 +542,11 @@ was the seventh and has since shipped (BUG-008).
 | 10 Progress | Pending sync | BUG-011 |
 | 10 Progress | Conflict | BUG-011 |
 
-**SHIPPED — non-conformant: one** (BUG-007, Food Log's Conflict tone).
-Everything else in the grid is either SHIPPED or justified `n/a`, and every
-`n/a` carries its justification in the surface matrix.
+**SHIPPED — non-conformant: none.** Food Log's Conflict tone was the only one
+and has since shipped conformant (BUG-007): it renders `warning`, and the
+catalog-incompatibility cause it used to absorb is now its own Error treatment.
+Everything in the grid is either SHIPPED or justified `n/a`, and every `n/a`
+carries its justification in the surface matrix.
 
 **The one state present on every feature screen is Web unavailable** — 12
 presentation files, 23 keys, 19 specs. It is the most consistently implemented
@@ -555,14 +560,14 @@ is exposed to only those two surfaces.
 
 **Eight findings, C-1 through C-8.** Four were documentation contradictions and
 are **reconciled** in this change; four were **runtime defects** tracked in
-`.ai/11_BACKLOG.md`. Of those four, **C-4 has since been fixed** (BUG-008);
-C-3, C-5 and C-8 remain open.
+`.ai/11_BACKLOG.md`. Of those four, **C-3 (BUG-007) and C-4 (BUG-008) have since
+been fixed**; C-5 and C-8 remain open.
 
 | # | Finding | Kind | Disposition |
 |---|---|---|---|
 | **C-1** | Flow 5 claimed an Offline state Workout Log does not have | Documentation | **Reconciled** — `.ai/17_PRODUCT_FLOWS.md` v1.2 |
 | **C-2** | Flow 7 claimed Offline and Pending sync that Progress does not render | Documentation | **Reconciled** — `.ai/17_PRODUCT_FLOWS.md` v1.2 |
-| **C-3** | Food Log renders Conflict as `error` and merges it with an unrelated failure | Runtime defect | **BUG-007** |
+| **C-3** | Food Log renders Conflict as `error` and merges it with an unrelated failure | Runtime defect | **BUG-007 — fixed**, see §C-3 |
 | **C-4** | Food Log write failures are silent | Runtime defect | **BUG-008 — fixed**, see §C-4 |
 | **C-5** | Progress summary card renders a failed read as Empty | Runtime defect | **BUG-009** |
 | **C-6** | "six of the eight canonical states" undercounted the dashboard | Documentation | **Reconciled** — ADR-P027 + Flow 3 + Flow 4 |
@@ -614,8 +619,33 @@ Two problems: the **wrong tone** — the two other conflict surfaces are conform
 `action_required` as covering *"`CATALOG_REVISION_UNSUPPORTED` **or** a version
 conflict"*.
 
-**Runtime defect — BUG-007.** No new ADR is required: the governing rule already
-exists in ADR-P022's state model, so this is conformance work.
+**Runtime defect — BUG-007. Fixed.** No new ADR was required: the governing rule
+already exists in ADR-P022's state model, so this was conformance work. The line
+references above are as audited at the evidence baseline; the fix moved them.
+
+The audit understated the second half. The two causes were not merely *rendered*
+together — they were **indistinguishable in the data**: `sync-worker.ts` calls
+the same applier `markConflict` for a `CONFLICT` result and for a `REJECTED` /
+`CATALOG_REVISION_UNSUPPORTED` result, so both write `sync_status = 'conflict'`
+on the entity row. Only the *queue* row separates them, and only the rejection
+records its code there (`markActionRequired`). The fix therefore starts at the
+read, not at the banner:
+
+- `sync-queue.ts:151` adds a read-only `listParkedEntityIds(entityType, code)`.
+- `food-log.repository.ts:205-215` consults it — only when a row is actually
+  marked — and `:389` maps a marked row to `action_required` when parked by the
+  catalog code and to the new `conflict` state otherwise. Absent evidence
+  defaults to Conflict, which is report-only; the catalog copy is the one that
+  tells the user to delete and re-add a food, so it must be earned.
+- `food-log.ts:26-45` splits `MealItemSyncState`; `food-log.store.ts:78-96`
+  counts the two separately and lets the actionable cause outrank the
+  report-only one without folding the counts together.
+- `FoodLogScreen.tsx:59-72` and `:146-158` render Conflict as `warning`, and the
+  new specs assert the rendered colour, not the prop name.
+
+**BUG-012 remains open and is unaffected.** The Conflict copy is deliberately
+report-only: no resolution affordance exists on this surface or anywhere else,
+and a spec asserts that the banner offers none.
 
 ## C-4 — Food Log write failures are silent
 
@@ -815,9 +845,10 @@ could never receive.
 ## 4. Do not upgrade a finding into a fix
 
 §Findings records eight items. Four are reconciled documentation corrections;
-four are runtime defects owned by BUG-007 … BUG-010, and two further coverage
-gaps are owned by BUG-011 and BUG-012. Do not resolve any of them by editing this
-document.
+four were runtime defects owned by BUG-007 … BUG-010, and two further coverage
+gaps are owned by BUG-011 and BUG-012. **BUG-007 and BUG-008 have since shipped**
+and their rows carry SHIPPED evidence; BUG-009 … BUG-012 remain open. Do not
+resolve any open item by editing this document.
 
 ## 5. Status claims require the same evidence as everywhere else
 

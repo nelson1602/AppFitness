@@ -1,4 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
+
+import { lightTheme } from '@/shared/theme';
 
 import type { FoodLogState } from '../application/food-log.store';
 import type { DietaryPreferenceState } from '../application/dietary-preference.store';
@@ -62,6 +65,15 @@ jest.mock('@/features/dashboard/application/dashboard.store', () => ({
   },
 }));
 
+/**
+ * Resolved text color. Tone is asserted as rendered behaviour rather than by
+ * prop name, so BUG-007's "Conflict is warning, never error" cannot regress
+ * silently through a renamed prop.
+ */
+function colorOf(node: { props: { style?: StyleProp<TextStyle> } }): TextStyle['color'] {
+  return StyleSheet.flatten(node.props.style)?.color;
+}
+
 function item(overrides: Partial<LoggedMealItem> = {}): LoggedMealItem {
   return {
     id: 'i1',
@@ -83,7 +95,7 @@ function setState(overrides: Partial<FoodLogState> = {}): void {
     date: '2026-07-13',
     items: [],
     totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: null },
-    sync: { state: 'idle', pending: 0, actionRequired: 0 },
+    sync: { state: 'idle', pending: 0, actionRequired: 0, conflicts: 0 },
     error: null,
     writeError: null,
     load: jest.fn(),
@@ -152,7 +164,7 @@ describe('FoodLogScreen (Slice 4C)', () => {
     setState({
       items: [item()],
       totals: { calories: 320, proteinG: 62, carbsG: 0, fatG: 8, fiberG: null },
-      sync: { state: 'pending', pending: 1, actionRequired: 0 },
+      sync: { state: 'pending', pending: 1, actionRequired: 0, conflicts: 0 },
     });
     await render(<FoodLogScreen />);
     expect(screen.getByTestId('logged-item-i1')).toBeOnTheScreen();
@@ -189,7 +201,10 @@ describe('FoodLogScreen (Slice 4C)', () => {
   });
 
   it('shows a sync-pending banner and a per-item pending chip', async () => {
-    setState({ items: [item()], sync: { state: 'pending', pending: 1, actionRequired: 0 } });
+    setState({
+      items: [item()],
+      sync: { state: 'pending', pending: 1, actionRequired: 0, conflicts: 0 },
+    });
     await render(<FoodLogScreen />);
     expect(screen.getByText('Changes pending')).toBeOnTheScreen();
     expect(screen.getByLabelText('Sync pending')).toBeOnTheScreen();
@@ -198,11 +213,83 @@ describe('FoodLogScreen (Slice 4C)', () => {
   it('shows an action-required (failed) banner when a food is unsupported server-side', async () => {
     setState({
       items: [item({ syncState: 'action_required' })],
-      sync: { state: 'action_required', pending: 0, actionRequired: 1 },
+      sync: { state: 'action_required', pending: 0, actionRequired: 1, conflicts: 0 },
     });
     await render(<FoodLogScreen />);
     expect(screen.getByText(/cannot sync because the food is not available/)).toBeOnTheScreen();
     expect(screen.getByLabelText('Sync action required')).toBeOnTheScreen();
+    // The catalog cause is a genuine failure and keeps `error` (BUG-007).
+    // "Action needed" is both the banner title and the row chip; both are error.
+    for (const node of screen.getAllByText('Action needed')) {
+      expect(colorOf(node)).toBe(lightTheme.colors.error);
+    }
+  });
+
+  // BUG-007 — a conflict preserves both versions, so it is `warning`, never
+  // `error` (.ai/08_UI_UX.md distinction 5), and it carries its own copy.
+  it('renders a sync conflict as warning, not error (BUG-007)', async () => {
+    setState({
+      items: [item({ syncState: 'conflict' })],
+      sync: { state: 'conflict', pending: 0, actionRequired: 0, conflicts: 1 },
+    });
+    await render(<FoodLogScreen />);
+
+    const title = screen.getByText('Food log conflict');
+    expect(title).toBeOnTheScreen();
+    expect(colorOf(title)).toBe(lightTheme.colors.warning);
+    expect(colorOf(title)).not.toBe(lightTheme.colors.error);
+    expect(
+      screen.getByText(/has changes from another device. Both versions are preserved./),
+    ).toBeOnTheScreen();
+  });
+
+  it('gives the conflict row chip its own label and warning tone (BUG-007)', async () => {
+    setState({
+      items: [item({ syncState: 'conflict' })],
+      sync: { state: 'conflict', pending: 0, actionRequired: 0, conflicts: 1 },
+    });
+    await render(<FoodLogScreen />);
+
+    const chip = screen.getByLabelText('Food log sync conflict');
+    expect(chip).toBeOnTheScreen();
+    expect(colorOf(chip)).toBe(lightTheme.colors.warning);
+    // The catalog-incompatibility copy must not appear for a conflict.
+    expect(screen.queryByLabelText('Sync action required')).toBeNull();
+    expect(screen.queryByText(/cannot sync because the food is not available/)).toBeNull();
+  });
+
+  it('reports the conflict without offering a resolution (BUG-012 stays open)', async () => {
+    setState({
+      items: [item({ syncState: 'conflict' })],
+      sync: { state: 'conflict', pending: 0, actionRequired: 0, conflicts: 1 },
+    });
+    await render(<FoodLogScreen />);
+
+    // BUG-007 reports the conflict; it does not resolve it. The body is exactly
+    // the deck copy — a bare statement with the count, no action sentence and
+    // no CTA, because no resolution flow is authorized (BUG-012).
+    expect(
+      screen.getByText(
+        '1 food log item has changes from another device. Both versions are preserved.',
+      ),
+    ).toBeOnTheScreen();
+  });
+
+  it('localizes the conflict banner and chip in Spanish (BUG-007)', async () => {
+    mockLanguage = 'es';
+    setState({
+      items: [item({ syncState: 'conflict' })],
+      sync: { state: 'conflict', pending: 0, actionRequired: 0, conflicts: 1 },
+    });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText('Conflicto en el registro de alimentos')).toBeOnTheScreen();
+    expect(
+      screen.getByText(/tiene cambios de otro dispositivo. Ambas versiones se conservan./),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByLabelText('Conflicto de sincronización del registro de alimentos'),
+    ).toBeOnTheScreen();
   });
 
   it('surfaces a load error', async () => {
