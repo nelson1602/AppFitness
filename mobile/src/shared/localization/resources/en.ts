@@ -539,6 +539,13 @@ export const en = {
     'item cannot sync because the food is not available on the server. Remove and re-add it to continue.',
   'nutrition.log.actionMessageMany':
     'items cannot sync because the food is not available on the server. Remove and re-add them to continue.',
+  'nutrition.log.conflictTitle': 'Food log conflict',
+  'nutrition.log.conflictMessageOne':
+    'food log item has changes from another device. Both versions are preserved.',
+  'nutrition.log.conflictMessageMany':
+    'food log items have changes from another device. Both versions are preserved.',
+  'nutrition.log.conflictShort': 'Conflict',
+  'nutrition.log.conflictAccessibility': 'Food log sync conflict',
   'nutrition.log.syncErrorTitle': 'Sync needs attention',
   'nutrition.log.syncErrorMessage': 'Your log is saved locally. We will try again.',
   'nutrition.log.pendingTitle': 'Changes pending',

@@ -5,6 +5,7 @@ import {
   countByStatus,
   enqueue,
   hasPendingOpFor,
+  listParkedEntityIds,
   markApplied,
   markConflict,
   markFailed,
@@ -194,5 +195,22 @@ describe('sync-queue', () => {
     ]);
 
     await expect(countByStatus()).resolves.toEqual({ PENDING: 3, FAILED: 1 });
+  });
+
+  // BUG-007: this is the only evidence that separates a parked terminal
+  // rejection from a version conflict — both mark the entity row identically.
+  it('listParkedEntityIds returns the entity ids parked with a given code', async () => {
+    mockQueryAll.mockResolvedValue([{ entity_id: 'item-1' }, { entity_id: 'item-2' }]);
+
+    await expect(
+      listParkedEntityIds('meal_items', 'CATALOG_REVISION_UNSUPPORTED'),
+    ).resolves.toEqual(['item-1', 'item-2']);
+
+    const [sql, params] = mockQueryAll.mock.calls[0];
+    expect(sql).toContain('FROM sync_queue');
+    expect(sql).toContain('entity_type = ?');
+    expect(sql).toContain(`status = 'CONFLICT'`);
+    expect(sql).toContain('last_error = ?');
+    expect(params).toEqual(['meal_items', 'CATALOG_REVISION_UNSUPPORTED']);
   });
 });

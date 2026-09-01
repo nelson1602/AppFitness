@@ -30,11 +30,19 @@ export interface ConsumedMacros {
  * Local sync state surfaced to the log UI, derived from the item's queued
  * sync operation — NOT a health value:
  * - `pending`  : queued / retrying (includes retryable DEPENDENCY_NOT_READY)
- * - `action_required` : terminal, needs the user (CATALOG_REVISION_UNSUPPORTED
- *                       or a version conflict) — never silently discarded
+ * - `action_required` : terminal catalog incompatibility
+ *                       (CATALOG_REVISION_UNSUPPORTED) — the food is not
+ *                       available on the server, so the user must act
+ * - `conflict` : the server holds a diverged version; BOTH versions are
+ *                preserved and nothing is lost — report only
  * - `synced`   : acknowledged by the server
+ *
+ * `action_required` and `conflict` are deliberately SEPARATE (BUG-007). They
+ * are both terminal and both need the user, but they are different facts and
+ * the state model forbids collapsing them (`.ai/08_UI_UX.md` distinction 5:
+ * "Conflict is `warning`, never `error`"). Neither is ever silently discarded.
  */
-export type MealItemSyncState = 'pending' | 'action_required' | 'synced';
+export type MealItemSyncState = 'pending' | 'action_required' | 'conflict' | 'synced';
 
 /** One logged food within a meal, with its derived consumed macros. */
 export interface LoggedMealItem {

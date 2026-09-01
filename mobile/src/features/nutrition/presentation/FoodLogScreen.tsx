@@ -43,6 +43,9 @@ function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
         </Banner>
       );
     case 'action_required':
+      // Catalog incompatibility: a terminal sync FAILURE the user must act on.
+      // Distinct from Conflict below — different cause, different copy, and
+      // only this one asks the user to remove and re-add the food (BUG-007).
       return (
         <Banner title={t('nutrition.log.actionTitle')} tone="error">
           {sync.actionRequired}{' '}
@@ -50,6 +53,20 @@ function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
             sync.actionRequired === 1
               ? 'nutrition.log.actionMessageOne'
               : 'nutrition.log.actionMessageMany',
+          )}
+        </Banner>
+      );
+    case 'conflict':
+      // Both versions are preserved and nothing is lost, so this is `warning`
+      // and never `error` (.ai/08_UI_UX.md distinction 5). Report-only: there
+      // is no resolution affordance to offer while BUG-012 is open.
+      return (
+        <Banner title={t('nutrition.log.conflictTitle')} tone="warning">
+          {sync.conflicts}{' '}
+          {t(
+            sync.conflicts === 1
+              ? 'nutrition.log.conflictMessageOne'
+              : 'nutrition.log.conflictMessageMany',
           )}
         </Banner>
       );
@@ -123,6 +140,19 @@ function ItemSyncChip({ item }: { item: LoggedMealItem }) {
         accessibilityLabel={t('nutrition.log.actionAccessibility')}
       >
         {t('nutrition.log.actionShort')}
+      </AppText>
+    );
+  }
+  if (item.syncState === 'conflict') {
+    // `warning`, matching the two conformant conflict surfaces in the product
+    // (sync-status-banner and ExerciseLibrary) — never `error`.
+    return (
+      <AppText
+        variant="caption"
+        tone="warning"
+        accessibilityLabel={t('nutrition.log.conflictAccessibility')}
+      >
+        {t('nutrition.log.conflictShort')}
       </AppText>
     );
   }

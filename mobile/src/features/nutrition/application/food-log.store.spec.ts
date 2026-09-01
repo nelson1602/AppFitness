@@ -70,7 +70,7 @@ beforeEach(() => {
     date: '2026-07-13',
     items: [],
     totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: null },
-    sync: { state: 'idle', pending: 0, actionRequired: 0 },
+    sync: { state: 'idle', pending: 0, actionRequired: 0, conflicts: 0 },
     error: null,
     writeError: null,
   });
@@ -101,6 +101,35 @@ describe('food-log store (Slice 4C)', () => {
     await useFoodLogStore.getState().load();
     expect(useFoodLogStore.getState().sync.state).toBe('action_required');
     expect(useFoodLogStore.getState().sync.actionRequired).toBe(1);
+  });
+
+  // BUG-007: a diverged version is not a failure. It gets its own state and its
+  // own count, and never borrows the catalog-incompatibility ones.
+  it('summarises a version conflict separately from action_required (BUG-007)', async () => {
+    mockList.mockResolvedValue([loggedItem({ syncState: 'conflict' })]);
+    await useFoodLogStore.getState().load();
+
+    const s = useFoodLogStore.getState().sync;
+    expect(s.state).toBe('conflict');
+    expect(s.conflicts).toBe(1);
+    expect(s.actionRequired).toBe(0);
+  });
+
+  it('keeps both counts when a day holds a conflict and a catalog block (BUG-007)', async () => {
+    mockList.mockResolvedValue([
+      loggedItem({ id: 'i1', syncState: 'conflict' }),
+      loggedItem({ id: 'i2', syncState: 'action_required' }),
+      loggedItem({ id: 'i3', syncState: 'pending' }),
+    ]);
+    await useFoodLogStore.getState().load();
+
+    const s = useFoodLogStore.getState().sync;
+    // The actionable cause outranks the report-only one so it is not hidden,
+    // but neither count is folded into the other.
+    expect(s.state).toBe('action_required');
+    expect(s.actionRequired).toBe(1);
+    expect(s.conflicts).toBe(1);
+    expect(s.pending).toBe(1);
   });
 
   it('addFood writes through the repository then reloads', async () => {
@@ -165,7 +194,7 @@ describe('food-log store (Slice 4C)', () => {
       status: 'ready',
       items: [loggedItem()],
       totals: { calories: 320, proteinG: 62, carbsG: 0, fatG: 8, fiberG: null },
-      sync: { state: 'pending', pending: 1, actionRequired: 0 },
+      sync: { state: 'pending', pending: 1, actionRequired: 0, conflicts: 0 },
     });
     mockList.mockRejectedValue(new DatabaseUnsupportedOnWebError());
 
@@ -178,7 +207,7 @@ describe('food-log store (Slice 4C)', () => {
     // No fabricated entries, totals, or pending sync left behind.
     expect(s.items).toEqual([]);
     expect(s.totals).toEqual({ calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: null });
-    expect(s.sync).toEqual({ state: 'idle', pending: 0, actionRequired: 0 });
+    expect(s.sync).toEqual({ state: 'idle', pending: 0, actionRequired: 0, conflicts: 0 });
     // Expected Web dormancy is not logged as a runtime error.
     expect(jest.mocked(logError)).not.toHaveBeenCalled();
   });

@@ -29,12 +29,15 @@ export type FoodLogUiStatus = 'idle' | 'loading' | 'ready' | 'error' | 'web-unav
  */
 export type FoodLogWriteOperation = 'add' | 'servings' | 'remove';
 export type FoodLogSyncState =
-  'idle' | 'syncing' | 'pending' | 'action_required' | 'offline' | 'error';
+  'idle' | 'syncing' | 'pending' | 'conflict' | 'action_required' | 'offline' | 'error';
 
 export interface FoodLogSyncSummary {
   state: FoodLogSyncState;
   pending: number;
+  /** Items blocked by a catalog incompatibility — the user must act. */
   actionRequired: number;
+  /** Items with a diverged server version — both versions preserved (BUG-007). */
+  conflicts: number;
 }
 
 export interface FoodLogState {
@@ -65,16 +68,27 @@ function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Derive the pending/action-required summary from the loaded items. */
+/** Derive the pending/conflict/action-required summary from the loaded items. */
 function deriveSyncSummary(
   items: readonly LoggedMealItem[],
   override?: FoodLogSyncState,
 ): FoodLogSyncSummary {
   const pending = items.filter((i) => i.syncState === 'pending').length;
   const actionRequired = items.filter((i) => i.syncState === 'action_required').length;
+  const conflicts = items.filter((i) => i.syncState === 'conflict').length;
+  // Catalog incompatibility outranks conflict: it is the only one of the two
+  // that asks the user to do something, so it must not hide behind a
+  // report-only banner. Counts stay separate either way (BUG-007).
   const state: FoodLogSyncState =
-    override ?? (actionRequired > 0 ? 'action_required' : pending > 0 ? 'pending' : 'idle');
-  return { state, pending, actionRequired };
+    override ??
+    (actionRequired > 0
+      ? 'action_required'
+      : conflicts > 0
+        ? 'conflict'
+        : pending > 0
+          ? 'pending'
+          : 'idle');
+  return { state, pending, actionRequired, conflicts };
 }
 
 function requireUserId(): string {
@@ -88,7 +102,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   date: today(),
   items: [],
   totals: EMPTY_TOTALS,
-  sync: { state: 'idle', pending: 0, actionRequired: 0 },
+  sync: { state: 'idle', pending: 0, actionRequired: 0, conflicts: 0 },
   error: null,
   writeError: null,
 
@@ -115,7 +129,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
           status: 'web-unavailable',
           items: [],
           totals: EMPTY_TOTALS,
-          sync: { state: 'idle', pending: 0, actionRequired: 0 },
+          sync: { state: 'idle', pending: 0, actionRequired: 0, conflicts: 0 },
           error: null,
         });
         return;
