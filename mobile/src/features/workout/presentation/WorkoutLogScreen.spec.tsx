@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
 
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import { lightTheme } from '@/shared/theme';
 
 import type { CustomExercise, Routine, WorkoutLog, WorkoutSet } from '../domain/workout';
 import type { WorkoutState } from '../application/workout.store';
@@ -77,6 +79,15 @@ function setStore(partial: Partial<WorkoutState>) {
     removeWorkoutSet,
     ...partial,
   };
+}
+
+/**
+ * Resolved text colour. Tone is asserted as rendered behaviour rather than by
+ * prop name, so "Conflict is warning, never error" cannot regress silently
+ * through a rename (BUG-007, applied here by BUG-011).
+ */
+function colorOf(node: { props: { style?: StyleProp<TextStyle> } }): TextStyle['color'] {
+  return StyleSheet.flatten(node.props.style)?.color;
 }
 
 const routine = (o: Partial<Routine> = {}): Routine => ({
@@ -356,6 +367,62 @@ describe('WorkoutLogScreen', () => {
 
     await fireEvent.press(screen.getByTestId('workout-select-l1'));
     expect(screen.getByLabelText('Sync pending')).toBeOnTheScreen();
+  });
+
+  // BUG-011: these rows carry `syncStatus` and the appliers set it, but a
+  // diverged row rendered identically to a synced one.
+  it('surfaces a conflict hint on a diverged workout row (BUG-011)', async () => {
+    setStore({ status: 'ready', workoutLogs: [log({ syncStatus: 'conflict' })] });
+    await render(<WorkoutLogScreen />);
+
+    const hint = screen.getByLabelText('Workout sync conflict');
+    expect(hint).toBeOnTheScreen();
+    // Conflict preserves both versions, so it is warning — never error.
+    expect(colorOf(hint)).toBe(lightTheme.colors.warning);
+    expect(colorOf(hint)).not.toBe(lightTheme.colors.error);
+    // A conflicted row is not also reported as merely pending.
+    expect(screen.queryByLabelText('Workout saved on this device')).not.toBeOnTheScreen();
+  });
+
+  it('surfaces a conflict hint on a diverged set row (BUG-011)', async () => {
+    setStore({
+      status: 'ready',
+      workoutLogs: [log({ syncStatus: 'synced' })],
+      workoutSets: [wset({ id: 's1', syncStatus: 'conflict' })],
+    });
+    await render(<WorkoutLogScreen />);
+
+    await fireEvent.press(screen.getByTestId('workout-select-l1'));
+
+    const hint = screen.getByLabelText('Workout sync conflict');
+    expect(colorOf(hint)).toBe(lightTheme.colors.warning);
+    expect(screen.queryByLabelText('Sync pending')).not.toBeOnTheScreen();
+  });
+
+  it('leaves a synced row with no sync hint at all (BUG-011)', async () => {
+    setStore({ status: 'ready', workoutLogs: [log({ syncStatus: 'synced' })] });
+    await render(<WorkoutLogScreen />);
+
+    expect(screen.queryByLabelText('Workout sync conflict')).not.toBeOnTheScreen();
+    expect(screen.queryByLabelText('Workout saved on this device')).not.toBeOnTheScreen();
+  });
+
+  it('reports the conflict without offering a resolution (BUG-012 stays open)', async () => {
+    setStore({ status: 'ready', workoutLogs: [log({ syncStatus: 'conflict' })] });
+    await render(<WorkoutLogScreen />);
+
+    // Report-only: the hint is the bare localized word, with no choose action.
+    expect(screen.getByLabelText('Workout sync conflict')).toHaveTextContent('Conflict');
+  });
+
+  it('localizes the conflict hint in Spanish (BUG-011)', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'ready', workoutLogs: [log({ syncStatus: 'conflict' })] });
+    await render(<WorkoutLogScreen />);
+
+    expect(
+      screen.getByLabelText('Conflicto de sincronización del entrenamiento'),
+    ).toHaveTextContent('Conflicto');
   });
 
   it('surfaces a safe error banner', async () => {

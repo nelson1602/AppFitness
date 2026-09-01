@@ -1,6 +1,6 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.5
+Version: 1.6
 Status: Active
 Last Updated: 2026-09-01
 
@@ -351,7 +351,7 @@ local** — the "start a workout" card renders regardless.
 | **Error** | `error !== null` — covers both the load failure and every write failure | `<Banner tone="error">`, `workout.log.errorTitle/Message`, above the working surface. No retry control | Next successful operation clears `error` | Native | `WorkoutLogScreen.tsx:140-144`; spec *"surfaces a safe error banner"* | SHIPPED |
 | **Pending sync** — set rows | `set.syncStatus === 'pending'` | `PendingHint` component, **row-level** caption, `workout.log.syncPending` + `syncPendingAccessibility` | The queue drains and the row re-reads as `synced` | Native | `WorkoutLogScreen.tsx:32-43`; spec *"surfaces a pending-sync hint on locally-saved sets"* | SHIPPED |
 | **Pending sync** — workout rows | `log.syncStatus === 'pending'` | Inline caption, `workout.log.savedOnDevice` + `savedAccessibility` | Same | Native | `WorkoutLogScreen.tsx:210-217` | SHIPPED |
-| **Conflict** | `log.syncStatus === 'conflict'` or `set.syncStatus === 'conflict'` — `SyncStatus` is `'pending' \| 'synced' \| 'conflict'` (`database/types.ts:11`), the rows expose it (`workout.ts:57`, `:111`), and the sync appliers set it | **No treatment.** The screen reads the same `syncStatus` field for `'pending'` and ignores `'conflict'` | — | Native | `workout/infrastructure/sync-appliers.ts:47`, `:59`; `workout/infrastructure/workout.repository.ts:325`; **owner: BUG-011** | **PROPOSED** |
+| **Conflict** | `log.syncStatus === 'conflict'` or `set.syncStatus === 'conflict'` — `SyncStatus` is `'pending' \| 'synced' \| 'conflict'` (`database/types.ts:11`), the rows expose it (`workout.ts:57`, `:111`), and the sync appliers set it | `ConflictHint` component, **row-level** caption with `tone="warning"`, `workout.log.syncConflict` + `syncConflictAccessibility`, on **both** workout rows and set rows. **Report-only** — no choose action | **None on this surface** — no resolution UI exists anywhere, see BUG-012 | Native | `WorkoutLogScreen.tsx:55-67`, `:242`, `:497`; `workout/infrastructure/sync-appliers.ts:47`, `:59`; specs *"surfaces a conflict hint on a diverged workout row (BUG-011)"*, *"…on a diverged set row (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* — the first two assert the rendered `warning` colour | SHIPPED |
 | **Offline** | — | — | — | — | **No Offline signal reaches this surface at `fb02097`.** `useWorkoutStore` receives no connectivity or sync outcome, so there is nothing authoritative to render; today Offline is reported only on surfaces 1 and 8. This records what the screen receives, not a limit on what it could be given | **n/a** |
 | **Data-gap** | — | — | — | — | Workout logging computes nothing from profile prerequisites; a user with an empty profile can still log | **n/a** |
 
@@ -515,7 +515,7 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 2 | Sync status banner | — | — | — | S | S | S | S | — |
 | 3 | Data-gap card | — | — | S | — | — | — | — | — |
 | 4 | Progress summary card | S | S | — | **P** | — | — | — | S |
-| 5 | Workout Log | S | S | — | S | — | S | **P** | S |
+| 5 | Workout Log | S | S | — | S | — | S | S | S |
 | 6 | Nutrition Targets | S | — | S | S | — | — | — | S |
 | 7 | Nutrition Plan | S | — | S | S | — | — | — | S |
 | 8 | Food Log | S | S | — | S¹ | S | S | S | S |
@@ -530,13 +530,13 @@ folded into Conflict (BUG-007).
 dashboard composition — the same treatments counted once at surface 2 and once
 in the dashboard's seven-of-eight total.
 
-**Totals.** **PROPOSED: six**, every one owned. Surface 8's Error — writes row
-was the seventh and has since shipped (BUG-008).
+**Totals.** **PROPOSED: five**, every one owned. Surface 8's Error — writes row
+shipped with BUG-008, and surface 5's Conflict row shipped with the **first
+BUG-011 feature slice** — BUG-011 itself stays open for surfaces 9 and 10.
 
 | Surface | State | Owner |
 |---|---|---|
 | 4 Progress summary card | Error | BUG-009 |
-| 5 Workout Log | Conflict | BUG-011 |
 | 9 Dietary Preferences | Pending sync | BUG-011 |
 | 9 Dietary Preferences | Conflict | BUG-011 |
 | 10 Progress | Pending sync | BUG-011 |

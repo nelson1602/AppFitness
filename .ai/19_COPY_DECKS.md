@@ -1,6 +1,6 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.3
+Version: 1.4
 Status: Active
 Last Updated: 2026-09-01
 
@@ -219,13 +219,14 @@ section-local; Error does not erase the working surface.
 | Pending workout label — `workout.log.savedAccessibility` | Workout saved on this device | Entrenamiento guardado en este dispositivo | **SHIPPED** |
 | Pending set — `workout.log.syncPending` | Pending sync | Pendiente de sincronización | **SHIPPED** |
 | Pending set label — `workout.log.syncPendingAccessibility` | Sync pending | Sincronización pendiente | **SHIPPED** |
-| Conflict row — `workout.log.syncConflict` | Conflict | Conflicto | **PROPOSED** — BUG-011 |
-| Conflict row label — `workout.log.syncConflictAccessibility` | Workout sync conflict | Conflicto de sincronización del entrenamiento | **PROPOSED** — BUG-011 |
+| Conflict row — `workout.log.syncConflict` | Conflict | Conflicto | **SHIPPED** |
+| Conflict row label — `workout.log.syncConflictAccessibility` | Workout sync conflict | Conflicto de sincronización del entrenamiento | **SHIPPED** |
 | Web unavailable title — `workout.log.webUnavailableTitle` | Workout logging isn't available on the web | El registro de entrenamientos no está disponible en la web | **SHIPPED** |
 | Web unavailable body — `workout.log.webUnavailableBody` | Use the AppFitness mobile app for the complete workout-logging experience. | Usa la app móvil de AppFitness para la experiencia completa de registro de entrenamientos. | **SHIPPED** |
 
-The proposed Conflict hint reports the row state only. It adds no choose action
-and must use `warning`, never `error`, when BUG-011 is implemented.
+**Shipped** by the first BUG-011 feature slice. The Conflict hint reports the row
+state only: it adds no choose action, and it uses `warning`, never `error`. One
+pair serves both workout rows and set rows (`WorkoutLogScreen.tsx:55-67`).
 
 ---
 
@@ -483,8 +484,8 @@ Nutrition or remove the targets → plan → log path.
 
 # Proposed-key handoff
 
-UX-3C handed off **33** proposed keys. **Twenty have since shipped**, leaving
-**13 outstanding**. They belong to their existing owners rather than one broad
+UX-3C handed off **33** proposed keys. **Twenty-two have since shipped**, leaving
+**11 outstanding**. They belong to their existing owners rather than one broad
 migration:
 
 | Owner | Keys | Purpose | Status |
@@ -493,7 +494,7 @@ migration:
 | BUG-009 | 2 | Progress-card Error distinct from Empty | outstanding |
 | BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | **SHIPPED** |
 | BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | **SHIPPED** |
-| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | outstanding |
+| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | **partly SHIPPED** — Workout Log's 2 done; 8 outstanding for Preferences and Progress |
 | UX-4B | 7 | Advisory first-run checklist | **SHIPPED** |
 | UX-4A | 2 | Direct Food Log dashboard shortcut | **SHIPPED** |
 

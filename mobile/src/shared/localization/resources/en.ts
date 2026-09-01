@@ -418,6 +418,8 @@ export const en = {
   'workout.log.setsEmpty': 'No sets logged yet.',
   'workout.log.syncPendingAccessibility': 'Sync pending',
   'workout.log.syncPending': 'Pending sync',
+  'workout.log.syncConflictAccessibility': 'Workout sync conflict',
+  'workout.log.syncConflict': 'Conflict',
   'workout.log.repsForSetAccessibility': 'Reps for set',
   'workout.log.markNotDoneAccessibility': 'Mark as not done, set',
   'workout.log.markDoneAccessibility': 'Mark as done, set',

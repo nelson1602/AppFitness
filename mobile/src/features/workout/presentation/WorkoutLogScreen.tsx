@@ -5,6 +5,8 @@ import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
+import type { SyncStatus } from '@/shared/infrastructure/database/types';
+
 import type { CustomExercise, WorkoutLog, WorkoutSet } from '../domain/workout';
 import { exerciseDisplayName } from '../application/exercise-display.service';
 import { useWorkoutStore } from '../application/workout.store';
@@ -21,7 +23,8 @@ import { CustomExerciseNote } from './CustomExerciseNote';
  * exercises, edit/remove sets, and finish the workout. ALL persistence routes
  * through the Slice 4A/4B workout store → service → repository (local-first
  * write, sync enqueue); the UI never touches SQLite. Rows carry their local
- * `syncStatus`, surfaced as a localized pending-sync hint. Public wellness v1
+ * `syncStatus`, surfaced as localized pending-sync and conflict hints. Public
+ * wellness v1
  * intentionally does not consume the retained medical TrainingPlan domain;
  * that architecture remains dormant for possible future use behind a separate
  * approved product contract.
@@ -39,6 +42,26 @@ function PendingHint({ syncStatus }: { syncStatus: WorkoutSet['syncStatus'] }) {
       accessibilityLabel={t('workout.log.syncPendingAccessibility')}
     >
       {t('workout.log.syncPending')}
+    </AppText>
+  );
+}
+
+/**
+ * A diverged row, reported only (BUG-011). `warning`, never `error`, because
+ * both versions are preserved (`.ai/08_UI_UX.md` distinction 5) — matching the
+ * conformant `ExerciseLibrary` badge. There is deliberately no choose action:
+ * no resolution flow is authorized anywhere in v1 (BUG-012).
+ */
+function ConflictHint({ syncStatus }: { syncStatus: SyncStatus }) {
+  const { t } = useLocalization();
+  if (syncStatus !== 'conflict') return null;
+  return (
+    <AppText
+      variant="caption"
+      tone="warning"
+      accessibilityLabel={t('workout.log.syncConflictAccessibility')}
+    >
+      {t('workout.log.syncConflict')}
     </AppText>
   );
 }
@@ -216,6 +239,7 @@ export function WorkoutLogScreen() {
                     {t('workout.log.savedOnDevice')}
                   </AppText>
                 ) : null}
+                <ConflictHint syncStatus={log.syncStatus} />
                 <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                   <AppButton
                     accessibilityLabel={`${t('workout.log.logSetsAccessibility')} ${log.name}`}
@@ -470,6 +494,7 @@ function SetList({
               {set.setNumber}. {displayName}
             </AppText>
             <PendingHint syncStatus={set.syncStatus} />
+            <ConflictHint syncStatus={set.syncStatus} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
               <TextInput
                 accessibilityLabel={`${t('workout.log.repsForSetAccessibility')} ${set.setNumber}`}

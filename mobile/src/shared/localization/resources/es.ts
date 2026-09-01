@@ -430,6 +430,8 @@ export const es = {
   'workout.log.setsEmpty': 'Todavía no hay series registradas.',
   'workout.log.syncPendingAccessibility': 'Sincronización pendiente',
   'workout.log.syncPending': 'Pendiente de sincronización',
+  'workout.log.syncConflictAccessibility': 'Conflicto de sincronización del entrenamiento',
+  'workout.log.syncConflict': 'Conflicto',
   'workout.log.repsForSetAccessibility': 'Repeticiones de la serie',
   'workout.log.markNotDoneAccessibility': 'Marcar como no completada, serie',
   'workout.log.markDoneAccessibility': 'Marcar como completada, serie',
