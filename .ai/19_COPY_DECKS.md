@@ -1,6 +1,6 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.4
+Version: 1.5
 Status: Active
 Last Updated: 2026-09-01
 
@@ -356,10 +356,10 @@ copy promise *"Your selections are still here."*
 | `nutrition.preferences.errorMessage` | Your dietary preferences could not be loaded right now. | No se pudieron cargar tus preferencias alimentarias. | **SHIPPED** |
 | `nutrition.preferences.webUnavailableTitle` | Dietary preferences aren't available on the web | Las preferencias alimentarias no están disponibles en la web | **SHIPPED** |
 | `nutrition.preferences.webUnavailableBody` | Use the AppFitness mobile app to manage your allergies and food preferences. | Usa la app móvil de AppFitness para gestionar tus alergias y preferencias de alimentos. | **SHIPPED** |
-| `nutrition.preferences.syncPending` | Saved on this device | Guardado en este dispositivo | **PROPOSED** — BUG-011 |
-| `nutrition.preferences.syncPendingAccessibility` | Preference saved on this device; sync pending | Preferencia guardada en este dispositivo; sincronización pendiente | **PROPOSED** — BUG-011 |
-| `nutrition.preferences.syncConflict` | Conflict | Conflicto | **PROPOSED** — BUG-011 |
-| `nutrition.preferences.syncConflictAccessibility` | Dietary preference sync conflict | Conflicto de sincronización de la preferencia alimentaria | **PROPOSED** — BUG-011 |
+| `nutrition.preferences.syncPending` | Saved on this device | Guardado en este dispositivo | **SHIPPED** |
+| `nutrition.preferences.syncPendingAccessibility` | Preference saved on this device; sync pending | Preferencia guardada en este dispositivo; sincronización pendiente | **SHIPPED** |
+| `nutrition.preferences.syncConflict` | Conflict | Conflicto | **SHIPPED** |
+| `nutrition.preferences.syncConflictAccessibility` | Dietary preference sync conflict | Conflicto de sincronización de la preferencia alimentaria | **SHIPPED** |
 
 ---
 
@@ -484,8 +484,8 @@ Nutrition or remove the targets → plan → log path.
 
 # Proposed-key handoff
 
-UX-3C handed off **33** proposed keys. **Twenty-two have since shipped**, leaving
-**11 outstanding**. They belong to their existing owners rather than one broad
+UX-3C handed off **33** proposed keys. **Twenty-six have since shipped**, leaving
+**7 outstanding**. They belong to their existing owners rather than one broad
 migration:
 
 | Owner | Keys | Purpose | Status |
@@ -494,7 +494,7 @@ migration:
 | BUG-009 | 2 | Progress-card Error distinct from Empty | outstanding |
 | BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | **SHIPPED** |
 | BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | **SHIPPED** |
-| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | **partly SHIPPED** — Workout Log's 2 done; 8 outstanding for Preferences and Progress |
+| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | **partly SHIPPED** — Workout Log's 2 and Dietary Preferences' 4 done; 4 outstanding for Progress |
 | UX-4B | 7 | Advisory first-run checklist | **SHIPPED** |
 | UX-4A | 2 | Direct Food Log dashboard shortcut | **SHIPPED** |
 

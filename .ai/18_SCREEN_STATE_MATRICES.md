@@ -1,6 +1,6 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.6
+Version: 1.7
 Status: Active
 Last Updated: 2026-09-01
 
@@ -463,8 +463,8 @@ on the two read-only nutrition projections.
 | **Loading** | `initialLoading = status === 'loading' && preferences.length === 0` | `nutrition.plan.loading` text, **scoped to the list section**; the add form renders regardless | `load()` resolves | Both | `DietaryPreferences.tsx:107`, `:285-288`; spec *"shows a loading indicator during the initial load"* | SHIPPED |
 | **Empty** | Read succeeded, `preferences.length === 0` | `nutrition.preferences.empty` muted text in the list section | User adds an exclusion | Native | `DietaryPreferences.tsx:289-290`; spec *"shows an empty message when there are no exclusions"* | SHIPPED |
 | **Error** | `error !== null` — covers **both** the load failure and save failures | `<Banner tone="error">`, `nutrition.preferences.errorTitle/Message`, above the form | Next successful operation | Both | `DietaryPreferences.tsx:149-153`; `dietary-preference.store.ts:55`, `:71-72`; spec *"surfaces a safe error banner"* | SHIPPED |
-| **Pending sync** | `preference.syncStatus === 'pending'` — exclusions are local-first writes that enqueue, and the listed rows expose the field | **No treatment.** Each exclusion renders with no sync hint | — | Native | `dietary-preference.ts:49`, `:67`; `nutrition/infrastructure/dietary-preference.repository.ts:107` (a soft delete re-marks the row `pending`) and `:39`, `:135` (`sync_status` is written on insert/read); **owner: BUG-011** | **PROPOSED** |
-| **Conflict** | `preference.syncStatus === 'conflict'`, set by `markDietaryPreferenceConflict` | **No treatment.** | — | Native | `nutrition/infrastructure/dietary-preference.repository.ts:156`; `nutrition/infrastructure/sync-appliers.ts:32`; **owner: BUG-011** | **PROPOSED** |
+| **Pending sync** | `preference.syncStatus === 'pending'` — exclusions are local-first writes that enqueue, and the listed rows expose the field | `SyncHint` component, **row-level** caption with `tone="muted"`, `nutrition.preferences.syncPending` + `syncPendingAccessibility`. Reassures — the write is safely stored | Queue drains | Native | `DietaryPreferences.tsx:47-71`, `:347`; `dietary-preference.ts:49`, `:67`; spec *"reassures that a queued exclusion is safely stored (BUG-011)"* | SHIPPED |
+| **Conflict** | `preference.syncStatus === 'conflict'`, set by `markDietaryPreferenceConflict` | Same `SyncHint`, caption with `tone="warning"`, `nutrition.preferences.syncConflict` + `syncConflictAccessibility`. **Report-only** — no choose action | **None on this surface** — no resolution UI exists anywhere, see BUG-012 | Native | `DietaryPreferences.tsx:47-71`, `:347`; `nutrition/infrastructure/sync-appliers.ts:32`; specs *"reports a diverged exclusion as warning, not error (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* — the first asserts the rendered `warning` colour | SHIPPED |
 | **Offline** | — | — | — | — | **No Offline signal reaches this surface at `fb02097`.** `useDietaryPreferenceStore` receives no connectivity or sync outcome. This records what the screen receives, not a limit on what it could be given | **n/a** |
 | **Data-gap** | — | — | — | — | Preferences are user-entered, not computed; nothing is a prerequisite | **n/a** |
 
@@ -519,7 +519,7 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 6 | Nutrition Targets | S | — | S | S | — | — | — | S |
 | 7 | Nutrition Plan | S | — | S | S | — | — | — | S |
 | 8 | Food Log | S | S | — | S¹ | S | S | S | S |
-| 9 | Dietary Preferences | S | S | — | S | — | **P** | **P** | S |
+| 9 | Dietary Preferences | S | S | — | S | — | S | S | S |
 | 10 | Progress | S | S | — | S | — | **P** | **P** | S |
 
 ¹ load, write, sync and catalog-incompatibility errors are all SHIPPED. Write
@@ -530,15 +530,14 @@ folded into Conflict (BUG-007).
 dashboard composition — the same treatments counted once at surface 2 and once
 in the dashboard's seven-of-eight total.
 
-**Totals.** **PROPOSED: five**, every one owned. Surface 8's Error — writes row
-shipped with BUG-008, and surface 5's Conflict row shipped with the **first
-BUG-011 feature slice** — BUG-011 itself stays open for surfaces 9 and 10.
+**Totals.** **PROPOSED: three**, every one owned. Surface 8's Error — writes row
+shipped with BUG-008; surface 5's Conflict row shipped with the **first** BUG-011
+feature slice and surface 9's two rows with the **second** — BUG-011 itself stays
+open for surface 10.
 
 | Surface | State | Owner |
 |---|---|---|
 | 4 Progress summary card | Error | BUG-009 |
-| 9 Dietary Preferences | Pending sync | BUG-011 |
-| 9 Dietary Preferences | Conflict | BUG-011 |
 | 10 Progress | Pending sync | BUG-011 |
 | 10 Progress | Conflict | BUG-011 |
 

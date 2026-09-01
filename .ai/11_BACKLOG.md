@@ -2731,8 +2731,8 @@ assistive technology on a Spanish-locale device.
 
 ## [BUG-011] Local-First Row State Is Never Surfaced on Three Screens That Carry It
 
-Status: **Open** — Workout Log slice shipped 2026-09-01; Dietary Preferences and
-Progress outstanding (see Progress by feature slice)
+Status: **Open** — Workout Log and Dietary Preferences slices shipped
+2026-09-01; Progress outstanding (see Progress by feature slice)
 Priority: P2
 Type: Bug
 Owner: Unassigned
@@ -2800,7 +2800,7 @@ the two row-level hints Workout Log already ships.
 ### Acceptance Criteria
 
 - [x] Workout Log renders a Conflict treatment on workout and set rows.
-- [ ] Dietary Preferences renders Pending sync and Conflict on exclusion rows.
+- [x] Dietary Preferences renders Pending sync and Conflict on exclusion rows.
 - [ ] Progress renders Pending sync and Conflict on body weights, measurements
       and weekly snapshots.
 - [x] Conflict uses `warning`, never `error` (see BUG-007) — satisfied for the
@@ -2818,7 +2818,7 @@ stays Open until all three are done.**
 | Slice | Treatments | Keys | Status |
 |---|---|---:|---|
 | Workout Log | Conflict (workout rows + set rows) | 2 | **SHIPPED** 2026-09-01 |
-| Dietary Preferences | Pending sync, Conflict | 4 | Outstanding |
+| Dietary Preferences | Pending sync, Conflict | 4 | **SHIPPED** 2026-09-01 |
 | Progress | Pending sync, Conflict (body weights, measurements, snapshots) | 4 | Outstanding |
 
 **Workout Log slice (shipped).** Workout Log already shipped both Pending sync
@@ -2831,9 +2831,17 @@ added at exact parity (718/718). Five regression specs, two of which assert the
 rendered **colour** rather than the prop name, plus one asserting a synced row
 gets no hint at all.
 
-**BUG-012 preserved.** The hint is report-only — the bare localized word, no
-choose action and no CTA — and a spec asserts exactly that. No resolution
-affordance was added.
+**Dietary Preferences slice (shipped).** This screen rendered **no** treatment
+for either state, so both were added together in one `SyncHint`
+(`DietaryPreferences.tsx:47-71`, rendered at `:347`), matching the shape of the
+conformant `ExerciseLibrary` badge: `muted` for Pending — which must reassure,
+never alarm — and `warning` for Conflict. Four EN and four ES keys added at exact
+parity (722/722). Six regression specs, two of which assert the rendered
+**colour**, plus one proving a synced row gets no hint at all.
+
+**BUG-012 preserved.** In both shipped slices the conflict hint is report-only —
+the bare localized word, no choose action and no CTA — and a spec in each asserts
+exactly that. No resolution affordance was added.
 
 **Offline stays out of scope** for every slice, for the reason given above.
 
