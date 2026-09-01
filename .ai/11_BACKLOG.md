@@ -2731,12 +2731,13 @@ assistive technology on a Spanish-locale device.
 
 ## [BUG-011] Local-First Row State Is Never Surfaced on Three Screens That Carry It
 
-Status: Open
+Status: **Open** — Workout Log slice shipped 2026-09-01; Dietary Preferences and
+Progress outstanding (see Progress by feature slice)
 Priority: P2
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-08-28
+Updated: 2026-09-01
 
 ### Description
 
@@ -2798,15 +2799,43 @@ the two row-level hints Workout Log already ships.
 
 ### Acceptance Criteria
 
-- [ ] Workout Log renders a Conflict treatment on workout and set rows.
+- [x] Workout Log renders a Conflict treatment on workout and set rows.
 - [ ] Dietary Preferences renders Pending sync and Conflict on exclusion rows.
 - [ ] Progress renders Pending sync and Conflict on body weights, measurements
       and weekly snapshots.
-- [ ] Conflict uses `warning`, never `error` (see BUG-007).
+- [x] Conflict uses `warning`, never `error` (see BUG-007) — satisfied for the
+      Workout Log slice; re-asserted per slice as the remaining two land.
 - [x] EN/ES copy is specified under **UX-3C** before implementation for Workout
       Log, Dietary Preferences and Progress (`.ai/19_COPY_DECKS.md`).
 - [ ] Specs cover each new treatment; no accessibility outcome is claimed before
       the **UX-4C** manual AT pass.
+
+### Progress by feature slice
+
+This bug spans three features and is being closed one feature at a time. **It
+stays Open until all three are done.**
+
+| Slice | Treatments | Keys | Status |
+|---|---|---:|---|
+| Workout Log | Conflict (workout rows + set rows) | 2 | **SHIPPED** 2026-09-01 |
+| Dietary Preferences | Pending sync, Conflict | 4 | Outstanding |
+| Progress | Pending sync, Conflict (body weights, measurements, snapshots) | 4 | Outstanding |
+
+**Workout Log slice (shipped).** Workout Log already shipped both Pending sync
+treatments, so Conflict was its only gap — which is why it was taken first as
+the smallest independently completable slice.
+`WorkoutLogScreen.tsx:55-67` adds a `ConflictHint` caption with `tone="warning"`,
+mirroring the already-conformant `ExerciseLibrary` badge in the same feature, and
+renders it on workout rows (`:242`) and set rows (`:497`). Two EN and two ES keys
+added at exact parity (718/718). Five regression specs, two of which assert the
+rendered **colour** rather than the prop name, plus one asserting a synced row
+gets no hint at all.
+
+**BUG-012 preserved.** The hint is report-only — the bare localized word, no
+choose action and no CTA — and a spec asserts exactly that. No resolution
+affordance was added.
+
+**Offline stays out of scope** for every slice, for the reason given above.
 
 ### Related Documents
 
