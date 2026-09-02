@@ -1,6 +1,6 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.5
+Version: 1.6
 Status: Active
 Last Updated: 2026-09-01
 
@@ -379,13 +379,20 @@ change without praise, diagnosis or instruction.
 | `progress.screen.noWeight` | No weight recorded yet. | Aún no has registrado tu peso. | **SHIPPED** |
 | `progress.webUnavailableTitle` | Progress isn't available on the web | El progreso no está disponible en la web | **SHIPPED** |
 | `progress.webUnavailableBody` | Use the AppFitness mobile app to record and track your progress. | Usa la app móvil de AppFitness para registrar y seguir tu progreso. | **SHIPPED** |
-| `progress.syncPending` | Saved on this device | Guardado en este dispositivo | **PROPOSED** — BUG-011 |
-| `progress.syncPendingAccessibility` | Progress entry saved on this device; sync pending | Registro de progreso guardado en este dispositivo; sincronización pendiente | **PROPOSED** — BUG-011 |
-| `progress.syncConflict` | Conflict | Conflicto | **PROPOSED** — BUG-011 |
-| `progress.syncConflictAccessibility` | Progress entry sync conflict | Conflicto de sincronización del registro de progreso | **PROPOSED** — BUG-011 |
+| `progress.syncPending` | Saved on this device | Guardado en este dispositivo | **SHIPPED** |
+| `progress.syncPendingAccessibility` | Progress entry saved on this device; sync pending | Registro de progreso guardado en este dispositivo; sincronización pendiente | **SHIPPED** |
+| `progress.syncConflict` | Conflict | Conflicto | **SHIPPED** |
+| `progress.syncConflictAccessibility` | Progress entry sync conflict | Conflicto de sincronización del registro de progreso | **SHIPPED** |
 
-Pending and Conflict apply to listed weight, measurement and snapshot rows, not
-to the aggregate dashboard card.
+Pending and Conflict apply to listed rows, not to the aggregate dashboard card
+(surface 4, whose Error gap is BUG-009's and is untouched here).
+
+**Correction.** This section previously said "listed weight, measurement and
+snapshot rows". Implementation found that **body measurements are never listed
+individually** on the Progress screen — they reach the UI only as a count and as
+an aggregated trend series. The four keys ship on the listed **weight** row and
+the listed **snapshot** rows; there is no measurement row to attach them to.
+The residual is recorded against BUG-011, which stays open.
 
 ## Progress trends and weekly semantics (UX-3D)
 
@@ -484,8 +491,8 @@ Nutrition or remove the targets → plan → log path.
 
 # Proposed-key handoff
 
-UX-3C handed off **33** proposed keys. **Twenty-six have since shipped**, leaving
-**7 outstanding**. They belong to their existing owners rather than one broad
+UX-3C handed off **33** proposed keys. **Thirty have since shipped**, leaving
+**3 outstanding**. They belong to their existing owners rather than one broad
 migration:
 
 | Owner | Keys | Purpose | Status |
@@ -494,7 +501,7 @@ migration:
 | BUG-009 | 2 | Progress-card Error distinct from Empty | outstanding |
 | BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | **SHIPPED** |
 | BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | **SHIPPED** |
-| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | **partly SHIPPED** — Workout Log's 2 and Dietary Preferences' 4 done; 4 outstanding for Progress |
+| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | **SHIPPED** — all 10 keys land; BUG-011 stays open on a measurement-listing residual, not on copy |
 | UX-4B | 7 | Advisory first-run checklist | **SHIPPED** |
 | UX-4A | 2 | Direct Food Log dashboard shortcut | **SHIPPED** |
 

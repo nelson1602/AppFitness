@@ -1,4 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
+
+import { lightTheme } from '@/shared/theme';
 
 import type { ProgressState } from '../application/progress.store';
 import type { BodyMeasurement, BodyWeight, ProgressSnapshot } from '../domain/progress';
@@ -23,6 +26,15 @@ jest.mock('@/shared/localization', () => {
     }),
   };
 });
+
+/**
+ * Resolved text colour. Tone is asserted as rendered behaviour rather than by
+ * prop name, so "Conflict is warning, never error" cannot regress silently
+ * through a rename (BUG-007, applied here by BUG-011).
+ */
+function colorOf(node: { props: { style?: StyleProp<TextStyle> } }): TextStyle['color'] {
+  return StyleSheet.flatten(node.props.style)?.color;
+}
 
 function setState(overrides: Partial<ProgressState> = {}): void {
   mockState = {
@@ -263,5 +275,60 @@ describe('ProgressScreen (Slice 5a)', () => {
       screen.getByText('Usa la app móvil de AppFitness para registrar y seguir tu progreso.'),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('progress-recompute')).toBeNull();
+  });
+
+  // BUG-011: every progress write lands `pending` and the listed rows expose
+  // the field, but the screen rendered nothing — so on the product's most
+  // staleness-sensitive surface a queued or diverged entry looked synced.
+  it('reassures that a queued body weight is safely stored (BUG-011)', async () => {
+    setState({ bodyWeights: [{ ...weight, syncStatus: 'pending' }] });
+    await render(<ProgressScreen />);
+
+    const hint = screen.getByLabelText('Progress entry saved on this device; sync pending');
+    expect(hint).toBeOnTheScreen();
+    // Pending means safely stored — it must reassure, never alarm.
+    expect(colorOf(hint)).toBe(lightTheme.colors.onSurfaceVariant);
+    expect(colorOf(hint)).not.toBe(lightTheme.colors.error);
+  });
+
+  it('reports a diverged body weight as warning, not error (BUG-011)', async () => {
+    setState({ bodyWeights: [{ ...weight, syncStatus: 'conflict' }] });
+    await render(<ProgressScreen />);
+
+    const hint = screen.getByLabelText('Progress entry sync conflict');
+    expect(hint).toBeOnTheScreen();
+    expect(colorOf(hint)).toBe(lightTheme.colors.warning);
+    expect(colorOf(hint)).not.toBe(lightTheme.colors.error);
+    expect(
+      screen.queryByLabelText('Progress entry saved on this device; sync pending'),
+    ).not.toBeOnTheScreen();
+  });
+
+  it('leaves a synced body weight with no sync hint at all (BUG-011)', async () => {
+    setState({ bodyWeights: [{ ...weight, syncStatus: 'synced' }] });
+    await render(<ProgressScreen />);
+
+    expect(screen.queryByLabelText('Progress entry sync conflict')).not.toBeOnTheScreen();
+    expect(
+      screen.queryByLabelText('Progress entry saved on this device; sync pending'),
+    ).not.toBeOnTheScreen();
+  });
+
+  it('reports the conflict without offering a resolution (BUG-012 stays open)', async () => {
+    setState({ bodyWeights: [{ ...weight, syncStatus: 'conflict' }] });
+    await render(<ProgressScreen />);
+
+    // Report-only: the hint is the bare localized word, with no choose action.
+    expect(screen.getByLabelText('Progress entry sync conflict')).toHaveTextContent('Conflict');
+  });
+
+  it('localizes the conflict hint in Spanish (BUG-011)', async () => {
+    mockLanguage = 'es';
+    setState({ bodyWeights: [{ ...weight, syncStatus: 'conflict' }] });
+    await render(<ProgressScreen />);
+
+    expect(
+      screen.getByLabelText('Conflicto de sincronización del registro de progreso'),
+    ).toHaveTextContent('Conflicto');
   });
 });

@@ -9,6 +9,7 @@ import { useProgressStore } from '../application/progress.store';
 import type { BodyMeasurementInput, BodyWeightInput } from '../domain/progress';
 import { BodyMeasurementForm } from './BodyMeasurementForm';
 import { BodyWeightForm } from './BodyWeightForm';
+import { SyncHint } from './SyncHint';
 import { TrendBars, type TrendPoint } from './TrendBars';
 import { WeeklySnapshotSummary } from './WeeklySnapshotSummary';
 
@@ -154,6 +155,7 @@ export function ProgressScreen() {
               ) : (
                 <AppText tone="muted">{t('progress.screen.noWeight')}</AppText>
               )}
+              {latestWeight ? <SyncHint syncStatus={latestWeight.syncStatus} /> : null}
               <AppText variant="caption" tone="muted">
                 {formatNumber(bodyWeights.length, language)}{' '}
                 {t(

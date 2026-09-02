@@ -1,6 +1,6 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.7
+Version: 1.8
 Status: Active
 Last Updated: 2026-09-01
 
@@ -488,10 +488,22 @@ a house style.
 | **Error** — load | `status === 'error'` | `<Banner tone="error">`, `progress.screen.loadErrorTitle`. The inline comment states the raw store string must never render | Next successful load | Both | `ProgressScreen.tsx:129-133`; spec *"surfaces a localized load error and never renders the raw store string"* | SHIPPED |
 | **Error** — save | `error !== null` while otherwise ready | A **separate** `<Banner tone="error">`, `progress.screen.saveErrorTitle`, rendered inline **without wiping the forms** | Next successful save | Both | `ProgressScreen.tsx:136-140`; spec *"surfaces a localized save error inline (distinct from load) without wiping the forms"* | SHIPPED |
 | **Empty** | Read succeeded, no entries recorded | `progress.screen.noWeight` muted text | User records a first entry | Native | `ProgressScreen.tsx:155`; spec *"renders the empty state when nothing is recorded"* | SHIPPED |
-| **Pending sync** | `syncStatus === 'pending'` on a listed body weight, measurement or snapshot — every progress write lands as `pending` and the rows expose the field | **No treatment.** The screen lists entries with no sync hint | — | Native | `progress/infrastructure/progress.repository.ts:69`, `:94`, `:146`, `:180` and the measurement/snapshot equivalents; `progress.ts:43`, `:89`, `:129`; **owner: BUG-011** | **PROPOSED** |
-| **Conflict** | `syncStatus === 'conflict'`, set by `markBodyWeightConflict`, `markBodyMeasurementConflict` or `markProgressSnapshotConflict` | **No treatment.** | — | Native | `progress/infrastructure/progress.repository.ts:222`, `:493`, `:657`; `progress/infrastructure/sync-appliers.ts:29`, `:35`, `:41`; **owner: BUG-011** | **PROPOSED** |
+| **Pending sync** | `syncStatus === 'pending'` on a **listed** body weight or snapshot — every progress write lands as `pending` and the rows expose the field | Shared `SyncHint` component, **row-level** caption with `tone="muted"`, `progress.syncPending` + `syncPendingAccessibility`. Reassures — the write is safely stored | Queue drains | Native | `SyncHint.tsx`; `ProgressScreen.tsx:158` (latest weight); `WeeklySnapshotSummary.tsx:107`, `:127` (latest + earlier weeks); spec *"reassures that a queued body weight is safely stored (BUG-011)"* | SHIPPED³ |
+| **Conflict** | `syncStatus === 'conflict'`, set by `markBodyWeightConflict`, `markBodyMeasurementConflict` or `markProgressSnapshotConflict` | Same `SyncHint`, caption with `tone="warning"`, `progress.syncConflict` + `syncConflictAccessibility`. **Report-only** — no choose action | **None on this surface** — no resolution UI exists anywhere, see BUG-012 | Native | `SyncHint.tsx`; `ProgressScreen.tsx:158`; `WeeklySnapshotSummary.tsx:107`, `:127`; specs *"reports a diverged body weight as warning, not error (BUG-011)"*, *"reports an earlier week that diverged (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* | SHIPPED³ |
 | **Offline** | — | — | — | — | **No Offline signal reaches this surface at `fb02097`.** `useProgressStore` receives no connectivity or sync outcome. Given how staleness-sensitive this screen is, wiring one in is a reasonable future design change — but it is a change, not a missing treatment | **n/a** |
 | **Data-gap** | — | — | — | — | Progress records user-entered values; nothing is a prerequisite. The *dashboard* names a missing weight as a gap and routes **here**, which is the reverse relationship | **n/a** |
+
+³ **Body measurements carry `syncStatus` but are never listed individually on
+this screen.** `bodyMeasurements` reaches the UI only as a count
+(`ProgressScreen.tsx:164`) and as the aggregated `muscleMassTrend` series
+(`:110`) — there is no measurement row to annotate, so the shipped treatment
+cannot reach them. This is an **absent surface, not an unimplemented treatment**,
+which is why the rows above are SHIPPED rather than PROPOSED. It contradicts this
+document's own earlier trigger wording and `.ai/19_COPY_DECKS.md` ("listed
+weight, measurement and snapshot rows"), both of which assumed a measurement list
+that does not exist. **BUG-011 stays open** carrying this residual; closing it
+needs either a measurement list (a design change with no copy in the deck) or a
+corrected acceptance criterion. **Not** absorbed into this slice.
 
 `TrendBars` and `WeeklySnapshotSummary` are embedded **presentational**
 components with no state source of their own; they render only when the screen
@@ -520,7 +532,7 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 7 | Nutrition Plan | S | — | S | S | — | — | — | S |
 | 8 | Food Log | S | S | — | S¹ | S | S | S | S |
 | 9 | Dietary Preferences | S | S | — | S | — | S | S | S |
-| 10 | Progress | S | S | — | S | — | **P** | **P** | S |
+| 10 | Progress | S | S | — | S | — | S³ | S³ | S |
 
 ¹ load, write, sync and catalog-incompatibility errors are all SHIPPED. Write
 errors ship as three separate per-operation treatments (BUG-008), each distinct
@@ -530,16 +542,14 @@ folded into Conflict (BUG-007).
 dashboard composition — the same treatments counted once at surface 2 and once
 in the dashboard's seven-of-eight total.
 
-**Totals.** **PROPOSED: three**, every one owned. Surface 8's Error — writes row
-shipped with BUG-008; surface 5's Conflict row shipped with the **first** BUG-011
-feature slice and surface 9's two rows with the **second** — BUG-011 itself stays
-open for surface 10.
+**Totals.** **PROPOSED: one**, owned. Surface 8's Error — writes row shipped with
+BUG-008; BUG-011's three feature slices shipped surface 5's Conflict row, surface
+9's two rows and surface 10's two rows. **BUG-011 itself stays open** on the
+measurement-listing residual recorded at surface 10, footnote ³.
 
 | Surface | State | Owner |
 |---|---|---|
 | 4 Progress summary card | Error | BUG-009 |
-| 10 Progress | Pending sync | BUG-011 |
-| 10 Progress | Conflict | BUG-011 |
 
 **SHIPPED — non-conformant: none.** Food Log's Conflict tone was the only one
 and has since shipped conformant (BUG-007): it renders `warning`, and the
