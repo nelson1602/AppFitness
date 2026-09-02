@@ -2608,12 +2608,12 @@ keys 24 → 18).
 
 ## [BUG-009] Progress Summary Card Renders a Failed Read as "Nothing Recorded"
 
-Status: Open
+Status: **Done** (2026-09-02 — fixed in this change; see Resolution)
 Priority: P3
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-08-28
+Updated: 2026-09-02
 
 ### Description
 
@@ -2660,11 +2660,42 @@ user cannot mistake for "you have not recorded anything yet".
 
 ### Acceptance Criteria
 
-- [ ] The card renders a distinct state when `status === 'error'`.
-- [ ] Empty is reachable only after a successful read.
-- [ ] Specs cover the card's loading and error branches.
+- [x] The card renders a distinct state when `status === 'error'`.
+- [x] Empty is reachable only after a successful read.
+- [x] Specs cover the card's loading and error branches.
 - [x] EN/ES copy is specified under **UX-3C** before implementation
       (`progress.card.errorTitle` / `errorBody` in `.ai/19_COPY_DECKS.md`).
+
+### Resolution
+
+Fixed on `codex/fix-progress-card-error`. Line references in the Description and
+Evidence sections above are as audited at
+`fb02097593ff9a2735f54620d6350d880cf3a030`; the fix moved them.
+
+`ProgressSummaryCard.tsx:71-84` adds the missing `status === 'error'` branch
+between the Loading branch and the ready arm. Because the ready arm is now
+reached only when the status is neither loading, idle, nor error, **Empty is
+reachable only after a successful read** — the property the Empty definition
+requires and the one the bug violated.
+
+- Copy is the **frozen UX-3C pair**, `progress.card.errorTitle` in `tone="error"`
+  plus a muted `progress.card.errorBody` caption. Two EN and two ES keys added at
+  exact parity (757/757). **No new copy was written.**
+- **No retry control** is offered — consistent with the deck and with the product
+  having zero retry keys anywhere.
+- The deck left one question to implementation: whether the card stays pressable
+  in Error. **Decided: it stays pressable**, matching the card's own Loading
+  branch, because the owning Progress screen reports the failure correctly and is
+  one tap away. Only Web unavailable removes the `Pressable`, since there is
+  nowhere useful to go from it.
+- **Six regression specs**, covering the new Error branch in EN and ES, the
+  pressable-in-Error behaviour, the absence of a retry control, the previously
+  **untested Loading branch** the audit called out, and a guard proving Empty is
+  still reached after a successful read.
+
+**Scope held.** No measurement list, no conflict-resolution affordance, no new
+dependency and no architecture change. **BUG-011's measurement residual and
+BUG-012 are untouched and remain Open.**
 
 ### Related Documents
 

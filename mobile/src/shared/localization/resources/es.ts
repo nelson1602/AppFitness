@@ -225,6 +225,8 @@ export const es = {
   'progress.card.loading': 'Cargando…',
   'progress.card.noWeight': 'Sin peso aún',
   'progress.card.prompt': 'Toca para registrar y seguir tu progreso.',
+  'progress.card.errorTitle': 'Progreso no disponible',
+  'progress.card.errorBody': 'No pudimos cargar tu progreso en este momento.',
   'progress.card.asOf': 'al',
   'progress.card.thisWeek': 'Esta semana:',
   'progress.card.volume': 'de volumen',

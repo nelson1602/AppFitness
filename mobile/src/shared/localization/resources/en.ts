@@ -214,6 +214,8 @@ export const en = {
   'progress.card.loading': 'Loading…',
   'progress.card.noWeight': 'No weight yet',
   'progress.card.prompt': 'Tap to record and track your progress.',
+  'progress.card.errorTitle': 'Progress unavailable',
+  'progress.card.errorBody': "We couldn't load your progress right now.",
   'progress.card.asOf': 'as of',
   'progress.card.thisWeek': 'This week:',
   'progress.card.volume': 'volume',
