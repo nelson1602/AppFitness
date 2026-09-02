@@ -2707,12 +2707,12 @@ BUG-012 are untouched and remain Open.**
 
 ## [BUG-010] Shared Loading Skeleton Carries a Hardcoded English Accessibility Label
 
-Status: Open
+Status: **Done** (2026-09-02 — fixed in this change; see Resolution)
 Priority: P3
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-08-28
+Updated: 2026-09-02
 
 ### Description
 
@@ -2760,12 +2760,47 @@ assistive technology on a Spanish-locale device.
 
 ### Acceptance Criteria
 
-- [ ] The label is supplied via `t()` from a new key.
-- [ ] EN and ES entries are added together, preserving exact parity.
-- [ ] No hardcoded user-facing string remains in the component.
+- [x] The label is supplied via `t()` from a new key.
+- [x] EN and ES entries are added together, preserving exact parity.
+- [x] No hardcoded user-facing string remains in the component.
 - [x] The key's copy is specified under **UX-3C**
       (`common.loadingContentAccessibility`); no accessibility **outcome**
       may be claimed before the **UX-4C** manual AT pass.
+
+### Resolution
+
+Fixed on `codex/fix-loading-skeleton-a11y-label`. The line reference in the
+Description above is as audited at
+`fb02097593ff9a2735f54620d6350d880cf3a030`; the fix moved it.
+
+`dashboard-skeleton.tsx` resolves its label through
+`useLocalization().t('common.loadingContentAccessibility')`. The key was added to
+both catalogues in the same change at exact parity (**758/758**) and opens the
+`common.*` namespace. The component's **visual output and empty props API are
+unchanged** — still three placeholder cards, still no props.
+
+- **Six regression specs** in a new `dashboard-skeleton.spec.tsx`: the label
+  resolved from the catalogue in **EN** and in **ES**, an assertion that **no**
+  English string is exposed under `es` (both the old literal and the EN catalogue
+  value), a **guard** that the EN and ES values differ — so a catalogue
+  regression copying EN into ES cannot make the locale tests pass vacuously — and
+  an API guard on the three-card output and zero-prop signature.
+- **13 existing assertions across 12 spec files** referenced the old literal and
+  were updated to the localized value.
+- `nutrition-plan-route.spec.tsx` stubbed `t: () => 'Meal plan'`, a constant that
+  ignored the key. Harmless while the skeleton used a literal; once the skeleton
+  resolved through `t()` the stub returned that screen's label for the skeleton
+  too. The stub is now key-aware for this one key and unchanged for every other,
+  so the assertion tests real behaviour rather than a stub artifact.
+
+**No accessibility outcome is claimed.** What is verified is what the component
+renders. **Whether, when or how VoiceOver, TalkBack or a browser AT announces
+this label is the UX-4C manual pass and remains unrun.** Whether the label
+belongs on one container or on three repeated blocks is likewise a UX-4C
+question, not a copy decision, and was deliberately left as-is.
+
+**Scope held.** No dependency, architecture or unrelated UI change.
+**BUG-011 and BUG-012 are untouched and remain Open.**
 
 ### Related Documents
 

@@ -56,7 +56,7 @@ describe('DashboardRoute', () => {
 
     await render(<DashboardRoute />);
 
-    expect(screen.getAllByLabelText('Loading dashboard section')).toHaveLength(3);
+    expect(screen.getAllByLabelText('Loading content')).toHaveLength(3);
   });
 
   it('redirects anonymous users to sign in', async () => {

@@ -21,7 +21,7 @@ describe('HomeRoute', () => {
 
     await render(<HomeRoute />);
 
-    expect(screen.getAllByLabelText('Loading dashboard section')).toHaveLength(3);
+    expect(screen.getAllByLabelText('Loading content')).toHaveLength(3);
   });
 
   it('redirects authenticated users to the dashboard', async () => {

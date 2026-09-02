@@ -1,6 +1,7 @@
 import type { TranslationKey } from './en';
 
 export const es = {
+  'common.loadingContentAccessibility': 'Cargando contenido',
   'language.title': 'Idioma',
   'language.description': 'Elige el idioma que usa AppFitness.',
   'language.system': 'Idioma del dispositivo',

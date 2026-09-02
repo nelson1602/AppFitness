@@ -147,7 +147,7 @@ describe('DashboardScreen', () => {
     await render(<DashboardScreen />);
 
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
-    expect(screen.getAllByLabelText('Loading dashboard section')).toHaveLength(3);
+    expect(screen.getAllByLabelText('Loading content')).toHaveLength(3);
   });
 
   it('renders the first-run checklist and dev sample action on the empty state', async () => {
@@ -467,7 +467,7 @@ describe('DashboardScreen', () => {
     expect(screen.queryByText('iCoach recommendations')).toBeNull();
     expect(screen.queryByText('2,500 kcal')).toBeNull();
     // Loading skeleton is not shown in this state.
-    expect(screen.queryByLabelText('Loading dashboard section')).toBeNull();
+    expect(screen.queryByLabelText('Loading content')).toBeNull();
   });
 
   it('renders the web-unavailable state in Spanish', async () => {
