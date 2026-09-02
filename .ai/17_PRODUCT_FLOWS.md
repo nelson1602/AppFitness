@@ -1,8 +1,8 @@
 # AppFitness Low-Fidelity Product Flows (V1)
 
-Version: 1.3
+Version: 1.4
 Status: Active
-Last Updated: 2026-08-28
+Last Updated: 2026-09-02
 
 ---
 
@@ -100,12 +100,14 @@ parity**), `api/src/modules/*`, and ADR-P017 through ADR-P027.
 
 Two facts that set the SHIPPED boundary and are easy to get wrong:
 
-1. **Password recovery is not on `main`.** `main` has **zero** `auth.forgot.*` /
-   `auth.reset.*` / verification localization keys and no
-   `forgot-password` / `reset-password` route. The implementation exists in
-   **PR #102** (ADR-P026 Vertical 1) and is therefore **TARGET**, not SHIPPED.
+1. **Password recovery is SHIPPED** (corrected 2026-09-02). PR #102 merged as
+   `724a18e7`: `main` now carries **8** `auth.forgot.*` and **14** `auth.reset.*`
+   localization keys and both `forgot-password` and `reset-password` routes
+   (`mobile/src/app/`). It was Production-validated on 2026-09-02.
 2. **Email verification has no implementation anywhere.** ADR-P026 Vertical 2 is
    accepted in principle only ⇒ **PROPOSED**.
+3. **Emailed links still open the Web page, not the app.** Universal / App Links
+   remain unconfigured and need a native rebuild — unchanged by the above.
 
 ---
 
@@ -351,10 +353,13 @@ above the form, form stays populated and editable). No Empty, Data-gap, Offline,
 Pending-sync or Conflict state applies. **Web: fully available** — sign-in is
 one of the few surfaces not Web-gated.
 
-## 2.3 Password recovery — TARGET (PR #102, ADR-P026 Vertical 1)
+## 2.3 Password recovery — SHIPPED (ADR-P026 Vertical 1)
 
-**Not on `main`.** Specified here because ADR-P026 is Accepted and the
-implementation is complete and green in PR #102.
+**On `main`** since PR #102 merged as `724a18e7`, and **Production-validated on
+2026-09-02**: a real delivery with tracking disabled, a fresh authorized link
+that changed the password, the URL fragment scrubbed, replay rejected with the
+generic invalid/expired response, and sign-in with the new password. The
+30-minute token TTL is enforced (`token.service.ts:21`).
 
 ```
 sign-in ──"Forgot your password?"──► [request reset]
@@ -808,7 +813,7 @@ alone are insufficient. Specifying that equivalent is **UX-3 work**; it is
    - **sign-in and registration**, which authenticate against the API and
      require connectivity — the SHIPPED `connectivity` reason exists precisely
      for this;
-   - **password recovery** (TARGET), which requires a server round-trip to issue
+   - **password recovery** (SHIPPED), which requires a server round-trip to issue
      a token and another to redeem it;
    - any other **remote-only action**, which must surface Error with the
      `connectivity` reason rather than pretending to succeed.
@@ -847,10 +852,12 @@ alone are insufficient. Specifying that equivalent is **UX-3 work**; it is
    assume one input behaviour — notably the uncontrolled per-set reps editor.
 6. **Emailed reset links open the Web page, not the app.** Universal / App Links
    need domain ownership and a native rebuild. Copy must not promise otherwise.
-7. **Recovery is TARGET, verification is PROPOSED.** Neither is on `main`.
-   Recovery additionally depends on external prerequisites (domain, SPF/DKIM/
-   DMARC, Postmark account and token, click tracking off) that no code change
-   can satisfy.
+7. **Recovery is SHIPPED; verification is still PROPOSED.** Corrected
+   2026-09-02: recovery is on `main` (PR #102, `724a18e7`) and
+   Production-validated, and its external prerequisites — owned sending
+   subdomain, Postmark account and stream, tracking off — are in place.
+   **Verification remains unimplemented** and retains every one of those
+   prerequisites in its own right.
 8. **Five light-theme AA contrast pairs remain unresolved** (`.ai/08_UI_UX.md`,
    FEATURE-010). Flow-independent, but it lands on every screen here.
 
