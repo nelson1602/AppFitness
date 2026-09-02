@@ -1949,12 +1949,28 @@ before UX-5 touches those surfaces.
 
 ## [FEATURE-011] V1 Transactional Email, Password Recovery, and Email Verification
 
-Status: Proposed
+Status: **In Progress** — Vertical 1 (mail foundation + password recovery)
+shipped and **Production-validated 2026-09-02**; Vertical 2 (email
+verification) not started
 Priority: P1
 Type: Feature
 Owner: Product / Security / Architecture
 Created: 2026-08-27
-Updated: 2026-08-27
+Updated: 2026-09-02
+
+> **Vertical 1 delivered.** PR #102 merged as `724a18e7`. The mail foundation,
+> reset-token model, `forgot-password` / `reset-password` endpoints, mobile
+> routes and EN/ES copy are on `main`. Production validation on 2026-09-02
+> exercised a real delivery with tracking disabled: a fresh authorized link
+> changed the password, the URL fragment was scrubbed, replay was rejected with
+> the generic invalid/expired response, and sign-in with the new password
+> succeeded. A link opened more than five hours after delivery expired
+> **correctly** against the 30-minute contract — conformant, not a defect.
+> Evidence is summarized in `docs/RELEASE_READINESS.md`; no token, credential,
+> address, message identifier or raw link is recorded anywhere.
+>
+> **Vertical 2 is unchanged and unstarted.** Deep-link completion (Universal /
+> App Links) also remains open and is **not** claimed by this vertical.
 
 > **ADR-P026 ACCEPTED 2026-08-27 — V1 Transactional Email, Password Recovery,
 > and Email Verification.** Both capabilities are **V1 launch requirements**.
