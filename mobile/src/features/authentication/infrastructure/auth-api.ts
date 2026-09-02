@@ -83,3 +83,19 @@ export async function me(accessToken: string): Promise<AuthUser> {
   }
   return (await response.json()) as AuthUser;
 }
+
+/**
+ * Request a password-reset email (ADR-P026 Vertical 1).
+ *
+ * The server always answers 202 with the same body whether or not the account
+ * exists, so there is nothing here worth reading — the response body is
+ * deliberately discarded. `locale` selects the language of the email.
+ */
+export function requestPasswordReset(input: { email: string; locale: string }): Promise<void> {
+  return post<void>('/auth/forgot-password', input, false);
+}
+
+/** Redeem a reset token from an emailed link and set a new password (204). */
+export function resetPassword(input: { token: string; password: string }): Promise<void> {
+  return post<void>('/auth/reset-password', input, false);
+}

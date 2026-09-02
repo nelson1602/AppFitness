@@ -31,6 +31,43 @@ export const es = {
   'auth.error.unexpectedTitle': 'Algo salió mal',
   'auth.error.unexpectedBody':
     'No pudimos completar el inicio de sesión en este dispositivo. Inténtalo de nuevo.',
+  // Recuperación de contraseña (ADR-P026 Vertical 1). El texto de "enviado"
+  // es deliberadamente ambiguo: debe leerse igual exista o no la cuenta.
+  'auth.forgotPassword': '¿Olvidaste tu contraseña?',
+  'auth.forgot.screenTitle': 'Restablecer contraseña',
+  'auth.forgot.title': 'Restablece tu contraseña',
+  'auth.forgot.subtitle':
+    'Introduce el correo de tu cuenta y te enviaremos un enlace para restablecerla.',
+  'auth.forgot.submit': 'Enviar enlace',
+  'auth.forgot.backToSignIn': 'Volver a iniciar sesión',
+  'auth.forgot.emailRequired': 'Introduce el correo de tu cuenta.',
+  'auth.forgot.sentTitle': 'Revisa tu correo',
+  'auth.forgot.sentBody':
+    'Si existe una cuenta con esa dirección, el enlace ya está en camino. Caduca en 30 minutos y solo puede usarse una vez.',
+  'auth.reset.screenTitle': 'Elige una nueva contraseña',
+  'auth.reset.title': 'Elige una nueva contraseña',
+  'auth.reset.subtitle':
+    'Tu nueva contraseña sustituye a la anterior y cierra la sesión en todos los dispositivos.',
+  'auth.reset.newPassword': 'Nueva contraseña',
+  'auth.reset.confirmPassword': 'Confirma la nueva contraseña',
+  'auth.reset.submit': 'Guardar contraseña',
+  'auth.reset.passwordTooShort': 'Usa al menos 8 caracteres.',
+  'auth.reset.passwordMismatch': 'Las dos contraseñas deben coincidir.',
+  'auth.reset.successTitle': 'Contraseña cambiada',
+  'auth.reset.successBody':
+    'Inicia sesión con tu nueva contraseña. Los demás dispositivos se cerraron.',
+  'auth.reset.goToSignIn': 'Ir a iniciar sesión',
+  'auth.reset.missingTokenTitle': 'Este enlace está incompleto',
+  'auth.reset.missingTokenBody': 'Vuelve a abrir el enlace desde tu correo o solicita uno nuevo.',
+  'auth.reset.requestNewLink': 'Solicitar un enlace nuevo',
+  'auth.error.mailUnavailableTitle': 'El restablecimiento no está disponible',
+  'auth.error.mailUnavailableBody':
+    'Ahora mismo no podemos enviar correos de restablecimiento. Inténtalo más tarde.',
+  'auth.error.invalidResetTokenTitle': 'Este enlace ya no funciona',
+  'auth.error.invalidResetTokenBody':
+    'Los enlaces caducan a los 30 minutos y solo pueden usarse una vez. Solicita uno nuevo.',
+  'auth.error.rateLimitedTitle': 'Demasiados intentos',
+  'auth.error.rateLimitedBody': 'Espera un momento antes de volver a intentarlo.',
   'profile.loading': 'Cargando…',
   'profile.loadingAccessibility': 'Cargando perfil',
   'profile.routeTitle': 'Perfil',

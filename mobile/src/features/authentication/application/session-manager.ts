@@ -227,3 +227,85 @@ export async function signOut(): Promise<void> {
   await clearSession();
   setState('unauthenticated', null);
 }
+
+/**
+ * Password-recovery failure reasons (ADR-P026 Vertical 1).
+ *
+ * A superset of `AuthErrorReason` so the sign-in screen's existing copy map
+ * stays exactly as it is, while the recovery screens gain the three states
+ * only they can reach. As with sign-in, classification is by HTTP status
+ * ONLY — never by message text, and never anything that would reveal whether
+ * an account exists.
+ */
+export type PasswordRecoveryErrorReason =
+  AuthErrorReason | 'mail-unavailable' | 'invalid-reset-token' | 'rate-limited';
+
+export class PasswordRecoveryError extends Error {
+  constructor(readonly reason: PasswordRecoveryErrorReason) {
+    // `message` is the safe enum reason only — never raw error/server text.
+    super(reason);
+    this.name = 'PasswordRecoveryError';
+  }
+}
+
+/**
+ * Classify a recovery failure. 503 is the fail-closed "mail is unavailable"
+ * signal; 429 is either abuse limit; a 400 on redemption means the token is
+ * unusable (unknown, expired, superseded, or already used — the server does
+ * not distinguish, and neither does the UI).
+ */
+function classifyRecoveryError(error: unknown, stage: 'request' | 'reset'): PasswordRecoveryError {
+  if (error instanceof AuthApiError) {
+    if (error.status === 503) return new PasswordRecoveryError('mail-unavailable');
+    if (error.status === 429) return new PasswordRecoveryError('rate-limited');
+    if (stage === 'reset' && error.status === 400) {
+      return new PasswordRecoveryError('invalid-reset-token');
+    }
+    return new PasswordRecoveryError('server');
+  }
+  if (error instanceof TypeError) return new PasswordRecoveryError('connectivity');
+  return new PasswordRecoveryError('unexpected');
+}
+
+/**
+ * Ask the server to email a reset link.
+ *
+ * Resolves for a real account and an unknown address alike — the caller must
+ * show the same confirmation either way, or it would re-introduce the account
+ * enumeration the endpoint exists to prevent.
+ */
+export async function requestPasswordReset(input: {
+  email: string;
+  locale: string;
+}): Promise<void> {
+  try {
+    await authApi.requestPasswordReset(input);
+  } catch (error) {
+    throw classifyRecoveryError(error, 'request');
+  }
+}
+
+/**
+ * Redeem a reset token and set a new password.
+ *
+ * A successful reset revokes every refresh token server-side, so any session
+ * held on this device is already dead. The local session is therefore cleared
+ * rather than left in a stale `authenticated` state; the user signs in again
+ * with the new password.
+ */
+export async function resetPassword(input: { token: string; password: string }): Promise<void> {
+  try {
+    await authApi.resetPassword(input);
+  } catch (error) {
+    throw classifyRecoveryError(error, 'reset');
+  }
+
+  try {
+    await clearSession();
+  } catch (error) {
+    // The password DID change; a local storage failure must not report the
+    // reset as failed. Surfaced through the sanitized logging boundary only.
+    logError('auth.resetPassword.clearSession', error);
+  }
+  setState('unauthenticated', null);
+}

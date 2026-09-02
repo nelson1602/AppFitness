@@ -8,7 +8,11 @@ import {
 } from '@nestjs/jwt';
 import { ThrottlerGuard } from '@nestjs/throttler';
 
+import { MailModule } from '../mail/mail.module';
+
 import { AuthService } from './application/auth.service';
+import { PasswordRecoveryService } from './application/password-recovery.service';
+import { CLOCK, SystemClock } from './infrastructure/clock.service';
 import { PasswordService } from './infrastructure/password.service';
 import { TokenService } from './infrastructure/token.service';
 import { AuthController } from './presentation/auth.controller';
@@ -53,6 +57,10 @@ export function resolveJwtSecret(
  */
 @Module({
   imports: [
+    // Transactional mail for password recovery (ADR-P026 Vertical 1). The
+    // module binds a real transport only when MAIL_PROVIDER is configured;
+    // otherwise recovery reports unavailable and never pretends to send.
+    MailModule,
     JwtModule.registerAsync({
       global: true,
       inject: [ConfigService],
@@ -73,6 +81,10 @@ export function resolveJwtSecret(
   controllers: [AuthController],
   providers: [
     AuthService,
+    PasswordRecoveryService,
+    // Time seam for the password-recovery response floor; specs swap it for a
+    // scripted clock so the timing boundary is asserted, not measured.
+    { provide: CLOCK, useClass: SystemClock },
     PasswordService,
     TokenService,
     // Guard order matters: multiple APP_GUARD entries in one providers array

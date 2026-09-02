@@ -11,7 +11,7 @@
 
 Effective date: `[PLACEHOLDER — set on publication]`
 Data controller: `[PLACEHOLDER — legal entity name, address, contact]`
-Contact: `[PLACEHOLDER — privacy contact email]`
+Contact: `privacy@appfitnessrd.com`
 
 ## 1. Summary
 
@@ -122,4 +122,4 @@ non-US users to be addressed in review.]`
 ## 10. Changes and contact
 
 We will update this policy as the product evolves. Contact:
-`[PLACEHOLDER]`.
+`privacy@appfitnessrd.com`.

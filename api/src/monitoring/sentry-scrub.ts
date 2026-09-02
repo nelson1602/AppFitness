@@ -5,11 +5,13 @@
  * Privacy rules (05_SECURITY.md): no PII/PHI, no request payloads, no
  * medical free-text, no tokens/secrets, opaque user id only. Key-based
  * redaction extends the TECHDEBT-003 dev-logger key-list with
- * telemetry-specific PII keys (email/phone/cookie/session/user names).
+ * telemetry-specific PII keys (email/phone/cookie/session/user names) and,
+ * since ADR-P026, the transactional-mail surface: recipient addresses,
+ * subjects, rendered bodies, reset links, and reset-token fields.
  */
 
 export const SENSITIVE_KEY =
-  /token|password|secret|key|authorization|credential|cookie|session|notes|conditions|medications|restriction|injur|payload|email|phone|username|birth/i;
+  /token|password|secret|key|authorization|credential|cookie|session|notes|conditions|medications|restriction|injur|payload|email|phone|username|birth|mail|recipient|subject|body|link|reset/i;
 
 const MAX_DEPTH = 4;
 const REDACTED = '[REDACTED]';
@@ -30,10 +32,21 @@ export function redactDeep(value: unknown, depth = 0): unknown {
   return out;
 }
 
-/** Strips query strings — request URLs may carry tokens or filters. */
-export function stripQuery(url: unknown): string | undefined {
+/**
+ * Reduce a URL to its origin + path, discarding everything from the earliest
+ * `?` or `#`.
+ *
+ * Both halves matter. A query string can carry a bearer credential, and since
+ * ADR-P026 the password-reset link deliberately puts its token in the
+ * **fragment** — so a sanitizer that only stripped `?` would forward
+ * `…/reset-password#token=<live token>` straight into a Sentry event. The
+ * earliest separator wins, because a malformed URL can place `#` before `?`
+ * and everything after either one is untrusted.
+ */
+export function stripQueryAndFragment(url: unknown): string | undefined {
   if (typeof url !== 'string') return undefined;
-  return url.split('?')[0];
+  const cut = url.search(/[?#]/);
+  return cut === -1 ? url : url.slice(0, cut);
 }
 
 interface ScrubbableBreadcrumb {
@@ -61,13 +74,42 @@ export function scrubBreadcrumb<T extends object>(input: T): T {
         typeof data['status_code'] === 'number'
           ? data['status_code']
           : undefined,
-      url: stripQuery(data['url']),
+      url: stripQueryAndFragment(data['url']),
     };
     return input;
   }
+  // Non-HTTP crumbs (navigation, ui.*, custom) keep their shape, but a
+  // navigation crumb records the route it moved to — and on Web that value is
+  // a full URL including the fragment. Key-based redaction alone would let
+  // `to: "/reset-password#token=…"` through, because `to` is not a sensitive
+  // key name, so URL-shaped values are sanitized before redaction runs.
   if (crumb.data)
-    crumb.data = redactDeep(crumb.data) as Record<string, unknown>;
+    crumb.data = redactDeep(stripUrlLikeValues(crumb.data)) as Record<
+      string,
+      unknown
+    >;
   return input;
+}
+
+/** Keys whose values are routes or URLs rather than free text. */
+const URL_LIKE_KEY = /^(url|href|to|from|path|pathname|location|route)$/i;
+
+/**
+ * Reduce every URL-shaped value in a flat breadcrumb-data record to its
+ * origin + path. Non-string and non-URL-ish entries pass through untouched for
+ * `redactDeep` to handle.
+ */
+function stripUrlLikeValues(
+  data: Record<string, unknown>,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [name, value] of Object.entries(data)) {
+    out[name] =
+      URL_LIKE_KEY.test(name) && typeof value === 'string'
+        ? (stripQueryAndFragment(value) ?? value)
+        : value;
+  }
+  return out;
 }
 
 interface ScrubbableEvent {
@@ -87,7 +129,7 @@ export function scrubEvent<T extends object>(input: T): T {
   if (event.request) {
     event.request = {
       method: event.request.method,
-      url: stripQuery(event.request.url),
+      url: stripQueryAndFragment(event.request.url),
     };
   }
   // Opaque identifier only — never email/username/ip. Non-primitive ids

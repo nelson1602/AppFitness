@@ -102,6 +102,18 @@ export default function SignInScreen() {
             >
               {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
             </AppButton>
+            {mode === 'sign-in' ? (
+              // Recovery entry point (ADR-P026 Vertical 1). Sign-in only: there
+              // is nothing to recover while creating an account.
+              <AppButton
+                accessibilityLabel={t('auth.forgotPassword')}
+                onPress={() => router.push('/forgot-password')}
+                testID="button-forgot-password"
+                variant="text"
+              >
+                {t('auth.forgotPassword')}
+              </AppButton>
+            ) : null}
           </View>
         </Card>
         <LanguageSelector />

@@ -28,6 +28,41 @@ export const en = {
   'auth.error.unexpectedTitle': 'Something went wrong',
   'auth.error.unexpectedBody':
     "We couldn't finish signing you in on this device. Please try again.",
+  // Password recovery (ADR-P026 Vertical 1). The "sent" copy is deliberately
+  // non-committal: it must read the same whether or not the account exists.
+  'auth.forgotPassword': 'Forgot your password?',
+  'auth.forgot.screenTitle': 'Reset password',
+  'auth.forgot.title': 'Reset your password',
+  'auth.forgot.subtitle':
+    'Enter the email address for your account and we will send you a reset link.',
+  'auth.forgot.submit': 'Send reset link',
+  'auth.forgot.backToSignIn': 'Back to sign in',
+  'auth.forgot.emailRequired': 'Enter the email address for your account.',
+  'auth.forgot.sentTitle': 'Check your email',
+  'auth.forgot.sentBody':
+    'If an account exists for that address, a reset link is on its way. The link expires in 30 minutes and can be used once.',
+  'auth.reset.screenTitle': 'Choose a new password',
+  'auth.reset.title': 'Choose a new password',
+  'auth.reset.subtitle': 'Your new password replaces the old one and signs out every device.',
+  'auth.reset.newPassword': 'New password',
+  'auth.reset.confirmPassword': 'Confirm new password',
+  'auth.reset.submit': 'Save new password',
+  'auth.reset.passwordTooShort': 'Use at least 8 characters.',
+  'auth.reset.passwordMismatch': 'Both passwords must match.',
+  'auth.reset.successTitle': 'Password changed',
+  'auth.reset.successBody': 'Sign in with your new password. Every other device was signed out.',
+  'auth.reset.goToSignIn': 'Go to sign in',
+  'auth.reset.missingTokenTitle': 'This link is incomplete',
+  'auth.reset.missingTokenBody': 'Open the reset link from your email again, or request a new one.',
+  'auth.reset.requestNewLink': 'Request a new link',
+  'auth.error.mailUnavailableTitle': 'Password reset is unavailable',
+  'auth.error.mailUnavailableBody':
+    'We cannot send reset emails right now. Please try again later.',
+  'auth.error.invalidResetTokenTitle': 'This link no longer works',
+  'auth.error.invalidResetTokenBody':
+    'Reset links expire after 30 minutes and can be used only once. Request a new one.',
+  'auth.error.rateLimitedTitle': 'Too many attempts',
+  'auth.error.rateLimitedBody': 'Please wait a while before trying again.',
   'profile.loading': 'Loading…',
   'profile.loadingAccessibility': 'Loading profile',
   'profile.routeTitle': 'Profile',
