@@ -68,6 +68,20 @@ export function ProgressSummaryCard({ onPress }: ProgressSummaryCardProps) {
           </AppText>
           {status === 'loading' || status === 'idle' ? (
             <AppText tone="muted">{t('progress.card.loading')}</AppText>
+          ) : status === 'error' ? (
+            // A failed read is NOT an empty collection: Empty means the read
+            // SUCCEEDED (`.ai/08_UI_UX.md` §Canonical State Patterns). Falling
+            // through to the ready arm told the user they had recorded nothing
+            // when in fact nothing could be read (BUG-009). No retry control is
+            // offered; the card stays pressable — as it does while Loading — so
+            // the owning Progress screen, which reports the failure properly, is
+            // one tap away.
+            <>
+              <AppText tone="error">{t('progress.card.errorTitle')}</AppText>
+              <AppText variant="caption" tone="muted">
+                {t('progress.card.errorBody')}
+              </AppText>
+            </>
           ) : (
             <>
               <AppText variant="headline">

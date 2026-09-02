@@ -1,8 +1,8 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.8
+Version: 1.9
 Status: Active
-Last Updated: 2026-09-01
+Last Updated: 2026-09-02
 
 ---
 
@@ -323,7 +323,7 @@ while the dashboard is ready, or Web-unavailable in its own compact shape.
 | **Loading** | `status === 'loading'` or `'idle'` | `progress.card.loading` muted text inside the card; the card stays pressable | `load()` resolves | Both | `ProgressSummaryCard.tsx:67-68` | SHIPPED — no spec asserts it |
 | **Empty** | Read succeeded, `bodyWeights[0]` absent → `progress.card.noWeight` in the headline slot; separately `snapshots[0]` absent → `progress.card.prompt` | Two independent card-local empties in one card | User records a first weigh-in / first workout week | Both | `ProgressSummaryCard.tsx:72-101`; specs *"renders the empty prompt when nothing is recorded"*, *"renders the Spanish empty prompt when nothing is recorded"* | SHIPPED |
 | **Web unavailable** | `status === 'web-unavailable'` | A **distinct compact card variant**: `progress.card.label` + `progress.webUnavailableCard`, and the `Pressable` wrapper is **removed**, so the tap-to-open affordance does not exist | **None** — terminal | **Web only** | `ProgressSummaryCard.tsx:41-52`; specs *"renders a compact web-unavailable state in English with no metrics, prompt, or tap affordance (ADR-P019)"*, *"…in Spanish"* | SHIPPED |
-| **Error** | `status === 'error'` — the union includes it (`progress.store.ts:47`) and the card's own read can fail | **No treatment.** The branch is absent, so a failed read falls through to the ready arm and renders as Empty | — | Both | `ProgressSummaryCard.tsx:41-107` — no `error` branch; **owner: BUG-009** | **PROPOSED** |
+| **Error** | `status === 'error'` — the union includes it (`progress.store.ts:47`) and the card's own read can fail | Distinct in-card treatment: `progress.card.errorTitle` in `tone="error"` plus a muted `progress.card.errorBody` caption. **No retry control**, and the card **stays pressable** — as it does while Loading — so the owning Progress screen, which reports the failure properly, is one tap away | Next successful load | Both | `ProgressSummaryCard.tsx:71-84`; specs *"renders a failed read as Error, never as \"nothing recorded\" (BUG-009)"*, *"keeps the card pressable in Error so the owning screen is reachable (BUG-009)"*, *"offers no retry control on the card in Error (BUG-009)"*, *"…in Spanish (BUG-009)"* | SHIPPED |
 | **Data-gap** | — | — | — | — | The card displays recorded values; it computes nothing, so no prerequisite can be missing | **n/a** |
 | **Offline** | — | — | — | — | **No Offline signal reaches this surface at `fb02097`.** `useProgressStore` receives no connectivity or sync outcome; the only two stores that obtain one are `dashboard.store.ts` and `food-log.store.ts`. This records what the card receives today, not a limit on what it could be given | **n/a** |
 | **Pending sync / Conflict** | — | — | — | — | The card renders two aggregate values — a latest weight and a latest weekly snapshot — not the rows that carry `syncStatus`. Row-level sync state belongs to the surface that lists the rows, which is surface 10. An embedded preview does not duplicate its parent's or its sibling's row state | **n/a** |
@@ -526,7 +526,7 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 1 | Dashboard screen | S | — | S | S | S² | S² | S² | S |
 | 2 | Sync status banner | — | — | — | S | S | S | S | — |
 | 3 | Data-gap card | — | — | S | — | — | — | — | — |
-| 4 | Progress summary card | S | S | — | **P** | — | — | — | S |
+| 4 | Progress summary card | S | S | — | S | — | — | — | S |
 | 5 | Workout Log | S | S | — | S | — | S | S | S |
 | 6 | Nutrition Targets | S | — | S | S | — | — | — | S |
 | 7 | Nutrition Plan | S | — | S | S | — | — | — | S |
@@ -542,14 +542,18 @@ folded into Conflict (BUG-007).
 dashboard composition — the same treatments counted once at surface 2 and once
 in the dashboard's seven-of-eight total.
 
-**Totals.** **PROPOSED: one**, owned. Surface 8's Error — writes row shipped with
-BUG-008; BUG-011's three feature slices shipped surface 5's Conflict row, surface
-9's two rows and surface 10's two rows. **BUG-011 itself stays open** on the
-measurement-listing residual recorded at surface 10, footnote ³.
+**Totals.** **PROPOSED: none.** Every applicable state on every surface now has a
+shipped treatment. Surface 8's Error — writes row shipped with BUG-008; BUG-011's
+three feature slices shipped surface 5's Conflict row, surface 9's two rows and
+surface 10's two rows; surface 4's Error row shipped with BUG-009.
 
-| Surface | State | Owner |
-|---|---|---|
-| 4 Progress summary card | Error | BUG-009 |
+**Two owners still have open work that this grid does not track**, and neither is
+a missing treatment:
+
+- **BUG-011** stays open on the measurement-listing residual recorded at surface
+  10, footnote ³ — an **absent surface**, not an unimplemented treatment.
+- **BUG-012** stays open: no conflict-**resolution** path exists anywhere. Every
+  Conflict treatment in this grid is **report-only** by design.
 
 **SHIPPED — non-conformant: none.** Food Log's Conflict tone was the only one
 and has since shipped conformant (BUG-007): it renders `warning`, and the
@@ -570,7 +574,7 @@ is exposed to only those two surfaces.
 **Eight findings, C-1 through C-8.** Four were documentation contradictions and
 are **reconciled** in this change; four were **runtime defects** tracked in
 `.ai/11_BACKLOG.md`. Of those four, **C-3 (BUG-007) and C-4 (BUG-008) have since
-been fixed**; C-5 and C-8 remain open.
+been fixed**, and **C-5 has since been fixed** (BUG-009); C-8 remains open.
 
 | # | Finding | Kind | Disposition |
 |---|---|---|---|
@@ -578,7 +582,7 @@ been fixed**; C-5 and C-8 remain open.
 | **C-2** | Flow 7 claimed Offline and Pending sync that Progress does not render | Documentation | **Reconciled** — `.ai/17_PRODUCT_FLOWS.md` v1.2 |
 | **C-3** | Food Log renders Conflict as `error` and merges it with an unrelated failure | Runtime defect | **BUG-007 — fixed**, see §C-3 |
 | **C-4** | Food Log write failures are silent | Runtime defect | **BUG-008 — fixed**, see §C-4 |
-| **C-5** | Progress summary card renders a failed read as Empty | Runtime defect | **BUG-009** |
+| **C-5** | Progress summary card renders a failed read as Empty | Runtime defect | **BUG-009 — fixed**, see §C-5 |
 | **C-6** | "six of the eight canonical states" undercounted the dashboard | Documentation | **Reconciled** — ADR-P027 + Flow 3 + Flow 4 |
 | **C-7** | `06_MOBILE.md` §Error Handling listed non-canonical states | Documentation | **Reconciled** — `.ai/06_MOBILE.md` v1.1 |
 | **C-8** | Shared loading skeleton carries a hardcoded English accessible label | Runtime defect | **BUG-010** |
@@ -682,7 +686,15 @@ falls through to the ready arm and renders `progress.card.noWeight` /
 `progress.card.prompt` over empty arrays — presenting a failure as a true answer,
 which the Empty definition forbids.
 
-**Runtime defect — BUG-009.**
+**Runtime defect — BUG-009. Fixed.** The line references above are as audited at
+the evidence baseline; the fix moved them. `ProgressSummaryCard.tsx:71-84` adds
+the missing `status === 'error'` branch between Loading and the ready arm, so the
+ready arm — and therefore Empty — is now reachable **only after a successful
+read**, which is what the Empty definition requires. The copy is the frozen
+UX-3C pair; no retry control is offered, and the card stays pressable exactly as
+it does while Loading. Six regression specs cover the new branch **and** the
+Loading branch, which the audit noted was untested; one is a guard asserting
+Empty is still reached after a successful read.
 
 ## C-6 — "six of the eight canonical states" undercounted the dashboard
 

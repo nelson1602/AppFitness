@@ -151,4 +151,69 @@ describe('ProgressSummaryCard', () => {
     expect(screen.getByText('No disponible en la web')).toBeOnTheScreen();
     expect(screen.queryByTestId('dashboard-progress-card')).toBeNull();
   });
+
+  // BUG-009: the card had no `error` branch, so a failed read fell through to
+  // the ready arm and reported absence as if the read had succeeded. The
+  // Loading branch was also untested — both are covered here.
+  it('renders the loading state and stays pressable (BUG-009)', async () => {
+    setState({ status: 'loading' });
+    await render(<ProgressSummaryCard onPress={jest.fn()} />);
+
+    expect(screen.getByText('Loading…')).toBeOnTheScreen();
+    expect(screen.getByTestId('dashboard-progress-card')).toBeOnTheScreen();
+    // Loading must never be mistaken for Empty.
+    expect(screen.queryByText('No weight yet')).toBeNull();
+    expect(screen.queryByText('Tap to record and track your progress.')).toBeNull();
+  });
+
+  it('renders a failed read as Error, never as "nothing recorded" (BUG-009)', async () => {
+    setState({ status: 'error', bodyWeights: [], snapshots: [] });
+    await render(<ProgressSummaryCard onPress={jest.fn()} />);
+
+    expect(screen.getByText('Progress unavailable')).toBeOnTheScreen();
+    expect(screen.getByText("We couldn't load your progress right now.")).toBeOnTheScreen();
+    // The whole point of the bug: empty arrays must NOT read as a true answer.
+    expect(screen.queryByText('No weight yet')).toBeNull();
+    expect(screen.queryByText('Tap to record and track your progress.')).toBeNull();
+    expect(screen.queryByText('Loading…')).toBeNull();
+  });
+
+  it('keeps the card pressable in Error so the owning screen is reachable (BUG-009)', async () => {
+    const onPress = jest.fn();
+    setState({ status: 'error' });
+    await render(<ProgressSummaryCard onPress={onPress} />);
+
+    const card = screen.getByTestId('dashboard-progress-card');
+    expect(card).toBeOnTheScreen();
+    fireEvent.press(card);
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers no retry control on the card in Error (BUG-009)', async () => {
+    setState({ status: 'error' });
+    await render(<ProgressSummaryCard onPress={jest.fn()} />);
+
+    // The deck freezes this copy as report-only: no retry affordance exists
+    // anywhere in the product (`.ai/08_UI_UX.md` — zero retry keys).
+    expect(screen.queryByText(/Retry|Try again/i)).toBeNull();
+  });
+
+  it('renders the Error state in Spanish (BUG-009)', async () => {
+    mockLanguage = 'es';
+    setState({ status: 'error' });
+    await render(<ProgressSummaryCard onPress={jest.fn()} />);
+
+    expect(screen.getByText('Progreso no disponible')).toBeOnTheScreen();
+    expect(screen.getByText('No pudimos cargar tu progreso en este momento.')).toBeOnTheScreen();
+    expect(screen.queryByText('Sin peso aún')).toBeNull();
+  });
+
+  it('still reaches Empty after a successful read (BUG-009 regression guard)', async () => {
+    setState({ status: 'ready', bodyWeights: [], snapshots: [] });
+    await render(<ProgressSummaryCard onPress={jest.fn()} />);
+
+    expect(screen.getByText('No weight yet')).toBeOnTheScreen();
+    expect(screen.getByText('Tap to record and track your progress.')).toBeOnTheScreen();
+    expect(screen.queryByText('Progress unavailable')).toBeNull();
+  });
 });

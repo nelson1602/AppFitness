@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.6
+Version: 1.7
 Status: Active
-Last Updated: 2026-09-01
+Last Updated: 2026-09-02
 
 ---
 
@@ -192,12 +192,15 @@ carried into the first-run checklist.
 | `progress.card.noWeight` | No weight yet | Sin peso aún | **SHIPPED** |
 | `progress.card.prompt` | Tap to record and track your progress. | Toca para registrar y seguir tu progreso. | **SHIPPED** |
 | `progress.webUnavailableCard` | Not available on the web | No disponible en la web | **SHIPPED** |
-| `progress.card.errorTitle` | Progress unavailable | Progreso no disponible | **PROPOSED** — BUG-009 |
-| `progress.card.errorBody` | We couldn't load your progress right now. | No pudimos cargar tu progreso en este momento. | **PROPOSED** — BUG-009 |
+| `progress.card.errorTitle` | Progress unavailable | Progreso no disponible | **SHIPPED** |
+| `progress.card.errorBody` | We couldn't load your progress right now. | No pudimos cargar tu progreso en este momento. | **SHIPPED** |
 
-The proposed Error copy contains no false Empty claim and promises no retry
-control. UX-4 implementation decides whether the existing card remains
-pressable in Error.
+**Shipped by BUG-009.** The Error copy contains no false Empty claim and
+promises no retry control. The open question this deck left to implementation —
+whether the card stays pressable in Error — was **decided: it stays pressable**,
+matching its own Loading branch, because the owning Progress screen reports the
+failure properly and is one tap away. Only Web unavailable removes the
+`Pressable`, since there is nowhere useful to go.
 
 ---
 
@@ -491,14 +494,14 @@ Nutrition or remove the targets → plan → log path.
 
 # Proposed-key handoff
 
-UX-3C handed off **33** proposed keys. **Thirty have since shipped**, leaving
+UX-3C handed off **33** proposed keys. **Thirty-two have since shipped**, leaving
 **3 outstanding**. They belong to their existing owners rather than one broad
 migration:
 
 | Owner | Keys | Purpose | Status |
 |---|---:|---|---|
 | BUG-010 | 1 | Shared bilingual loading label | outstanding |
-| BUG-009 | 2 | Progress-card Error distinct from Empty | outstanding |
+| BUG-009 | 2 | Progress-card Error distinct from Empty | **SHIPPED** |
 | BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | **SHIPPED** |
 | BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | **SHIPPED** |
 | BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | **SHIPPED** — all 10 keys land; BUG-011 stays open on a measurement-listing residual, not on copy |
