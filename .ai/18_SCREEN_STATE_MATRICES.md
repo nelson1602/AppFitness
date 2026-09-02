@@ -1,6 +1,6 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.9
+Version: 1.10
 Status: Active
 Last Updated: 2026-09-02
 
@@ -574,7 +574,8 @@ is exposed to only those two surfaces.
 **Eight findings, C-1 through C-8.** Four were documentation contradictions and
 are **reconciled** in this change; four were **runtime defects** tracked in
 `.ai/11_BACKLOG.md`. Of those four, **C-3 (BUG-007) and C-4 (BUG-008) have since
-been fixed**, and **C-5 has since been fixed** (BUG-009); C-8 remains open.
+been fixed**, **C-5 has since been fixed** (BUG-009) and **C-8 has since been
+fixed** (BUG-010). **All four runtime defects are now closed.**
 
 | # | Finding | Kind | Disposition |
 |---|---|---|---|
@@ -585,7 +586,7 @@ been fixed**, and **C-5 has since been fixed** (BUG-009); C-8 remains open.
 | **C-5** | Progress summary card renders a failed read as Empty | Runtime defect | **BUG-009 — fixed**, see §C-5 |
 | **C-6** | "six of the eight canonical states" undercounted the dashboard | Documentation | **Reconciled** — ADR-P027 + Flow 3 + Flow 4 |
 | **C-7** | `06_MOBILE.md` §Error Handling listed non-canonical states | Documentation | **Reconciled** — `.ai/06_MOBILE.md` v1.1 |
-| **C-8** | Shared loading skeleton carries a hardcoded English accessible label | Runtime defect | **BUG-010** |
+| **C-8** | Shared loading skeleton carries a hardcoded English accessible label | Runtime defect | **BUG-010 — fixed**, see §C-8 |
 
 **C-1 and C-2 are reconciled as documentation, not closed as behaviour.** The
 incorrect *claims* are corrected. The **coverage gaps** they exposed are separate,
@@ -737,7 +738,21 @@ among the audited state surfaces, and it is **exposed to assistive technology on
 every one of the 12 routes** that use the skeleton as their session loader,
 including on a Spanish-locale device.
 
-**Runtime defect — BUG-010.**
+**Runtime defect — BUG-010. Fixed.** The line reference above is as audited at
+the evidence baseline; the fix moved it. `dashboard-skeleton.tsx` now resolves
+the label through `useLocalization().t('common.loadingContentAccessibility')`,
+added to both catalogues at exact parity (758/758). The component's visual output
+and its empty props API are unchanged — it still renders three placeholder cards.
+
+**No accessibility outcome is claimed.** What is verified is what the component
+*renders*: the label comes from the catalogue and differs between EN and ES. Six
+regression specs pin that, including one asserting no English string is exposed
+under `es` and one guarding against a catalogue regression that copies EN into ES
+and would make the locale tests pass vacuously. **Whether, when, or how a screen
+reader announces it remains the UX-4C manual pass** — unrun.
+
+Whether the label belongs on one container or on three repeated blocks is
+likewise a UX-4C question, not a copy decision, and is deliberately left as-is.
 
 ---
 

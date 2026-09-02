@@ -1,6 +1,6 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.7
+Version: 1.8
 Status: Active
 Last Updated: 2026-09-02
 
@@ -100,17 +100,21 @@ Status vocabulary:
 
 # Cross-cutting session resolution
 
-The route gate is a pre-screen phase rather than a canonical state. BUG-010 owns
-the only missing bilingual string.
+The route gate is a pre-screen phase rather than a canonical state. BUG-010 owned
+the only missing bilingual string; it has shipped.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `common.loadingContentAccessibility` | Loading content | Cargando contenido | **PROPOSED** — BUG-010 |
+| `common.loadingContentAccessibility` | Loading content | Cargando contenido | **SHIPPED** |
 
-Implementation constraint: replace the hardcoded English label with this key;
-do not claim when or how assistive technology announces it. Whether the label
-belongs on one container or repeated placeholder blocks is UX-4C verification,
-not a copy decision.
+**Shipped by BUG-010.** The hardcoded English label in `dashboard-skeleton.tsx`
+is replaced by this key, and **no accessibility outcome is claimed** — when or
+how assistive technology announces it remains UX-4C. Whether the label belongs on
+one container or on repeated placeholder blocks is likewise UX-4C verification,
+not a copy decision, and was left unchanged.
+
+This key opens the `common.*` namespace, the first genuinely cross-cutting entry
+in the catalogue.
 
 ---
 
@@ -494,13 +498,18 @@ Nutrition or remove the targets → plan → log path.
 
 # Proposed-key handoff
 
-UX-3C handed off **33** proposed keys. **Thirty-two have since shipped**, leaving
-**3 outstanding**. They belong to their existing owners rather than one broad
-migration:
+UX-3C handed off **33** proposed keys. **All thirty-three have now shipped**,
+leaving **none outstanding**:
+
+> **Count correction.** The previous revision read "Thirty-two have since
+> shipped, leaving **3 outstanding**" — arithmetically wrong in two ways: 33 − 32
+> is 1, not 3, and the owner table below listed only one outstanding row. The
+> stale "3" survived an edit that updated the shipped figure but not the
+> remainder. Both are corrected here.
 
 | Owner | Keys | Purpose | Status |
 |---|---:|---|---|
-| BUG-010 | 1 | Shared bilingual loading label | outstanding |
+| BUG-010 | 1 | Shared bilingual loading label | **SHIPPED** |
 | BUG-009 | 2 | Progress-card Error distinct from Empty | **SHIPPED** |
 | BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | **SHIPPED** |
 | BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | **SHIPPED** |

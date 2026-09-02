@@ -54,7 +54,7 @@ describe('FoodLogRoute', () => {
   it('shows a skeleton while session restoration is pending', async () => {
     mockSessionStatus = 'unknown';
     await render(<FoodLogRoute />);
-    expect(screen.getAllByLabelText('Loading dashboard section').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('Loading content').length).toBeGreaterThan(0);
   });
 
   it('redirects anonymous users to sign in', async () => {

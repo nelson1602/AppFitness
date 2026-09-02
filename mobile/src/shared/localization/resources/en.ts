@@ -1,4 +1,5 @@
 export const en = {
+  'common.loadingContentAccessibility': 'Loading content',
   'language.title': 'Language',
   'language.description': 'Choose the language used by AppFitness.',
   'language.system': 'Device language',
