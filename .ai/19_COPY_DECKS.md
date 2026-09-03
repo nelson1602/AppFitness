@@ -674,7 +674,7 @@ would erase the fact that it completed.
 | Area | Why no copy appears here |
 |---|---|
 | Password recovery | TARGET in PR #102, not on `main`; reconcile after merge against the effective implementation. |
-| Email verification | **V2-B specifies 23 PROPOSED keys above** (§Email verification). **V2-A** adds schema and **V2-C** the backend, including the EN/ES *email* copy — a separate surface that lives in `api/src/modules/mail/domain/email-verification.template.ts`, not in this deck. **V2-D** still owns the in-app EN/ES catalogue import and runtime wiring, so no `auth.verify.*` key ships yet. |
+| Email verification | **All 23 keys above are now in the catalogues** in EN and ES (`mobile/src/shared/localization/resources/`), imported by **V2-D** and rendered by the `/verify-email` route and the dashboard reminder. The EN/ES *email* copy is a separate surface owned by V2-C and lives in `api/src/modules/mail/domain/email-verification.template.ts`, not in this deck. **No verification email is sent yet** (V2-E), so users do not reach the landing from a real link. |
 | Conflict resolution actions/screens | BUG-012 needs a separately authorized flow and repository decision. |
 | Trend-chart and weekly structure | Specified in `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D). Its seven proposed keys are worded above; composition, accessibility structure and the no-nesting rule are not repeated here. |
 | Bottom tabs | Deferred by ADR-P027; the non-binding map is not a copy target. |

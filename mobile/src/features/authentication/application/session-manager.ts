@@ -10,6 +10,7 @@ import {
   saveTokens,
 } from '../infrastructure/session-storage';
 import type { AuthUser, Session, SessionStatus } from '../domain/session.types';
+import { resetDismissal } from './verification-reminder';
 
 /**
  * Session state foundation (Phase 6). Holds the current session in
@@ -25,6 +26,11 @@ let currentStatus: SessionStatus = 'unknown';
 const listeners = new Set<Listener>();
 
 function setState(status: SessionStatus, session: Session | null): void {
+  // Any transition away from an authenticated session forgets the verification
+  // reminder's dismissal, so sign-out and session loss both bring it back
+  // (ADR-P026 V2-D). Placed here rather than in each caller so no future exit
+  // path can silently skip it.
+  if (status !== 'authenticated') resetDismissal();
   currentStatus = status;
   currentSession = session;
   for (const listener of listeners) listener(status, session);
@@ -226,6 +232,136 @@ export async function signOut(): Promise<void> {
   }
   await clearSession();
   setState('unauthenticated', null);
+}
+
+/**
+ * Email-verification failure reasons (ADR-P026 Vertical 2, V2-D).
+ *
+ * Classified by HTTP status ONLY, never by message text — the same discipline
+ * the recovery classifier uses. The endpoint contract is fixed by ADR-P026
+ * §Clarifications (2026-09-03):
+ *
+ *   202  accepted (dispatched / already verified / mail failure / ceiling)
+ *   400  forbidden body field, or an unusable token on redemption
+ *   401  no or invalid bearer token
+ *   429  per-IP throttle
+ *   503  verification mail unavailable
+ *
+ * The UI collapses every resend failure into one generic message, because the
+ * frozen copy deck provides exactly one failure pair — deliberately, so the
+ * reminder cannot become a probe.
+ */
+export type EmailVerificationErrorReason =
+  | 'invalid-verification-token'
+  | 'mail-unavailable'
+  | 'rate-limited'
+  | 'unauthenticated'
+  | 'connectivity'
+  | 'server'
+  | 'unexpected';
+
+export class EmailVerificationError extends Error {
+  constructor(readonly reason: EmailVerificationErrorReason) {
+    // `message` is the safe enum reason only — never raw error/server text,
+    // and never the token.
+    super(reason);
+    this.name = 'EmailVerificationError';
+  }
+}
+
+function classifyVerificationError(
+  error: unknown,
+  stage: 'verify' | 'resend',
+): EmailVerificationError {
+  if (error instanceof AuthApiError) {
+    if (error.status === 503) return new EmailVerificationError('mail-unavailable');
+    if (error.status === 429) return new EmailVerificationError('rate-limited');
+    if (error.status === 401) return new EmailVerificationError('unauthenticated');
+    if (stage === 'verify' && error.status === 400) {
+      return new EmailVerificationError('invalid-verification-token');
+    }
+    return new EmailVerificationError('server');
+  }
+  if (error instanceof TypeError) return new EmailVerificationError('connectivity');
+  return new EmailVerificationError('unexpected');
+}
+
+/**
+ * Redeem a verification token from an emailed link.
+ *
+ * **Creates no session, ever** (ADR-P026: "Verification does not
+ * authenticate"). It is safe to call with no session at all — the landing is
+ * session-agnostic and may be opened on a device that has never signed in.
+ *
+ * When a session *does* exist, the local user is refreshed afterwards so the
+ * dashboard reminder disappears without requiring a sign-out. That refresh is
+ * best-effort: the address is already verified server-side, so a failure to
+ * re-read it must not turn a successful verification into an error.
+ */
+export async function verifyEmail(input: { token: string }): Promise<void> {
+  try {
+    await authApi.verifyEmail(input);
+  } catch (error) {
+    throw classifyVerificationError(error, 'verify');
+  }
+
+  if (currentSession) {
+    try {
+      await refreshUser();
+    } catch (error) {
+      // Never surfaced: verification succeeded. Sanitized boundary only — the
+      // token is not part of this error and is never logged.
+      logError('auth.verifyEmail.refreshUser', error);
+    }
+  }
+}
+
+/**
+ * Resend the verification email for the signed-in user.
+ *
+ * Sends no address: the server acts on the account behind the bearer token.
+ * Resolves for every accepted outcome — dispatched, already verified, mail
+ * failure at the provider, or the per-account ceiling — because the server
+ * answers one identical 202 for all four and the caller must show the same
+ * acknowledgement either way.
+ */
+export async function resendVerification(input: { locale: string }): Promise<void> {
+  const accessToken = getAccessToken() ?? (await refreshTokens())?.accessToken ?? null;
+  if (!accessToken) throw new EmailVerificationError('unauthenticated');
+
+  try {
+    await authApi.resendVerification(accessToken, input);
+  } catch (error) {
+    throw classifyVerificationError(error, 'resend');
+  }
+}
+
+/**
+ * Re-read the authenticated user from the server and update the session.
+ *
+ * Used after a successful verification so `emailVerifiedAt` stops being null
+ * locally. Tokens are untouched — only the user record changes — so the
+ * persisted copy is rewritten to keep a later restore consistent.
+ */
+export async function refreshUser(): Promise<AuthUser | null> {
+  const session = currentSession;
+  if (!session) return null;
+
+  const accessToken = session.accessToken ?? (await refreshTokens())?.accessToken ?? null;
+  if (!accessToken) return null;
+
+  const user = await authApi.me(accessToken);
+  const next: Session = { ...(currentSession ?? session), user };
+  try {
+    await saveSession(next);
+    await ensureLocalUser(user);
+  } catch (error) {
+    // Keep the fresher user in memory even if persistence failed; the next
+    // restore simply falls back to the stored copy.
+    logError('auth.refreshUser.persist', error);
+  }
+  setState('authenticated', next);
+  return user;
 }
 
 /**

@@ -16,6 +16,16 @@ jest.mock('../application/dashboard.store', () => ({
 }));
 jest.mock('@/features/authentication', () => ({
   signOut: jest.fn(),
+  // The dashboard now renders the advisory verification reminder (ADR-P026
+  // V2-D). These tests assert the dashboard shell, so the reminder is held in
+  // its hidden arm — no session means it returns null and every existing
+  // assertion here is unaffected. Its own behaviour is covered by
+  // verification-reminder-card.spec.tsx.
+  useSession: () => ({ status: 'unauthenticated', session: null }),
+  subscribeToReminder: () => () => {},
+  dismissedUserSnapshot: () => null,
+  dismissReminder: jest.fn(),
+  resendVerification: jest.fn(),
 }));
 jest.mock('@/shared/localization', () => {
   const actual = jest.requireActual('@/shared/localization');

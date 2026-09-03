@@ -16,6 +16,7 @@ import { DataGapCard } from './components/data-gap-card';
 import { OnboardingChecklistCard } from './components/onboarding-checklist-card';
 import { RecommendationCard } from './components/recommendation-card';
 import { SyncStatusBanner } from './components/sync-status-banner';
+import { VerificationReminderCard } from './components/verification-reminder-card';
 
 /**
  * Maps a data gap / assessment note to the edit screen that resolves it.
@@ -48,6 +49,12 @@ export function DashboardScreen() {
         <AppText variant="headline">AppFitness</AppText>
         <AppText tone="muted">{t('dashboard.subtitle')}</AppText>
       </View>
+
+      {/* Advisory account affordance (ADR-P026 V2-D): reports an account
+          attribute, not a read outcome, so it renders above the read-driven
+          states and independently of them. Blocks nothing — the soft gate
+          leaves an unverified user with full core access. */}
+      <VerificationReminderCard />
 
       {status === 'loading' || status === 'idle' ? <DashboardSkeleton /> : null}
 

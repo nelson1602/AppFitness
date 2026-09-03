@@ -99,3 +99,39 @@ export function requestPasswordReset(input: { email: string; locale: string }): 
 export function resetPassword(input: { token: string; password: string }): Promise<void> {
   return post<void>('/auth/reset-password', input, false);
 }
+
+/**
+ * Redeem a verification token from an emailed link (ADR-P026 Vertical 2).
+ *
+ * Public and session-agnostic: the link may be opened on any device, with or
+ * without a session. Answers 204 and — by contract — returns no tokens and
+ * establishes no session; the caller must not treat it as an authentication.
+ */
+export function verifyEmail(input: { token: string }): Promise<void> {
+  return post<void>('/auth/verify-email', input, false);
+}
+
+/**
+ * Ask the server to resend the verification email for the AUTHENTICATED user.
+ *
+ * Deliberately sends **no email address** — the endpoint acts on the account
+ * behind the bearer token (ADR-P026 §Clarifications, 2026-09-03), which is what
+ * removes the enumeration surface. Answers the same generic 202 for every
+ * accepted request, so there is nothing in the body worth reading.
+ */
+export async function resendVerification(
+  accessToken: string,
+  input: { locale: string },
+): Promise<void> {
+  const response = await fetch(`${BASE_URL}/auth/resend-verification`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new AuthApiError(response.status, await safeErrorMessage(response));
+  }
+}

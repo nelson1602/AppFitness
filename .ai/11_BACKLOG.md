@@ -1951,7 +1951,7 @@ before UX-5 touches those surfaces.
 
 Status: **In Progress** — Vertical 1 (mail foundation + password recovery)
 shipped and **Production-validated 2026-09-02**; Vertical 2 (email
-verification) has schema (V2-A) and backend (V2-C); no user-facing surface
+verification) is built end to end (V2-A/C/D); delivery off until V2-E
 Priority: P1
 Type: Feature
 Owner: Product / Security / Architecture
@@ -2030,8 +2030,36 @@ Updated: 2026-09-03
 >
 > **Remaining sequence:** **V2-A** schema → **V2-C** backend (this slice) →
 > **V2-D** mobile/Web → **V2-E** Development-first validation, then a separately
-> authorized Production gate (ADR-P026 Decision 17). **V2-D and V2-E remain
+> authorized Production gate (ADR-P026 Decision 17). **V2-E remains
 > outstanding.**
+>
+> **V2-D (2026-09-03) delivered the user-facing surface, and no delivery.**
+> One Expo Router `/verify-email` route shared by native and Web: it captures
+> the token from the URL **fragment** after hydration (`useSyncExternalStore`,
+> so the prerendered Web build does not mismatch), **scrubs it out of the
+> visible URL and history** with the same bounded re-assert loop
+> `/reset-password` uses, redeems it, and renders the frozen loading /
+> success / invalid / incomplete / request-failed states. **Redeeming creates
+> no session**, so `Continue` goes to the dashboard only when one already
+> exists and to sign-in otherwise — on success and failure alike. The landing
+> never resends: it holds no address.
+>
+> The dashboard gains an **advisory reminder** shown only while
+> `emailVerifiedAt` is null, with resend (no email field) and a dismissal that
+> is **in memory for the current authenticated session only** — reset on
+> sign-out, session loss and app restart, never written to SQLite or the
+> server. The soft gate is untouched: an unverified user keeps full core
+> access, and the reminder blocks nothing.
+>
+> All **23** `auth.verify.*` keys are imported in **EN and ES with exact
+> parity**, `AuthUser` carries `emailVerifiedAt`, and the local user is
+> refreshed after a successful verification so the reminder disappears without
+> a sign-out.
+>
+> **Nothing is delivered.** `MAIL_VERIFICATION_BASE_URL` is still unset, so no
+> verification email is sent in any environment and no user reaches the landing
+> from a real link. **V2-E** — DNS and CORS for `account.appfitnessrd.com`,
+> then Development-first sandbox validation — is the only remaining slice.
 >
 > **V2-C (2026-09-03) delivered the backend, and nothing user-facing.**
 > Automatic issuance at registration (best-effort; a mail failure never alters
