@@ -1,6 +1,6 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.10
+Version: 1.11
 Status: Active
 Last Updated: 2026-09-02
 
@@ -753,6 +753,99 @@ reader announces it remains the UX-4C manual pass** — unrun.
 
 Whether the label belongs on one container or on three repeated blocks is
 likewise a UX-4C question, not a copy decision, and is deliberately left as-is.
+
+---
+
+# Proposed surfaces — ADR-P026 Vertical 2 (V2-B)
+
+**Neither surface below is counted in the ten**, and neither contributes to the
+PROPOSED totals in §Coverage summary. That section is scoped to **shipped**
+surfaces, and its "PROPOSED: none" means every applicable state on a surface that
+exists has a treatment. These two surfaces **do not exist on `main`** — no route,
+no component, no column, no key. They are recorded here so V2-D implements
+against a fixed state mapping instead of inventing one.
+
+Copy is frozen in `.ai/19_COPY_DECKS.md` §Email verification; flow shape in
+`.ai/17_PRODUCT_FLOWS.md` §2.4.
+
+## P1 — Verification reminder (dashboard, advisory)
+
+**Enters none of the eight canonical states**, for the same reason the route
+session gate does not: it is an **advisory affordance**, not a rendering of a
+read's outcome. It reports an account attribute, blocks nothing, replaces no
+content, and disables no control. Recording it as Data-gap would be wrong — the
+dashboard computes nothing from verification state, so nothing is missing that
+would make output underivable.
+
+| Property | Specification |
+|---|---|
+| Trigger | Authenticated user whose `emailVerifiedAt` is `NULL`, and not dismissed in this session — dismissal is **in-memory, tied to the authenticated session**, cleared on sign-out, session loss or app restart, and **never persisted to SQLite or the server** |
+| Tone | **`info`** — never `warning` or `error`; nothing is broken |
+| Copy | `auth.verify.reminder*`, plus `auth.verify.resend*` for the action outcome |
+| Lifetime | Persists across sessions until verified; **dismissible for the current session only** |
+| Exit | The address is verified, or the session ends (dismissal does not survive it) |
+| Platform | Both |
+
+## P2 — Verification landing (`/verify-email`, Web-first)
+
+**An inversion worth stating:** every other surface in this document treats Web
+as the degraded platform. This one is **Web-first by design** — it is the
+fallback that makes an emailed link work when the app is absent (ADR-P026
+Decision 13), so **Web unavailable is `n/a` here**, not because the capability is
+dormant but because Web *is* the target.
+
+| State | Trigger | Rendered treatment | Exit | Platform | Status |
+|---|---|---|---|---|---|
+| **Loading** | Token captured; redemption in flight | `auth.verify.checkingTitle` / `checkingBody` | The request resolves | Both | **PROPOSED** — V2-D |
+| **Error** — invalid link | Server rejects the token: expired, already used, or unrecognised — **reported as one indistinguishable outcome** | `auth.verify.invalidTitle` / `invalidBody`, `tone="error"`, plus a **conditional action**: `continue` when a session exists, otherwise `goToSignIn` | **Resending from the dashboard reminder** — reached directly when a session exists, or via sign-in when it does not. This surface never resends | Both | **PROPOSED** — V2-D |
+| **Error** — incomplete link | No token in the fragment or the route params | `auth.verify.missingTokenTitle` / `missingTokenBody`, plus the same **conditional action** | Re-opening the emailed link, or resending from the dashboard reminder — reached directly or via sign-in | Both | **PROPOSED** — V2-D |
+| **Error** — request failed | Network or server failure; the token may still be valid | `auth.verify.errorTitle` / `errorBody` — advises retrying **the same link** | A retry succeeding | Both | **PROPOSED** — V2-D |
+| **Empty** | — | — | — | — | **n/a** — no collection is read |
+| **Data-gap** | — | — | — | — | **n/a** — nothing is computed from a prerequisite |
+| **Offline** | — | — | — | — | **n/a** — Web has no offline model (ADR-P019), and this surface is Web-first |
+| **Pending sync** | — | — | — | — | **n/a** — no local write, no queue |
+| **Conflict** | — | — | — | — | **n/a** — no divergent local version exists |
+| **Web unavailable** | — | — | — | — | **n/a** — Web is the *target* platform here, not a dormant one |
+
+### Success is not a ninth state
+
+`auth.verify.successTitle` / `successBody` render a **terminal content condition
+inside the resolved arm**, exactly as the Progress trends' empty and single-point
+series are content conditions inside that screen's ready arm. It is **not** a
+canonical state: `.ai/08_UI_UX.md` records success confirmation as a *future flow
+need with insufficient evidence for a contract*, and V2-B does not manufacture
+one. The eight remain eight.
+
+**`auth.verify.continue` — frozen behaviour.** Navigate to the **dashboard when
+an authenticated session exists**, otherwise to **sign-in**. **Redeeming the
+token does not create, extend or restore a session**: it sets `emailVerifiedAt`
+and nothing else. This surface is **session-agnostic by construction** — it may
+be opened with a session or without one, so it must **assume neither** and
+**cannot rely on account context**.
+
+**The same conditional applies to the two failure states**, which is why both
+`continue` and `goToSignIn` exist: `continue` when a session is present,
+`goToSignIn` when it is not. Neither key replaces the other.
+
+### Three Error rows, one user-facing distinction
+
+The three Error triggers are separated because their **exits differ** — resend
+from the dashboard reminder, re-open the existing link, or retry the same
+request. They are **not** separated by cause: expired, used and unrecognised
+tokens collapse into one message on purpose, so the page never discloses which
+occurred.
+
+**No exit resends from this surface.** The landing holds no address and cannot
+rely on account context, so every "get another link" path ends at the
+authenticated dashboard reminder — reached **directly when a session exists**,
+and **via sign-in when it does not**. V2-B adds **no email input and no anonymous
+resend form**.
+
+### Accessibility
+
+**No VoiceOver, TalkBack or browser-AT outcome is claimed** for either surface.
+Announcement behaviour on the reminder and on the landing's state transitions is
+the **UX-4C** manual pass, unrun.
 
 ---
 

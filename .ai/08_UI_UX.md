@@ -1021,7 +1021,7 @@ the font-delivery slice, since tabular figures depend on the chosen face.
 
 Spanish and English are both first-class (`00_PROJECT.md`, `06_MOBILE.md`,
 ADR-P017). Bilingual delivery is **SHIPPED**: `resources/en.ts` and
-`resources/es.ts` each hold 696 entries with byte-identical sorted key sets, and
+`resources/es.ts` each hold 758 entries with byte-identical sorted key sets, and
 public-v1 UI contains no untranslated user-facing copy.
 
 Layout must therefore treat length variance as a design constraint, not an
