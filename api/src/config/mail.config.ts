@@ -40,6 +40,20 @@ export interface PostmarkMailConfig {
   messageStream: string;
   /** Validated HTTPS origin (+ optional base path) that emailed links point at. */
   publicBaseUrl: string;
+  /**
+   * Separate validated HTTPS base for email-verification links (ADR-P026
+   * Vertical 2 / V2-C). Verification is ordinary account hygiene, not a
+   * credential-reset event, so it is served from a neutral account host
+   * (`https://account.appfitnessrd.com`) rather than the recovery host.
+   *
+   * **Optional on purpose, and `null` when unset.** That host does not exist
+   * yet — DNS and CORS for it are V2-E. Requiring it would make this slice
+   * refuse to boot on every environment already running `MAIL_PROVIDER=postmark`,
+   * turning an additive backend change into an outage. Instead, an unset value
+   * disables *verification mail only*: no link is ever built, so a broken or
+   * wrong-host link cannot be emailed. Password recovery is untouched either way.
+   */
+  verificationBaseUrl: string | null;
 }
 
 export type MailConfig = DisabledMailConfig | PostmarkMailConfig;
@@ -96,6 +110,30 @@ export function parsePublicBaseUrl(raw: string | undefined): string {
   return normalized;
 }
 
+/**
+ * Validate `MAIL_VERIFICATION_BASE_URL` when present; return `null` when it is
+ * absent or empty.
+ *
+ * Absent is a supported, safe state (see `verificationBaseUrl`). Present but
+ * malformed is NOT: an operator who set the variable intended verification to
+ * work, and silently degrading to "disabled" would hide the typo until users
+ * stopped receiving mail. Same HTTPS/no-query/no-fragment rules as the
+ * recovery base — the verification link appends its own `#token=` fragment.
+ */
+export function parseOptionalVerificationBaseUrl(
+  raw: string | undefined,
+): string | null {
+  if ((raw ?? '').trim() === '') return null;
+  try {
+    return parsePublicBaseUrl(raw);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : 'invalid value';
+    throw new Error(
+      detail.replace('MAIL_PUBLIC_BASE_URL', 'MAIL_VERIFICATION_BASE_URL'),
+    );
+  }
+}
+
 function requireValue(raw: string | undefined, name: string): string {
   const value = (raw ?? '').trim();
   if (value === '') {
@@ -140,10 +178,25 @@ export function resolveMailConfig(
     messageStream:
       (env.POSTMARK_MESSAGE_STREAM ?? '').trim() || DEFAULT_MESSAGE_STREAM,
     publicBaseUrl: parsePublicBaseUrl(env.MAIL_PUBLIC_BASE_URL),
+    verificationBaseUrl: parseOptionalVerificationBaseUrl(
+      env.MAIL_VERIFICATION_BASE_URL,
+    ),
   };
 }
 
 /** True when a real transport is bound and sending is possible. */
 export function isMailEnabled(config: MailConfig): boolean {
   return config.provider !== 'disabled';
+}
+
+/**
+ * True when verification links can be built AND sent.
+ *
+ * Both halves are required: a transport with no verification base has nowhere
+ * to point users, and a base with no transport has no way to reach them.
+ * Callers must answer "unavailable" rather than issue a token that could never
+ * be delivered.
+ */
+export function isVerificationMailEnabled(config: MailConfig): boolean {
+  return config.provider !== 'disabled' && config.verificationBaseUrl !== null;
 }

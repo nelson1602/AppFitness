@@ -137,6 +137,7 @@ describe('PasswordRecoveryService', () => {
             fromAddress: 'no-reply@mail.example.com',
             messageStream: 'outbound',
             publicBaseUrl: 'https://app.example.com',
+            verificationBaseUrl: null,
           }
         : { provider: 'disabled' },
       transport,

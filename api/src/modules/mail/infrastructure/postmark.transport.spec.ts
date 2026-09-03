@@ -11,6 +11,7 @@ const CONFIG: PostmarkMailConfig = {
   fromAddress: 'no-reply@mail.example.com',
   messageStream: 'outbound',
   publicBaseUrl: 'https://app.example.com',
+  verificationBaseUrl: null,
 };
 
 const MESSAGE: MailMessage = {

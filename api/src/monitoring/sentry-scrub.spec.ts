@@ -292,4 +292,43 @@ describe('sentry scrubbing (ADR-P010)', () => {
       expect(JSON.stringify(crumb)).not.toContain(RESET_SENTINEL);
     }
   });
+
+  describe('email-verification surface (ADR-P026 V2-C)', () => {
+    it.each([
+      'verificationUrl',
+      'verifyUrl',
+      'verificationToken',
+      'emailVerifiedAt',
+    ])('redacts %s', (key) => {
+      expect(redactDeep({ [key]: 'sensitive' })).toEqual({
+        [key]: '[REDACTED]',
+      });
+    });
+
+    it('strips the token fragment from a verification link', () => {
+      expect(
+        stripQueryAndFragment(
+          'https://account.example.com/verify-email#token=live-token',
+        ),
+      ).toBe('https://account.example.com/verify-email');
+    });
+
+    it('never lets a verification link reach a navigation breadcrumb intact', () => {
+      const crumb = scrubBreadcrumb({
+        category: 'navigation',
+        data: { to: 'https://account.example.com/verify-email#token=live' },
+      });
+      expect(JSON.stringify(crumb)).not.toContain('live');
+    });
+
+    it('strips a verification link from the event request URL', () => {
+      const event = scrubEvent({
+        request: {
+          method: 'POST',
+          url: 'https://account.example.com/verify-email#token=live',
+        },
+      });
+      expect(JSON.stringify(event)).not.toContain('live');
+    });
+  });
 });

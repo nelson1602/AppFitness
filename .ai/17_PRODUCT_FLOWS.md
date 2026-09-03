@@ -104,15 +104,16 @@ Two facts that set the SHIPPED boundary and are easy to get wrong:
    `724a18e7`: `main` now carries **8** `auth.forgot.*` and **14** `auth.reset.*`
    localization keys and both `forgot-password` and `reset-password` routes
    (`mobile/src/app/`). It was Production-validated on 2026-09-02.
-2. **Email verification has no user-facing behaviour.** ADR-P026 Vertical 2 is
-   accepted in principle; its UX and copy are frozen by **V2-B**
-   (`.ai/19_COPY_DECKS.md` §Email verification, 2026-09-02), and **V2-A**
-   provides **schema only** — the nullable `emailVerifiedAt` column, the
-   `email_verification_tokens` table, and two `AuditAction` values ⇒ the flow
-   is still **PROPOSED**. Neither a frozen specification nor a schema is an
-   implementation: **no endpoint, no mail template, no token issuance or
-   redemption, no route, no localization key, and no user-facing behaviour
-   exists.**
+2. **Email verification has a backend but no user-facing surface.** ADR-P026
+   Vertical 2 is accepted; its UX and copy are frozen by **V2-B**
+   (`.ai/19_COPY_DECKS.md` §Email verification, 2026-09-02), **V2-A** provides
+   the schema, and **V2-C** provides the backend — issuance at registration,
+   `resend-verification` / `verify-email`, the EN/ES mail template, throttles,
+   audit and scrub. The flow is still **PROPOSED** to a *user*: **no mobile or
+   Web route, no dashboard reminder, no `auth.verify.*` localization key, and
+   no user-visible behaviour exists** — those are V2-D. The emailed link also
+   points at a host that **does not exist yet** (V2-E), so verification mail
+   stays switched off until `MAIL_VERIFICATION_BASE_URL` is configured.
 3. **Emailed links still open the Web page, not the app.** Universal / App Links
    remain unconfigured and need a native rebuild — unchanged by the above.
 
@@ -434,12 +435,16 @@ Loading treatment, and must not promote it into the state model.
 
 ## 2.4 Email verification — PROPOSED, UX frozen by V2-B (ADR-P026 Vertical 2)
 
-**No behaviour exists anywhere**: no endpoint, no route, no mail template, no
-token issuance or redemption, and no `auth.verify.*` key. **V2-A defines the
-schema only** — the nullable `emailVerifiedAt` column and the
-`email_verification_tokens` table — which no code yet reads or writes. What
-follows is the **frozen specification** produced by **V2-B** (2026-09-02),
-against which V2-C and V2-D implement. Copy lives in
+**The backend exists; the user-facing surface does not.** **V2-A** added the
+schema and **V2-C** the backend: automatic issuance at registration, the
+authenticated `POST /auth/resend-verification`, the public
+`POST /auth/verify-email`, the EN/ES mail template, per-IP and per-account
+limits, audit actions and Sentry scrubbing. **No mobile or Web route, no
+dashboard reminder and no `auth.verify.*` key exist** — those are V2-D — and
+the account host itself is still V2-E, so verification mail remains disabled
+until `MAIL_VERIFICATION_BASE_URL` is set. What follows is the **frozen
+specification** produced by **V2-B** (2026-09-02), against which V2-C
+implemented and V2-D implements. Copy lives in
 `.ai/19_COPY_DECKS.md` §Email verification; state mapping in
 `.ai/18_SCREEN_STATE_MATRICES.md` §Proposed surfaces.
 
@@ -451,8 +456,15 @@ against which V2-C and V2-D implement. Copy lives in
   out**. No `PENDING_VERIFICATION` value is added to `UserStatus`.
 - Verification becomes mandatory only **before** a future email-report or
   account-notification feature.
-- `resend-verification` returns an **identical response** regardless of account
-  existence, exactly like recovery.
+- `resend-verification` is **authenticated and performs no address lookup**
+  (ADR-P026 §Clarifications, 2026-09-03): it takes **no email field** and acts
+  only on the signed-in user, so no enumeration branch exists. Every *accepted*
+  request gets the **same generic `202`** — dispatched, already verified,
+  mail-failure and per-account-ceiling no-op alike. Boundary responses remain
+  `400` (forbidden body field), `401` (unauthenticated), `429` (per-IP
+  throttle) and `503` (verification mail unavailable). The per-account ceiling
+  keys on the **authenticated user ID**. `forgot-password` is unchanged and
+  stays address-based and enumeration-resistant.
 - Token: 32-byte base64url, **SHA-256 stored only**, single-use via `consumedAt`,
   **24-hour TTL**, new issuance invalidating prior active tokens.
 
@@ -569,7 +581,7 @@ is the **UX-4C** manual pass, which remains unrun.
 |---|---|---|
 | **V2-A** | `emailVerifiedAt` column, verification-token table + partial unique index, `AuditAction` values, legacy backfill | any behaviour change |
 | **V2-B** *(this)* | In-app copy, state mapping, flow shape, soft-gate contract | any runtime, schema or route |
-| **V2-C** | Mail template + subject, token service methods, `resend-verification` / `verify-email` endpoints, throttles, audit, scrub, **link-base configuration for the account host** | in-app copy |
+| **V2-C** *(done)* | Mail template + subject, token service methods, `resend-verification` / `verify-email` endpoints, throttles, audit, scrub, **link-base configuration for the account host** (`MAIL_VERIFICATION_BASE_URL`, optional — verification mail stays off until it is set) | in-app copy |
 | **V2-D** | `/verify-email` route, dashboard reminder, resend UI, EN/ES key import | endpoint behaviour |
 | **V2-E** | Development-first sandbox validation, then a separately authorized Production gate; **DNS and CORS for the account host** | any code change |
 

@@ -8,14 +8,18 @@ import { AuditAction, UserStatus } from '@prisma/client';
 
 import { AuditService } from '../../audit/audit.service';
 import { PrismaService } from '../../database/prisma.service';
+import { resolveMailLocale } from '../../mail/domain/mail.types';
 import { SAFE_USER_SELECT, SafeUser, TokenPair } from '../domain/auth.types';
 import { PasswordService } from '../infrastructure/password.service';
 import { TokenService } from '../infrastructure/token.service';
+import { EmailVerificationService } from './email-verification.service';
 
 export interface RegisterInput {
   email: string;
   username: string;
   password: string;
+  /** Language hint for the verification email; unknown values fall back to English. */
+  locale?: string;
 }
 
 export interface LoginInput {
@@ -34,6 +38,7 @@ export class AuthService {
     private readonly passwords: PasswordService,
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
+    private readonly emailVerification: EmailVerificationService,
   ) {}
 
   async register(input: RegisterInput): Promise<AuthResult> {
@@ -64,6 +69,19 @@ export class AuthService {
       action: AuditAction.ACCOUNT_REGISTER,
       userId: user.id,
     });
+
+    // Automatic first verification email (ADR-P026 owner decision 2026-09-02).
+    // Deliberately awaited but non-throwing: the service swallows every
+    // failure internally, so the account stays created and this response is
+    // byte-identical whether the provider succeeded, failed, or — while
+    // MAIL_VERIFICATION_BASE_URL is unset — was never reached at all. The
+    // delivery outcome can never alter or roll back registration.
+    await this.emailVerification.issueOnRegistration({
+      userId: user.id,
+      email: user.email,
+      locale: resolveMailLocale(input.locale),
+    });
+
     const pair = await this.issueTokenPair(user.id, user.role);
     return { user, ...pair };
   }

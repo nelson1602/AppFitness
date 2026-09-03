@@ -1951,7 +1951,7 @@ before UX-5 touches those surfaces.
 
 Status: **In Progress** — Vertical 1 (mail foundation + password recovery)
 shipped and **Production-validated 2026-09-02**; Vertical 2 (email
-verification) has schema only (V2-A) and no runtime
+verification) has schema (V2-A) and backend (V2-C); no user-facing surface
 Priority: P1
 Type: Feature
 Owner: Product / Security / Architecture
@@ -1979,9 +1979,11 @@ Updated: 2026-09-03
 > additive forward-only migrations. **V2-C obligation:** issuance must
 > opportunistically invalidate or delete the user's previous open row,
 > **including an expired one**, before inserting a replacement; the index is a
-> database backstop, not a substitute for that sequencing. **Nothing reads or writes any of it**: no endpoint,
-> route, mail template, token issuance or redemption, soft-gate reminder or
-> `auth.verify.*` key exists, so no user-visible behaviour changes. Legacy
+> database backstop, not a substitute for that sequencing. **V2-A itself added
+> no reader or writer** — no endpoint, route, mail template, token issuance or
+> redemption, soft-gate reminder or `auth.verify.*` key — so that slice changed
+> no user-visible behaviour. (V2-C has since added the backend readers and
+> writers; the user-facing surface is still V2-D.) Legacy
 > accounts are `emailVerifiedAt = NULL` **by construction** — the column is
 > nullable with no default and the migration performs no `UPDATE`. **V2-B
 > (2026-09-02) is documentation only** and delivered the frozen specification:
@@ -2026,17 +2028,47 @@ Updated: 2026-09-03
 > and "return to your account to request another" — naming *where* resend lives
 > without asserting the reader's session state.
 >
-> **Remaining sequence:** **V2-A** schema (this slice) → **V2-C** backend →
+> **Remaining sequence:** **V2-A** schema → **V2-C** backend (this slice) →
 > **V2-D** mobile/Web → **V2-E** Development-first validation, then a separately
-> authorized Production gate (ADR-P026 Decision 17). **V2-C, V2-D and V2-E
-> remain outstanding.**
+> authorized Production gate (ADR-P026 Decision 17). **V2-D and V2-E remain
+> outstanding.**
 >
-> **Two prerequisites V2-B cannot satisfy.** The account hostname **does not
-> exist**: it needs DNS and a CORS entry (owner/infra, V2-E). And
-> `api/src/config/mail.config.ts` exposes a **single** `MAIL_PUBLIC_BASE_URL`,
-> which today resolves to the recovery host — serving verification from a
-> different host requires a per-template base or a second variable, decided in
-> **V2-C**.
+> **V2-C (2026-09-03) delivered the backend, and nothing user-facing.**
+> Automatic issuance at registration (best-effort; a mail failure never alters
+> or rolls back the registration response), the **authenticated**
+> `POST /auth/resend-verification` (same generic `202` for every accepted
+> request; `400`/`401`/`429`/`503` at the boundaries), the **public**
+> `POST /auth/verify-email` (204, single-use, generic 400 on every failure,
+> and it **creates no session**), the EN/ES mail template, 24-hour tokens with
+> SHA-256-only storage, per-IP throttles (5/60 min resend, 10/15 min verify)
+> plus a 5/60 min per-account ceiling, both `EMAIL_VERIFICATION_*` audit
+> actions, and Sentry scrubbing for the verification surface.
+> `GET /auth/me` now returns `emailVerifiedAt` so V2-D can render the
+> reminder. Issuance invalidates **every open row including an expired one**
+> before inserting, satisfying the V2-A index contract.
+>
+> **Two V2-C decisions worth recording.**
+> (a) **Resend is authenticated.** ADR-P026 Decision 8 grouped
+> `resend-verification` with `forgot-password` as an address-taking,
+> enumeration-resistant endpoint, but V2-B later froze resend to the
+> **authenticated dashboard reminder** with **no email input and no anonymous
+> form**. V2-C follows V2-B: the endpoint takes no address and acts on the
+> caller's own account, which removes the enumeration surface at the source
+> rather than masking it, and still satisfies Decision 8's identical-response
+> and rate-limit requirements. An address in the body is rejected.
+> (b) **`MAIL_VERIFICATION_BASE_URL` is optional, not required.** Making it
+> mandatory whenever `MAIL_PROVIDER=postmark` would have stopped every
+> already-deployed environment from booting. Unset ⇒ verification mail is
+> unavailable: registration issues nothing, resend answers a uniform 503, and
+> **redemption still works** so any token already issued stays usable. Set but
+> malformed still throws at boot — an operator who set it meant it to work.
+>
+> **One prerequisite remains for V2-E.** The account hostname **does not
+> exist**: it needs DNS and a CORS entry (owner/infra). The second-variable
+> question is **resolved**: V2-C added `MAIL_VERIFICATION_BASE_URL` alongside
+> `MAIL_PUBLIC_BASE_URL`, so verification and recovery are served from
+> different hosts and fail independently. Until that variable is set,
+> verification mail is off by construction and no link is ever built.
 
 > **ADR-P026 ACCEPTED 2026-08-27 — V1 Transactional Email, Password Recovery,
 > and Email Verification.** Both capabilities are **V1 launch requirements**.
@@ -2088,8 +2120,12 @@ Audited at `origin/main` `f1e7214ee25136c7938b32005a4bff5c90a1ee19`:
    tokens: same storage design, **single-use**, **24-hour TTL**.
 
 New issuance **invalidates prior active tokens** of that family.
-`forgot-password` and `resend-verification` **always return the same `202`** and
-are rate limited **per IP and per account**. **Raw tokens and email bodies are
+`forgot-password` **always returns the same `202`** whether or not the address
+exists. `resend-verification` is **authenticated with no address field**
+(ADR-P026 §Clarifications, 2026-09-03), so it has no existence branch at all:
+every *accepted* request gets the same generic `202`, with `400`/`401`/`429`/
+`503` at the boundaries. Both are rate limited **per IP and per account** —
+resend's account limit keying on the **authenticated user ID**. **Raw tokens and email bodies are
 never logged**; the `AuditAction` enum and `sentry-scrub.ts` are extended during
 implementation.
 
@@ -2117,8 +2153,12 @@ account-notification feature**.
 - [ ] Verification tokens: same storage design, single-use, 24-hour TTL
 - [ ] New issuance invalidates prior active tokens of the same family
 - [ ] Successful password reset revokes every `RefreshToken` for the user
-- [ ] `forgot-password` and `resend-verification` return an identical `202`
-      regardless of account existence, rate limited per IP **and** per account
+- [ ] `forgot-password` returns an identical `202` regardless of account
+      existence, rate limited per IP **and** per account
+- [ ] `resend-verification` is authenticated with **no email field** and returns
+      the same generic `202` for every accepted request (dispatched, already
+      verified, mail failure, ceiling no-op); `400`/`401`/`429`/`503` at the
+      boundaries; per-account limit keyed by **authenticated user ID**
 - [ ] No raw token or email body in any log, audit row, or Sentry event;
       `sentry-scrub.ts` extended and specs green
 - [ ] Existing accounts remain able to sign in with `emailVerifiedAt = NULL`

@@ -11,6 +11,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { PasswordService } from '../infrastructure/password.service';
 import { TokenService } from '../infrastructure/token.service';
 import { AuthService } from './auth.service';
+import { EmailVerificationService } from './email-verification.service';
 
 const USER_ID = '00000000-0000-4000-8000-00000000aaaa';
 
@@ -71,6 +72,7 @@ describe('AuthService', () => {
     refreshTokenTtlMs: jest.Mock;
   };
   let audit: { record: jest.Mock };
+  let emailVerification: { issueOnRegistration: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -105,6 +107,14 @@ describe('AuthService', () => {
       refreshTokenTtlMs: jest.fn().mockReturnValue(7 * 86_400_000),
     };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
+    // Registration issues a verification email best-effort (ADR-P026 V2-C).
+    // A spy here, because this suite asserts the SHIPPED register/login/
+    // refresh behaviour and the point is that registration's own outcome is
+    // unchanged by issuance. Issuance behaviour itself is covered by
+    // email-verification.service.spec.ts and the e2e suite.
+    emailVerification = {
+      issueOnRegistration: jest.fn().mockResolvedValue(undefined),
+    };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -113,6 +123,7 @@ describe('AuthService', () => {
         { provide: PasswordService, useValue: passwords },
         { provide: TokenService, useValue: tokens },
         { provide: AuditService, useValue: audit },
+        { provide: EmailVerificationService, useValue: emailVerification },
       ],
     }).compile();
 

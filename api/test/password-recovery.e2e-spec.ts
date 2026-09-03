@@ -57,6 +57,7 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
         fromAddress: 'no-reply@mail.example.test',
         messageStream: 'outbound',
         publicBaseUrl: PUBLIC_BASE,
+        verificationBaseUrl: null,
       })
       .overrideProvider(MAIL_TRANSPORT)
       .useValue(mail)

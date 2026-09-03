@@ -8,10 +8,16 @@
  * telemetry-specific PII keys (email/phone/cookie/session/user names) and,
  * since ADR-P026, the transactional-mail surface: recipient addresses,
  * subjects, rendered bodies, reset links, and reset-token fields.
+ *
+ * V2-C adds the verification surface. `verif` is matched as a stem so it
+ * covers `verifyUrl`, `verificationUrl`, `verificationToken`,
+ * `emailVerifiedAt` and friends in one rule. This matters because a key like
+ * `verificationUrl` matches none of the other alternatives — not `link`, not
+ * `url` — and would otherwise carry a live `#token=` fragment into an event.
  */
 
 export const SENSITIVE_KEY =
-  /token|password|secret|key|authorization|credential|cookie|session|notes|conditions|medications|restriction|injur|payload|email|phone|username|birth|mail|recipient|subject|body|link|reset/i;
+  /token|password|secret|key|authorization|credential|cookie|session|notes|conditions|medications|restriction|injur|payload|email|phone|username|birth|mail|recipient|subject|body|link|reset|verif/i;
 
 const MAX_DEPTH = 4;
 const REDACTED = '[REDACTED]';
@@ -37,9 +43,10 @@ export function redactDeep(value: unknown, depth = 0): unknown {
  * `?` or `#`.
  *
  * Both halves matter. A query string can carry a bearer credential, and since
- * ADR-P026 the password-reset link deliberately puts its token in the
- * **fragment** — so a sanitizer that only stripped `?` would forward
- * `…/reset-password#token=<live token>` straight into a Sentry event. The
+ * ADR-P026 both the password-reset link and (since V2-C) the email-verification
+ * link deliberately put their token in the **fragment** — so a sanitizer that
+ * only stripped `?` would forward `…/reset-password#token=<live token>` or
+ * `…/verify-email#token=<live token>` straight into a Sentry event. The
  * earliest separator wins, because a malformed URL can place `#` before `?`
  * and everything after either one is untrusted.
  */

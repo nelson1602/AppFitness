@@ -8332,6 +8332,8 @@ the shipped logout revocation path — a reset must end all sessions.
 **always return the same `202`**, whether or not the address exists, and are rate
 limited. Limits are applied **per IP and per account**, because IP-only
 throttling still permits mailbombing a single address from many sources.
+*(Clarified 2026-09-03 — see §Clarifications: this text assumed both endpoints
+take an address. `resend-verification` is authenticated and takes none.)*
 
 **9. Logging discipline.** **Raw tokens and email bodies are never logged**, never
 placed in audit rows, and never sent to Sentry. Implementation extends the
@@ -8452,6 +8454,59 @@ documentation only.
 - **Preserves ADR-P017** — dormant medical surfaces are untouched.
 - Does **not** introduce Redis or BullMQ, and does **not** advance roadmap
   Phase 19 (notifications), which remains post-v1.
+
+### Clarifications
+
+#### 2026-09-03 — Decision 8 as it applies to `resend-verification` (V2-C)
+
+Decision 8 was written before the verification UX existed and grouped both
+endpoints as address-taking. **V2-B** (2026-09-02) then froze resend to the
+**authenticated dashboard reminder**, with **no anonymous resend form and no
+email input**. This clarification reconciles the two. It changes no accepted
+decision: Decision 8's *purpose* — that resend must not become an enumeration
+oracle, and must be rate limited per IP **and** per account — is unchanged and
+is met more directly by an authenticated endpoint than by a masked one.
+
+**`forgot-password` is unchanged.** It remains **address-based, public, and
+enumeration-resistant**: an identical `202` for a real account, an unknown
+address, a suspended account, and an account at its ceiling, with a response
+floor masking the residual timing difference.
+
+**`resend-verification` is authenticated and performs no address lookup.** It
+takes **no email field**, acts only on the signed-in user resolved from the
+access token, and therefore has **no unknown-address branch to mask** — no
+enumeration oracle exists to defend against, and no timing floor is needed.
+Submitting an address is rejected outright.
+
+**Its response contract, stated precisely.** "Always 202" is accurate only for
+requests that are *accepted*, and must not be read as "202 for every request":
+
+| Outcome | Status |
+|---|---|
+| Token issued and mail dispatched | `202` (generic) |
+| Address already verified — nothing sent | `202` (generic, identical) |
+| Dispatch failed at the provider | `202` (generic, identical) |
+| Per-account ceiling reached — no-op | `202` (generic, identical) |
+| Body carries a forbidden field (e.g. an address) | `400` |
+| No or invalid bearer token | `401` |
+| Per-IP throttle exceeded | `429` |
+| Verification mail unavailable (no transport, or no account host configured) | `503` |
+
+The four `202` rows are byte-identical, so an authenticated caller cannot
+distinguish *its own* dispatched / already-verified / failed / rate-limited
+outcomes — which is what stops the reminder from leaking account state or
+becoming a mailbomb amplifier. The `400`/`401`/`429`/`503` rows are ordinary
+transport-level boundaries, not account signals: none of them varies by account.
+Because `ThrottlerGuard` runs before `JwtAuthGuard`, an unauthenticated request
+over the IP limit sees `429` rather than `401`.
+
+**Limit keying.** The per-IP throttle (5 / 60 min) keys on the client IP, as
+elsewhere. The complementary per-account ceiling (5 / 60 min) keys on the
+**authenticated user ID** — the JWT `sub`, never a submitted address — and is
+counted inside the per-user row lock that issuance already takes.
+
+**Preserved from V2-B:** no anonymous resend form and no email input. Resend
+lives only on the authenticated dashboard reminder.
 
 ### Related Documents
 

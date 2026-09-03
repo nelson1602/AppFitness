@@ -1,5 +1,6 @@
 import {
   isMailEnabled,
+  isVerificationMailEnabled,
   parsePublicBaseUrl,
   resolveMailConfig,
 } from './mail.config';
@@ -41,6 +42,9 @@ describe('mail.config', () => {
         fromAddress: 'no-reply@mail.example.com',
         messageStream: 'outbound',
         publicBaseUrl: 'https://app.example.com',
+        // Absent MAIL_VERIFICATION_BASE_URL resolves to null: verification mail
+        // stays unavailable while password recovery keeps working (V2-C).
+        verificationBaseUrl: null,
       });
     });
 
@@ -152,6 +156,86 @@ describe('mail.config', () => {
 
     it('is true for a configured provider', () => {
       expect(isMailEnabled(resolveMailConfig(postmarkEnv))).toBe(true);
+    });
+  });
+
+  describe('verification base URL (ADR-P026 V2-C)', () => {
+    const base = {
+      MAIL_PROVIDER: 'postmark',
+      POSTMARK_SERVER_TOKEN: 'test-server-token',
+      MAIL_FROM_ADDRESS: 'no-reply@mail.example.com',
+      MAIL_PUBLIC_BASE_URL: 'https://app.example.com',
+    };
+
+    it('is null when unset, so an already-enabled provider still boots', () => {
+      // Deploy safety: every environment already running MAIL_PROVIDER=postmark
+      // must keep booting after V2-C without a new variable being set first.
+      expect(resolveMailConfig(base)).toMatchObject({
+        verificationBaseUrl: null,
+      });
+      expect(isVerificationMailEnabled(resolveMailConfig(base))).toBe(false);
+    });
+
+    it('is null when set to whitespace only', () => {
+      expect(
+        resolveMailConfig({ ...base, MAIL_VERIFICATION_BASE_URL: '   ' }),
+      ).toMatchObject({ verificationBaseUrl: null });
+    });
+
+    it('resolves and normalizes a valid https account host', () => {
+      const config = resolveMailConfig({
+        ...base,
+        MAIL_VERIFICATION_BASE_URL: 'https://account.example.com/',
+      });
+      expect(config).toMatchObject({
+        verificationBaseUrl: 'https://account.example.com',
+      });
+      expect(isVerificationMailEnabled(config)).toBe(true);
+    });
+
+    it('is independent of the recovery base — the two hosts differ on purpose', () => {
+      expect(
+        resolveMailConfig({
+          ...base,
+          MAIL_VERIFICATION_BASE_URL: 'https://account.example.com',
+        }),
+      ).toMatchObject({
+        publicBaseUrl: 'https://app.example.com',
+        verificationBaseUrl: 'https://account.example.com',
+      });
+    });
+
+    it.each([
+      ['plain http', 'http://account.example.com'],
+      ['a query string', 'https://account.example.com?x=1'],
+      ['a fragment', 'https://account.example.com#x'],
+      ['embedded credentials', 'https://u:p@account.example.com'],
+      ['a non-URL', 'not-a-url'],
+    ])('throws when set but malformed (%s)', (_label, value) => {
+      // Present-but-broken is NOT silently downgraded to disabled: the operator
+      // clearly intended verification to work, and hiding the typo would only
+      // surface later as mail that never arrives.
+      expect(() =>
+        resolveMailConfig({ ...base, MAIL_VERIFICATION_BASE_URL: value }),
+      ).toThrow(/MAIL_VERIFICATION_BASE_URL/);
+    });
+
+    it('names the verification variable, not the recovery one, in its error', () => {
+      let message = '';
+      try {
+        resolveMailConfig({
+          ...base,
+          MAIL_VERIFICATION_BASE_URL: 'http://account.example.com',
+        });
+      } catch (error) {
+        message = (error as Error).message;
+      }
+      expect(message).toContain('MAIL_VERIFICATION_BASE_URL');
+      expect(message).not.toContain('MAIL_PUBLIC_BASE_URL');
+    });
+
+    it('a disabled provider is never verification-enabled', () => {
+      expect(isVerificationMailEnabled({ provider: 'disabled' })).toBe(false);
     });
   });
 });
