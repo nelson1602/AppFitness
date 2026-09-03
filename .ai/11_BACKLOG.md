@@ -1951,12 +1951,12 @@ before UX-5 touches those surfaces.
 
 Status: **In Progress** — Vertical 1 (mail foundation + password recovery)
 shipped and **Production-validated 2026-09-02**; Vertical 2 (email
-verification) not started
+verification) has schema only (V2-A) and no runtime
 Priority: P1
 Type: Feature
 Owner: Product / Security / Architecture
 Created: 2026-08-27
-Updated: 2026-09-02
+Updated: 2026-09-03
 
 > **Vertical 1 delivered.** PR #102 merged as `724a18e7`. The mail foundation,
 > reset-token model, `forgot-password` / `reset-password` endpoints, mobile
@@ -1969,8 +1969,21 @@ Updated: 2026-09-02
 > Evidence is summarized in `docs/RELEASE_READINESS.md`; no token, credential,
 > address, message identifier or raw link is recorded anywhere.
 >
-> **Vertical 2 is unstarted in runtime terms; its UX is now frozen.** No column,
-> token table, endpoint, route or `auth.verify.*` key exists on `main`. **V2-B
+> **Vertical 2 has no runtime; its UX is frozen and its schema is defined.**
+> **V2-A (2026-09-03, this slice) is schema only** — the nullable
+> `User.emailVerifiedAt` column, the `email_verification_tokens` table with its
+> hash-only unique constraint and a partial unique index admitting **one open
+> row per user** — predicate `consumed_at IS NULL AND invalidated_at IS NULL`,
+> which deliberately **omits expiry**, so an expired row still occupies the
+> slot — and the two `EMAIL_VERIFICATION_*` `AuditAction` values, across two
+> additive forward-only migrations. **V2-C obligation:** issuance must
+> opportunistically invalidate or delete the user's previous open row,
+> **including an expired one**, before inserting a replacement; the index is a
+> database backstop, not a substitute for that sequencing. **Nothing reads or writes any of it**: no endpoint,
+> route, mail template, token issuance or redemption, soft-gate reminder or
+> `auth.verify.*` key exists, so no user-visible behaviour changes. Legacy
+> accounts are `emailVerifiedAt = NULL` **by construction** — the column is
+> nullable with no default and the migration performs no `UPDATE`. **V2-B
 > (2026-09-02) is documentation only** and delivered the frozen specification:
 > 23 EN/ES keys and the state mapping in `.ai/19_COPY_DECKS.md` §Email
 > verification, the flow and handoff boundaries in `.ai/17_PRODUCT_FLOWS.md`
@@ -2013,9 +2026,10 @@ Updated: 2026-09-02
 > and "return to your account to request another" — naming *where* resend lives
 > without asserting the reader's session state.
 >
-> **Remaining sequence:** **V2-A** schema + backfill → **V2-C** backend →
+> **Remaining sequence:** **V2-A** schema (this slice) → **V2-C** backend →
 > **V2-D** mobile/Web → **V2-E** Development-first validation, then a separately
-> authorized Production gate (ADR-P026 Decision 17).
+> authorized Production gate (ADR-P026 Decision 17). **V2-C, V2-D and V2-E
+> remain outstanding.**
 >
 > **Two prerequisites V2-B cannot satisfy.** The account hostname **does not
 > exist**: it needs DNS and a CORS entry (owner/infra, V2-E). And

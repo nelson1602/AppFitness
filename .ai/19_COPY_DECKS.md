@@ -674,7 +674,7 @@ would erase the fact that it completed.
 | Area | Why no copy appears here |
 |---|---|
 | Password recovery | TARGET in PR #102, not on `main`; reconcile after merge against the effective implementation. |
-| Email verification | ADR-P026 Vertical 2 is not authorized. |
+| Email verification | **V2-B specifies 23 PROPOSED keys above** (§Email verification). **V2-A adds schema only** — nothing reads or renders those keys. **V2-D** still owns the EN/ES catalogue import and runtime wiring, so no key ships yet. |
 | Conflict resolution actions/screens | BUG-012 needs a separately authorized flow and repository decision. |
 | Trend-chart and weekly structure | Specified in `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D). Its seven proposed keys are worded above; composition, accessibility structure and the no-nesting rule are not repeated here. |
 | Bottom tabs | Deferred by ADR-P027; the non-binding map is not a copy target. |

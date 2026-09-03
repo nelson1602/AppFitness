@@ -140,6 +140,8 @@ enum AuditAction {
   PASSWORD_CHANGE
   PASSWORD_RESET_REQUEST
   PASSWORD_RESET_SUCCESS
+  EMAIL_VERIFICATION_REQUEST
+  EMAIL_VERIFICATION_SUCCESS
   ACCOUNT_UPDATE
   PROFILE_UPDATE
   GOAL_CHANGE
@@ -157,14 +159,19 @@ enum AuditAction {
 // ─── Identity & Auth ─────────────────────────────────────────────────────────
 
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
-  email        String     @unique(map: "uq_users_email")
-  username     String     @unique(map: "uq_users_username")
-  passwordHash String     @map("password_hash") // Argon2 PHC string (bcrypt tolerated transitionally — Phase 6 rehash-on-login)
-  role         Role       @default(USER)
-  status       UserStatus @default(ACTIVE)
-  phone        String?
-  avatarUrl    String?    @map("avatar_url")
+  id              String     @id @default(uuid()) @db.Uuid
+  email           String     @unique(map: "uq_users_email")
+  username        String     @unique(map: "uq_users_username")
+  passwordHash    String     @map("password_hash") // Argon2 PHC string (bcrypt tolerated transitionally — Phase 6 rehash-on-login)
+  role            Role       @default(USER)
+  status          UserStatus @default(ACTIVE)
+  phone           String?
+  avatarUrl       String?    @map("avatar_url")
+  // NULL = legacy-unverified. Nullable with no default and no backfill write:
+  // existing rows receive NULL naturally when the column is added, and no
+  // account is ever locked out (ADR-P026 Decision 10). Deliberately NOT a
+  // PENDING_VERIFICATION UserStatus — that enum is consumed across sync.
+  emailVerifiedAt DateTime?  @map("email_verified_at") @db.Timestamptz(6)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -172,33 +179,34 @@ model User {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   deletedBy String?   @map("deleted_by") @db.Uuid
 
-  profile             UserProfile?
-  goals               Goal[]
-  devices             Device[]
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
-  syncOperations      SyncOperation[]
-  syncConflicts       SyncConflict[]
-  auditLogs           AuditLog[]
-  medicalEvaluations  MedicalEvaluation[]
-  medicalRestrictions MedicalRestriction[]
-  healthLogs          HealthLog[]
-  routines            Routine[]
-  routineExercises    RoutineExercise[]
-  workoutLogs         WorkoutLog[]
-  workoutSets         WorkoutSet[]
-  nutritionLogs       NutritionLog[]
-  meals               Meal[]
-  mealItems           MealItem[]
-  dietaryPreferences  DietaryPreference[]
-  bodyWeights         BodyWeight[]
-  bodyMeasurements    BodyMeasurement[]
-  progressSnapshots   ProgressSnapshot[]
-  recommendations     Recommendation[]
-  coachInsights       CoachInsight[]
-  notifications       Notification[]
-  userAchievements    UserAchievement[]
-  stats               UserStats?
+  profile                 UserProfile?
+  goals                   Goal[]
+  devices                 Device[]
+  refreshTokens           RefreshToken[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  syncOperations          SyncOperation[]
+  syncConflicts           SyncConflict[]
+  auditLogs               AuditLog[]
+  medicalEvaluations      MedicalEvaluation[]
+  medicalRestrictions     MedicalRestriction[]
+  healthLogs              HealthLog[]
+  routines                Routine[]
+  routineExercises        RoutineExercise[]
+  workoutLogs             WorkoutLog[]
+  workoutSets             WorkoutSet[]
+  nutritionLogs           NutritionLog[]
+  meals                   Meal[]
+  mealItems               MealItem[]
+  dietaryPreferences      DietaryPreference[]
+  bodyWeights             BodyWeight[]
+  bodyMeasurements        BodyMeasurement[]
+  progressSnapshots       ProgressSnapshot[]
+  recommendations         Recommendation[]
+  coachInsights           CoachInsight[]
+  notifications           Notification[]
+  userAchievements        UserAchievement[]
+  stats                   UserStats?
 
   @@map("users")
 }
@@ -257,6 +265,34 @@ model PasswordResetToken {
   // consumed_at IS NULL AND invalidated_at IS NULL. Prisma cannot express a
   // partial index, so it lives in the migration only — see the file header.
   @@map("password_reset_tokens")
+}
+
+model EmailVerificationToken {
+  id            String    @id @default(uuid()) @db.Uuid
+  tokenHash     String    @unique(map: "uq_email_verification_tokens_token_hash") @map("token_hash") // SHA-256 hex — the raw token exists only in the emailed link
+  userId        String    @map("user_id") @db.Uuid
+  expiresAt     DateTime  @map("expires_at") @db.Timestamptz(6) // issuance + 24 h (ADR-P026 Decision 6) — issuance itself is V2-C
+  consumedAt    DateTime? @map("consumed_at") @db.Timestamptz(6) // single-use marker, set atomically on redemption
+  invalidatedAt DateTime? @map("invalidated_at") @db.Timestamptz(6) // superseded by a newer issuance
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_email_verification_tokens_user")
+
+  @@index([userId], map: "idx_email_verification_tokens_user")
+  @@index([expiresAt], map: "idx_email_verification_tokens_expires") // supports lazy purge of aged rows
+  // Also enforced in raw SQL (migration 20260903120100): a PARTIAL UNIQUE index
+  // `uq_email_verification_tokens_one_active_per_user` on (user_id) WHERE
+  // consumed_at IS NULL AND invalidated_at IS NULL. Prisma cannot express a
+  // partial index, so it lives in the migration only — see the file header.
+  //
+  // That predicate omits expiry, so it constrains OPEN rows (unconsumed +
+  // uninvalidated), NOT redeemable ones (which additionally require
+  // expires_at > now()). An expired row is still open and still occupies the
+  // user's single slot, so V2-C must invalidate or delete the previous open
+  // row — including an expired one — before inserting a replacement. The index
+  // is a backstop for that sequencing, not a replacement for it.
+  @@map("email_verification_tokens")
 }
 
 // ─── Sync Infrastructure (server side of ADR-0006) ──────────────────────────

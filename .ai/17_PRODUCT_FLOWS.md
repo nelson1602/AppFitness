@@ -104,11 +104,15 @@ Two facts that set the SHIPPED boundary and are easy to get wrong:
    `724a18e7`: `main` now carries **8** `auth.forgot.*` and **14** `auth.reset.*`
    localization keys and both `forgot-password` and `reset-password` routes
    (`mobile/src/app/`). It was Production-validated on 2026-09-02.
-2. **Email verification has no implementation anywhere.** ADR-P026 Vertical 2 is
-   accepted in principle, and its UX and copy are frozen by **V2-B**
-   (`.ai/19_COPY_DECKS.md` §Email verification, 2026-09-02) ⇒ still **PROPOSED**.
-   A frozen specification is not an implementation: no column, token table,
-   endpoint, route or key exists on `main`.
+2. **Email verification has no user-facing behaviour.** ADR-P026 Vertical 2 is
+   accepted in principle; its UX and copy are frozen by **V2-B**
+   (`.ai/19_COPY_DECKS.md` §Email verification, 2026-09-02), and **V2-A**
+   provides **schema only** — the nullable `emailVerifiedAt` column, the
+   `email_verification_tokens` table, and two `AuditAction` values ⇒ the flow
+   is still **PROPOSED**. Neither a frozen specification nor a schema is an
+   implementation: **no endpoint, no mail template, no token issuance or
+   redemption, no route, no localization key, and no user-facing behaviour
+   exists.**
 3. **Emailed links still open the Web page, not the app.** Universal / App Links
    remain unconfigured and need a native rebuild — unchanged by the above.
 
@@ -430,9 +434,11 @@ Loading treatment, and must not promote it into the state model.
 
 ## 2.4 Email verification — PROPOSED, UX frozen by V2-B (ADR-P026 Vertical 2)
 
-**No implementation exists anywhere on `main`**: no `emailVerifiedAt` column, no
-verification-token table, no endpoint, no route, and no `auth.verify.*` key.
-What follows is the **frozen specification** produced by **V2-B** (2026-09-02),
+**No behaviour exists anywhere**: no endpoint, no route, no mail template, no
+token issuance or redemption, and no `auth.verify.*` key. **V2-A defines the
+schema only** — the nullable `emailVerifiedAt` column and the
+`email_verification_tokens` table — which no code yet reads or writes. What
+follows is the **frozen specification** produced by **V2-B** (2026-09-02),
 against which V2-C and V2-D implement. Copy lives in
 `.ai/19_COPY_DECKS.md` §Email verification; state mapping in
 `.ai/18_SCREEN_STATE_MATRICES.md` §Proposed surfaces.
