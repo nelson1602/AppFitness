@@ -1969,8 +1969,60 @@ Updated: 2026-09-02
 > Evidence is summarized in `docs/RELEASE_READINESS.md`; no token, credential,
 > address, message identifier or raw link is recorded anywhere.
 >
-> **Vertical 2 is unchanged and unstarted.** Deep-link completion (Universal /
-> App Links) also remains open and is **not** claimed by this vertical.
+> **Vertical 2 is unstarted in runtime terms; its UX is now frozen.** No column,
+> token table, endpoint, route or `auth.verify.*` key exists on `main`. **V2-B
+> (2026-09-02) is documentation only** and delivered the frozen specification:
+> 23 EN/ES keys and the state mapping in `.ai/19_COPY_DECKS.md` §Email
+> verification, the flow and handoff boundaries in `.ai/17_PRODUCT_FLOWS.md`
+> §2.4, and the two proposed surfaces in `.ai/18_SCREEN_STATE_MATRICES.md`
+> §Proposed surfaces. Deep-link completion (Universal / App Links) also remains
+> open and is **not** claimed by this vertical.
+>
+> **Four owner decisions were ruled on 2026-09-02** and are recorded in all three
+> documents: the reminder persists until verified but is dismissible for the
+> current session — **in-memory only, tied to the authenticated session, cleared
+> on sign-out, session loss or app restart, never persisted to SQLite or the
+> server**; account creation completes first and the **delivery outcome never
+> alters, rolls back or changes the registration response**; links use
+> `https://account.appfitnessrd.com/verify-email#token=…`; and V1 uses per-user
+> opportunistic token cleanup with **no scheduler**, with global scheduled
+> purging tracked as post-V1 hardening.
+>
+> **Three corrections applied 2026-09-03**, each removing an unsupported claim
+> from the candidate. (a) The reminder body no longer says verification "keeps
+> your account recoverable" — **password recovery is shipped and works on an
+> unverified address**, so that was false. It now states that verification
+> confirms ownership of the address and enables future email updates. (b) The
+> landing's `requestNewLink` action is replaced by **`auth.verify.goToSignIn`**:
+> the Web-first landing is **session-agnostic** — it may open with or without an
+> authenticated session, so it **cannot rely on one** — and it holds **no email
+> address**, so it cannot resend. **Resend lives only on the authenticated
+> dashboard reminder.** V2-B adds no email input and no anonymous resend form.
+> (c) `auth.verify.continue` is frozen to navigate to the dashboard when a
+> session exists and to sign-in otherwise — **redeeming a token creates no
+> session**. The family remains **23 unique keys**.
+>
+> **Reconciled further 2026-09-03.** An earlier revision over-corrected, stating
+> the landing "has no session" and that "every path routes through sign-in".
+> Both were absolutes the surface cannot guarantee. **Failure-state navigation is
+> now conditional**: with a session the landing shows `auth.verify.continue` and
+> goes to the dashboard, where the reminder resends; without one it shows
+> `auth.verify.goToSignIn` and goes to sign-in, and the dashboard reminder
+> resends afterward. **Both keys are retained.** The two failure bodies were
+> reworded to be truthful in either state — "Request another from your account"
+> and "return to your account to request another" — naming *where* resend lives
+> without asserting the reader's session state.
+>
+> **Remaining sequence:** **V2-A** schema + backfill → **V2-C** backend →
+> **V2-D** mobile/Web → **V2-E** Development-first validation, then a separately
+> authorized Production gate (ADR-P026 Decision 17).
+>
+> **Two prerequisites V2-B cannot satisfy.** The account hostname **does not
+> exist**: it needs DNS and a CORS entry (owner/infra, V2-E). And
+> `api/src/config/mail.config.ts` exposes a **single** `MAIL_PUBLIC_BASE_URL`,
+> which today resolves to the recovery host — serving verification from a
+> different host requires a per-template base or a second variable, decided in
+> **V2-C**.
 
 > **ADR-P026 ACCEPTED 2026-08-27 — V1 Transactional Email, Password Recovery,
 > and Email Verification.** Both capabilities are **V1 launch requirements**.

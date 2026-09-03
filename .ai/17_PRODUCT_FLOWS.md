@@ -1,6 +1,6 @@
 # AppFitness Low-Fidelity Product Flows (V1)
 
-Version: 1.4
+Version: 1.5
 Status: Active
 Last Updated: 2026-09-02
 
@@ -105,7 +105,10 @@ Two facts that set the SHIPPED boundary and are easy to get wrong:
    localization keys and both `forgot-password` and `reset-password` routes
    (`mobile/src/app/`). It was Production-validated on 2026-09-02.
 2. **Email verification has no implementation anywhere.** ADR-P026 Vertical 2 is
-   accepted in principle only ⇒ **PROPOSED**.
+   accepted in principle, and its UX and copy are frozen by **V2-B**
+   (`.ai/19_COPY_DECKS.md` §Email verification, 2026-09-02) ⇒ still **PROPOSED**.
+   A frozen specification is not an implementation: no column, token table,
+   endpoint, route or key exists on `main`.
 3. **Emailed links still open the Web page, not the app.** Universal / App Links
    remain unconfigured and need a native rebuild — unchanged by the above.
 
@@ -180,7 +183,7 @@ not a rendering branch.
 ## Localization and copy intent
 
 EN and ES are **co-equal**; ES is not a translation afterthought. `main` holds
-**696 keys in each** with exact parity.
+**758 keys in each** with exact parity.
 
 Copy intent in this document is expressed as **what the message must accomplish**
 and **what it must not claim**. Two standing rules:
@@ -425,27 +428,144 @@ cannot be read during the first render without causing a hydration mismatch; it
 resolves on the first post-hydration render. UX-3 should specify it as a
 Loading treatment, and must not promote it into the state model.
 
-## 2.4 Email verification — PROPOSED (ADR-P026 Vertical 2)
+## 2.4 Email verification — PROPOSED, UX frozen by V2-B (ADR-P026 Vertical 2)
 
-**No implementation exists anywhere.** ADR-P026 fixes the policy, which
-constrains the eventual flow:
+**No implementation exists anywhere on `main`**: no `emailVerifiedAt` column, no
+verification-token table, no endpoint, no route, and no `auth.verify.*` key.
+What follows is the **frozen specification** produced by **V2-B** (2026-09-02),
+against which V2-C and V2-D implement. Copy lives in
+`.ai/19_COPY_DECKS.md` §Email verification; state mapping in
+`.ai/18_SCREEN_STATE_MATRICES.md` §Proposed surfaces.
 
-- Verification is a **soft gate**. New and unverified users keep **core app
-  access** and see a **persistent reminder** — never a lockout.
-- Existing accounts are backfilled unverified and are **never locked out**.
-- Verification becomes mandatory only **before** any future email-report or
+### Policy fixed by ADR-P026
+
+- Verification is a **soft gate**: unverified users keep **core app access** and
+  see a reminder — never a lockout.
+- Existing accounts backfill to `emailVerifiedAt = NULL` and are **never locked
+  out**. No `PENDING_VERIFICATION` value is added to `UserStatus`.
+- Verification becomes mandatory only **before** a future email-report or
   account-notification feature.
 - `resend-verification` returns an **identical response** regardless of account
   existence, exactly like recovery.
+- Token: 32-byte base64url, **SHA-256 stored only**, single-use via `consumedAt`,
+  **24-hour TTL**, new issuance invalidating prior active tokens.
 
-**Copy intent.** The reminder must be persistent but not alarming — it is
-`info`, never `warning` or `error`, because nothing is broken. It should say
-what verifying unlocks, not what it withholds.
+### Owner decisions (2026-09-02)
 
-**Flow shape (proposed).** A dismissible-per-session reminder on the dashboard;
-a resend action; a verification landing surface mirroring the reset landing
-(fragment token, memory capture, URL scrub). UX-3 should not detail this until
-Vertical 2 is authorized.
+- **Reminder lifetime:** persists until verified, **dismissible for the current
+  session**, returns next session. This reconciles Decision 11's "persistent"
+  with this section's former "dismissible-per-session" — both hold.
+  **"Current session" means in-memory state tied to the authenticated session,
+  cleared on sign-out, session loss or app restart** — never persisted to SQLite
+  and never sent to the server.
+- **Automatic issuance at registration**, and **a mail failure never rolls back
+  registration**.
+- **Link host:** `https://account.appfitnessrd.com/verify-email#token=…`.
+- **Token cleanup:** per-user opportunistic during issuance/reissuance; no
+  scheduler. Global purge is post-V1 hardening.
+
+### Flow shape
+
+```
+registration ──► account created ──► verification email issued (best-effort)
+                       │                        │ mail failure does NOT
+                       │                        │ roll back registration
+                       ▼                        ▼
+                  /dashboard  ◄── full core access, always
+                       │
+                       ├── [info reminder: Verify your email]
+                       │        ├── "Send verification email" ──► generic ack
+                       │        └── "Not now" ──► hidden THIS session only
+                       │              (in-memory; gone on sign-out or restart)
+                       │
+          (user opens the emailed link, any device/browser —
+           session may or may not be present; the landing assumes neither)
+                       ▼
+   account.appfitnessrd.com/verify-email#token=…
+                       │ fragment captured in memory, URL scrubbed
+                       ▼
+              [verifying] ──success──► [email verified]
+                       │                    └── Continue ──► dashboard if a
+                       │                        session exists, else sign-in
+                       └──failure──► [link no longer valid]
+                                            ├── session ──► Continue ──► dashboard
+                                            │                (reminder resends)
+                                            └── none ─────► Go to sign in ──►
+                                                 dashboard reminder resends after
+```
+
+### Soft gate — what stays available
+
+**Everything.** Dashboard, Workout Log, Nutrition, Food Log, Progress and
+Preferences are unaffected by verification state. The reminder is an **advisory
+affordance**, not a gate: it never blocks navigation, never disables a control,
+and never replaces content. An unverified user and a verified user differ only by
+the presence of the reminder.
+
+### Registration issuance and non-blocking failure
+
+**Account creation completes first.** Dispatch is then handed to the existing
+`MailDispatcher` on a **best-effort** basis — no persistence, no retry. The
+**delivery outcome must never alter, roll back, or change the registration
+response**: a created account stays created, and the response is byte-identical
+whether the provider succeeded, failed, or was never reached.
+
+This deliberately states an **ordering and independence contract, not a timing
+guarantee**. It does not assert that the HTTP response is emitted before the
+transport is touched — that is an implementation detail of the dispatcher, and
+V2-B does not constrain it. What is guaranteed is that nothing the transport does
+can reach the caller.
+
+The user-visible consequence of a lost send is a missing email, recovered by the
+resend action on the dashboard reminder.
+
+### Web fragment capture and the account host
+
+The link carries the token in the **URL fragment**, never the query string, so it
+cannot reach an access log, a proxy log, or a `Referer` header. The landing route
+captures it in memory and **scrubs it from the visible URL and the history
+entry** — the same handling the shipped `/reset-password` route already performs,
+including its re-assert loop that defeats the router re-appending the fragment.
+
+`account.appfitnessrd.com` is a **neutral account hostname**, deliberately not the
+recovery host: verification is ordinary account hygiene, not a credential-reset
+event, and the address bar should not say otherwise. **This host does not exist
+today** — provisioning it, allowing it in CORS, and pointing link construction at
+it are V2-C/V2-E work (see §Handoff), not part of this specification.
+
+**The landing is session-agnostic and holds no address.** It may be opened with
+an authenticated session or without one, on the registering device or another —
+so it **cannot rely on a session or on account context**, and must never assume
+either is present *or* absent. It **cannot resend**: it has no address, and V2-B
+defines **no email input and no anonymous resend form**. **Resend lives only on
+the authenticated dashboard reminder.**
+
+**Failure-state navigation is conditional.** With a session, the landing offers
+`auth.verify.continue` to the **dashboard**, where the reminder can resend.
+Without one, it offers `auth.verify.goToSignIn` to **sign-in**, and the
+authenticated dashboard reminder provides resend afterward. The failure copy is
+worded to be true either way.
+
+**Verification does not authenticate.** Redeeming the token sets `emailVerifiedAt`
+and nothing else — it creates, extends and restores no session. `Continue` on
+success therefore navigates to the **dashboard only when a session already
+exists**, and to **sign-in otherwise**.
+
+### Accessibility
+
+Copy and tone are specified. **No VoiceOver, TalkBack or browser-AT outcome is
+claimed** — announcement behaviour for the reminder and the landing transitions
+is the **UX-4C** manual pass, which remains unrun.
+
+### Handoff boundaries
+
+| Slice | Owns | Explicitly not owned here |
+|---|---|---|
+| **V2-A** | `emailVerifiedAt` column, verification-token table + partial unique index, `AuditAction` values, legacy backfill | any behaviour change |
+| **V2-B** *(this)* | In-app copy, state mapping, flow shape, soft-gate contract | any runtime, schema or route |
+| **V2-C** | Mail template + subject, token service methods, `resend-verification` / `verify-email` endpoints, throttles, audit, scrub, **link-base configuration for the account host** | in-app copy |
+| **V2-D** | `/verify-email` route, dashboard reminder, resend UI, EN/ES key import | endpoint behaviour |
+| **V2-E** | Development-first sandbox validation, then a separately authorized Production gate; **DNS and CORS for the account host** | any code change |
 
 ---
 

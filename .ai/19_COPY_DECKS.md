@@ -1,6 +1,6 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.8
+Version: 1.9
 Status: Active
 Last Updated: 2026-09-02
 
@@ -496,6 +496,146 @@ Nutrition or remove the targets → plan → log path.
 
 ---
 
+# Email verification — V2-B (ADR-P026 Vertical 2)
+
+**PROPOSED. No key here exists on `main`**, and no runtime, schema or route is
+authorized by this section. It freezes the copy and the state mapping so that
+V2-C (backend) and V2-D (mobile/Web) implement against a fixed contract rather
+than inventing copy mid-slice.
+
+## Owner decisions applied
+
+These four were ruled by the owner on 2026-09-02 and are the reason this section
+can be written at all; every one of them was previously open:
+
+1. **Reminder lifetime.** The dashboard reminder **persists until the address is
+   verified**, but is **dismissible for the current session** and **returns in the
+   next session**. This resolves the tension between ADR-P026 Decision 11
+   ("persistent reminder") and `.ai/17_PRODUCT_FLOWS.md` §2.4
+   ("dismissible-per-session"): both are honoured — persistent across sessions,
+   dismissible within one.
+
+   **"Dismissed for the current session" is defined precisely:** in-memory state
+   tied to the authenticated session, **cleared on sign-out, on session loss, and
+   on app restart**. It is **never written to SQLite** and **never sent to the
+   server** — no column, no sync field, no preference row. A dismissal that
+   survived a restart would be a persisted preference, which is a different
+   feature and is not authorized here.
+2. **Automatic issuance.** Registration issues the first verification email
+   automatically. **A mail failure must not roll back registration**; the account
+   is created and the user resends.
+3. **Link host.** `https://account.appfitnessrd.com/verify-email#token=…` — a
+   neutral account hostname, not the recovery host.
+4. **Token cleanup.** V1 uses **per-user opportunistic cleanup during issuance
+   and reissuance**. No scheduler is introduced (ADR-P026 Decision 12). Global
+   scheduled purging is tracked as **post-V1 hardening**.
+
+## Copy family — 23 keys, EN/ES parity
+
+### Dashboard reminder
+
+Tone is **`info`**, never `warning` or `error`: nothing is broken, and the body
+says what verifying **enables** rather than what it withholds (§2.4 copy intent).
+
+**The body claims only what is true.** It does **not** say verification keeps the
+account recoverable: password recovery is shipped and works on an unverified
+address — `forgot-password` looks up the account by email and never consults a
+verification flag. Copy implying otherwise would misdescribe shipped behaviour
+and pressure the user with a false risk.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `auth.verify.reminderTitle` | Verify your email | Verifica tu correo | **PROPOSED** — V2-D |
+| `auth.verify.reminderBody` | Verifying confirms this address belongs to you and enables email updates when they arrive. | Verificar confirma que esta dirección es tuya y habilita las novedades por correo cuando estén disponibles. | **PROPOSED** — V2-D |
+| `auth.verify.reminderResend` | Send verification email | Enviar correo de verificación | **PROPOSED** — V2-D |
+| `auth.verify.reminderDismiss` | Not now | Ahora no | **PROPOSED** — V2-D |
+| `auth.verify.reminderDismissAccessibility` | Hide this reminder until your next session | Ocultar este recordatorio hasta tu próxima sesión | **PROPOSED** — V2-D |
+
+### Resend outcome
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `auth.verify.resendSending` | Sending… | Enviando… | **PROPOSED** — V2-D |
+| `auth.verify.resentTitle` | Check your email | Revisa tu correo | **PROPOSED** — V2-D |
+| `auth.verify.resentBody` | If your address needs verifying, a link is on its way. It expires in 24 hours. | Si tu dirección necesita verificación, el enlace está en camino. Caduca en 24 horas. | **PROPOSED** — V2-D |
+| `auth.verify.resendFailedTitle` | Couldn't send right now | No se pudo enviar en este momento | **PROPOSED** — V2-D |
+| `auth.verify.resendFailedBody` | Your account is unaffected. Try again in a moment. | Tu cuenta no se ve afectada. Inténtalo de nuevo en un momento. | **PROPOSED** — V2-D |
+
+**`resentBody` is the throttle-safe and enumeration-safe acknowledgement.** It is
+the *same* string whether a mail was sent, the per-IP or per-account limit was
+hit, the address was already verified, or no such account exists — matching the
+identical `202` that ADR-P026 Decision 8 requires. Its conditional phrasing
+("if your address needs verifying") is deliberate: it is true in every one of
+those cases, so the UI never has to lie. **`resendFailedTitle/Body` is reserved
+for a failure the client itself observed** — no network, or mail globally
+disabled (a `503`) — never for a throttled or unknown-account response.
+
+### Verification landing (`/verify-email`)
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `auth.verify.screenTitle` | Verify email | Verificar correo | **PROPOSED** — V2-D |
+| `auth.verify.checkingTitle` | Verifying your email | Verificando tu correo | **PROPOSED** — V2-D |
+| `auth.verify.checkingBody` | This only takes a moment. | Esto solo toma un momento. | **PROPOSED** — V2-D |
+| `auth.verify.successTitle` | Email verified | Correo verificado | **PROPOSED** — V2-D |
+| `auth.verify.successBody` | Thanks — your address is confirmed. You can close this page. | Gracias, tu dirección está confirmada. Puedes cerrar esta página. | **PROPOSED** — V2-D |
+| `auth.verify.invalidTitle` | This link is no longer valid | Este enlace ya no es válido | **PROPOSED** — V2-D |
+| `auth.verify.invalidBody` | Verification links expire after 24 hours and can be used once. Request another from your account. | Los enlaces de verificación caducan a las 24 horas y se usan una sola vez. Solicita otro desde tu cuenta. | **PROPOSED** — V2-D |
+| `auth.verify.missingTokenTitle` | This link is incomplete | Este enlace está incompleto | **PROPOSED** — V2-D |
+| `auth.verify.missingTokenBody` | Open the verification link from your email again, or return to your account to request another. | Abre de nuevo el enlace de verificación de tu correo o vuelve a tu cuenta para solicitar otro. | **PROPOSED** — V2-D |
+| `auth.verify.errorTitle` | Something went wrong | Algo salió mal | **PROPOSED** — V2-D |
+| `auth.verify.errorBody` | We couldn't verify your email right now. Try the link again in a moment. | No pudimos verificar tu correo en este momento. Inténtalo de nuevo en un momento. | **PROPOSED** — V2-D |
+| `auth.verify.continue` | Continue | Continuar | **PROPOSED** — V2-D |
+| `auth.verify.goToSignIn` | Go to sign in | Ir a iniciar sesión | **PROPOSED** — V2-D |
+
+**One generic message covers expired, already-used and unrecognised tokens.**
+`invalidTitle`/`invalidBody` never disclose which of the three occurred — the
+same discipline the shipped reset landing applies, and the behaviour Production
+validation confirmed for recovery on 2026-09-02. `errorTitle`/`errorBody` is a
+*different* fact: the request itself failed, so the token may still be good and
+retrying the same link is the right advice.
+
+**The landing cannot resend, and must not pretend it can.** It is Web-first and
+**session-agnostic**: it may be opened with an authenticated session or without
+one, on the registering device or another. It therefore **cannot rely on a
+session or on account context**, and it holds **no email address** — the token
+arrives in the fragment, not an identifier. **V2-B defines no email input and no
+anonymous resend form**, so an action labelled "send a new link" would have
+nothing to send to. **Resend happens only from the authenticated dashboard
+reminder**, which does have an account context.
+
+**Both failure bodies are worded to stay true in either session state.**
+"Request another from your account" and "return to your account to request
+another" describe *where* resend lives without asserting whether the reader is
+currently signed in — so the same string is honest for a signed-in reader who is
+one tap from the dashboard and for a signed-out reader who must sign in first.
+
+**Failure-state navigation is conditional, not fixed.** When a session exists the
+landing shows **`auth.verify.continue`** and navigates to the **dashboard**,
+where the reminder can resend. When none exists it shows
+**`auth.verify.goToSignIn`** and navigates to **sign-in**, after which the
+authenticated dashboard reminder provides resend. Both keys are retained for this
+reason; neither replaces the other.
+
+**`auth.verify.continue` — frozen behaviour.** On success it navigates to the
+**dashboard when an authenticated session already exists**, and to **sign-in
+otherwise**. **Redeeming a verification token does not create, extend or restore
+a session** — it sets `emailVerifiedAt` and nothing else. No copy may imply the
+user has been signed in by following the link.
+
+**No key promises a retry control on a failed verification** beyond re-opening
+the link, and none claims a delivery guarantee — `MailDispatcher` is explicitly
+best-effort with no persistence or retry.
+
+## Copy this section deliberately does **not** define
+
+The **email body** for the verification message (subject, greeting, button,
+sign-off) belongs to the **V2-C** backend template alongside
+`password-reset.template.ts`, not to this deck — exactly as Vertical 1's reset
+email body lives in code rather than here. This section covers only in-app copy.
+
+---
+
 # Proposed-key handoff
 
 UX-3C handed off **33** proposed keys. **All thirty-three have now shipped**,
@@ -521,6 +661,11 @@ Every implementation slice must add EN and ES entries together, preserve exact
 key parity, add component/regression coverage, and keep raw technical messages
 out of presentation. No owning slice may import the remaining keys merely
 because they share this document.
+
+**A second, separate handoff opens with V2-B**: the **23** `auth.verify.*` keys
+above are PROPOSED and owned by **V2-D**. They are counted apart from the UX-3C
+set on purpose — UX-3C's 33 are closed, and folding a new batch into that total
+would erase the fact that it completed.
 
 ---
 
