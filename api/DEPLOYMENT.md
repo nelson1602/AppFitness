@@ -29,6 +29,7 @@ injected via environment variables.
 | `POSTMARK_SERVER_TOKEN` | Required when `MAIL_PROVIDER=postmark`. Postmark **server** token. Secret — never logged, never included in an error. **Set on Development first** and validate against the provider sandbox before Production (ADR-P026 Decision 17) |
 | `MAIL_FROM_ADDRESS` | Required when enabled. A single bare address on the **owned sending subdomain** with SPF/DKIM/DMARC verified, e.g. `no-reply@mail.<owned-domain>`. Display names and lists are rejected |
 | `MAIL_PUBLIC_BASE_URL` | Required when enabled. **HTTPS only** (plain HTTP is refused — a reset link is a bearer credential), no query string, no fragment, no embedded credentials. Reset links are built as `<base>/reset-password#token=…` — the token is in the **URL fragment**, which never reaches a server or proxy log. The path resolves to the Expo Web fallback route. A trailing slash is normalized away |
+| `MAIL_VERIFICATION_BASE_URL` | **Optional** (ADR-P026 Vertical 2, V2-C). Base for **email-verification** links, served from a neutral **account** host (`https://account.<domain>`) rather than the recovery host — verification is account hygiene, not a credential-reset event. Same rules as `MAIL_PUBLIC_BASE_URL`: **HTTPS only**, no query string, no fragment, no embedded credentials; links are built as `<base>/verify-email#token=…` with the token in the **fragment**. **Unset ⇒ verification mail is switched off**: registration issues no token, `POST /auth/resend-verification` answers a uniform `503`, and no link is ever built — while `POST /auth/verify-email` keeps working so an already-issued token stays redeemable. Deliberately optional so V2-C deploys safely **before** the account host exists (V2-E). Set-but-malformed still **throws at boot** |
 | `POSTMARK_MESSAGE_STREAM` | Optional; defaults to `outbound`. Must be a **transactional** stream — never a broadcast one |
 
 Rules: secrets exist ONLY in Railway's variable store. Never reuse
@@ -36,11 +37,14 @@ local `.env` values, never commit values, never share keys between
 environments (05_SECURITY.md).
 
 
-## Transactional email activation (ADR-P026 Vertical 1)
+## Transactional email activation (ADR-P026 Verticals 1 and 2)
 
-Password recovery ships **inert**: with `MAIL_PROVIDER` unset the code path is
-present, tested, and fail-closed, and no message can leave the process. Turning
-it on is a sequence of owner actions that ADR-P026 deliberately does **not**
+Password recovery **and** email verification ship **inert**: with
+`MAIL_PROVIDER` unset both code paths are present, tested, and fail-closed, and
+no message can leave the process. Verification has a **second** switch —
+`MAIL_VERIFICATION_BASE_URL` — so it stays off even on an environment where
+recovery is fully live, until the account host actually exists. Turning either
+on is a sequence of owner actions that ADR-P026 deliberately does **not**
 authorize on its own:
 
 1. **Own a domain** and create a **sending subdomain** (e.g. `mail.<domain>`).
@@ -53,6 +57,11 @@ authorize on its own:
 5. Replace the privacy-contact placeholder in `docs/legal/PRIVACY_POLICY.md`
    before AppFitnessRD sends mail in its own name.
 6. Only then repeat on **Production** with its own separate token.
+7. **For email verification only (V2-E):** provision the **account host**
+   (`account.<domain>`), point it at the surface serving the Expo Web export,
+   add it to `WEB_CORS_ORIGINS`, then set `MAIL_VERIFICATION_BASE_URL` on
+   **Development** first and validate against the sandbox before Production.
+   Until this step, verification is off and nothing about recovery changes.
 
 Five properties are worth keeping in mind when operating this:
 
@@ -60,6 +69,9 @@ Five properties are worth keeping in mind when operating this:
   unit and e2e tests; the Postmark adapter is unreachable from a test run.
 - **Emailed links need `MAIL_PUBLIC_BASE_URL` to point at a surface that serves
   the Expo Web export**, because `/reset-password` is the Web fallback route.
+  The same applies to `MAIL_VERIFICATION_BASE_URL` and `/verify-email`, which
+  **V2-D has not built yet** — another reason verification mail stays off until
+  that route exists.
   Native **Universal / App Links** — which would let the same HTTPS link open
   the installed app — require domain ownership plus a **native rebuild** and are
   NOT configured (`app.json` declares no `intentFilters`/`associatedDomains`).

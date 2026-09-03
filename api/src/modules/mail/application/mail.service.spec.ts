@@ -13,6 +13,7 @@ const ENABLED: PostmarkMailConfig = {
   fromAddress: 'no-reply@mail.example.com',
   messageStream: 'outbound',
   publicBaseUrl: 'https://app.example.com',
+  verificationBaseUrl: 'https://account.example.com',
 };
 
 const DISABLED: DisabledMailConfig = { provider: 'disabled' };
@@ -157,5 +158,77 @@ describe('DisabledMailTransport', () => {
     await expect(new DisabledMailTransport().send()).rejects.toBeInstanceOf(
       MailDisabledError,
     );
+  });
+
+  describe('email verification (ADR-P026 V2-C)', () => {
+    let transport: FakeMailTransport;
+    let service: MailService;
+
+    beforeEach(() => {
+      transport = new FakeMailTransport();
+      service = new MailService(ENABLED, transport);
+    });
+
+    it('builds the link on the ACCOUNT host with the token in the FRAGMENT', () => {
+      const url = service.emailVerificationUrl('raw-token');
+
+      expect(url).toBe(
+        'https://account.example.com/verify-email#token=raw-token',
+      );
+      // A fragment never reaches a request line, an access log, a proxy log,
+      // or a Referer header — the same reason recovery uses one.
+      expect(url).not.toContain('?');
+    });
+
+    it('serves verification from a different host than recovery', () => {
+      expect(new URL(service.emailVerificationUrl('t')).host).not.toBe(
+        new URL(service.passwordResetUrl('t')).host,
+      );
+    });
+
+    it('percent-encodes the token so it cannot break out of the fragment', () => {
+      expect(service.emailVerificationUrl('a+b/c=d&e')).toBe(
+        'https://account.example.com/verify-email#token=a%2Bb%2Fc%3Dd%26e',
+      );
+    });
+
+    it('reports enabled and sends a rendered verification message', async () => {
+      expect(service.verificationEnabled).toBe(true);
+
+      await service.sendEmailVerification({
+        to: 'user@example.test',
+        locale: 'en',
+        rawToken: 'raw-token',
+        expiresInHours: 24,
+      });
+
+      const sent = transport.last();
+      expect(sent?.templateId).toBe('email-verification');
+      expect(sent?.to).toBe('user@example.test');
+      expect(sent?.textBody).toContain(
+        'https://account.example.com/verify-email#token=raw-token',
+      );
+    });
+
+    it('fails closed without a verification base, leaving recovery untouched', () => {
+      const partial = new MailService(
+        { ...ENABLED, verificationBaseUrl: null },
+        transport,
+      );
+
+      expect(partial.verificationEnabled).toBe(false);
+      expect(() => partial.emailVerificationUrl('t')).toThrow(
+        MailDisabledError,
+      );
+      // The two capabilities fail independently — recovery still works.
+      expect(partial.enabled).toBe(true);
+      expect(() => partial.passwordResetUrl('t')).not.toThrow();
+    });
+
+    it('is disabled when no transport is bound at all', () => {
+      const off = new MailService(DISABLED, new DisabledMailTransport());
+      expect(off.verificationEnabled).toBe(false);
+      expect(() => off.emailVerificationUrl('t')).toThrow(MailDisabledError);
+    });
   });
 });

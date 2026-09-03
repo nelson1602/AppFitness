@@ -11,6 +11,7 @@ import { ThrottlerGuard } from '@nestjs/throttler';
 import { MailModule } from '../mail/mail.module';
 
 import { AuthService } from './application/auth.service';
+import { EmailVerificationService } from './application/email-verification.service';
 import { PasswordRecoveryService } from './application/password-recovery.service';
 import { CLOCK, SystemClock } from './infrastructure/clock.service';
 import { PasswordService } from './infrastructure/password.service';
@@ -82,6 +83,9 @@ export function resolveJwtSecret(
   providers: [
     AuthService,
     PasswordRecoveryService,
+    // Email verification (ADR-P026 Vertical 2, V2-C). Issuance is best-effort
+    // and can never alter the registration response.
+    EmailVerificationService,
     // Time seam for the password-recovery response floor; specs swap it for a
     // scripted clock so the timing boundary is asserted, not measured.
     { provide: CLOCK, useClass: SystemClock },

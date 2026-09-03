@@ -18,7 +18,10 @@ export const MAIL_LOCALES = ['en', 'es'] as const;
 export type MailLocale = (typeof MAIL_LOCALES)[number];
 
 /** Stable ids used for test assertions and provider-side categorization. */
-export const MAIL_TEMPLATE_IDS = ['password-reset'] as const;
+export const MAIL_TEMPLATE_IDS = [
+  'password-reset',
+  'email-verification',
+] as const;
 export type MailTemplateId = (typeof MAIL_TEMPLATE_IDS)[number];
 
 /**

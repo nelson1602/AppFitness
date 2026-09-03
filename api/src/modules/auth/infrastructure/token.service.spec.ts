@@ -67,3 +67,48 @@ describe('msFromExpiry', () => {
     expect(msFromExpiry('nonsense')).toBe(7 * 86_400_000);
   });
 });
+
+/**
+ * Email-verification token generation (ADR-P026 Decision 6, V2-C). Asserted
+ * directly rather than through the flow, for the same reason the reset-token
+ * suite above is: the hash-only storage guarantee starts here.
+ */
+describe('TokenService email-verification tokens', () => {
+  const service = new TokenService(
+    {} as unknown as JwtService,
+    { get: () => undefined } as unknown as ConfigService,
+  );
+
+  it('produces a 32-byte base64url value with its SHA-256 hash', () => {
+    const { raw, hash } = service.generateEmailVerificationToken();
+
+    expect(raw).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(Buffer.from(raw, 'base64url')).toHaveLength(32);
+    expect(hash).toBe(createHash('sha256').update(raw).digest('hex'));
+    expect(hash).not.toContain(raw);
+  });
+
+  it('hashes deterministically and distinguishes different inputs', () => {
+    expect(service.hashEmailVerificationToken('abc')).toBe(
+      service.hashEmailVerificationToken('abc'),
+    );
+    expect(service.hashEmailVerificationToken('abc')).not.toBe(
+      service.hashEmailVerificationToken('abd'),
+    );
+  });
+
+  it('never repeats a token across issuances', () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 200; i++) {
+      seen.add(service.generateEmailVerificationToken().raw);
+    }
+    expect(seen.size).toBe(200);
+  });
+
+  it('fixes the TTL at 24 hours — far longer than a reset token', () => {
+    expect(service.emailVerificationTtlMs()).toBe(24 * 60 * 60 * 1000);
+    expect(service.emailVerificationTtlMs()).toBeGreaterThan(
+      service.passwordResetTtlMs(),
+    );
+  });
+});
