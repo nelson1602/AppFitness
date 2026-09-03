@@ -56,6 +56,34 @@ export const en = {
   'auth.reset.missingTokenTitle': 'This link is incomplete',
   'auth.reset.missingTokenBody': 'Open the reset link from your email again, or request a new one.',
   'auth.reset.requestNewLink': 'Request a new link',
+  'auth.verify.reminderTitle': 'Verify your email',
+  'auth.verify.reminderBody':
+    'Verifying confirms this address belongs to you and enables email updates when they arrive.',
+  'auth.verify.reminderResend': 'Send verification email',
+  'auth.verify.reminderDismiss': 'Not now',
+  'auth.verify.reminderDismissAccessibility': 'Hide this reminder until your next session',
+  'auth.verify.resendSending': 'Sending…',
+  'auth.verify.resentTitle': 'Check your email',
+  'auth.verify.resentBody':
+    'If your address needs verifying, a link is on its way. It expires in 24 hours.',
+  'auth.verify.resendFailedTitle': "Couldn't send right now",
+  'auth.verify.resendFailedBody': 'Your account is unaffected. Try again in a moment.',
+  'auth.verify.screenTitle': 'Verify email',
+  'auth.verify.checkingTitle': 'Verifying your email',
+  'auth.verify.checkingBody': 'This only takes a moment.',
+  'auth.verify.successTitle': 'Email verified',
+  'auth.verify.successBody': 'Thanks — your address is confirmed. You can close this page.',
+  'auth.verify.invalidTitle': 'This link is no longer valid',
+  'auth.verify.invalidBody':
+    'Verification links expire after 24 hours and can be used once. Request another from your account.',
+  'auth.verify.missingTokenTitle': 'This link is incomplete',
+  'auth.verify.missingTokenBody':
+    'Open the verification link from your email again, or return to your account to request another.',
+  'auth.verify.errorTitle': 'Something went wrong',
+  'auth.verify.errorBody':
+    "We couldn't verify your email right now. Try the link again in a moment.",
+  'auth.verify.continue': 'Continue',
+  'auth.verify.goToSignIn': 'Go to sign in',
   'auth.error.mailUnavailableTitle': 'Password reset is unavailable',
   'auth.error.mailUnavailableBody':
     'We cannot send reset emails right now. Please try again later.',

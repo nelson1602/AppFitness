@@ -61,6 +61,34 @@ export const es = {
   'auth.reset.missingTokenTitle': 'Este enlace está incompleto',
   'auth.reset.missingTokenBody': 'Vuelve a abrir el enlace desde tu correo o solicita uno nuevo.',
   'auth.reset.requestNewLink': 'Solicitar un enlace nuevo',
+  'auth.verify.reminderTitle': 'Verifica tu correo',
+  'auth.verify.reminderBody':
+    'Verificar confirma que esta dirección es tuya y habilita las novedades por correo cuando estén disponibles.',
+  'auth.verify.reminderResend': 'Enviar correo de verificación',
+  'auth.verify.reminderDismiss': 'Ahora no',
+  'auth.verify.reminderDismissAccessibility': 'Ocultar este recordatorio hasta tu próxima sesión',
+  'auth.verify.resendSending': 'Enviando…',
+  'auth.verify.resentTitle': 'Revisa tu correo',
+  'auth.verify.resentBody':
+    'Si tu dirección necesita verificación, el enlace está en camino. Caduca en 24 horas.',
+  'auth.verify.resendFailedTitle': 'No se pudo enviar en este momento',
+  'auth.verify.resendFailedBody': 'Tu cuenta no se ve afectada. Inténtalo de nuevo en un momento.',
+  'auth.verify.screenTitle': 'Verificar correo',
+  'auth.verify.checkingTitle': 'Verificando tu correo',
+  'auth.verify.checkingBody': 'Esto solo toma un momento.',
+  'auth.verify.successTitle': 'Correo verificado',
+  'auth.verify.successBody': 'Gracias, tu dirección está confirmada. Puedes cerrar esta página.',
+  'auth.verify.invalidTitle': 'Este enlace ya no es válido',
+  'auth.verify.invalidBody':
+    'Los enlaces de verificación caducan a las 24 horas y se usan una sola vez. Solicita otro desde tu cuenta.',
+  'auth.verify.missingTokenTitle': 'Este enlace está incompleto',
+  'auth.verify.missingTokenBody':
+    'Abre de nuevo el enlace de verificación de tu correo o vuelve a tu cuenta para solicitar otro.',
+  'auth.verify.errorTitle': 'Algo salió mal',
+  'auth.verify.errorBody':
+    'No pudimos verificar tu correo en este momento. Inténtalo de nuevo en un momento.',
+  'auth.verify.continue': 'Continuar',
+  'auth.verify.goToSignIn': 'Ir a iniciar sesión',
   'auth.error.mailUnavailableTitle': 'El restablecimiento no está disponible',
   'auth.error.mailUnavailableBody':
     'Ahora mismo no podemos enviar correos de restablecimiento. Inténtalo más tarde.',
