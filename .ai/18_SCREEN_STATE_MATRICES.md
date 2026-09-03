@@ -761,9 +761,11 @@ likewise a UX-4C question, not a copy decision, and is deliberately left as-is.
 **Neither surface below is counted in the ten**, and neither contributes to the
 PROPOSED totals in §Coverage summary. That section is scoped to **shipped**
 surfaces, and its "PROPOSED: none" means every applicable state on a surface that
-exists has a treatment. These two surfaces **do not exist on `main`** — no route,
-no component, no column, no key. They are recorded here so V2-D implements
-against a fixed state mapping instead of inventing one.
+exists has a treatment. These two surfaces **do not exist** — no route, no
+component, no key, and no behaviour behind them. V2-A defines the
+`emailVerifiedAt` column the reminder will eventually read, but nothing reads
+it yet. They are recorded here so V2-D implements against a fixed state mapping
+instead of inventing one.
 
 Copy is frozen in `.ai/19_COPY_DECKS.md` §Email verification; flow shape in
 `.ai/17_PRODUCT_FLOWS.md` §2.4.
