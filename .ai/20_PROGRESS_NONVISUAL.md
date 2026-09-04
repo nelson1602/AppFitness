@@ -187,11 +187,15 @@ not been exercised anywhere.
 
 Two, both verifiable at `d41efc69`.
 
-## F-1 — the per-point accessible label exposes a raw ISO date
+## F-1 — the per-point accessible label exposed a raw ISO date
 
-`ProgressScreen.tsx:104`, `:108`, `:113` pass the stored `YYYY-MM-DD` string
-straight through as `TrendPoint.label`, and `TrendBars.tsx:108` renders it
-verbatim inside the per-bar `accessibilityLabel`.
+**Fixed 2026-09-04 by BUG-013**; this section records the finding as audited.
+At that audit `ProgressScreen.tsx:104`, `:108`, `:113` passed the stored
+`YYYY-MM-DD` string straight through as `TrendPoint.label`, and
+`TrendBars.tsx:108` rendered it verbatim inside the per-bar
+`accessibilityLabel`. Point labels are now localized and weekly-volume points
+carry the `weekOf` prefix, satisfying **R-1** and **R-2**; every other
+requirement in this specification remains unimplemented.
 
 Every other date on the screen is localized: the latest-weight line and
 `WeeklySnapshotSummary` both call `formatDate` with the active language. The bar

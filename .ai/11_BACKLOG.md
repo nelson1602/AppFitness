@@ -1552,9 +1552,11 @@ Excluded:
        keys from an earlier draft were **dropped** once the no-nesting rule
        removed the wrappers they would have named, rather than being kept as dead
        copy.
-     - **F-1 → BUG-013.** The per-bar accessible label exposes a raw
-       `YYYY-MM-DD` — the only unlocalized date on the Progress surface, and one
-       only assistive-technology users reach.
+     - **F-1 → BUG-013. Fixed 2026-09-04.** The per-bar accessible label exposed
+       a raw `YYYY-MM-DD` — the only unlocalized date on the Progress surface,
+       and one only assistive-technology users reach. Point labels are now
+       localized, and weekly-volume points carry the `weekOf` prefix; the rest of
+       UX-3D remains unimplemented.
      - **F-2 — the `accent` role is in use.** `theme.colors.accent` has exactly
        one consumer, `TrendBars.tsx:113` (the latest bar). **ADR-P027**'s
        consequence bullet said it "remains unused"; that clause is corrected.
@@ -3299,12 +3301,12 @@ one, from at least one surface, without either version being silently discarded.
 
 ## [BUG-013] Trend-Chart Point Labels Expose a Raw `YYYY-MM-DD` to Assistive Technology
 
-Status: Open
+Status: **Done** (2026-09-04 — fixed in this change; see Resolution)
 Priority: P3
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-08-28
+Updated: 2026-09-04
 
 ### Description
 
@@ -3352,12 +3354,47 @@ are identifiable as weeks.
 
 ### Acceptance Criteria
 
-- [ ] Point labels render a localized date via `formatDate` +
+- [x] Point labels render a localized date via `formatDate` +
       `parseLocalDate` — no UTC day shift (ADR-P016 D6).
-- [ ] Week-period points are prefixed with `progress.weekly.weekOf`.
-- [ ] Regression specs assert the localized label in **EN and ES** (UX-3D R-1,
+- [x] Week-period points are prefixed with `progress.weekly.weekOf`.
+- [x] Regression specs assert the localized label in **EN and ES** (UX-3D R-1,
       R-2).
-- [ ] No accessibility **outcome** is claimed before the **UX-4C** manual pass.
+- [x] No accessibility **outcome** is claimed before the **UX-4C** manual pass.
+
+### Resolution
+
+Fixed on `codex/fix-progress-trend-date-labels`. Line references in the
+Description and Evidence sections above are as audited at
+`d41efc69df4a48c0b0fb4f4ca2ad8884c6e648b7`; the fix moved them.
+
+`ProgressScreen.tsx` gains a `formatPointDate` helper that pairs the existing
+exported `parseLocalDate` with `formatDate` and the same date options the
+latest-weight line and `WeeklySnapshotSummary` already use, so every date on the
+Progress surface now reads identically in the active language and no UTC day
+shift is introduced (ADR-P016 D6). The weight and muscle-mass series map their
+stored date through it; the weekly-volume series additionally prefixes the
+existing `progress.weekly.weekOf` key, because a volume point is a **week**, not
+a day (UX-3D R-2).
+
+- **`TrendBars` is unchanged.** It already consumed `TrendPoint.label` verbatim,
+  so resolving the label at the mapping site was sufficient; duplicating date
+  parsing inside the chart would have added a second source of truth for no gain.
+- **Nothing else moves.** Values, units, ordering, truncation, the trend
+  calculations, the visible UI, and store/repository behaviour are untouched, and
+  no localization key was added — this was a formatting defect, not a missing
+  string.
+- **Regression coverage** asserts the localized labels for all three series in
+  **EN and ES**, and proves no accessible label on the surface matches
+  `YYYY-MM-DD` in either language. The absence assertions carry a point-label
+  count so they cannot pass vacuously if the bars stop rendering. Reverting the
+  three mappings fails **8** of them.
+- **Scope held:** this closes BUG-013 only. It does **not** implement UX-3D — the
+  series-title prefix (R-3), latest marker (R-4) and the rest of that
+  specification remain unimplemented — and BUG-011 / BUG-012 are untouched.
+
+**No accessibility outcome is claimed.** These are resolved-label assertions in a
+test renderer. VoiceOver, TalkBack and browser-AT verification remain the
+**UX-4C** manual pass, which is still unrun.
 
 ### Related Documents
 
