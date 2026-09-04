@@ -1949,11 +1949,11 @@ before UX-5 touches those surfaces.
 
 ## [FEATURE-011] V1 Transactional Email, Password Recovery, and Email Verification
 
-Status: **In Progress** — Vertical 1 (mail foundation + password recovery)
+Status: **Done** — Vertical 1 (mail foundation + password recovery)
 shipped and **Production-validated 2026-09-02**; Vertical 2 (email
-verification) is built end to end (V2-A/C/D) and **Development-validated
-2026-09-04 (V2-E Development half)**; **Production activation is a separate
-authorized gate and has not been run**
+verification) built end to end (V2-A/C/D) and **Production-validated
+2026-09-04 (V2-E, both halves)**. Deep-link completion (Universal / App Links,
+native rebuild) is tracked separately and is **not** claimed by this feature.
 Priority: P1
 Type: Feature
 Owner: Product / Security / Architecture
@@ -2032,8 +2032,8 @@ Updated: 2026-09-04
 >
 > **Remaining sequence:** **V2-A** schema → **V2-C** backend (this slice) →
 > **V2-D** mobile/Web → **V2-E** Development-first validation, then a separately
-> authorized Production gate (ADR-P026 Decision 17). **V2-E's Development half
-> passed 2026-09-04; the Production gate remains outstanding.**
+> authorized Production gate (ADR-P026 Decision 17). **Both V2-E halves passed
+> on 2026-09-04, in that order; the sequence is complete.**
 >
 > **V2-D (2026-09-03) delivered the user-facing surface, and no delivery.**
 > One Expo Router `/verify-email` route shared by native and Web: it captures
@@ -2061,9 +2061,11 @@ Updated: 2026-09-04
 > **Nothing was delivered by V2-D itself.** At the time of that slice
 > `MAIL_VERIFICATION_BASE_URL` was unset everywhere, so no verification email
 > was sent and no user reached the landing from a real link. **V2-E** — DNS and
-> CORS for `account.appfitnessrd.com`, then Development-first sandbox
-> validation — followed; its Development half passed on 2026-09-04 and is
-> recorded below. **Production delivery is still off.**
+> CORS for the account hosts, then Development-first sandbox
+> validation — followed; **both halves passed on 2026-09-04** and are
+> recorded below. **Production now attempts verification delivery for
+> registrations**; a successful delivery reaches the Web portal, while a mail
+> failure remains **non-blocking** and resend remains available.
 >
 > **V2-C (2026-09-03) delivered the backend, and nothing user-facing.**
 > Automatic issuance at registration (best-effort; a mail failure never alters
@@ -2114,16 +2116,18 @@ Updated: 2026-09-04
 > `emailVerifiedAt` untouched. The client realm-slot experiment remains **not**
 > approved and **not** required. Password-reset replay is unchanged.
 >
-> **The V2-E prerequisite is met.** The account hostname now **resolves**: DNS
-> and the CORS entry are in place (owner/infra). The second-variable
+> **The V2-E prerequisite is met.** Both account hostnames **resolve**: DNS
+> and the CORS entries are in place (owner/infra). The second-variable
 > question was already **resolved**: V2-C added `MAIL_VERIFICATION_BASE_URL`
 > alongside `MAIL_PUBLIC_BASE_URL`, so verification and recovery are served from
-> different hosts and fail independently. Where that variable is unset —
-> **Production today** — verification mail stays off by construction and no link
-> is ever built.
+> different hosts and fail independently. Both variables are now set in both
+> environments, each pointing at that environment's own account host.
 >
 > **V2-E Development half — PASSED 2026-09-04.** Validated against the
-> **Development** environment only, with a **synthetic account**:
+> **Development** environment only, with a **synthetic account**. *(At the time
+> of this half, Development still used `account.appfitnessrd.com`; that host was
+> subsequently handed to Production and Development moved to
+> `account-dev.appfitnessrd.com` — see the Production half below.)*
 >
 > - `https://account.appfitnessrd.com/verify-email` returned **200**, and
 >   Development CORS allowed **exactly** `https://account.appfitnessrd.com`.
@@ -2143,16 +2147,52 @@ Updated: 2026-09-04
 > - The synthetic account was **deleted**, and a subsequent login returned
 >   **401**.
 >
-> **Production remains intentionally disabled.** `MAIL_VERIFICATION_BASE_URL`
-> is **absent** in Production, and this gate triggered **no Production
-> configuration change and no Production deployment**. **The complete Production
-> release gate is NOT passed**: Development is validated; Production
-> email-verification activation requires **separate explicit authorization and
-> its own evidence**. The **Universal / App Links** and **native-build** gates
-> are untouched and remain open.
+> **V2-E Production half — PASSED 2026-09-04.** Separately authorized, run
+> after the Development half, with a **synthetic Production account**. Each
+> environment ended the gate on its **own** account portal, served by its own
+> Cloudflare Worker version from its own single-environment bundle:
 >
-> No address, credential, token, raw link, message identifier, request
-> identifier or secret is recorded here or anywhere in this repository.
+> - **Development portal** `https://account-dev.appfitnessrd.com`, Worker
+>   version `e4e4308d-a655-4f16-9de4-40819195a394`, serving the
+>   **Development-only** bundle. Development Railway deployment
+>   `7ceecdec-9d53-4a3c-80bc-da5b95bf0f09` succeeded after moving
+>   `MAIL_VERIFICATION_BASE_URL` and CORS to that Development hostname.
+> - **Production portal** `https://account.appfitnessrd.com`, Worker version
+>   `bcc9ed68-e25d-406d-8618-f1618108bd0e`, serving the **Production-only**
+>   bundle. Production Railway deployment
+>   `bd236717-410d-43ec-8dfa-635c3ab01972` succeeded after enabling
+>   `MAIL_VERIFICATION_BASE_URL` and adding the **exact** Account origin to
+>   CORS **while preserving Recovery**.
+> - **Both `/health` endpoints returned HTTP 200.** The allow-lists are
+>   **disjoint**: Production accepts only its Account and Recovery origins and
+>   **rejects the Development Account origin**; Development accepts its
+>   Account-Dev origin and **rejects the Production Account origin**. What this
+>   verifies is that **each browser portal is prevented by CORS from calling the
+>   other environment's API**. Cross-environment token redemption was **not**
+>   tested and is **not** claimed here.
+> - A **real synthetic Production registration** delivered the **Spanish**
+>   transactional verification email with **open and link tracking disabled**
+>   and the token **exclusively in the URL fragment**.
+> - The **first opening** returned the empty **204**, rendered **success**,
+>   contacted **only the Production API**, **scrubbed the fragment**, and
+>   created **no cookie and no session**.
+> - **Reopening the original link in a fresh browser realm** again returned the
+>   empty **204** and rendered **success**, contacting only the Production API,
+>   scrubbing the fragment, and creating **no cookie and no session**. Database
+>   state was **not** compared before and after the replay, so **no
+>   no-mutation claim rests on this gate**: that invariant is established by
+>   **ADR-P029 and its automated tests**, not by this external validation.
+> - Authenticated `GET /auth/me` confirmed `emailVerifiedAt`.
+> - The synthetic account was **deleted**, and a subsequent login returned
+>   **401**.
+>
+> **What this gate does not close.** **Universal / App Links** and the
+> **native rebuild** remain open — an emailed link still opens the Web portal,
+> not the app. The **store**, **accessibility (UX-4C)**, **legal sign-off** and
+> **backup/PITR** gates are untouched and remain open on their own terms.
+>
+> No address, credential, token, raw link, Postmark message or request
+> identifier, or secret is recorded here or anywhere in this repository.
 
 > **ADR-P026 ACCEPTED 2026-08-27 — V1 Transactional Email, Password Recovery,
 > and Email Verification.** Both capabilities are **V1 launch requirements**.

@@ -104,18 +104,19 @@ Two facts that set the SHIPPED boundary and are easy to get wrong:
    `724a18e7`: `main` now carries **8** `auth.forgot.*` and **14** `auth.reset.*`
    localization keys and both `forgot-password` and `reset-password` routes
    (`mobile/src/app/`). It was Production-validated on 2026-09-02.
-2. **Email verification is built end to end and live in Development only.**
-   ADR-P026 Vertical 2 is accepted; **V2-B** froze the UX and copy, **V2-A**
+2. **Email verification is SHIPPED and live in Production.** ADR-P026
+   Vertical 2 is accepted; **V2-B** froze the UX and copy, **V2-A**
    added the schema, **V2-C** the backend, and **V2-D** the user-facing
    surface — the `/verify-email` route, the dashboard reminder with resend,
-   and all **23** `auth.verify.*` keys in EN and ES. **V2-E's Development half
-   passed on 2026-09-04**: the account host now resolves over HTTPS, Development
-   `MAIL_VERIFICATION_BASE_URL` is set to that origin, and a real Spanish
-   message was delivered, redeemed and replayed end to end. **Production is
-   still off by construction** — `MAIL_VERIFICATION_BASE_URL` is absent there,
-   so registration issues nothing, the reminder's resend answers the fail-closed
-   `503` path, and no Production user receives a link. Switching Production on
-   is a **separately authorized gate** that has not been run.
+   and all **23** `auth.verify.*` keys in EN and ES. **V2-E passed both halves
+   on 2026-09-04** — Development first, then Production. Each environment has
+   its own account portal and its own `MAIL_VERIFICATION_BASE_URL`:
+   `account.appfitnessrd.com` for Production, `account-dev.appfitnessrd.com`
+   for Development. A real Spanish message was delivered, redeemed and replayed
+   end to end in **Production** against a synthetic account that was afterwards
+   deleted. Production now **attempts** verification delivery for registrations;
+   a successful delivery reaches the Web portal, while a mail failure remains
+   **non-blocking** and resend remains available.
 3. **Emailed links still open the Web page, not the app.** Universal / App Links
    remain unconfigured and need a native rebuild — unchanged by the above.
 
@@ -435,22 +436,22 @@ cannot be read during the first render without causing a hydration mismatch; it
 resolves on the first post-hydration render. UX-3 should specify it as a
 Loading treatment, and must not promote it into the state model.
 
-## 2.4 Email verification — PROPOSED, UX frozen by V2-B (ADR-P026 Vertical 2)
+## 2.4 Email verification — SHIPPED (ADR-P026 Vertical 2), UX frozen by V2-B
 
-**Implemented end to end; delivering in Development, off in Production.**
+**Implemented end to end and delivering in every environment.**
 **V2-A** added the
 schema, **V2-C** the backend (issuance at registration, the authenticated
 `POST /auth/resend-verification`, the public `POST /auth/verify-email`, the
 EN/ES mail template, limits, audit and scrubbing), and **V2-D** the user-facing
 surface: the `/verify-email` route shared by native and Web, the advisory
 dashboard reminder with resend, and the 23 `auth.verify.*` keys in both
-languages. **V2-E's Development half passed 2026-09-04** — the account host
-resolves, Development `MAIL_VERIFICATION_BASE_URL` points at it, and delivery,
-redemption and replay were exercised against a synthetic account.
-**Production remains intentionally disabled**: `MAIL_VERIFICATION_BASE_URL` is
-absent there and **no verification email is sent in Production**. Turning it on
-requires **separate explicit authorization and its own evidence**.
-What follows is the **frozen specification** produced by
+languages. **V2-E passed on 2026-09-04, Development then Production** — each
+environment has its own account portal and its own
+`MAIL_VERIFICATION_BASE_URL`, and delivery, redemption and replay were
+exercised against a synthetic account in both. **Production now attempts
+verification delivery for registrations** — a successful delivery reaches the
+Web portal, while a mail failure stays **non-blocking** and resend remains
+available. What follows is the **frozen specification** produced by
 **V2-B** (2026-09-02), which V2-C and V2-D implemented against. Copy lives in
 `.ai/19_COPY_DECKS.md` §Email verification; state mapping in
 `.ai/18_SCREEN_STATE_MATRICES.md` §Proposed surfaces.
@@ -561,10 +562,16 @@ including its re-assert loop that defeats the router re-appending the fragment.
 
 `account.appfitnessrd.com` is a **neutral account hostname**, deliberately not the
 recovery host: verification is ordinary account hygiene, not a credential-reset
-event, and the address bar should not say otherwise. **The host now resolves**:
-`https://account.appfitnessrd.com/verify-email` answered `200` on 2026-09-04, and
-Development CORS allows exactly that HTTPS origin. Provisioning it and pointing
-link construction at it were V2-C/V2-E work (see §Handoff), not part of this
+event, and the address bar should not say otherwise. **The host is live**:
+`https://account.appfitnessrd.com/verify-email` answered `200` on 2026-09-04 and
+is the **Production** link host, with Production CORS allowing exactly that
+origin alongside Recovery. **Development uses a separate host**,
+`account-dev.appfitnessrd.com`, and the two allow-lists are disjoint — each API
+rejects the other environment's Account origin, so **each browser portal is
+prevented by CORS from calling the other environment's API**. That is a
+browser-enforced boundary on the portals; cross-environment token redemption was
+not tested and is not claimed. Provisioning both and pointing
+link construction at them were V2-C/V2-E work (see §Handoff), not part of this
 specification.
 
 **The landing is session-agnostic and holds no address.** It may be opened with
@@ -599,7 +606,7 @@ is the **UX-4C** manual pass, which remains unrun.
 | **V2-B** *(this)* | In-app copy, state mapping, flow shape, soft-gate contract | any runtime, schema or route |
 | **V2-C** *(done)* | Mail template + subject, token service methods, `resend-verification` / `verify-email` endpoints, throttles, audit, scrub, **link-base configuration for the account host** (`MAIL_VERIFICATION_BASE_URL`, optional — verification mail stays off until it is set) | in-app copy |
 | **V2-D** *(done)* | `/verify-email` route, dashboard reminder, resend UI, EN/ES key import | endpoint behaviour |
-| **V2-E** *(Development half done 2026-09-04)* | Development-first sandbox validation **(passed)**, then a **separately authorized Production gate (not run)**; **DNS and CORS for the account host** *(done — the host resolves and Development CORS allows exactly that origin)* | any code change; Production activation |
+| **V2-E** *(complete 2026-09-04)* | Development-first sandbox validation **(passed)**, then the separately authorized **Production gate (passed)**; **DNS and CORS for both account hosts** *(done — `account.appfitnessrd.com` for Production, `account-dev.appfitnessrd.com` for Development, with disjoint allow-lists)* | any code change; Universal / App Links and the native rebuild |
 
 ---
 

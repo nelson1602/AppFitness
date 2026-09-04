@@ -766,8 +766,14 @@ exists has a treatment. **V2-D has since built both surfaces** — the
 below, which is why it is left unchanged: it is now the specification the
 shipped code implements rather than a proposal. They remain outside the ten
 because the reminder is an advisory affordance and the landing is a Web-first
-link target, not screens the dashboard inventory covers. **No verification
-email is sent yet** (V2-E), so neither surface is reachable from a real link.
+link target, not screens the dashboard inventory covers. **Both surfaces are
+now reachable from a real link**: V2-E passed in Production on 2026-09-04, so
+registration attempts verification delivery and a delivered message opens the
+landing from the mailbox. Delivery stays best-effort — a mail failure is
+non-blocking and resend remains available. The per-row **PROPOSED — V2-D**
+markers below are left as written —
+they identify the frozen V2-B mapping each row belongs to, not an unbuilt
+surface.
 
 Copy is frozen in `.ai/19_COPY_DECKS.md` §Email verification; flow shape in
 `.ai/17_PRODUCT_FLOWS.md` §2.4.

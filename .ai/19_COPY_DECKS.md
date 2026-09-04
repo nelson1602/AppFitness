@@ -525,9 +525,10 @@ can be written at all; every one of them was previously open:
    automatically. **A mail failure must not roll back registration**; the account
    is created and the user resends.
 3. **Link host.** `https://account.appfitnessrd.com/verify-email#token=…` — a
-   neutral account hostname, not the recovery host. **Live since 2026-09-04**
-   and used by Development delivery; Production link construction stays off
-   until its own authorized gate.
+   neutral account hostname, not the recovery host. **Live and in Production
+   use since 2026-09-04.** Development builds its links from the separate
+   `account-dev.appfitnessrd.com` host, so the two environments never share a
+   link origin.
 4. **Token cleanup.** V1 uses **per-user opportunistic cleanup during issuance
    and reissuance**. No scheduler is introduced (ADR-P026 Decision 12). Global
    scheduled purging is tracked as **post-V1 hardening**.
