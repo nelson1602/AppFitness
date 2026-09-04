@@ -162,9 +162,10 @@ describe('ProgressScreen (Slice 5a)', () => {
       snapshots: [week],
     });
     await render(<ProgressScreen />);
-    // Weight trend (2 points → bars with per-point a11y labels).
-    expect(screen.getByLabelText('2026-08-01: 81 kg')).toBeOnTheScreen();
-    expect(screen.getByLabelText('2026-08-03: 80 kg')).toBeOnTheScreen();
+    // Weight trend (2 points → bars with per-point a11y labels). The dates are
+    // localized, never the stored `YYYY-MM-DD` (BUG-013).
+    expect(screen.getByLabelText('Aug 1, 2026: 81 kg')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Aug 3, 2026: 80 kg')).toBeOnTheScreen();
     // Weekly snapshot summary is rendered.
     expect(screen.getByTestId('weekly-snapshot-summary')).toBeOnTheScreen();
     expect(screen.getByText('Week of Aug 3, 2026')).toBeOnTheScreen();
@@ -330,5 +331,111 @@ describe('ProgressScreen (Slice 5a)', () => {
     expect(
       screen.getByLabelText('Conflicto de sincronización del registro de progreso'),
     ).toHaveTextContent('Conflicto');
+  });
+
+  /**
+   * BUG-013 / UX-3D R-1 and R-2. The bars carry no visible text, so these
+   * labels are reached ONLY through assistive technology — they were the one
+   * date on this surface still announced in raw storage format.
+   *
+   * English is asserted exactly, Spanish by day + year, following this file's
+   * existing convention: the Spanish month abbreviation is ICU-version
+   * dependent, so pinning it would make the suite brittle rather than stricter.
+   *
+   * These assert the RESOLVED label only. No VoiceOver, TalkBack or browser-AT
+   * outcome is claimed here — that remains the unrun UX-4C pass.
+   */
+  describe('trend point labels are localized (BUG-013)', () => {
+    /**
+     * Any stored-format date, in any accessible label. Written with character
+     * classes so the pattern needs no escaping to read correctly in review.
+     */
+    const RAW_ISO = /[0-9]{4}-[0-9]{2}-[0-9]{2}/;
+    /** Any label carrying a value, i.e. every per-bar point label. */
+    const POINT_LABEL = /: [0-9]/;
+
+    // TrendBars falls back to text below two points, so every series here has
+    // two — a one-point fixture would render no per-bar label to assert on.
+    const weights = [weight, { ...weight, id: 'bw-0', date: '2026-08-01', weightKg: 81 }];
+    const measurements = [
+      measurement,
+      { ...measurement, id: 'bm-0', date: '2026-08-01', muscleMassKg: 35 },
+    ];
+    const weeks = [week, { ...week, id: 'snap-0', weekStart: '2026-07-27', totalVolumeKg: 11000 }];
+
+    it('localizes the weight point labels in English', async () => {
+      setState({ bodyWeights: weights });
+      await render(<ProgressScreen />);
+
+      expect(screen.getByLabelText('Aug 1, 2026: 81 kg')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Aug 3, 2026: 80 kg')).toBeOnTheScreen();
+    });
+
+    it('localizes the weight point labels in Spanish', async () => {
+      mockLanguage = 'es';
+      setState({ bodyWeights: weights });
+      await render(<ProgressScreen />);
+
+      // Days 1 and 3 from the local parse (no UTC shift), each label still
+      // carrying its value and unit. The month abbreviation is left unpinned:
+      // it is ICU-version dependent, exactly as the Spanish test above treats it.
+      expect(screen.getByLabelText(/^1 [^0-9]+2026: 81 kg$/)).toBeOnTheScreen();
+      expect(screen.getByLabelText(/^3 [^0-9]+2026: 80 kg$/)).toBeOnTheScreen();
+    });
+
+    it('localizes the muscle-mass point labels in English', async () => {
+      setState({ bodyMeasurements: measurements });
+      await render(<ProgressScreen />);
+
+      expect(screen.getByLabelText('Aug 1, 2026: 35 kg')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Aug 3, 2026: 36 kg')).toBeOnTheScreen();
+    });
+
+    it('prefixes the weekly-volume point labels with "Week of" in English', async () => {
+      setState({ snapshots: weeks });
+      await render(<ProgressScreen />);
+
+      // A volume point is a week, not a day — R-2.
+      expect(screen.getByLabelText('Week of Jul 27, 2026: 11,000 kg')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Week of Aug 3, 2026: 12,000 kg')).toBeOnTheScreen();
+    });
+
+    it('prefixes the weekly-volume point labels with "Semana del" in Spanish', async () => {
+      mockLanguage = 'es';
+      setState({ snapshots: weeks });
+      await render(<ProgressScreen />);
+
+      expect(screen.getByLabelText(/^Semana del 27 [^0-9]+2026: 11[.]000 kg$/)).toBeOnTheScreen();
+      expect(screen.getByLabelText(/^Semana del 3 [^0-9]+2026: 12[.]000 kg$/)).toBeOnTheScreen();
+    });
+
+    it('exposes NO raw YYYY-MM-DD in any accessible label, in English', async () => {
+      setState({
+        bodyWeights: weights,
+        bodyMeasurements: measurements,
+        snapshots: weeks,
+      });
+      await render(<ProgressScreen />);
+
+      // All three series render bars here, so this proves the absence across
+      // every point label at once: a series added later cannot reintroduce the
+      // defect unnoticed. The count guards the assertion against passing
+      // vacuously if the bars ever stop rendering.
+      expect(screen.getAllByLabelText(POINT_LABEL).length).toBeGreaterThanOrEqual(6);
+      expect(screen.queryAllByLabelText(RAW_ISO)).toHaveLength(0);
+    });
+
+    it('exposes NO raw YYYY-MM-DD in any accessible label, in Spanish', async () => {
+      mockLanguage = 'es';
+      setState({
+        bodyWeights: weights,
+        bodyMeasurements: measurements,
+        snapshots: weeks,
+      });
+      await render(<ProgressScreen />);
+
+      expect(screen.getAllByLabelText(POINT_LABEL).length).toBeGreaterThanOrEqual(6);
+      expect(screen.queryAllByLabelText(RAW_ISO)).toHaveLength(0);
+    });
   });
 });

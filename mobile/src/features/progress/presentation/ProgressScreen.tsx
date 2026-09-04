@@ -1,7 +1,12 @@
 import { useEffect, useMemo } from 'react';
 import { View } from 'react-native';
 
-import { formatDate, formatNumber, useLocalization } from '@/shared/localization';
+import {
+  formatDate,
+  formatNumber,
+  useLocalization,
+  type SupportedLanguage,
+} from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -34,6 +39,29 @@ function todayLocalDate(): string {
 export function parseLocalDate(iso: string): Date {
   const [year, month, day] = iso.split('-').map(Number);
   return new Date(year, month - 1, day);
+}
+
+/**
+ * Format a stored `YYYY-MM-DD` for a chart point label (BUG-013 / UX-3D R-1).
+ *
+ * The bars carry no visible text, so this label is reached ONLY through
+ * assistive technology — it was the one date on this surface still announced in
+ * raw storage format. It now uses the same `parseLocalDate` + `formatDate`
+ * pairing and the same date options as the latest-weight line below and
+ * `WeeklySnapshotSummary`, so every date on the Progress surface reads
+ * identically in the active language and no UTC day shift is introduced
+ * (ADR-P016 D6).
+ *
+ * Display-only: the stored value, the sort order and every calculation are
+ * untouched, and `TrendBars` keeps consuming an already-resolved label rather
+ * than parsing dates itself.
+ */
+function formatPointDate(iso: string, language: SupportedLanguage): string {
+  return formatDate(parseLocalDate(iso), language, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 /**
@@ -102,16 +130,22 @@ export function ProgressScreen() {
 
   // Charts read ascending (oldest → newest); the store holds both newest-first.
   const weightTrend: TrendPoint[] = bodyWeights
-    .map((w) => ({ label: w.date, value: w.weightKg }))
+    .map((w) => ({ label: formatPointDate(w.date, language), value: w.weightKg }))
     .reverse();
+  // A volume point is a WEEK, not a day, so its label carries the existing
+  // `weekOf` prefix — otherwise a week start is announced as if it were a
+  // point date (UX-3D R-2).
   const volumeTrend: TrendPoint[] = snapshots
     .filter((s) => s.totalVolumeKg !== null)
-    .map((s) => ({ label: s.weekStart, value: s.totalVolumeKg as number }))
+    .map((s) => ({
+      label: `${t('progress.weekly.weekOf')} ${formatPointDate(s.weekStart, language)}`,
+      value: s.totalVolumeKg as number,
+    }))
     .reverse();
   const muscleMassTrend: TrendPoint[] = bodyMeasurements
     .filter((measurement) => measurement.muscleMassKg !== null)
     .map((measurement) => ({
-      label: measurement.date,
+      label: formatPointDate(measurement.date, language),
       value: measurement.muscleMassKg as number,
     }))
     .reverse();
