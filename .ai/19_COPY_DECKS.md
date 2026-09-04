@@ -525,7 +525,9 @@ can be written at all; every one of them was previously open:
    automatically. **A mail failure must not roll back registration**; the account
    is created and the user resends.
 3. **Link host.** `https://account.appfitnessrd.com/verify-email#token=…` — a
-   neutral account hostname, not the recovery host.
+   neutral account hostname, not the recovery host. **Live since 2026-09-04**
+   and used by Development delivery; Production link construction stays off
+   until its own authorized gate.
 4. **Token cleanup.** V1 uses **per-user opportunistic cleanup during issuance
    and reissuance**. No scheduler is introduced (ADR-P026 Decision 12). Global
    scheduled purging is tracked as **post-V1 hardening**.
@@ -589,11 +591,12 @@ disabled (a `503`) — never for a throttled or unknown-account response.
 | `auth.verify.goToSignIn` | Go to sign in | Ir a iniciar sesión | **PROPOSED** — V2-D |
 
 **One generic message covers expired, already-used and unrecognised tokens.**
-*(**ADR-P029 (Proposed, not implemented)** narrows "already-used": a replay of
-the token that successfully verified an active account would render the
+*(**ADR-P029 (Accepted, implemented)** narrows "already-used": a replay of
+the token that successfully verified an active account renders the
 **success** copy instead, until its original expiry. The invalid copy still
 covers expired, superseded, invalidated, unrecognised and
-consumed-without-success tokens. **No key is added, removed or reworded.**)*
+consumed-without-success tokens, and a claim on an account already verified
+beforehand. **No key was added, removed or reworded.**)*
 `invalidTitle`/`invalidBody` never disclose which of the three occurred — the
 same discipline the shipped reset landing applies, and the behaviour Production
 validation confirmed for recovery on 2026-09-02. `errorTitle`/`errorBody` is a

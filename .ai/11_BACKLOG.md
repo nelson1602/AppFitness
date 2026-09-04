@@ -1951,12 +1951,14 @@ before UX-5 touches those surfaces.
 
 Status: **In Progress** — Vertical 1 (mail foundation + password recovery)
 shipped and **Production-validated 2026-09-02**; Vertical 2 (email
-verification) is built end to end (V2-A/C/D); delivery off until V2-E
+verification) is built end to end (V2-A/C/D) and **Development-validated
+2026-09-04 (V2-E Development half)**; **Production activation is a separate
+authorized gate and has not been run**
 Priority: P1
 Type: Feature
 Owner: Product / Security / Architecture
 Created: 2026-08-27
-Updated: 2026-09-03
+Updated: 2026-09-04
 
 > **Vertical 1 delivered.** PR #102 merged as `724a18e7`. The mail foundation,
 > reset-token model, `forgot-password` / `reset-password` endpoints, mobile
@@ -2030,8 +2032,8 @@ Updated: 2026-09-03
 >
 > **Remaining sequence:** **V2-A** schema → **V2-C** backend (this slice) →
 > **V2-D** mobile/Web → **V2-E** Development-first validation, then a separately
-> authorized Production gate (ADR-P026 Decision 17). **V2-E remains
-> outstanding.**
+> authorized Production gate (ADR-P026 Decision 17). **V2-E's Development half
+> passed 2026-09-04; the Production gate remains outstanding.**
 >
 > **V2-D (2026-09-03) delivered the user-facing surface, and no delivery.**
 > One Expo Router `/verify-email` route shared by native and Web: it captures
@@ -2056,10 +2058,12 @@ Updated: 2026-09-03
 > refreshed after a successful verification so the reminder disappears without
 > a sign-out.
 >
-> **Nothing is delivered.** `MAIL_VERIFICATION_BASE_URL` is still unset, so no
-> verification email is sent in any environment and no user reaches the landing
-> from a real link. **V2-E** — DNS and CORS for `account.appfitnessrd.com`,
-> then Development-first sandbox validation — is the only remaining slice.
+> **Nothing was delivered by V2-D itself.** At the time of that slice
+> `MAIL_VERIFICATION_BASE_URL` was unset everywhere, so no verification email
+> was sent and no user reached the landing from a real link. **V2-E** — DNS and
+> CORS for `account.appfitnessrd.com`, then Development-first sandbox
+> validation — followed; its Development half passed on 2026-09-04 and is
+> recorded below. **Production delivery is still off.**
 >
 > **V2-C (2026-09-03) delivered the backend, and nothing user-facing.**
 > Automatic issuance at registration (best-effort; a mail failure never alters
@@ -2091,26 +2095,64 @@ Updated: 2026-09-03
 > **redemption still works** so any token already issued stays usable. Set but
 > malformed still throws at boot — an operator who set it meant it to work.
 >
-> **ADR-P029 (Proposed, 2026-09-04) — idempotent verification replay.** A
-> verified user can currently be shown "This link is no longer valid": the
+> **ADR-P029 (Accepted and implemented, 2026-09-04) — idempotent verification
+> replay.** Before it, a
+> verified user could be shown "This link is no longer valid": the
 > emailed message keeps its fragment permanently, so reopening the original
 > link — or a browser handoff that preserves the original URL, or a reload that
 > beats the client fragment scrub — replays a spent token and receives the
 > generic `400` while `emailVerifiedAt` is already set. (After the scrub, an
-> ordinary reload carries no token and shows the incomplete-link state instead.) ADR-P029 proposes returning the same empty
+> ordinary reload carries no token and shows the incomplete-link state instead.) ADR-P029 returns the same empty
 > `204` for a replay of the token that successfully verified an active
 > account, bounded by its original 24-hour expiry, with no second mutation, no
-> session and no duplicate audit row. **Documentation only so far — no code,
-> no migration** (the predicate reads only existing columns), and the client
-> realm-slot experiment is **not** approved and **not** required. Password-reset
-> replay is unchanged.
+> session and no duplicate audit row. **The ADR merged as PR #128 (`4dc8bea9`)
+> and its server implementation as PR #129 (`5b09f5ae`) — no migration**, since
+> the predicate reads only existing columns. A follow-up on PR #129 closed one
+> contract gap: a first claim whose owner was **already verified beforehand**
+> verifies nothing, so it now rejects with the generic `400` before any user
+> update, sibling invalidation or success audit, leaving the original
+> `emailVerifiedAt` untouched. The client realm-slot experiment remains **not**
+> approved and **not** required. Password-reset replay is unchanged.
 >
-> **One prerequisite remains for V2-E.** The account hostname **does not
-> exist**: it needs DNS and a CORS entry (owner/infra). The second-variable
-> question is **resolved**: V2-C added `MAIL_VERIFICATION_BASE_URL` alongside
-> `MAIL_PUBLIC_BASE_URL`, so verification and recovery are served from
-> different hosts and fail independently. Until that variable is set,
-> verification mail is off by construction and no link is ever built.
+> **The V2-E prerequisite is met.** The account hostname now **resolves**: DNS
+> and the CORS entry are in place (owner/infra). The second-variable
+> question was already **resolved**: V2-C added `MAIL_VERIFICATION_BASE_URL`
+> alongside `MAIL_PUBLIC_BASE_URL`, so verification and recovery are served from
+> different hosts and fail independently. Where that variable is unset —
+> **Production today** — verification mail stays off by construction and no link
+> is ever built.
+>
+> **V2-E Development half — PASSED 2026-09-04.** Validated against the
+> **Development** environment only, with a **synthetic account**:
+>
+> - `https://account.appfitnessrd.com/verify-email` returned **200**, and
+>   Development CORS allowed **exactly** `https://account.appfitnessrd.com`.
+> - Development `MAIL_VERIFICATION_BASE_URL` was set to that HTTPS origin, and
+>   Development deployment `6faf550d…` reached **SUCCESS** on merge `5b09f5ae`.
+> - **Postmark delivered the Spanish transactional verification email** with
+>   **open and link tracking disabled** and the token **exclusively in the URL
+>   fragment** — never in the path, the query string or the visible body.
+> - The **first opening in an isolated browser** rendered the **success** state,
+>   contacted **only the Development API**, and **scrubbed the fragment** from
+>   the URL and history.
+> - **Reopening the original link in a fresh browser realm** received the empty
+>   **204** and rendered **success again** — no invalid state, **no
+>   `Set-Cookie`, no cookies and no session**. This is ADR-P029 behaving as
+>   specified against a real mailbox, not a test double.
+> - Authenticated `GET /auth/me` then showed `emailVerifiedAt` populated.
+> - The synthetic account was **deleted**, and a subsequent login returned
+>   **401**.
+>
+> **Production remains intentionally disabled.** `MAIL_VERIFICATION_BASE_URL`
+> is **absent** in Production, and this gate triggered **no Production
+> configuration change and no Production deployment**. **The complete Production
+> release gate is NOT passed**: Development is validated; Production
+> email-verification activation requires **separate explicit authorization and
+> its own evidence**. The **Universal / App Links** and **native-build** gates
+> are untouched and remain open.
+>
+> No address, credential, token, raw link, message identifier, request
+> identifier or secret is recorded here or anywhere in this repository.
 
 > **ADR-P026 ACCEPTED 2026-08-27 — V1 Transactional Email, Password Recovery,
 > and Email Verification.** Both capabilities are **V1 launch requirements**.
