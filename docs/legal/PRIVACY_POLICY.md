@@ -1,4 +1,4 @@
-# AppFitness — Privacy Policy (DRAFT)
+# AppFitnessRD — Privacy Policy (DRAFT)
 
 > **DRAFT — NOT LEGAL ADVICE.** Engineering-produced draft grounded in
 > `DATA_INVENTORY.md`. It MUST be reviewed and completed by a qualified
@@ -15,7 +15,7 @@ Contact: `privacy@appfitnessrd.com`
 
 ## 1. Summary
 
-AppFitness helps you track health, nutrition, and fitness data and
+AppFitnessRD helps you track health, nutrition, and fitness data and
 receive deterministic coaching recommendations. We collect only what the
 app needs to function. We do **not** sell your data, show third-party
 ads, or use third-party analytics. Health-related free-text is

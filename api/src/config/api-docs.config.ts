@@ -32,9 +32,9 @@ export function setupApiDocs(
   }
 
   const config = new DocumentBuilder()
-    .setTitle('AppFitness API')
+    .setTitle('AppFitnessRD API')
     .setDescription(
-      'AppFitness backend (NestJS) — migration target architecture per ADR-0003/ADR-0013',
+      'AppFitnessRD backend (NestJS) — migration target architecture per ADR-0003/ADR-0013',
     )
     .setVersion('0.1.0')
     .addBearerAuth()

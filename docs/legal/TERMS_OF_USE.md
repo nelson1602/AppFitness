@@ -1,4 +1,4 @@
-# AppFitness — Terms of Use (DRAFT)
+# AppFitnessRD — Terms of Use (DRAFT)
 
 > **DRAFT — NOT LEGAL ADVICE.** Engineering-produced draft. It MUST be
 > reviewed and completed by a qualified human/legal reviewer before
@@ -13,12 +13,12 @@ Provider: `[PLACEHOLDER — legal entity, jurisdiction]`
 
 ## 1. Acceptance
 
-By creating an account or using AppFitness, you agree to these Terms and
+By creating an account or using AppFitnessRD, you agree to these Terms and
 to the Privacy Policy. If you do not agree, do not use the app.
 
 ## 2. The service
 
-AppFitness provides health, nutrition, and fitness tracking and
+AppFitnessRD provides health, nutrition, and fitness tracking and
 **deterministic, informational coaching recommendations**. It is a
 wellness/fitness tool, **not a medical device and not a substitute for
 professional medical advice** (see `HEALTH_DISCLAIMER.md`).
