@@ -245,8 +245,8 @@ describe('Email verification (e2e, ADR-P026 Vertical 2)', () => {
       expect(rows).toHaveLength(1);
     });
 
-    it('rejects replay of an already-consumed token with a generic 400', async () => {
-      await register(nextClient());
+    it('answers a settled replay with the same empty 204 (ADR-P029)', async () => {
+      const user = await register(nextClient());
       const raw = tokenFromLastMail();
       const client = nextClient();
 
@@ -256,15 +256,230 @@ describe('Email verification (e2e, ADR-P026 Vertical 2)', () => {
         .send({ token: raw })
         .expect(204);
 
+      const before = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { emailVerifiedAt: true },
+      });
+      const tokenBefore = await prisma.emailVerificationToken.findUniqueOrThrow(
+        {
+          where: { tokenHash: hash(raw) },
+        },
+      );
+      const auditBefore = await prisma.auditLog.count({
+        where: { userId: user.id, action: 'EMAIL_VERIFICATION_SUCCESS' },
+      });
+
       const replay = await request(app.getHttpServer())
         .post('/auth/verify-email')
         .set('X-Forwarded-For', client)
         .send({ token: raw })
+        .expect(204);
+
+      // Identical empty response, and no session was created.
+      expect(replay.body).toEqual({});
+      expect(replay.headers['set-cookie']).toBeUndefined();
+
+      // The replay mutated nothing at all.
+      const after = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { emailVerifiedAt: true },
+      });
+      const tokenAfter = await prisma.emailVerificationToken.findUniqueOrThrow({
+        where: { tokenHash: hash(raw) },
+      });
+      expect(after.emailVerifiedAt).toEqual(before.emailVerifiedAt);
+      expect(tokenAfter.consumedAt).toEqual(tokenBefore.consumedAt);
+      expect(tokenAfter.invalidatedAt).toBeNull();
+      expect(tokenAfter.updatedAt).toEqual(tokenBefore.updatedAt);
+
+      // And attempted no audit, so the success count did not grow.
+      const auditAfter = await prisma.auditLog.count({
+        where: { userId: user.id, action: 'EMAIL_VERIFICATION_SUCCESS' },
+      });
+      expect(auditAfter).toBe(auditBefore);
+      expect(auditAfter).toBe(1);
+    });
+
+    it('rejects a FIRST redemption when the owner is already verified', async () => {
+      const user = await register(nextClient());
+      const raw = tokenFromLastMail();
+
+      // Issue a second open row so sibling invalidation would be observable if
+      // the rejected path wrongly performed it.
+      await request(app.getHttpServer())
+        .post('/auth/resend-verification')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .set('X-Forwarded-For', nextClient())
+        .send({})
+        .expect(202);
+      await dispatcher.drain();
+      const sibling = tokenFromLastMail();
+      expect(sibling).not.toBe(raw);
+
+      // The account becomes verified by some other means, with an EARLIER
+      // timestamp than any consumption of the still-open sibling.
+      const earlier = new Date(Date.now() - 60_000);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifiedAt: earlier },
+      });
+
+      const siblingBefore =
+        await prisma.emailVerificationToken.findUniqueOrThrow({
+          where: { tokenHash: hash(sibling) },
+        });
+      const auditBefore = await prisma.auditLog.count({
+        where: { userId: user.id, action: 'EMAIL_VERIFICATION_SUCCESS' },
+      });
+
+      // First redemption of the still-open sibling: it verifies nothing.
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: sibling })
         .expect(400);
 
-      expect((replay.body as { message: string }).message).toBe(
-        'Invalid or expired verification token',
-      );
+      // The earlier verification timestamp is untouched.
+      const after = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { emailVerifiedAt: true },
+      });
+      expect(after.emailVerifiedAt).toEqual(earlier);
+
+      // No success audit was attempted.
+      const auditAfter = await prisma.auditLog.count({
+        where: { userId: user.id, action: 'EMAIL_VERIFICATION_SUCCESS' },
+      });
+      expect(auditAfter).toBe(auditBefore);
+
+      // The claim spent the token, but nothing else about the row moved and no
+      // sibling was invalidated by this rejected path.
+      const siblingAfter =
+        await prisma.emailVerificationToken.findUniqueOrThrow({
+          where: { tokenHash: hash(sibling) },
+        });
+      expect(siblingAfter.consumedAt).not.toBeNull();
+      expect(siblingAfter.invalidatedAt).toBeNull();
+      expect(siblingAfter.expiresAt).toEqual(siblingBefore.expiresAt);
+
+      // And it stays a generic 400 on every later replay (Decision 4).
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: sibling })
+        .expect(400);
+    });
+
+    it('writes the SAME instant to consumedAt and emailVerifiedAt', async () => {
+      const user = await register(nextClient());
+      const raw = tokenFromLastMail();
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(204);
+
+      const token = await prisma.emailVerificationToken.findUniqueOrThrow({
+        where: { tokenHash: hash(raw) },
+      });
+      const account = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { emailVerifiedAt: true },
+      });
+      // ADR-P029 Decision 4 — the replay discriminator depends on this.
+      expect(account.emailVerifiedAt).toEqual(token.consumedAt);
+    });
+
+    it('rejects a settled replay once past the ORIGINAL expiry', async () => {
+      await register(nextClient());
+      const raw = tokenFromLastMail();
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(204);
+
+      // The replay window is the token's own lifetime and is never extended.
+      await prisma.emailVerificationToken.update({
+        where: { tokenHash: hash(raw) },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(400);
+    });
+
+    it('rejects a settled replay whose owner became suspended', async () => {
+      const user = await register(nextClient());
+      const raw = tokenFromLastMail();
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(204);
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { status: 'SUSPENDED' },
+      });
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(400);
+    });
+
+    it('rejects a settled replay after the row is invalidated', async () => {
+      await register(nextClient());
+      const raw = tokenFromLastMail();
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(204);
+
+      await prisma.emailVerificationToken.update({
+        where: { tokenHash: hash(raw) },
+        data: { invalidatedAt: new Date() },
+      });
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(400);
+    });
+
+    it('rejects a consumed-without-success token (timestamp mismatch)', async () => {
+      const user = await register(nextClient());
+      const raw = tokenFromLastMail();
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(204);
+
+      // Simulate an account verified by some OTHER consumption: the token's
+      // consumedAt no longer equals emailVerifiedAt.
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifiedAt: new Date(Date.now() - 60_000) },
+      });
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: raw })
+        .expect(400);
     });
 
     it('rejects an unknown token with the identical message', async () => {
@@ -303,8 +518,8 @@ describe('Email verification (e2e, ADR-P026 Vertical 2)', () => {
       expect(after.emailVerifiedAt).toBeNull();
     });
 
-    it('survives concurrent redemption: exactly one wins, one 400s', async () => {
-      await register(nextClient());
+    it('settles concurrent redemption deterministically: BOTH answer 204', async () => {
+      const user = await register(nextClient());
       const raw = tokenFromLastMail();
       const client = nextClient();
 
@@ -319,8 +534,24 @@ describe('Email verification (e2e, ADR-P026 Vertical 2)', () => {
           .send({ token: raw }),
       ]);
 
-      const statuses = results.map((r) => r.status).sort();
-      expect(statuses).toEqual([204, 400]);
+      // ADR-P029 Decision 9: never one 204 and one 400. The loser of the
+      // conditional claim serializes behind the winner's row lock and then
+      // observes the settled state.
+      expect(results.map((r) => r.status).sort()).toEqual([204, 204]);
+
+      // Exactly one mutation, and at most one success-audit attempt.
+      const token = await prisma.emailVerificationToken.findUniqueOrThrow({
+        where: { tokenHash: hash(raw) },
+      });
+      const account = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { emailVerifiedAt: true },
+      });
+      expect(account.emailVerifiedAt).toEqual(token.consumedAt);
+      const audits = await prisma.auditLog.count({
+        where: { userId: user.id, action: 'EMAIL_VERIFICATION_SUCCESS' },
+      });
+      expect(audits).toBe(1);
     });
   });
 

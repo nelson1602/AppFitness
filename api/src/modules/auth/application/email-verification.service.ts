@@ -97,6 +97,20 @@ type IssueOutcome =
   | { kind: 'rate-limited' }
   | { kind: 'skipped' };
 
+/**
+ * What the redemption transaction decided (ADR-P029). Internal — never
+ * surfaced to a caller, which sees only `204` or the generic `400`.
+ *
+ * Discriminated on purpose: `first-success` is the ONLY variant that may
+ * attempt the success audit, and making that a type-level distinction stops a
+ * later edit from letting `settled-replay` share the audit path by accident.
+ * Both variants answer `204`; `rejected` is the single generic failure.
+ */
+type RedeemOutcome =
+  | { kind: 'first-success'; userId: string }
+  | { kind: 'settled-replay' }
+  | { kind: 'rejected' };
+
 @Injectable()
 export class EmailVerificationService {
   private readonly logger = new Logger(EmailVerificationService.name);
@@ -320,73 +334,175 @@ export class EmailVerificationService {
   async verifyEmail(input: { token: string }): Promise<void> {
     const tokenHash = this.tokens.hashEmailVerificationToken(input.token);
 
-    const userId = await this.prisma.$transaction(async (tx) => {
-      const now = new Date();
+    const outcome = await this.prisma.$transaction(
+      async (tx): Promise<RedeemOutcome> => {
+        const now = new Date();
 
-      const claimed = await tx.emailVerificationToken.updateMany({
-        where: {
-          tokenHash,
-          consumedAt: null,
-          invalidatedAt: null,
-          expiresAt: { gt: now },
-        },
-        data: { consumedAt: now },
-      });
-      if (claimed.count !== 1) {
-        return null; // unknown, expired, superseded, or already used
-      }
+        const claimed = await tx.emailVerificationToken.updateMany({
+          where: {
+            tokenHash,
+            consumedAt: null,
+            invalidatedAt: null,
+            expiresAt: { gt: now },
+          },
+          data: { consumedAt: now },
+        });
+        if (claimed.count !== 1) {
+          // Not claimable here. Either it never was, or a concurrent request
+          // just claimed it. PostgreSQL serialized us behind that request's row
+          // lock and re-evaluated the qualifier, so the next statement's Read
+          // Committed snapshot sees its committed result (ADR-P029 Decision 9 —
+          // measured, which is why no explicit lock is taken).
+          return this.classifySettled(tx, tokenHash, now);
+        }
 
-      const token = await tx.emailVerificationToken.findUniqueOrThrow({
-        where: { tokenHash },
-        select: { userId: true },
-      });
-      const user = await tx.user.findUnique({
-        where: { id: token.userId },
-        select: {
-          id: true,
-          status: true,
-          deletedAt: true,
-          emailVerifiedAt: true,
-        },
-      });
-      // The token stays consumed even here: an account suspended or deleted
-      // after issuance must not keep a live verification link.
-      if (
-        !user ||
-        user.deletedAt !== null ||
-        user.status !== UserStatus.ACTIVE
-      ) {
-        return null;
-      }
+        const token = await tx.emailVerificationToken.findUniqueOrThrow({
+          where: { tokenHash },
+          select: { userId: true },
+        });
+        const user = await tx.user.findUnique({
+          where: { id: token.userId },
+          select: {
+            id: true,
+            status: true,
+            deletedAt: true,
+            emailVerifiedAt: true,
+          },
+        });
+        // The token stays consumed even here: an account suspended or deleted
+        // after issuance must not keep a live verification link. It is then a
+        // consumed-WITHOUT-success row, and Decision 4's timestamp equality
+        // keeps any later replay of it on the generic 400.
+        if (
+          !user ||
+          user.deletedAt !== null ||
+          user.status !== UserStatus.ACTIVE
+        ) {
+          return { kind: 'rejected' };
+        }
 
-      // Idempotent: preserve the FIRST verification timestamp. A later
-      // redemption must not rewrite when the address was actually confirmed.
-      if (user.emailVerifiedAt === null) {
+        // The account was ALREADY verified before this token was claimed, so
+        // this claim did not verify anything. It is a consumed-WITHOUT-success
+        // row, and it must reject here — before any further write.
+        //
+        // Returning `first-success` would be wrong twice over: it would record
+        // a second "verification completed" audit event for an account that was
+        // already verified (ADR-P029 Decision 10), and it would invalidate the
+        // owner's sibling rows on the strength of a claim that changed nothing.
+        // The token stays consumed — the claim above already spent it, and a
+        // spent token must not become redeemable again — but the ORIGINAL
+        // verification timestamp is left exactly as it was.
+        //
+        // Decision 4 keeps this consistent afterwards: `consumed_at` will not
+        // equal `email_verified_at` for this row, so every later replay of it
+        // is the same generic 400.
+        if (user.emailVerifiedAt !== null) {
+          return { kind: 'rejected' };
+        }
+
+        // Only an unverified account can be verified by this claim. The SAME
+        // `now` is written to `consumed_at` above and to `email_verified_at`
+        // here: ADR-P029 Decision 4 makes that equality the discriminator for
+        // "this token is the one that verified the account", so the
+        // single-`now` invariant is load-bearing — see the spec that pins it.
         await tx.user.update({
           where: { id: user.id },
           data: { emailVerifiedAt: now },
         });
-      }
 
-      // Any sibling open row is now moot — the address is verified, so no
-      // other outstanding link should remain redeemable.
-      await tx.emailVerificationToken.updateMany({
-        where: { userId: user.id, consumedAt: null, invalidatedAt: null },
-        data: { invalidatedAt: now },
-      });
+        // Any sibling open row is now moot — the address is verified, so no
+        // other outstanding link should remain redeemable.
+        await tx.emailVerificationToken.updateMany({
+          where: { userId: user.id, consumedAt: null, invalidatedAt: null },
+          data: { invalidatedAt: now },
+        });
 
-      return user.id;
-    });
+        return { kind: 'first-success', userId: user.id };
+      },
+    );
 
-    if (userId === null) {
+    if (outcome.kind === 'rejected') {
       // One generic rejection for every failure mode — an attacker learns
       // nothing about whether a token existed, expired, or was already used.
       throw new BadRequestException('Invalid or expired verification token');
     }
 
-    await this.audit.record({
-      action: AuditAction.EMAIL_VERIFICATION_SUCCESS,
-      userId,
+    // ONLY the first success attempts the audit. A settled replay mutated
+    // nothing, so recording it would manufacture a duplicate "verification
+    // completed" event (ADR-P029 Decision 10). The attempt is best-effort:
+    // `AuditService.record` swallows its own failures by design, so this is
+    // at-most-one attempt, never durable exactly-once delivery.
+    if (outcome.kind === 'first-success') {
+      await this.audit.record({
+        action: AuditAction.EMAIL_VERIFICATION_SUCCESS,
+        userId: outcome.userId,
+      });
+    }
+  }
+
+  /**
+   * Classify a token the conditional claim could not take (ADR-P029).
+   *
+   * Returns `settled-replay` — answered with the same empty `204` — only for
+   * the exact token that successfully verified an account that is still
+   * eligible, and only inside that token's ORIGINAL expiry. Everything else is
+   * one generic rejection.
+   *
+   * **Reads only. Mutates nothing**: no user update, no `consumed_at` rewrite,
+   * no sibling invalidation, no session, and no audit attempt.
+   *
+   * The "did this token verify the account" test is timestamp equality
+   * (Decision 4): the verifying transaction writes one `now` to both
+   * `consumed_at` and `email_verified_at`. A token consumed while the owner was
+   * suspended, or any row whose `consumed_at` differs from the owner's
+   * `email_verified_at`, therefore fails the test and stays a `400`.
+   */
+  private async classifySettled(
+    tx: Pick<PrismaService, 'emailVerificationToken' | 'user'>,
+    tokenHash: string,
+    now: Date,
+  ): Promise<RedeemOutcome> {
+    const token = await tx.emailVerificationToken.findUnique({
+      where: { tokenHash },
+      select: {
+        userId: true,
+        consumedAt: true,
+        invalidatedAt: true,
+        expiresAt: true,
+      },
     });
+
+    // Unknown token, never consumed, superseded/invalidated, or past its
+    // original expiry — the replay window is never extended.
+    if (
+      !token ||
+      token.consumedAt === null ||
+      token.invalidatedAt !== null ||
+      token.expiresAt <= now
+    ) {
+      return { kind: 'rejected' };
+    }
+
+    const user = await tx.user.findUnique({
+      where: { id: token.userId },
+      select: { status: true, deletedAt: true, emailVerifiedAt: true },
+    });
+    if (
+      !user ||
+      user.deletedAt !== null ||
+      user.status !== UserStatus.ACTIVE ||
+      user.emailVerifiedAt === null
+    ) {
+      return { kind: 'rejected' };
+    }
+
+    // Decision 4: only the consumption that actually verified the account
+    // qualifies. Consumed-without-success and any `email_verified_at` that
+    // predates this consumption both fail here.
+    if (user.emailVerifiedAt.getTime() !== token.consumedAt.getTime()) {
+      return { kind: 'rejected' };
+    }
+
+    return { kind: 'settled-replay' };
   }
 }

@@ -43,6 +43,7 @@ describe('EmailVerificationService', () => {
       deleteMany: jest.Mock;
       updateMany: jest.Mock;
       create: jest.Mock;
+      findUnique: jest.Mock;
       findUniqueOrThrow: jest.Mock;
     };
     user: { findUnique: jest.Mock; update: jest.Mock };
@@ -68,6 +69,10 @@ describe('EmailVerificationService', () => {
         deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         create: jest.fn().mockResolvedValue({}),
+        // ADR-P029: the replay classifier reads the token row when the
+        // conditional claim takes nothing. Default is "unknown token", so the
+        // shipped rejection tests keep their meaning.
+        findUnique: jest.fn().mockResolvedValue(null),
         findUniqueOrThrow: jest.fn().mockResolvedValue({ userId: USER_ID }),
       },
       user: {
@@ -331,18 +336,62 @@ describe('EmailVerificationService', () => {
       });
     });
 
-    it('preserves the first verification timestamp when already verified', async () => {
+    describe('claim on an ALREADY-verified account (ADR-P029)', () => {
+      // The claim spent a token, but the account was verified beforehand — so
+      // this claim verified nothing. It must reject before any further write,
+      // or it would record a second "verification completed" event and
+      // invalidate the owner's siblings on the strength of a no-op.
       const firstVerified = new Date('2026-01-01T00:00:00Z');
-      tx.user.findUnique.mockResolvedValue({
-        id: USER_ID,
-        status: UserStatus.ACTIVE,
-        deletedAt: null,
-        emailVerifiedAt: firstVerified,
+
+      beforeEach(() => {
+        tx.user.findUnique.mockResolvedValue({
+          id: USER_ID,
+          status: UserStatus.ACTIVE,
+          deletedAt: null,
+          emailVerifiedAt: firstVerified,
+        });
       });
 
-      await service.verifyEmail({ token: 'raw-token' });
+      it('rejects with the identical generic message', async () => {
+        const error = await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch((e: BadRequestException) => e);
 
-      expect(tx.user.update).not.toHaveBeenCalled();
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect((error as BadRequestException).message).toBe(
+          'Invalid or expired verification token',
+        );
+      });
+
+      it('performs no user update, so the original timestamp is preserved', async () => {
+        await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch(() => undefined);
+
+        expect(tx.user.update).not.toHaveBeenCalled();
+      });
+
+      it('consumes no second time and invalidates no sibling row', async () => {
+        await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch(() => undefined);
+
+        // The only updateMany is the single conditional claim itself; no
+        // sibling-invalidation sweep follows it.
+        expect(tx.emailVerificationToken.updateMany).toHaveBeenCalledTimes(1);
+        const claim = callArg<{ data: Record<string, unknown> }>(
+          tx.emailVerificationToken.updateMany,
+        );
+        expect(Object.keys(claim.data)).toEqual(['consumedAt']);
+      });
+
+      it('attempts no success audit', async () => {
+        await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch(() => undefined);
+
+        expect(audit.record).not.toHaveBeenCalled();
+      });
     });
 
     it.each([
@@ -390,6 +439,142 @@ describe('EmailVerificationService', () => {
         where: { userId: USER_ID, consumedAt: null, invalidatedAt: null },
         data: { invalidatedAt: anyDate },
       });
+    });
+
+    describe('idempotent replay (ADR-P029)', () => {
+      /** A row that settled successfully: consumed, live, timestamps equal. */
+      const settled = (over: Record<string, unknown> = {}) => {
+        const at = new Date('2026-09-04T10:00:00.000Z');
+        tx.emailVerificationToken.updateMany.mockResolvedValue({ count: 0 });
+        tx.emailVerificationToken.findUnique.mockResolvedValue({
+          userId: USER_ID,
+          consumedAt: at,
+          invalidatedAt: null,
+          expiresAt: new Date(at.getTime() + 24 * 3_600_000),
+          ...over,
+        });
+        tx.user.findUnique.mockResolvedValue({
+          id: USER_ID,
+          status: UserStatus.ACTIVE,
+          deletedAt: null,
+          emailVerifiedAt: at,
+          ...(over.user as Record<string, unknown>),
+        });
+        return at;
+      };
+
+      it('resolves an eligible settled replay instead of rejecting', async () => {
+        settled();
+        await expect(
+          service.verifyEmail({ token: 'raw-token' }),
+        ).resolves.toBeUndefined();
+      });
+
+      it('mutates nothing on replay — no user write, no invalidation', async () => {
+        settled();
+        await service.verifyEmail({ token: 'raw-token' });
+
+        expect(tx.user.update).not.toHaveBeenCalled();
+        // The only updateMany was the failed conditional claim itself.
+        expect(tx.emailVerificationToken.updateMany).toHaveBeenCalledTimes(1);
+        expect(tx.emailVerificationToken.create).not.toHaveBeenCalled();
+        expect(tx.emailVerificationToken.deleteMany).not.toHaveBeenCalled();
+      });
+
+      it('attempts NO audit on replay — only first success may', async () => {
+        settled();
+        await service.verifyEmail({ token: 'raw-token' });
+        expect(audit.record).not.toHaveBeenCalled();
+      });
+
+      it('rejects once past the ORIGINAL expiry — the window is never extended', async () => {
+        const at = new Date('2026-09-04T10:00:00.000Z');
+        settled({ expiresAt: new Date(at.getTime() - 1) });
+        await expect(
+          service.verifyEmail({ token: 'raw-token' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it('rejects an invalidated (superseded) token even when consumed', async () => {
+        settled({ invalidatedAt: new Date() });
+        await expect(
+          service.verifyEmail({ token: 'raw-token' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it('rejects a never-consumed row', async () => {
+        settled({ consumedAt: null });
+        await expect(
+          service.verifyEmail({ token: 'raw-token' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it('rejects a timestamp mismatch — consumed-without-success', async () => {
+        const at = settled();
+        // The account was verified by some other consumption.
+        tx.user.findUnique.mockResolvedValue({
+          id: USER_ID,
+          status: UserStatus.ACTIVE,
+          deletedAt: null,
+          emailVerifiedAt: new Date(at.getTime() - 60_000),
+        });
+        await expect(
+          service.verifyEmail({ token: 'raw-token' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it('rejects when the owner is not verified at all', async () => {
+        settled();
+        tx.user.findUnique.mockResolvedValue({
+          id: USER_ID,
+          status: UserStatus.ACTIVE,
+          deletedAt: null,
+          emailVerifiedAt: null,
+        });
+        await expect(
+          service.verifyEmail({ token: 'raw-token' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it.each([
+        ['suspended', { status: UserStatus.SUSPENDED, deletedAt: null }],
+        ['soft-deleted', { status: UserStatus.ACTIVE, deletedAt: new Date() }],
+      ])('rejects a settled token whose owner is now %s', async (_l, over) => {
+        const at = settled();
+        tx.user.findUnique.mockResolvedValue({
+          id: USER_ID,
+          emailVerifiedAt: at,
+          ...over,
+        });
+        await expect(
+          service.verifyEmail({ token: 'raw-token' }),
+        ).rejects.toBeInstanceOf(BadRequestException);
+      });
+
+      it('uses the identical generic message for a rejected replay', async () => {
+        settled({ invalidatedAt: new Date() });
+        const error = await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch((e: BadRequestException) => e);
+        expect((error as BadRequestException).message).toBe(
+          'Invalid or expired verification token',
+        );
+      });
+    });
+
+    it('writes the SAME instant to consumedAt and emailVerifiedAt (ADR-P029 Decision 4)', async () => {
+      await service.verifyEmail({ token: 'raw-token' });
+
+      const claim = callArg<{ data: { consumedAt: Date } }>(
+        tx.emailVerificationToken.updateMany,
+      );
+      const verify = callArg<{ data: { emailVerifiedAt: Date } }>(
+        tx.user.update,
+      );
+      // The equality that the replay discriminator depends on.
+      expect(verify.data.emailVerifiedAt.getTime()).toBe(
+        claim.data.consumedAt.getTime(),
+      );
     });
 
     it('creates no session — it touches no refresh token and issues no JWT', async () => {
