@@ -336,18 +336,62 @@ describe('EmailVerificationService', () => {
       });
     });
 
-    it('preserves the first verification timestamp when already verified', async () => {
+    describe('claim on an ALREADY-verified account (ADR-P029)', () => {
+      // The claim spent a token, but the account was verified beforehand — so
+      // this claim verified nothing. It must reject before any further write,
+      // or it would record a second "verification completed" event and
+      // invalidate the owner's siblings on the strength of a no-op.
       const firstVerified = new Date('2026-01-01T00:00:00Z');
-      tx.user.findUnique.mockResolvedValue({
-        id: USER_ID,
-        status: UserStatus.ACTIVE,
-        deletedAt: null,
-        emailVerifiedAt: firstVerified,
+
+      beforeEach(() => {
+        tx.user.findUnique.mockResolvedValue({
+          id: USER_ID,
+          status: UserStatus.ACTIVE,
+          deletedAt: null,
+          emailVerifiedAt: firstVerified,
+        });
       });
 
-      await service.verifyEmail({ token: 'raw-token' });
+      it('rejects with the identical generic message', async () => {
+        const error = await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch((e: BadRequestException) => e);
 
-      expect(tx.user.update).not.toHaveBeenCalled();
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect((error as BadRequestException).message).toBe(
+          'Invalid or expired verification token',
+        );
+      });
+
+      it('performs no user update, so the original timestamp is preserved', async () => {
+        await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch(() => undefined);
+
+        expect(tx.user.update).not.toHaveBeenCalled();
+      });
+
+      it('consumes no second time and invalidates no sibling row', async () => {
+        await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch(() => undefined);
+
+        // The only updateMany is the single conditional claim itself; no
+        // sibling-invalidation sweep follows it.
+        expect(tx.emailVerificationToken.updateMany).toHaveBeenCalledTimes(1);
+        const claim = callArg<{ data: Record<string, unknown> }>(
+          tx.emailVerificationToken.updateMany,
+        );
+        expect(Object.keys(claim.data)).toEqual(['consumedAt']);
+      });
+
+      it('attempts no success audit', async () => {
+        await service
+          .verifyEmail({ token: 'raw-token' })
+          .catch(() => undefined);
+
+        expect(audit.record).not.toHaveBeenCalled();
+      });
     });
 
     it.each([

@@ -300,6 +300,76 @@ describe('Email verification (e2e, ADR-P026 Vertical 2)', () => {
       expect(auditAfter).toBe(1);
     });
 
+    it('rejects a FIRST redemption when the owner is already verified', async () => {
+      const user = await register(nextClient());
+      const raw = tokenFromLastMail();
+
+      // Issue a second open row so sibling invalidation would be observable if
+      // the rejected path wrongly performed it.
+      await request(app.getHttpServer())
+        .post('/auth/resend-verification')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .set('X-Forwarded-For', nextClient())
+        .send({})
+        .expect(202);
+      await dispatcher.drain();
+      const sibling = tokenFromLastMail();
+      expect(sibling).not.toBe(raw);
+
+      // The account becomes verified by some other means, with an EARLIER
+      // timestamp than any consumption of the still-open sibling.
+      const earlier = new Date(Date.now() - 60_000);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifiedAt: earlier },
+      });
+
+      const siblingBefore =
+        await prisma.emailVerificationToken.findUniqueOrThrow({
+          where: { tokenHash: hash(sibling) },
+        });
+      const auditBefore = await prisma.auditLog.count({
+        where: { userId: user.id, action: 'EMAIL_VERIFICATION_SUCCESS' },
+      });
+
+      // First redemption of the still-open sibling: it verifies nothing.
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: sibling })
+        .expect(400);
+
+      // The earlier verification timestamp is untouched.
+      const after = await prisma.user.findUniqueOrThrow({
+        where: { id: user.id },
+        select: { emailVerifiedAt: true },
+      });
+      expect(after.emailVerifiedAt).toEqual(earlier);
+
+      // No success audit was attempted.
+      const auditAfter = await prisma.auditLog.count({
+        where: { userId: user.id, action: 'EMAIL_VERIFICATION_SUCCESS' },
+      });
+      expect(auditAfter).toBe(auditBefore);
+
+      // The claim spent the token, but nothing else about the row moved and no
+      // sibling was invalidated by this rejected path.
+      const siblingAfter =
+        await prisma.emailVerificationToken.findUniqueOrThrow({
+          where: { tokenHash: hash(sibling) },
+        });
+      expect(siblingAfter.consumedAt).not.toBeNull();
+      expect(siblingAfter.invalidatedAt).toBeNull();
+      expect(siblingAfter.expiresAt).toEqual(siblingBefore.expiresAt);
+
+      // And it stays a generic 400 on every later replay (Decision 4).
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: sibling })
+        .expect(400);
+    });
+
     it('writes the SAME instant to consumedAt and emailVerifiedAt', async () => {
       const user = await register(nextClient());
       const raw = tokenFromLastMail();

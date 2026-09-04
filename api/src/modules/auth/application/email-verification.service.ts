@@ -381,20 +381,34 @@ export class EmailVerificationService {
           return { kind: 'rejected' };
         }
 
-        // Preserve the FIRST verification timestamp. A later redemption must
-        // not rewrite when the address was actually confirmed.
+        // The account was ALREADY verified before this token was claimed, so
+        // this claim did not verify anything. It is a consumed-WITHOUT-success
+        // row, and it must reject here — before any further write.
         //
-        // The SAME `now` is written to `consumed_at` above and to
-        // `email_verified_at` here. ADR-P029 Decision 4 makes that equality the
-        // discriminator for "this token is the one that verified the account",
-        // so the single-`now` invariant is load-bearing — see the spec that
-        // pins it.
-        if (user.emailVerifiedAt === null) {
-          await tx.user.update({
-            where: { id: user.id },
-            data: { emailVerifiedAt: now },
-          });
+        // Returning `first-success` would be wrong twice over: it would record
+        // a second "verification completed" audit event for an account that was
+        // already verified (ADR-P029 Decision 10), and it would invalidate the
+        // owner's sibling rows on the strength of a claim that changed nothing.
+        // The token stays consumed — the claim above already spent it, and a
+        // spent token must not become redeemable again — but the ORIGINAL
+        // verification timestamp is left exactly as it was.
+        //
+        // Decision 4 keeps this consistent afterwards: `consumed_at` will not
+        // equal `email_verified_at` for this row, so every later replay of it
+        // is the same generic 400.
+        if (user.emailVerifiedAt !== null) {
+          return { kind: 'rejected' };
         }
+
+        // Only an unverified account can be verified by this claim. The SAME
+        // `now` is written to `consumed_at` above and to `email_verified_at`
+        // here: ADR-P029 Decision 4 makes that equality the discriminator for
+        // "this token is the one that verified the account", so the
+        // single-`now` invariant is load-bearing — see the spec that pins it.
+        await tx.user.update({
+          where: { id: user.id },
+          data: { emailVerifiedAt: now },
+        });
 
         // Any sibling open row is now moot — the address is verified, so no
         // other outstanding link should remain redeemable.
