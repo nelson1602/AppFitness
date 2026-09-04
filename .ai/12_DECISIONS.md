@@ -8323,7 +8323,7 @@ hash persisted** in a `@unique` column, and each token **single-use** via a
 - **Password reset TTL: 30 minutes.**
 - **Email verification TTL: 24 hours.**
 
-*(Refined 2026-09-04 by **ADR-P029 (Proposed)**: the verification token stays
+*(Refined 2026-09-04 by **ADR-P029 (Accepted, implemented)**: the verification token stays
 single-use — one consumption, one mutation — but replaying the token that
 successfully verified an active account returns the same empty `204` until its
 original expiry, instead of `400`. Password-reset replay is unchanged.)*
@@ -8515,8 +8515,9 @@ lives only on the authenticated dashboard reminder.
 
 #### 2026-09-04 — replay of a successful verification token
 
-Decision 6's single-use rule is refined by **ADR-P029 (Proposed)**. The
-mutation stays single-use; only the *response to a replay* changes. See
+Decision 6's single-use rule is refined by **ADR-P029 (Accepted, implemented
+on `main` 2026-09-04)**. The mutation stays single-use; only the *response to a
+replay* changes. See
 ADR-P029 for the predicate, the audit rule and the security trade-off. Nothing
 in `forgot-password` / `reset-password` is affected.
 
@@ -9099,7 +9100,7 @@ documentation only.
 
 ## ADR-P029 — Idempotent Email-Verification Redemption
 
-Status: Proposed
+Status: Accepted — implemented at the server layer; PR #129 merged as `5b09f5ae`
 Date: 2026-09-04
 Owner: Security / Backend Architecture
 
