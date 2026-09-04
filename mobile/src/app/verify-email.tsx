@@ -53,6 +53,72 @@ type RedemptionResult = 'pending' | 'success' | 'invalid' | 'error';
 type VerifyState = 'checking' | 'success' | 'missing-token' | 'invalid' | 'error';
 
 /**
+ * The one redemption this page has attempted, keyed by the token it used.
+ *
+ * **Why this exists.** A verification token is single-use server-side, so it
+ * may be redeemed exactly once. On Web, hydration and Expo Router can mount
+ * this screen more than once for the same page load; the previous
+ * `useRef` guard was instance-scoped and did not survive that, so the second
+ * mount redeemed again, the server correctly rejected the already-consumed
+ * token with a 400, and a genuinely successful verification was overwritten by
+ * "This link is no longer valid".
+ *
+ * **What this changes — and what it deliberately does not.** Only the client
+ * stops asking twice. Server single-use semantics are untouched: a token still
+ * redeems once, a rejection is still a rejection, and no failure is ever
+ * converted into a success. This is deduplication, not a retry and not a cache
+ * of authority.
+ *
+ * **Bounded by construction.** Exactly one slot. A different token replaces it,
+ * so nothing accumulates. It lives in module memory for the current JavaScript
+ * page lifecycle only — never SecureStore, SQLite, `localStorage`,
+ * `sessionStorage` or any other browser storage — so a real page load starts
+ * clean and the raw token never outlives the tab.
+ *
+ * The stored promise **resolves** to an outcome and never rejects, so every
+ * later mount reads the first attempt's verdict rather than re-deriving it.
+ */
+let redemption: { token: string; outcome: Promise<RedemptionResult> } | null = null;
+
+/**
+ * Redeem `token` once per page lifecycle, reusing the in-flight or settled
+ * attempt when the same token is presented again.
+ *
+ * Reuse covers both races the remount creates: a second mount arriving while
+ * the first request is still open (it awaits the same promise, so the API is
+ * called once), and one arriving after it settled (it reads the same verdict).
+ *
+ * Exported as a seam so the deduplication contract can be asserted directly and
+ * deterministically, without depending on a test renderer to mount twice.
+ */
+export function redeemOnce(token: string): Promise<RedemptionResult> {
+  if (redemption !== null && redemption.token === token) return redemption.outcome;
+
+  const outcome = verifyEmail({ token }).then(
+    (): RedemptionResult => 'success',
+    (error: unknown): RedemptionResult => {
+      // Only the typed, safe reason is read — never the raw error, and never
+      // the token. A rejected token is one indistinguishable outcome by
+      // contract: expired, already used and unrecognised all land here.
+      const reason = error instanceof EmailVerificationError ? error.reason : 'unexpected';
+      return reason === 'invalid-verification-token' ? 'invalid' : 'error';
+    },
+  );
+
+  redemption = { token, outcome };
+  return outcome;
+}
+
+/**
+ * Clear the page-lifecycle memo. **Test seam only** — production code relies on
+ * a real page load to reset it, which is exactly the boundary the memo is
+ * scoped to.
+ */
+export function resetRedemptionMemo(): void {
+  redemption = null;
+}
+
+/**
  * Derive the rendered state from the captured token and the request result.
  *
  * Deriving rather than storing keeps "no token" out of the effect entirely —
@@ -140,7 +206,6 @@ export default function VerifyEmailScreen() {
 
   const token = useCapturedVerificationToken(routerToken);
   const [result, setResult] = useState<RedemptionResult>('pending');
-  const attempted = useRef(false);
   const state = resolveVerifyState(token, result);
 
   useEffect(() => {
@@ -154,23 +219,21 @@ export default function VerifyEmailScreen() {
   useEffect(() => {
     // `undefined` is "not captured yet" (hydrating) and `null` is a missing
     // token — both are rendered states derived above, so the effect has nothing
-    // to do for either. It exists only to run the request, exactly once.
+    // to do for either. It exists only to obtain the verdict for a real token.
     if (token === undefined || token === null) return;
-    if (attempted.current) return;
-    attempted.current = true;
 
-    void (async () => {
-      try {
-        await verifyEmail({ token });
-        setResult('success');
-      } catch (error) {
-        // Only the typed, safe reason is read — never the raw error, and never
-        // the token. A rejected token is one indistinguishable outcome by
-        // contract: expired, already used and unrecognised all land here.
-        const reason = error instanceof EmailVerificationError ? error.reason : 'unexpected';
-        setResult(reason === 'invalid-verification-token' ? 'invalid' : 'error');
-      }
-    })();
+    // Deduplicated across mounts by `redeemOnce`, so a hydration/router remount
+    // reads the first attempt's verdict instead of redeeming a spent token and
+    // turning a real success into "no longer valid".
+    let active = true;
+    void redeemOnce(token).then((outcome) => {
+      // A mount that unmounted mid-flight must not write state; the memo keeps
+      // the verdict for whichever mount is still alive to read it.
+      if (active) setResult(outcome);
+    });
+    return () => {
+      active = false;
+    };
   }, [token]);
 
   const authenticated = status === 'authenticated';
