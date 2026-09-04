@@ -1,4 +1,4 @@
-# AppFitness — Google Play Data Safety Matrix (DRAFT)
+# AppFitnessRD — Google Play Data Safety Matrix (DRAFT)
 
 > **DRAFT — NOT LEGAL ADVICE.** Engineering-produced mapping to Google
 > Play's Data Safety form, grounded in `DATA_INVENTORY.md`. MUST be

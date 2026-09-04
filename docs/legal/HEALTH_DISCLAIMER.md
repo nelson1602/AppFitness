@@ -1,4 +1,4 @@
-# AppFitness — Health & Medical Disclaimer (DRAFT)
+# AppFitnessRD — Health & Medical Disclaimer (DRAFT)
 
 > **DRAFT — NOT LEGAL ADVICE and NOT MEDICAL ADVICE.** Engineering-produced
 > draft. MUST be reviewed by a qualified human/legal (and ideally
@@ -9,12 +9,12 @@
 
 ## Not medical advice
 
-AppFitness is a wellness and fitness tool. Its outputs — including
+AppFitnessRD is a wellness and fitness tool. Its outputs — including
 **nutrition guidance, workout plans/guidance, and progress-monitoring
 summaries** — are **deterministic, informational outputs** derived from the
 data you enter and published fitness/nutrition heuristics (see
 `.ai/07_ICOACH.md`). They are **not medical advice, diagnosis, or
-treatment**, and AppFitness is **not a medical device**. Progress trends and
+treatment**, and AppFitnessRD is **not a medical device**. Progress trends and
 weekly snapshots are descriptive signals only, not clinical assessments.
 
 ## Consult a professional

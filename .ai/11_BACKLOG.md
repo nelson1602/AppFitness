@@ -1632,19 +1632,24 @@ Excluded:
        Apple, developer-account enrolment, and trademark clearance for
        `AppFitnessRD` must each be checked by a human against the live consoles
        before implementation.
-   - **UX-4B-2 — Legal draft branding. Not implemented. Blocks store
-     publication.** ADR-P028 slice **5b**: update **every current product-name
-     reference** in the five `docs/legal/` drafts (Privacy Policy, Terms of Use,
+   - **UX-4B-2 — Legal draft branding. Implemented 2026-09-04.** ADR-P028 slice
+     **5b**: updated **every current product-name reference** in the five
+     `docs/legal/` drafts (Privacy Policy, Terms of Use,
      Health Disclaimer, Play Data Safety, Data Inventory) — titles **and** body
-     prose, not the titles alone. **Legal meaning, DRAFT status, dates,
-     `[PLACEHOLDER]` effective dates and all non-brand wording are preserved
-     verbatim.** They are what a store reviewer reads, so they must carry the
-     commercial name before submission.
-   - **UX-4B-3 — Branded email copy. Implemented on PR #102, pending merge.
-     Blocks enabling or sending recovery email.** ADR-P028 slice **5c**:
+     prose, not the titles alone: **10 occurrences** across the five files, the
+     real count at implementation time. **Legal meaning, DRAFT status, dates,
+     `[PLACEHOLDER]` effective dates, the privacy contact address and all
+     non-brand wording are preserved verbatim** — every changed line is a brand
+     rename and nothing else. The drafts now carry the commercial name a store
+     reviewer reads. **This clears the branding blocker only**: the drafts remain
+     **DRAFT**, legal review is **not** claimed, and store readiness is
+     **unchanged** — see the release gates.
+   - **UX-4B-3 — Branded email copy. Implemented and merged through PR #102**
+     (merge commit `724a18e7`). It gated enabling or sending recovery email;
+     that gate is satisfied. ADR-P028 slice **5c**:
      reconcile the password-recovery email copy carried by **PR #102**. The brand
-     surfaces are exactly the **EN/ES subjects, bodies and sign-offs** (*"The
-     AppFitness team"* / *"El equipo de AppFitness"*).
+     surfaces are exactly the **EN/ES subjects, bodies and sign-offs** — the
+     pre-rename text was *"The AppFitness team"* / *"El equipo de AppFitness"*.
      - **Correction (2026-08-31): the sender is not a brand surface.** An earlier
        revision of this entry and of ADR-P028 slice 5c listed the
        `MAIL_FROM_ADDRESS` display name. **That surface does not exist.**
@@ -1657,25 +1662,29 @@ Excluded:
        may add one without separately authorizing a change to that contract.
      - **Implementation:** commit `aea1778` on
        `codex/auth-password-recovery-v1` — 6 files, +12/−12, every changed line a
-       brand-token-only substitution. **Pending merge; PR #102 is not merged.**
+       brand-token-only substitution. **Merged to `main` in PR #102's merge
+       commit `724a18e7`**, where the branded EN/ES subjects, bodies and
+       sign-offs are present.
      - **Sequencing, as delivered:** a follow-up commit on PR #102's existing
-       branch, before that PR merges, so branded copy never reaches `main`
+       branch, before that PR was merged, so branded copy never reaches `main`
        under the old name.
-     - **Binding deadline:** complete before recovery email is enabled or any
-       recovery email is sent.
+     - **Binding deadline — met:** the branded copy reached `main` in
+       `724a18e7`, so this slice no longer gates anything. This records the copy
+       only and asserts nothing about mail configuration, delivery or release
+       readiness.
      - This correction changes no sender configuration, mail delivery, Postmark,
        DNS, recovery behaviour or security control. ADR-P028 inspected PR #102
        read-only and modified nothing in it.
-   - **UX-4B-4 — API Swagger branding. Not implemented.** ADR-P028 slice **5d**:
-     update **both** current public branding occurrences in
-     `api/src/config/api-docs.config.ts` — `.setTitle('AppFitness API')` (line
-     35) and the `.setDescription(...)` text (line 37) — plus any directly
-     dependent test assertion. At this commit `api-docs.config.spec.ts` stubs
-     `setTitle`/`setDescription` rather than asserting their strings, so none
-     needs changing today; re-check at implementation time. **No API behaviour and
-     no hosted-doc exposure change** — the `isApiDocsEnabled` gate is untouched.
-     The API is deployed, so this is live branding, but it is independently
-     schedulable.
+   - **UX-4B-4 — API Swagger branding. Implemented 2026-09-04.** ADR-P028 slice
+     **5d**: updated **both** current public branding occurrences in
+     `api/src/config/api-docs.config.ts` — `.setTitle('AppFitnessRD API')` and
+     the `.setDescription(...)` text. The re-check the previous entry called for
+     was performed: `api-docs.config.spec.ts` still stubs `setTitle`/
+     `setDescription` as zero-argument methods that assert nothing, and no other
+     spec or e2e test references either string, so **no test assertion needed
+     changing**. **No API behaviour and no hosted-doc exposure change** — the
+     `isApiDocsEnabled` gate is untouched, and both Railway tiers still run with
+     the flag unset, so the renamed title is not served anywhere today.
      **Dormant surfaces are excluded** from every slice above: the `client/` Web
      SPA (9 files) and `server/` email service are legacy migration sources that
      no CI job builds. Renaming them would edit dead code; their branding belongs
