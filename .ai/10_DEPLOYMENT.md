@@ -396,9 +396,12 @@ Examples:
 * Push notification credentials
 * Web CORS allow-list (`WEB_CORS_ORIGINS`, ADR-P018 Slice 3) — comma-separated
   exact browser origins for interim Web Bearer auth; no wildcard. Unset ⇒
-  fail-closed. Configured per environment (e.g. local Expo Web QA origins on the
-  Development API only); Production stays unset unless a hosted Web origin is
-  approved.
+  fail-closed. Configured per environment, and the two allow-lists are disjoint
+  by design: Production carries exactly its Account and Recovery origins and
+  rejects the Development Account origin, while Development carries its
+  Account-Dev origin and rejects the Production Account origin (verified
+  2026-09-04). Any further hosted Web origin still needs its own approval before
+  it is added.
 
 Secrets must never be committed to source control.
 
