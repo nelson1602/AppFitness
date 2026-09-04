@@ -2091,6 +2091,20 @@ Updated: 2026-09-03
 > **redemption still works** so any token already issued stays usable. Set but
 > malformed still throws at boot — an operator who set it meant it to work.
 >
+> **ADR-P029 (Proposed, 2026-09-04) — idempotent verification replay.** A
+> verified user can currently be shown "This link is no longer valid": the
+> emailed message keeps its fragment permanently, so reopening the original
+> link — or a browser handoff that preserves the original URL, or a reload that
+> beats the client fragment scrub — replays a spent token and receives the
+> generic `400` while `emailVerifiedAt` is already set. (After the scrub, an
+> ordinary reload carries no token and shows the incomplete-link state instead.) ADR-P029 proposes returning the same empty
+> `204` for a replay of the token that successfully verified an active
+> account, bounded by its original 24-hour expiry, with no second mutation, no
+> session and no duplicate audit row. **Documentation only so far — no code,
+> no migration** (the predicate reads only existing columns), and the client
+> realm-slot experiment is **not** approved and **not** required. Password-reset
+> replay is unchanged.
+>
 > **One prerequisite remains for V2-E.** The account hostname **does not
 > exist**: it needs DNS and a CORS entry (owner/infra). The second-variable
 > question is **resolved**: V2-C added `MAIL_VERIFICATION_BASE_URL` alongside

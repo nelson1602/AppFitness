@@ -811,6 +811,14 @@ dormant but because Web *is* the target.
 | **Conflict** | — | — | — | — | **n/a** — no divergent local version exists |
 | **Web unavailable** | — | — | — | — | **n/a** — Web is the *target* platform here, not a dormant one |
 
+**"Already used" is under review.** **ADR-P029 (Proposed, not implemented)**
+would make a replay of the token that successfully verified an active account
+resolve to the **success** arm — the same empty `204` — until its original
+expiry, instead of the invalid-link row above. Expired, superseded,
+invalidated, unrecognised and consumed-without-success tokens keep the invalid
+treatment exactly as specified. No state, key or tone changes; only which arm a
+successful replay lands in.
+
 ### Success is not a ninth state
 
 `auth.verify.successTitle` / `successBody` render a **terminal content condition

@@ -466,6 +466,12 @@ any environment**. What follows is the **frozen specification** produced by
   stays address-based and enumeration-resistant.
 - Token: 32-byte base64url, **SHA-256 stored only**, single-use via `consumedAt`,
   **24-hour TTL**, new issuance invalidating prior active tokens.
+- **Replay of the successful token — ADR-P029 (Proposed, not implemented).**
+  The mutation stays single-use, but replaying the token that verified an
+  active account would return the same empty `204` until its original expiry
+  rather than `400`. Shipped behaviour today is still `400`; no copy key
+  changes either way, because a settled replay resolves to the existing success
+  arm.
 
 ### Owner decisions (2026-09-02)
 

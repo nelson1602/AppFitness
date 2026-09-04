@@ -8323,6 +8323,11 @@ hash persisted** in a `@unique` column, and each token **single-use** via a
 - **Password reset TTL: 30 minutes.**
 - **Email verification TTL: 24 hours.**
 
+*(Refined 2026-09-04 by **ADR-P029 (Proposed)**: the verification token stays
+single-use — one consumption, one mutation — but replaying the token that
+successfully verified an active account returns the same empty `204` until its
+original expiry, instead of `400`. Password-reset replay is unchanged.)*
+
 **7. Invalidation and revocation.** Issuing a new token of either family
 **invalidates all prior active tokens of that family for that user**. A
 **successful password reset revokes every `RefreshToken` for that user**, reusing
@@ -8507,6 +8512,13 @@ counted inside the per-user row lock that issuance already takes.
 
 **Preserved from V2-B:** no anonymous resend form and no email input. Resend
 lives only on the authenticated dashboard reminder.
+
+#### 2026-09-04 — replay of a successful verification token
+
+Decision 6's single-use rule is refined by **ADR-P029 (Proposed)**. The
+mutation stays single-use; only the *response to a replay* changes. See
+ADR-P029 for the predicate, the audit rule and the security trade-off. Nothing
+in `forgot-password` / `reset-password` is affected.
 
 ### Related Documents
 
@@ -9082,6 +9094,414 @@ documentation only.
 - Android application ID — <https://developer.android.com/build/configure-app-module>
 - App Store Connect app information —
   <https://developer.apple.com/help/app-store-connect/reference/app-information/>
+
+---
+
+## ADR-P029 — Idempotent Email-Verification Redemption
+
+Status: Proposed
+Date: 2026-09-04
+Owner: Security / Backend Architecture
+
+### Context
+
+**A verified user can be told verification failed.** `POST /auth/verify-email`
+consumes a token atomically and answers one generic `400` for every
+non-redeemable token — unknown, expired, superseded, invalidated, and
+*already consumed* alike (`email-verification.service.ts`,
+`verifyEmail`). That is correct for a spent token in the abstract, but the
+emailed link always still carries its `#token=…` fragment, so any second
+arrival at the landing replays a token the server has already honoured.
+
+A second arrival needs the **original fragment** to still be present, so the
+accurate cases are narrower than "any reload". The client scrubs the fragment
+from the URL and the history entry shortly after capture, so a reload or a
+restored history entry *after* the scrub carries no token at all and renders the
+incomplete-link state instead. The cases that genuinely replay a token are:
+
+- **reopening the original emailed link** — the message in the mailbox keeps its
+  fragment permanently, so a second click is a full replay;
+- **a browser handoff that preserves the original URL** — a mail client opening
+  the link in its in-app browser and then handing the same URL to the system
+  browser;
+- **a reload or restore that happens before the scrub lands**, which is a
+  narrow window but a real one;
+- **any other new JavaScript realm entered with the original fragment intact**,
+  such as duplicating the tab from the emailed URL.
+
+The user then sees **"This link is no longer valid"** while
+`users.email_verified_at` is already set. The account is verified; the message
+says otherwise. This was observed against the deployed Development Web bundle
+on 2026-09-04: one link, opened once, first showing "Verifying your email" and
+then the invalid state, with an authenticated `/auth/me` confirming
+`emailVerifiedAt` was set.
+
+**A client-side fix cannot be authoritative.** A page-lifecycle deduplication
+slot (the unapproved `codex/fix-email-verification-page-lifecycle` experiment)
+removes duplicate redemptions *within one JavaScript realm*, but each case above
+starts a **new realm**.
+
+Persisting something client-side is *implementable* — a fingerprint of the token
+plus the settled outcome would avoid storing the raw bearer value — so the
+objection is not that it cannot be built. The objection is that it cannot be
+**complete or authoritative**:
+
+- it does not carry across **browsers or devices**, which is precisely the
+  in-app-browser-to-system-browser handoff;
+- it is erased by **cleared storage, private browsing, or storage eviction**;
+- it broadens **authentication-derived state** held on the client, which
+  `.ai/05_SECURITY.md` asks us to minimise rather than grow;
+- it would still be a *cache of someone else's decision*, so any disagreement
+  with the server resolves the wrong way.
+
+That incompleteness — not an impossible implementation — is why the decision
+belongs on the server, which is the only party that authoritatively knows
+whether this token already did its job.
+
+**Password recovery is deliberately not in scope.** A reset token is a
+credential-change capability: replaying it must stay strictly `400`, because a
+settled "success" there would tell a holder that a password was changed and
+would blur single-use semantics on a far more sensitive path.
+
+### Decision
+
+**1. Redemption stays atomic and single-use.** The state mutation is unchanged:
+exactly one conditional claim sets `consumed_at`, and only the claiming
+transaction may set `email_verified_at`. Nothing in this decision relaxes that.
+
+**2. A settled-successful replay returns the same empty `204`.** Replaying the
+*exact same* high-entropy token returns `204` with an empty body — identical to
+the first redemption — when **all** of the following hold:
+
+- the SHA-256 hash matches a stored row;
+- that row has `consumed_at IS NOT NULL` and `invalidated_at IS NULL`;
+- `expires_at > now()` — the replay window is the token's **original 24-hour
+  expiry**, never extended;
+- the owning user is `status = ACTIVE`, `deleted_at IS NULL`, and
+  `email_verified_at IS NOT NULL`;
+- that consumption is the one that verified the account (see Decision 4).
+
+**3. A replay mutates nothing.** It performs no second user update, does not
+rewrite `email_verified_at`, does not touch `consumed_at`, does not invalidate
+siblings, and **creates no session** — verification never authenticates
+(ADR-P026, V2-B).
+
+**4. "Consumed with success" is identified by timestamp equality, not by a new
+column.** The verifying transaction writes a single `now` to both
+`email_verification_tokens.consumed_at` and `users.email_verified_at`, so the
+verifying token is exactly the row whose `consumed_at` equals the owner's
+`email_verified_at`. Implementations MUST preserve that single-`now` invariant,
+and a regression test MUST pin it (acceptance criterion 13).
+
+**Verified on real PostgreSQL**, not assumed: writing the same instant to both
+columns and reading them back at `timestamptz(6)` yields
+`timestamps_equal = true`, so JavaScript millisecond precision survives the
+round trip intact.
+
+This discriminator resolves both awkward cases without a new column:
+
+- **Consumed without success** — consumed while the owner was suspended or
+  soft-deleted, so `email_verified_at` was never written by that transaction.
+  Equality fails; the token stays `400` even if the account is verified later
+  through a different token.
+- **`email_verified_at` predating this token's consumption.** Measured on real
+  PostgreSQL: equality evaluates `false`, so such a token is **not** replay
+  eligible and returns `400`. It is also believed unreachable in shipped code,
+  because issuance is guarded — `resendVerification` refuses once
+  `emailVerifiedAt !== null`, registration issues only for a brand-new account,
+  and the partial unique index permits at most one open row per user, so no
+  second token can be redeemed after verification. The rule is stated anyway:
+  should any future issuance path make such a row reachable, it **must remain
+  `400`**, and the discriminator already produces that outcome rather than
+  silently classifying it as a successful replay.
+
+**5. Every other outcome keeps one generic `400`.** Unknown, expired (including
+a successfully-consumed token past its original expiry), superseded,
+invalidated, and consumed-without-success tokens all produce the single message
+`Invalid or expired verification token`. The set of responses stays two: `204`
+or `400`. No new status code, no new body, no reason field.
+
+**6. Password-reset replay is unchanged.** `POST /auth/reset-password` keeps
+strict single-use with a generic `400` on replay. This ADR applies to email
+verification only.
+
+**7. Storage and logging are unchanged.** Only the SHA-256 hash is stored; the
+raw token is never persisted, logged, audited, or sent to Sentry, and neither
+is the address or the per-request outcome (ADR-P026 Decision 9).
+
+**8. Rate limits and retention are unchanged.** The per-IP throttle
+(10 / 15 min on `verify-email`) and the per-account issuance ceiling stay as
+they are; a replay is a normal request against them. Terminal-row retention
+stays at 30 days, which already exceeds the 24-hour replay window by a wide
+margin, so no retention change is needed for a replay to find its row.
+
+**9. Concurrent first-use and replay must settle deterministically — the
+invariant is frozen, the mechanism is not mandated.** The required outcome for
+two simultaneous requests carrying the same redeemable token is: exactly **one**
+`consumed_at` write, exactly **one** `email_verified_at` write, at most one
+`EMAIL_VERIFICATION_SUCCESS` audit attempt (Decision 10), and **both** requests
+answering `204` — never one `204` and one `400`.
+
+**No explicit locking is mandated, because PostgreSQL was measured to provide
+this already.** A focused experiment on a disposable PostgreSQL 16 instance
+(`default_transaction_isolation = read committed`, the shipped default) ran the
+proposed algorithm unchanged — the conditional `UPDATE … WHERE consumed_at IS
+NULL AND invalidated_at IS NULL AND expires_at > now()` followed by the replay
+predicate — with one session holding its transaction open for three seconds:
+
+| Observation | Result |
+|---|---|
+| Racing session's conditional claim | `claimed_rows = 0` |
+| Racing session blocked on the winner's row lock | **2,319 ms** |
+| State it then observed | consumed ✓, not invalidated ✓, unexpired ✓, `ACTIVE` ✓, not deleted ✓, verified ✓ |
+
+The `UPDATE` itself takes the row lock and blocks; when the winner commits,
+PostgreSQL re-evaluates the qualifier against the new row version and matches
+zero rows; the next statement in the loser's transaction takes a fresh Read
+Committed snapshot and therefore sees the committed result. The plain
+conditional update is **sufficient**, so implementations MAY use it as-is.
+
+Explicit locking (`SELECT … FOR UPDATE`) is required **only if** an
+implementation demonstrates the invariant failing — for example under a
+non-default isolation level, a different driver, or a future split of the
+claim and the read across transactions. Any implementation must carry the
+concurrency test in the acceptance criteria to keep this measured, not assumed.
+
+**10. Only the first-success outcome attempts the success audit; a replay
+attempts none.** `EMAIL_VERIFICATION_SUCCESS` means *the address became
+verified*. Only the request whose transaction actually set `email_verified_at`
+attempts to record it; a settled replay attempts **no** audit row — not a
+success, not a failure — so idempotency cannot manufacture duplicate
+"verification completed" events. `EMAIL_VERIFICATION_REQUEST` (issuance) is
+untouched, and genuine `400`s remain unaudited, exactly as today.
+
+**This is deliberately not a durable exactly-once guarantee.** `AuditService.record`
+runs **after** the state transaction commits and **swallows its own failures by
+design** — "losing one audit row is preferable to blocking a login"
+(`api/src/modules/audit/audit.service.ts`). So the honest guarantee is
+*at-most-one attempt, by the first-success path only*: a verification can
+succeed while its audit row is lost, exactly as it can today. This ADR does not
+change that and must not be read as tightening it. Durable exactly-once audit
+(a transactional outbox, or writing the audit row inside the state transaction)
+is **separate architecture work** and needs its own ADR; it is explicitly out of
+scope here.
+
+**11. No migration is required — established from repository evidence, not
+assumed.** The predicate in Decision 2 reads only columns that already exist and
+are already populated by shipped code:
+
+| Needed | Source | Evidence |
+|---|---|---|
+| token identity | `email_verification_tokens.token_hash` (UNIQUE) | `20260903120100_add_email_verification_tokens` |
+| consumption marker | `consumed_at` | same migration |
+| supersession marker | `invalidated_at` | same migration |
+| replay window | `expires_at` | same migration |
+| owner | `user_id` (FK, `ON DELETE CASCADE`) | same migration |
+| account state | `users.status`, `users.deleted_at` | initial migration |
+| verification state | `users.email_verified_at` | `20260903120100`, nullable, no default |
+
+No column, index, constraint or enum value is added or altered. The partial
+unique index `uq_email_verification_tokens_one_active_per_user` constrains only
+**open** rows (`consumed_at IS NULL AND invalidated_at IS NULL`), so a consumed
+row sits outside its predicate and a replay neither violates nor needs it.
+Implementation is therefore a service-layer change plus tests.
+
+**12. The client realm-slot experiment is not required for correctness and
+remains unapproved.** With server-side idempotency, duplicate in-page
+redemptions are harmless: the second returns the same `204`. The experiment on
+`codex/fix-email-verification-page-lifecycle` may be adopted later purely to
+avoid a redundant request, and needs its own review. It is **not** a
+prerequisite for this ADR and must not be merged as one.
+
+### Options Considered
+
+1. **Server-side idempotent replay within the original expiry (chosen).**
+   Fixes every realm, browser and in-app-browser case at the only layer that
+   can. Costs a slightly wider window in which a leaked token yields `204`.
+2. **Client-side page-lifecycle deduplication.** Removes the redundant request
+   but cannot survive a reload, a second tab or an in-app-browser handoff —
+   demonstrated: a new realm holding the un-scrubbed fragment still redeems and
+   still renders the invalid state. Rejected as insufficient alone.
+3. **Persist client-side state to dedupe across realms.** A client could store
+   a **fingerprint** of the token plus the settled outcome, so this does not
+   require keeping the raw bearer value and is not rejected on that basis.
+   Rejected because any client persistence is: **incomplete** — it does not
+   reach another browser, another device, or an in-app-browser handoff;
+   **non-authoritative** — a cache of a decision only the server actually
+   makes, so a disagreement resolves the wrong way; **removable** — cleared
+   storage, private browsing or eviction silently restores the defect; and it
+   **broadens authentication-derived state** held on the client, which
+   `.ai/05_SECURITY.md` asks us to minimise. Option 1 is complete, correct
+   everywhere, and stores nothing new on the client.
+4. **A distinct "already verified" response (`200` with a body, or `409`).**
+   Rejected: it widens the contract the frozen V2-B copy was written against and
+   adds a *new* response type and body detail on top of the state distinction
+   the chosen option already exposes. It buys nothing the caller cannot infer,
+   and every extra field is another thing to keep from leaking.
+5. **Unbounded replay (ignore expiry).** Rejected: it would make a leaked token
+   an indefinitely replayable `204`, and it decouples the response from the
+   token's stated 24-hour lifetime.
+
+### Rationale
+
+**Possession of the token already authorized verification.** The token is a
+32-byte high-entropy bearer credential delivered only to the address being
+proven. Anyone presenting it could have verified the account; returning the
+settled outcome to the same credential grants nothing that its first
+presentation did not already grant. The replay performs no mutation, so the
+capability is strictly narrower than the original.
+
+**The distinction it exposes is bounded, and accepted deliberately.** Returning
+`204` for a successfully consumed exact token and `400` for everything else does
+reveal token-specific state to whoever holds that token: they learn this
+particular token was the one that verified an eligible account, rather than
+being expired, superseded or unrecognised. That is a real disclosure and is
+stated plainly rather than argued away.
+
+It is accepted because the caller **already possesses the high-entropy bearer
+token**, which was delivered only to the address being proven and already
+authorized verification. Within that bound, the design adds:
+
+- **no new response type** — the set stays `204` / `400`;
+- **no body detail** — the `204` is empty, exactly as the first redemption;
+- **no session** and **no mutation**;
+- **no account lookup by address** — the endpoint accepts a token only, so
+  enumeration resistance (ADR-P026 Decision 8, as clarified 2026-09-03) is
+  unaffected and an attacker without a valid token still sees only the generic
+  `400`;
+- **generic failure preserved for every other case** — expired, superseded,
+  invalidated, unrecognised and consumed-without-success remain one
+  indistinguishable `400`.
+
+**It is bounded in time by the token's own contract.** Replay stops at the
+original `expires_at`; the window is never extended, so the exposure added is at
+most the remainder of a 24-hour lifetime that already existed.
+
+**`.ai/00_PROJECT.md` §Decision Hierarchy puts user safety and correctness above
+developer convenience.** Telling a user their verification failed when the
+server has recorded it as succeeded is a correctness defect with a real support
+cost, and the fix belongs on the server rather than in four client
+environments that cannot all be controlled.
+
+### Consequences
+
+**Positive — within a stated bound.** Presenting a **retained, unexpired,
+successfully consumed** token for an account that is still `ACTIVE` and not
+soft-deleted yields success on any device, browser, in-app browser or realm,
+instead of "no longer valid". Outside that bound nothing changes: once the
+original 24-hour expiry passes, once the row is purged by the 30-day terminal
+retention, or if the account is later suspended or deleted, a replay is a
+generic `400` again. **This ADR does not promise that every verified user
+always receives success** — only that the specific token which verified an
+eligible account keeps answering the same way while it remains eligible.
+
+The client needs no persistence and no cross-realm coordination. The response
+set stays `204` / `400` with unchanged copy, so V2-B's frozen decks and state
+matrices need no new key.
+
+**Negative — accepted.** A leaked or intercepted token yields `204` (and nothing
+else) for the remainder of its original 24 hours, rather than `400` after first
+use. No mutation and no session follow, so the practical gain to a holder is
+knowledge that the token was valid — which possession already implied. The
+service gains a **replay-classification branch**, and a concurrent caller may
+experience the lock wait that the conditional `UPDATE` inherently produces in
+PostgreSQL — measured at 2,319 ms against a deliberately slow 3-second holder,
+and bounded in practice by how long the winning transaction runs. **No explicit
+lock is mandated** (Decision 9). The `consumed_at` / `email_verified_at`
+equality becomes a load-bearing invariant that must be tested.
+
+**Neutral.** No schema change, no migration, no dependency, no configuration,
+and no change to issuance, resend, throttling or retention.
+
+### Implementation Acceptance Criteria
+
+Implementation is complete when all of the following hold.
+
+1. **First redemption.** A redeemable token returns `204` with an empty body,
+   sets `consumed_at` and `email_verified_at` to the same transaction `now`,
+   and invalidates sibling open rows. The first-success path invokes **exactly
+   one** `EMAIL_VERIFICATION_SUCCESS` audit attempt, carrying the user id only;
+   a row exists when that best-effort operation succeeds. A test may assert that
+   the ordinary successful path records one row, but neither the test nor this
+   ADR asserts durable exactly-once delivery — `AuditService.record` swallows
+   its own failures by design (Decision 10).
+2. **Settled replay.** Replaying that token before its original `expires_at`,
+   while its row is still retained and the account is still `ACTIVE` and not
+   soft-deleted, returns `204` with an empty body.
+3. **Replay mutates nothing.** After a replay, `email_verified_at`,
+   `consumed_at`, `invalidated_at` and `updated_at` on the row are byte-identical
+   to their post-first-redemption values, and no sibling row changes.
+4. **Replay creates no session.** The response carries no token pair, no
+   `Set-Cookie`, and the account's active refresh-token count is unchanged.
+5. **Replay attempts no audit row.** No replay invokes the success-audit path,
+   so the count of `EMAIL_VERIFICATION_SUCCESS` rows for the user does not grow
+   with replays. (The count is asserted as "not increased by replay", not as a
+   durable exactly-once guarantee — see Decision 10.)
+6. **Expiry bounds the replay.** The same token past its original `expires_at`
+   returns the generic `400`.
+7. **Invalidated token.** A superseded or invalidated token returns `400`,
+   whether or not it was ever consumed.
+8. **Consumed without success, and `email_verified_at` predating consumption.**
+   A token consumed while the owner was suspended or soft-deleted returns `400`,
+   including when the account is verified later through a different token. A row
+   whose `consumed_at` does not equal the owner's `email_verified_at` returns
+   `400` in every case (Decision 4).
+9. **Inactive or deleted owner.** A settled-successful token whose owner is now
+   suspended or soft-deleted returns `400`.
+10. **Unknown token.** A syntactically valid but unrecognised token returns
+    `400` with the identical message.
+11. **Concurrency.** Two simultaneous requests carrying the same redeemable
+    token both return `204` — never one `204` and one `400` — with exactly one
+    `consumed_at` write, one `email_verified_at` write, and at most one
+    success-audit attempt. The test must run against real PostgreSQL, since this
+    invariant rests on measured Read Committed behaviour (Decision 9).
+12. **First timestamp preserved.** No replay, and no redemption of any other
+    token, rewrites an existing `email_verified_at`.
+13. **Single-`now` invariant.** A test asserts that a successful redemption
+    writes the identical instant to `consumed_at` and `email_verified_at`, since
+    Decision 4 depends on it.
+14. **No leakage.** No audit row, log line or Sentry event contains the raw
+    token, its hash, or the address, on any path.
+15. **Unchanged neighbours.** `POST /auth/reset-password` replay still returns
+    `400`; issuance, resend, throttles and retention are untouched; no migration
+    is added; no dependency is added.
+
+Regression coverage must include the disposable-PostgreSQL end-to-end path, not
+unit tests alone, because Decisions 4 and 9 depend on real transaction and lock
+behaviour.
+
+### Supersedes / Preserves
+
+- **Refines ADR-P026 Decision 6** — the token remains 32-byte, SHA-256-stored,
+  single-use and 24-hour-lived. Only the *response to a replay of the
+  successful token* changes, from `400` to the same `204`; the single-use
+  mutation itself is unchanged.
+- **Preserves ADR-P026 Decision 8 and its 2026-09-03 clarification** — no
+  address is accepted or looked up here, and no enumeration surface is added.
+- **Preserves ADR-P026 Decision 9** — hash-only storage, and no token, address
+  or body in logs, audit rows or Sentry.
+- **Preserves ADR-P026 Decision 11** — verification stays a soft gate.
+- **Preserves ADR-P020** — the existing throttling posture is unchanged.
+- **Preserves the V2-B frozen contract** (`.ai/17_PRODUCT_FLOWS.md` §2.4,
+  `.ai/18_SCREEN_STATE_MATRICES.md`, `.ai/19_COPY_DECKS.md`) — no copy key is
+  added, removed or reworded. A settled replay simply resolves to the existing
+  success arm instead of the invalid arm.
+- **Preserves ADR-P011** — account deletion is unaffected; a deleted owner
+  yields `400`.
+- Does **not** authorize the client realm-slot experiment, any migration, any
+  dependency, or any change to `MAIL_VERIFICATION_BASE_URL` or external rollout.
+
+### Related Documents
+
+- `.ai/05_SECURITY.md` (§Authentication, §Logging, §Audit Trail)
+- `.ai/11_BACKLOG.md` (FEATURE-011 — Vertical 2)
+- `.ai/17_PRODUCT_FLOWS.md` (§2.4 — token policy)
+- `.ai/18_SCREEN_STATE_MATRICES.md` (§Proposed surfaces — P2 invalid-link row)
+- `.ai/19_COPY_DECKS.md` (§Email verification — one generic message)
+- `api/src/modules/auth/application/email-verification.service.ts` (`verifyEmail`)
+- `api/src/modules/auth/presentation/auth.controller.ts` (`POST /auth/verify-email`)
+- `api/prisma/migrations/20260903120100_add_email_verification_tokens/migration.sql`
+- `api/test/email-verification.e2e-spec.ts` (replay assertions to update)
 
 ---
 

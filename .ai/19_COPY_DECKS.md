@@ -589,6 +589,11 @@ disabled (a `503`) — never for a throttled or unknown-account response.
 | `auth.verify.goToSignIn` | Go to sign in | Ir a iniciar sesión | **PROPOSED** — V2-D |
 
 **One generic message covers expired, already-used and unrecognised tokens.**
+*(**ADR-P029 (Proposed, not implemented)** narrows "already-used": a replay of
+the token that successfully verified an active account would render the
+**success** copy instead, until its original expiry. The invalid copy still
+covers expired, superseded, invalidated, unrecognised and
+consumed-without-success tokens. **No key is added, removed or reworded.**)*
 `invalidTitle`/`invalidBody` never disclose which of the three occurred — the
 same discipline the shipped reset landing applies, and the behaviour Production
 validation confirmed for recovery on 2026-09-02. `errorTitle`/`errorBody` is a
