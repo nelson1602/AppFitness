@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import VerifyEmailScreen, {
   captureVerificationToken,
   clearTokenFromUrl,
+  redeemOnce,
+  resetRedemptionMemo,
   resolveVerifyState,
 } from '../../app/verify-email';
 
@@ -86,8 +88,13 @@ describe('VerifyEmailScreen', () => {
     mockStatus = 'unauthenticated';
     mockParams = {};
     mockLanguage = 'en';
+    // mockReset, not just clearAllMocks: the latter leaves implementations and
+    // queued once-implementations in place, which bleeds between tests here.
+    mockVerify.mockReset();
     mockVerify.mockResolvedValue(undefined);
     mockLocation = null;
+    // Each test is a fresh page load; the memo is scoped to one page lifecycle.
+    resetRedemptionMemo();
   });
 
   describe('state derivation', () => {
@@ -235,6 +242,102 @@ describe('VerifyEmailScreen', () => {
     });
   });
 
+  describe('redeemOnce — the deduplication seam', () => {
+    it('calls the API exactly once for repeated redemptions of one token', async () => {
+      await expect(redeemOnce('tok')).resolves.toBe('success');
+      await expect(redeemOnce('tok')).resolves.toBe('success');
+      await expect(redeemOnce('tok')).resolves.toBe('success');
+
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+      expect(mockVerify).toHaveBeenCalledWith({ token: 'tok' });
+    });
+
+    it('reuses the in-flight attempt rather than starting a second one', async () => {
+      let settle: (() => void) | undefined;
+      mockVerify.mockReturnValue(
+        new Promise<void>((resolve) => {
+          settle = resolve;
+        }),
+      );
+
+      const a = redeemOnce('tok');
+      const b = redeemOnce('tok');
+      // Same promise instance: the second caller awaits the first request.
+      expect(b).toBe(a);
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+
+      settle?.();
+      await expect(a).resolves.toBe('success');
+      await expect(b).resolves.toBe('success');
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not let a single-use replay rejection overwrite a first success', async () => {
+      mockVerify
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValue(new EmailVerificationError('invalid-verification-token'));
+
+      await expect(redeemOnce('tok')).resolves.toBe('success');
+      // A replay would be rejected by the server; it is never attempted.
+      await expect(redeemOnce('tok')).resolves.toBe('success');
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+    });
+
+    it('preserves a genuine rejection — deduplication never launders a failure', async () => {
+      mockVerify.mockRejectedValue(new EmailVerificationError('invalid-verification-token'));
+
+      await expect(redeemOnce('spent')).resolves.toBe('invalid');
+      await expect(redeemOnce('spent')).resolves.toBe('invalid');
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([['connectivity'], ['server'], ['mail-unavailable'], ['rate-limited'], ['unexpected']])(
+      'maps a %s failure to the request-failed outcome and keeps it',
+      async (reason) => {
+        mockVerify.mockRejectedValue(new EmailVerificationError(reason));
+
+        await expect(redeemOnce('tok')).resolves.toBe('error');
+        await expect(redeemOnce('tok')).resolves.toBe('error');
+        expect(mockVerify).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it('maps an untyped throw to the request-failed outcome', async () => {
+      mockVerify.mockRejectedValue(new Error('boom'));
+
+      await expect(redeemOnce('tok')).resolves.toBe('error');
+    });
+
+    it('redeems a DIFFERENT token instead of reusing the previous verdict', async () => {
+      mockVerify.mockRejectedValue(new EmailVerificationError('invalid-verification-token'));
+      await expect(redeemOnce('first')).resolves.toBe('invalid');
+
+      mockVerify.mockReset();
+      mockVerify.mockResolvedValue(undefined);
+      await expect(redeemOnce('second')).resolves.toBe('success');
+      expect(mockVerify).toHaveBeenCalledWith({ token: 'second' });
+    });
+
+    it('keeps exactly one slot, so nothing accumulates across tokens', async () => {
+      await expect(redeemOnce('a')).resolves.toBe('success');
+      await expect(redeemOnce('b')).resolves.toBe('success');
+      // 'a' was evicted by 'b', so it is redeemed again rather than cached.
+      await expect(redeemOnce('a')).resolves.toBe('success');
+
+      expect(mockVerify).toHaveBeenCalledTimes(3);
+    });
+
+    it('is cleared by a fresh page lifecycle', async () => {
+      await expect(redeemOnce('tok')).resolves.toBe('success');
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+
+      resetRedemptionMemo();
+
+      await expect(redeemOnce('tok')).resolves.toBe('success');
+      expect(mockVerify).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('conditional navigation — verification creates no session', () => {
     it('sends an authenticated visitor to the dashboard on success', async () => {
       mockStatus = 'authenticated';
@@ -298,6 +401,46 @@ describe('VerifyEmailScreen', () => {
       expect(screen.queryByTestId('button-verification-resend')).toBeNull();
       expect(screen.queryByText('Send verification email')).toBeNull();
       expect(screen.queryByPlaceholderText(/email/i)).toBeNull();
+    });
+  });
+  describe('remount deduplication (regression)', () => {
+    /**
+     * A verification token is single-use server-side. On Web, hydration and
+     * Expo Router can mount this screen twice for the same page load; before
+     * the fix the guard was an instance-scoped `useRef`, so the second mount
+     * redeemed the already-consumed token, the server correctly answered 400,
+     * and a genuinely successful verification was overwritten by
+     * "This link is no longer valid".
+     *
+     * The end-to-end symptom is asserted once through a real unmount/remount.
+     * The remaining properties are asserted directly against `redeemOnce`,
+     * the deduplication seam: this test renderer cannot mount again after a
+     * manual `unmount()` within the same file, and a seam assertion is
+     * deterministic rather than dependent on renderer teardown behaviour.
+     *
+     * For that same reason this describe is deliberately LAST in the file — a
+     * manual unmount stops this renderer from mounting again, so any test
+     * placed after it would silently render nothing.
+     */
+
+    it('survives a real unmount/remount: one API call, success preserved', async () => {
+      mockParams = { token: 'same-token' };
+      // Exactly the server behaviour that caused the defect: the first
+      // redemption succeeds, any second one is rejected as already consumed.
+      mockVerify
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValue(new EmailVerificationError('invalid-verification-token'));
+
+      const first = await render(<VerifyEmailScreen />);
+      first.unmount();
+      const view = await render(<VerifyEmailScreen />);
+
+      await waitFor(() => expect(view.getByTestId('verify-success')).toBeTruthy());
+      expect(view.queryByTestId('verify-invalid')).toBeNull();
+      expect(view.getByText('Email verified')).toBeTruthy();
+      // The replay never happened — that is what protects the result.
+      expect(mockVerify).toHaveBeenCalledTimes(1);
+      expect(mockVerify).toHaveBeenCalledWith({ token: 'same-token' });
     });
   });
 });
