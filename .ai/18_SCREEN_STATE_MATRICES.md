@@ -1,8 +1,8 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.11
+Version: 1.12
 Status: Active
-Last Updated: 2026-09-02
+Last Updated: 2026-09-07
 
 ---
 
@@ -875,7 +875,7 @@ Not defects — specification work this document deliberately does not do.
 | Gap | Owning slice |
 |---|---|
 | EN/ES copy for every state named above | **UX-3C — delivered as `.ai/19_COPY_DECKS.md` v1.0 documentation candidate** |
-| Non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` | **UX-3D — delivered as `.ai/20_PROGRESS_NONVISUAL.md` v1.0 documentation candidate** |
+| Non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` | **UX-3D — specified in `.ai/20_PROGRESS_NONVISUAL.md` and now SHIPPED** (R-1/R-2 on 2026-09-04 via BUG-013; R-3…R-14 on 2026-09-07). It introduced **no ninth state** and changed no trigger, treatment or applicability in surface 10 above. Announcement stays unverified until UX-4C |
 | Whether a first-run checklist introduces a new state (it must not — `.ai/17_PRODUCT_FLOWS.md` §Flow 1 already requires this) | **UX-4B** |
 | Manual VoiceOver / TalkBack / browser-AT verification of every state above | **UX-4C** |
 

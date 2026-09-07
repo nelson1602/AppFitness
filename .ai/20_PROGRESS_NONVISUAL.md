@@ -1,8 +1,8 @@
 # AppFitness Progress Chart Non-Visual Equivalent (V1)
 
-Version: 1.0
+Version: 1.1
 Status: Active
-Last Updated: 2026-08-28
+Last Updated: 2026-09-07
 
 ---
 
@@ -15,6 +15,18 @@ shape, and the semantics that carry it.
 
 It is the **UX-3D** slice of the FEATURE-010 UX stream, and the last UX-3 slice.
 
+## Implementation status
+
+**R-1 and R-2 shipped 2026-09-04 via BUG-013** (PR #133). **R-3 through R-14
+shipped 2026-09-07**, so this specification is now implemented in full. The
+composition, structural and copy rules below are therefore a **contract on
+shipped code**, not a forward plan; §Implementation and test contract records
+what landed, including two prop-level reconciliations.
+
+**No accessibility outcome is implied by that.** Every claim here remains
+structural, and VoiceOver, TalkBack, browser-AT, large-text and physical-device
+verification stay **unrun** until **UX-4C**. See §Equivalent versus outcome.
+
 ## What this document is not
 
 - **Not an accessibility outcome.** It specifies an *equivalent*. Whether
@@ -22,7 +34,8 @@ It is the **UX-3D** slice of the FEATURE-010 UX stream, and the last UX-3 slice.
   intelligibly, is **unverified** and stays that way until **UX-4C**. See
   §Equivalent versus outcome.
 - **Not implementation.** No runtime code, test, localization catalogue entry,
-  asset or configuration change is authorized here.
+  asset or configuration change was authorized *by this document*. The work has
+  since been authorized and built separately — see §Implementation status.
 - **Not a state model change.** The eight canonical states of
   `.ai/08_UI_UX.md` §Canonical State Patterns stand unchanged; this document
   introduces no ninth.
@@ -194,8 +207,9 @@ At that audit `ProgressScreen.tsx:104`, `:108`, `:113` passed the stored
 `YYYY-MM-DD` string straight through as `TrendPoint.label`, and
 `TrendBars.tsx:108` rendered it verbatim inside the per-bar
 `accessibilityLabel`. Point labels are now localized and weekly-volume points
-carry the `weekOf` prefix, satisfying **R-1** and **R-2**; every other
-requirement in this specification remains unimplemented.
+carry the `weekOf` prefix, satisfying **R-1** and **R-2**. **R-3 through R-14
+landed 2026-09-07** (§Implementation status), so no requirement in this
+specification is outstanding.
 
 Every other date on the screen is localized: the latest-weight line and
 `WeeklySnapshotSummary` both call `formatDate` with the active language. The bar
@@ -266,15 +280,24 @@ reach an accessible descendant of an accessible ancestor.
 
 `MetricRow` is the deliberate exception in shape, not in rule: the row becomes
 one accessible **leaf** whose label/value `Text` children are intentionally
-combined and are not separate focus targets. It has no accessible ancestor and
-contains no descendant that must remain independently selectable.
+combined and are explicitly `accessible={false}` so they are not separate focus
+targets. It has no accessible ancestor and contains no descendant that must
+remain independently selectable.
+
+**An `accessibilityLabel` alone is enough to break the rule.** It makes the
+container a named accessibility element competing with its leaves for the
+accessible name, whether or not `accessible` is also set — so the rule bars both
+props above an intended focus target, not just `accessible`.
 
 Concretely, the specification **must not**:
 
 - mark the bar row accessible while its bars stay individually accessible;
 - mark the latest-week block accessible while its metric rows stay individually
   accessible;
-- wrap the earlier-weeks list in an accessible container.
+- wrap the earlier-weeks list in an accessible container;
+- leave an `accessibilityLabel` on any wrapper above a bar or a metric row —
+  including the `Card`s the Progress screen puts around the two components
+  (§The two wrapper labels).
 
 Instead, meaning is carried by **document order** plus **ordinary text elements**
 that are themselves in the traversal order, and by intentional accessible
@@ -352,8 +375,9 @@ resolved series title**, closing G-4:
 
 ## Window honesty — element 4
 
-**Whenever `totalCount > shownCount`, a visible line renders below the summary**,
-announced identically because it is ordinary text:
+**Whenever the pre-window series is longer than the shown count, a visible line
+renders below the summary**, announced identically because it is ordinary text
+(the comparison is `data.length > points.length` — §Prop reconciliation):
 
 ```
 {progress.trends.windowNotice}
@@ -425,8 +449,12 @@ The week heading stays an ordinary text element reading
 marked accessible.**
 
 Each `MetricRow` becomes **one accessible leaf element** — the row itself, with
-no accessible ancestor — intentionally combining its two non-focusable text
-children and announcing label then value:
+no accessible ancestor — intentionally combining its two text children and
+announcing label then value. Those children are marked `accessible={false}`
+**explicitly**, because React Native `Text` is an accessibility element by
+default: left implicit, the row would be an accessible, labelled parent of two
+further named elements, which is the nesting this document forbids. "Non-focusable"
+is therefore a stated prop, not an assumption:
 
 ```
 {metric label}, {value}
@@ -482,9 +510,11 @@ this document owns composition, that one owns wording.
 | `progress.weekly.notRecorded` | Accessible value for a `null` metric, where `—` is shown | announced only |
 | `progress.weekly.newestFirst` | States the earlier-weeks order | yes |
 
-All seven are **PROPOSED**, absent from both 696-key catalogues, and carry EN/ES
-parity. `progress.weekly.weekOf` and `progress.weekly.earlierWeeks` are **reused**
-and stay **SHIPPED**. No key is renamed, re-scoped or removed.
+All seven are now **SHIPPED** in both catalogues with EN/ES parity, at the exact
+values `.ai/19_COPY_DECKS.md` §Progress worded for them (they were **PROPOSED**
+and absent from the 696-key catalogues when this document was written).
+`progress.weekly.weekOf` and `progress.weekly.earlierWeeks` are **reused** and
+stay **SHIPPED**. No key is renamed, re-scoped or removed.
 
 **Three keys from an earlier draft of this slice were dropped rather than
 carried as dead copy**, because the no-nesting rule removed their reason to
@@ -496,7 +526,8 @@ existing `noData` / `oneReading` text already covers the below-two-points case.
 
 # Implementation and test contract (for UX-4)
 
-Specification only. Nothing below is authorized to be built by this document.
+Written as a specification; **now a record of what shipped** (§Implementation
+status). This document still authorizes nothing on its own.
 
 ## Component boundaries
 
@@ -505,43 +536,91 @@ extending the two existing presentational components:
 
 | Component | Change | Why not a new component |
 |---|---|---|
-| `TrendBars` | Two new props — `period: 'day' \| 'week'` and `totalCount: number` — plus the descriptor line, the window-notice line and the series-title prefix on the caller-resolved point label | It already owns the summary and per-bar labels; splitting would duplicate the windowing logic |
+| `TrendBars` | The descriptor line, the window-notice line, the series-title prefix and the latest marker on the caller-resolved point label. **No new prop** — see §Prop reconciliation | It already owns the summary and per-bar labels; splitting would duplicate the windowing logic |
 | `WeeklySnapshotSummary` | Accessible metric rows, the `notRecorded` accessible value, and the order suffix on the earlier-weeks heading | Already text-first |
-| `ProgressScreen` | Formats each stored date into the active language, then passes `period` and the pre-window `totalCount` for each series | It already owns the raw series, active language and their ordering; `TrendBars` must not duplicate or import the screen's date parser |
+| `ProgressScreen` | Keeps the BUG-013 date formatting and the `weekOf` prefix unchanged, and **drops the `accessibilityLabel` from the Trends and Weekly `Card` wrappers** so no labelled ancestor sits above a bar or a metric row | It already owns the raw series, active language and their ordering; `TrendBars` must not duplicate or import the screen's date parser. The wrapper labels are the screen's own, so only the screen can remove them |
 
 Both components stay **pure and presentational**: no store access, no SQLite, no
 repository call, no business calculation — the caller supplies resolved points,
-exactly as today (`.ai/06_MOBILE.md` §Screen Principles).
+exactly as today (`.ai/06_MOBILE.md` §Screen Principles). **R-14** guards it.
+
+### The two wrapper labels
+
+The no-nesting rule names the containers *inside* the two components, but the
+`Card`s the screen wraps them in were carrying `accessibilityLabel={t('progress.screen.trends')}`
+and `…weekly`. A labelled ancestor is a named accessibility element competing
+with the leaves beneath it for the accessible name, which is the same failure
+mode the rule exists to prevent — so both labels are **removed**. Nothing is
+lost: each `Card` already renders that exact string as a visible
+`AppText variant="title"`, which is ordinary text in the traversal order.
+
+Two boundaries held while doing it:
+
+- **The Latest card keeps its label.** `progress.screen.latestAccessibility`
+  wraps no independently traversable leaf, so the rule does not reach it.
+- **The shared `Card` primitive is unchanged.** It never sets `accessible`; it
+  only forwards the props it is given, so this is a call-site correction, not a
+  design-system change.
+
+**R-12** now walks **every** ancestor of every leaf and requires both
+`accessible !== true` **and** `accessibilityLabel === undefined`, so a wrapper
+label cannot return unnoticed.
 
 ## Expected data mapping
 
 | Prop | Source | Note |
 |---|---|---|
 | `data` | the existing `.map().reverse()` of the newest-first store list, with each raw stored date converted to the display-ready localized `label` during the presentation mapping | values and ordering stay unchanged; date formatting remains presentation-only |
-| `totalCount` | `bodyWeights.length` / filtered `bodyMeasurements.length` / filtered `snapshots.length` | the **pre-window** length; the window notice compares it to `points.length` |
-| `period` | `'day'` for weight and muscle mass, `'week'` for volume | drives the `weekOf` prefix |
 | `title` | unchanged — already passed | now also prefixes every point label |
 | `unit` | unchanged — ` kg` for all three | no conversion |
+
+## Prop reconciliation
+
+An earlier revision of this section specified two new `TrendBars` props,
+`totalCount: number` and `period: 'day' | 'week'`. **Neither shipped**, because
+repository evidence made each a redundant second source of truth for a value the
+code already holds. The **behaviour** both were specified to produce is
+unchanged and is asserted by **R-2** and **R-6**.
+
+| Prop | Why it was dropped |
+|---|---|
+| `totalCount` | `TrendBars` owns the windowing (`data.slice(-maxBars)`), so `data.length` **is** the pre-window length this section named as its source — the filtered series the caller maps. A prop that must always equal `data.length` could only ever disagree with it, and a disagreement would render a dishonest notice. The notice therefore compares `data.length` to the shown count. |
+| `period` | Its only stated job was driving the `weekOf` prefix, and **BUG-013 already resolves that prefix at the mapping site** in `ProgressScreen`, before the label reaches the chart — the same place this section requires the localized date to be resolved. Adding the prop would either duplicate the prefix or move shipped R-2 behaviour for no gain. |
+
+Both would have re-entered `.ai/03_CODING_STANDARDS.md`'s "no unnecessary
+abstractions" and "no duplicated business logic" rules. Any future caller that
+pre-windows `data` itself must reintroduce `totalCount` rather than let the
+notice go quiet.
 
 ## Regression assertions
 
 Additive to the existing 11 + 8; none of those may be weakened
 (`.ai/09_TESTING.md` §Testing Principles).
 
+**All fourteen now carry coverage** across `TrendBars.spec.tsx` (27 tests),
+`WeeklySnapshotSummary.spec.tsx` (21) and `ProgressScreen.spec.tsx` (40) — 88 in
+total, in **EN and ES**. Reverting all three implementation files while keeping
+the specs fails **39** of them, so none passes vacuously. Two of the guards are
+individually load-bearing: restoring either `Card` wrapper label, or dropping the
+explicit `accessible={false}` from the metric-row children, each fails on its
+own. The existing point-label assertions were made **stricter**, not weakened:
+they now pin the series title and the latest marker alongside the localized date
+they already pinned.
+
 | # | Assertion |
 |---|---|
 | R-1 | `ProgressScreen` maps each raw stored date to a **localized** point label, not `YYYY-MM-DD`, asserted in EN and ES; `TrendBars` consumes that resolved label (closes BUG-013) |
-| R-2 | With `period='week'`, the point label is prefixed with `progress.weekly.weekOf` |
+| R-2 | For the weekly-volume series, the point label is prefixed with `progress.weekly.weekOf`, resolved **by the caller** into `TrendPoint.label` alongside the localized week-start date. There is no `period` prop — §Prop reconciliation |
 | R-3 | **Every** point label begins with the resolved series title; two charts rendered together produce labels distinguishable by title alone (G-4) |
 | R-4 | The latest point's label ends with `progress.trends.latestMarker`; no other point's does |
 | R-5 | The series descriptor renders as **visible** text stating the shown count with correct one/many grammar and the ordering, in EN and ES |
-| R-6 | `progress.trends.windowNotice` renders as **visible** text when `totalCount > points.length`, and is **absent** when they are equal |
+| R-6 | `progress.trends.windowNotice` renders as **visible** text when `data.length > points.length`, and is **absent** when they are equal |
 | R-7 | With 0 or 1 points, neither the descriptor nor the window notice renders; the existing `noData` / `oneReading` text stands |
 | R-8 | Point order in the rendered tree is oldest → newest |
 | R-9 | The `max === min` series still renders bars and announces `directionFlat` — existing behaviour preserved |
 | R-10 | A weekly metric row with a `null` value shows `—` **and** announces `progress.weekly.notRecorded`; the two differ deliberately |
 | R-11 | The earlier-weeks heading renders `progress.weekly.newestFirst` as visible text, and the listed weeks are in that order |
-| R-12 | **No container swallows an intended focus target.** The bar row, latest-week block, earlier-weeks list and both component roots have no `accessible` and no `accessibilityLabel`; individual bars remain separate leaves, while each metric row is one intentional accessible leaf combining only its own non-focusable label/value text |
+| R-12 | **No container swallows an intended focus target.** Asserted by walking **every** ancestor of every bar and metric row on the assembled screen — the screen's `Card` wrappers included — and requiring both `accessible !== true` **and** `accessibilityLabel === undefined`. The bar row, latest-week block, earlier-weeks list and both component roots satisfy it; individual bars remain separate leaves, while each metric row is one intentional accessible leaf whose two `Text` children are **explicitly** `accessible={false}`, since React Native `Text` is otherwise an accessibility element by default |
 | R-13 | No `accessibilityLiveRegion` or `announceForAccessibility` is introduced |
 | R-14 | No component reads a store, repository or SQLite — the existing "never accesses SQLite directly" spec pattern extended to the charts |
 
@@ -667,12 +746,19 @@ Read this file before changing anything that renders Progress trends.
 
 ## 1. Never swallow an intended focus target
 
-No component root, bar row, latest-week block or earlier-weeks list may be
-marked `accessible` or given an `accessibilityLabel`. Individual bars remain
-separate leaves; each metric row is one intentional accessible leaf combining
-only its own non-focusable label/value text. Everything else is ordinary text
-in document order. A broader grouping role may be introduced only with evidence
-that descendant traversal survives it, plus a recorded manual verification.
+No component root, bar row, latest-week block, earlier-weeks list **or screen-level
+`Card` wrapper** may be marked `accessible` or given an `accessibilityLabel`.
+The label alone is disqualifying, not only `accessible`. Individual bars remain
+separate leaves; each metric row is one intentional accessible leaf whose
+label/value `Text` children are explicitly `accessible={false}`, because
+React Native `Text` is otherwise an accessibility element by default. Everything
+else is ordinary text in document order. A broader grouping role may be
+introduced only with evidence that descendant traversal survives it, plus a
+recorded manual verification.
+
+Do not "restore" a wrapper label for tidiness. Each wrapper's meaning is already
+a visible title inside it, and **R-12** walks every ancestor of every leaf on the
+assembled screen and fails on either prop.
 
 ## 2. An equivalent is not an outcome
 

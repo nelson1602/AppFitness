@@ -219,7 +219,14 @@ export function ProgressScreen() {
             />
           </Card>
 
-          <Card accessibilityLabel={t('progress.screen.trends')}>
+          {/*
+            No accessibilityLabel on this Card (UX-3D R-12). It owns the three
+            charts' individually reachable bars, and a labelled ancestor names
+            the whole subtree in competition with them. The visible `Trends`
+            title below is the semantic carrier — it is ordinary text in the
+            traversal order, so nothing is lost by dropping the wrapper label.
+          */}
+          <Card>
             <View style={{ gap: theme.spacing.md }}>
               <AppText variant="title">{t('progress.screen.trends')}</AppText>
               <TrendBars
@@ -243,7 +250,12 @@ export function ProgressScreen() {
             </View>
           </Card>
 
-          <Card accessibilityLabel={t('progress.screen.weekly')}>
+          {/*
+            Likewise unlabelled (UX-3D R-12): this Card owns the weekly metric
+            rows, each of which is an intended accessibility leaf. The visible
+            `Weekly insights` title carries the section's meaning.
+          */}
+          <Card>
             <View style={{ gap: theme.spacing.md }}>
               <AppText variant="title">{t('progress.screen.weekly')}</AppText>
               <WeeklySnapshotSummary snapshots={snapshots} />
