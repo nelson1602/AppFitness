@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
+import { AccessibilityInfo, StyleSheet, type StyleProp, type TextStyle } from 'react-native';
 
+import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import { lightTheme } from '@/shared/theme';
 
 import type { ProgressState } from '../application/progress.store';
@@ -12,6 +13,15 @@ let mockLanguage: 'en' | 'es' = 'en';
 
 jest.mock('../application/progress.store', () => ({
   useProgressStore: () => mockState,
+}));
+
+// UX-3D R-14. Persistence belongs to store → service → repository; the screen
+// and the two chart components must never reach SQLite themselves.
+jest.mock('@/shared/infrastructure/database', () => ({
+  inTransaction: jest.fn(),
+  queryAll: jest.fn(),
+  queryFirst: jest.fn(),
+  run: jest.fn(),
 }));
 
 jest.mock('@/shared/localization', () => {
@@ -163,9 +173,10 @@ describe('ProgressScreen (Slice 5a)', () => {
     });
     await render(<ProgressScreen />);
     // Weight trend (2 points → bars with per-point a11y labels). The dates are
-    // localized, never the stored `YYYY-MM-DD` (BUG-013).
-    expect(screen.getByLabelText('Aug 1, 2026: 81 kg')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Aug 3, 2026: 80 kg')).toBeOnTheScreen();
+    // localized, never the stored `YYYY-MM-DD` (BUG-013), and each label names
+    // its own series and marks the latest point (UX-3D R-3, R-4).
+    expect(screen.getByLabelText('Body weight, Aug 1, 2026: 81 kg')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Body weight, Aug 3, 2026: 80 kg · latest')).toBeOnTheScreen();
     // Weekly snapshot summary is rendered.
     expect(screen.getByTestId('weekly-snapshot-summary')).toBeOnTheScreen();
     expect(screen.getByText('Week of Aug 3, 2026')).toBeOnTheScreen();
@@ -367,8 +378,8 @@ describe('ProgressScreen (Slice 5a)', () => {
       setState({ bodyWeights: weights });
       await render(<ProgressScreen />);
 
-      expect(screen.getByLabelText('Aug 1, 2026: 81 kg')).toBeOnTheScreen();
-      expect(screen.getByLabelText('Aug 3, 2026: 80 kg')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Body weight, Aug 1, 2026: 81 kg')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Body weight, Aug 3, 2026: 80 kg · latest')).toBeOnTheScreen();
     });
 
     it('localizes the weight point labels in Spanish', async () => {
@@ -377,27 +388,35 @@ describe('ProgressScreen (Slice 5a)', () => {
       await render(<ProgressScreen />);
 
       // Days 1 and 3 from the local parse (no UTC shift), each label still
-      // carrying its value and unit. The month abbreviation is left unpinned:
-      // it is ICU-version dependent, exactly as the Spanish test above treats it.
-      expect(screen.getByLabelText(/^1 [^0-9]+2026: 81 kg$/)).toBeOnTheScreen();
-      expect(screen.getByLabelText(/^3 [^0-9]+2026: 80 kg$/)).toBeOnTheScreen();
+      // carrying its series title, value and unit. The month abbreviation is
+      // left unpinned: it is ICU-version dependent, exactly as the Spanish test
+      // above treats it.
+      expect(screen.getByLabelText(/^Peso corporal, 1 [^0-9]+2026: 81 kg$/)).toBeOnTheScreen();
+      expect(
+        screen.getByLabelText(/^Peso corporal, 3 [^0-9]+2026: 80 kg · última$/),
+      ).toBeOnTheScreen();
     });
 
     it('localizes the muscle-mass point labels in English', async () => {
       setState({ bodyMeasurements: measurements });
       await render(<ProgressScreen />);
 
-      expect(screen.getByLabelText('Aug 1, 2026: 35 kg')).toBeOnTheScreen();
-      expect(screen.getByLabelText('Aug 3, 2026: 36 kg')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Muscle mass, Aug 1, 2026: 35 kg')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Muscle mass, Aug 3, 2026: 36 kg · latest')).toBeOnTheScreen();
     });
 
     it('prefixes the weekly-volume point labels with "Week of" in English', async () => {
       setState({ snapshots: weeks });
       await render(<ProgressScreen />);
 
-      // A volume point is a week, not a day — R-2.
-      expect(screen.getByLabelText('Week of Jul 27, 2026: 11,000 kg')).toBeOnTheScreen();
-      expect(screen.getByLabelText('Week of Aug 3, 2026: 12,000 kg')).toBeOnTheScreen();
+      // A volume point is a week, not a day — R-2. The series title still comes
+      // first, so the week prefix qualifies the date rather than the series.
+      expect(
+        screen.getByLabelText('Weekly training volume, Week of Jul 27, 2026: 11,000 kg'),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByLabelText('Weekly training volume, Week of Aug 3, 2026: 12,000 kg · latest'),
+      ).toBeOnTheScreen();
     });
 
     it('prefixes the weekly-volume point labels with "Semana del" in Spanish', async () => {
@@ -405,8 +424,16 @@ describe('ProgressScreen (Slice 5a)', () => {
       setState({ snapshots: weeks });
       await render(<ProgressScreen />);
 
-      expect(screen.getByLabelText(/^Semana del 27 [^0-9]+2026: 11[.]000 kg$/)).toBeOnTheScreen();
-      expect(screen.getByLabelText(/^Semana del 3 [^0-9]+2026: 12[.]000 kg$/)).toBeOnTheScreen();
+      expect(
+        screen.getByLabelText(
+          /^Volumen de entrenamiento semanal, Semana del 27 [^0-9]+2026: 11[.]000 kg$/,
+        ),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByLabelText(
+          /^Volumen de entrenamiento semanal, Semana del 3 [^0-9]+2026: 12[.]000 kg · última$/,
+        ),
+      ).toBeOnTheScreen();
     });
 
     it('exposes NO raw YYYY-MM-DD in any accessible label, in English', async () => {
@@ -436,6 +463,227 @@ describe('ProgressScreen (Slice 5a)', () => {
 
       expect(screen.getAllByLabelText(POINT_LABEL).length).toBeGreaterThanOrEqual(6);
       expect(screen.queryAllByLabelText(RAW_ISO)).toHaveLength(0);
+    });
+  });
+
+  /**
+   * UX-3D R-3…R-14 as assembled by the screen (`.ai/20_PROGRESS_NONVISUAL.md`).
+   * `TrendBars.spec.tsx` and `WeeklySnapshotSummary.spec.tsx` own the component
+   * contracts; these assert what the three charts do when they sit in one card
+   * together, which is the case the specification exists for.
+   *
+   * Structure only. No VoiceOver, TalkBack, browser-AT, large-text or
+   * physical-device outcome is claimed — that is the unrun UX-4C manual pass.
+   */
+  describe('progress non-visual equivalent (UX-3D)', () => {
+    const weights = [weight, { ...weight, id: 'bw-0', date: '2026-08-01', weightKg: 81 }];
+    const measurements = [
+      measurement,
+      { ...measurement, id: 'bm-0', date: '2026-08-01', muscleMassKg: 35 },
+    ];
+    const weeks = [week, { ...week, id: 'snap-0', weekStart: '2026-07-27', totalVolumeKg: 11000 }];
+
+    function allSeries(): void {
+      setState({ bodyWeights: weights, bodyMeasurements: measurements, snapshots: weeks });
+    }
+
+    it('attributes every bar to its own chart when all three render together (R-3)', async () => {
+      allSeries();
+      await render(<ProgressScreen />);
+
+      const labels = screen
+        .getAllByLabelText(/: [0-9]/)
+        .map((bar) => String(bar.props.accessibilityLabel));
+      expect(labels).toHaveLength(6);
+      // Three charts sit in one card, so a bar focused in isolation must carry
+      // its series or the date and kilogram figure could belong to any of them.
+      expect(labels.filter((l) => l.startsWith('Body weight, '))).toHaveLength(2);
+      expect(labels.filter((l) => l.startsWith('Muscle mass, '))).toHaveLength(2);
+      expect(labels.filter((l) => l.startsWith('Weekly training volume, '))).toHaveLength(2);
+    });
+
+    it('marks exactly one latest point per chart (R-4)', async () => {
+      allSeries();
+      await render(<ProgressScreen />);
+
+      // Three charts → three latest markers, one each; the accent fill is no
+      // longer the only way to find the newest bar.
+      expect(screen.getAllByLabelText(/ · latest$/)).toHaveLength(3);
+      expect(screen.getByLabelText('Body weight, Aug 3, 2026: 80 kg · latest')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Muscle mass, Aug 3, 2026: 36 kg · latest')).toBeOnTheScreen();
+      expect(
+        screen.getByLabelText('Weekly training volume, Week of Aug 3, 2026: 12,000 kg · latest'),
+      ).toBeOnTheScreen();
+    });
+
+    it('renders a visible descriptor per chart naming series, count and order (R-5)', async () => {
+      allSeries();
+      await render(<ProgressScreen />);
+
+      expect(screen.getByText('Body weight · 2 readings · oldest to newest')).toBeOnTheScreen();
+      expect(screen.getByText('Muscle mass · 2 readings · oldest to newest')).toBeOnTheScreen();
+      expect(
+        screen.getByText('Weekly training volume · 2 readings · oldest to newest'),
+      ).toBeOnTheScreen();
+    });
+
+    it('renders the descriptors in Spanish (R-5)', async () => {
+      mockLanguage = 'es';
+      allSeries();
+      await render(<ProgressScreen />);
+
+      expect(
+        screen.getByText('Peso corporal · 2 lecturas · de la más antigua a la más reciente'),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByText('Masa muscular · 2 lecturas · de la más antigua a la más reciente'),
+      ).toBeOnTheScreen();
+      expect(
+        screen.getByText(
+          'Volumen de entrenamiento semanal · 2 lecturas · de la más antigua a la más reciente',
+        ),
+      ).toBeOnTheScreen();
+    });
+
+    it('renders no window notice while every reading fits the window (R-6)', async () => {
+      allSeries();
+      await render(<ProgressScreen />);
+
+      // Two points per series, window 12: nothing is dropped, so an
+      // unqualified range/direction reading stays unqualified.
+      expect(screen.queryByText('Showing only the most recent readings')).toBeNull();
+      expect(screen.queryByTestId('weight-trend-window-notice')).toBeNull();
+      expect(screen.queryByTestId('muscle-mass-trend-window-notice')).toBeNull();
+      expect(screen.queryByTestId('volume-trend-window-notice')).toBeNull();
+    });
+
+    it('renders the window notice for the truncated series only (R-6)', async () => {
+      // 14 daily weights against a 12-point window; the other two series are
+      // short, so the notice must not leak across charts.
+      setState({
+        bodyWeights: Array.from({ length: 14 }, (_, i) => ({
+          ...weight,
+          id: `bw-${i}`,
+          date: `2026-08-${String(i + 1).padStart(2, '0')}`,
+          weightKg: 80 + i,
+        })),
+        bodyMeasurements: measurements,
+        snapshots: weeks,
+      });
+      await render(<ProgressScreen />);
+
+      expect(screen.getByTestId('weight-trend-window-notice')).toHaveTextContent(
+        'Showing only the most recent readings',
+      );
+      expect(screen.getByText('Body weight · 12 readings · oldest to newest')).toBeOnTheScreen();
+      expect(screen.queryByTestId('muscle-mass-trend-window-notice')).toBeNull();
+      expect(screen.queryByTestId('volume-trend-window-notice')).toBeNull();
+      expect(screen.getAllByText('Showing only the most recent readings')).toHaveLength(1);
+    });
+
+    it('renders no descriptor or notice for the empty and single-point series (R-7)', async () => {
+      // One weight only: its chart falls back to text, the other two are empty.
+      setState({ bodyWeights: [weight] });
+      await render(<ProgressScreen />);
+
+      expect(screen.getByText('1 reading: 80 kg')).toBeOnTheScreen();
+      expect(screen.getAllByText('No data yet.')).toHaveLength(2);
+      expect(screen.queryByText(/oldest to newest/)).toBeNull();
+      expect(screen.queryByText('Showing only the most recent readings')).toBeNull();
+      for (const id of ['weight-trend', 'muscle-mass-trend', 'volume-trend']) {
+        expect(screen.queryByTestId(`${id}-descriptor`)).toBeNull();
+        expect(screen.queryByTestId(`${id}-window-notice`)).toBeNull();
+        expect(screen.queryByTestId(`${id}-bars`)).toBeNull();
+      }
+    });
+
+    it('orders each chart oldest → newest, reversing the store (R-8)', async () => {
+      allSeries();
+      await render(<ProgressScreen />);
+
+      // The store holds every list newest-first; the charts read the other way,
+      // which is exactly what the descriptor claims.
+      const labelsOf = (testID: string): string[] =>
+        screen
+          .getByTestId(`${testID}-bars`)
+          .queryAll((node) => node.props.accessible === true)
+          .map((bar) => String(bar.props.accessibilityLabel));
+
+      expect(labelsOf('weight-trend')).toEqual([
+        'Body weight, Aug 1, 2026: 81 kg',
+        'Body weight, Aug 3, 2026: 80 kg · latest',
+      ]);
+      expect(labelsOf('volume-trend')).toEqual([
+        'Weekly training volume, Week of Jul 27, 2026: 11,000 kg',
+        'Weekly training volume, Week of Aug 3, 2026: 12,000 kg · latest',
+      ]);
+    });
+
+    it('lets no ancestor swallow a bar or a metric row on the assembled screen (R-12)', async () => {
+      allSeries();
+      await render(<ProgressScreen />);
+
+      // The charts and the weekly summary sit inside Cards, which is where a
+      // wrapper would realistically creep in and make the leaves unreachable.
+      const bars = screen.getAllByLabelText(/: [0-9]/);
+      const rows = screen.getAllByLabelText(/^(Avg weight|Total volume|Workouts), /);
+      expect(bars).toHaveLength(6);
+      expect(rows).toHaveLength(3);
+
+      for (const leaf of [...bars, ...rows]) {
+        expect(leaf.props.accessible).toBe(true);
+        // EVERY ancestor, not just the nearest, and on BOTH counts. `accessible`
+        // groups the subtree into one element on iOS; an `accessibilityLabel`
+        // alone makes the ancestor a named element competing with the leaf for
+        // the accessible name. Either is enough to stop the leaf being reached
+        // as itself, so neither is permitted above an intended focus target.
+        for (let node = leaf.parent; node; node = node.parent) {
+          expect(node.props.accessible).not.toBe(true);
+          expect(node.props.accessibilityLabel).toBeUndefined();
+        }
+      }
+    });
+
+    it('states the earlier-weeks order, opposite to the charts (R-11)', async () => {
+      allSeries();
+      await render(<ProgressScreen />);
+
+      // Both orders are stated on the same screen, because they genuinely differ.
+      expect(screen.getByText('Earlier weeks · newest first')).toBeOnTheScreen();
+      expect(
+        screen.getByText('Weekly training volume · 2 readings · oldest to newest'),
+      ).toBeOnTheScreen();
+    });
+
+    it('introduces no live region and no imperative announcement (R-13)', async () => {
+      const announce = jest.spyOn(AccessibilityInfo, 'announceForAccessibility');
+      allSeries();
+      await render(<ProgressScreen />);
+
+      const rendered = screen.container.queryAll(() => true);
+      expect(rendered.length).toBeGreaterThan(0);
+      expect(rendered.filter((node) => node.props.accessibilityLiveRegion !== undefined)).toEqual(
+        [],
+      );
+      expect(announce).not.toHaveBeenCalled();
+      announce.mockRestore();
+    });
+
+    it('drives the charts from the store only, never SQLite (R-14)', async () => {
+      allSeries();
+      await render(<ProgressScreen />);
+
+      await fireEvent.press(screen.getByTestId('progress-recompute'));
+      await waitFor(() => expect(mockState.recomputeSnapshots).toHaveBeenCalledTimes(1));
+
+      // The bars rendered from store-supplied points…
+      expect(screen.getAllByLabelText(/: [0-9]/)).toHaveLength(6);
+      // …and neither the screen nor the two chart components touched the
+      // persistence layer to do it.
+      expect(jest.mocked(inTransaction)).not.toHaveBeenCalled();
+      expect(jest.mocked(queryAll)).not.toHaveBeenCalled();
+      expect(jest.mocked(queryFirst)).not.toHaveBeenCalled();
+      expect(jest.mocked(run)).not.toHaveBeenCalled();
     });
   });
 });

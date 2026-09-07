@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.9
+Version: 1.10
 Status: Active
-Last Updated: 2026-09-02
+Last Updated: 2026-09-07
 
 ---
 
@@ -403,24 +403,27 @@ The residual is recorded against BUG-011, which stays open.
 
 ## Progress trends and weekly semantics (UX-3D)
 
-Seven keys proposed by `.ai/20_PROGRESS_NONVISUAL.md`. That document owns
+Seven keys from `.ai/20_PROGRESS_NONVISUAL.md`. That document owns
 composition — where each string renders and whether it is visible, announced or
-both; this table owns wording. All seven are absent from both 696-key catalogues
-and carry EN/ES parity.
+both; this table owns wording. **All seven landed 2026-09-07** at exactly these
+values, in both catalogues, with EN/ES parity preserved. They were absent from
+the 696-key catalogues when this section was written.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `progress.trends.orderOldestFirst` | oldest to newest | de la más antigua a la más reciente | **PROPOSED** — UX-3D |
-| `progress.trends.readingOne` | reading | lectura | **PROPOSED** — UX-3D |
-| `progress.trends.readingMany` | readings | lecturas | **PROPOSED** — UX-3D |
-| `progress.trends.windowNotice` | Showing only the most recent readings | Mostrando solo las lecturas más recientes | **PROPOSED** — UX-3D |
-| `progress.trends.latestMarker` | latest | última | **PROPOSED** — UX-3D |
-| `progress.weekly.notRecorded` | Not recorded | Sin registrar | **PROPOSED** — UX-3D |
-| `progress.weekly.newestFirst` | newest first | de la más reciente a la más antigua | **PROPOSED** — UX-3D |
+| `progress.trends.orderOldestFirst` | oldest to newest | de la más antigua a la más reciente | **SHIPPED** — UX-3D |
+| `progress.trends.readingOne` | reading | lectura | **SHIPPED** — UX-3D |
+| `progress.trends.readingMany` | readings | lecturas | **SHIPPED** — UX-3D |
+| `progress.trends.windowNotice` | Showing only the most recent readings | Mostrando solo las lecturas más recientes | **SHIPPED** — UX-3D |
+| `progress.trends.latestMarker` | latest | última | **SHIPPED** — UX-3D |
+| `progress.weekly.notRecorded` | Not recorded | Sin registrar | **SHIPPED** — UX-3D |
+| `progress.weekly.newestFirst` | newest first | de la más reciente a la más antigua | **SHIPPED** — UX-3D |
 
 `progress.weekly.weekOf` ("Week of" / "Semana del") and
 `progress.weekly.earlierWeeks` ("Earlier weeks" / "Semanas anteriores") are
-**reused** and stay **SHIPPED** — no duplicate key is proposed for either.
+**reused** and stay **SHIPPED** — no duplicate key was proposed for either, and
+none was added. `earlierWeeks` now renders with the `newestFirst` suffix
+appended after a separator; its own value is unchanged.
 
 Copy notes:
 
@@ -685,7 +688,7 @@ would erase the fact that it completed.
 | Password recovery | TARGET in PR #102, not on `main`; reconcile after merge against the effective implementation. |
 | Email verification | **All 23 keys above are now in the catalogues** in EN and ES (`mobile/src/shared/localization/resources/`), imported by **V2-D** and rendered by the `/verify-email` route and the dashboard reminder. The EN/ES *email* copy is a separate surface owned by V2-C and lives in `api/src/modules/mail/domain/email-verification.template.ts`, not in this deck. **No verification email is sent yet** (V2-E), so users do not reach the landing from a real link. |
 | Conflict resolution actions/screens | BUG-012 needs a separately authorized flow and repository decision. |
-| Trend-chart and weekly structure | Specified in `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D). Its seven proposed keys are worded above; composition, accessibility structure and the no-nesting rule are not repeated here. |
+| Trend-chart and weekly structure | Specified in `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D), and implemented 2026-09-07. Its seven keys are worded above and are now **SHIPPED**; composition, accessibility structure and the no-nesting rule are not repeated here. |
 | Bottom tabs | Deferred by ADR-P027; the non-binding map is not a copy target. |
 | Dormant medical domain | Out of public V1 under ADR-P017. |
 

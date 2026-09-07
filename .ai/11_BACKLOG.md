@@ -1517,14 +1517,20 @@ Excluded:
      key**, invents no conflict-resolution flow, leaves progress-chart
      equivalence to UX-3D, defers recovery until PR #102 merges, and leaves
      verification copy behind ADR-P026 Vertical 2 authorization.
-   - **UX-3D — Progress-chart non-visual equivalent. DELIVERED as a
-     documentation candidate** (`.ai/20_PROGRESS_NONVISUAL.md` v1.0, audited
-     against `origin/main` `d41efc69df4a48c0b0fb4f4ca2ad8884c6e648b7`). Audits
+   - **UX-3D — Progress-chart non-visual equivalent. SHIPPED** — specification
+     delivered as `.ai/20_PROGRESS_NONVISUAL.md` (audited against `origin/main`
+     `d41efc69df4a48c0b0fb4f4ca2ad8884c6e648b7`), then implemented in two
+     passes: **R-1/R-2 by BUG-013** on 2026-09-04 (PR #133) and **R-3…R-14** on
+     2026-09-07 against `b5deac00dc89d2bf31dfec17aba83c0a748180ac`. The
+     specification is now **v1.1**, reconciled to the shipped code. The audit
+     below describes the document as delivered; the implementation record
+     follows it. Audits
      what the three trend charts and the weekly snapshot summary communicate
      visually, then specifies the non-visual equivalent: grouping, reading and
      focus order, per-point labels, units, period type, window honesty, dynamic
-     updates, maximum Spanish text scale and native/Web expectation. Adds **no
-     runtime, catalogue key, test, asset or dependency**, and creates no ADR.
+     updates, maximum Spanish text scale and native/Web expectation. As a
+     document it added **no runtime, catalogue key, test, asset or dependency**,
+     and created no ADR.
      - A **partial equivalent is already SHIPPED** — `TrendBars` always renders a
        latest / range / direction summary and a per-bar accessibility label. UX-3D
        closes four gaps rather than starting from nothing: ordering, count and
@@ -1545,9 +1551,10 @@ Excluded:
      - **Window truncation is a sighted-user problem too**, so the shown-count
        descriptor and the truncation notice are **visible** text, not an
        accessibility-only affordance.
-     - **Seven PROPOSED keys**, absent from both 696-key catalogues with EN/ES
-       parity, worded in `.ai/19_COPY_DECKS.md` v1.1 §Progress — five for the
-       trend series, two for the weekly summary. `progress.weekly.weekOf` and
+     - **Seven keys**, worded in `.ai/19_COPY_DECKS.md` §Progress — five for the
+       trend series, two for the weekly summary. Proposed and absent from both
+       696-key catalogues when audited; **shipped 2026-09-07** at exactly those
+       values, EN/ES parity preserved. `progress.weekly.weekOf` and
        `progress.weekly.earlierWeeks` are reused rather than duplicated. Three
        keys from an earlier draft were **dropped** once the no-nesting rule
        removed the wrappers they would have named, rather than being kept as dead
@@ -1555,8 +1562,53 @@ Excluded:
      - **F-1 → BUG-013. Fixed 2026-09-04.** The per-bar accessible label exposed
        a raw `YYYY-MM-DD` — the only unlocalized date on the Progress surface,
        and one only assistive-technology users reach. Point labels are now
-       localized, and weekly-volume points carry the `weekOf` prefix; the rest of
-       UX-3D remains unimplemented.
+       localized, and weekly-volume points carry the `weekOf` prefix.
+     - **Implementation — R-3…R-14, 2026-09-07.** Extends the two existing
+       presentational components, corrects two wrapper labels on the screen, and
+       adds the seven catalogue keys; **no new component, prop, dependency,
+       route, state, calculation or platform branch**. `TrendBars` gains a
+       visible series descriptor (title, shown count with one/many grammar,
+       oldest → newest order), a conditional visible window notice, a
+       series-title prefix on every per-bar label and a text latest marker.
+       `WeeklySnapshotSummary` gains accessible metric-row leaves whose two
+       `Text` children are explicitly `accessible={false}` (React Native `Text`
+       is an accessibility element by default), the localized `notRecorded`
+       announced value where `—` is still shown, and the `newestFirst` suffix on
+       the earlier-weeks heading.
+       - **`ProgressScreen.tsx` did change**, correcting an earlier revision of
+         this entry that claimed it needed none. Its date formatting and
+         `weekOf` prefix are untouched — BUG-013 already resolves those — but the
+         **Trends and Weekly `Card` wrappers each carried an
+         `accessibilityLabel`**, and a labelled ancestor is a named accessibility
+         element competing with the bars and metric rows beneath it for the
+         accessible name. Both labels are removed; each `Card` already renders
+         that exact string as a visible title, so nothing is lost. The **Latest**
+         card keeps its label (it wraps no traversable leaf) and the shared
+         `Card` primitive is unchanged (it never sets `accessible`; this is a
+         call-site correction, not a design-system change).
+       - **Two specified props did not ship**, recorded in
+         `.ai/20_PROGRESS_NONVISUAL.md` §Prop reconciliation. `totalCount` would
+         have had to equal `data.length`, which `TrendBars` already holds because
+         it owns the windowing — a second source of truth whose only possible
+         divergence is a dishonest notice. `period` would have duplicated or
+         relocated the `weekOf` prefix that BUG-013 already resolves at the
+         mapping site. Both behaviours (**R-2**, **R-6**) are unchanged and
+         asserted.
+       - **Coverage:** all fourteen requirements, in **EN and ES**, across the
+         three specs (27 + 21 + 40 = 88 tests). Reverting all three
+         implementation files while keeping the specs fails **39** assertions, so
+         none passes vacuously; restoring either `Card` wrapper label, or
+         dropping the explicit `accessible={false}` from the metric-row
+         children, each fails on its own. **R-12** now walks every ancestor of
+         every leaf and requires both `accessible !== true` and
+         `accessibilityLabel === undefined`. The existing point-label assertions
+         were made stricter, never weakened.
+       - **No accessibility outcome is claimed.** Structure is what a component
+         test can verify; announcement, traversal order, intelligibility and
+         large-text results stay **unverified** until **UX-4C**, which remains
+         open and unrun. The `accent` question (F-2 / ADR-P022) is untouched,
+         and no live region or imperative announcement was introduced — the
+         codebase still has **zero** of each.
      - **F-2 — the `accent` role is in use.** `theme.colors.accent` has exactly
        one consumer, `TrendBars.tsx:113` (the latest bar). **ADR-P027**'s
        consequence bullet said it "remains unused"; that clause is corrected.
@@ -3388,9 +3440,10 @@ a day (UX-3D R-2).
   `YYYY-MM-DD` in either language. The absence assertions carry a point-label
   count so they cannot pass vacuously if the bars stop rendering. Reverting the
   three mappings fails **8** of them.
-- **Scope held:** this closes BUG-013 only. It does **not** implement UX-3D — the
+- **Scope held:** this closes BUG-013 only. It did **not** implement UX-3D — the
   series-title prefix (R-3), latest marker (R-4) and the rest of that
-  specification remain unimplemented — and BUG-011 / BUG-012 are untouched.
+  specification were left outstanding, and shipped separately on 2026-09-07 —
+  and BUG-011 / BUG-012 are untouched.
 
 **No accessibility outcome is claimed.** These are resolved-label assertions in a
 test renderer. VoiceOver, TalkBack and browser-AT verification remain the
