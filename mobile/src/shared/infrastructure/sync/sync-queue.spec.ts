@@ -177,15 +177,47 @@ describe('sync-queue', () => {
     expect(mockRun.mock.calls[1][1]).toEqual([NOW, 'op-2']);
   });
 
-  it('hasPendingOpFor counts PENDING, IN_FLIGHT, and FAILED ops', async () => {
+  it('hasPendingOpFor counts PENDING, IN_FLIGHT, FAILED, and CONFLICT ops', async () => {
     mockQueryFirst.mockResolvedValue({ n: 2 });
     await expect(hasPendingOpFor('goal-1')).resolves.toBe(true);
 
     mockQueryFirst.mockResolvedValue({ n: 0 });
     await expect(hasPendingOpFor('goal-1')).resolves.toBe(false);
 
+    // BUG-014: 'CONFLICT' belongs in the predicate. A parked conflict is
+    // unshipped local work whose values diverge from the server's, so the pull
+    // guard must keep protecting the row until the user chooses.
     const [sql] = mockQueryFirst.mock.calls[0];
-    expect(sql).toContain(`status IN ('PENDING','IN_FLIGHT','FAILED')`);
+    expect(sql).toContain(`status IN ('PENDING','IN_FLIGHT','FAILED','CONFLICT')`);
+  });
+
+  /**
+   * BUG-014 at the predicate level, asserted per status rather than as one
+   * string match, so an edit that drops a single state fails loudly and names
+   * which one.
+   */
+  it.each(['PENDING', 'IN_FLIGHT', 'FAILED', 'CONFLICT'] as const)(
+    'hasPendingOpFor treats a %s op as protective work',
+    async (status) => {
+      mockQueryFirst.mockResolvedValue({ n: 1 });
+      await expect(hasPendingOpFor('goal-1')).resolves.toBe(true);
+
+      const [sql] = mockQueryFirst.mock.calls[0];
+      expect(sql).toContain(`'${status}'`);
+    },
+  );
+
+  it('hasPendingOpFor leaves an entity unprotected once no op remains', async () => {
+    // Applied ops are deleted and rejected ops removed, so a settled entity
+    // matches nothing and the pull is free to apply the server row. This is
+    // what stops the BUG-014 fix from stranding rows permanently.
+    mockQueryFirst.mockResolvedValue({ n: 0 });
+    await expect(hasPendingOpFor('goal-1')).resolves.toBe(false);
+  });
+
+  it('hasPendingOpFor does not protect when the count row is missing', async () => {
+    mockQueryFirst.mockResolvedValue(null);
+    await expect(hasPendingOpFor('goal-1')).resolves.toBe(false);
   });
 
   it('countByStatus maps grouped rows to a record', async () => {

@@ -128,11 +128,24 @@ export async function removeRejected(opId: string): Promise<void> {
  * uses this to avoid clobbering local pending edits with server state —
  * every local edit enqueues, so an empty queue for an entity means the
  * local row holds no unsynced changes.
+ *
+ * `'CONFLICT'` counts as protective work (BUG-014). A parked conflict is the
+ * state in which the local row MOST needs protecting: its values diverge from
+ * the server's and the user has not chosen between them yet. Omitting it let the
+ * next pull run `applyServerChange` — an `INSERT OR REPLACE … sync_status =
+ * 'synced'` — over the user's divergent values with no prompt, while the
+ * `sync_conflicts` row stayed PENDING and kept being counted. That contradicted
+ * the Conflict state's "refuses to silently overwrite" contract
+ * (`.ai/08_UI_UX.md`), ADR-P012 §Sync and Conflict Semantics, and ADR-P016 D6.
+ *
+ * The row is not stranded: a parked op leaves the queue the ordinary way, and
+ * once no op remains for the entity the next pull applies the server row and
+ * clears the flag.
  */
 export async function hasPendingOpFor(entityId: string): Promise<boolean> {
   const row = await queryFirst<{ n: number }>(
     `SELECT COUNT(*) AS n FROM sync_queue
-     WHERE entity_id = ? AND status IN ('PENDING','IN_FLIGHT','FAILED')`,
+     WHERE entity_id = ? AND status IN ('PENDING','IN_FLIGHT','FAILED','CONFLICT')`,
     [entityId],
   );
   return (row?.n ?? 0) > 0;

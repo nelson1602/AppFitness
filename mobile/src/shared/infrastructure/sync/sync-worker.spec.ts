@@ -406,6 +406,104 @@ describe('runSync — pull loop', () => {
     expect(mockSetCursor).toHaveBeenCalledWith('goals', 9, expect.any(String));
   });
 
+  /**
+   * BUG-014. A conflicted operation is parked as `'CONFLICT'`, and before the
+   * fix `hasPendingOpFor` did not count that status — so the pull guard stopped
+   * protecting the row at exactly the moment its values diverged from the
+   * server's, and `applyServerChange` replaced them with no prompt.
+   *
+   * The guard is mocked in this file, so the fixture drives it from a queue
+   * state keyed by entity. `sync-queue.spec.ts` separately proves `'CONFLICT'`
+   * is in the real SQL predicate; together the pair covers predicate and
+   * behaviour.
+   */
+  it('never clobbers an entity whose queued op is parked in CONFLICT (BUG-014)', async () => {
+    const goals = applier('goals');
+    mockAllAppliers.mockReturnValue([goals]);
+    mockGetCursor.mockResolvedValue(0);
+
+    // 'conflicted' has a parked CONFLICT op; 'settled' has no queued op at all.
+    const protectedEntities = new Set(['conflicted']);
+    mockHasPending.mockImplementation((entityId: string) =>
+      Promise.resolve(protectedEntities.has(entityId)),
+    );
+
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({
+        pull: jest.fn().mockResolvedValue({
+          changes: [
+            {
+              entityType: 'goals',
+              entityId: 'conflicted',
+              syncSeq: 1,
+              deleted: false,
+              data: { id: 'conflicted', server: 'wins' },
+            },
+            {
+              entityType: 'goals',
+              entityId: 'settled',
+              syncSeq: 2,
+              deleted: false,
+              data: { id: 'settled' },
+            },
+          ],
+          nextCursor: 2,
+          hasMore: false,
+        }),
+      }),
+    );
+
+    const report = await runSync(deps);
+
+    // The divergent local row is left exactly as it was: the server change is
+    // reported as skipped, never applied over it.
+    expect(report.skippedPending).toBe(1);
+    expect(goals.applyServerChange).not.toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'conflicted' }),
+      expect.anything(),
+    );
+
+    // …while an entity with nothing queued is still applied normally, proving
+    // the guard was narrowed to conflicts rather than becoming a blanket block.
+    expect(report.pulledApplied).toBe(1);
+    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'settled' }, false);
+    expect(goals.applyServerChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies the server row once the parked op is gone (BUG-014 strands nothing)', async () => {
+    const goals = applier('goals');
+    mockAllAppliers.mockReturnValue([goals]);
+    mockGetCursor.mockResolvedValue(0);
+    // Resolution removed the parked op, so nothing protects the entity now.
+    mockHasPending.mockResolvedValue(false);
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({
+        pull: jest.fn().mockResolvedValue({
+          changes: [
+            {
+              entityType: 'goals',
+              entityId: 'conflicted',
+              syncSeq: 3,
+              deleted: false,
+              data: { id: 'conflicted', server: 'wins' },
+            },
+          ],
+          nextCursor: 3,
+          hasMore: false,
+        }),
+      }),
+    );
+
+    const report = await runSync(deps);
+
+    expect(report.skippedPending).toBe(0);
+    expect(report.pulledApplied).toBe(1);
+    expect(goals.applyServerChange).toHaveBeenCalledWith(
+      { id: 'conflicted', server: 'wins' },
+      false,
+    );
+  });
+
   it('never clobbers entities with unshipped local edits (skippedPending)', async () => {
     const goals = applier('goals');
     mockAllAppliers.mockReturnValue([goals]);

@@ -3644,7 +3644,7 @@ test renderer. VoiceOver, TalkBack and browser-AT verification remain the
 
 ## [BUG-014] A Parked Conflict Loses Pull Protection, So the Local Version Can Be Silently Overwritten
 
-Status: Open
+Status: **Done** (2026-09-07 — fixed in this change; see Resolution)
 Priority: **P1**
 Type: Bug
 Owner: Unassigned
@@ -3710,21 +3710,21 @@ No pull overwrites a row whose operation is parked in conflict.
 
 ### Acceptance Criteria
 
-- [ ] `hasPendingOpFor` counts `'CONFLICT'` alongside
+- [x] `hasPendingOpFor` counts `'CONFLICT'` alongside
       `'PENDING'`/`'IN_FLIGHT'`/`'FAILED'`, so a parked conflict shields its row.
-- [ ] **Regression, push-then-pull:** given a parked conflict for an entity and a
+- [x] **Regression, push-then-pull:** given a parked conflict for an entity and a
       newer server row for it in the next pull page, the local row's values and
       its `sync_status='conflict'` are **unchanged**, and the pull reports it as
       skipped rather than applied. The test must fail against the current
       predicate.
-- [ ] **Regression, no collateral change:** a row with **no** queued op is still
+- [x] **Regression, no collateral change:** a row with **no** queued op is still
       applied normally by the same pull, proving the guard was narrowed to
       conflicts and did not become a blanket block.
-- [ ] **Regression, release:** once the conflict is resolved and the parked op is
+- [x] **Regression, release:** once the conflict is resolved and the parked op is
       gone, the next pull applies the server row and the flag clears — the fix
       does not strand rows permanently.
-- [ ] Queue status vocabulary is unchanged; no new status, column or migration.
-- [ ] No change to the reporting surfaces, so BUG-011's report-only specs still
+- [x] Queue status vocabulary is unchanged; no new status, column or migration.
+- [x] No change to the reporting surfaces, so BUG-011's report-only specs still
       pass and **BUG-012 remains open**.
 
 ### Scope
@@ -3743,6 +3743,37 @@ it.
 
 **Reverting this fix restores a data-loss defect** and must not be done to
 unblock other work.
+
+### Resolution
+
+Fixed on `codex/bug014-conflict-pull-guard`. One predicate changed:
+`hasPendingOpFor` now counts `'CONFLICT'` alongside
+`'PENDING'`/`'IN_FLIGHT'`/`'FAILED'` (`sync-queue.ts`), so a parked conflict once
+again shields its entity row from the pull. Nothing else moved — no new status,
+column, migration, endpoint, screen or copy, and the queue-status vocabulary is
+unchanged.
+
+- **Regression coverage is split deliberately.** `sync-queue.spec.ts` proves
+  `'CONFLICT'` is in the **real SQL predicate**, asserted per status so an edit
+  that drops one state fails by name; it also covers the released-entity and
+  missing-count-row cases. `sync-worker.spec.ts` proves the **pull behaviour**:
+  a `CONFLICT`-parked entity is skipped with its values untouched, an entity
+  with no queued op is still applied in the same pull, and the row applies
+  normally once the parked op is gone. The worker spec mocks the queue module,
+  so neither suite alone would be sufficient.
+- **Non-vacuous:** reverting the predicate fails **2** tests by name.
+- **Second-order effect, recorded rather than hidden:** `markActionRequired`
+  also parks ops as `'CONFLICT'` (catalog-revision rejections, BUG-007), so
+  those entities gain pull protection too. That is consistent — a parked op is
+  unshipped local work either way — and Food Log's remove-and-re-add remedy
+  still clears them.
+- **Scope held:** this closes BUG-014 only. **BUG-012 stays open**, and
+  **ADR-P030 slices C-1 … C-7 remain unimplemented and unauthorized** — no
+  scoping migration, resolve endpoint, handler refactor, copy or UI is included
+  here.
+
+**Validated:** 37 focused sync tests; full mobile suite **151 suites / 1389
+tests** with coverage thresholds met; TypeScript, lint and formatting clean.
 
 ### Related Documents
 
