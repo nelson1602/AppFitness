@@ -1,6 +1,6 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.12
+Version: 1.13
 Status: Active
 Last Updated: 2026-09-07
 
@@ -553,7 +553,19 @@ a missing treatment:
 - **BUG-011** stays open on the measurement-listing residual recorded at surface
   10, footnote ³ — an **absent surface**, not an unimplemented treatment.
 - **BUG-012** stays open: no conflict-**resolution** path exists anywhere. Every
-  Conflict treatment in this grid is **report-only** by design.
+  Conflict treatment in this grid is **report-only** by design. Its
+  specification now exists as **ADR-P030 (Accepted 2026-09-07)**, which would add
+  one native route (`/sync-conflicts`) as a future **PROPOSED** surface and keeps
+  every treatment in this grid report-only. Acceptance authorizes the
+  **architecture only** — the surface-bearing slices **C-1 … C-7 remain
+  unauthorized** — so no status in this document changes.
+- **BUG-014** is opened by that same re-audit and is a **defect in this grid's
+  Conflict premise**, not a new surface: a parked conflict loses pull protection,
+  so on one interleaving the local version is silently overwritten while the
+  Conflict treatment keeps reporting. Every Conflict row above therefore
+  describes a **reported** condition whose underlying "both versions preserved"
+  guarantee does not hold until BUG-014 is fixed. No treatment, trigger or status
+  in this document changes.
 
 **SHIPPED — non-conformant: none.** Food Log's Conflict tone was the only one
 and has since shipped conformant (BUG-007): it renders `warning`, and the
@@ -883,15 +895,26 @@ Not defects — specification work this document deliberately does not do.
 
 # Residual risks
 
-1. **Conflict is visible but not resolvable in public V1.** Three public-v1
-   surfaces report conflicts (the dashboard sync banner, Food Log's banner and
-   chip, and `ExerciseLibrary` at `/exercises`). **None offers a way to choose a
+1. **Conflict is visible but not resolvable in public V1.** As audited here,
+   three public-v1 surfaces reported conflicts (the dashboard sync banner, Food
+   Log's banner and chip, and `ExerciseLibrary` at `/exercises`). ADR-P030's
+   re-audit found a fourth that was **already present at this document's own
+   evidence baseline** — the goal-form banner, `GoalForm.tsx:108-111` — and
+   BUG-011 has since added three more, so **seven** surfaces report it as of
+   `a53ed8acc7a3a426d2d279418e6553137cb6b12c`. **None offers a way to choose a
    version.** The state model's user action for Conflict is *"Review and
    choose"*, and no reachable surface implements the choosing. Tracked as
    **BUG-012**, whose flow, screens, behaviour and copy need a **separately
    authorized specification** before implementation — UX-3C may specify only the
-   existing reporting copy. The dormant medical domain is out of scope and stays
-   dormant (ADR-P017).
+   existing reporting copy. **That specification now exists as ADR-P030, Accepted
+   2026-09-07**, which specifies one native route, two owner-scoped server
+   endpoints and two explicit choices, with no owner decision left open.
+   Acceptance authorizes the **architecture only** — its surface-bearing slices
+   are unauthorized — so this risk stays open. The same re-audit found
+   that the "both versions are preserved" premise behind every Conflict treatment
+   in this document **does not currently hold** — a parked conflict loses pull
+   protection — now tracked as **BUG-014 (P1)** and a prerequisite of BUG-012.
+   The dormant medical domain is out of scope and stays dormant (ADR-P017).
 2. **Local-first row state is invisible on three surfaces.** Workout Log renders
    no Conflict; Dietary Preferences and Progress render neither Pending sync nor
    Conflict — while their rows carry the field and their sync appliers set it.
@@ -994,9 +1017,12 @@ could never receive.
 
 §Findings records eight items. Four are reconciled documentation corrections;
 four were runtime defects owned by BUG-007 … BUG-010, and two further coverage
-gaps are owned by BUG-011 and BUG-012. **BUG-007 and BUG-008 have since shipped**
-and their rows carry SHIPPED evidence; BUG-009 … BUG-012 remain open. Do not
-resolve any open item by editing this document.
+gaps are owned by BUG-011 and BUG-012. **BUG-007, BUG-008, BUG-009 and BUG-010
+have since shipped** and their rows carry SHIPPED evidence — BUG-009 and BUG-010
+were both marked **Done on 2026-09-02**, so the earlier "BUG-009 … BUG-012 remain
+open" wording is corrected here. **BUG-011 and BUG-012 remain open**, and
+**BUG-014** (opened 2026-09-07 by the ADR-P030 re-audit) is open against the
+Conflict premise itself. Do not resolve any open item by editing this document.
 
 ## 5. Status claims require the same evidence as everywhere else
 

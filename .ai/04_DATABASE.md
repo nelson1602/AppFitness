@@ -1,8 +1,8 @@
 # AppFitness Database Architecture
 
-Version: 1.0
+Version: 1.1
 Status: Active
-Last Updated: 2026-07-03
+Last Updated: 2026-09-07
 
 ---
 
@@ -365,15 +365,30 @@ Priority
 
 4. Timestamp
 
-Non-critical fields
+**Every synchronized entity is version-guarded. No field tier is
+last-writer-wins.**
 
-Last Writer Wins
-
-Critical medical information
+A base-version mismatch records a conflict and is **never auto-overwritten**, for
+non-critical and critical fields alike. Resolution is an **explicit user
+decision**; there is no automatic merge and no timestamp tie-break that discards
+a version.
 
 Manual conflict resolution.
 
 No automatic overwrite.
+
+*Correction (2026-09-07, ADR-P030).* This section previously read "Non-critical
+fields — Last Writer Wins", with manual resolution reserved for critical medical
+information. That was **stale authority**: it is contradicted by **ADR-P012**
+§Sync and Conflict Semantics ("every entity is version-guarded … never
+auto-overwritten … **No automatic merge**"), by **ADR-P016 D6**, by
+`.ai/08_UI_UX.md`'s Conflict state ("the system refuses to silently
+overwrite"), and by the shipped code — `sync.service.ts` records a
+`sync_conflicts` row on any base-version mismatch regardless of field tier, and
+no last-writer-wins path exists for any entity. The narrower rule is restated
+above. **This is a documentation correction, not a behaviour change**, and it
+authorizes nothing. The one place the code does **not** currently honour it is
+recorded as **BUG-014**.
 
 ---
 

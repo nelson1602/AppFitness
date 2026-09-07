@@ -3260,12 +3260,17 @@ in each asserts exactly that. No resolution affordance was added.
 
 ## [BUG-012] No Conflict Resolution Path Exists in Public V1
 
-Status: Open
-Priority: P2
+Status: **Open** — specification authored as ADR-P030 on 2026-09-07, revised
+seven times the same day after review, and **Accepted 2026-09-07**. The
+architecture is authorized; **the implementation is not** — **C-1 … C-7 remain
+unauthorized**, and **C-0 (BUG-014) is separately authorized**. **No owner
+decision remains open.** Still blocked on **BUG-014**, and on per-slice
+authorization thereafter
+Priority: **P1** (raised from P2 — see §Re-audit)
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-08-28
+Updated: 2026-09-07
 
 ### Description
 
@@ -3293,9 +3298,10 @@ screen, no per-row choose action, and no localization key family for one.
 The state's required user action is therefore unimplemented across public V1. A
 user told that a record diverged has no path forward from any reachable surface.
 
-P2 because it leaves a data-integrity decision permanently pending: both versions
-are preserved by design (`00_PROJECT.md`; ADR-P016 D6), so nothing is lost — but
-nothing can be resolved either, and the count can only grow.
+Opened as P2 on the belief that "both versions are preserved by design
+(`00_PROJECT.md`; ADR-P016 D6), so nothing is lost — but nothing can be resolved
+either, and the count can only grow." **The first half of that is now known to
+be false**; see §Re-audit. Raised to **P1**.
 
 This is **missing behaviour, not wrong behaviour**, which is why it is separate
 from BUG-007 (wrong tone) and BUG-011 (missing reporting).
@@ -3325,14 +3331,183 @@ invent resolution-screen copy or a resolution flow**.
 A user who is told a record diverged can review the diverging versions and choose
 one, from at least one surface, without either version being silently discarded.
 
+### Re-audit — 2026-09-07 against `a53ed8acc7a3a426d2d279418e6553137cb6b12c`
+
+Performed by **ADR-P030**, which re-verified this entry rather than trusting its
+2026-08-28 evidence. Four corrections; the full inventory lives in the ADR.
+
+- **Three claims are stale and one was wrong when written.** Reporting surfaces
+  are **7**, not 3: BUG-011 added three (Workout Log, Dietary Preferences,
+  Progress), and `GoalForm.tsx:108-111` was **already present at this entry's own
+  audit commit** — `git show fb02097…:…/GoalForm.tsx` contains
+  `goal.conflictTitle` — so "none of them, and no other public-v1 surface" was
+  inaccurate on 2026-08-28. Conflict-named keys are **17** per catalogue at exact
+  EN/ES parity, not 5, all still reporting copy; `mobile/src/app/` holds **18**
+  routes, still none for conflicts.
+- **The infrastructure is further along than recorded.** A local
+  `sync_conflicts` table has existed since migration 001 and is **live** —
+  `sync-worker.ts:153` writes it on every CONFLICT and `dashboard.service.ts:23`
+  reads it. Both payloads and both versions are stored locally, the client stores
+  the **server's** conflict id (`sync-worker.ts:155`), and `resolveConflict`
+  already exists (uncalled).
+- **Neither choice is deliverable end-to-end today.** Keep-server has no
+  mechanism at all: `GET /sync/pull` exposes only `since`, `limit` and
+  `entityTypes` (`pull-query.dto.ts`) with **no `entityId`**, so reaching one
+  older row would need an unbounded cursor rewind, and `getServerState` is
+  redacted for six entities. Keep-local *could* re-push at the server's version,
+  but a push is **asynchronous** and its `APPLIED` branch never touches the
+  entity row, so the client cannot know when it settled. ADR-P030 therefore
+  specifies **two owner-scoped server endpoints** and **one server transaction**
+  that resolves the conflict, applies the client payload for `CLIENT_WINS`, and
+  returns the resulting authoritative row for both choices. **No Prisma
+  migration is required** — `SyncConflict` already carries `userId`, `status`,
+  `resolvedBy` and `resolvedAt` — but the existing `EntitySyncHandler` and its
+  repository ports **cannot** join a caller's transaction (no port method takes
+  a transaction client; the Prisma repositories bind `this.prisma` directly), so
+  a real tx-aware refactor is a prerequisite.
+- **And `apply()` cannot be reused for resolution.** `sync.service.ts:112-114`
+  conflicts every `CREATE` against an existing row **regardless of
+  `baseVersion`**, and the handler's `CREATE` is a plain insert with the
+  client-minted id, so replaying it would fail on the primary key. Retained
+  `UPDATE` payloads are also sometimes **partial** (`parseGoalPayload` returns
+  `Partial<GoalAttributes>`; the client enqueues `{ is_active, ended_at }`), so a
+  "replace with the complete client representation" rule would erase omitted
+  fields. ADR-P030 therefore defines **per-operation** resolution semantics.
+- **A further pre-existing defect: the version check is a read-then-write race.**
+  **No** repository mutation in `api/src` carries `version` or `userId` in its
+  predicate — every one is `where: { id }` — so two concurrent pushes can both
+  pass `sync.service.ts:122`'s check and both write. ADR-P030 freezes a
+  **conditional mutation** carrying owner and expected version for existing-row
+  `UPDATE`/`DELETE`, **shared with the ordinary push path**, and requires
+  overlapping-request tests. This race is the push path's own and is fixed as a
+  side effect of that shared contract; it is **not** part of BUG-014, which is
+  strictly the pull-guard predicate.
+- **And a third: a push mutation is not atomic with its recorded outcome.**
+  `push` opens no transaction (`sync.service.ts:48-51`), and `recordConflict` /
+  `recordOutcome` write through the **root** Prisma client (`:170`, `:200`), as
+  does the idempotency probe (`:84`). A crash after the mutation but before the
+  outcome write leaves the row changed with **no `SyncOperation` id recorded**,
+  so the retry misses the probe and **applies a second time**. ADR-P030 freezes a
+  **per-operation transaction** in `processOperation` covering the probe, the
+  handler calls and both helpers. Also **not** part of BUG-014.
+- **Both stored payloads are lossy.** `sync.service.ts:175-176` redacts
+  `clientPayload` **and** `serverSnapshot`, so neither may be replayed into a
+  row — replay would write `[REDACTED]` over real user data in whichever
+  direction it ran.
+- **"Nothing is lost" is false.** The pull guard stops protecting a conflicted
+  row, so the outcome is order-dependent and one branch silently overwrites the
+  user's local values. **Split out as its own P1 defect, BUG-014**, so it can
+  ship first without implying this entry is complete. **That split, not the
+  missing UI, is why this entry is P1** — the underlying data-loss branch is
+  BUG-014's, and this entry stays P1 because it is the surface that would
+  otherwise present an already-overwritten row as reviewable.
+- **`sync_status='conflict'` is overloaded.** The
+  `CATALOG_REVISION_UNSUPPORTED` path marks the entity row but records **no**
+  `sync_conflicts` row (`sync-worker.ts:180-185`), so a conflict-scoped surface
+  will legitimately list fewer items than the badges. The discriminator is the
+  queue row's `last_error` via `listParkedEntityIds`, per BUG-007.
+- **Cross-account isolation is a prerequisite.** `sync_queue`, `sync_state` and
+  `sync_conflicts` **all** lack `user_id` (`001-initial.ts:307-340`) and
+  `signOut()` preserves the database, so a second account on the same device
+  already sees the first account's conflicts and queued ops. A review screen is
+  what would first render that as content. Per-user scoping of all three is
+  frozen by ADR-P030 §Decision 8; wipe-on-sign-out is **rejected** because it
+  would discard un-synced offline work.
+
+**Scope unchanged.** Public V1 only; medical stays dormant, and ADR-P030 confirms
+dormancy at the sync layer — `registerMedicalSyncAppliers` is exported but never
+called from `_layout.tsx`, so the two medical entity types cannot enter conflict.
+
 ### Acceptance Criteria
 
-- [ ] A separately authorized specification defines the resolution flow, its
+- [x] A separately authorized specification defines the resolution flow, its
       screen inventory, its behaviour and its copy **before** any implementation.
+      **ADR-P030 is Accepted (2026-09-07)**, with no owner decision remaining
+      open. Acceptance authorizes the **architecture only** — the implementation
+      stays a separate gate, so **this entry remains Open**: **C-1 … C-7 are
+      unauthorized**, and only **C-0 (BUG-014)** has been authorized.
+- [ ] **BUG-014 is fixed first** (ADR-P030 **C-0**) — a parked conflict again
+      shields its row from the pull. Until then "both versions remain preserved"
+      is false, so this entry cannot be satisfied.
+- [ ] Per-user scoping of `sync_queue`, `sync_state` and `sync_conflicts` has
+      landed, with a fail-closed backfill and NULL quarantine (**C-1**).
+- [ ] The `EntitySyncHandler` / repository contract is transaction-aware **and
+      every existing-row `UPDATE`/`DELETE` mutation carries an owner +
+      expected-version predicate** (**C-2**) — `CREATE` stays an insert, with only
+      a primary-key collision mapping to a conflict — so the entity mutation and
+      the conflict transition commit atomically and a concurrent ordinary
+      `/sync/push` cannot bypass the guard. This also closes the pre-existing
+      push-path read-then-write race.
+- [ ] **`/sync/push` commits each operation's mutation and its terminal
+      `SyncOperation`/`SyncConflict` result in one per-operation transaction**
+      (**C-2**), so a crash cannot leave a mutation with **no recorded op id** —
+      the hole that currently defeats op-id idempotency on retry.
+      `recordConflict` and `recordOutcome` stop writing through the root Prisma
+      client.
+- [ ] The resolve endpoint answers **stable machine-readable outcomes** with
+      defined HTTP statuses, carries **no server-authored user-facing string**,
+      and returns **404** indistinguishably for unknown and cross-owner ids.
+      `RESTORE_UNSUPPORTED` is a code mapped to localized client copy.
+- [ ] **No outcome is a dead end.** `RESTORE_UNSUPPORTED` re-arms the decision
+      locally and offers `SERVER_WINS`; `ALREADY_RESOLVED_OPPOSITE_CHOICE`
+      returns the authoritative row so the loser settles to the standing
+      resolution instead of staying permanently counted. Neither weakens
+      first-choice-wins once the server has committed a resolution.
+- [ ] **A conflict resolved on another device is never closed by a status.**
+      Absence from a paged list proves nothing, and an explicit resolved status
+      only **triggers** the guaranteed `POST …/resolve` replay — the conflict
+      stays counted until that response supplies the authoritative row and **T3**
+      commits, so a settled conflict can never sit on stale entity data.
+- [ ] **T3 is atomic**: applying the authoritative row, removing the parked
+      operation and marking settlement commit together or not at all.
+- [ ] The `CREATE`-race path is **PostgreSQL-viable**: a non-throwing,
+      PK-targeted insert reports the collision as a count, so the conflict is
+      recorded on the same transaction; unrelated constraint violations still
+      throw and are classified **after** rollback.
+- [ ] **Raw `CREATE` SQL is fenced**: static, entity-owned, tagged-template
+      `tx.$executeRaw` only — no `$executeRawUnsafe`, no dynamic identifiers, no
+      interpolated payload fragments — preserving existing mappings, defaults and
+      the trigger-assigned `sync_seq`, with a field-equivalence test against the
+      current Prisma `create`.
+- [ ] **Per-operation resolution semantics** are implemented rather than a replay
+      of `apply()`: a `CREATE` conflict **updates** the existing owned row (never
+      a duplicate insert), an `UPDATE` applies through the entity's own parser so
+      **omitted fields survive**, and a `DELETE` soft-deletes.
+- [ ] **Tombstone conflicts are resolvable and never loop.** The mutation
+      predicate is selected by the reviewed state (`expectedDeleted`), not a
+      universal `deleted_at IS NULL`: `CLIENT_WINS` on a reviewed tombstone
+      **restores** the row or fails closed as `RESTORE_UNSUPPORTED`;
+      `CLIENT_WINS DELETE` against an already-deleted row **settles without
+      pretending a mutation occurred**; `SERVER_WINS` returns and applies the
+      **tombstone**. A resolve → stale → re-review → resolve sequence is proven
+      to **terminate**.
+- [ ] **A late race is a conflict, not a dropped rejection.** `apply()` returns a
+      typed outcome, and a zero affected-row result — or a lost `CREATE`
+      insertion race — drives an owner-scoped re-read and the **normal
+      `recordConflict` path**: never `APPLIED`, never `APPLY_FAILED`, never
+      `removeRejected`.
+- [ ] The owner-scoped resolve contract has landed (**C-3**): one `Serializable`
+      server transaction resolves the conflict, applies the client's retained
+      representation for `CLIENT_WINS`, and returns the resulting authoritative
+      row for **both** choices. **No replacement queue operation is created**,
+      and settlement is never marked before the server has applied.
+- [ ] **Concurrency is proven, not assumed**: overlapping resolution-vs-push and
+      resolution-vs-resolution requests show **exactly one** compatible mutation
+      committing, the loser returning the typed stale/conflict outcome, and the
+      losing side's fields **unchanged field-by-field**.
 - [ ] A resolution path exists and is reachable from the public-v1 surfaces that
       report a conflict.
 - [ ] Both versions remain preserved until the user chooses; nothing is
-      auto-resolved.
+      auto-resolved. **First choice wins** via a conditional claim: a same-choice
+      retry returns the authoritative row, an opposite-choice retry is refused.
+- [ ] A chosen-but-unsettled conflict stays persistent, visible, retryable and
+      **counted** until the authoritative round trip completes (**C-4**).
+- [ ] A **stale comparison is completable**: the request carries
+      `expectedServerVersion`, a mismatch leaves the conflict pending and returns
+      the current row, the local comparison is refreshed, the prior choice is
+      cleared, the user reviews again, and the next request succeeds.
+- [ ] A **remote-origin conflict** is listed as not resolvable on this device
+      rather than offered a choice that cannot be delivered.
 - [ ] The choice is recorded through the repository layer, never by direct
       SQLite access from the UI.
 - [ ] The dormant medical domain stays dormant (**ADR-P017**); nothing here makes
@@ -3342,12 +3517,21 @@ one, from at least one surface, without either version being silently discarded.
 
 ### Related Documents
 
+- `.ai/12_DECISIONS.md` (**ADR-P030 — Accepted**: the authored specification, the
+  full re-audit inventory, the options considered, and the transaction /
+  endpoint / migration / interface inventory. **No owner decision remains
+  open**; ADR-P012 §Sync and Conflict Semantics — version-guarded, no automatic
+  merge; ADR-P016 D6 — historical records are never silently overwritten;
+  ADR-P029 — the conditional-claim and transaction-threading precedents ADR-P030
+  follows)
 - `.ai/18_SCREEN_STATE_MATRICES.md` (UX-3B — §Residual risks; surfaces 2 and 8)
-- `.ai/19_COPY_DECKS.md` (UX-3C — reporting-only boundary)
+- `.ai/19_COPY_DECKS.md` (UX-3C — reporting-only boundary; §Deferred copy — the
+  key families ADR-P030 names but does not word)
 - `.ai/08_UI_UX.md` (§Canonical State Patterns)
 - `.ai/00_PROJECT.md` (§Decision Hierarchy — data integrity)
-- `.ai/12_DECISIONS.md` (ADR-P016 D6 — historical records are never silently
-  overwritten)
+- `.ai/04_DATABASE.md` (§Conflict Resolution — its "Last Writer Wins" clause
+  contradicted ADR-P012 / ADR-P016 D6 and the code, and is **corrected** in
+  v1.1 by the ADR-P030 revision)
 
 ---
 
@@ -3455,6 +3639,122 @@ test renderer. VoiceOver, TalkBack and browser-AT verification remain the
   specification)
 - `.ai/06_MOBILE.md` (§Internationalization)
 - `.ai/12_DECISIONS.md` (ADR-P016 D6 — local calendar dates)
+
+---
+
+## [BUG-014] A Parked Conflict Loses Pull Protection, So the Local Version Can Be Silently Overwritten
+
+Status: Open
+Priority: **P1**
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-07
+Updated: 2026-09-07
+
+### Description
+
+Found by the **ADR-P030** re-audit of `origin/main`
+`a53ed8acc7a3a426d2d279418e6553137cb6b12c`, and **split out of BUG-012 on
+purpose**: BUG-012 is a missing affordance, this is a live data-integrity
+defect. It must be fixable and shippable on its own, and fixing it must **not**
+imply BUG-012 is complete.
+
+`hasPendingOpFor` is the guard that stops a pull clobbering unshipped local
+edits. It counts only `status IN ('PENDING','IN_FLIGHT','FAILED')`
+(`sync-queue.ts:132-139`). A conflicted operation is parked as `'CONFLICT'`
+(`sync-queue.ts:96`), so **the guard stops seeing it** and the row loses its
+protection at exactly the moment a divergence exists.
+
+The outcome is order-dependent, and both branches are wrong:
+
+- **Push-then-pull.** The server row is ahead of the cursor. The guard returns
+  false, `applier.applyServerChange(...)` runs (`sync-worker.ts:227`), and every
+  `applyServer*` is an `INSERT OR REPLACE … sync_status='synced'`
+  (e.g. `progress.repository.ts:198-220`). **The user's divergent local values
+  are replaced and the row is marked synced, with no prompt.** The
+  `sync_conflicts` row is never touched, so it stays `PENDING` and the dashboard
+  keeps counting a conflict whose entity row has already been overwritten.
+- **Pull-then-push.** The other device's change was skipped while our op was
+  still `PENDING` (`sync-worker.ts:223-226`, `report.skippedPending`), but the
+  cursor advances regardless (`:231-232`) and there is no rollback, so that
+  server row is **never re-offered**. The divergence persists indefinitely and
+  the flag never clears.
+
+Neither is `.ai/08_UI_UX.md`'s Conflict contract — *"the system refuses to
+silently overwrite"* — and neither matches **ADR-P012** §Sync and Conflict
+Semantics ("never auto-overwritten") or **ADR-P016 D6**.
+
+**P1** because the first branch is silent loss of user-entered health data, which
+is Critical/High under `.ai/09_TESTING.md` §Bug Severity. It is invisible to the
+user: no error, no prompt, and a conflict counter that still reads as unresolved.
+
+### Evidence
+
+- `mobile/src/shared/infrastructure/sync/sync-queue.ts:132-139` — the guard's
+  status list, which omits `'CONFLICT'`
+- `:96` — `markConflict` parks the op as `'CONFLICT'`
+- `mobile/src/shared/infrastructure/sync/sync-worker.ts:142-166` — the push
+  CONFLICT path that parks the op and records the conflict row
+- `:223-232` — the pull guard, `applyServerChange`, and the unconditional cursor
+  advance
+- `mobile/src/features/progress/infrastructure/progress.repository.ts:198-220` —
+  a representative `applyServer*`: `INSERT OR REPLACE … 'synced'`
+- Every `'synced'` write in `mobile/src` is inside an `applyServer*` or the
+  exercise seed; the push `APPLIED` branch (`sync-worker.ts:137-141`) does not
+  touch the entity row — so the pull is the only writer that can clear the flag
+
+### Expected Outcome
+
+A conflicted row keeps its local values until the user makes an explicit choice.
+No pull overwrites a row whose operation is parked in conflict.
+
+### Acceptance Criteria
+
+- [ ] `hasPendingOpFor` counts `'CONFLICT'` alongside
+      `'PENDING'`/`'IN_FLIGHT'`/`'FAILED'`, so a parked conflict shields its row.
+- [ ] **Regression, push-then-pull:** given a parked conflict for an entity and a
+      newer server row for it in the next pull page, the local row's values and
+      its `sync_status='conflict'` are **unchanged**, and the pull reports it as
+      skipped rather than applied. The test must fail against the current
+      predicate.
+- [ ] **Regression, no collateral change:** a row with **no** queued op is still
+      applied normally by the same pull, proving the guard was narrowed to
+      conflicts and did not become a blanket block.
+- [ ] **Regression, release:** once the conflict is resolved and the parked op is
+      gone, the next pull applies the server row and the flag clears — the fix
+      does not strand rows permanently.
+- [ ] Queue status vocabulary is unchanged; no new status, column or migration.
+- [ ] No change to the reporting surfaces, so BUG-011's report-only specs still
+      pass and **BUG-012 remains open**.
+
+### Scope
+
+**This bug is the guard predicate only.** It adds no screen, no copy, no
+endpoint, no schema change and no resolution affordance. It is **ADR-P030 slice
+C-0** and is the one slice in that sequence with no prerequisite — it is
+independently valuable, because it stops the overwrite whether or not a
+resolution UI is ever built.
+
+**Authorization.** ADR-P030 was **Accepted 2026-09-07**, and **C-0 is separately
+authorized** to be implemented. That authorization covers **this predicate and
+its regressions only**; **C-1 … C-7 remain unauthorized**, so no scoping
+migration, resolve endpoint, handler refactor, copy or UI may be started under
+it.
+
+**Reverting this fix restores a data-loss defect** and must not be done to
+unblock other work.
+
+### Related Documents
+
+- `.ai/12_DECISIONS.md` (**ADR-P030** §A-7 and §Decision 9 — the guarantee that
+  depends on this fix; slice **C-0**; ADR-P012 §Sync and Conflict Semantics;
+  ADR-P016 D6)
+- `.ai/11_BACKLOG.md` (**BUG-012** — the missing resolution UI, blocked on this;
+  BUG-007 — the catalog-park distinction that shares the `'CONFLICT'` queue
+  status)
+- `.ai/08_UI_UX.md` (§Canonical State Patterns — Conflict)
+- `.ai/04_DATABASE.md` (§Conflict Resolution — never auto-overwritten)
+- `.ai/09_TESTING.md` (§Bug Severity; §Regression Testing)
 
 ---
 

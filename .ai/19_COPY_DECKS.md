@@ -1,6 +1,6 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.10
+Version: 1.11
 Status: Active
 Last Updated: 2026-09-07
 
@@ -33,16 +33,25 @@ not make the key or behaviour exist.
   Data-gap, Error, Offline, Pending sync, Conflict and Web unavailable.
 - **Not implementation.** No key listed as `PROPOSED` exists until its owning
   runtime slice adds it to both catalogues and wires it through `t()`.
-- **Not conflict resolution.** BUG-012 requires a separate flow and data
-  decision. This deck specifies reporting copy only and defines no review
-  action, choose-version, keep-mine or keep-server control.
+- **Not conflict resolution.** BUG-012's flow and data decision are now
+  specified by **ADR-P030 (Accepted 2026-09-07)**, but acceptance authorizes the
+  architecture only and **the copy slice C-5 is unauthorized**,
+  so this deck still specifies reporting copy only and defines no review action,
+  choose-version, keep-mine or keep-server control. The resolution copy families
+  ADR-P030 names are worded in its own copy slice, not here — see
+  §Deferred copy.
 - **Not the UX-3D specification.** `.ai/20_PROGRESS_NONVISUAL.md` owns the
   non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` — its
   structure, accessibility semantics, ordering and test contract, including the
   rule that no wrapper may be marked accessible. This deck owns only the
   **wording** of the seven keys that equivalent proposes, listed under §Progress.
-- **Not password-recovery or verification copy.** Recovery remains outside
-  `main` in PR #102; verification awaits ADR-P026 Vertical 2 authorization.
+- **Not password-recovery or verification copy.** Both have since shipped —
+  recovery merged in PR #102 (`724a18e7`, Production-validated 2026-09-02) and
+  verification completed ADR-P026 Vertical 2 with both V2-E halves passing
+  2026-09-04 — so this exclusion is now one of **ownership**, not of readiness:
+  their copy is owned by FEATURE-011 and is not re-tabulated in this deck. The
+  earlier wording ("Recovery remains outside `main` in PR #102; verification
+  awaits ADR-P026 Vertical 2 authorization") is corrected. See §Deferred copy.
 - **Not accessibility proof.** Labels are specified or exposed by source. Their
   VoiceOver, TalkBack and browser-AT behaviour remains unverified until UX-4C.
 
@@ -685,9 +694,9 @@ would erase the fact that it completed.
 
 | Area | Why no copy appears here |
 |---|---|
-| Password recovery | TARGET in PR #102, not on `main`; reconcile after merge against the effective implementation. |
-| Email verification | **All 23 keys above are now in the catalogues** in EN and ES (`mobile/src/shared/localization/resources/`), imported by **V2-D** and rendered by the `/verify-email` route and the dashboard reminder. The EN/ES *email* copy is a separate surface owned by V2-C and lives in `api/src/modules/mail/domain/email-verification.template.ts`, not in this deck. **No verification email is sent yet** (V2-E), so users do not reach the landing from a real link. |
-| Conflict resolution actions/screens | BUG-012 needs a separately authorized flow and repository decision. |
+| Password recovery | **No longer deferred — shipped.** PR #102 merged as `724a18e7`: the `forgot-password` / `reset-password` endpoints (`auth.controller.ts:107`, `:133`), the `/forgot-password` and `/reset-password` routes, and the EN/ES copy are all on `main`, and Production validation on **2026-09-02** exercised a real delivery end to end. This row previously read "TARGET in PR #102, not on `main`"; that is corrected. The shipped recovery copy is not re-tabulated here — this deck's scope is state copy, and recovery's is owned by FEATURE-011 Vertical 1. |
+| Email verification | **All 23 keys above are now in the catalogues** in EN and ES (`mobile/src/shared/localization/resources/`), imported by **V2-D** and rendered by the `/verify-email` route and the dashboard reminder. The EN/ES *email* copy is a separate surface owned by V2-C and lives in `api/src/modules/mail/domain/email-verification.template.ts`, not in this deck. **Verification email is now sent** — this row previously read "No verification email is sent yet (V2-E)", which is corrected: **both V2-E halves passed 2026-09-04** and Production now attempts verification delivery for registrations (issuance stays best-effort; a mail failure is non-blocking, with resend available). Users therefore **do** reach the landing from a real link. **Deep-link completion remains a separate open V1 gate** — an emailed link still opens the Web portal, not the app. |
+| Conflict resolution actions/screens | **ADR-P030 (Accepted 2026-09-07)** now supplies the flow and repository decision BUG-012 was waiting on, and **names the key families** a resolution surface would need — screen title/empty/error, the two choice labels, chosen-but-unsettled, settlement-failed-retry, already-settled, **stale-comparison / review-again**, **not-resolvable-on-this-device**, offline notice, the withheld-field phrase, the unsupported-entity fallback, and the action-needed distinction. It deliberately **words none of them**: ADR-P030 assigns the wording to this deck, in slice **C-5** of its own sequence, which sits **after** the guard fix (BUG-014), per-user scoping, the transaction-aware write contract, the server resolve contract and the local resolution service. **No key is proposed here yet**, no status changes, and Conflict copy on the existing surfaces stays **reporting-only**. Chosen-but-unsettled will reuse the existing **Pending sync** tone rather than introducing a ninth state. **No owner decision in ADR-P030 remains open**, and the ADR is now **Accepted** — but acceptance authorizes the **architecture only**, and **slice C-5 is unauthorized**, so **no copy here is authorized yet**. |
 | Trend-chart and weekly structure | Specified in `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D), and implemented 2026-09-07. Its seven keys are worded above and are now **SHIPPED**; composition, accessibility structure and the no-nesting rule are not repeated here. |
 | Bottom tabs | Deferred by ADR-P027; the non-binding map is not a copy target. |
 | Dormant medical domain | Out of public V1 under ADR-P017. |

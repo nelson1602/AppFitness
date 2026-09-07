@@ -2193,6 +2193,16 @@ Identity and Versioning*). Decision for v1:
   correction or a removal. Corrections (`serving_count`) and removals
   (soft-delete tombstone) are ordinary version-guarded ops, not overwrites.
 
+  *(2026-09-07: the "future explicit resolver UI" anticipated here is specified
+  by **ADR-P030 (Accepted)**, which preserves this clause in full — including
+  **no automatic merge** — and additionally records that the pull guard does not
+  currently hold a parked conflict, so the never-auto-overwritten property is
+  **not** presently true in code. That defect is tracked as **BUG-014 (P1)**.
+  ADR-P030 also records that the `client_payload` redaction specified below makes
+  the stored client version **unreplayable**, so its keep-local path re-pushes the
+  client's own retained queue payload rather than the server's redacted copy.
+  Nothing in this ADR changes status.)*
+
 ### Security and Privacy Controls
 
 - **Classification (decided, not open):** food intake is **Highly Sensitive**
@@ -9506,6 +9516,1699 @@ behaviour.
 
 ---
 
+## ADR-P030 — Public-V1 Conflict Review and Resolution
+
+Status: **Accepted** (2026-09-07) — the **architecture** below is authorized.
+Acceptance does **not** authorize the implementation slices: **C-1 … C-7 remain
+unauthorized** and each needs its own approval. **C-0 (BUG-014) is separately
+authorized** and may proceed. **No owner decision remains open.**
+Date: 2026-09-07 (revised seven times the same day after review — see
+§Revision note)
+Owner: Product / Mobile Architecture / Security
+
+### Revision note
+
+Two review rounds changed this ADR materially. Every rejected claim was
+re-verified in the repository, and review was right each time.
+
+**Round 1** rejected a device-local design built on "a bounded cursor rewind"
+plus the `entityTypes` pull filter, the claim that `resolveConflict()` is
+idempotent, and wipe-on-sign-out as a co-equal isolation fix:
+
+- **`GET /sync/pull` has no `entityId` filter** (`pull-query.dto.ts` carries only
+  `since`, `limit`, `entityTypes`; `pullChanges(userId, sinceSeq, limit)` is
+  purely cursor-ordered). Re-fetching one old row means rewinding the cursor and
+  traversing history forward — **unbounded**. Keep-server is not deliverable
+  client-side.
+- **`resolveConflict()` is not idempotent.** Its `UPDATE sync_conflicts SET
+  status = ?, resolved_at = ? WHERE id = ?` (`sync-conflicts.ts:37-47`) has no
+  status guard, so a second call with the *opposite* choice silently replaces the
+  first.
+- **Cross-account leakage spans three tables.** `sync_queue`
+  (`001-initial.ts:307-320`), `sync_state` (`:323-327`) and `sync_conflicts`
+  (`:329-340`) **all lack `user_id`**, and `signOut()` preserves the database
+  (`session-manager.ts:233`; `wipeDatabase()` only from `deleteAccount()`
+  at `:217`).
+
+**Round 2** rejected the two-step `CLIENT_WINS` settlement, the transaction
+claims, `requestId`-as-idempotency-key, best-effort audit inside an atomic
+transaction, the unfinishable stale path, and an unstated cross-device
+assumption:
+
+- **`CLIENT_WINS` cannot settle by enqueueing another push.** The previous T3
+  marked the outbox `SETTLED` right after `enqueue`, before the server applied
+  anything and before any authoritative pull. That is a false settlement.
+  §Decision 3 now applies the client payload **inside the same server
+  transaction** that resolves the conflict, and no replacement queue operation
+  is created.
+- **The existing handler interface cannot make that atomic.** Verified: no
+  repository port method accepts a transaction client, and every Prisma
+  repository binds `this.prisma` directly (e.g.
+  `prisma-progress.repository.ts:36`, `:48`, `:65`). A **real refactor** is
+  required and is sized honestly in §Decision 3 and §Consequences.
+- **`requestId` was mislabelled.** Nothing persisted or enforced it. It is now
+  **correlation metadata only** (§Decision 5); the conditional transition is the
+  idempotency mechanism.
+- **Audit cannot be both inside the atomic transaction and best-effort.**
+  `AuditService.record` swallows its own failures (`audit.service.ts:39-44`), so
+  it is moved **after** the committed transition and its possible absence is
+  stated (§Decision 11).
+- **The stale path could never complete**, because it compared against the
+  immutable original `conflict.serverVersion` forever. It now compares against
+  the request's `expectedServerVersion` (§Decision 10).
+- **Cross-device `CLIENT_WINS` was implied but unsupported** — the resolving
+  device may not hold the originating device's retained payload (§Decision 9).
+
+**Round 3** rejected the assumption that the resolution could call the existing
+`apply()` inside a transaction and be safe:
+
+- **A `CREATE` conflict cannot be replayed.** `sync.service.ts:112-114` conflicts
+  every `CREATE` against an existing row **regardless of `baseVersion`**, and the
+  handler's `CREATE` is a plain insert with the client-minted id, so replaying it
+  would fail on the primary key. §Decision 3 now defines **per-operation**
+  semantics and does **not** reuse `apply()` (A-15c).
+- **Retained `UPDATE` payloads are sometimes partial.** `parseGoalPayload`
+  returns `Partial<GoalAttributes>` and the client enqueues
+  `{ is_active, ended_at }`, so a "replace with the complete client
+  representation" rule would have **erased every omitted field** (A-15d).
+- **"Read the version, then update" is not optimistic concurrency.** **No**
+  repository mutation in `api/src` carries `version` or `userId` in its predicate
+  — all are `where: { id }` — so a concurrent ordinary push can commit between
+  the check and the write. A **conditional mutation** carrying owner and expected
+  version is now frozen, and **the ordinary push path must share it** or the
+  guard is bypassable (A-15a/b).
+- **`SERVER_WINS` had no concurrency boundary.** It now reads inside a
+  `Serializable` transaction and settles only on the exact reviewed version.
+
+**Round 4** closed two consequences of round 3 that had not been followed
+through, and one contradiction:
+
+- **A conditional mutation needs a channel to report "zero rows".**
+  `apply()` returns `Promise<void>` (`sync.types.ts:56`) and `SyncService` maps
+  every exception to `REJECTED` (`sync.service.ts:130-153`), so a late race would
+  have been dropped as a generic rejection rather than raised as a conflict.
+  §Decision 3 now freezes a typed `ApplyOutcome` and one new `SyncService`
+  branch.
+- **A universal `deleted_at IS NULL` predicate made tombstone conflicts
+  unresolvable.** `findOwned*` carries no `deletedAt` filter, so `getServerState`
+  surfaces tombstones and a conflict can be raised against one; the universal
+  predicate would then match zero rows forever and loop at an unchanged version.
+  §Decision 3 now selects the predicate from the reviewed state via
+  `expectedDeleted`, with explicit restore, an already-satisfied `DELETE` case,
+  tombstone-carrying `SERVER_WINS`, and a fail-closed `RESTORE_UNSUPPORTED`.
+- **C-2 was still described as "a pure refactor … with no behaviour change"** in
+  the rollout section while §Decision 3 said it changes the shared write path.
+  Corrected: C-2 turns a race-driven overwrite into a reported conflict.
+
+**Round 5** closed four contract gaps left by round 4:
+
+- **The push transaction boundary was asserted, not defined.** The method is
+  `processOperation` (`sync.service.ts:77`), not `applyOne`, and `recordConflict`
+  / `recordOutcome` write through the **root** Prisma client (`:170`, `:200`), as
+  does the idempotency probe (`:84`); `push` opens **no transaction** (`:48-51`).
+  "On the same `tx`" was therefore not achievable as written. §Decision 3 now
+  freezes a **per-operation** transaction and inventories **5 call sites and 2
+  private helpers** — not "one branch". It also closes a real idempotency hole: a
+  crash between the mutation and the outcome write currently leaves a mutation
+  with **no recorded op id**, so the retry double-applies.
+- **"Every sync mutation gains an expected-version predicate" was wrong for
+  `CREATE`.** An insert has no row to predicate on. Only existing-row
+  `UPDATE`/`DELETE` become conditional; `CREATE` maps **only** a primary-key
+  collision to `STALE`, and unrelated business-constraint violations keep their
+  existing explicit behaviour.
+- **The resolve endpoint had no typed response contract.** §Decision 3 now
+  specifies six stable outcomes with HTTP statuses, and states that these are the
+  **new endpoint's own** codes — `SYNC_ERROR_CODES` and the `/sync/push` wire
+  shape remain untouched.
+- **`RESTORE_UNSUPPORTED` leaked a server-authored string** and did not say how
+  the conflict stayed `PENDING`. It is now a **stable code** mapped to localized
+  client copy, and the transaction is **aborted** so the conflict claim is rolled
+  back before the answer is returned.
+
+**Round 6** closed four lifecycle gaps:
+
+- **The `CREATE`-race design was not implementable on PostgreSQL.** A unique
+  violation aborts the transaction, so a handler cannot catch `P2002`, return
+  `STALE`, and have the caller re-read and record a conflict on that same
+  transaction. §Decision 3 now freezes a **non-throwing `ON CONFLICT (id) DO
+  NOTHING` insert** returning an affected count, and states exactly where
+  retryable, terminal and unknown errors are caught — **outside** the
+  transaction, after rollback.
+- **`RESTORE_UNSUPPORTED` was unrecoverable.** T1's `chosen_resolution IS NULL`
+  guard made the rejected choice permanent while the response invited the user to
+  pick `SERVER_WINS`. §Decision 6 adds **T1′**, an atomic local transition that
+  records the code, blocks the refused choice and re-arms the decision — guarded
+  so it can never supersede a resolution the server actually committed.
+- **`GET /sync/conflicts` could not support its own case table.** A `PENDING`-only
+  response cannot prove a local row was resolved elsewhere. §Decision 9 adds a
+  **bounded status-reconciliation part**, forbids inferring resolution from
+  absence, and names the same-choice replay as the guaranteed recovery path.
+- **`ALREADY_RESOLVED_OPPOSITE_CHOICE` was a dead end**, leaving a permanently
+  counted, non-retryable conflict. It now returns the authoritative row so the
+  loser **settles to the standing resolution**, without overturning it.
+- **The `expectedDeleted` rationale was wrong.** Versions are monotonic and both
+  soft delete and restore increment them (`op.baseVersion + 1`), so a
+  delete→restore cycle **cannot** return to the same version. That claim is
+  removed; `expectedDeleted` is kept for what it actually does — recording and
+  verifying the exact reviewed state, and selecting the operation-specific
+  tombstone behaviour.
+
+**Round 7** closed the last two:
+
+- **A server status was allowed to close a local conflict.** The `ids`
+  reconciliation returns only a **status**, which says nothing about the local
+  **entity row** — so closing on it would mark a conflict settled while the data
+  stayed stale. §Decision 9 now makes an explicit resolved status a **trigger for
+  the guaranteed replay**, never a settlement; the conflict stays counted until
+  the resolve response supplies `current` and **T3** commits. Widening the `ids`
+  result to carry entity data was considered and rejected — it would duplicate
+  the authoritative-row contract in a second endpoint.
+- **The raw `CREATE` insert was unfenced.** §Decision 3 now requires **static,
+  entity-owned, tagged-template `tx.$executeRaw`**, prohibits
+  `$executeRawUnsafe`, dynamic identifiers and interpolated payload fragments,
+  and requires the statement to preserve existing mappings and database-owned
+  defaults — including **`sync_seq`**, which the `assign_sync_seq()` trigger
+  assigns identically for raw and Prisma inserts.
+
+One further re-verification shaped the mechanics: **the server's stored
+`clientPayload` is redacted too** (`sync.service.ts:175`), so a server-side
+replay of the *client* version is exactly as lossy as replaying the server
+snapshot. The client must therefore **send** its retained payload on the resolve
+request; the server validates and applies it, and never replays its own stored
+copy.
+
+### Context
+
+`.ai/08_UI_UX.md` §Canonical State Patterns defines **Conflict** as *"Two
+versions diverged; the system **refuses to silently overwrite**"*, with the
+required user action **"Review and choose"** and recovery *"An explicit user
+decision"*. **BUG-012** records that no public-V1 surface offers that choice.
+
+This ADR re-audited `origin/main` at
+`a53ed8acc7a3a426d2d279418e6553137cb6b12c` rather than relying on BUG-012's
+2026-08-28 evidence (`fb02097593ff9a2735f54620d6350d880cf3a030`). **Three of
+BUG-012's factual claims are stale, one was wrong when written**, and two
+previously unrecorded defects were found.
+
+#### A-1 — Reachable public-V1 conflict entities: **12**
+
+Client appliers are registered in `mobile/src/app/_layout.tsx:17-20` for four
+features. **`registerMedicalSyncAppliers` is exported (`medical/index.ts:15`)
+but never called**, so the two medical entity types cannot enter conflict in
+public V1 — dormancy holds at the sync layer, not merely in the UI (ADR-P017).
+
+| Feature | Entity types |
+|---|---|
+| Profile | `user_profiles`, `goals` |
+| Nutrition | `meal_items`, `dietary_preferences` |
+| Workout | `exercises`, `routines`, `workout_logs`, `routine_exercises`, `workout_sets` |
+| Progress | `body_weights`, `body_measurements`, `progress_snapshots` |
+| **Dormant (not registered client-side)** | `medical_evaluations`, `medical_restrictions` |
+
+The **server** registers all 14 handlers (`medical.module.ts:49-50` included),
+so the asymmetry is client-side. No public-V1 code path enqueues a medical op.
+
+#### A-2 — Both versions are already stored, on both sides
+
+A local `sync_conflicts` table has existed since migration 001
+(`001-initial.ts:329-340`): `local_payload`, `server_payload`, `base_version`,
+`server_version`, `status`, `created_at`, `resolved_at`. Its status CHECK already
+admits `RESOLVED_LOCAL_WINS`, `RESOLVED_SERVER_WINS`, `MERGED`.
+
+It is **live, not vestigial**: `sync-worker.ts:153` calls `recordConflict` on
+every `CONFLICT` push result, and `dashboard.service.ts:23` already reads it via
+`listPendingConflicts()`. `resolveConflict` exists, is specced, and is **never
+called from application code**.
+
+The server mirrors this in `SyncConflict` (`schema.prisma:318-336`) with
+`clientPayload`, `serverSnapshot`, `clientVersion`, `serverVersion`,
+`ConflictStatus`, **`userId`**, **`resolvedBy`**, **`resolvedAt`** and
+`createdAt`. **The client stores the server's conflict id**: `recordConflict` is
+called with `id: result.conflictId ?? result.opId` (`sync-worker.ts:155`), and
+`conflictId` is the server row's primary key (`sync.service.ts:187`). The two
+stores are therefore already joinable without any schema change.
+
+#### A-3 — **Both** stored payloads are lossy, and the server snapshot's lossiness is not uniform
+
+`sync.service.ts:190` returns `serverState.snapshot` to the client. Whether that
+snapshot is redacted depends on the handler:
+
+| Client `server_payload` | Entities |
+|---|---|
+| **Redacted** — `getServerState` wraps the snapshot in its own redactor | `body_weights`, `body_measurements` (`notes → '[REDACTED]'`, `progress.mapper.ts:106-114`), `meal_items`, `dietary_preferences`, `workout_logs`, `workout_sets` |
+| **Unredacted** — no redactor inside `getServerState` | `user_profiles`, `goals`, `progress_snapshots`, `exercises`, `routines`, `routine_exercises` |
+
+Separately, `sync.service.ts:175` persists `clientPayload: redact(op.payload)`,
+so **the server's copy of the client version is redacted as well**.
+
+**Consequence, and the most load-bearing audit fact in this document:**
+*neither* stored payload may be replayed into a row. Replaying
+`server_payload` would write `[REDACTED]` over the user's own notes; replaying
+the server's `clientPayload` would do the same in the other direction. Both
+directions must be sourced from data that is still complete — the client's
+retained queue payload, **sent on the resolve request**, for keep-local, and a
+freshly read server row for keep-server (§Decision 3).
+
+#### A-4 — Two local payloads are encrypted at rest
+
+`sync-worker.ts:148-152` encrypts both payloads when the queued op was
+`sensitive`. `sensitive: true` is set for **public-V1** entities, not only
+medical: `dietary-preference.repository.ts:70` and `food-log.repository.ts:111`,
+`:147`, `:184`. For `dietary_preferences` and `meal_items` the local conflict
+row therefore holds `{"__enc": "<base64>"}` in both payload columns. Any review
+surface must cross a decryption boundary owned below the UI (ADR-P012 §Security
+and Privacy Controls; ADR-P001 cipher), and the resolve request must send
+**plaintext over TLS**, never the local ciphertext envelope, because the server
+holds no local field key.
+
+#### A-5 — Neither choice is deliverable end-to-end today
+
+- **Keep local — partially reachable, but not settleable.** `enqueue` takes an
+  explicit `baseVersion` (`sync-queue.ts:17-39`) and `PushOperationDto.baseVersion`
+  is validated `@IsInt() @Min(0)` (`push-sync.dto.ts:29-31`), so a re-push at the
+  server's version would apply. **But a push is asynchronous**: nothing tells the
+  client the apply committed except a later pull, and the push `APPLIED` branch
+  does not touch the entity row (A-6). A resolution built on it cannot know when
+  it has settled — which is exactly the defect review rejected.
+- **Keep server — not reachable at all.** Every applier implements
+  `applyServerChange(data, deleted)` (`appliers.ts:10`) as an
+  `INSERT OR REPLACE … sync_status='synced'` (e.g.
+  `progress.repository.ts:198-220`), so the *application* step exists. What does
+  not exist is a way to **obtain** the current authoritative row on demand:
+  `GET /sync/pull` has no `entityId` filter and `pullChanges` is ordered purely
+  by `sync_seq`, so reaching one older row is unbounded and would re-apply
+  unrelated rows on the way. `getServerState` *is* owner-scoped and single-row,
+  but its snapshot is redacted for six entities (A-3).
+
+**Both gaps close with one synchronous, owner-scoped, transactional endpoint**
+that returns the resulting authoritative row (§Decision 3).
+
+#### A-6 — The pull is the *only* writer of `'synced'`
+
+Every `'synced'` write in `mobile/src` is inside an `applyServer*` function or
+the exercise seed. The push `APPLIED` branch (`sync-worker.ts:137-141`) calls
+`markApplied(opId)` and **does not touch the entity row**. This is why an
+asynchronous push cannot settle a resolution, and why the resolve response must
+carry the row the client is to apply.
+
+#### A-7 — **Defect: the current de facto outcome is order-dependent, and one branch is a silent overwrite**
+
+`hasPendingOpFor` — the guard that stops a pull clobbering local edits — counts
+only `status IN ('PENDING','IN_FLIGHT','FAILED')` (`sync-queue.ts:132-139`). A
+conflicted op is parked as `'CONFLICT'` (`sync-queue.ts:96`), so **it is not
+counted**. Consequently, after a conflict:
+
+- **Push-then-pull.** The server row sits ahead of the cursor. The guard returns
+  false, `applyServerChange` runs, and the user's divergent local values are
+  **replaced and marked `'synced'`** with no prompt. The `sync_conflicts` row is
+  never touched, so it stays `PENDING` and the dashboard keeps counting a
+  conflict whose entity row has already been overwritten.
+- **Pull-then-push.** The other device's change was skipped while our op was
+  still `PENDING` (`sync-worker.ts:223-226`, `report.skippedPending`) and the
+  cursor advanced past it anyway (`:231-232`). There is no cursor rollback, so
+  that server row is **never re-offered**. The divergence persists indefinitely
+  and the flag never clears.
+
+Neither branch is "refuses to silently overwrite". **Tracked separately as
+BUG-014 (P1)** so it can ship before, and independently of, any resolution UI.
+
+#### A-8 — An entity row can read `'conflict'` with **no** `sync_conflicts` row
+
+The `CATALOG_REVISION_UNSUPPORTED` branch calls `markActionRequired` **and**
+`applier.markConflict` (`sync-worker.ts:180-185`) but **not** `recordConflict`.
+So `sync_status='conflict'` conflates a version conflict with a catalog-revision
+park. The only positive discriminator is the queue row's `last_error`, which
+`listParkedEntityIds` exposes (`sync-queue.ts:151-158`) and
+`food-log.repository.ts:213` already consumes — the separation BUG-007
+established. A review surface will legitimately show **fewer** items than the
+badges, and must not offer a choice for a park (§Decision 12).
+
+#### A-9 — Reporting has grown, and one surface was missed at the time
+
+BUG-012 recorded 3 reporting surfaces and 5 conflict keys. Counting one
+**surface** per screen/component that renders a conflict treatment, current
+`main` has **7**:
+
+| Surface | Evidence | Since |
+|---|---|---|
+| Dashboard sync banner | `sync-status-banner.tsx:30-36` | pre-existing |
+| Food Log — banner + item chip | `FoodLogScreen.tsx:59-69`, `:146-155` | pre-existing (tone fixed by BUG-007) |
+| Exercise library badge | `ExerciseLibrary.tsx:43` | pre-existing |
+| **Goal form banner** | `GoalForm.tsx:108-111` | **pre-existing — missed by BUG-012** |
+| Workout Log row hint | `WorkoutLogScreen.tsx:57` | BUG-011 |
+| Dietary Preferences row hint | `DietaryPreferences.tsx:48` | BUG-011 |
+| Progress row hint | `progress/presentation/SyncHint.tsx:22` | BUG-011 |
+
+`GoalForm`'s conflict banner is **not drift**: `git show
+fb02097593ff9a2735f54620d6350d880cf3a030:…/GoalForm.tsx` contains
+`goal.conflictTitle`, so it was already present when BUG-012 asserted "**none of
+them, and no other public-v1 surface**". That claim was wrong when written, and
+it matters because that surface is the one that describes a *behaviour* (A-10).
+
+There are **17 conflict-named keys** in each catalogue at exact EN/ES parity —
+all reporting copy, none offering a choice. Two medical screens carry hardcoded
+English `'Sync conflict'` strings (`EvaluationHistory.tsx:14`,
+`Restrictions.tsx:19`) and stay dormant. **18 routes exist in `mobile/src/app/`;
+none addresses conflicts.**
+
+#### A-10 — `goals` already ships a *workaround* that does not resolve
+
+`goal.conflictMessage` reads "Saving records a fresh goal on this device and
+queues it for sync again", and `setGoal` (`goal.repository.ts:26-60`) does
+exactly that: it deactivates the current goal and inserts a **new id**. The
+conflicted row keeps `sync_status='conflict'` and its `sync_conflicts` row stays
+`PENDING`. Worse, the deactivation UPDATE is enqueued with
+`baseVersion: current.version` — the **stale** local version — so it is expected
+to conflict again.
+
+#### A-11 — **Defect: all three local sync tables are cross-account readable**
+
+None of `sync_queue` (`001-initial.ts:307-320`), `sync_state` (`:323-327`) or
+`sync_conflicts` (`:329-340`) carries a `user_id`, and every accessor in
+`sync-queue.ts`, `sync-state.ts` and `sync-conflicts.ts` queries unscoped.
+`signOut()` **deliberately preserves the database** (`session-manager.ts:233`).
+So after a sign-out and a second sign-in as a different account on the same
+device, that account's dashboard already counts the first account's conflicts,
+and the sync worker would push the first account's queued ops under the second
+account's JWT.
+
+Two structural facts govern the fix (§Decision 8): `PRAGMA foreign_keys = ON` is
+set (`database.ts:15`) and every synced table's `user_id` is
+`TEXT NOT NULL REFERENCES local_user(id)` (`001-initial.ts:20`); and
+`sync_state`'s **primary key is `entity_type`**, so a per-user cursor needs a
+composite key.
+
+#### A-12 — Authorization, transactions, encryption and audit as they stand
+
+- **Server routes.** `POST /sync/push` and `GET /sync/pull` are the only sync
+  routes (`sync.controller.ts:31`, `:45`), both behind the global JWT guard with
+  `@CurrentUser()` as the sole identity source, throttled 240/60s via
+  `@Throttle`. Every handler scopes by `userId`. **There is no conflict
+  endpoint.**
+- **Transactions — server.** Interactive
+  `this.prisma.$transaction(async (tx) => …)` is the house pattern
+  (`auth.service.ts:221`, `email-verification.service.ts:263`, `:337`).
+  ADR-P029's `:337` transaction opens with a **conditional `updateMany`** whose
+  affected-count decides the outcome — the direct precedent for §Decision 4.
+  A transaction client is threaded as a structurally-typed parameter,
+  `tx: Pick<PrismaService, 'emailVerificationToken' | 'user'>`
+  (`email-verification.service.ts:461`).
+- **Transactions — the gap.** **No repository port method accepts a transaction
+  client**, and every Prisma repository binds `this.prisma` directly
+  (`prisma-progress.repository.ts:36`, `:48`, `:65`). `EntitySyncHandler.apply`
+  and `getServerState` (`sync.types.ts:50-68`) therefore **cannot** join a
+  caller's transaction as written. §Decision 3 states the refactor.
+- **Transactions — local.** `inTransaction` runs an exclusive SQLite transaction
+  and rolls back on throw (`sql.ts:31-38`).
+- **Audit.** `AuditAction.SYNC_CONFLICT` exists (`schema.prisma:152`) and is
+  **never emitted**; the sync module contains no audit call.
+  `AuditService.record` accepts `{action, userId, deviceId, entityType, entityId,
+  metadata}` with `metadata` documented "operational metadata only — NEVER
+  medical/PII" (`audit.service.ts:6-14`), and **swallows its own failures**
+  (`:39-44`) — it is best-effort by construction.
+- **`MERGED`** is declared in both enums and **produced by nothing**.
+
+#### A-13 — Documentation tension, now corrected
+
+`.ai/04_DATABASE.md` §Conflict Resolution said "Non-critical fields — Last
+Writer Wins", contradicting ADR-P012 §Sync and Conflict Semantics
+("version-guarded … never auto-overwritten … **No automatic merge**"),
+ADR-P016 D6, and `.ai/08_UI_UX.md`. **This ADR's revision corrects that clause
+in place** (`.ai/04_DATABASE.md` v1.1) as stale authority. It is a documentation
+correction, not a behaviour change.
+
+#### A-14 — BUG-011 residual, and why reporting ≠ resolution
+
+BUG-011 stays open on one residual: `bodyMeasurements` reaches the Progress UI
+only as a count and an aggregated trend series, so no measurement **row** exists
+to carry a hint — an **absent surface**, not an unimplemented treatment. The
+distinction generalises: **reporting is per-row and per-feature**, so it needs a
+rendered row; **resolution is per-conflict**, and conflict rows exist regardless
+of whether any screen lists the entity. A conflict-scoped surface therefore
+reaches `body_measurements`, `progress_snapshots`, `routine_exercises` and
+`workout_sets` **without** the row lists BUG-011 lacks. Resolving BUG-012 does
+**not** close BUG-011.
+
+#### A-15 — **Defect: the version check is a read-then-write race, and a `CREATE` conflict cannot be replayed at all**
+
+Four verified facts. Together they invalidate any design that "reads the version,
+then calls `apply()`" — including this ADR's own previous revision.
+
+**(a) No write predicate carries the expected version — or the owner.** Every
+repository mutation on the sync path is `where: { id }`, with the new version in
+`data`: `prisma-progress.repository.ts:65-66`, `:82-83`;
+`prisma-goal.repository.ts:58-60`; `prisma-dietary-preference.repository.ts:70`,
+`:79-80`; `prisma-meal-item.repository.ts:89-90`, `:100-101`;
+`prisma-medical.repository.ts:83-84`, `:204-205`. **Zero** update predicates in
+`api/src` include `version`, and none include `userId`. Ownership and version are
+established earlier by `getServerState` / `findOwned*` and are **never
+re-asserted at the write.**
+
+**(b) So the existing push path already has a TOCTOU window.**
+`sync.service.ts:122` compares `serverState.version !== op.baseVersion`, then
+`:129` calls `handler.apply`. Two concurrent pushes for the same entity can both
+pass the check and both write, the later silently overwriting the earlier with a
+`version` derived from its own stale `baseVersion`. **This is a pre-existing
+defect of the push path, not one this ADR introduces** — but a resolution path
+built on the same shape would inherit it, and a resolution is precisely the
+operation that must not be lost.
+
+**(c) A `CREATE` conflict cannot be resolved by replaying the original
+operation.** `sync.service.ts:112-114` treats `operation === 'CREATE'` against an
+existing row as a conflict **unconditionally — `baseVersion` is not consulted**.
+The handler's `CREATE` path is a plain insert with the client-minted id
+(`prisma-progress.repository.ts:48`), so re-running it against the row that now
+exists would fail on the primary key, and for `body_weights` /
+`body_measurements` also on `UNIQUE(user_id, date)`. **Calling `apply()` with the
+retained `CREATE` would error, not resolve.**
+
+**(d) Retained payload completeness varies by entity and operation**, so no
+uniform replay rule exists:
+
+| Shape | Evidence |
+|---|---|
+| `UPDATE` parsed **totally** — the create parser is reused, so the payload carries every mutable field | `parseBodyWeightUpdate` **is** `parseBodyWeightCreate` (`progress-payload.ts:76-80`); the client enqueues `{ date, weight_kg, notes }` (`progress.repository.ts:156`) |
+| `UPDATE` parsed **partially** — key-presence driven, `Partial<T>`, so the payload may carry a single field | `parseGoalPayload` returns `Partial<GoalAttributes>` and sets only present keys (`goal-payload.ts:34-48`); `goals.update` spreads only those (`prisma-goal.repository.ts:58-60`); the client enqueues `{ is_active: 0, ended_at }` (`goal.repository.ts:50`) |
+| `DELETE` payload **empty** by design | `progress.repository.ts:190`, `:453` enqueue `payload: {}` |
+
+The partial case is the trap: treating a retained `UPDATE` payload as a
+"complete client representation" and replacing the row with it would **erase
+every field the patch omitted**. The per-operation semantics of §Decision 3 and
+the conditional mutation of §Decision 3 exist because of this table.
+
+---
+
+### Decision
+
+**Fifteen numbered decisions**, covering every frozen axis. Each is traceable to
+the audit above. Decisions **3, 4, 6 and 8** are **prerequisites** that must land
+before the user-facing route; §Decision 13 enforces the sequencing.
+
+#### 1. Entry points and screen/route inventory
+
+**One** new native route, **`/sync-conflicts`**, holding a list and an inline
+per-conflict review. **No new tab** (ADR-P027 keeps hub-and-spoke and defers
+bottom tabs), **no modal stack**, **no per-entity resolution screen**.
+
+| Surface | Change |
+|---|---|
+| `/sync-conflicts` (new) | Conflict list + inline review/choose |
+| Dashboard sync banner | Gains an **explicit labelled button** to `/sync-conflicts` — not a tappable banner. The banner already reads "N items need review", so the copy already promises review; a real button gives a 44×44 target and its own accessible name |
+| Web | Terminal **Web unavailable** early return, matching ADR-P019 and the Conflict row's "Native only" platform in `.ai/08_UI_UX.md` |
+
+The **7 existing row/badge reporting surfaces stay report-only**, exactly as
+BUG-011 shipped them and its specs assert. Screen count goes 18 → 19; the
+hub-and-spoke depth limit is respected (dashboard → conflicts is one push).
+
+#### 2. Reviewable information — allow-listed, never raw payloads
+
+A conflict is presented as **entity-typed, localized, field-level rows** drawn
+through a per-entity **presenter allow-list**, never by rendering
+`local_payload` / `server_payload`.
+
+- **Allow-list, not deny-list.** A-3 proves the payload shape is neither uniform
+  nor fully trusted; an allow-list fails closed when an entity gains a field.
+- **No free-text field is ever displayed** — `notes` and equivalents are excluded
+  outright. For six entities the server side would be the literal `[REDACTED]`,
+  and showing that as the user's data would actively mislead.
+- **Decryption stays below the UI.** For `dietary_preferences` and `meal_items`
+  (A-4) the presenter runs in the repository/application layer; components
+  receive resolved display strings (`.ai/06_MOBILE.md` §Screen Principles).
+- **Ambiguity is stated, not implied.** Where a field is excluded, the row says a
+  value exists and is not shown — it must not read as "empty".
+- **Metadata shown:** entity kind, human date, `base_version` vs the current
+  comparison version, conflict age, and settlement condition (§Decision 6).
+  **Never** shown: ids, raw JSON, `user_id`, tokens.
+
+#### 3. One server-authoritative resolution transaction
+
+Two choices — **Keep this device's version** and **Keep the server version** —
+both settled by **one synchronous, owner-scoped, transactional request**. There
+is **no replacement queue operation**: the previous draft's enqueue-then-hope
+step is removed, because A-5/A-6 prove a push cannot report settlement.
+
+**Endpoints** (both `@ApiBearerAuth`, global JWT guard, `@CurrentUser()` as the
+only identity source, `@Throttle` at the existing sync ceiling, DTO-validated):
+
+| Route | Purpose |
+|---|---|
+| `GET /sync/conflicts` | Owner-scoped: the `PENDING` set, **plus** bounded status reconciliation for locally-known ids (§Decision 9) |
+| `POST /sync/conflicts/:id/resolve` | Resolves one conflict and returns the resulting authoritative row |
+
+**Resolve request DTO.** `:id` is `@IsUUID()`. Body:
+
+| Field | Validation | Required for |
+|---|---|---|
+| `resolution` | `@IsIn(['CLIENT_WINS','SERVER_WINS'])` | both |
+| `expectedServerVersion` | `@IsInt() @Min(0)` | both |
+| `expectedDeleted` | `@IsBoolean()` — the tombstone state the user reviewed; selects the mutation's tombstone predicate so the server never has to infer it | both |
+| `operation` | `@IsIn(['CREATE','UPDATE','DELETE'])` | `CLIENT_WINS` only |
+| `payload` | `@IsObject()`, then the entity handler's own parser | `CLIENT_WINS` only |
+| `correlationId` | `@IsOptional() @IsUUID()` | neither — see §Decision 5 |
+
+`operation` and `payload` are the client's **retained local operation**, sent as
+**plaintext over TLS** (A-4). `SERVER_WINS` must omit both; sending them is a
+`400`, so the request cannot silently carry a mutation the user did not choose.
+
+**Per-operation resolution semantics — `apply()` is NOT reused.** A-15(c)/(d)
+prove the retained operation cannot be replayed: a `CREATE` would fail on the
+primary key, and a partial `UPDATE` treated as a full representation would erase
+omitted fields. The resolution path therefore defines its **own** semantics per
+original operation, each expressed as a **single conditional mutation**:
+
+| Original op | Resolution semantics |
+|---|---|
+| **`CREATE`** | **Conditionally update the existing owned row** with the client's **complete** retained representation, at `version = expectedServerVersion + 1`. Parsed with the entity's **create** parser, which is total, so the representation genuinely covers every mutable field. **Never** an insert — the row already exists, which is what made it a conflict. An entity whose create parser is not provably field-complete for its mutable columns is **unsupported** (§Decision 12) |
+| **`UPDATE`** | **Conditionally apply the validated retained update** through the entity's **own update parser**, preserving that entity's existing partial-vs-total semantics exactly. A `Partial<T>` parser sets only present keys (`goal-payload.ts:34-48`), so **omitted fields are untouched** — the contract must not widen a patch into a replace |
+| **`DELETE`** | **Conditionally soft-delete** — `deleted_at`, `deleted_by`, `version = expectedServerVersion + 1`. The retained payload is empty by design (`progress.repository.ts:190`) and nothing else is written |
+
+**Optimistic concurrency — a conditional mutation, not a read-then-write.**
+A-15(a)/(b) show that reading the version and then calling an ordinary
+`update({ where: { id } })` is unsafe: a concurrent ordinary `/sync/push` can
+commit between the check and the write, and neither the version nor the owner is
+re-asserted at the write. So the mechanism is frozen as:
+
+```
+UPDATE <entity>
+   SET <resolution fields>, version = :expectedServerVersion + 1
+ WHERE id = :entityId
+   AND user_id = :subject
+   AND version = :expectedServerVersion
+   AND <tombstone predicate — see §Decision 3's tombstone rules>
+```
+
+expressed in Prisma as `updateMany` (Prisma's `update` requires a unique
+predicate and `version` is not unique). **The affected-row count is the
+decision**: `1` means this resolution committed; `0` means the row moved or was
+never the caller's, and is returned as the **typed stale outcome** of
+§Decision 10 — never as a success, and never as an overwrite.
+
+**The tombstone predicate is state-specific, never a universal
+`deleted_at IS NULL`.** `findOwned*` carries **no** `deletedAt` filter —
+`prisma-goal.repository.ts:34`, `prisma-meal-item.repository.ts:19`,
+`prisma-progress.repository.ts:36` and every sibling are
+`findFirst({ where: { id, userId } })` — so `getServerState` **does** surface
+soft-deleted rows, and a conflict can legitimately be raised against a
+tombstone. A universal `deleted_at IS NULL` would then match zero rows forever:
+the resolve would report stale, the re-read would return the same tombstone at
+the same version, and the user would loop indefinitely at an unchanged version.
+The predicate is therefore selected by the state the user actually reviewed,
+which the request states explicitly via `expectedDeleted` (§Decision 3's DTO):
+
+| Choice / original op | Reviewed state | Predicate and effect |
+|---|---|---|
+| `CLIENT_WINS` `CREATE` or `UPDATE` | **active** | `… AND deleted_at IS NULL` → apply the resolution fields |
+| `CLIENT_WINS` `CREATE` or `UPDATE` | **tombstone** | **Explicit restore**: `… AND deleted_at IS NOT NULL` → clear `deleted_at` and `deleted_by`, apply the validated fields, bump the version. The user is told plainly that the record was deleted elsewhere and that keeping their version **restores** it (§Decision 15's copy family) |
+| `CLIENT_WINS` `DELETE` | **active** | `… AND deleted_at IS NULL` → set `deleted_at`, `deleted_by`, bump the version |
+| `CLIENT_WINS` `DELETE` | **tombstone** | **Already satisfied — no mutation.** The user's intent is the current state, so the conflict settles `RESOLVED_CLIENT_WINS` and the tombstone is returned. A zero affected-row count here is **expected**, not stale, and the contract must not pretend a mutation occurred |
+| `SERVER_WINS` | either | Nothing is mutated. The authoritative row is returned **including a tombstone**, and the client applies it through the existing `applyServerChange(data, deleted)` (`appliers.ts:10`), whose `deleted` flag already exists — no new mechanism |
+
+**Restore must fail closed where it cannot be honoured.** If restoring would
+violate a live constraint — for example `body_weights`' `UNIQUE(user_id, date)`
+when an active row now occupies that date — the handler returns a **typed
+terminal `RESTORE_UNSUPPORTED` outcome**.
+
+**The conflict claim is rolled back before that answer is returned.** The claim
+of §Decision 4 is the transaction's *first* statement, so by the time the restore
+fails the conflict has already been moved out of `PENDING` inside the
+transaction. `RESTORE_UNSUPPORTED` therefore **aborts the transaction**, which
+undoes the claim and genuinely leaves the conflict `PENDING` — the response is
+computed from the caught constraint error *after* the rollback, never from inside
+a half-committed transaction. Without that abort the conflict would be recorded
+as resolved while nothing had been applied.
+
+The conflict is then presented as **not resolvable for this entity**, with only
+`SERVER_WINS` offered. **The reason is carried as the stable code
+`RESTORE_UNSUPPORTED`, never as a server-authored explanatory string**: the
+client maps that code to localized EN/ES copy from `.ai/19_COPY_DECKS.md`
+(§Decision 15's `restore-not-possible` family). No user-facing prose crosses the
+wire from the server. It is never retried silently and never loops.
+
+**The ordinary push path must adopt the same conditional mutation.** A guard only
+protects if every writer honours it. If `/sync/push` keeps writing
+`where: { id }`, a concurrent push still clobbers a resolution. This is stated as
+a scope fact rather than a footnote: **slice C-2 changes the shared repository
+mutation contract for both paths**, which closes A-15(b)'s pre-existing push-path
+TOCTOU as a side effect. Its tests belong to C-2, not to the resolution slice.
+
+**That forces a typed apply contract, because `void` cannot report a zero-row
+result.** `apply(userId, op): Promise<void>` (`sync.types.ts:56`) has no channel
+for "the conditional mutation matched nothing", and `SyncService`'s `catch`
+classifies **every** exception as `REJECTED` — `SyncApplyError` by its own code,
+anything else as `APPLY_FAILED` (`sync.service.ts:130-153`). A late race would
+therefore surface as a generic rejection, and `removeRejected` would **drop the
+operation**. The smallest coherent contract:
+
+```
+type ApplyOutcome =
+  | { status: 'APPLIED' }
+  | { status: 'STALE' };        // conditional mutation affected zero rows
+
+apply(userId, op, tx?): Promise<ApplyOutcome>
+```
+
+- **`UPDATE` / `DELETE` only** report `STALE` from a conditional mutation. These
+  address an **existing row**, so they can carry `id + user_id + version`
+  in the predicate and read the affected-row count.
+- **`CREATE` is still an insert** — it has no row to predicate on, and **does
+  not** gain an expected-version `updateMany`. It reports `STALE` in exactly one
+  case: the insert collides on the **primary key / client-minted id**, i.e. the
+  row now exists, which is precisely the CREATE-vs-existing condition
+  `sync.service.ts:112-114` already treats as a conflict.
+
+  **It must not do that by catching `P2002`.** On PostgreSQL any error inside a
+  transaction aborts it — every subsequent statement fails until rollback — so a
+  handler **cannot** catch the unique violation, return `STALE`, and then have
+  `processOperation` re-read the row and write `SyncConflict` on that same
+  transaction. The catch-and-continue shape is not implementable on this stack.
+
+  **Frozen mechanism: a non-throwing, PK-targeted insert.** The handler issues
+  the insert as `tx.$executeRaw` with **`ON CONFLICT (id) DO NOTHING`** and reads
+  the affected count — `1` → `APPLIED`, `0` → `STALE` — **with no error raised
+  and the transaction still usable**, so the re-read and `recordConflict`
+  proceed on it normally. Raw SQL inside an interactive transaction is already
+  the house pattern (`email-verification.service.ts:264`,
+  `password-recovery.service.ts:195`). **`createMany({ skipDuplicates })` is
+  rejected** as the mechanism: it swallows *every* unique violation, which would
+  silently reclassify business-constraint failures as conflicts.
+
+  **Raw SQL is a real hazard, so its use here is fenced.** Each statement is
+  **static, entity-owned SQL** living beside that entity's repository, written as
+  a **tagged-template `tx.$executeRaw`** so every value is parameterized by the
+  driver. Explicitly prohibited:
+
+  | Prohibited | Why |
+  |---|---|
+  | `$executeRawUnsafe` / `$queryRawUnsafe` | String-built SQL; the tagged form is the only permitted shape |
+  | Dynamic table or column identifiers | Identifiers cannot be parameterized, so a shared "generic insert" helper is forbidden — each entity owns its own literal statement |
+  | Interpolated payload fragments | Values arrive **only** as template parameters, never spliced into the SQL text |
+  | Hand-written column lists that drift | The statement names exactly the columns the entity's Prisma `create` writes today |
+
+  **Existing CREATE semantics are preserved, not re-invented.** The statement
+  keeps the repository's current field mappings (camelCase → snake_case exactly
+  as Prisma maps them) and **omits every column the database owns**, so defaults
+  still apply — including `version DEFAULT 1` and, critically, **`sync_seq`**,
+  which is assigned by the `BEFORE INSERT OR UPDATE` trigger
+  `assign_sync_seq()` → `nextval('sync_seq_global')`
+  (`20260703181824_init/migration.sql:880-903`). Application code never writes
+  `sync_seq`, and the trigger fires identically for raw and Prisma inserts, so
+  incremental-pull ordering is unaffected. The `user_id` is still taken from the
+  authenticated subject, never from the payload.
+- **Every other constraint violation keeps its current behaviour.** Because the
+  `ON CONFLICT` clause targets **only the `id` index**, a business constraint
+  such as `body_weights`' `UNIQUE(user_id, date)` still **throws** — it is not an
+  insertion race and must not become a conflict. It stays an apply failure
+  (`APPLY_FAILED`, or a handler's own `SyncApplyError` where one is defined),
+  exactly as `prisma-progress.repository.ts:44-47` documents.
+- **`processOperation`** (the real method name — `sync.service.ts:77`; there is
+  no `applyOne`) on `STALE`: re-read the owner-scoped current row on the
+  operation's transaction and take the **existing `recordConflict` path** — the
+  same `CONFLICT` result the early check produces, carrying `conflictId`,
+  `serverVersion` and `serverSnapshot`. **Never `APPLIED`, never a generic
+  rejection, never a silent overwrite.**
+- Everything else is unchanged: `SyncApplyError`'s retryable
+  (`DEPENDENCY_NOT_READY`) and terminal (`CATALOG_REVISION_UNSUPPORTED`)
+  branches keep their semantics, unknown exceptions stay `APPLY_FAILED`, and
+  **no new `SYNC_ERROR_CODES` value and no `/sync/push` wire-shape change is
+  introduced** — the client already handles `CONFLICT`
+  (`sync-worker.ts:142-166`).
+
+**The push transaction boundary, frozen.** The stale re-read and the conflict
+persistence can only happen "on the same `tx`" if the helpers that write them
+accept one, and today they do not: `recordConflict` writes through
+`this.prisma.syncConflict.create` (`sync.service.ts:170`), `recordOutcome`
+through `this.prisma.syncOperation.create` (`:200`), and the idempotency probe
+reads `this.prisma.syncOperation.findUnique` (`:84`) — all on the **root
+client**. `push` itself simply loops (`:48-51`) with **no transaction at all**.
+
+So the boundary is **one transaction per operation**, opened inside
+`processOperation` — deliberately *not* per batch, so the existing sequential,
+causally-ordered semantics survive and one operation's failure cannot roll back
+its predecessors. Inside it, the entity mutation and its **terminal
+`SyncOperation` row** (and `SyncConflict` row, when one is written) commit
+**together**.
+
+**Why per-operation atomicity is required rather than tidy.** Today a crash
+after `handler.apply` commits but before `recordOutcome` writes leaves the
+mutation applied with **no recorded op id**. The retry finds no `syncOperation`
+row, so the idempotency probe at `:84` misses, and the operation is processed a
+second time — defeating op-id idempotency. Binding them in one transaction makes
+the op id and its outcome **either both durable or both absent**.
+
+Honest inventory of what that costs — **five call sites and two private helpers**,
+not "one branch":
+
+| Change | Where |
+|---|---|
+| Open a per-operation transaction and thread `tx` | `processOperation` (`:77`) |
+| Idempotency probe on `tx` | `:84` `syncOperation.findUnique` |
+| `getServerState` / `apply` on `tx` | `:106`, `:129` |
+| `recordConflict` re-signatured to take `tx` | `:163-193`, writing `syncConflict.create` on it |
+| `recordOutcome` re-signatured to take `tx` | `:194-210`, writing `syncOperation.create` on it |
+
+**Where errors are caught, relative to the rollback.** Because an aborted
+PostgreSQL transaction cannot be written to, **no error is classified inside the
+transaction callback**. The `try/catch` sits **outside** `$transaction`, so by
+the time a thrown apply error is inspected the transaction has already **rolled
+back** and no partial mutation survives:
+
+| Thrown from `apply` | Where caught | What is persisted |
+|---|---|---|
+| **Retryable** `SyncApplyError` (`DEPENDENCY_NOT_READY`) | outside the transaction, after rollback | **Nothing** — no terminal outcome, so the same `op_id` re-processes on a later retry. Unchanged semantics |
+| **Terminal** `SyncApplyError` (`CATALOG_REVISION_UNSUPPORTED`) | outside, after rollback | The terminal `SyncOperation` outcome, written in a **fresh short transaction** of its own |
+| **Unknown** exception | outside, after rollback | `APPLY_FAILED`, likewise in a fresh short transaction |
+
+The `STALE` path is deliberately **not** in this table: it is a returned value,
+not a throw, so it never aborts the transaction and its `SyncConflict` +
+`SyncOperation` rows commit **inside** the original one.
+
+The **retryable path keeps its meaning**: it persists no terminal outcome, which
+the rollback now guarantees structurally rather than by relying on the handler
+throwing before its first write.
+
+**Isolation.** The resolution transaction runs at **`Serializable`**
+(`$transaction(fn, { isolationLevel: … })`) so the conflict claim, the
+current-state read and the conditional mutation cannot interleave with a
+competing resolution. A serialization failure is retried as a whole request,
+which is safe because the conditional claim of §Decision 4 makes the transition
+at-most-once.
+
+**One server transaction (T2).** Inside a single `Serializable`
+`this.prisma.$transaction(async (tx) => …)`:
+
+1. **Conditional conflict claim** — the guarded transition of §Decision 4. Zero
+   rows affected ends the transaction without any mutation.
+2. **Read the current owned row** for `(userId, entityId)` through the handler,
+   **on `tx`**.
+3. **Stale check — both reviewed values.** Compare the current row's version with
+   `expectedServerVersion` **and** its tombstone state with `expectedDeleted`
+   (§Decision 10). A mismatch in **either** rolls the transaction back, leaving
+   the conflict `PENDING`.
+
+   `expectedDeleted` is **not** a second staleness detector — versions are
+   monotonic and every mutation, soft delete and restore included, increments
+   them (`op.baseVersion + 1`, e.g. `body-weight-sync.handler.ts:58`, `:65`), so
+   the version alone already detects any change. It is carried for two different
+   reasons: it **records the exact state the user reviewed**, and it **selects
+   the operation-specific tombstone behaviour** of the table above — which
+   predicate to use, and whether this is a restore, an ordinary apply, or the
+   already-satisfied `DELETE`. Verifying it is a cheap consistency assertion that
+   the request and the server agree about what was reviewed, not a race check.
+4. **`CLIENT_WINS` only** — parse `payload` with the operation's parser above and
+   run the **conditional mutation**, on `tx`. A zero-row result rolls back as
+   stale, **with one exemption**: for the **already-deleted `DELETE`** case of
+   the tombstone table, zero rows is the *expected* outcome, because no entity
+   mutation is performed at all. That case settles **only when step 3 confirmed
+   both `expectedServerVersion` and `expectedDeleted` still match**, so the
+   exemption cannot mask a genuine race — it is reached only after the reviewed
+   state has been re-verified inside the transaction.
+   `SERVER_WINS` **mutates nothing** — see §Decision 3's
+   `SERVER_WINS` boundary below.
+5. **Re-read the row on `tx`** and **commit**. The conflict resolution and, for
+   `CLIENT_WINS`, the entity mutation commit together — one or neither.
+
+**Typed response contract.** The endpoint answers a **stable machine-readable
+`outcome`**, never prose. Every non-404 outcome carries `current`, the
+**resulting current, full, owner-scoped, unredacted authoritative row** with its
+`version` and `deleted` flag, read at step 5 inside the same transaction — never
+`serverSnapshot`, never the stored `clientPayload` (A-3).
+
+| `outcome` | HTTP | Body | Client behaviour |
+|---|---|---|---|
+| `RESOLVED` | **200** | `resolution`, `current { row, version, deleted }` | Run T3: apply `current`, drop the parked op, mark the outbox `SETTLED` |
+| `ALREADY_RESOLVED_SAME_CHOICE` | **200** | identical shape to `RESOLVED` | Identical to `RESOLVED` — this is the replay path that lets a client which lost the first response still settle (§Decision 4) |
+| `STALE_COMPARISON` | **409** | `current { row, version, deleted }` | Refresh the local comparison snapshot **and** `expectedDeleted`, clear the prior choice and outbox attempt, return the conflict to undecided, require re-review (§Decision 10) |
+| `RESTORE_UNSUPPORTED` | **409** | `current { row, version, deleted }`, no reason string | Run **T1′** (§Decision 6): record the code, block `RESOLVED_LOCAL_WINS`, clear the uncommitted choice so the conflict is decidable again, and offer `SERVER_WINS` only, rendering the localized `restore-not-possible` copy keyed off this code. The conflict stays `PENDING` and stays counted |
+| `ALREADY_RESOLVED_OPPOSITE_CHOICE` | **409** | `resolution` — the standing decision — **plus `current { row, version, deleted }`** | The requested choice is refused, but the conflict is **settled to the standing resolution**: run T3 against `current`, drop the parked op, and mark the outbox `SETTLED`. The user is told which version won |
+| — | **404** | none | Unknown conflict id **or another owner's**. Existence is never disclosed, so cross-owner and not-found are indistinguishable |
+
+Two boundaries this fixes explicitly:
+
+- **These codes are endpoint-specific and live in the resolve response**, not in
+  `SYNC_ERROR_CODES` and not in the `/sync/push` result. That constant is
+  unchanged (`sync.types.ts:71-84`), the push wire shape is unchanged, and the
+  mobile push worker needs no modification — the earlier "no new error code, no
+  wire change" statement was about `/sync/push` and stays true. **A new
+  endpoint's own response contract is not a change to an existing one.**
+- **No server-authored user-facing string is ever returned.** `RESTORE_UNSUPPORTED`
+  in particular is a code the client maps to EN/ES copy it owns, keeping the
+  no-raw-server-text rule of `.ai/19_COPY_DECKS.md` §Copy rules intact.
+
+**Every 409 leaves the server state exactly as it was**: `STALE_COMPARISON` and
+`RESTORE_UNSUPPORTED` abort the transaction, so the conflict claim is rolled
+back and the conflict is genuinely still `PENDING`;
+`ALREADY_RESOLVED_OPPOSITE_CHOICE` never opened a mutation at all.
+
+**No 409 is a dead end.** Each names its next step:
+`STALE_COMPARISON` → re-review; `RESTORE_UNSUPPORTED` → choose `SERVER_WINS`
+(§Decision 6's recovery transition); `ALREADY_RESOLVED_OPPOSITE_CHOICE` →
+**settle to the standing resolution**. That last one matters: refusing the
+opposite choice *and* withholding the authoritative row would leave the conflict
+permanently counted and un-retryable, which is exactly the stuck state
+§Decision 6 exists to prevent. First-choice-wins is preserved — the standing
+decision is not overturned — while the loser still converges.
+
+**`SERVER_WINS` concurrency boundary.** It writes nothing, so it needs its own
+guarantee that the row it returns is the row the user actually chose. Two rules:
+
+- The read at step 2 and the re-read at step 5 happen **inside the `Serializable`
+  transaction**, so neither can observe a torn or mid-write state.
+- It **settles only when `current.version === expectedServerVersion`** — the
+  exact version the user reviewed. A legitimately newer version is **not**
+  settled on the user's behalf; it is returned as the stale outcome's payload
+  (§Decision 10) so the user re-reviews the content they would be keeping. This
+  is the conservative reading of "the row selected by the user": choosing "keep
+  the server version" is choosing *that* content, not whatever arrives later.
+
+**The transaction-aware contract this requires — larger than the previous
+revision claimed.** The previous revision said "tx-aware `apply` plus an optional
+reader"; A-15 shows that is not sufficient, because `apply()` is not reusable and
+the mutation must carry its own predicate. The honest inventory:
+
+| Change | Shape | Scale |
+|---|---|---|
+| `EntitySyncHandler.getServerState` | accepts an optional transaction client, threaded as the structurally-typed `Pick<PrismaService, …>` parameter the house already uses (`email-verification.service.ts:461`) | **14 handlers** |
+| **New** `EntitySyncHandler` **resolution method** | performs the per-operation semantics above as a **conditional mutation** carrying owner + expected version, tx-aware, returning the affected-row count. **This is new behaviour, not a wrapper over `apply()`** | **12 public-V1 handlers**; an entity without it is **unsupported** (§Decision 12) |
+| **New** `EntitySyncHandler` **owner-row reader** | owner-scoped **unredacted** current row, the wire shape `pullChanges` already produces (e.g. `bodyWeightToWire`, `body-weight-sync.handler.ts:86`), tx-aware | **12 public-V1 handlers**; same fail-closed rule |
+| Repository ports | the resolve path's methods accept the optional transaction client, **and every existing-row `UPDATE` / `DELETE` mutation gains the owner + expected-version predicate** (`updateMany`) in place of `where: { id }`. **`CREATE` stays an insert** and gains no predicate | **5 repository ports** + their Prisma implementations, **shared with `/sync/push`** |
+| `EntitySyncHandler.apply` | tx-aware **and** its return type changes `Promise<void>` → `Promise<ApplyOutcome>`, so a late zero-row result reaches `SyncService` as a normal conflict instead of a dropped rejection | **14 handlers** |
+| `SyncService.processOperation` | opens a **per-operation transaction**; threads `tx` through the idempotency probe, `getServerState`, `apply`, `recordConflict` and `recordOutcome` — the last two re-signatured off the root client; adds the `STALE` → re-read → `recordConflict` branch. No new `SYNC_ERROR_CODES` value, no `/sync/push` wire change | **5 call sites + 2 private helpers** |
+
+**No Prisma migration is required** — `SyncConflict` already carries `userId`,
+`status`, `resolvedBy` and `resolvedAt` (A-2), and `version`, `deleted_at` and
+`deleted_by` already exist on every synchronized entity. The cost is a **code
+refactor touching the shared write path**, which is materially larger than a new
+endpoint, and it is the dominant work item in this ADR.
+
+- **Ownership first.** Every read and write filters on the JWT subject. A
+  conflict id belonging to another user answers **404**, never 403 — existence is
+  not disclosed.
+- **Status mapping is total.** Server `RESOLVED_CLIENT_WINS` ⇄ local
+  `RESOLVED_LOCAL_WINS`; server `RESOLVED_SERVER_WINS` ⇄ local
+  `RESOLVED_SERVER_WINS`. The two vocabularies differ only in the first term and
+  no third value is introduced on either side.
+- **`MERGED` is not offered.** Declared in both enums, produced by nothing
+  (A-12); ADR-P012 forbids automatic merge. The enum value stays reserved.
+
+#### 4. First-choice-wins, via a conditional claim
+
+**Retraction.** The first draft called `resolveConflict()` idempotent. It is
+not: `UPDATE sync_conflicts SET status = ?, resolved_at = ? WHERE id = ?`
+(`sync-conflicts.ts:37-47`) is unconditional, so a later opposite call replaces
+the earlier decision. Both sides must guard the transition.
+
+**Server**, as the transaction's first statement, following ADR-P029's precedent
+at `email-verification.service.ts:337`:
+
+```
+UPDATE sync_conflicts
+   SET status = <choice>, resolved_by = <subject>, resolved_at = now()
+ WHERE id = :id AND user_id = <subject> AND status = 'PENDING'
+```
+
+**The affected-row count is the decision.** One row means this call won the
+claim. Zero rows means it did not, and the caller **must** branch on that rather
+than assume success — it then re-reads the row to distinguish the cases below.
+
+**Local:** the same guard on the local row. The existing unconditional primitive
+is **superseded**; it must not be reused as-is.
+
+| Retry | Behaviour |
+|---|---|
+| **Same choice, already resolved** | Treated as success — the row is already in the requested terminal state. The response re-reads and returns the current authoritative row, so a client that lost the first response can still settle |
+| **Opposite choice, already resolved** | **Refused** with a typed outcome naming the standing resolution **and carrying the authoritative row**, so the loser settles to the decision that won. The first choice stands — last-write-wins on the *decision itself* would reintroduce exactly what the state forbids — but the refusal is not a dead end (§Decision 3's response table) |
+| **Conflict not found, or another user's** | `404` |
+
+#### 5. Idempotency and repeated actions
+
+**`correlationId` is correlation metadata only, not an idempotency key.** The
+previous draft called it one; nothing persisted or enforced it, and no unique
+constraint exists to make it enforceable. It is optional, appears only in audit
+metadata (§Decision 11), and **no behaviour depends on it**. Introducing a real
+idempotency-key table was rejected as unnecessary given the conditional claim.
+
+**The conditional claim of §Decision 4 is the idempotency mechanism**, and it is
+sufficient by construction: the transition can succeed at most once, so a replay
+either observes its own committed outcome (same choice → success) or is refused
+(opposite choice). No unique key, no new column, no new table.
+
+Double-tap, re-mount, re-entry and app restart are all safe: the control is
+disabled once dispatched for that conflict, and the screen **re-reads persistent
+state** rather than caching a decision in component state.
+
+#### 6. Atomic boundaries and the chosen-but-unsettled lifecycle
+
+**The lifecycle must be persistent, visible, retryable and countable.** A choice
+recorded but not yet settled cannot vanish — which the first draft's did, since
+`listPendingConflicts()` filters `status = 'PENDING'`.
+
+**Local migration 006 extends `sync_conflicts`** with a durable, per-user
+**resolution outbox** (the same migration that adds scoping — §Decision 8):
+
+| Column | Purpose |
+|---|---|
+| `user_id` | Owner scoping (§Decision 8) |
+| `chosen_resolution` | The user's decision, recorded the instant it is made; `NULL` until then |
+| `chosen_at` | When it was made |
+| `settlement_status` | `NULL` before a choice, then `PENDING` / `IN_FLIGHT` / `FAILED` / `SETTLED` |
+| `settlement_attempts`, `next_attempt_at`, `last_error` | Retry bookkeeping, reusing the existing `backoff.ts` policy |
+| `last_failure_code` | The last stable endpoint outcome code that blocked settlement — e.g. `RESTORE_UNSUPPORTED`. Keyed to localized copy; never a server string |
+| `blocked_resolution` | A choice the server has refused for this conflict, so the surface stops offering it (T1′) |
+
+`status` keeps its existing meaning — the **authoritative** resolution state,
+moved only on server confirmation. `chosen_resolution` + `settlement_status`
+carry the in-between. A new **`listUnsettledConflicts()`** returns rows that are
+`status='PENDING'` **or** not yet `SETTLED`, and **the dashboard count uses
+that**, so the number never drops until the round trip completes.
+
+**No ninth canonical state.** Chosen-but-unsettled renders with the existing
+**Pending sync** treatment (`info`, reassuring — the choice is safely stored);
+still-undecided conflicts keep **Conflict** (`warning`). It is a **content
+condition inside the ready arm**, exactly as `.ai/20_PROGRESS_NONVISUAL.md`
+treats 0/1-point series. The eight canonical states stand unchanged.
+
+**Two transactions, and one best-effort write between them:**
+
+| Step | Boundary | Contents |
+|---|---|---|
+| **T1** | local `inTransaction` | Record the choice: write `chosen_resolution` + `chosen_at`, set `settlement_status='PENDING'`, **guarded on `chosen_resolution IS NULL`** so a double-tap cannot overwrite a standing choice |
+| **T2** | server `$transaction` | The single resolution transaction of §Decision 3: conditional claim → current-state read → stale check → `CLIENT_WINS` apply → commit |
+| *audit* | **outside T2, after commit** | One best-effort `SYNC_CONFLICT` write (§Decision 11) |
+| **T3** | local `inTransaction` | Apply the outcome: apply the returned authoritative row via `applyServerChange`, **remove the parked queue op**, set local `status` from the server's, and set `settlement_status='SETTLED'` |
+| **T1′** | local `inTransaction` | **Recovery transition** — see below. Runs *instead of* T3 when T2 answered `RESTORE_UNSUPPORTED` |
+
+**T3 is a single local transaction for both choices**, because the server has
+already settled `CLIENT_WINS` — the returned row *is* the applied result. Nothing
+is enqueued.
+
+**T1′ — the `RESTORE_UNSUPPORTED` recovery transition.** T1's
+`chosen_resolution IS NULL` guard would otherwise make the rejected choice
+permanent, contradicting the response's own instruction that the user may now
+choose `SERVER_WINS`. One local transaction resolves that:
+
+1. record the stable failure code in `last_failure_code` and the attempt in
+   `settlement_attempts` / `last_error` — **history is kept, not erased**;
+2. set **`blocked_resolution = 'RESOLVED_LOCAL_WINS'`**, so the surface offers
+   exactly `SERVER_WINS` from now on;
+3. **clear `chosen_resolution`, `chosen_at` and `settlement_status`**, returning
+   the conflict to *undecided* and re-arming T1.
+
+**Guarded so it cannot weaken first-choice-wins**, which governs decisions the
+**server has committed**. T1′ is permitted only `WHERE status = 'PENDING' AND
+settlement_status <> 'SETTLED'` — and the server reaching `RESTORE_UNSUPPORTED`
+aborted its transaction, so the conflict provably *is* still `PENDING` there. A
+choice the server never committed was never a decision; superseding it is not
+overturning anything. Once a server resolution has committed, T1′ can no longer
+match and the standing decision is untouchable.
+
+Migration 006's outbox therefore also carries **`last_failure_code`** and
+**`blocked_resolution`** (both nullable) alongside the columns listed above.
+
+Failure behaviour, exhaustively:
+
+- **Crash or loss between T1 and T2** — a durable, visible, retryable
+  chosen-but-unsettled row. Retry re-sends the same choice; §Decision 4's
+  same-choice path makes that safe.
+- **Crash between T2 and T3** — the server has settled but the client has not
+  applied. Retry re-sends the same choice, receives the same authoritative row,
+  and runs T3. **This is why the same-choice retry must return the row rather
+  than a bare acknowledgement.**
+- **Crash inside T1, T2 or T3** — rolled back by its own transaction.
+- **Network/5xx** — `settlement_status='FAILED'` with `last_error` and a backoff
+  `next_attempt_at`; the row stays counted.
+- **App restart at any point** — state is entirely in `sync_conflicts`; the
+  screen re-reads it.
+
+#### 7. Offline behaviour and connectivity
+
+| Step | Needs network? |
+|---|---|
+| List conflicts, review both sides | **No** — both payloads are local (A-2) |
+| **Record the choice** (T1) | **No** — it lands in the durable outbox |
+| Settlement (T2 → T3) | **Yes** |
+
+**Offline review and choice are preserved**, and they are safe *only because* the
+outbox of §Decision 6 gives the decision a persistent, retryable lifecycle that
+survives restart. Without that outbox this ADR would instead require connectivity
+to submit; the two are a package and the outbox must not be dropped while keeping
+the offline claim.
+
+The screen states the condition honestly and must **not** present a chosen
+conflict as gone before settlement.
+
+#### 8. Per-user scoping of all three local sync tables — **prerequisite, frozen**
+
+**All three tables gain `user_id` and every accessor becomes owner-scoped.**
+Wipe-on-sign-out is **rejected**, not offered as an alternative: `signOut()`
+preserving the database is an established contract, and wiping would discard a
+user's un-synced offline work — trading a confidentiality bug for a data-loss
+bug.
+
+| Table | Change |
+|---|---|
+| `sync_queue` | `+ user_id TEXT REFERENCES local_user(id)`; index `(user_id, status, next_retry_at)`; `peekReady`, `hasPendingOpFor`, `listParkedEntityIds`, `countByStatus` and every marker scoped |
+| `sync_conflicts` | `+ user_id TEXT REFERENCES local_user(id)`, plus the outbox columns of §Decision 6; index `(user_id, status)`; all reads scoped |
+| `sync_state` | `+ user_id TEXT NOT NULL`; **primary key `entity_type` → `(user_id, entity_type)`**. Requires a table rebuild (SQLite cannot alter a primary key in place), which the migration does as create-new → copy-nothing → drop-old → rename |
+
+**Quarantine is `user_id IS NULL`, and that is structurally unmatchable.** Every
+scoped read is `WHERE user_id = :sessionUserId`, and in SQL `NULL = <anything>`
+is never true — so a quarantined row **cannot** be returned to any authenticated
+session, by the semantics of the comparison rather than by a naming convention.
+This is why NULL was chosen over a sentinel string: a sentinel is only
+unmatchable by convention, and it would additionally violate the FK. NULL is
+**FK-legal** — `PRAGMA foreign_keys = ON` is set (`database.ts:15`), and SQLite
+does not enforce a foreign key when the child column is NULL — so the reference
+to `local_user(id)` can be declared without excluding quarantined rows.
+
+**Fail-closed migration and backfill (local migration 006):**
+
+- **Attributable rows** — a `sync_queue` / `sync_conflicts` row whose `entity_id`
+  matches exactly one user-owned row in its entity table is backfilled with that
+  `user_id`.
+- **Ambiguous or orphaned rows** — no match, or a match under more than one
+  `user_id` — get `user_id = NULL`. **Never guessed.** They are invisible and
+  un-pushable, and **retained indefinitely** (§Decision 14).
+- **`sync_state` cursors are not backfilled to any user.** A cursor is a claim
+  about what a user has already seen, and the existing global rows cannot be
+  attributed. Every `(user_id, entity_type)` cursor **initialises at 0**, which
+  is safe by construction: a from-scratch pull re-applies rows the client already
+  has (`INSERT OR REPLACE`) and the `hasPendingOpFor` guard — **with BUG-014
+  fixed** — protects un-pushed local edits. Because no cursor row is ever
+  quarantined, `sync_state.user_id` is `NOT NULL` and its composite primary key
+  never contains a NULL.
+- The migration runs inside the existing atomic runner
+  (`migrations/index.ts` `runMigrations`, `PRAGMA user_version` + the
+  `migrations` audit table), so it applies whole or not at all.
+- **Never edit migrations 001–005** (`.ai/04_DATABASE.md`); 006 is additive.
+
+#### 9. `GET /sync/conflicts` — reconciliation, and the cross-device boundary
+
+The endpoint has **two bounded parts**, because a `PENDING`-only list cannot by
+construction tell a client that one of its local rows was **resolved elsewhere** —
+a resolved conflict is simply absent, which is indistinguishable from "never
+existed here".
+
+| Part | Contract |
+|---|---|
+| **Pending set** | All of the owner's server-side `PENDING` conflicts, cursor-paged and bounded like `PullQueryDto`. Detects conflicts the local store never recorded or has lost, and gives the count an authoritative source |
+| **Status reconciliation** | An optional `ids` query parameter — the client's locally-known **unsettled** conflict ids, `@IsUUID({ each: true })` and `@ArrayMaxSize` bounded exactly as `PushSyncDto` bounds its batch. For each id the response returns its **current status only**, *including* the resolved ones, so a locally-unsettled row the server has already settled is positively identifiable. **It returns no entity data** |
+
+**Two rules govern what a client may do with that, and both matter:**
+
+- **Absence is never interpreted.** A conflict id missing from the pending set is
+  **not** treated as resolved. Without this the client would silently close rows
+  for any id the server merely paged past.
+- **A status alone never closes a local conflict.** Knowing the server resolved a
+  conflict says nothing about the **entity row**, which on this device may still
+  hold the losing values. Marking the conflict settled on that basis would leave
+  the data stale while the surface claimed it was reconciled — the precise
+  failure this endpoint exists to detect.
+
+**Frozen: an explicit resolved status is a *trigger*, not a settlement.** It
+tells the client to run the guaranteed **`POST …/resolve` replay** with its
+recorded choice; that response carries `current { row, version, deleted }`, and
+**T3 then applies the row, removes the parked operation and marks settlement
+atomically** (§Decision 6). Until T3 commits, the conflict stays **unsettled and
+counted**.
+
+This keeps **one** settlement path and **one** source of authoritative rows. The
+alternative — widening the `ids` result to carry `current` per resolved id — was
+rejected: it duplicates the authoritative-row contract in a second endpoint,
+turns a cheap status probe into a data-bearing response subject to the same
+allow-list and redaction rules as the resolve response, and creates a second way
+to reach T3 that must then be kept in step with the first.
+
+So the reconciliation part is a **latency optimisation, not a recovery path**: a
+client that never calls it still converges, because the same-choice replay
+returns `ALREADY_RESOLVED_SAME_CHOICE` — or `ALREADY_RESOLVED_OPPOSITE_CHOICE` —
+**with the authoritative row**. §Decision 3's response table is the guaranteed
+path; this endpoint only tells the client *when* to walk it.
+
+**`CLIENT_WINS` is available only on the device that holds the retained
+operation.** A conflict raised by another device leaves *that* device holding the
+unredacted payload; this device has only the server's **redacted** `clientPayload`
+(A-3), which must never be replayed. The client therefore joins the server list
+against its own local `sync_conflicts` / parked `sync_queue` rows by conflict id
+(A-2 makes them joinable) and classifies each:
+
+| Case | Presentation |
+|---|---|
+| Locally backed — a parked op with its payload is present | Fully reviewable; **both** choices offered |
+| **Remote-origin** — no local parked op | Listed as **not resolvable on this device**, with server-side metadata only (entity kind, versions, age). **Neither** choice is offered |
+| Server reports it **resolved** via the reconciliation part, local shows unsettled | **Not closed by the status.** The status triggers the `POST …/resolve` replay; the conflict stays counted until that response's `current` is applied and **T3** commits. No choice is offered in the meantime. Reached only from an **explicit** status, never from absence |
+
+**`SERVER_WINS` is deliberately not offered for a remote-origin conflict either**,
+even though it needs no payload: the pending local edit lives in the *other*
+device's queue, so resolving the server row here would neither remove that edit
+nor stop it being re-pushed. Offering a choice whose effect cannot be delivered
+would be worse than declining it. The honest instruction is to resolve it on the
+device that made the edit, and the copy family of §Decision 15 includes that
+sentence.
+
+#### 10. Optimistic concurrency and completable stale recovery
+
+**Comparison is always against the request's `expectedServerVersion`**, never
+forever against the immutable original `conflict.serverVersion` — that was the
+first draft's defect, which made stale conflicts permanently unresolvable.
+
+**Stale sequence, end to end:**
+
+1. T2 reads the current server version and compares it with
+   `expectedServerVersion`. **The conditional mutation of §Decision 3 is the
+   second line of defence**: even if the row moves after the read, the
+   `version = :expectedServerVersion` predicate affects zero rows and produces
+   the same outcome, so no window exists in which a stale resolution can commit.
+2. On mismatch — from either the explicit check or a zero-row mutation — it
+   **rolls back**: the conflict stays `PENDING`, nothing is applied, no
+   resolution is recorded. It answers a typed **stale-comparison** outcome
+   carrying the **current authoritative row and version**.
+3. Locally, in one transaction, the client **replaces the pending comparison**:
+   `server_payload` ← the returned row, `server_version` ← the returned version,
+   and **clears `chosen_resolution`, `chosen_at` and the outbox attempt** back to
+   un-chosen.
+4. The conflict returns to **undecided** and the user is required to **review
+   again**. Nothing is auto-chosen on their behalf.
+5. The next resolve request carries the **refreshed** `expectedServerVersion`,
+   so it **can succeed** — the loop terminates as soon as no third party
+   intervenes between review and submission.
+
+**Why refreshing the pending comparison does not falsify history.** The local
+row's `base_version` — the client's original base at the time of the divergence —
+is **never rewritten**, and the authoritative historical record is the **server's
+`SyncConflict` row**, whose `clientVersion`, `serverVersion` and `createdAt` are
+written once at detection (`sync.service.ts:170-181`) and are **never updated by
+this design**. The local `server_payload` / `server_version` are, by their role, a
+*working comparison snapshot* for a decision that has not yet been made — not an
+archival record. Refreshing them changes what the user is being asked about; it
+does not alter what was recorded to have happened.
+
+Remaining rules:
+
+- Keep-local re-enters version-guarded application inside T2; it is not a force
+  write.
+- A conflict is **locally stale** when its `entity_id` no longer has a parked op,
+  or the local row already reads `'synced'` at `server_version`. Such rows are
+  shown as **already settled** and offer no choice; they are closed only when the
+  local row demonstrably matches the server, and otherwise left `PENDING` and
+  reported. **Nothing is inferred about which side won when the evidence does not
+  say.**
+- **Version numbers are never rewritten locally** to force an outcome.
+
+#### 11. Audit — one best-effort write, after the commit
+
+`SYNC_CONFLICT` is emitted through the existing `AuditService.record` — **no
+schema change** (A-12). It is attempted **once, after T2 commits**, and
+**outside** it.
+
+**This is stated plainly because the two properties are incompatible.**
+`AuditService.record` swallows its own failures (`audit.service.ts:39-44`) by
+deliberate policy — "losing one audit row is preferable to blocking a login". A
+best-effort write cannot sit inside an atomic transaction that must not roll back
+on its failure. So: the mutation is atomic, and the audit is a separate
+best-effort follow-up. **The audit row may therefore be absent for a resolution
+that genuinely happened**, and no integrity claim in this ADR depends on its
+presence.
+
+The audit is attempted only on the call that **won** the conditional claim, so a
+same-choice retry does not write a second row.
+
+Metadata is operational only, enumerated so it cannot drift into payload
+territory:
+
+```
+{ resolution, clientVersion, serverVersion, expectedServerVersion, correlationId? }
+```
+
+plus the entry's own `userId`, `deviceId`, `entityType` and `entityId` columns.
+**Never** included: any payload or payload fragment, field values, free text,
+food names, dates of health events, or any PII.
+
+#### 12. Unsupported entities and unsupported conflict kinds
+
+Fail **visible and closed**, never silent:
+
+- **No presenter, or no tx-aware owner-row reader (§Decision 3), for an entity
+  type** → the conflict is **listed** with its kind and dates and marked **not
+  resolvable in this version**, with no choice offered. Never hidden, never
+  auto-resolved, never rendered as raw JSON.
+- **Remote-origin conflicts** → not resolvable on this device (§Decision 9).
+- **Catalog-revision parks (A-8)** are **not** conflicts and are excluded. They
+  keep BUG-007's distinct "Action needed" treatment, whose remedy is
+  remove-and-re-add in Food Log. The screen discriminates on the queue row's
+  `last_error` via `listParkedEntityIds`, **never** on the entity row's
+  `sync_status`.
+- **Quarantined legacy rows** are unmatchable by every session (§Decision 8) and
+  are never listed.
+- **Medical entity types** are unreachable (A-1) and, if a row ever appeared, are
+  treated as unsupported. **Nothing here reactivates the medical domain**
+  (ADR-P017).
+
+#### 13. Implementation slices — prerequisites first
+
+Sequenced so no prerequisite can ship after the UI. **Acceptance of this ADR
+authorizes the architecture, not these slices.** **C-0 is separately
+authorized**; **C-1 … C-7 remain unauthorized** and each requires its own
+approval before any code is written.
+
+| # | Slice | Depends on | API / schema |
+|---|---|---|---|
+| **C-0** | **BUG-014 guard fix** — `hasPendingOpFor` counts `'CONFLICT'`; regression proving a parked conflict survives a pull | — | none |
+| **C-1** | **Per-user scoping** (§Decision 8): local migration 006 — `user_id` on all three tables, `sync_state` rebuild + composite PK, cursor re-initialisation, fail-closed backfill, NULL quarantine, every accessor scoped | C-0 | **local migration** |
+| **C-2** | **Push transaction boundary + conditional write predicate + typed apply outcome** (§Decision 3): a **per-operation transaction** in `processOperation` with `tx` threaded through the idempotency probe, `getServerState`, `apply`, and the re-signatured `recordConflict`/`recordOutcome`; `apply` returning `ApplyOutcome`; the `STALE → recordConflict` branch; the new resolution method and owner-row reader; the **state-specific tombstone predicate**; and the owner + expected-version predicate on existing-row **`UPDATE`/`DELETE`** mutations in place of `where: { id }` (**`CREATE` stays an insert**). **This changes the shared `/sync/push` write path**, so it is *not* a behaviour-free refactor: a race that previously overwrote silently now reports a normal conflict, and a mutation now commits atomically with its terminal outcome. It closes A-15(b)'s TOCTOU **and** the mutation-without-recorded-op-id idempotency hole, and **owns the concurrency, atomicity and late-conflict tests for both** | C-1 | **interface (2 tx-aware, 1 re-typed + 2 new methods) + `SyncService` per-op transaction across 5 call sites and 2 helpers + 5 ports; shared with `/sync/push`** |
+| **C-3** | **Server resolve contract** (§Decisions 3, 4, 9, 10, 11): both endpoints, DTOs, throttle, owner scoping, conditional claim, `Serializable` resolution transaction, per-operation semantics, stale outcome, best-effort audit, API e2e | C-2 | **2 endpoints** |
+| **C-4** | **Local resolution service + outbox** (§Decisions 4, 6, 7, 10): **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts`, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under existing backoff, presenter allow-list. No UI | C-3 | none |
+| **C-5** | **Copy deck slice**: word the key families of §Decision 15 in EN/ES | C-4 | none |
+| **C-6** | **`/sync-conflicts` route** + dashboard labelled button + Web-unavailable arm | C-5 | none |
+| **C-7** | **End-to-end verification**: two-device Maestro journeys, both choices, offline-choose-then-settle, restart mid-settlement, stale re-review | C-6 | none |
+
+**The `/sync-conflicts` screen must not ship before C-0 … C-4.** Keep-server and
+atomic keep-local depend on C-2 + C-3, isolation on C-1, persistence and retry on
+C-4, and the no-silent-overwrite guarantee on C-0.
+
+**Migrations, endpoints and interface changes actually required:**
+
+- **One local SQLite migration (006)**; **no Prisma migration** — `deleted_at`,
+  `deleted_by` and `version` already exist on every synchronized entity.
+- **Two server endpoints**, with the resolve endpoint's **own typed response
+  contract** (§Decision 3). `SYNC_ERROR_CODES` and the `/sync/push` wire shape
+  are **unchanged**.
+- **`EntitySyncHandler`**: 2 existing methods transaction-aware — `apply` also
+  re-typed `Promise<void>` → `Promise<ApplyOutcome>` — plus **2 new methods**
+  (the per-operation resolution mutation and the owner-row reader), across
+  **14 handlers**.
+- **`SyncService`**: a **per-operation transaction** in `processOperation`, with
+  `tx` threaded through **5 call sites** and **2 private helpers**
+  (`recordConflict`, `recordOutcome`) moved off the root Prisma client, plus the
+  `STALE` → re-read → `recordConflict` branch.
+- **5 repository ports**: existing-row **`UPDATE`/`DELETE`** mutations gain an
+  owner + expected-version predicate with a **state-specific tombstone clause**,
+  **shared with `/sync/push`**. **`CREATE` remains an insert** and gains no
+  predicate; only a primary-key collision maps to `STALE`.
+
+#### 14. Quarantine disposition — decided
+
+Quarantined legacy rows (§Decision 8) are **retained indefinitely in V1**,
+inaccessible to every authenticated session by the NULL-comparison property. They
+are never listed, never pushed, and never counted.
+
+**Any purge requires separate authorization.** Deleting them is itself a deletion
+decision, and `.ai/04_DATABASE.md` §Historical Data plus "never permanently
+remove user-generated health data without explicit approval" put that outside
+this ADR. **This closes the last open owner decision**; nothing in this ADR is
+now undecided.
+
+#### 15. EN/ES copy ownership and accessibility
+
+- **Copy is owned by `.ai/19_COPY_DECKS.md`** and stays **PROPOSED** until C-5 is
+  authorized. This ADR names the *families* required — screen title/empty/error,
+  the two choice labels, chosen-but-unsettled, settlement-failed-retry,
+  already-settled, **stale-comparison / review-again**,
+  **deleted-elsewhere / keeping-yours-restores-it**,
+  **restore-not-possible (server version only)**,
+  **not-resolvable-on-this-device
+  (resolve it on the device that made the edit)**, offline notice, the
+  withheld-field phrase, the unsupported-entity fallback, and the action-needed
+  distinction of A-8 — and **words none of them**. BUG-012's constraint that
+  UX-3C must not invent resolution copy is preserved.
+- **EN/ES parity is mandatory** at 788/788 + N.
+- **Accessibility requirements** (not outcomes): the choice controls and the
+  dashboard button are real buttons with localized accessible names and 44×44
+  targets; each conflict's local/server sides are distinguishable **in text**,
+  never by colour alone; Conflict keeps `warning`, never `error` (BUG-007);
+  chosen-but-unsettled uses the reassuring Pending-sync tone; no
+  `accessibilityLiveRegion` and no `announceForAccessibility` is introduced
+  (ADR-P024; `.ai/20_PROGRESS_NONVISUAL.md` R-13); no container swallows a focus
+  target (R-12); `AppText` scaling preserved with no fixed heights on text.
+- **No accessibility outcome is claimed.** VoiceOver, TalkBack, browser-AT,
+  large-text and physical-device verification remain **UX-4C**, unrun.
+
+---
+
+### Coverage, rollout and rollback
+
+- **Concurrency proof — required, and owned by C-2/C-3.** Each of these must
+  drive **two overlapping requests against the same entity** and assert that
+  **exactly one compatible mutation commits** while the loser returns the typed
+  stale/conflict outcome **without overwriting data**:
+  - resolution (`CLIENT_WINS`) **vs** a concurrent ordinary `/sync/push` for the
+    same entity, run in both orders;
+  - two concurrent resolutions of the same conflict, same choice and opposite
+    choices;
+  - resolution **vs** a concurrent `/sync/push` that would otherwise have won on
+    the old `where: { id }` predicate — the direct regression for A-15(b);
+  - `SERVER_WINS` **vs** a concurrent push, asserting the returned row is either
+    the reviewed version (settled) or the stale outcome, and **never a row that
+    reflects a half-applied write**;
+  - the losing side's entity values asserted **field-by-field unchanged**, not
+    merely that a status code differed.
+  Each must also assert the **affected-row count** directly, so a predicate
+  silently dropped from a `where` clause fails the suite rather than passing by
+  timing.
+- **Per-operation regression, active rows:** a **`CREATE`** conflict resolved as
+  `CLIENT_WINS` **updates** the existing row and never attempts an insert — the
+  test must fail if a duplicate insert is attempted; a **partial `UPDATE`**
+  resolved as `CLIENT_WINS` leaves **omitted fields untouched** (the `goals`
+  `{is_active, ended_at}` patch is the canonical fixture, asserted
+  field-by-field); a **`DELETE`** resolves to a soft delete with
+  `deleted_at`/`deleted_by`/`version` set and nothing else written.
+- **Per-operation regression, tombstones** — each case asserted against a row
+  soft-deleted at the reviewed version:
+  - `CLIENT_WINS` `CREATE`/`UPDATE` **restores** the row — `deleted_at` and
+    `deleted_by` cleared, the validated fields applied, version bumped — and a
+    **partial** update in this path still leaves omitted fields untouched;
+  - `CLIENT_WINS` `DELETE` against an already-deleted row at the reviewed
+    version **settles** `RESOLVED_CLIENT_WINS` with **no mutation**, and the
+    zero affected-row count is asserted **not** to be reported as stale;
+  - `SERVER_WINS` returns the **tombstone** and the client applies it through
+    `applyServerChange(data, deleted=true)`, leaving the local row deleted;
+  - a restore blocked by a live constraint returns the **terminal
+    `RESTORE_UNSUPPORTED`** outcome, leaves the conflict `PENDING`, and offers
+    only `SERVER_WINS`;
+  - **no case loops**: a test drives resolve → stale → re-review → resolve and
+    asserts the second attempt **terminates**, at a strictly different version or
+    a terminal outcome, never the same stale answer twice at the same version.
+- **Late-conflict regression (C-2):** an `UPDATE`/`DELETE` whose conditional
+  mutation affects zero rows, and a `CREATE` that loses a **primary-key**
+  insertion race, each produce the **normal `CONFLICT` outcome** with a
+  `conflictId` and a recorded `sync_conflicts` row — asserted **not** `APPLIED`,
+  **not** `REJECTED`/`APPLY_FAILED`, and **not** dropped by `removeRejected`.
+  **Conversely**, a `CREATE` violating a *business* constraint
+  (`body_weights` `UNIQUE(user_id, date)`) still yields its existing apply
+  failure and is asserted **not** to be reclassified as a conflict.
+- **Push atomicity regression (C-2):** a forced failure **after** the entity
+  mutation but **before** the terminal outcome write leaves **neither** — the row
+  unchanged **and** no `SyncOperation` row — so a retry of the same `op_id`
+  re-processes cleanly rather than double-applying. The pre-fix behaviour (a
+  committed mutation with no recorded op id) is the regression this pins.
+- **Resolve response-contract regression (C-3):** each `outcome` in
+  §Decision 3's table is asserted with its **HTTP status** and body shape —
+  `RESOLVED` / `ALREADY_RESOLVED_SAME_CHOICE` 200 with `current`,
+  `STALE_COMPARISON` / `RESTORE_UNSUPPORTED` /
+  `ALREADY_RESOLVED_OPPOSITE_CHOICE` 409, cross-owner and unknown id both **404
+  and indistinguishable**. Also asserted: **no response body carries a
+  user-facing string**; after every 409 the conflict is **still `PENDING`** in
+  the database — the `RESTORE_UNSUPPORTED` case specifically proving the conflict
+  claim was **rolled back**, not left resolved; and
+  `ALREADY_RESOLVED_OPPOSITE_CHOICE` **carries `current`**, so the loser can
+  settle rather than remaining counted forever.
+- **`RESTORE_UNSUPPORTED` recovery regression (C-4):** after T1′ the conflict is
+  **decidable again** — `chosen_resolution` cleared, `blocked_resolution` set,
+  `last_failure_code` recorded — the surface offers **only** `SERVER_WINS`, and a
+  subsequent `SERVER_WINS` **settles**. Asserted alongside: T1′ **cannot** run
+  once a server resolution has committed (`settlement_status = 'SETTLED'`), so
+  first-choice-wins is not weakened.
+- **`CREATE`-race mechanism regression (C-2):**
+  - a **PK collision** returns `STALE` **without raising and without aborting the
+    transaction** — proven by the `SyncConflict` + `SyncOperation` rows
+    committing **inside that same transaction**;
+  - a **business unique constraint** (`body_weights` `UNIQUE(user_id, date)`)
+    **still throws**, the transaction **rolls back**, and no write from the
+    aborted attempt survives;
+  - **field equivalence:** a row inserted through the raw statement is asserted
+    **field-by-field identical** to one inserted through the existing Prisma
+    `create` — same mappings, same defaults, **same `sync_seq` behaviour** (a
+    non-zero value assigned by the trigger, and ordering preserved on a
+    subsequent `pullChanges`);
+  - **no unsafe SQL is introduced:** a source-level assertion that
+    `$executeRawUnsafe` / `$queryRawUnsafe` appear **nowhere** in `api/src`, and
+    that every raw statement on this path is a tagged template with no
+    interpolated identifier.
+- **Reconciliation regression (C-3/C-4):** a conflict merely *absent* from the
+  pending page is asserted **not** to be closed. An **explicit resolved status**
+  is asserted to leave the conflict **unsettled and still counted** — it only
+  triggers the replay — and settlement is asserted to occur **only** after the
+  `POST …/resolve` response supplies `current` and **T3 commits**. A test drives
+  status → replay → T3 and asserts the **entity row now matches the
+  authoritative row**, catching the failure mode where a conflict is marked
+  settled while the data stays stale. The `ids` parameter is asserted bounded and
+  to return **no entity data**, and the same-choice replay is proven to settle a
+  client that never calls the endpoint at all.
+- **T3 atomicity (C-4):** applying the authoritative row, removing the parked
+  operation and marking `settlement_status='SETTLED'` are asserted to commit
+  **atomically** — a forced failure mid-T3 leaves the conflict unsettled, the
+  parked op present and the row unchanged, never a partial settlement.
+- **Regression:** BUG-014's guard; both choices end-to-end through the repository
+  layer; **opposite-choice retry refused and same-choice retry returning the row**;
+  **T2 atomicity — a forced failure inside the `CLIENT_WINS` mutation leaves the
+  conflict `PENDING` and the entity unchanged**; stale re-review completing on the
+  refreshed version; cross-account isolation for all three tables, including that
+  a second account sees zero of the first account's rows; **quarantined rows
+  unmatchable by any session**; T1/T3 atomicity under simulated crash;
+  chosen-but-unsettled surviving restart and staying counted; remote-origin
+  conflicts offering no choice; unsupported-entity and catalog-park fallbacks;
+  EN/ES for every rendered string; the allow-list proving no free text and no raw
+  payload renders; Web-unavailable arm; **and that no payload appears in any log
+  or audit row**. Accessibility assertions are **structural only**.
+- **E2E (Maestro, ADR-P007):** two-device version mismatch → review → keep-local
+  → settles; the same → keep-server → settles; choose-offline → reconnect →
+  settles; third-party edit between review and submit → stale → review again →
+  settles. **No medical journey.**
+- **Rollout:** C-0 ships alone and is independently valuable. C-1 is the riskiest
+  slice (cursor re-initialisation forces one full re-pull per user) and ships on
+  its own. **C-2 is not a pure refactor** — an earlier revision of this section
+  called it one, which contradicted §Decision 3. It changes shipped `/sync/push`
+  behaviour in one specific way: a push whose entity moved between the version
+  check and the write now affects zero rows and is **reported as a normal
+  conflict** instead of silently overwriting or being dropped as a generic
+  rejection. That is the A-15(b) fix, it is user-visible, and C-2 owns its
+  concurrency tests as well as the existing sync e2e suite.
+- **Rollback:** each slice is revertible independently. Reverting C-6 leaves the
+  service unused and the reporting surfaces exactly as BUG-011 shipped them.
+  Reverting C-1 is the only non-trivial case — it is a schema change, so its
+  rollback is forward-only via a subsequent migration, never by editing 006.
+  **Reverting C-0 restores a data-loss defect** and must not be done to unblock
+  anything else.
+
+---
+
+### Options Considered
+
+1. **Do nothing.** Rejected. A-7 shows the status quo is not neutral: it either
+   silently overwrites or stalls permanently, and the counter grows either way.
+2. **Per-row inline resolution on each of the 7 reporting surfaces.** Rejected.
+   Seven implementations of a data-integrity decision, and it still cannot reach
+   `body_measurements`, `progress_snapshots`, `routine_exercises` or
+   `workout_sets`, which have no rendered row (A-14). It would also undo the
+   report-only boundary BUG-011's specs assert.
+3. **Device-local resolution using a bounded cursor rewind + `entityTypes`.**
+   **Rejected — the first draft's recommendation, and it does not work.**
+   `GET /sync/pull` has no `entityId` filter (A-5), so reaching one older row
+   requires rewinding the cursor and traversing history forward: unbounded, and
+   it re-applies unrelated rows on the way.
+4. **Keep-local by enqueueing a replacement push, settled optimistically.**
+   **Rejected — the second draft's mechanism.** A push is asynchronous and the
+   `APPLIED` branch never touches the entity row (A-5, A-6), so the client cannot
+   know when it settled; the draft marked the outbox `SETTLED` immediately after
+   `enqueue`, which was simply false. Recorded because it looks reasonable and is
+   not.
+5. **One server-authoritative resolution transaction.** **Selected.** Bounded and
+   synchronous, atomic for the `CLIENT_WINS` mutation, returns the authoritative
+   row for both choices so the client can settle deterministically, makes
+   `SYNC_CONFLICT` emittable, and needs no Prisma migration. Its cost is the
+   tx-aware refactor, stated in §Decision 3.
+6. **Replay `server_payload` for keep-server, or the server's `clientPayload`
+   for keep-local.** Rejected on A-3: **both** stored payloads are redacted, so
+   either replay writes `[REDACTED]` over real user data.
+7. **Wipe local sync tables on `signOut()` instead of scoping.** Rejected, and
+   **not retained as an alternative**: it violates the established preservation
+   contract and discards un-synced offline work — a data-loss bug traded for a
+   confidentiality bug.
+8. **A sentinel string for quarantined rows.** Rejected in favour of
+   `user_id IS NULL`: a sentinel is unmatchable only by convention, and with
+   `PRAGMA foreign_keys = ON` it would violate the `local_user(id)` reference.
+   NULL is unmatchable by SQL semantics and FK-legal.
+9. **A persisted idempotency-key table keyed by `requestId`.** Rejected as
+   unnecessary: the conditional claim already makes the transition at-most-once
+   (§Decision 5). The field is retained as correlation metadata only.
+10. **Last-writer-wins for "non-critical" fields**, per the pre-revision
+    `.ai/04_DATABASE.md`. Rejected: contradicted by ADR-P012, ADR-P016 D6 and
+    `.ai/08_UI_UX.md`. That clause is corrected (A-13).
+11. **Hand-merge editor / `MERGED`.** Rejected for V1. No copy, no audited need,
+    the largest surface, and ADR-P012 forbids automatic merge.
+12. **Auto-resolve after N days.** Rejected outright — a background silent
+    overwrite with a delay.
+
+### Rationale
+
+The audit says the expensive parts are already built — both versions are stored
+on both sides (A-2), `SyncConflict` carries every field a resolve contract needs,
+and `AuditService` already accepts the entry (A-12). What is genuinely missing is
+**a synchronous way to settle one conflict atomically and learn the result**,
+**owner isolation**, **a guarded transition**, and **a durable settlement
+lifecycle**. The design adds exactly those.
+
+Choosing a synchronous server transaction over an asynchronous push is the whole
+point: it is the only shape in which `CLIENT_WINS` can be applied and confirmed
+in one step, and in which the client can be handed the row it must store. The
+tx-aware refactor is the price, and it is real work rather than a footnote.
+
+It is safe because every silent path is closed: A-7's overwrite by C-0, A-3's
+lossy replay in both directions, A-8's misclassification, A-11's leakage by C-1,
+A-4's ciphertext never surfacing as text, an opposite-choice retry unable to
+overturn a decision, and a stale comparison unable to be resolved on the user's
+behalf.
+
+It is honest because the offline claim is tied to the mechanism that makes it
+safe, the no-silent-overwrite guarantee is stated as conditional on C-0, the
+audit row is admitted to be possibly absent, cross-device `CLIENT_WINS` is
+declined rather than implied, and the interface refactor is sized instead of
+assumed away.
+
+### Consequences
+
+- One new native route (18 → 19); **two** new server endpoints; **one** local
+  migration; **no** Prisma migration; no new technology, dependency or canonical
+  state.
+- **`EntitySyncHandler` changes for every handler, and the shared write path
+  changes with it.** Two existing methods become transaction-aware, **two new
+  methods** are added (the per-operation resolution mutation and the owner-row
+  reader), 14 handlers are touched, and **5 repository ports have every sync-path
+  mutation re-predicated** on owner + expected version. Entity types that do not
+  implement the two new methods are unsupported and fail closed, so the registry
+  stops being uniformly capable — a real contract change, and the reason
+  §Decision 12 exists.
+- **`/sync/push` behaviour changes as a side effect**, in one specific way: a
+  push whose entity moved between the version check and the write now affects
+  zero rows and is reported as a **normal conflict** instead of silently
+  overwriting. That **fixes** A-15(b), but it is a behaviour change to the
+  shipped push path and belongs to C-2's test surface, not the resolution
+  slice's. Users of an affected device will see a conflict where they previously
+  saw a silent success — which is the point, and which the existing reporting
+  surfaces already render.
+- **`apply()` stops returning `void`.** Its `Promise<ApplyOutcome>` return is a
+  breaking signature change for all 14 handlers. No new `SYNC_ERROR_CODES` value
+  and no `/sync/push` wire-shape change: the client's existing `CONFLICT`
+  handling (`sync-worker.ts:142-166`) covers it unmodified.
+- **`/sync/push` gains a per-operation transaction**, and `recordConflict` /
+  `recordOutcome` stop writing through the root Prisma client. Beyond
+  correctness this has a cost profile: one transaction per operation in a batch
+  of up to 100 (`push-sync.dto.ts` `@ArrayMaxSize(100)`), rather than none
+  today. Batch semantics are unchanged — operations stay sequential and
+  independently committed, so one failure still cannot roll back its
+  predecessors.
+- **A latent idempotency hole is closed as a side effect**: today a crash between
+  the mutation and the outcome write leaves a mutation with no recorded op id,
+  and the retry re-applies it. After C-2 the op id and its outcome are either
+  both durable or both absent.
+- **The resolve endpoint introduces its own outcome vocabulary** (six stable
+  codes). It is additive and namespaced to that endpoint; nothing in
+  `SYNC_ERROR_CODES` or the push contract changes, so the existing sync worker is
+  untouched by it.
+- **Raw SQL enters the `CREATE` path** — one static statement per entity beside
+  its repository. It is fenced (tagged templates only, no unsafe variants, no
+  dynamic identifiers) and covered by a field-equivalence test against the
+  current Prisma `create`, but it is still hand-written SQL: for those statements
+  a column rename fails at **runtime** rather than compile time. That is the cost
+  of a PK-targeted non-throwing insert on this stack, and the equivalence test is
+  what keeps it honest.
+- **`sync_seq` is unaffected.** It is assigned by the `assign_sync_seq()`
+  database trigger, which fires for raw and Prisma inserts alike, so
+  incremental-pull ordering is untouched by this mechanism.
+- **Reconciliation is a latency optimisation, not a second settlement path.** A
+  server status never closes a conflict; only T3 does. This keeps a single
+  authoritative-row contract, at the cost of one extra round trip when another
+  device resolved a conflict first.
+- **A conflict against a tombstone is now resolvable.** `CLIENT_WINS` on a
+  reviewed tombstone **restores** the row, which is a real semantic addition:
+  a record deleted on one device can be brought back by an explicit choice on
+  another. It is never automatic, the copy states it plainly, and it fails
+  closed as `RESTORE_UNSUPPORTED` where a live constraint blocks it.
+- **`Serializable` isolation on the resolution transaction** can raise
+  serialization failures under contention. The whole request is retried, which is
+  safe because the conditional claim is at-most-once — but it is a new failure
+  mode on that route.
+- **C-1 forces one full re-pull per user** (cursor re-initialisation). Safe by
+  construction, but a real one-off cost and the reason C-1 ships alone.
+- `hasPendingOpFor` changes meaning: a parked conflict shields its row from the
+  pull. A user who never visits the screen now **keeps** their local values
+  instead of losing them, which is the safer default.
+- Resolution becomes **server-recorded**, so a choice made on one device is
+  visible to the others as a resolution — but **`CLIENT_WINS` remains
+  device-bound** (§Decision 9), and a remote-origin conflict must be resolved on
+  the device that made the edit.
+- **The `SYNC_CONFLICT` audit row may be absent** when the best-effort write
+  fails (§Decision 11). Central auditability is materially improved over the
+  status quo (zero rows today) but is not guaranteed per resolution.
+- The dashboard count becomes actionable and — once C-0 and C-4 land — accurate,
+  because it counts *unsettled* rather than merely undecided conflicts.
+- `MERGED` stays declared and unused in both enums.
+- **`.ai/04_DATABASE.md` §Conflict Resolution is corrected** by this ADR's
+  revision (A-13), so its Last-Writer-Wins wording no longer contradicts
+  ADR-P012, ADR-P016 D6 or the no-silent-overwrite rule.
+- BUG-011's residual is untouched; **BUG-012 stays open**; **BUG-014 is opened**
+  for the guard defect.
+
+### Open owner decisions
+
+**None.** The two questions the first revision left open are decided:
+the dashboard affordance is an **explicit labelled button** (§Decision 1), and
+local isolation is **complete per-user scoping of all three tables**
+(§Decision 8) with wipe-on-sign-out rejected. The quarantine disposition is
+decided in §Decision 14 — **retain indefinitely; any purge needs separate
+authorization**.
+
+What remains is **authorization to implement**, which is a gate, not a design
+question. Acceptance settles the architecture only. **C-0 (BUG-014) has since
+been separately authorized**; **C-1 … C-7 have not**, and each needs its own
+approval before implementation begins.
+
+### Supersedes / Preserves
+
+- **Preserves** ADR-P012 §Sync and Conflict Semantics in full — version-guarded,
+  never auto-overwritten, **no automatic merge**. This ADR is the "future
+  explicit resolver UI" that ADR-P012 anticipated, and it additionally records
+  that the never-auto-overwritten property is **not presently true in code**
+  (A-7 / BUG-014).
+- **Preserves** ADR-P016 D5/D6, ADR-P017 (medical stays dormant; A-1 confirms it
+  at the sync layer), ADR-P019 (Web terminal-unavailable), ADR-P020 (the two new
+  routes adopt the existing throttle ceiling), ADR-P027 (hub-and-spoke; no tabs),
+  ADR-P023/P024 (accessibility staging; no announcement mechanism introduced).
+- **Follows ADR-P029's precedent** for a conditional first-transition inside an
+  interactive transaction, and for threading a transaction client as a
+  structurally-typed parameter.
+- **Corrects stale authority** in `.ai/04_DATABASE.md` §Conflict Resolution
+  (A-13). No accepted ADR changes status.
+- **Does not resolve** BUG-011, and **does not close** BUG-012.
+
+### Related Documents
+
+- `.ai/11_BACKLOG.md` (BUG-012 — owner; **BUG-014** — the guard defect;
+  BUG-011 — residual; BUG-007 — the action-needed distinction of A-8)
+- `.ai/08_UI_UX.md` (§Canonical State Patterns — Conflict, Pending sync;
+  §Non-negotiable distinctions)
+- `.ai/04_DATABASE.md` (§Conflict Resolution — corrected by this revision;
+  §Historical Data; §Versioning; the never-edit-a-migration rule)
+- `.ai/05_SECURITY.md` (least privilege; secure storage)
+- `.ai/06_MOBILE.md` (§Screen Principles — no SQLite from components)
+- `.ai/09_TESTING.md` (§Accessibility Testing; §Bug Severity; regression rules)
+- `.ai/18_SCREEN_STATE_MATRICES.md` (§Residual risks — BUG-012's origin)
+- `.ai/19_COPY_DECKS.md` (copy ownership; the reporting-only boundary)
+- `.ai/20_PROGRESS_NONVISUAL.md` (R-12/R-13/R-14 patterns reused by §Decision 15)
+- `mobile/src/shared/infrastructure/sync/sync-conflicts.ts` (the unconditional
+  UPDATE retracted in §Decision 4), `sync-queue.ts` (`enqueue`,
+  `hasPendingOpFor`, `listParkedEntityIds`), `sync-state.ts`, `sync-worker.ts`
+  (push CONFLICT path, pull guard), `appliers.ts`, `backoff.ts`
+- `mobile/src/shared/infrastructure/database/migrations/001-initial.ts`
+  (`SYNCED_COLS` FK at `:20`; the three unscoped tables at `:307-340`),
+  `migrations/index.ts` (atomic runner)
+- `mobile/src/shared/infrastructure/database/database.ts` (`PRAGMA
+  foreign_keys = ON` at `:15`), `sql.ts` (`inTransaction`)
+- `mobile/src/features/authentication/application/session-manager.ts`
+  (`signOut` preserves the database at `:233`; `deleteAccount` wipes at `:217`)
+- `mobile/src/app/_layout.tsx` (applier registration — medical absent)
+- `api/src/modules/sync/**` (`sync.service.ts` conflict detection and redaction
+  of **both** payloads, `sync.controller.ts`, `sync.types.ts` — the interface
+  §Decision 3 refactors, `dto/pull-query.dto.ts` — no `entityId` filter,
+  `dto/push-sync.dto.ts`)
+- `api/src/modules/progress/infrastructure/prisma-progress.repository.ts`
+  (binds `this.prisma` directly — the reason the refactor is required)
+- `api/src/modules/auth/application/email-verification.service.ts` (`:337`
+  conditional-claim transaction; `:461` tx-threading pattern)
+- `api/src/modules/audit/audit.service.ts` (`AuditEntry`; best-effort policy)
+- `api/prisma/schema.prisma` (`SyncConflict` — already sufficient;
+  `ConflictStatus`, `AuditAction.SYNC_CONFLICT`, `AuditLog`)
+
+---
 
 # AI Instructions
 
