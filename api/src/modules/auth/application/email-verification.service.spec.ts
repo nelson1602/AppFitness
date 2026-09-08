@@ -442,15 +442,63 @@ describe('EmailVerificationService', () => {
     });
 
     describe('idempotent replay (ADR-P029)', () => {
+      /**
+       * The settled fixture is anchored to a fixed instant, and ADR-P029
+       * Decision 4 keeps its ORIGINAL expiry — 24 h after that instant. But
+       * `verifyEmail()` reads the real clock (`email-verification.service.ts`
+       * `const now = new Date()`), so once wall-clock time passed
+       * 2026-09-05T10:00Z the fixture was simply expired and the eligible-replay
+       * cases began failing for a reason unrelated to replay semantics.
+       *
+       * That was a deterministic test time bomb, not a service defect: the
+       * rejection was correct for an expired token. The fix is to make the
+       * fixture's own window the frame of reference by freezing the clock
+       * inside it, so these cases assert what they claim.
+       *
+       * Scoped deliberately: only this block runs on a fake clock, real timers
+       * are restored afterwards, and the expiry rule itself stays asserted by
+       * "rejects once past the ORIGINAL expiry" below — which still passes
+       * because that fixture expires *before* the frozen instant.
+       */
+      const SETTLED_AT = new Date('2026-09-04T10:00:00.000Z');
+      /** ADR-P029 Decision 4: the replay window is the token's original one. */
+      const ORIGINAL_EXPIRY = new Date(SETTLED_AT.getTime() + 24 * 3_600_000);
+      /** Strictly inside the original window, and after `SETTLED_AT`. */
+      const WITHIN_WINDOW = new Date(SETTLED_AT.getTime() + 3_600_000);
+
+      beforeAll(() => {
+        // `Date` only. The service reads the clock but schedules nothing, so
+        // faking timers as well would change how awaited promises settle here
+        // for no benefit.
+        jest.useFakeTimers({
+          doNotFake: [
+            'nextTick',
+            'queueMicrotask',
+            'setImmediate',
+            'clearImmediate',
+            'setInterval',
+            'clearInterval',
+            'setTimeout',
+            'clearTimeout',
+            'performance',
+          ],
+        });
+        jest.setSystemTime(WITHIN_WINDOW);
+      });
+
+      afterAll(() => {
+        jest.useRealTimers();
+      });
+
       /** A row that settled successfully: consumed, live, timestamps equal. */
       const settled = (over: Record<string, unknown> = {}) => {
-        const at = new Date('2026-09-04T10:00:00.000Z');
+        const at = SETTLED_AT;
         tx.emailVerificationToken.updateMany.mockResolvedValue({ count: 0 });
         tx.emailVerificationToken.findUnique.mockResolvedValue({
           userId: USER_ID,
           consumedAt: at,
           invalidatedAt: null,
-          expiresAt: new Date(at.getTime() + 24 * 3_600_000),
+          expiresAt: ORIGINAL_EXPIRY,
           ...over,
         });
         tx.user.findUnique.mockResolvedValue({
@@ -488,8 +536,9 @@ describe('EmailVerificationService', () => {
       });
 
       it('rejects once past the ORIGINAL expiry — the window is never extended', async () => {
-        const at = new Date('2026-09-04T10:00:00.000Z');
-        settled({ expiresAt: new Date(at.getTime() - 1) });
+        // Expired 1 ms before the fixture's own anchor, so it is in the past
+        // relative to the frozen instant. Unchanged assertion.
+        settled({ expiresAt: new Date(SETTLED_AT.getTime() - 1) });
         await expect(
           service.verifyEmail({ token: 'raw-token' }),
         ).rejects.toBeInstanceOf(BadRequestException);
