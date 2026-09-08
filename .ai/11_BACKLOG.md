@@ -1000,10 +1000,15 @@ that build would contradict the owner's clarified product intent.
 1. Documentation/ADR product contract.
 2. Spanish/English localization foundation and language-neutral domain output.
 3. Reversible public-v1 medical decoupling plus a self-entered physical-
-   assessment contract. **IMPLEMENTED 2026-08-10 (pending commit/review):**
+   assessment contract. **MOBILE IMPLEMENTED 2026-08-10 (pending commit/review):**
    dashboard/iCoach now read weight and body-fat only from the wellness Progress
-   repositories; weight gaps route to `/progress`; medical routes/actions and
-   composition-root sync registration are removed from public v1. Medical
+   repositories; weight gaps route to `/progress`; medical route adapters,
+   dashboard actions and **mobile** composition-root sync registration are
+   removed from public v1. *(Scope correction 2026-09-08: this line previously
+   read as covering the whole product. The **API** was not decoupled — `AppModule`
+   still imported `MedicalModule`, so `/medical/evaluations`, `/medical/restrictions`
+   and `medical_*` sync stayed reachable for any authenticated user. See
+   **Slice 0** below.)* Medical
    feature code, schema, migrations, encrypted fields, tests, and retained data
    remain intact. Public E2E onboarding/workout paths use wellness data only.
    **Slice 3B-1 IMPLEMENTED 2026-08-11 (pending commit/review):** optional
@@ -1011,6 +1016,22 @@ that build would contradict the owner's clarified product intent.
    (additive schemas, offline sync, bilingual entry and trend) without reading
    the dormant medical field or changing iCoach calculations. Structured
    self-declared physical limitations remain separately deferred.
+   **Slice 0 IMPLEMENTED 2026-09-08:** `MedicalModule` is no longer
+   imported by the API composition root, so `MedicalController` is not mounted
+   (all five routes `404`) and neither medical sync handler is registered — push
+   is rejected `ENTITY_NOT_SUPPORTED` and pull cannot emit the types. Every
+   medical source file, test, table, historical migration, encrypted row,
+   protection and the account-deletion cascade are preserved. The retained code
+   stays technically available, but **public reactivation is prohibited** without
+   a new accepted ADR, owner authorization, legal/privacy/consent/security
+   review and complete release validation (ADR-P017 Decision 9) — it is not a
+   one-line change anyone may make. The owner clarification and the W-0…W-5
+   Wellness Safety Profile slice plan are recorded in ADR-P017. The Wellness
+   Safety Profile itself is **not** implemented, and **W-5 (supplements) stays
+   optional**, pending its own ADR and legal review: educational and food-first
+   only, with **no dosage of any kind**, no product or brand recommendation, and
+   a mandatory deferral to a qualified professional on any uncertainty,
+   limitation, allergy, health concern or medication question.
 4. Breakfast/lunch/dinner/optional-snack nutrition experience completion.
    **Slice 4A IMPLEMENTED 2026-08-11 (pending commit/review):** the existing
    deterministic 15-day meal-plan surface now presents its route, meals,
@@ -1048,6 +1069,13 @@ that build would contradict the owner's clarified product intent.
 
 - [x] Public navigation/onboarding/dashboard do not expose or request excluded
       medical inputs.
+- [x] The public **API** exposes no medical route and registers no medical sync
+      handler — `MedicalModule` is not imported by the composition root, so no
+      `/medical` route is mounted and neither medical sync handler is
+      registered (ADR-P017 **Slice 0 / W-0**).
+- [ ] A wellness-owned Wellness Safety Profile replaces the retired medical
+      inputs (evaluation-completed flag + date, self-declared limitations),
+      per the ADR-P017 W-1…W-4 slice plan. Not started.
 - [x] Public-v1 iCoach does not read the dormant medical domain.
 - [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.
