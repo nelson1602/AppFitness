@@ -9,6 +9,7 @@ import {
   AuthError,
   deleteAccount,
   getAccessToken,
+  getSession,
   getStatus,
   refreshTokens,
   restoreSession,
@@ -34,7 +35,7 @@ jest.mock('../infrastructure/auth-api', () => ({
 }));
 jest.mock('../infrastructure/session-storage', () => ({
   saveSession: jest.fn(),
-  saveTokens: jest.fn(),
+
   loadSession: jest.fn(),
   clearSession: jest.fn(),
 }));
@@ -343,5 +344,173 @@ describe('session-manager auth error classification (Slice 2B4)', () => {
     expect((caught as AuthError).reason).toBe('invalid-credentials');
     expect((caught as AuthError).message).toBe('invalid-credentials');
     expect((caught as AuthError).message).not.toMatch(/secret detail|not found|demo@x/i);
+  });
+});
+
+/**
+ * Account-switch race around `refreshTokens()`.
+ *
+ * `refreshTokens` awaits the network, so a sign-out plus a sign-in as another
+ * account can land in the middle of it. Before the fix it re-read the module's
+ * `currentSession` afterwards, which combined the NEW account's `user` with the
+ * OLD account's rotated tokens — an id and a bearer token belonging to
+ * different people, which per-user sync scoping (ADR-P030 Decision 8) would
+ * then act on faithfully. A 401 for the old refresh token likewise cleared
+ * whatever session happened to be current.
+ *
+ * These use a deferred promise rather than timers, so the interleaving is
+ * exact and deterministic: the switch is completed while the refresh is
+ * provably still in flight.
+ */
+describe('session-manager refresh vs. account switch', () => {
+  const userB: AuthUser = {
+    id: 'user-2',
+    email: 'other@appfitness.local',
+    username: 'other',
+    role: 'USER',
+    phone: null,
+    avatarUrl: null,
+  };
+
+  function deferred<T>(): {
+    promise: Promise<T>;
+    resolve: (value: T) => void;
+    reject: (reason: unknown) => void;
+  } {
+    let resolve!: (value: T) => void;
+    let reject!: (reason: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  }
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    // Start signed in as user A.
+    mockLogin.mockResolvedValue({ accessToken: 'a-access', refreshToken: 'a-refresh', user });
+    await signIn({ email: user.email, password: 'password12345' });
+  });
+
+  /** Signs in as user B, replacing the current session. */
+  async function switchToUserB(): Promise<void> {
+    mockLogin.mockResolvedValue({
+      accessToken: 'b-access',
+      refreshToken: 'b-refresh',
+      user: userB,
+    });
+    await signIn({ email: userB.email, password: 'password12345' });
+  }
+
+  it('discards a successful rotation whose session was replaced mid-flight', async () => {
+    const pending = deferred<{ accessToken: string; refreshToken: string }>();
+    mockRefresh.mockReturnValue(pending.promise);
+
+    const rotating = refreshTokens();
+    expect(mockRefresh).toHaveBeenCalledWith('a-refresh');
+
+    // The switch completes while A's refresh is provably still in flight.
+    await switchToUserB();
+    expect(getAccessToken()).toBe('b-access');
+    // Baseline: the two sign-ins each wrote their own complete session.
+    const writesBeforeRotation = mockSaveSession.mock.calls.length;
+
+    pending.resolve({ accessToken: 'a-access-2', refreshToken: 'a-refresh-2' });
+
+    await expect(rotating).resolves.toBeNull();
+    // B's session is untouched — its user is NOT paired with A's new tokens.
+    expect(getSession()).toEqual({
+      accessToken: 'b-access',
+      refreshToken: 'b-refresh',
+      user: userB,
+    });
+    expect(getStatus()).toBe('authenticated');
+    // The rotation added no write of its own: the generation is checked inside
+    // the lock, immediately before the single write, so A's tokens never reach
+    // storage at all.
+    expect(mockSaveSession.mock.calls.length).toBe(writesBeforeRotation);
+    expect(mockSaveSession).not.toHaveBeenCalledWith(
+      expect.objectContaining({ accessToken: 'a-access-2' }),
+    );
+  });
+
+  it('does not sign out the new account when the old refresh token is rejected', async () => {
+    const pending = deferred<{ accessToken: string; refreshToken: string }>();
+    mockRefresh.mockReturnValue(pending.promise);
+
+    const rotating = refreshTokens();
+    await switchToUserB();
+    const clearCallsBeforeRejection = mockClearSession.mock.calls.length;
+
+    pending.reject(new AuthApiError(401, 'revoked'));
+
+    await expect(rotating).resolves.toBeNull();
+    // A 401 is a statement about A's token only.
+    expect(mockClearSession.mock.calls.length).toBe(clearCallsBeforeRejection);
+    expect(getStatus()).toBe('authenticated');
+    expect(getSession()?.user.id).toBe('user-2');
+    expect(getAccessToken()).toBe('b-access');
+  });
+
+  /**
+   * The old shape checked the generation, then wrote, then checked again — so a
+   * switch landing *inside* the token write could still have overwritten the
+   * new account's tokens on disk, and returning null did not repair that.
+   *
+   * The window is now closed by construction: the check and the single-key
+   * write are both inside the session lock, with no await between them. This
+   * asserts the resulting invariant — a superseded rotation performs NO write.
+   * Convergence of the persisted bytes is proven against the real storage in
+   * session-persistence.spec.ts.
+   */
+  it('performs no write at all once superseded', async () => {
+    const pending = deferred<{ accessToken: string; refreshToken: string }>();
+    mockRefresh.mockReturnValue(pending.promise);
+
+    const rotating = refreshTokens();
+    await switchToUserB();
+    const writesBefore = mockSaveSession.mock.calls.length;
+
+    pending.resolve({ accessToken: 'a-access-2', refreshToken: 'a-refresh-2' });
+    await expect(rotating).resolves.toBeNull();
+
+    expect(mockSaveSession.mock.calls.length).toBe(writesBefore);
+    expect(getSession()?.user.id).toBe('user-2');
+    expect(getAccessToken()).toBe('b-access');
+  });
+
+  it('still rotates normally when the session is unchanged', async () => {
+    const pending = deferred<{ accessToken: string; refreshToken: string }>();
+    mockRefresh.mockReturnValue(pending.promise);
+
+    const rotating = refreshTokens();
+    pending.resolve({ accessToken: 'a-access-2', refreshToken: 'a-refresh-2' });
+
+    const rotated = await rotating;
+    expect(rotated).toEqual({
+      accessToken: 'a-access-2',
+      refreshToken: 'a-refresh-2',
+      user,
+    });
+    expect(getAccessToken()).toBe('a-access-2');
+    // One atomic write of the WHOLE session — never a token-only update.
+    expect(mockSaveSession).toHaveBeenCalledWith({
+      accessToken: 'a-access-2',
+      refreshToken: 'a-refresh-2',
+      user,
+    });
+  });
+
+  it('still clears the session on a 401 when it is unchanged', async () => {
+    const pending = deferred<{ accessToken: string; refreshToken: string }>();
+    mockRefresh.mockReturnValue(pending.promise);
+
+    const rotating = refreshTokens();
+    pending.reject(new AuthApiError(401, 'revoked'));
+
+    await expect(rotating).resolves.toBeNull();
+    expect(mockClearSession).toHaveBeenCalled();
+    expect(getStatus()).toBe('unauthenticated');
   });
 });

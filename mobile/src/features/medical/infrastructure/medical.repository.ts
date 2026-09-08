@@ -74,6 +74,7 @@ export async function createEvaluation(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: EVALUATION_TYPE,
         entityId: id,
         operation: 'CREATE',
@@ -138,6 +139,7 @@ export async function deleteEvaluation(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: EVALUATION_TYPE,
         entityId: id,
         operation: 'DELETE',
@@ -232,6 +234,7 @@ export async function addRestriction(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: RESTRICTION_TYPE,
         entityId: id,
         operation: 'CREATE',
@@ -280,6 +283,7 @@ export async function deactivateRestriction(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: RESTRICTION_TYPE,
         entityId: id,
         operation: 'UPDATE',

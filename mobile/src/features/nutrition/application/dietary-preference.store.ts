@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 
+import {
+  bindStoreToSession,
+  isSessionCurrent,
+  requireSessionSnapshot,
+  type SessionSnapshot,
+} from '@/features/authentication';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
@@ -34,16 +40,26 @@ export interface DietaryPreferenceState {
   remove: (id: string) => Promise<boolean>;
 }
 
-export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) => ({
-  status: 'idle',
-  preferences: [],
+const INITIAL = {
+  status: 'idle' as DietaryPreferenceStatus,
+  preferences: [] as DietaryPreference[],
   error: null,
+};
+
+export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) => ({
+  ...INITIAL,
   load: async () => {
+    // A load or write started as one account must never publish onto another's
+    // screen (ADR-P030 C-1): capture the owner, gate every publish.
+    let owner: SessionSnapshot | null = null;
     set({ status: 'loading', error: null });
     try {
+      owner = requireSessionSnapshot();
       const preferences = await getMyDietaryPreferences();
+      if (!isSessionCurrent(owner)) return;
       set({ preferences, status: 'ready', error: null });
     } catch (error) {
+      if (owner && !isSessionCurrent(owner)) return;
       if (isDatabaseUnsupportedOnWebError(error)) {
         // Web has no local database (ADR-P019): an expected, distinct state —
         // not logged as a runtime error and not auto-retried. Clear the list so
@@ -56,9 +72,12 @@ export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) =>
     }
   },
   add: async (input) => {
+    let owner: SessionSnapshot | null = null;
     set({ status: 'saving', error: null });
     try {
+      owner = requireSessionSnapshot();
       const preference = await addDietaryPreference(input);
+      if (!isSessionCurrent(owner)) return false;
       set((state) => ({
         preferences: [...state.preferences, preference],
         status: 'ready',
@@ -67,6 +86,7 @@ export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) =>
       return true;
     } catch (error) {
       logError('dietaryPreference.add', error);
+      if (owner && !isSessionCurrent(owner)) return false;
       set({
         status: 'error',
         error: 'Your dietary preference could not be saved. Please try again.',
@@ -75,14 +95,18 @@ export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) =>
     }
   },
   remove: async (id) => {
+    let owner: SessionSnapshot | null = null;
     set({ status: 'saving', error: null });
     try {
+      owner = requireSessionSnapshot();
       await removeDietaryPreference(id);
       const preferences = await getMyDietaryPreferences();
+      if (!isSessionCurrent(owner)) return false;
       set({ preferences, status: 'ready', error: null });
       return true;
     } catch (error) {
       logError('dietaryPreference.remove', error);
+      if (owner && !isSessionCurrent(owner)) return false;
       set({
         status: 'error',
         error: 'Your dietary preference could not be removed. Please try again.',
@@ -91,3 +115,6 @@ export const useDietaryPreferenceStore = create<DietaryPreferenceState>((set) =>
     }
   },
 }));
+
+// Cached exclusions belong to one account; a transition drops them immediately.
+bindStoreToSession(() => useDietaryPreferenceStore.setState(INITIAL));

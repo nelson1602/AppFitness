@@ -103,6 +103,7 @@ export async function logFood(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: MEAL_ITEM_ENTITY_TYPE,
         entityId: id,
         operation: 'CREATE',
@@ -139,6 +140,7 @@ export async function updateServingCount(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: MEAL_ITEM_ENTITY_TYPE,
         entityId: id,
         operation: 'UPDATE',
@@ -176,6 +178,7 @@ export async function removeMealItem(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: MEAL_ITEM_ENTITY_TYPE,
         entityId: id,
         operation: 'DELETE',
@@ -210,7 +213,11 @@ export async function listLoggedItems(userId: string, date: string): Promise<Log
   const marked = rows.some((row) => row.sync_status === 'conflict');
   const catalogBlocked = marked
     ? new Set(
-        await listParkedEntityIds('meal_items', SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED),
+        await listParkedEntityIds(
+          userId,
+          'meal_items',
+          SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED,
+        ),
       )
     : new Set<string>();
   return rows.map((row) => rowToLoggedItem(row, row.meal_type, catalogBlocked.has(row.id)));

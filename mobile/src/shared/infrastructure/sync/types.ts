@@ -12,6 +12,12 @@ import type {
  */
 export interface EnqueueInput {
   opId: string;
+  /**
+   * Owner of the write (ADR-P030 Decision 8). Required so the queue can be
+   * read, counted and drained per user — `signOut()` preserves the database,
+   * so an unscoped queue would let the next account push these operations.
+   */
+  userId: string;
   entityType: string;
   entityId: string;
   operation: SyncOperationType;
@@ -39,6 +45,8 @@ export interface ServerOperationOutcome {
 
 export interface RecordConflictInput {
   id: string;
+  /** Owner of the conflicted row (ADR-P030 Decision 8). */
+  userId: string;
   entityType: string;
   entityId: string;
   localPayload: Record<string, unknown>;

@@ -19,7 +19,10 @@ describe('migration 005 — body-measurement muscle mass', () => {
       version: 5,
       name: 'body-measurement-muscle-mass',
     });
-    expect(MIGRATIONS.at(-1)).toBe(bodyMeasurementMuscleMassMigration);
+    // Registered in fifth position. (This was `.at(-1)` while 005 was the
+    // newest migration; migration 006 appended after it, and asserting the
+    // fixed slot keeps the ordering claim true as the registry grows.)
+    expect(MIGRATIONS[4]).toBe(bodyMeasurementMuscleMassMigration);
   });
 
   it('adds a nullable constrained column without changing existing rows', () => {

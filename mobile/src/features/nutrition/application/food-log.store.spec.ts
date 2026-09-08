@@ -1,4 +1,5 @@
-import { refreshTokens } from '@/features/authentication';
+import * as authModule from '@/features/authentication';
+import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
@@ -14,11 +15,14 @@ import { generateMealPlan } from './meal-generator';
 import { selectMealPlan } from './meal-plan.service';
 import { useFoodLogStore } from './food-log.store';
 
-jest.mock('@/features/authentication', () => ({
-  getSession: () => ({ user: { id: 'user-1' } }),
-  getAccessToken: () => 'token-1',
-  refreshTokens: jest.fn(),
-}));
+// A faithful in-memory session (generation + owner comparison), NOT a stub:
+// `isSessionCurrent` really compares, so the store guards are exercised.
+jest.mock('@/features/authentication', () =>
+  // A jest.mock factory is hoisted above every import, so the double has to
+  // be pulled in lazily here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/features/authentication/testing/fake-session').createFakeSessionModule(),
+);
 jest.mock('@/shared/infrastructure/sync', () => ({ runSync: jest.fn() }));
 jest.mock('@/shared/infrastructure/logging', () => ({ logError: jest.fn(), logWarn: jest.fn() }));
 jest.mock('../infrastructure/food-log.repository', () => ({
@@ -35,7 +39,21 @@ const mockLog = jest.mocked(logFood);
 const mockUpdate = jest.mocked(updateServingCount);
 const mockRemove = jest.mocked(removeMealItem);
 const mockRunSync = jest.mocked(runSync);
-const mockRefresh = jest.mocked(refreshTokens);
+const auth = authModule as unknown as FakeSessionModule;
+const mockRefresh = auth.refreshTokens;
+
+const SESSION_A = {
+  accessToken: 'token-1',
+  refreshToken: 'refresh-1',
+  user: {
+    id: 'user-1',
+    email: 'a@appfitness.local',
+    username: 'a',
+    role: 'USER' as const,
+    phone: null,
+    avatarUrl: null,
+  },
+};
 
 const syncReport = (outcome: 'success' | 'offline' | 'unauthenticated') => ({
   outcome,
@@ -65,6 +83,7 @@ function loggedItem(overrides: Partial<LoggedMealItem> = {}): LoggedMealItem {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  auth.becomeUser(SESSION_A.user.id, SESSION_A);
   useFoodLogStore.setState({
     status: 'idle',
     date: '2026-07-13',
@@ -283,7 +302,7 @@ describe('food-log store (Slice 4C)', () => {
   });
 
   it('retries sync once after rotating an expired token', async () => {
-    mockRefresh.mockResolvedValue({ accessToken: 'token-2' } as never);
+    mockRefresh.mockResolvedValue({ ...SESSION_A, accessToken: 'token-2' });
     mockRunSync
       .mockResolvedValueOnce(syncReport('unauthenticated'))
       .mockResolvedValueOnce(syncReport('success'));
@@ -294,6 +313,43 @@ describe('food-log store (Slice 4C)', () => {
     expect(mockRefresh).toHaveBeenCalled();
     expect(mockRunSync).toHaveBeenCalledTimes(2);
     expect(useFoodLogStore.getState().sync.state).toBe('idle');
+  });
+
+  /**
+   * The account id and the access token come from ONE captured session, and a
+   * rotation that returns a different account aborts the retry. Without that,
+   * an account switch mid-run would push user-1's queue under user-2's token.
+   */
+  it('pairs the run userId with the token from the same captured session', async () => {
+    mockRunSync.mockResolvedValue(syncReport('success'));
+    mockList.mockResolvedValue([]);
+
+    await useFoodLogStore.getState().syncNow();
+
+    const [deps] = mockRunSync.mock.calls[0];
+    expect(deps.userId).toBe('user-1');
+    expect(deps.getToken()).toBe('token-1');
+  });
+
+  it('does not retry when the rotated session belongs to a different account', async () => {
+    mockRunSync.mockResolvedValue(syncReport('unauthenticated'));
+    mockRefresh.mockResolvedValue({
+      accessToken: 'other-token',
+      refreshToken: 'other-refresh',
+      user: { ...SESSION_A.user, id: 'user-2', email: 'b@appfitness.local', username: 'b' },
+    });
+    mockList.mockResolvedValue([]);
+
+    await useFoodLogStore.getState().syncNow();
+
+    expect(mockRunSync).toHaveBeenCalledTimes(1);
+    for (const [deps] of mockRunSync.mock.calls) {
+      expect(deps.userId).toBe('user-1');
+      expect(deps.getToken()).not.toBe('other-token');
+    }
+    // The day is still re-read for the account the run started with.
+    expect(mockList).toHaveBeenCalledWith('user-1', '2026-07-13');
+    expect(useFoodLogStore.getState().sync.state).toBe('error');
   });
 
   it('reflects a sync error state when runSync throws', async () => {

@@ -1,4 +1,5 @@
-import { getSession } from '@/features/authentication';
+import * as authModule from '@/features/authentication';
+import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
@@ -12,7 +13,14 @@ import {
 import { recomputeSnapshots } from './progress.gathering';
 import { useProgressStore } from './progress.store';
 
-jest.mock('@/features/authentication', () => ({ getSession: jest.fn() }));
+// A faithful in-memory session (generation + owner comparison), NOT a stub:
+// `isSessionCurrent` really compares, so the store guards are exercised.
+jest.mock('@/features/authentication', () =>
+  // A jest.mock factory is hoisted above every import, so the double has to
+  // be pulled in lazily here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/features/authentication/testing/fake-session').createFakeSessionModule(),
+);
 jest.mock('@/shared/infrastructure/logging', () => ({ logError: jest.fn() }));
 jest.mock('../infrastructure/progress.repository', () => ({
   listBodyWeights: jest.fn(),
@@ -27,7 +35,7 @@ jest.mock('../infrastructure/progress.repository', () => ({
 }));
 jest.mock('./progress.gathering', () => ({ recomputeSnapshots: jest.fn() }));
 
-const mockGetSession = jest.mocked(getSession);
+const auth = authModule as unknown as FakeSessionModule;
 const mockLogError = jest.mocked(logError);
 const mockListBW = jest.mocked(listBodyWeights);
 const mockListBM = jest.mocked(listBodyMeasurements);
@@ -49,7 +57,7 @@ beforeEach(() => {
     snapshots: [],
     error: null,
   });
-  mockGetSession.mockReturnValue({ user: { id: USER } } as never);
+  auth.becomeUser(USER);
   mockListBW.mockResolvedValue([]);
   mockListBM.mockResolvedValue([]);
   mockListSnap.mockResolvedValue([]);
@@ -71,7 +79,9 @@ describe('useProgressStore', () => {
   });
 
   it('load surfaces a safe, sanitized message on failure (never raw internals)', async () => {
-    mockGetSession.mockReturnValueOnce(null as never);
+    // No session at all: the store must still report a safe, sanitized
+    // message rather than throwing out of the action.
+    auth.endSession();
     await useProgressStore.getState().load();
     const s = useProgressStore.getState();
     expect(s.status).toBe('error');

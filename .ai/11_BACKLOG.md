@@ -3290,10 +3290,10 @@ in each asserts exactly that. No resolution affordance was added.
 
 Status: **Open** — specification authored as ADR-P030 on 2026-09-07, revised
 seven times the same day after review, and **Accepted 2026-09-07**. The
-architecture is authorized; **the implementation is not** — **C-1 … C-7 remain
-unauthorized**, and **C-0 (BUG-014) is separately authorized**. **No owner
-decision remains open.** Still blocked on **BUG-014**, and on per-slice
-authorization thereafter
+architecture is authorized; **the implementation is not** — **C-2 … C-7 remain
+unauthorized**. **C-0 (BUG-014)** and **C-1 (per-user scoping)** are
+implemented. **No owner decision remains open.** Still blocked on per-slice
+authorization
 Priority: **P1** (raised from P2 — see §Re-audit)
 Type: Bug
 Owner: Unassigned
@@ -3434,13 +3434,17 @@ Performed by **ADR-P030**, which re-verified this entry rather than trusting its
   `sync_conflicts` row (`sync-worker.ts:180-185`), so a conflict-scoped surface
   will legitimately list fewer items than the badges. The discriminator is the
   queue row's `last_error` via `listParkedEntityIds`, per BUG-007.
-- **Cross-account isolation is a prerequisite.** `sync_queue`, `sync_state` and
-  `sync_conflicts` **all** lack `user_id` (`001-initial.ts:307-340`) and
-  `signOut()` preserves the database, so a second account on the same device
-  already sees the first account's conflicts and queued ops. A review screen is
-  what would first render that as content. Per-user scoping of all three is
-  frozen by ADR-P030 §Decision 8; wipe-on-sign-out is **rejected** because it
-  would discard un-synced offline work.
+- **Cross-account isolation was a prerequisite, and is now met.** The three
+  sync tables originally shipped without `user_id` (`001-initial.ts:307-340`)
+  while `signOut()` preserved the database, so a second account on the same
+  device saw the first account's conflicts and queued ops — and a review screen
+  would have been the surface that first rendered that as content. **C-1**
+  (local migration `006`) scopes all three by `user_id`, quarantines rows whose
+  owner is not provable, and makes every accessor and call site explicitly
+  user-scoped. Wipe-on-sign-out stays **rejected**: it would discard un-synced
+  offline work. Sign-out preserves per-user SQLite data while immediately
+  invalidating every captured session snapshot and resetting the session-bound
+  stores, so the signed-out account’s rows are never shown to the next one.
 
 **Scope unchanged.** Public V1 only; medical stays dormant, and ADR-P030 confirms
 dormancy at the sync layer — `registerMedicalSyncAppliers` is exported but never
@@ -3452,13 +3456,20 @@ called from `_layout.tsx`, so the two medical entity types cannot enter conflict
       screen inventory, its behaviour and its copy **before** any implementation.
       **ADR-P030 is Accepted (2026-09-07)**, with no owner decision remaining
       open. Acceptance authorizes the **architecture only** — the implementation
-      stays a separate gate, so **this entry remains Open**: **C-1 … C-7 are
-      unauthorized**, and only **C-0 (BUG-014)** has been authorized.
+      stays a separate gate, so **this entry remains Open**: **C-2 … C-7 are
+      unauthorized**. **C-0 (BUG-014)** and **C-1** have each been separately
+      authorized.
 - [ ] **BUG-014 is fixed first** (ADR-P030 **C-0**) — a parked conflict again
       shields its row from the pull. Until then "both versions remain preserved"
       is false, so this entry cannot be satisfied.
-- [ ] Per-user scoping of `sync_queue`, `sync_state` and `sync_conflicts` has
-      landed, with a fail-closed backfill and NULL quarantine (**C-1**).
+- [x] Per-user scoping of `sync_queue`, `sync_state` and `sync_conflicts` has
+      landed, with an entity-type-qualified fail-closed backfill and NULL
+      quarantine, and migration 006 also pre-provisions the §Decision 6 outbox
+      columns as dormant schema (**C-1**). The session boundary that scoping
+      depends on is closed with it: one frozen snapshot copy per operation, a
+      generation guard, an explicit-auth intent epoch, serialized session
+      mutations, and a single fully-validated versioned SecureStore envelope
+      that never migrates a legacy triple.
 - [ ] The `EntitySyncHandler` / repository contract is transaction-aware **and
       every existing-row `UPDATE`/`DELETE` mutation carries an owner +
       expected-version predicate** (**C-2**) — `CREATE` stays an insert, with only

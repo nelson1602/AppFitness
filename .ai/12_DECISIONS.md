@@ -9674,9 +9674,9 @@ behaviour.
 ## ADR-P030 — Public-V1 Conflict Review and Resolution
 
 Status: **Accepted** (2026-09-07) — the **architecture** below is authorized.
-Acceptance does **not** authorize the implementation slices: **C-1 … C-7 remain
-unauthorized** and each needs its own approval. **C-0 (BUG-014) is separately
-authorized** and may proceed. **No owner decision remains open.**
+Acceptance does **not** authorize the implementation slices: **C-2 … C-7 remain
+unauthorized** and each needs its own approval. **C-0 (BUG-014)** and **C-1**
+(per-user scoping) are implemented. **No owner decision remains open.**
 Date: 2026-09-07 (revised seven times the same day after review — see
 §Revision note)
 Owner: Product / Mobile Architecture / Security
@@ -10618,7 +10618,11 @@ recorded but not yet settled cannot vanish — which the first draft's did, sinc
 `listPendingConflicts()` filters `status = 'PENDING'`.
 
 **Local migration 006 extends `sync_conflicts`** with a durable, per-user
-**resolution outbox** (the same migration that adds scoping — §Decision 8):
+**resolution outbox** (the same migration that adds scoping — §Decision 8).
+Because a shipped migration is immutable (`.ai/04_DATABASE.md`), **slice C-1
+pre-provisions these columns as dormant schema**; **C-4 owns every behaviour
+that reads or writes them** (T1 / T3 / T1′, `listUnsettledConflicts`, retry).
+All are nullable or defaulted, so C-1 writes conflicts without mentioning them:
 
 | Column | Purpose |
 |---|---|
@@ -10737,12 +10741,18 @@ to `local_user(id)` can be declared without excluding quarantined rows.
 
 **Fail-closed migration and backfill (local migration 006):**
 
-- **Attributable rows** — a `sync_queue` / `sync_conflicts` row whose `entity_id`
-  matches exactly one user-owned row in its entity table is backfilled with that
-  `user_id`.
-- **Ambiguous or orphaned rows** — no match, or a match under more than one
-  `user_id` — get `user_id = NULL`. **Never guessed.** They are invisible and
-  un-pushable, and **retained indefinitely** (§Decision 14).
+- **Attributable rows** — a `sync_queue` / `sync_conflicts` row is matched on
+  **`entity_type` AND `entity_id`**, against a static map from each entity type
+  to its table *and that table’s owner column*. An `id` is unique only within a
+  table, so `entity_id` alone could borrow an unrelated row’s owner; and the
+  owner column is not uniformly `user_id` — `exercises` is a catalog table owned
+  through `created_by`. A row resolving to exactly one owner is backfilled with
+  it.
+- **Ambiguous, orphaned, owner-less or unknown-type rows** — no match, a match
+  under more than one owner, an unrecognised `entity_type`, or a matched row
+  with no owner (a built-in exercise) — get `user_id = NULL`. **Never guessed.**
+  They are invisible and un-pushable, and **retained indefinitely**
+  (§Decision 14).
 - **`sync_state` cursors are not backfilled to any user.** A cursor is a claim
   about what a user has already seen, and the existing global rows cannot be
   attributed. Every `(user_id, entity_type)` cursor **initialises at 0**, which
@@ -10755,6 +10765,97 @@ to `local_user(id)` can be declared without excluding quarantined rows.
   (`migrations/index.ts` `runMigrations`, `PRAGMA user_version` + the
   `migrations` audit table), so it applies whole or not at all.
 - **Never edit migrations 001–005** (`.ai/04_DATABASE.md`); 006 is additive.
+- **Migration 006 is now taken.** C-1 ships it, so it is a shipped migration and
+  immutable. The next local schema change — including the Wellness Safety
+  Profile contract (ADR-P017 **W-1**) — must use **007** or later. W-1 must not
+  extend 006 even though both are additive.
+
+##### Decision 8 addendum — the session boundary scoping depends on
+
+Per-user SQL is necessary but not sufficient: it is only as good as the
+`userId` handed to it. Every session operation awaits the network or
+SecureStore, so another account can become current mid-flight, and the
+following were all reachable before C-1:
+
+| Operation | Failure without the boundary |
+|---|---|
+| `refreshTokens` | `{ ...currentSession, ...rotated }` re-read the global after the await, pairing the **new** account's user with the **old** account's tokens; a 401 for the old token signed the new account out |
+| Token persistence | Three independent SecureStore keys, rotation writing only the two token keys — a mixed identity/token triple survived a restart, and "the next rotation repairs it" is false because a restore rebuilds the mismatch first |
+| `refreshUser` | `GET /auth/me` for A merged onto whatever tokens were current, renaming the account actually signed in |
+| `restoreSession` | A slow restore overwrote a newer, explicit authentication |
+| `signOut` / `deleteAccount` | A captured account's completion signed out — or wiped the database of — its replacement |
+| `resetPassword` | An unconditional clear signed out an account that authenticated during the reset |
+| Every user-scoped store | A load or write started as A published A's rows into the shared Zustand state B renders from; and after a switch a store still held A's rows with no async step to guard |
+
+Five mechanisms close it, and all five are required:
+
+1. **Immutable snapshot.** `requireSessionSnapshot()` captures user id and both
+   tokens from one session object, so they can never be recombined. Callers pass
+   the snapshot down and never re-read the session per step. The capture holds a
+   frozen **copy** of the user: `readonly` is compile-time only, and freezing
+   the wrapper alone would leave a shared `user` reference through which a
+   holder of the live session could retarget an in-flight operation.
+2. **Generation guard.** `generation` increments on every transition;
+   `isSessionCurrent(snapshot)` compares generation **and** owner. A stale
+   operation abandons — it mutates no memory, storage, SQLite or store state.
+3. **Serialized mutations.** Persist-and-publish runs inside a session lock, so
+   a check and the write it guards cannot be split. Checking before an `await`
+   is not protection: the replacement lands *during* the await. Intent
+   reservations (mechanism 4) queue on this same mutex, so ordering intents and
+   ordering writes are one ordering rather than two. Network calls stay outside
+   the lock so a slow refresh cannot block a sign-in.
+4. **Explicit-auth intent, linearized with persistence.** Generation orders
+   session *transitions*, which is not enough for two overlapping
+   `signIn`/`signUp` calls: neither has published, so neither is stale by
+   generation, yet only the user's latest intent may win. `authIntent` is a
+   separate monotonic epoch, and every `signIn`, `signUp` and `signOut`
+   **reserves it through the same session lock** (mechanism 3) before its network
+   request begins: the mutex acquisition is that intent's linearization point.
+   Once a commit has entered its locked persist-and-publish section, no newer
+   intent can therefore be accepted until the whole transaction finishes, which
+   is what makes a single check at the top of the section sufficient — a write
+   issued below it cannot be orphaned by a supersession arriving mid-write.
+   Claiming the epoch synchronously outside the lock was not enough: an attempt
+   could pass its check, begin its SecureStore write, be superseded, return
+   `superseded`, and still leave its bytes on disk for a restart to restore. An
+   already-issued SecureStore write cannot be recalled, so the guarantee is
+   ordering, not cancellation. A superseded attempt writes nothing, publishes
+   nothing, exposes no `Session`, and — crucially — does **not throw**, so a
+   stale credential banner cannot appear over a signed-in account. It resolves to
+   the typed `AuthAttemptOutcome` `superseded` instead. Because that outcome does
+   not say *why* the attempt was replaced — a newer submission, or an external
+   sign-out — the sign-in screen clears its loading state by submission
+   ownership rather than by outcome; keying it to the outcome stranded the
+   spinner whenever the supersession came from outside the screen. A restore
+   reserves no intent but checks the epoch, so an explicit sign-in beginning
+   mid-restore wins.
+5. **One versioned envelope.** The whole session is a single SecureStore key
+   (`auth.session.v1`), written atomically with respect to the identity it
+   carries. There is no token-only write left, so no partial state to repair.
+   Reads are fail-closed: unparseable, unknown-version or incomplete state is
+   erased and reported as no session, never reconstructed. Every `AuthUser`
+   field is validated — non-empty id/email/username, `role` exactly `USER` or
+   `ADMIN`, `phone`/`avatarUrl` string-or-null, `emailVerifiedAt`
+   absent/string/null — and the result is a copy, so parsed JSON is never
+   aliased and an out-of-range `role` cannot reach an RBAC check.
+
+**Legacy keys are never migrated.** A *complete* pre-C-1 triple is not evidence
+of a coherent session: the implementation that wrote those keys rotated tokens
+independently of the user record, so a triple whose tokens belong to A and whose
+user is B parses exactly like a genuine one, and nothing stored ties them
+together. If there is no valid envelope and **any** legacy key is present, every
+session key is deleted and the user signs in again. A valid envelope stays
+authoritative, with remnants purged best-effort beside it.
+
+Sign-out still preserves per-user SQLite data (this Decision), but the
+transition invalidates every outstanding snapshot and resets the session-bound
+stores, so the signed-out account's data is never shown to the next one.
+Account deletion applies only to the captured account: if another account
+became current, the local erasure is withheld rather than destroying the
+replacement's data. A **password reset** clears local session storage only when
+this device was signed out as the reset began and is still signed out under the
+same intent: an emailed reset token proves nothing about which account is
+signed in here, so it must never sign out an unrelated session.
 
 #### 9. `GET /sync/conflicts` — reconciliation, and the cross-device boundary
 
@@ -10921,17 +11022,17 @@ Fail **visible and closed**, never silent:
 #### 13. Implementation slices — prerequisites first
 
 Sequenced so no prerequisite can ship after the UI. **Acceptance of this ADR
-authorizes the architecture, not these slices.** **C-0 is separately
-authorized**; **C-1 … C-7 remain unauthorized** and each requires its own
+authorizes the architecture, not these slices.** **C-0** and **C-1** are
+implemented; **C-2 … C-7 remain unauthorized** and each requires its own
 approval before any code is written.
 
 | # | Slice | Depends on | API / schema |
 |---|---|---|---|
 | **C-0** | **BUG-014 guard fix** — `hasPendingOpFor` counts `'CONFLICT'`; regression proving a parked conflict survives a pull | — | none |
-| **C-1** | **Per-user scoping** (§Decision 8): local migration 006 — `user_id` on all three tables, `sync_state` rebuild + composite PK, cursor re-initialisation, fail-closed backfill, NULL quarantine, every accessor scoped | C-0 | **local migration** |
+| **C-1** | **Per-user scoping + outbox schema + session boundary** (§Decisions 8, 6) — **implemented**: local migration 006 — `user_id` on all three tables, `sync_state` rebuild + composite PK, cursor re-initialisation, entity-type-qualified fail-closed backfill, NULL quarantine, every accessor and call site scoped; **plus the §Decision 6 outbox columns on `sync_conflicts` as dormant schema**, because 006 can never be edited afterwards (no outbox behaviour); **plus the account-isolation boundary scoping depends on** (§Decision 8 addendum below) | C-0 | **local migration** |
 | **C-2** | **Push transaction boundary + conditional write predicate + typed apply outcome** (§Decision 3): a **per-operation transaction** in `processOperation` with `tx` threaded through the idempotency probe, `getServerState`, `apply`, and the re-signatured `recordConflict`/`recordOutcome`; `apply` returning `ApplyOutcome`; the `STALE → recordConflict` branch; the new resolution method and owner-row reader; the **state-specific tombstone predicate**; and the owner + expected-version predicate on existing-row **`UPDATE`/`DELETE`** mutations in place of `where: { id }` (**`CREATE` stays an insert**). **This changes the shared `/sync/push` write path**, so it is *not* a behaviour-free refactor: a race that previously overwrote silently now reports a normal conflict, and a mutation now commits atomically with its terminal outcome. It closes A-15(b)'s TOCTOU **and** the mutation-without-recorded-op-id idempotency hole, and **owns the concurrency, atomicity and late-conflict tests for both** | C-1 | **interface (2 tx-aware, 1 re-typed + 2 new methods) + `SyncService` per-op transaction across 5 call sites and 2 helpers + 5 ports; shared with `/sync/push`** |
 | **C-3** | **Server resolve contract** (§Decisions 3, 4, 9, 10, 11): both endpoints, DTOs, throttle, owner scoping, conditional claim, `Serializable` resolution transaction, per-operation semantics, stale outcome, best-effort audit, API e2e | C-2 | **2 endpoints** |
-| **C-4** | **Local resolution service + outbox** (§Decisions 4, 6, 7, 10): **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts`, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under existing backoff, presenter allow-list. No UI | C-3 | none |
+| **C-4** | **Local resolution service + outbox behaviour** (§Decisions 4, 6, 7, 10) — the columns already exist from C-1: **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts`, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under existing backoff, presenter allow-list. No UI | C-3 | none |
 | **C-5** | **Copy deck slice**: word the key families of §Decision 15 in EN/ES | C-4 | none |
 | **C-6** | **`/sync-conflicts` route** + dashboard labelled button + Web-unavailable arm | C-5 | none |
 | **C-7** | **End-to-end verification**: two-device Maestro journeys, both choices, offline-choose-then-settle, restart mid-settlement, stale re-review | C-6 | none |
@@ -10942,8 +11043,10 @@ C-4, and the no-silent-overwrite guarantee on C-0.
 
 **Migrations, endpoints and interface changes actually required:**
 
-- **One local SQLite migration (006)**; **no Prisma migration** — `deleted_at`,
-  `deleted_by` and `version` already exist on every synchronized entity.
+- **One local SQLite migration (006)**, carrying **both** the scoping columns
+  and the dormant outbox columns, since it cannot be revised later; **no Prisma
+  migration** — `deleted_at`, `deleted_by` and `version` already exist on every
+  synchronized entity.
 - **Two server endpoints**, with the resolve endpoint's **own typed response
   contract** (§Decision 3). `SYNC_ERROR_CODES` and the `/sync/push` wire shape
   are **unchanged**.
@@ -11303,8 +11406,8 @@ decided in §Decision 14 — **retain indefinitely; any purge needs separate
 authorization**.
 
 What remains is **authorization to implement**, which is a gate, not a design
-question. Acceptance settles the architecture only. **C-0 (BUG-014) has since
-been separately authorized**; **C-1 … C-7 have not**, and each needs its own
+question. Acceptance settles the architecture only. **C-0 (BUG-014) and C-1
+are implemented**; **C-2 … C-7 are not authorized**, and each needs its own
 approval before implementation begins.
 
 ### Supersedes / Preserves

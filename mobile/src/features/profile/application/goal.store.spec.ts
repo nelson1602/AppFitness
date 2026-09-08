@@ -1,10 +1,20 @@
 import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
+import * as authModule from '@/features/authentication';
+import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { Goal, GoalInput } from '../domain/goal.types';
 import { getMyActiveGoal, setMyGoal } from './goal.service';
 import { useGoalStore } from './goal.store';
 
+// A faithful in-memory session (generation + owner comparison), NOT a stub:
+// `isSessionCurrent` really compares, so the store guards are exercised.
+jest.mock('@/features/authentication', () =>
+  // A jest.mock factory is hoisted above every import, so the double has to
+  // be pulled in lazily here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/features/authentication/testing/fake-session').createFakeSessionModule(),
+);
 jest.mock('./goal.service', () => ({
   getMyActiveGoal: jest.fn(),
   setMyGoal: jest.fn(),
@@ -13,6 +23,8 @@ jest.mock('@/shared/infrastructure/logging', () => ({
   logError: jest.fn(),
   logWarn: jest.fn(),
 }));
+
+const auth = authModule as unknown as FakeSessionModule;
 
 const mockGetMyActiveGoal = jest.mocked(getMyActiveGoal);
 const mockSetMyGoal = jest.mocked(setMyGoal);
@@ -36,6 +48,7 @@ const input: GoalInput = { goalType: 'FAT_LOSS', targetWeightKg: 78, targetDate:
 describe('goal store', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    auth.becomeUser('user-1');
     useGoalStore.setState({ status: 'idle', goal: null, error: null });
   });
 

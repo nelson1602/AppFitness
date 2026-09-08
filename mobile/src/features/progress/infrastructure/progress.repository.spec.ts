@@ -95,6 +95,7 @@ describe('progress.repository — body_weights', () => {
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-1',
+        userId: USER,
         entityType: 'body_weights',
         entityId: BW_ID,
         operation: 'CREATE',
@@ -136,6 +137,7 @@ describe('progress.repository — body_weights', () => {
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-dup',
+        userId: USER,
         entityType: 'body_weights',
         entityId: BW_ID,
         operation: 'UPDATE',
@@ -190,6 +192,7 @@ describe('progress.repository — body_weights', () => {
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-2',
+        userId: USER,
         entityType: 'body_weights',
         entityId: BW_ID,
         operation: 'UPDATE',
@@ -222,6 +225,7 @@ describe('progress.repository — body_weights', () => {
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-3',
+        userId: USER,
         entityType: 'body_weights',
         entityId: BW_ID,
         operation: 'DELETE',
@@ -319,6 +323,7 @@ describe('progress.repository — progress_snapshots', () => {
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-snap-1',
+        userId: USER,
         entityType: 'progress_snapshots',
         entityId: SNAP_ID,
         operation: 'CREATE',
@@ -474,6 +479,7 @@ describe('progress.repository — body_measurements', () => {
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-4',
+        userId: USER,
         entityType: 'body_measurements',
         entityId: 'bm-1',
         operation: 'CREATE',

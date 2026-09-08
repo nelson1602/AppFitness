@@ -1,5 +1,5 @@
 import { Stack, router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { View } from 'react-native';
 
 import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
@@ -34,22 +34,46 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorReason, setErrorReason] = useState<AuthErrorReason | null>(null);
+  /**
+   * Which submission this screen currently owns (ADR-P030 C-1).
+   *
+   * `superseded` says the session layer discarded the attempt, but not why: it
+   * may be a newer submission from this screen, or something external such as a
+   * sign-out. Returning early without clearing `loading` was therefore unsafe —
+   * an external supersession left the form spinning forever with no attempt
+   * left to clear it. Ownership is what decides: the latest submission owns
+   * `loading`, whatever the outcome, and an older one may never touch it.
+   */
+  const submissionRef = useRef(0);
 
   const submit = async () => {
+    const submission = submissionRef.current + 1;
+    submissionRef.current = submission;
+    const ownsScreen = () => submissionRef.current === submission;
+
     setLoading(true);
     setErrorReason(null);
     try {
-      if (mode === 'register') {
-        await signUp({ email, username, password });
-      } else {
-        await signIn({ email, password });
-      }
+      const outcome =
+        mode === 'register'
+          ? await signUp({ email, username, password })
+          : await signIn({ email, password });
+      // The session layer replaced this attempt. Never navigate and never show
+      // an error for it — a superseded attempt acted for an account the user no
+      // longer asked for.
+      if (outcome.status === 'superseded') return;
       router.replace('/dashboard');
     } catch (error) {
-      // Only the typed, safe reason is used — never the raw error/message.
+      // Only the typed, safe reason is used — never the raw error/message. A
+      // superseded attempt never throws, so no stale banner can appear here;
+      // and an older submission's failure must not overwrite a newer one.
+      if (!ownsScreen()) return;
       setErrorReason(error instanceof AuthError ? error.reason : 'unexpected');
     } finally {
-      setLoading(false);
+      // Cleared for every outcome — including `superseded`, so an external
+      // sign-out cannot strand the spinner — but only by the submission that
+      // still owns the screen.
+      if (ownsScreen()) setLoading(false);
     }
   };
 

@@ -1,10 +1,20 @@
 import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
+import * as authModule from '@/features/authentication';
+import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { Profile, ProfileInput } from '../domain/profile.types';
 import { getMyProfile, saveMyProfile } from './profile.service';
 import { useProfileStore } from './profile.store';
 
+// A faithful in-memory session (generation + owner comparison), NOT a stub:
+// `isSessionCurrent` really compares, so the store guards are exercised.
+jest.mock('@/features/authentication', () =>
+  // A jest.mock factory is hoisted above every import, so the double has to
+  // be pulled in lazily here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/features/authentication/testing/fake-session').createFakeSessionModule(),
+);
 jest.mock('./profile.service', () => ({
   getMyProfile: jest.fn(),
   saveMyProfile: jest.fn(),
@@ -13,6 +23,8 @@ jest.mock('@/shared/infrastructure/logging', () => ({
   logError: jest.fn(),
   logWarn: jest.fn(),
 }));
+
+const auth = authModule as unknown as FakeSessionModule;
 
 const mockGetMyProfile = jest.mocked(getMyProfile);
 const mockSaveMyProfile = jest.mocked(saveMyProfile);
@@ -54,6 +66,7 @@ const input: ProfileInput = {
 describe('profile store', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    auth.becomeUser('user-1');
     useProfileStore.setState({ status: 'idle', profile: null, error: null });
   });
 

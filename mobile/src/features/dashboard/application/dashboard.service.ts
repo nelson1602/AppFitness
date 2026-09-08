@@ -19,8 +19,8 @@ export async function loadDashboardData(now: Date = new Date()): Promise<Dashboa
     getMyProfile(),
     getActiveGoal(session.user.id),
     getMyLatestPhysicalAssessment(),
-    countByStatus(),
-    listPendingConflicts(),
+    countByStatus(session.user.id),
+    listPendingConflicts(session.user.id),
   ]);
 
   const adapter = buildDashboardAssessment({

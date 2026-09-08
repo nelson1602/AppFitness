@@ -58,6 +58,12 @@ export interface SyncReport {
 }
 
 export interface SyncDeps {
+  /**
+   * Owner whose queue, conflicts and cursors this run touches (ADR-P030
+   * Decision 8). Explicit rather than read from a module global, so a run can
+   * never drain another account's queue.
+   */
+  userId: string;
   getToken(): string | null;
   baseUrl?: string;
   now?(): string;
@@ -81,23 +87,25 @@ export async function runSync(deps: SyncDeps): Promise<SyncReport> {
   const transport = createSyncTransport(deps.getToken, deps.baseUrl);
   const now = deps.now ?? ((): string => new Date().toISOString());
 
-  const pushOutcome = await pushLoop(transport, now, report);
+  const pushOutcome = await pushLoop(deps.userId, transport, now, report);
   if (pushOutcome !== 'success') return { ...report, outcome: pushOutcome };
 
-  const pullOutcome = await pullLoop(transport, report);
+  const pullOutcome = await pullLoop(deps.userId, transport, report);
   return { ...report, outcome: pullOutcome };
 }
 
 async function pushLoop(
+  userId: string,
   transport: SyncTransport,
   now: () => string,
   report: SyncReport,
 ): Promise<SyncOutcome> {
   for (;;) {
-    const batch = await peekReady(now(), PUSH_BATCH_SIZE);
+    const batch = await peekReady(userId, now(), PUSH_BATCH_SIZE);
     if (batch.length === 0) return 'success';
 
     await markInFlight(
+      userId,
       batch.map((row) => row.op_id),
       now(),
     );
@@ -123,7 +131,7 @@ async function pushLoop(
     } catch (error) {
       // Whole-batch failure (network/server/auth): schedule retries and stop.
       for (const row of batch) {
-        await markFailed(row.op_id, describeError(error), now());
+        await markFailed(userId, row.op_id, describeError(error), now());
       }
       return error instanceof SyncHttpError && error.status === 401 ? 'unauthenticated' : 'offline';
     }
@@ -135,12 +143,12 @@ async function pushLoop(
 
       switch (result.status) {
         case 'APPLIED': {
-          await markApplied(result.opId);
+          await markApplied(userId, result.opId);
           report.pushedApplied += 1;
           break;
         }
         case 'CONFLICT': {
-          await markConflict(result.opId, now());
+          await markConflict(userId, result.opId, now());
           const info = decoded.get(result.opId);
           // Sensitive conflicts stay encrypted in the local conflict
           // store — plaintext medical text never rests in SQLite.
@@ -153,6 +161,7 @@ async function pushLoop(
           await recordConflict(
             {
               id: result.conflictId ?? result.opId,
+              userId,
               entityType: row.entity_type,
               entityId: row.entity_id,
               localPayload,
@@ -170,7 +179,7 @@ async function pushLoop(
           if (result.errorCode === SYNC_ERROR_CODES.DEPENDENCY_NOT_READY) {
             // Retryable: the parent (e.g. a meal not yet synced) will arrive
             // later. Keep the op queued with backoff — never drop it.
-            await markFailed(result.opId, SYNC_ERROR_CODES.DEPENDENCY_NOT_READY, now());
+            await markFailed(userId, result.opId, SYNC_ERROR_CODES.DEPENDENCY_NOT_READY, now());
             report.deferred += 1;
             break;
           }
@@ -178,6 +187,7 @@ async function pushLoop(
             // Terminal + actionable: park it visibly (no auto-retry) and flag
             // the entity row so the UI can surface it — not silently discarded.
             await markActionRequired(
+              userId,
               result.opId,
               SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED,
               now(),
@@ -190,7 +200,7 @@ async function pushLoop(
             report.actionRequired += 1;
             break;
           }
-          await removeRejected(result.opId);
+          await removeRejected(userId, result.opId);
           logWarn(
             'sync.push',
             `operation rejected: ${row.entity_type}/${row.entity_id} (${result.errorCode ?? 'unknown'})`,
@@ -203,9 +213,13 @@ async function pushLoop(
   }
 }
 
-async function pullLoop(transport: SyncTransport, report: SyncReport): Promise<SyncOutcome> {
+async function pullLoop(
+  userId: string,
+  transport: SyncTransport,
+  report: SyncReport,
+): Promise<SyncOutcome> {
   for (const applier of allAppliers()) {
-    let cursor = await getCursor(applier.entityType);
+    let cursor = await getCursor(userId, applier.entityType);
 
     for (let page = 0; page < MAX_PAGES_PER_ENTITY; page += 1) {
       let response;
@@ -220,7 +234,7 @@ async function pullLoop(transport: SyncTransport, report: SyncReport): Promise<S
       for (const change of response.changes) {
         // Never clobber rows that still have unshipped local edits — they
         // will push first and re-pull cleanly on the next cycle.
-        if (await hasPendingOpFor(change.entityId)) {
+        if (await hasPendingOpFor(userId, change.entityId)) {
           report.skippedPending += 1;
           continue;
         }
@@ -229,7 +243,7 @@ async function pullLoop(transport: SyncTransport, report: SyncReport): Promise<S
       }
 
       cursor = response.nextCursor;
-      await setCursor(applier.entityType, cursor, new Date().toISOString());
+      await setCursor(userId, applier.entityType, cursor, new Date().toISOString());
       if (!response.hasMore) break;
     }
   }

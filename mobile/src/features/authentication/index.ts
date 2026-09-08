@@ -6,7 +6,10 @@ export {
   PasswordRecoveryError,
   getAccessToken,
   getSession,
+  getSessionSnapshot,
   getStatus,
+  isSessionCurrent,
+  requireSessionSnapshot,
   deleteAccount,
   refreshTokens,
   refreshUser,
@@ -20,6 +23,7 @@ export {
   subscribe,
   verifyEmail,
 } from './application/session-manager';
+export type { AuthAttemptOutcome, SessionSnapshot } from './application/session-manager';
 export type {
   AuthErrorReason,
   EmailVerificationErrorReason,
@@ -32,4 +36,5 @@ export {
   resetDismissal,
   subscribeToReminder,
 } from './application/verification-reminder';
+export { bindStoreToSession } from './application/session-scope';
 export { useSession } from './presentation/use-session';

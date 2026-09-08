@@ -81,6 +81,7 @@ async function createNew(userId: string, input: ProfileInput, nowIso: string): P
   await enqueue(
     {
       opId: generateUuid(),
+      userId,
       entityType: ENTITY_TYPE,
       entityId: id,
       operation: 'CREATE',
@@ -93,7 +94,7 @@ async function createNew(userId: string, input: ProfileInput, nowIso: string): P
 }
 
 async function updateExisting(
-  _userId: string,
+  userId: string,
   existing: UserProfileRow,
   input: ProfileInput,
   nowIso: string,
@@ -134,6 +135,7 @@ async function updateExisting(
   await enqueue(
     {
       opId: generateUuid(),
+      userId,
       entityType: ENTITY_TYPE,
       entityId: existing.id,
       operation: 'UPDATE',

@@ -5,8 +5,8 @@
 // imports) so it is a module declaration, not an augmentation.
 declare module 'node:sqlite' {
   interface Statement {
-    get(): unknown;
-    all(): unknown[];
+    get(...params: unknown[]): unknown;
+    all(...params: unknown[]): unknown[];
     run(...params: unknown[]): unknown;
   }
   export class DatabaseSync {
