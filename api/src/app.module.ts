@@ -10,7 +10,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './modules/database/database.module';
 import { HealthModule } from './modules/health/health.module';
-import { MedicalModule } from './modules/medical/medical.module';
+// No MedicalModule import — see the note in `imports` below.
 import { NutritionModule } from './modules/nutrition/nutrition.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { SyncModule } from './modules/sync/sync.module';
@@ -39,7 +39,11 @@ import { WorkoutModule } from './modules/workout/workout.module';
     HealthModule,
     AuthModule,
     UsersModule,
-    MedicalModule,
+    // `MedicalModule` is intentionally excluded: importing it would mount
+    // `MedicalController` and register the medical sync handlers, both of which
+    // public V1 must not expose (ADR-P017 Decision 4). Re-adding it is
+    // prohibited without the ADR-P017 Decision 9 gate — see the ADR for the
+    // rationale, what stays preserved, and the reactivation requirements.
     SyncModule,
     NutritionModule,
     WorkoutModule,

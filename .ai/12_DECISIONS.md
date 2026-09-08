@@ -1504,6 +1504,11 @@ Staged hybrid:
    `/auth/*`, profile via `PUT /users/me/profile`, evaluations via
    `POST /medical/evaluations`, and goals by emulating a device push via
    `/sync/push`. No test-only backend endpoints.
+   *(Historical, 2026-07-07. **Superseded for public V1 2026-09-08:** ADR-P017
+   Decision 4 / Slice 0 removed `MedicalModule` from the API composition root,
+   so `POST /medical/evaluations` no longer exists and `medical_*` sync pushes
+   are rejected `ENTITY_NOT_SUPPORTED`. Seeding a retained medical row is a
+   system-of-record write, not a public contract.)*
 3. **Fake, synthetic, non-sensitive data only**, unique per run via
    environment variables.
 4. **Later (Phase 12):** a hosted disposable Development/test API
@@ -1960,6 +1965,10 @@ Repository evidence establishes the ground truth this ADR must reconcile:
   contracts (not E2E-only): `PUT /users/me/profile`, `POST /medical/evaluations`,
   and `POST /medical/restrictions`. Nutrition **deliberately** forgoes a REST
   write path so intake has exactly one offline-first write path (below).
+  *(Historical, 2026-07-10. **Superseded for public V1 2026-09-08:** the two
+  medical REST endpoints are no longer product contracts — ADR-P017 Decision 4 /
+  Slice 0 removed them from the public composition root. `PUT /users/me/profile`
+  is unaffected.)*
 
 ### Decision
 
@@ -6402,9 +6411,16 @@ retained rehabilitation goal is conservatively presented and evaluated as
 general health without altering the historical stored row.
 
 The three medical route adapters and dashboard actions were removed, and the
-medical sync appliers are no longer registered at the public composition root.
-Because pull is scoped to registered entity appliers, public sync neither pulls
-nor writes the dormant medical entities. The medical feature implementation,
+medical sync appliers are no longer registered at the **mobile** composition
+root. Because pull is scoped to registered entity appliers, that client neither
+pulls nor writes the dormant medical entities.
+*(Scope correction 2026-09-08: as written this record read as a system-wide
+claim. It was accurate about the mobile client only — `registerMedicalSyncAppliers`
+is exported and never called, and no `app/` route renders a medical surface — but
+the **API** still imported `MedicalModule`, so `/medical/*` stayed routed and the
+two medical handlers stayed registered in `SyncEntityRegistry`. A crafted client
+could therefore still reach them. Slice 0 below closes that server-side gap; the
+client-side facts in this paragraph are unchanged.)* The medical feature implementation,
 repository tests, SQLite/PostgreSQL tables, historical migrations, encryption,
 authorization, redaction, and account-deletion behavior remain unchanged. This
 is reversible wiring dormancy, not deletion or reclassification.
@@ -6485,6 +6501,145 @@ removed because preferences already shape deterministic plan selection. This
 slice adds no dependency, schema, migration, backend, iCoach-rule, catalog-data,
 or persistence change. It completes the nutrition-feature copy audit, not the
 whole-app bilingual audit.
+
+### Owner Clarification (2026-09-08) — Wellness Safety Profile Boundary
+
+The owner re-confirmed the public-V1 contract and fixed the boundary of the
+future replacement for the retired medical inputs. This clarification is
+**normative product scope**; it authorizes no implementation.
+
+**Positioning is unchanged.** AppFitnessRD public V1 is a fitness, nutrition,
+progress and general-wellness product — not a medical service and not a
+diagnostic tool.
+
+**Intended future experience.** After registration, onboarding *recommends*
+obtaining an appropriate physical evaluation from a qualified professional. The
+app may then record only minimal, **wellness-owned** structured information:
+
+| Permitted input | Notes |
+|---|---|
+| Whether an evaluation was completed, and its date | A flag plus a date. **No** result values, findings, provider identity, document, or clearance status |
+| Existing Progress body metrics | The wellness `body_weights` / `body_measurements` contract already shipped — no new metric |
+| Fitness level, recovery context, schedule, equipment | Already collected by the non-medical profile contract |
+| Self-declared physical limitations, affected areas, movements to avoid | **Wellness-owned model, never the retained medical tables.** Still deferred (see the slice plan) |
+| Allergies, sensitivities, dietary exclusions | Through the **existing** ADR-P014 nutrition contract — no parallel model |
+
+**Excluded from public V1, without exception.** Diagnoses, named medical
+conditions, medications, doctor notes, treatment, blood pressure, rehabilitation
+instructions, and professional medical-clearance records are neither collected
+nor exposed. Recording *that* an evaluation happened is not recording its
+contents.
+
+**Authority split.** The deterministic, versioned iCoach engine owns every
+plan-affecting decision. Generative AI may explain, educate and encourage; it
+may never diagnose, override a safety rule, or independently produce an
+authoritative nutrition or training decision (consistent with
+`.ai/07_ICOACH.md` §AI Layer). A self-declared limitation may conservatively
+exclude movements or lower workload; it is never reinterpreted as a diagnosis or
+a professional restriction (Decision 6).
+
+**Supplements — future, educational, food-first only.** The boundary, if this
+is ever built:
+
+- **No dosage of any kind.** Not therapeutic dosing, not "typical" or "general"
+  amounts, not ranges, not per-kilogram figures — no individualized dosage
+  advice in any form.
+- **No product or brand recommendation.** No brands, no specific products, no
+  comparisons between them, and no purchasing guidance.
+- **Educational, food-first information only.** Whole-food sources come first;
+  any supplement content is general education, never a plan input and never a
+  substitute for the deterministic iCoach output.
+- **No therapeutic claims**, no disease treatment or prevention claims, and no
+  medication-interaction decisions.
+- **Defer, don't guess.** Any uncertainty, data limitation, allergy,
+  sensitivity, health concern, symptom or medication question **must** produce
+  the conservative "consult a qualified professional" outcome instead of
+  content — silence plus a referral, never a hedged recommendation.
+
+**W-5 stays optional** and is authorized by nothing here: it requires its own
+accepted ADR **and** legal review before any implementation begins. The legacy
+`supplements` surface described in `.ai/14_CURRENT_MVP_BASELINE.md` is
+historical MVP evidence and confers no authorization.
+
+**Not implemented.** Neither the Wellness Safety Profile nor any supplement
+capability exists. This clarification defines their boundary and sequences the
+work; each slice below needs its own authorization.
+
+### Slice 0 Implementation Record — Public Medical API and Sync Disconnection
+
+**Implemented 2026-09-08.** Decision 4 requires the retained medical domain to
+be disconnected from public writes and **sync registration**. Slice 3 achieved
+that in the mobile client; the **API** had not been disconnected —
+`app.module.ts` imported `MedicalModule`, which
+
+1. mounted `MedicalController` — `GET`/`POST` `/medical/evaluations`,
+   `DELETE /medical/evaluations/:id`, `GET`/`POST` `/medical/restrictions`,
+   reachable by any authenticated user; and
+2. registered `EvaluationSyncHandler` / `RestrictionSyncHandler` in
+   `SyncEntityRegistry` from `onModuleInit` — the **only** gate on
+   `/sync/push` and `/sync/pull`.
+
+That contradicted Decision 4 and `.ai/00_PROJECT.md`, which states the medical
+domain must not be "exposed in the public v1 experience".
+
+**The change is one line of wiring:** `MedicalModule` is no longer imported by
+`AppModule`. Consequently the controller is not mounted (routes answer `404`),
+`onModuleInit` never runs, and `sync.service.ts` rejects both medical entity
+types with `ENTITY_NOT_SUPPORTED` while `/sync/pull` cannot emit them because
+pull iterates only `registry.all()`.
+
+**Preserved, deliberately and verifiably:** every medical source file, DTO,
+service, repository, sync handler and field cipher; the `MedicalModule`
+declaration itself; all medical tests; the PostgreSQL and SQLite tables; every
+historical migration; all encrypted retained rows; ADR-0011 / P001 / P006 / P011
+protection; and the account-deletion cascade. Nothing was deleted, migrated or
+rewritten.
+
+**Reactivation rule.** The retained code remains *technically* available — it
+still compiles and `MedicalModule` still declares its own wiring. That is a
+statement about reversibility, **not** about permission, and it must not be
+read as "one import line away". **Public reactivation is prohibited** without
+all of: a **new accepted ADR**; explicit **owner authorization**; **legal,
+privacy, consent and security review**; and **complete release validation**
+(ADR-P017 Decision 9). Re-adding the import without that gate is a
+product-scope and compliance violation, not a configuration change.
+
+**Account deletion is unchanged.** The cascade is declared in
+`prisma/schema.prisma` (`MedicalEvaluation.user` / `MedicalRestriction.user`),
+not in module wiring, so removing the module cannot weaken it. The existing
+`test/account-deletion.e2e-spec.ts` proof is retained; it now seeds the retained
+evaluation through Prisma — the same technique it already used for `Goal` —
+because no public write path exists any more. The assertion is thereby
+*stronger*: retained medical data is still erased with the account even though
+nothing public can create, read or sync it.
+
+**Evidence:** `src/app.module.spec.ts` asserts against the real Nest metadata
+graph that `MedicalModule` is absent from the transitive closure, no medical
+controller is mounted, neither handler is provided, the wellness modules remain
+composed, and the medical module is still loadable and self-contained.
+`test/medical-dormancy.e2e-spec.ts` proves the behaviour against the assembled
+app and a disposable PostgreSQL: all five medical routes return `404` for an
+**authenticated** user, both medical pushes are `REJECTED` /
+`ENTITY_NOT_SUPPORTED`, an explicit medical pull returns nothing, and a wellness
+push and `PUT /users/me/profile` still succeed for the same token. Both suites
+were shown to fail when the import is restored.
+
+**Scope held.** No dependency, schema, migration, medical UI, supplement logic,
+Wellness Safety Profile implementation, or unrelated cleanup.
+
+### Wellness Safety Profile — Slice Plan
+
+Sequenced so no consumer ships before its contract. Each needs its own
+authorization, branch, validation and review.
+
+| # | Slice | Depends on | Notes |
+|---|---|---|---|
+| **W-0** | **Public medical API/sync disconnection** — this record | — | **Implemented** |
+| **W-1** | **Wellness Safety Profile contract**: a wellness-owned schema for the evaluation-completed flag + date and self-declared limitations (affected areas, movements to avoid). Forward-only PostgreSQL + SQLite migrations, **never** reusing a medical table or column | W-0 | Contract + storage only. No UI, no iCoach input |
+| **W-2** | **Offline-first read/write + sync**: repository, sync handler and entity registration on both sides, under the existing conflict/versioning contract | W-1 | Registers a **wellness** entity type |
+| **W-3** | **Onboarding recommendation + capture UI**, EN/ES, accessible: recommends a professional evaluation, records only the flag/date, and captures limitations. Explicitly non-diagnostic copy | W-2 | Copy deck slice precedes or accompanies |
+| **W-4** | **Deterministic iCoach consumption**: limitations conservatively exclude movements or lower workload, versioned and explainable, never reinterpreted as diagnosis or clearance (Decision 6) | W-3 | Rule-version bump; deterministic tests |
+| **W-5** | **Supplement education boundary** — **optional**: food-first educational information only; **no dosage of any kind**, no product or brand recommendation, no therapeutic claims, no medication-interaction decisions; any uncertainty, limitation, allergy, health concern or medication question defers to a qualified professional | W-4 | **Requires its own accepted ADR and legal review before any implementation** |
 
 ### Supersedes / Preserves
 

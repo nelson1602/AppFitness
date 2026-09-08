@@ -66,11 +66,22 @@ describe('Account deletion (e2e)', () => {
         activityLevel: 'MODERATE',
       })
       .expect(200);
-    await request(http)
-      .post('/medical/evaluations')
-      .set('Authorization', `Bearer ${accessToken}`)
-      .send({ evaluationDate: '2026-07-06', weightKg: 82, bodyFatPct: 21 })
-      .expect(201);
+    // Retained medical rows have no public REST or sync write path since
+    // ADR-P017 Decision 4 (Wellness Safety Profile Slice 0) removed
+    // `MedicalModule` from the composition root — seed directly. The cascade
+    // asserted below is declared in the Prisma schema, not in module wiring, so
+    // the guarantee is unchanged and now stronger: retained medical data is
+    // still erased with the account even though no public surface can create,
+    // read or sync it.
+    await prisma.medicalEvaluation.create({
+      data: {
+        id: crypto.randomUUID(),
+        userId,
+        evaluationDate: new Date('2026-07-06'),
+        weightKg: 82,
+        bodyFatPct: 21,
+      },
+    });
     // Goals have no REST create endpoint — seed directly (proves the FK cascade).
     await prisma.goal.create({
       data: { id: crypto.randomUUID(), userId, goalType: 'RECOMPOSITION' },
