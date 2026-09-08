@@ -99,6 +99,7 @@ export async function addRoutineExercise(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ROUTINE_EXERCISE_ENTITY,
         entityId: id,
         operation: 'CREATE',
@@ -184,6 +185,7 @@ export async function updateRoutineExercise(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ROUTINE_EXERCISE_ENTITY,
         entityId: id,
         operation: 'UPDATE',
@@ -224,6 +226,7 @@ export async function removeRoutineExercise(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ROUTINE_EXERCISE_ENTITY,
         entityId: id,
         operation: 'DELETE',
@@ -279,6 +282,7 @@ export async function addWorkoutSet(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: WORKOUT_SET_ENTITY,
         entityId: id,
         operation: 'CREATE',
@@ -340,6 +344,7 @@ export async function updateWorkoutSet(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: WORKOUT_SET_ENTITY,
         entityId: id,
         operation: 'UPDATE',
@@ -381,6 +386,7 @@ export async function removeWorkoutSet(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: WORKOUT_SET_ENTITY,
         entityId: id,
         operation: 'DELETE',

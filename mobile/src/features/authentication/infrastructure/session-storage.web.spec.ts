@@ -45,24 +45,24 @@ describe('web session storage (memory only — ADR-P018 Slice 2B1)', () => {
     await expect(storage.loadSession()).resolves.toEqual(session);
   });
 
-  it('rotates tokens in memory without touching the stored user', async () => {
+  /**
+   * Rotation replaces the WHOLE session (ADR-P030 C-1). The token-only write
+   * is gone on both platforms, so a partial update that could leave one
+   * account's user beside another's tokens no longer exists to test.
+   */
+  it('rotation replaces the whole session, never just its tokens', async () => {
     await storage.saveSession(session);
-    await storage.saveTokens({ accessToken: 'access-2', refreshToken: 'refresh-2' });
+    await storage.saveSession({
+      ...session,
+      accessToken: 'access-2',
+      refreshToken: 'refresh-2',
+    });
 
     await expect(storage.loadSession()).resolves.toEqual({
       ...session,
       accessToken: 'access-2',
       refreshToken: 'refresh-2',
     });
-  });
-
-  it('saveTokens is a safe no-op when no session exists (never half-restores)', async () => {
-    await expect(
-      storage.saveTokens({ accessToken: 'access-2', refreshToken: 'refresh-2' }),
-    ).resolves.toBeUndefined();
-
-    // Rotating tokens without a prior session must not fabricate a session.
-    await expect(storage.loadSession()).resolves.toBeNull();
   });
 
   it('clear removes the session', async () => {
@@ -88,7 +88,7 @@ describe('web session storage (memory only — ADR-P018 Slice 2B1)', () => {
 
     try {
       await storage.saveSession(session);
-      await storage.saveTokens({ accessToken: 'access-2', refreshToken: 'refresh-2' });
+      await storage.saveSession({ ...session, accessToken: 'access-2' });
 
       expect(localSetItem).not.toHaveBeenCalled();
       expect(sessionSetItem).not.toHaveBeenCalled();

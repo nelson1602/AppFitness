@@ -99,6 +99,7 @@ describe('food-log repository — local-first create (ADR-P012 Slice 4C)', () =>
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'uuid-4',
+        userId: USER,
         entityType: 'meal_items',
         entityId: 'uuid-3',
         operation: 'CREATE',
@@ -255,7 +256,7 @@ describe('food-log repository — reads', () => {
     const items = await listLoggedItems(USER, DATE);
 
     expect(items[0].syncState).toBe('conflict');
-    expect(mockParked).toHaveBeenCalledWith('meal_items', 'CATALOG_REVISION_UNSUPPORTED');
+    expect(mockParked).toHaveBeenCalledWith(USER, 'meal_items', 'CATALOG_REVISION_UNSUPPORTED');
   });
 
   it('reads a marked row parked by the catalog code as action_required (BUG-007)', async () => {

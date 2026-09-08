@@ -75,11 +75,15 @@ const mockGetApplier = jest.mocked(getApplier);
 const mockCreateTransport = jest.mocked(createSyncTransport);
 
 const NOW = '2026-07-06T12:00:00.000Z';
-const deps = { getToken: () => 'token-1', now: () => NOW };
+// Every run is scoped to one account (ADR-P030 Decision 8) — the id is threaded
+// into every queue, conflict and cursor call below.
+const USER = 'user-a';
+const deps = { userId: USER, getToken: () => 'token-1', now: () => NOW };
 
 function queueRow(overrides: Partial<SyncQueueRow> = {}): SyncQueueRow {
   return {
     op_id: 'op-1',
+    user_id: USER,
     entity_type: 'goals',
     entity_id: 'goal-1',
     operation: 'UPDATE',
@@ -123,7 +127,7 @@ beforeEach(() => {
 
 describe('runSync — auth gate', () => {
   it('returns unauthenticated without touching the network when no token exists', async () => {
-    const report = await runSync({ getToken: () => null });
+    const report = await runSync({ userId: USER, getToken: () => null });
 
     expect(report.outcome).toBe('unauthenticated');
     expect(mockCreateTransport).not.toHaveBeenCalled();
@@ -150,8 +154,8 @@ describe('runSync — push loop', () => {
     expect(report.outcome).toBe('success');
     expect(report.pushedApplied).toBe(2);
     expect(mockMarkInFlight).toHaveBeenCalledTimes(2);
-    expect(mockMarkApplied).toHaveBeenCalledWith('op-1');
-    expect(mockMarkApplied).toHaveBeenCalledWith('op-2');
+    expect(mockMarkApplied).toHaveBeenCalledWith(USER, 'op-1');
+    expect(mockMarkApplied).toHaveBeenCalledWith(USER, 'op-2');
   });
 
   it('sends decoded payloads with idempotent opId and baseVersion intact', async () => {
@@ -187,8 +191,8 @@ describe('runSync — push loop', () => {
 
     expect(report.outcome).toBe('offline');
     expect(mockMarkFailed).toHaveBeenCalledTimes(2);
-    expect(mockMarkFailed).toHaveBeenCalledWith('op-1', 'Network request failed', NOW);
-    expect(mockMarkFailed).toHaveBeenCalledWith('op-2', 'Network request failed', NOW);
+    expect(mockMarkFailed).toHaveBeenCalledWith(USER, 'op-1', 'Network request failed', NOW);
+    expect(mockMarkFailed).toHaveBeenCalledWith(USER, 'op-2', 'Network request failed', NOW);
   });
 
   it('reports unauthenticated on a 401 push failure (retry metadata still recorded)', async () => {
@@ -200,7 +204,7 @@ describe('runSync — push loop', () => {
     const report = await runSync(deps);
 
     expect(report.outcome).toBe('unauthenticated');
-    expect(mockMarkFailed).toHaveBeenCalledWith('op-1', 'http_401', NOW);
+    expect(mockMarkFailed).toHaveBeenCalledWith(USER, 'op-1', 'http_401', NOW);
   });
 
   it('records a conflict locally and flags the entity row on CONFLICT', async () => {
@@ -228,10 +232,11 @@ describe('runSync — push loop', () => {
     const report = await runSync(deps);
 
     expect(report.conflicts).toBe(1);
-    expect(mockMarkConflict).toHaveBeenCalledWith('op-1', NOW);
+    expect(mockMarkConflict).toHaveBeenCalledWith(USER, 'op-1', NOW);
     expect(mockRecordConflict).toHaveBeenCalledWith(
       {
         id: 'conflict-9',
+        userId: USER,
         entityType: 'goals',
         entityId: 'goal-1',
         localPayload: { goal_type: 'FAT_LOSS' },
@@ -287,7 +292,7 @@ describe('runSync — push loop', () => {
     const report = await runSync(deps);
 
     expect(report.rejected).toBe(1);
-    expect(mockRemoveRejected).toHaveBeenCalledWith('op-1');
+    expect(mockRemoveRejected).toHaveBeenCalledWith(USER, 'op-1');
     expect(mockMarkFailed).not.toHaveBeenCalled();
   });
 
@@ -309,7 +314,7 @@ describe('runSync — push loop', () => {
 
     expect(report.deferred).toBe(1);
     expect(report.rejected).toBe(0);
-    expect(mockMarkFailed).toHaveBeenCalledWith('op-1', 'DEPENDENCY_NOT_READY', NOW);
+    expect(mockMarkFailed).toHaveBeenCalledWith(USER, 'op-1', 'DEPENDENCY_NOT_READY', NOW);
     expect(mockRemoveRejected).not.toHaveBeenCalled();
   });
 
@@ -338,6 +343,7 @@ describe('runSync — push loop', () => {
     expect(report.actionRequired).toBe(1);
     expect(report.rejected).toBe(0);
     expect(mockMarkActionRequired).toHaveBeenCalledWith(
+      USER,
       'op-1',
       'CATALOG_REVISION_UNSUPPORTED',
       NOW,
@@ -403,7 +409,7 @@ describe('runSync — pull loop', () => {
     expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'goal-1' }, false);
     expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'goal-2' }, true);
     expect(report.pulledApplied).toBe(2);
-    expect(mockSetCursor).toHaveBeenCalledWith('goals', 9, expect.any(String));
+    expect(mockSetCursor).toHaveBeenCalledWith(USER, 'goals', 9, expect.any(String));
   });
 
   /**
@@ -424,8 +430,8 @@ describe('runSync — pull loop', () => {
 
     // 'conflicted' has a parked CONFLICT op; 'settled' has no queued op at all.
     const protectedEntities = new Set(['conflicted']);
-    mockHasPending.mockImplementation((entityId: string) =>
-      Promise.resolve(protectedEntities.has(entityId)),
+    mockHasPending.mockImplementation((userId: string, entityId: string) =>
+      Promise.resolve(userId === USER && protectedEntities.has(entityId)),
     );
 
     mockCreateTransport.mockReturnValue(

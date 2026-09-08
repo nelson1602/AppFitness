@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 
-import { getSession } from '@/features/authentication';
+import {
+  bindStoreToSession,
+  isSessionCurrent,
+  requireSessionSnapshot,
+  type SessionSnapshot,
+} from '@/features/authentication';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
@@ -32,11 +37,12 @@ import { recomputeSnapshots as gatherAndUpsertSnapshots } from './progress.gathe
  * binds to it yet.
  */
 
-function requireUserId(): string {
-  const session = getSession();
-  if (!session) throw new Error('Not authenticated');
-  return session.user.id;
-}
+/**
+ * Every action captures the owning account once (`requireSessionSnapshot`),
+ * queries with that id, and re-checks before publishing (ADR-P030 C-1).
+ * Re-reading the session per step let a load started as A resolve B as the
+ * owner mid-flight, or paint A's metrics onto B's Progress screen.
+ */
 
 // Safe, generic user-facing messages (TECHDEBT-003 pattern): the underlying
 // error is always logged via `logError` (no silent swallow), but raw
@@ -64,44 +70,55 @@ export interface ProgressState {
   removeBodyMeasurement: (id: string) => Promise<boolean>;
 }
 
+const INITIAL = {
+  status: 'idle' as ProgressStatus,
+  bodyWeights: [] as BodyWeight[],
+  bodyMeasurements: [] as BodyMeasurement[],
+  snapshots: [] as ProgressSnapshot[],
+  error: null,
+};
+
 export const useProgressStore = create<ProgressState>((set, get) => {
-  async function reload(): Promise<void> {
-    const userId = requireUserId();
+  /** Reads and publishes for `owner` only. */
+  async function reload(owner: SessionSnapshot): Promise<void> {
     const [bodyWeights, bodyMeasurements, snapshots] = await Promise.all([
-      listBodyWeights(userId),
-      listBodyMeasurements(userId),
-      listProgressSnapshots(userId),
+      listBodyWeights(owner.userId),
+      listBodyMeasurements(owner.userId),
+      listProgressSnapshots(owner.userId),
     ]);
+    if (!isSessionCurrent(owner)) return;
     set({ status: 'ready', bodyWeights, bodyMeasurements, snapshots, error: null });
   }
 
   async function mutate(action: (userId: string) => Promise<void>): Promise<boolean> {
+    let owner: SessionSnapshot | null = null;
     set({ status: 'saving', error: null });
     try {
-      await action(requireUserId());
-      await reload();
-      return true;
+      owner = requireSessionSnapshot();
+      await action(owner.userId);
+      await reload(owner);
+      return isSessionCurrent(owner);
     } catch (err) {
       // A save failure must not wipe the Progress screen: keep the last-loaded
       // data visible (status → 'ready') and surface a safe, actionable banner.
       logError('progress.store mutation failed', err);
+      if (owner && !isSessionCurrent(owner)) return false;
       set({ status: 'ready', error: SAVE_ERROR });
       return false;
     }
   }
 
   return {
-    status: 'idle',
-    bodyWeights: [],
-    bodyMeasurements: [],
-    snapshots: [],
-    error: null,
+    ...INITIAL,
 
     load: async () => {
+      let owner: SessionSnapshot | null = null;
       set({ status: 'loading', error: null });
       try {
-        await reload();
+        owner = requireSessionSnapshot();
+        await reload(owner);
       } catch (err) {
+        if (owner && !isSessionCurrent(owner)) return;
         if (isDatabaseUnsupportedOnWebError(err)) {
           // Web has no local database (ADR-P019): an expected, distinct state —
           // not logged as a runtime error and not auto-retried. Clear all
@@ -122,11 +139,15 @@ export const useProgressStore = create<ProgressState>((set, get) => {
     },
 
     loadSnapshots: async () => {
+      let owner: SessionSnapshot | null = null;
       try {
-        const snapshots = await listProgressSnapshots(requireUserId());
+        owner = requireSessionSnapshot();
+        const snapshots = await listProgressSnapshots(owner.userId);
+        if (!isSessionCurrent(owner)) return;
         set({ snapshots });
       } catch (err) {
         logError('progress.store loadSnapshots failed', err);
+        if (owner && !isSessionCurrent(owner)) return;
         set({ status: 'error', error: LOAD_ERROR });
       }
     },
@@ -147,3 +168,7 @@ export const useProgressStore = create<ProgressState>((set, get) => {
     removeBodyMeasurement: (id) => mutate((userId) => deleteBodyMeasurement(userId, id)),
   };
 });
+
+// Weights, measurements and snapshots all belong to one account; a session
+// transition drops them before the next account can render them.
+bindStoreToSession(() => useProgressStore.setState(INITIAL));

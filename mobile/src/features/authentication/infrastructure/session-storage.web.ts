@@ -1,4 +1,4 @@
-import type { Session, SessionTokens } from '../domain/session.types';
+import type { Session } from '../domain/session.types';
 
 /**
  * Web session storage — MEMORY ONLY (ADR-P018 Slice 2B1, .ai/05_SECURITY.md).
@@ -11,22 +11,17 @@ import type { Session, SessionTokens } from '../domain/session.types';
  * runtime starts signed-out by design.
  *
  * No session payload, user, access token, or refresh token is ever logged.
+ *
+ * The session is one variable, so a write is inherently atomic in the identity
+ * it carries — the Web mirror of the native single-key envelope (ADR-P030 C-1).
+ * A partial token-only write is impossible here for the same reason it is
+ * impossible there: no such operation exists.
  */
 
 let memorySession: Session | null = null;
 
 export function saveSession(session: Session): Promise<void> {
   memorySession = session;
-  return Promise.resolve();
-}
-
-export function saveTokens(tokens: SessionTokens): Promise<void> {
-  // Rotation only applies to an existing in-memory session; without a prior
-  // session there is no user to attach, so this is a safe no-op (never
-  // half-restore a session).
-  if (memorySession) {
-    memorySession = { ...memorySession, ...tokens };
-  }
   return Promise.resolve();
 }
 

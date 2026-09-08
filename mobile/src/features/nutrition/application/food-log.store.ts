@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 
-import { getAccessToken, getSession, refreshTokens } from '@/features/authentication';
+import {
+  bindStoreToSession,
+  isSessionCurrent,
+  refreshTokens,
+  requireSessionSnapshot,
+  type SessionSnapshot,
+} from '@/features/authentication';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
@@ -91,11 +97,21 @@ function deriveSyncSummary(
   return { state, pending, actionRequired, conflicts };
 }
 
-function requireUserId(): string {
-  const userId = getSession()?.user.id;
-  if (!userId) throw new Error('Not authenticated');
-  return userId;
-}
+/**
+ * Every action captures the owning account once as an immutable snapshot and
+ * re-checks it before publishing (ADR-P030 C-1). The id and the access token
+ * come from the same capture, so they can never be recombined across accounts,
+ * and a day loaded as A is dropped rather than rendered for B.
+ */
+
+const INITIAL = {
+  status: 'idle' as FoodLogUiStatus,
+  items: [] as LoggedMealItem[],
+  totals: EMPTY_TOTALS,
+  sync: { state: 'idle' as FoodLogSyncState, pending: 0, actionRequired: 0, conflicts: 0 },
+  error: null,
+  writeError: null,
+};
 
 export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   status: 'idle',
@@ -107,12 +123,14 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   writeError: null,
 
   load: async (date) => {
+    let owner: SessionSnapshot | null = null;
     const targetDate = date ?? get().date;
     // A fresh successful read supersedes any stale write failure.
     set({ status: 'loading', date: targetDate, error: null, writeError: null });
     try {
-      const userId = requireUserId();
-      const items = await listLoggedItems(userId, targetDate);
+      owner = requireSessionSnapshot();
+      const items = await listLoggedItems(owner.userId, targetDate);
+      if (!isSessionCurrent(owner)) return;
       set({
         items,
         totals: sumDailyTotals(items),
@@ -121,6 +139,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
         error: null,
       });
     } catch (error) {
+      if (owner && !isSessionCurrent(owner)) return;
       if (isDatabaseUnsupportedOnWebError(error)) {
         // Web has no local database (ADR-P019): an expected, distinct state —
         // not logged as a runtime error and not auto-retried. Clear the day so
@@ -140,52 +159,71 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
   },
 
   addFood: async (catalogKey, mealType, servingCount) => {
+    let owner: SessionSnapshot | null = null;
     set({ writeError: null });
     try {
-      const userId = requireUserId();
-      await logFood(userId, { date: get().date, mealType, catalogKey, servingCount });
+      owner = requireSessionSnapshot();
+      await logFood(owner.userId, { date: get().date, mealType, catalogKey, servingCount });
+      if (!isSessionCurrent(owner)) return;
       await get().load();
     } catch (error) {
       logError('nutrition.foodLog.add', error);
+      if (owner && !isSessionCurrent(owner)) return;
       set({ error: 'That food could not be logged right now.', writeError: 'add' });
     }
   },
 
   editServing: async (id, servingCount) => {
+    let owner: SessionSnapshot | null = null;
     set({ writeError: null });
     try {
-      const userId = requireUserId();
-      await updateServingCount(userId, id, servingCount);
+      owner = requireSessionSnapshot();
+      await updateServingCount(owner.userId, id, servingCount);
+      if (!isSessionCurrent(owner)) return;
       await get().load();
     } catch (error) {
       logError('nutrition.foodLog.edit', error);
+      if (owner && !isSessionCurrent(owner)) return;
       set({ error: 'That change could not be saved right now.', writeError: 'servings' });
     }
   },
 
   removeItem: async (id) => {
+    let owner: SessionSnapshot | null = null;
     set({ writeError: null });
     try {
-      const userId = requireUserId();
-      await removeMealItem(userId, id);
+      owner = requireSessionSnapshot();
+      await removeMealItem(owner.userId, id);
+      if (!isSessionCurrent(owner)) return;
       await get().load();
     } catch (error) {
       logError('nutrition.foodLog.remove', error);
+      if (owner && !isSessionCurrent(owner)) return;
       set({ error: 'That item could not be removed right now.', writeError: 'remove' });
     }
   },
 
   syncNow: async () => {
+    let owner: SessionSnapshot | null = null;
     set((state) => ({ sync: { ...state.sync, state: 'syncing' } }));
     try {
-      const token = getAccessToken() ?? (await refreshTokens())?.accessToken ?? null;
-      let outcome = await runSync({ getToken: () => token });
+      owner = requireSessionSnapshot();
+      // Destructured to consts: the id and the token this run uses cannot be
+      // re-pointed later, which is also what lets the closure below capture
+      // one account's token for the whole run.
+      const { userId, accessToken } = owner;
+      let outcome = await runSync({ userId, getToken: () => accessToken });
       if (outcome.outcome === 'unauthenticated') {
-        const rotated = (await refreshTokens())?.accessToken ?? null;
-        if (rotated) outcome = await runSync({ getToken: () => rotated });
+        // Rotate once, but only while this run still owns the session: a 401
+        // raised for A must never refresh B.
+        const rotated = isSessionCurrent(owner) ? await refreshTokens() : null;
+        if (rotated && rotated.user.id === userId) {
+          outcome = await runSync({ userId, getToken: () => rotated.accessToken });
+        }
       }
-      const userId = requireUserId();
+      if (!isSessionCurrent(owner)) return;
       const items = await listLoggedItems(userId, get().date);
+      if (!isSessionCurrent(owner)) return;
       const override: FoodLogSyncState | undefined =
         outcome.outcome === 'offline'
           ? 'offline'
@@ -195,7 +233,12 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       set({ items, totals: sumDailyTotals(items), sync: deriveSyncSummary(items, override) });
     } catch (error) {
       logError('nutrition.foodLog.sync', error);
+      if (owner && !isSessionCurrent(owner)) return;
       set((state) => ({ sync: { ...state.sync, state: 'error' } }));
     }
   },
 }));
+
+// The cached day belongs to one account; a session transition drops it before
+// the next account can render it. `date` resets to today for the new account.
+bindStoreToSession(() => useFoodLogStore.setState({ ...INITIAL, date: today() }));

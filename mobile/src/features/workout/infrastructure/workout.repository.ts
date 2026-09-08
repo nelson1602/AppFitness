@@ -40,6 +40,7 @@ export async function createRoutine(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ROUTINE_ENTITY,
         entityId: id,
         operation: 'CREATE',
@@ -84,6 +85,7 @@ export async function updateRoutine(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ROUTINE_ENTITY,
         entityId: id,
         operation: 'UPDATE',
@@ -116,6 +118,7 @@ export async function deleteRoutine(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ROUTINE_ENTITY,
         entityId: id,
         operation: 'DELETE',
@@ -159,6 +162,7 @@ export async function createWorkoutLog(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: WORKOUT_LOG_ENTITY,
         entityId: id,
         operation: 'CREATE',
@@ -214,6 +218,7 @@ export async function updateWorkoutLog(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: WORKOUT_LOG_ENTITY,
         entityId: id,
         operation: 'UPDATE',
@@ -253,6 +258,7 @@ export async function deleteWorkoutLog(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: WORKOUT_LOG_ENTITY,
         entityId: id,
         operation: 'DELETE',

@@ -1,4 +1,6 @@
 import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
+import * as authModule from '@/features/authentication';
+import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type {
@@ -51,10 +53,20 @@ jest.mock('./workout.service', () => ({
   editWorkoutSet: jest.fn(),
   removeWorkoutSetEntry: jest.fn(),
 }));
+// A faithful in-memory session (generation + owner comparison), NOT a stub:
+// `isSessionCurrent` really compares, so the store guards are exercised.
+jest.mock('@/features/authentication', () =>
+  // A jest.mock factory is hoisted above every import, so the double has to
+  // be pulled in lazily here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/features/authentication/testing/fake-session').createFakeSessionModule(),
+);
 jest.mock('@/shared/infrastructure/logging', () => ({
   logError: jest.fn(),
   logWarn: jest.fn(),
 }));
+
+const auth = authModule as unknown as FakeSessionModule;
 
 const mockGetCustom = jest.mocked(getMyCustomExercises);
 const mockAddCustom = jest.mocked(addCustomExercise);
@@ -150,6 +162,7 @@ const customExercise = (o: Partial<CustomExercise> = {}): CustomExercise => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  auth.becomeUser('user-1');
   useWorkoutStore.setState({
     status: 'idle',
     routines: [],

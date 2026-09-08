@@ -1,5 +1,11 @@
 import { create } from 'zustand';
 
+import {
+  bindStoreToSession,
+  isSessionCurrent,
+  requireSessionSnapshot,
+  type SessionSnapshot,
+} from '@/features/authentication';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
@@ -23,16 +29,22 @@ export interface ProfileFormState {
   save: (input: ProfileInput) => Promise<boolean>;
 }
 
+const INITIAL = { status: 'idle' as ProfileStatus, profile: null, error: null };
+
 export const useProfileStore = create<ProfileFormState>((set) => ({
-  status: 'idle',
-  profile: null,
-  error: null,
+  ...INITIAL,
   load: async () => {
+    // Captured before the read; checked before every publish. A load started as
+    // A must not paint A's profile onto B's screen (ADR-P030 C-1).
+    let owner: SessionSnapshot | null = null;
     set({ status: 'loading', error: null });
     try {
+      owner = requireSessionSnapshot();
       const profile = await getMyProfile();
+      if (!isSessionCurrent(owner)) return;
       set({ profile, status: 'ready', error: null });
     } catch (error) {
+      if (owner && !isSessionCurrent(owner)) return;
       if (isDatabaseUnsupportedOnWebError(error)) {
         // Web has no local database (ADR-P019): an expected, distinct state —
         // not logged as a runtime error and not auto-retried. Clear any loaded
@@ -45,17 +57,24 @@ export const useProfileStore = create<ProfileFormState>((set) => ({
     }
   },
   save: async (input) => {
+    let owner: SessionSnapshot | null = null;
     set({ status: 'saving', error: null });
     try {
+      owner = requireSessionSnapshot();
       // Local-first write; the repository enqueues the sync op in the same
       // transaction. Returns after the local commit — sync ships later.
       const profile = await saveMyProfile(input);
+      if (!isSessionCurrent(owner)) return false;
       set({ profile, status: 'ready', error: null });
       return true;
     } catch (error) {
       logError('profile.save', error);
+      if (owner && !isSessionCurrent(owner)) return false;
       set({ status: 'error', error: 'Your profile could not be saved. Please try again.' });
       return false;
     }
   },
 }));
+
+// Cached profile belongs to one account; a transition drops it immediately.
+bindStoreToSession(() => useProfileStore.setState(INITIAL));

@@ -44,6 +44,7 @@ export async function setGoal(
       await enqueue(
         {
           opId: generateUuid(),
+          userId,
           entityType: ENTITY_TYPE,
           entityId: current.id,
           operation: 'UPDATE',
@@ -74,6 +75,7 @@ export async function setGoal(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ENTITY_TYPE,
         entityId: id,
         operation: 'CREATE',

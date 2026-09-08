@@ -1,4 +1,5 @@
-import { getAccessToken, refreshTokens } from '@/features/authentication';
+import * as authModule from '@/features/authentication';
+import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import type { AuthUser, Session } from '@/features/authentication/domain/session.types';
 import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
@@ -10,10 +11,14 @@ import type { DashboardData } from '../domain/dashboard.types';
 import { loadDashboardData, loadSampleDashboardData } from './dashboard.service';
 import { useDashboardStore } from './dashboard.store';
 
-jest.mock('@/features/authentication', () => ({
-  getAccessToken: jest.fn(),
-  refreshTokens: jest.fn(),
-}));
+// A faithful in-memory session (generation + owner comparison), NOT a stub:
+// `isSessionCurrent` really compares, so the store guards are exercised.
+jest.mock('@/features/authentication', () =>
+  // A jest.mock factory is hoisted above every import, so the double has to
+  // be pulled in lazily here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/features/authentication/testing/fake-session').createFakeSessionModule(),
+);
 jest.mock('@/shared/infrastructure/logging', () => ({
   logError: jest.fn(),
   logWarn: jest.fn(),
@@ -26,8 +31,8 @@ jest.mock('./dashboard.service', () => ({
   loadSampleDashboardData: jest.fn(),
 }));
 
-const mockGetAccessToken = jest.mocked(getAccessToken);
-const mockRefreshTokens = jest.mocked(refreshTokens);
+const auth = authModule as unknown as FakeSessionModule;
+const mockRefreshTokens = auth.refreshTokens;
 const mockRunSync = jest.mocked(runSync);
 const mockLoadDashboardData = jest.mocked(loadDashboardData);
 const mockLoadSample = jest.mocked(loadSampleDashboardData);
@@ -39,6 +44,12 @@ const user: AuthUser = {
   role: 'USER',
   phone: null,
   avatarUrl: null,
+};
+
+const currentSession: Session = {
+  accessToken: 'valid-token',
+  refreshToken: 'refresh-1',
+  user,
 };
 
 const rotatedSession: Session = {
@@ -85,10 +96,11 @@ describe('dashboard store syncNow', () => {
     jest.clearAllMocks();
     useDashboardStore.setState({ status: 'idle', data: null, error: null });
     mockLoadDashboardData.mockResolvedValue(emptyData);
+    // The sync run is scoped to the signed-in account (ADR-P030 Decision 8).
+    auth.becomeUser(currentSession.user.id, currentSession);
   });
 
   it('syncs once and reports idle when the token is accepted', async () => {
-    mockGetAccessToken.mockReturnValue('valid-token');
     mockRunSync.mockResolvedValue(report('success'));
 
     await useDashboardStore.getState().syncNow();
@@ -102,7 +114,6 @@ describe('dashboard store syncNow', () => {
   });
 
   it('rotates tokens and retries once when the sync outcome is unauthenticated', async () => {
-    mockGetAccessToken.mockReturnValue('expired-token');
     mockRunSync
       .mockResolvedValueOnce(report('unauthenticated'))
       .mockResolvedValueOnce(report('success'));
@@ -114,11 +125,48 @@ describe('dashboard store syncNow', () => {
     expect(mockRunSync).toHaveBeenCalledTimes(2);
     expect(mockRefreshTokens).toHaveBeenCalledTimes(1);
     expect(mockRunSync.mock.calls[1][0].getToken()).toBe('fresh-token');
+    expect(mockRunSync.mock.calls[0][0].userId).toBe('user-1');
+    expect(mockRunSync.mock.calls[1][0].userId).toBe('user-1');
     expect(state.data?.sync.status).toBe('idle');
   });
 
+  /**
+   * The session is captured once and its id stays paired with its token. A
+   * rotation that returns a DIFFERENT account (the user switched while the
+   * first run was in flight) must abort the retry outright — retrying would
+   * push this run's queue, scoped to user-1, under user-2's bearer token.
+   */
+  it('does not retry when the rotated session belongs to a different account', async () => {
+    mockRunSync.mockResolvedValue(report('unauthenticated'));
+    mockRefreshTokens.mockResolvedValue({
+      accessToken: 'other-token',
+      refreshToken: 'other-refresh',
+      user: { ...user, id: 'user-2', email: 'other@appfitness.local', username: 'other' },
+    });
+
+    await useDashboardStore.getState().syncNow();
+
+    expect(mockRunSync).toHaveBeenCalledTimes(1);
+    expect(mockRunSync.mock.calls[0][0].userId).toBe('user-1');
+    // No call ever pairs one account with another account's token.
+    for (const [deps] of mockRunSync.mock.calls) {
+      expect(deps.userId).toBe('user-1');
+      expect(deps.getToken()).not.toBe('other-token');
+    }
+    expect(useDashboardStore.getState().data?.sync.status).toBe('error');
+  });
+
+  it('pairs the run userId with the access token from the same captured session', async () => {
+    mockRunSync.mockResolvedValue(report('success'));
+
+    await useDashboardStore.getState().syncNow();
+
+    const [deps] = mockRunSync.mock.calls[0];
+    expect(deps.userId).toBe(currentSession.user.id);
+    expect(deps.getToken()).toBe(currentSession.accessToken);
+  });
+
   it('surfaces the error state when token rotation also fails', async () => {
-    mockGetAccessToken.mockReturnValue('expired-token');
     mockRunSync.mockResolvedValue(report('unauthenticated'));
     mockRefreshTokens.mockResolvedValue(null);
 
@@ -180,7 +228,6 @@ describe('dashboard store syncNow', () => {
   });
 
   it('maps an offline outcome to the offline banner state', async () => {
-    mockGetAccessToken.mockReturnValue('valid-token');
     mockRunSync.mockResolvedValue(report('offline'));
 
     await useDashboardStore.getState().syncNow();

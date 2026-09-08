@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import SignInScreen from '@/app/sign-in';
 
@@ -42,8 +42,10 @@ const { AuthError } = jest.requireMock<{
 describe('SignInScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSignIn.mockResolvedValue(undefined);
-    mockSignUp.mockResolvedValue(undefined);
+    // signIn/signUp resolve to a typed outcome (ADR-P030 C-1): 'authenticated'
+    // for the attempt that still reflects the user's latest intent.
+    mockSignIn.mockResolvedValue({ status: 'authenticated', session: {} });
+    mockSignUp.mockResolvedValue({ status: 'authenticated', session: {} });
   });
 
   it('renders the development sign-in form', async () => {
@@ -187,5 +189,97 @@ describe('SignInScreen', () => {
 
     // Nothing to recover before the account exists.
     expect(screen.queryByLabelText('Forgot your password?')).toBeNull();
+  });
+
+  /**
+   * `superseded` says the session layer discarded the attempt, but not why: a
+   * newer submission from this screen, or something external such as a
+   * sign-out. Returning early without clearing `loading` stranded the spinner
+   * forever in the external case, so ownership decides instead — the latest
+   * submission owns `loading`, whatever the outcome (ADR-P030 C-1).
+   *
+   * The submit button renders a spinner in place of its label while loading,
+   * so the label query IS the "controls usable" signal.
+   */
+  describe('superseded submissions never strand the form', () => {
+    function deferred<T>(): {
+      promise: Promise<T>;
+      resolve: (value: T) => void;
+      reject: (reason: unknown) => void;
+    } {
+      let resolve!: (value: T) => void;
+      let reject!: (reason: unknown) => void;
+      const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve, reject };
+    }
+
+    it('re-enables the form and shows nothing when the attempt is superseded', async () => {
+      const pending = deferred<{ status: string }>();
+      mockSignIn.mockReturnValue(pending.promise);
+
+      await render(<SignInScreen />);
+      await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
+
+      // Spinner up: the label is replaced while the attempt is in flight.
+      expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+
+      // Superseded by something outside this screen (e.g. a sign-out). Every
+      // resolution is flushed inside `act`, so the continuation it schedules
+      // lands in this test rather than during a later one.
+      await act(async () => {
+        pending.resolve({ status: 'superseded' });
+      });
+
+      // Controls usable again…
+      expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
+      expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled();
+      // …with no navigation and no banner for an account the user dropped.
+      expect(mockReplace).not.toHaveBeenCalled();
+      expect(screen.queryByText('Sign-in failed')).toBeNull();
+      expect(screen.queryByText('Something went wrong')).toBeNull();
+    });
+
+    it(`does not let an older submission clear a newer one's spinner`, async () => {
+      const first = deferred<{ status: string }>();
+      const second = deferred<{ status: string; session: object }>();
+      mockSignIn.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+
+      await render(<SignInScreen />);
+      // Two presses land before the disable takes effect (a double tap within
+      // one frame), so the screen genuinely owns two submissions.
+      const button = screen.getByRole('button', { name: 'Sign in' });
+      // Deliberately not awaited between presses: awaiting the first would
+      // flush the disable, and the second tap would never become a second
+      // submission — the very case under test.
+      const presses = [fireEvent.press(button), fireEvent.press(button)];
+      expect(mockSignIn).toHaveBeenCalledTimes(2);
+
+      // The OLDER submission finishes first, superseded.
+      await act(async () => {
+        first.resolve({ status: 'superseded' });
+      });
+
+      // The spinner belongs to the newer submission and must still be up.
+      expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+      expect(mockReplace).not.toHaveBeenCalled();
+
+      // The newer submission then succeeds and owns the outcome.
+      await act(async () => {
+        second.resolve({ status: 'authenticated', session: {} });
+      });
+      await Promise.all(presses);
+      expect(mockReplace).toHaveBeenCalledWith('/dashboard');
+      // …and the spinner is cleared by the submission that owned it. The two
+      // overlapping presses leave React work the un-awaited act scopes have
+      // not flushed, so this is polled rather than read once.
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Sign in' })).toBeEnabled());
+
+      // Settle everything this test started, so no continuation of it can
+      // re-render a tree owned by the next test.
+      await act(async () => {});
+    });
   });
 });

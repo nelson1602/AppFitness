@@ -1,4 +1,6 @@
 import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
+import * as authModule from '@/features/authentication';
+import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import { logError } from '@/shared/infrastructure/logging';
 
 import type { DietaryPreference } from '../domain/dietary-preference';
@@ -9,12 +11,22 @@ import {
 } from './dietary-preference.service';
 import { useDietaryPreferenceStore } from './dietary-preference.store';
 
+// A faithful in-memory session (generation + owner comparison), NOT a stub:
+// `isSessionCurrent` really compares, so the store guards are exercised.
+jest.mock('@/features/authentication', () =>
+  // A jest.mock factory is hoisted above every import, so the double has to
+  // be pulled in lazily here.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/features/authentication/testing/fake-session').createFakeSessionModule(),
+);
 jest.mock('@/shared/infrastructure/logging', () => ({ logError: jest.fn(), logWarn: jest.fn() }));
 jest.mock('./dietary-preference.service', () => ({
   addDietaryPreference: jest.fn(),
   getMyDietaryPreferences: jest.fn(),
   removeDietaryPreference: jest.fn(),
 }));
+
+const auth = authModule as unknown as FakeSessionModule;
 
 const mockAdd = jest.mocked(addDietaryPreference);
 const mockList = jest.mocked(getMyDietaryPreferences);
@@ -36,6 +48,7 @@ const pref = (overrides: Partial<DietaryPreference> = {}): DietaryPreference => 
 
 beforeEach(() => {
   jest.clearAllMocks();
+  auth.becomeUser('user-1');
   useDietaryPreferenceStore.setState({ status: 'idle', preferences: [], error: null });
 });
 

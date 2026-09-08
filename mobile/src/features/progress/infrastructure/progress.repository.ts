@@ -73,6 +73,7 @@ export async function createBodyWeight(
       await enqueue(
         {
           opId: generateUuid(),
+          userId,
           entityType: BODY_WEIGHT_ENTITY,
           entityId: existing.id,
           operation: 'UPDATE',
@@ -97,6 +98,7 @@ export async function createBodyWeight(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: BODY_WEIGHT_ENTITY,
         entityId: id,
         operation: 'CREATE',
@@ -150,6 +152,7 @@ export async function updateBodyWeight(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: BODY_WEIGHT_ENTITY,
         entityId: id,
         operation: 'UPDATE',
@@ -184,6 +187,7 @@ export async function deleteBodyWeight(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: BODY_WEIGHT_ENTITY,
         entityId: id,
         operation: 'DELETE',
@@ -282,6 +286,7 @@ export async function createBodyMeasurement(
       await enqueue(
         {
           opId: generateUuid(),
+          userId,
           entityType: BODY_MEASUREMENT_ENTITY,
           entityId: existing.id,
           operation: 'UPDATE',
@@ -324,6 +329,7 @@ export async function createBodyMeasurement(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: BODY_MEASUREMENT_ENTITY,
         entityId: id,
         operation: 'CREATE',
@@ -412,6 +418,7 @@ export async function updateBodyMeasurement(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: BODY_MEASUREMENT_ENTITY,
         entityId: id,
         operation: 'UPDATE',
@@ -447,6 +454,7 @@ export async function deleteBodyMeasurement(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: BODY_MEASUREMENT_ENTITY,
         entityId: id,
         operation: 'DELETE',
@@ -569,6 +577,7 @@ export async function upsertProgressSnapshot(
       await enqueue(
         {
           opId: generateUuid(),
+          userId,
           entityType: PROGRESS_SNAPSHOT_ENTITY,
           entityId: existing.id,
           operation: 'UPDATE',
@@ -608,6 +617,7 @@ export async function upsertProgressSnapshot(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: PROGRESS_SNAPSHOT_ENTITY,
         entityId: id,
         operation: 'CREATE',

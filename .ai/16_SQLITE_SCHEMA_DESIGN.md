@@ -53,7 +53,7 @@ Tables mirror `api/prisma/schema.prisma` 1:1 by name and column
 |---|---|---|
 | UUID / timestamptz / date | native types | TEXT (36-char / ISO-8601 UTC / YYYY-MM-DD) |
 | boolean / enum / jsonb / bytea | native | INTEGER 0-1 + CHECK / TEXT + CHECK / TEXT json_valid() / BLOB |
-| Sync cursor | `sync_seq` column per row | per-table cursor in `sync_state` |
+| Sync cursor | `sync_seq` column per row | per-user, per-table cursor in `sync_state`, keyed `(user_id, entity_type)` (migration 006) |
 | Sync status | (server is always authoritative) | `sync_status` per row: pending/synced/conflict |
 | `"order"` column | `"order"` (quoted keyword) | `order_index` (avoids keyword quoting) — sync layer maps the name |
 

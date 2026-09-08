@@ -66,6 +66,7 @@ export async function createCustomExercise(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: EXERCISE_ENTITY,
         entityId: id,
         operation: 'CREATE',
@@ -127,6 +128,7 @@ export async function updateCustomExercise(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: EXERCISE_ENTITY,
         entityId: id,
         operation: 'UPDATE',
@@ -164,6 +166,7 @@ export async function deleteCustomExercise(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: EXERCISE_ENTITY,
         entityId: id,
         operation: 'DELETE',

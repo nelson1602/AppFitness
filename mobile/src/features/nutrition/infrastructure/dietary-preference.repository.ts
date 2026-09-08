@@ -55,6 +55,7 @@ export async function createDietaryPreference(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ENTITY_TYPE,
         entityId: id,
         operation: 'CREATE',
@@ -111,6 +112,7 @@ export async function deleteDietaryPreference(
     await enqueue(
       {
         opId: generateUuid(),
+        userId,
         entityType: ENTITY_TYPE,
         entityId: id,
         operation: 'DELETE',

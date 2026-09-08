@@ -37,6 +37,16 @@ export type SyncQueueStatus = 'PENDING' | 'IN_FLIGHT' | 'FAILED' | 'CONFLICT';
 export type ConflictResolutionStatus =
   'PENDING' | 'RESOLVED_LOCAL_WINS' | 'RESOLVED_SERVER_WINS' | 'MERGED';
 
+/**
+ * The two resolutions ADR-P030 actually offers. `MERGED` is declared in
+ * `ConflictResolutionStatus` but produced by nothing and never offered, so the
+ * outbox columns exclude it (migration 006 CHECKs match this exactly).
+ */
+export type OfferedResolution = 'RESOLVED_LOCAL_WINS' | 'RESOLVED_SERVER_WINS';
+
+/** Resolution-outbox lifecycle (ADR-P030 Decision 6). NULL before a choice. */
+export type SettlementStatus = 'PENDING' | 'IN_FLIGHT' | 'FAILED' | 'SETTLED';
+
 /** Columns shared by every synchronized user-data table. */
 export interface SyncedRow {
   id: string;
@@ -355,6 +365,8 @@ export interface UserStatsRow extends SyncedRow {
 
 export interface SyncQueueRow {
   op_id: string;
+  /** Owner. NULL marks a row quarantined by migration 006 (ADR-P030 C-1). */
+  user_id: string | null;
   entity_type: string;
   entity_id: string;
   operation: SyncOperationType;
@@ -369,6 +381,8 @@ export interface SyncQueueRow {
 }
 
 export interface SyncStateRow {
+  /** Cursors are per user; never quarantined, so never NULL (migration 006). */
+  user_id: string;
   entity_type: string;
   last_pulled_seq: number;
   last_pulled_at: string | null;
@@ -376,6 +390,8 @@ export interface SyncStateRow {
 
 export interface SyncConflictRow {
   id: string;
+  /** Owner. NULL marks a row quarantined by migration 006 (ADR-P030 C-1). */
+  user_id: string | null;
   entity_type: string;
   entity_id: string;
   local_payload: string; // JSON
@@ -385,6 +401,28 @@ export interface SyncConflictRow {
   status: ConflictResolutionStatus;
   created_at: string;
   resolved_at: string | null;
+
+  // ── Resolution outbox (ADR-P030 Decision 6) ────────────────────────────────
+  // Pre-provisioned by migration 006 because a shipped migration is immutable.
+  // DORMANT: slice C-4 owns every transition (T1 / T3 / T1'), the retry policy
+  // and `listUnsettledConflicts`. No code in C-1 reads or writes these.
+
+  /** The user's decision, recorded the instant it is made (T1). NULL until then. */
+  chosen_resolution: OfferedResolution | null;
+  /** When that decision was made (ISO-8601 UTC). */
+  chosen_at: string | null;
+  /** Outbox lifecycle. NULL before a choice exists; `status` stays authoritative. */
+  settlement_status: SettlementStatus | null;
+  /** Retry count for the settlement round trip; mirrors `sync_queue.retry_count`. */
+  settlement_attempts: number;
+  /** Backoff instant for the next settlement attempt (ISO-8601 UTC). */
+  next_attempt_at: string | null;
+  /** Last transport/server error text for the settlement attempt. */
+  last_error: string | null;
+  /** Last stable outcome code that blocked settlement (e.g. RESTORE_UNSUPPORTED). */
+  last_failure_code: string | null;
+  /** A choice the server refused, so the surface stops offering it (T1'). */
+  blocked_resolution: OfferedResolution | null;
 }
 
 export interface AppMetadataRow {
