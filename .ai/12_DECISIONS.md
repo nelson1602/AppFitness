@@ -6761,6 +6761,108 @@ supplement capability (W-5), no dependency and no medical-domain change.
 own authorization, and W-5 additionally requires its own accepted ADR and legal
 review.
 
+### Slice W-2 Implementation Record — Wellness Safety Profile Read/Write and Sync
+
+**Implemented.** W-2 adds the offline-first runtime for the W-1 contract:
+persistence, deterministic validation and two-way synchronization. It adds no
+UI, no copy and no iCoach behaviour.
+
+**Mobile.** A wellness repository and application boundary provide get,
+save/upsert and soft-delete. Each write lands in SQLite as `pending` **and
+enqueues its user-scoped sync operation in the same transaction**, so a device
+can never hold a row the server will never hear about, or a queued operation
+for a row that does not exist; a forced failure on either half rolls back the
+other. Validation runs before the transaction opens.
+
+**Deterministic normalization** — trim, lowercase, validate membership,
+deduplicate, sort — runs on both token arrays, and the API mirrors the same
+algorithm. Both sides fail closed: an unknown token, a blank entry, a
+non-string element or an over-long list is rejected rather than dropped, since
+silently discarding a declared limitation would understate what the user
+reported. Flag/date consistency is strict in both directions, `evaluation_date`
+must be a real calendar date (`2026-02-31` is refused), and a device-local
+future date is rejected against an **injected** calendar date rather than a
+wall clock.
+
+**The singleton id is the authenticated user's UUID** (`id === userId`). The
+aggregate is one row per user, so letting each device mint a UUID would make two
+offline first-writes two sync identities for one logical row — the second would
+be an unreconcilable CREATE that the partial unique index rejects outright.
+Deriving the id from the owner makes independent offline creations converge:
+the second push meets the pipeline's existing CREATE-over-existing-state rule
+and returns CONFLICT with the server snapshot, exactly like a stale update.
+
+**Pull applier.** `wellness_safety_profiles` is registered exactly once in the
+mobile composition root. `EntityApplier` was extended minimally — the sync
+worker now passes the active `userId` as the final argument to
+`applyServerChange` and `markConflict`. Existing appliers are untouched and
+ignore it (a function declared with fewer parameters still satisfies the
+signature); the **wellness applier requires it** and verifies that the pulled
+row's owner *and* id match the active user before any statement runs. Its
+conflict marking is owner-scoped rather than by id alone. The older
+progress/profile appliers write whatever owner the payload carries; that shape
+was deliberately not copied.
+
+**Inbound rows are decoded strictly, never coerced.** Both inbound edges — a
+row read back from SQLite and a row pulled from the server — go through pure
+decoders that validate ownership and the singleton id, both token lists against
+the closed vocabularies (exact membership, no trim/lowercase repair), a
+positive-integer version, both required timestamps — complete RFC 3339
+instants, seconds and timezone designator included — the flag/date pairing and
+the tombstone, and **throw** on anything else. Booleans are decoded **per
+boundary**: a stored row may only carry SQLite's 0/1 (migration 007's column
+type), a pulled row only JSON true/false, so a row from the wrong side of the
+boundary is refused instead of interpreted. Nothing turns malformed JSON
+into an empty list, a missing timestamp into "now", a truthy value into a
+boolean or an arbitrary value into a string: for a safety profile the
+plausible-looking repair is the dangerous outcome, because an empty
+`movements_to_avoid` reads as "no limitations declared". A rejected token is
+never echoed in the error. Decoding runs before any statement, so an invalid
+pull leaves the local row exactly as it was and — because the worker does not
+swallow the throw — the entity's pull cursor is not advanced, so the page is
+retried rather than skipped. An **inbound** evaluation date is checked for
+calendar validity but deliberately NOT against the device's own "not in the
+future" rule: a device west of the writer can legitimately see a server date one
+day ahead of its local today, and that rule belongs to creation only.
+
+**API.** A new wellness module contributes domain types, a repository port, a
+strict payload parser, a Prisma repository, a mapper and one `EntitySyncHandler`
+registered for `wellness_safety_profiles` alone. There is **no REST controller
+and no new endpoint** — `/sync/push` and `/sync/pull` are the transport.
+Ownership is derived only from the authenticated `userId`: a client-supplied
+`id` or `user_id` is not read at all, so it cannot influence what is written,
+and `entityId === userId` is required. Every get, create, update, delete, state
+lookup and pull query carries the authenticated user; mutations use owner-scoped
+`updateMany` and treat a zero-row result as an explicit failure instead of a
+silent no-op. Optimistic-version conflicts, idempotent replay by operation id
+and tombstone delivery through incremental pull are the existing pipeline's
+behaviour, unchanged.
+
+Server-side time comes only from the **injected clock**, read **once per
+operation** in the handler and passed down: the same instant bounds the
+evaluation date and, for a delete, becomes `deleted_at`, so a tombstone is
+deterministic and the persistence layer holds no time source of its own. A
+completed evaluation may not be dated later than **UTC-today + one day**. The bound is deliberately
+loose because the server stores no user timezone — a hard UTC bound would reject
+an honest same-day entry from a device up to UTC+14 — and it exists to catch a
+tampered client, not to replace the device rule.
+
+**Ownership, restated.** The foreign key still only proves the owner exists.
+What W-2 adds is the predicate: every statement on both sides carries the
+authenticated `user_id`, and the tests assert isolation from the other account's
+session rather than from SQL inspection.
+
+**Sensitivity.** The token arrays are user-declared wellness content: they are
+never logged, never attached to an error message (a rejected token is not
+echoed), and no audit entry is written. The handler deliberately implements no
+`redactForConflict`, because the row has no free text to strip.
+
+**Scope held.** No UI, localization copy or onboarding (W-3); no iCoach input or
+rule-version change (W-4); no supplement capability (W-5); no dependency; and
+**no schema change** — W-1's migrations already carry everything W-2 needs.
+Medical dormancy is unchanged: no medical handler is registered and the retained
+medical tables are neither read nor written.
+
 ### Wellness Safety Profile — Slice Plan
 
 Sequenced so no consumer ships before its contract. Each needs its own
@@ -6770,7 +6872,7 @@ authorization, branch, validation and review.
 |---|---|---|---|
 | **W-0** | **Public medical API/sync disconnection** — this record | — | **Implemented** |
 | **W-1** | **Wellness Safety Profile contract**: a wellness-owned schema for the evaluation-completed flag + date and self-declared limitations (affected areas, movements to avoid). Forward-only PostgreSQL + SQLite migrations, **never** reusing a medical table or column | W-0 | **Implemented** — contract + storage only (record above). No repository, sync, UI or iCoach input |
-| **W-2** | **Offline-first read/write + sync**: repository, sync handler and entity registration on both sides, under the existing conflict/versioning contract | W-1 | Registers a **wellness** entity type |
+| **W-2** | **Offline-first read/write + sync**: repository, sync handler and entity registration on both sides, under the existing conflict/versioning contract | W-1 | **Implemented** — record above. Registers the **wellness** entity type; still no UI or iCoach input |
 | **W-3** | **Onboarding recommendation + capture UI**, EN/ES, accessible: recommends a professional evaluation, records only the flag/date, and captures limitations. Explicitly non-diagnostic copy | W-2 | Copy deck slice precedes or accompanies |
 | **W-4** | **Deterministic iCoach consumption**: limitations conservatively exclude movements or lower workload, versioned and explainable, never reinterpreted as diagnosis or clearance (Decision 6) | W-3 | Rule-version bump; deterministic tests |
 | **W-5** | **Supplement education boundary** — **optional**: food-first educational information only; **no dosage of any kind**, no product or brand recommendation, no therapeutic claims, no medication-interaction decisions; any uncertainty, limitation, allergy, health concern or medication question defers to a qualified professional | W-4 | **Requires its own accepted ADR and legal review before any implementation** |

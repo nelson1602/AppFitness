@@ -15,6 +15,7 @@ import { NutritionModule } from './modules/nutrition/nutrition.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { UsersModule } from './modules/users/users.module';
+import { WellnessModule } from './modules/wellness/wellness.module';
 import { WorkoutModule } from './modules/workout/workout.module';
 
 @Module({
@@ -48,6 +49,7 @@ import { WorkoutModule } from './modules/workout/workout.module';
     NutritionModule,
     WorkoutModule,
     ProgressModule,
+    WellnessModule,
   ],
   providers: [
     // Preserves Nest's normal HTTP error responses while reporting

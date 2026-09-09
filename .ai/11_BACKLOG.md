@@ -1081,14 +1081,20 @@ that build would contradict the owner's clarified product intent.
       closed token vocabularies **enforced in both databases** (PostgreSQL
       array containment; SQLite `json_each` validation triggers), at most one
       live profile per user, a user-scoped dirty-row index, fail-closed
-      constraints and no free-text or clinical column. Ownership is
-      structurally represented and cascade-protected; applying the
-      authenticated `user_id` predicate to every read, write, delete,
-      dirty-row scan, push and pull — with explicit cross-user denial tests —
-      is W-2 work. The
-      criterion stays open because **W-2 (read/write + sync), W-3 (capture
-      UI) and W-4 (deterministic consumption) are unimplemented and
-      unauthorized**, so nothing yet replaces the retired inputs at runtime.
+      constraints and no free-text or clinical column. **W-2 is implemented
+      too**: an owner-scoped offline-first repository (get, save/upsert,
+      soft-delete) whose local write and sync-queue enqueue commit in one
+      transaction, deterministic normalization and strict flag/date +
+      real-calendar validation on both sides, the singleton aggregate id
+      (`id === userId`) so two offline devices converge on one sync identity,
+      and one registered `wellness_safety_profiles` entity on each side
+      reached only through the existing /sync endpoints. Every read, write,
+      delete, dirty-row scan, push and pull carries the authenticated
+      `user_id`, and the pull applier verifies the pulled row's owner instead
+      of trusting it — proven by cross-user isolation tests. The criterion
+      stays open because **W-3 (capture UI and copy) and W-4 (deterministic
+      iCoach consumption) are unimplemented and unauthorized**, so no user can
+      yet enter a limitation and nothing reads the profile.
 - [x] Public-v1 iCoach does not read the dormant medical domain.
 - [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.

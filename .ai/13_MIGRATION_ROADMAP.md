@@ -2144,12 +2144,16 @@ truth with additive PostgreSQL/SQLite migrations, backward-compatible sync,
 and an English/Spanish entry + trend surface. It does not read the dormant
 medical field or alter iCoach calculations.
 The self-declared physical-limitation work is sequenced as the ADR-P017
-W-0 … W-5 slice plan. **W-1 is implemented: the Wellness Safety Profile
-contract and its forward-only PostgreSQL / SQLite storage (migration 007)
-exist, and nothing consumes them.** W-2 (offline-first read/write + sync),
-W-3 (onboarding capture UI and copy), W-4 (deterministic iCoach
-consumption) and W-5 (optional supplement education) remain unimplemented
-and unauthorized, so public v1 still receives no limitation input.
+W-0 … W-5 slice plan. **W-1 and W-2 are implemented: the Wellness Safety
+Profile contract, its forward-only PostgreSQL / SQLite storage (migration
+007), and the offline-first read/write plus two-way synchronization now
+exist** — an owner-scoped repository whose local write and sync enqueue are
+one transaction, deterministic token normalization on both sides, and one
+registered `wellness_safety_profiles` sync entity reached through the
+existing /sync endpoints (no new route). W-3 (onboarding capture UI and
+copy), W-4 (deterministic iCoach consumption) and W-5 (optional supplement
+education) remain unimplemented and unauthorized, so public v1 still
+receives no limitation input and nothing yet reads the profile.
 Slice 4A localizes the existing deterministic 15-day meal-plan presentation in
 English and Spanish (including portions, macro summaries, preference
 exclusions, baseline gaps, errors, disclaimer, and accessibility) while keeping

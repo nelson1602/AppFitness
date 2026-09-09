@@ -6,10 +6,19 @@
 
 export interface EntityApplier {
   readonly entityType: string;
-  /** Upsert a pulled server row locally with sync_status='synced'. */
-  applyServerChange(data: Record<string, unknown>, deleted: boolean): Promise<void>;
+  /**
+   * Upsert a pulled server row locally with sync_status='synced'.
+   *
+   * `userId` is the account the sync cycle is running for (ADR-P017 W-2). An
+   * applier that scopes its writes by owner — as a new one should — must verify
+   * the pulled row belongs to that user before writing. Appliers written before
+   * this argument existed may ignore it: a function declared with fewer
+   * parameters still satisfies this signature, so no existing repository is
+   * refactored here.
+   */
+  applyServerChange(data: Record<string, unknown>, deleted: boolean, userId: string): Promise<void>;
   /** Mark the local row as conflicted (server rejected our version). */
-  markConflict(entityId: string, nowIso: string): Promise<void>;
+  markConflict(entityId: string, nowIso: string, userId: string): Promise<void>;
 }
 
 const appliers = new Map<string, EntityApplier>();
