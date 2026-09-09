@@ -1,8 +1,8 @@
 # AppFitness Low-Fidelity Product Flows (V1)
 
-Version: 1.5
+Version: 1.7
 Status: Active
-Last Updated: 2026-09-02
+Last Updated: 2026-09-09
 
 ---
 
@@ -93,6 +93,13 @@ the separate exact-copy specification in `.ai/19_COPY_DECKS.md`. No flow,
 screen inventory, state applicability or SHIPPED / TARGET / PROPOSED status
 changed in this revision.
 
+**v1.6–v1.7 (ADR-P017 W-3).** §Flow 8 is added for the evaluation-and-limitations
+surface (**TARGET**), the platform matrix gains its route, and **§Flow 1 is
+reconciled**: its "PROPOSED in its entirety" status predated UX-4B, which shipped
+the advisory checklist card and its seven keys at `552f4b7`. No other flow,
+screen inventory or state applicability changed, and the shipped checklist's
+three steps and progress count are untouched.
+
 Inspected: `mobile/src/app/` (15 files — 14 user-facing routes plus
 `_layout.tsx`), `mobile/src/features/*`,
 `mobile/src/shared/localization/resources/{en,es}.ts` (**696 keys each — full
@@ -158,6 +165,7 @@ deliberately **not** feature-equivalent.
 | Dashboard, progress, nutrition, workout surfaces | SHIPPED | **Web-unavailable state** |
 | Authentication (sign-in / register) | SHIPPED | SHIPPED |
 | `reset-password` route | **TARGET** (PR #102) | **TARGET** (PR #102) |
+| `wellness-safety-profile` route (ADR-P017 W-3) | **TARGET** | **TARGET** — builds and renders the **Web-unavailable** state, never a form |
 
 The reset route is **TARGET on both platforms** — one Expo Router route that
 builds for native and Web alike. What differs is **how a user arrives at it**:
@@ -230,25 +238,45 @@ verification is **PROPOSED** and unscheduled.
 
 # Flow 1 — Onboarding
 
-**Status: PROPOSED in its entirety.** No onboarding surface exists on `main`; a
-repository-wide search for `onboarding` returns nothing.
+**Status: SHIPPED**, in the advisory form ADR-P027 decided — **not** as a
+sequence of onboarding screens, of which there are still none.
 
-**Shape decided by ADR-P027 (2026-08-28); implementation still PROPOSED.** The
-decision settles *what* onboarding is — advisory, non-blocking, resumable, a
-dashboard checklist reusing the existing Data-gap routing, with no onboarding
-routes. It makes nothing reachable: no code exists, and the status stays
-PROPOSED until UX-4B ships it.
+*Corrected in v1.7.* Earlier revisions read "PROPOSED in its entirety … no
+onboarding surface exists on `main`; a repository-wide search for `onboarding`
+returns nothing", which stopped being true when **UX-4B** landed
+`onboarding-checklist-card.tsx` (`552f4b7`, 2026-08-31) together with the
+**7** `dashboard.onboarding.*` keys in EN and ES that
+`.ai/19_COPY_DECKS.md` §First-run checklist already records as SHIPPED. The
+stale claim was exposed while auditing ADR-P017 W-3 and is corrected here.
+What remains accurate is the narrower fact: **no onboarding *route* exists**,
+because ADR-P027 deliberately adds none.
+
+**Shape decided by ADR-P027 (2026-08-28), shipped by UX-4B.** The decision
+settles *what* onboarding is — advisory, non-blocking, resumable, a dashboard
+checklist reusing the existing Data-gap routing, with no onboarding routes —
+and the implementation follows it exactly.
+
+**Not to be confused with the W-3 capture surface.** ADR-P017 W-3 (§Flow 8)
+adds a dashboard recommendation and its own route, and it is **TARGET, not
+SHIPPED**. It is deliberately *not* a checklist step: the three steps here are
+prerequisites the assessment cannot compute without, while the evaluation
+recommendation blocks nothing. The two surfaces are independent, and the
+"n of 3 complete" count below is unchanged by W-3.
 
 ## What happens today (SHIPPED)
 
-There is no onboarding. A newly registered account lands directly on the
-**dashboard**, which then renders **Data-gap** states because profile and goal
-inputs are missing. The user is expected to infer, from those gaps, that they
-should visit Profile and Goal. The gap states do name the missing input and
-route correctly — that part works — but nothing sequences them.
+A newly registered account lands directly on the **dashboard**; nothing gates
+it. When the assessment cannot compute yet, the dashboard renders the
+**advisory first-run checklist** (`OnboardingChecklistCard`) derived from the
+same **Data-gap** state it already computes: three grouped steps — profile
+basics → `/profile-edit`, goal → `/goal-edit`, first weight → `/progress` —
+with a text-only "n of 3 complete" line, no dismissal control and no
+persistence. A resolved step drops off the list and is counted in the line
+instead.
 
-This is a real V1 product gap, not merely a polish item: the first-run
-experience is a dashboard mostly composed of prerequisites the user has not been
+**The V1 gap this closed** was sequencing, not routing: the Data-gap states
+always named the missing input and routed correctly, but nothing ordered them,
+so first run was a dashboard composed of prerequisites the user had not been
 asked for yet.
 
 ## Decided shape — advisory dashboard checklist (ADR-P027)
@@ -283,22 +311,25 @@ Why this shape, in one line: the sequencing was the only thing missing —
 The three properties follow from that reuse rather than from new machinery:
 
 - **Non-blocking** — the dashboard is reachable immediately; no step gates it.
-- **Resumable** — the checklist will be derived from live Data-gap state, so an
+- **Resumable** — the checklist is derived from live Data-gap state, so an
   unresolved prerequisite simply remains listed. Nothing needs to be persisted
   to "remember where the user was".
-- **Skippable** — dismissing or ignoring it never blocks any surface.
+- **Skippable** — ignoring it never blocks any surface.
 
-**Status: PROPOSED.** ADR-P027 approves the shape; **no implementation exists**,
-and it stays PROPOSED until UX-4B ships it. Nothing here is reachable by a user
-today.
+**Status: SHIPPED** (UX-4B, `552f4b7`). ADR-P027 approved the shape and the
+implementation matches it: no route, no persistence and no dismissal control,
+because ADR-P027 left dismissal semantics undecided and UX-4B declined to
+decide them through code.
 
-**Left to UX-3 specification, deliberately not decided by ADR-P027:** the visual
-treatment; dismissal semantics (per-session, persistent, or completion-only);
-item ordering; and all EN/ES copy.
+**Still not decided by ADR-P027, and still open:** dismissal semantics
+(per-session, persistent, or completion-only) and any per-step "done" / "to
+do" tag, which `.ai/19_COPY_DECKS.md` records as a UX-3C copy decision rather
+than a UX-4B one. Visual treatment, item ordering and all EN/ES copy are
+settled and shipped.
 
 **States.** Loading (dashboard read in flight), plus the Data-gap state that
-already drives the routing. The checklist will add no new state and must not
-introduce a ninth — see §Global conventions.
+already drives the routing. The checklist adds no new state and introduces no
+ninth — see §Global conventions.
 
 **Accessibility intent.** Progress through the list should be conveyed
 non-visually (for example "2 of 3 complete"), and each item should name the
@@ -946,6 +977,139 @@ app and the offline model means "current" cannot be claimed.
 equivalent** — a text summary conveying the same trend, since colour and shape
 alone are insufficient. Specifying that equivalent is **UX-3 work**; it is
 **not** verified today.
+
+---
+
+# Flow 8 — Evaluation and limitations (ADR-P017 W-3)
+
+**Status: TARGET.** ADR-P017 **W-3** is implemented — one session-guarded
+route, a dashboard recommendation and a dashboard navigation entry — but it is
+not on `main`, so no user can reach it today. W-1 shipped the contract and
+storage and W-2 the offline-first runtime; this flow is the first thing that
+lets a person put anything in it.
+
+## What it is for
+
+Public V1 collects **self-declared** physical limitations (ADR-P017
+Decision 2) and collects **none** of the excluded clinical inputs
+(Decision 3). This flow is the whole of that collection surface, and its
+shape follows from one product rule: **it recommends a professional physical
+evaluation; it never requires one, and it never says the user is cleared.**
+
+## Entry points
+
+```
+register / first run
+      │
+      ▼
+  dashboard  ← reachable immediately; nothing gates it
+      │
+      ├─ [recommendation card]  ← only while nothing is recorded
+      │        └─ "Add these details" ──► /wellness-safety-profile
+      │
+      └─ [navigation entry]     ← always present, recorded or not
+               └────────────────────────► /wellness-safety-profile
+```
+
+**Two entry points, deliberately.** The card is the first-run prompt and
+disappears the moment anything is recorded, so it never becomes permanent
+dashboard furniture; the navigation entry is the durable way to view or edit
+later and is present in every dashboard state. Neither adds a hierarchy level:
+both are one push from the hub (§Flow 3), so the surface sits at **L2**.
+
+## It is not an onboarding step
+
+The shipped advisory checklist (ADR-P027, UX-4B) derives its **three** steps
+and its "n of 3 complete" line from the dashboard Data-gap state, and those
+three are prerequisites the assessment genuinely cannot compute without. This
+is not one of them: nothing is blocked by its absence, no calculation reads
+it, and adding a fourth step would both overstate the requirement and change a
+shipped count. It therefore renders as its **own** card, and
+`onboarding-checklist-card.tsx` is untouched.
+
+**What it never blocks**, asserted in tests rather than asserted here:
+navigation, the assessment, nutrition, exercise, workout logging, progress and
+offline operation all behave identically whether or not a profile exists.
+
+*(§Flow 1 is now correct about this: its "PROPOSED in its entirety … no
+onboarding surface exists on `main`" claim predated UX-4B and is reconciled in
+v1.7. W-3 changes nothing about Flow 1 itself — the checklist card, its three
+steps and its seven keys are untouched — it only stops the two records from
+contradicting each other.)*
+
+## What the surface asks
+
+1. **Whether a professional physical evaluation was completed** — yes / not
+   yet. Either answer is fine, and the copy says so.
+2. **Its date, only if it was** — a conditional field that appears on "yes"
+   and disappears on "not yet", which always persists a null date. Only the
+   date: never who performed it, never what it found.
+3. **Affected areas** and **movements to avoid** — two multi-selects over the
+   two closed W-1 vocabularies (18 tokens each), chosen from authored EN/ES
+   labels while only the language-neutral token is stored.
+
+Both limitation groups stay selectable when the answer is "not yet" (W-1
+invariant 4), because a user who has never been evaluated can still know what
+to avoid. There is **no free-text input of any kind**, so no provider,
+finding, diagnosis, condition, medication, treatment, instruction, severity,
+dosage, supplement or note can be entered — that is the structural half of
+ADR-P017 Decision 3, and the copy half is `.ai/19_COPY_DECKS.md`
+§Evaluation and limitations.
+
+**Empty is a declaration, not a clearance.** Selecting nothing records that no
+limitation was declared; the surface says explicitly that it does not mean the
+user is cleared or medically fit to train.
+
+## Editing and removal
+
+One form serves creation and editing: it prefills from the stored profile, so
+the Empty state and the edit state are the same surface. Removal is a
+privacy-preserving soft delete behind an **explicit two-step confirmation**
+(the shipped `EvaluationHistory` idiom): the destructive action is never one
+tap, cancelling changes nothing, and a failed removal leaves the confirmation
+open rather than implying success.
+
+## States
+
+Six of the eight canonical states, with per-trigger bindings in
+`.ai/18_SCREEN_STATE_MATRICES.md` §11.
+
+| State | Trigger | Behaviour |
+|---|---|---|
+| **Loading** | Read in flight | Loading text, **no form** — a blank form during a read would read as "nothing declared" |
+| **Empty** | Read succeeded, no profile | The same form, prefilled blank, plus a line saying nothing is declared yet |
+| **Error** | Load failure | `error` banner **with a retry** — the first retry control in the product; the form is hidden, because an edit over an unknown read invites an uninformed overwrite |
+| **Error** | Save / removal failure, or a refused stored row | Separate `error` banners, inline, **without wiping the form**. A refused row (`WellnessProfileInvalid`) shows safe localized copy with no reason, field or token value, leaves the stored row untouched, and offers re-entry as the recovery |
+| **Pending sync** | The local write is queued | `info` / muted and reassuring — the write **is** stored on the device |
+| **Conflict** | The row diverged | `warning`, never `error`, and **reporting-only**: no resolution path exists anywhere in V1 (BUG-012), so none is offered or implied, and no "both versions preserved" claim is made (BUG-014) |
+| **Web unavailable** | Local DB dormant on Web | `info`, no retry, and **no unsaveable form** |
+
+**Data-gap and Offline are not applicable.** These answers are user-entered,
+so nothing is a prerequisite this surface could route the user elsewhere for;
+and no authoritative connectivity signal is exposed to this store, exactly as
+for every other local-first feature screen at this commit.
+
+A save confirmation also renders — the reassuring pending wording for a freshly
+queued write, the plain success wording when nothing is queued. Like the
+dashboard `Ready` banner, it is a **write confirmation, not a ninth state**.
+
+## Accessibility intent
+
+Field groups carry a visible legend and a visible hint; each chip carries a
+`checkbox` role, `accessibilityState`, a group-qualified accessible name and a
+48pt target; and selection is conveyed by a marker glyph and a heavier border
+in addition to colour, never by colour alone (ADR-P022 Decision 7).
+
+**The conditional date field is not announced.** It is visible and keyboard
+reachable when the answer is "yes", and that is the whole claim: its
+*appearance* is **not** programmatically announced. ADR-P024 Decision 3
+authorizes `aria-live` on exactly one node — the localized validation-error
+message `FormField` already renders — so W-3 adds **no** announcement
+mechanism of its own, and `FormField`'s shipped error behaviour is untouched.
+
+**All of that is code-level intent, not a verified outcome.** No VoiceOver,
+TalkBack or browser-AT behaviour is claimed — that remains the UX-4C manual
+pass, per §Accessibility posture.
 
 ---
 

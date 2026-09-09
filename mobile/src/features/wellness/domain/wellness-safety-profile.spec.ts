@@ -24,10 +24,21 @@ declare const __dirname: string;
 declare function require(id: 'node:fs'): {
   readFileSync(file: string, encoding: 'utf8'): string;
   readdirSync(dir: string): string[];
+  statSync(path: string): { isDirectory(): boolean };
 };
 
 const CONTRACT_SOURCE = `${__dirname}/wellness-safety-profile.ts`;
 const FEATURE_DIR = `${__dirname}/..`;
+const FEATURES_DIR = `${__dirname}/../..`;
+
+/** Every file under `dir`, recursively. */
+function filesUnder(dir: string): string[] {
+  const fs = require('node:fs');
+  return fs.readdirSync(dir).flatMap((name: string) => {
+    const path = `${dir}/${name}`;
+    return fs.statSync(path).isDirectory() ? filesUnder(path) : [path];
+  });
+}
 
 function source(): string {
   return require('node:fs').readFileSync(CONTRACT_SOURCE, 'utf8');
@@ -276,14 +287,16 @@ describe('Wellness Safety Profile contract', () => {
   describe('slice boundary', () => {
     it('keeps the contract itself free of runtime concerns', () => {
       // W-2 added the repository, the application boundary and the pull
-      // applier beside this file; the CONTRACT still owns no persistence,
-      // store or registration code.
+      // applier beside this file, and W-3 the store and the capture
+      // surface; the CONTRACT still owns no persistence, store, screen or
+      // registration code, and no localization key.
       const fs = require('node:fs');
       expect(fs.readdirSync(FEATURE_DIR).sort()).toEqual([
         'application',
         'domain',
         'index.ts',
         'infrastructure',
+        'presentation',
       ]);
       expect(fs.readdirSync(`${FEATURE_DIR}/domain`).sort()).toEqual([
         'wellness-safety-profile.decode.spec.ts',
@@ -294,13 +307,13 @@ describe('Wellness Safety Profile contract', () => {
         'wellness-safety-profile.ts',
       ]);
 
-      // No W-3 surface: no screen, no copy, no store.
-      expect(fs.readdirSync(FEATURE_DIR)).not.toContain('presentation');
-      expect(
-        fs.readdirSync(`${FEATURE_DIR}/application`).filter((name) => name.includes('store')),
-      ).toEqual([]);
-
+      // The contract file itself carries no presentation concern: labels
+      // are W-3 presentation and never reach storage, so no localization
+      // key may appear here.
       const contract = source();
+      expect(contract).not.toContain('wellness.safety.');
+      expect(contract).not.toContain('useLocalization');
+
       for (const forbidden of [
         'getDatabase',
         'queryAll',
@@ -313,6 +326,49 @@ describe('Wellness Safety Profile contract', () => {
         'enqueue',
       ]) {
         expect(contract).not.toContain(forbidden);
+      }
+    });
+
+    it('adds no announcement mechanism (ADR-P024 Decision 3 is single-node)', () => {
+      // ADR-P024 authorizes `aria-live` on exactly one node — the localized
+      // validation-error message `FormField` already renders — so no W-3 file
+      // may introduce one of its own, on a container or anywhere else.
+      const fs = require('node:fs');
+      for (const file of filesUnder(FEATURE_DIR)) {
+        if (file.includes('.spec.')) continue;
+        const text = fs.readFileSync(file, 'utf8');
+        expect(text).not.toContain('aria-live=');
+        expect(text).not.toContain('accessibilityLiveRegion');
+        expect(text).not.toContain('announceForAccessibility');
+      }
+    });
+
+    it('leaves W-4 unimplemented: nothing consumes the profile yet', () => {
+      const fs = require('node:fs');
+      // Spec files are excluded from the outbound scan: a test double naming
+      // another feature is not a production dependency (and this very file
+      // names them).
+      const production = (dir: string): string[] =>
+        filesUnder(dir).filter((file) => !file.includes('.spec.'));
+
+      // The wellness feature reaches into no engine, plan or routine.
+      for (const file of production(FEATURE_DIR)) {
+        const text = fs.readFileSync(file, 'utf8');
+        expect(text).not.toContain('@/features/icoach');
+        expect(text).not.toContain('@/features/nutrition');
+        expect(text).not.toContain('@/features/workout/application');
+      }
+
+      // And no consumer reads the profile: the dashboard imports only the
+      // W-3 recommendation card, which renders copy and routes — it feeds
+      // no calculation.
+      const consumers = ['icoach', 'nutrition', 'workout'].flatMap((feature) =>
+        filesUnder(`${FEATURES_DIR}/${feature}`),
+      );
+      for (const file of consumers) {
+        const text = fs.readFileSync(file, 'utf8');
+        expect(text).not.toContain('wellness-safety-profile');
+        expect(text).not.toContain('WellnessSafetyProfile');
       }
     });
   });

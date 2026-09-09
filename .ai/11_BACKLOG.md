@@ -1026,9 +1026,16 @@ that build would contradict the owner's clarified product intent.
    a new accepted ADR, owner authorization, legal/privacy/consent/security
    review and complete release validation (ADR-P017 Decision 9) — it is not a
    one-line change anyone may make. The owner clarification and the W-0…W-5
-   Wellness Safety Profile slice plan are recorded in ADR-P017. The Wellness
-   Safety Profile itself is **not** implemented, and **W-5 (supplements) stays
-   optional**, pending its own ADR and legal review: educational and food-first
+   Wellness Safety Profile slice plan are recorded in ADR-P017. **W-1 and W-2
+   are shipped** — the contract, its PostgreSQL/SQLite storage and the
+   offline-first read/write plus two-way synchronization are on `main` — and
+   **W-3 (onboarding recommendation and capture UI) is the current TARGET
+   candidate**: implemented and validated, not merged, so no user can reach it
+   until it lands. **W-4 (deterministic iCoach consumption) is unimplemented**,
+   so nothing reads the profile yet. This item previously read "The Wellness
+   Safety Profile itself is **not** implemented", which stopped being true at
+   W-1. **W-5 (supplements) stays optional**, pending its own ADR and legal
+   review: educational and food-first
    only, with **no dosage of any kind**, no product or brand recommendation, and
    a mandatory deferral to a qualified professional on any uncertainty,
    limitation, allergy, health concern or medication question.
@@ -1091,10 +1098,27 @@ that build would contradict the owner's clarified product intent.
       reached only through the existing /sync endpoints. Every read, write,
       delete, dirty-row scan, push and pull carries the authenticated
       `user_id`, and the pull applier verifies the pulled row's owner instead
-      of trusting it — proven by cross-user isolation tests. The criterion
-      stays open because **W-3 (capture UI and copy) and W-4 (deterministic
-      iCoach consumption) are unimplemented and unauthorized**, so no user can
-      yet enter a limitation and nothing reads the profile.
+      of trusting it — proven by cross-user isolation tests. **W-3 is
+      implemented too**: a session-guarded `/wellness-safety-profile` route, a
+      dashboard card that **recommends** a professional physical evaluation
+      without requiring one, a persistent dashboard entry for viewing and
+      editing later, and a capture form that asks only whether an evaluation
+      was completed, its date when it was, and the two closed token
+      vocabularies as multi-selects over authored EN/ES labels — **109** keys
+      with exact parity, **no free-text input of any kind**, six canonical
+      states including a report-only Conflict and the localized
+      Web-unavailable treatment, and write confirmations that are exhaustive
+      over the synchronization state, so a parked conflict can never render
+      "up to date". Removal is confirmed and describes what W-2 actually does
+      — the details leave the **active profile** while a removal record stays
+      on the device and synchronizes; account deletion remains the
+      whole-account erasure path (ADR-P011). Copy
+      never describes the user as safe, cleared, approved or medically fit,
+      and an empty selection is stated to be a declaration of no limitations
+      rather than a clearance. The criterion **stays open** because **W-4
+      (deterministic iCoach consumption) is unimplemented and unauthorized**:
+      a user can now record a limitation, but nothing reads it, so no meal
+      plan, routine or calculation changes yet.
 - [x] Public-v1 iCoach does not read the dormant medical domain.
 - [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.

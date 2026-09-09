@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.8
+Version: 1.9
 Status: Active
-Last Updated: 2026-08-26
+Last Updated: 2026-09-09
 
 ---
 
@@ -1744,15 +1744,51 @@ Reproducible with read-only `git grep` / `git show` against `origin/main`.
 | Route files importing `DashboardSkeleton` as their session loader | **12** |
 | Row-level sync-hint implementations | **3** (two named local components + one inline) |
 | Data-gap components | **2** |
-| Retry-related localization keys | **0** — no retry affordance exists anywhere |
+| Retry-related localization keys | **0** at this commit; **2** with ADR-P017 W-3 (**TARGET**, not on `main`) — see the note below |
 | Permission / denied localization keys | **0** — no permission state exists |
-| `accessibilityLiveRegion` / `announceForAccessibility` occurrences | **0** — state changes and errors are never announced |
+| `accessibilityLiveRegion` / `announceForAccessibility` occurrences | **0** — no native live region and no imperative announcement anywhere. **This is not the whole announcement picture**: see the note below for the typed `aria-live` props that do exist |
 | `accessibilityState` occurrences | **8** (`selected` ×6, `disabled` ×2). **`busy`: 0** |
 | `accessibilityHint` occurrences | **0** |
 
-Two states in the table above therefore have **no implementation at all** today:
-a retry affordance for **Error**, and any announcement of state change to
-assistive technology.
+**Retry, reconciled (2026-09-09).** The **0** above is the count at `2692e589`
+and stays as that commit’s evidence. It is no longer the current figure: the
+ADR-P017 **W-3** candidate adds the product’s first retry affordance —
+`wellness.safety.retry` and `wellness.safety.retryAccessibility`, **2** keys in
+each catalogue, on **one** surface (the evaluation-and-limitations screen’s
+load-failure arm), bound in
+`mobile/src/features/wellness/presentation/WellnessSafetyProfileScreen.tsx` and
+asserted by its spec. Per-surface applicability is recorded in
+`.ai/18_SCREEN_STATE_MATRICES.md` §11 and the wording in
+`.ai/19_COPY_DECKS.md` §Evaluation and limitations. It is **TARGET until that
+candidate merges**, and it changes nothing here: the **Error** contract already
+specified "retry, or abandon", no other surface gains a retry, and
+**Web unavailable still has none** by decision (ADR-P019 §5).
+
+**Announcement, stated precisely (2026-09-09).** The row above counts two
+React Native mechanisms, and both genuinely remain **0**: there is no
+`accessibilityLiveRegion` and no imperative `announceForAccessibility`
+anywhere in `mobile/src`. It would be wrong to read that as "no live region
+of any kind exists", because the typed **`aria-live`** prop does:
+
+| Occurrence | Node | Authorization |
+|---|---|---|
+| `auth-text-field.tsx` | the localized validation-error `AppText` | shipped with password recovery, `6e0e74a` |
+| `form/FormField.tsx` | the localized validation-error `AppText` | **ADR-P024** Decision 3 (UX-1C-2B-a), `f40ac93` |
+
+So **2** production `aria-live` props exist, both on **validation-error
+messages**, both `@platform android` + react-native-web only, and both
+unproven until manual AT verification. **ADR-P017 W-3 adds no new `aria-live`
+usage**: an earlier revision of that candidate put `aria-live="polite"` on the
+container revealing its conditional date field, which is outside ADR-P024
+Decision 3’s single-node authorization, and it was removed. W-3’s conditional
+content is visible and keyboard reachable, and its appearance is **not**
+programmatically announced.
+
+Of the two gaps the table showed, therefore: **Error’s retry now has a first
+implementation** (TARGET, W-3), and **announcement of a state *change* still
+has none** — the existing `aria-live` props cover field validation, not state
+transitions, and no surface announces entering Loading, Error, Offline,
+Pending sync, Conflict or Web unavailable.
 
 ## Future flow needs with insufficient current evidence
 
