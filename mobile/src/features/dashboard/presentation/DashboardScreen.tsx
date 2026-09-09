@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import { ProgressSummaryCard } from '@/features/progress';
+import { WellnessSafetyRecommendationCard } from '@/features/wellness';
 import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
@@ -55,6 +56,14 @@ export function DashboardScreen() {
           states and independently of them. Blocks nothing — the soft gate
           leaves an unverified user with full core access. */}
       <VerificationReminderCard />
+
+      {/* Recommends a professional physical evaluation (ADR-P017 W-3).
+          Recommends, never requires: it gates nothing, and it is deliberately
+          NOT a fourth onboarding step — the checklist's three steps are
+          prerequisites the assessment cannot compute without, and its
+          "n of 3 complete" count is unchanged. Hides itself once answered;
+          the navigation entry below is the persistent way back. */}
+      <WellnessSafetyRecommendationCard onOpen={() => router.push('/wellness-safety-profile')} />
 
       {status === 'loading' || status === 'idle' ? <DashboardSkeleton /> : null}
 
@@ -146,6 +155,17 @@ export function DashboardScreen() {
         variant="secondary"
       >
         {t('dashboard.preferences')}
+      </AppButton>
+      {/* Evaluation and self-declared limitations (ADR-P017 W-3). Always
+          present — the first-run recommendation card is a prompt, not the
+          only door — and it blocks nothing whether answered or not. */}
+      <AppButton
+        accessibilityLabel={t('dashboard.wellnessSafetyAccessibility')}
+        onPress={() => router.push('/wellness-safety-profile')}
+        testID="dashboard-wellness-safety"
+        variant="secondary"
+      >
+        {t('dashboard.wellnessSafety')}
       </AppButton>
       {/* Workout routines (ADR-P015 Phase 16 Slice 5). */}
       <AppButton

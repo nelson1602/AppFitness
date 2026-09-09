@@ -2,9 +2,10 @@
  * Wellness feature public surface (ADR-P017 W-1 contract + W-2 runtime).
  *
  * W-1 shipped the aggregate contract and its two closed token vocabularies;
- * W-2 adds the offline-first read/write boundary, deterministic normalization
- * and the pull applier. No store, screen or iCoach input exists yet — W-3 owns
- * the capture UI and its copy, W-4 the deterministic consumption.
+ * W-2 added the offline-first read/write boundary, deterministic normalization
+ * and the pull applier; W-3 adds the store, the EN/ES capture surface and the
+ * dashboard recommendation. No iCoach input exists yet — W-4 owns the
+ * deterministic consumption, and nothing here reaches a calculation.
  */
 export {
   WELLNESS_AFFECTED_AREAS,
@@ -41,3 +42,23 @@ export {
   hasUnsyncedWellnessSafetyProfileChange,
   saveMyWellnessSafetyProfile,
 } from './application/wellness-safety-profile.service';
+export {
+  getWellnessSafetyProfileSyncState,
+  type WellnessSafetyProfileSyncState,
+} from './application/wellness-safety-profile.sync-state';
+export {
+  useWellnessSafetyProfileStore,
+  type WellnessSafetyProfileErrorKind,
+  type WellnessSafetyProfileOutcome,
+  type WellnessSafetyProfileState,
+  type WellnessSafetyProfileStatus,
+} from './application/wellness-safety-profile.store';
+export { WellnessSafetyProfileScreen } from './presentation/WellnessSafetyProfileScreen';
+export { WellnessSafetyRecommendationCard } from './presentation/WellnessSafetyRecommendationCard';
+export {
+  AFFECTED_AREA_LABEL_KEY,
+  MOVEMENT_LABEL_KEY,
+  affectedAreaOptions,
+  movementOptions,
+  type WellnessTokenOption,
+} from './presentation/wellness-token-labels';

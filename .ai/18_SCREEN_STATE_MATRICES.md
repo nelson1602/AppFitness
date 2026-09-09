@@ -1,8 +1,8 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.13
+Version: 1.14
 Status: Active
-Last Updated: 2026-09-07
+Last Updated: 2026-09-09
 
 ---
 
@@ -153,10 +153,11 @@ the eight states applies.
 
 **Evidence:** `mobile/src/app/dashboard.tsx:11-26`; the identical gate in
 `workout-log.tsx`, `nutrition.tsx`, `nutrition-plan.tsx`, `food-log.tsx`,
-`dietary-preferences.tsx`, `progress.tsx`; **12** route files import
-`DashboardSkeleton`.
+`dietary-preferences.tsx`, `progress.tsx`, `wellness-safety-profile.tsx`;
+**13** route files import `DashboardSkeleton` (12 at `fb02097`, plus the W-3
+route).
 
-Because this phase reaches 12 routes, a defect in `DashboardSkeleton` is a
+Because this phase reaches 13 routes, a defect in `DashboardSkeleton` is a
 product-wide defect rather than a dashboard one — which is why **BUG-010** is
 scoped that way.
 
@@ -164,10 +165,10 @@ scoped that way.
 
 # Surface inventory
 
-**Ten state-bearing surfaces: seven feature screens plus three independently
-stateful embedded surfaces.** The embedded three are counted separately because
-each resolves its own source state; the route gate above is **not** counted,
-because it enters none of the eight states.
+**Eleven state-bearing surfaces: eight feature screens plus three
+independently stateful embedded surfaces.** The embedded three are counted
+separately because each resolves its own source state; the route gate above is
+**not** counted, because it enters none of the eight.
 
 | # | Surface | Kind | Owning state source |
 |---|---|---|---|
@@ -181,6 +182,14 @@ because it enters none of the eight states.
 | 8 | Food Log | Feature screen | `useFoodLogStore` (+ preference store) |
 | 9 | Dietary Preferences | Feature screen | `useDietaryPreferenceStore` |
 | 10 | Progress | Feature screen | `useProgressStore` |
+| 11 | Evaluation and limitations (`/wellness-safety-profile`) | Feature screen | `useWellnessSafetyProfileStore` |
+
+**The W-3 dashboard recommendation card is not a twelfth surface.** It reads
+`useWellnessSafetyProfileStore` — its own source — but it renders **nothing at
+all** unless the read succeeded *and* no profile exists: no loading, error,
+pending, conflict or Web-unavailable treatment. It therefore enters none of the
+eight, exactly like the advisory verification reminder (§P1). What it renders
+in its one arm is ordinary content and a route push.
 
 **Food Log's sync banner and per-item chips are treatments inside surface 8**,
 not a separately counted surface: they read the same `useFoodLogStore` the screen
@@ -515,9 +524,74 @@ not canonical states of their own.
 
 ---
 
+# 11 — Evaluation and limitations (`/wellness-safety-profile`)
+
+**File:** `mobile/src/features/wellness/presentation/WellnessSafetyProfileScreen.tsx`
+(the fields live in `WellnessSafetyProfileForm.tsx`). **Store:**
+`useWellnessSafetyProfileStore`, status union
+`'idle' | 'loading' | 'ready' | 'saving' | 'error' | 'web-unavailable'`.
+**Status: TARGET** — ADR-P017 **W-3** is implemented but not on `main`, so
+every row below is TARGET, not SHIPPED, per §Status taxonomy.
+
+This is the first surface whose **Error** state ships a **retry control**, and
+the first whose store carries a **typed error discriminant** instead of an
+English sentence: `.ai/08_UI_UX.md` distinction 8 says the store `error` field
+is a discriminant and the presentation layer supplies the copy, and this screen
+implements that literally, which is also why no decoder reason, field name or
+token value can reach a user.
+
+| State | Trigger — source state | Rendered treatment | Exit | Platform | Evidence | Status |
+|---|---|---|---|---|---|---|
+| **Web unavailable** | `status === 'web-unavailable'`, set when the store catches `DatabaseUnsupportedOnWebError` | **Full-screen early return**: heading + `<Banner tone="info">`, `wellness.safety.webUnavailableTitle/Body`. No form, no chips, no save, no retry | **None** — terminal | **Web only** | `WellnessSafetyProfileScreen.tsx`; specs *"renders the Web-unavailable state with no form and no retry (ADR-P019)"*, *"…in Spanish"* | TARGET |
+| **Loading** | `status === 'loading' \|\| 'idle'` | `wellness.safety.loading` text with `loadingAccessibility`, **and no form** — a blank prefilled form during a read would read as "nothing declared" | `load()` resolves | Both | spec *"loads on mount and shows Loading with no form"* | TARGET |
+| **Empty** | Read succeeded, `profile === null` | `wellness.safety.empty` muted line **plus the blank form**: creation happens on this screen, so Empty is editable by design | The user saves | Native | spec *"shows Empty as a successful read with the blank form ready to fill"* | TARGET |
+| **Error** — load | `status === 'error' && error === 'load'` | `<Banner tone="error">` + a **retry button** (`wellness.safety.retry`). The form is **hidden**: the read did not complete, so an edit would be an uninformed overwrite | A retry succeeding | Both | spec *"renders Error with a retry, and hides the form while the read is unknown"* | TARGET |
+| **Error** — refused stored row | `error === 'invalid'`, from `WellnessProfileInvalid` thrown by the W-2 decoder | A separate `<Banner tone="error">`, `wellness.safety.invalidTitle/Message`. **No reason, field or token value** is rendered or logged; the stored row is **left untouched** (no repair, delete or overwrite), and the form stays so re-entry can replace it | A successful save | Native | specs *"renders a refused stored row as safe copy, exposing no reason or value"*, *"refuses a corrupt stored row without repairing, deleting or overwriting it"* | TARGET |
+| **Error** — write | `error === 'save' \| 'invalidInput' \| 'remove'` | Three separate inline `<Banner tone="error">` treatments, each distinct from the load error and **none wiping the form** (the Progress-screen precedent, not the Food Log defect) | The next successful write | Both | specs *"surfaces a save failure without wiping what was entered"*, *"asks the user to check their answers when the domain refuses them"*, *"surfaces a removal failure"* | TARGET |
+| **Pending sync** | `sync === 'pending'`, resolved from W-2's owner-scoped dirty probe | Muted caption `wellness.safety.syncPending` + `syncPendingAccessibility`; right after a write, the `pending` arm of the confirmation matrix below replaces it. Reassures — the write **is** stored on the device — while promising nothing about other devices | Queue drains | Native | specs *"reassures that a queued write is safely stored on the device"*, *"confirms a saved write under pending with the matching wording and tone"* | TARGET |
+| **Conflict** | `sync === 'conflict'`, from a PENDING `sync_conflicts` row for `wellness_safety_profiles` | `<Banner tone="warning">`, `wellness.safety.syncConflictTitle/Body`. **Report-only** — no chooser, no promised review destination, and **no "both versions preserved" claim** (BUG-014) | **None on this surface** — no resolution path exists anywhere (BUG-012) | Native | spec *"reports a divergence as warning, never error, and offers no resolution"* — asserts the rendered `warning` colour | TARGET |
+| **Offline** | — | — | — | — | **No Offline signal reaches this surface.** The store receives no connectivity or sync outcome, exactly as for surfaces 9 and 10. This records what the screen receives, not a limit on what it could be given | **n/a** |
+| **Data-gap** | — | — | — | — | These answers are user-entered; nothing is a prerequisite. The *dashboard* recommends the surface, which is the reverse relationship — and a recommendation is not a Data-gap: no output is blocked by its absence | **n/a** |
+
+**The write confirmation is not a ninth state, and it is exhaustive over the**
+**sync state.** `outcome === 'saved' | 'removed'` renders exactly one banner,
+chosen by a `Record` keyed by **both** the outcome and the sync state, so all
+**six** pairs are worded and a missing one fails `tsc`:
+
+| Outcome | `synced` | `pending` | `conflict` |
+|---|---|---|---|
+| Save | `success` — up-to-date wording | `info` — stored here, awaiting sync | `warning` — local action only, difference remains |
+| Removal | `success` | `info` | `warning` |
+
+The `conflict` arms exist because "not pending" is **not** "synchronized":
+rendering the success wording there put "up to date" directly above the
+Conflict warning. They acknowledge the local action and state that the
+difference remains — never complete, current everywhere, up to date or
+resolved — and the report-only Conflict row above still renders beneath them,
+with **no** resolution behaviour added (BUG-012). Specs cover all six pairs
+and assert that the completion wording is absent under `conflict`.
+
+Removal wording matches what W-2 actually does: a **soft delete** that keeps a
+tombstone. It says the details leave the **active profile**, that a removal
+record stays on the device and synchronizes, and — as ADR-P011 and
+`docs/legal/PRIVACY_POLICY.md` §6 put it — that deleting the account
+permanently removes the account and its data while keeping only an anonymized
+security audit record. It never claims the values stop being kept, and it
+states no retention period.
+
+Like the dashboard `Ready` banner, the whole family is classified in
+§What is deliberately not a canonical state.
+
+**`status === 'saving'`** is likewise the transient write sub-phase that
+section already classifies: it drives the button `loading` prop, and the
+surface keeps rendering its data.
+
+---
+
 # Coverage summary
 
-Ten state-bearing surfaces. Legend: **S** SHIPPED · **S!** SHIPPED but
+Eleven state-bearing surfaces. Legend: **S** SHIPPED · **T** TARGET
+(implemented, not on `main`) · **S!** SHIPPED but
 non-conformant · **P** PROPOSED, applicable and unimplemented, with a named
 owner · **—** genuinely not applicable, justified in the matrix.
 
@@ -533,6 +607,7 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 8 | Food Log | S | S | — | S¹ | S | S | S | S |
 | 9 | Dietary Preferences | S | S | — | S | — | S | S | S |
 | 10 | Progress | S | S | — | S | — | S³ | S³ | S |
+| 11 | Evaluation and limitations | T | T | — | T⁴ | — | T | T | T |
 
 ¹ load, write, sync and catalog-incompatibility errors are all SHIPPED. Write
 errors ship as three separate per-operation treatments (BUG-008), each distinct
@@ -541,9 +616,12 @@ folded into Conflict (BUG-007).
 ² rendered by the embedded sync status banner (surface 2), which is part of the
 dashboard composition — the same treatments counted once at surface 2 and once
 in the dashboard's seven-of-eight total.
+⁴ four Error treatments, all distinct: the load failure (with the retry), the
+refused stored row, the save failure and the removal failure.
 
-**Totals.** **PROPOSED: none.** Every applicable state on every surface now has a
-shipped treatment. Surface 8's Error — writes row shipped with BUG-008; BUG-011's
+**Totals.** **PROPOSED: none.** Every applicable state on every surface now has
+an implemented treatment — surface 11’s are **TARGET** rather than SHIPPED
+because ADR-P017 W-3 is not on `main` yet; nothing on surfaces 1–10 changed. Surface 8's Error — writes row shipped with BUG-008; BUG-011's
 three feature slices shipped surface 5's Conflict row, surface 9's two rows and
 surface 10's two rows; surface 4's Error row shipped with BUG-009.
 
@@ -573,11 +651,12 @@ catalog-incompatibility cause it used to absorb is now its own Error treatment.
 Everything in the grid is either SHIPPED or justified `n/a`, and every `n/a`
 carries its justification in the surface matrix.
 
-**The one state present on every feature screen is Web unavailable** — 12
-presentation files, 23 keys, 19 specs. It is the most consistently implemented
-state in the product. **Offline is the narrowest**: two surfaces and four keys,
-and the matrices show why — at this commit an authoritative connectivity signal
-is exposed to only those two surfaces.
+**The one state present on every feature screen is Web unavailable** — **13**
+presentation files, **25** keys and **21** specs with W-3 (12 / 23 / 19 at
+`fb02097`). It is the most consistently implemented state in the product.
+**Offline is the narrowest**: two surfaces and four keys, and the matrices show
+why — at this commit an authoritative connectivity signal is exposed to only
+those two surfaces, and surface 11 does not change that.
 
 ---
 

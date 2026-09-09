@@ -760,6 +760,8 @@ export const es = {
   'dashboard.foodLog': 'Registrar alimentos',
   'dashboard.preferencesAccessibility': 'Administrar preferencias y exclusiones alimentarias',
   'dashboard.preferences': 'Preferencias alimentarias',
+  'dashboard.wellnessSafety': 'Evaluación y limitaciones',
+  'dashboard.wellnessSafetyAccessibility': 'Ver o editar tu evaluación y limitaciones',
   'dashboard.routinesAccessibility': 'Administrar rutinas de ejercicios',
   'dashboard.routines': 'Rutinas de ejercicios',
   'dashboard.workoutLogAccessibility': 'Registrar un entrenamiento',
@@ -887,4 +889,144 @@ export const es = {
     'Tu IMC ({bmi}) está en el rango de peso bajo. Un déficit calórico podría ser inseguro; elige un objetivo de mantenimiento o aumento.',
   'dashboard.recommendation.underweightEvidence':
     'Clasificación de IMC de la OMS y orientación conservadora sobre balance energético.',
+
+  // ── Wellness Safety Profile (ADR-P017 W-3) ──────────────────────────────
+  // Positioning copy first: fitness and general-wellness software, never a
+  // diagnosis, a treatment or a medical clearance. No string here describes
+  // the user as safe, cleared, approved or medically fit, and none asks for a
+  // provider, a finding, a condition, a medication, a treatment, a severity,
+  // a dosage or free text. Token labels are presentation only — the stored
+  // value is always the language-neutral token.
+  'wellness.safety.routeTitle': 'Evaluación y limitaciones',
+  'wellness.safety.title': 'Evaluación y limitaciones',
+  'wellness.safety.subtitle':
+    'Datos opcionales que nos ayudan a mantener tu entrenamiento conservador.',
+  'wellness.safety.disclaimerTitle': 'Esto es software de fitness, no una opinión médica',
+  'wellness.safety.disclaimerBody':
+    'AppFitnessRD es una app de fitness y bienestar general. No diagnostica, no trata y no decide si el ejercicio es seguro para ti, y nunca dice que estés autorizado ni en condiciones médicas para entrenar. Consulta tu salud con un profesional cualificado.',
+  'wellness.safety.privacyNote':
+    'Solo registramos si completaste una evaluación, su fecha y las zonas y movimientos que eliges de las listas. Nunca preguntamos quién te evaluó ni qué se encontró, y nunca preguntamos por condiciones, medicamentos o tratamientos. Aquí no hay ningún lugar para escribir notas.',
+  'wellness.safety.empty': 'Todavía no has declarado nada.',
+  'wellness.safety.loading': 'Cargando…',
+  'wellness.safety.loadingAccessibility': 'Cargando tu evaluación y limitaciones',
+  'wellness.safety.errorTitle': 'Algo salió mal',
+  'wellness.safety.errorMessage':
+    'No se pudieron cargar tu evaluación y limitaciones en este momento.',
+  'wellness.safety.retry': 'Intentar de nuevo',
+  'wellness.safety.retryAccessibility': 'Volver a intentar cargar tu evaluación y limitaciones',
+  'wellness.safety.invalidTitle': 'No podemos mostrar estos datos',
+  'wellness.safety.invalidMessage':
+    'La copia guardada en este dispositivo no se puede leer de forma segura, así que la dejamos tal como está. Completa el formulario y guarda para reemplazarla.',
+  'wellness.safety.saveErrorTitle': 'No se guardó',
+  'wellness.safety.saveErrorMessage':
+    'No se pudieron guardar tu evaluación y limitaciones. Inténtalo de nuevo.',
+  'wellness.safety.invalidInputTitle': 'Revisa tus respuestas',
+  'wellness.safety.invalidInputMessage':
+    'Algo de lo que ingresaste no se pudo aceptar. Revisa la fecha y tus selecciones, y vuelve a guardar.',
+  'wellness.safety.removeErrorTitle': 'No se eliminó',
+  'wellness.safety.removeErrorMessage':
+    'No se pudieron eliminar tu evaluación y limitaciones. Inténtalo de nuevo.',
+  'wellness.safety.webUnavailableTitle':
+    'La evaluación y las limitaciones no están disponibles en la web',
+  'wellness.safety.webUnavailableBody':
+    'Usa la app móvil de AppFitnessRD para agregar o cambiar estos datos.',
+  'wellness.safety.evaluation.legend': '¿Has completado una evaluación física profesional?',
+  'wellness.safety.evaluation.yes': 'Sí',
+  'wellness.safety.evaluation.no': 'Todavía no',
+  'wellness.safety.evaluation.hint':
+    'Cualquier respuesta está bien. Nada en la app se bloquea ni se desbloquea por ella.',
+  'wellness.safety.evaluation.dateLabel': 'Fecha de la evaluación',
+  'wellness.safety.evaluation.datePlaceholder': 'AAAA-MM-DD',
+  'wellness.safety.evaluation.dateHint':
+    'Solo la fecha. No preguntamos quién la realizó ni qué encontró.',
+  'wellness.safety.validation.dateRequired': 'Agrega la fecha de la evaluación',
+  'wellness.safety.validation.dateFormat': 'Usa el formato de fecha AAAA-MM-DD',
+  'wellness.safety.validation.validDate': 'Introduce una fecha real del calendario',
+  'wellness.safety.validation.dateNotFuture': 'La fecha no puede estar en el futuro',
+  'wellness.safety.areas.legend': 'Zonas del cuerpo que debemos tratar con cuidado',
+  'wellness.safety.areas.hint':
+    'Elige de la lista. Solo zonas del cuerpo: nunca una condición, una causa ni su gravedad.',
+  'wellness.safety.movements.legend': 'Movimientos que prefieres evitar',
+  'wellness.safety.movements.hint': 'Elige de la lista. Puedes cambiarlo cuando quieras.',
+  'wellness.safety.nothingDeclared':
+    'No seleccionar nada registra que no declaraste limitaciones. No significa que estés autorizado ni en condiciones médicas para entrenar.',
+  'wellness.safety.save': 'Guardar',
+  'wellness.safety.saveAccessibility': 'Guardar tu evaluación y limitaciones',
+  'wellness.safety.savedTitle': 'Guardado',
+  'wellness.safety.savedBody': 'Tu evaluación y limitaciones están actualizadas.',
+  'wellness.safety.savedPendingTitle': 'Guardado en este dispositivo',
+  'wellness.safety.savedPendingBody':
+    'Tus respuestas están guardadas en este dispositivo y esperan sincronizarse.',
+  'wellness.safety.savedConflictTitle': 'Guardado aquí; la diferencia de sincronización sigue ahí',
+  'wellness.safety.savedConflictBody':
+    'Tu cambio está guardado en este dispositivo. Este registro sigue siendo distinto de la copia sincronizada, y guardar no cambia esa diferencia.',
+  'wellness.safety.syncPending': 'Guardado en este dispositivo',
+  'wellness.safety.syncPendingAccessibility':
+    'Guardado en este dispositivo; sincronización pendiente',
+  'wellness.safety.syncConflictTitle': 'Estos datos necesitan revisión',
+  'wellness.safety.syncConflictBody':
+    'Lo guardado en este dispositivo y lo que llegó del servidor ya no coinciden, y esta pantalla no puede solucionar esa diferencia. Puedes seguir usando la app.',
+  'wellness.safety.remove': 'Quitar de mi perfil',
+  'wellness.safety.removeAccessibility': 'Quitar tu evaluación y limitaciones de tu perfil activo',
+  'wellness.safety.removeConfirmTitle': '¿Quitar estos datos de tu perfil?',
+  'wellness.safety.removeConfirmBody':
+    'Dejarán de formar parte de tu perfil activo y la app ya no los muestra ni los usa. En este dispositivo queda un registro de la eliminación, que se sincroniza con tus otros dispositivos. Eliminar tu cuenta quita de forma permanente la cuenta y sus datos, y conserva solo un registro de seguridad anonimizado.',
+  'wellness.safety.removeConfirm': 'Quitar del perfil',
+  'wellness.safety.removeConfirmAccessibility':
+    'Confirmar que quitas tu evaluación y limitaciones de tu perfil activo',
+  'wellness.safety.removeCancel': 'Conservarlos',
+  'wellness.safety.removeCancelAccessibility': 'Conservar tu evaluación y limitaciones',
+  'wellness.safety.removedTitle': 'Quitado de tu perfil',
+  'wellness.safety.removedBody':
+    'Ahora no hay nada declarado en tu perfil. Puedes agregar estos datos de nuevo cuando quieras.',
+  'wellness.safety.removedPendingTitle': 'Quitado en este dispositivo',
+  'wellness.safety.removedPendingBody':
+    'Estos datos ya no forman parte de tu perfil activo aquí. La eliminación está guardada en este dispositivo y espera sincronizarse.',
+  'wellness.safety.removedConflictTitle': 'Quitado aquí; la diferencia de sincronización sigue ahí',
+  'wellness.safety.removedConflictBody':
+    'Estos datos ya no forman parte de tu perfil activo en este dispositivo. Este registro sigue siendo distinto de la copia sincronizada, y quitarlos no cambia esa diferencia.',
+  'wellness.safety.recommendation.accessibility': 'Recomendación de evaluación profesional',
+  'wellness.safety.recommendation.title': 'Considera una evaluación física profesional',
+  'wellness.safety.recommendation.body':
+    'Un profesional cualificado puede indicarte qué es adecuado para tu cuerpo. AppFitnessRD es software de fitness y bienestar general y no puede hacer ese juicio por ti.',
+  'wellness.safety.recommendation.optional':
+    'Es una recomendación, no un requisito. Todo en la app sigue disponible de cualquier manera.',
+  'wellness.safety.recommendation.cta': 'Agregar estos datos',
+  'wellness.safety.recommendation.ctaAccessibility': 'Agregar tu evaluación y limitaciones',
+  'wellness.safety.area.abdomen': 'Abdomen',
+  'wellness.safety.area.ankle': 'Tobillo',
+  'wellness.safety.area.chest': 'Pecho',
+  'wellness.safety.area.elbow': 'Codo',
+  'wellness.safety.area.foot': 'Pie',
+  'wellness.safety.area.forearm': 'Antebrazo',
+  'wellness.safety.area.groin': 'Ingle',
+  'wellness.safety.area.hand': 'Mano',
+  'wellness.safety.area.hip': 'Cadera',
+  'wellness.safety.area.knee': 'Rodilla',
+  'wellness.safety.area.lowerBack': 'Espalda baja',
+  'wellness.safety.area.lowerLeg': 'Pierna inferior',
+  'wellness.safety.area.neck': 'Cuello',
+  'wellness.safety.area.shoulder': 'Hombro',
+  'wellness.safety.area.thigh': 'Muslo',
+  'wellness.safety.area.upperArm': 'Brazo superior',
+  'wellness.safety.area.upperBack': 'Espalda alta',
+  'wellness.safety.area.wrist': 'Muñeca',
+  'wellness.safety.movement.bridging': 'Puente de glúteos',
+  'wellness.safety.movement.deepSquat': 'Sentadilla profunda',
+  'wellness.safety.movement.dips': 'Fondos en paralelas',
+  'wellness.safety.movement.frontRackLoading': 'Carga en rack frontal',
+  'wellness.safety.movement.goodMorning': 'Flexión de tronco con barra',
+  'wellness.safety.movement.heavyHinge': 'Bisagra de cadera con carga alta',
+  'wellness.safety.movement.heavyPressing': 'Empujes con carga alta',
+  'wellness.safety.movement.highImpactCardio': 'Cardio de alto impacto',
+  'wellness.safety.movement.jumping': 'Saltos',
+  'wellness.safety.movement.loadedCarries': 'Transportes con carga',
+  'wellness.safety.movement.loadedSpinalFlexion': 'Flexión de columna con carga',
+  'wellness.safety.movement.lunge': 'Zancada',
+  'wellness.safety.movement.maxEffortLifts': 'Levantamientos al máximo esfuerzo',
+  'wellness.safety.movement.overheadPress': 'Press por encima de la cabeza',
+  'wellness.safety.movement.running': 'Correr',
+  'wellness.safety.movement.skullCrushers': 'Extensión de tríceps tumbado',
+  'wellness.safety.movement.sprinting': 'Esprintar',
+  'wellness.safety.movement.valsalvaHeavyLifts': 'Levantamientos pesados aguantando la respiración',
 } as const satisfies Record<TranslationKey, string>;

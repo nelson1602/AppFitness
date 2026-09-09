@@ -57,6 +57,19 @@ jest.mock('@/features/progress', () => {
   };
 });
 
+jest.mock('@/features/wellness', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    WellnessSafetyRecommendationCard: ({ onOpen }: { onOpen: () => void }) =>
+      React.createElement(
+        RN.Pressable,
+        { accessibilityRole: 'button', accessibilityLabel: 'wellness-cta', onPress: onOpen },
+        React.createElement(RN.Text, { testID: 'wellness-recommendation' }, 'Recommendation'),
+      ),
+  };
+});
+
 const baseData: DashboardData = {
   missing: [],
   sync: {
@@ -516,5 +529,71 @@ describe('DashboardScreen', () => {
     ).toBeOnTheScreen();
     expect(screen.queryByText('The dashboard could not be loaded right now.')).toBeNull();
     expect(screen.getByText('Sync needs attention')).toBeOnTheScreen();
+  });
+
+  // ── ADR-P017 W-3 ─────────────────────────────────────────────────────────
+
+  it('shows the wellness recommendation without changing the three-step onboarding count', async () => {
+    setStore({
+      status: 'empty',
+      data: {
+        ...baseData,
+        assessment: null,
+        missing: [{ id: 'weight', title: 'Add current weight', detail: '' }],
+      },
+    });
+
+    await render(<DashboardScreen />);
+
+    // The recommendation renders as its own card…
+    expect(screen.getByTestId('wellness-recommendation')).toBeOnTheScreen();
+    // …and the shipped checklist still counts exactly three steps, with the
+    // same single outstanding row. It is a recommendation, not a prerequisite.
+    expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('2 of 3 complete');
+    expect(screen.getAllByTestId(/^onboarding-step-/)).toHaveLength(1);
+  });
+
+  it('opens the capture surface from the recommendation call to action', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    fireEvent.press(screen.getByRole('button', { name: 'wellness-cta' }));
+
+    expect(router.push).toHaveBeenCalledWith('/wellness-safety-profile');
+  });
+
+  it.each(['ready', 'empty', 'error'] as const)(
+    'keeps the evaluation and limitations entry reachable in the %s state',
+    async (status) => {
+      const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+      setStore({
+        status,
+        data: status === 'ready' ? baseData : { ...baseData, assessment: null },
+        error: status === 'error' ? 'boom' : null,
+      });
+
+      await render(<DashboardScreen />);
+      fireEvent.press(
+        screen.getByRole('button', { name: 'View or edit your evaluation and limitations' }),
+      );
+
+      expect(screen.getByTestId('dashboard-wellness-safety')).toBeOnTheScreen();
+      expect(router.push).toHaveBeenCalledWith('/wellness-safety-profile');
+    },
+  );
+
+  it('labels the evaluation and limitations entry in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+
+    expect(
+      screen.getByRole('button', { name: 'Ver o editar tu evaluación y limitaciones' }),
+    ).toBeOnTheScreen();
+    expect(screen.getByTestId('dashboard-wellness-safety')).toHaveTextContent(
+      'Evaluación y limitaciones',
+    );
   });
 });

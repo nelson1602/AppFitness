@@ -88,7 +88,10 @@ soft-delete, dirty probe) whose local write and sync-queue enqueue commit in
 one transaction, plus the pull applier — which is handed the active user by
 the sync worker and verifies the pulled row's owner and id before writing,
 rather than trusting the payload as the older progress/profile appliers do.
-No store, screen or iCoach input exists yet (W-3 / W-4).
+W-3 adds the store and the capture surface over that repository — a
+session-guarded route, a dashboard recommendation and EN/ES copy — and
+touches no schema, migration or statement. **No iCoach input exists yet
+(W-4)**: a user can record a limitation, but nothing reads it.
 
 # Key Decisions
 

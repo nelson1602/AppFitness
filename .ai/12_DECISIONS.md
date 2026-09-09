@@ -6863,6 +6863,192 @@ rule-version change (W-4); no supplement capability (W-5); no dependency; and
 Medical dormancy is unchanged: no medical handler is registered and the retained
 medical tables are neither read nor written.
 
+### Slice W-3 Implementation Record — Onboarding Recommendation and Capture UI
+
+**Implemented.** W-3 is the first slice a user can see. It adds one
+session-guarded route, a dashboard recommendation, a persistent dashboard
+navigation entry and **109** EN/ES localization keys over the shipped W-2
+boundary. It adds no API, schema, migration, dependency or sync-policy change,
+and nothing consumes the profile yet.
+
+**The product is named AppFitnessRD** in every W-3 user-facing string, per
+ADR-P028. Older copy elsewhere still says "AppFitness"; that is historical
+evidence and was deliberately not touched by this slice.
+
+**Recommends, never requires.** A dashboard card recommends a professional
+physical evaluation and routes straight to the capture surface. It gates
+nothing: navigation, the assessment, nutrition, exercise, workout logging,
+progress and offline operation behave identically whether or not a profile
+exists. It is deliberately **not** a fourth first-run checklist step —
+ADR-P027's three steps are prerequisites the assessment cannot compute without,
+and its "n of 3 complete" line is unchanged — so it renders as its own card and
+`onboarding-checklist-card.tsx` is untouched. The card **hides itself** once
+anything is recorded, and while loading, on Web and on a read failure, so it
+never becomes permanent dashboard furniture or a second error treatment. The
+durable way back in is a dashboard navigation entry that is present in every
+state, recorded or not.
+
+**What the surface asks, and nothing more.** Whether a professional physical
+evaluation was completed; its date **only if** it was (a conditional field that
+disappears on "not yet", which always persists a null date); and the two
+closed W-1 vocabularies as multi-selects. Limitations stay selectable with no
+evaluation at all (W-1 invariant 4). There is **no free-text input of any
+kind** — a spec counts the rendered `TextInput` host nodes and requires exactly
+one (the date) and **zero** when no evaluation is reported — so no provider
+identity, finding, diagnosis, condition, medication, treatment, rehabilitation
+instruction, document, clearance, severity, dosage or supplement can be
+entered. Decision 3 is now enforced by the absence of an input as well as by
+W-1's column set.
+
+**Labels are presentation, tokens are storage.** Each vocabulary token maps to
+a localization key **one way** — token → label. No label ever maps back, so a
+translated string cannot become stored data, and switching language cannot
+change what is persisted or normalized. Both maps are keyed by the token
+union, so adding a vocabulary token without authoring both labels fails
+`tsc`; a spec additionally proves every token has a non-empty, distinct label
+in **both** catalogs. Chip order is token order, so the layout is identical in
+both languages.
+
+**Safety copy is enforced, not reviewed.** A dedicated spec
+(`wellness-safety-copy.spec.ts`) asserts the positive statements — fitness and
+general-wellness software, does not diagnose or treat, does not decide whether
+exercise is safe, recommends a qualified professional, states what is never
+asked for — and the prohibitions: **no string describes the user as safe,
+cleared, approved or medically fit** unless the same string carries a negation;
+no string diagnoses, prescribes or promises supervision; none asks for a
+provider, a finding or a document; none promises a conflict-resolution
+destination; and none leaks a system word or a raw token. Selecting nothing is
+explicitly a declaration of no limitations and explicitly **not** a clearance,
+because that is the dangerous misreading of an empty list.
+
+**Write outcomes are exhaustive over the sync state.** A confirmation has two
+inputs — what the user did and where that change stands — so the screen picks
+copy from a `Record` keyed by **both** unions: `saved` / `removed` ×
+`synced` / `pending` / `conflict`, six worded pairs, and a missing pair fails
+`tsc`. The first implementation treated everything that was not `pending` as
+synchronized, which let a parked **conflict** render a `success` "up to date"
+banner directly above the Conflict warning — a contradiction, and a claim the
+repository cannot support. Now `synced` may claim completion, `pending` says
+the change is stored on this device and awaiting synchronization, and
+`conflict` acknowledges the **local** action only and states that the existing
+difference remains: never complete, current everywhere, up to date or
+resolved. The report-only Conflict banner still renders beneath the
+confirmation and **no resolution behaviour is added** (BUG-012), nor is the
+"both versions preserved" claim made (BUG-014).
+
+**Removal is from the active profile, not erasure.** W-2 removal is a soft
+delete: it sets `deleted_at` / `deleted_by`, bumps the version and queues the
+tombstone, and it does **not** blank the stored field values. Copy that
+promised "the app will stop keeping your evaluation date and the limitations
+you declared" was therefore false and is replaced: the details **stop being
+part of the active profile** and are no longer shown or used, a **record of
+the removal stays on this device** and synchronizes to the other devices, and
+**account deletion is named as the whole-account erasure path** (ADR-P011).
+No retention period and no legal or regulatory promise is stated, and the
+pending and conflict arms describe their synchronization status honestly. A
+spec rejects the erasure vocabulary across the whole family.
+
+**Pending copy is factual, not absolute.** The queued-write wording opened
+with "Nothing is lost." — a guarantee the product cannot make, because the
+queue lives on a device that can be lost before it drains. It now states only
+that the answers are stored on this device and are waiting to synchronize; a
+spec rejects absolute wording anywhere in the family. Distinction 4 is about
+not alarming the user, not about promising the impossible.
+
+**States.** Six canonical states, bound per trigger in
+`.ai/18_SCREEN_STATE_MATRICES.md` §11: Loading (no form, so a blank form is
+never mistaken for "nothing declared"), Empty (the same form, prefilled
+blank), Error, Pending sync (reassuring — the write **is** on the device),
+Conflict (`warning`, report-only, with no "both versions preserved" claim
+given BUG-014) and Web unavailable (`info`, no retry, no unsaveable form).
+**Data-gap and Offline are not applicable** and carry their reasons there.
+Error has four distinct treatments: the load failure, which ships **the first
+retry control in the product** and hides the form because an edit over an
+unknown read would be an uninformed overwrite; the save failure; the removal
+failure; and a refused stored row.
+
+**A refused stored row is replaced, never repaired.** W-2 decodes stored rows
+strictly and throws instead of returning a degraded profile. The store maps
+that throw to a discriminant, the screen renders safe localized copy with **no
+reason, field or token value**, and the reason is **not logged** either — a
+decoder detail is not something to emit to a console or a crash reporter. The
+stored row is left exactly as it is: no repair write, no delete, no overwrite.
+The offered recovery is re-entering the answers, which is an ordinary save.
+
+**The store carries a discriminant, not a sentence.** `.ai/08_UI_UX.md`
+distinction 8 says the store `error` field is a discriminant and the
+presentation layer supplies localized copy; this store is the first to
+implement that literally, with a five-member union instead of the English
+strings the older stores hold. Every publish is gated by the ADR-P030 C-1
+session guard, and the cached profile is dropped on any account transition.
+
+**Pending and Conflict are told apart without touching W-2.** The shipped
+dirty probe is true for both a queued write and a parked conflict, so a small
+application module reads conflict presence from the existing user-scoped
+`sync_conflicts` store and gives conflict precedence. The conflict rows carry
+the local and server token lists in their payloads; that query's result is
+reduced to a boolean immediately and **only the boolean leaves the application
+layer**, so no token can reach a component, a log or Sentry. Nothing is
+resolved — BUG-012 stays open and this surface offers no resolution path.
+
+**Removal is confirmed and privacy-preserving.** A soft delete behind an
+explicit two-step confirmation (the shipped `EvaluationHistory` idiom):
+cancelling changes nothing, and a failed removal leaves the confirmation open
+rather than implying success.
+
+**Accessibility, stated at code level only.** Field groups carry a visible
+legend and hint; each chip carries a `checkbox` role, `accessibilityState`, a
+group-qualified accessible name and a 48pt target; **selection is never colour
+alone** (ADR-P022 Decision 7) — a marker glyph and a heavier border carry it,
+and the glyph is hidden from assistive technology because it duplicates the
+state the chip already exposes. The multi-select is a new component rather than
+a change to the shared `FormSelect`, and it does not reproduce that component's
+recorded dark-theme contrast defect (`.ai/08_UI_UX.md` §Finding 1,
+FEATURE-010): it uses the shipped `primaryContainer` pair, measured at
+**13.79:1** light and **6.87:1** dark for the label, with selected/unselected
+borders at **3.12:1 / 8.13:1** and **3.96:1 / 4.69:1** against
+`surfaceVariant` — all above their WCAG 2.2 AA thresholds, and it decides no
+token value.
+
+**The conditional date field is deliberately not announced.** ADR-P024
+Decision 3 authorizes `aria-live` on exactly one node — the localized
+validation-error message `FormField` already renders — and on nothing else. An
+earlier revision of this slice put `aria-live="polite"` on the container that
+reveals the date field; that is a second announcement mechanism W-3 has no
+authorization to add, so it was removed. The field is visible and keyboard
+reachable, its *appearance* is not programmatically announced, and
+`FormField`'s shipped validation-error behaviour is untouched. **No VoiceOver,
+TalkBack or browser-AT outcome is claimed anywhere in this slice**; that
+remains the UX-4C manual pass.
+
+**Documentation contradictions W-3 exposed, and reconciled.** Three records
+stopped being true and were corrected rather than left to drift:
+
+- `.ai/08_UI_UX.md` §Current implementation evidence read "Retry-related
+  localization keys: **0** — no retry affordance exists anywhere". The 0 stays
+  as `2692e589`'s evidence, and the row and a new note record **2** keys on
+  **one** surface with ADR-P017 W-3 (TARGET). The announcement evidence is
+  corrected in the same note: native `accessibilityLiveRegion` and imperative
+  `announceForAccessibility` remain **0**, while **two** production
+  `aria-live` props already exist — on `AuthTextField`'s and `FormField`'s
+  validation-error messages — and **W-3 adds none**.
+- `.ai/17_PRODUCT_FLOWS.md` §Flow 1 read "PROPOSED in its entirety … no
+  onboarding surface exists on `main`", which UX-4B falsified at `552f4b7`
+  when it shipped the advisory checklist card and its seven keys. Flow 1 is now
+  SHIPPED in that advisory form, and it states explicitly that W-3 is a
+  separate TARGET surface and not a checklist step.
+- `.ai/11_BACKLOG.md` §3 read "The Wellness Safety Profile itself is **not**
+  implemented", untrue since W-1. It now records W-1/W-2 as shipped, W-3 as
+  the current TARGET candidate, and W-4 as unimplemented.
+
+**Scope held.** No API, schema, migration, dependency, medical-domain,
+retained-medical-data or sync-policy change; no W-4 iCoach consumption and no
+W-5 supplement functionality. A spec walks the wellness feature and the iCoach,
+nutrition and workout features in both directions to prove it: no wellness
+file imports an engine, plan or routine module, and no consumer names the
+profile at all. **W-4 and W-5 remain unimplemented and unauthorized**, and W-5
+additionally requires its own accepted ADR and legal review.
+
 ### Wellness Safety Profile — Slice Plan
 
 Sequenced so no consumer ships before its contract. Each needs its own
@@ -6873,7 +7059,7 @@ authorization, branch, validation and review.
 | **W-0** | **Public medical API/sync disconnection** — this record | — | **Implemented** |
 | **W-1** | **Wellness Safety Profile contract**: a wellness-owned schema for the evaluation-completed flag + date and self-declared limitations (affected areas, movements to avoid). Forward-only PostgreSQL + SQLite migrations, **never** reusing a medical table or column | W-0 | **Implemented** — contract + storage only (record above). No repository, sync, UI or iCoach input |
 | **W-2** | **Offline-first read/write + sync**: repository, sync handler and entity registration on both sides, under the existing conflict/versioning contract | W-1 | **Implemented** — record above. Registers the **wellness** entity type; still no UI or iCoach input |
-| **W-3** | **Onboarding recommendation + capture UI**, EN/ES, accessible: recommends a professional evaluation, records only the flag/date, and captures limitations. Explicitly non-diagnostic copy | W-2 | Copy deck slice precedes or accompanies |
+| **W-3** | **Onboarding recommendation + capture UI**, EN/ES, accessible: recommends a professional evaluation, records only the flag/date, and captures limitations. Explicitly non-diagnostic copy | W-2 | **Implemented** — record above. One route, a dashboard recommendation and entry, 109 EN/ES keys; still no iCoach input |
 | **W-4** | **Deterministic iCoach consumption**: limitations conservatively exclude movements or lower workload, versioned and explainable, never reinterpreted as diagnosis or clearance (Decision 6) | W-3 | Rule-version bump; deterministic tests |
 | **W-5** | **Supplement education boundary** — **optional**: food-first educational information only; **no dosage of any kind**, no product or brand recommendation, no therapeutic claims, no medication-interaction decisions; any uncertainty, limitation, allergy, health concern or medication question defers to a qualified professional | W-4 | **Requires its own accepted ADR and legal review before any implementation** |
 
