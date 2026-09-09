@@ -3,10 +3,7 @@ import type { WellnessSafetyProfileRow } from '@/shared/infrastructure/database/
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
 
-import {
-  decodeServerProfile,
-  decodeStoredProfile,
-} from '../domain/wellness-safety-profile.decode';
+import { decodeServerProfile, decodeStoredProfile } from '../domain/wellness-safety-profile.decode';
 import {
   WELLNESS_SAFETY_PROFILE_ENTITY,
   deviceToday,
