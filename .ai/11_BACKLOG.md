@@ -1075,7 +1075,20 @@ that build would contradict the owner's clarified product intent.
       registered (ADR-P017 **Slice 0 / W-0**).
 - [ ] A wellness-owned Wellness Safety Profile replaces the retired medical
       inputs (evaluation-completed flag + date, self-declared limitations),
-      per the ADR-P017 W-1…W-4 slice plan. Not started.
+      per the ADR-P017 W-1…W-4 slice plan. **W-1 is implemented: the
+      contract and its PostgreSQL/SQLite storage exist** —
+      `wellness_safety_profiles` with the evaluation flag/date and the two
+      closed token vocabularies **enforced in both databases** (PostgreSQL
+      array containment; SQLite `json_each` validation triggers), at most one
+      live profile per user, a user-scoped dirty-row index, fail-closed
+      constraints and no free-text or clinical column. Ownership is
+      structurally represented and cascade-protected; applying the
+      authenticated `user_id` predicate to every read, write, delete,
+      dirty-row scan, push and pull — with explicit cross-user denial tests —
+      is W-2 work. The
+      criterion stays open because **W-2 (read/write + sync), W-3 (capture
+      UI) and W-4 (deterministic consumption) are unimplemented and
+      unauthorized**, so nothing yet replaces the retired inputs at runtime.
 - [x] Public-v1 iCoach does not read the dormant medical domain.
 - [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.

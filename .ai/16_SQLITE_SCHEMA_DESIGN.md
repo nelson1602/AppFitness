@@ -53,6 +53,7 @@ Tables mirror `api/prisma/schema.prisma` 1:1 by name and column
 |---|---|---|
 | UUID / timestamptz / date | native types | TEXT (36-char / ISO-8601 UTC / YYYY-MM-DD) |
 | boolean / enum / jsonb / bytea | native | INTEGER 0-1 + CHECK / TEXT + CHECK / TEXT json_valid() / BLOB |
+| token list (`text[]`) | native array + `<@` allowed-token CHECK | TEXT holding a JSON array, `json_valid()` + `json_type() = 'array'` + bounded `json_array_length()` CHECK, plus named BEFORE INSERT/UPDATE triggers that walk `json_each` and reject any element that is not JSON text or is outside the allowed set (migration 007). A CHECK cannot do per-element work — it may not contain a subquery — so the vocabulary is enforced by trigger on the device and by array containment on the server |
 | Sync cursor | `sync_seq` column per row | per-user, per-table cursor in `sync_state`, keyed `(user_id, entity_type)` (migration 006) |
 | Sync status | (server is always authoritative) | `sync_status` per row: pending/synced/conflict |
 | `"order"` column | `"order"` (quoted keyword) | `order_index` (avoids keyword quoting) — sync layer maps the name |
@@ -70,6 +71,21 @@ SecureStore, never SQLite**).
 
 **Catalog tables** (`exercises`, `foods`, `achievements`): pull-only,
 no `user_id`, `sync_status` defaults to `'synced'`.
+
+**Tables added after the baseline** (same 1:1 mapping rules): migration 003
+`dietary_preferences`; migration 006 the ADR-P030 C-1 `user_id` scoping of
+`sync_queue` / `sync_conflicts` / `sync_state` plus the dormant
+resolution-outbox columns; migration 007 `wellness_safety_profiles` — the
+ADR-P017 W-1 wellness-owned evaluation flag/date plus self-declared
+limitation tokens. At most one live profile per user (a partial unique index
+on `(user_id) WHERE deleted_at IS NULL`); a composite, user-scoped dirty-row
+index `(user_id, sync_status) WHERE sync_status != 'synced'`; no free-text
+column; and both token columns closed to their vocabularies by validation
+triggers. Ownership is structurally represented and cascade-protected, which
+is not access control: **W-2 must carry the authenticated `user_id`
+predicate on every read, write, delete, dirty-row scan, push and pull** and
+ship cross-user denial tests. W-1 is contract and storage only: no
+repository, store, sync applier or registration exists for it yet.
 
 # Key Decisions
 

@@ -180,11 +180,13 @@ function columns(
 }
 
 describe('migration 006 — sync user scoping', () => {
-  it('is registered last and never edits a shipped migration', () => {
+  it('is registered in order and never edits a shipped migration', () => {
     expect(syncUserScopingMigration.version).toBe(6);
-    expect(MIGRATIONS[MIGRATIONS.length - 1]).toBe(syncUserScopingMigration);
-    // 001–005 are untouched: their versions still occupy 1..5 in order.
-    expect(MIGRATIONS.map((m) => m.version)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(MIGRATIONS[5]).toBe(syncUserScopingMigration);
+    // 001–005 are untouched: their versions still occupy 1..5 in order. 007
+    // (ADR-P017 W-1) was appended after C-1 shipped, so 006 is no longer the
+    // last entry — it is still the sixth, and immutable.
+    expect(MIGRATIONS.map((m) => m.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
   });
 
   it('applies cleanly on a fresh install (001 → 006)', () => {
