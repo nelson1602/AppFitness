@@ -273,14 +273,32 @@ describe('Wellness Safety Profile contract', () => {
     });
   });
 
-  describe('W-1 scope boundary', () => {
-    it('ships contract only — no repository, store, sync, screen or registration', () => {
+  describe('slice boundary', () => {
+    it('keeps the contract itself free of runtime concerns', () => {
+      // W-2 added the repository, the application boundary and the pull
+      // applier beside this file; the CONTRACT still owns no persistence,
+      // store or registration code.
       const fs = require('node:fs');
-      expect(fs.readdirSync(FEATURE_DIR).sort()).toEqual(['domain', 'index.ts']);
+      expect(fs.readdirSync(FEATURE_DIR).sort()).toEqual([
+        'application',
+        'domain',
+        'index.ts',
+        'infrastructure',
+      ]);
       expect(fs.readdirSync(`${FEATURE_DIR}/domain`).sort()).toEqual([
+        'wellness-safety-profile.decode.spec.ts',
+        'wellness-safety-profile.decode.ts',
+        'wellness-safety-profile.rules.spec.ts',
+        'wellness-safety-profile.rules.ts',
         'wellness-safety-profile.spec.ts',
         'wellness-safety-profile.ts',
       ]);
+
+      // No W-3 surface: no screen, no copy, no store.
+      expect(fs.readdirSync(FEATURE_DIR)).not.toContain('presentation');
+      expect(
+        fs.readdirSync(`${FEATURE_DIR}/application`).filter((name) => name.includes('store')),
+      ).toEqual([]);
 
       const contract = source();
       for (const forbidden of [

@@ -82,10 +82,13 @@ on `(user_id) WHERE deleted_at IS NULL`); a composite, user-scoped dirty-row
 index `(user_id, sync_status) WHERE sync_status != 'synced'`; no free-text
 column; and both token columns closed to their vocabularies by validation
 triggers. Ownership is structurally represented and cascade-protected, which
-is not access control: **W-2 must carry the authenticated `user_id`
-predicate on every read, write, delete, dirty-row scan, push and pull** and
-ship cross-user denial tests. W-1 is contract and storage only: no
-repository, store, sync applier or registration exists for it yet.
+is not access control, so **every statement carries the authenticated
+`user_id`**: W-2 ships the owner-scoped repository (get, save/upsert,
+soft-delete, dirty probe) whose local write and sync-queue enqueue commit in
+one transaction, plus the pull applier — which is handed the active user by
+the sync worker and verifies the pulled row's owner and id before writing,
+rather than trusting the payload as the older progress/profile appliers do.
+No store, screen or iCoach input exists yet (W-3 / W-4).
 
 # Key Decisions
 

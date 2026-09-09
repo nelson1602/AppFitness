@@ -171,7 +171,7 @@ async function pushLoop(
             },
             now(),
           );
-          await getApplier(row.entity_type)?.markConflict(row.entity_id, now());
+          await getApplier(row.entity_type)?.markConflict(row.entity_id, now(), userId);
           report.conflicts += 1;
           break;
         }
@@ -192,7 +192,7 @@ async function pushLoop(
               SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED,
               now(),
             );
-            await getApplier(row.entity_type)?.markConflict(row.entity_id, now());
+            await getApplier(row.entity_type)?.markConflict(row.entity_id, now(), userId);
             logWarn(
               'sync.push',
               `action required: ${row.entity_type}/${row.entity_id} (${SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED})`,
@@ -238,7 +238,9 @@ async function pullLoop(
           report.skippedPending += 1;
           continue;
         }
-        await applier.applyServerChange(change.data, change.deleted);
+        // The active account travels with the change so an applier can refuse
+        // a row it does not own (ADR-P017 W-2).
+        await applier.applyServerChange(change.data, change.deleted, userId);
         report.pulledApplied += 1;
       }
 

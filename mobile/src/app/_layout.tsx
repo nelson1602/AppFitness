@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { registerNutritionSyncAppliers } from '@/features/nutrition';
 import { registerProgressSyncAppliers } from '@/features/progress';
+import { registerWellnessSyncAppliers } from '@/features/wellness';
 import { registerProfileSyncAppliers } from '@/features/profile';
 import { registerWorkoutSyncAppliers } from '@/features/workout';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
@@ -18,6 +19,7 @@ registerProfileSyncAppliers();
 registerNutritionSyncAppliers();
 registerWorkoutSyncAppliers();
 registerProgressSyncAppliers();
+registerWellnessSyncAppliers();
 
 export default function RootLayout() {
   const theme = useTheme();

@@ -246,7 +246,7 @@ describe('runSync — push loop', () => {
       },
       NOW,
     );
-    expect(applier.markConflict).toHaveBeenCalledWith('goal-1', NOW);
+    expect(applier.markConflict).toHaveBeenCalledWith('goal-1', NOW, USER);
   });
 
   it('stores sensitive conflict payloads encrypted — never plaintext in the conflict store', async () => {
@@ -348,7 +348,7 @@ describe('runSync — push loop', () => {
       'CATALOG_REVISION_UNSUPPORTED',
       NOW,
     );
-    expect(applier.markConflict).toHaveBeenCalledWith('mi-1', NOW);
+    expect(applier.markConflict).toHaveBeenCalledWith('mi-1', NOW, USER);
     expect(mockRemoveRejected).not.toHaveBeenCalled();
   });
 
@@ -406,10 +406,44 @@ describe('runSync — pull loop', () => {
     const report = await runSync(deps);
 
     expect(pull).toHaveBeenCalledWith(7, ['goals'], 100);
-    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'goal-1' }, false);
-    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'goal-2' }, true);
+    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'goal-1' }, false, USER);
+    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'goal-2' }, true, USER);
     expect(report.pulledApplied).toBe(2);
     expect(mockSetCursor).toHaveBeenCalledWith(USER, 'goals', 9, expect.any(String));
+  });
+
+  /**
+   * A strict applier (ADR-P017 W-2) throws on a payload it will not trust. The
+   * cursor must then stay where it was, so the page is retried rather than
+   * skipped — otherwise a single rejected row would silently strand every later
+   * change behind it.
+   */
+  it('leaves the cursor unadvanced when an applier rejects a change', async () => {
+    const goals = applier('goals');
+    (goals.applyServerChange as jest.Mock).mockRejectedValue(
+      new Error('affected_areas: unknown-token'),
+    );
+    mockAllAppliers.mockReturnValue([goals]);
+    mockGetCursor.mockResolvedValue(7);
+    mockHasPending.mockResolvedValue(false);
+    const pull = jest.fn().mockResolvedValue({
+      changes: [
+        {
+          entityType: 'goals',
+          entityId: 'goal-1',
+          syncSeq: 8,
+          deleted: false,
+          data: { id: 'goal-1' },
+        },
+      ],
+      nextCursor: 9,
+      hasMore: false,
+    });
+    mockCreateTransport.mockReturnValue(fakeTransport({ pull }));
+
+    await expect(runSync(deps)).rejects.toThrow(/unknown-token/);
+
+    expect(mockSetCursor).not.toHaveBeenCalled();
   });
 
   /**
@@ -472,7 +506,7 @@ describe('runSync — pull loop', () => {
     // …while an entity with nothing queued is still applied normally, proving
     // the guard was narrowed to conflicts rather than becoming a blanket block.
     expect(report.pulledApplied).toBe(1);
-    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'settled' }, false);
+    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'settled' }, false, USER);
     expect(goals.applyServerChange).toHaveBeenCalledTimes(1);
   });
 
@@ -507,6 +541,7 @@ describe('runSync — pull loop', () => {
     expect(goals.applyServerChange).toHaveBeenCalledWith(
       { id: 'conflicted', server: 'wins' },
       false,
+      USER,
     );
   });
 
