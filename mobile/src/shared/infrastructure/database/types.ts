@@ -298,6 +298,34 @@ export interface ProgressSnapshotRow extends SyncedRow {
   rule_version: string;
 }
 
+// ─── Wellness ────────────────────────────────────────────────────────────────
+
+/**
+ * Wellness Safety Profile row (ADR-P017 W-1, migration 007).
+ *
+ * The wellness-owned evaluation flag/date plus self-declared limitations. The
+ * domain contract and both closed token vocabularies live in
+ * `features/wellness/domain/wellness-safety-profile.ts`; this is only the row
+ * shape. No provider, result, clearance, diagnosis, condition, medication,
+ * treatment, blood pressure, symptom, severity, dosage, supplement or
+ * free-text column exists, and no medical table or column is reused.
+ */
+export interface WellnessSafetyProfileRow extends SyncedRow {
+  /** 0/1 — whether the user reports a completed professional evaluation. */
+  evaluation_completed: SqlBool;
+  /** Calendar date YYYY-MM-DD, or null when no evaluation is reported. */
+  evaluation_date: string | null;
+  /**
+   * JSON array of `WellnessAffectedArea` tokens; `[]`, never null. Migration
+   * 007 validation triggers reject any element outside that vocabulary, so a
+   * value here is always a contract token — but ordering and duplicates are
+   * whatever the writer stored (normalization is W-2 work).
+   */
+  affected_areas: string;
+  /** JSON array of `WellnessMovementToAvoid` tokens; `[]`, never null. */
+  movements_to_avoid: string;
+}
+
 // ─── Coach / Engine ──────────────────────────────────────────────────────────
 
 export interface RecommendationRow extends SyncedRow {

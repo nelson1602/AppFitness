@@ -202,6 +202,7 @@ model User {
   bodyWeights             BodyWeight[]
   bodyMeasurements        BodyMeasurement[]
   progressSnapshots       ProgressSnapshot[]
+  wellnessSafetyProfiles  WellnessSafetyProfile[]
   recommendations         Recommendation[]
   coachInsights           CoachInsight[]
   notifications           Notification[]
@@ -862,6 +863,45 @@ model ProgressSnapshot {
   @@unique([userId, weekStart, ruleVersion], map: "uq_progress_snapshots_user_week_rule")
   @@index([userId, syncSeq], map: "idx_progress_snapshots_user_syncseq")
   @@map("progress_snapshots")
+}
+
+// ─── Wellness ────────────────────────────────────────────────────────────────
+
+/// ADR-P017 W-1 — Wellness Safety Profile. A wellness-owned, per-user,
+/// synchronizable aggregate: whether a professional physical evaluation was
+/// completed and when, plus self-declared physical limitations as structured
+/// language-neutral tokens (contract:
+/// mobile/src/features/wellness/domain/wellness-safety-profile.ts).
+///
+/// It holds NO provider identity, evaluation result/finding, clearance,
+/// diagnosis, named condition, medication, treatment, blood pressure,
+/// rehabilitation instruction, symptom, severity, dosage, supplement data,
+/// document or free-text note — and reuses no medical table, column or enum.
+///
+/// Tokens are text[] (the SQLite side stores the same tokens as a JSON-array
+/// TEXT column) so the profile stays ONE atomic sync entity. The reviewed CHECK
+/// constraints, the partial unique "one live profile per user" index and the
+/// assign_sync_seq trigger that Prisma cannot express live in the migration
+/// 20260908120000_add_wellness_safety_profiles.
+model WellnessSafetyProfile {
+  id                  String    @id @db.Uuid // client-generatable
+  userId              String    @map("user_id") @db.Uuid
+  evaluationCompleted Boolean   @default(false) @map("evaluation_completed")
+  evaluationDate      DateTime? @map("evaluation_date") @db.Date
+  affectedAreas       String[]  @default([]) @map("affected_areas")
+  movementsToAvoid    String[]  @default([]) @map("movements_to_avoid")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_wellness_safety_profiles_user")
+
+  @@index([userId, syncSeq], map: "idx_wellness_safety_profiles_user_syncseq")
+  @@map("wellness_safety_profiles")
 }
 
 // ─── Coach / Engine (immutable outputs per .ai/07_ICOACH.md) ─────────────────

@@ -6627,6 +6627,140 @@ were shown to fail when the import is restored.
 **Scope held.** No dependency, schema, migration, medical UI, supplement logic,
 Wellness Safety Profile implementation, or unrelated cleanup.
 
+### Slice W-1 Implementation Record — Wellness Safety Profile Contract and Storage
+
+**Implemented.** W-1 provides the **contract and storage only**. One
+wellness-owned, per-user, synchronizable aggregate now exists on both sides —
+`WellnessSafetyProfile` / `wellness_safety_profiles` — and nothing consumes it
+yet.
+
+**What it holds.** A UUID id, the authenticated owner, `evaluation_completed`,
+a nullable `evaluation_date` calendar date, `affected_areas`,
+`movements_to_avoid`, and the standard created/updated/version/soft-delete/sync
+metadata. Nothing else: no provider identity, evaluation result or finding, no
+clearance, diagnosis, named condition, medication, treatment, blood pressure,
+rehabilitation instruction, symptom, severity, dosage, supplement data,
+document or free-text note. Recording *that* an evaluation happened is not
+recording its contents. There is no free-text column, and the two token columns
+are allowlisted in both databases, so a clinical narrative cannot be collected
+by accident or smuggled in as a token — that is enforced storage, not
+guidance.
+
+**It is not the retained medical model.** `MedicalEvaluation`,
+`MedicalRestriction`, their enums, tables, columns and rows are untouched, and
+`BODY_AREA_EXCLUSIONS` — which is keyed off `MedicalRestriction.bodyArea` — is
+not reused. Medical dormancy is unchanged: Decision 4 and the W-0 record still
+hold, and the retained data keeps ADR-0011 / P001 / P006 / P011 protection and
+its account-deletion cascade.
+
+**Token contracts** live in
+`mobile/src/features/wellness/domain/wellness-safety-profile.ts`, pinned as
+`wellness-safety-profile@1.0.0`:
+
+- `movements_to_avoid` uses the **existing built-in exercise movement-pattern
+  vocabulary** rather than a parallel identifier system. The canonical set is
+  the union of `movementPatterns` declared by the shipped catalog — 18 tokens:
+  `bridging`, `deep_squat`, `dips`, `front_rack_loading`, `good_morning`,
+  `heavy_hinge`, `heavy_pressing`, `high_impact_cardio`, `jumping`,
+  `loaded_carries`, `loaded_spinal_flexion`, `lunge`, `max_effort_lifts`,
+  `overhead_press`, `running`, `skull_crushers`, `sprinting`,
+  `valsalva_heavy_lifts`. `behind_neck_press` exists in the `MovementPattern`
+  type but no shipped exercise declares it, so offering it could exclude
+  nothing; it is deliberately absent. A contract audit recomputes the union and
+  fails on divergence, so a catalog change forces a deliberate vocabulary
+  decision.
+- `affected_areas` is a new, fixed **wellness-owned** anatomical vocabulary —
+  18 tokens: `abdomen`, `ankle`, `chest`, `elbow`, `foot`, `forearm`, `groin`,
+  `hand`, `hip`, `knee`, `lower_back`, `lower_leg`, `neck`, `shoulder`,
+  `thigh`, `upper_arm`, `upper_back`, `wrist`. These are **anatomical regions,
+  not diagnoses**, and they cover the regions the shipped exercise catalog can
+  actually load, so a user need not approximate. `head` is deliberately
+  **excluded**: a head-related concern belongs with a qualified professional,
+  not in a deterministic exercise mapping.
+- Both are stable, lowercase, language-neutral tokens. Presentation labels
+  (EN/ES) belong to W-3 and never reach storage.
+- **Both vocabularies are closed at the storage boundary, in both databases.**
+  PostgreSQL requires each array to be contained by its explicit allowed-token
+  array (`<@`) beside the existing structural checks; SQLite adds two named
+  validation triggers — `trg_wellness_safety_profiles_tokens_insert` and
+  `..._tokens_update` — which walk `json_each` and reject any element that is
+  not JSON text or falls outside the allowed set. So an unknown token, an
+  uppercase variant, a blank string, a number, a boolean, `null`, a nested
+  array/object, and any lowercase clinical sentence are all refused. Each
+  migration writes its vocabulary out as a self-contained snapshot, and a
+  cross-layer audit asserts both allowlists equal the TypeScript contract
+  exactly; changing a vocabulary therefore needs a **new forward-only
+  migration** on both sides.
+
+**Representation.** Tokens are stored inline — PostgreSQL `text[]`, SQLite
+JSON-array `TEXT` (the shipped `user_profiles.equipment` precedent, since
+SQLite has no array type) — so the profile stays **one atomic sync entity**: a
+device can never publish the evaluation flag and the limitations as two
+independently ordered changes. Per-token child entities were rejected: they
+would multiply the sync surface for tokens that carry no state of their own.
+The PostgreSQL column type also enforces element typing, which no SQLite CHECK
+can express.
+
+**Invariants the databases enforce.** At most one **live** profile per user (a
+partial unique index on `(user_id) WHERE deleted_at IS NULL`, so tombstones may
+still sync); flag/date consistency in both directions; both token lists
+non-null, defaulting to empty, single-dimension, bounded at 64, with no NULL,
+empty or uppercase element, valid JSON-array shape on SQLite, and **every
+element drawn from its closed vocabulary on both sides**; `version >= 1`; owner
+FK with `ON DELETE CASCADE` on both sides, so account deletion erases the
+profile. The SQLite dirty-row index is composite and user-scoped —
+`idx_wellness_safety_profiles_user_dirty (user_id, sync_status) WHERE
+sync_status != 'synced'` — because every W-2 scan is per authenticated
+account, so a status-only index would invite an unscoped scan.
+
+**Ownership, stated precisely.** Ownership is **structurally represented and
+cascade-protected**: `user_id` is `NOT NULL`, references the account, and the
+row is erased with it. That is *not* access control — a foreign key proves the
+owner exists, but a query by `id` alone would still read another user's row.
+**W-2 must apply the authenticated `user_id` predicate to every read, write,
+delete, dirty-row scan, push and pull, and must ship explicit cross-user
+denial/isolation tests.** W-1 deliberately implements none of that repository
+behaviour.
+
+**Deliberately application-owned, not database-enforced.** "The evaluation date
+is not in the future" is clock-dependent, so a CHECK would let a stored row
+change validity over time; PostgreSQL still guarantees a real calendar date
+through its `DATE` type, while SQLite validates the `YYYY-MM-DD` shape with a
+deterministic `GLOB` and leaves calendar validity (e.g. 2026-02-31) to the same
+boundary. Deterministic normalization — trim, lowercase, deduplicate, sort — is
+stated in the contract and owned by W-2/W-3: the databases reject an invalid
+token but neither reorder nor de-duplicate a valid list. W-1 introduces no
+repository behaviour.
+
+**Sensitivity.** Self-declared limitations are wellness data of the same class
+as an ADR-P014 `dietary_preferences` allergy token and an ADR-P016 body metric,
+both of which already ship as structured plaintext tokens/values with only free
+text encrypted. W-1 follows that precedent and goes further by having no
+free-text column at all. These tokens are user content, never operational
+metadata: they must not be logged, sent to Sentry, or placed in an audit
+payload (`.ai/05_SECURITY.md` Logging). This does **not** reclassify the
+dormant medical information, which keeps its own encrypted columns and
+protections.
+
+**Migrations.** Forward-only and purely additive on both sides; no historical
+migration is edited. PostgreSQL:
+`20260908120000_add_wellness_safety_profiles` (table, reviewed CHECKs including
+the two vocabulary allowlists, the partial unique index, the FK, and the shared
+`assign_sync_seq()` trigger reusing the existing `sync_seq_global` sequence — no
+earlier trigger changed). SQLite: `007-wellness-safety-profile` (table, CHECKs,
+the partial unique live index, the user-scoped dirty index and the two
+vocabulary triggers), registered so the versions are exactly
+`[1,2,3,4,5,6,7]`; migration 006 shipped with ADR-P030 C-1 and is immutable, so
+W-1 takes 007 as that record requires.
+
+**Scope held.** No repository, store, sync handler or entity registration (W-2),
+no API module, DTO or endpoint, no composition-root wiring, no UI, localization
+copy or onboarding (W-3), no iCoach consumption or rule-version change (W-4), no
+supplement capability (W-5), no dependency and no medical-domain change.
+**W-2 through W-5 remain unimplemented and unauthorized**; each still needs its
+own authorization, and W-5 additionally requires its own accepted ADR and legal
+review.
+
 ### Wellness Safety Profile — Slice Plan
 
 Sequenced so no consumer ships before its contract. Each needs its own
@@ -6635,7 +6769,7 @@ authorization, branch, validation and review.
 | # | Slice | Depends on | Notes |
 |---|---|---|---|
 | **W-0** | **Public medical API/sync disconnection** — this record | — | **Implemented** |
-| **W-1** | **Wellness Safety Profile contract**: a wellness-owned schema for the evaluation-completed flag + date and self-declared limitations (affected areas, movements to avoid). Forward-only PostgreSQL + SQLite migrations, **never** reusing a medical table or column | W-0 | Contract + storage only. No UI, no iCoach input |
+| **W-1** | **Wellness Safety Profile contract**: a wellness-owned schema for the evaluation-completed flag + date and self-declared limitations (affected areas, movements to avoid). Forward-only PostgreSQL + SQLite migrations, **never** reusing a medical table or column | W-0 | **Implemented** — contract + storage only (record above). No repository, sync, UI or iCoach input |
 | **W-2** | **Offline-first read/write + sync**: repository, sync handler and entity registration on both sides, under the existing conflict/versioning contract | W-1 | Registers a **wellness** entity type |
 | **W-3** | **Onboarding recommendation + capture UI**, EN/ES, accessible: recommends a professional evaluation, records only the flag/date, and captures limitations. Explicitly non-diagnostic copy | W-2 | Copy deck slice precedes or accompanies |
 | **W-4** | **Deterministic iCoach consumption**: limitations conservatively exclude movements or lower workload, versioned and explainable, never reinterpreted as diagnosis or clearance (Decision 6) | W-3 | Rule-version bump; deterministic tests |
