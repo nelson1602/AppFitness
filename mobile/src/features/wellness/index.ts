@@ -4,8 +4,10 @@
  * W-1 shipped the aggregate contract and its two closed token vocabularies;
  * W-2 added the offline-first read/write boundary, deterministic normalization
  * and the pull applier; W-3 adds the store, the EN/ES capture surface and the
- * dashboard recommendation. No iCoach input exists yet — W-4 owns the
- * deterministic consumption, and nothing here reaches a calculation.
+ * dashboard recommendation. W-4B adds iCoach's dormant analyzer and the
+ * `decodeConflictSnapshot` seam below; both are unreachable, because no caller
+ * supplies `EngineInput.wellness` and no conflict row is read. Nothing here
+ * reaches a calculation a user can see until the W-4C/W-4D activation slice.
  */
 export {
   WELLNESS_AFFECTED_AREAS,
@@ -31,9 +33,11 @@ export {
   type WellnessSafetyProfileInput,
 } from './domain/wellness-safety-profile.rules';
 export {
+  decodeConflictSnapshot,
   decodeServerProfile,
   decodeStoredProfile,
   type DecodedServerProfile,
+  type WellnessConflictSnapshot,
 } from './domain/wellness-safety-profile.decode';
 export { registerWellnessSyncAppliers } from './infrastructure/sync-appliers';
 export {

@@ -1,4 +1,4 @@
-import { ENGINE_RULE_VERSION } from './rule-versions';
+import { PROGRESS_SNAPSHOT_RULE_VERSION } from './rule-versions';
 
 /**
  * Deterministic weekly progress-snapshot engine (ADR-P016 Phase 17 Slice 4a,
@@ -154,6 +154,8 @@ export function computeWeeklyProgressSnapshots(
         isDeloadWeek = snap.totalVolumeKg < DELOAD_FRACTION * baseline;
       }
     }
-    return { ...snap, isDeloadWeek, ruleVersion: ENGINE_RULE_VERSION };
+    // ADR-P031 V-2: the snapshot family carries its own version, so an
+    // assessment-rule bump cannot restamp (and duplicate) an unchanged week.
+    return { ...snap, isDeloadWeek, ruleVersion: PROGRESS_SNAPSHOT_RULE_VERSION };
   });
 }

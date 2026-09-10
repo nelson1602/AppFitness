@@ -1,7 +1,18 @@
+import {
+  WELLNESS_MOVEMENTS_TO_AVOID,
+  type WellnessMovementToAvoid,
+} from '@/features/wellness/domain/wellness-safety-profile';
+
 import { evaluate, validateEngineInput } from './engine';
 import { ENGINE_RULE_VERSION } from './rule-versions';
 import type { EngineInput } from './types';
 import { InvalidEngineInputError } from './types';
+import {
+  analyzeWellnessSafety,
+  WELLNESS_REASON_MOVEMENT_DECLARED,
+  WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
+  WellnessSafetyInputInvalid,
+} from './wellness-safety';
 
 const baseInput = (): EngineInput => ({
   subject: { age: 30, sex: 'MALE', heightCm: 180, weightKg: 80, bodyFatPct: 20 },
@@ -150,5 +161,157 @@ describe('iCoach engine', () => {
     ]) {
       expect(() => evaluate({ ...baseInput(), subject })).not.toThrow();
     }
+  });
+  // ── ADR-P031 W-4B, group B (tests B9 … B11) ───────────────────────────────
+  // The wellness seam is DORMANT: no production caller supplies
+  // `EngineInput.wellness` (asserted by `wellness-safety.dormancy.spec.ts`).
+  // These tests supply it directly, so the contract is pinned before the
+  // W-4C/W-4D activation slice can rely on it.
+
+  const declaring = (movements: readonly WellnessMovementToAvoid[]): EngineInput => ({
+    ...baseInput(),
+    wellness: {
+      evaluationCompleted: false,
+      evaluationDate: null,
+      affectedAreas: [],
+      movementsToAvoid: movements,
+    },
+  });
+
+  it('B9: declared movements only ADD exclusions — the rest of the plan is identical', () => {
+    const without = evaluate(baseInput());
+    const with_ = evaluate(declaring(['deep_squat', 'jumping', 'deep_squat']));
+
+    // Sorted and de-duplicated, and exactly what was declared.
+    expect(with_.training.excludedMovements).toEqual(['deep_squat', 'jumping']);
+    expect(without.training.excludedMovements).toEqual([]);
+
+    // Nothing else about the plan moves: a declaration never lowers intensity,
+    // caps RPE, removes a training day, blocks training or demands clearance.
+    expect(with_.training.blocked).toBe(without.training.blocked);
+    expect(with_.training.requiresMedicalClearance).toBe(without.training.requiresMedicalClearance);
+    expect(with_.training.intensity).toBe(without.training.intensity);
+    expect(with_.training.rpeCap).toBe(without.training.rpeCap);
+    expect(with_.training.daysPerWeek).toBe(without.training.daysPerWeek);
+
+    // And the whole nutrition block is byte-identical (ADR-P031 Decision 13).
+    expect(JSON.stringify(with_.nutrition)).toBe(JSON.stringify(without.nutrition));
+    expect(JSON.stringify(with_.bodyComposition)).toBe(JSON.stringify(without.bodyComposition));
+    expect(JSON.stringify(with_.metabolics)).toBe(JSON.stringify(without.metabolics));
+  });
+
+  it('B10: wellness data never triggers a medical recommendation', () => {
+    const assessment = evaluate(declaring([...WELLNESS_MOVEMENTS_TO_AVOID]));
+    const ids = assessment.recommendations.map((rec) => rec.id);
+
+    // `restrictions: []` stays medically silent no matter what is declared.
+    expect(ids).not.toContain('SAFETY:medical_clearance');
+    expect(ids).not.toContain('SAFETY:bp_crisis_block');
+    // The dormant medical exclusion rule does not fire either: a self-declared
+    // movement is not a restriction, and the two paths stay separate.
+    expect(ids).not.toContain('SAFETY:movement_exclusions');
+    expect(assessment.training.requiresMedicalClearance).toBe(false);
+    expect(assessment.training.blocked).toBe(false);
+  });
+
+  it('B11: the recommendation is explainable through identifiers, not raw tokens', () => {
+    // Four declarations, deliberately supplied out of order and with a
+    // duplicate, so the assertions below pin the COMPLETE deterministic set
+    // rather than whatever happened to arrive first.
+    const declared: WellnessMovementToAvoid[] = [
+      'overhead_press',
+      'dips',
+      'bridging',
+      'overhead_press',
+    ];
+    const assessment = evaluate(declaring(declared));
+    const matching = assessment.recommendations.filter(
+      (candidate) => candidate.id === WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
+    );
+    // Exactly one wellness recommendation, however many movements exist.
+    expect(matching).toHaveLength(1);
+    const [rec] = matching;
+
+    expect(rec.id).toBe('WELLNESS:movement_exclusions');
+    expect(rec.category).toBe('SAFETY');
+    expect(rec.ruleVersion).toBe(ENGINE_RULE_VERSION);
+    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.2.0');
+
+    // Structured reason code, and the EXACT consumed inputs: the whole
+    // validated set, de-duplicated and in the analyzer’s sorted order
+    // (ADR-P031 Decision 10, `Recommendation.inputs` contract).
+    expect(rec.inputs.reasonCode).toBe(WELLNESS_REASON_MOVEMENT_DECLARED);
+    expect(rec.inputs.reasonCode).toBe('wellness.movement.declared');
+    expect(rec.inputs.movements).toBe('bridging,dips,overhead_press');
+    expect(String(rec.inputs.movements).split(',')).toEqual(assessment.training.excludedMovements);
+
+    // No count: it is not a consumed input, and it is sensitive metadata
+    // this rule has no need for.
+    expect(Object.keys(rec.inputs).sort()).toEqual(['movements', 'reasonCode']);
+    expect(rec.inputs).not.toHaveProperty('declaredMovementCount');
+
+    // Every reason — not merely the first — carries the code, its validated
+    // movement and the rule version that produced it.
+    const analysis = analyzeWellnessSafety(declaring(declared).wellness);
+    expect(analysis.reasons).toEqual([
+      {
+        code: 'wellness.movement.declared',
+        inputs: { movement: 'bridging' },
+        ruleVersion: ENGINE_RULE_VERSION,
+      },
+      {
+        code: 'wellness.movement.declared',
+        inputs: { movement: 'dips' },
+        ruleVersion: ENGINE_RULE_VERSION,
+      },
+      {
+        code: 'wellness.movement.declared',
+        inputs: { movement: 'overhead_press' },
+        ruleVersion: ENGINE_RULE_VERSION,
+      },
+    ]);
+    expect(analysis.reasons.every((reason) => reason.ruleVersion === ENGINE_RULE_VERSION)).toBe(
+      true,
+    );
+    expect(analysis.reasons.map((reason) => reason.inputs.movement)).toEqual(
+      analysis.excludedMovements,
+    );
+
+    // Rendered copy is built from localization keys, so it carries no raw
+    // token, no count and no medical vocabulary. Raw movements stay inside
+    // `inputs` and the analyzer output — never in anything rendered.
+    const copy = `${rec.title} ${rec.explanation} ${rec.scientificBasis}`;
+    expect(WELLNESS_MOVEMENTS_TO_AVOID.filter((token) => copy.includes(token))).toEqual([]);
+    expect(copy).not.toMatch(/\d/);
+    expect(copy).not.toMatch(/injur|diagnos|medical|severity|clearance/i);
+    for (const key of [rec.title, rec.explanation, rec.scientificBasis]) {
+      expect(key).toMatch(/^wellness\.plan\.[A-Za-z]+$/);
+    }
+  });
+
+  it('B11: an empty or absent wellness input emits no wellness recommendation', () => {
+    for (const input of [baseInput(), declaring([])]) {
+      const ids = evaluate(input).recommendations.map((rec) => rec.id);
+      expect(ids).not.toContain(WELLNESS_RULE_MOVEMENT_EXCLUSIONS);
+    }
+  });
+
+  it('B9: a malformed wellness input aborts the assessment, it is not swallowed', () => {
+    // A fail-closed analyzer the engine caught would be no protection at all:
+    // the refusal has to reach the caller so the surface can render the
+    // canonical Error state (ADR-P031 Decision 8).
+    const malformed = declaring(['not_a_movement'] as unknown as WellnessMovementToAvoid[]);
+    expect(() => evaluate(malformed)).toThrow(WellnessSafetyInputInvalid);
+    expect(() => evaluate(malformed)).toThrow('movementsToAvoid: unknown-token');
+
+    // And no partial assessment leaks out on the way: the medically valid
+    // parts of the same input still produce nothing.
+    let assessment: unknown = 'not-assigned';
+    try {
+      assessment = evaluate(malformed);
+    } catch {
+      // expected
+    }
+    expect(assessment).toBe('not-assigned');
   });
 });

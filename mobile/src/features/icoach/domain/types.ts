@@ -1,3 +1,5 @@
+import type { WellnessSafetyInput } from './wellness-safety';
+
 /**
  * iCoach Deterministic Engine — domain types (.ai/07_ICOACH.md).
  * Framework-free, pure data. Identical inputs MUST always produce
@@ -53,6 +55,15 @@ export interface EngineInput {
   goal: GoalType;
   fitnessLevel: FitnessLevel;
   restrictions: RestrictionInput[];
+  /**
+   * Self-declared wellness limitations (ADR-P031 W-4B). **Optional and
+   * dormant**: no production caller supplies it in this slice, so omitting it
+   * is the only behaviour public v1 exercises. It is structurally separate
+   * from `restrictions` — a different type, carrying no severity, body area,
+   * blood pressure or clearance — and it may be populated only from the W-2
+   * wellness boundary.
+   */
+  wellness?: WellnessSafetyInput;
   bloodPressure?: BloodPressure;
   recovery?: RecoveryContext;
   /** User preference; the engine may cap it, never raise it. */

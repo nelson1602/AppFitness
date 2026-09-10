@@ -1,5 +1,23 @@
 export { evaluate, validateEngineInput } from './domain/engine';
-export { ENGINE_RULE_VERSION } from './domain/rule-versions';
+export { ENGINE_RULE_VERSION, PROGRESS_SNAPSHOT_RULE_VERSION } from './domain/rule-versions';
+// ADR-P031 W-4B: exported for tests and for the W-4C/W-4D activation slice.
+// Nothing in a production path calls it yet.
+export {
+  analyzeWellnessSafety,
+  isWellnessAffectedArea,
+  isWellnessMovementToAvoid,
+  WELLNESS_PLAN_EXPLANATION_KEY,
+  WELLNESS_REASON_MOVEMENT_DECLARED,
+  WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
+  WellnessSafetyInputInvalid,
+} from './domain/wellness-safety';
+export type {
+  WellnessExclusionReason,
+  WellnessSafetyAnalysis,
+  WellnessSafetyInput,
+  WellnessSafetyInputField,
+  WellnessSafetyInputInvalidReason,
+} from './domain/wellness-safety';
 export type {
   CoachAssessment,
   EngineInput,
