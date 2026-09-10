@@ -424,3 +424,28 @@ export function decodeConflictSnapshot(payload: unknown, userId: string): Wellne
     movementsToAvoid: JSON.parse(decoded.movementsToAvoid) as WellnessMovementToAvoid[],
   };
 }
+
+/**
+ * Decode the raw `server_payload` **text** of a PENDING wellness conflict.
+ *
+ * The column stores JSON text, and a caller that parses it itself would have
+ * to decide what a parse failure means — the exact decision that must not be
+ * spread around. So the parse lives here and fails closed like every other
+ * rule: unparseable text is `invalid-json` on `server_payload`, never an empty
+ * declaration.
+ */
+export function decodeConflictSnapshotText(
+  text: unknown,
+  userId: string,
+): WellnessConflictSnapshot {
+  if (typeof text !== 'string' || text.length === 0) {
+    throw new WellnessProfileInvalid('invalid-json', 'server_payload');
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new WellnessProfileInvalid('invalid-json', 'server_payload');
+  }
+  return decodeConflictSnapshot(parsed, userId);
+}

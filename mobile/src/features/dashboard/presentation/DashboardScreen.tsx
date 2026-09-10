@@ -73,6 +73,17 @@ export function DashboardScreen() {
         </Banner>
       ) : null}
 
+      {/* ADR-P031 §Decision 8: the declared limitations could not be read, so
+          the assessment is withheld rather than shown without them. The
+          canonical Error treatment — not Empty and not Data-gap, because no
+          read succeeded and nothing is a prerequisite the user supplies
+          elsewhere. Offers the same recovery W-3 does: re-check the answers. */}
+      {data?.wellness === 'unavailable' ? (
+        <Banner title={t('workout.plan.wellnessUnavailableTitle')} tone="error">
+          {t('workout.plan.wellnessUnavailableBody')}
+        </Banner>
+      ) : null}
+
       {/* Local database is dormant on Web (ADR-P019): a distinct, non-error
           informational state — no retry control and no fabricated data. */}
       {status === 'web-unavailable' ? (

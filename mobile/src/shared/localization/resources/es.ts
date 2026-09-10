@@ -303,6 +303,12 @@ export const es = {
   'workout.plan.errorTitle': 'El plan de ejercicios necesita atención',
   'workout.plan.errorMessage':
     'No se pudo crear una rutina completa con el equipo y las limitaciones actuales.',
+  'workout.plan.coverageTitle': 'Todavía no se pudo armar una semana completa',
+  'workout.plan.coverageBody':
+    'Se respetan todas las limitaciones que declaraste, así que algunas sesiones se quedaron sin ejercicios disponibles con tu equipo actual. No se volvió a agregar nada. Puedes revisar lo que declaraste cuando quieras, o agregar equipo más adelante.',
+  'workout.plan.wellnessUnavailableTitle': 'Tu plan está en espera',
+  'workout.plan.wellnessUnavailableBody':
+    'Las limitaciones que declaraste no se pudieron leer en este dispositivo ahora mismo, así que no se muestra ningún plan: mostrar uno que las ignore no sería correcto. Abre tu evaluación y limitaciones para revisar tus respuestas y vuelve luego.',
   'workout.plan.unsupportedTitle': 'Equipo no reconocido',
   'workout.plan.unsupportedMessage':
     'Estos valores del perfil no se utilizaron. Cámbialos por una opción de equipo compatible:',
@@ -326,6 +332,11 @@ export const es = {
   'workout.plan.addDuration': 'agrega segundos',
   'workout.plan.wellnessNotice':
     'Solo orientación general de bienestar físico. Detente si un ejercicio causa dolor y adapta el plan a tus limitaciones físicas declaradas.',
+  'wellness.plan.limitationsAppliedTitle': 'Tu plan sigue las limitaciones que declaraste',
+  'wellness.plan.limitationsAppliedBody':
+    'Los movimientos que dijiste que preferías evitar quedaron fuera de tu plan. Las zonas del cuerpo que marcaste se guardan como referencia para ti y por sí solas no cambian ningún ejercicio, serie ni caloría.',
+  'wellness.plan.limitationsAppliedBasis':
+    'Este ajuste usa solo las opciones de movimiento que escribiste, tal como las escribiste. No se supone ni se deduce nada más a partir de ellas.',
   'workout.day.monday': 'Lunes',
   'workout.day.tuesday': 'Martes',
   'workout.day.wednesday': 'Miércoles',

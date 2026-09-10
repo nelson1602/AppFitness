@@ -6,6 +6,7 @@ import {
   recordMyBodyWeight,
 } from '@/features/progress';
 import { getActiveGoal, getMyProfile, saveMyProfile, setGoal } from '@/features/profile';
+import { resolveWellnessDeclaration } from '@/features/wellness';
 import { countByStatus, listPendingConflicts } from '@/shared/infrastructure/sync';
 
 import type { DashboardData, SyncSummary } from '../domain/dashboard.types';
@@ -15,29 +16,44 @@ export async function loadDashboardData(now: Date = new Date()): Promise<Dashboa
   const session = getSession();
   if (!session) throw new Error('Not authenticated');
 
-  const [profile, activeGoal, physicalAssessment, queueCounts, conflicts] = await Promise.all([
-    getMyProfile(),
-    getActiveGoal(session.user.id),
-    getMyLatestPhysicalAssessment(),
-    countByStatus(session.user.id),
-    listPendingConflicts(session.user.id),
-  ]);
+  const [profile, activeGoal, physicalAssessment, queueCounts, conflicts, wellness] =
+    await Promise.all([
+      getMyProfile(),
+      getActiveGoal(session.user.id),
+      getMyLatestPhysicalAssessment(),
+      countByStatus(session.user.id),
+      listPendingConflicts(session.user.id),
+      // ADR-P031 W-4C. Owner-scoped, offline-first and read-only: it consumes
+      // the local row plus the relevant PENDING conflict snapshots, so a
+      // pending local edit protects the user before anything is pushed.
+      // The id comes from the same snapshot the other reads use, so one
+      // load can never mix two accounts even if the session changes
+      // mid-flight (ADR-P030 C-1).
+      resolveWellnessDeclaration(session.user.id),
+    ]);
 
   const adapter = buildDashboardAssessment({
     profile,
     activeGoal,
     physicalAssessment,
     today: now.toISOString().slice(0, 10),
+    wellness,
   });
 
   return {
     assessment: adapter.status === 'ready' ? adapter.data : null,
     // Incomplete: blocking prerequisites first, then the advisory notes, so a
     // first-run surface sees every outstanding item. Ready: the notes are the
-    // only outstanding items left.
+    // only outstanding items left. `unavailable` reports none: it is an
+    // operation failure, not a set of prerequisites the user can supply.
     missing:
-      adapter.status === 'incomplete' ? [...adapter.missing, ...adapter.notes] : adapter.data.notes,
+      adapter.status === 'incomplete'
+        ? [...adapter.missing, ...adapter.notes]
+        : adapter.status === 'ready'
+          ? adapter.data.notes
+          : [],
     sync: buildSyncSummary(queueCounts, conflicts.length),
+    wellness: wellness.status,
   };
 }
 

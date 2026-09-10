@@ -71,6 +71,7 @@ jest.mock('@/features/wellness', () => {
 });
 
 const baseData: DashboardData = {
+  wellness: 'absent',
   missing: [],
   sync: {
     pending: 0,
@@ -595,5 +596,90 @@ describe('DashboardScreen', () => {
     expect(screen.getByTestId('dashboard-wellness-safety')).toHaveTextContent(
       'Evaluación y limitaciones',
     );
+  });
+  // ── ADR-P031 W-4C/W-4D (test D15) ────────────────────────────────────────
+
+  describe('an unreadable wellness declaration', () => {
+    const unreadable = (): DashboardState => ({
+      status: 'error',
+      data: { ...baseData, wellness: 'unavailable', assessment: null },
+      error: null,
+      refresh,
+      syncNow,
+      loadSampleData,
+    });
+
+    it('D15: renders the canonical Error treatment with the wellness copy', async () => {
+      mockStoreState = unreadable();
+
+      await render(<DashboardScreen />);
+
+      expect(screen.getByText('Your plan is on hold')).toBeOnTheScreen();
+      expect(screen.getByText(/could not be read on this device/)).toBeOnTheScreen();
+    });
+
+    it('D15: shows no assessment, no recommendations and no first-run checklist', async () => {
+      mockStoreState = unreadable();
+
+      await render(<DashboardScreen />);
+
+      expect(screen.queryByText('Recommendations')).not.toBeOnTheScreen();
+      expect(screen.queryByTestId('onboarding-checklist')).not.toBeOnTheScreen();
+      // Not the generic failure banner either: `error` is deliberately unset.
+      expect(screen.queryByText('Dashboard unavailable')).not.toBeOnTheScreen();
+    });
+
+    it('offers the same recovery W-3 does — reviewing the answers', async () => {
+      mockStoreState = unreadable();
+
+      await render(<DashboardScreen />);
+
+      // The recovery is the entry that is always there, not a new control:
+      // the copy points at it, and this Error state adds no affordance of
+      // its own.
+      expect(screen.getByTestId('dashboard-wellness-safety')).toBeOnTheScreen();
+      expect(screen.getByText(/Open your evaluation and limitations/)).toBeOnTheScreen();
+    });
+
+    it('names no field, reason or token', async () => {
+      mockStoreState = unreadable();
+
+      await render(<DashboardScreen />);
+
+      for (const forbidden of [
+        'movements_to_avoid',
+        'affected_areas',
+        'unknown-token',
+        'tombstone',
+        'conflict',
+        'jumping',
+      ]) {
+        expect(screen.queryByText(new RegExp(forbidden, 'i'))).not.toBeOnTheScreen();
+      }
+    });
+
+    it('renders it in Spanish too', async () => {
+      mockLanguage = 'es';
+      mockStoreState = unreadable();
+
+      await render(<DashboardScreen />);
+
+      expect(screen.getByText('Tu plan está en espera')).toBeOnTheScreen();
+    });
+
+    it('leaves a normal ready dashboard untouched', async () => {
+      mockStoreState = {
+        status: 'ready',
+        data: { ...baseData, wellness: 'available' },
+        error: null,
+        refresh,
+        syncNow,
+        loadSampleData,
+      };
+
+      await render(<DashboardScreen />);
+
+      expect(screen.queryByText('Your plan is on hold')).not.toBeOnTheScreen();
+    });
   });
 });

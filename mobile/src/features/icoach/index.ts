@@ -6,7 +6,7 @@ export {
   analyzeWellnessSafety,
   isWellnessAffectedArea,
   isWellnessMovementToAvoid,
-  WELLNESS_PLAN_EXPLANATION_KEY,
+  WELLNESS_PLAN_EXPLANATION_KEYS,
   WELLNESS_REASON_MOVEMENT_DECLARED,
   WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
   WellnessSafetyInputInvalid,

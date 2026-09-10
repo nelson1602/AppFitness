@@ -1,4 +1,4 @@
-import { inTransaction, queryFirst, run } from '@/shared/infrastructure/database';
+import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type { WellnessSafetyProfileRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
@@ -256,4 +256,36 @@ export async function markWellnessSafetyProfileConflict(
       WHERE id = ? AND user_id = ?`,
     [nowIso, entityId, userId],
   );
+}
+
+/**
+ * The `server_payload` text of every **relevant** PENDING wellness conflict,
+ * oldest first (ADR-P031 §Decision 9, policy C-B).
+ *
+ * Relevance is decided **in SQL, before anything is parsed**: the
+ * authenticated owner, this entity type, the singleton entity id and
+ * `PENDING`. A row belonging to another account, another entity type, another
+ * id or a settled status is therefore never decoded at all — not filtered out
+ * after the fact. Rows quarantined by migration 006 carry `user_id = NULL`,
+ * and `NULL = ?` is never true, so they stay unreachable here too.
+ *
+ * **Only `server_payload` is selected.** `local_payload` is not in the
+ * projection, so no code path downstream can read it even by mistake.
+ *
+ * Ordering is total (`created_at`, then `id`) so a multi-conflict union is
+ * deterministic on every device, whatever order SQLite would otherwise pick.
+ *
+ * Read-only: nothing here settles, mutates, resolves or enqueues anything —
+ * BUG-012 stays report-only.
+ */
+export async function listRelevantPendingWellnessConflictPayloads(
+  userId: string,
+): Promise<string[]> {
+  const rows = await queryAll<{ server_payload: string }>(
+    `SELECT server_payload FROM sync_conflicts
+      WHERE user_id = ? AND entity_type = ? AND entity_id = ? AND status = 'PENDING'
+      ORDER BY created_at ASC, id ASC`,
+    [userId, WELLNESS_SAFETY_PROFILE_ENTITY, wellnessSafetyProfileId(userId)],
+  );
+  return rows.map((row) => row.server_payload);
 }

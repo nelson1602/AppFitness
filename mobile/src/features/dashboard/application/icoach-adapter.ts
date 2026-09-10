@@ -2,6 +2,8 @@ import type { Goal } from '@/features/profile/domain/goal.types';
 import type { Profile } from '@/features/profile/domain/profile.types';
 import type { PhysicalAssessmentMetrics } from '@/features/progress';
 import { evaluate } from '@/features/icoach/domain/engine';
+// Cross-feature access goes through the public interfaces (.ai/06_MOBILE.md).
+import { WellnessSafetyInputInvalid } from '@/features/icoach';
 import type {
   ActivityLevel,
   EngineInput,
@@ -9,23 +11,54 @@ import type {
   GoalType,
   Sex,
 } from '@/features/icoach/domain/types';
+import type { WellnessConsumptionOutcome } from '@/features/wellness';
 
 import type { DashboardAssessment, DataRequirement } from '../domain/dashboard.types';
 
-interface AdapterSources {
+/**
+ * Everything the adapter reads. Exported so a caller — and the spec that
+ * proves the boundary — can name the shape it must supply in full.
+ */
+export interface AdapterSources {
   profile: Profile | null;
   activeGoal: Goal | null;
   physicalAssessment: PhysicalAssessmentMetrics;
   today: string;
+  /**
+   * The wellness consumption read (ADR-P031 W-4C).
+   *
+   * **Required.** An optional field with an implicit `absent` fallback is
+   * the same latent half-activation the routine preferences had: a caller
+   * that forgot the read would build a plan that ignores the user’s
+   * declarations and looks entirely normal. Every caller states the outcome
+   * it actually observed. `EngineInput.wellness` stays optional, because an
+   * explicit `absent` must still omit that key.
+   */
+  wellness: WellnessConsumptionOutcome;
 }
 
 export type AdapterResult =
   | { status: 'ready'; data: DashboardAssessment }
-  | { status: 'incomplete'; missing: DataRequirement[]; notes: DataRequirement[] };
+  | { status: 'incomplete'; missing: DataRequirement[]; notes: DataRequirement[] }
+  /**
+   * The wellness declaration could not be read or decoded (§Decision 8). It is
+   * NOT `incomplete`: nothing is a missing prerequisite the user supplies
+   * elsewhere, and it must never be shown as a plan that respects
+   * declarations the app could not read. The surface renders the canonical
+   * Error treatment.
+   */
+  | { status: 'unavailable' };
 
 export function buildDashboardAssessment(sources: AdapterSources): AdapterResult {
   const missing: DataRequirement[] = [];
   const notes: DataRequirement[] = [];
+
+  // Error precedence: an unreadable declaration outranks every other outcome,
+  // including an incomplete profile. Reporting `incomplete` here would invite
+  // the user to fill in prerequisites that would then produce a plan built
+  // from limitations the app never managed to read.
+  const wellness = sources.wellness;
+  if (wellness.status === 'unavailable') return { status: 'unavailable' };
 
   if (!sources.profile) {
     missing.push({
@@ -100,6 +133,10 @@ export function buildDashboardAssessment(sources: AdapterSources): AdapterResult
     // Public v1 uses wellness inputs only. The retained medical feature is
     // dormant and cannot feed iCoach until a future, separately approved slice.
     restrictions: [],
+    // ADR-P031 W-4D: supplied ONLY from an `available` read. `absent` omits the
+    // key entirely rather than passing an empty declaration, so "no profile"
+    // and "declared nothing" stay distinguishable in the engine input.
+    ...(wellness.status === 'available' ? { wellness: wellness.declaration } : {}),
     recovery: {
       sleepHours: profile.sleepHoursBaseline ?? undefined,
       stressLevel: profile.stressLevelBaseline ?? undefined,
@@ -107,10 +144,22 @@ export function buildDashboardAssessment(sources: AdapterSources): AdapterResult
     trainingDaysPreference: profile.trainingDaysPerWeek,
   };
 
+  // A declaration that reached here and still fails the engine's own
+  // validation means the payload was malformed after W-2 accepted it. That is
+  // the same class of failure as a refused read, so it takes the same outcome
+  // instead of crashing the surface (§Decision 8). No other error is swallowed.
+  let assessment;
+  try {
+    assessment = evaluate(input);
+  } catch (error) {
+    if (error instanceof WellnessSafetyInputInvalid) return { status: 'unavailable' };
+    throw error;
+  }
+
   return {
     status: 'ready',
     data: {
-      assessment: evaluate(input),
+      assessment,
       engineInput: input,
       notes,
     },

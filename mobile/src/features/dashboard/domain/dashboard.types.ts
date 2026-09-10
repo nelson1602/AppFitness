@@ -27,10 +27,19 @@ export interface SyncSummary {
   message: string | null;
 }
 
+/**
+ * The wellness consumption outcome behind this dashboard (ADR-P031
+ * §Decision 8). `unavailable` is the canonical Error state: it is neither
+ * `absent` nor Empty, and the store maps it to `status: 'error'` so no
+ * surface can present a plan as respecting declarations it could not read.
+ */
+export type WellnessReadStatus = 'absent' | 'available' | 'unavailable';
+
 export interface DashboardData {
   assessment: DashboardAssessment | null;
   missing: DataRequirement[];
   sync: SyncSummary;
+  wellness: WellnessReadStatus;
 }
 
 export interface DashboardState {

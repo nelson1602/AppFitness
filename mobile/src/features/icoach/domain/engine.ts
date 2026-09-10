@@ -6,6 +6,7 @@ import { ENGINE_RULE_VERSION } from './rule-versions';
 import { planTraining } from './training';
 import {
   analyzeWellnessSafety,
+  WELLNESS_PLAN_EXPLANATION_KEYS,
   WELLNESS_REASON_MOVEMENT_DECLARED,
   WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
   type WellnessSafetyAnalysis,
@@ -63,10 +64,10 @@ export function evaluate(input: EngineInput): CoachAssessment {
   const metabolics = assessMetabolics(input.subject, input.activityLevel);
   const nutrition = planNutrition(input.subject, metabolics, input.goal);
   const restrictionAnalysis = analyzeRestrictions(input.restrictions, input.bloodPressure);
-  // ADR-P031 W-4B: self-declared movements are the highest-priority rule group
+  // ADR-P031: self-declared movements are the highest-priority rule group
   // (.ai/07_ICOACH.md §Rule Priority 1) and they can only ADD exclusions. The
-  // input is optional and no production caller supplies it in this slice, so
-  // `wellness` is undefined and the analysis is empty.
+  // input is optional: it is supplied only from an `available` wellness read
+  // (W-4C), so `absent` leaves it undefined and the analysis empty.
   const wellnessAnalysis: WellnessSafetyAnalysis = analyzeWellnessSafety(input.wellness);
   const training = planTraining(
     input.fitnessLevel,
@@ -121,9 +122,9 @@ export function evaluate(input: EngineInput): CoachAssessment {
       id: WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
       category: 'SAFETY',
       priority: 'HIGH',
-      title: 'wellness.plan.limitationsAppliedTitle',
-      explanation: 'wellness.plan.limitationsAppliedBody',
-      scientificBasis: 'wellness.plan.limitationsAppliedBasis',
+      title: WELLNESS_PLAN_EXPLANATION_KEYS.title,
+      explanation: WELLNESS_PLAN_EXPLANATION_KEYS.body,
+      scientificBasis: WELLNESS_PLAN_EXPLANATION_KEYS.basis,
       inputs: {
         reasonCode: WELLNESS_REASON_MOVEMENT_DECLARED,
         // The exact consumed inputs, complete and in the analyzer's
