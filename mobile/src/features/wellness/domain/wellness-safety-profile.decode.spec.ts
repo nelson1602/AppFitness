@@ -1,4 +1,8 @@
-import { decodeServerProfile, decodeStoredProfile } from './wellness-safety-profile.decode';
+import {
+  decodeConflictSnapshot,
+  decodeServerProfile,
+  decodeStoredProfile,
+} from './wellness-safety-profile.decode';
 import {
   WellnessProfileInvalid,
   type WellnessProfileInvalidReason,
@@ -484,5 +488,106 @@ describe('decodeServerProfile', () => {
     ];
     // Compile-time coverage of the codes this decoder introduces.
     expect(new Set(reasons).size).toBe(reasons.length);
+  });
+});
+
+/**
+ * ADR-P031 **W-4B**: the conflict-snapshot projection.
+ *
+ * A **dormant seam**. No caller selects, reads or resolves a conflict row in
+ * this slice (asserted by `icoach/domain/wellness-safety.dormancy.spec.ts`);
+ * these tests pin the contract so the W-4C activation slice inherits a decoder
+ * that has already been proven strict.
+ */
+describe('decodeConflictSnapshot (ADR-P031 policy C-B)', () => {
+  it('projects an active snapshot to its declared movements only', () => {
+    expect(
+      decodeConflictSnapshot(serverRow({ movements_to_avoid: ['jumping', 'deep_squat'] }), A),
+    ).toEqual({ deleted: false, movementsToAvoid: ['jumping', 'deep_squat'] });
+  });
+
+  it('returns nothing but the deleted state and the movements', () => {
+    const snapshot = decodeConflictSnapshot(serverRow(), A);
+
+    // `affected_areas` is computationally inert, the evaluation fields are
+    // records rather than permissions, and `local_payload` is never read — so
+    // none of them can leave this function.
+    expect(Object.keys(snapshot).sort()).toEqual(['deleted', 'movementsToAvoid']);
+    expect(JSON.stringify(snapshot)).not.toContain('ankle');
+    expect(JSON.stringify(snapshot)).not.toContain('2026-01-02');
+  });
+
+  it('derives the deleted state from the row, not from an envelope flag', () => {
+    // A push conflict carries no `deleted` flag: passing `false` would reject
+    // every tombstoned snapshot and `true` every active one.
+    const tombstone = decodeConflictSnapshot(
+      serverRow({ deleted_at: T, deleted_by: A, version: 4 }),
+      A,
+    );
+    expect(tombstone).toEqual({ deleted: true, movementsToAvoid: ['jumping'] });
+
+    // The tombstone's retained tokens are reported as-is; treating retained
+    // history as "no active declaration" is the caller's rule, not the
+    // decoder's, so nothing is silently dropped here.
+    expect(tombstone.movementsToAvoid).toEqual(['jumping']);
+    expect(decodeConflictSnapshot(serverRow(), A).deleted).toBe(false);
+  });
+
+  it.each([
+    ['deleted_by without deleted_at', { deleted_by: A }, 'deleted_by:tombstone-inconsistent'],
+    ['an unparseable deleted_at', { deleted_at: 'yesterday' }, 'deleted_at:invalid-timestamp'],
+    ['a numeric deleted_at', { deleted_at: 1757412000000 }, 'deleted_at:invalid-timestamp'],
+    ['a non-string deleted_by', { deleted_at: T, deleted_by: 7 }, 'deleted_by:missing-field'],
+  ])('fails closed on %s', (_name, overrides, expected) => {
+    expect(reasonOf(() => decodeConflictSnapshot(serverRow(overrides), A))).toBe(expected);
+  });
+
+  it('delegates every other strict rule to decodeServerProfile', () => {
+    // Same reason codes as the pull path: the seam cannot become the lenient
+    // way into the engine.
+    expect(reasonOf(() => decodeConflictSnapshot(serverRow(), B))).toBe('user_id:owner-mismatch');
+    expect(reasonOf(() => decodeConflictSnapshot(serverRow({ id: 'other' }), A))).toBe(
+      'id:id-mismatch',
+    );
+    expect(reasonOf(() => decodeConflictSnapshot(serverRow({ version: 0 }), A))).toBe(
+      'version:invalid-version',
+    );
+    expect(
+      reasonOf(() => decodeConflictSnapshot(serverRow({ movements_to_avoid: ['handstand'] }), A)),
+    ).toBe('movements_to_avoid:unknown-token');
+    expect(reasonOf(() => decodeConflictSnapshot(serverRow({ affected_areas: 'knee' }), A))).toBe(
+      'affected_areas:not-an-array',
+    );
+    expect(reasonOf(() => decodeConflictSnapshot(serverRow({ created_at: null }), A))).toBe(
+      'created_at:invalid-timestamp',
+    );
+    expect(reasonOf(() => decodeConflictSnapshot(serverRow(), ''))).toBe('userId:missing-field');
+  });
+
+  it.each([
+    ['null', null],
+    ['an array', []],
+    ['a string', '{}'],
+    ['a number', 7],
+    ['undefined', undefined],
+  ])('refuses a payload that is %s', (_name, payload) => {
+    expect(reasonOf(() => decodeConflictSnapshot(payload, A))).toBe('server_payload:not-an-object');
+  });
+
+  it('is pure: identical payloads decode identically and nothing is mutated', () => {
+    const payload = serverRow({ movements_to_avoid: ['running', 'jumping'] });
+    const snapshot = JSON.stringify(payload);
+
+    const first = decodeConflictSnapshot(payload, A);
+    const second = decodeConflictSnapshot(payload, A);
+    expect(second).toEqual(first);
+    expect(JSON.stringify(payload)).toBe(snapshot);
+
+    // An empty declaration is empty — never "no limitations" by accident, and
+    // never a repaired value.
+    expect(decodeConflictSnapshot(serverRow({ movements_to_avoid: [] }), A)).toEqual({
+      deleted: false,
+      movementsToAvoid: [],
+    });
   });
 });

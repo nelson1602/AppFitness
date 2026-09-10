@@ -365,3 +365,62 @@ export function decodeServerProfile(
     movementsToAvoid: JSON.stringify(movementsToAvoid),
   };
 }
+
+/**
+ * The only projection of a wellness conflict snapshot the engine may consume
+ * (ADR-P031 §Decision 9, policy **C-B**).
+ *
+ * Deliberately narrow: `movements_to_avoid` and the derived deleted state, and
+ * nothing else. `affected_areas` is computationally inert, the evaluation
+ * fields are records rather than permissions, and `local_payload` is never
+ * read — so none of them appear here.
+ */
+export interface WellnessConflictSnapshot {
+  /** Derived from the row itself, never from an envelope flag. */
+  readonly deleted: boolean;
+  /**
+   * The snapshot's declared movements, validated. A tombstoned snapshot still
+   * reports whatever it stored; deciding that retained history contributes no
+   * active declaration is the *caller's* rule (W-4C), not the decoder's.
+   */
+  readonly movementsToAvoid: readonly WellnessMovementToAvoid[];
+}
+
+/**
+ * Decode the `server_payload` of a PENDING wellness conflict.
+ *
+ * **Unused seam.** W-4B ships it pure and fully tested; no caller selects,
+ * reads or resolves a conflict row in this slice — there is no conflict-store
+ * or database access anywhere in this function, and BUG-012 stays report-only.
+ *
+ * A push conflict carries **no pull-envelope `deleted` flag**: the tombstone
+ * state exists only as the `deleted_at` / `deleted_by` pair. Passing a guessed
+ * flag to {@link decodeServerProfile} would be wrong in both directions —
+ * `false` rejects every tombstoned snapshot as malformed and `true` rejects
+ * every active one. So the state is **derived** (`deleted := deleted_at !==
+ * null`) and the pair is checked on its own before delegation.
+ *
+ * Everything else — ownership, id identity, timestamps, version, evaluation
+ * fields and both token vocabularies — is delegated to
+ * {@link decodeServerProfile}, so every strict W-2 rule is reused unchanged
+ * and this seam can never be the lenient path into the engine. It fails closed
+ * with {@link WellnessProfileInvalid} and never repairs, coerces or defaults.
+ */
+export function decodeConflictSnapshot(payload: unknown, userId: string): WellnessConflictSnapshot {
+  const row = requireObject(payload, 'server_payload');
+
+  const deletedAtRaw = row.deleted_at ?? null;
+  // `null` as `expectDeleted`: there is no envelope flag to cross-check, so
+  // only the pair rule applies — `deleted_by` without `deleted_at` is
+  // `tombstone-inconsistent`, exactly as on the pull path.
+  requireTombstone(deletedAtRaw, row.deleted_by ?? null, null);
+  const deleted = deletedAtRaw !== null;
+
+  const decoded = decodeServerProfile(payload, deleted, userId);
+  return {
+    deleted,
+    // Re-read from the delegate's own output, so the tokens returned here are
+    // exactly the ones it validated against `WELLNESS_MOVEMENTS_TO_AVOID`.
+    movementsToAvoid: JSON.parse(decoded.movementsToAvoid) as WellnessMovementToAvoid[],
+  };
+}

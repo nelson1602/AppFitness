@@ -3,7 +3,7 @@ import {
   isoWeekStart,
   type ProgressAnalysisInput,
 } from './progress-analysis';
-import { ENGINE_RULE_VERSION } from './rule-versions';
+import { ENGINE_RULE_VERSION, PROGRESS_SNAPSHOT_RULE_VERSION } from './rule-versions';
 
 // 2024-01-01 is a Monday (stable calendar fact); weeks below are Mon..Sun.
 const W1 = '2024-01-01'; // Mon
@@ -104,13 +104,28 @@ describe('computeWeeklyProgressSnapshots', () => {
     expect(noCals.avgCalories).toBeNull();
   });
 
-  it('stamps the current ENGINE_RULE_VERSION on every snapshot', () => {
+  // ADR-P031 W-4B, test J41 (version policy V-2). Weekly snapshots are stamped
+  // with their OWN version family, because `progress_snapshots` is unique on
+  // `(user_id, week_start, rule_version)`: stamping the assessment version here
+  // would insert a second, identical row for every already-computed week each
+  // time an assessment rule changes. The two constants are now independent.
+  it('J41: stamps PROGRESS_SNAPSHOT_RULE_VERSION, decoupled from the engine version', () => {
     const snaps = computeWeeklyProgressSnapshots({
       ...EMPTY,
       weights: [{ date: W1, weightKg: 80 }],
     });
-    expect(snaps.every((s) => s.ruleVersion === ENGINE_RULE_VERSION)).toBe(true);
-    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.1.0');
+    expect(snaps.length).toBeGreaterThan(0);
+    expect(snaps.every((s) => s.ruleVersion === PROGRESS_SNAPSHOT_RULE_VERSION)).toBe(true);
+
+    // Frozen at the pre-W-4B literal, so no stored value changes and no new
+    // row appears for an unchanged week.
+    expect(PROGRESS_SNAPSHOT_RULE_VERSION).toBe('icoach-rules@1.1.0');
+
+    // The assessment family moved on; the snapshot family did not. If these
+    // two are ever collapsed back into one constant, this fails.
+    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.2.0');
+    expect(PROGRESS_SNAPSHOT_RULE_VERSION).not.toBe(ENGINE_RULE_VERSION);
+    expect(snaps.every((s) => s.ruleVersion !== ENGINE_RULE_VERSION)).toBe(true);
   });
 
   describe('is_deload_week', () => {

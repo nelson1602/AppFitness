@@ -343,15 +343,21 @@ describe('Wellness Safety Profile contract', () => {
       }
     });
 
-    it('leaves W-4 unimplemented: nothing consumes the profile yet', () => {
+    it('confines W-4B to iCoach: the vocabulary crosses, the aggregate does not', () => {
       const fs = require('node:fs');
       // Spec files are excluded from the outbound scan: a test double naming
       // another feature is not a production dependency (and this very file
       // names them).
       const production = (dir: string): string[] =>
         filesUnder(dir).filter((file) => !file.includes('.spec.'));
+      // Comments are stripped before a scan asserts a NEGATIVE, so a doc
+      // comment that names a forbidden symbol in order to rule it out cannot
+      // fail the very rule it documents.
+      const code = (text: string): string =>
+        text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 
-      // The wellness feature reaches into no engine, plan or routine.
+      // The wellness feature still reaches into no engine, plan or routine —
+      // W-4B added a consumer on the iCoach side, not an exporter on this one.
       for (const file of production(FEATURE_DIR)) {
         const text = fs.readFileSync(file, 'utf8');
         expect(text).not.toContain('@/features/icoach');
@@ -359,17 +365,61 @@ describe('Wellness Safety Profile contract', () => {
         expect(text).not.toContain('@/features/workout/application');
       }
 
-      // And no consumer reads the profile: the dashboard imports only the
-      // W-3 recommendation card, which renders copy and routes — it feeds
-      // no calculation.
-      const consumers = ['icoach', 'nutrition', 'workout'].flatMap((feature) =>
-        filesUnder(`${FEATURES_DIR}/${feature}`),
-      );
-      for (const file of consumers) {
-        const text = fs.readFileSync(file, 'utf8');
-        expect(text).not.toContain('wellness-safety-profile');
-        expect(text).not.toContain('WellnessSafetyProfile');
+      // Nutrition and workout remain fully prohibited: physical limitations
+      // never touch nutrition (ADR-P031 Decision 13), and routine filtering is
+      // the W-4C/W-4D activation slice's to switch on.
+      for (const feature of ['nutrition', 'workout']) {
+        for (const file of production(`${FEATURES_DIR}/${feature}`)) {
+          const text = fs.readFileSync(file, 'utf8');
+          expect(text).not.toContain('wellness-safety-profile');
+          expect(text).not.toContain('WellnessSafetyProfile');
+        }
       }
+
+      // iCoach may reference the two closed token vocabularies — that is what
+      // ADR-P031 Decision 1 authorizes — but nothing more. The aggregate, its
+      // decoders, its rules, its store and its service stay on this side of the
+      // boundary, so the engine can never load, write or repair a profile.
+      for (const file of production(`${FEATURES_DIR}/icoach`)) {
+        const text = code(fs.readFileSync(file, 'utf8'));
+
+        for (const forbidden of [
+          'wellness-safety-profile.decode',
+          'wellness-safety-profile.rules',
+          'wellness-safety-profile.service',
+          'wellness-safety-profile.store',
+          'wellness-safety-profile.sync-state',
+          'WellnessSafetyProfileScreen',
+          'getMyWellnessSafetyProfile',
+          'saveMyWellnessSafetyProfile',
+          'useWellnessSafetyProfileStore',
+          '@/features/wellness/application',
+          '@/features/wellness/infrastructure',
+          '@/features/wellness/presentation',
+        ]) {
+          expect(text).not.toContain(forbidden);
+        }
+        // Exactly one iCoach production file may name the vocabulary module.
+        if (!file.endsWith('/wellness-safety.ts')) {
+          expect(text).not.toContain('wellness-safety-profile');
+        }
+      }
+
+      const analyzer = code(
+        fs.readFileSync(`${FEATURES_DIR}/icoach/domain/wellness-safety.ts`, 'utf8'),
+      );
+      expect(analyzer).toContain("from '@/features/wellness/domain/wellness-safety-profile'");
+      // The aggregate type itself is never imported — only the vocabularies.
+      expect(analyzer).not.toContain('WellnessSafetyProfile');
+
+      // Medical dormancy (ADR-P031 Decision 1): the analyzer is not
+      // `restrictions.ts` and shares nothing with the retained medical feature.
+      expect(analyzer).not.toContain('@/features/medical');
+      expect(analyzer).not.toContain('./restrictions');
+      expect(analyzer).not.toContain('BODY_AREA_EXCLUSIONS');
+      expect(analyzer).not.toContain('RestrictionInput');
+      expect(analyzer).not.toContain('BloodPressure');
+      expect(analyzer).not.toContain('severity');
     });
   });
 });

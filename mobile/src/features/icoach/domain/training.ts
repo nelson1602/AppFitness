@@ -36,6 +36,14 @@ export function planTraining(
   analysis: RestrictionAnalysis,
   recovery?: RecoveryContext,
   trainingDaysPreference?: number,
+  /**
+   * Movement tokens the user declared through the wellness boundary
+   * (ADR-P031 W-4B). They can only ADD exclusions: they never touch
+   * `intensity`, `rpeCap`, `daysPerWeek`, `blocked` or
+   * `requiresMedicalClearance`, and an empty list leaves the plan exactly as
+   * it was before this parameter existed.
+   */
+  wellnessExcludedMovements: readonly string[] = [],
 ): TrainingPlan {
   let intensity = BASE_INTENSITY[fitnessLevel];
 
@@ -71,6 +79,11 @@ export function planTraining(
     intensity,
     rpeCap: analysis.blocked ? 0 : RPE_CAP[intensity],
     daysPerWeek,
-    excludedMovements: analysis.excludedMovements,
+    // Union of the dormant medical analysis (empty in public v1) and the
+    // user's own declarations — sorted and de-duplicated so the plan is
+    // deterministic regardless of input order.
+    excludedMovements: [
+      ...new Set([...analysis.excludedMovements, ...wellnessExcludedMovements]),
+    ].sort(),
   };
 }

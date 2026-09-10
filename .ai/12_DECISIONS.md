@@ -6108,6 +6108,14 @@ repo/store/applier, UI, or E2E**. New `mobile/src/features/icoach/domain/progres
   stamps it; `(user, week_start, rule_version)` uniqueness lets a future bump
   regenerate without clobbering history. Existing specs assert the imported
   constant, so they auto-follow (no literal-version test updates needed).
+  **Superseded on 2026-09-10 by ADR-P031 §Decision 11 (policy V-2):** snapshots
+  now stamp a dedicated **`PROGRESS_SNAPSHOT_RULE_VERSION`**, frozen at
+  `icoach-rules@1.1.0` — the same literal, so no stored row changes — while
+  `ENGINE_RULE_VERSION` continues to track assessment-rule changes
+  (`@1.2.0` with W-4B). The two families are now independent, precisely because
+  of the `rule_version` uniqueness above: stamping the assessment version here
+  would insert a second, identical row for every already-computed week on every
+  assessment-rule bump. Snapshot specs assert the snapshot constant.
 - Exhaustively unit-tested at the icoach-domain coverage thresholds. Backend
   `ProgressSnapshot` sync = Slice 4b; mobile repo/applier/store + gathering +
   `recomputeSnapshots` trigger = Slice 4c.

@@ -4,6 +4,12 @@ import { planNutrition } from './nutrition';
 import { analyzeRestrictions } from './restrictions';
 import { ENGINE_RULE_VERSION } from './rule-versions';
 import { planTraining } from './training';
+import {
+  analyzeWellnessSafety,
+  WELLNESS_REASON_MOVEMENT_DECLARED,
+  WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
+  type WellnessSafetyAnalysis,
+} from './wellness-safety';
 import { CoachAssessment, EngineInput, InvalidEngineInputError, Recommendation } from './types';
 
 /**
@@ -57,12 +63,18 @@ export function evaluate(input: EngineInput): CoachAssessment {
   const metabolics = assessMetabolics(input.subject, input.activityLevel);
   const nutrition = planNutrition(input.subject, metabolics, input.goal);
   const restrictionAnalysis = analyzeRestrictions(input.restrictions, input.bloodPressure);
+  // ADR-P031 W-4B: self-declared movements are the highest-priority rule group
+  // (.ai/07_ICOACH.md §Rule Priority 1) and they can only ADD exclusions. The
+  // input is optional and no production caller supplies it in this slice, so
+  // `wellness` is undefined and the analysis is empty.
+  const wellnessAnalysis: WellnessSafetyAnalysis = analyzeWellnessSafety(input.wellness);
   const training = planTraining(
     input.fitnessLevel,
     input.goal,
     restrictionAnalysis,
     input.recovery,
     input.trainingDaysPreference,
+    wellnessAnalysis.excludedMovements,
   );
 
   const recommendations: Recommendation[] = [];
@@ -100,15 +112,45 @@ export function evaluate(input: EngineInput): CoachAssessment {
       },
     });
   }
-  if (training.excludedMovements.length > 0) {
+  if (wellnessAnalysis.excludedMovements.length > 0) {
+    // Localization keys only in the user-facing strings; the validated tokens
+    // travel in `inputs`, which is an internal structure (ADR-P031
+    // Decision 10). W-4D renders `title`/`explanation` from these keys — until
+    // then this branch is unreachable, because `wellness` is never supplied.
+    add({
+      id: WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
+      category: 'SAFETY',
+      priority: 'HIGH',
+      title: 'wellness.plan.limitationsAppliedTitle',
+      explanation: 'wellness.plan.limitationsAppliedBody',
+      scientificBasis: 'wellness.plan.limitationsAppliedBasis',
+      inputs: {
+        reasonCode: WELLNESS_REASON_MOVEMENT_DECLARED,
+        // The exact consumed inputs, complete and in the analyzer's
+        // deterministic sorted order — comma-joined because `inputs` is a
+        // scalar map, which is the convention the medical rule below already
+        // uses. These are validated tokens inside an internal structure,
+        // which Decision 10 permits; the rendered strings above carry none,
+        // and no count is emitted (it is not a consumed input, and it is
+        // sensitive metadata this rule has no need for).
+        movements: wellnessAnalysis.excludedMovements.join(','),
+      },
+    });
+  }
+  if (restrictionAnalysis.excludedMovements.length > 0) {
     add({
       id: 'SAFETY:movement_exclusions',
       category: 'SAFETY',
       priority: 'HIGH',
       title: 'Movements excluded by your restrictions',
-      explanation: `While your restrictions are active, avoid: ${training.excludedMovements.join(', ')}.`,
+      // Scoped to the medical analysis, not to `training.excludedMovements`:
+      // the plan's list is now a union, and a self-declared wellness token must
+      // never surface in medical copy or be rendered raw (ADR-P031 Decision 10).
+      // Identical to the pre-W-4B output whenever no wellness input is supplied,
+      // because `analyzeRestrictions` already returns a sorted, de-duplicated list.
+      explanation: `While your restrictions are active, avoid: ${restrictionAnalysis.excludedMovements.join(', ')}.`,
       scientificBasis: 'Load management for injured/restricted areas.',
-      inputs: { excluded: training.excludedMovements.join(',') },
+      inputs: { excluded: restrictionAnalysis.excludedMovements.join(',') },
     });
   }
 
