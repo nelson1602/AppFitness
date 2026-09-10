@@ -2153,10 +2153,23 @@ registered `wellness_safety_profiles` sync entity reached through the
 existing /sync endpoints (no new route). **W-3 is implemented too**: one
 session-guarded route, a dashboard recommendation that never requires an
 evaluation, a persistent dashboard entry and 109 EN/ES keys — no schema,
-migration, API or dependency change. W-4 (deterministic iCoach consumption)
-and W-5 (optional supplement education) remain unimplemented and
+migration, API or dependency change; it merged as
+`8cb9271d5b685e8835a84eca2d9cf0552855f8fc`. W-4 (deterministic iCoach
+consumption) and W-5 (optional supplement education) remain unimplemented and
 unauthorized, so public v1 can now receive a limitation input but nothing
-yet reads the profile.
+yet reads the profile. **W-4A** froze W-4's consumption contract as
+**ADR-P031 (Accepted 2026-09-10)**: a dedicated wellness input type; the declared
+`movementsToAvoid` tokens as the only computation-authoritative signal, with
+`affectedAreas` kept as stored, displayed context that produces no automatic
+exclusions; no severity or workload inference; fail-closed handling of
+undecodable data; an explicit unsettled-conflict projection; and the
+`ENGINE_RULE_VERSION` / `WORKOUT_ROUTINE_RULE_VERSION` bumps. A drafted
+area → movement mapping was retracted and deferred to a separate ADR revision
+with qualified exercise-domain review. Activation is sequenced as one atomic
+slice: no merged commit may make wellness consumption user-reachable unless the
+assessment and routine generation honour the same exclusions with complete
+EN/ES copy, Error handling and privacy guards. It changes no runtime code and
+authorizes none.
 Slice 4A localizes the existing deterministic 15-day meal-plan presentation in
 English and Spanish (including portions, macro summaries, preference
 exclusions, baseline gaps, errors, disclaimer, and accessibility) while keeping

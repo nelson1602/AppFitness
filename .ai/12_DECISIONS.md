@@ -7060,7 +7060,7 @@ authorization, branch, validation and review.
 | **W-1** | **Wellness Safety Profile contract**: a wellness-owned schema for the evaluation-completed flag + date and self-declared limitations (affected areas, movements to avoid). Forward-only PostgreSQL + SQLite migrations, **never** reusing a medical table or column | W-0 | **Implemented** — contract + storage only (record above). No repository, sync, UI or iCoach input |
 | **W-2** | **Offline-first read/write + sync**: repository, sync handler and entity registration on both sides, under the existing conflict/versioning contract | W-1 | **Implemented** — record above. Registers the **wellness** entity type; still no UI or iCoach input |
 | **W-3** | **Onboarding recommendation + capture UI**, EN/ES, accessible: recommends a professional evaluation, records only the flag/date, and captures limitations. Explicitly non-diagnostic copy | W-2 | **Implemented** — record above. One route, a dashboard recommendation and entry, 109 EN/ES keys; still no iCoach input |
-| **W-4** | **Deterministic iCoach consumption**: limitations conservatively exclude movements or lower workload, versioned and explainable, never reinterpreted as diagnosis or clearance (Decision 6) | W-3 | Rule-version bump; deterministic tests |
+| **W-4** | **Deterministic iCoach consumption**: limitations conservatively exclude movements or lower workload, versioned and explainable, never reinterpreted as diagnosis or clearance (Decision 6) | W-3 | **Contract frozen by ADR-P031 (Proposed)** in slice **W-4A**; implementation slices W-4B … W-4E are unauthorized until it is accepted. Rule-version bump; deterministic tests |
 | **W-5** | **Supplement education boundary** — **optional**: food-first educational information only; **no dosage of any kind**, no product or brand recommendation, no therapeutic claims, no medication-interaction decisions; any uncertainty, limitation, allergy, health concern or medication question defers to a qualified professional | W-4 | **Requires its own accepted ADR and legal review before any implementation** |
 
 ### Supersedes / Preserves
@@ -11887,6 +11887,967 @@ approval before implementation begins.
 - `api/src/modules/audit/audit.service.ts` (`AuditEntry`; best-effort policy)
 - `api/prisma/schema.prisma` (`SyncConflict` — already sufficient;
   `ConflictStatus`, `AuditAction.SYNC_CONFLICT`, `AuditLog`)
+
+---
+
+## ADR-P031 — Deterministic Wellness-Safety Consumption in iCoach (ADR-P017 W-4 contract)
+
+Status: Accepted
+Date: 2026-09-09
+Accepted: 2026-09-10
+Owner: Product / iCoach Architecture
+
+### Revision note (2026-09-10, then accepted the same day)
+
+The first draft froze an **18-area → movement mapping** as the W-4 V1
+decision. It is **retracted** (§Decision 4): it was not repository-provable,
+and three of its rows had been narrowed to keep the routine generator able to
+build a plan — a coverage argument that contradicts this ADR's own safety
+asymmetry and §Decision 15. Four further corrections land in the same
+revision: the conflict projection now names the real payload shapes, filters
+and multi-conflict rule (§Decision 9); explainability no longer forbids the
+identifiers it simultaneously requires (§Decision 10); the absent-profile
+claim no longer asserts byte-identity across a rule-version change
+(§Decisions 6 and 11); and the insufficient-coverage outcome is the canonical
+**Error** state rather than an invented ninth one (§Decisions 8 and 15). The
+slice partition is re-cut so no merged slice can activate wellness
+consumption before its copy, privacy guards and safe states exist
+(§Implementation slices).
+
+### Context
+
+ADR-P017 sequences the Wellness Safety Profile as **W-0 … W-5**. Three slices are
+on `main`: **W-1** the contract and storage, **W-2** the offline-first runtime
+and two-way synchronization, **W-3** the capture surface and its EN/ES copy. A
+user can now declare limitations — and **nothing reads them**. This ADR freezes
+the consumption contract so **W-4** can be implemented without deciding product
+and safety semantics under implementation pressure.
+
+**Evidence baseline: `origin/main` `8cb9271d5b685e8835a84eca2d9cf0552855f8fc`.**
+Every file, line, constant and count below was read at that commit.
+
+**Nothing consumes the profile today, and the two seams are explicit about it.**
+
+| Seam | Evidence at `8cb9271` |
+|---|---|
+| Engine input | `mobile/src/features/dashboard/application/icoach-adapter.ts:102` — `restrictions: []`, commented "Public v1 uses wellness inputs only. The retained medical feature is dormant" |
+| Routine generation | `mobile/src/features/workout/presentation/GeneratedWorkoutPlan.tsx:65` — `excludedMovements: []`, and `workout-routine.service.ts:21` declares `excludedMovements?: readonly string[]` as "Wellness-owned limitation tokens only; never source these from dormant medical records" |
+| Boundary proof | `mobile/src/features/wellness/domain/wellness-safety-profile.spec.ts` walks the wellness feature and the iCoach / nutrition / workout features in both directions and fails if either names the other |
+
+**The legacy medical analyzer is not a starting point.**
+`mobile/src/features/icoach/domain/restrictions.ts` takes `RestrictionInput`
+(`type: 'INJURY' | 'CONDITION' | 'DOCTOR_RESTRICTION'`, `severity: 'MILD' |
+'MODERATE' | 'SEVERE'`, `bodyArea`) plus `BloodPressure`, and produces
+`blocked`, `requiresMedicalClearance`, an `intensityCap` and
+`BODY_AREA_EXCLUSIONS`. Every one of those axes is an ADR-P017 Decision 3
+excluded input. Its `BODY_AREA_EXCLUSIONS` map also cannot be reused as data: it
+covers **9** keys, one of which (`back`) is not a wellness token, and it emits
+**`behind_neck_press`**, which W-1 deliberately excluded because no shipped
+exercise declares it.
+
+**Catalogue facts that constrain consumption** (
+`mobile/src/features/workout/infrastructure/exercise-catalog.data.ts`,
+`exercise-catalog@0.2.0`, **33** exercises):
+
+- The union of `movementPatterns` across the catalogue is **exactly** the 18
+  `WELLNESS_MOVEMENTS_TO_AVOID` tokens — asserted by the shipped W-1 contract
+  spec and re-verified for this ADR.
+- Each exercise also declares `bodyAreas`, but that field **cannot support an
+  area → movement derivation**. It is coarse and is not the wellness
+  vocabulary: its 11 values are `ankle, back, core, elbow, full_body, hip,
+  knee, lower_back, neck, shoulder, wrist`. Ten wellness areas appear in no
+  exercise's `bodyAreas` (`abdomen, chest, foot, forearm, groin, hand,
+  lower_leg, thigh, upper_arm, upper_back`), and three catalogue values
+  (`back, core, full_body`) are not wellness areas. Absence there is a
+  limitation of the field, not evidence that a region is unloaded — which is
+  also why it cannot be inverted into a defensible mapping.
+- **Two catalogue rows show why any curated mapping is judgement, not
+  derivation.** `walking_lunge` declares `bodyAreas: [knee, hip]` and the
+  single movement pattern `lunge`; `bench_press` declares
+  `bodyAreas: [shoulder, wrist, elbow]` and includes `heavy_pressing`. A
+  mapping claiming to follow the catalogue would have to exclude `lunge` for
+  `knee` and `heavy_pressing` for `shoulder` and `elbow` — which empties the
+  generator's mandatory `squat` and `push` slots outright. The retracted draft
+  avoided that by omitting those tokens **to preserve coverage**, the exact
+trade §Decision 15 forbids.
+- `generateWorkoutRoutine` filters `catalog.exercises` by
+  `!exercise.movementPatterns.some((m) => excludedMovements.has(m))`
+  (`workout-routine-generator.ts:143-148`) and then requires **five** slots to
+  be non-empty — `squat`, `hinge`, `push`, `back`, `core` — plus
+  `conditioning` for sessions ≥ 60 minutes. An empty slot throws
+  `INSUFFICIENT_CATALOG_COVERAGE`, which `selectWorkoutRoutine` already surfaces
+  as `{ status: 'error', code, missingPatterns }`.
+
+**Rule versions and what persists them.** `ENGINE_RULE_VERSION =
+'icoach-rules@1.1.0'` (`rule-versions.ts:7`) is stamped on
+`CoachAssessment.ruleVersion`, on every `Recommendation.ruleVersion`
+(`engine.ts:70`, `:197`) **and** on each weekly progress snapshot
+(`progress-analysis.ts:157`). `WORKOUT_ROUTINE_RULE_VERSION =
+'icoach-workout-rules@1.0.0'` (`workout-routine-generator.ts:26`) is stamped on
+the generated routine, which is **not persisted**
+(`GeneratedWorkoutPlan.tsx` — "never persists the generated routine"). The
+`recommendations` and `coach_insights` tables exist from migration 001 but
+public v1 **never writes them** (no `INSERT INTO recommendations` /
+`coach_insights` anywhere in `mobile/src`). The only persisted, synchronized
+artifact carrying `ENGINE_RULE_VERSION` is `progress_snapshots`, whose
+uniqueness is `(user_id, week_start, rule_version)` (migration
+`004-progress-schema-activation.ts:63-64`).
+
+**Nutrition is structurally independent of limitations.**
+`planNutrition(subject, metabolics, goal)` (`nutrition.ts`) receives no
+restriction argument at all, and meal-plan exclusions come only from
+`dietary_preferences` avoid-tags and catalog keys
+(`nutrition/application/meal-plan.service.ts`).
+
+**Conflict machinery.** A push conflict records a `sync_conflicts` row and parks
+the queue op as `CONFLICT` (`sync-worker.ts:161-175`, `sync-queue.ts:117-122`).
+Wellness enqueues without the `sensitive` flag
+(`wellness-safety-profile.repository.ts`), so both conflict payloads are stored
+as **plaintext JSON** — no encrypted envelope, and the row carries no free text
+by construction. **BUG-014 is fixed**: `hasPendingOpFor` counts
+`'PENDING','IN_FLIGHT','FAILED','CONFLICT'` (`sync-queue.ts:168-176`) and the
+pull loop skips those entities (`sync-worker.ts:237-240`), so a parked conflict
+**retains** the local row's values. **BUG-012 is still open**: there is no
+resolution UI anywhere; ADR-P030 specifies one, and its slices **C-2 … C-7
+remain unauthorized**.
+
+### Owner acceptance (2026-09-10)
+
+**Accepted, with all four open decisions settled.** The owner selected:
+
+| # | Decision | Selection |
+|---|---|---|
+| 1 | §Decision 9 — unsettled-conflict policy | **C-B, exactly as specified**: the current strictly decoded local profile plus the server snapshots of relevant PENDING wellness conflicts, projected to `movements_to_avoid` only, via `decodeConflictSnapshot`. C-A and C-C are **not** selected |
+| 2 | §Decision 11 — version handling | **V-2**: `ENGINE_RULE_VERSION` → `icoach-rules@1.2.0`, and a dedicated **`PROGRESS_SNAPSHOT_RULE_VERSION`** frozen at `icoach-rules@1.1.0` so weekly snapshots keep their identity. V-1 is **not** selected |
+| 3 | §Decisions 3–5 — scope of consumption | **Explicitly declared movements only.** `affectedAreas` stays computationally inert (§Decision 4) and workload reduction is **deferred** to a future ADR revision with a real deterministic signal |
+| 4 | §Implementation slices — delivery shape | **W-4B stays separate**; **W-4C and W-4D are delivered together as one atomic activation PR**, later. W-4E remains documentation closure |
+
+**What acceptance authorizes: the contract and the sequencing — not code.**
+W-4B … W-4E are **unimplemented**, and each still needs its own
+implementation authorization, branch, validation and review. No runtime file,
+schema, migration, dependency, localization catalogue or test changes with
+this acceptance.
+
+**The retracted affected-area mapping stays retracted** (§Decision 4).
+Acceptance does not revive it; that remains a separate ADR revision requiring
+qualified exercise-domain review.
+
+### Decision
+
+**Fifteen decisions, all accepted on 2026-09-10.** They authorize the contract
+and the delivery sequencing; the implementation slices remain separately
+gated.
+
+#### 1. A dedicated wellness input type, structurally separate from the medical one
+
+W-4 introduces its own input, in the iCoach domain, named to prevent confusion:
+
+```
+export interface WellnessSafetyInput {
+  evaluationCompleted: boolean;
+  evaluationDate: string | null;      // YYYY-MM-DD, informational only
+  affectedAreas: readonly WellnessAffectedArea[];
+  movementsToAvoid: readonly WellnessMovementToAvoid[];
+}
+```
+
+- It is **not** `RestrictionInput`, is not accepted where `RestrictionInput` is
+  accepted, and carries **no** `type`, `severity`, `bodyArea`, `bloodPressure`,
+  diagnosis, condition, medication, treatment, rehabilitation or clearance
+  field. `restrictions: []` and `bloodPressure: undefined` stay exactly as they
+  are in the public adapter.
+- A **new** analyzer module (`icoach/domain/wellness-safety.ts`) computes its
+  effects. `restrictions.ts`, `BODY_AREA_EXCLUSIONS` and the blood-pressure
+  thresholds are **not modified, not imported and not extended**. The dormant
+  medical path keeps its current behaviour for the dormant feature's own tests.
+- `WellnessSafetyInput` is populated **only** from the W-2 application boundary
+  (`getMyWellnessSafetyProfile`). No other source may fill it, and no medical
+  row may ever reach it — the existing two-direction boundary spec is extended
+  to assert that the analyzer imports nothing from `features/medical`.
+
+#### 2. `evaluationCompleted` / `evaluationDate` are records, never permissions
+
+They **record only that an evaluation occurred and when**. They must not:
+
+- approve, clear, unlock, gate or expand any plan;
+- change intensity, RPE cap, days per week, volume, exercise selection,
+  nutrition or any calculated value;
+- set `blocked` or `requiresMedicalClearance` — those two `TrainingPlan` fields
+  stay driven exclusively by the dormant medical path, which public v1 never
+  populates, so both remain `false` in public v1;
+- appear in any explanation as a safety statement about the user.
+
+**Consequence, frozen:** for two profiles differing only in
+`evaluationCompleted` / `evaluationDate`, the engine output must be **identical**
+— a test asserts byte equality of the assessment (§Decision 12). The values may
+be *displayed* by W-3's own surface, which already does so, and may inform
+future non-plan copy, but they are inert for computation.
+
+#### 3. `movementsToAvoid` excludes its exact tokens, verbatim
+
+Each declared token is excluded as itself, with no widening, narrowing,
+substitution or inference. The tokens are already exactly the catalogue's
+movement-pattern vocabulary (§Context), so `excludedMovements` needs no
+translation layer: the user's list passes through W-2's normalization (trim →
+lowercase → validate membership → deduplicate → sort) and reaches the generator
+as-is. This is the **only computation-authoritative wellness field**
+(§Decision 4): it is never overridden, capped, widened or re-derived, and it
+can express any of the 18 shipped tokens — including `max_effort_lifts`, which
+describes load magnitude rather than a body region.
+
+#### 4. `affectedAreas` is stored, displayed context and produces **zero** automatic exclusions
+
+**No automatic affected-area → movement mapping ships in W-4 V1.** The area
+list stays what W-1 defined and W-3 captures: a stored, displayable,
+language-neutral declaration. It reaches no computation.
+
+**Why it is retracted rather than narrowed.** A mapping is defensible only if
+it derives from something the repository can prove, and it does not:
+
+1. **The catalogue cannot supply it.** `bodyAreas` covers 8 of the 18 wellness
+   areas, includes three values that are not wellness areas, and is a coarse
+   authoring aid rather than a biomechanical model (§Context).
+2. **Inverting it contradicts itself.** Following the catalogue honestly for
+   `knee` (`walking_lunge`) and for `shoulder`/`elbow` (`bench_press`) empties
+   the generator's mandatory `squat` and `push` slots. The retracted draft
+   avoided that by omitting `lunge` from `knee` and `heavy_pressing` from
+   `shoulder` and `elbow` — weakening a safety signal to keep a plan buildable,
+   which is precisely the trade §Decision 15 forbids.
+3. **What remained was unattributed judgement.** For the ten areas with no
+   catalogue evidence the rows were engineering intuition about which patterns
+   load a region — an exercise-science claim about the user's body, made
+   without qualified review, in a product ADR-P017 Decision 1 defines as
+   software that makes no such claim.
+
+**What W-4 must therefore not do with an area.** It must not infer anatomy, a
+diagnosis, a severity, the safety of any exercise, or a workload change from a
+declared area — individually or in combination, and regardless of how many
+areas are declared. An area declaration changes **nothing** the engine or the
+generator computes.
+
+**The user can still express an area concern.** W-3 presents both lists on one
+screen, and §Decision 3 makes the movement list authoritative and unbounded: a
+user who wants squats excluded declares `deep_squat`. The honest statement for
+copy (W-4C) is that **declaring an area records it; declaring a movement
+changes the plan.**
+
+**A future mapping is a separate decision.** Introducing any automatic
+area → movement derivation requires (i) a **separately accepted ADR revision**
+stating its derivation source, (ii) **qualified exercise-domain review** of
+every row, and (iii) the version bumps of §Decision 11. It may not be added
+inside a W-4 implementation slice, and it may not be justified by routine
+coverage.
+
+**Mechanical parity, retained.** Dropping the mapping must not let the two
+vocabularies drift, so W-4B keeps table-driven tests proving that all **18**
+`WELLNESS_AFFECTED_AREAS` remain accepted, validated, **inert** inputs —
+accepted by the input type, normalized, carried through, and provably absent
+from `excludedMovements` — and that all **18** `WELLNESS_MOVEMENTS_TO_AVOID`
+remain exact, authoritative exclusions each matching at least one shipped
+exercise (§Decision 12).
+
+#### 5. No severity inference, and no workload reduction in W-4B
+
+The profile carries no severity and none may be invented. Specifically W-4 must
+not, from an affected area or from any count of areas:
+
+- lower `intensity`, `rpeCap`, `daysPerWeek`, sets, repetitions or volume;
+- set `blocked` or `requiresMedicalClearance`;
+- change nutrition (§Decision 13);
+- treat "more areas declared" as "more severe".
+
+**W-4 implements movement exclusion only.** A conservative workload reduction
+may be desirable, but it requires a **separately defined deterministic signal**
+that does not exist today — the profile has no severity, no pain scale, no
+onset, no duration, and inventing one from area count would be exactly the
+clinical inference ADR-P017 Decision 3 forbids. Any such signal needs its own
+ADR revision, its own input, its own rule version and its own copy. Until then
+the honest statement is: **a declared movement removes exercises; it never
+makes the plan easier**, and a declared area (§Decision 4) changes nothing at
+all.
+
+**Confirmed by the owner on 2026-09-10:** W-4 consumes explicitly declared
+movements only, and workload reduction is deferred.
+
+#### 6. No active profile — and a tombstone — means no wellness exclusions
+
+`getWellnessSafetyProfile` selects `WHERE id = ? AND user_id = ? AND deleted_at
+IS NULL` (`wellness-safety-profile.repository.ts`), so a removed profile reads
+as `null` and a tombstone can never be consumed. W-4 therefore treats
+`profile === null` as **`WellnessSafety` absent**: zero exclusions, no reason
+codes and no explanation.
+
+**Semantically identical to the baseline, not byte-identical.** §Decision 11
+bumps `ENGINE_RULE_VERSION`, so an assessment computed after W-4B **cannot**
+equal one computed at `8cb9271`: `CoachAssessment.ruleVersion` and every
+`Recommendation.ruleVersion` carry the new value by design. The frozen
+requirement is that for an absent profile **every other field is unchanged** —
+body composition, metabolics, nutrition, the whole training plan including an
+empty `excludedMovements`, and the recommendation set with identical ids,
+order, titles, explanations and inputs. The only permitted difference is the
+intentional version string (§Decision 12, test J38).
+
+This is not a safe-state fallback — it is the accurate statement that the user
+has declared nothing. Removing a profile must return the plan to its
+unrestricted form deterministically, which is the visible half of W-3's
+privacy-preserving removal.
+
+**`absent` does not skip the conflict inspection.** Under C-B (§Decision 9) an
+absent or tombstoned local profile contributes an **empty** movement set, but
+the relevant PENDING conflicts are still selected, decoded and unioned: a
+declaration that another device made and pushed must not be lost merely
+because this device has nothing active. Only when there is no active local
+profile **and** no relevant PENDING conflict is the outcome plain `absent`.
+
+#### 7. Pending local edits protect the user immediately
+
+W-2 writes locally as `pending` and enqueues in the same transaction, and the
+local row is the read source. So a declaration protects the user **before it
+synchronizes**, offline included: W-4 consumes the local row regardless of
+`sync_status`, and `pending` is never a reason to withhold an exclusion. The
+plan may therefore change while the queue is still draining, which is the
+intended behaviour and must be asserted by a test.
+
+#### 8. Invalid or corrupt wellness data fails closed into the canonical Error state
+
+W-2's decoders throw `WellnessProfileInvalid` rather than returning a degraded
+profile, and W-3 renders that as its own Error treatment. W-4 inherits the same
+discipline: the consumption layer exposes a third outcome, distinct from both
+"no profile" and "profile":
+
+| Outcome | Meaning | Exclusions | Plan |
+|---|---|---|---|
+| `absent` | No active profile (§Decision 6) | none | normal, unrestricted |
+| `available` | A strictly decoded profile | per §Decision 3 | personalized |
+| `unavailable` | The stored row — or a relevant server snapshot (§Decision 9) — could not be decoded, or the read failed | **none, and the plan is not presented as personalized** | see below |
+
+**`unavailable` must never be represented as "no limitations declared"**, and
+it is **not** `absent`. The generated routine must not be shown as a plan that
+respects the user's declarations, because the app does not know what they are.
+
+**`unavailable` is the canonical `Error` state** — one of the eight names
+`.ai/08_UI_UX.md` §Canonical State Patterns fixes (Loading, Empty, Data-gap,
+Error, Offline, Pending sync, Conflict, Web unavailable), approved by ADR-P022
+Decision 15. A failed read or a refused row is an **operation failure**, so it
+takes the `error` tone and its copy obligations. It is **not** Data-gap (nothing
+is a missing prerequisite the user supplies elsewhere), **not** Empty (no read
+succeeded), and it introduces no ninth state. W-3 already ships the localized
+copy for exactly this condition (`wellness.safety.invalidTitle` /
+`invalidMessage`), and W-4C adds the routine-surface equivalent: the plan cannot
+account for declared limitations right now, with the same recovery W-3 offers —
+re-entering the answers. No reason, field or token value appears in rendered
+copy (§Decision 10), and — as in W-3 — the stored row is left untouched.
+
+#### 9. Unsettled conflict policy — three options, one recommendation, owner-gated
+
+A wellness conflict is reachable: two devices can both edit the singleton and
+the second push returns CONFLICT. There is **no resolution UI** (BUG-012) and
+the parked state can persist indefinitely, so the policy cannot be "until the
+user resolves it".
+
+Facts that constrain the choice, and correct the first draft:
+
+- The **current local row is the authoritative local copy**. It keeps its
+  values while the op is parked, because `hasPendingOpFor` counts `CONFLICT`
+  and the pull loop skips those entities (BUG-014, fixed). The read path
+  therefore uses the **strictly decoded local profile** from the W-2 boundary
+  and must **not** read `sync_conflicts.local_payload`, which is a snapshot of
+  the operation that failed to push and can be older than what the device now
+  holds.
+- **The two payload columns have different shapes.** `local_payload` is the
+  four-field wire payload W-2's repository enqueues (`evaluation_completed`,
+  `evaluation_date`, `affected_areas`, `movements_to_avoid`, plus `id` on a
+  CREATE); `server_payload` is the **complete server snapshot** returned by the
+  push response. One decoder cannot parse both, and only the server side
+  matches `decodeServerProfile`'s expectations.
+- **A server snapshot is not "token-only".** It carries the row id and owner,
+  the evaluation flag and date, `created_at` / `updated_at`, the version, the
+  tombstone fields **and** the two token arrays. The first draft called it
+  token-only; that was wrong.
+- The `sync_conflicts` store is user-scoped since migration 006 (ADR-P030
+  Decision 8), and W-3 already resolves a three-way sync state
+  (`synced | pending | conflict`) in its application layer.
+
+| Option | Safety | Privacy | Offline | BUG-012 fit | Cost |
+|---|---|---|---|---|---|
+| **C-A. Local-only + warning** — compute from the current local row, keep the existing report-only banner | Uses the newest local declaration, which is preserved. **Gap:** a movement declared on the *other* device is not applied on this one, so the user can be under-protected exactly while the copies disagree | Best — nothing new is read | Full | Perfect — needs no resolution affordance | Lowest: the sync-state signal already exists |
+| **C-B. Conservative union, computation only** — the current local profile **plus** the server snapshots of relevant PENDING wellness conflicts | Strongest: the union can only **add** exclusions, never remove one, so no declaration from either side is lost. Under-protection is the harmful direction, and W-2 already reasons this way ("an empty `movements_to_avoid` reads as no limitations declared") | Wider than C-A: the application layer reads server snapshots outside the (unauthorized) resolution flow. Those snapshots carry identifiers, evaluation fields, timestamps and version, so **only `movements_to_avoid` is projected** and the union is never rendered, logged, persisted or pushed | Full — the snapshots are local | Compatible: the conflict stays `PENDING`, report-only, and nothing is settled | Moderate: a filtered read + strict decode + fail-closed handling + tests |
+| **C-C. Suspend personalized generation** — withhold the routine while unsettled | **Safety-strong**: it declines to generate a routine from data the app knows is ambiguous, so it can never hand out a plan built on the wrong version. It withholds output; it does not weaken any exclusion | Best | Weakest of the three: the withheld feature is unavailable precisely when the user is offline and cannot converge the copies | **Poor — the reason it is rejected**: with BUG-012 there is no resolution path, so the suspension can persist indefinitely and the user has no way to end it | Moderate: two new surface states + copy |
+
+**Recommendation: C-B**, with the projection defined exactly:
+
+1. **Selection, before any parsing.** Consider only `sync_conflicts` rows
+   matching **all** of: `user_id` = the authenticated user; `entity_type` =
+   `'wellness_safety_profiles'`; `entity_id` = the singleton id
+   (`wellnessSafetyProfileId(userId)`, i.e. the user id); `status` =
+   `'PENDING'`. A row failing any predicate is ignored without being read.
+2. **Decode strictly, through a dedicated conflict-snapshot projection.** A
+   push conflict stores the wellness **wire row** as `server_payload`; unlike a
+   pull change it carries **no separate `deleted` envelope flag**, and its
+   tombstone state exists only as the `deleted_at` / `deleted_by` pair. But
+   `decodeServerProfile(data, deleted, userId)` requires that flag and
+   cross-checks it (`requireTombstone` throws `tombstone-inconsistent` when the
+   two disagree), so it cannot simply be called with a guess: `false` would
+   reject every tombstoned snapshot as malformed and `true` would reject every
+   active one. W-4 therefore adds one pure function,
+   `decodeConflictSnapshot(payload, userId)`, which:
+
+   1. requires an object payload;
+   2. **derives** the deleted state from the row — `deleted := deleted_at !==
+      null` — after enforcing the pair rule that `deleted_by` without
+      `deleted_at` is `tombstone-inconsistent`;
+   3. delegates to `decodeServerProfile(payload, derivedDeleted, userId)` so
+      every other strict rule is **reused unchanged** — owner match, singleton
+      id, closed-vocabulary tokens, positive-integer version, complete RFC 3339
+      timestamps, flag/date pairing and per-boundary booleans;
+   4. returns only `{ deleted, movementsToAvoid }`.
+
+   `local_payload` is never read.
+3. **Active and deleted snapshots contribute differently.** Frozen cases:
+
+   | Local profile | Relevant server snapshot | Contribution to the union |
+   |---|---|---|
+   | active | active | local movements ∪ snapshot movements |
+   | active | valid tombstone | local movements only — the tombstone contributes **∅** |
+   | absent or tombstoned | active | snapshot movements only |
+   | absent or tombstoned | valid tombstone | **∅** — and, with no other relevant conflict, the outcome is `absent` (§Decision 6) |
+   | any | malformed, or an inconsistent tombstone pair | `unavailable` (§Decision 8) |
+
+   **A tombstoned snapshot never contributes tokens.** Its `movements_to_avoid`
+   column is retained history — W-2 soft-deletes without blanking the columns —
+   and retained history is **not an active declaration**. Treating it as one
+   would resurrect limitations the user removed.
+4. **Multiple matching conflicts are explicitly supported.** The singleton can
+   accumulate more than one PENDING row (repeated pushes, or a revive after a
+   delete). The projection is the **union of `movements_to_avoid` across every
+   strictly decoded, non-tombstoned relevant server snapshot, unioned with the
+   active local profile's `movements_to_avoid`** — deduplicated and sorted, so
+   it is deterministic and independent of row order.
+5. **Fail closed, never silently.** If **any** relevant snapshot fails to
+   decode — including a malformed or inconsistent tombstone pair — the outcome
+   is `unavailable` (§Decision 8), the canonical Error state. It must not fall
+   back to C-A, to the local row alone, or to a partial union.
+6. **Project only movements.** Nothing else from a snapshot enters computation:
+   not the evaluation flag or date, not timestamps, not the version, not the
+   identifiers, not `affected_areas` (inert anyway, §Decision 4). The derived
+   `deleted` state is used **only** to decide whether that snapshot
+   contributes.
+7. **Never expose it.** The union, either of its inputs, and the fact that the
+   copies differ beyond the existing report-only banner are never rendered,
+   logged, sent to analytics or Sentry, written to an audit entry, persisted or
+   pushed. ADR-P030 Decision 2 keeps payload rendering behind an allow-list and
+   this decision adds no exception.
+8. **Settle nothing.** No code path calls a resolve endpoint or mutates
+   `sync_conflicts`; the surface keeps W-3's report-only conflict banner.
+
+**C-C is rejected — but not because it is unsafe.** Withholding an ambiguous
+routine is a defensible safety posture, and it is compatible with the Conflict
+state: `warning` describes the **tone** of the report, and a warning-toned
+surface can perfectly well accompany withheld output. It is rejected because
+**BUG-012 gives the user no way to settle the conflict**, so the suspension
+has no bounded exit: a feature could stay withdrawn indefinitely through no
+action of the user's, which ADR-P027's non-blocking posture will not accept.
+If ADR-P030 C-2 … C-7 ship a resolution path, C-C becomes a reasonable
+candidate again and this decision should be revisited.
+
+**Selected by the owner on 2026-09-10: C-B, exactly as specified above** —
+including the dedicated `decodeConflictSnapshot` projection, the active /
+tombstone contribution table, the multiple-conflict union, the fail-closed
+rule and the never-expose rule. C-A and C-C were considered and are **not**
+selected; they remain recorded for traceability, and C-C should be revisited
+if ADR-P030 C-2 … C-7 ever ship a resolution path.
+
+#### 10. Explainability through stable identifiers, with raw tokens confined to internals
+
+The analyzer returns structured, stable identifiers; the presentation layer
+translates them. Frozen shapes:
+
+- **Reason code per exclusion**: `wellness.movement.declared` — the only reason
+  code W-4 V1 emits, because a declared movement is the only source of an
+  exclusion (§Decisions 3 and 4). It carries the structured input it came from,
+  `{ movement: <token> }`.
+- **Rule identifiers**: `WELLNESS:movement_exclusions` for the assessment
+  recommendation; `wellness.plan.limitations_applied` for the routine
+  explanation key — the `explanationKeys` convention the generator already
+  uses.
+- **Rule version**: every emitted reason carries `ENGINE_RULE_VERSION`
+  (§Decision 11), as `engine.ts` already does for all recommendations.
+
+**Where raw tokens are allowed, and where they are not.** The first draft
+required `{ movement }` inputs while banning tokens "in `inputs`" — a
+contradiction. The rule is a boundary, not a blanket:
+
+| Location | Language-neutral tokens (`lower_back`, `heavy_hinge`) |
+|---|---|
+| Analyzer/engine return values, `Recommendation.inputs`, `explanationKeys`, in-memory state | **Allowed**, and required for explainability — they must be **validated** members of the shipped vocabularies before being placed there |
+| Rendered user-facing copy, in any language | **Forbidden** — labels resolve through W-3’s one-way token → localization-key maps |
+| Logs (`logError` / `logWarn`), analytics, Sentry, audit records | **Forbidden** — including counts, the evaluation date and any other profile value |
+| The user's own `wellness_safety_profiles` row and the authorized W-2 sync payloads | **Allowed** — W-1 designed `affected_areas` / `movements_to_avoid` as persisted, synchronized, owner-scoped columns and W-2 ships their transport. W-4 neither changes nor extends that contract |
+| Any **new** W-4 persisted or synchronized artifact | **Forbidden** — W-4 introduces no table, column, row, queue entry or payload of its own |
+| The C-B computed union, `Recommendation.inputs` / reason codes, evaluation metadata, derived explanation state | **Never persisted, pushed, logged, audited, sent to analytics or Sentry, or rendered as raw tokens** — they live only in memory for the duration of one computation |
+
+So `inputs: { movement: "deep_squat" }` is correct and expected, while a
+rendered string or a Sentry breadcrumb containing `deep_squat` is a defect. The
+same boundary applies to area tokens: they may travel inside validated
+structured state and may be rendered **only** through their authored label.
+
+**The storage rule, stated precisely.** An earlier revision of this table said
+tokens were forbidden in "persisted rows and sync payloads", which contradicts
+shipped behaviour: W-1 deliberately persists both token arrays in
+`wellness_safety_profiles` (PostgreSQL `text[]`, SQLite JSON-array `TEXT`,
+both allowlisted at the storage boundary) and W-2 synchronizes them through
+`/sync/push` and `/sync/pull`. That is the contract, and it stands. What W-4
+may not do is **add** a persisted or synchronized wellness-derived artifact —
+no cached exclusion set, no materialized explanation, no analytics record, no
+audit entry, no new queue operation. Raw tokens are therefore permitted in
+exactly two places: validated internal domain structures, and W-1/W-2's
+existing storage and transport contract. **Localization is mandatory at the
+presentation boundary**, without exception.
+
+**Never, in rendered copy, a log, an analytics event, a Sentry payload or an
+audit record:**
+
+- a raw vocabulary token; the count of declared areas or movements; the
+  evaluation date; or any other value read from the profile;
+- medical language — no diagnosis, condition, severity, treatment,
+  rehabilitation, clearance, "safe", "cleared", "approved" or "medically fit",
+  under the enforced-by-spec discipline W-3 shipped;
+- the conflict union, either of its inputs, or the fact that the copies differ
+  beyond the existing report-only banner (§Decision 9).
+
+The legacy `SAFETY:movement_exclusions` recommendation (`engine.ts:104-114`)
+**interpolates raw tokens into an English sentence**
+(`avoid: ${training.excludedMovements.join(', ')}`). W-4 must **not** extend or
+reuse it. W-4 emits its own recommendation whose `title` and `explanation` come
+from localization keys while its `inputs` carry validated tokens — and the
+legacy string stays unreachable in public v1 because `restrictions` stays
+empty.
+
+#### 11. Version bumps, derived from what is actually stamped and stored
+
+W-4 changes engine output (`TrainingPlan.excludedMovements` becomes non-empty
+for a declaring user) and routine content (exercise selection changes). The
+**capability** lands in W-4B and the **observable** change in W-4D
+(§Implementation slices), so `ENGINE_RULE_VERSION` bumps with the former and
+`WORKOUT_ROUTINE_RULE_VERSION` with the latter. Therefore:
+
+| Constant | Decision | Why |
+|---|---|---|
+| `ENGINE_RULE_VERSION` | **MUST bump** `icoach-rules@1.1.0` → **`@1.2.0`** | A behavioural change to a rule that stamps `CoachAssessment` and every `Recommendation`; `.ai/07_ICOACH.md` §Rule Versioning forbids overwriting a rule in place. Minor, not major: inputs and output shape are additive |
+| `WORKOUT_ROUTINE_RULE_VERSION` | **MUST bump** `icoach-workout-rules@1.0.0` → **`@1.1.0`** | Generated routines change for a declaring user (`workout-routine-generator.ts:143-148` now receives non-empty exclusions) |
+| `WORKOUT_ROUTINE_CONTRACT_VERSION` | **No bump** | The request/response shape does not change — `WorkoutRoutineRequest.excludedMovements` already exists |
+| `EXERCISE_CATALOG_VERSION` | **No bump** | No catalogue data changes. W-4 only reads it |
+| `MEAL_RULE_VERSION`, `CATALOG_VERSION` | **No bump** | Nutrition is untouched (§Decision 13) |
+| `WELLNESS_SAFETY_PROFILE_CONTRACT_VERSION` | **No bump** | No contract, schema or vocabulary change |
+
+**Recomputation and backward compatibility.** Assessments and routines are
+computed on demand and never persisted, so no stored assessment changes
+meaning. The bump does mean an assessment produced after W-4B **cannot be
+byte-identical** to one produced at `8cb9271`, for any user, because the
+version string itself changes; for an absent profile everything else must be
+unchanged (§Decision 6).
+
+The one persisted artifact stamped with `ENGINE_RULE_VERSION` is
+`progress_snapshots`, unique on `(user_id, week_start, rule_version)`. Bumping
+therefore **adds** a row per recomputed week instead of overwriting one —
+historical integrity holds by construction (`.ai/07_ICOACH.md` §Historical
+Integrity) — but the added rows carry **numerically identical values**, because
+`computeWeeklySnapshots` consumes no wellness data. That is pure version churn,
+and it synchronizes as new CREATEs.
+
+Two ways to handle it; **the owner selected V-2 on 2026-09-10**:
+
+- **V-1 — accept the churn.** Bump `ENGINE_RULE_VERSION` and let each user gain
+  one duplicate snapshot row per recomputed week. Zero refactor; a one-time,
+  bounded increase in rows and sync volume; ADR-P016's snapshot identity is
+  unchanged.
+- **V-2 — split the constant (recommended, retained after the 2026-09-10
+  revision).** Introduce `PROGRESS_SNAPSHOT_RULE_VERSION`, which **stays at
+  the current literal `'icoach-rules@1.1.0'`**, and have
+  `progress-analysis.ts` stamp that instead of `ENGINE_RULE_VERSION`.
+  **This is the selected policy.** W-4B introduces the constant with that
+  exact literal, so no stored `progress_snapshots` value changes and no new
+  row appears for an unchanged week; the one-line ADR-P016 reconciliation note
+  travels with W-4B.
+  No stored value changes, no new rows, no sync volume, and the two rule
+  families become independently versionable — which is what
+  `.ai/07_ICOACH.md` §Rule Versioning implies for distinct rules. It needs a
+  short reconciliation note in ADR-P016 (snapshot `rule_version` semantics) and
+  is otherwise a two-line change.
+
+#### 12. Deterministic test specification
+
+Every case is deterministic: no clock, no randomness, no network, and no real
+database except where stated. Ids are stable so a slice can cite them; the
+owning slice is named in §Implementation slices.
+
+**A — Analyzer unit tests** (`icoach/domain/wellness-safety.spec.ts`)
+
+1. **Movement pass-through.** Each of the 18 `WELLNESS_MOVEMENTS_TO_AVOID`
+   tokens, declared alone, yields exactly itself as an exclusion; table-driven.
+2. **Exact authoritative exclusions.** The exclusion set is always a subset of
+   the shipped vocabulary and every emitted token matches ≥ 1 shipped catalogue
+   exercise — computed from the shipped constants, so a catalogue or vocabulary
+   change fails the test rather than stranding a token.
+3. **Areas are inert.** Each of the 18 `WELLNESS_AFFECTED_AREAS`, declared
+   alone and then all 18 together, yields **zero** exclusions and **zero**
+   reason codes; table-driven over the shipped constant, so adding an area
+   cannot silently start producing exclusions (§Decision 4).
+4. **Areas stay valid inputs.** All 18 areas are accepted by
+   `WellnessSafetyInput`, survive normalization and are carried through
+   unchanged — proving the field is inert, not rejected or dropped.
+5. **Evaluation fields are inert.** Two inputs differing **only** in
+   `evaluationCompleted` / `evaluationDate` produce byte-identical analyzer and
+   engine output — both computed at the **new** rule version, so this is an
+   equality between two current results, never against the baseline.
+6. **No severity or workload output** exists on the return type (asserted
+   structurally, so adding one is a deliberate contract change).
+7. **Empty declarations** produce zero exclusions and zero reason codes.
+8. **Idempotence and order-independence**: shuffled input arrays produce
+   identical output; running twice changes nothing.
+
+**B — Engine unit tests** (`icoach/domain/engine.spec.ts`)
+
+9. A declaring wellness input produces the expected `excludedMovements` and
+   leaves `blocked`, `requiresMedicalClearance`, `intensity`, `rpeCap`,
+   `daysPerWeek` and the whole `nutrition` block unchanged versus the same
+   input without wellness data.
+10. `restrictions: []` with wellness data present never triggers
+    `SAFETY:medical_clearance` or `SAFETY:bp_crisis_block`.
+11. The emitted recommendation carries the new `ENGINE_RULE_VERSION`, the
+    `wellness.movement.declared` reason code and **validated tokens in
+    `inputs`**, while `title` and `explanation` contain **no** raw token because
+    they are built from localization keys (§Decision 10).
+
+**C — Adapter / read-path integration** (`dashboard/application/icoach-adapter.spec.ts`)
+
+12. `absent` / `available` / `unavailable` each produce the specified
+    assessment, and `restrictions` stays `[]` in all three.
+13. A tombstoned profile behaves exactly as `absent` (real repository read).
+
+**D — Invalid data**
+
+14. A corrupt stored row (each `WellnessProfileInvalid` reason) yields
+    `unavailable` — never an empty exclusion set treated as "no limitations",
+    and never `absent`.
+15. `unavailable` renders the canonical **Error** treatment (§Decision 8) and
+    never writes, deletes or repairs the stored row.
+
+**E — Pending sync**
+
+16. A `pending` local edit is consumed immediately, offline, before any push.
+17. Draining the queue does not change the computed exclusions.
+
+**F — Conflict** (per the approved option; C-B as specified)
+
+18. **Selection.** Rows are filtered by user, `wellness_safety_profiles`, the
+    singleton entity id and `PENDING` **before** parsing: a row belonging to
+    another user, another entity type, another id or a resolved status is never
+    decoded.
+19. **active ↔ active.** An active local profile and an active server snapshot
+    union their movements; neither side loses a token.
+20. **active ↔ tombstone.** A valid tombstoned snapshot contributes **∅**: the
+    result equals the local movements exactly, and a token present only in the
+    tombstone's retained columns is provably absent.
+21. **absent or tombstoned local ↔ active snapshot.** With no active local
+    profile the relevant conflicts are **still inspected**, and the result is
+    the snapshot's movements — asserted for both an absent row and a locally
+    tombstoned one.
+22. **tombstone ↔ tombstone.** No active declaration on either side yields
+    **∅**, and with no other relevant conflict the outcome is `absent`, not
+    `unavailable`.
+23. **Malformed tombstone.** A `deleted_by` without `deleted_at`, an
+    unparseable `deleted_at`, or any other refusal from
+    `decodeConflictSnapshot` yields `unavailable` — never local-only, never an
+    empty set, never a partial union.
+24. **Multiple conflicts.** Two or more relevant PENDING rows union every
+    active server declaration plus the active local declaration —
+    deduplicated, sorted, identical under reordering, and with tombstoned rows
+    among them contributing nothing.
+25. **`local_payload` is never read** — asserted with a fixture whose
+    `local_payload` holds a token that must **not** appear in the result while
+    the current local row does not contain it.
+26. **Shape discipline.** The snapshot is decoded as a full wire row
+    (identifiers, evaluation fields, timestamps, version, tombstone, tokens),
+    the `deleted` state is **derived** from the tombstone pair rather than
+    assumed, and **only** `movements_to_avoid` reaches computation.
+27. **Nothing is settled or leaked.** No resolve endpoint is called, no
+    `sync_conflicts` row is mutated, and no payload value is rendered, logged,
+    persisted or pushed.
+
+**G — Routine generation** (`workout/application/workout-routine.service.spec.ts`)
+
+28. Declared movements reach the generator and remove exactly the expected
+    exercises — table-driven over all 18 tokens against the real catalogue.
+29. A declaration set that empties a mandatory slot produces the §Decision 15
+    outcome — the canonical Error treatment, **not** a crash and **not** a
+    routine that ignores an exclusion.
+30. Identical inputs produce identical routines (deep equality, no snapshots).
+31. **Assessment and routine agree.** For the same user and inputs, the
+    exclusion set the assessment reports and the set the generator filters on
+    are the **same list** — the invariant the slice partition exists to
+    protect (§Implementation slices).
+
+**H — Bilingual copy**
+
+32. Every new key exists in EN and ES with exact parity, and the token → label
+    maps still cover all 18 + 18 tokens in both catalogues (the W-3 pattern).
+33. Switching language changes no computed value, no exclusion set and no
+    routine identity.
+
+**I — Privacy**
+
+34. **Rendered copy** contains no raw token, no count, no evaluation date and no
+    medical vocabulary — a copy-safety spec like W-3’s.
+35. **Logs, analytics and Sentry** contain none of the above either — logger and
+    reporter spies assert it for the load, save, invalid and conflict paths.
+    Validated tokens inside `Recommendation.inputs` and analyzer return values
+    are **explicitly permitted** (§Decision 10) and are asserted to stay there.
+36. **No new persisted or synchronized artifact.** Over a full
+    load → compute → render → routine cycle, W-4 issues **no** write and **no**
+    enqueue: the database and sync-queue modules are spied and asserted
+    untouched, so the only wellness rows and payloads in existence remain W-1's
+    own profile row and W-2’s own operations (§Decision 10). The C-B union and
+    the reason codes exist only in memory.
+37. The audit path is untouched: no wellness value reaches an audit entry.
+
+**J — Regression**
+
+38. **Absent profile.** For a user with no profile and no relevant PENDING
+    conflict, every field of the assessment equals the `8cb9271` baseline
+    **except** `ruleVersion` (and the per-recommendation `ruleVersion`), which
+    carry the new value by design. Asserted field-by-field, never as byte
+    equality of the whole object.
+39. Medical dormancy holds: no medical import, no medical handler registration,
+    `BODY_AREA_EXCLUSIONS` unchanged and still unreachable in public v1.
+40. Nutrition targets and meal-plan selection are unchanged for a declaring
+    user (§Decision 13).
+41. With V-2, `PROGRESS_SNAPSHOT_RULE_VERSION` keeps weekly snapshots on
+    `'icoach-rules@1.1.0'`, so no new `progress_snapshots` row appears for an
+    unchanged week.
+
+#### 13. Physical limitations never touch nutrition
+
+`planNutrition` takes no restriction input and W-4 does not add one. Meal-plan
+exclusions keep coming only from `dietary_preferences`: **allergy and food
+preference handling stays exactly where ADR-P014 put it**, and a declared
+movement or area must not add, remove or reorder a food, change a target, or
+alter the plan key. Tests 31 and 9 pin this in both directions.
+
+#### 14. Explicitly out of scope for W-4
+
+**W-5 supplements** (needs its own accepted ADR and legal review), payment /
+Azul, any medical advice, diagnosis or clearance semantics, **conflict
+resolution** (ADR-P030 C-2 … C-7 stay unauthorized), reactivating the medical
+domain, external configuration, and any schema, migration, dependency or API
+change. W-4 is a mobile-domain change: it adds no table, no column, no endpoint
+and no dependency.
+
+#### 15. When exclusions leave a required slot empty, report it — never re-include
+
+Exclusions come only from what the user explicitly declared (§Decisions 3 and
+4), and a wide enough declaration can still empty one of the five mandatory
+slots — `deep_squat`, `lunge` and `jumping` together, for example, leave the
+`squat` slot with no eligible exercise.
+
+W-4 must **not** silently drop an exclusion to make a plan buildable: that
+would hand the user a routine containing exactly what they asked to avoid,
+which `.ai/07_ICOACH.md` §Safety Layer forbids ("Never recommend … exercises
+conflicting with injuries"). **Coverage is never a reason to weaken a
+declaration** — the same principle that retracted the area mapping
+(§Decision 4).
+
+The generator already throws `INSUFFICIENT_CATALOG_COVERAGE` and
+`selectWorkoutRoutine` already returns `{ status: 'error', code,
+missingPatterns }`. **That is an operation failure, so it takes the canonical
+`Error` treatment** — `error` tone, no fabricated content, per
+`.ai/08_UI_UX.md` §Canonical State Patterns. The first draft called it an
+"explicit, localized, non-error state", which is wrong twice: it is a failed
+operation, and naming it a distinct state would invent a **ninth** canonical
+name where ADR-P022 Decision 15 fixes **eight** (Loading, Empty, Data-gap,
+Error, Offline, Pending sync, Conflict, Web unavailable).
+
+Its localized copy (W-4D) must:
+
+- stay **calm and non-blaming** — this is a catalogue limitation, not a user
+  mistake, and it must not read as a crash;
+- state that **every declared exclusion is being kept**;
+- offer **reviewing the declarations** as an available action, without
+  implying that removing a limitation is required, expected or "the fix";
+- name **no** raw token and no `missingPatterns` value (§Decision 10);
+- avoid any suggestion that training anyway is safe, or that a professional has
+  approved anything (ADR-P017 Decision 1).
+
+The plan surface already owns the other two arms — `gap` when the assessment is
+missing, and `blocked` — so W-4D adds copy to an existing selection shape
+rather than a new state machine.
+
+### Options Considered
+
+**Architecture.**
+
+1. **Engine-integrated (chosen).** The analyzer lives in the iCoach domain,
+   `EngineInput` gains an optional `wellness` field, and
+   `TrainingPlan.excludedMovements` carries the result to every consumer,
+   including the shipped `toTrainingGuidance` projection.
+2. **Adapter-side only (rejected).** Compute exclusions outside the engine and
+   pass them straight into `selectWorkoutRoutine.preferences.excludedMovements`
+   — the seam already exists and `ENGINE_RULE_VERSION` would not need to bump.
+   Rejected because `.ai/07_ICOACH.md` §Rule Priority ranks "user-declared
+   physical limitations" **first among the engine's own rules**, and
+   `TrainingPlan.excludedMovements` is the engine's declared output for this
+   concept; keeping limitations outside the engine would leave the assessment
+   claiming an empty exclusion list while the routine excluded movements — two
+   contradicting sources of truth, and no explainability in the assessment.
+3. **Extend `restrictions.ts` (rejected).** Cheapest to write, and wrong: it
+   would put wellness declarations through a medical type carrying severity,
+   clearance and blood pressure, and would resurrect `behind_neck_press`.
+
+**Affected-area handling.**
+
+4. **No automatic mapping — areas are inert context (chosen)** — §Decision 4.
+   The movement list is authoritative and can express every token, so nothing
+   a user needs is unreachable.
+5. **Curated per-region mapping (retracted; it was the first draft).** An
+   18-row area → movement table. Retracted because it is not
+   repository-provable and because three rows (`knee` without `lunge`,
+   `shoulder` and `elbow` without `heavy_pressing`) were narrowed **to keep the
+   generator able to build a plan** — the coverage trade §Decision 15 forbids.
+   Reviving it needs a separately accepted ADR revision plus qualified
+   exercise-domain review.
+6. **Derive from the catalogue’s `bodyAreas` field (rejected).** It covers 8 of
+   18 areas, mixes in `back`/`core`/`full_body`, and inverting it empties
+   mandatory slots (§Context). It is an authoring aid, not a biomechanical
+   model.
+**Conflict** — §Decision 9 (C-A / C-B / C-C).
+**Versioning** — §Decision 11 (V-1 / V-2).
+
+### Rationale
+
+The safety asymmetry decides most of this ADR: **failing to exclude a movement
+the user asked to avoid is worse than excluding one more than strictly
+necessary**, while *inventing* clinical meaning is worse than both. That
+ordering produces an exclusion engine driven only by what the user actually
+declared (§3), a refusal to derive anything from an area (§4), a refusal to
+infer severity or workload (§5), fail-closed handling of undecodable data (§8),
+a union-based conflict projection (§9), and an honest Error state instead of a
+quietly relaxed plan (§15).
+
+The 2026-09-10 revision applies that same ordering to the ADR itself: the
+retracted mapping had been narrowed for generator coverage, the one trade this
+document says must never be made. Removing it costs the product nothing a user
+cannot express directly, and removes an unattributed claim about the user's
+body from a wellness app.
+
+Everything else follows the repository’s own precedents: a dedicated wellness
+type rather than the medical one (W-1’s reasoning, extended), stable reason
+codes with localized presentation (`.ai/07_ICOACH.md` §Explainability, W-3’s
+copy discipline), and rule versions that are bumped rather than overwritten.
+
+### Consequences
+
+**Positive**
+
+- The user’s **explicit** declarations become effective, deterministically and
+  identically in both languages, through a seam that already exists and is
+  already documented for wellness use.
+- No area is reinterpreted, so the app makes no claim about the user’s body
+  that a qualified professional has not made.
+- No schema, migration, endpoint or dependency change; medical dormancy holds.
+- The retained parity tests keep both vocabularies honest: areas stay valid
+  inert inputs, movements stay exact authoritative exclusions.
+
+**Negative**
+
+- **A declared area does nothing to the plan.** That is the honest V1
+  behaviour, but it is a real product gap: a user who declares `knee` and
+  expects fewer squats gets none of that until they also declare `deep_squat`.
+  W-4C copy must state it plainly, and the future-mapping ADR revision is where
+  it gets closed.
+- A wide **movement** declaration can still leave no buildable routine (§15),
+  which needs its own localized Error copy.
+- `ENGINE_RULE_VERSION` churn on `progress_snapshots` unless V-2 is chosen.
+- C-B adds a second reader of conflict payloads before ADR-P030’s resolution
+  flow exists.
+- The catalogue is small (33 exercises); wide declarations thin it quickly. A
+  larger catalogue is the real fix and is out of scope here.
+### Implementation slices for W-4B onward
+
+Each needs its own authorization, branch, validation and review.
+
+**The mandatory invariant.** *No merged commit may make wellness consumption
+user-reachable unless the assessment and routine generation both honour the
+same exclusions, with complete EN/ES copy, Error handling and privacy
+guards.* An earlier partition activated the engine in one slice while routine
+selection still passed the hardcoded `[]`, which would have shipped exactly
+the contradiction this ADR rejects: an assessment reporting exclusions above a
+routine that ignores them. The partition below makes that state unreachable by
+construction.
+
+| # | Slice | Contents | User-reachable? | Depends on |
+|---|---|---|---|---|
+| **W-4B** | **Dormant analyzer, types and engine seam** | `WellnessSafetyInput`, `wellness-safety.ts`, `decodeConflictSnapshot`, the **optional** `EngineInput.wellness` field, `TrainingPlan.excludedMovements` wiring, `ENGINE_RULE_VERSION` → `@1.2.0`, the §11 version separation (V-2 constant). The adapter still supplies **no** wellness input. Tests **A1–A8, B9–B11, J38–J41** | **No** — nothing calls the seam; the only observable difference is the version string | This ADR **Accepted** |
+| **W-4C** | **Prepared but unreachable read path, copy and states** | The owner-scoped read of the W-2 boundary, the three outcomes of §8, the C-B conflict projection (§9), the EN/ES copy, and the privacy/Error components — all **wired to nothing**: no adapter activation, no route change, no surface renders them. Tests **C12–C13, D14–D15, E16–E17, F18–F27** at the module boundary | **No** | W-4B |
+| **W-4D** | **One atomic activation slice** | Simultaneously: pass `wellness` into the engine; pass `TrainingPlan.excludedMovements` into routine selection **instead of `[]`**; bump `WORKOUT_ROUTINE_RULE_VERSION` → `@1.1.0`; enable the localized explanations; handle `unavailable` **and** `INSUFFICIENT_CATALOG_COVERAGE` as canonical **Error** treatments. Tests **G28–G31, H32–H33, I34–I37** plus the adapter and regression cases re-run end to end | **Yes — and only here** | W-4C |
+| **W-4E** | **Documentation and conformance closure only** | Reconciling `.ai/17_PRODUCT_FLOWS.md`, `.ai/18_SCREEN_STATE_MATRICES.md` and `.ai/19_COPY_DECKS.md` for what shipped, and closing this ADR | No | W-4D |
+
+**W-4C and W-4D are delivered as one implementation PR** — the owner selected
+that shape on 2026-09-10, and it is the safer of the two. The invariant is
+about what a *merged commit* exposes,
+not about the number of slices. Splitting them is allowed **only** because
+W-4C is unreachable; merging them is allowed because the result activates
+everything at once. What is **not** allowed is any ordering in which the engine
+honours a declaration that the routine generator does not, or in which a
+reachable state lacks its EN/ES copy, its Error treatment or its privacy
+guard.
+
+**Why W-4B carries no copy.** It renders nothing — there is no surface in that
+slice, so it cannot "render the localized safe copy" as the first draft said.
+Its tests are pure unit tests.
+
+### Owner decisions — settled 2026-09-10
+
+All four are decided; none remains open. See §Owner acceptance for the table.
+
+1. **Accept this ADR** — **done** (Accepted 2026-09-10).
+2. **§Decision 9 — conflict policy** — **C-B, exactly as specified.**
+3. **§Decision 11 — version handling** — **V-2**, with
+   `PROGRESS_SNAPSHOT_RULE_VERSION` frozen at `icoach-rules@1.1.0`.
+4. **§Decision 5 — scope** — **declared movements only**; workload reduction
+   deferred to a future ADR revision and a real deterministic signal.
+
+**Delivery shape, also settled:** W-4B ships on its own; **W-4C and W-4D ship
+together as one atomic activation PR**; W-4E is documentation closure. The
+mandatory invariant in §Implementation slices governs any resequencing.
+
+**Still not an owner decision in this ADR:** the affected-area mapping. It is
+retracted (§Decision 4), and reviving it is a **separate ADR revision** with
+qualified exercise-domain review — not a choice to be made inside a W-4
+implementation slice.
+### Related Documents
+
+- `.ai/07_ICOACH.md` — rule priority, explainability, rule versioning, safety layer
+- `.ai/09_TESTING.md` — iCoach deterministic testing requirements
+- `.ai/11_BACKLOG.md` — ADR-P017 acceptance criteria; BUG-012; BUG-014 (Done)
+- `.ai/12_DECISIONS.md` — ADR-P014 (dietary preferences), ADR-P015 (workout),
+  ADR-P016 (progress snapshots), **ADR-P017** (W-0 … W-5), ADR-P019 (Web),
+  ADR-P022 (state model), ADR-P027 (onboarding/navigation), **ADR-P030**
+  (conflict review and resolution)
+- `.ai/13_MIGRATION_ROADMAP.md` — wellness slice sequencing
+- `.ai/17_PRODUCT_FLOWS.md`, `.ai/18_SCREEN_STATE_MATRICES.md`,
+  `.ai/19_COPY_DECKS.md` — the surfaces W-4D/W-4E must reconcile
+
+**Repository evidence read at `8cb9271`:**
+`mobile/src/features/icoach/domain/{engine,restrictions,training,types,rule-versions,progress-analysis,workout-routine,workout-routine-generator}.ts`,
+`mobile/src/features/dashboard/application/{icoach-adapter,dashboard.service}.ts`,
+`mobile/src/features/workout/application/workout-routine.service.ts`,
+`mobile/src/features/workout/domain/{exercise-catalog,exercise-exclusion,training-guidance}.ts`,
+`mobile/src/features/workout/infrastructure/exercise-catalog.data.ts`,
+`mobile/src/features/workout/presentation/GeneratedWorkoutPlan.tsx`,
+`mobile/src/features/wellness/**`,
+`mobile/src/features/nutrition/{domain/meal-plan.ts,application/meal-plan.service.ts}`,
+`mobile/src/shared/infrastructure/sync/{sync-queue,sync-worker,sync-conflicts}.ts`,
+`mobile/src/shared/infrastructure/database/migrations/{001-initial,004-progress-schema-activation}.ts`.
 
 ---
 

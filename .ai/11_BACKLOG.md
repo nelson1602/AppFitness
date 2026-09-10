@@ -1029,12 +1029,19 @@ that build would contradict the owner's clarified product intent.
    Wellness Safety Profile slice plan are recorded in ADR-P017. **W-1 and W-2
    are shipped** — the contract, its PostgreSQL/SQLite storage and the
    offline-first read/write plus two-way synchronization are on `main` — and
-   **W-3 (onboarding recommendation and capture UI) is the current TARGET
-   candidate**: implemented and validated, not merged, so no user can reach it
-   until it lands. **W-4 (deterministic iCoach consumption) is unimplemented**,
-   so nothing reads the profile yet. This item previously read "The Wellness
-   Safety Profile itself is **not** implemented", which stopped being true at
-   W-1. **W-5 (supplements) stays optional**, pending its own ADR and legal
+   **W-3 (onboarding recommendation and capture UI) shipped** in PR #143,
+   merged as `8cb9271d5b685e8835a84eca2d9cf0552855f8fc`, so a user can now
+   record limitations. **W-4 (deterministic iCoach consumption) is still
+   unimplemented**, so nothing reads the profile yet; its contract is frozen as
+   **ADR-P031**, authored by slice **W-4A** and **Accepted 2026-09-10** with all
+   four owner decisions settled: conflict policy **C-B**, version policy **V-2**
+   (`PROGRESS_SNAPSHOT_RULE_VERSION` frozen at `icoach-rules@1.1.0`), consumption
+   limited to **explicitly declared movements**, and W-4C + W-4D delivered as one
+   atomic activation PR. Acceptance authorizes the contract and the sequencing
+   only — **W-4B … W-4E remain unimplemented**, each needing its own
+   implementation authorization. This item previously read "The
+   Wellness Safety Profile itself is **not** implemented", which stopped being
+   true at W-1. **W-5 (supplements) stays optional**, pending its own ADR and legal
    review: educational and food-first
    only, with **no dosage of any kind**, no product or brand recommendation, and
    a mandatory deferral to a qualified professional on any uncertainty,
@@ -1115,10 +1122,26 @@ that build would contradict the owner's clarified product intent.
       whole-account erasure path (ADR-P011). Copy
       never describes the user as safe, cleared, approved or medically fit,
       and an empty selection is stated to be a declaration of no limitations
-      rather than a clearance. The criterion **stays open** because **W-4
-      (deterministic iCoach consumption) is unimplemented and unauthorized**:
-      a user can now record a limitation, but nothing reads it, so no meal
-      plan, routine or calculation changes yet.
+      rather than a clearance. W-3 merged as `8cb9271`. The criterion **stays
+      open** because **W-4 (deterministic iCoach consumption) is unimplemented
+      and unauthorized**: a user can now record a limitation, but nothing reads
+      it, so no meal plan, routine or calculation changes yet. **W-4A froze the
+      consumption contract as ADR-P031 (Accepted 2026-09-10)** — a dedicated
+      wellness input
+      type; `movementsToAvoid` as the **only** computation-authoritative field,
+      with `affectedAreas` stored and displayed but producing **zero** automatic
+      exclusions; no severity or workload inference; fail-closed handling of
+      undecodable data as the canonical Error state; the pending-edit rule; the
+      selected **C-B** unsettled-conflict projection; and the **V-2**
+      rule-version bumps. An
+      automatic area → movement mapping was drafted and **retracted**: it is not
+      repository-provable and had been narrowed to preserve routine coverage, so
+      it now needs a separate ADR revision plus qualified exercise-domain review.
+      ADR-P031 also fixes the delivery sequence: **no merged commit may make
+      wellness consumption user-reachable unless the assessment and routine
+      generation both honour the same exclusions, with complete EN/ES copy,
+      Error handling and privacy guards** — so activation is one atomic slice.
+      Acceptance authorizes the contract and the sequencing, not runtime code.
 - [x] Public-v1 iCoach does not read the dormant medical domain.
 - [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.
