@@ -2154,10 +2154,10 @@ existing /sync endpoints (no new route). **W-3 is implemented too**: one
 session-guarded route, a dashboard recommendation that never requires an
 evaluation, a persistent dashboard entry and 109 EN/ES keys — no schema,
 migration, API or dependency change; it merged as
-`8cb9271d5b685e8835a84eca2d9cf0552855f8fc`. W-4 (deterministic iCoach
-consumption) and W-5 (optional supplement education) remain unimplemented and
-unauthorized, so public v1 can now receive a limitation input but nothing
-yet reads the profile. **W-4A** froze W-4's consumption contract as
+`8cb9271d5b685e8835a84eca2d9cf0552855f8fc`. **W-4 (deterministic iCoach
+consumption) is implemented and merged**; **W-5 (optional supplement
+education) remains unimplemented and unauthorized**, pending its own ADR and
+legal review. **W-4A** froze W-4's consumption contract as
 **ADR-P031 (Accepted 2026-09-10)**: a dedicated wellness input type; the declared
 `movementsToAvoid` tokens as the only computation-authoritative signal, with
 `affectedAreas` kept as stored, displayed context that produces no automatic
@@ -2165,11 +2165,27 @@ exclusions; no severity or workload inference; fail-closed handling of
 undecodable data; an explicit unsettled-conflict projection; and the
 `ENGINE_RULE_VERSION` / `WORKOUT_ROUTINE_RULE_VERSION` bumps. A drafted
 area → movement mapping was retracted and deferred to a separate ADR revision
-with qualified exercise-domain review. Activation is sequenced as one atomic
+with qualified exercise-domain review. Activation was sequenced as one atomic
 slice: no merged commit may make wellness consumption user-reachable unless the
 assessment and routine generation honour the same exclusions with complete
-EN/ES copy, Error handling and privacy guards. It changes no runtime code and
-authorizes none.
+EN/ES copy, Error handling and privacy guards.
+
+**W-4B** shipped the analyzer, the optional engine seam, the
+`decodeConflictSnapshot` projection and the V-2 version split **dormant** —
+PR **#145**, `b0d8dd9`, merged **`201b824`**. **W-4C + W-4D** then activated
+consumption in one commit — PR **#146**, `89b7db0`, merged **`bd71092`**: an
+owner-scoped read with the three outcomes, the C-B union of active movement
+declarations from relevant `PENDING` conflicts, `wellness` supplied to the
+engine only from an `available` read, the assessment's own
+`TrainingPlan.excludedMovements` passed into routine selection instead of
+`[]`, `WORKOUT_ROUTINE_RULE_VERSION` → `icoach-workout-rules@1.1.0`, and
+canonical **Error** treatments for unreadable data and insufficient catalogue
+coverage, with **7** new EN/ES keys (**904** each, full parity). No schema,
+migration, API, dependency or external-configuration change was involved in
+either slice. **W-4E** is the documentation closure. BUG-012 conflict
+**resolution**, the manual accessibility pass, the wellness-domain coverage
+decision, W-5, Azul/payment work and the comprehensive security/release audit
+all stay open and separately gated.
 Slice 4A localizes the existing deterministic 15-day meal-plan presentation in
 English and Spanish (including portions, macro summaries, preference
 exclusions, baseline gaps, errors, disclaimer, and accessibility) while keeping

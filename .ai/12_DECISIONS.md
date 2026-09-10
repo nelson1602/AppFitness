@@ -11903,7 +11903,52 @@ approval before implementation begins.
 Status: Accepted
 Date: 2026-09-09
 Accepted: 2026-09-10
+Implemented: 2026-09-10 (W-4B … W-4D merged; W-4E is this closure)
 Owner: Product / iCoach Architecture
+
+### Implementation record (2026-09-10) — W-4E closure
+
+**This contract is implemented and merged.** Every slice it gates has landed
+on `main`, and the evidence below is the merge itself, not a plan:
+
+| Slice | PR | Commit | Merge | Scope |
+|---|---|---|---|---|
+| **W-4B** — analyzer, types, engine seam, V-2 versions, `decodeConflictSnapshot` | **#145** | `b0d8dd9` | `201b824` | 17 files, +1798/−28 |
+| **W-4C + W-4D** — read path, C-B projection, atomic activation, copy, Error states | **#146** | `89b7db0` | `bd71092` | 31 files, +2459/−205 |
+| **W-4E** — documentation and conformance closure | *this change* | — | — | `.ai/` only |
+
+**What is live at `bd71092`.** Declared movements deterministically filter
+the assessment **and** the generated routine from the same sorted,
+de-duplicated list; declared areas and both evaluation fields remain
+computationally inert; an absent declaration produces the ordinary
+unrestricted plan; a pending local edit applies immediately offline;
+relevant `PENDING` conflicts contribute a conservative union of **active**
+movement declarations only; and unreadable wellness data, a refused
+declaration and `INSUFFICIENT_CATALOG_COVERAGE` each render the canonical
+**Error** treatment. No exclusion is ever silently reintroduced.
+
+**Version families at `bd71092`** —
+`ENGINE_RULE_VERSION = icoach-rules@1.2.0` (W-4B),
+`WORKOUT_ROUTINE_RULE_VERSION = icoach-workout-rules@1.1.0` (W-4D),
+`PROGRESS_SNAPSHOT_RULE_VERSION = icoach-rules@1.1.0` (frozen, V-2), and
+`EXERCISE_CATALOG_VERSION` unmoved. Three independent families.
+
+**Deployment.** The **Production** environment received a terminal
+`success` deployment status for `bd71092` at 2026-09-10T20:41:12Z. The
+**Development** environment’s new container for `bd71092` started at
+2026-09-10T20:41:13Z, served `GET /health` **200**, and replaced the prior
+deployment — which GitHub marked `inactive` at 20:41:22Z — but its own
+GitHub deployment status still read `in_progress` when last checked. That is
+an **observability / webhook caveat**, not a failed deployment and **not**
+terminal success. Only `/health` was requested; no auth or feature traffic
+was sent.
+
+**What this closure does not claim.** No manual screen-reader, keyboard or
+large-text verification was performed (UX-4C still owns it); BUG-012
+conflict **resolution** does not exist and ADR-P030 C-2 … C-7 stay
+unauthorized; the `features/wellness/domain` `collectCoverageFrom` decision
+is still open; W-5 supplements, Azul/payment work and the comprehensive
+security/release audit are all untouched and separately gated.
 
 ### Revision note (2026-09-10, then accepted the same day)
 
@@ -11934,7 +11979,20 @@ and safety semantics under implementation pressure.
 **Evidence baseline: `origin/main` `8cb9271d5b685e8835a84eca2d9cf0552855f8fc`.**
 Every file, line, constant and count below was read at that commit.
 
-**Nothing consumes the profile today, and the two seams are explicit about it.**
+> **Superseded as of `bd71092` (2026-09-10, W-4E).** This §Context and the
+> seam table below describe the repository **as it was at `8cb9271`**, which
+> is why they are left intact: they are the dated record the decisions were
+> made against. They are no longer a description of `main`. Consumption is
+> **live** — see §Implementation record. The two seams in the table have both
+> been activated: the adapter now supplies `wellness` from an `available`
+> read, routine selection now receives the assessment’s own
+> `TrainingPlan.excludedMovements` instead of `[]`, and the boundary proof
+> spec was extended to permit exactly one iCoach file to name the shipped
+> token vocabulary while still forbidding nutrition and workout from doing
+> so.
+
+**Nothing consumed the profile at `8cb9271`, and the two seams were explicit
+about it.**
 
 | Seam | Evidence at `8cb9271` |
 |---|---|
@@ -11990,8 +12048,10 @@ trade §Decision 15 forbids.
 'icoach-rules@1.1.0'` (`rule-versions.ts:7`) is stamped on
 `CoachAssessment.ruleVersion`, on every `Recommendation.ruleVersion`
 (`engine.ts:70`, `:197`) **and** on each weekly progress snapshot
-(`progress-analysis.ts:157`). `WORKOUT_ROUTINE_RULE_VERSION =
-'icoach-workout-rules@1.0.0'` (`workout-routine-generator.ts:26`) is stamped on
+(`progress-analysis.ts:157`). `WORKOUT_ROUTINE_RULE_VERSION` — read as
+`'icoach-workout-rules@1.0.0'` at the `8cb9271` baseline and **bumped to
+`'icoach-workout-rules@1.1.0'` by W-4D** (`workout-routine-generator.ts`) —
+is stamped on
 the generated routine, which is **not persisted**
 (`GeneratedWorkoutPlan.tsx` — "never persists the generated routine"). The
 `recommendations` and `coach_insights` tables exist from migration 001 but
@@ -12030,11 +12090,18 @@ remain unauthorized**.
 | 3 | §Decisions 3–5 — scope of consumption | **Explicitly declared movements only.** `affectedAreas` stays computationally inert (§Decision 4) and workload reduction is **deferred** to a future ADR revision with a real deterministic signal |
 | 4 | §Implementation slices — delivery shape | **W-4B stays separate**; **W-4C and W-4D are delivered together as one atomic activation PR**, later. W-4E remains documentation closure |
 
-**What acceptance authorizes: the contract and the sequencing — not code.**
-W-4B … W-4E are **unimplemented**, and each still needs its own
-implementation authorization, branch, validation and review. No runtime file,
-schema, migration, dependency, localization catalogue or test changes with
-this acceptance.
+**What acceptance authorized, on 2026-09-10: the contract and the sequencing —
+not code.** At the moment of acceptance W-4B … W-4E were **unimplemented**,
+and each still needed its own implementation authorization, branch,
+validation and review. No runtime file, schema, migration, dependency,
+localization catalogue or test changed with the acceptance itself.
+
+> **Superseded later the same day (W-4E).** Those authorizations were given
+> and used: W-4B merged as `201b824` (PR #145) and W-4C + W-4D merged as
+> `bd71092` (PR #146), each with its own branch, validation and review.
+> **No slice of this ADR remains unimplemented or unauthorized.** The
+> sentence above is kept because it states what *acceptance* authorized,
+> which is still true of acceptance.
 
 **The retracted affected-area mapping stays retracted** (§Decision 4).
 Acceptance does not revive it; that remains a separate ADR revision requiring
@@ -12042,9 +12109,11 @@ qualified exercise-domain review.
 
 ### Decision
 
-**Fifteen decisions, all accepted on 2026-09-10.** They authorize the contract
-and the delivery sequencing; the implementation slices remain separately
-gated.
+**Fifteen decisions, all accepted on 2026-09-10 and all implemented at
+`bd71092`.** They authorized the contract and the delivery sequencing; every
+slice they gated has since been delivered (§Implementation record), so the
+decisions below now describe **shipped behaviour** rather than a plan. Each
+is asserted by tests on `main`.
 
 #### 1. A dedicated wellness input type, structurally separate from the medical one
 
@@ -12375,9 +12444,15 @@ translates them. Frozen shapes:
   exclusion (§Decisions 3 and 4). It carries the structured input it came from,
   `{ movement: <token> }`.
 - **Rule identifiers**: `WELLNESS:movement_exclusions` for the assessment
-  recommendation; `wellness.plan.limitations_applied` for the routine
-  explanation key — the `explanationKeys` convention the generator already
-  uses.
+  recommendation. **As shipped at `bd71092`**, the explanation strings are the
+  camelCase family every other catalogue key uses —
+  `wellness.plan.limitationsAppliedTitle`, `…Body` and `…Basis`, exported as
+  `WELLNESS_PLAN_EXPLANATION_KEYS` and resolved by
+  `dashboard/presentation/recommendation-copy.ts`. This bullet originally
+  froze a single snake_case `wellness.plan.limitations_applied`; that spelling
+  was **retired before merge** because two spellings of one idea is how a
+  surface ends up printing a raw key, and a repository-wide scan asserts it
+  appears in no production file.
 - **Rule version**: every emitted reason carries `ENGINE_RULE_VERSION`
   (§Decision 11), as `engine.ts` already does for all recommendations.
 
@@ -12439,14 +12514,17 @@ for a declaring user) and routine content (exercise selection changes). The
 (§Implementation slices), so `ENGINE_RULE_VERSION` bumps with the former and
 `WORKOUT_ROUTINE_RULE_VERSION` with the latter. Therefore:
 
-| Constant | Decision | Why |
-|---|---|---|
-| `ENGINE_RULE_VERSION` | **MUST bump** `icoach-rules@1.1.0` → **`@1.2.0`** | A behavioural change to a rule that stamps `CoachAssessment` and every `Recommendation`; `.ai/07_ICOACH.md` §Rule Versioning forbids overwriting a rule in place. Minor, not major: inputs and output shape are additive |
-| `WORKOUT_ROUTINE_RULE_VERSION` | **MUST bump** `icoach-workout-rules@1.0.0` → **`@1.1.0`** | Generated routines change for a declaring user (`workout-routine-generator.ts:143-148` now receives non-empty exclusions) |
-| `WORKOUT_ROUTINE_CONTRACT_VERSION` | **No bump** | The request/response shape does not change — `WorkoutRoutineRequest.excludedMovements` already exists |
-| `EXERCISE_CATALOG_VERSION` | **No bump** | No catalogue data changes. W-4 only reads it |
-| `MEAL_RULE_VERSION`, `CATALOG_VERSION` | **No bump** | Nutrition is untouched (§Decision 13) |
-| `WELLNESS_SAFETY_PROFILE_CONTRACT_VERSION` | **No bump** | No contract, schema or vocabulary change |
+**Both bumps are done at `bd71092`** — the "Decision" column records what was
+required and the "Delivered" column what shipped.
+
+| Constant | Decision | Why | Delivered |
+|---|---|---|---|
+| `ENGINE_RULE_VERSION` | **MUST bump** `icoach-rules@1.1.0` → **`@1.2.0`** | A behavioural change to a rule that stamps `CoachAssessment` and every `Recommendation`; `.ai/07_ICOACH.md` §Rule Versioning forbids overwriting a rule in place. Minor, not major: inputs and output shape are additive | **Done** in W-4B (`201b824`) |
+| `WORKOUT_ROUTINE_RULE_VERSION` | **MUST bump** `icoach-workout-rules@1.0.0` → **`@1.1.0`** | Generated routines change for a declaring user (`workout-routine-generator.ts` now receives non-empty exclusions) | **Done** in W-4D (`bd71092`) |
+| `WORKOUT_ROUTINE_CONTRACT_VERSION` | **No bump** | The request/response shape does not change — `WorkoutRoutineRequest.excludedMovements` already exists | **Confirmed unmoved** at `bd71092` |
+| `EXERCISE_CATALOG_VERSION` | **No bump** | No catalogue data changes. W-4 only reads it | **Confirmed unmoved** at `bd71092` |
+| `MEAL_RULE_VERSION`, `CATALOG_VERSION` | **No bump** | Nutrition is untouched (§Decision 13) | **Confirmed unmoved** at `bd71092` |
+| `WELLNESS_SAFETY_PROFILE_CONTRACT_VERSION` | **No bump** | No contract, schema or vocabulary change | **Confirmed unmoved** at `bd71092` |
 
 **Recomputation and backward compatibility.** Assessments and routines are
 computed on demand and never persisted, so no stored assessment changes
@@ -12792,12 +12870,16 @@ the contradiction this ADR rejects: an assessment reporting exclusions above a
 routine that ignores them. The partition below makes that state unreachable by
 construction.
 
-| # | Slice | Contents | User-reachable? | Depends on |
+**All four slices are delivered.** The table is kept as the frozen partition
+the delivery was held to; the **Delivered** column records what actually
+landed.
+
+| # | Slice | Contents | User-reachable? | Delivered |
 |---|---|---|---|---|
-| **W-4B** | **Dormant analyzer, types and engine seam** | `WellnessSafetyInput`, `wellness-safety.ts`, `decodeConflictSnapshot`, the **optional** `EngineInput.wellness` field, `TrainingPlan.excludedMovements` wiring, `ENGINE_RULE_VERSION` → `@1.2.0`, the §11 version separation (V-2 constant). The adapter still supplies **no** wellness input. Tests **A1–A8, B9–B11, J38–J41** | **No** — nothing calls the seam; the only observable difference is the version string | This ADR **Accepted** |
-| **W-4C** | **Prepared but unreachable read path, copy and states** | The owner-scoped read of the W-2 boundary, the three outcomes of §8, the C-B conflict projection (§9), the EN/ES copy, and the privacy/Error components — all **wired to nothing**: no adapter activation, no route change, no surface renders them. Tests **C12–C13, D14–D15, E16–E17, F18–F27** at the module boundary | **No** | W-4B |
-| **W-4D** | **One atomic activation slice** | Simultaneously: pass `wellness` into the engine; pass `TrainingPlan.excludedMovements` into routine selection **instead of `[]`**; bump `WORKOUT_ROUTINE_RULE_VERSION` → `@1.1.0`; enable the localized explanations; handle `unavailable` **and** `INSUFFICIENT_CATALOG_COVERAGE` as canonical **Error** treatments. Tests **G28–G31, H32–H33, I34–I37** plus the adapter and regression cases re-run end to end | **Yes — and only here** | W-4C |
-| **W-4E** | **Documentation and conformance closure only** | Reconciling `.ai/17_PRODUCT_FLOWS.md`, `.ai/18_SCREEN_STATE_MATRICES.md` and `.ai/19_COPY_DECKS.md` for what shipped, and closing this ADR | No | W-4D |
+| **W-4B** | **Analyzer, types and engine seam — shipped dormant** | `WellnessSafetyInput`, `wellness-safety.ts`, `decodeConflictSnapshot`, the **optional** `EngineInput.wellness` field, `TrainingPlan.excludedMovements` wiring, `ENGINE_RULE_VERSION` → `@1.2.0`, the §11 version separation (V-2 constant). The adapter still supplies **no** wellness input. Tests **A1–A8, B9–B11, J38–J41** | **No** — nothing called the seam; the only observable difference was the version string | **Yes** — PR #145, `b0d8dd9`, merged `201b824` |
+| **W-4C** | **Prepared but unreachable read path, copy and states** | The owner-scoped read of the W-2 boundary, the three outcomes of §8, the C-B conflict projection (§9), the EN/ES copy, and the privacy/Error components — all **wired to nothing**: no adapter activation, no route change, no surface renders them. Tests **C12–C13, D14–D15, E16–E17, F18–F27** at the module boundary | **No** | **Yes** — with W-4D, PR #146, `89b7db0`, merged `bd71092` |
+| **W-4D** | **One atomic activation slice** | Simultaneously: pass `wellness` into the engine; pass `TrainingPlan.excludedMovements` into routine selection **instead of `[]`**; bump `WORKOUT_ROUTINE_RULE_VERSION` → `@1.1.0`; enable the localized explanations; handle `unavailable` **and** `INSUFFICIENT_CATALOG_COVERAGE` as canonical **Error** treatments. Tests **G28–G31, H32–H33, I34–I37** plus the adapter and regression cases re-run end to end | **Yes — and only here** | **Yes** — with W-4C, PR #146, `89b7db0`, merged `bd71092` |
+| **W-4E** | **Documentation and conformance closure only** | Reconciling `.ai/11_BACKLOG.md`, this ADR, `.ai/13_MIGRATION_ROADMAP.md`, `.ai/16_SQLITE_SCHEMA_DESIGN.md`, `.ai/17_PRODUCT_FLOWS.md`, `.ai/18_SCREEN_STATE_MATRICES.md` and `.ai/19_COPY_DECKS.md` against `bd71092`, and closing this ADR | No | **This change** |
 
 **W-4C and W-4D are delivered as one implementation PR** — the owner selected
 that shape on 2026-09-10, and it is the safer of the two. The invariant is

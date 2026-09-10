@@ -1031,17 +1031,21 @@ that build would contradict the owner's clarified product intent.
    offline-first read/write plus two-way synchronization are on `main` — and
    **W-3 (onboarding recommendation and capture UI) shipped** in PR #143,
    merged as `8cb9271d5b685e8835a84eca2d9cf0552855f8fc`, so a user can now
-   record limitations. **W-4 (deterministic iCoach consumption) is still
-   unimplemented**, so nothing reads the profile yet; its contract is frozen as
-   **ADR-P031**, authored by slice **W-4A** and **Accepted 2026-09-10** with all
-   four owner decisions settled: conflict policy **C-B**, version policy **V-2**
+   record limitations. **W-4 (deterministic iCoach consumption) is implemented
+   and merged**: its contract is **ADR-P031**, authored by **W-4A** and
+   **Accepted 2026-09-10** with all four owner decisions settled — conflict
+   policy **C-B**, version policy **V-2**
    (`PROGRESS_SNAPSHOT_RULE_VERSION` frozen at `icoach-rules@1.1.0`), consumption
    limited to **explicitly declared movements**, and W-4C + W-4D delivered as one
-   atomic activation PR. Acceptance authorizes the contract and the sequencing
-   only — **W-4B … W-4E remain unimplemented**, each needing its own
-   implementation authorization. This item previously read "The
+   atomic activation PR. **W-4B shipped** the analyzer, the engine seam and the
+   V-2 version separation dormant (PR **#145**, `b0d8dd9`, merged `201b824`),
+   and **W-4C + W-4D shipped together** as the atomic activation (PR **#146**,
+   `89b7db0`, merged `bd71092`): declared movements now filter the assessment
+   and the generated routine from the same list. **W-4E is this documentation
+   closure.** This item previously read "The
    Wellness Safety Profile itself is **not** implemented", which stopped being
-   true at W-1. **W-5 (supplements) stays optional**, pending its own ADR and legal
+   true at W-1, and then read that W-4 was unimplemented, which stopped being
+   true at `bd71092`. **W-5 (supplements) stays optional**, pending its own ADR and legal
    review: educational and food-first
    only, with **no dosage of any kind**, no product or brand recommendation, and
    a mandatory deferral to a qualified professional on any uncertainty,
@@ -1087,7 +1091,7 @@ that build would contradict the owner's clarified product intent.
       handler — `MedicalModule` is not imported by the composition root, so no
       `/medical` route is mounted and neither medical sync handler is
       registered (ADR-P017 **Slice 0 / W-0**).
-- [ ] A wellness-owned Wellness Safety Profile replaces the retired medical
+- [x] A wellness-owned Wellness Safety Profile replaces the retired medical
       inputs (evaluation-completed flag + date, self-declared limitations),
       per the ADR-P017 W-1…W-4 slice plan. **W-1 is implemented: the
       contract and its PostgreSQL/SQLite storage exist** —
@@ -1122,12 +1126,9 @@ that build would contradict the owner's clarified product intent.
       whole-account erasure path (ADR-P011). Copy
       never describes the user as safe, cleared, approved or medically fit,
       and an empty selection is stated to be a declaration of no limitations
-      rather than a clearance. W-3 merged as `8cb9271`. The criterion **stays
-      open** because **W-4 (deterministic iCoach consumption) is unimplemented
-      and unauthorized**: a user can now record a limitation, but nothing reads
-      it, so no meal plan, routine or calculation changes yet. **W-4A froze the
-      consumption contract as ADR-P031 (Accepted 2026-09-10)** — a dedicated
-      wellness input
+      rather than a clearance. W-3 merged as `8cb9271`. **W-4 is implemented
+      too, and the criterion is closed.** **W-4A** froze the consumption
+      contract as ADR-P031 (Accepted 2026-09-10) — a dedicated wellness input
       type; `movementsToAvoid` as the **only** computation-authoritative field,
       with `affectedAreas` stored and displayed but producing **zero** automatic
       exclusions; no severity or workload inference; fail-closed handling of
@@ -1137,11 +1138,36 @@ that build would contradict the owner's clarified product intent.
       automatic area → movement mapping was drafted and **retracted**: it is not
       repository-provable and had been narrowed to preserve routine coverage, so
       it now needs a separate ADR revision plus qualified exercise-domain review.
-      ADR-P031 also fixes the delivery sequence: **no merged commit may make
+      ADR-P031 also fixed the delivery sequence: **no merged commit may make
       wellness consumption user-reachable unless the assessment and routine
       generation both honour the same exclusions, with complete EN/ES copy,
-      Error handling and privacy guards** — so activation is one atomic slice.
-      Acceptance authorizes the contract and the sequencing, not runtime code.
+      Error handling and privacy guards** — so activation was one atomic slice.
+      **W-4B** (PR #145, `b0d8dd9`, merged `201b824`) shipped the pure analyzer,
+      the optional `EngineInput.wellness` seam, the `decodeConflictSnapshot`
+      projection and the V-2 version split **dormant** — no caller, no
+      user-visible change. **W-4C + W-4D** (PR #146, `89b7db0`, merged
+      `bd71092`) activated consumption atomically: an owner-scoped read with
+      three outcomes (`absent` / `available` / `unavailable`); the C-B union of
+      **active** local and server movement declarations from relevant `PENDING`
+      conflicts, with valid tombstones contributing nothing and `local_payload`
+      never read; `wellness` passed to the engine only from `available`; the
+      assessment’s own `TrainingPlan.excludedMovements` passed into routine
+      selection instead of `[]`, so both filter on the identical sorted list;
+      `WORKOUT_ROUTINE_RULE_VERSION` → `icoach-workout-rules@1.1.0`; and
+      canonical **Error** treatments for unreadable wellness data, a refused
+      declaration and `INSUFFICIENT_CATALOG_COVERAGE`, with **7** new EN/ES keys
+      (**904** each, full parity). Declared areas and both evaluation fields
+      remain computationally inert, an absent declaration produces the ordinary
+      unrestricted plan, a pending local edit applies immediately offline, and
+      no exclusion is ever silently reintroduced. Consumption performs **no**
+      write, sync operation, enqueue, audit entry, log or crash report, and
+      renders no raw token, count, date, missing pattern or conflict payload.
+      **W-4E** is the documentation closure delivering this reconciliation.
+      **Still open, deliberately:** BUG-012 conflict **resolution** (ADR-P030
+      C-2 … C-7 stay unauthorized); the manual screen-reader / keyboard /
+      large-text pass (UX-4C); the `features/wellness/domain`
+      `collectCoverageFrom` decision; and **W-5 supplements**, which need their
+      own ADR and legal review.
 - [x] Public-v1 iCoach does not read the dormant medical domain.
 - [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.
