@@ -100,6 +100,16 @@ the advisory checklist card and its seven keys at `552f4b7`. No other flow,
 screen inventory or state applicability changed, and the shipped checklist's
 three steps and progress count are untouched.
 
+**v1.8 (ADR-P031 W-4E).** Reconciled against `origin/main`
+`bd71092cfec8e06b51bbe034f00d73a1b88a6da7`. **§Flow 8 becomes SHIPPED** —
+W-3 merged as `8cb9271` — and the platform-matrix row for its route follows.
+**§Flow 4 and §Flow 5 gain the W-4 consumption behaviour**: declared
+movements now filter the assessment and the generated routine. Only those
+three sections and this baseline note changed; no other flow, screen
+inventory, state applicability or status moved, and the eight canonical state
+names are untouched. Localization at this commit: **904 keys each in EN and
+ES — full parity** (696 at the earlier baseline).
+
 Inspected: `mobile/src/app/` (15 files — 14 user-facing routes plus
 `_layout.tsx`), `mobile/src/features/*`,
 `mobile/src/shared/localization/resources/{en,es}.ts` (**696 keys each — full
@@ -165,7 +175,7 @@ deliberately **not** feature-equivalent.
 | Dashboard, progress, nutrition, workout surfaces | SHIPPED | **Web-unavailable state** |
 | Authentication (sign-in / register) | SHIPPED | SHIPPED |
 | `reset-password` route | **TARGET** (PR #102) | **TARGET** (PR #102) |
-| `wellness-safety-profile` route (ADR-P017 W-3) | **TARGET** | **TARGET** — builds and renders the **Web-unavailable** state, never a form |
+| `wellness-safety-profile` route (ADR-P017 W-3) | **SHIPPED** | **SHIPPED** — builds and renders the **Web-unavailable** state, never a form |
 
 The reset route is **TARGET on both platforms** — one Expo Router route that
 builds for native and Web alike. What differs is **how a user arrives at it**:
@@ -809,6 +819,32 @@ and be empty.
 Plus a **Ready** confirmation (`success`) when the queue is drained. Ready is a
 sync confirmation, not a ninth state.
 
+**Wellness consumption — SHIPPED at `bd71092` (ADR-P031 W-4C/W-4D).** The
+dashboard load now resolves the user’s declaration first, in exactly three
+outcomes, and the outcome decides the state:
+
+- **`absent`** — no active declaration. The assessment computes normally and
+  the plan is **unrestricted**; nothing about wellness is shown.
+- **`available`** — the declared movements are excluded from
+  `TrainingPlan.excludedMovements`, and the dashboard renders one additional
+  `SAFETY` recommendation explaining that the plan follows the declared
+  limitations. **Declared areas and both evaluation fields change nothing**:
+  they are recorded and displayed, and the copy says so.
+- **`unavailable`** — the declaration could not be read or decoded. This is
+  the canonical **Error** state, not Data-gap and not Empty: no assessment,
+  no recommendations and no first-run checklist render, and the recovery is
+  the persistent "Evaluation and limitations" entry that is always present.
+
+A **pending local edit applies immediately, offline** — the read consumes the
+local row before anything is pushed, and draining the queue changes no
+exclusion. A relevant `PENDING` conflict contributes a **conservative union**
+of *active* movement declarations only (ADR-P031 §Decision 9, policy C-B);
+valid tombstones contribute nothing, and the Conflict banner stays
+**report-only** — no resolution path exists anywhere (BUG-012), so none is
+offered or implied. **No exclusion is ever silently reintroduced.** No raw
+token, count, evaluation date, missing pattern or conflict payload is
+rendered; the exact EN/ES strings are in `.ai/19_COPY_DECKS.md`.
+
 **Corrected in v1.2: the count is seven, not six.** Earlier revisions said "six"
 and gave a table with no **Data-gap** row, while the paragraph beneath it
 described Data-gap anyway. The UX-3B audit resolved the inconsistency in favour
@@ -860,6 +896,23 @@ Loading, Empty (no routines yet → invite creating one; no custom exercises →
 `workout.log.customEmpty`), Error, Pending sync, Web unavailable.
 Logging is **local-first**: a set is stored on device immediately and syncs
 later. Copy must never suggest a set is "not saved" while it is merely queued.
+
+**The generated plan honours declared movements — SHIPPED at `bd71092`
+(ADR-P031 W-4D).** Routine selection receives the assessment’s own
+`TrainingPlan.excludedMovements` instead of the hardcoded `[]` it passed
+before, so **the assessment and the generator filter on the identical sorted,
+de-duplicated list** — a routine can never contain what the assessment says
+was excluded. Two Error treatments belong to this surface, both `error` tone
+and neither a ninth state:
+
+| Trigger | Treatment |
+|---|---|
+| The wellness declaration could not be read (`unavailable`) | **Error**, with its own copy: no plan is shown at all, because showing one that ignored the declarations would be wrong. It outranks the generic dashboard-failure copy, and it is **not** Empty, **not** Data-gap and **not** a crash |
+| Declared movements leave a mandatory slot with no eligible exercise (`INSUFFICIENT_CATALOG_COVERAGE`) | **Error**, calm and non-blaming: a catalogue limitation, not a user mistake. It states that **every declared exclusion is being kept and nothing was added back**, and offers reviewing the declarations without implying that removing one is required or is "the fix". It names **no** movement token and **no** missing training pattern |
+
+**Coverage is never a reason to weaken a declaration** (ADR-P031
+§Decision 15). The generator reports the gap; it never re-includes an
+excluded exercise to make a week buildable.
 
 **Corrected in v1.2: there is no Offline state here.** Earlier revisions listed
 one. The UX-3B audit found no offline branch anywhere in
@@ -982,11 +1035,17 @@ alone are insufficient. Specifying that equivalent is **UX-3 work**; it is
 
 # Flow 8 — Evaluation and limitations (ADR-P017 W-3)
 
-**Status: TARGET.** ADR-P017 **W-3** is implemented — one session-guarded
-route, a dashboard recommendation and a dashboard navigation entry — but it is
-not on `main`, so no user can reach it today. W-1 shipped the contract and
-storage and W-2 the offline-first runtime; this flow is the first thing that
-lets a person put anything in it.
+**Status: SHIPPED.** ADR-P017 **W-3** merged as `8cb9271` — one
+session-guarded route, a dashboard recommendation and a dashboard navigation
+entry — so a user can reach it and record limitations today. W-1 shipped the
+contract and storage and W-2 the offline-first runtime; this flow is the first
+thing that lets a person put anything in it.
+
+**And something now reads it.** ADR-P031 **W-4** is implemented as of
+`bd71092`: what is declared here deterministically filters the assessment and
+the generated routine (§Flow 4, §Flow 5). Declared **areas** and both
+evaluation fields stay recorded-only and change nothing, which is exactly
+what this surface’s copy has always said.
 
 ## What it is for
 

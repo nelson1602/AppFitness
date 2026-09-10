@@ -62,7 +62,19 @@ not make the key or behaviour exist.
 Verified against `origin/main` at
 `a24b4b69f477028cbc5022186773486b4f2f1a14` (PR #106 merge) on 2026-08-28.
 
-- EN and ES catalogues contain **696 keys each** with identical sorted key sets.
+**Re-verified for ADR-P031 W-4E against `origin/main`
+`bd71092cfec8e06b51bbe034f00d73a1b88a6da7`.** At that commit the catalogues
+contain **904 keys each with identical sorted key sets** — read from
+`mobile/src/shared/localization/resources/{en,es}.ts`, which remains the sole
+authority for every value in this deck. The **109** W-3 keys move from TARGET
+to **SHIPPED**: each one was compared byte-for-byte against both catalogues
+and all 109 match exactly, in both languages. The **7** W-4 keys are added
+below with their runtime values. The `wellness.*` namespace now holds **110**
+keys — 107 `wellness.safety.*` (including 18 area and 18 movement labels) and
+3 `wellness.plan.*`.
+
+- EN and ES catalogues contained **696 keys each** with identical sorted key
+  sets at the original baseline; **904 each** at `bd71092`.
 - The ten state-bearing surfaces, their triggers and applicability were audited
   in `.ai/18_SCREEN_STATE_MATRICES.md` v1.1; this slice cross-links the deck in
   v1.2 without changing any state or applicability.
@@ -659,13 +671,12 @@ email body lives in code rather than here. This section covers only in-app copy.
 
 # Evaluation and limitations — W-3 (ADR-P017)
 
-**Status: TARGET.** ADR-P017 **W-3** authors these **109** keys — **71**
+**Status: SHIPPED.** ADR-P017 **W-3** authored these **109** keys — **71**
 surface strings, **18** affected-area labels, **18** movement labels and the
-**2** dashboard navigation strings — in EN and ES with exact key parity. They
-exist in the W-3 candidate and are rendered by it; per §AI Instructions rule 2
-they are **not SHIPPED** until they reach `origin/main`, and TARGET is used
-here with the meaning `.ai/17_PRODUCT_FLOWS.md` §Status vocabulary gives it —
-decided and implemented, not yet on `main`.
+**2** dashboard navigation strings — in EN and ES with exact key parity, and
+they merged as `8cb9271`. Every row below was re-read at `bd71092` and matches
+the shipped catalogues byte-for-byte in both languages, which is what promotes
+them from TARGET to SHIPPED under §AI Instructions rule 2.
 
 **The product is named AppFitnessRD** in this family, per ADR-P028 §Decision.
 Older copy elsewhere in this deck still reads "AppFitness"; that is historical
@@ -770,77 +781,77 @@ family after `common.*`.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `wellness.safety.routeTitle` | Evaluation and limitations | Evaluación y limitaciones | **TARGET** |
-| `wellness.safety.title` | Evaluation and limitations | Evaluación y limitaciones | **TARGET** |
-| `wellness.safety.subtitle` | Optional details that help us keep your training conservative. | Datos opcionales que nos ayudan a mantener tu entrenamiento conservador. | **TARGET** |
-| `wellness.safety.disclaimerTitle` | This is fitness software, not a medical opinion | Esto es software de fitness, no una opinión médica | **TARGET** |
-| `wellness.safety.disclaimerBody` | AppFitnessRD is a fitness and general-wellness app. It does not diagnose, treat, or decide whether exercise is safe for you, and it never says that you are cleared or medically fit. Talk to a qualified professional about your health. | AppFitnessRD es una app de fitness y bienestar general. No diagnostica, no trata y no decide si el ejercicio es seguro para ti, y nunca dice que estés autorizado ni en condiciones médicas para entrenar. Consulta tu salud con un profesional cualificado. | **TARGET** |
-| `wellness.safety.privacyNote` | We record only whether you completed an evaluation, its date, and the areas and movements you pick from the lists. We never ask who evaluated you or what was found, and we never ask about conditions, medications or treatments. There is nowhere here to write notes. | Solo registramos si completaste una evaluación, su fecha y las zonas y movimientos que eliges de las listas. Nunca preguntamos quién te evaluó ni qué se encontró, y nunca preguntamos por condiciones, medicamentos o tratamientos. Aquí no hay ningún lugar para escribir notas. | **TARGET** |
-| `wellness.safety.empty` | You have not declared anything yet. | Todavía no has declarado nada. | **TARGET** |
-| `wellness.safety.loading` | Loading… | Cargando… | **TARGET** |
-| `wellness.safety.loadingAccessibility` | Loading your evaluation and limitations | Cargando tu evaluación y limitaciones | **TARGET** |
-| `wellness.safety.errorTitle` | Something went wrong | Algo salió mal | **TARGET** |
-| `wellness.safety.errorMessage` | Your evaluation and limitations could not be loaded right now. | No se pudieron cargar tu evaluación y limitaciones en este momento. | **TARGET** |
-| `wellness.safety.retry` | Try again | Intentar de nuevo | **TARGET** |
-| `wellness.safety.retryAccessibility` | Try loading your evaluation and limitations again | Volver a intentar cargar tu evaluación y limitaciones | **TARGET** |
-| `wellness.safety.invalidTitle` | These details cannot be shown | No podemos mostrar estos datos | **TARGET** |
-| `wellness.safety.invalidMessage` | The copy saved on this device cannot be read safely, so we left it exactly as it is. Fill in the form and save to replace it. | La copia guardada en este dispositivo no se puede leer de forma segura, así que la dejamos tal como está. Completa el formulario y guarda para reemplazarla. | **TARGET** |
-| `wellness.safety.saveErrorTitle` | Not saved | No se guardó | **TARGET** |
-| `wellness.safety.saveErrorMessage` | Your evaluation and limitations could not be saved. Please try again. | No se pudieron guardar tu evaluación y limitaciones. Inténtalo de nuevo. | **TARGET** |
-| `wellness.safety.invalidInputTitle` | Check your answers | Revisa tus respuestas | **TARGET** |
-| `wellness.safety.invalidInputMessage` | Some of what you entered could not be accepted. Review the date and your selections, then save again. | Algo de lo que ingresaste no se pudo aceptar. Revisa la fecha y tus selecciones, y vuelve a guardar. | **TARGET** |
-| `wellness.safety.removeErrorTitle` | Not removed | No se eliminó | **TARGET** |
-| `wellness.safety.removeErrorMessage` | Your evaluation and limitations could not be removed. Please try again. | No se pudieron eliminar tu evaluación y limitaciones. Inténtalo de nuevo. | **TARGET** |
-| `wellness.safety.webUnavailableTitle` | Evaluation and limitations aren't available on the web | La evaluación y las limitaciones no están disponibles en la web | **TARGET** |
-| `wellness.safety.webUnavailableBody` | Use the AppFitnessRD mobile app to add or change these details. | Usa la app móvil de AppFitnessRD para agregar o cambiar estos datos. | **TARGET** |
-| `wellness.safety.evaluation.legend` | Have you completed a professional physical evaluation? | ¿Has completado una evaluación física profesional? | **TARGET** |
-| `wellness.safety.evaluation.yes` | Yes | Sí | **TARGET** |
-| `wellness.safety.evaluation.no` | Not yet | Todavía no | **TARGET** |
-| `wellness.safety.evaluation.hint` | Either answer is fine. Nothing in the app is locked or unlocked by it. | Cualquier respuesta está bien. Nada en la app se bloquea ni se desbloquea por ella. | **TARGET** |
-| `wellness.safety.evaluation.dateLabel` | Date of the evaluation | Fecha de la evaluación | **TARGET** |
-| `wellness.safety.evaluation.datePlaceholder` | YYYY-MM-DD | AAAA-MM-DD | **TARGET** |
-| `wellness.safety.evaluation.dateHint` | Just the date. We do not ask who performed it or what it found. | Solo la fecha. No preguntamos quién la realizó ni qué encontró. | **TARGET** |
-| `wellness.safety.validation.dateRequired` | Add the date of the evaluation | Agrega la fecha de la evaluación | **TARGET** |
-| `wellness.safety.validation.dateFormat` | Use the date format YYYY-MM-DD | Usa el formato de fecha AAAA-MM-DD | **TARGET** |
-| `wellness.safety.validation.validDate` | Enter a real calendar date | Introduce una fecha real del calendario | **TARGET** |
-| `wellness.safety.validation.dateNotFuture` | The date cannot be in the future | La fecha no puede estar en el futuro | **TARGET** |
-| `wellness.safety.areas.legend` | Body areas to treat carefully | Zonas del cuerpo que debemos tratar con cuidado | **TARGET** |
-| `wellness.safety.areas.hint` | Pick from the list. Areas of the body only — never a condition, a cause or how severe it is. | Elige de la lista. Solo zonas del cuerpo: nunca una condición, una causa ni su gravedad. | **TARGET** |
-| `wellness.safety.movements.legend` | Movements you would rather avoid | Movimientos que prefieres evitar | **TARGET** |
-| `wellness.safety.movements.hint` | Pick from the list. You can change this whenever you want. | Elige de la lista. Puedes cambiarlo cuando quieras. | **TARGET** |
-| `wellness.safety.nothingDeclared` | Selecting nothing records that you declared no limitations. It does not mean you are cleared or medically fit to train. | No seleccionar nada registra que no declaraste limitaciones. No significa que estés autorizado ni en condiciones médicas para entrenar. | **TARGET** |
-| `wellness.safety.save` | Save | Guardar | **TARGET** |
-| `wellness.safety.saveAccessibility` | Save your evaluation and limitations | Guardar tu evaluación y limitaciones | **TARGET** |
-| `wellness.safety.savedTitle` | Saved | Guardado | **TARGET** |
-| `wellness.safety.savedBody` | Your evaluation and limitations are up to date. | Tu evaluación y limitaciones están actualizadas. | **TARGET** |
-| `wellness.safety.savedPendingTitle` | Saved on this device | Guardado en este dispositivo | **TARGET** |
-| `wellness.safety.savedPendingBody` | Your answers are stored on this device and are waiting to synchronize. | Tus respuestas están guardadas en este dispositivo y esperan sincronizarse. | **TARGET** |
-| `wellness.safety.savedConflictTitle` | Saved here; a synchronization difference remains | Guardado aquí; la diferencia de sincronización sigue ahí | **TARGET** |
-| `wellness.safety.savedConflictBody` | Your change is stored on this device. This record still differs from the synchronized copy, and saving does not change that difference. | Tu cambio está guardado en este dispositivo. Este registro sigue siendo distinto de la copia sincronizada, y guardar no cambia esa diferencia. | **TARGET** |
-| `wellness.safety.syncPending` | Saved on this device | Guardado en este dispositivo | **TARGET** |
-| `wellness.safety.syncPendingAccessibility` | Saved on this device; sync pending | Guardado en este dispositivo; sincronización pendiente | **TARGET** |
-| `wellness.safety.syncConflictTitle` | These details need review | Estos datos necesitan revisión | **TARGET** |
-| `wellness.safety.syncConflictBody` | What is saved on this device and what came back from the server no longer match, and this screen cannot settle that difference. You can keep using the app. | Lo guardado en este dispositivo y lo que llegó del servidor ya no coinciden, y esta pantalla no puede solucionar esa diferencia. Puedes seguir usando la app. | **TARGET** |
-| `wellness.safety.remove` | Remove from my profile | Quitar de mi perfil | **TARGET** |
-| `wellness.safety.removeAccessibility` | Remove your evaluation and limitations from your active profile | Quitar tu evaluación y limitaciones de tu perfil activo | **TARGET** |
-| `wellness.safety.removeConfirmTitle` | Remove these details from your profile? | ¿Quitar estos datos de tu perfil? | **TARGET** |
-| `wellness.safety.removeConfirmBody` | They stop being part of your active profile and the app no longer shows or uses them. A record of the removal stays on this device and synchronizes to your other devices. Deleting your account permanently removes the account and its data, keeping only an anonymized security audit record. | Dejarán de formar parte de tu perfil activo y la app ya no los muestra ni los usa. En este dispositivo queda un registro de la eliminación, que se sincroniza con tus otros dispositivos. Eliminar tu cuenta quita de forma permanente la cuenta y sus datos, y conserva solo un registro de seguridad anonimizado. | **TARGET** |
-| `wellness.safety.removeConfirm` | Remove from profile | Quitar del perfil | **TARGET** |
-| `wellness.safety.removeConfirmAccessibility` | Confirm removing your evaluation and limitations from your active profile | Confirmar que quitas tu evaluación y limitaciones de tu perfil activo | **TARGET** |
-| `wellness.safety.removeCancel` | Keep them | Conservarlos | **TARGET** |
-| `wellness.safety.removeCancelAccessibility` | Keep your evaluation and limitations | Conservar tu evaluación y limitaciones | **TARGET** |
-| `wellness.safety.removedTitle` | Removed from your profile | Quitado de tu perfil | **TARGET** |
-| `wellness.safety.removedBody` | Nothing is declared in your profile now. You can add these details again whenever you want. | Ahora no hay nada declarado en tu perfil. Puedes agregar estos datos de nuevo cuando quieras. | **TARGET** |
-| `wellness.safety.removedPendingTitle` | Removed on this device | Quitado en este dispositivo | **TARGET** |
-| `wellness.safety.removedPendingBody` | These details are no longer part of your active profile here. The removal is stored on this device and is waiting to synchronize. | Estos datos ya no forman parte de tu perfil activo aquí. La eliminación está guardada en este dispositivo y espera sincronizarse. | **TARGET** |
-| `wellness.safety.removedConflictTitle` | Removed here; a synchronization difference remains | Quitado aquí; la diferencia de sincronización sigue ahí | **TARGET** |
-| `wellness.safety.removedConflictBody` | These details are no longer part of your active profile on this device. This record still differs from the synchronized copy, and removing does not change that difference. | Estos datos ya no forman parte de tu perfil activo en este dispositivo. Este registro sigue siendo distinto de la copia sincronizada, y quitarlos no cambia esa diferencia. | **TARGET** |
-| `wellness.safety.recommendation.accessibility` | Professional evaluation recommendation | Recomendación de evaluación profesional | **TARGET** |
-| `wellness.safety.recommendation.title` | Consider a professional physical evaluation | Considera una evaluación física profesional | **TARGET** |
-| `wellness.safety.recommendation.body` | A qualified professional can tell you what suits your body. AppFitnessRD is fitness and general-wellness software and cannot make that judgement for you. | Un profesional cualificado puede indicarte qué es adecuado para tu cuerpo. AppFitnessRD es software de fitness y bienestar general y no puede hacer ese juicio por ti. | **TARGET** |
-| `wellness.safety.recommendation.optional` | This is a recommendation, not a requirement. Everything in the app stays available either way. | Es una recomendación, no un requisito. Todo en la app sigue disponible de cualquier manera. | **TARGET** |
-| `wellness.safety.recommendation.cta` | Add these details | Agregar estos datos | **TARGET** |
-| `wellness.safety.recommendation.ctaAccessibility` | Add your evaluation and limitations | Agregar tu evaluación y limitaciones | **TARGET** |
+| `wellness.safety.routeTitle` | Evaluation and limitations | Evaluación y limitaciones | **SHIPPED** |
+| `wellness.safety.title` | Evaluation and limitations | Evaluación y limitaciones | **SHIPPED** |
+| `wellness.safety.subtitle` | Optional details that help us keep your training conservative. | Datos opcionales que nos ayudan a mantener tu entrenamiento conservador. | **SHIPPED** |
+| `wellness.safety.disclaimerTitle` | This is fitness software, not a medical opinion | Esto es software de fitness, no una opinión médica | **SHIPPED** |
+| `wellness.safety.disclaimerBody` | AppFitnessRD is a fitness and general-wellness app. It does not diagnose, treat, or decide whether exercise is safe for you, and it never says that you are cleared or medically fit. Talk to a qualified professional about your health. | AppFitnessRD es una app de fitness y bienestar general. No diagnostica, no trata y no decide si el ejercicio es seguro para ti, y nunca dice que estés autorizado ni en condiciones médicas para entrenar. Consulta tu salud con un profesional cualificado. | **SHIPPED** |
+| `wellness.safety.privacyNote` | We record only whether you completed an evaluation, its date, and the areas and movements you pick from the lists. We never ask who evaluated you or what was found, and we never ask about conditions, medications or treatments. There is nowhere here to write notes. | Solo registramos si completaste una evaluación, su fecha y las zonas y movimientos que eliges de las listas. Nunca preguntamos quién te evaluó ni qué se encontró, y nunca preguntamos por condiciones, medicamentos o tratamientos. Aquí no hay ningún lugar para escribir notas. | **SHIPPED** |
+| `wellness.safety.empty` | You have not declared anything yet. | Todavía no has declarado nada. | **SHIPPED** |
+| `wellness.safety.loading` | Loading… | Cargando… | **SHIPPED** |
+| `wellness.safety.loadingAccessibility` | Loading your evaluation and limitations | Cargando tu evaluación y limitaciones | **SHIPPED** |
+| `wellness.safety.errorTitle` | Something went wrong | Algo salió mal | **SHIPPED** |
+| `wellness.safety.errorMessage` | Your evaluation and limitations could not be loaded right now. | No se pudieron cargar tu evaluación y limitaciones en este momento. | **SHIPPED** |
+| `wellness.safety.retry` | Try again | Intentar de nuevo | **SHIPPED** |
+| `wellness.safety.retryAccessibility` | Try loading your evaluation and limitations again | Volver a intentar cargar tu evaluación y limitaciones | **SHIPPED** |
+| `wellness.safety.invalidTitle` | These details cannot be shown | No podemos mostrar estos datos | **SHIPPED** |
+| `wellness.safety.invalidMessage` | The copy saved on this device cannot be read safely, so we left it exactly as it is. Fill in the form and save to replace it. | La copia guardada en este dispositivo no se puede leer de forma segura, así que la dejamos tal como está. Completa el formulario y guarda para reemplazarla. | **SHIPPED** |
+| `wellness.safety.saveErrorTitle` | Not saved | No se guardó | **SHIPPED** |
+| `wellness.safety.saveErrorMessage` | Your evaluation and limitations could not be saved. Please try again. | No se pudieron guardar tu evaluación y limitaciones. Inténtalo de nuevo. | **SHIPPED** |
+| `wellness.safety.invalidInputTitle` | Check your answers | Revisa tus respuestas | **SHIPPED** |
+| `wellness.safety.invalidInputMessage` | Some of what you entered could not be accepted. Review the date and your selections, then save again. | Algo de lo que ingresaste no se pudo aceptar. Revisa la fecha y tus selecciones, y vuelve a guardar. | **SHIPPED** |
+| `wellness.safety.removeErrorTitle` | Not removed | No se eliminó | **SHIPPED** |
+| `wellness.safety.removeErrorMessage` | Your evaluation and limitations could not be removed. Please try again. | No se pudieron eliminar tu evaluación y limitaciones. Inténtalo de nuevo. | **SHIPPED** |
+| `wellness.safety.webUnavailableTitle` | Evaluation and limitations aren't available on the web | La evaluación y las limitaciones no están disponibles en la web | **SHIPPED** |
+| `wellness.safety.webUnavailableBody` | Use the AppFitnessRD mobile app to add or change these details. | Usa la app móvil de AppFitnessRD para agregar o cambiar estos datos. | **SHIPPED** |
+| `wellness.safety.evaluation.legend` | Have you completed a professional physical evaluation? | ¿Has completado una evaluación física profesional? | **SHIPPED** |
+| `wellness.safety.evaluation.yes` | Yes | Sí | **SHIPPED** |
+| `wellness.safety.evaluation.no` | Not yet | Todavía no | **SHIPPED** |
+| `wellness.safety.evaluation.hint` | Either answer is fine. Nothing in the app is locked or unlocked by it. | Cualquier respuesta está bien. Nada en la app se bloquea ni se desbloquea por ella. | **SHIPPED** |
+| `wellness.safety.evaluation.dateLabel` | Date of the evaluation | Fecha de la evaluación | **SHIPPED** |
+| `wellness.safety.evaluation.datePlaceholder` | YYYY-MM-DD | AAAA-MM-DD | **SHIPPED** |
+| `wellness.safety.evaluation.dateHint` | Just the date. We do not ask who performed it or what it found. | Solo la fecha. No preguntamos quién la realizó ni qué encontró. | **SHIPPED** |
+| `wellness.safety.validation.dateRequired` | Add the date of the evaluation | Agrega la fecha de la evaluación | **SHIPPED** |
+| `wellness.safety.validation.dateFormat` | Use the date format YYYY-MM-DD | Usa el formato de fecha AAAA-MM-DD | **SHIPPED** |
+| `wellness.safety.validation.validDate` | Enter a real calendar date | Introduce una fecha real del calendario | **SHIPPED** |
+| `wellness.safety.validation.dateNotFuture` | The date cannot be in the future | La fecha no puede estar en el futuro | **SHIPPED** |
+| `wellness.safety.areas.legend` | Body areas to treat carefully | Zonas del cuerpo que debemos tratar con cuidado | **SHIPPED** |
+| `wellness.safety.areas.hint` | Pick from the list. Areas of the body only — never a condition, a cause or how severe it is. | Elige de la lista. Solo zonas del cuerpo: nunca una condición, una causa ni su gravedad. | **SHIPPED** |
+| `wellness.safety.movements.legend` | Movements you would rather avoid | Movimientos que prefieres evitar | **SHIPPED** |
+| `wellness.safety.movements.hint` | Pick from the list. You can change this whenever you want. | Elige de la lista. Puedes cambiarlo cuando quieras. | **SHIPPED** |
+| `wellness.safety.nothingDeclared` | Selecting nothing records that you declared no limitations. It does not mean you are cleared or medically fit to train. | No seleccionar nada registra que no declaraste limitaciones. No significa que estés autorizado ni en condiciones médicas para entrenar. | **SHIPPED** |
+| `wellness.safety.save` | Save | Guardar | **SHIPPED** |
+| `wellness.safety.saveAccessibility` | Save your evaluation and limitations | Guardar tu evaluación y limitaciones | **SHIPPED** |
+| `wellness.safety.savedTitle` | Saved | Guardado | **SHIPPED** |
+| `wellness.safety.savedBody` | Your evaluation and limitations are up to date. | Tu evaluación y limitaciones están actualizadas. | **SHIPPED** |
+| `wellness.safety.savedPendingTitle` | Saved on this device | Guardado en este dispositivo | **SHIPPED** |
+| `wellness.safety.savedPendingBody` | Your answers are stored on this device and are waiting to synchronize. | Tus respuestas están guardadas en este dispositivo y esperan sincronizarse. | **SHIPPED** |
+| `wellness.safety.savedConflictTitle` | Saved here; a synchronization difference remains | Guardado aquí; la diferencia de sincronización sigue ahí | **SHIPPED** |
+| `wellness.safety.savedConflictBody` | Your change is stored on this device. This record still differs from the synchronized copy, and saving does not change that difference. | Tu cambio está guardado en este dispositivo. Este registro sigue siendo distinto de la copia sincronizada, y guardar no cambia esa diferencia. | **SHIPPED** |
+| `wellness.safety.syncPending` | Saved on this device | Guardado en este dispositivo | **SHIPPED** |
+| `wellness.safety.syncPendingAccessibility` | Saved on this device; sync pending | Guardado en este dispositivo; sincronización pendiente | **SHIPPED** |
+| `wellness.safety.syncConflictTitle` | These details need review | Estos datos necesitan revisión | **SHIPPED** |
+| `wellness.safety.syncConflictBody` | What is saved on this device and what came back from the server no longer match, and this screen cannot settle that difference. You can keep using the app. | Lo guardado en este dispositivo y lo que llegó del servidor ya no coinciden, y esta pantalla no puede solucionar esa diferencia. Puedes seguir usando la app. | **SHIPPED** |
+| `wellness.safety.remove` | Remove from my profile | Quitar de mi perfil | **SHIPPED** |
+| `wellness.safety.removeAccessibility` | Remove your evaluation and limitations from your active profile | Quitar tu evaluación y limitaciones de tu perfil activo | **SHIPPED** |
+| `wellness.safety.removeConfirmTitle` | Remove these details from your profile? | ¿Quitar estos datos de tu perfil? | **SHIPPED** |
+| `wellness.safety.removeConfirmBody` | They stop being part of your active profile and the app no longer shows or uses them. A record of the removal stays on this device and synchronizes to your other devices. Deleting your account permanently removes the account and its data, keeping only an anonymized security audit record. | Dejarán de formar parte de tu perfil activo y la app ya no los muestra ni los usa. En este dispositivo queda un registro de la eliminación, que se sincroniza con tus otros dispositivos. Eliminar tu cuenta quita de forma permanente la cuenta y sus datos, y conserva solo un registro de seguridad anonimizado. | **SHIPPED** |
+| `wellness.safety.removeConfirm` | Remove from profile | Quitar del perfil | **SHIPPED** |
+| `wellness.safety.removeConfirmAccessibility` | Confirm removing your evaluation and limitations from your active profile | Confirmar que quitas tu evaluación y limitaciones de tu perfil activo | **SHIPPED** |
+| `wellness.safety.removeCancel` | Keep them | Conservarlos | **SHIPPED** |
+| `wellness.safety.removeCancelAccessibility` | Keep your evaluation and limitations | Conservar tu evaluación y limitaciones | **SHIPPED** |
+| `wellness.safety.removedTitle` | Removed from your profile | Quitado de tu perfil | **SHIPPED** |
+| `wellness.safety.removedBody` | Nothing is declared in your profile now. You can add these details again whenever you want. | Ahora no hay nada declarado en tu perfil. Puedes agregar estos datos de nuevo cuando quieras. | **SHIPPED** |
+| `wellness.safety.removedPendingTitle` | Removed on this device | Quitado en este dispositivo | **SHIPPED** |
+| `wellness.safety.removedPendingBody` | These details are no longer part of your active profile here. The removal is stored on this device and is waiting to synchronize. | Estos datos ya no forman parte de tu perfil activo aquí. La eliminación está guardada en este dispositivo y espera sincronizarse. | **SHIPPED** |
+| `wellness.safety.removedConflictTitle` | Removed here; a synchronization difference remains | Quitado aquí; la diferencia de sincronización sigue ahí | **SHIPPED** |
+| `wellness.safety.removedConflictBody` | These details are no longer part of your active profile on this device. This record still differs from the synchronized copy, and removing does not change that difference. | Estos datos ya no forman parte de tu perfil activo en este dispositivo. Este registro sigue siendo distinto de la copia sincronizada, y quitarlos no cambia esa diferencia. | **SHIPPED** |
+| `wellness.safety.recommendation.accessibility` | Professional evaluation recommendation | Recomendación de evaluación profesional | **SHIPPED** |
+| `wellness.safety.recommendation.title` | Consider a professional physical evaluation | Considera una evaluación física profesional | **SHIPPED** |
+| `wellness.safety.recommendation.body` | A qualified professional can tell you what suits your body. AppFitnessRD is fitness and general-wellness software and cannot make that judgement for you. | Un profesional cualificado puede indicarte qué es adecuado para tu cuerpo. AppFitnessRD es software de fitness y bienestar general y no puede hacer ese juicio por ti. | **SHIPPED** |
+| `wellness.safety.recommendation.optional` | This is a recommendation, not a requirement. Everything in the app stays available either way. | Es una recomendación, no un requisito. Todo en la app sigue disponible de cualquier manera. | **SHIPPED** |
+| `wellness.safety.recommendation.cta` | Add these details | Agregar estos datos | **SHIPPED** |
+| `wellness.safety.recommendation.ctaAccessibility` | Add your evaluation and limitations | Agregar tu evaluación y limitaciones | **SHIPPED** |
 
 ## Affected-area labels — 18 keys
 
@@ -850,24 +861,24 @@ deliberately excludes it.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `wellness.safety.area.abdomen` | Abdomen | Abdomen | **TARGET** |
-| `wellness.safety.area.ankle` | Ankle | Tobillo | **TARGET** |
-| `wellness.safety.area.chest` | Chest | Pecho | **TARGET** |
-| `wellness.safety.area.elbow` | Elbow | Codo | **TARGET** |
-| `wellness.safety.area.foot` | Foot | Pie | **TARGET** |
-| `wellness.safety.area.forearm` | Forearm | Antebrazo | **TARGET** |
-| `wellness.safety.area.groin` | Groin | Ingle | **TARGET** |
-| `wellness.safety.area.hand` | Hand | Mano | **TARGET** |
-| `wellness.safety.area.hip` | Hip | Cadera | **TARGET** |
-| `wellness.safety.area.knee` | Knee | Rodilla | **TARGET** |
-| `wellness.safety.area.lowerBack` | Lower back | Espalda baja | **TARGET** |
-| `wellness.safety.area.lowerLeg` | Lower leg | Pierna inferior | **TARGET** |
-| `wellness.safety.area.neck` | Neck | Cuello | **TARGET** |
-| `wellness.safety.area.shoulder` | Shoulder | Hombro | **TARGET** |
-| `wellness.safety.area.thigh` | Thigh | Muslo | **TARGET** |
-| `wellness.safety.area.upperArm` | Upper arm | Brazo superior | **TARGET** |
-| `wellness.safety.area.upperBack` | Upper back | Espalda alta | **TARGET** |
-| `wellness.safety.area.wrist` | Wrist | Muñeca | **TARGET** |
+| `wellness.safety.area.abdomen` | Abdomen | Abdomen | **SHIPPED** |
+| `wellness.safety.area.ankle` | Ankle | Tobillo | **SHIPPED** |
+| `wellness.safety.area.chest` | Chest | Pecho | **SHIPPED** |
+| `wellness.safety.area.elbow` | Elbow | Codo | **SHIPPED** |
+| `wellness.safety.area.foot` | Foot | Pie | **SHIPPED** |
+| `wellness.safety.area.forearm` | Forearm | Antebrazo | **SHIPPED** |
+| `wellness.safety.area.groin` | Groin | Ingle | **SHIPPED** |
+| `wellness.safety.area.hand` | Hand | Mano | **SHIPPED** |
+| `wellness.safety.area.hip` | Hip | Cadera | **SHIPPED** |
+| `wellness.safety.area.knee` | Knee | Rodilla | **SHIPPED** |
+| `wellness.safety.area.lowerBack` | Lower back | Espalda baja | **SHIPPED** |
+| `wellness.safety.area.lowerLeg` | Lower leg | Pierna inferior | **SHIPPED** |
+| `wellness.safety.area.neck` | Neck | Cuello | **SHIPPED** |
+| `wellness.safety.area.shoulder` | Shoulder | Hombro | **SHIPPED** |
+| `wellness.safety.area.thigh` | Thigh | Muslo | **SHIPPED** |
+| `wellness.safety.area.upperArm` | Upper arm | Brazo superior | **SHIPPED** |
+| `wellness.safety.area.upperBack` | Upper back | Espalda alta | **SHIPPED** |
+| `wellness.safety.area.wrist` | Wrist | Muñeca | **SHIPPED** |
 
 ## Movement labels — 18 keys
 
@@ -876,24 +887,24 @@ Movement patterns drawn from the shipped exercise catalog (W-1).
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `wellness.safety.movement.bridging` | Glute bridge | Puente de glúteos | **TARGET** |
-| `wellness.safety.movement.deepSquat` | Deep squat | Sentadilla profunda | **TARGET** |
-| `wellness.safety.movement.dips` | Dips | Fondos en paralelas | **TARGET** |
-| `wellness.safety.movement.frontRackLoading` | Front-rack loading | Carga en rack frontal | **TARGET** |
-| `wellness.safety.movement.goodMorning` | Barbell good morning | Flexión de tronco con barra | **TARGET** |
-| `wellness.safety.movement.heavyHinge` | Heavy hip hinge | Bisagra de cadera con carga alta | **TARGET** |
-| `wellness.safety.movement.heavyPressing` | Heavy pressing | Empujes con carga alta | **TARGET** |
-| `wellness.safety.movement.highImpactCardio` | High-impact cardio | Cardio de alto impacto | **TARGET** |
-| `wellness.safety.movement.jumping` | Jumping | Saltos | **TARGET** |
-| `wellness.safety.movement.loadedCarries` | Loaded carries | Transportes con carga | **TARGET** |
-| `wellness.safety.movement.loadedSpinalFlexion` | Loaded spinal flexion | Flexión de columna con carga | **TARGET** |
-| `wellness.safety.movement.lunge` | Lunge | Zancada | **TARGET** |
-| `wellness.safety.movement.maxEffortLifts` | Maximum-effort lifts | Levantamientos al máximo esfuerzo | **TARGET** |
-| `wellness.safety.movement.overheadPress` | Overhead press | Press por encima de la cabeza | **TARGET** |
-| `wellness.safety.movement.running` | Running | Correr | **TARGET** |
-| `wellness.safety.movement.skullCrushers` | Lying triceps extension | Extensión de tríceps tumbado | **TARGET** |
-| `wellness.safety.movement.sprinting` | Sprinting | Esprintar | **TARGET** |
-| `wellness.safety.movement.valsalvaHeavyLifts` | Heavy lifts while holding your breath | Levantamientos pesados aguantando la respiración | **TARGET** |
+| `wellness.safety.movement.bridging` | Glute bridge | Puente de glúteos | **SHIPPED** |
+| `wellness.safety.movement.deepSquat` | Deep squat | Sentadilla profunda | **SHIPPED** |
+| `wellness.safety.movement.dips` | Dips | Fondos en paralelas | **SHIPPED** |
+| `wellness.safety.movement.frontRackLoading` | Front-rack loading | Carga en rack frontal | **SHIPPED** |
+| `wellness.safety.movement.goodMorning` | Barbell good morning | Flexión de tronco con barra | **SHIPPED** |
+| `wellness.safety.movement.heavyHinge` | Heavy hip hinge | Bisagra de cadera con carga alta | **SHIPPED** |
+| `wellness.safety.movement.heavyPressing` | Heavy pressing | Empujes con carga alta | **SHIPPED** |
+| `wellness.safety.movement.highImpactCardio` | High-impact cardio | Cardio de alto impacto | **SHIPPED** |
+| `wellness.safety.movement.jumping` | Jumping | Saltos | **SHIPPED** |
+| `wellness.safety.movement.loadedCarries` | Loaded carries | Transportes con carga | **SHIPPED** |
+| `wellness.safety.movement.loadedSpinalFlexion` | Loaded spinal flexion | Flexión de columna con carga | **SHIPPED** |
+| `wellness.safety.movement.lunge` | Lunge | Zancada | **SHIPPED** |
+| `wellness.safety.movement.maxEffortLifts` | Maximum-effort lifts | Levantamientos al máximo esfuerzo | **SHIPPED** |
+| `wellness.safety.movement.overheadPress` | Overhead press | Press por encima de la cabeza | **SHIPPED** |
+| `wellness.safety.movement.running` | Running | Correr | **SHIPPED** |
+| `wellness.safety.movement.skullCrushers` | Lying triceps extension | Extensión de tríceps tumbado | **SHIPPED** |
+| `wellness.safety.movement.sprinting` | Sprinting | Esprintar | **SHIPPED** |
+| `wellness.safety.movement.valsalvaHeavyLifts` | Heavy lifts while holding your breath | Levantamientos pesados aguantando la respiración | **SHIPPED** |
 
 ## Dashboard navigation entry — 2 keys
 
@@ -903,18 +914,88 @@ its three steps and its `{completed} of {total}` line unchanged.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `dashboard.wellnessSafety` | Evaluation and limitations | Evaluación y limitaciones | **TARGET** |
-| `dashboard.wellnessSafetyAccessibility` | View or edit your evaluation and limitations | Ver o editar tu evaluación y limitaciones | **TARGET** |
+| `dashboard.wellnessSafety` | Evaluation and limitations | Evaluación y limitaciones | **SHIPPED** |
+| `dashboard.wellnessSafetyAccessibility` | View or edit your evaluation and limitations | Ver o editar tu evaluación y limitaciones | **SHIPPED** |
 
 ## A first for this deck: a retry control
 
 `wellness.safety.retry` / `retryAccessibility` are the **first**
 retry-related keys in the product. `.ai/08_UI_UX.md` §Current implementation
 evidence recorded "Retry-related localization keys: **0**" at `2692e589`, and
-is reconciled in this change to record **2 (TARGET)**. The Error state has
+was reconciled to record **2**; both are **SHIPPED** as of `8cb9271`. The Error state has
 always specified "retry, or abandon" as its user action; W-3 is the first
 surface to implement the retry half. No other surface gains one, and the
 Web-unavailable state still has **no** retry, by decision (ADR-P019 §5).
+
+---
+
+# Deterministic consumption — W-4 (ADR-P031)
+
+**Status: SHIPPED.** ADR-P031 **W-4C/W-4D** add these **7** keys in EN and ES
+with exact key parity, merged as `bd71092` (PR #146). They are the whole
+user-facing vocabulary of consumption: one recommendation that explains what a
+declaration did to the plan, and two canonical **Error** treatments. Values
+below are byte-exact from
+`mobile/src/shared/localization/resources/{en,es}.ts` at that commit.
+
+## What these seven strings render
+
+The `wellness.plan.*` family is the assessment recommendation
+(`WELLNESS:movement_exclusions`), resolved through
+`dashboard/presentation/recommendation-copy.ts`. The engine emits these keys
+as the rule’s `title` / `explanation` / `scientificBasis`, and the
+presentation adapter translates them — the raw keys are never rendered.
+
+The two `workout.plan.*` pairs are the W-4D Error treatments recorded in
+`.ai/18_SCREEN_STATE_MATRICES.md` §1 and §12: the dashboard and generated-plan
+wellness-unreadable state, and the insufficient-catalogue-coverage state.
+
+## What these strings must and must not say
+
+Beyond §Copy rules, ADR-P031 §Decision 10 and §Decision 15 add obligations
+that a dedicated spec enforces
+(`mobile/src/features/dashboard/presentation/wellness-activation-copy.spec.ts`),
+not review:
+
+1. **Movements act; areas and evaluation fields do not.** The body copy says
+   both halves: the declared movements were left out of the plan, and the
+   marked body areas are recorded for the user’s own reference and change no
+   exercise, set or calorie on their own.
+2. **Every declared exclusion is kept when coverage runs out.** The coverage
+   copy states that all declared limitations are respected and that **nothing
+   was added back**, and offers reviewing the declarations without implying
+   that removing one is required, expected or "the fix".
+3. **Nothing is rendered that could identify or expose a declaration.** No
+   raw movement or area token, no count, no evaluation date, no
+   `missingPatterns` value, no conflict payload and no decoder reason or field
+   name appears in any of the seven strings — the spec asserts each of those
+   absences, and none of the seven contains a digit.
+4. **No prohibited wellness vocabulary.** A 31-pattern denylist over both
+   languages rejects medical and clinical framing, practitioners, clearance,
+   authorization, approval and permission, diagnosis, treatment,
+   rehabilitation, injury, symptoms and pathology, and any safety or
+   fitness-to-train claim, plus prescriptive advice. An earlier draft of
+   `limitationsAppliedBasis` said "medical opinion" and "clearance" (ES:
+   "opinión médica", "autorización"); it was replaced before merge with the
+   neutral explainability wording below, which states only that the
+   adjustment uses the entered movement choices and infers nothing beyond
+   them.
+
+## The seven keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `wellness.plan.limitationsAppliedTitle` | Your plan follows your declared limitations | Tu plan sigue las limitaciones que declaraste | **SHIPPED** |
+| `wellness.plan.limitationsAppliedBody` | The movements you said you would rather avoid have been left out of your plan. The body areas you marked are recorded for your own reference and do not change any exercise, set or calorie on their own. | Los movimientos que dijiste que preferías evitar quedaron fuera de tu plan. Las zonas del cuerpo que marcaste se guardan como referencia para ti y por sí solas no cambian ningún ejercicio, serie ni caloría. | **SHIPPED** |
+| `wellness.plan.limitationsAppliedBasis` | This adjustment uses only the movement choices you entered, exactly as you entered them. Nothing else is assumed or inferred from them. | Este ajuste usa solo las opciones de movimiento que escribiste, tal como las escribiste. No se supone ni se deduce nada más a partir de ellas. | **SHIPPED** |
+| `workout.plan.wellnessUnavailableTitle` | Your plan is on hold | Tu plan está en espera | **SHIPPED** |
+| `workout.plan.wellnessUnavailableBody` | Your declared limitations could not be read on this device right now, so no plan is shown — showing one that ignored them would not be right. Open your evaluation and limitations to check the answers, then come back. | Las limitaciones que declaraste no se pudieron leer en este dispositivo ahora mismo, así que no se muestra ningún plan: mostrar uno que las ignore no sería correcto. Abre tu evaluación y limitaciones para revisar tus respuestas y vuelve luego. | **SHIPPED** |
+| `workout.plan.coverageTitle` | A full week could not be built yet | Todavía no se pudo armar una semana completa | **SHIPPED** |
+| `workout.plan.coverageBody` | Your declared limitations are all being respected, so some sessions have no exercise left to offer with your current equipment. Nothing has been added back. You can review your declarations whenever you want, or add equipment later. | Se respetan todas las limitaciones que declaraste, así que algunas sesiones se quedaron sin ejercicios disponibles con tu equipo actual. No se volvió a agregar nada. Puedes revisar lo que declaraste cuando quieras, o agregar equipo más adelante. | **SHIPPED** |
+
+**Localization changes no computed value.** Switching language changes these
+strings and nothing else — not the exclusion set, not the recommendation’s
+stable rule id or `inputs`, not the rule version and not the routine identity.
 
 ---
 # Proposed-key handoff

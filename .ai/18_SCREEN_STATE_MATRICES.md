@@ -42,6 +42,16 @@ reconciled.
 Every claim below was verified by read-only inspection of `origin/main` at
 commit `fb02097593ff9a2735f54620d6350d880cf3a030` (the ADR-P027 merge).
 
+**Re-verified for ADR-P031 W-4E against `origin/main`
+`bd71092cfec8e06b51bbe034f00d73a1b88a6da7`.** Three things changed and
+nothing else: **surface 11 becomes SHIPPED** (W-3 merged as `8cb9271`),
+surface 1 gains one more **Error** trigger, and §12 documents the generated
+plan’s two Error treatments. The **eight canonical state names are
+unchanged**, no ninth state is introduced, no Conflict **resolution** is
+added anywhere, and the counted surface inventory stays at **eleven** for the
+reason §12 states. Localization at `bd71092`: **904 keys each in EN and ES —
+exact parity** (696 at `fb02097`).
+
 Inspected: `mobile/src/app/` (15 files — 14 user-facing routes plus
 `_layout.tsx`), the `dashboard`, `workout`, `nutrition` and `progress` feature
 slices in full (`presentation/`, `application/`, `domain/`, `infrastructure/`),
@@ -225,17 +235,22 @@ full-screen takeovers.
 | **Data-gap** | `status === 'empty'` — the read succeeded but `data.assessment` is `null` because prerequisites are missing | `<OnboardingChecklistCard gaps={data.missing} />` (UX-4B) — card-local, the five gap ids grouped into three named steps, each with a routing button, above a "{completed} of {total} complete" line. Advisory: nothing here gates any surface | User supplies the named input on the owning screen | Both | `dashboard.store.ts:19`; spec *"renders the first-run checklist and dev sample action on the empty state"*; `dashboard.onboarding.*` (7 keys) + `dashboard.gap.*` (19 keys) | SHIPPED |
 | **Data-gap** (second site) | `status === 'ready'` **and** `data.missing.length > 0` — an assessment exists but notes remain | Second `<DataGapCard>` below the assessment summary | Same | Both | `DashboardScreen.tsx:96-98` | SHIPPED |
 | **Error** | `error !== null` (set with `status === 'error'` by `refresh()` or `loadSampleData()`) | `<Banner tone="error">`, `dashboard.unavailable` / `dashboard.errorMessage`. **No retry control** — zero retry keys exist | Next successful `refresh()` | Both | `DashboardScreen.tsx:53-57`; `dashboard.store.ts:29`; spec *"surfaces dashboard and sync error states with safe copy"* | SHIPPED |
+| **Error** — wellness unreadable | `data.wellness === 'unavailable'`, which the store maps to `status === 'error'` with `error` deliberately left `null` (ADR-P031 §Decision 8) | `<Banner tone="error">`, `workout.plan.wellnessUnavailableTitle/Body`. **No assessment, no recommendations and no first-run checklist render**, so nothing is presented as respecting declarations the app could not read. The recovery is the always-present "Evaluation and limitations" entry; this state adds **no** control of its own, and names **no** reason, field, token or conflict detail | A successful read (`absent` or `available`) | Both | `dashboard.store.ts` `resolveStatus`; `DashboardScreen.tsx`; specs *"renders the canonical Error treatment with the wellness copy"*, *"shows no assessment, no recommendations and no first-run checklist"*, *"names no field, reason or token"*, *"renders it in Spanish too"* | SHIPPED |
 | **Web unavailable** | `status === 'web-unavailable'` — `isDatabaseUnsupportedOnWebError` on load (ADR-P019) | `<Banner tone="info">`, `dashboard.webUnavailableTitle/Body`. Not logged, not retried, no fabricated data | **None** — terminal for the data region | **Web only** | `DashboardScreen.tsx:60-66` and its inline ADR-P019 comment; `dashboard.store.ts:21-27`; specs *"renders a distinct web-unavailable state in English with no retry or fabricated data (ADR-P019)"*, *"…in Spanish"* | SHIPPED |
 | **Offline** | Rendered by the embedded sync status banner — surface 2 | Banner, `warning` | Connectivity returns and the user syncs again | Native | Surface 2 | SHIPPED |
 | **Pending sync** | Surface 2 | Banner, `info`, with counts | Queue drains | Native | Surface 2 | SHIPPED |
 | **Conflict** | Surface 2 | Banner, `warning`, with count | Explicit user decision — **no resolution UI exists**, see BUG-012 | Native | Surface 2 | SHIPPED |
 | **Empty** | — | — | — | — | The dashboard renders no user-owned collection: there is nothing that can *succeed and be empty*. A missing assessment is Data-gap, not Empty | **n/a** |
 
-**Canonical-state count: seven of eight.** Counting the complete dashboard
+**Canonical-state count: seven of eight — unchanged by ADR-P031.** Counting the
+complete dashboard
 composition — including the embedded sync banner and data-gap card, which are the
 treatments that carry its sync and prerequisite states — the dashboard renders
 Loading, Data-gap, Error, Offline, Pending sync, Conflict and Web unavailable.
-**Empty is the only absent state.** This is the count now applied consistently
+**Empty is the only absent state.** The wellness-unreadable row above is a
+second **Error** trigger, not a new state: it reuses the canonical Error name
+and tone. Deliberately, it is **not** Data-gap (nothing is a prerequisite the
+user supplies elsewhere) and **not** Empty (no read succeeded). This is the count now applied consistently
 across `.ai/17_PRODUCT_FLOWS.md` §Flow 3 / §Flow 4 and **ADR-P027** Decision 3;
 see **C-6**.
 
@@ -530,8 +545,10 @@ not canonical states of their own.
 (the fields live in `WellnessSafetyProfileForm.tsx`). **Store:**
 `useWellnessSafetyProfileStore`, status union
 `'idle' | 'loading' | 'ready' | 'saving' | 'error' | 'web-unavailable'`.
-**Status: TARGET** — ADR-P017 **W-3** is implemented but not on `main`, so
-every row below is TARGET, not SHIPPED, per §Status taxonomy.
+**Status: SHIPPED** — ADR-P017 **W-3** merged as `8cb9271`, so every row below
+is SHIPPED, per §Status taxonomy. Re-verified at `bd71092`: the screen, its
+store status union, its treatments and its copy are unchanged by ADR-P031,
+which reads the profile but does not touch this surface.
 
 This is the first surface whose **Error** state ships a **retry control**, and
 the first whose store carries a **typed error discriminant** instead of an
@@ -542,14 +559,14 @@ token value can reach a user.
 
 | State | Trigger — source state | Rendered treatment | Exit | Platform | Evidence | Status |
 |---|---|---|---|---|---|---|
-| **Web unavailable** | `status === 'web-unavailable'`, set when the store catches `DatabaseUnsupportedOnWebError` | **Full-screen early return**: heading + `<Banner tone="info">`, `wellness.safety.webUnavailableTitle/Body`. No form, no chips, no save, no retry | **None** — terminal | **Web only** | `WellnessSafetyProfileScreen.tsx`; specs *"renders the Web-unavailable state with no form and no retry (ADR-P019)"*, *"…in Spanish"* | TARGET |
-| **Loading** | `status === 'loading' \|\| 'idle'` | `wellness.safety.loading` text with `loadingAccessibility`, **and no form** — a blank prefilled form during a read would read as "nothing declared" | `load()` resolves | Both | spec *"loads on mount and shows Loading with no form"* | TARGET |
-| **Empty** | Read succeeded, `profile === null` | `wellness.safety.empty` muted line **plus the blank form**: creation happens on this screen, so Empty is editable by design | The user saves | Native | spec *"shows Empty as a successful read with the blank form ready to fill"* | TARGET |
-| **Error** — load | `status === 'error' && error === 'load'` | `<Banner tone="error">` + a **retry button** (`wellness.safety.retry`). The form is **hidden**: the read did not complete, so an edit would be an uninformed overwrite | A retry succeeding | Both | spec *"renders Error with a retry, and hides the form while the read is unknown"* | TARGET |
-| **Error** — refused stored row | `error === 'invalid'`, from `WellnessProfileInvalid` thrown by the W-2 decoder | A separate `<Banner tone="error">`, `wellness.safety.invalidTitle/Message`. **No reason, field or token value** is rendered or logged; the stored row is **left untouched** (no repair, delete or overwrite), and the form stays so re-entry can replace it | A successful save | Native | specs *"renders a refused stored row as safe copy, exposing no reason or value"*, *"refuses a corrupt stored row without repairing, deleting or overwriting it"* | TARGET |
-| **Error** — write | `error === 'save' \| 'invalidInput' \| 'remove'` | Three separate inline `<Banner tone="error">` treatments, each distinct from the load error and **none wiping the form** (the Progress-screen precedent, not the Food Log defect) | The next successful write | Both | specs *"surfaces a save failure without wiping what was entered"*, *"asks the user to check their answers when the domain refuses them"*, *"surfaces a removal failure"* | TARGET |
-| **Pending sync** | `sync === 'pending'`, resolved from W-2's owner-scoped dirty probe | Muted caption `wellness.safety.syncPending` + `syncPendingAccessibility`; right after a write, the `pending` arm of the confirmation matrix below replaces it. Reassures — the write **is** stored on the device — while promising nothing about other devices | Queue drains | Native | specs *"reassures that a queued write is safely stored on the device"*, *"confirms a saved write under pending with the matching wording and tone"* | TARGET |
-| **Conflict** | `sync === 'conflict'`, from a PENDING `sync_conflicts` row for `wellness_safety_profiles` | `<Banner tone="warning">`, `wellness.safety.syncConflictTitle/Body`. **Report-only** — no chooser, no promised review destination, and **no "both versions preserved" claim** (BUG-014) | **None on this surface** — no resolution path exists anywhere (BUG-012) | Native | spec *"reports a divergence as warning, never error, and offers no resolution"* — asserts the rendered `warning` colour | TARGET |
+| **Web unavailable** | `status === 'web-unavailable'`, set when the store catches `DatabaseUnsupportedOnWebError` | **Full-screen early return**: heading + `<Banner tone="info">`, `wellness.safety.webUnavailableTitle/Body`. No form, no chips, no save, no retry | **None** — terminal | **Web only** | `WellnessSafetyProfileScreen.tsx`; specs *"renders the Web-unavailable state with no form and no retry (ADR-P019)"*, *"…in Spanish"* | SHIPPED |
+| **Loading** | `status === 'loading' \|\| 'idle'` | `wellness.safety.loading` text with `loadingAccessibility`, **and no form** — a blank prefilled form during a read would read as "nothing declared" | `load()` resolves | Both | spec *"loads on mount and shows Loading with no form"* | SHIPPED |
+| **Empty** | Read succeeded, `profile === null` | `wellness.safety.empty` muted line **plus the blank form**: creation happens on this screen, so Empty is editable by design | The user saves | Native | spec *"shows Empty as a successful read with the blank form ready to fill"* | SHIPPED |
+| **Error** — load | `status === 'error' && error === 'load'` | `<Banner tone="error">` + a **retry button** (`wellness.safety.retry`). The form is **hidden**: the read did not complete, so an edit would be an uninformed overwrite | A retry succeeding | Both | spec *"renders Error with a retry, and hides the form while the read is unknown"* | SHIPPED |
+| **Error** — refused stored row | `error === 'invalid'`, from `WellnessProfileInvalid` thrown by the W-2 decoder | A separate `<Banner tone="error">`, `wellness.safety.invalidTitle/Message`. **No reason, field or token value** is rendered or logged; the stored row is **left untouched** (no repair, delete or overwrite), and the form stays so re-entry can replace it | A successful save | Native | specs *"renders a refused stored row as safe copy, exposing no reason or value"*, *"refuses a corrupt stored row without repairing, deleting or overwriting it"* | SHIPPED |
+| **Error** — write | `error === 'save' \| 'invalidInput' \| 'remove'` | Three separate inline `<Banner tone="error">` treatments, each distinct from the load error and **none wiping the form** (the Progress-screen precedent, not the Food Log defect) | The next successful write | Both | specs *"surfaces a save failure without wiping what was entered"*, *"asks the user to check their answers when the domain refuses them"*, *"surfaces a removal failure"* | SHIPPED |
+| **Pending sync** | `sync === 'pending'`, resolved from W-2's owner-scoped dirty probe | Muted caption `wellness.safety.syncPending` + `syncPendingAccessibility`; right after a write, the `pending` arm of the confirmation matrix below replaces it. Reassures — the write **is** stored on the device — while promising nothing about other devices | Queue drains | Native | specs *"reassures that a queued write is safely stored on the device"*, *"confirms a saved write under pending with the matching wording and tone"* | SHIPPED |
+| **Conflict** | `sync === 'conflict'`, from a PENDING `sync_conflicts` row for `wellness_safety_profiles` | `<Banner tone="warning">`, `wellness.safety.syncConflictTitle/Body`. **Report-only** — no chooser, no promised review destination, and **no "both versions preserved" claim** (BUG-014) | **None on this surface** — no resolution path exists anywhere (BUG-012) | Native | spec *"reports a divergence as warning, never error, and offers no resolution"* — asserts the rendered `warning` colour | SHIPPED |
 | **Offline** | — | — | — | — | **No Offline signal reaches this surface.** The store receives no connectivity or sync outcome, exactly as for surfaces 9 and 10. This records what the screen receives, not a limit on what it could be given | **n/a** |
 | **Data-gap** | — | — | — | — | These answers are user-entered; nothing is a prerequisite. The *dashboard* recommends the surface, which is the reverse relationship — and a recommendation is not a Data-gap: no output is blocked by its absence | **n/a** |
 
@@ -588,6 +605,39 @@ surface keeps rendering its data.
 
 ---
 
+# 12 — Generated workout plan (embedded, ADR-P031 W-4D)
+
+**File:** `mobile/src/features/workout/presentation/GeneratedWorkoutPlan.tsx`.
+**Sources:** `useDashboardStore` **and** `useProfileStore`. **Status:
+SHIPPED** at `bd71092`.
+
+**This is not a twelfth counted surface**, and the inventory above stays at
+eleven. Like Nutrition Targets and Nutrition Plan, this surface owns no store
+of its own: its Loading and Error branches are the **dashboard’s** states
+rendered under a different heading (§Architectural fact worth stating once).
+It is documented here because ADR-P031 W-4D gives it two Error triggers that
+exist nowhere else, and both need their treatment recorded.
+
+| State | Trigger — source state | Rendered treatment | Exit | Platform | Evidence | Status |
+|---|---|---|---|---|---|---|
+| **Error** — wellness unreadable | `data.wellness === 'unavailable'`, read from `useDashboardStore`; checked **before** the generic dashboard/profile failure | `<Banner tone="error">`, `workout.plan.wellnessUnavailableTitle/Body`. **No plan, no schedule, no exercise** — a routine that ignored the declarations must not be shown. Names no reason, field or token | A successful read | Both | `GeneratedWorkoutPlan.tsx`; specs *"an unreadable declaration renders the Error treatment, not a plan"*, *"the unreadable state names no field, reason or token"*, *"an unreadable declaration outranks the generic dashboard failure copy"* | SHIPPED |
+| **Error** — insufficient catalogue coverage | `selection.status === 'error' && selection.code === 'INSUFFICIENT_CATALOG_COVERAGE'` — declared movements left a mandatory slot with no eligible exercise | `<Banner tone="error">`, `workout.plan.coverageTitle/Body`. Calm and non-blaming: a catalogue limitation, not a user mistake. States that **every declared exclusion is kept and nothing was added back**, and offers a review without implying that removing a limitation is required or is the fix. Names **no** movement token and **no** `missingPatterns` value | Fewer declarations, or more equipment | Both | `GeneratedWorkoutPlan.tsx`; specs *"the coverage error names no missing pattern"*, *"renders the safe error state"*, *"renders both Error arms in Spanish too"* | SHIPPED |
+| **Error** — other generation failure | `selection.code === 'INVALID_REQUEST'` | The generic `workout.plan.errorTitle/errorMessage` treatment, unchanged by ADR-P031 | Corrected input | Both | spec *"keeps the generic error copy for a non-coverage failure"* | SHIPPED |
+
+**No exclusion is ever silently reintroduced.** Routine selection receives the
+assessment’s own `TrainingPlan.excludedMovements`, so the list the assessment
+reports and the list the generator filters on are the **same sorted,
+de-duplicated list**. When that list empties a mandatory slot the generator
+reports the coverage Error; it never re-includes an excluded exercise to make
+a week buildable (ADR-P031 §Decision 15).
+
+**Neither row is a ninth state**, and neither adds Conflict resolution: both
+reuse the canonical **Error** name and tone. The declared **areas** and both
+evaluation fields reach this surface as inert context and change no exercise,
+set or calorie.
+
+---
+
 # Coverage summary
 
 Eleven state-bearing surfaces. Legend: **S** SHIPPED · **T** TARGET
@@ -607,7 +657,7 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 8 | Food Log | S | S | — | S¹ | S | S | S | S |
 | 9 | Dietary Preferences | S | S | — | S | — | S | S | S |
 | 10 | Progress | S | S | — | S | — | S³ | S³ | S |
-| 11 | Evaluation and limitations | T | T | — | T⁴ | — | T | T | T |
+| 11 | Evaluation and limitations | S | S | — | S⁴ | — | S | S | S |
 
 ¹ load, write, sync and catalog-incompatibility errors are all SHIPPED. Write
 errors ship as three separate per-operation treatments (BUG-008), each distinct
@@ -619,11 +669,19 @@ in the dashboard's seven-of-eight total.
 ⁴ four Error treatments, all distinct: the load failure (with the retry), the
 refused stored row, the save failure and the removal failure.
 
-**Totals.** **PROPOSED: none.** Every applicable state on every surface now has
-an implemented treatment — surface 11’s are **TARGET** rather than SHIPPED
-because ADR-P017 W-3 is not on `main` yet; nothing on surfaces 1–10 changed. Surface 8's Error — writes row shipped with BUG-008; BUG-011's
+**Totals.** **PROPOSED: none. TARGET: none.** Every applicable state on every
+surface has an implemented, shipped treatment: surface 11 moved from TARGET to
+**SHIPPED** when ADR-P017 W-3 merged as `8cb9271`, and nothing on surfaces
+1–10 changed with it. Surface 8's Error — writes row shipped with BUG-008; BUG-011's
 three feature slices shipped surface 5's Conflict row, surface 9's two rows and
 surface 10's two rows; surface 4's Error row shipped with BUG-009.
+
+**ADR-P031 W-4D added two Error triggers, not a state.** Surface 1 gained the
+wellness-unreadable Error, and the generated plan (§12) carries that same
+trigger plus the insufficient-catalogue-coverage Error. Every column heading
+in this grid is unchanged, no ninth state exists, and no Conflict
+**resolution** was added anywhere — every Conflict treatment stays
+report-only (BUG-012).
 
 **Two owners still have open work that this grid does not track**, and neither is
 a missing treatment:
@@ -656,7 +714,12 @@ presentation files, **25** keys and **21** specs with W-3 (12 / 23 / 19 at
 `fb02097`). It is the most consistently implemented state in the product.
 **Offline is the narrowest**: two surfaces and four keys, and the matrices show
 why — at this commit an authoritative connectivity signal is exposed to only
-those two surfaces, and surface 11 does not change that.
+those two surfaces, and surface 11 does not change that. **ADR-P031 does not
+change either count**: consumption is a read inside the dashboard load and
+introduces no Web-unavailable or Offline branch of its own — Web’s dormant
+local database still surfaces as the dashboard’s own Web-unavailable state,
+because the read re-throws that error instead of reporting it as unreadable
+wellness data.
 
 ---
 

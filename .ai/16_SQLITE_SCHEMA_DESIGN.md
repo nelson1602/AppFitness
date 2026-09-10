@@ -90,8 +90,15 @@ the sync worker and verifies the pulled row's owner and id before writing,
 rather than trusting the payload as the older progress/profile appliers do.
 W-3 adds the store and the capture surface over that repository — a
 session-guarded route, a dashboard recommendation and EN/ES copy — and
-touches no schema, migration or statement. **No iCoach input exists yet
-(W-4)**: a user can record a limitation, but nothing reads it.
+touches no schema, migration or statement. **W-4 consumes the profile as of
+`bd71092`** (ADR-P031, merged 2026-09-10): declared movements filter the
+assessment and the generated routine, and a relevant `PENDING`
+`sync_conflicts` row contributes a read-only, owner-scoped projection of its
+`server_payload` — selected by owner, entity type, singleton entity id and
+status **before** parsing, with `local_payload` never read. **This changed no
+schema, no migration and no statement in this document**: consumption is
+read-only, adds no table, column, index or trigger, and issues no write,
+enqueue or conflict mutation.
 
 # Key Decisions
 
