@@ -102,6 +102,7 @@ describe('OnboardingChecklistCard', () => {
       activeGoal: null,
       physicalAssessment: { weightKg: null, bodyFatPct: null },
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
     if (adapter.status !== 'incomplete') throw new Error('expected an incomplete first run');
     const outstanding = [...adapter.missing, ...adapter.notes];
@@ -119,6 +120,7 @@ describe('OnboardingChecklistCard', () => {
       activeGoal: null,
       physicalAssessment: { weightKg: null, bodyFatPct: null },
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
     if (adapter.status !== 'incomplete') throw new Error('expected an incomplete first run');
 

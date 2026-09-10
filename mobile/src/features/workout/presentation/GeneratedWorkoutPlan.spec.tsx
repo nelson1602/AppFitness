@@ -149,7 +149,9 @@ describe('GeneratedWorkoutPlan', () => {
   it.each([
     ['gap', 'Complete your baseline first'],
     ['blocked', 'Workout plan unavailable'],
-    ['error', 'Workout plan needs attention'],
+    // ADR-P031 §Decision 15: insufficient coverage keeps the Error tone but
+    // gets its own calm, non-blaming copy — it is a catalogue limitation.
+    ['error', 'A full week could not be built yet'],
   ] as const)('renders the safe %s state', async (status, title) => {
     const selection: WorkoutRoutineSelection =
       status === 'error'
@@ -168,5 +170,134 @@ describe('GeneratedWorkoutPlan', () => {
     expect(screen.getByText('Equipment not recognized')).toBeOnTheScreen();
     expect(screen.getByText(/bench attachment/)).toBeOnTheScreen();
     expect(screen.getAllByText('Back squat')).toHaveLength(2);
+  });
+  // ── ADR-P031 W-4C/W-4D presentation (tests D15, G31, I34) ────────────────
+
+  describe('the wellness Error arms', () => {
+    const profile = {
+      equipment: ['dumbbells', 'barbell', 'bench', 'pull-up bar', 'kettlebell'],
+      sessionDurationMins: 45,
+    };
+
+    it('D15: an unreadable declaration renders the Error treatment, not a plan', async () => {
+      mockDashboardState = {
+        status: 'error',
+        data: { wellness: 'unavailable', assessment: null },
+        refresh: mockRefreshDashboard,
+      };
+      mockProfileState = { status: 'ready', profile, load: mockLoadProfile };
+
+      await render(<GeneratedWorkoutPlan />);
+
+      expect(screen.getByText('Your plan is on hold')).toBeOnTheScreen();
+      // No plan, no schedule, no exercise — nothing presented as personalized.
+      expect(screen.queryByText('Your weekly iCoach plan')).not.toBeOnTheScreen();
+      expect(screen.queryByText('Back squat')).not.toBeOnTheScreen();
+      // And it is not the first-run Data-gap arm either.
+      expect(screen.queryByText('Complete your baseline first')).not.toBeOnTheScreen();
+    });
+
+    it('D15: the unreadable state names no field, reason or token', async () => {
+      mockDashboardState = {
+        status: 'error',
+        data: { wellness: 'unavailable', assessment: null },
+        refresh: mockRefreshDashboard,
+      };
+      mockProfileState = { status: 'ready', profile, load: mockLoadProfile };
+
+      await render(<GeneratedWorkoutPlan />);
+
+      const body = screen.getByText(/could not be read on this device/);
+      expect(body).toBeOnTheScreen();
+      for (const forbidden of ['movements_to_avoid', 'unknown-token', 'jumping', 'deep_squat']) {
+        expect(screen.queryByText(new RegExp(forbidden))).not.toBeOnTheScreen();
+      }
+    });
+
+    it('an unreadable declaration outranks the generic dashboard failure copy', async () => {
+      mockDashboardState = {
+        status: 'error',
+        data: { wellness: 'unavailable', assessment: null },
+        refresh: mockRefreshDashboard,
+      };
+      mockProfileState = { status: 'ready', profile, load: mockLoadProfile };
+
+      await render(<GeneratedWorkoutPlan />);
+
+      expect(screen.queryByText('Workout plan needs attention')).not.toBeOnTheScreen();
+    });
+
+    it('G31: passes the assessment’s own exclusions into selection, not []', async () => {
+      const assessment = {
+        assessment: {
+          training: {
+            blocked: false,
+            requiresMedicalClearance: false,
+            intensity: 'MODERATE',
+            rpeCap: 8,
+            daysPerWeek: 3,
+            excludedMovements: ['dips', 'jumping'],
+          },
+        },
+        engineInput: { goal: 'GENERAL_HEALTH', fitnessLevel: 'INTERMEDIATE' },
+        notes: [],
+      };
+      mockDashboardState = {
+        status: 'ready',
+        data: { wellness: 'available', assessment },
+        refresh: mockRefreshDashboard,
+      };
+      mockProfileState = { status: 'ready', profile, load: mockLoadProfile };
+
+      await render(<GeneratedWorkoutPlan />);
+
+      // A routine was produced, and none of its exercises match a declared
+      // movement — the same list the assessment reports.
+      await waitFor(() => expect(screen.getByText('Your weekly iCoach plan')).toBeOnTheScreen());
+      for (const excluded of ['Parallel-bar dips', 'Box jump']) {
+        expect(screen.queryByText(excluded)).not.toBeOnTheScreen();
+      }
+    });
+
+    it('I34: the coverage error names no missing pattern', async () => {
+      await render(
+        <GeneratedWorkoutPlanView
+          selection={{
+            status: 'error',
+            code: 'INSUFFICIENT_CATALOG_COVERAGE',
+            missingPatterns: ['SQUAT', 'HINGE'],
+          }}
+        />,
+      );
+
+      expect(screen.getByText('A full week could not be built yet')).toBeOnTheScreen();
+      expect(screen.getByText(/all being respected/)).toBeOnTheScreen();
+      expect(screen.queryByText(/SQUAT/)).not.toBeOnTheScreen();
+      expect(screen.queryByText(/HINGE/)).not.toBeOnTheScreen();
+    });
+
+    it('keeps the generic error copy for a non-coverage failure', async () => {
+      await render(
+        <GeneratedWorkoutPlanView
+          selection={{ status: 'error', code: 'INVALID_REQUEST', missingPatterns: [] }}
+        />,
+      );
+
+      expect(screen.getByText('Workout plan needs attention')).toBeOnTheScreen();
+    });
+
+    it('renders both Error arms in Spanish too', async () => {
+      mockLanguage = 'es';
+      await render(
+        <GeneratedWorkoutPlanView
+          selection={{
+            status: 'error',
+            code: 'INSUFFICIENT_CATALOG_COVERAGE',
+            missingPatterns: ['SQUAT'],
+          }}
+        />,
+      );
+      expect(screen.getByText('Todavía no se pudo armar una semana completa')).toBeOnTheScreen();
+    });
   });
 });

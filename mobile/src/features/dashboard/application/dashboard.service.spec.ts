@@ -14,6 +14,10 @@ import { loadDashboardData, loadSampleDashboardData } from './dashboard.service'
 
 jest.mock('@/features/authentication', () => ({
   getSession: jest.fn(),
+  // The service now reaches wellness through its public interface
+  // (.ai/06_MOBILE.md), and that barrel also loads the W-3 store, which
+  // binds itself to the session at import time.
+  bindStoreToSession: jest.fn(),
 }));
 jest.mock('@/features/icoach/domain/engine', () => ({
   evaluate: jest.fn(),

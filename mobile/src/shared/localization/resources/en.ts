@@ -291,6 +291,18 @@ export const en = {
   'workout.plan.errorTitle': 'Workout plan needs attention',
   'workout.plan.errorMessage':
     'A complete routine could not be built from the current equipment and limitations.',
+  // ADR-P031 §Decision 15. A catalogue limitation, not a user mistake: calm,
+  // non-blaming, states that every declared exclusion is kept, and offers a
+  // review without implying that removing one is the fix. Names no movement,
+  // no missing pattern and no count.
+  'workout.plan.coverageTitle': 'A full week could not be built yet',
+  'workout.plan.coverageBody':
+    'Your declared limitations are all being respected, so some sessions have no exercise left to offer with your current equipment. Nothing has been added back. You can review your declarations whenever you want, or add equipment later.',
+  // ADR-P031 §Decision 8: the declaration could not be read. Never phrased as
+  // "nothing declared", and it names no field, reason or value.
+  'workout.plan.wellnessUnavailableTitle': 'Your plan is on hold',
+  'workout.plan.wellnessUnavailableBody':
+    'Your declared limitations could not be read on this device right now, so no plan is shown — showing one that ignored them would not be right. Open your evaluation and limitations to check the answers, then come back.',
   'workout.plan.unsupportedTitle': 'Equipment not recognized',
   'workout.plan.unsupportedMessage':
     'These profile values were not used. Update them to a supported equipment option:',
@@ -314,6 +326,14 @@ export const en = {
   'workout.plan.addDuration': 'add seconds',
   'workout.plan.wellnessNotice':
     'General fitness guidance only. Stop if an exercise causes pain and adapt the plan to your self-declared physical limitations.',
+  // ADR-P031 §Decision 10: the assessment recommendation. Localization keys
+  // only — the validated movements stay inside the rule inputs and never
+  // appear here, and neither does a count, a date or an area.
+  'wellness.plan.limitationsAppliedTitle': 'Your plan follows your declared limitations',
+  'wellness.plan.limitationsAppliedBody':
+    'The movements you said you would rather avoid have been left out of your plan. The body areas you marked are recorded for your own reference and do not change any exercise, set or calorie on their own.',
+  'wellness.plan.limitationsAppliedBasis':
+    'This adjustment uses only the movement choices you entered, exactly as you entered them. Nothing else is assumed or inferred from them.',
   'workout.day.monday': 'Monday',
   'workout.day.tuesday': 'Tuesday',
   'workout.day.wednesday': 'Wednesday',

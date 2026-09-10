@@ -11,10 +11,30 @@ import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/databas
 import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
 
-import type { DashboardState, DashboardStatus, SyncUiStatus } from '../domain/dashboard.types';
+import type {
+  DashboardData,
+  DashboardState,
+  DashboardStatus,
+  SyncUiStatus,
+} from '../domain/dashboard.types';
 import { loadDashboardData, loadSampleDashboardData } from './dashboard.service';
 
 const INITIAL = { status: 'idle' as DashboardStatus, data: null, error: null };
+
+/**
+ * The read outcome, in precedence order (ADR-P031 §Decision 8).
+ *
+ * An unreadable wellness declaration is an **operation failure**, so it is
+ * `error` — never `empty`, which would render the first-run Data-gap
+ * checklist and read as "nothing declared". It is set without an `error`
+ * message so the surface shows the wellness-specific Error copy instead of
+ * the generic banner, and nothing about the refusal is logged: a refusal can
+ * name a field, and a field name is still wellness content.
+ */
+function resolveStatus(data: DashboardData): DashboardStatus {
+  if (data.wellness === 'unavailable') return 'error';
+  return data.assessment ? 'ready' : 'empty';
+}
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   ...INITIAL,
@@ -27,7 +47,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       owner = requireSessionSnapshot();
       const data = await loadDashboardData();
       if (!isSessionCurrent(owner)) return;
-      set({ data, status: data.assessment ? 'ready' : 'empty', error: null });
+      set({ data, status: resolveStatus(data), error: null });
     } catch (error) {
       if (owner && !isSessionCurrent(owner)) return;
       if (isDatabaseUnsupportedOnWebError(error)) {
@@ -97,7 +117,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
                   : 'Sync needs attention.',
           },
         },
-        status: data.assessment ? 'ready' : 'empty',
+        status: resolveStatus(data),
       });
     } catch (error) {
       logError('dashboard.syncNow', error);
@@ -106,7 +126,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       if (owner && !isSessionCurrent(owner)) return;
       set({
         data: { ...data, sync: { ...data.sync, status: 'error', message: 'Sync failed.' } },
-        status: data.assessment ? 'ready' : 'empty',
+        status: resolveStatus(data),
       });
     }
   },

@@ -74,6 +74,16 @@ export function resolveRecommendationCopy(
         }),
         evidence: t('dashboard.recommendation.sleepEvidence'),
       };
+    case 'WELLNESS:movement_exclusions':
+      // Localization keys only. No token, no count, no evaluation date and
+      // no `inputs` value is interpolated: the validated movements stay
+      // inside `Recommendation.inputs` and never reach rendered copy
+      // (ADR-P031 §Decision 10).
+      return {
+        title: t('wellness.plan.limitationsAppliedTitle'),
+        explanation: t('wellness.plan.limitationsAppliedBody'),
+        evidence: t('wellness.plan.limitationsAppliedBasis'),
+      };
     case 'BODY:underweight_fat_loss_warning':
       return {
         title: t('dashboard.recommendation.underweightTitle'),

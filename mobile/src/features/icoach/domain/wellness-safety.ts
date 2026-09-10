@@ -84,8 +84,21 @@ export const WELLNESS_REASON_MOVEMENT_DECLARED = 'wellness.movement.declared';
 /** Stable rule identifier for the assessment recommendation (Decision 10). */
 export const WELLNESS_RULE_MOVEMENT_EXCLUSIONS = 'WELLNESS:movement_exclusions';
 
-/** Stable explanation key for the routine surface (Decision 10, used by W-4D). */
-export const WELLNESS_PLAN_EXPLANATION_KEY = 'wellness.plan.limitations_applied';
+/**
+ * The stable localization keys the assessment recommendation is rendered from
+ * (Decision 10).
+ *
+ * One family, spelled the way every other key in the shipped catalogues is:
+ * dot-separated namespace, **camelCase leaf**. An earlier revision also
+ * exported a snake_case `wellness.plan.limitations_applied`, which nothing
+ * rendered — two spellings of one idea is how a surface ends up printing a raw
+ * key, so the competing spelling is gone.
+ */
+export const WELLNESS_PLAN_EXPLANATION_KEYS = {
+  title: 'wellness.plan.limitationsAppliedTitle',
+  body: 'wellness.plan.limitationsAppliedBody',
+  basis: 'wellness.plan.limitationsAppliedBasis',
+} as const;
 
 /**
  * Why a wellness input was refused. Names the **field and the rule** only.

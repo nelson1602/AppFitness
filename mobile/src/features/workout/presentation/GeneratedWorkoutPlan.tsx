@@ -42,6 +42,10 @@ const WEEKDAY_KEYS: Readonly<Record<Weekday, TranslationKey>> = {
 export function GeneratedWorkoutPlan() {
   const dashboardStatus = useDashboardStore((state) => state.status);
   const assessment = useDashboardStore((state) => state.data?.assessment ?? null);
+  // The read outcome, so this surface can tell an unreadable declaration
+  // (ADR-P031 §Decision 8) from a generic dashboard failure and say the
+  // right thing about it.
+  const wellnessRead = useDashboardStore((state) => state.data?.wellness ?? 'absent');
   const refreshDashboard = useDashboardStore((state) => state.refresh);
   const profileStatus = useProfileStore((state) => state.status);
   const profile = useProfileStore((state) => state.profile);
@@ -62,7 +66,10 @@ export function GeneratedWorkoutPlan() {
         ? selectWorkoutRoutine(assessment, {
             equipment: profile.equipment,
             sessionDurationMins: profile.sessionDurationMins,
-            excludedMovements: [],
+            // ADR-P031 W-4D: the assessment’s own exclusion set, not `[]`.
+            // Same list, same order, so the routine can never contain what
+            // the assessment says was excluded.
+            excludedMovements: assessment?.assessment.training.excludedMovements ?? [],
           })
         : ({ status: 'gap' } satisfies WorkoutRoutineSelection),
     [assessment, profile],
@@ -78,6 +85,17 @@ export function GeneratedWorkoutPlan() {
       <Card accessibilityLabel={t('workout.plan.accessibility')}>
         <AppText>{t('workout.plan.loading')}</AppText>
       </Card>
+    );
+  }
+
+  // An unreadable declaration outranks the generic failure: the plan must not
+  // be presented as respecting limitations the app could not read, and it is
+  // not Empty, not Data-gap and not a crash.
+  if (wellnessRead === 'unavailable') {
+    return (
+      <Banner title={t('workout.plan.wellnessUnavailableTitle')} tone="error">
+        {t('workout.plan.wellnessUnavailableBody')}
+      </Banner>
     );
   }
 
@@ -111,9 +129,17 @@ export function GeneratedWorkoutPlanView({ selection }: { selection: WorkoutRout
     );
   }
   if (selection.status === 'error') {
+    // Insufficient catalogue coverage is a catalogue limitation, not a user
+    // mistake: every declared exclusion is kept, and reviewing the
+    // declarations is offered without implying that removing one is the fix
+    // (ADR-P031 §Decision 15). No missing pattern and no token is named.
+    const coverage = selection.code === 'INSUFFICIENT_CATALOG_COVERAGE';
     return (
-      <Banner title={t('workout.plan.errorTitle')} tone="error">
-        {t('workout.plan.errorMessage')}
+      <Banner
+        title={t(coverage ? 'workout.plan.coverageTitle' : 'workout.plan.errorTitle')}
+        tone="error"
+      >
+        {t(coverage ? 'workout.plan.coverageBody' : 'workout.plan.errorMessage')}
       </Banner>
     );
   }

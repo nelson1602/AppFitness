@@ -73,6 +73,7 @@ function report(outcome: SyncOutcome): SyncReport {
 
 const emptyData: DashboardData = {
   assessment: null,
+  wellness: 'absent',
   missing: [],
   sync: {
     pending: 0,

@@ -17,8 +17,18 @@ export interface WorkoutRoutinePreferences {
   /** Legacy/free-text profile values; normalized without guessing unknown values. */
   equipment: readonly string[];
   sessionDurationMins: number | null;
-  /** Wellness-owned limitation tokens only; never source these from dormant medical records. */
-  excludedMovements?: readonly string[];
+  /**
+   * The exclusion set the assessment computed —
+   * `assessment.assessment.training.excludedMovements` (ADR-P031 W-4D).
+   * Wellness-owned tokens only: the medical analysis contributes nothing in
+   * public v1, so this list is exactly what the user declared.
+   *
+   * **Required.** It was optional while consumption was dormant, which
+   * meant a caller could omit it and silently receive an unfiltered
+   * routine — exactly the half-activation ADR-P031 §Implementation slices
+   * forbids. Passing `[]` is now a deliberate statement, not a default.
+   */
+  excludedMovements: readonly string[];
 }
 
 export type WorkoutRoutineSelection =
@@ -56,7 +66,7 @@ export function selectWorkoutRoutine(
   if (training.blocked || training.daysPerWeek < 1) return { status: 'blocked' };
 
   const normalizedEquipment = normalizeTrainingEquipment(preferences.equipment);
-  const excludedMovements = normalizeMovementTokens(preferences.excludedMovements ?? []);
+  const excludedMovements = normalizeMovementTokens(preferences.excludedMovements);
 
   try {
     const routine = generateWorkoutRoutine(
@@ -68,9 +78,13 @@ export function selectWorkoutRoutine(
         daysPerWeek: training.daysPerWeek,
         sessionDurationMins: preferences.sessionDurationMins,
         availableEquipment: normalizedEquipment.equipment,
-        // Deliberately do not read `training.excludedMovements`: that legacy
-        // field is derived from the dormant medical contract. Public wellness
-        // limitations arrive only through the explicit preference above.
+        // ADR-P031 W-4D: the caller passes the assessment’s own
+        // `training.excludedMovements`, so the plan the user reads and the
+        // routine the generator builds filter on the SAME list. It is not
+        // read from `training` here on purpose: the argument stays explicit,
+        // so a caller cannot accidentally personalize a routine from an
+        // assessment it never showed. Both sides sort and de-duplicate, so
+        // the two sets are equal, not merely equivalent.
         excludedMovements,
       },
       BUILT_IN_CATALOG,

@@ -23,7 +23,10 @@ import {
  * It contains no diagnosis, rehabilitation, medical clearance, randomness,
  * clock access, persistence, network access, or user-facing prose.
  */
-export const WORKOUT_ROUTINE_RULE_VERSION = 'icoach-workout-rules@1.0.0';
+// ADR-P031 W-4D: `@1.1.0` is the first revision whose routines are filtered by
+// the user's own declared movements. The exercise catalogue is unchanged, so
+// `EXERCISE_CATALOG_VERSION` does not move; only the rule family does.
+export const WORKOUT_ROUTINE_RULE_VERSION = 'icoach-workout-rules@1.1.0';
 
 export type WorkoutRoutineGenerationErrorCode = 'INVALID_REQUEST' | 'INSUFFICIENT_CATALOG_COVERAGE';
 

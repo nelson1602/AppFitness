@@ -1,4 +1,7 @@
-import { buildDashboardAssessment } from './icoach-adapter';
+import { InvalidEngineInputError } from '@/features/icoach/domain/types';
+import type { WellnessDeclaration } from '@/features/wellness/application/wellness-safety-consumption';
+
+import { buildDashboardAssessment, type AdapterSources } from './icoach-adapter';
 
 const profile = {
   id: 'profile-1',
@@ -47,12 +50,14 @@ describe('buildDashboardAssessment', () => {
       },
       physicalAssessment,
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
     const second = buildDashboardAssessment({
       profile,
       activeGoal: null,
       physicalAssessment,
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
 
     expect(first.status).toBe('ready');
@@ -69,6 +74,7 @@ describe('buildDashboardAssessment', () => {
       activeGoal: null,
       physicalAssessment,
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
 
     expect(result.status).toBe('ready');
@@ -95,6 +101,7 @@ describe('buildDashboardAssessment', () => {
       },
       physicalAssessment,
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
 
     expect(result.status).toBe('ready');
@@ -109,6 +116,7 @@ describe('buildDashboardAssessment', () => {
       activeGoal: null,
       physicalAssessment: { weightKg: null, bodyFatPct: null },
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
 
     expect(result.status).toBe('incomplete');
@@ -128,6 +136,7 @@ describe('buildDashboardAssessment', () => {
       activeGoal: null,
       physicalAssessment: { weightKg: null, bodyFatPct: null },
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
 
     // Regression: the notes used to be computed AFTER the blocking early
@@ -144,6 +153,7 @@ describe('buildDashboardAssessment', () => {
       activeGoal: null,
       physicalAssessment: { weightKg: null, bodyFatPct: null },
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
 
     expect(result.status).toBe('incomplete');
@@ -170,6 +180,7 @@ describe('buildDashboardAssessment', () => {
       },
       physicalAssessment: { weightKg: null, bodyFatPct: null },
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
 
     expect(result.status).toBe('incomplete');
@@ -184,6 +195,7 @@ describe('buildDashboardAssessment', () => {
       activeGoal: null,
       physicalAssessment,
       today: '2026-07-06',
+      wellness: { status: 'absent' },
     });
 
     // The goal stays advisory: it must never block a ready assessment.
@@ -192,5 +204,149 @@ describe('buildDashboardAssessment', () => {
       expect(result.data.engineInput.goal).toBe('MAINTENANCE');
       expect(result.data.notes.map((item) => item.id)).toEqual(['default-goal']);
     }
+  });
+  // ── ADR-P031 W-4D, group C (test C12) ─────────────────────────────────────
+
+  const base: AdapterSources = {
+    profile,
+    activeGoal: null,
+    physicalAssessment,
+    today: '2026-07-06',
+    // Stated, never defaulted: the adapter has no implicit outcome to fall
+    // back on, so a fixture cannot forget the read either.
+    wellness: { status: 'absent' },
+  };
+
+  const declaration = (movementsToAvoid: readonly string[]): WellnessDeclaration => ({
+    evaluationCompleted: true,
+    evaluationDate: '2026-01-15',
+    affectedAreas: ['knee', 'shoulder'],
+    movementsToAvoid: movementsToAvoid as WellnessDeclaration['movementsToAvoid'],
+  });
+
+  it('C12: absent produces an unrestricted plan and no wellness input', () => {
+    const result = buildDashboardAssessment({ ...base, wellness: { status: 'absent' } });
+
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') return;
+    // `absent` omits the key entirely: "no profile" and "declared nothing" stay
+    // distinguishable in the engine input.
+    expect(result.data.engineInput).not.toHaveProperty('wellness');
+    expect(result.data.assessment.training.excludedMovements).toEqual([]);
+    expect(result.data.assessment.recommendations.map((rec) => rec.id)).not.toContain(
+      'WELLNESS:movement_exclusions',
+    );
+    expect(result.data.engineInput.restrictions).toEqual([]);
+  });
+
+  it('C12: available personalizes the plan from the declared movements', () => {
+    const result = buildDashboardAssessment({
+      ...base,
+      wellness: { status: 'available', declaration: declaration(['jumping', 'deep_squat']) },
+    });
+
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') return;
+    expect(result.data.engineInput.wellness).toEqual(declaration(['jumping', 'deep_squat']));
+    expect(result.data.assessment.training.excludedMovements).toEqual(['deep_squat', 'jumping']);
+    expect(result.data.assessment.recommendations.map((rec) => rec.id)).toContain(
+      'WELLNESS:movement_exclusions',
+    );
+    // Still no medical input, whatever the user declared.
+    expect(result.data.engineInput.restrictions).toEqual([]);
+  });
+
+  it('C12: unavailable withholds the assessment entirely', () => {
+    const result = buildDashboardAssessment({ ...base, wellness: { status: 'unavailable' } });
+
+    // Not `ready` with an empty exclusion set, and not `incomplete`: the plan
+    // must not be presented as respecting declarations that could not be read.
+    expect(result).toEqual({ status: 'unavailable' });
+  });
+
+  it('C12: the read outcome cannot be omitted', () => {
+    // A source without `wellness` is a TYPE error, not a silent `absent`:
+    // an implicit fallback is how a caller that forgot the read still gets
+    // a plausible-looking plan that ignores the declarations.
+    const incomplete: Omit<AdapterSources, 'wellness'> = {
+      profile,
+      activeGoal: null,
+      physicalAssessment,
+      today: '2026-07-06',
+    };
+    // @ts-expect-error — `wellness` is required, so this cannot compile. The
+    // guarantee is the compile error, not a runtime throw: the adapter is
+    // never called with an incomplete source.
+    const refused: AdapterSources = incomplete;
+    expect(refused).toBe(incomplete);
+
+    // And the three outcomes are the only shapes it accepts.
+    for (const wellness of [
+      { status: 'absent' } as const,
+      { status: 'unavailable' } as const,
+      { status: 'available', declaration: declaration([]) } as const,
+    ]) {
+      expect(() => buildDashboardAssessment({ ...base, wellness })).not.toThrow();
+    }
+  });
+
+  it('unavailable outranks an incomplete profile', () => {
+    // Error precedence: filling in prerequisites must not be offered as the way
+    // out of a read failure — it would produce a plan built from limitations
+    // the app never managed to read.
+    const result = buildDashboardAssessment({
+      ...base,
+      profile: null,
+      wellness: { status: 'unavailable' },
+    });
+    expect(result).toEqual({ status: 'unavailable' });
+  });
+
+  it('a declaration the engine still refuses becomes unavailable, not a crash', () => {
+    const result = buildDashboardAssessment({
+      ...base,
+      wellness: {
+        status: 'available',
+        declaration: declaration(['not_a_movement']),
+      },
+    });
+
+    expect(result).toEqual({ status: 'unavailable' });
+  });
+
+  it('does not swallow an unrelated engine failure', () => {
+    expect(() =>
+      buildDashboardAssessment({
+        ...base,
+        profile: { ...profile, heightCm: 178, birthDate: '1800-01-15' },
+        wellness: { status: 'absent' },
+      }),
+    ).toThrow(InvalidEngineInputError);
+  });
+
+  it('is deterministic and inert in the inert fields', () => {
+    const withAreas = buildDashboardAssessment({
+      ...base,
+      wellness: { status: 'available', declaration: declaration(['jumping']) },
+    });
+    const withoutAreas = buildDashboardAssessment({
+      ...base,
+      wellness: {
+        status: 'available',
+        declaration: {
+          evaluationCompleted: false,
+          evaluationDate: null,
+          affectedAreas: [],
+          movementsToAvoid: ['jumping'],
+        },
+      },
+    });
+
+    expect(withAreas.status === 'ready' && withoutAreas.status === 'ready').toBe(true);
+    if (withAreas.status !== 'ready' || withoutAreas.status !== 'ready') return;
+    // Areas and evaluation metadata change no computed value.
+    expect(JSON.stringify(withAreas.data.assessment)).toBe(
+      JSON.stringify(withoutAreas.data.assessment),
+    );
   });
 });
