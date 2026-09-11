@@ -3,10 +3,14 @@ import { AuditAction } from '@prisma/client';
 
 import { AuditService } from '../../audit/audit.service';
 import {
+  ApplyOutcome,
   EntitySyncHandler,
+  OwnedRowSnapshot,
   PulledChange,
+  ResolutionMutationInput,
   ServerEntityState,
   SyncOperationInput,
+  SyncTx,
 } from '../../sync/domain/sync.types';
 import {
   parseDietaryPreferenceCreate,
@@ -30,6 +34,13 @@ import {
  *   and REDACTED from conflict snapshots — never persisted plaintext in JSONB.
  * - Version conflicts are handled by the pipeline (recorded, never overwritten).
  * - DELETE is a soft-delete tombstone.
+ *
+ * ADR-P030 C-2: every read and write runs on the push operation's transaction
+ * client, the write predicate itself carries owner + expected version + the
+ * reviewed tombstone state, and a zero-row write returns `STALE` instead of
+ * reporting success. The audit record deliberately stays on the audit service's
+ * own client: it is best-effort and must not be undone by a rollback of the
+ * entity mutation (§Decision 11).
  */
 @Injectable()
 export class DietaryPreferenceSyncHandler implements EntitySyncHandler {
@@ -43,8 +54,9 @@ export class DietaryPreferenceSyncHandler implements EntitySyncHandler {
   async getServerState(
     userId: string,
     entityId: string,
+    tx: SyncTx,
   ): Promise<ServerEntityState | null> {
-    const record = await this.preferences.findOwned(userId, entityId);
+    const record = await this.preferences.findOwned(tx, userId, entityId);
     return record
       ? {
           version: record.version,
@@ -54,29 +66,49 @@ export class DietaryPreferenceSyncHandler implements EntitySyncHandler {
       : null;
   }
 
-  async apply(userId: string, op: SyncOperationInput): Promise<void> {
+  async apply(
+    userId: string,
+    op: SyncOperationInput,
+    tx: SyncTx,
+  ): Promise<ApplyOutcome> {
+    let affected: number;
     switch (op.operation) {
       case 'CREATE': {
         const attributes = parseDietaryPreferenceCreate(op.payload);
-        await this.preferences.create(userId, op.entityId, attributes);
+        affected = await this.preferences.create(
+          tx,
+          userId,
+          op.entityId,
+          attributes,
+        );
         break;
       }
       case 'UPDATE': {
-        // Ownership + version enforced by the pipeline via getServerState.
         // Only kind + note are mutable; the exclusion target is immutable.
         const update = parseDietaryPreferenceUpdate(op.payload);
-        await this.preferences.update(op.entityId, update, op.baseVersion + 1);
+        affected = await this.preferences.update(
+          tx,
+          userId,
+          op.entityId,
+          update,
+          op.baseVersion,
+        );
         break;
       }
       case 'DELETE': {
-        await this.preferences.softDelete(
+        affected = await this.preferences.softDelete(
+          tx,
+          userId,
           op.entityId,
           userId,
-          op.baseVersion + 1,
+          op.baseVersion,
         );
         break;
       }
     }
+
+    // A late race wrote nothing, so there is nothing to audit as a change.
+    if (affected === 0) return { status: 'STALE' };
 
     // Operational metadata only — never the note or exclusion details.
     await this.audit.record({
@@ -86,6 +118,7 @@ export class DietaryPreferenceSyncHandler implements EntitySyncHandler {
       entityId: op.entityId,
       metadata: { via: 'sync', operation: op.operation },
     });
+    return { status: 'APPLIED' };
   }
 
   async pullChanges(
@@ -109,5 +142,58 @@ export class DietaryPreferenceSyncHandler implements EntitySyncHandler {
 
   redactForConflict(payload: Record<string, unknown>): Record<string, unknown> {
     return redactDietaryPreference(payload);
+  }
+
+  /**
+   * ADR-P030 C-2 — unredacted owner row for C-3. No endpoint consumes it yet.
+   * Unlike `getServerState`, the note is NOT redacted here: this value is
+   * returned to the owner over TLS and is never written to sync_conflicts.
+   */
+  async readCurrentOwnedRow(
+    userId: string,
+    entityId: string,
+    tx: SyncTx,
+  ): Promise<OwnedRowSnapshot | null> {
+    const record = await this.preferences.findOwned(tx, userId, entityId);
+    return record
+      ? {
+          row: dietaryPreferenceToWire(record),
+          version: record.version,
+          deleted: record.deletedAt !== null,
+        }
+      : null;
+  }
+
+  /** ADR-P030 C-2 — conditional resolution mutation for C-3. Not called yet. */
+  resolveConflictMutation(
+    userId: string,
+    entityId: string,
+    input: ResolutionMutationInput,
+    tx: SyncTx,
+  ): Promise<number> {
+    const common = {
+      expectedVersion: input.expectedServerVersion,
+      expectedDeleted: input.expectedDeleted,
+      resolvedBy: userId,
+    } as const;
+    switch (input.operation) {
+      case 'CREATE':
+        return this.preferences.resolve(tx, userId, entityId, {
+          ...common,
+          operation: 'CREATE',
+          attributes: parseDietaryPreferenceCreate(input.payload),
+        });
+      case 'UPDATE':
+        return this.preferences.resolve(tx, userId, entityId, {
+          ...common,
+          operation: 'UPDATE',
+          update: parseDietaryPreferenceUpdate(input.payload),
+        });
+      case 'DELETE':
+        return this.preferences.resolve(tx, userId, entityId, {
+          ...common,
+          operation: 'DELETE',
+        });
+    }
   }
 }

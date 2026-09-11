@@ -1,6 +1,9 @@
-import type { SyncOperationInput } from '../../sync/domain/sync.types';
+import type { SyncOperationInput, SyncTx } from '../../sync/domain/sync.types';
 import type { WellnessSafetyProfileWriteInput } from '../domain/wellness-payload';
-import { WellnessRepositoryPort } from '../domain/wellness.repository';
+import {
+  type WellnessResolution,
+  WellnessRepositoryPort,
+} from '../domain/wellness.repository';
 import type {
   WellnessClock,
   WellnessSafetyProfileRecord,
@@ -20,6 +23,7 @@ import { WellnessSafetyProfileSyncHandler } from './wellness-safety-profile-sync
 const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
 const NOW = new Date('2026-09-09T12:00:00.000Z');
+const TX = {} as SyncTx;
 
 interface Call {
   method: string;
@@ -55,6 +59,7 @@ class FakeRepo extends WellnessRepositoryPort {
   }
 
   findOwned(
+    _tx: SyncTx,
     userId: string,
     id: string,
   ): Promise<WellnessSafetyProfileRecord | null> {
@@ -63,30 +68,33 @@ class FakeRepo extends WellnessRepositoryPort {
   }
 
   create(
+    _tx: SyncTx,
     userId: string,
     id: string,
     data: WellnessSafetyProfileWriteInput,
-  ): Promise<WellnessSafetyProfileRecord> {
+  ): Promise<number> {
     this.calls.push({ method: 'create', userId, id });
     this.seed({ userId, id, ...data });
-    return Promise.resolve(this.rows.get(`${userId}:${id}`)!);
+    return Promise.resolve(1);
   }
 
   /** Mirrors the Prisma implementation: owner-scoped, and clears a tombstone. */
   update(
+    _tx: SyncTx,
     userId: string,
     id: string,
     data: WellnessSafetyProfileWriteInput,
-    newVersion: number,
+    expectedVersion: number,
   ): Promise<number> {
     this.calls.push({ method: 'update', userId, id });
     const key = `${userId}:${id}`;
     const existing = this.rows.get(key);
-    if (!existing) return Promise.resolve(0);
+    if (!existing || existing.version !== expectedVersion)
+      return Promise.resolve(0);
     this.rows.set(key, {
       ...existing,
       ...data,
-      version: newVersion,
+      version: expectedVersion + 1,
       deletedAt: null,
       deletedBy: null,
     });
@@ -94,21 +102,27 @@ class FakeRepo extends WellnessRepositoryPort {
   }
 
   softDelete(
+    _tx: SyncTx,
     userId: string,
     id: string,
-    newVersion: number,
+    expectedVersion: number,
     deletedAt: Date,
   ): Promise<number> {
     this.calls.push({ method: 'softDelete', userId, id, deletedAt });
     const key = `${userId}:${id}`;
     const existing = this.rows.get(key);
-    if (!existing || existing.deletedAt !== null) return Promise.resolve(0);
+    if (
+      !existing ||
+      existing.deletedAt !== null ||
+      existing.version !== expectedVersion
+    )
+      return Promise.resolve(0);
     // Stores exactly what the handler passed — no clock of its own.
     this.rows.set(key, {
       ...existing,
       deletedAt,
       deletedBy: userId,
-      version: newVersion,
+      version: expectedVersion + 1,
     });
     return Promise.resolve(1);
   }
@@ -125,6 +139,19 @@ class FakeRepo extends WellnessRepositoryPort {
         .sort((left, right) => left.syncSeq - right.syncSeq)
         .slice(0, limit),
     );
+  }
+
+  resolve(
+    _tx: SyncTx,
+    _userId: string,
+    _id: string,
+    _resolution: WellnessResolution,
+  ): Promise<number> {
+    void _tx;
+    void _userId;
+    void _id;
+    void _resolution;
+    return Promise.resolve(1);
   }
 }
 
@@ -173,7 +200,7 @@ describe('the singleton id must be the authenticated user', () => {
     async (operation) => {
       repo.seed({ userId: B });
       await expect(
-        handler.apply(A, op({ operation, entityId: B, baseVersion: 1 })),
+        handler.apply(A, op({ operation, entityId: B, baseVersion: 1 }), TX),
       ).rejects.toThrow(/entityId must equal the authenticated user id/);
       // Nothing was even looked up, let alone written.
       expect(repo.calls).toEqual([]);
@@ -183,8 +210,8 @@ describe('the singleton id must be the authenticated user', () => {
 
   it('reports no server state for another user row', async () => {
     repo.seed({ userId: B });
-    expect(await handler.getServerState(A, B)).toBeNull();
-    expect(await handler.getServerState(B, B)).not.toBeNull();
+    expect(await handler.getServerState(A, B, TX)).toBeNull();
+    expect(await handler.getServerState(B, B, TX)).not.toBeNull();
   });
 });
 
@@ -202,6 +229,7 @@ describe('ownership comes only from the authenticated user', () => {
           movements_to_avoid: [],
         },
       }),
+      TX,
     );
 
     expect(
@@ -213,9 +241,9 @@ describe('ownership comes only from the authenticated user', () => {
 
   it('passes the authenticated user to every repository call', async () => {
     repo.seed({ userId: A });
-    await handler.getServerState(A, A);
-    await handler.apply(A, op({ operation: 'UPDATE', baseVersion: 1 }));
-    await handler.apply(A, op({ operation: 'DELETE', baseVersion: 2 }));
+    await handler.getServerState(A, A, TX);
+    await handler.apply(A, op({ operation: 'UPDATE', baseVersion: 1 }), TX);
+    await handler.apply(A, op({ operation: 'DELETE', baseVersion: 2 }), TX);
     await handler.pullChanges(A, 0, 10);
 
     expect(new Set(repo.calls.map((call) => call.userId))).toEqual(
@@ -236,6 +264,7 @@ describe('write behaviour', () => {
           movements_to_avoid: ['JUMPING', 'jumping'],
         },
       }),
+      TX,
     );
     const row = repo.rows.get(`${A}:${A}`);
     expect(row?.affectedAreas).toEqual(['ankle', 'knee']);
@@ -247,9 +276,11 @@ describe('write behaviour', () => {
     // the same row. `getServerState` still reports the tombstone, so the
     // pipeline can match versions instead of rejecting it as NOT_FOUND.
     repo.seed({ userId: A, deletedAt: NOW, deletedBy: A, version: 3 });
-    expect(await handler.getServerState(A, A)).toMatchObject({ version: 3 });
+    expect(await handler.getServerState(A, A, TX)).toMatchObject({
+      version: 3,
+    });
 
-    await handler.apply(A, op({ operation: 'UPDATE', baseVersion: 3 }));
+    await handler.apply(A, op({ operation: 'UPDATE', baseVersion: 3 }), TX);
 
     expect(repo.calls.map((call) => call.method)).toEqual([
       'findOwned',
@@ -271,6 +302,7 @@ describe('write behaviour', () => {
     await handlerWithClock.apply(
       A,
       op({ operation: 'DELETE', baseVersion: 1 }),
+      TX,
     );
 
     const call = repo.calls.find((entry) => entry.method === 'softDelete');
@@ -289,7 +321,7 @@ describe('write behaviour', () => {
     });
     repo.seed({ userId: A });
 
-    await ticking.apply(A, op({ operation: 'DELETE', baseVersion: 1 }));
+    await ticking.apply(A, op({ operation: 'DELETE', baseVersion: 1 }), TX);
 
     expect(readings).toHaveLength(1);
     expect(repo.rows.get(`${A}:${A}`)?.deletedAt).toBe(readings[0]);
@@ -297,23 +329,23 @@ describe('write behaviour', () => {
 
   it('advances the version on update and delete', async () => {
     repo.seed({ userId: A });
-    await handler.apply(A, op({ operation: 'UPDATE', baseVersion: 1 }));
+    await handler.apply(A, op({ operation: 'UPDATE', baseVersion: 1 }), TX);
     expect(repo.rows.get(`${A}:${A}`)?.version).toBe(2);
 
-    await handler.apply(A, op({ operation: 'DELETE', baseVersion: 2 }));
+    await handler.apply(A, op({ operation: 'DELETE', baseVersion: 2 }), TX);
     expect(repo.rows.get(`${A}:${A}`)).toMatchObject({
       version: 3,
       deletedBy: A,
     });
   });
 
-  it('fails closed when an update or delete matches no owned row', async () => {
+  it('reports STALE when an update or delete matches no owned row', async () => {
     await expect(
-      handler.apply(A, op({ operation: 'UPDATE', baseVersion: 1 })),
-    ).rejects.toThrow(/no owned row to update/);
+      handler.apply(A, op({ operation: 'UPDATE', baseVersion: 1 }), TX),
+    ).resolves.toEqual({ status: 'STALE' });
     await expect(
-      handler.apply(A, op({ operation: 'DELETE', baseVersion: 1 })),
-    ).rejects.toThrow(/no owned row to delete/);
+      handler.apply(A, op({ operation: 'DELETE', baseVersion: 1 }), TX),
+    ).resolves.toEqual({ status: 'STALE' });
   });
 
   it.each([
@@ -334,7 +366,7 @@ describe('write behaviour', () => {
     ['a malformed payload', { evaluation_completed: 'yes' }],
   ])('rejects %s before writing anything', async (_label, overrides) => {
     await expect(
-      handler.apply(A, op({ payload: { ...op().payload, ...overrides } })),
+      handler.apply(A, op({ payload: { ...op().payload, ...overrides } }), TX),
     ).rejects.toThrow();
     expect(repo.rows.size).toBe(0);
   });
@@ -355,7 +387,7 @@ describe('pull', () => {
     });
     expect(changes[0].data).toMatchObject({ id: A, user_id: A });
 
-    await handler.apply(A, op({ operation: 'DELETE', baseVersion: 1 }));
+    await handler.apply(A, op({ operation: 'DELETE', baseVersion: 1 }), TX);
     const afterDelete = await handler.pullChanges(A, 0, 10);
     expect(afterDelete[0].deleted).toBe(true);
     expect(afterDelete[0].data.deleted_at).not.toBeNull();
@@ -380,5 +412,44 @@ describe('pull', () => {
     expect(change.data.evaluation_date).toBe('2026-01-02');
     expect(change.data.affected_areas).toEqual(['knee']);
     expect(change.data.movements_to_avoid).toEqual(['jumping']);
+  });
+});
+
+describe('ADR-P030 C-2 resolution-facing seams', () => {
+  it('returns the owner row unredacted and forwards the reviewed tombstone state', async () => {
+    repo.seed({
+      userId: A,
+      version: 6,
+      affectedAreas: ['knee'],
+      movementsToAvoid: ['jumping'],
+    });
+    const snapshot = await handler.readCurrentOwnedRow(A, A, TX);
+    expect(snapshot).toMatchObject({
+      version: 6,
+      deleted: false,
+      row: {
+        affected_areas: ['knee'],
+        movements_to_avoid: ['jumping'],
+      },
+    });
+
+    const resolve = jest.spyOn(repo, 'resolve');
+    await handler.resolveConflictMutation(
+      A,
+      A,
+      {
+        operation: 'DELETE',
+        payload: {},
+        expectedServerVersion: 6,
+        expectedDeleted: false,
+      },
+      TX,
+    );
+    expect(resolve).toHaveBeenCalledWith(TX, A, A, {
+      operation: 'DELETE',
+      expectedVersion: 6,
+      expectedDeleted: false,
+      resolvedBy: A,
+    });
   });
 });

@@ -1,3 +1,4 @@
+import type { SyncTx } from '../../sync/domain/sync.types';
 import type { WellnessSafetyProfileWriteInput } from './wellness-payload';
 import type { WellnessSafetyProfileRecord } from './wellness.types';
 
@@ -14,15 +15,17 @@ import type { WellnessSafetyProfileRecord } from './wellness.types';
  */
 export abstract class WellnessRepositoryPort {
   abstract findOwned(
+    tx: SyncTx,
     userId: string,
     id: string,
   ): Promise<WellnessSafetyProfileRecord | null>;
 
   abstract create(
+    tx: SyncTx,
     userId: string,
     id: string,
     data: WellnessSafetyProfileWriteInput,
-  ): Promise<WellnessSafetyProfileRecord>;
+  ): Promise<number>;
 
   /**
    * Write the contract fields and the new version, clearing any tombstone.
@@ -37,10 +40,11 @@ export abstract class WellnessRepositoryPort {
    * Returns the number of rows updated: 1 on success, 0 if not owned.
    */
   abstract update(
+    tx: SyncTx,
     userId: string,
     id: string,
     data: WellnessSafetyProfileWriteInput,
-    newVersion: number,
+    expectedVersion: number,
   ): Promise<number>;
 
   /**
@@ -53,9 +57,10 @@ export abstract class WellnessRepositoryPort {
    * Returns the number of rows updated: 1 on success, 0 if not owned/live.
    */
   abstract softDelete(
+    tx: SyncTx,
     userId: string,
     id: string,
-    newVersion: number,
+    expectedVersion: number,
     deletedAt: Date,
   ): Promise<number>;
 
@@ -64,4 +69,21 @@ export abstract class WellnessRepositoryPort {
     sinceSeq: number,
     limit: number,
   ): Promise<WellnessSafetyProfileRecord[]>;
+
+  abstract resolve(
+    tx: SyncTx,
+    userId: string,
+    id: string,
+    resolution: WellnessResolution,
+  ): Promise<number>;
 }
+
+export type WellnessResolution = {
+  expectedVersion: number;
+  expectedDeleted: boolean;
+  resolvedBy: string;
+} & (
+  | { operation: 'CREATE'; data: WellnessSafetyProfileWriteInput }
+  | { operation: 'UPDATE'; data: WellnessSafetyProfileWriteInput }
+  | { operation: 'DELETE' }
+);

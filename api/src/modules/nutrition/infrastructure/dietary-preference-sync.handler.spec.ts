@@ -1,13 +1,16 @@
 import { Test } from '@nestjs/testing';
 
 import { AuditService } from '../../audit/audit.service';
-import type { SyncOperationInput } from '../../sync/domain/sync.types';
+import type { SyncOperationInput, SyncTx } from '../../sync/domain/sync.types';
 import { DietaryPreferenceRepositoryPort } from '../domain/dietary-preference.repository';
 import type { DietaryPreferenceRecord } from '../domain/dietary-preference.types';
 import { DietaryPreferenceSyncHandler } from './dietary-preference-sync.handler';
 
 const USER = 'user-1';
 const PREF_ID = '11111111-1111-4111-8111-111111111111';
+
+/** Stand-in transaction client — identity proves nothing escaped to the root. */
+const TX = { marker: 'tx' } as unknown as SyncTx;
 
 const record = (
   overrides: Partial<DietaryPreferenceRecord> = {},
@@ -52,16 +55,18 @@ describe('DietaryPreferenceSyncHandler', () => {
     update: jest.Mock;
     softDelete: jest.Mock;
     changedSince: jest.Mock;
+    resolve: jest.Mock;
   };
   let audit: { record: jest.Mock };
 
   beforeEach(async () => {
     repo = {
       findOwned: jest.fn().mockResolvedValue(record()),
-      create: jest.fn().mockResolvedValue(record()),
-      update: jest.fn().mockResolvedValue(undefined),
-      softDelete: jest.fn().mockResolvedValue(undefined),
+      create: jest.fn().mockResolvedValue(1),
+      update: jest.fn().mockResolvedValue(1),
+      softDelete: jest.fn().mockResolvedValue(1),
       changedSince: jest.fn().mockResolvedValue([]),
+      resolve: jest.fn().mockResolvedValue(1),
     };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
 
@@ -76,9 +81,9 @@ describe('DietaryPreferenceSyncHandler', () => {
     handler = moduleRef.get(DietaryPreferenceSyncHandler);
   });
 
-  it('getServerState is ownership-scoped, returns version, and redacts the note', async () => {
-    const state = await handler.getServerState(USER, PREF_ID);
-    expect(repo.findOwned).toHaveBeenCalledWith(USER, PREF_ID);
+  it('getServerState is ownership-scoped, runs on the transaction, and redacts the note', async () => {
+    const state = await handler.getServerState(USER, PREF_ID, TX);
+    expect(repo.findOwned).toHaveBeenCalledWith(TX, USER, PREF_ID);
     expect(state?.version).toBe(3);
     expect(state?.snapshot.note).toBe('[REDACTED]');
     // Non-sensitive structured values are kept for resolution.
@@ -91,9 +96,11 @@ describe('DietaryPreferenceSyncHandler', () => {
     });
   });
 
-  it('CREATE persists the exclusion scoped to the authenticated user + audits', async () => {
-    await handler.apply(USER, op());
-    expect(repo.create).toHaveBeenCalledWith(USER, PREF_ID, {
+  it('CREATE persists the exclusion on the transaction, scoped to the authenticated user, and audits', async () => {
+    const outcome = await handler.apply(USER, op(), TX);
+
+    expect(outcome).toEqual({ status: 'APPLIED' });
+    expect(repo.create).toHaveBeenCalledWith(TX, USER, PREF_ID, {
       exclusionType: 'avoid_tag',
       avoidTag: 'nut_allergy',
       catalogKey: null,
@@ -108,6 +115,15 @@ describe('DietaryPreferenceSyncHandler', () => {
     );
   });
 
+  it('a colliding CREATE reports STALE rather than raising, and is not audited', async () => {
+    repo.create.mockResolvedValue(0); // ON CONFLICT (id) DO NOTHING
+
+    const outcome = await handler.apply(USER, op(), TX);
+
+    expect(outcome).toEqual({ status: 'STALE' });
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
   it('CREATE rejects a payload whose target does not match exclusion_type', async () => {
     await expect(
       handler.apply(
@@ -119,33 +135,69 @@ describe('DietaryPreferenceSyncHandler', () => {
             kind: 'preference',
           },
         }),
+        TX,
       ),
     ).rejects.toThrow(/avoid_tag/);
     expect(repo.create).not.toHaveBeenCalled();
   });
 
-  it('UPDATE mutates only kind + note at the next version', async () => {
-    await handler.apply(
+  it('UPDATE mutates only kind + note and carries the expected version into the write', async () => {
+    const outcome = await handler.apply(
       USER,
       op({
         operation: 'UPDATE',
         baseVersion: 3,
         payload: { kind: 'preference', note: null },
       }),
+      TX,
     );
+
+    expect(outcome).toEqual({ status: 'APPLIED' });
     expect(repo.update).toHaveBeenCalledWith(
+      TX,
+      USER,
       PREF_ID,
       { kind: 'preference', note: null },
-      4,
+      3, // expected version, asserted in the predicate
     );
   });
 
-  it('DELETE soft-deletes at the next version, scoped to the user', async () => {
+  it('a zero-row UPDATE is a typed STALE outcome and is not audited as a change', async () => {
+    repo.update.mockResolvedValue(0);
+
+    const outcome = await handler.apply(
+      USER,
+      op({
+        operation: 'UPDATE',
+        baseVersion: 3,
+        payload: { kind: 'preference', note: null },
+      }),
+      TX,
+    );
+
+    expect(outcome).toEqual({ status: 'STALE' });
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it('DELETE soft-deletes at the expected version, scoped to the user', async () => {
     await handler.apply(
       USER,
       op({ operation: 'DELETE', baseVersion: 5, payload: {} }),
+      TX,
     );
-    expect(repo.softDelete).toHaveBeenCalledWith(PREF_ID, USER, 6);
+    expect(repo.softDelete).toHaveBeenCalledWith(TX, USER, PREF_ID, USER, 5);
+  });
+
+  it('a zero-row DELETE is STALE', async () => {
+    repo.softDelete.mockResolvedValue(0);
+
+    const outcome = await handler.apply(
+      USER,
+      op({ operation: 'DELETE', baseVersion: 5, payload: {} }),
+      TX,
+    );
+
+    expect(outcome).toEqual({ status: 'STALE' });
   });
 
   it('pullChanges maps owner rows to wire changes (tombstone on delete)', async () => {
@@ -163,5 +215,38 @@ describe('DietaryPreferenceSyncHandler', () => {
     });
     // Pull payloads are owner-only and NOT redacted.
     expect(changes[0].data.note).toBe('severe — carry epipen');
+  });
+
+  it('readCurrentOwnedRow returns the owner row UNREDACTED with its tombstone state', async () => {
+    repo.findOwned.mockResolvedValue(record({ deletedAt: new Date() }));
+
+    const snapshot = await handler.readCurrentOwnedRow(USER, PREF_ID, TX);
+
+    expect(repo.findOwned).toHaveBeenCalledWith(TX, USER, PREF_ID);
+    expect(snapshot).toMatchObject({ version: 3, deleted: true });
+    // Never written to sync_conflicts — this value goes to the owner only.
+    expect(snapshot?.row.note).toBe('severe — carry epipen');
+  });
+
+  it('resolveConflictMutation forwards the reviewed version and tombstone state', async () => {
+    await handler.resolveConflictMutation(
+      USER,
+      PREF_ID,
+      {
+        operation: 'UPDATE',
+        payload: { kind: 'preference', note: 'milder now' },
+        expectedServerVersion: 8,
+        expectedDeleted: true,
+      },
+      TX,
+    );
+
+    expect(repo.resolve).toHaveBeenCalledWith(TX, USER, PREF_ID, {
+      operation: 'UPDATE',
+      update: { kind: 'preference', note: 'milder now' },
+      expectedVersion: 8,
+      expectedDeleted: true,
+      resolvedBy: USER,
+    });
   });
 });

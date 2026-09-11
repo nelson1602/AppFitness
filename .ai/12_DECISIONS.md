@@ -10104,9 +10104,10 @@ behaviour.
 ## ADR-P030 — Public-V1 Conflict Review and Resolution
 
 Status: **Accepted** (2026-09-07) — the **architecture** below is authorized.
-Acceptance does **not** authorize the implementation slices: **C-2 … C-7 remain
-unauthorized** and each needs its own approval. **C-0 (BUG-014)** and **C-1**
-(per-user scoping) are implemented. **No owner decision remains open.**
+Acceptance does **not** authorize implementation slices automatically. **C-0
+(BUG-014), C-1 (per-user scoping) and C-2 (atomic conditional push) are
+implemented**; **C-3 … C-7 remain unauthorized** and each needs its own
+approval. **No owner decision remains open.**
 Date: 2026-09-07 (revised seven times the same day after review — see
 §Revision note)
 Owner: Product / Mobile Architecture / Security
@@ -10295,7 +10296,7 @@ This ADR re-audited `origin/main` at
 BUG-012's factual claims are stale, one was wrong when written**, and two
 previously unrecorded defects were found.
 
-#### A-1 — Reachable public-V1 conflict entities: **12**
+#### A-1 — Reachable public-V1 conflict entities: **13**
 
 Client appliers are registered in `mobile/src/app/_layout.tsx:17-20` for four
 features. **`registerMedicalSyncAppliers` is exported (`medical/index.ts:15`)
@@ -10308,10 +10309,13 @@ public V1 — dormancy holds at the sync layer, not merely in the UI (ADR-P017).
 | Nutrition | `meal_items`, `dietary_preferences` |
 | Workout | `exercises`, `routines`, `workout_logs`, `routine_exercises`, `workout_sets` |
 | Progress | `body_weights`, `body_measurements`, `progress_snapshots` |
+| Wellness | `wellness_safety_profiles` |
 | **Dormant (not registered client-side)** | `medical_evaluations`, `medical_restrictions` |
 
-The **server** registers all 14 handlers (`medical.module.ts:49-50` included),
-so the asymmetry is client-side. No public-V1 code path enqueues a medical op.
+The **server registers the same 13 public handlers**. `MedicalModule` still
+defines two handler classes, but `AppModule` deliberately does not import that
+module, so neither its controller nor its handlers register in public V1. No
+public-V1 code path enqueues a medical operation; dormancy holds on both sides.
 
 #### A-2 — Both versions are already stored, on both sides
 
@@ -10972,11 +10976,11 @@ the mutation must carry its own predicate. The honest inventory:
 
 | Change | Shape | Scale |
 |---|---|---|
-| `EntitySyncHandler.getServerState` | accepts an optional transaction client, threaded as the structurally-typed `Pick<PrismaService, …>` parameter the house already uses (`email-verification.service.ts:461`) | **14 handlers** |
-| **New** `EntitySyncHandler` **resolution method** | performs the per-operation semantics above as a **conditional mutation** carrying owner + expected version, tx-aware, returning the affected-row count. **This is new behaviour, not a wrapper over `apply()`** | **12 public-V1 handlers**; an entity without it is **unsupported** (§Decision 12) |
-| **New** `EntitySyncHandler` **owner-row reader** | owner-scoped **unredacted** current row, the wire shape `pullChanges` already produces (e.g. `bodyWeightToWire`, `body-weight-sync.handler.ts:86`), tx-aware | **12 public-V1 handlers**; same fail-closed rule |
-| Repository ports | the resolve path's methods accept the optional transaction client, **and every existing-row `UPDATE` / `DELETE` mutation gains the owner + expected-version predicate** (`updateMany`) in place of `where: { id }`. **`CREATE` stays an insert** and gains no predicate | **5 repository ports** + their Prisma implementations, **shared with `/sync/push`** |
-| `EntitySyncHandler.apply` | tx-aware **and** its return type changes `Promise<void>` → `Promise<ApplyOutcome>`, so a late zero-row result reaches `SyncService` as a normal conflict instead of a dropped rejection | **14 handlers** |
+| `EntitySyncHandler.getServerState` | accepts the required `SyncTx`; no fallback to the root client exists on the public path | **15 handler classes** (13 registered public + 2 dormant medical) |
+| **New** `EntitySyncHandler` **resolution method** | performs the per-operation semantics above as a **conditional mutation** carrying owner + expected version, tx-aware, returning the affected-row count. **This is new behaviour, not a wrapper over `apply()`** | **13 public-V1 handlers**; an entity without it is **unsupported** (§Decision 12) |
+| **New** `EntitySyncHandler` **owner-row reader** | owner-scoped **unredacted** current row, the wire shape `pullChanges` already produces (e.g. `bodyWeightToWire`), tx-aware | **13 public-V1 handlers**; same fail-closed rule |
+| Repository ports | public resolve methods take the required transaction client, **and every public existing-row `UPDATE` / `DELETE` mutation gains the owner + expected-version predicate** (`updateMany`) in place of `where: { id }`. **`CREATE` stays an insert** and gains no predicate | **9 ports/adapters total**: 7 public-V1 + 2 dormant medical; shared with `/sync/push` |
+| `EntitySyncHandler.apply` | tx-aware **and** its return type changes `Promise<void>` → `Promise<ApplyOutcome>`, so a late zero-row result reaches `SyncService` as a normal conflict instead of a dropped rejection | **15 handler classes** |
 | `SyncService.processOperation` | opens a **per-operation transaction**; threads `tx` through the idempotency probe, `getServerState`, `apply`, `recordConflict` and `recordOutcome` — the last two re-signatured off the root client; adds the `STALE` → re-read → `recordConflict` branch. No new `SYNC_ERROR_CODES` value, no `/sync/push` wire change | **5 call sites + 2 private helpers** |
 
 **No Prisma migration is required** — `SyncConflict` already carries `userId`,
@@ -11452,15 +11456,51 @@ Fail **visible and closed**, never silent:
 #### 13. Implementation slices — prerequisites first
 
 Sequenced so no prerequisite can ship after the UI. **Acceptance of this ADR
-authorizes the architecture, not these slices.** **C-0** and **C-1** are
-implemented; **C-2 … C-7 remain unauthorized** and each requires its own
+authorizes the architecture, not these slices.** **C-0**, **C-1** and **C-2**
+are implemented; **C-3 … C-7 remain unauthorized** and each requires its own
 approval before any code is written.
+
+### Slice C-2 Implementation Record — Atomic Conditional Push
+
+**Implemented 2026-09-11.** `/sync/push` now opens one transaction per queued
+operation. Its idempotency probe, owner-scoped state read, entity mutation,
+late-race re-read, conflict row and terminal operation row share that client and
+commit together. Handler/domain failures are classified only after rollback;
+typed Prisma transaction-lifecycle failures (`P2028`, `P2034`) remain
+request-level failures so the mobile queue retains and retries the batch.
+
+Every public-V1 existing-row write re-asserts owner, expected version and the
+applicable tombstone state through `updateMany`. The Wellness Safety Profile's
+existing singleton revive path is the deliberate exception to a literal
+`deleted_at IS NULL` clause: it still predicates owner + version and clears the
+tombstone in the same conditional write, preserving W-2's shipped recreate
+semantics without reopening the race. All 13 public-V1 creates use static,
+entity-owned, tagged-template inserts with `ON CONFLICT (id) DO NOTHING`; only
+a primary-key collision becomes `STALE`, while business constraints still
+throw. Database-owned `created_at`, `version` and trigger-assigned `sync_seq`
+remain omitted; required application-owned `updated_at` is explicit.
+
+The implemented inventory is **15 handler classes in 14 files** and **9
+repository ports/adapters**. The 13 registered public-V1 handlers receive the
+two C-3 prerequisite resolution seams; the two unregistered medical handlers
+receive transaction threading only and remain unsupported for resolution. This corrects
+the pre-implementation estimate of 14 handlers / 5 ports without reactivating
+the medical domain.
+
+Regression coverage proves per-operation rollback and batch isolation,
+same-`opId` convergence, overlapping UPDATE/UPDATE and UPDATE/DELETE races,
+late CREATE primary-key conflict persistence, business-constraint
+classification, all 13 raw/Prisma field-equivalence cases (including defaults,
+`updated_at`, `sync_seq` and pull ordering), the already-deleted DELETE no-write
+rule, and the absence of unsafe or dynamically targeted raw SQL. C-2 adds no
+endpoint, DTO, schema, migration or client wire change. **BUG-012 stays Open;
+C-3 is the next prerequisite.**
 
 | # | Slice | Depends on | API / schema |
 |---|---|---|---|
 | **C-0** | **BUG-014 guard fix** — `hasPendingOpFor` counts `'CONFLICT'`; regression proving a parked conflict survives a pull | — | none |
 | **C-1** | **Per-user scoping + outbox schema + session boundary** (§Decisions 8, 6) — **implemented**: local migration 006 — `user_id` on all three tables, `sync_state` rebuild + composite PK, cursor re-initialisation, entity-type-qualified fail-closed backfill, NULL quarantine, every accessor and call site scoped; **plus the §Decision 6 outbox columns on `sync_conflicts` as dormant schema**, because 006 can never be edited afterwards (no outbox behaviour); **plus the account-isolation boundary scoping depends on** (§Decision 8 addendum below) | C-0 | **local migration** |
-| **C-2** | **Push transaction boundary + conditional write predicate + typed apply outcome** (§Decision 3): a **per-operation transaction** in `processOperation` with `tx` threaded through the idempotency probe, `getServerState`, `apply`, and the re-signatured `recordConflict`/`recordOutcome`; `apply` returning `ApplyOutcome`; the `STALE → recordConflict` branch; the new resolution method and owner-row reader; the **state-specific tombstone predicate**; and the owner + expected-version predicate on existing-row **`UPDATE`/`DELETE`** mutations in place of `where: { id }` (**`CREATE` stays an insert**). **This changes the shared `/sync/push` write path**, so it is *not* a behaviour-free refactor: a race that previously overwrote silently now reports a normal conflict, and a mutation now commits atomically with its terminal outcome. It closes A-15(b)'s TOCTOU **and** the mutation-without-recorded-op-id idempotency hole, and **owns the concurrency, atomicity and late-conflict tests for both** | C-1 | **interface (2 tx-aware, 1 re-typed + 2 new methods) + `SyncService` per-op transaction across 5 call sites and 2 helpers + 5 ports; shared with `/sync/push`** |
+| **C-2** | **Implemented 2026-09-11. Push transaction boundary + conditional write predicate + typed apply outcome** (§Decision 3): a **per-operation transaction** in `processOperation` with `tx` threaded through the idempotency probe, `getServerState`, `apply`, and the re-signatured `recordConflict`/`recordOutcome`; `apply` returning `ApplyOutcome`; the `STALE → recordConflict` branch; the new resolution method and owner-row reader; the **state-specific tombstone predicate**; and the owner + expected-version predicate on existing-row **`UPDATE`/`DELETE`** mutations in place of `where: { id }` (**`CREATE` stays an insert**). **This changes the shared `/sync/push` write path**, so it is *not* a behaviour-free refactor: a race that previously overwrote silently now reports a normal conflict, and a mutation now commits atomically with its terminal outcome. It closes A-15(b)'s TOCTOU **and** the mutation-without-recorded-op-id idempotency hole, and **owns the concurrency, atomicity and late-conflict tests for both** | C-1 | **15 handlers / 9 ports-adapters in the implemented inventory; 13 public resolution seams + 2 dormant medical tx-only conformances; `SyncService` per-op transaction across 5 call sites and 2 helpers; shared with `/sync/push`** |
 | **C-3** | **Server resolve contract** (§Decisions 3, 4, 9, 10, 11): both endpoints, DTOs, throttle, owner scoping, conditional claim, `Serializable` resolution transaction, per-operation semantics, stale outcome, best-effort audit, API e2e | C-2 | **2 endpoints** |
 | **C-4** | **Local resolution service + outbox behaviour** (§Decisions 4, 6, 7, 10) — the columns already exist from C-1: **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts`, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under existing backoff, presenter allow-list. No UI | C-3 | none |
 | **C-5** | **Copy deck slice**: word the key families of §Decision 15 in EN/ES | C-4 | none |
@@ -11481,14 +11521,16 @@ C-4, and the no-silent-overwrite guarantee on C-0.
   contract** (§Decision 3). `SYNC_ERROR_CODES` and the `/sync/push` wire shape
   are **unchanged**.
 - **`EntitySyncHandler`**: 2 existing methods transaction-aware — `apply` also
-  re-typed `Promise<void>` → `Promise<ApplyOutcome>` — plus **2 new methods**
-  (the per-operation resolution mutation and the owner-row reader), across
-  **14 handlers**.
+  re-typed `Promise<void>` → `Promise<ApplyOutcome>` — across **15 handler
+  classes in 14 files**. The **13 registered public-V1 handlers** also expose 2
+  new methods (the per-operation resolution mutation and owner-row reader); the
+  2 dormant medical handlers deliberately do not.
 - **`SyncService`**: a **per-operation transaction** in `processOperation`, with
   `tx` threaded through **5 call sites** and **2 private helpers**
   (`recordConflict`, `recordOutcome`) moved off the root Prisma client, plus the
   `STALE` → re-read → `recordConflict` branch.
-- **5 repository ports**: existing-row **`UPDATE`/`DELETE`** mutations gain an
+- **9 repository ports/adapters in the actual inventory** (7 public-V1 + 2
+  dormant medical): public existing-row **`UPDATE`/`DELETE`** mutations gain an
   owner + expected-version predicate with a **state-specific tombstone clause**,
   **shared with `/sync/push`**. **`CREATE` remains an insert** and gains no
   predicate; only a primary-key collision maps to `STALE`.
@@ -11749,9 +11791,10 @@ assumed away.
   state.
 - **`EntitySyncHandler` changes for every handler, and the shared write path
   changes with it.** Two existing methods become transaction-aware, **two new
-  methods** are added (the per-operation resolution mutation and the owner-row
-  reader), 14 handlers are touched, and **5 repository ports have every sync-path
-  mutation re-predicated** on owner + expected version. Entity types that do not
+  methods** are added to the 13 public handlers (the per-operation resolution
+  mutation and owner-row reader), 15 handlers are touched, and **7 public
+  repository ports have every sync-path mutation re-predicated** on owner +
+  expected version. Entity types that do not
   implement the two new methods are unsupported and fail closed, so the registry
   stops being uniformly capable — a real contract change, and the reason
   §Decision 12 exists.
@@ -11764,7 +11807,7 @@ assumed away.
   saw a silent success — which is the point, and which the existing reporting
   surfaces already render.
 - **`apply()` stops returning `void`.** Its `Promise<ApplyOutcome>` return is a
-  breaking signature change for all 14 handlers. No new `SYNC_ERROR_CODES` value
+  breaking signature change for all 15 handlers. No new `SYNC_ERROR_CODES` value
   and no `/sync/push` wire-shape change: the client's existing `CONFLICT`
   handling (`sync-worker.ts:142-166`) covers it unmodified.
 - **`/sync/push` gains a per-operation transaction**, and `recordConflict` /
@@ -11836,9 +11879,9 @@ decided in §Decision 14 — **retain indefinitely; any purge needs separate
 authorization**.
 
 What remains is **authorization to implement**, which is a gate, not a design
-question. Acceptance settles the architecture only. **C-0 (BUG-014) and C-1
-are implemented**; **C-2 … C-7 are not authorized**, and each needs its own
-approval before implementation begins.
+question. Acceptance settles the architecture only. **C-0 (BUG-014), C-1 and
+C-2 are implemented**; **C-3 … C-7 are not authorized**, and each needs its
+own approval before implementation begins.
 
 ### Supersedes / Preserves
 
@@ -11945,7 +11988,7 @@ was sent.
 
 **What this closure does not claim.** No manual screen-reader, keyboard or
 large-text verification was performed (UX-4C still owns it); BUG-012
-conflict **resolution** does not exist and ADR-P030 C-2 … C-7 stay
+conflict **resolution** does not exist and ADR-P030 C-3 … C-7 stay
 unauthorized; the `features/wellness/domain` `collectCoverageFrom` decision
 is still open; W-5 supplements, Azul/payment work and the comprehensive
 security/release audit are all untouched and separately gated.
@@ -12076,7 +12119,7 @@ by construction. **BUG-014 is fixed**: `hasPendingOpFor` counts
 `'PENDING','IN_FLIGHT','FAILED','CONFLICT'` (`sync-queue.ts:168-176`) and the
 pull loop skips those entities (`sync-worker.ts:237-240`), so a parked conflict
 **retains** the local row's values. **BUG-012 is still open**: there is no
-resolution UI anywhere; ADR-P030 specifies one, and its slices **C-2 … C-7
+resolution UI anywhere; ADR-P030 specifies one, and its slices **C-3 … C-7
 remain unauthorized**.
 
 ### Owner acceptance (2026-09-10)
@@ -12424,7 +12467,7 @@ surface can perfectly well accompany withheld output. It is rejected because
 **BUG-012 gives the user no way to settle the conflict**, so the suspension
 has no bounded exit: a feature could stay withdrawn indefinitely through no
 action of the user's, which ADR-P027's non-blocking posture will not accept.
-If ADR-P030 C-2 … C-7 ship a resolution path, C-C becomes a reasonable
+If ADR-P030 C-3 … C-7 ship a resolution path, C-C becomes a reasonable
 candidate again and this decision should be revisited.
 
 **Selected by the owner on 2026-09-10: C-B, exactly as specified above** —
@@ -12432,7 +12475,7 @@ including the dedicated `decodeConflictSnapshot` projection, the active /
 tombstone contribution table, the multiple-conflict union, the fail-closed
 rule and the never-expose rule. C-A and C-C were considered and are **not**
 selected; they remain recorded for traceability, and C-C should be revisited
-if ADR-P030 C-2 … C-7 ever ship a resolution path.
+if ADR-P030 C-3 … C-7 ever ship a resolution path.
 
 #### 10. Explainability through stable identifiers, with raw tokens confined to internals
 
@@ -12724,7 +12767,7 @@ alter the plan key. Tests 31 and 9 pin this in both directions.
 
 **W-5 supplements** (needs its own accepted ADR and legal review), payment /
 Azul, any medical advice, diagnosis or clearance semantics, **conflict
-resolution** (ADR-P030 C-2 … C-7 stay unauthorized), reactivating the medical
+resolution** (ADR-P030 C-3 … C-7 stay unauthorized), reactivating the medical
 domain, external configuration, and any schema, migration, dependency or API
 change. W-4 is a mobile-domain change: it adds no table, no column, no endpoint
 and no dependency.

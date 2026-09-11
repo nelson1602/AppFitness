@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 
 import {
+  ApplyOutcome,
   EntitySyncHandler,
+  OwnedRowSnapshot,
   PulledChange,
+  ResolutionMutationInput,
   ServerEntityState,
   SyncOperationInput,
+  SyncTx,
 } from '../../sync/domain/sync.types';
 import {
   parseProgressSnapshotCreate,
@@ -35,36 +39,105 @@ export class ProgressSnapshotSyncHandler implements EntitySyncHandler {
   async getServerState(
     userId: string,
     entityId: string,
+    tx: SyncTx,
   ): Promise<ServerEntityState | null> {
-    const record = await this.repo.findOwnedProgressSnapshot(userId, entityId);
+    const record = await this.repo.findOwnedProgressSnapshot(
+      tx,
+      userId,
+      entityId,
+    );
     return record
       ? { version: record.version, snapshot: progressSnapshotToWire(record) }
       : null;
   }
 
-  async apply(userId: string, op: SyncOperationInput): Promise<void> {
+  async apply(
+    userId: string,
+    op: SyncOperationInput,
+    tx: SyncTx,
+  ): Promise<ApplyOutcome> {
+    let affected: number;
     switch (op.operation) {
       case 'CREATE':
-        await this.repo.createProgressSnapshot(
+        affected = await this.repo.createProgressSnapshot(
+          tx,
           userId,
           op.entityId,
           parseProgressSnapshotCreate(op.payload),
         );
         break;
       case 'UPDATE':
-        await this.repo.updateProgressSnapshot(
+        affected = await this.repo.updateProgressSnapshot(
+          tx,
+          userId,
           op.entityId,
           parseProgressSnapshotUpdate(op.payload),
-          op.baseVersion + 1,
+          op.baseVersion,
         );
         break;
       case 'DELETE':
-        await this.repo.softDeleteProgressSnapshot(
+        affected = await this.repo.softDeleteProgressSnapshot(
+          tx,
+          userId,
           op.entityId,
           userId,
-          op.baseVersion + 1,
+          op.baseVersion,
         );
         break;
+    }
+    return affected === 0 ? { status: 'STALE' } : { status: 'APPLIED' };
+  }
+
+  /** ADR-P030 C-2 — unredacted owner row for C-3. No endpoint consumes it yet. */
+  async readCurrentOwnedRow(
+    userId: string,
+    entityId: string,
+    tx: SyncTx,
+  ): Promise<OwnedRowSnapshot | null> {
+    const record = await this.repo.findOwnedProgressSnapshot(
+      tx,
+      userId,
+      entityId,
+    );
+    return record
+      ? {
+          row: progressSnapshotToWire(record),
+          version: record.version,
+          deleted: record.deletedAt !== null,
+        }
+      : null;
+  }
+
+  /** ADR-P030 C-2 — conditional resolution mutation for C-3. Not called yet. */
+  resolveConflictMutation(
+    userId: string,
+    entityId: string,
+    input: ResolutionMutationInput,
+    tx: SyncTx,
+  ): Promise<number> {
+    const common = {
+      expectedVersion: input.expectedServerVersion,
+      expectedDeleted: input.expectedDeleted,
+      resolvedBy: userId,
+    } as const;
+    switch (input.operation) {
+      case 'CREATE':
+        return this.repo.resolveProgressSnapshot(tx, userId, entityId, {
+          ...common,
+          operation: 'CREATE',
+          data: parseProgressSnapshotCreate(input.payload),
+        });
+      case 'UPDATE':
+        return this.repo.resolveProgressSnapshot(tx, userId, entityId, {
+          ...common,
+          operation: 'UPDATE',
+          data: parseProgressSnapshotUpdate(input.payload),
+        });
+      case 'DELETE':
+        return this.repo.resolveProgressSnapshot(tx, userId, entityId, {
+          ...common,
+          operation: 'DELETE',
+        });
     }
   }
 

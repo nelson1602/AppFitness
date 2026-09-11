@@ -1,4 +1,4 @@
-import type { SyncOperationInput } from '../../sync/domain/sync.types';
+import type { SyncOperationInput, SyncTx } from '../../sync/domain/sync.types';
 import type { ProgressRepositoryPort } from '../domain/progress.repository';
 import type { ProgressSnapshotRecord } from '../domain/progress.types';
 import { ProgressSnapshotSyncHandler } from './progress-snapshot-sync.handler';
@@ -6,26 +6,34 @@ import { ProgressSnapshotSyncHandler } from './progress-snapshot-sync.handler';
 const USER = 'user-1';
 const PS_ID = '33333333-3333-4333-8333-333333333333';
 
+/** Stand-in transaction client — identity proves nothing escaped to the root. */
+const TX = { marker: 'tx' } as unknown as SyncTx;
+
 // jest.Mock fields (not jest.Mocked<T>) — the workout/3a spec idiom.
 type MockRepo = { [K in keyof ProgressRepositoryPort]: jest.Mock };
 
+/** Writes return an affected-row count (ADR-P030 C-2); 1 = applied. */
 function makeRepo(): MockRepo {
+  const applied = () => jest.fn().mockResolvedValue(1);
   return {
     findOwnedBodyWeight: jest.fn(),
-    createBodyWeight: jest.fn(),
-    updateBodyWeight: jest.fn(),
-    softDeleteBodyWeight: jest.fn(),
+    createBodyWeight: applied(),
+    updateBodyWeight: applied(),
+    softDeleteBodyWeight: applied(),
     bodyWeightsChangedSince: jest.fn(),
+    resolveBodyWeight: applied(),
     findOwnedBodyMeasurement: jest.fn(),
-    createBodyMeasurement: jest.fn(),
-    updateBodyMeasurement: jest.fn(),
-    softDeleteBodyMeasurement: jest.fn(),
+    createBodyMeasurement: applied(),
+    updateBodyMeasurement: applied(),
+    softDeleteBodyMeasurement: applied(),
     bodyMeasurementsChangedSince: jest.fn(),
+    resolveBodyMeasurement: applied(),
     findOwnedProgressSnapshot: jest.fn(),
-    createProgressSnapshot: jest.fn(),
-    updateProgressSnapshot: jest.fn(),
-    softDeleteProgressSnapshot: jest.fn(),
+    createProgressSnapshot: applied(),
+    updateProgressSnapshot: applied(),
+    softDeleteProgressSnapshot: applied(),
     progressSnapshotsChangedSince: jest.fn(),
+    resolveProgressSnapshot: applied(),
   };
 }
 
@@ -87,13 +95,17 @@ describe('ProgressSnapshotSyncHandler', () => {
 
   it('getServerState returns null for a missing/foreign row', async () => {
     repo.findOwnedProgressSnapshot.mockResolvedValue(null);
-    expect(await handler.getServerState(USER, PS_ID)).toBeNull();
-    expect(repo.findOwnedProgressSnapshot).toHaveBeenCalledWith(USER, PS_ID);
+    expect(await handler.getServerState(USER, PS_ID, TX)).toBeNull();
+    expect(repo.findOwnedProgressSnapshot).toHaveBeenCalledWith(
+      TX,
+      USER,
+      PS_ID,
+    );
   });
 
   it('getServerState returns version + wire snapshot (YYYY-MM-DD, boolean)', async () => {
     repo.findOwnedProgressSnapshot.mockResolvedValue(psRec());
-    const state = await handler.getServerState(USER, PS_ID);
+    const state = await handler.getServerState(USER, PS_ID, TX);
     expect(state?.version).toBe(2);
     expect(state?.snapshot.week_start).toBe('2026-07-27');
     expect(state?.snapshot.is_deload_week).toBe(false);
@@ -101,11 +113,13 @@ describe('ProgressSnapshotSyncHandler', () => {
   });
 
   it('CREATE parses payload and creates owner-scoped with the client id', async () => {
-    await handler.apply(
+    const outcome = await handler.apply(
       USER,
       op({ operation: 'CREATE', payload: validPayload() }),
+      TX,
     );
-    expect(repo.createProgressSnapshot).toHaveBeenCalledWith(USER, PS_ID, {
+    expect(outcome).toEqual({ status: 'APPLIED' });
+    expect(repo.createProgressSnapshot).toHaveBeenCalledWith(TX, USER, PS_ID, {
       weekStart: new Date('2026-07-27T00:00:00.000Z'),
       avgWeightKg: 80.5,
       totalVolumeKg: 1200,
@@ -114,6 +128,16 @@ describe('ProgressSnapshotSyncHandler', () => {
       isDeloadWeek: false,
       ruleVersion: 'icoach-rules@1.1.0',
     });
+  });
+
+  it('a colliding CREATE reports STALE rather than raising', async () => {
+    repo.createProgressSnapshot.mockResolvedValue(0);
+    const outcome = await handler.apply(
+      USER,
+      op({ operation: 'CREATE', payload: validPayload() }),
+      TX,
+    );
+    expect(outcome).toEqual({ status: 'STALE' });
   });
 
   it('accepts null metric fields (weigh-in-only week)', async () => {
@@ -131,8 +155,10 @@ describe('ProgressSnapshotSyncHandler', () => {
           rule_version: 'icoach-rules@1.1.0',
         },
       }),
+      TX,
     );
     expect(repo.createProgressSnapshot).toHaveBeenCalledWith(
+      TX,
       USER,
       PS_ID,
       expect.objectContaining({
@@ -143,7 +169,7 @@ describe('ProgressSnapshotSyncHandler', () => {
     );
   });
 
-  it('UPDATE applies with baseVersion + 1', async () => {
+  it('UPDATE carries the expected version into the write', async () => {
     const update = {
       week_start: '2026-07-27',
       avg_weight_kg: 80.5,
@@ -156,20 +182,35 @@ describe('ProgressSnapshotSyncHandler', () => {
     await handler.apply(
       USER,
       op({ operation: 'UPDATE', baseVersion: 4, payload: update }),
+      TX,
     );
     expect(repo.updateProgressSnapshot).toHaveBeenCalledWith(
+      TX,
+      USER,
       PS_ID,
       expect.objectContaining({ workoutCount: 3, isDeloadWeek: false }),
-      5,
+      4,
     );
   });
 
-  it('DELETE soft-deletes owner-scoped with baseVersion + 1', async () => {
-    await handler.apply(USER, op({ operation: 'DELETE', baseVersion: 2 }));
+  it('a zero-row UPDATE is a typed STALE outcome', async () => {
+    repo.updateProgressSnapshot.mockResolvedValue(0);
+    const outcome = await handler.apply(
+      USER,
+      op({ operation: 'UPDATE', baseVersion: 4, payload: validPayload() }),
+      TX,
+    );
+    expect(outcome).toEqual({ status: 'STALE' });
+  });
+
+  it('DELETE soft-deletes owner-scoped at the expected version', async () => {
+    await handler.apply(USER, op({ operation: 'DELETE', baseVersion: 2 }), TX);
     expect(repo.softDeleteProgressSnapshot).toHaveBeenCalledWith(
+      TX,
+      USER,
       PS_ID,
       USER,
-      3,
+      2,
     );
   });
 
@@ -191,9 +232,42 @@ describe('ProgressSnapshotSyncHandler', () => {
     expect(changes[1].deleted).toBe(true);
   });
 
+  it('readCurrentOwnedRow reports the owner row and tombstone state on the transaction', async () => {
+    repo.findOwnedProgressSnapshot.mockResolvedValue(
+      psRec({ deletedAt: new Date('2026-07-28T00:00:00Z') }),
+    );
+    const snapshot = await handler.readCurrentOwnedRow(USER, PS_ID, TX);
+    expect(repo.findOwnedProgressSnapshot).toHaveBeenCalledWith(
+      TX,
+      USER,
+      PS_ID,
+    );
+    expect(snapshot).toMatchObject({ version: 2, deleted: true });
+  });
+
+  it('resolveConflictMutation forwards the reviewed version and tombstone state', async () => {
+    await handler.resolveConflictMutation(
+      USER,
+      PS_ID,
+      {
+        operation: 'DELETE',
+        payload: {},
+        expectedServerVersion: 6,
+        expectedDeleted: false,
+      },
+      TX,
+    );
+    expect(repo.resolveProgressSnapshot).toHaveBeenCalledWith(TX, USER, PS_ID, {
+      operation: 'DELETE',
+      expectedVersion: 6,
+      expectedDeleted: false,
+      resolvedBy: USER,
+    });
+  });
+
   describe('payload validation', () => {
     const bad = (patch: Record<string, unknown>) =>
-      handler.apply(USER, op({ payload: { ...validPayload(), ...patch } }));
+      handler.apply(USER, op({ payload: { ...validPayload(), ...patch } }), TX);
 
     it('rejects a non-calendar week_start', async () => {
       await expect(bad({ week_start: '2026/07/27' })).rejects.toThrow(
@@ -223,7 +297,7 @@ describe('ProgressSnapshotSyncHandler', () => {
       new Error('unique violation'),
     );
     await expect(
-      handler.apply(USER, op({ payload: validPayload() })),
+      handler.apply(USER, op({ payload: validPayload() }), TX),
     ).rejects.toThrow(/unique/);
   });
 });

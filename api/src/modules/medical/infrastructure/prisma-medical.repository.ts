@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma.service';
+import type { SyncTx } from '../../sync/domain/sync.types';
 import {
   EvaluationRepositoryPort,
   RestrictionRepositoryPort,
@@ -31,8 +32,9 @@ export class PrismaEvaluationRepository extends EvaluationRepositoryPort {
   async findOwned(
     userId: string,
     id: string,
+    tx?: SyncTx,
   ): Promise<EvaluationRecord | null> {
-    const row = await this.prisma.medicalEvaluation.findFirst({
+    const row = await (tx ?? this.prisma).medicalEvaluation.findFirst({
       where: { id, userId },
     });
     return row ? evaluationToDomain(row, this.cipher) : null;
@@ -50,8 +52,9 @@ export class PrismaEvaluationRepository extends EvaluationRepositoryPort {
     userId: string,
     attributes: Partial<EvaluationAttributes>,
     id?: string,
+    tx?: SyncTx,
   ): Promise<EvaluationRecord> {
-    const row = await this.prisma.medicalEvaluation.create({
+    const row = await (tx ?? this.prisma).medicalEvaluation.create({
       data: {
         id: id ?? randomUUID(), // client-generatable PK; REST mints one
         userId, // authenticated owner only — never from payload
@@ -78,8 +81,9 @@ export class PrismaEvaluationRepository extends EvaluationRepositoryPort {
     id: string,
     deletedBy: string,
     newVersion: number,
+    tx?: SyncTx,
   ): Promise<void> {
-    await this.prisma.medicalEvaluation.update({
+    await (tx ?? this.prisma).medicalEvaluation.update({
       where: { id },
       data: { deletedAt: new Date(), deletedBy, version: newVersion },
     });
@@ -117,8 +121,9 @@ export class PrismaRestrictionRepository extends RestrictionRepositoryPort {
   async findOwned(
     userId: string,
     id: string,
+    tx?: SyncTx,
   ): Promise<RestrictionRecord | null> {
-    const row = await this.prisma.medicalRestriction.findFirst({
+    const row = await (tx ?? this.prisma).medicalRestriction.findFirst({
       where: { id, userId },
     });
     return row ? restrictionToDomain(row, this.cipher) : null;
@@ -136,8 +141,9 @@ export class PrismaRestrictionRepository extends RestrictionRepositoryPort {
     userId: string,
     attributes: Partial<RestrictionAttributes>,
     id?: string,
+    tx?: SyncTx,
   ): Promise<RestrictionRecord> {
-    const row = await this.prisma.medicalRestriction.create({
+    const row = await (tx ?? this.prisma).medicalRestriction.create({
       data: {
         id: id ?? randomUUID(),
         userId,
@@ -165,6 +171,7 @@ export class PrismaRestrictionRepository extends RestrictionRepositoryPort {
     id: string,
     attributes: Partial<RestrictionAttributes>,
     newVersion: number,
+    tx?: SyncTx,
   ): Promise<RestrictionRecord> {
     const data: Prisma.MedicalRestrictionUpdateInput = { version: newVersion };
     if (attributes.type !== undefined) data.type = attributes.type;
@@ -188,7 +195,7 @@ export class PrismaRestrictionRepository extends RestrictionRepositoryPort {
         ? asDate(attributes.effectiveUntil)
         : null;
     }
-    const row = await this.prisma.medicalRestriction.update({
+    const row = await (tx ?? this.prisma).medicalRestriction.update({
       where: { id },
       data,
     });
@@ -199,8 +206,9 @@ export class PrismaRestrictionRepository extends RestrictionRepositoryPort {
     id: string,
     deletedBy: string,
     newVersion: number,
+    tx?: SyncTx,
   ): Promise<void> {
-    await this.prisma.medicalRestriction.update({
+    await (tx ?? this.prisma).medicalRestriction.update({
       where: { id },
       data: { deletedAt: new Date(), deletedBy, version: newVersion },
     });

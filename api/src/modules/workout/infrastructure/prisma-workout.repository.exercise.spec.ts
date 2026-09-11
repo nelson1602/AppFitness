@@ -1,4 +1,5 @@
 import type { PrismaService } from '../../database/prisma.service';
+import type { SyncTx } from '../../sync/domain/sync.types';
 import { PrismaWorkoutRepository } from './prisma-workout.repository';
 
 /**
@@ -31,6 +32,7 @@ const row = {
 
 function makePrisma() {
   return {
+    $executeRaw: jest.fn().mockResolvedValue(1),
     exercise: {
       findFirst: jest.fn().mockResolvedValue(row),
       create: jest.fn().mockResolvedValue(row),
@@ -42,35 +44,40 @@ function makePrisma() {
 
 let prisma: ReturnType<typeof makePrisma>;
 let repo: PrismaWorkoutRepository;
+let tx: SyncTx;
 beforeEach(() => {
   prisma = makePrisma();
   repo = new PrismaWorkoutRepository(prisma as unknown as PrismaService);
+  tx = prisma as unknown as SyncTx;
 });
 
 describe('PrismaWorkoutRepository — custom exercises', () => {
   it('findOwnedExercise scopes by id + created_by (excludes built-ins and foreign rows)', async () => {
-    await repo.findOwnedExercise(USER, EX_ID);
+    await repo.findOwnedExercise(tx, USER, EX_ID);
     expect(prisma.exercise.findFirst).toHaveBeenCalledWith({
       where: { id: EX_ID, createdBy: USER },
     });
   });
 
   it('createExercise sets created_by from the authenticated user', async () => {
-    await repo.createExercise(USER, EX_ID, {
+    await repo.createExercise(tx, USER, EX_ID, {
       name: 'Zercher Squat',
       muscleGroup: 'legs',
       category: 'STRENGTH',
       instructions: null,
     });
-    const arg = (prisma.exercise.create.mock.calls as unknown[][])[0][0] as {
-      data: Record<string, unknown>;
-    };
-    expect(arg.data.createdBy).toBe(USER);
-    expect(arg.data.id).toBe(EX_ID);
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    const rawArgs = prisma.$executeRaw.mock.calls[0] as unknown[];
+    expect(rawArgs).toContain(USER);
+    expect(rawArgs).toContain(EX_ID);
+    expect(String((rawArgs[0] as string[]).join(''))).toContain(
+      'ON CONFLICT (id) DO NOTHING',
+    );
   });
 
   it('updateExercise only ever touches the owner’s custom row (created_by scoping)', async () => {
     await repo.updateExercise(
+      tx,
       USER,
       EX_ID,
       {
@@ -87,21 +94,31 @@ describe('PrismaWorkoutRepository — custom exercises', () => {
       where: Record<string, unknown>;
       data: Record<string, unknown>;
     };
-    expect(arg.where).toEqual({ id: EX_ID, createdBy: USER });
-    expect(arg.data.version).toBe(2);
+    expect(arg.where).toEqual({
+      id: EX_ID,
+      createdBy: USER,
+      version: 2,
+      deletedAt: null,
+    });
+    expect(arg.data.version).toBe(3);
   });
 
   it('softDeleteExercise sets deleted_at + version and NO deleted_by, owner-scoped', async () => {
-    await repo.softDeleteExercise(USER, EX_ID, 3);
+    await repo.softDeleteExercise(tx, USER, EX_ID, 3);
     const arg = (
       prisma.exercise.updateMany.mock.calls as unknown[][]
     )[0][0] as {
       where: Record<string, unknown>;
       data: Record<string, unknown>;
     };
-    expect(arg.where).toEqual({ id: EX_ID, createdBy: USER });
+    expect(arg.where).toEqual({
+      id: EX_ID,
+      createdBy: USER,
+      version: 3,
+      deletedAt: null,
+    });
     expect(arg.data.deletedAt).toBeInstanceOf(Date);
-    expect(arg.data.version).toBe(3);
+    expect(arg.data.version).toBe(4);
     expect(arg.data).not.toHaveProperty('deletedBy');
   });
 

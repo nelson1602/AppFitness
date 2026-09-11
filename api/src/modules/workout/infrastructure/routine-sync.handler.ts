@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 
 import {
+  ApplyOutcome,
   EntitySyncHandler,
+  OwnedRowSnapshot,
   PulledChange,
+  ResolutionMutationInput,
   ServerEntityState,
   SyncOperationInput,
+  SyncTx,
 } from '../../sync/domain/sync.types';
 import {
   parseRoutineCreate,
@@ -29,37 +33,49 @@ export class RoutineSyncHandler implements EntitySyncHandler {
   async getServerState(
     userId: string,
     entityId: string,
+    tx: SyncTx,
   ): Promise<ServerEntityState | null> {
-    const record = await this.repo.findOwnedRoutine(userId, entityId);
+    const record = await this.repo.findOwnedRoutine(tx, userId, entityId);
     return record
       ? { version: record.version, snapshot: routineToWire(record) }
       : null;
   }
 
-  async apply(userId: string, op: SyncOperationInput): Promise<void> {
+  async apply(
+    userId: string,
+    op: SyncOperationInput,
+    tx: SyncTx,
+  ): Promise<ApplyOutcome> {
+    let affected: number;
     switch (op.operation) {
       case 'CREATE':
-        await this.repo.createRoutine(
+        affected = await this.repo.createRoutine(
+          tx,
           userId,
           op.entityId,
           parseRoutineCreate(op.payload),
         );
         break;
       case 'UPDATE':
-        await this.repo.updateRoutine(
+        affected = await this.repo.updateRoutine(
+          tx,
+          userId,
           op.entityId,
           parseRoutineUpdate(op.payload),
-          op.baseVersion + 1,
+          op.baseVersion,
         );
         break;
       case 'DELETE':
-        await this.repo.softDeleteRoutine(
+        affected = await this.repo.softDeleteRoutine(
+          tx,
+          userId,
           op.entityId,
           userId,
-          op.baseVersion + 1,
+          op.baseVersion,
         );
         break;
     }
+    return affected === 0 ? { status: 'STALE' } : { status: 'APPLIED' };
   }
 
   async pullChanges(
@@ -79,5 +95,52 @@ export class RoutineSyncHandler implements EntitySyncHandler {
       deleted: record.deletedAt !== null,
       data: routineToWire(record),
     }));
+  }
+
+  async readCurrentOwnedRow(
+    userId: string,
+    entityId: string,
+    tx: SyncTx,
+  ): Promise<OwnedRowSnapshot | null> {
+    const record = await this.repo.findOwnedRoutine(tx, userId, entityId);
+    return record
+      ? {
+          row: routineToWire(record),
+          version: record.version,
+          deleted: record.deletedAt !== null,
+        }
+      : null;
+  }
+
+  resolveConflictMutation(
+    userId: string,
+    entityId: string,
+    input: ResolutionMutationInput,
+    tx: SyncTx,
+  ): Promise<number> {
+    const common = {
+      expectedVersion: input.expectedServerVersion,
+      expectedDeleted: input.expectedDeleted,
+      resolvedBy: userId,
+    } as const;
+    switch (input.operation) {
+      case 'CREATE':
+        return this.repo.resolveRoutine(tx, userId, entityId, {
+          ...common,
+          operation: 'CREATE',
+          data: parseRoutineCreate(input.payload),
+        });
+      case 'UPDATE':
+        return this.repo.resolveRoutine(tx, userId, entityId, {
+          ...common,
+          operation: 'UPDATE',
+          data: parseRoutineUpdate(input.payload),
+        });
+      case 'DELETE':
+        return this.repo.resolveRoutine(tx, userId, entityId, {
+          ...common,
+          operation: 'DELETE',
+        });
+    }
   }
 }

@@ -1,4 +1,4 @@
-import type { SyncOperationInput } from '../../sync/domain/sync.types';
+import type { SyncOperationInput, SyncTx } from '../../sync/domain/sync.types';
 import { SyncEntityRegistry } from '../../sync/domain/sync-entity-registry';
 import type { WorkoutRepositoryPort } from '../domain/workout.repository';
 import type { CustomExerciseRecord } from '../domain/workout.types';
@@ -14,6 +14,7 @@ import { ExerciseSyncHandler } from './exercise-sync.handler';
 const USER = 'user-1';
 const OTHER = 'user-2';
 const EX_ID = '33333333-3333-4333-8333-333333333333';
+const TX = {} as SyncTx;
 
 type MockRepo = { [K in keyof WorkoutRepositoryPort]: jest.Mock };
 
@@ -47,6 +48,11 @@ function makeRepo(): MockRepo {
     updateWorkoutSet: jest.fn(),
     softDeleteWorkoutSet: jest.fn(),
     workoutSetsChangedSince: jest.fn(),
+    resolveExercise: jest.fn(),
+    resolveRoutine: jest.fn(),
+    resolveRoutineExercise: jest.fn(),
+    resolveWorkoutLog: jest.fn(),
+    resolveWorkoutSet: jest.fn(),
   };
 }
 
@@ -104,8 +110,9 @@ describe('ExerciseSyncHandler', () => {
           created_by: OTHER,
         },
       }),
+      TX,
     );
-    expect(repo.createExercise).toHaveBeenCalledWith(USER, EX_ID, {
+    expect(repo.createExercise).toHaveBeenCalledWith(TX, USER, EX_ID, {
       name: 'Zercher Squat',
       muscleGroup: 'legs',
       category: 'STRENGTH',
@@ -125,8 +132,9 @@ describe('ExerciseSyncHandler', () => {
           category: 'STRENGTH',
         },
       }),
+      TX,
     );
-    expect(repo.createExercise).toHaveBeenCalledWith(USER, EX_ID, {
+    expect(repo.createExercise).toHaveBeenCalledWith(TX, USER, EX_ID, {
       name: 'Bench Press',
       muscleGroup: 'chest',
       category: 'STRENGTH',
@@ -143,6 +151,7 @@ describe('ExerciseSyncHandler', () => {
           operation: 'CREATE',
           payload: { name: 'X', muscle_group: 'legs', category: 'NONSENSE' },
         }),
+        TX,
       ),
     ).rejects.toThrow(/category/);
     await expect(
@@ -152,6 +161,7 @@ describe('ExerciseSyncHandler', () => {
           operation: 'CREATE',
           payload: { name: '   ', muscle_group: 'legs', category: 'STRENGTH' },
         }),
+        TX,
       ),
     ).rejects.toThrow(/name/);
     expect(repo.createExercise).not.toHaveBeenCalled();
@@ -170,8 +180,10 @@ describe('ExerciseSyncHandler', () => {
           category: 'STRENGTH',
         },
       }),
+      TX,
     );
     expect(repo.updateExercise).toHaveBeenCalledWith(
+      TX,
       USER,
       EX_ID,
       {
@@ -180,18 +192,18 @@ describe('ExerciseSyncHandler', () => {
         category: 'STRENGTH',
         instructions: null,
       },
-      3,
+      2,
     );
 
-    await h.apply(USER, op({ operation: 'DELETE', baseVersion: 3 }));
-    expect(repo.softDeleteExercise).toHaveBeenCalledWith(USER, EX_ID, 4);
+    await h.apply(USER, op({ operation: 'DELETE', baseVersion: 3 }), TX);
+    expect(repo.softDeleteExercise).toHaveBeenCalledWith(TX, USER, EX_ID, 3);
   });
 
   it('getServerState is owner-scoped (null for a built-in or another user)', async () => {
     const h = new ExerciseSyncHandler(asPort(repo));
     repo.findOwnedExercise.mockResolvedValue(customRec({ version: 5 }));
-    const state = await h.getServerState(USER, EX_ID);
-    expect(repo.findOwnedExercise).toHaveBeenCalledWith(USER, EX_ID);
+    const state = await h.getServerState(USER, EX_ID, TX);
+    expect(repo.findOwnedExercise).toHaveBeenCalledWith(TX, USER, EX_ID);
     expect(state?.version).toBe(5);
     expect(state?.snapshot).toMatchObject({
       id: EX_ID,
@@ -200,7 +212,7 @@ describe('ExerciseSyncHandler', () => {
     });
 
     repo.findOwnedExercise.mockResolvedValue(null); // built-in / foreign → no state
-    expect(await h.getServerState(OTHER, EX_ID)).toBeNull();
+    expect(await h.getServerState(OTHER, EX_ID, TX)).toBeNull();
   });
 
   it('redacts free-text instructions from the conflict snapshot but keeps structured fields', () => {

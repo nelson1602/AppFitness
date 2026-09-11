@@ -59,6 +59,7 @@ const validCreatePayload = {
 describe('exercises sync pipeline', () => {
   let service: SyncService;
   let prisma: {
+    $transaction: jest.Mock;
     syncOperation: { findUnique: jest.Mock; create: jest.Mock };
     syncConflict: { create: jest.Mock };
   };
@@ -72,6 +73,9 @@ describe('exercises sync pipeline', () => {
 
   beforeEach(async () => {
     prisma = {
+      $transaction: jest.fn((work: (tx: typeof prisma) => Promise<unknown>) =>
+        work(prisma),
+      ),
       syncOperation: {
         findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({}),
@@ -82,9 +86,9 @@ describe('exercises sync pipeline', () => {
     };
     repo = {
       findOwnedExercise: jest.fn().mockResolvedValue(null),
-      createExercise: jest.fn().mockResolvedValue(ownedRecord),
-      updateExercise: jest.fn().mockResolvedValue(undefined),
-      softDeleteExercise: jest.fn().mockResolvedValue(undefined),
+      createExercise: jest.fn().mockResolvedValue(1),
+      updateExercise: jest.fn().mockResolvedValue(1),
+      softDeleteExercise: jest.fn().mockResolvedValue(1),
       exercisesChangedSince: jest.fn().mockResolvedValue([]),
     };
 

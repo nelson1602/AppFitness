@@ -5,14 +5,15 @@ import { AuditService } from '../../audit/audit.service';
 import { PrismaService } from '../../database/prisma.service';
 import { SyncService } from '../../sync/application/sync.service';
 import { SyncEntityRegistry } from '../../sync/domain/sync-entity-registry';
-import type { SyncOperationInput } from '../../sync/domain/sync.types';
+import type { SyncOperationInput, SyncTx } from '../../sync/domain/sync.types';
 import { MealItemRepositoryPort } from '../domain/meal-item.repository';
 import { MealItemSyncHandler } from './meal-item-sync.handler';
 
 /**
  * Integration of the meal_items handler through the real SyncService pipeline,
  * exercising the ADR-P012 error semantics end-to-end (conflict recording,
- * retryable non-persistence, terminal rejection).
+ * retryable non-persistence, terminal rejection) and the ADR-P030 C-2
+ * transaction boundary (everything the operation touches runs on one client).
  */
 
 const USER = 'user-1';
@@ -71,10 +72,17 @@ const createOp = (payload: Record<string, unknown>): SyncOperationInput => ({
 
 describe('meal_items sync pipeline', () => {
   let service: SyncService;
-  let prisma: {
+  /**
+   * The transaction client the pipeline hands to the handler. A single shared
+   * object stands in for both the root client and `tx`, and `$transaction`
+   * records that it was actually opened, so the assertions can prove the reads
+   * and writes ran inside it.
+   */
+  let tx: {
     syncOperation: { findUnique: jest.Mock; create: jest.Mock };
     syncConflict: { create: jest.Mock };
   };
+  let prisma: typeof tx & { $transaction: jest.Mock };
   let repo: {
     findOwned: jest.Mock;
     findMeal: jest.Mock;
@@ -83,10 +91,11 @@ describe('meal_items sync pipeline', () => {
     updateServingCount: jest.Mock;
     softDelete: jest.Mock;
     changedSince: jest.Mock;
+    resolve: jest.Mock;
   };
 
   beforeEach(async () => {
-    prisma = {
+    tx = {
       syncOperation: {
         findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({}),
@@ -95,14 +104,23 @@ describe('meal_items sync pipeline', () => {
         create: jest.fn().mockResolvedValue({ id: 'conflict-1' }),
       },
     };
+    prisma = {
+      ...tx,
+      $transaction: jest
+        .fn()
+        .mockImplementation((fn: (client: SyncTx) => Promise<unknown>) =>
+          fn(tx as unknown as SyncTx),
+        ),
+    };
     repo = {
       findOwned: jest.fn().mockResolvedValue(null),
       findMeal: jest.fn().mockResolvedValue({ userId: USER, deletedAt: null }),
       findActiveFood: jest.fn().mockResolvedValue(FOOD),
-      create: jest.fn().mockResolvedValue(ownedRecord),
-      updateServingCount: jest.fn().mockResolvedValue(undefined),
-      softDelete: jest.fn().mockResolvedValue(undefined),
+      create: jest.fn().mockResolvedValue(1),
+      updateServingCount: jest.fn().mockResolvedValue(1),
+      softDelete: jest.fn().mockResolvedValue(1),
       changedSince: jest.fn().mockResolvedValue([]),
+      resolve: jest.fn().mockResolvedValue(1),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -136,7 +154,7 @@ describe('meal_items sync pipeline', () => {
     ]);
 
     expect(results[0].status).toBe(SyncOperationStatus.CONFLICT);
-    expect(prisma.syncConflict.create).toHaveBeenCalledTimes(1);
+    expect(tx.syncConflict.create).toHaveBeenCalledTimes(1);
     expect(repo.updateServingCount).not.toHaveBeenCalled(); // not overwritten
   });
 
@@ -148,7 +166,7 @@ describe('meal_items sync pipeline', () => {
     ]);
 
     expect(results[0].errorCode).toBe('DEPENDENCY_NOT_READY');
-    expect(prisma.syncOperation.create).not.toHaveBeenCalled(); // not terminal
+    expect(tx.syncOperation.create).not.toHaveBeenCalled(); // not terminal
     expect(repo.create).not.toHaveBeenCalled();
   });
 
@@ -161,7 +179,7 @@ describe('meal_items sync pipeline', () => {
 
     expect(results[0].status).toBe(SyncOperationStatus.REJECTED);
     expect(results[0].errorCode).toBe('CATALOG_REVISION_UNSUPPORTED');
-    const calls = prisma.syncOperation.create.mock.calls as unknown as Array<
+    const calls = tx.syncOperation.create.mock.calls as unknown as Array<
       [{ data: { status: SyncOperationStatus; errorCode: string | null } }]
     >;
     expect(calls[0][0].data.status).toBe(SyncOperationStatus.REJECTED);
@@ -175,5 +193,60 @@ describe('meal_items sync pipeline', () => {
 
     expect(results[0].status).toBe(SyncOperationStatus.APPLIED);
     expect(repo.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('the probe, the entity read, the mutation and the outcome all run on the operation transaction', async () => {
+    await service.push(USER, null, [
+      createOp({ meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 2 }),
+    ]);
+
+    const firstArg = (mock: jest.Mock): unknown =>
+      (mock.mock.calls[0] as unknown[])[0];
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(firstArg(repo.findOwned)).toBe(tx);
+    expect(firstArg(repo.findMeal)).toBe(tx);
+    expect(firstArg(repo.findActiveFood)).toBe(tx);
+    expect(firstArg(repo.create)).toBe(tx);
+    expect(tx.syncOperation.findUnique).toHaveBeenCalledTimes(1);
+    expect(tx.syncOperation.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('a late CREATE collision becomes an ordinary conflict, not an APPLIED or a rejection', async () => {
+    // The early check saw nothing, then a concurrent commit inserted the row:
+    // the insert matches zero rows and the re-read now finds the winner.
+    repo.create.mockResolvedValue(0);
+    repo.findOwned
+      .mockResolvedValueOnce(null) // early check
+      .mockResolvedValueOnce(ownedRecord); // re-read after STALE
+
+    const { results } = await service.push(USER, null, [
+      createOp({ meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 2 }),
+    ]);
+
+    expect(results[0].status).toBe(SyncOperationStatus.CONFLICT);
+    expect(results[0].serverVersion).toBe(3);
+    expect(tx.syncConflict.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('a late UPDATE race becomes a conflict carrying the winner version', async () => {
+    repo.updateServingCount.mockResolvedValue(0);
+    repo.findOwned
+      .mockResolvedValueOnce(ownedRecord) // early check passes at version 3
+      .mockResolvedValueOnce({ ...ownedRecord, version: 4 }); // winner
+
+    const { results } = await service.push(USER, null, [
+      {
+        opId: '55555555-5555-4555-8555-555555555555',
+        entityType: 'meal_items',
+        entityId: ITEM_ID,
+        operation: 'UPDATE',
+        baseVersion: 3,
+        payload: { serving_count: 9 },
+      },
+    ]);
+
+    expect(results[0].status).toBe(SyncOperationStatus.CONFLICT);
+    expect(results[0].serverVersion).toBe(4);
   });
 });
