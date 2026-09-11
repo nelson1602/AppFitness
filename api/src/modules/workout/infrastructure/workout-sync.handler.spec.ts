@@ -1,5 +1,9 @@
 import { SYNC_ERROR_CODES, SyncApplyError } from '../../sync/domain/sync.types';
-import type { SyncOperationInput } from '../../sync/domain/sync.types';
+import type {
+  EntitySyncHandler,
+  SyncOperationInput,
+  SyncTx,
+} from '../../sync/domain/sync.types';
 import { SyncEntityRegistry } from '../../sync/domain/sync-entity-registry';
 import type { WorkoutRepositoryPort } from '../domain/workout.repository';
 import type {
@@ -20,6 +24,7 @@ const RX_ID = '22222222-2222-4222-8222-222222222222';
 const EX_ID = '33333333-3333-4333-8333-333333333333';
 const LOG_ID = '44444444-4444-4444-8444-444444444444';
 const SET_ID = '55555555-5555-4555-8555-555555555555';
+const TX = {} as SyncTx;
 
 // jest.Mock fields (not jest.Mocked<T>) so mock references don't trip the
 // unbound-method rule — the meal_items spec idiom.
@@ -55,6 +60,11 @@ function makeRepo(): MockRepo {
     updateWorkoutSet: jest.fn(),
     softDeleteWorkoutSet: jest.fn(),
     workoutSetsChangedSince: jest.fn(),
+    resolveExercise: jest.fn(),
+    resolveRoutine: jest.fn(),
+    resolveRoutineExercise: jest.fn(),
+    resolveWorkoutLog: jest.fn(),
+    resolveWorkoutSet: jest.fn(),
   };
 }
 
@@ -95,8 +105,9 @@ describe('RoutineSyncHandler', () => {
     await h.apply(
       USER,
       op({ operation: 'CREATE', payload: { name: 'Push day' } }),
+      TX,
     );
-    expect(repo.createRoutine).toHaveBeenCalledWith(USER, ROUTINE_ID, {
+    expect(repo.createRoutine).toHaveBeenCalledWith(TX, USER, ROUTINE_ID, {
       name: 'Push day',
       description: null,
     });
@@ -108,34 +119,43 @@ describe('RoutineSyncHandler', () => {
         baseVersion: 2,
         payload: { name: 'Pull day' },
       }),
+      TX,
     );
     expect(repo.updateRoutine).toHaveBeenCalledWith(
+      TX,
+      USER,
       ROUTINE_ID,
       { name: 'Pull day', description: null },
-      3,
+      2,
     );
 
-    await h.apply(USER, op({ operation: 'DELETE', baseVersion: 3 }));
-    expect(repo.softDeleteRoutine).toHaveBeenCalledWith(ROUTINE_ID, USER, 4);
+    await h.apply(USER, op({ operation: 'DELETE', baseVersion: 3 }), TX);
+    expect(repo.softDeleteRoutine).toHaveBeenCalledWith(
+      TX,
+      USER,
+      ROUTINE_ID,
+      USER,
+      3,
+    );
   });
 
   it('rejects a routine CREATE with no name', async () => {
     const h = new RoutineSyncHandler(asPort(repo));
     await expect(
-      h.apply(USER, op({ operation: 'CREATE', payload: {} })),
+      h.apply(USER, op({ operation: 'CREATE', payload: {} }), TX),
     ).rejects.toThrow(/name/);
   });
 
   it('getServerState is owner-scoped and returns version + snapshot for conflict detection', async () => {
     const h = new RoutineSyncHandler(asPort(repo));
     repo.findOwnedRoutine.mockResolvedValue(routineRec({ version: 7 }));
-    const state = await h.getServerState(USER, ROUTINE_ID);
-    expect(repo.findOwnedRoutine).toHaveBeenCalledWith(USER, ROUTINE_ID);
+    const state = await h.getServerState(USER, ROUTINE_ID, TX);
+    expect(repo.findOwnedRoutine).toHaveBeenCalledWith(TX, USER, ROUTINE_ID);
     expect(state?.version).toBe(7);
     expect(state?.snapshot).toMatchObject({ id: ROUTINE_ID, name: 'Push day' });
 
     repo.findOwnedRoutine.mockResolvedValue(null); // not owned → no state
-    expect(await h.getServerState(OTHER, ROUTINE_ID)).toBeNull();
+    expect(await h.getServerState(OTHER, ROUTINE_ID, TX)).toBeNull();
   });
 });
 
@@ -155,6 +175,7 @@ describe('RoutineExerciseSyncHandler — dependencies', () => {
       .apply(
         USER,
         op({ entityId: RX_ID, operation: 'CREATE', payload: rxPayload }),
+        TX,
       )
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(SyncApplyError);
@@ -174,6 +195,7 @@ describe('RoutineExerciseSyncHandler — dependencies', () => {
       .apply(
         USER,
         op({ entityId: RX_ID, operation: 'CREATE', payload: rxPayload }),
+        TX,
       )
       .catch((e: unknown) => e);
     expect((err as SyncApplyError).errorCode).toBe(
@@ -192,6 +214,7 @@ describe('RoutineExerciseSyncHandler — dependencies', () => {
       h.apply(
         USER,
         op({ entityId: RX_ID, operation: 'CREATE', payload: rxPayload }),
+        TX,
       ),
     ).rejects.toThrow(/not an active routine/);
   });
@@ -205,6 +228,7 @@ describe('RoutineExerciseSyncHandler — dependencies', () => {
       h.apply(
         USER,
         op({ entityId: RX_ID, operation: 'CREATE', payload: rxPayload }),
+        TX,
       ),
     ).rejects.toThrow(/not owned by this user/);
 
@@ -212,8 +236,9 @@ describe('RoutineExerciseSyncHandler — dependencies', () => {
     await h.apply(
       USER,
       op({ entityId: RX_ID, operation: 'CREATE', payload: rxPayload }),
+      TX,
     );
-    expect(repo.createRoutineExercise).toHaveBeenCalledWith(USER, RX_ID, {
+    expect(repo.createRoutineExercise).toHaveBeenCalledWith(TX, USER, RX_ID, {
       routineId: ROUTINE_ID,
       exerciseId: EX_ID,
       order: 0,
@@ -258,6 +283,7 @@ describe('WorkoutLogSyncHandler — optional routine dependency', () => {
     await h.apply(
       USER,
       op({ entityId: LOG_ID, operation: 'CREATE', payload: base }),
+      TX,
     );
     expect(repo.findRoutineParent).not.toHaveBeenCalled();
     expect(repo.createWorkoutLog).toHaveBeenCalled();
@@ -274,6 +300,7 @@ describe('WorkoutLogSyncHandler — optional routine dependency', () => {
           operation: 'CREATE',
           payload: { ...base, routine_id: ROUTINE_ID },
         }),
+        TX,
       )
       .catch((e: unknown) => e);
     expect((err as SyncApplyError).errorCode).toBe(
@@ -298,7 +325,7 @@ describe('WorkoutLogSyncHandler — optional routine dependency', () => {
       deletedAt: null,
     };
     repo.findOwnedWorkoutLog.mockResolvedValue(rec);
-    const state = await h.getServerState(USER, LOG_ID);
+    const state = await h.getServerState(USER, LOG_ID, TX);
     expect(state?.snapshot.notes).toBe('[REDACTED]');
     expect(state?.snapshot.name).toBe('Morning session');
   });
@@ -320,6 +347,7 @@ describe('WorkoutSetSyncHandler — dependencies', () => {
       .apply(
         USER,
         op({ entityId: SET_ID, operation: 'CREATE', payload: setPayload }),
+        TX,
       )
       .catch((e: unknown) => e);
     expect((err as SyncApplyError).errorCode).toBe(
@@ -337,8 +365,10 @@ describe('WorkoutSetSyncHandler — dependencies', () => {
     await h.apply(
       USER,
       op({ entityId: SET_ID, operation: 'CREATE', payload: setPayload }),
+      TX,
     );
     expect(repo.createWorkoutSet).toHaveBeenCalledWith(
+      TX,
       USER,
       SET_ID,
       expect.objectContaining({
@@ -355,15 +385,22 @@ describe('WorkoutSetSyncHandler — dependencies', () => {
     await h.apply(
       USER,
       op({ entityId: SET_ID, operation: 'DELETE', baseVersion: 4 }),
+      TX,
     );
-    expect(repo.softDeleteWorkoutSet).toHaveBeenCalledWith(SET_ID, USER, 5);
+    expect(repo.softDeleteWorkoutSet).toHaveBeenCalledWith(
+      TX,
+      USER,
+      SET_ID,
+      USER,
+      4,
+    );
   });
 
   it('getServerState is owner-scoped', async () => {
     const h = new WorkoutSetSyncHandler(asPort(repo));
     repo.findOwnedWorkoutSet.mockResolvedValue(null);
-    expect(await h.getServerState(OTHER, SET_ID)).toBeNull();
-    expect(repo.findOwnedWorkoutSet).toHaveBeenCalledWith(OTHER, SET_ID);
+    expect(await h.getServerState(OTHER, SET_ID, TX)).toBeNull();
+    expect(repo.findOwnedWorkoutSet).toHaveBeenCalledWith(TX, OTHER, SET_ID);
   });
 });
 
@@ -389,4 +426,63 @@ describe('workout handler registration', () => {
       expect(registry.get(t)?.entityType).toBe(t);
     }
   });
+});
+
+describe('ADR-P030 C-2 resolution-facing handler seams', () => {
+  it.each([
+    [
+      'exercise',
+      () => new ExerciseSyncHandler(asPort(repo)),
+      EX_ID,
+      'resolveExercise',
+    ],
+    [
+      'routine',
+      () => new RoutineSyncHandler(asPort(repo)),
+      ROUTINE_ID,
+      'resolveRoutine',
+    ],
+    [
+      'routine exercise',
+      () => new RoutineExerciseSyncHandler(asPort(repo)),
+      RX_ID,
+      'resolveRoutineExercise',
+    ],
+    [
+      'workout log',
+      () => new WorkoutLogSyncHandler(asPort(repo)),
+      LOG_ID,
+      'resolveWorkoutLog',
+    ],
+    [
+      'workout set',
+      () => new WorkoutSetSyncHandler(asPort(repo)),
+      SET_ID,
+      'resolveWorkoutSet',
+    ],
+  ] as const)(
+    'threads the reviewed state through the %s DELETE seam',
+    async (_label, makeHandler, entityId, repositoryMethod) => {
+      const handler: EntitySyncHandler = makeHandler();
+      const affected = await handler.resolveConflictMutation?.(
+        USER,
+        entityId,
+        {
+          operation: 'DELETE',
+          payload: {},
+          expectedServerVersion: 4,
+          expectedDeleted: false,
+        },
+        TX,
+      );
+
+      expect(affected).toBeUndefined();
+      expect(repo[repositoryMethod]).toHaveBeenCalledWith(TX, USER, entityId, {
+        operation: 'DELETE',
+        expectedVersion: 4,
+        expectedDeleted: false,
+        resolvedBy: USER,
+      });
+    },
+  );
 });

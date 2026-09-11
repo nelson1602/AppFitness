@@ -1164,7 +1164,7 @@ that build would contradict the owner's clarified product intent.
       renders no raw token, count, date, missing pattern or conflict payload.
       **W-4E** is the documentation closure delivering this reconciliation.
       **Still open, deliberately:** BUG-012 conflict **resolution** (ADR-P030
-      C-2 … C-7 stay unauthorized); the manual screen-reader / keyboard /
+      C-3 … C-7 stay unauthorized); the manual screen-reader / keyboard /
       large-text pass (UX-4C); the `features/wellness/domain`
       `collectCoverageFrom` decision; and **W-5 supplements**, which need their
       own ADR and legal review.
@@ -3382,15 +3382,15 @@ in each asserts exactly that. No resolution affordance was added.
 
 Status: **Open** — specification authored as ADR-P030 on 2026-09-07, revised
 seven times the same day after review, and **Accepted 2026-09-07**. The
-architecture is authorized; **the implementation is not** — **C-2 … C-7 remain
-unauthorized**. **C-0 (BUG-014)** and **C-1 (per-user scoping)** are
-implemented. **No owner decision remains open.** Still blocked on per-slice
-authorization
+architecture is authorized. **C-0 (BUG-014), C-1 (per-user scoping) and C-2
+(atomic conditional push) are implemented**; **C-3 … C-7 remain unauthorized**.
+**No owner decision remains open.** Still blocked on the remaining per-slice
+authorizations
 Priority: **P1** (raised from P2 — see §Re-audit)
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-09-07
+Updated: 2026-09-11
 
 ### Description
 
@@ -3548,10 +3548,10 @@ called from `_layout.tsx`, so the two medical entity types cannot enter conflict
       screen inventory, its behaviour and its copy **before** any implementation.
       **ADR-P030 is Accepted (2026-09-07)**, with no owner decision remaining
       open. Acceptance authorizes the **architecture only** — the implementation
-      stays a separate gate, so **this entry remains Open**: **C-2 … C-7 are
-      unauthorized**. **C-0 (BUG-014)** and **C-1** have each been separately
-      authorized.
-- [ ] **BUG-014 is fixed first** (ADR-P030 **C-0**) — a parked conflict again
+      stays a separate gate, so **this entry remains Open**: **C-3 … C-7 are
+      unauthorized**. **C-0 (BUG-014)**, **C-1** and **C-2** have each been
+      separately authorized and implemented.
+- [x] **BUG-014 is fixed first** (ADR-P030 **C-0**) — a parked conflict again
       shields its row from the pull. Until then "both versions remain preserved"
       is false, so this entry cannot be satisfied.
 - [x] Per-user scoping of `sync_queue`, `sync_state` and `sync_conflicts` has
@@ -3562,14 +3562,14 @@ called from `_layout.tsx`, so the two medical entity types cannot enter conflict
       generation guard, an explicit-auth intent epoch, serialized session
       mutations, and a single fully-validated versioned SecureStore envelope
       that never migrates a legacy triple.
-- [ ] The `EntitySyncHandler` / repository contract is transaction-aware **and
+- [x] The `EntitySyncHandler` / repository contract is transaction-aware **and
       every existing-row `UPDATE`/`DELETE` mutation carries an owner +
       expected-version predicate** (**C-2**) — `CREATE` stays an insert, with only
       a primary-key collision mapping to a conflict — so the entity mutation and
       the conflict transition commit atomically and a concurrent ordinary
       `/sync/push` cannot bypass the guard. This also closes the pre-existing
       push-path read-then-write race.
-- [ ] **`/sync/push` commits each operation's mutation and its terminal
+- [x] **`/sync/push` commits each operation's mutation and its terminal
       `SyncOperation`/`SyncConflict` result in one per-operation transaction**
       (**C-2**), so a crash cannot leave a mutation with **no recorded op id** —
       the hole that currently defeats op-id idempotency on retry.

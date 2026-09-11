@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 
 import {
+  ApplyOutcome,
   EntitySyncHandler,
+  OwnedRowSnapshot,
   PulledChange,
+  ResolutionMutationInput,
   ServerEntityState,
   SyncOperationInput,
+  SyncTx,
 } from '../../sync/domain/sync.types';
 import {
   parseWorkoutLogCreate,
@@ -31,8 +35,9 @@ export class WorkoutLogSyncHandler implements EntitySyncHandler {
   async getServerState(
     userId: string,
     entityId: string,
+    tx: SyncTx,
   ): Promise<ServerEntityState | null> {
-    const record = await this.repo.findOwnedWorkoutLog(userId, entityId);
+    const record = await this.repo.findOwnedWorkoutLog(tx, userId, entityId);
     return record
       ? {
           version: record.version,
@@ -41,35 +46,50 @@ export class WorkoutLogSyncHandler implements EntitySyncHandler {
       : null;
   }
 
-  async apply(userId: string, op: SyncOperationInput): Promise<void> {
+  async apply(
+    userId: string,
+    op: SyncOperationInput,
+    tx: SyncTx,
+  ): Promise<ApplyOutcome> {
+    let affected: number;
     switch (op.operation) {
       case 'CREATE': {
         const input = parseWorkoutLogCreate(op.payload);
         if (input.routineId !== null) {
           assertOwnedParentReady(
-            await this.repo.findRoutineParent(input.routineId),
+            await this.repo.findRoutineParent(tx, input.routineId),
             userId,
             'routine',
           );
         }
-        await this.repo.createWorkoutLog(userId, op.entityId, input);
+        affected = await this.repo.createWorkoutLog(
+          tx,
+          userId,
+          op.entityId,
+          input,
+        );
         break;
       }
       case 'UPDATE':
-        await this.repo.updateWorkoutLog(
+        affected = await this.repo.updateWorkoutLog(
+          tx,
+          userId,
           op.entityId,
           parseWorkoutLogUpdate(op.payload),
-          op.baseVersion + 1,
+          op.baseVersion,
         );
         break;
       case 'DELETE':
-        await this.repo.softDeleteWorkoutLog(
+        affected = await this.repo.softDeleteWorkoutLog(
+          tx,
+          userId,
           op.entityId,
           userId,
-          op.baseVersion + 1,
+          op.baseVersion,
         );
         break;
     }
+    return affected === 0 ? { status: 'STALE' } : { status: 'APPLIED' };
   }
 
   async pullChanges(
@@ -93,5 +113,52 @@ export class WorkoutLogSyncHandler implements EntitySyncHandler {
 
   redactForConflict(payload: Record<string, unknown>): Record<string, unknown> {
     return redactWorkoutNotes(payload);
+  }
+
+  async readCurrentOwnedRow(
+    userId: string,
+    entityId: string,
+    tx: SyncTx,
+  ): Promise<OwnedRowSnapshot | null> {
+    const record = await this.repo.findOwnedWorkoutLog(tx, userId, entityId);
+    return record
+      ? {
+          row: workoutLogToWire(record),
+          version: record.version,
+          deleted: record.deletedAt !== null,
+        }
+      : null;
+  }
+
+  resolveConflictMutation(
+    userId: string,
+    entityId: string,
+    input: ResolutionMutationInput,
+    tx: SyncTx,
+  ): Promise<number> {
+    const common = {
+      expectedVersion: input.expectedServerVersion,
+      expectedDeleted: input.expectedDeleted,
+      resolvedBy: userId,
+    } as const;
+    switch (input.operation) {
+      case 'CREATE':
+        return this.repo.resolveWorkoutLog(tx, userId, entityId, {
+          ...common,
+          operation: 'CREATE',
+          data: parseWorkoutLogCreate(input.payload),
+        });
+      case 'UPDATE':
+        return this.repo.resolveWorkoutLog(tx, userId, entityId, {
+          ...common,
+          operation: 'UPDATE',
+          data: parseWorkoutLogUpdate(input.payload),
+        });
+      case 'DELETE':
+        return this.repo.resolveWorkoutLog(tx, userId, entityId, {
+          ...common,
+          operation: 'DELETE',
+        });
+    }
   }
 }

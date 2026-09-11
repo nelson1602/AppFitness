@@ -1,4 +1,4 @@
-import type { SyncOperationInput } from '../../sync/domain/sync.types';
+import type { SyncOperationInput, SyncTx } from '../../sync/domain/sync.types';
 import type { ProgressRepositoryPort } from '../domain/progress.repository';
 import type {
   BodyMeasurementRecord,
@@ -11,27 +11,35 @@ const USER = 'user-1';
 const BW_ID = '11111111-1111-4111-8111-111111111111';
 const BM_ID = '22222222-2222-4222-8222-222222222222';
 
+/** Stand-in transaction client — identity proves nothing escaped to the root. */
+const TX = { marker: 'tx' } as unknown as SyncTx;
+
 // jest.Mock fields (not jest.Mocked<T>) so mock references don't trip the
 // unbound-method rule — the workout/meal_items spec idiom.
 type MockRepo = { [K in keyof ProgressRepositoryPort]: jest.Mock };
 
+/** Writes return an affected-row count (ADR-P030 C-2); 1 = applied. */
 function makeRepo(): MockRepo {
+  const applied = () => jest.fn().mockResolvedValue(1);
   return {
     findOwnedBodyWeight: jest.fn(),
-    createBodyWeight: jest.fn(),
-    updateBodyWeight: jest.fn(),
-    softDeleteBodyWeight: jest.fn(),
+    createBodyWeight: applied(),
+    updateBodyWeight: applied(),
+    softDeleteBodyWeight: applied(),
     bodyWeightsChangedSince: jest.fn(),
+    resolveBodyWeight: applied(),
     findOwnedBodyMeasurement: jest.fn(),
-    createBodyMeasurement: jest.fn(),
-    updateBodyMeasurement: jest.fn(),
-    softDeleteBodyMeasurement: jest.fn(),
+    createBodyMeasurement: applied(),
+    updateBodyMeasurement: applied(),
+    softDeleteBodyMeasurement: applied(),
     bodyMeasurementsChangedSince: jest.fn(),
+    resolveBodyMeasurement: applied(),
     findOwnedProgressSnapshot: jest.fn(),
-    createProgressSnapshot: jest.fn(),
-    updateProgressSnapshot: jest.fn(),
-    softDeleteProgressSnapshot: jest.fn(),
+    createProgressSnapshot: applied(),
+    updateProgressSnapshot: applied(),
+    softDeleteProgressSnapshot: applied(),
     progressSnapshotsChangedSince: jest.fn(),
+    resolveProgressSnapshot: applied(),
   };
 }
 
@@ -99,36 +107,52 @@ describe('BodyWeightSyncHandler', () => {
 
   it('getServerState returns null for a missing/foreign row', async () => {
     repo.findOwnedBodyWeight.mockResolvedValue(null);
-    expect(await handler.getServerState(USER, BW_ID)).toBeNull();
-    expect(repo.findOwnedBodyWeight).toHaveBeenCalledWith(USER, BW_ID);
+    expect(await handler.getServerState(USER, BW_ID, TX)).toBeNull();
+    expect(repo.findOwnedBodyWeight).toHaveBeenCalledWith(TX, USER, BW_ID);
   });
 
   it('getServerState returns version + notes-redacted snapshot', async () => {
     repo.findOwnedBodyWeight.mockResolvedValue(bwRec());
-    const state = await handler.getServerState(USER, BW_ID);
+    const state = await handler.getServerState(USER, BW_ID, TX);
     expect(state?.version).toBe(2);
     expect(state?.snapshot.notes).toBe('[REDACTED]');
     expect(state?.snapshot.weight_kg).toBe(80);
     expect(state?.snapshot.date).toBe('2026-08-03');
   });
 
-  it('CREATE parses payload and creates owner-scoped', async () => {
-    await handler.apply(
+  it('CREATE parses payload and creates owner-scoped on the transaction', async () => {
+    const outcome = await handler.apply(
       USER,
       op({
         operation: 'CREATE',
         entityId: BW_ID,
         payload: { id: BW_ID, date: '2026-08-03', weight_kg: 80, notes: 'x' },
       }),
+      TX,
     );
-    expect(repo.createBodyWeight).toHaveBeenCalledWith(USER, BW_ID, {
+    expect(outcome).toEqual({ status: 'APPLIED' });
+    expect(repo.createBodyWeight).toHaveBeenCalledWith(TX, USER, BW_ID, {
       date: new Date('2026-08-03T00:00:00.000Z'),
       weightKg: 80,
       notes: 'x',
     });
   });
 
-  it('UPDATE applies with baseVersion + 1', async () => {
+  it('a colliding CREATE reports STALE rather than raising', async () => {
+    repo.createBodyWeight.mockResolvedValue(0);
+    const outcome = await handler.apply(
+      USER,
+      op({
+        operation: 'CREATE',
+        entityId: BW_ID,
+        payload: { id: BW_ID, date: '2026-08-03', weight_kg: 80 },
+      }),
+      TX,
+    );
+    expect(outcome).toEqual({ status: 'STALE' });
+  });
+
+  it('UPDATE carries the expected version into the write', async () => {
     await handler.apply(
       USER,
       op({
@@ -137,20 +161,45 @@ describe('BodyWeightSyncHandler', () => {
         baseVersion: 4,
         payload: { date: '2026-08-03', weight_kg: 81, notes: null },
       }),
+      TX,
     );
     expect(repo.updateBodyWeight).toHaveBeenCalledWith(
+      TX,
+      USER,
       BW_ID,
       { date: new Date('2026-08-03T00:00:00.000Z'), weightKg: 81, notes: null },
-      5,
+      4,
     );
   });
 
-  it('DELETE soft-deletes owner-scoped with baseVersion + 1', async () => {
+  it('a zero-row UPDATE is a typed STALE outcome', async () => {
+    repo.updateBodyWeight.mockResolvedValue(0);
+    const outcome = await handler.apply(
+      USER,
+      op({
+        operation: 'UPDATE',
+        entityId: BW_ID,
+        baseVersion: 4,
+        payload: { date: '2026-08-03', weight_kg: 81 },
+      }),
+      TX,
+    );
+    expect(outcome).toEqual({ status: 'STALE' });
+  });
+
+  it('DELETE soft-deletes owner-scoped at the expected version', async () => {
     await handler.apply(
       USER,
       op({ operation: 'DELETE', entityId: BW_ID, baseVersion: 2 }),
+      TX,
     );
-    expect(repo.softDeleteBodyWeight).toHaveBeenCalledWith(BW_ID, USER, 3);
+    expect(repo.softDeleteBodyWeight).toHaveBeenCalledWith(
+      TX,
+      USER,
+      BW_ID,
+      USER,
+      2,
+    );
   });
 
   it('rejects a non-positive weight (payload validation)', async () => {
@@ -158,6 +207,7 @@ describe('BodyWeightSyncHandler', () => {
       handler.apply(
         USER,
         op({ payload: { id: BW_ID, date: '2026-08-03', weight_kg: 0 } }),
+        TX,
       ),
     ).rejects.toThrow(/weight_kg/);
     expect(repo.createBodyWeight).not.toHaveBeenCalled();
@@ -169,6 +219,7 @@ describe('BodyWeightSyncHandler', () => {
       handler.apply(
         USER,
         op({ payload: { id: BW_ID, date: '2026-08-03', weight_kg: 80 } }),
+        TX,
       ),
     ).rejects.toThrow(/unique/);
   });
@@ -198,6 +249,36 @@ describe('BodyWeightSyncHandler', () => {
       weight_kg: 80,
     });
   });
+
+  it('readCurrentOwnedRow returns the owner row UNREDACTED with its tombstone state', async () => {
+    repo.findOwnedBodyWeight.mockResolvedValue(
+      bwRec({ deletedAt: new Date('2026-08-04T00:00:00Z') }),
+    );
+    const snapshot = await handler.readCurrentOwnedRow(USER, BW_ID, TX);
+    expect(repo.findOwnedBodyWeight).toHaveBeenCalledWith(TX, USER, BW_ID);
+    expect(snapshot).toMatchObject({ version: 2, deleted: true });
+    expect(snapshot?.row.notes).toBe('felt strong');
+  });
+
+  it('resolveConflictMutation forwards the reviewed version and tombstone state', async () => {
+    await handler.resolveConflictMutation(
+      USER,
+      BW_ID,
+      {
+        operation: 'DELETE',
+        payload: {},
+        expectedServerVersion: 5,
+        expectedDeleted: true,
+      },
+      TX,
+    );
+    expect(repo.resolveBodyWeight).toHaveBeenCalledWith(TX, USER, BW_ID, {
+      operation: 'DELETE',
+      expectedVersion: 5,
+      expectedDeleted: true,
+      resolvedBy: USER,
+    });
+  });
 });
 
 describe('BodyMeasurementSyncHandler', () => {
@@ -213,7 +294,7 @@ describe('BodyMeasurementSyncHandler', () => {
     expect(handler.entityType).toBe('body_measurements');
   });
 
-  it('CREATE parses optional fields and creates owner-scoped', async () => {
+  it('CREATE parses optional fields and creates owner-scoped on the transaction', async () => {
     await handler.apply(
       USER,
       op({
@@ -227,8 +308,9 @@ describe('BodyMeasurementSyncHandler', () => {
           waist_cm: 82,
         },
       }),
+      TX,
     );
-    expect(repo.createBodyMeasurement).toHaveBeenCalledWith(USER, BM_ID, {
+    expect(repo.createBodyMeasurement).toHaveBeenCalledWith(TX, USER, BM_ID, {
       date: new Date('2026-08-03T00:00:00.000Z'),
       bodyFatPct: 18,
       muscleMassKg: 36,
@@ -250,6 +332,7 @@ describe('BodyMeasurementSyncHandler', () => {
           entityId: BM_ID,
           payload: { id: BM_ID, date: '2026-08-03', body_fat_pct: 150 },
         }),
+        TX,
       ),
     ).rejects.toThrow(/body_fat_pct/);
   });
@@ -262,6 +345,7 @@ describe('BodyMeasurementSyncHandler', () => {
           entityId: BM_ID,
           payload: { id: BM_ID, date: '2026-08-03', muscle_mass_kg: 301 },
         }),
+        TX,
       ),
     ).rejects.toThrow(/muscle_mass_kg/);
   });
@@ -275,9 +359,12 @@ describe('BodyMeasurementSyncHandler', () => {
         baseVersion: 2,
         payload: { date: '2026-08-03', body_fat_pct: 17, waist_cm: 81 },
       }),
+      TX,
     );
 
     expect(repo.updateBodyMeasurement).toHaveBeenCalledWith(
+      TX,
+      USER,
       BM_ID,
       {
         date: new Date('2026-08-03T00:00:00.000Z'),
@@ -290,7 +377,7 @@ describe('BodyMeasurementSyncHandler', () => {
         neckCm: null,
         notes: null,
       },
-      3,
+      2,
     );
   });
 
@@ -303,18 +390,32 @@ describe('BodyMeasurementSyncHandler', () => {
         baseVersion: 2,
         payload: { date: '2026-08-03', muscle_mass_kg: null },
       }),
+      TX,
     );
 
     expect(repo.updateBodyMeasurement).toHaveBeenCalledWith(
+      TX,
+      USER,
       BM_ID,
       expect.objectContaining({ muscleMassKg: null }),
-      3,
+      2,
     );
+  });
+
+  it('a zero-row DELETE is a typed STALE outcome', async () => {
+    repo.softDeleteBodyMeasurement.mockResolvedValue(0);
+    const outcome = await handler.apply(
+      USER,
+      op({ operation: 'DELETE', entityId: BM_ID, baseVersion: 2 }),
+      TX,
+    );
+    expect(outcome).toEqual({ status: 'STALE' });
   });
 
   it('getServerState redacts notes', async () => {
     repo.findOwnedBodyMeasurement.mockResolvedValue(bmRec());
-    const state = await handler.getServerState(USER, BM_ID);
+    const state = await handler.getServerState(USER, BM_ID, TX);
+    expect(repo.findOwnedBodyMeasurement).toHaveBeenCalledWith(TX, USER, BM_ID);
     expect(state?.snapshot.notes).toBe('[REDACTED]');
     expect(state?.snapshot.body_fat_pct).toBe(18);
     expect(state?.snapshot.muscle_mass_kg).toBe(36);

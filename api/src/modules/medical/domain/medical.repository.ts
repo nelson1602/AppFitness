@@ -1,3 +1,4 @@
+import type { SyncTx } from '../../sync/domain/sync.types';
 import {
   EvaluationAttributes,
   EvaluationRecord,
@@ -18,17 +19,20 @@ export abstract class EvaluationRepositoryPort {
   abstract findOwned(
     userId: string,
     id: string,
+    tx?: SyncTx,
   ): Promise<EvaluationRecord | null>;
   abstract listByUser(userId: string): Promise<EvaluationRecord[]>;
   abstract create(
     userId: string,
     attributes: Partial<EvaluationAttributes>,
     id?: string,
+    tx?: SyncTx,
   ): Promise<EvaluationRecord>;
   abstract softDelete(
     id: string,
     deletedBy: string,
     newVersion: number,
+    tx?: SyncTx,
   ): Promise<void>;
   abstract changedSince(
     userId: string,
@@ -41,22 +45,26 @@ export abstract class RestrictionRepositoryPort {
   abstract findOwned(
     userId: string,
     id: string,
+    tx?: SyncTx,
   ): Promise<RestrictionRecord | null>;
   abstract listActive(userId: string): Promise<RestrictionRecord[]>;
   abstract create(
     userId: string,
     attributes: Partial<RestrictionAttributes>,
     id?: string,
+    tx?: SyncTx,
   ): Promise<RestrictionRecord>;
   abstract update(
     id: string,
     attributes: Partial<RestrictionAttributes>,
     newVersion: number,
+    tx?: SyncTx,
   ): Promise<RestrictionRecord>;
   abstract softDelete(
     id: string,
     deletedBy: string,
     newVersion: number,
+    tx?: SyncTx,
   ): Promise<void>;
   abstract changedSince(
     userId: string,

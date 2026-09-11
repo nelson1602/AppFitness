@@ -1,3 +1,4 @@
+import type { SyncTx } from '../../sync/domain/sync.types';
 import type {
   ExerciseCreateInput,
   ExerciseUpdateInput,
@@ -19,6 +20,16 @@ import type {
   WorkoutSetRecord,
 } from './workout.types';
 
+export type WorkoutResolution<TCreate, TUpdate> = {
+  expectedVersion: number;
+  expectedDeleted: boolean;
+  resolvedBy: string;
+} & (
+  | { operation: 'CREATE'; data: TCreate }
+  | { operation: 'UPDATE'; data: TUpdate }
+  | { operation: 'DELETE' }
+);
+
 /**
  * Repository port for the workout write entities (ADR-P015 Slice 3). One port
  * for the whole module; implementations own persistence only, handlers own
@@ -29,7 +40,10 @@ import type {
 export abstract class WorkoutRepositoryPort {
   // ── shared reference/parent probes ──────────────────────────────────────
   /** Exercise existence probe (global built-in or a user's custom); null = absent. */
-  abstract findExercise(exerciseId: string): Promise<ExerciseRef | null>;
+  abstract findExercise(
+    tx: SyncTx,
+    exerciseId: string,
+  ): Promise<ExerciseRef | null>;
 
   // ── custom exercises (Slice 3B) ───────────────────────────────────────────
   /**
@@ -38,107 +52,153 @@ export abstract class WorkoutRepositoryPort {
    * pipeline rejects UPDATE/DELETE of built-ins/foreign rows as NOT_FOUND.
    */
   abstract findOwnedExercise(
+    tx: SyncTx,
     userId: string,
     id: string,
   ): Promise<CustomExerciseRecord | null>;
   abstract createExercise(
+    tx: SyncTx,
     userId: string,
     id: string,
     data: ExerciseCreateInput,
-  ): Promise<CustomExerciseRecord>;
+  ): Promise<number>;
   /** Owner-scoped update (never touches a built-in or another user's row). */
   abstract updateExercise(
+    tx: SyncTx,
     userId: string,
     id: string,
     data: ExerciseUpdateInput,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   /** Owner-scoped soft-delete tombstone (no deleted_by column on exercises). */
   abstract softDeleteExercise(
+    tx: SyncTx,
     userId: string,
     id: string,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract exercisesChangedSince(
     userId: string,
     sinceSeq: number,
     limit: number,
   ): Promise<CustomExerciseRecord[]>;
+  abstract resolveExercise(
+    tx: SyncTx,
+    userId: string,
+    id: string,
+    resolution: WorkoutResolution<ExerciseCreateInput, ExerciseUpdateInput>,
+  ): Promise<number>;
 
   // ── routines ────────────────────────────────────────────────────────────
   abstract findOwnedRoutine(
+    tx: SyncTx,
     userId: string,
     id: string,
   ): Promise<RoutineRecord | null>;
   abstract createRoutine(
+    tx: SyncTx,
     userId: string,
     id: string,
     data: RoutineCreateInput,
-  ): Promise<RoutineRecord>;
+  ): Promise<number>;
   abstract updateRoutine(
+    tx: SyncTx,
+    userId: string,
     id: string,
     data: RoutineCreateInput,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract softDeleteRoutine(
+    tx: SyncTx,
+    userId: string,
     id: string,
     deletedBy: string,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract routinesChangedSince(
     userId: string,
     sinceSeq: number,
     limit: number,
   ): Promise<RoutineRecord[]>;
   /** Parent-routine ownership probe by id (null = not yet synced). */
-  abstract findRoutineParent(routineId: string): Promise<OwnedParent | null>;
+  abstract findRoutineParent(
+    tx: SyncTx,
+    routineId: string,
+  ): Promise<OwnedParent | null>;
+  abstract resolveRoutine(
+    tx: SyncTx,
+    userId: string,
+    id: string,
+    resolution: WorkoutResolution<RoutineCreateInput, RoutineCreateInput>,
+  ): Promise<number>;
 
   // ── routine_exercises ─────────────────────────────────────────────────────
   abstract findOwnedRoutineExercise(
+    tx: SyncTx,
     userId: string,
     id: string,
   ): Promise<RoutineExerciseRecord | null>;
   abstract createRoutineExercise(
+    tx: SyncTx,
     userId: string,
     id: string,
     data: RoutineExerciseCreateInput,
-  ): Promise<RoutineExerciseRecord>;
+  ): Promise<number>;
   abstract updateRoutineExercise(
+    tx: SyncTx,
+    userId: string,
     id: string,
     data: RoutineExerciseUpdateInput,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract softDeleteRoutineExercise(
+    tx: SyncTx,
+    userId: string,
     id: string,
     deletedBy: string,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract routineExercisesChangedSince(
     userId: string,
     sinceSeq: number,
     limit: number,
   ): Promise<RoutineExerciseRecord[]>;
+  abstract resolveRoutineExercise(
+    tx: SyncTx,
+    userId: string,
+    id: string,
+    resolution: WorkoutResolution<
+      RoutineExerciseCreateInput,
+      RoutineExerciseUpdateInput
+    >,
+  ): Promise<number>;
 
   // ── workout_logs ──────────────────────────────────────────────────────────
   abstract findOwnedWorkoutLog(
+    tx: SyncTx,
     userId: string,
     id: string,
   ): Promise<WorkoutLogRecord | null>;
   abstract createWorkoutLog(
+    tx: SyncTx,
     userId: string,
     id: string,
     data: WorkoutLogCreateInput,
-  ): Promise<WorkoutLogRecord>;
+  ): Promise<number>;
   abstract updateWorkoutLog(
+    tx: SyncTx,
+    userId: string,
     id: string,
     data: WorkoutLogUpdateInput,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract softDeleteWorkoutLog(
+    tx: SyncTx,
+    userId: string,
     id: string,
     deletedBy: string,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract workoutLogsChangedSince(
     userId: string,
     sinceSeq: number,
@@ -146,32 +206,51 @@ export abstract class WorkoutRepositoryPort {
   ): Promise<WorkoutLogRecord[]>;
   /** Parent-workout-log ownership probe by id (null = not yet synced). */
   abstract findWorkoutLogParent(
+    tx: SyncTx,
     workoutLogId: string,
   ): Promise<OwnedParent | null>;
+  abstract resolveWorkoutLog(
+    tx: SyncTx,
+    userId: string,
+    id: string,
+    resolution: WorkoutResolution<WorkoutLogCreateInput, WorkoutLogUpdateInput>,
+  ): Promise<number>;
 
   // ── workout_sets ──────────────────────────────────────────────────────────
   abstract findOwnedWorkoutSet(
+    tx: SyncTx,
     userId: string,
     id: string,
   ): Promise<WorkoutSetRecord | null>;
   abstract createWorkoutSet(
+    tx: SyncTx,
     userId: string,
     id: string,
     data: WorkoutSetCreateInput,
-  ): Promise<WorkoutSetRecord>;
+  ): Promise<number>;
   abstract updateWorkoutSet(
+    tx: SyncTx,
+    userId: string,
     id: string,
     data: WorkoutSetUpdateInput,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract softDeleteWorkoutSet(
+    tx: SyncTx,
+    userId: string,
     id: string,
     deletedBy: string,
-    newVersion: number,
-  ): Promise<void>;
+    expectedVersion: number,
+  ): Promise<number>;
   abstract workoutSetsChangedSince(
     userId: string,
     sinceSeq: number,
     limit: number,
   ): Promise<WorkoutSetRecord[]>;
+  abstract resolveWorkoutSet(
+    tx: SyncTx,
+    userId: string,
+    id: string,
+    resolution: WorkoutResolution<WorkoutSetCreateInput, WorkoutSetUpdateInput>,
+  ): Promise<number>;
 }

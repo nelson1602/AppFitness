@@ -1,4 +1,19 @@
+import type { Prisma } from '@prisma/client';
 import { SyncOperationStatus, SyncOperationType } from '@prisma/client';
+
+/**
+ * The transaction-scoped Prisma client threaded through one push operation
+ * (ADR-P030 §Decision 3, slice C-2).
+ *
+ * Every read and write of a single `/sync/push` operation — the idempotency
+ * probe, the server-state read, the handler mutation, any `SyncConflict`, and
+ * the terminal `SyncOperation` row — runs on **this** client, so they commit
+ * or roll back together. It is passed explicitly and is **never optional**:
+ * a helper that could fall back to the root client would silently escape the
+ * transaction and reintroduce the mutation-without-recorded-op-id hole that
+ * §Decision 3 exists to close.
+ */
+export type SyncTx = Prisma.TransactionClient;
 
 /** One client-originated operation (mirrors the mobile sync_queue row). */
 export interface SyncOperationInput {
@@ -32,6 +47,67 @@ export interface ServerEntityState {
   snapshot: Record<string, unknown>;
 }
 
+/**
+ * The result of a handler's `apply` (ADR-P030 §Decision 3).
+ *
+ * `void` had no channel for "the conditional mutation matched nothing", so a
+ * late race surfaced as a generic rejection and the client dropped the
+ * operation. `STALE` is a **returned value, not a throw**, so it never aborts
+ * the surrounding transaction and its `SyncConflict` + `SyncOperation` rows
+ * commit inside it.
+ *
+ * - `UPDATE` / `DELETE` report `STALE` when the owner + expected-version +
+ *   tombstone predicate matched zero rows.
+ * - `CREATE` reports `STALE` in exactly one case: the insert collided on the
+ *   primary key, i.e. the row now exists. Every other constraint violation
+ *   still throws and keeps its current classification.
+ */
+export type ApplyOutcome = { status: 'APPLIED' } | { status: 'STALE' };
+
+/**
+ * The authoritative current row for one owned entity, unredacted, in the wire
+ * shape `pullChanges` already produces (ADR-P030 §Decision 3).
+ *
+ * Added by C-2 so the resolution slice (C-3) has a reader to build its typed
+ * response from. **No endpoint consumes it yet.**
+ */
+export interface OwnedRowSnapshot {
+  row: Record<string, unknown>;
+  version: number;
+  deleted: boolean;
+}
+
+/**
+ * One conflict resolution expressed against an entity's own semantics
+ * (ADR-P030 §Decision 3). `apply()` is deliberately **not** reused: a retained
+ * `CREATE` would fail on the primary key, and a partial `UPDATE` treated as a
+ * full representation would erase the fields it omits.
+ *
+ * Added by C-2 so C-3 has a mutation to call. **No endpoint calls it yet.**
+ */
+export interface ResolutionMutationInput {
+  /** The client's retained original operation. */
+  operation: SyncOperationType;
+  /** The retained payload, parsed by the entity’s own create/update parser. */
+  payload: Record<string, unknown>;
+  /** The version the user reviewed; also the predicate and the new version − 1. */
+  expectedServerVersion: number;
+  /** The tombstone state the user reviewed; selects the tombstone predicate. */
+  expectedDeleted: boolean;
+}
+
+/**
+ * A retained DELETE reviewed against a tombstone is already satisfied.
+ * Resolution must settle it without touching the row or bumping its version
+ * (ADR-P030 §Decision 3).
+ */
+export function isAlreadySatisfiedDelete(input: {
+  operation: SyncOperationType;
+  expectedDeleted: boolean;
+}): boolean {
+  return input.operation === SyncOperationType.DELETE && input.expectedDeleted;
+}
+
 /** One changed row in a pull response. Must include the sync cursor. */
 export interface PulledChange {
   entityType: string;
@@ -52,8 +128,13 @@ export interface EntitySyncHandler {
   getServerState(
     userId: string,
     entityId: string,
+    tx: SyncTx,
   ): Promise<ServerEntityState | null>;
-  apply(userId: string, op: SyncOperationInput): Promise<void>;
+  apply(
+    userId: string,
+    op: SyncOperationInput,
+    tx: SyncTx,
+  ): Promise<ApplyOutcome>;
   pullChanges(
     userId: string,
     sinceSeq: number,
@@ -66,6 +147,34 @@ export interface EntitySyncHandler {
    * travel over TLS to the owner only).
    */
   redactForConflict?(payload: Record<string, unknown>): Record<string, unknown>;
+  /**
+   * Owner-scoped **unredacted** current row (ADR-P030 §Decision 3).
+   *
+   * Present on every public-V1 handler. A handler without it is an
+   * **unsupported** conflict entity (§Decision 12) — the dormant medical
+   * handlers are exactly that, and deliberately do not implement it.
+   */
+  readCurrentOwnedRow?(
+    userId: string,
+    entityId: string,
+    tx: SyncTx,
+  ): Promise<OwnedRowSnapshot | null>;
+  /**
+   * One conditional resolution mutation carrying owner, expected version and
+   * the state-specific tombstone predicate (ADR-P030 §Decision 3). Returns the
+   * **affected-row count**: `1` means the resolution committed. `0` means
+   * either the row moved (typed stale) or a DELETE reviewed against a tombstone
+   * was already satisfied; the caller distinguishes those cases from the
+   * request's `operation` + `expectedDeleted` pair.
+   *
+   * Same support rule as `readCurrentOwnedRow`.
+   */
+  resolveConflictMutation?(
+    userId: string,
+    entityId: string,
+    input: ResolutionMutationInput,
+    tx: SyncTx,
+  ): Promise<number>;
 }
 
 export const SYNC_ERROR_CODES = {

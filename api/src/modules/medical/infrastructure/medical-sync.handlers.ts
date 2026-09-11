@@ -3,10 +3,12 @@ import { AuditAction } from '@prisma/client';
 
 import { AuditService } from '../../audit/audit.service';
 import {
+  ApplyOutcome,
   EntitySyncHandler,
   PulledChange,
   ServerEntityState,
   SyncOperationInput,
+  SyncTx,
 } from '../../sync/domain/sync.types';
 import {
   parseEvaluationPayload,
@@ -46,8 +48,9 @@ export class EvaluationSyncHandler implements EntitySyncHandler {
   async getServerState(
     userId: string,
     entityId: string,
+    tx: SyncTx,
   ): Promise<ServerEntityState | null> {
-    const record = await this.evaluations.findOwned(userId, entityId);
+    const record = await this.evaluations.findOwned(userId, entityId, tx);
     // Snapshot is redacted at the source — this value is only ever used
     // for conflict persistence, never for pulls.
     return record
@@ -58,12 +61,16 @@ export class EvaluationSyncHandler implements EntitySyncHandler {
       : null;
   }
 
-  async apply(userId: string, op: SyncOperationInput): Promise<void> {
+  async apply(
+    userId: string,
+    op: SyncOperationInput,
+    tx: SyncTx,
+  ): Promise<ApplyOutcome> {
     switch (op.operation) {
       case 'CREATE': {
         const attributes = parseEvaluationPayload(op.payload);
         requireEvaluationDate(attributes);
-        await this.evaluations.create(userId, attributes, op.entityId);
+        await this.evaluations.create(userId, attributes, op.entityId, tx);
         await this.audit.record({
           action: AuditAction.MEDICAL_EVALUATION_CREATE,
           userId,
@@ -83,6 +90,7 @@ export class EvaluationSyncHandler implements EntitySyncHandler {
           op.entityId,
           userId,
           op.baseVersion + 1,
+          tx,
         );
         await this.audit.record({
           action: AuditAction.MEDICAL_EVALUATION_DELETE,
@@ -94,6 +102,7 @@ export class EvaluationSyncHandler implements EntitySyncHandler {
         break;
       }
     }
+    return { status: 'APPLIED' };
   }
 
   async pullChanges(
@@ -132,8 +141,9 @@ export class RestrictionSyncHandler implements EntitySyncHandler {
   async getServerState(
     userId: string,
     entityId: string,
+    tx: SyncTx,
   ): Promise<ServerEntityState | null> {
-    const record = await this.restrictions.findOwned(userId, entityId);
+    const record = await this.restrictions.findOwned(userId, entityId, tx);
     return record
       ? {
           version: record.version,
@@ -142,12 +152,16 @@ export class RestrictionSyncHandler implements EntitySyncHandler {
       : null;
   }
 
-  async apply(userId: string, op: SyncOperationInput): Promise<void> {
+  async apply(
+    userId: string,
+    op: SyncOperationInput,
+    tx: SyncTx,
+  ): Promise<ApplyOutcome> {
     switch (op.operation) {
       case 'CREATE': {
         const attributes = parseRestrictionPayload(op.payload);
         requireRestrictionType(attributes);
-        await this.restrictions.create(userId, attributes, op.entityId);
+        await this.restrictions.create(userId, attributes, op.entityId, tx);
         break;
       }
       case 'UPDATE': {
@@ -155,6 +169,7 @@ export class RestrictionSyncHandler implements EntitySyncHandler {
           op.entityId,
           parseRestrictionPayload(op.payload),
           op.baseVersion + 1,
+          tx,
         );
         break;
       }
@@ -163,6 +178,7 @@ export class RestrictionSyncHandler implements EntitySyncHandler {
           op.entityId,
           userId,
           op.baseVersion + 1,
+          tx,
         );
         break;
       }
@@ -174,6 +190,7 @@ export class RestrictionSyncHandler implements EntitySyncHandler {
       entityId: op.entityId,
       metadata: { via: 'sync', operation: op.operation },
     });
+    return { status: 'APPLIED' };
   }
 
   async pullChanges(

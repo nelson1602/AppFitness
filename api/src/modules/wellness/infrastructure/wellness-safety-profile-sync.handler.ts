@@ -1,10 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 
 import {
+  ApplyOutcome,
   EntitySyncHandler,
+  OwnedRowSnapshot,
   PulledChange,
+  ResolutionMutationInput,
   ServerEntityState,
   SyncOperationInput,
+  SyncTx,
 } from '../../sync/domain/sync.types';
 import { parseWellnessSafetyProfileWrite } from '../domain/wellness-payload';
 import { WellnessRepositoryPort } from '../domain/wellness.repository';
@@ -53,15 +57,20 @@ export class WellnessSafetyProfileSyncHandler implements EntitySyncHandler {
   async getServerState(
     userId: string,
     entityId: string,
+    tx: SyncTx,
   ): Promise<ServerEntityState | null> {
     if (entityId !== userId) return null;
-    const record = await this.repo.findOwned(userId, entityId);
+    const record = await this.repo.findOwned(tx, userId, entityId);
     return record
       ? { version: record.version, snapshot: wellnessToWire(record) }
       : null;
   }
 
-  async apply(userId: string, op: SyncOperationInput): Promise<void> {
+  async apply(
+    userId: string,
+    op: SyncOperationInput,
+    tx: SyncTx,
+  ): Promise<ApplyOutcome> {
     if (op.entityId !== userId) {
       // The singleton id is the owner. A mismatch is either a tampered client
       // or an attempt to write someone else's row; both fail closed.
@@ -74,10 +83,11 @@ export class WellnessSafetyProfileSyncHandler implements EntitySyncHandler {
     // with each other, and both are whatever the injected clock said.
     const now = this.clock.now();
 
+    let affected: number;
     switch (op.operation) {
       case 'CREATE': {
         const data = parseWellnessSafetyProfileWrite(op.payload, now);
-        await this.repo.create(userId, userId, data);
+        affected = await this.repo.create(tx, userId, userId, data);
         break;
       }
       case 'UPDATE': {
@@ -85,30 +95,27 @@ export class WellnessSafetyProfileSyncHandler implements EntitySyncHandler {
         // UPDATE of the same singleton row (the device enqueues exactly that),
         // and `update` clears the tombstone.
         const data = parseWellnessSafetyProfileWrite(op.payload, now);
-        const count = await this.repo.update(
+        affected = await this.repo.update(
+          tx,
           userId,
           userId,
           data,
-          op.baseVersion + 1,
+          op.baseVersion,
         );
-        if (count !== 1) {
-          throw new Error('wellness_safety_profiles: no owned row to update');
-        }
         break;
       }
       case 'DELETE': {
-        const count = await this.repo.softDelete(
+        affected = await this.repo.softDelete(
+          tx,
           userId,
           userId,
-          op.baseVersion + 1,
+          op.baseVersion,
           now,
         );
-        if (count !== 1) {
-          throw new Error('wellness_safety_profiles: no owned row to delete');
-        }
         break;
       }
     }
+    return affected === 0 ? { status: 'STALE' } : { status: 'APPLIED' };
   }
 
   /** Incremental pull, owner-scoped, tombstones included. */
@@ -125,5 +132,55 @@ export class WellnessSafetyProfileSyncHandler implements EntitySyncHandler {
       deleted: record.deletedAt !== null,
       data: wellnessToWire(record),
     }));
+  }
+
+  async readCurrentOwnedRow(
+    userId: string,
+    entityId: string,
+    tx: SyncTx,
+  ): Promise<OwnedRowSnapshot | null> {
+    if (entityId !== userId) return null;
+    const record = await this.repo.findOwned(tx, userId, entityId);
+    return record
+      ? {
+          row: wellnessToWire(record),
+          version: record.version,
+          deleted: record.deletedAt !== null,
+        }
+      : null;
+  }
+
+  resolveConflictMutation(
+    userId: string,
+    entityId: string,
+    input: ResolutionMutationInput,
+    tx: SyncTx,
+  ): Promise<number> {
+    if (entityId !== userId) return Promise.resolve(0);
+    const common = {
+      expectedVersion: input.expectedServerVersion,
+      expectedDeleted: input.expectedDeleted,
+      resolvedBy: userId,
+    } as const;
+    const now = this.clock.now();
+    switch (input.operation) {
+      case 'CREATE':
+        return this.repo.resolve(tx, userId, entityId, {
+          ...common,
+          operation: 'CREATE',
+          data: parseWellnessSafetyProfileWrite(input.payload, now),
+        });
+      case 'UPDATE':
+        return this.repo.resolve(tx, userId, entityId, {
+          ...common,
+          operation: 'UPDATE',
+          data: parseWellnessSafetyProfileWrite(input.payload, now),
+        });
+      case 'DELETE':
+        return this.repo.resolve(tx, userId, entityId, {
+          ...common,
+          operation: 'DELETE',
+        });
+    }
   }
 }

@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 
 import { AuditService } from '../../audit/audit.service';
 import { SYNC_ERROR_CODES, SyncApplyError } from '../../sync/domain/sync.types';
-import type { SyncOperationInput } from '../../sync/domain/sync.types';
+import type { SyncOperationInput, SyncTx } from '../../sync/domain/sync.types';
 import { deriveServingSnapshot } from '../catalog/catalog-identity';
 import type { FoodRevisionSnapshotSource } from '../catalog/catalog-identity';
 import { MealItemRepositoryPort } from '../domain/meal-item.repository';
@@ -14,6 +14,9 @@ const OTHER_USER = 'user-2';
 const ITEM_ID = '11111111-1111-4111-8111-111111111111';
 const MEAL_ID = '22222222-2222-4222-8222-222222222222';
 const FOOD_ID = '33333333-3333-4333-8333-333333333333';
+
+/** Stand-in transaction client — identity proves nothing escaped to the root. */
+const TX = { marker: 'tx' } as unknown as SyncTx;
 
 const FOOD: FoodRevisionSnapshotSource = {
   name: 'Chicken breast, cooked',
@@ -78,6 +81,7 @@ describe('MealItemSyncHandler', () => {
     updateServingCount: jest.Mock;
     softDelete: jest.Mock;
     changedSince: jest.Mock;
+    resolve: jest.Mock;
   };
   let audit: { record: jest.Mock };
 
@@ -86,10 +90,11 @@ describe('MealItemSyncHandler', () => {
       findOwned: jest.fn().mockResolvedValue(record()),
       findMeal: jest.fn().mockResolvedValue({ userId: USER, deletedAt: null }),
       findActiveFood: jest.fn().mockResolvedValue(FOOD),
-      create: jest.fn().mockResolvedValue(record()),
-      updateServingCount: jest.fn().mockResolvedValue(undefined),
-      softDelete: jest.fn().mockResolvedValue(undefined),
+      create: jest.fn().mockResolvedValue(1),
+      updateServingCount: jest.fn().mockResolvedValue(1),
+      softDelete: jest.fn().mockResolvedValue(1),
       changedSince: jest.fn().mockResolvedValue([]),
+      resolve: jest.fn().mockResolvedValue(1),
     };
     audit = { record: jest.fn().mockResolvedValue(undefined) };
 
@@ -104,10 +109,10 @@ describe('MealItemSyncHandler', () => {
     handler = moduleRef.get(MealItemSyncHandler);
   });
 
-  it('getServerState is ownership-scoped, returns version, and redacts the food-name snapshot', async () => {
-    const state = await handler.getServerState(USER, ITEM_ID);
+  it('getServerState is ownership-scoped, runs on the transaction, and redacts the food-name snapshot', async () => {
+    const state = await handler.getServerState(USER, ITEM_ID, TX);
 
-    expect(repo.findOwned).toHaveBeenCalledWith(USER, ITEM_ID);
+    expect(repo.findOwned).toHaveBeenCalledWith(TX, USER, ITEM_ID);
     expect(state?.version).toBe(3);
     expect(state?.snapshot.food_name_snapshot).toBe('[REDACTED]');
     // Minimal structured values needed for resolution are kept.
@@ -120,22 +125,28 @@ describe('MealItemSyncHandler', () => {
   });
 
   it('CREATE derives the snapshot from the server Food row and ignores client-supplied snapshot/macros/owner', async () => {
-    await handler.apply(USER, {
-      ...op({ operation: 'CREATE', baseVersion: 0 }),
-      payload: {
-        meal_id: MEAL_ID,
-        food_id: FOOD_ID,
-        serving_count: 2,
-        // Hostile/spoofed fields that must be ignored:
-        user_id: 'attacker',
-        food_name_snapshot: 'HACKED',
-        calories_per_serving_snapshot: 99999,
-        version: 500,
+    const outcome = await handler.apply(
+      USER,
+      {
+        ...op({ operation: 'CREATE', baseVersion: 0 }),
+        payload: {
+          meal_id: MEAL_ID,
+          food_id: FOOD_ID,
+          serving_count: 2,
+          // Hostile/spoofed fields that must be ignored:
+          user_id: 'attacker',
+          food_name_snapshot: 'HACKED',
+          calories_per_serving_snapshot: 99999,
+          version: 500,
+        },
       },
-    });
+      TX,
+    );
 
-    expect(repo.findActiveFood).toHaveBeenCalledWith(FOOD_ID);
-    const [userIdArg, data] = repo.create.mock.calls[0] as [
+    expect(outcome).toEqual({ status: 'APPLIED' });
+    expect(repo.findActiveFood).toHaveBeenCalledWith(TX, FOOD_ID);
+    const [txArg, userIdArg, data] = repo.create.mock.calls[0] as [
+      SyncTx,
       string,
       {
         mealId: string;
@@ -144,6 +155,7 @@ describe('MealItemSyncHandler', () => {
         snapshot: unknown;
       },
     ];
+    expect(txArg).toBe(TX);
     expect(userIdArg).toBe(USER); // authenticated owner, never from payload
     expect(data.servingCount).toBe(2);
     expect(data.snapshot).toEqual(deriveServingSnapshot(FOOD));
@@ -152,14 +164,50 @@ describe('MealItemSyncHandler', () => {
     expect(JSON.stringify(data.snapshot)).not.toContain('99999');
   });
 
+  it('the parent-meal and food probes run on the SAME transaction as the insert they guard', async () => {
+    await handler.apply(
+      USER,
+      {
+        ...op({ operation: 'CREATE', baseVersion: 0 }),
+        payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 1 },
+      },
+      TX,
+    );
+
+    expect(repo.findMeal).toHaveBeenCalledWith(TX, MEAL_ID);
+    expect(repo.findActiveFood).toHaveBeenCalledWith(TX, FOOD_ID);
+    const [createTx] = repo.create.mock.calls[0] as [SyncTx];
+    expect(createTx).toBe(TX);
+  });
+
+  it('a colliding CREATE reports STALE rather than raising, and is not audited', async () => {
+    repo.create.mockResolvedValue(0); // ON CONFLICT (id) DO NOTHING
+
+    const outcome = await handler.apply(
+      USER,
+      {
+        ...op({ operation: 'CREATE', baseVersion: 0 }),
+        payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 1 },
+      },
+      TX,
+    );
+
+    expect(outcome).toEqual({ status: 'STALE' });
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
   it('CREATE with a missing parent meal → retryable DEPENDENCY_NOT_READY (never permanently rejected)', async () => {
     repo.findMeal.mockResolvedValue(null);
 
     const err = await handler
-      .apply(USER, {
-        ...op({ operation: 'CREATE', baseVersion: 0 }),
-        payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 1 },
-      })
+      .apply(
+        USER,
+        {
+          ...op({ operation: 'CREATE', baseVersion: 0 }),
+          payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 1 },
+        },
+        TX,
+      )
       .catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(SyncApplyError);
@@ -174,10 +222,14 @@ describe('MealItemSyncHandler', () => {
     repo.findMeal.mockResolvedValue({ userId: OTHER_USER, deletedAt: null });
 
     await expect(
-      handler.apply(USER, {
-        ...op({ operation: 'CREATE', baseVersion: 0 }),
-        payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 1 },
-      }),
+      handler.apply(
+        USER,
+        {
+          ...op({ operation: 'CREATE', baseVersion: 0 }),
+          payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 1 },
+        },
+        TX,
+      ),
     ).rejects.toThrow(/parent meal/);
     expect(repo.create).not.toHaveBeenCalled();
   });
@@ -186,10 +238,14 @@ describe('MealItemSyncHandler', () => {
     repo.findActiveFood.mockResolvedValue(null);
 
     const err = await handler
-      .apply(USER, {
-        ...op({ operation: 'CREATE', baseVersion: 0 }),
-        payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 1 },
-      })
+      .apply(
+        USER,
+        {
+          ...op({ operation: 'CREATE', baseVersion: 0 }),
+          payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 1 },
+        },
+        TX,
+      )
       .catch((e: unknown) => e);
 
     expect(err).toBeInstanceOf(SyncApplyError);
@@ -200,32 +256,61 @@ describe('MealItemSyncHandler', () => {
     expect(repo.create).not.toHaveBeenCalled();
   });
 
-  it('UPDATE changes serving_count only (immutable snapshot untouched) at baseVersion + 1', async () => {
-    await handler.apply(
+  it('UPDATE changes serving_count only (immutable snapshot untouched) and carries the expected version', async () => {
+    const outcome = await handler.apply(
       USER,
       op({ payload: { serving_count: 2.5, food_name_snapshot: 'HACKED' } }),
+      TX,
     );
 
-    expect(repo.updateServingCount).toHaveBeenCalledWith(ITEM_ID, 2.5, 4);
+    expect(outcome).toEqual({ status: 'APPLIED' });
+    expect(repo.updateServingCount).toHaveBeenCalledWith(
+      TX,
+      USER,
+      ITEM_ID,
+      2.5,
+      3, // expected version, asserted in the predicate
+    );
     // No snapshot mutation path exists.
     expect(repo.create).not.toHaveBeenCalled();
   });
 
+  it('a zero-row UPDATE is a typed STALE outcome and is not audited as a change', async () => {
+    repo.updateServingCount.mockResolvedValue(0);
+
+    const outcome = await handler.apply(USER, op(), TX);
+
+    expect(outcome).toEqual({ status: 'STALE' });
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
   it('rejects a non-positive serving_count', async () => {
     await expect(
-      handler.apply(USER, op({ payload: { serving_count: 0 } })),
+      handler.apply(USER, op({ payload: { serving_count: 0 } }), TX),
     ).rejects.toThrow('serving_count');
     expect(repo.updateServingCount).not.toHaveBeenCalled();
   });
 
-  it('DELETE soft-deletes with the authenticated user as deletedBy', async () => {
-    await handler.apply(USER, op({ operation: 'DELETE', payload: {} }));
+  it('DELETE soft-deletes with the authenticated user as deletedBy at the expected version', async () => {
+    await handler.apply(USER, op({ operation: 'DELETE', payload: {} }), TX);
 
-    expect(repo.softDelete).toHaveBeenCalledWith(ITEM_ID, USER, 4);
+    expect(repo.softDelete).toHaveBeenCalledWith(TX, USER, ITEM_ID, USER, 3);
+  });
+
+  it('a zero-row DELETE is STALE', async () => {
+    repo.softDelete.mockResolvedValue(0);
+
+    const outcome = await handler.apply(
+      USER,
+      op({ operation: 'DELETE', payload: {} }),
+      TX,
+    );
+
+    expect(outcome).toEqual({ status: 'STALE' });
   });
 
   it('audits NUTRITION_CHANGE with operational metadata only (no PHI)', async () => {
-    await handler.apply(USER, op({ payload: { serving_count: 2 } }));
+    await handler.apply(USER, op({ payload: { serving_count: 2 } }), TX);
 
     expect(audit.record).toHaveBeenCalledWith({
       action: 'NUTRITION_CHANGE',
@@ -266,5 +351,59 @@ describe('MealItemSyncHandler', () => {
     });
     // Pull payloads are NOT redacted (owner-only over TLS).
     expect(changes[0].data.food_name_snapshot).toBe('Chicken breast, cooked');
+  });
+
+  it('readCurrentOwnedRow returns the owner row UNREDACTED with its tombstone state', async () => {
+    repo.findOwned.mockResolvedValue(record({ deletedAt: new Date() }));
+
+    const snapshot = await handler.readCurrentOwnedRow(USER, ITEM_ID, TX);
+
+    expect(repo.findOwned).toHaveBeenCalledWith(TX, USER, ITEM_ID);
+    expect(snapshot).toMatchObject({ version: 3, deleted: true });
+    expect(snapshot?.row.food_name_snapshot).toBe('Chicken breast, cooked');
+  });
+
+  it('resolveConflictMutation corrects only serving_count and forwards version + tombstone state', async () => {
+    await handler.resolveConflictMutation(
+      USER,
+      ITEM_ID,
+      {
+        operation: 'UPDATE',
+        payload: { serving_count: 4, food_name_snapshot: 'HACKED' },
+        expectedServerVersion: 6,
+        expectedDeleted: true,
+      },
+      TX,
+    );
+
+    expect(repo.resolve).toHaveBeenCalledWith(TX, USER, ITEM_ID, {
+      operation: 'UPDATE',
+      servingCount: 4,
+      expectedVersion: 6,
+      expectedDeleted: true,
+      resolvedBy: USER,
+    });
+  });
+
+  it('a retained CREATE resolution is validated by the create parser and still only corrects serving_count', async () => {
+    await handler.resolveConflictMutation(
+      USER,
+      ITEM_ID,
+      {
+        operation: 'CREATE',
+        payload: { meal_id: MEAL_ID, food_id: FOOD_ID, serving_count: 3 },
+        expectedServerVersion: 2,
+        expectedDeleted: false,
+      },
+      TX,
+    );
+
+    expect(repo.resolve).toHaveBeenCalledWith(TX, USER, ITEM_ID, {
+      operation: 'CREATE',
+      servingCount: 3,
+      expectedVersion: 2,
+      expectedDeleted: false,
+      resolvedBy: USER,
+    });
   });
 });
