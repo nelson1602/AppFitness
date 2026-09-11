@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { SyncConflictService } from './application/sync-conflict.service';
 import { SyncService } from './application/sync.service';
 import { SyncEntityRegistry } from './domain/sync-entity-registry';
 import { SyncController } from './presentation/sync.controller';
@@ -12,7 +13,7 @@ import { SyncController } from './presentation/sync.controller';
  */
 @Module({
   controllers: [SyncController],
-  providers: [SyncService, SyncEntityRegistry],
+  providers: [SyncService, SyncConflictService, SyncEntityRegistry],
   exports: [SyncEntityRegistry],
 })
 export class SyncModule {}

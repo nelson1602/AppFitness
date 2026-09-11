@@ -6,6 +6,7 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
@@ -214,10 +215,11 @@ export class MealItemSyncHandler implements EntitySyncHandler {
     // The row already exists, so a retained CREATE can only correct the single
     // mutable column — exactly what a retained UPDATE does. Each still runs its
     // own parser over the retained payload.
-    const servingCount =
+    const servingCount = parseConflictPayload(() =>
       input.operation === 'CREATE'
         ? parseMealItemCreate(input.payload).servingCount
-        : parseMealItemUpdate(input.payload).servingCount;
+        : parseMealItemUpdate(input.payload).servingCount,
+    );
     return this.mealItems.resolve(tx, userId, entityId, {
       ...common,
       operation: input.operation,

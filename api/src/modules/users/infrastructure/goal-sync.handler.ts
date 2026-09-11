@@ -6,13 +6,18 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
   SyncOperationInput,
   SyncTx,
 } from '../../sync/domain/sync.types';
-import { parseGoalPayload, requireGoalType } from '../domain/goal-payload';
+import {
+  parseCompleteGoalPayload,
+  parseGoalPayload,
+  requireGoalType,
+} from '../domain/goal-payload';
 import { GoalRepositoryPort } from '../domain/goal.repository';
 import { GOAL_ENTITY_TYPE } from '../domain/goal.types';
 import { goalToWire } from './goal.mapper';
@@ -139,8 +144,9 @@ export class GoalSyncHandler implements EntitySyncHandler {
     } as const;
     switch (input.operation) {
       case 'CREATE': {
-        const attributes = parseGoalPayload(input.payload);
-        requireGoalType(attributes);
+        const attributes = parseConflictPayload(() =>
+          parseCompleteGoalPayload(input.payload),
+        );
         return this.goals.resolve(tx, userId, entityId, {
           ...common,
           operation: 'CREATE',
@@ -151,7 +157,9 @@ export class GoalSyncHandler implements EntitySyncHandler {
         return this.goals.resolve(tx, userId, entityId, {
           ...common,
           operation: 'UPDATE',
-          attributes: parseGoalPayload(input.payload),
+          attributes: parseConflictPayload(() =>
+            parseGoalPayload(input.payload),
+          ),
         });
       case 'DELETE':
         return this.goals.resolve(tx, userId, entityId, {

@@ -6,6 +6,7 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
@@ -181,13 +182,17 @@ export class DietaryPreferenceSyncHandler implements EntitySyncHandler {
         return this.preferences.resolve(tx, userId, entityId, {
           ...common,
           operation: 'CREATE',
-          attributes: parseDietaryPreferenceCreate(input.payload),
+          attributes: parseConflictPayload(() =>
+            parseDietaryPreferenceCreate(input.payload),
+          ),
         });
       case 'UPDATE':
         return this.preferences.resolve(tx, userId, entityId, {
           ...common,
           operation: 'UPDATE',
-          update: parseDietaryPreferenceUpdate(input.payload),
+          update: parseConflictPayload(() =>
+            parseDietaryPreferenceUpdate(input.payload),
+          ),
         });
       case 'DELETE':
         return this.preferences.resolve(tx, userId, entityId, {

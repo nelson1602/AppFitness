@@ -4,6 +4,7 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
@@ -168,13 +169,17 @@ export class WellnessSafetyProfileSyncHandler implements EntitySyncHandler {
         return this.repo.resolve(tx, userId, entityId, {
           ...common,
           operation: 'CREATE',
-          data: parseWellnessSafetyProfileWrite(input.payload, now),
+          data: parseConflictPayload(() =>
+            parseWellnessSafetyProfileWrite(input.payload, now),
+          ),
         });
       case 'UPDATE':
         return this.repo.resolve(tx, userId, entityId, {
           ...common,
           operation: 'UPDATE',
-          data: parseWellnessSafetyProfileWrite(input.payload, now),
+          data: parseConflictPayload(() =>
+            parseWellnessSafetyProfileWrite(input.payload, now),
+          ),
         });
       case 'DELETE':
         return this.repo.resolve(tx, userId, entityId, {

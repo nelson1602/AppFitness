@@ -4,6 +4,7 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
@@ -160,13 +161,17 @@ export class BodyWeightSyncHandler implements EntitySyncHandler {
         return this.repo.resolveBodyWeight(tx, userId, entityId, {
           ...common,
           operation: 'CREATE',
-          data: parseBodyWeightCreate(input.payload),
+          data: parseConflictPayload(() =>
+            parseBodyWeightCreate(input.payload),
+          ),
         });
       case 'UPDATE':
         return this.repo.resolveBodyWeight(tx, userId, entityId, {
           ...common,
           operation: 'UPDATE',
-          data: parseBodyWeightUpdate(input.payload),
+          data: parseConflictPayload(() =>
+            parseBodyWeightUpdate(input.payload),
+          ),
         });
       case 'DELETE':
         return this.repo.resolveBodyWeight(tx, userId, entityId, {

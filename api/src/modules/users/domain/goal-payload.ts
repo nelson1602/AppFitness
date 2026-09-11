@@ -99,3 +99,29 @@ export function requireGoalType(attributes: Partial<GoalAttributes>): void {
     throw new GoalPayloadError('goal_type', 'is required for CREATE');
   }
 }
+
+const COMPLETE_GOAL_KEYS = [
+  'goal_type',
+  'target_weight_kg',
+  'target_date',
+  'is_active',
+  'started_at',
+  'ended_at',
+] as const;
+
+/**
+ * Conflict resolution for a retained CREATE is a replacement, not a patch.
+ * Require the full wire representation that the mobile CREATE queue stores.
+ */
+export function parseCompleteGoalPayload(
+  payload: Record<string, unknown>,
+): GoalAttributes {
+  for (const key of COMPLETE_GOAL_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(payload, key)) {
+      throw new GoalPayloadError(key, 'is required for retained CREATE');
+    }
+  }
+  const attributes = parseGoalPayload(payload);
+  requireGoalType(attributes);
+  return attributes as GoalAttributes;
+}

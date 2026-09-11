@@ -97,6 +97,27 @@ export interface ResolutionMutationInput {
 }
 
 /**
+ * A retained conflict payload failed the entity parser. C-3 maps this typed
+ * boundary to HTTP 400 without mistaking repository or database failures for
+ * client input errors.
+ */
+export class InvalidConflictPayloadError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : 'INVALID_CONFLICT_PAYLOAD');
+    this.name = 'InvalidConflictPayloadError';
+  }
+}
+
+/** Wrap only synchronous entity parsing, never the repository mutation. */
+export function parseConflictPayload<T>(parse: () => T): T {
+  try {
+    return parse();
+  } catch (error) {
+    throw new InvalidConflictPayloadError(error);
+  }
+}
+
+/**
  * A retained DELETE reviewed against a tombstone is already satisfied.
  * Resolution must settle it without touching the row or bumping its version
  * (ADR-P030 §Decision 3).

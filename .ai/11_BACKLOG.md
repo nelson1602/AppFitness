@@ -3382,10 +3382,10 @@ in each asserts exactly that. No resolution affordance was added.
 
 Status: **Open** — specification authored as ADR-P030 on 2026-09-07, revised
 seven times the same day after review, and **Accepted 2026-09-07**. The
-architecture is authorized. **C-0 (BUG-014), C-1 (per-user scoping) and C-2
-(atomic conditional push) are implemented**; **C-3 … C-7 remain unauthorized**.
-**No owner decision remains open.** Still blocked on the remaining per-slice
-authorizations
+architecture is authorized. **C-0 (BUG-014), C-1 (per-user scoping), C-2
+(atomic conditional push) and C-3 (server resolve contract) are implemented**;
+**C-4 … C-7 remain unauthorized**. **No owner decision remains open.** Still
+blocked on the remaining per-slice authorizations
 Priority: **P1** (raised from P2 — see §Re-audit)
 Type: Bug
 Owner: Unassigned
@@ -3548,8 +3548,8 @@ called from `_layout.tsx`, so the two medical entity types cannot enter conflict
       screen inventory, its behaviour and its copy **before** any implementation.
       **ADR-P030 is Accepted (2026-09-07)**, with no owner decision remaining
       open. Acceptance authorizes the **architecture only** — the implementation
-      stays a separate gate, so **this entry remains Open**: **C-3 … C-7 are
-      unauthorized**. **C-0 (BUG-014)**, **C-1** and **C-2** have each been
+      stays a separate gate, so **this entry remains Open**: **C-4 … C-7 are
+      unauthorized**. **C-0 (BUG-014)**, **C-1**, **C-2** and **C-3** have each been
       separately authorized and implemented.
 - [x] **BUG-014 is fixed first** (ADR-P030 **C-0**) — a parked conflict again
       shields its row from the pull. Until then "both versions remain preserved"
@@ -3575,36 +3575,37 @@ called from `_layout.tsx`, so the two medical entity types cannot enter conflict
       the hole that currently defeats op-id idempotency on retry.
       `recordConflict` and `recordOutcome` stop writing through the root Prisma
       client.
-- [ ] The resolve endpoint answers **stable machine-readable outcomes** with
+- [x] The resolve endpoint answers **stable machine-readable outcomes** with
       defined HTTP statuses, carries **no server-authored user-facing string**,
       and returns **404** indistinguishably for unknown and cross-owner ids.
       `RESTORE_UNSUPPORTED` is a code mapped to localized client copy.
-- [ ] **No outcome is a dead end.** `RESTORE_UNSUPPORTED` re-arms the decision
-      locally and offers `SERVER_WINS`; `ALREADY_RESOLVED_OPPOSITE_CHOICE`
+- [x] **No outcome is a dead end.** `RESTORE_UNSUPPORTED` is returned as a
+      stable server outcome for the later local recovery transition; the local
+      slice will offer `SERVER_WINS`; `ALREADY_RESOLVED_OPPOSITE_CHOICE`
       returns the authoritative row so the loser settles to the standing
       resolution instead of staying permanently counted. Neither weakens
       first-choice-wins once the server has committed a resolution.
-- [ ] **A conflict resolved on another device is never closed by a status.**
+- [x] **A conflict resolved on another device is never closed by a status.**
       Absence from a paged list proves nothing, and an explicit resolved status
       only **triggers** the guaranteed `POST …/resolve` replay — the conflict
       stays counted until that response supplies the authoritative row and **T3**
       commits, so a settled conflict can never sit on stale entity data.
 - [ ] **T3 is atomic**: applying the authoritative row, removing the parked
       operation and marking settlement commit together or not at all.
-- [ ] The `CREATE`-race path is **PostgreSQL-viable**: a non-throwing,
+- [x] The `CREATE`-race path is **PostgreSQL-viable**: a non-throwing,
       PK-targeted insert reports the collision as a count, so the conflict is
       recorded on the same transaction; unrelated constraint violations still
       throw and are classified **after** rollback.
-- [ ] **Raw `CREATE` SQL is fenced**: static, entity-owned, tagged-template
+- [x] **Raw `CREATE` SQL is fenced**: static, entity-owned, tagged-template
       `tx.$executeRaw` only — no `$executeRawUnsafe`, no dynamic identifiers, no
       interpolated payload fragments — preserving existing mappings, defaults and
       the trigger-assigned `sync_seq`, with a field-equivalence test against the
       current Prisma `create`.
-- [ ] **Per-operation resolution semantics** are implemented rather than a replay
+- [x] **Per-operation resolution semantics** are implemented rather than a replay
       of `apply()`: a `CREATE` conflict **updates** the existing owned row (never
       a duplicate insert), an `UPDATE` applies through the entity's own parser so
       **omitted fields survive**, and a `DELETE` soft-deletes.
-- [ ] **Tombstone conflicts are resolvable and never loop.** The mutation
+- [x] **Tombstone conflicts are resolvable and never loop.** The mutation
       predicate is selected by the reviewed state (`expectedDeleted`), not a
       universal `deleted_at IS NULL`: `CLIENT_WINS` on a reviewed tombstone
       **restores** the row or fails closed as `RESTORE_UNSUPPORTED`;
@@ -3612,17 +3613,17 @@ called from `_layout.tsx`, so the two medical entity types cannot enter conflict
       pretending a mutation occurred**; `SERVER_WINS` returns and applies the
       **tombstone**. A resolve → stale → re-review → resolve sequence is proven
       to **terminate**.
-- [ ] **A late race is a conflict, not a dropped rejection.** `apply()` returns a
+- [x] **A late race is a conflict, not a dropped rejection.** `apply()` returns a
       typed outcome, and a zero affected-row result — or a lost `CREATE`
       insertion race — drives an owner-scoped re-read and the **normal
       `recordConflict` path**: never `APPLIED`, never `APPLY_FAILED`, never
       `removeRejected`.
-- [ ] The owner-scoped resolve contract has landed (**C-3**): one `Serializable`
+- [x] The owner-scoped resolve contract has landed (**C-3**): one `Serializable`
       server transaction resolves the conflict, applies the client's retained
       representation for `CLIENT_WINS`, and returns the resulting authoritative
       row for **both** choices. **No replacement queue operation is created**,
       and settlement is never marked before the server has applied.
-- [ ] **Concurrency is proven, not assumed**: overlapping resolution-vs-push and
+- [x] **Concurrency is proven, not assumed**: overlapping resolution-vs-push and
       resolution-vs-resolution requests show **exactly one** compatible mutation
       committing, the loser returning the typed stale/conflict outcome, and the
       losing side's fields **unchanged field-by-field**.

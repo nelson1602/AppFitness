@@ -4,6 +4,7 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
@@ -152,13 +153,17 @@ export class RoutineExerciseSyncHandler implements EntitySyncHandler {
         return this.repo.resolveRoutineExercise(tx, userId, entityId, {
           ...common,
           operation: 'CREATE',
-          data: parseRoutineExerciseCreate(input.payload),
+          data: parseConflictPayload(() =>
+            parseRoutineExerciseCreate(input.payload),
+          ),
         });
       case 'UPDATE':
         return this.repo.resolveRoutineExercise(tx, userId, entityId, {
           ...common,
           operation: 'UPDATE',
-          data: parseRoutineExerciseUpdate(input.payload),
+          data: parseConflictPayload(() =>
+            parseRoutineExerciseUpdate(input.payload),
+          ),
         });
       case 'DELETE':
         return this.repo.resolveRoutineExercise(tx, userId, entityId, {
