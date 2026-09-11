@@ -3,6 +3,7 @@ import {
   FitnessLevel,
   Gender,
   ProfileAttributes,
+  PROFILE_DEFAULTS,
 } from './profile.types';
 
 /**
@@ -189,4 +190,38 @@ export function parseProfilePayload(
   if (fat !== undefined) out.targetFatG = fat;
 
   return out;
+}
+
+const COMPLETE_PROFILE_KEYS = [
+  'birth_date',
+  'gender',
+  'height_cm',
+  'fitness_level',
+  'years_training',
+  'activity_level',
+  'occupation',
+  'sleep_hours_baseline',
+  'stress_level_baseline',
+  'equipment',
+  'training_days_per_week',
+  'session_duration_mins',
+  'target_calories',
+  'target_protein_g',
+  'target_carbs_g',
+  'target_fat_g',
+] as const;
+
+/** Full retained CREATE representation used only by conflict resolution. */
+export function parseCompleteProfilePayload(
+  payload: Record<string, unknown>,
+): ProfileAttributes {
+  for (const key of COMPLETE_PROFILE_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(payload, key)) {
+      throw new ProfilePayloadError(key, 'is required for retained CREATE');
+    }
+  }
+  return {
+    ...PROFILE_DEFAULTS,
+    ...parseProfilePayload(payload),
+  };
 }

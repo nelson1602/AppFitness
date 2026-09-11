@@ -6,13 +6,17 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
   SyncOperationInput,
   SyncTx,
 } from '../../sync/domain/sync.types';
-import { parseProfilePayload } from '../domain/profile-payload';
+import {
+  parseCompleteProfilePayload,
+  parseProfilePayload,
+} from '../domain/profile-payload';
 import { ProfileRepositoryPort } from '../domain/profile.repository';
 import { PROFILE_DEFAULTS, PROFILE_ENTITY_TYPE } from '../domain/profile.types';
 import { toWire } from './profile.mapper';
@@ -158,16 +162,17 @@ export class ProfileSyncHandler implements EntitySyncHandler {
         return this.profiles.resolveForSync(tx, userId, entityId, {
           ...common,
           operation: 'CREATE',
-          attributes: {
-            ...PROFILE_DEFAULTS,
-            ...parseProfilePayload(input.payload),
-          },
+          attributes: parseConflictPayload(() =>
+            parseCompleteProfilePayload(input.payload),
+          ),
         });
       case 'UPDATE':
         return this.profiles.resolveForSync(tx, userId, entityId, {
           ...common,
           operation: 'UPDATE',
-          attributes: parseProfilePayload(input.payload),
+          attributes: parseConflictPayload(() =>
+            parseProfilePayload(input.payload),
+          ),
         });
       case 'DELETE':
         return this.profiles.resolveForSync(tx, userId, entityId, {

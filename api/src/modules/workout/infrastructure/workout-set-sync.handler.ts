@@ -4,6 +4,7 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
@@ -151,13 +152,17 @@ export class WorkoutSetSyncHandler implements EntitySyncHandler {
         return this.repo.resolveWorkoutSet(tx, userId, entityId, {
           ...common,
           operation: 'CREATE',
-          data: parseWorkoutSetCreate(input.payload),
+          data: parseConflictPayload(() =>
+            parseWorkoutSetCreate(input.payload),
+          ),
         });
       case 'UPDATE':
         return this.repo.resolveWorkoutSet(tx, userId, entityId, {
           ...common,
           operation: 'UPDATE',
-          data: parseWorkoutSetUpdate(input.payload),
+          data: parseConflictPayload(() =>
+            parseWorkoutSetUpdate(input.payload),
+          ),
         });
       case 'DELETE':
         return this.repo.resolveWorkoutSet(tx, userId, entityId, {

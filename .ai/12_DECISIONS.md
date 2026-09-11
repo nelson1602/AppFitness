@@ -10106,8 +10106,9 @@ behaviour.
 Status: **Accepted** (2026-09-07) — the **architecture** below is authorized.
 Acceptance does **not** authorize implementation slices automatically. **C-0
 (BUG-014), C-1 (per-user scoping) and C-2 (atomic conditional push) are
-implemented**; **C-3 … C-7 remain unauthorized** and each needs its own
-approval. **No owner decision remains open.**
+implemented**; **C-3 (server resolve contract) is implemented, while C-4 … C-7
+remain unauthorized** and each needs its own approval. **No owner decision
+remains open.**
 Date: 2026-09-07 (revised seven times the same day after review — see
 §Revision note)
 Owner: Product / Mobile Architecture / Security
@@ -11456,9 +11457,9 @@ Fail **visible and closed**, never silent:
 #### 13. Implementation slices — prerequisites first
 
 Sequenced so no prerequisite can ship after the UI. **Acceptance of this ADR
-authorizes the architecture, not these slices.** **C-0**, **C-1** and **C-2**
-are implemented; **C-3 … C-7 remain unauthorized** and each requires its own
-approval before any code is written.
+authorizes the architecture, not these slices.** **C-0**, **C-1**, **C-2** and
+**C-3** are implemented; **C-4 … C-7 remain unauthorized** and each requires
+its own approval before any code is written.
 
 ### Slice C-2 Implementation Record — Atomic Conditional Push
 
@@ -11494,14 +11495,41 @@ classification, all 13 raw/Prisma field-equivalence cases (including defaults,
 `updated_at`, `sync_seq` and pull ordering), the already-deleted DELETE no-write
 rule, and the absence of unsafe or dynamically targeted raw SQL. C-2 adds no
 endpoint, DTO, schema, migration or client wire change. **BUG-012 stays Open;
-C-3 is the next prerequisite.**
+C-4 is the next prerequisite.**
+
+### Slice C-3 Implementation Record — Server Resolve Contract
+
+**Implemented 2026-09-11.** The owner-scoped `GET /sync/conflicts` list and
+`POST /sync/conflicts/:id/resolve` endpoints are live in the API contract. The
+list is cursor-paged over the owner's `PENDING` conflicts and optionally
+returns status-only results for up to 100 locally-known ids; absence and a
+resolved status never settle a client row. The resolve route uses a first
+conditional claim inside a `Serializable` transaction, checks both reviewed
+version and tombstone state, applies the retained operation through the
+entity-owned conditional mutation, re-reads the authoritative row, and commits
+the conflict and mutation together. Same-choice replay is idempotent,
+opposite-choice replay carries the standing decision and row, and stale and
+restore-unsupported paths roll back to `PENDING`. Audit is attempted once,
+best-effort, after a winning commit, with operational metadata only.
+
+The request DTO forbids mutation fields for `SERVER_WINS`, requires a complete
+retained representation for `CREATE` where the entity contract needs it, and
+maps entity parser failures to a generic 400 boundary without leaking payload
+content. Medical handlers remain unsupported and dormant. C-3 adds no schema,
+migration, dependency, mobile, local-outbox or UI change.
+
+Regression coverage is in `api/test/sync-conflict-resolution.e2e-spec.ts`:
+14 tests cover authentication and validation, owner isolation, paging and
+status-only reconciliation, all typed outcomes, complete CREATE and partial
+UPDATE semantics, deletes/restores/tombstones, audit cardinality, and
+resolution-versus-push plus same/opposite-choice concurrency.
 
 | # | Slice | Depends on | API / schema |
 |---|---|---|---|
 | **C-0** | **BUG-014 guard fix** — `hasPendingOpFor` counts `'CONFLICT'`; regression proving a parked conflict survives a pull | — | none |
 | **C-1** | **Per-user scoping + outbox schema + session boundary** (§Decisions 8, 6) — **implemented**: local migration 006 — `user_id` on all three tables, `sync_state` rebuild + composite PK, cursor re-initialisation, entity-type-qualified fail-closed backfill, NULL quarantine, every accessor and call site scoped; **plus the §Decision 6 outbox columns on `sync_conflicts` as dormant schema**, because 006 can never be edited afterwards (no outbox behaviour); **plus the account-isolation boundary scoping depends on** (§Decision 8 addendum below) | C-0 | **local migration** |
 | **C-2** | **Implemented 2026-09-11. Push transaction boundary + conditional write predicate + typed apply outcome** (§Decision 3): a **per-operation transaction** in `processOperation` with `tx` threaded through the idempotency probe, `getServerState`, `apply`, and the re-signatured `recordConflict`/`recordOutcome`; `apply` returning `ApplyOutcome`; the `STALE → recordConflict` branch; the new resolution method and owner-row reader; the **state-specific tombstone predicate**; and the owner + expected-version predicate on existing-row **`UPDATE`/`DELETE`** mutations in place of `where: { id }` (**`CREATE` stays an insert**). **This changes the shared `/sync/push` write path**, so it is *not* a behaviour-free refactor: a race that previously overwrote silently now reports a normal conflict, and a mutation now commits atomically with its terminal outcome. It closes A-15(b)'s TOCTOU **and** the mutation-without-recorded-op-id idempotency hole, and **owns the concurrency, atomicity and late-conflict tests for both** | C-1 | **15 handlers / 9 ports-adapters in the implemented inventory; 13 public resolution seams + 2 dormant medical tx-only conformances; `SyncService` per-op transaction across 5 call sites and 2 helpers; shared with `/sync/push`** |
-| **C-3** | **Server resolve contract** (§Decisions 3, 4, 9, 10, 11): both endpoints, DTOs, throttle, owner scoping, conditional claim, `Serializable` resolution transaction, per-operation semantics, stale outcome, best-effort audit, API e2e | C-2 | **2 endpoints** |
+| **C-3** | **Implemented 2026-09-11 — server resolve contract** (§Decisions 3, 4, 9, 10, 11): both endpoints, DTOs, throttle, owner scoping, conditional claim, `Serializable` resolution transaction, per-operation semantics, stale outcome, best-effort audit, API e2e | C-2 | **2 endpoints** |
 | **C-4** | **Local resolution service + outbox behaviour** (§Decisions 4, 6, 7, 10) — the columns already exist from C-1: **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts`, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under existing backoff, presenter allow-list. No UI | C-3 | none |
 | **C-5** | **Copy deck slice**: word the key families of §Decision 15 in EN/ES | C-4 | none |
 | **C-6** | **`/sync-conflicts` route** + dashboard labelled button + Web-unavailable arm | C-5 | none |
@@ -11879,9 +11907,9 @@ decided in §Decision 14 — **retain indefinitely; any purge needs separate
 authorization**.
 
 What remains is **authorization to implement**, which is a gate, not a design
-question. Acceptance settles the architecture only. **C-0 (BUG-014), C-1 and
-C-2 are implemented**; **C-3 … C-7 are not authorized**, and each needs its
-own approval before implementation begins.
+question. Acceptance settles the architecture only. **C-0 (BUG-014), C-1,
+C-2 and C-3 are implemented**; **C-4 … C-7 are not authorized**, and each
+needs its own approval before implementation begins.
 
 ### Supersedes / Preserves
 

@@ -4,6 +4,7 @@ import {
   ApplyOutcome,
   EntitySyncHandler,
   OwnedRowSnapshot,
+  parseConflictPayload,
   PulledChange,
   ResolutionMutationInput,
   ServerEntityState,
@@ -125,13 +126,17 @@ export class ProgressSnapshotSyncHandler implements EntitySyncHandler {
         return this.repo.resolveProgressSnapshot(tx, userId, entityId, {
           ...common,
           operation: 'CREATE',
-          data: parseProgressSnapshotCreate(input.payload),
+          data: parseConflictPayload(() =>
+            parseProgressSnapshotCreate(input.payload),
+          ),
         });
       case 'UPDATE':
         return this.repo.resolveProgressSnapshot(tx, userId, entityId, {
           ...common,
           operation: 'UPDATE',
-          data: parseProgressSnapshotUpdate(input.payload),
+          data: parseConflictPayload(() =>
+            parseProgressSnapshotUpdate(input.payload),
+          ),
         });
       case 'DELETE':
         return this.repo.resolveProgressSnapshot(tx, userId, entityId, {
