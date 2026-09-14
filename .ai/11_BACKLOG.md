@@ -3778,6 +3778,93 @@ test renderer. VoiceOver, TalkBack and browser-AT verification remain the
 
 ---
 
+## [BUG-015] Local Transactions Were Not Atomic — `inTransaction` Discarded Expo SQLite's Transaction Connection
+
+Status: **Done** (2026-09-14 — fixed in this change; see Resolution)
+Priority: **P1**
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-14
+Updated: 2026-09-14
+
+### Description
+
+Found while reviewing ADR-P030 **C-4**, and verified against the installed
+Expo SQLite SDK 57 source rather than the documentation.
+
+`withExclusiveTransactionAsync` does **not** run its task on the database it
+was called on. It opens a **separate native connection**
+(`SQLiteDatabase.js`: `Transaction.createAsync(db)` →
+`{ ...db.options, useNewConnection: true }`), issues `BEGIN` / `COMMIT` /
+`ROLLBACK` on that connection, and passes it to the task as `txn`.
+
+`mobile/src/shared/infrastructure/database/sql.ts::inTransaction` accepted the
+callback but **ignored `txn`**, and the callbacks reached for `queryAll`,
+`queryFirst`, `run`, the sync queue and the entity appliers — every one of
+which resolved its connection through `getDatabase()`, i.e. the **main**
+connection.
+
+So no local transaction was atomic. Every statement inside every
+`inTransaction` callback executed outside the transaction: it committed on its
+own, survived the rollback, and could block on the exclusive lock the
+transaction had taken.
+
+**Impact.** 35 transaction callbacks across 10 repositories, including
+ADR-P030 C-4's **T1**, **T1′** and **T3**. T3's guarantee — apply the
+authoritative row, remove the parked operation and settle the conflict *or
+none of them* — did not hold: a failure partway could leave the entity
+overwritten with the parked operation still queued, or the conflict settled
+against an unapplied row.
+
+**Why the tests missed it.** The C-4 suite modelled BEGIN/COMMIT/ROLLBACK
+around a **single** connection object, so the split between the two
+connections was invisible and the suite passed against the defect. The
+implementation record in ADR-P030 has been corrected accordingly: those tests
+proved the transitions and their guards, **not** native transaction atomicity.
+
+### Resolution
+
+One executor contract, threaded end to end and visible to the compiler:
+
+- `SqlExecutor` — the minimal surface (`runAsync`, `getFirstAsync`,
+  `getAllAsync`) both connections satisfy structurally.
+- `inTransaction(fn)` passes the real `txn` to `fn`; `run` / `queryFirst` /
+  `queryAll` take it as a trailing argument and fall back to the root
+  connection only when none is supplied, so non-transactional callers are
+  unchanged. `rootExecutor()` names the root connection where a caller
+  legitimately runs outside a transaction.
+- All **35** transaction callbacks, **13** nested helpers (queue enqueue,
+  parked-operation lookup/removal, conflict settlement, and the feature-local
+  `ensure*` / `findSlot` / `assertNameFree` helpers) and all **15**
+  `applyServer*` repository functions now take and forward the executor.
+- `EntityApplier.applyServerChange` takes a **single object with a required
+  `tx`**. A positional signature could not enforce this — a legacy
+  three-argument applier satisfies a four-parameter type and would silently
+  drop the executor — so the shape change makes the compiler reject the old
+  form outright.
+
+**Guarding the blind spot.** `transaction-threading.spec.ts` scans the source:
+every `inTransaction` callback must name `tx`, every SQL helper inside one must
+pass it, none may call `getDatabase`/`rootExecutor`, and none may nest a
+transaction. The scan matches the generic call form (`queryFirst<Row>(…)`)
+because the first threading pass did not — which had left **54** reads still
+executing on the root connection.
+
+Regression coverage keeps the root and transaction connections as **distinct
+objects** and asserts which one carried each statement:
+`database/sql.spec.ts` (executor identity, helper routing, no re-acquisition,
+Web's dormant-database rejection) and
+`sync/conflict-settlement.integration.spec.ts` (T1, T1′ and T3 through the
+**real** registered `body_weights` applier, the real queue and the real
+conflict store against real SQLite; an injected failure after the entity write
+rolls the write, the parked-operation removal and the conflict transition back
+together; and a representative multi-step repository transaction commits or
+rolls back as one).
+
+**Scope:** no schema, migration, dependency, API, UI, copy or wire-contract
+change, and medical stays dormant. **BUG-012 remains Open and ADR-P030 C-5
+through C-7 remain unimplemented.**
+
 ## [BUG-014] A Parked Conflict Loses Pull Protection, So the Local Version Can Be Silently Overwritten
 
 Status: **Done** (2026-09-07 — fixed in this change; see Resolution)

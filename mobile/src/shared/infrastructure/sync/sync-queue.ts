@@ -1,5 +1,5 @@
 import { decryptFromBase64, encryptToBase64 } from '../crypto/field-cipher';
-import { queryAll, queryFirst, run } from '../database';
+import { queryAll, queryFirst, run, type SqlExecutor } from '../database';
 import type { SyncQueueRow } from '../database/types';
 import { computeNextRetryAt } from './backoff';
 import type { EnqueueInput } from './types';
@@ -21,7 +21,11 @@ import type { EnqueueInput } from './types';
  * `NULL = :userId` is never true.
  */
 
-export async function enqueue(input: EnqueueInput, nowIso: string): Promise<void> {
+export async function enqueue(
+  input: EnqueueInput,
+  nowIso: string,
+  tx?: SqlExecutor,
+): Promise<void> {
   // Sensitive payloads (medical free-text) are encrypted at rest even in
   // the queue: stored as {"__enc": "<base64>"} (ADR-P001).
   const payloadText = input.sensitive
@@ -44,6 +48,7 @@ export async function enqueue(input: EnqueueInput, nowIso: string): Promise<void
       nowIso,
       nowIso,
     ],
+    tx,
   );
 }
 
@@ -224,10 +229,12 @@ export async function findParkedOperation(
   userId: string,
   entityType: string,
   entityId: string,
+  tx?: SqlExecutor,
 ): Promise<SyncQueueRow | null> {
   return queryFirst<SyncQueueRow>(
     `SELECT * FROM sync_queue WHERE ${PARKED_OPERATION_PREDICATE} ORDER BY rowid ASC`,
     [userId, entityType, entityId, ...NON_CONFLICT_PARK_CODES],
+    tx,
   );
 }
 
@@ -244,13 +251,13 @@ export async function removeParkedOperation(
   userId: string,
   entityType: string,
   entityId: string,
+  tx?: SqlExecutor,
 ): Promise<number> {
-  const result = await run(`DELETE FROM sync_queue WHERE ${PARKED_OPERATION_PREDICATE}`, [
-    userId,
-    entityType,
-    entityId,
-    ...NON_CONFLICT_PARK_CODES,
-  ]);
+  const result = await run(
+    `DELETE FROM sync_queue WHERE ${PARKED_OPERATION_PREDICATE}`,
+    [userId, entityType, entityId, ...NON_CONFLICT_PARK_CODES],
+    tx,
+  );
   return result.changes;
 }
 

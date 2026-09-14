@@ -1,4 +1,9 @@
-import { inTransaction, queryFirst, run } from '../../../shared/infrastructure/database';
+import {
+  inTransaction,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '../../../shared/infrastructure/database';
 import type { GoalRow } from '../../../shared/infrastructure/database/types';
 import { generateUuid } from '../../../shared/infrastructure/ids';
 import { enqueue } from '../../../shared/infrastructure/sync';
@@ -28,11 +33,12 @@ export async function setGoal(
   input: GoalInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<Goal> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const current = await queryFirst<GoalRow>(
       `SELECT * FROM goals WHERE user_id = ? AND is_active = 1 AND deleted_at IS NULL
        ORDER BY started_at DESC LIMIT 1`,
       [userId],
+      tx,
     );
 
     if (current) {
@@ -40,6 +46,7 @@ export async function setGoal(
         `UPDATE goals SET is_active = 0, ended_at = ?, updated_at = ?, sync_status = 'pending'
          WHERE id = ?`,
         [nowIso, nowIso, current.id],
+        tx,
       );
       await enqueue(
         {
@@ -52,6 +59,7 @@ export async function setGoal(
           baseVersion: current.version,
         },
         nowIso,
+        tx,
       );
     }
 
@@ -71,6 +79,7 @@ export async function setGoal(
         input.targetDate ?? null,
         nowIso,
       ],
+      tx,
     );
     await enqueue(
       {
@@ -91,9 +100,10 @@ export async function setGoal(
         baseVersion: 0,
       },
       nowIso,
+      tx,
     );
 
-    const row = await queryFirst<GoalRow>(`SELECT * FROM goals WHERE id = ?`, [id]);
+    const row = await queryFirst<GoalRow>(`SELECT * FROM goals WHERE id = ?`, [id], tx);
     if (!row) throw new Error('goal row disappeared mid-transaction');
     return rowToGoal(row);
   });
@@ -103,6 +113,8 @@ export async function setGoal(
 export async function applyServerGoal(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as unknown as Omit<GoalRow, 'is_active'> & { is_active: unknown };
   await run(
@@ -125,6 +137,7 @@ export async function applyServerGoal(
       row.started_at,
       row.ended_at,
     ],
+    tx,
   );
 }
 

@@ -493,10 +493,18 @@ async function applySettlement(
   if (!applier) return false;
 
   try {
-    await inTransaction(async () => {
-      await applier.applyServerChange(current.row, current.deleted, userId);
-      await removeParkedOperation(userId, row.entity_type, row.entity_id);
-      const settled = await markConflictSettled(userId, row.id, status, nowIso);
+    // One executor for all three effects (BUG-015). `tx` is the exclusive
+    // transaction's own connection: anything written through the root one
+    // instead would commit independently and survive the rollback below.
+    await inTransaction(async (tx) => {
+      await applier.applyServerChange({
+        data: current.row,
+        deleted: current.deleted,
+        userId,
+        tx,
+      });
+      await removeParkedOperation(userId, row.entity_type, row.entity_id, tx);
+      const settled = await markConflictSettled(userId, row.id, status, nowIso, tx);
       if (!settled) throw new SettlementRolledBack(row.id);
     });
   } catch (error) {

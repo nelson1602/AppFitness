@@ -16,7 +16,7 @@ export function registerProfileSyncAppliers(): void {
 
   registerApplier({
     entityType: 'user_profiles',
-    applyServerChange: applyServerProfile,
+    applyServerChange: ({ data, deleted, tx }) => applyServerProfile(data, deleted, tx),
     markConflict: async (entityId, nowIso) => {
       await run(`UPDATE user_profiles SET sync_status = 'conflict', updated_at = ? WHERE id = ?`, [
         nowIso,
@@ -27,7 +27,7 @@ export function registerProfileSyncAppliers(): void {
 
   registerApplier({
     entityType: 'goals',
-    applyServerChange: applyServerGoal,
+    applyServerChange: ({ data, deleted, tx }) => applyServerGoal(data, deleted, tx),
     markConflict: markGoalConflict,
   });
 }

@@ -1,3 +1,4 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type { RoutineExerciseRow, WorkoutSetRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
@@ -14,7 +15,8 @@ import {
 } from './workout-exercises.repository';
 
 jest.mock('@/shared/infrastructure/database', () => ({
-  inTransaction: jest.fn(<T>(fn: () => Promise<T>) => fn()),
+  rootExecutor: jest.fn(() => Promise.resolve(mockTx)),
+  inTransaction: jest.fn(<T>(fn: (tx: unknown) => Promise<T>) => fn(mockTx)),
   queryAll: jest.fn(),
   queryFirst: jest.fn(),
   run: jest.fn(),
@@ -33,6 +35,9 @@ const USER = 'user-1';
 const ROUTINE_ID = 'routine-1';
 const LOG_ID = 'log-1';
 const NEW_ID = 'new-1';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 const EX_ID = BUILT_IN_EXERCISES[0].id; // a real seeded built-in id (back squat)
 
 function reRow(o: Partial<RoutineExerciseRow> = {}): RoutineExerciseRow {

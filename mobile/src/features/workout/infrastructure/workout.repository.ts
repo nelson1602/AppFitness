@@ -1,4 +1,10 @@
-import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import {
+  inTransaction,
+  queryAll,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '@/shared/infrastructure/database';
 import type { RoutineRow, WorkoutLogRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
@@ -31,11 +37,12 @@ export async function createRoutine(
 ): Promise<Routine> {
   const id = generateUuid();
   const description = input.description ?? null;
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     await run(
       `INSERT INTO routines (id, user_id, created_at, updated_at, version, sync_status, name, description)
        VALUES (?, ?, ?, ?, 1, 'pending', ?, ?)`,
       [id, userId, nowIso, nowIso, input.name, description],
+      tx,
     );
     await enqueue(
       {
@@ -48,8 +55,9 @@ export async function createRoutine(
         baseVersion: 0,
       },
       nowIso,
+      tx,
     );
-    const row = await queryFirst<RoutineRow>(`SELECT * FROM routines WHERE id = ?`, [id]);
+    const row = await queryFirst<RoutineRow>(`SELECT * FROM routines WHERE id = ?`, [id], tx);
     if (!row) throw new Error('routine row disappeared mid-transaction');
     return rowToRoutine(row);
   });
@@ -69,10 +77,11 @@ export async function updateRoutine(
   input: RoutineInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<Routine | null> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const row = await queryFirst<RoutineRow>(
       `SELECT * FROM routines WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return null;
     const description = input.description ?? null;
@@ -81,6 +90,7 @@ export async function updateRoutine(
       `UPDATE routines SET name = ?, description = ?, version = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [input.name, description, nextVersion, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -93,8 +103,9 @@ export async function updateRoutine(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
-    const updated = await queryFirst<RoutineRow>(`SELECT * FROM routines WHERE id = ?`, [id]);
+    const updated = await queryFirst<RoutineRow>(`SELECT * FROM routines WHERE id = ?`, [id], tx);
     return updated ? rowToRoutine(updated) : null;
   });
 }
@@ -104,16 +115,18 @@ export async function deleteRoutine(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const row = await queryFirst<RoutineRow>(
       `SELECT * FROM routines WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return;
     await run(
       `UPDATE routines SET deleted_at = ?, deleted_by = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [nowIso, userId, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -126,6 +139,7 @@ export async function deleteRoutine(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -152,12 +166,13 @@ export async function createWorkoutLog(
     routineId = input.routineId;
   }
 
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     await run(
       `INSERT INTO workout_logs (id, user_id, created_at, updated_at, version, sync_status,
          routine_id, name, notes, started_at, finished_at)
        VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, NULL)`,
       [id, userId, nowIso, nowIso, routineId, input.name, notes, startedAt],
+      tx,
     );
     await enqueue(
       {
@@ -177,8 +192,13 @@ export async function createWorkoutLog(
         baseVersion: 0,
       },
       nowIso,
+      tx,
     );
-    const row = await queryFirst<WorkoutLogRow>(`SELECT * FROM workout_logs WHERE id = ?`, [id]);
+    const row = await queryFirst<WorkoutLogRow>(
+      `SELECT * FROM workout_logs WHERE id = ?`,
+      [id],
+      tx,
+    );
     if (!row) throw new Error('workout_log row disappeared mid-transaction');
     return rowToWorkoutLog(row);
   });
@@ -200,10 +220,11 @@ export async function updateWorkoutLog(
   patch: { name?: string; notes?: string | null; finishedAt?: string | null },
   nowIso: string = new Date().toISOString(),
 ): Promise<WorkoutLog | null> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const row = await queryFirst<WorkoutLogRow>(
       `SELECT * FROM workout_logs WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return null;
     const name = patch.name ?? row.name;
@@ -214,6 +235,7 @@ export async function updateWorkoutLog(
       `UPDATE workout_logs SET name = ?, notes = ?, finished_at = ?, version = ?, updated_at = ?,
          sync_status = 'pending' WHERE id = ?`,
       [name, notes, finishedAt, nextVersion, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -231,10 +253,13 @@ export async function updateWorkoutLog(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
-    const updated = await queryFirst<WorkoutLogRow>(`SELECT * FROM workout_logs WHERE id = ?`, [
-      id,
-    ]);
+    const updated = await queryFirst<WorkoutLogRow>(
+      `SELECT * FROM workout_logs WHERE id = ?`,
+      [id],
+      tx,
+    );
     return updated ? rowToWorkoutLog(updated) : null;
   });
 }
@@ -244,16 +269,18 @@ export async function deleteWorkoutLog(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const row = await queryFirst<WorkoutLogRow>(
       `SELECT * FROM workout_logs WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return;
     await run(
       `UPDATE workout_logs SET deleted_at = ?, deleted_by = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [nowIso, userId, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -266,6 +293,7 @@ export async function deleteWorkoutLog(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -274,6 +302,8 @@ export async function deleteWorkoutLog(
 export async function applyServerRoutine(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   await run(
@@ -291,6 +321,7 @@ export async function applyServerRoutine(
       str(row['name']),
       str(row['description']),
     ],
+    tx,
   );
 }
 
@@ -304,6 +335,8 @@ export async function markRoutineConflict(id: string, nowIso: string): Promise<v
 export async function applyServerWorkoutLog(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   await run(
@@ -325,6 +358,7 @@ export async function applyServerWorkoutLog(
       str(row['started_at']),
       str(row['finished_at']),
     ],
+    tx,
   );
 }
 

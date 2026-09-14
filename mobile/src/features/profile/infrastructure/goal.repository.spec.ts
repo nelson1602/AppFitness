@@ -1,3 +1,4 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { queryFirst, run } from '../../../shared/infrastructure/database';
 import type { GoalRow } from '../../../shared/infrastructure/database/types';
 import { generateUuid } from '../../../shared/infrastructure/ids';
@@ -5,7 +6,7 @@ import { enqueue } from '../../../shared/infrastructure/sync';
 import { applyServerGoal, getActiveGoal, markGoalConflict, setGoal } from './goal.repository';
 
 jest.mock('../../../shared/infrastructure/database', () => ({
-  inTransaction: jest.fn(<T>(fn: () => Promise<T>) => fn()),
+  inTransaction: jest.fn(<T>(fn: (tx: unknown) => Promise<T>) => fn(mockTx)),
   queryFirst: jest.fn(),
   run: jest.fn(),
 }));
@@ -23,6 +24,9 @@ const mockUuid = jest.mocked(generateUuid);
 
 const NOW = '2026-07-06T12:00:00.000Z';
 const USER = 'user-1';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 function goalRow(overrides: Partial<GoalRow> = {}): GoalRow {
   return {
@@ -115,7 +119,7 @@ describe('goal repository (history-preserving)', () => {
   });
 
   it('applyServerGoal stamps deleted_at when the server change is a delete', async () => {
-    await applyServerGoal({ ...goalRow(), deleted_at: null }, true);
+    await applyServerGoal({ ...goalRow(), deleted_at: null }, true, mockTx);
 
     const params = mockRun.mock.calls[0][1] as unknown[];
     expect(params[5]).toEqual(expect.any(String)); // deleted_at synthesized
@@ -123,7 +127,7 @@ describe('goal repository (history-preserving)', () => {
   });
 
   it('applyServerGoal coerces boolean is_active to SQLite 0/1 and stores as synced', async () => {
-    await applyServerGoal({ ...goalRow(), is_active: true }, false);
+    await applyServerGoal({ ...goalRow(), is_active: true }, false, mockTx);
 
     const [sql, params] = mockRun.mock.calls[0];
     expect(sql).toContain('INSERT OR REPLACE INTO goals');

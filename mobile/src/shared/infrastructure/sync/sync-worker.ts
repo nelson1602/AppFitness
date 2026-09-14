@@ -1,4 +1,5 @@
 import { encryptToBase64 } from '../crypto/field-cipher';
+import { rootExecutor } from '../database';
 import { logWarn } from '../logging';
 import { allAppliers, getApplier } from './appliers';
 import { recordConflict } from './sync-conflicts';
@@ -239,8 +240,15 @@ async function pullLoop(
           continue;
         }
         // The active account travels with the change so an applier can refuse
-        // a row it does not own (ADR-P017 W-2).
-        await applier.applyServerChange(change.data, change.deleted, userId);
+        // a row it does not own (ADR-P017 W-2). The pull loop is not inside a
+        // transaction, so it names the root connection explicitly rather than
+        // letting a helper reach for it (BUG-015).
+        await applier.applyServerChange({
+          data: change.data,
+          deleted: change.deleted,
+          userId,
+          tx: await rootExecutor(),
+        });
         report.pulledApplied += 1;
       }
 

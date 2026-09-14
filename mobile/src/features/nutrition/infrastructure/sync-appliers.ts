@@ -22,13 +22,13 @@ export function registerNutritionSyncAppliers(): void {
 
   registerApplier({
     entityType: 'meal_items',
-    applyServerChange: applyServerMealItem,
+    applyServerChange: ({ data, deleted, tx }) => applyServerMealItem(data, deleted, tx),
     markConflict: markMealItemConflict,
   });
 
   registerApplier({
     entityType: 'dietary_preferences',
-    applyServerChange: applyServerDietaryPreference,
+    applyServerChange: ({ data, deleted, tx }) => applyServerDietaryPreference(data, deleted, tx),
     markConflict: markDietaryPreferenceConflict,
   });
 }

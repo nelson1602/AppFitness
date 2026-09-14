@@ -1,12 +1,19 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { run } from '@/shared/infrastructure/database';
 
 import { BUILT_IN_EXERCISES } from './exercise-catalog.data';
 import { ensureBuiltInExerciseSeeded, seedBuiltInExercises } from './exercise-seed';
 
-jest.mock('@/shared/infrastructure/database', () => ({ run: jest.fn() }));
+jest.mock('@/shared/infrastructure/database', () => ({
+  rootExecutor: jest.fn(() => Promise.resolve(mockTx)),
+  run: jest.fn(),
+}));
 
 const mockRun = jest.mocked(run);
 const NOW = '2026-07-17T12:00:00.000Z';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -31,7 +38,7 @@ describe('built-in exercise seed', () => {
 
   it('ensureBuiltInExerciseSeeded inserts a known built-in by id', async () => {
     const target = BUILT_IN_EXERCISES[2];
-    const done = await ensureBuiltInExerciseSeeded(target.id, NOW);
+    const done = await ensureBuiltInExerciseSeeded(target.id, mockTx, NOW);
     expect(done).toBe(true);
     expect(mockRun).toHaveBeenCalledTimes(1);
     const [, params] = mockRun.mock.calls[0] as unknown as [string, unknown[]];
@@ -39,7 +46,11 @@ describe('built-in exercise seed', () => {
   });
 
   it('ensureBuiltInExerciseSeeded is a no-op for a non-built-in id (custom exercise path)', async () => {
-    const done = await ensureBuiltInExerciseSeeded('11111111-1111-5111-8111-111111111111', NOW);
+    const done = await ensureBuiltInExerciseSeeded(
+      '11111111-1111-5111-8111-111111111111',
+      mockTx,
+      NOW,
+    );
     expect(done).toBe(false);
     expect(mockRun).not.toHaveBeenCalled();
   });

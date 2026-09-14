@@ -1,4 +1,5 @@
 import { encryptToBase64 } from '../crypto/field-cipher';
+import type { SqlExecutor } from '../database';
 import type { SyncQueueRow } from '../database/types';
 import { allAppliers, getApplier, type EntityApplier } from './appliers';
 import { recordConflict } from './sync-conflicts';
@@ -30,6 +31,9 @@ jest.mock('../crypto/field-cipher', () => ({
 jest.mock('../logging', () => ({
   logError: jest.fn(),
   logWarn: jest.fn(),
+}));
+jest.mock('../database', () => ({
+  rootExecutor: jest.fn(() => Promise.resolve(mockRootTx)),
 }));
 jest.mock('./appliers', () => ({
   allAppliers: jest.fn(() => []),
@@ -131,6 +135,9 @@ beforeEach(() => {
   mockAllAppliers.mockReturnValue([]);
   mockCreateTransport.mockReturnValue(fakeTransport());
 });
+
+/** Stands in for the root connection the pull loop hands each applier. */
+const mockRootTx = { root: true } as unknown as SqlExecutor;
 
 describe('runSync — auth gate', () => {
   it('returns unauthenticated without touching the network when no token exists', async () => {
@@ -413,8 +420,20 @@ describe('runSync — pull loop', () => {
     const report = await runSync(deps);
 
     expect(pull).toHaveBeenCalledWith(7, ['goals'], 100);
-    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'goal-1' }, false, USER);
-    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'goal-2' }, true, USER);
+    // The pull loop is outside any transaction, so it names the root
+    // connection rather than letting a helper reach for it (BUG-015).
+    expect(goals.applyServerChange).toHaveBeenCalledWith({
+      data: { id: 'goal-1' },
+      deleted: false,
+      userId: USER,
+      tx: mockRootTx,
+    });
+    expect(goals.applyServerChange).toHaveBeenCalledWith({
+      data: { id: 'goal-2' },
+      deleted: true,
+      userId: USER,
+      tx: mockRootTx,
+    });
     expect(report.pulledApplied).toBe(2);
     expect(mockSetCursor).toHaveBeenCalledWith(USER, 'goals', 9, expect.any(String));
   });
@@ -506,14 +525,18 @@ describe('runSync — pull loop', () => {
     // reported as skipped, never applied over it.
     expect(report.skippedPending).toBe(1);
     expect(goals.applyServerChange).not.toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'conflicted' }),
-      expect.anything(),
+      expect.objectContaining({ data: expect.objectContaining({ id: 'conflicted' }) }),
     );
 
     // …while an entity with nothing queued is still applied normally, proving
     // the guard was narrowed to conflicts rather than becoming a blanket block.
     expect(report.pulledApplied).toBe(1);
-    expect(goals.applyServerChange).toHaveBeenCalledWith({ id: 'settled' }, false, USER);
+    expect(goals.applyServerChange).toHaveBeenCalledWith({
+      data: { id: 'settled' },
+      deleted: false,
+      userId: USER,
+      tx: mockRootTx,
+    });
     expect(goals.applyServerChange).toHaveBeenCalledTimes(1);
   });
 
@@ -545,11 +568,12 @@ describe('runSync — pull loop', () => {
 
     expect(report.skippedPending).toBe(0);
     expect(report.pulledApplied).toBe(1);
-    expect(goals.applyServerChange).toHaveBeenCalledWith(
-      { id: 'conflicted', server: 'wins' },
-      false,
-      USER,
-    );
+    expect(goals.applyServerChange).toHaveBeenCalledWith({
+      data: { id: 'conflicted', server: 'wins' },
+      deleted: false,
+      userId: USER,
+      tx: mockRootTx,
+    });
   });
 
   it('never clobbers entities with unshipped local edits (skippedPending)', async () => {

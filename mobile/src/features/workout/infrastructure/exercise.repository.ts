@@ -1,4 +1,10 @@
-import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import {
+  inTransaction,
+  queryAll,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '@/shared/infrastructure/database';
 import type { ExerciseRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
@@ -32,6 +38,7 @@ async function assertNameFree(
   userId: string,
   name: string,
   exceptId: string | null,
+  tx: SqlExecutor,
 ): Promise<void> {
   const existing = await queryFirst<Pick<ExerciseRow, 'id'>>(
     `SELECT id FROM exercises
@@ -55,13 +62,14 @@ export async function createCustomExercise(
   const instructions = input.instructions ?? null;
   const id = generateUuid();
 
-  return inTransaction(async () => {
-    await assertNameFree(userId, name, null);
+  return inTransaction(async (tx) => {
+    await assertNameFree(userId, name, null, tx);
     await run(
       `INSERT INTO exercises
          (id, created_at, updated_at, version, sync_status, name, muscle_group, category, instructions, created_by)
        VALUES (?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?)`,
       [id, nowIso, nowIso, name, muscleGroup, input.category, instructions, userId],
+      tx,
     );
     await enqueue(
       {
@@ -80,8 +88,9 @@ export async function createCustomExercise(
         baseVersion: 0,
       },
       nowIso,
+      tx,
     );
-    const row = await queryFirst<ExerciseRow>(`SELECT * FROM exercises WHERE id = ?`, [id]);
+    const row = await queryFirst<ExerciseRow>(`SELECT * FROM exercises WHERE id = ?`, [id], tx);
     if (!row) throw new Error('exercise row disappeared mid-transaction');
     return rowToCustomExercise(row);
   });
@@ -110,20 +119,22 @@ export async function updateCustomExercise(
   if (muscleGroup.length === 0) throw new Error('muscle group is required');
   const instructions = input.instructions ?? null;
 
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     // created_by scoping means a built-in (NULL) or another user's row is never
     // found → returns null (no mutation), satisfying "built-in not mutated".
     const row = await queryFirst<ExerciseRow>(
       `SELECT * FROM exercises WHERE id = ? AND created_by = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return null;
-    await assertNameFree(userId, name, id);
+    await assertNameFree(userId, name, id, tx);
     const nextVersion = row.version + 1;
     await run(
       `UPDATE exercises SET name = ?, muscle_group = ?, category = ?, instructions = ?,
          version = ?, updated_at = ?, sync_status = 'pending' WHERE id = ?`,
       [name, muscleGroup, input.category, instructions, nextVersion, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -141,8 +152,9 @@ export async function updateCustomExercise(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
-    const updated = await queryFirst<ExerciseRow>(`SELECT * FROM exercises WHERE id = ?`, [id]);
+    const updated = await queryFirst<ExerciseRow>(`SELECT * FROM exercises WHERE id = ?`, [id], tx);
     return updated ? rowToCustomExercise(updated) : null;
   });
 }
@@ -152,16 +164,18 @@ export async function deleteCustomExercise(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const row = await queryFirst<ExerciseRow>(
       `SELECT * FROM exercises WHERE id = ? AND created_by = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return; // built-in or foreign or already deleted → no-op
     // exercises is a CATALOG table: soft-delete records only deleted_at.
     await run(
       `UPDATE exercises SET deleted_at = ?, updated_at = ?, sync_status = 'pending' WHERE id = ?`,
       [nowIso, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -174,6 +188,7 @@ export async function deleteCustomExercise(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -183,7 +198,11 @@ export async function deleteCustomExercise(
  * routine_exercises/workout_sets to satisfy the `exercise_id` FK for customs
  * (built-ins are seeded on demand instead).
  */
-export async function ownedCustomExerciseExists(userId: string, id: string): Promise<boolean> {
+export async function ownedCustomExerciseExists(
+  userId: string,
+  id: string,
+  tx: SqlExecutor,
+): Promise<boolean> {
   const row = await queryFirst<Pick<ExerciseRow, 'id'>>(
     `SELECT id FROM exercises WHERE id = ? AND created_by = ? AND deleted_at IS NULL`,
     [id, userId],
@@ -195,6 +214,8 @@ export async function ownedCustomExerciseExists(userId: string, id: string): Pro
 export async function applyServerExercise(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string };
   await run(
@@ -214,6 +235,7 @@ export async function applyServerExercise(
       str(row['instructions']),
       str(row['created_by']),
     ],
+    tx,
   );
 }
 

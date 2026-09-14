@@ -1,3 +1,4 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { inTransaction, queryFirst, run } from '../../../shared/infrastructure/database';
 import type { UserProfileRow } from '../../../shared/infrastructure/database/types';
 import { generateUuid } from '../../../shared/infrastructure/ids';
@@ -5,7 +6,7 @@ import { enqueue } from '../../../shared/infrastructure/sync';
 import { applyServerProfile, getProfile, saveProfile } from './profile.repository';
 
 jest.mock('../../../shared/infrastructure/database', () => ({
-  inTransaction: jest.fn(<T>(fn: () => Promise<T>) => fn()),
+  inTransaction: jest.fn(<T>(fn: (tx: unknown) => Promise<T>) => fn(mockTx)),
   queryFirst: jest.fn(),
   run: jest.fn(),
 }));
@@ -23,6 +24,9 @@ const mockUuid = jest.mocked(generateUuid);
 
 const NOW = '2026-07-06T12:00:00.000Z';
 const USER = 'user-1';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 function profileRow(overrides: Partial<UserProfileRow> = {}): UserProfileRow {
   return {
@@ -132,7 +136,7 @@ describe('profile repository (local-first, ADR-0006)', () => {
   });
 
   it('applyServerProfile upserts as synced and honors the deleted flag', async () => {
-    await applyServerProfile({ ...profileRow({ version: 7 }), equipment: ['bench'] }, true);
+    await applyServerProfile({ ...profileRow({ version: 7 }), equipment: ['bench'] }, true, mockTx);
 
     const [sql, params] = mockRun.mock.calls[0];
     expect(sql).toContain('INSERT OR REPLACE INTO user_profiles');

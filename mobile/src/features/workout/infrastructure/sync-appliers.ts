@@ -31,31 +31,31 @@ export function registerWorkoutSyncAppliers(): void {
 
   registerApplier({
     entityType: 'exercises',
-    applyServerChange: applyServerExercise,
+    applyServerChange: ({ data, deleted, tx }) => applyServerExercise(data, deleted, tx),
     markConflict: markExerciseConflict,
   });
 
   registerApplier({
     entityType: 'routines',
-    applyServerChange: applyServerRoutine,
+    applyServerChange: ({ data, deleted, tx }) => applyServerRoutine(data, deleted, tx),
     markConflict: markRoutineConflict,
   });
 
   registerApplier({
     entityType: 'workout_logs',
-    applyServerChange: applyServerWorkoutLog,
+    applyServerChange: ({ data, deleted, tx }) => applyServerWorkoutLog(data, deleted, tx),
     markConflict: markWorkoutLogConflict,
   });
 
   registerApplier({
     entityType: 'routine_exercises',
-    applyServerChange: applyServerRoutineExercise,
+    applyServerChange: ({ data, deleted, tx }) => applyServerRoutineExercise(data, deleted, tx),
     markConflict: markRoutineExerciseConflict,
   });
 
   registerApplier({
     entityType: 'workout_sets',
-    applyServerChange: applyServerWorkoutSet,
+    applyServerChange: ({ data, deleted, tx }) => applyServerWorkoutSet(data, deleted, tx),
     markConflict: markWorkoutSetConflict,
   });
 }

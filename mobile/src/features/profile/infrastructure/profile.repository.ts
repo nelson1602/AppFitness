@@ -1,4 +1,9 @@
-import { inTransaction, queryFirst, run } from '../../../shared/infrastructure/database';
+import {
+  inTransaction,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '../../../shared/infrastructure/database';
 import type { UserProfileRow } from '../../../shared/infrastructure/database/types';
 import { generateUuid } from '../../../shared/infrastructure/ids';
 import { enqueue } from '../../../shared/infrastructure/sync';
@@ -32,18 +37,24 @@ export async function saveProfile(
   input: ProfileInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<Profile> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const existing = await queryFirst<UserProfileRow>(
       `SELECT * FROM user_profiles WHERE user_id = ? AND deleted_at IS NULL`,
       [userId],
+      tx,
     );
     return existing
-      ? updateExisting(userId, existing, input, nowIso)
-      : createNew(userId, input, nowIso);
+      ? updateExisting(userId, existing, input, nowIso, tx)
+      : createNew(userId, input, nowIso, tx);
   });
 }
 
-async function createNew(userId: string, input: ProfileInput, nowIso: string): Promise<Profile> {
+async function createNew(
+  userId: string,
+  input: ProfileInput,
+  nowIso: string,
+  tx: SqlExecutor,
+): Promise<Profile> {
   const id = generateUuid();
   await run(
     `INSERT INTO user_profiles (
@@ -75,6 +86,7 @@ async function createNew(userId: string, input: ProfileInput, nowIso: string): P
       input.targetCarbsG ?? null,
       input.targetFatG ?? null,
     ],
+    tx,
   );
 
   const row = await mustRead(id);
@@ -89,6 +101,7 @@ async function createNew(userId: string, input: ProfileInput, nowIso: string): P
       baseVersion: 0,
     },
     nowIso,
+    tx,
   );
   return rowToProfile(row);
 }
@@ -98,6 +111,7 @@ async function updateExisting(
   existing: UserProfileRow,
   input: ProfileInput,
   nowIso: string,
+  tx: SqlExecutor,
 ): Promise<Profile> {
   const merged = mergeRow(existing, input, nowIso);
   await run(
@@ -129,6 +143,7 @@ async function updateExisting(
       merged.target_fat_g,
       existing.id,
     ],
+    tx,
   );
 
   const row = await mustRead(existing.id);
@@ -143,6 +158,7 @@ async function updateExisting(
       baseVersion: existing.version,
     },
     nowIso,
+    tx,
   );
   return rowToProfile(row);
 }
@@ -151,6 +167,8 @@ async function updateExisting(
 export async function applyServerProfile(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as unknown as UserProfileRow & { equipment: unknown };
   await run(
@@ -186,6 +204,7 @@ export async function applyServerProfile(
       row.target_carbs_g,
       row.target_fat_g,
     ],
+    tx,
   );
 }
 

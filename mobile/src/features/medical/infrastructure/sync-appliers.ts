@@ -14,13 +14,13 @@ export function registerMedicalSyncAppliers(): void {
 
   registerApplier({
     entityType: 'medical_evaluations',
-    applyServerChange: applyServerEvaluation,
+    applyServerChange: ({ data, deleted, tx }) => applyServerEvaluation(data, deleted, tx),
     markConflict: markEvaluationConflict,
   });
 
   registerApplier({
     entityType: 'medical_restrictions',
-    applyServerChange: applyServerRestriction,
+    applyServerChange: ({ data, deleted, tx }) => applyServerRestriction(data, deleted, tx),
     markConflict: markRestrictionConflict,
   });
 }

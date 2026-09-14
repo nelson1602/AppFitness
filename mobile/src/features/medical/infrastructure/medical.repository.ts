@@ -3,7 +3,13 @@ import {
   encryptText,
   getFieldKeyId,
 } from '../../../shared/infrastructure/crypto/field-cipher';
-import { inTransaction, queryAll, queryFirst, run } from '../../../shared/infrastructure/database';
+import {
+  inTransaction,
+  queryAll,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '../../../shared/infrastructure/database';
 import type {
   MedicalEvaluationRow,
   MedicalRestrictionRow,
@@ -41,7 +47,7 @@ export async function createEvaluation(
   const conditionsEnc = await encryptOrNull(input.medicalConditions);
   const medicationsEnc = await encryptOrNull(input.medications);
 
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     await run(
       `INSERT INTO medical_evaluations (
          id, user_id, created_at, updated_at, version, sync_status,
@@ -70,6 +76,7 @@ export async function createEvaluation(
         medicationsEnc,
         keyId,
       ],
+      tx,
     );
     await enqueue(
       {
@@ -98,11 +105,13 @@ export async function createEvaluation(
         sensitive: true,
       },
       nowIso,
+      tx,
     );
 
     const row = await queryFirst<MedicalEvaluationRow>(
       `SELECT * FROM medical_evaluations WHERE id = ?`,
       [id],
+      tx,
     );
     if (!row) throw new Error('evaluation row disappeared mid-transaction');
     return rowToEvaluation(row);
@@ -124,10 +133,11 @@ export async function deleteEvaluation(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const row = await queryFirst<MedicalEvaluationRow>(
       `SELECT * FROM medical_evaluations WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return;
     await run(
@@ -135,6 +145,7 @@ export async function deleteEvaluation(
        SET deleted_at = ?, deleted_by = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [nowIso, userId, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -147,6 +158,7 @@ export async function deleteEvaluation(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -155,6 +167,8 @@ export async function deleteEvaluation(
 export async function applyServerEvaluation(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   const keyId = await getFieldKeyId();
@@ -189,6 +203,7 @@ export async function applyServerEvaluation(
       await encryptOrNull(str(row['medications'])),
       keyId,
     ],
+    tx,
   );
 }
 
@@ -210,7 +225,7 @@ export async function addRestriction(
   const keyId = await getFieldKeyId();
   const notesEnc = await encryptOrNull(input.notes);
 
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     await run(
       `INSERT INTO medical_restrictions (
          id, user_id, created_at, updated_at, version, sync_status,
@@ -230,6 +245,7 @@ export async function addRestriction(
         input.effectiveFrom ?? null,
         input.effectiveUntil ?? null,
       ],
+      tx,
     );
     await enqueue(
       {
@@ -252,11 +268,13 @@ export async function addRestriction(
         sensitive: true,
       },
       nowIso,
+      tx,
     );
 
     const row = await queryFirst<MedicalRestrictionRow>(
       `SELECT * FROM medical_restrictions WHERE id = ?`,
       [id],
+      tx,
     );
     if (!row) throw new Error('restriction row disappeared mid-transaction');
     return rowToRestriction(row);
@@ -268,10 +286,11 @@ export async function deactivateRestriction(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const row = await queryFirst<MedicalRestrictionRow>(
       `SELECT * FROM medical_restrictions WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return;
     await run(
@@ -279,6 +298,7 @@ export async function deactivateRestriction(
        SET is_active = 0, effective_until = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [nowIso.slice(0, 10), nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -291,6 +311,7 @@ export async function deactivateRestriction(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -308,6 +329,8 @@ export async function listActiveRestrictions(userId: string): Promise<Restrictio
 export async function applyServerRestriction(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   const keyId = await getFieldKeyId();
@@ -334,6 +357,7 @@ export async function applyServerRestriction(
       str(row['effective_from']),
       str(row['effective_until']),
     ],
+    tx,
   );
 }
 
