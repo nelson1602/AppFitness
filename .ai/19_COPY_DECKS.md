@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.13
+Version: 1.14
 Status: Active
-Last Updated: 2026-09-09
+Last Updated: 2026-09-14
 
 ---
 
@@ -17,8 +17,9 @@ It covers, in order:
 
 1. the cross-cutting session-loading label;
 2. the four live product areas — Dashboard, Workout Log, Nutrition and Progress;
-3. the advisory first-run checklist approved by ADR-P027; and
-4. the direct Food Log dashboard shortcut approved by ADR-P027.
+3. the advisory first-run checklist approved by ADR-P027;
+4. the direct Food Log dashboard shortcut approved by ADR-P027; and
+5. the conflict-resolution family authorized by ADR-P030 slice **C-5**.
 
 This is a **documentation-only specification**. It changes no runtime,
 localization catalogue, route, state machine, accessibility behaviour or
@@ -33,13 +34,13 @@ not make the key or behaviour exist.
   Data-gap, Error, Offline, Pending sync, Conflict and Web unavailable.
 - **Not implementation.** No key listed as `PROPOSED` exists until its owning
   runtime slice adds it to both catalogues and wires it through `t()`.
-- **Not conflict resolution.** BUG-012's flow and data decision are now
-  specified by **ADR-P030 (Accepted 2026-09-07)**, but acceptance authorizes the
-  architecture only and **the copy slice C-5 is unauthorized**,
-  so this deck still specifies reporting copy only and defines no review action,
-  choose-version, keep-mine or keep-server control. The resolution copy families
-  ADR-P030 names are worded in its own copy slice, not here — see
-  §Deferred copy.
+- **Not a conflict-resolution surface.** Slice **C-5 is now authorized and its
+  152 keys are worded** under §Conflict resolution — but they are all
+  `PROPOSED`, and wording a control is not building one. This deck still defines
+  no route, screen, component or behaviour: **C-6** owns the `/sync-conflicts`
+  surface and the dashboard button, **C-7** owns the end-to-end journeys, and
+  **BUG-012 stays Open** until a user can actually reach the flow. Conflict copy
+  on the *existing* surfaces remains reporting-only and is unchanged.
 - **Not the UX-3D specification.** `.ai/20_PROGRESS_NONVISUAL.md` owns the
   non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` — its
   structure, accessibility semantics, ordering and test contract, including the
@@ -1031,13 +1032,414 @@ would erase the fact that it completed.
 
 ---
 
+# Conflict resolution — ADR-P030 slice C-5
+
+**Specification only.** Every key below is `PROPOSED`: none exists in either
+catalogue, none is reachable, and adding them is **C-6's** work. This section
+words the families ADR-P030 §Decision 15 named and deliberately left unworded.
+It defines **no** route, component, control, state machine or behaviour.
+
+**Authorization.** ADR-P030 is Accepted, C-0 … C-4 are implemented, and **C-5 is
+authorized** — this section replaces the earlier "no copy here is authorized
+yet" position for the wording only. C-6 (`/sync-conflicts` route and dashboard
+button) and C-7 (end-to-end journeys) remain unimplemented, and **BUG-012 stays
+Open**: no user-reachable resolution path exists until C-6 ships.
+
+## What the copy is written against
+
+Every key maps to a state the **C-4 review model already produces**
+(`mobile/src/shared/infrastructure/sync/conflict-presenter.ts` and
+`conflict-resolution.ts`). Nothing here anticipates behaviour C-4 does not
+expose:
+
+| C-4 model member | Values C-6 must render |
+|---|---|
+| `LocalConflictView.notResolvableReason` | `REMOTE_ORIGIN` · `UNSUPPORTED_ENTITY` · `ENCRYPTED_PAYLOAD` · `null` |
+| `LocalConflictView.availableResolutions` | `RESOLVED_LOCAL_WINS` · `RESOLVED_SERVER_WINS` · empty |
+| `LocalConflictView.lastFailureCode` | `RESTORE_UNSUPPORTED` (the only code C-4 writes) |
+| `ConflictReview.status` | `REVIEWABLE` · `UNSUPPORTED` |
+| `ConflictReview.reason` | `UNKNOWN_ENTITY` · `UNKNOWN_FIELD` · `MALFORMED_PAYLOAD` |
+| `ConflictReviewModel.entityKind` | the **13** registered entity types |
+| `ConflictReviewModel.settlement` | `UNDECIDED` · `CHOICE_RECORDED` · `RETRYING` · `BLOCKED` · `SETTLED` |
+| `ConflictFieldComparison.field` | the **75** allow-listed field identifiers |
+| `ConflictFieldValue.state` | `value` · `hidden` · `absent` |
+| `ConflictFieldComparison.comparison` | `same` · `different` · `unknown` |
+| metadata | `entityKind` · `comparisonDate` · `baseVersion` · `currentServerVersion` · `detectedAt` · `settlement` |
+
+## Interpolation: none, by repository convention
+
+The shipped catalogues contain **zero** `{{placeholder}}` tokens across all 904
+keys. The established idiom is **compositional fragments** a component prepends
+a localized value to — `sync-status-banner.tsx:34` renders
+`{count} {t('dashboard.sync.conflictOne')}`.
+
+This family follows that idiom: **no key interpolates**, and every key that
+accompanies a value is written as a **label** the surface pairs with the value
+it already holds. Consequently **no placeholder can ever carry an id, a version
+string, a payload field or any other sensitive value** — there are none to
+carry.
+
+## Voice constraints applied
+
+- "This device" and "your account" throughout — never client/server, local/remote,
+  row, record id, payload, version conflict, HTTP or store vocabulary.
+- Conflict stays **`warning`**, never `error` (ADR-P022; BUG-007).
+- Chosen-but-unsettled borrows the **Pending sync** reassurance; it is a content
+  condition inside the ready arm, **not a ninth state**.
+- Both sides are distinguishable **in text**; nothing depends on colour.
+- Every consequence is stated before the choice, and every screen says plainly
+  that **nothing changes until the user chooses**.
+- No key contains an id, UUID, JSON, payload name, token, database term, error
+  code, ciphertext or `[REDACTED]`.
+- No medical, diagnostic, treatment, clearance or supplement claim appears.
+
+---
+
+## Screen shell — 9 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.screenTitle` | Changes to review | Cambios por revisar | **PROPOSED** |
+| `sync.conflicts.intro` | The same record changed here and in your account. Choose the version you want to keep — nothing changes until you do. | El mismo registro cambió aquí y en tu cuenta. Elige la versión que quieres conservar: nada cambia hasta que lo hagas. | **PROPOSED** |
+| `sync.conflicts.loading` | Loading your changes… | Cargando tus cambios… | **PROPOSED** |
+| `sync.conflicts.emptyTitle` | Nothing to review | Nada por revisar | **PROPOSED** |
+| `sync.conflicts.emptyBody` | Your records match on this device and in your account. Anything that needs a decision will show up here. | Tus registros coinciden en este dispositivo y en tu cuenta. Lo que necesite una decisión aparecerá aquí. | **PROPOSED** |
+| `sync.conflicts.errorTitle` | We couldn't load your changes | No pudimos cargar tus cambios | **PROPOSED** |
+| `sync.conflicts.errorBody` | Something went wrong while opening this list. Nothing was changed, and everything is still saved. | Algo salió mal al abrir esta lista. No se cambió nada y todo sigue guardado. | **PROPOSED** |
+| `sync.conflicts.retry` | Try again | Reintentar | **PROPOSED** |
+| `sync.conflicts.retryAccessibility` | Try loading your changes again | Volver a cargar tus cambios | **PROPOSED** |
+
+## Sides — 2 keys
+
+Both sides must read differently **as text**, at any text size, with no colour.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.side.thisDevice` | On this device | En este dispositivo | **PROPOSED** |
+| `sync.conflicts.side.account` | Saved in your account | Guardado en tu cuenta | **PROPOSED** |
+
+## Metadata labels — 6 keys
+
+Labels only; the surface pairs each with the value the review model already
+carries.
+
+| Key | EN | ES | Model source | Status |
+|---|---|---|---|---|
+| `sync.conflicts.meta.record` | Record | Registro | `entityKind` | **PROPOSED** |
+| `sync.conflicts.meta.entryDate` | Entry date | Fecha del registro | `comparisonDate` | **PROPOSED** |
+| `sync.conflicts.meta.startingVersion` | You started from version | Partiste de la versión | `baseVersion` | **PROPOSED** |
+| `sync.conflicts.meta.accountVersion` | Your account is on version | Tu cuenta va en la versión | `currentServerVersion` | **PROPOSED** |
+| `sync.conflicts.meta.noticed` | Noticed | Detectado | `detectedAt` | **PROPOSED** |
+| `sync.conflicts.meta.status` | Status | Estado | `settlement` | **PROPOSED** |
+
+## Settlement condition — 5 keys
+
+Short chips, one per `SettlementCondition`. Longer explanations live in
+§Treatments.
+
+| Key | EN | ES | Condition | Status |
+|---|---|---|---|---|
+| `sync.conflicts.status.undecided` | Waiting for you | Esperando tu decisión | `UNDECIDED` | **PROPOSED** |
+| `sync.conflicts.status.choiceRecorded` | Saving your choice | Guardando tu elección | `CHOICE_RECORDED` | **PROPOSED** |
+| `sync.conflicts.status.retrying` | We'll try again | Lo intentaremos de nuevo | `RETRYING` | **PROPOSED** |
+| `sync.conflicts.status.blocked` | Needs another option | Necesita otra opción | `BLOCKED` | **PROPOSED** |
+| `sync.conflicts.status.settled` | Done | Listo | `SETTLED` | **PROPOSED** |
+
+## Treatments — 14 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.pendingTitle` | Your choice is saved | Tu elección está guardada | **PROPOSED** |
+| `sync.conflicts.pendingBody` | We'll finish this the next time you're connected. You don't need to do anything else. | Terminaremos la próxima vez que tengas conexión. No necesitas hacer nada más. | **PROPOSED** |
+| `sync.conflicts.failedTitle` | We'll try again shortly | Lo intentaremos de nuevo en breve | **PROPOSED** |
+| `sync.conflicts.failedBody` | Your choice is safe and still counts. We just couldn't reach your account this time. | Tu elección está a salvo y sigue vigente. Solo que esta vez no pudimos conectar con tu cuenta. | **PROPOSED** |
+| `sync.conflicts.failedRetry` | Try now | Intentar ahora | **PROPOSED** |
+| `sync.conflicts.settledTitle` | All set | Todo listo | **PROPOSED** |
+| `sync.conflicts.settledBody` | This record now matches on this device and in your account. | Este registro ya coincide en este dispositivo y en tu cuenta. | **PROPOSED** |
+| `sync.conflicts.staleTitle` | This changed again | Esto volvió a cambiar | **PROPOSED** |
+| `sync.conflicts.staleBody` | Your account has newer information than what you reviewed, so we didn't apply your choice. Have a look at the new version and choose again. | Tu cuenta tiene información más reciente que la que revisaste, así que no aplicamos tu elección. Mira la nueva versión y elige de nuevo. | **PROPOSED** |
+| `sync.conflicts.staleAction` | Review again | Revisar de nuevo | **PROPOSED** |
+| `sync.conflicts.restoreUnsupportedTitle` | We can't bring this one back | No podemos recuperar este registro | **PROPOSED** |
+| `sync.conflicts.restoreUnsupportedBody` | This record was deleted in your account, and keeping your version isn't possible for this kind of record. You can still keep the version saved in your account. | Este registro se eliminó en tu cuenta y conservar tu versión no es posible para este tipo de registro. Aún puedes conservar la versión guardada en tu cuenta. | **PROPOSED** |
+| `sync.conflicts.alreadyResolvedTitle` | Already decided | Ya se decidió | **PROPOSED** |
+| `sync.conflicts.alreadyResolvedBody` | This one was decided somewhere else first, so that choice is the one that stands. We've matched this device to it. | Este caso se decidió antes en otro lugar, así que esa elección es la que queda. Ya ajustamos este dispositivo para que coincida. | **PROPOSED** |
+
+## Choices — 7 keys
+
+Both labels must be unambiguous read alone, out of context, with no colour and
+no surrounding layout.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.choice.keepThisDevice` | Keep this device's version | Conservar la versión de este dispositivo | **PROPOSED** |
+| `sync.conflicts.choice.keepThisDeviceDescription` | Your account will be updated to match what you see under "On this device". | Tu cuenta se actualizará para coincidir con lo que ves en «En este dispositivo». | **PROPOSED** |
+| `sync.conflicts.choice.keepThisDeviceAccessibility` | Keep the version on this device | Conservar la versión de este dispositivo | **PROPOSED** |
+| `sync.conflicts.choice.keepAccount` | Keep my account's version | Conservar la versión de mi cuenta | **PROPOSED** |
+| `sync.conflicts.choice.keepAccountDescription` | This device will be updated to match what you see under "Saved in your account". | Este dispositivo se actualizará para coincidir con lo que ves en «Guardado en tu cuenta». | **PROPOSED** |
+| `sync.conflicts.choice.keepAccountAccessibility` | Keep the version saved in your account | Conservar la versión guardada en tu cuenta | **PROPOSED** |
+| `sync.conflicts.choice.noChangeYet` | Nothing changes until you choose. | Nada cambia hasta que elijas. | **PROPOSED** |
+
+## Deleted elsewhere — 2 keys
+
+Shown when the reviewed account state is a deletion and keeping this device's
+version would restore the record.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.deletedElsewhereTitle` | Deleted in your account | Eliminado en tu cuenta | **PROPOSED** |
+| `sync.conflicts.deletedElsewhereBody` | This record was removed somewhere else. Keeping this device's version brings it back. | Este registro se eliminó en otro lugar. Conservar la versión de este dispositivo lo restaura. | **PROPOSED** |
+
+## Value conditions — 5 keys
+
+`hidden` must never read as empty: it states that a value exists and is not
+shown. `absent` is the different, truthful case where that side carries no
+value for the field at all.
+
+| Key | EN | ES | Model source | Status |
+|---|---|---|---|---|
+| `sync.conflicts.value.hidden` | Saved, not shown here | Guardado, no se muestra aquí | `state: 'hidden'` | **PROPOSED** |
+| `sync.conflicts.value.absent` | Not part of this change | No forma parte de este cambio | `state: 'absent'` | **PROPOSED** |
+| `sync.conflicts.compare.same` | Same on both | Igual en ambos | `comparison: 'same'` | **PROPOSED** |
+| `sync.conflicts.compare.different` | Different | Diferente | `comparison: 'different'` | **PROPOSED** |
+| `sync.conflicts.compare.unknown` | Can't be compared | No se puede comparar | `comparison: 'unknown'` | **PROPOSED** |
+
+## Not resolvable on this device — 8 keys
+
+Each pair is listed with the record's kind and dates and offers **no** choice
+(ADR-P030 §Decisions 9 and 12).
+
+| Key | EN | ES | Model source | Status |
+|---|---|---|---|---|
+| `sync.conflicts.blocked.remoteTitle` | Changed on another device | Se cambió en otro dispositivo | `REMOTE_ORIGIN` | **PROPOSED** |
+| `sync.conflicts.blocked.remoteBody` | The edit behind this is on the device where you made it. Open AppFitness there to choose. Nothing here was changed or lost. | La edición que causó esto está en el dispositivo donde la hiciste. Abre AppFitness ahí para elegir. Aquí no se cambió ni se perdió nada. | `REMOTE_ORIGIN` | **PROPOSED** |
+| `sync.conflicts.blocked.unsupportedTitle` | Not reviewable here | No se puede revisar aquí | `UNSUPPORTED_ENTITY` · `UNKNOWN_ENTITY` | **PROPOSED** |
+| `sync.conflicts.blocked.unsupportedBody` | This kind of record can't be reviewed in this version. Both versions are still saved, and nothing was changed or lost. | Este tipo de registro no se puede revisar en esta versión. Ambas versiones siguen guardadas y no se cambió ni se perdió nada. | `UNSUPPORTED_ENTITY` · `UNKNOWN_ENTITY` | **PROPOSED** |
+| `sync.conflicts.blocked.updateAppTitle` | Update to review this | Actualiza para revisar esto | `UNKNOWN_FIELD` | **PROPOSED** |
+| `sync.conflicts.blocked.updateAppBody` | This record includes something this version doesn't recognize yet. Update AppFitness to review it. Nothing was changed or lost. | Este registro incluye algo que esta versión aún no reconoce. Actualiza AppFitness para revisarlo. No se cambió ni se perdió nada. | `UNKNOWN_FIELD` | **PROPOSED** |
+| `sync.conflicts.blocked.unreadableTitle` | We can't open this one | No podemos abrir este registro | `ENCRYPTED_PAYLOAD` · `MALFORMED_PAYLOAD` | **PROPOSED** |
+| `sync.conflicts.blocked.unreadableBody` | We couldn't read the details saved for this record on this device, so it can't be reviewed here. Nothing was changed or lost. | No pudimos leer los detalles guardados de este registro en este dispositivo, así que no se puede revisar aquí. No se cambió ni se perdió nada. | `ENCRYPTED_PAYLOAD` · `MALFORMED_PAYLOAD` | **PROPOSED** |
+
+## Offline — 2 keys
+
+Truthful about both halves: the choice is stored on the device now, and the
+round trip finishes later.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.offlineTitle` | You're offline | Estás sin conexión | **PROPOSED** |
+| `sync.conflicts.offlineBody` | You can still choose now. We'll save it on this device and finish when you're connected again. | Aún puedes elegir ahora. Lo guardaremos en este dispositivo y terminaremos cuando vuelvas a tener conexión. | **PROPOSED** |
+
+## Dashboard entry — 2 keys
+
+The button C-6 adds to the dashboard. Listed here so C-6 needs no fallback.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.dashboardButton` | Review changes | Revisar cambios | **PROPOSED** |
+| `sync.conflicts.dashboardButtonAccessibility` | Review changes that need your decision | Revisar los cambios que necesitan tu decisión | **PROPOSED** |
+
+## Action needed — 2 keys
+
+**Not a conflict.** A catalog-revision park (A-8 / BUG-007) has no versions to
+choose between, and this family exists to keep the two apart wherever they are
+listed side by side. The shipped `nutrition.log.actionMessage*` copy stays
+exactly as it is; these keys only carry the distinction onto the review surface.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.actionNeededTitle` | Action needed | Acción necesaria | **PROPOSED** |
+| `sync.conflicts.actionNeededBody` | This item can't sync because the food isn't available anymore. Remove it and add it again in Food Log. There are no versions to choose between here. | Este elemento no puede sincronizarse porque el alimento ya no está disponible. Elimínalo y agrégalo de nuevo en el Registro de alimentos. Aquí no hay versiones entre las cuales elegir. | **PROPOSED** |
+
+## Record labels — 13 keys
+
+One per registered entity type, read from the `registerApplier` call sites wired
+in `src/app/_layout.tsx`. The two medical types are **absent**: they are never
+registered, so they can never reach this surface (ADR-P017).
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.record.user_profiles` | Profile | Perfil | **PROPOSED** |
+| `sync.conflicts.record.goals` | Goal | Objetivo | **PROPOSED** |
+| `sync.conflicts.record.body_weights` | Weight entry | Registro de peso | **PROPOSED** |
+| `sync.conflicts.record.body_measurements` | Body measurements | Medidas corporales | **PROPOSED** |
+| `sync.conflicts.record.progress_snapshots` | Weekly summary | Resumen semanal | **PROPOSED** |
+| `sync.conflicts.record.dietary_preferences` | Food preference | Preferencia alimentaria | **PROPOSED** |
+| `sync.conflicts.record.meal_items` | Food log entry | Elemento del registro de alimentos | **PROPOSED** |
+| `sync.conflicts.record.exercises` | Exercise | Ejercicio | **PROPOSED** |
+| `sync.conflicts.record.routines` | Routine | Rutina | **PROPOSED** |
+| `sync.conflicts.record.routine_exercises` | Exercise in a routine | Ejercicio de una rutina | **PROPOSED** |
+| `sync.conflicts.record.workout_logs` | Workout | Entrenamiento | **PROPOSED** |
+| `sync.conflicts.record.workout_sets` | Set | Serie | **PROPOSED** |
+| `sync.conflicts.record.wellness_safety_profiles` | Wellness profile | Perfil de bienestar | **PROPOSED** |
+
+## Field labels — 75 keys
+
+One per allow-listed field identifier the presenter can emit — **69 shown plus
+the 6 excluded ones**, because an excluded field still renders a row saying a
+value exists and is not shown. Identifiers are shared across entities where the
+meaning is shared, so the set is deduplicated.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.field.activity_level` | Activity level | Nivel de actividad | **PROPOSED** |
+| `sync.conflicts.field.affected_areas` | Body areas to treat carefully | Zonas del cuerpo a tratar con cuidado | **PROPOSED** |
+| `sync.conflicts.field.avg_calories` | Average calories | Calorías promedio | **PROPOSED** |
+| `sync.conflicts.field.avg_weight_kg` | Average weight | Peso promedio | **PROPOSED** |
+| `sync.conflicts.field.avoid_tag` | Ingredient to avoid | Ingrediente a evitar | **PROPOSED** |
+| `sync.conflicts.field.birth_date` | Date of birth | Fecha de nacimiento | **PROPOSED** |
+| `sync.conflicts.field.body_fat_pct` | Body fat | Grasa corporal | **PROPOSED** |
+| `sync.conflicts.field.calories_per_serving_snapshot` | Calories per serving | Calorías por porción | **PROPOSED** |
+| `sync.conflicts.field.carbs_per_serving_snapshot` | Carbs per serving | Carbohidratos por porción | **PROPOSED** |
+| `sync.conflicts.field.catalog_key` | Food | Alimento | **PROPOSED** |
+| `sync.conflicts.field.catalog_key_snapshot` | Food chosen | Alimento elegido | **PROPOSED** |
+| `sync.conflicts.field.catalog_version_snapshot` | Food list version | Versión de la lista de alimentos | **PROPOSED** |
+| `sync.conflicts.field.category` | Category | Categoría | **PROPOSED** |
+| `sync.conflicts.field.chest_cm` | Chest | Pecho | **PROPOSED** |
+| `sync.conflicts.field.completed` | Completed | Completada | **PROPOSED** |
+| `sync.conflicts.field.date` | Date | Fecha | **PROPOSED** |
+| `sync.conflicts.field.description` | Description | Descripción | **PROPOSED** |
+| `sync.conflicts.field.ended_at` | Ended | Finalizado | **PROPOSED** |
+| `sync.conflicts.field.equipment` | Equipment | Equipo | **PROPOSED** |
+| `sync.conflicts.field.evaluation_completed` | Professional evaluation completed | Evaluación profesional completada | **PROPOSED** |
+| `sync.conflicts.field.evaluation_date` | Date of the evaluation | Fecha de la evaluación | **PROPOSED** |
+| `sync.conflicts.field.exclusion_type` | Kind of exclusion | Tipo de exclusión | **PROPOSED** |
+| `sync.conflicts.field.fat_per_serving_snapshot` | Fat per serving | Grasas por porción | **PROPOSED** |
+| `sync.conflicts.field.fiber_per_serving_snapshot` | Fiber per serving | Fibra por porción | **PROPOSED** |
+| `sync.conflicts.field.finished_at` | Finished | Terminado | **PROPOSED** |
+| `sync.conflicts.field.fitness_level` | Fitness level | Nivel de acondicionamiento | **PROPOSED** |
+| `sync.conflicts.field.food_name_snapshot` | Food name | Nombre del alimento | **PROPOSED** |
+| `sync.conflicts.field.food_revision_snapshot` | Food version | Versión del alimento | **PROPOSED** |
+| `sync.conflicts.field.gender` | Gender | Género | **PROPOSED** |
+| `sync.conflicts.field.goal_type` | Goal type | Tipo de objetivo | **PROPOSED** |
+| `sync.conflicts.field.grams_per_serving_snapshot` | Grams per serving | Gramos por porción | **PROPOSED** |
+| `sync.conflicts.field.height_cm` | Height | Estatura | **PROPOSED** |
+| `sync.conflicts.field.hip_cm` | Hips | Cadera | **PROPOSED** |
+| `sync.conflicts.field.instructions` | Instructions | Instrucciones | **PROPOSED** |
+| `sync.conflicts.field.is_active` | Active | Activo | **PROPOSED** |
+| `sync.conflicts.field.is_deload_week` | Lighter week | Semana más ligera | **PROPOSED** |
+| `sync.conflicts.field.kind` | Kind | Tipo | **PROPOSED** |
+| `sync.conflicts.field.left_arm_cm` | Left arm | Brazo izquierdo | **PROPOSED** |
+| `sync.conflicts.field.movements_to_avoid` | Movements to avoid | Movimientos a evitar | **PROPOSED** |
+| `sync.conflicts.field.muscle_group` | Muscle group | Grupo muscular | **PROPOSED** |
+| `sync.conflicts.field.muscle_mass_kg` | Muscle mass | Masa muscular | **PROPOSED** |
+| `sync.conflicts.field.name` | Name | Nombre | **PROPOSED** |
+| `sync.conflicts.field.neck_cm` | Neck | Cuello | **PROPOSED** |
+| `sync.conflicts.field.note` | Note | Nota | **PROPOSED** |
+| `sync.conflicts.field.notes` | Notes | Notas | **PROPOSED** |
+| `sync.conflicts.field.occupation` | Occupation | Ocupación | **PROPOSED** |
+| `sync.conflicts.field.order_index` | Position in the routine | Posición en la rutina | **PROPOSED** |
+| `sync.conflicts.field.protein_per_serving_snapshot` | Protein per serving | Proteína por porción | **PROPOSED** |
+| `sync.conflicts.field.reps` | Reps | Repeticiones | **PROPOSED** |
+| `sync.conflicts.field.right_arm_cm` | Right arm | Brazo derecho | **PROPOSED** |
+| `sync.conflicts.field.rpe` | Effort | Esfuerzo | **PROPOSED** |
+| `sync.conflicts.field.rule_version` | Calculation version | Versión del cálculo | **PROPOSED** |
+| `sync.conflicts.field.serving_amount_snapshot` | Serving size | Tamaño de la porción | **PROPOSED** |
+| `sync.conflicts.field.serving_count` | Servings | Porciones | **PROPOSED** |
+| `sync.conflicts.field.serving_unit_snapshot` | Serving unit | Unidad de la porción | **PROPOSED** |
+| `sync.conflicts.field.session_duration_mins` | Session length | Duración de la sesión | **PROPOSED** |
+| `sync.conflicts.field.set_number` | Set number | Número de serie | **PROPOSED** |
+| `sync.conflicts.field.sleep_hours_baseline` | Usual sleep | Sueño habitual | **PROPOSED** |
+| `sync.conflicts.field.started_at` | Started | Iniciado | **PROPOSED** |
+| `sync.conflicts.field.stress_level_baseline` | Usual stress | Estrés habitual | **PROPOSED** |
+| `sync.conflicts.field.target_calories` | Calorie target | Meta de calorías | **PROPOSED** |
+| `sync.conflicts.field.target_carbs_g` | Carb target | Meta de carbohidratos | **PROPOSED** |
+| `sync.conflicts.field.target_date` | Target date | Fecha objetivo | **PROPOSED** |
+| `sync.conflicts.field.target_fat_g` | Fat target | Meta de grasas | **PROPOSED** |
+| `sync.conflicts.field.target_protein_g` | Protein target | Meta de proteína | **PROPOSED** |
+| `sync.conflicts.field.target_reps` | Target reps | Repeticiones objetivo | **PROPOSED** |
+| `sync.conflicts.field.target_sets` | Target sets | Series objetivo | **PROPOSED** |
+| `sync.conflicts.field.target_weight_kg` | Target weight | Peso objetivo | **PROPOSED** |
+| `sync.conflicts.field.total_volume_kg` | Total volume | Volumen total | **PROPOSED** |
+| `sync.conflicts.field.training_days_per_week` | Training days per week | Días de entrenamiento por semana | **PROPOSED** |
+| `sync.conflicts.field.waist_cm` | Waist | Cintura | **PROPOSED** |
+| `sync.conflicts.field.week_start` | Week of | Semana del | **PROPOSED** |
+| `sync.conflicts.field.weight_kg` | Weight | Peso | **PROPOSED** |
+| `sync.conflicts.field.workout_count` | Workouts | Entrenamientos | **PROPOSED** |
+| `sync.conflicts.field.years_training` | Years training | Años entrenando | **PROPOSED** |
+
+---
+
+## Family total and catalogue arithmetic
+
+| Group | Keys |
+|---|---|
+| Screen shell | 9 |
+| Sides | 2 |
+| Metadata labels | 6 |
+| Settlement condition | 5 |
+| Treatments | 14 |
+| Choices | 7 |
+| Deleted elsewhere | 2 |
+| Value conditions | 5 |
+| Not resolvable on this device | 8 |
+| Offline | 2 |
+| Dashboard entry | 2 |
+| Action needed | 2 |
+| Record labels | 13 |
+| Field labels | 75 |
+| **Total** | **152** |
+
+**152 EN and 152 ES**, exact key-set parity, all `PROPOSED`.
+
+The shipped catalogues currently hold **904 keys in EN and 904 in ES** (verified
+against `mobile/src/shared/localization/resources/`), with **no** existing
+`sync.conflicts.*` key, so the family collides with nothing. When **C-6** adds
+them the catalogues reach **1056/1056**.
+
+ADR-P030 §Decision 15 recorded the parity target as "788/788 + N". That figure
+was accurate when the ADR was written on 2026-09-07 and has since been
+overtaken by shipped work; the current baseline is **904/904 + 152**.
+
+## Decision 15 family coverage
+
+| ADR-P030 §Decision 15 family | Keys |
+|---|---|
+| screen title / empty / error | `screenTitle`, `intro`, `loading`, `emptyTitle`, `emptyBody`, `errorTitle`, `errorBody`, `retry`, `retryAccessibility` |
+| the two choice labels | `choice.keepThisDevice*`, `choice.keepAccount*`, `choice.noChangeYet` |
+| chosen-but-unsettled | `status.choiceRecorded`, `pendingTitle`, `pendingBody` |
+| settlement-failed-retry | `status.retrying`, `failedTitle`, `failedBody`, `failedRetry` |
+| already-settled | `status.settled`, `settledTitle`, `settledBody` |
+| stale-comparison / review-again | `staleTitle`, `staleBody`, `staleAction` |
+| deleted-elsewhere / keeping-yours-restores-it | `deletedElsewhereTitle`, `deletedElsewhereBody` |
+| restore-not-possible (account version only) | `status.blocked`, `restoreUnsupportedTitle`, `restoreUnsupportedBody` |
+| not-resolvable-on-this-device | `blocked.remoteTitle`, `blocked.remoteBody` |
+| offline notice | `offlineTitle`, `offlineBody` |
+| the withheld-field phrase | `value.hidden` (with `value.absent` for the different, truthful case) |
+| the unsupported-entity fallback | `blocked.unsupportedTitle`, `blocked.unsupportedBody`, `blocked.updateApp*`, `blocked.unreadable*` |
+| the action-needed distinction (A-8) | `actionNeededTitle`, `actionNeededBody` |
+
+Additionally covered because C-4 exposes them and C-6 would otherwise need
+hardcoded copy: the opposite-choice explanation (`alreadyResolved*`), the two
+side labels, the six metadata labels, the three comparison conditions, the 13
+record labels and the 75 field labels.
+
+## What this family deliberately does not word
+
+- **`SettlementOutcome` values `unauthenticated` and `session-changed`.** Both
+  are handled by the existing session surfaces — a signed-out or switched
+  account leaves this screen entirely — so wording them here would invent an
+  unreachable state.
+- **`ConflictFieldKind`.** `number`, `text`, `date`, `timestamp`, `boolean`,
+  `enum` and `tokens` are formatting hints for the surface, not copy.
+- **Enum *values*.** A goal type or activity level renders through whatever
+  vocabulary its own feature already ships; this family labels the field, not
+  its values.
+- **Any control, route, screen, layout, icon or navigation entry.** Those are
+  C-6's.
+- **Any accessibility outcome.** These are copy contracts only. VoiceOver,
+  TalkBack, browser-AT, large-text and physical-device verification remain
+  **UX-4C**, unrun. No live region and no announcement is prescribed
+  (ADR-P024; `.ai/20_PROGRESS_NONVISUAL.md` R-13).
+
+---
+
 # Deferred copy
 
 | Area | Why no copy appears here |
 |---|---|
 | Password recovery | **No longer deferred — shipped.** PR #102 merged as `724a18e7`: the `forgot-password` / `reset-password` endpoints (`auth.controller.ts:107`, `:133`), the `/forgot-password` and `/reset-password` routes, and the EN/ES copy are all on `main`, and Production validation on **2026-09-02** exercised a real delivery end to end. This row previously read "TARGET in PR #102, not on `main`"; that is corrected. The shipped recovery copy is not re-tabulated here — this deck's scope is state copy, and recovery's is owned by FEATURE-011 Vertical 1. |
 | Email verification | **All 23 keys above are now in the catalogues** in EN and ES (`mobile/src/shared/localization/resources/`), imported by **V2-D** and rendered by the `/verify-email` route and the dashboard reminder. The EN/ES *email* copy is a separate surface owned by V2-C and lives in `api/src/modules/mail/domain/email-verification.template.ts`, not in this deck. **Verification email is now sent** — this row previously read "No verification email is sent yet (V2-E)", which is corrected: **both V2-E halves passed 2026-09-04** and Production now attempts verification delivery for registrations (issuance stays best-effort; a mail failure is non-blocking, with resend available). Users therefore **do** reach the landing from a real link. **Deep-link completion remains a separate open V1 gate** — an emailed link still opens the Web portal, not the app. |
-| Conflict resolution actions/screens | **ADR-P030 (Accepted 2026-09-07)** now supplies the flow and repository decision BUG-012 was waiting on, and **names the key families** a resolution surface would need — screen title/empty/error, the two choice labels, chosen-but-unsettled, settlement-failed-retry, already-settled, **stale-comparison / review-again**, **not-resolvable-on-this-device**, offline notice, the withheld-field phrase, the unsupported-entity fallback, and the action-needed distinction. It deliberately **words none of them**: ADR-P030 assigns the wording to this deck, in slice **C-5** of its own sequence, which sits **after** the guard fix (BUG-014), per-user scoping, the transaction-aware write contract, the server resolve contract and the local resolution service. **No key is proposed here yet**, no status changes, and Conflict copy on the existing surfaces stays **reporting-only**. Chosen-but-unsettled will reuse the existing **Pending sync** tone rather than introducing a ninth state. **No owner decision in ADR-P030 remains open**, and the ADR is now **Accepted** — but acceptance authorizes the **architecture only**, and **slice C-5 is unauthorized**, so **no copy here is authorized yet**. |
+| Conflict resolution actions/screens | **No longer deferred — worded.** ADR-P030 slice **C-5** is authorized, and the **152-key** `sync.conflicts.*` family is specified above in EN and ES. Every key is `PROPOSED`: none exists in either catalogue and none is reachable. **C-6** adds them and builds the `/sync-conflicts` route and the dashboard button; **C-7** verifies the journeys. **BUG-012 remains Open** — wording a choice is not shipping one. Conflict copy on the existing surfaces stays reporting-only and is unchanged, and chosen-but-unsettled reuses the **Pending sync** tone rather than introducing a ninth state. |
 | Trend-chart and weekly structure | Specified in `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D), and implemented 2026-09-07. Its seven keys are worded above and are now **SHIPPED**; composition, accessibility structure and the no-nesting rule are not repeated here. |
 | Bottom tabs | Deferred by ADR-P027; the non-binding map is not a copy target. |
 | Dormant medical domain | Out of public V1 under ADR-P017. |
@@ -1065,7 +1467,7 @@ This deck proves only that copy exists or has been specified.
 - `.ai/06_MOBILE.md` — localization, error handling and applicable-state rule.
 - `.ai/08_UI_UX.md` — voice, bilingual layout, canonical states and component contracts.
 - `.ai/11_BACKLOG.md` — FEATURE-010, BUG-007 through BUG-012.
-- `.ai/12_DECISIONS.md` — ADR-P017, P019, P022–P027.
+- `.ai/12_DECISIONS.md` — ADR-P017, P019, P022–P027, **P030** (conflict resolution; C-5 owns §Conflict resolution).
 - `.ai/17_PRODUCT_FLOWS.md` — flow intent and UX-3 sequencing.
 - `.ai/18_SCREEN_STATE_MATRICES.md` — authoritative state applicability and triggers.
 
@@ -1079,7 +1481,10 @@ This deck proves only that copy exists or has been specified.
 2. Preserve the exact SHIPPED / PROPOSED distinction. A specified key does not
    exist until it is present on `origin/main` in both catalogues and wired by a
    reachable surface.
-3. Never convert Conflict reporting into a resolution flow. BUG-012 owns that
-   missing behaviour and requires a separate specification.
+3. Conflict **reporting** copy on the existing surfaces stays reporting-only.
+   The resolution wording lives in one place — §Conflict resolution, authorized
+   by ADR-P030 C-5 — and is entirely `PROPOSED`. Do not scatter resolution copy
+   into other families, and do not describe those keys as shipped or reachable
+   until C-6 has added them to both catalogues on `origin/main`.
 4. Add EN and ES keys in the same change and verify exact key-set parity.
 5. Do not claim an accessibility outcome before the UX-4C manual AT record.

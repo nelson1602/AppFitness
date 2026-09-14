@@ -10106,9 +10106,9 @@ behaviour.
 Status: **Accepted** (2026-09-07) — the **architecture** below is authorized.
 Acceptance does **not** authorize implementation slices automatically. **C-0
 (BUG-014), C-1 (per-user scoping) and C-2 (atomic conditional push) are
-implemented**; **C-3 (server resolve contract) and C-4 (local resolution
-service + outbox behaviour) are implemented, while C-5 … C-7 remain
-unauthorized** and each needs its own approval. **No owner decision
+implemented**; **C-3 (server resolve contract), C-4 (local resolution service
++ outbox behaviour) and C-5 (the EN/ES copy deck) are implemented, while C-6
+and C-7 remain unauthorized** and each needs its own approval. **No owner decision
 remains open.**
 Date: 2026-09-07 (revised seven times the same day after review — see
 §Revision note)
@@ -11459,8 +11459,8 @@ Fail **visible and closed**, never silent:
 
 Sequenced so no prerequisite can ship after the UI. **Acceptance of this ADR
 authorizes the architecture, not these slices.** **C-0**, **C-1**, **C-2** and
-**C-3** and **C-4** are implemented; **C-5 … C-7 remain unauthorized** and each
-requires its own approval before any code is written.
+**C-3**, **C-4** and **C-5** are implemented; **C-6 and C-7 remain
+unauthorized** and each requires its own approval before any code is written.
 
 ### Slice C-2 Implementation Record — Atomic Conditional Push
 
@@ -11612,7 +11612,7 @@ outbox against real SQLite built from real migrations 001-007),
 `conflict-presenter.spec.ts` (52 cases), `conflict-resolution.scope.spec.ts`
 (11 scope invariants, including that no presentation file reaches SQLite and
 that C-4 ships no route, screen or copy key), plus transport and dashboard
-coverage. **BUG-012 stays Open; C-5 is the next prerequisite.**
+coverage. **BUG-012 stays Open; C-6 is the next prerequisite.**
 
 **Correction (2026-09-14) — C-4's atomicity claim was not proven when written,
 and was in fact false. See BUG-015.** `inTransaction` accepted the task but
@@ -11636,6 +11636,50 @@ and asserts which one carried each statement, so the earlier blind spot cannot
 recur. C-4's behaviour is otherwise unchanged: no schema, migration,
 dependency, API, UI, copy or wire-contract change.
 
+### Slice C-5 Implementation Record — EN/ES Conflict Copy Deck
+
+**Implemented 2026-09-14.** §Decision 15 named thirteen copy families and
+deliberately worded none of them. They are now worded, in
+`.ai/19_COPY_DECKS.md` §Conflict resolution, as one coherent
+`sync.conflicts.*` family of **152 keys** — **152 EN and 152 ES**, exact
+key-set parity, every row `PROPOSED`.
+
+**Specification only.** No route, screen, component, control, catalogue entry,
+dependency, schema, migration or behaviour. A `PROPOSED` key does not exist:
+**C-6** adds these to both catalogues and builds the `/sync-conflicts` surface
+and the dashboard button, **C-7** verifies the journeys, and **BUG-012 stays
+Open** until a user can reach the flow.
+
+The family is written against the **C-4 review model**, not against an imagined
+screen: every `SettlementCondition`, `ConflictBlocker`, `PresenterRefusal`,
+`ConflictFieldValue.state` and `comparison` value has copy; so do the **13**
+registered entity types and all **75** allow-listed field identifiers — 69 shown
+plus the 6 excluded, because an excluded field still renders a row stating that
+a value exists and is not shown. The two medical types are absent: they are
+never registered and can never reach the surface (ADR-P017).
+
+**No interpolation.** The shipped catalogues contain zero `{{placeholder}}`
+tokens across 904 keys; the established idiom is compositional fragments a
+component prepends a value to (`sync-status-banner.tsx:34`). Every key here is
+a label or a complete sentence, so **no placeholder can carry an id, a version
+or any other sensitive value** — there are none.
+
+Voice: "this device" versus "your account" throughout, never client/server;
+consequences stated before either choice; "nothing changes until you choose"
+said plainly; the withheld-value phrase means *a value exists and is not shown*,
+never *empty*; the stale path asks for a fresh review; restore-not-possible is
+honest that the account version remains available; the catalog-revision
+"Action needed" case is kept explicitly apart from version conflicts (A-8 /
+BUG-007). Conflict stays `warning`; chosen-but-unsettled reuses the Pending-sync
+tone and introduces **no ninth state**. No ids, JSON, tokens, database terms,
+error codes or `[REDACTED]`; no medical, diagnostic, treatment, clearance or
+supplement claim.
+
+**No accessibility outcome is claimed.** The choice-button and dashboard-button
+names are copy contracts only; VoiceOver, TalkBack, browser-AT, large-text and
+physical-device verification remain **UX-4C**, unrun, and no live region or
+announcement is prescribed.
+
 | # | Slice | Depends on | API / schema |
 |---|---|---|---|
 | **C-0** | **BUG-014 guard fix** — `hasPendingOpFor` counts `'CONFLICT'`; regression proving a parked conflict survives a pull | — | none |
@@ -11643,7 +11687,7 @@ dependency, API, UI, copy or wire-contract change.
 | **C-2** | **Implemented 2026-09-11. Push transaction boundary + conditional write predicate + typed apply outcome** (§Decision 3): a **per-operation transaction** in `processOperation` with `tx` threaded through the idempotency probe, `getServerState`, `apply`, and the re-signatured `recordConflict`/`recordOutcome`; `apply` returning `ApplyOutcome`; the `STALE → recordConflict` branch; the new resolution method and owner-row reader; the **state-specific tombstone predicate**; and the owner + expected-version predicate on existing-row **`UPDATE`/`DELETE`** mutations in place of `where: { id }` (**`CREATE` stays an insert**). **This changes the shared `/sync/push` write path**, so it is *not* a behaviour-free refactor: a race that previously overwrote silently now reports a normal conflict, and a mutation now commits atomically with its terminal outcome. It closes A-15(b)'s TOCTOU **and** the mutation-without-recorded-op-id idempotency hole, and **owns the concurrency, atomicity and late-conflict tests for both** | C-1 | **15 handlers / 9 ports-adapters in the implemented inventory; 13 public resolution seams + 2 dormant medical tx-only conformances; `SyncService` per-op transaction across 5 call sites and 2 helpers; shared with `/sync/push`** |
 | **C-3** | **Implemented 2026-09-11 — server resolve contract** (§Decisions 3, 4, 9, 10, 11): both endpoints, DTOs, throttle, owner scoping, conditional claim, `Serializable` resolution transaction, per-operation semantics, stale outcome, best-effort audit, API e2e | C-2 | **2 endpoints** |
 | **C-4** | **Implemented 2026-09-14 — local resolution service + outbox behaviour** (§Decisions 2, 4, 6, 7, 10): **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts` behind the dashboard count, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under the existing backoff, and the fail-closed per-entity presenter allow-list over the 13 registered types. No UI, no copy, no schema | C-3 | none |
-| **C-5** | **Copy deck slice**: word the key families of §Decision 15 in EN/ES | C-4 | none |
+| **C-5** | **Implemented 2026-09-14 — copy deck slice**: the §Decision 15 families worded in EN/ES as the **152-key** `sync.conflicts.*` family in `.ai/19_COPY_DECKS.md` §Conflict resolution. Every key is `PROPOSED`; specification only, with no route, component, catalogue entry, dependency, schema or behaviour. **C-6** adds the keys to both catalogues and builds the surface | C-4 | none |
 | **C-6** | **`/sync-conflicts` route** + dashboard labelled button + Web-unavailable arm | C-5 | none |
 | **C-7** | **End-to-end verification**: two-device Maestro journeys, both choices, offline-choose-then-settle, restart mid-settlement, stale re-review | C-6 | none |
 
@@ -11700,7 +11744,11 @@ now undecided.
   withheld-field phrase, the unsupported-entity fallback, and the action-needed
   distinction of A-8 — and **words none of them**. BUG-012's constraint that
   UX-3C must not invent resolution copy is preserved.
-- **EN/ES parity is mandatory** at 788/788 + N.
+- **EN/ES parity is mandatory.** The target was recorded as "788/788 + N" when
+  this ADR was written on 2026-09-07; the catalogues have since grown, so the
+  **current** baseline is **904/904 + 152**, reaching **1056/1056** when C-6
+  adds the family. C-5 supplies **152 EN and 152 ES** keys with exact key-set
+  parity and no collision against the shipped catalogues.
 - **Accessibility requirements** (not outcomes): the choice controls and the
   dashboard button are real buttons with localized accessible names and 44×44
   targets; each conflict's local/server sides are distinguishable **in text**,
@@ -12020,8 +12068,8 @@ authorization**.
 
 What remains is **authorization to implement**, which is a gate, not a design
 question. Acceptance settles the architecture only. **C-0 (BUG-014), C-1,
-C-2, C-3 and C-4 are implemented**; **C-5 … C-7 are not authorized**, and each
-needs its own approval before implementation begins.
+C-2, C-3, C-4 and C-5 are implemented**; **C-6 and C-7 are not authorized**,
+and each needs its own approval before implementation begins.
 
 ### Supersedes / Preserves
 
