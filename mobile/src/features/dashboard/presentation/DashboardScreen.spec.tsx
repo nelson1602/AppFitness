@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet, type ViewStyle } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import type { DashboardData, DashboardState } from '../domain/dashboard.types';
@@ -680,6 +681,83 @@ describe('DashboardScreen', () => {
       await render(<DashboardScreen />);
 
       expect(screen.queryByText('Your plan is on hold')).not.toBeOnTheScreen();
+    });
+  });
+
+  describe('conflict review entry (ADR-P030 C-6)', () => {
+    function withConflicts(conflicts: number): DashboardState {
+      return {
+        status: 'ready',
+        data: { ...baseData, sync: { ...baseData.sync, conflicts } },
+        error: null,
+        refresh,
+        syncNow,
+        loadSampleData,
+      };
+    }
+
+    it('offers no entry while nothing needs a decision', async () => {
+      mockStoreState = withConflicts(0);
+
+      await render(<DashboardScreen />);
+
+      expect(screen.queryByTestId('dashboard-sync-conflicts')).not.toBeOnTheScreen();
+    });
+
+    it('shows an explicit labelled button once conflicts are outstanding', async () => {
+      mockStoreState = withConflicts(2);
+
+      await render(<DashboardScreen />);
+
+      expect(screen.getByTestId('dashboard-sync-conflicts')).toBeOnTheScreen();
+      expect(screen.getByText('Review changes')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Review changes that need your decision')).toBeOnTheScreen();
+    });
+
+    it('meets the 44x44 minimum target', async () => {
+      mockStoreState = withConflicts(1);
+
+      await render(<DashboardScreen />);
+
+      const flat = (StyleSheet.flatten(
+        screen.getByTestId('dashboard-sync-conflicts').props.style,
+      ) ?? {}) as ViewStyle;
+      expect(flat.minHeight).toBeGreaterThanOrEqual(44);
+      expect(flat.minWidth).toBeGreaterThanOrEqual(44);
+    });
+
+    it('pushes the review route, one level from the hub', async () => {
+      mockStoreState = withConflicts(1);
+
+      const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+
+      await render(<DashboardScreen />);
+      await fireEvent.press(screen.getByTestId('dashboard-sync-conflicts'));
+
+      expect(router.push).toHaveBeenCalledWith('/sync-conflicts');
+    });
+
+    it('leaves the sync banner itself report-only — it is not navigation', async () => {
+      mockStoreState = withConflicts(3);
+
+      await render(<DashboardScreen />);
+
+      const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+
+      // The banner reports; the button navigates. Pressing the banner's own
+      // text must reach no router at all (ADR-P030 §Decision 1).
+      await fireEvent.press(screen.getByText('Conflicts pending'));
+
+      expect(router.push).not.toHaveBeenCalled();
+    });
+
+    it('labels the entry in Spanish too', async () => {
+      mockLanguage = 'es';
+      mockStoreState = withConflicts(1);
+
+      await render(<DashboardScreen />);
+
+      expect(screen.getByText('Revisar cambios')).toBeOnTheScreen();
     });
   });
 });

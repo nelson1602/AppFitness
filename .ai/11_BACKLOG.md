@@ -3385,13 +3385,25 @@ seven times the same day after review, and **Accepted 2026-09-07**. The
 architecture is authorized. **C-0 (BUG-014), C-1 (per-user scoping), C-2
 (atomic conditional push), C-3 (server resolve contract), C-4 (local
 resolution service + outbox behaviour, including the fail-closed presenter
-allow-list) and C-5 (the 152-key EN/ES `sync.conflicts.*` copy deck) are
-implemented**; **C-6 and C-7 remain unauthorized**. **No owner decision remains
-open.** The bug stays **Open** because no user-reachable resolution path exists
-yet: C-4 shipped no route or screen, and C-5's keys are all `PROPOSED` — worded
-in `.ai/19_COPY_DECKS.md` but present in neither catalogue and reachable from
-nothing. **C-6** adds them and builds the `/sync-conflicts` route and the
-dashboard button. Still blocked on the remaining per-slice authorizations
+allow-list), C-5 (the 152-key EN/ES `sync.conflicts.*` copy deck) and C-6 (the
+`/sync-conflicts` route, the dashboard entry button and the catalogue import)
+are implemented**; **C-7 remains unauthorized**. **No owner decision remains
+open.** A user-reachable resolution path now exists: the dashboard shows an
+explicit labelled button whenever unsettled conflicts remain, the route reviews
+each one inline over the C-4 service and fail-closed presenter, and all 152
+C-5 keys that survived review are in both catalogues, with the seven C-6
+authored to close C-5's own gaps — 157 in the family, 1061/1061 overall.
+
+**C-5 history, corrected.** C-5 omitted the Web-unavailable arm ADR-P030
+§Decision 1 mandates for this route, and over-assigned the A-8 catalog-revision
+park to the conflict family: that park is a sync-queue condition with no two
+versions to choose between, C-4 does not expose it, and the Food Log already
+owns its actionable treatment. C-6 added the missing arm, withdrew the two
+action-needed keys, separated write-failure copy from read-failure copy, and
+gave the family its own value words. None of that is recorded as a C-5 success. The bug stays **Open** because nothing has yet verified
+the journey end to end — **C-7** owns the two-device Maestro runs, both choices,
+offline-choose-then-settle, restart mid-settlement and stale re-review. Still
+blocked on that remaining per-slice authorization
 Priority: **P1** (raised from P2 — see §Re-audit)
 Type: Bug
 Owner: Unassigned
@@ -3864,8 +3876,9 @@ together; and a representative multi-step repository transaction commits or
 rolls back as one).
 
 **Scope:** no schema, migration, dependency, API, UI, copy or wire-contract
-change, and medical stays dormant. **BUG-012 remains Open and ADR-P030 C-5
-through C-7 remain unimplemented.**
+change, and medical stays dormant. **BUG-012 remained Open at the time of this
+fix, with ADR-P030 C-5 through C-7 unimplemented** (C-5 and C-6 have since
+shipped; C-7 remains).
 
 ## [BUG-014] A Parked Conflict Loses Pull Protection, So the Local Version Can Be Silently Overwritten
 

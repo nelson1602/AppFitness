@@ -36,6 +36,8 @@ export {
   type ConflictResolutionDeps,
   type LocalConflictView,
   type ReconcileReport,
+  type SettlementEvent,
+  type SettlementEventOutcome,
   type SettlementOutcome,
   type SettlementReport,
 } from './conflict-resolution';

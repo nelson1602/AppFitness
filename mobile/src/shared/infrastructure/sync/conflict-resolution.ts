@@ -90,6 +90,13 @@ export interface LocalConflictView {
   lastFailureCode: string | null;
   /** A resolution the server refused for this conflict (T1′). */
   blockedResolution: OfferedResolution | null;
+  /**
+   * True when the account side under comparison is a deletion. §Decision 3
+   * requires the user be told plainly that the record was deleted elsewhere
+   * and that keeping their version **restores** it, so the fact has to reach
+   * the surface; the payload it is read from never does.
+   */
+  serverDeleted: boolean;
   /** Null when resolvable here; otherwise why not. */
   notResolvableReason: ConflictBlocker | null;
   /** Empty whenever `notResolvableReason` is set, or once a choice stands. */
@@ -116,6 +123,43 @@ export interface ConflictResolutionDeps {
 
 export type SettlementOutcome = 'success' | 'unauthenticated' | 'offline' | 'session-changed';
 
+/**
+ * What one pass did to one conflict.
+ *
+ * The counters below say *how many*; they cannot say *which*, and two of the
+ * outcomes are indistinguishable afterwards from the stored row alone — a
+ * committed settlement leaves the unsettled set entirely, and a decision taken
+ * on another device is applied as an ordinary settlement. A surface that has to
+ * tell the user what became of the conflict **they** just acted on therefore
+ * needs the per-conflict fact, and this is the whole of it.
+ *
+ * Deliberately narrow: the conflict handle, the classification, and the
+ * resolution that ended up standing. **No payload, no entity id, no owner, no
+ * server prose and no error text** — the handle itself is an opaque key a
+ * surface matches against, never something it renders.
+ */
+export type SettlementEventOutcome =
+  /** T3 committed the choice this device recorded. */
+  | 'SETTLED'
+  /** First-choice-wins: another device decided first, and this one converged. */
+  | 'ALREADY_DECIDED_ELSEWHERE'
+  /** `STALE_COMPARISON`: comparison refreshed, re-review required. */
+  | 'STALE'
+  /** `RESTORE_UNSUPPORTED`: the refused resolution is now blocked. */
+  | 'BLOCKED'
+  /** Transport/5xx; the choice stands and becomes due again. */
+  | 'FAILED'
+  /** Not claimable, or holding no deliverable operation. */
+  | 'SKIPPED';
+
+export interface SettlementEvent {
+  /** Opaque handle. Matched against, never rendered. */
+  readonly conflictId: string;
+  readonly outcome: SettlementEventOutcome;
+  /** The resolution that stands, when this pass established one. */
+  readonly standingResolution: OfferedResolution | null;
+}
+
 export interface SettlementReport {
   outcome: SettlementOutcome;
   /** T3 committed. */
@@ -128,6 +172,8 @@ export interface SettlementReport {
   blocked: number;
   /** Not claimable, or holding no deliverable operation. */
   skipped: number;
+  /** One entry per conflict this pass touched, in the order it touched them. */
+  events: SettlementEvent[];
 }
 
 export interface ReconcileReport {
@@ -241,6 +287,7 @@ function toView(
   row: SyncConflictRow,
   reason: ConflictBlocker | null,
   review: ConflictReview,
+  serverDeleted: boolean,
 ): LocalConflictView {
   const decided = row.chosen_resolution !== null;
   // A conflict the presenter refuses offers no choice either: an entity whose
@@ -267,6 +314,7 @@ function toView(
     nextAttemptAt: row.next_attempt_at,
     lastFailureCode: row.last_failure_code,
     blockedResolution: row.blocked_resolution,
+    serverDeleted,
     notResolvableReason: reason,
     availableResolutions: offered,
     review,
@@ -294,7 +342,10 @@ export async function listConflictsForReview(userId: string): Promise<LocalConfl
           entityKind: row.entity_type,
           reason: 'MALFORMED_PAYLOAD',
         } as const);
-    views.push(toView(row, reason, review));
+    // Read from the decrypted snapshot, so a sensitive entity reports its
+    // tombstone honestly rather than as `false` from an unread envelope.
+    // A payload that could not be resolved claims nothing.
+    views.push(toView(row, reason, review, payloads ? isDeletedSnapshot(payloads.server) : false));
   }
   return views;
 }
@@ -348,6 +399,7 @@ export async function settlePendingResolutions(
     staleRefreshed: 0,
     blocked: 0,
     skipped: 0,
+    events: [],
   };
   if (!deps.getToken()) return { ...report, outcome: 'unauthenticated' };
 
@@ -376,17 +428,31 @@ async function settleOne(
 ): Promise<SettlementOutcome> {
   const choice = row.chosen_resolution;
 
+  /**
+   * Records what this pass did to this conflict, alongside the counter it
+   * already increments. The counters are unchanged: every existing increment
+   * below still happens, in the same branch, for the same reason.
+   */
+  const note = (
+    outcome: SettlementEventOutcome,
+    standingResolution: OfferedResolution | null = null,
+  ): void => {
+    report.events.push({ conflictId: row.id, outcome, standingResolution });
+  };
+
   const request = await buildRequest(deps.userId, row, choice);
   if (!deps.isCurrent()) return 'session-changed';
   if (!request) {
     // The retained operation is gone, so `CLIENT_WINS` is not deliverable.
     // Nothing is invented on the user's behalf; the row stays counted.
     report.skipped += 1;
+    note('SKIPPED');
     return 'success';
   }
 
   if (!(await claimSettlementAttempt(deps.userId, row.id))) {
     report.skipped += 1;
+    note('SKIPPED');
     return 'success';
   }
   if (!deps.isCurrent()) return 'session-changed';
@@ -398,6 +464,8 @@ async function settleOne(
     if (!deps.isCurrent()) return 'session-changed';
     await markSettlementFailed(deps.userId, row.id, describeFailure(error), now());
     report.failed += 1;
+    // The stable diagnostic code stays in the outbox; the event carries none.
+    note('FAILED', choice);
     return error instanceof SyncHttpError && error.status === 401 ? 'unauthenticated' : 'offline';
   }
   if (!deps.isCurrent()) return 'session-changed';
@@ -408,6 +476,7 @@ async function settleOne(
       // The server settled this choice; the returned row is the applied result.
       const settled = await applySettlement(deps.userId, row, choice, answer.current, now());
       report[settled ? 'settled' : 'skipped'] += 1;
+      note(settled ? 'SETTLED' : 'SKIPPED', settled ? choice : null);
       return 'success';
     }
     case 'ALREADY_RESOLVED_OPPOSITE_CHOICE': {
@@ -416,6 +485,9 @@ async function settleOne(
       const standing = answer.resolution ? toLocalStatus(answer.resolution) : choice;
       const settled = await applySettlement(deps.userId, row, standing, answer.current, now());
       report[settled ? 'settled' : 'skipped'] += 1;
+      // Distinguished from an ordinary settlement: the stored row afterwards
+      // cannot say that a different device's decision is the one that stands.
+      note(settled ? 'ALREADY_DECIDED_ELSEWHERE' : 'SKIPPED', settled ? standing : null);
       return 'success';
     }
     case 'STALE_COMPARISON': {
@@ -428,11 +500,13 @@ async function settleOne(
         answer.current.version,
       );
       report.staleRefreshed += 1;
+      note('STALE');
       return 'success';
     }
     case 'RESTORE_UNSUPPORTED': {
       await blockResolutionAndRearm(deps.userId, row.id, choice, answer.outcome);
       report.blocked += 1;
+      note('BLOCKED');
       return 'success';
     }
   }

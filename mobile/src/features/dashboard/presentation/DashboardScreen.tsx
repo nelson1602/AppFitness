@@ -95,6 +95,21 @@ export function DashboardScreen() {
       {data ? (
         <>
           <SyncStatusBanner sync={data.sync} />
+          {/* Conflict review entry (ADR-P030 §Decision 1). An explicit,
+              labelled button with its own accessible name and a 44×44 target —
+              the banner above stays report-only and is deliberately NOT
+              tappable. Shown only while unsettled conflicts exist, so it is
+              also the one primary action the dashboard ever offers. */}
+          {data.sync.conflicts > 0 ? (
+            <AppButton
+              accessibilityLabel={t('sync.conflicts.dashboardButtonAccessibility')}
+              onPress={() => router.push('/sync-conflicts')}
+              testID="dashboard-sync-conflicts"
+              variant="primary"
+            >
+              {t('sync.conflicts.dashboardButton')}
+            </AppButton>
+          ) : null}
           <AppButton
             accessibilityLabel={t('dashboard.syncAccessibility')}
             loading={data.sync.status === 'syncing'}
