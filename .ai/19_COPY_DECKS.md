@@ -1,6 +1,6 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.14
+Version: 1.16
 Status: Active
 Last Updated: 2026-09-14
 
@@ -19,12 +19,13 @@ It covers, in order:
 2. the four live product areas — Dashboard, Workout Log, Nutrition and Progress;
 3. the advisory first-run checklist approved by ADR-P027;
 4. the direct Food Log dashboard shortcut approved by ADR-P027; and
-5. the conflict-resolution family authorized by ADR-P030 slice **C-5**.
+5. the conflict-resolution family worded by ADR-P030 slice **C-5** and shipped
+   by slice **C-6**.
 
-This is a **documentation-only specification**. It changes no runtime,
-localization catalogue, route, state machine, accessibility behaviour or
-deployment. A `PROPOSED` row authorizes copy for a later owning slice; it does
-not make the key or behaviour exist.
+This document is a **specification**, not an implementation. A `PROPOSED` row
+authorizes copy for a later owning slice and does not make the key or behaviour
+exist; a `SHIPPED` row records copy that its owning slice has since added to
+both catalogues and wired through `t()`. Editing this deck changes no runtime.
 
 ---
 
@@ -34,13 +35,13 @@ not make the key or behaviour exist.
   Data-gap, Error, Offline, Pending sync, Conflict and Web unavailable.
 - **Not implementation.** No key listed as `PROPOSED` exists until its owning
   runtime slice adds it to both catalogues and wires it through `t()`.
-- **Not a conflict-resolution surface.** Slice **C-5 is now authorized and its
-  152 keys are worded** under §Conflict resolution — but they are all
-  `PROPOSED`, and wording a control is not building one. This deck still defines
-  no route, screen, component or behaviour: **C-6** owns the `/sync-conflicts`
-  surface and the dashboard button, **C-7** owns the end-to-end journeys, and
-  **BUG-012 stays Open** until a user can actually reach the flow. Conflict copy
-  on the *existing* surfaces remains reporting-only and is unchanged.
+- **Not the conflict-resolution surface itself.** Slice **C-6 has shipped** the
+  `/sync-conflicts` route, the dashboard button and the 152 keys worded by C-5,
+  which are therefore `SHIPPED` under §Conflict resolution. This deck still
+  defines no route, screen, component or behaviour — it records the wording those
+  surfaces render. **C-7** owns the end-to-end journeys and **BUG-012 stays Open**
+  until they verify the flow. Conflict copy on the *existing* seven report-only
+  surfaces is unchanged.
 - **Not the UX-3D specification.** `.ai/20_PROGRESS_NONVISUAL.md` owns the
   non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` — its
   structure, accessibility semantics, ordering and test contract, including the
@@ -1034,16 +1035,16 @@ would erase the fact that it completed.
 
 # Conflict resolution — ADR-P030 slice C-5
 
-**Specification only.** Every key below is `PROPOSED`: none exists in either
-catalogue, none is reachable, and adding them is **C-6's** work. This section
-words the families ADR-P030 §Decision 15 named and deliberately left unworded.
-It defines **no** route, component, control, state machine or behaviour.
+**Wording, owned here; behaviour, owned by the slices.** Every key below is
+`SHIPPED`: **C-6** added all 152 to both catalogues and renders them from the
+`/sync-conflicts` surface and the dashboard entry button. This section words the
+families ADR-P030 §Decision 15 named and deliberately left unworded. It still
+defines **no** route, component, control, state machine or behaviour.
 
-**Authorization.** ADR-P030 is Accepted, C-0 … C-4 are implemented, and **C-5 is
-authorized** — this section replaces the earlier "no copy here is authorized
-yet" position for the wording only. C-6 (`/sync-conflicts` route and dashboard
-button) and C-7 (end-to-end journeys) remain unimplemented, and **BUG-012 stays
-Open**: no user-reachable resolution path exists until C-6 ships.
+**Authorization.** ADR-P030 is Accepted and C-0 … C-6 are implemented: the
+wording below is authorized by C-5 and rendered by C-6's `/sync-conflicts` route
+and dashboard button. **C-7** (end-to-end journeys) remains unimplemented, and
+**BUG-012 stays Open** until those journeys verify the flow.
 
 ## What the copy is written against
 
@@ -1099,15 +1100,15 @@ carry.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.screenTitle` | Changes to review | Cambios por revisar | **PROPOSED** |
-| `sync.conflicts.intro` | The same record changed here and in your account. Choose the version you want to keep — nothing changes until you do. | El mismo registro cambió aquí y en tu cuenta. Elige la versión que quieres conservar: nada cambia hasta que lo hagas. | **PROPOSED** |
-| `sync.conflicts.loading` | Loading your changes… | Cargando tus cambios… | **PROPOSED** |
-| `sync.conflicts.emptyTitle` | Nothing to review | Nada por revisar | **PROPOSED** |
-| `sync.conflicts.emptyBody` | Your records match on this device and in your account. Anything that needs a decision will show up here. | Tus registros coinciden en este dispositivo y en tu cuenta. Lo que necesite una decisión aparecerá aquí. | **PROPOSED** |
-| `sync.conflicts.errorTitle` | We couldn't load your changes | No pudimos cargar tus cambios | **PROPOSED** |
-| `sync.conflicts.errorBody` | Something went wrong while opening this list. Nothing was changed, and everything is still saved. | Algo salió mal al abrir esta lista. No se cambió nada y todo sigue guardado. | **PROPOSED** |
-| `sync.conflicts.retry` | Try again | Reintentar | **PROPOSED** |
-| `sync.conflicts.retryAccessibility` | Try loading your changes again | Volver a cargar tus cambios | **PROPOSED** |
+| `sync.conflicts.screenTitle` | Changes to review | Cambios por revisar | **SHIPPED** |
+| `sync.conflicts.intro` | The same record changed here and in your account. Choose the version you want to keep — nothing changes until you do. | El mismo registro cambió aquí y en tu cuenta. Elige la versión que quieres conservar: nada cambia hasta que lo hagas. | **SHIPPED** |
+| `sync.conflicts.loading` | Loading your changes… | Cargando tus cambios… | **SHIPPED** |
+| `sync.conflicts.emptyTitle` | Nothing to review | Nada por revisar | **SHIPPED** |
+| `sync.conflicts.emptyBody` | Your records match on this device and in your account. Anything that needs a decision will show up here. | Tus registros coinciden en este dispositivo y en tu cuenta. Lo que necesite una decisión aparecerá aquí. | **SHIPPED** |
+| `sync.conflicts.errorTitle` | We couldn't load your changes | No pudimos cargar tus cambios | **SHIPPED** |
+| `sync.conflicts.errorBody` | Something went wrong while opening this list. Nothing was changed, and everything is still saved. | Algo salió mal al abrir esta lista. No se cambió nada y todo sigue guardado. | **SHIPPED** |
+| `sync.conflicts.retry` | Try again | Reintentar | **SHIPPED** |
+| `sync.conflicts.retryAccessibility` | Try loading your changes again | Volver a cargar tus cambios | **SHIPPED** |
 
 ## Sides — 2 keys
 
@@ -1115,8 +1116,8 @@ Both sides must read differently **as text**, at any text size, with no colour.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.side.thisDevice` | On this device | En este dispositivo | **PROPOSED** |
-| `sync.conflicts.side.account` | Saved in your account | Guardado en tu cuenta | **PROPOSED** |
+| `sync.conflicts.side.thisDevice` | On this device | En este dispositivo | **SHIPPED** |
+| `sync.conflicts.side.account` | Saved in your account | Guardado en tu cuenta | **SHIPPED** |
 
 ## Metadata labels — 6 keys
 
@@ -1125,12 +1126,12 @@ carries.
 
 | Key | EN | ES | Model source | Status |
 |---|---|---|---|---|
-| `sync.conflicts.meta.record` | Record | Registro | `entityKind` | **PROPOSED** |
-| `sync.conflicts.meta.entryDate` | Entry date | Fecha del registro | `comparisonDate` | **PROPOSED** |
-| `sync.conflicts.meta.startingVersion` | You started from version | Partiste de la versión | `baseVersion` | **PROPOSED** |
-| `sync.conflicts.meta.accountVersion` | Your account is on version | Tu cuenta va en la versión | `currentServerVersion` | **PROPOSED** |
-| `sync.conflicts.meta.noticed` | Noticed | Detectado | `detectedAt` | **PROPOSED** |
-| `sync.conflicts.meta.status` | Status | Estado | `settlement` | **PROPOSED** |
+| `sync.conflicts.meta.record` | Record | Registro | `entityKind` | **SHIPPED** |
+| `sync.conflicts.meta.entryDate` | Entry date | Fecha del registro | `comparisonDate` | **SHIPPED** |
+| `sync.conflicts.meta.startingVersion` | You started from version | Partiste de la versión | `baseVersion` | **SHIPPED** |
+| `sync.conflicts.meta.accountVersion` | Your account is on version | Tu cuenta va en la versión | `currentServerVersion` | **SHIPPED** |
+| `sync.conflicts.meta.noticed` | Noticed | Detectado | `detectedAt` | **SHIPPED** |
+| `sync.conflicts.meta.status` | Status | Estado | `settlement` | **SHIPPED** |
 
 ## Settlement condition — 5 keys
 
@@ -1139,30 +1140,30 @@ Short chips, one per `SettlementCondition`. Longer explanations live in
 
 | Key | EN | ES | Condition | Status |
 |---|---|---|---|---|
-| `sync.conflicts.status.undecided` | Waiting for you | Esperando tu decisión | `UNDECIDED` | **PROPOSED** |
-| `sync.conflicts.status.choiceRecorded` | Saving your choice | Guardando tu elección | `CHOICE_RECORDED` | **PROPOSED** |
-| `sync.conflicts.status.retrying` | We'll try again | Lo intentaremos de nuevo | `RETRYING` | **PROPOSED** |
-| `sync.conflicts.status.blocked` | Needs another option | Necesita otra opción | `BLOCKED` | **PROPOSED** |
-| `sync.conflicts.status.settled` | Done | Listo | `SETTLED` | **PROPOSED** |
+| `sync.conflicts.status.undecided` | Waiting for you | Esperando tu decisión | `UNDECIDED` | **SHIPPED** |
+| `sync.conflicts.status.choiceRecorded` | Saving your choice | Guardando tu elección | `CHOICE_RECORDED` | **SHIPPED** |
+| `sync.conflicts.status.retrying` | We'll try again | Lo intentaremos de nuevo | `RETRYING` | **SHIPPED** |
+| `sync.conflicts.status.blocked` | Needs another option | Necesita otra opción | `BLOCKED` | **SHIPPED** |
+| `sync.conflicts.status.settled` | Done | Listo | `SETTLED` | **SHIPPED** |
 
 ## Treatments — 14 keys
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.pendingTitle` | Your choice is saved | Tu elección está guardada | **PROPOSED** |
-| `sync.conflicts.pendingBody` | We'll finish this the next time you're connected. You don't need to do anything else. | Terminaremos la próxima vez que tengas conexión. No necesitas hacer nada más. | **PROPOSED** |
-| `sync.conflicts.failedTitle` | We'll try again shortly | Lo intentaremos de nuevo en breve | **PROPOSED** |
-| `sync.conflicts.failedBody` | Your choice is safe and still counts. We just couldn't reach your account this time. | Tu elección está a salvo y sigue vigente. Solo que esta vez no pudimos conectar con tu cuenta. | **PROPOSED** |
-| `sync.conflicts.failedRetry` | Try now | Intentar ahora | **PROPOSED** |
-| `sync.conflicts.settledTitle` | All set | Todo listo | **PROPOSED** |
-| `sync.conflicts.settledBody` | This record now matches on this device and in your account. | Este registro ya coincide en este dispositivo y en tu cuenta. | **PROPOSED** |
-| `sync.conflicts.staleTitle` | This changed again | Esto volvió a cambiar | **PROPOSED** |
-| `sync.conflicts.staleBody` | Your account has newer information than what you reviewed, so we didn't apply your choice. Have a look at the new version and choose again. | Tu cuenta tiene información más reciente que la que revisaste, así que no aplicamos tu elección. Mira la nueva versión y elige de nuevo. | **PROPOSED** |
-| `sync.conflicts.staleAction` | Review again | Revisar de nuevo | **PROPOSED** |
-| `sync.conflicts.restoreUnsupportedTitle` | We can't bring this one back | No podemos recuperar este registro | **PROPOSED** |
-| `sync.conflicts.restoreUnsupportedBody` | This record was deleted in your account, and keeping your version isn't possible for this kind of record. You can still keep the version saved in your account. | Este registro se eliminó en tu cuenta y conservar tu versión no es posible para este tipo de registro. Aún puedes conservar la versión guardada en tu cuenta. | **PROPOSED** |
-| `sync.conflicts.alreadyResolvedTitle` | Already decided | Ya se decidió | **PROPOSED** |
-| `sync.conflicts.alreadyResolvedBody` | This one was decided somewhere else first, so that choice is the one that stands. We've matched this device to it. | Este caso se decidió antes en otro lugar, así que esa elección es la que queda. Ya ajustamos este dispositivo para que coincida. | **PROPOSED** |
+| `sync.conflicts.pendingTitle` | Your choice is saved | Tu elección está guardada | **SHIPPED** |
+| `sync.conflicts.pendingBody` | We'll finish this the next time you're connected. You don't need to do anything else. | Terminaremos la próxima vez que tengas conexión. No necesitas hacer nada más. | **SHIPPED** |
+| `sync.conflicts.failedTitle` | We'll try again shortly | Lo intentaremos de nuevo en breve | **SHIPPED** |
+| `sync.conflicts.failedBody` | Your choice is safe and still counts. We just couldn't reach your account this time. | Tu elección está a salvo y sigue vigente. Solo que esta vez no pudimos conectar con tu cuenta. | **SHIPPED** |
+| `sync.conflicts.failedRetry` | Try now | Intentar ahora | **SHIPPED** |
+| `sync.conflicts.settledTitle` | All set | Todo listo | **SHIPPED** |
+| `sync.conflicts.settledBody` | This record now matches on this device and in your account. | Este registro ya coincide en este dispositivo y en tu cuenta. | **SHIPPED** |
+| `sync.conflicts.staleTitle` | This changed again | Esto volvió a cambiar | **SHIPPED** |
+| `sync.conflicts.staleBody` | Your account has newer information than what you reviewed, so we didn't apply your choice. Have a look at the new version and choose again. | Tu cuenta tiene información más reciente que la que revisaste, así que no aplicamos tu elección. Mira la nueva versión y elige de nuevo. | **SHIPPED** |
+| `sync.conflicts.staleAction` | Review again | Revisar de nuevo | **SHIPPED** |
+| `sync.conflicts.restoreUnsupportedTitle` | We can't bring this one back | No podemos recuperar este registro | **SHIPPED** |
+| `sync.conflicts.restoreUnsupportedBody` | This record was deleted in your account, and keeping your version isn't possible for this kind of record. You can still keep the version saved in your account. | Este registro se eliminó en tu cuenta y conservar tu versión no es posible para este tipo de registro. Aún puedes conservar la versión guardada en tu cuenta. | **SHIPPED** |
+| `sync.conflicts.alreadyResolvedTitle` | Already decided | Ya se decidió | **SHIPPED** |
+| `sync.conflicts.alreadyResolvedBody` | This one was decided somewhere else first, so that choice is the one that stands. We've matched this device to it. | Este caso se decidió antes en otro lugar, así que esa elección es la que queda. Ya ajustamos este dispositivo para que coincida. | **SHIPPED** |
 
 ## Choices — 7 keys
 
@@ -1171,13 +1172,13 @@ no surrounding layout.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.choice.keepThisDevice` | Keep this device's version | Conservar la versión de este dispositivo | **PROPOSED** |
-| `sync.conflicts.choice.keepThisDeviceDescription` | Your account will be updated to match what you see under "On this device". | Tu cuenta se actualizará para coincidir con lo que ves en «En este dispositivo». | **PROPOSED** |
-| `sync.conflicts.choice.keepThisDeviceAccessibility` | Keep the version on this device | Conservar la versión de este dispositivo | **PROPOSED** |
-| `sync.conflicts.choice.keepAccount` | Keep my account's version | Conservar la versión de mi cuenta | **PROPOSED** |
-| `sync.conflicts.choice.keepAccountDescription` | This device will be updated to match what you see under "Saved in your account". | Este dispositivo se actualizará para coincidir con lo que ves en «Guardado en tu cuenta». | **PROPOSED** |
-| `sync.conflicts.choice.keepAccountAccessibility` | Keep the version saved in your account | Conservar la versión guardada en tu cuenta | **PROPOSED** |
-| `sync.conflicts.choice.noChangeYet` | Nothing changes until you choose. | Nada cambia hasta que elijas. | **PROPOSED** |
+| `sync.conflicts.choice.keepThisDevice` | Keep this device's version | Conservar la versión de este dispositivo | **SHIPPED** |
+| `sync.conflicts.choice.keepThisDeviceDescription` | Your account will be updated to match what you see under "On this device". | Tu cuenta se actualizará para coincidir con lo que ves en «En este dispositivo». | **SHIPPED** |
+| `sync.conflicts.choice.keepThisDeviceAccessibility` | Keep the version on this device | Conservar la versión de este dispositivo | **SHIPPED** |
+| `sync.conflicts.choice.keepAccount` | Keep my account's version | Conservar la versión de mi cuenta | **SHIPPED** |
+| `sync.conflicts.choice.keepAccountDescription` | This device will be updated to match what you see under "Saved in your account". | Este dispositivo se actualizará para coincidir con lo que ves en «Guardado en tu cuenta». | **SHIPPED** |
+| `sync.conflicts.choice.keepAccountAccessibility` | Keep the version saved in your account | Conservar la versión guardada en tu cuenta | **SHIPPED** |
+| `sync.conflicts.choice.noChangeYet` | Nothing changes until you choose. | Nada cambia hasta que elijas. | **SHIPPED** |
 
 ## Deleted elsewhere — 2 keys
 
@@ -1186,8 +1187,8 @@ version would restore the record.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.deletedElsewhereTitle` | Deleted in your account | Eliminado en tu cuenta | **PROPOSED** |
-| `sync.conflicts.deletedElsewhereBody` | This record was removed somewhere else. Keeping this device's version brings it back. | Este registro se eliminó en otro lugar. Conservar la versión de este dispositivo lo restaura. | **PROPOSED** |
+| `sync.conflicts.deletedElsewhereTitle` | Deleted in your account | Eliminado en tu cuenta | **SHIPPED** |
+| `sync.conflicts.deletedElsewhereBody` | This record was removed somewhere else. Keeping this device's version brings it back. | Este registro se eliminó en otro lugar. Conservar la versión de este dispositivo lo restaura. | **SHIPPED** |
 
 ## Value conditions — 5 keys
 
@@ -1197,11 +1198,11 @@ value for the field at all.
 
 | Key | EN | ES | Model source | Status |
 |---|---|---|---|---|
-| `sync.conflicts.value.hidden` | Saved, not shown here | Guardado, no se muestra aquí | `state: 'hidden'` | **PROPOSED** |
-| `sync.conflicts.value.absent` | Not part of this change | No forma parte de este cambio | `state: 'absent'` | **PROPOSED** |
-| `sync.conflicts.compare.same` | Same on both | Igual en ambos | `comparison: 'same'` | **PROPOSED** |
-| `sync.conflicts.compare.different` | Different | Diferente | `comparison: 'different'` | **PROPOSED** |
-| `sync.conflicts.compare.unknown` | Can't be compared | No se puede comparar | `comparison: 'unknown'` | **PROPOSED** |
+| `sync.conflicts.value.hidden` | Saved, not shown here | Guardado, no se muestra aquí | `state: 'hidden'` | **SHIPPED** |
+| `sync.conflicts.value.absent` | Not part of this change | No forma parte de este cambio | `state: 'absent'` | **SHIPPED** |
+| `sync.conflicts.compare.same` | Same on both | Igual en ambos | `comparison: 'same'` | **SHIPPED** |
+| `sync.conflicts.compare.different` | Different | Diferente | `comparison: 'different'` | **SHIPPED** |
+| `sync.conflicts.compare.unknown` | Can't be compared | No se puede comparar | `comparison: 'unknown'` | **SHIPPED** |
 
 ## Not resolvable on this device — 8 keys
 
@@ -1210,14 +1211,14 @@ Each pair is listed with the record's kind and dates and offers **no** choice
 
 | Key | EN | ES | Model source | Status |
 |---|---|---|---|---|
-| `sync.conflicts.blocked.remoteTitle` | Changed on another device | Se cambió en otro dispositivo | `REMOTE_ORIGIN` | **PROPOSED** |
-| `sync.conflicts.blocked.remoteBody` | The edit behind this is on the device where you made it. Open AppFitness there to choose. Nothing here was changed or lost. | La edición que causó esto está en el dispositivo donde la hiciste. Abre AppFitness ahí para elegir. Aquí no se cambió ni se perdió nada. | `REMOTE_ORIGIN` | **PROPOSED** |
-| `sync.conflicts.blocked.unsupportedTitle` | Not reviewable here | No se puede revisar aquí | `UNSUPPORTED_ENTITY` · `UNKNOWN_ENTITY` | **PROPOSED** |
-| `sync.conflicts.blocked.unsupportedBody` | This kind of record can't be reviewed in this version. Both versions are still saved, and nothing was changed or lost. | Este tipo de registro no se puede revisar en esta versión. Ambas versiones siguen guardadas y no se cambió ni se perdió nada. | `UNSUPPORTED_ENTITY` · `UNKNOWN_ENTITY` | **PROPOSED** |
-| `sync.conflicts.blocked.updateAppTitle` | Update to review this | Actualiza para revisar esto | `UNKNOWN_FIELD` | **PROPOSED** |
-| `sync.conflicts.blocked.updateAppBody` | This record includes something this version doesn't recognize yet. Update AppFitness to review it. Nothing was changed or lost. | Este registro incluye algo que esta versión aún no reconoce. Actualiza AppFitness para revisarlo. No se cambió ni se perdió nada. | `UNKNOWN_FIELD` | **PROPOSED** |
-| `sync.conflicts.blocked.unreadableTitle` | We can't open this one | No podemos abrir este registro | `ENCRYPTED_PAYLOAD` · `MALFORMED_PAYLOAD` | **PROPOSED** |
-| `sync.conflicts.blocked.unreadableBody` | We couldn't read the details saved for this record on this device, so it can't be reviewed here. Nothing was changed or lost. | No pudimos leer los detalles guardados de este registro en este dispositivo, así que no se puede revisar aquí. No se cambió ni se perdió nada. | `ENCRYPTED_PAYLOAD` · `MALFORMED_PAYLOAD` | **PROPOSED** |
+| `sync.conflicts.blocked.remoteTitle` | Changed on another device | Se cambió en otro dispositivo | `REMOTE_ORIGIN` | **SHIPPED** |
+| `sync.conflicts.blocked.remoteBody` | The edit behind this is on the device where you made it. Open AppFitness there to choose. Nothing here was changed or lost. | La edición que causó esto está en el dispositivo donde la hiciste. Abre AppFitness ahí para elegir. Aquí no se cambió ni se perdió nada. | `REMOTE_ORIGIN` | **SHIPPED** |
+| `sync.conflicts.blocked.unsupportedTitle` | Not reviewable here | No se puede revisar aquí | `UNSUPPORTED_ENTITY` · `UNKNOWN_ENTITY` | **SHIPPED** |
+| `sync.conflicts.blocked.unsupportedBody` | This kind of record can't be reviewed in this version. Both versions are still saved, and nothing was changed or lost. | Este tipo de registro no se puede revisar en esta versión. Ambas versiones siguen guardadas y no se cambió ni se perdió nada. | `UNSUPPORTED_ENTITY` · `UNKNOWN_ENTITY` | **SHIPPED** |
+| `sync.conflicts.blocked.updateAppTitle` | Update to review this | Actualiza para revisar esto | `UNKNOWN_FIELD` | **SHIPPED** |
+| `sync.conflicts.blocked.updateAppBody` | This record includes something this version doesn't recognize yet. Update AppFitness to review it. Nothing was changed or lost. | Este registro incluye algo que esta versión aún no reconoce. Actualiza AppFitness para revisarlo. No se cambió ni se perdió nada. | `UNKNOWN_FIELD` | **SHIPPED** |
+| `sync.conflicts.blocked.unreadableTitle` | We can't open this one | No podemos abrir este registro | `ENCRYPTED_PAYLOAD` · `MALFORMED_PAYLOAD` | **SHIPPED** |
+| `sync.conflicts.blocked.unreadableBody` | We couldn't read the details saved for this record on this device, so it can't be reviewed here. Nothing was changed or lost. | No pudimos leer los detalles guardados de este registro en este dispositivo, así que no se puede revisar aquí. No se cambió ni se perdió nada. | `ENCRYPTED_PAYLOAD` · `MALFORMED_PAYLOAD` | **SHIPPED** |
 
 ## Offline — 2 keys
 
@@ -1226,8 +1227,8 @@ round trip finishes later.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.offlineTitle` | You're offline | Estás sin conexión | **PROPOSED** |
-| `sync.conflicts.offlineBody` | You can still choose now. We'll save it on this device and finish when you're connected again. | Aún puedes elegir ahora. Lo guardaremos en este dispositivo y terminaremos cuando vuelvas a tener conexión. | **PROPOSED** |
+| `sync.conflicts.offlineTitle` | You're offline | Estás sin conexión | **SHIPPED** |
+| `sync.conflicts.offlineBody` | You can still choose now. We'll save it on this device and finish when you're connected again. | Aún puedes elegir ahora. Lo guardaremos en este dispositivo y terminaremos cuando vuelvas a tener conexión. | **SHIPPED** |
 
 ## Dashboard entry — 2 keys
 
@@ -1235,20 +1236,22 @@ The button C-6 adds to the dashboard. Listed here so C-6 needs no fallback.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.dashboardButton` | Review changes | Revisar cambios | **PROPOSED** |
-| `sync.conflicts.dashboardButtonAccessibility` | Review changes that need your decision | Revisar los cambios que necesitan tu decisión | **PROPOSED** |
+| `sync.conflicts.dashboardButton` | Review changes | Revisar cambios | **SHIPPED** |
+| `sync.conflicts.dashboardButtonAccessibility` | Review changes that need your decision | Revisar los cambios que necesitan tu decisión | **SHIPPED** |
 
-## Action needed — 2 keys
+## Action needed — withdrawn
 
-**Not a conflict.** A catalog-revision park (A-8 / BUG-007) has no versions to
-choose between, and this family exists to keep the two apart wherever they are
-listed side by side. The shipped `nutrition.log.actionMessage*` copy stays
-exactly as it is; these keys only carry the distinction onto the review surface.
+**C-5 over-assigned this case and C-6 removed it.** A catalog-revision park
+(A-8 / BUG-007) carries `CATALOG_REVISION_UNSUPPORTED`: it is a sync-**queue**
+condition with no two versions to choose between, it is not a conflict, and
+C-4's application service does not expose it. Reaching it from
+`/sync-conflicts` would mean bypassing that service to read the queue directly,
+which §Decision 2 forbids. The Food Log already owns the shipped, actionable
+treatment for it (`nutrition.log.actionMessage*`), unchanged.
 
-| Key | EN | ES | Status |
-|---|---|---|---|
-| `sync.conflicts.actionNeededTitle` | Action needed | Acción necesaria | **PROPOSED** |
-| `sync.conflicts.actionNeededBody` | This item can't sync because the food isn't available anymore. Remove it and add it again in Food Log. There are no versions to choose between here. | Este elemento no puede sincronizarse porque el alimento ya no está disponible. Elimínalo y agrégalo de nuevo en el Registro de alimentos. Aquí no hay versiones entre las cuales elegir. | **PROPOSED** |
+The two keys `sync.conflicts.actionNeededTitle` and
+`sync.conflicts.actionNeededBody` are therefore **withdrawn**: they exist in
+neither catalogue and are not part of the family total.
 
 ## Record labels — 13 keys
 
@@ -1258,19 +1261,19 @@ registered, so they can never reach this surface (ADR-P017).
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.record.user_profiles` | Profile | Perfil | **PROPOSED** |
-| `sync.conflicts.record.goals` | Goal | Objetivo | **PROPOSED** |
-| `sync.conflicts.record.body_weights` | Weight entry | Registro de peso | **PROPOSED** |
-| `sync.conflicts.record.body_measurements` | Body measurements | Medidas corporales | **PROPOSED** |
-| `sync.conflicts.record.progress_snapshots` | Weekly summary | Resumen semanal | **PROPOSED** |
-| `sync.conflicts.record.dietary_preferences` | Food preference | Preferencia alimentaria | **PROPOSED** |
-| `sync.conflicts.record.meal_items` | Food log entry | Elemento del registro de alimentos | **PROPOSED** |
-| `sync.conflicts.record.exercises` | Exercise | Ejercicio | **PROPOSED** |
-| `sync.conflicts.record.routines` | Routine | Rutina | **PROPOSED** |
-| `sync.conflicts.record.routine_exercises` | Exercise in a routine | Ejercicio de una rutina | **PROPOSED** |
-| `sync.conflicts.record.workout_logs` | Workout | Entrenamiento | **PROPOSED** |
-| `sync.conflicts.record.workout_sets` | Set | Serie | **PROPOSED** |
-| `sync.conflicts.record.wellness_safety_profiles` | Wellness profile | Perfil de bienestar | **PROPOSED** |
+| `sync.conflicts.record.user_profiles` | Profile | Perfil | **SHIPPED** |
+| `sync.conflicts.record.goals` | Goal | Objetivo | **SHIPPED** |
+| `sync.conflicts.record.body_weights` | Weight entry | Registro de peso | **SHIPPED** |
+| `sync.conflicts.record.body_measurements` | Body measurements | Medidas corporales | **SHIPPED** |
+| `sync.conflicts.record.progress_snapshots` | Weekly summary | Resumen semanal | **SHIPPED** |
+| `sync.conflicts.record.dietary_preferences` | Food preference | Preferencia alimentaria | **SHIPPED** |
+| `sync.conflicts.record.meal_items` | Food log entry | Elemento del registro de alimentos | **SHIPPED** |
+| `sync.conflicts.record.exercises` | Exercise | Ejercicio | **SHIPPED** |
+| `sync.conflicts.record.routines` | Routine | Rutina | **SHIPPED** |
+| `sync.conflicts.record.routine_exercises` | Exercise in a routine | Ejercicio de una rutina | **SHIPPED** |
+| `sync.conflicts.record.workout_logs` | Workout | Entrenamiento | **SHIPPED** |
+| `sync.conflicts.record.workout_sets` | Set | Serie | **SHIPPED** |
+| `sync.conflicts.record.wellness_safety_profiles` | Wellness profile | Perfil de bienestar | **SHIPPED** |
 
 ## Field labels — 75 keys
 
@@ -1281,81 +1284,127 @@ meaning is shared, so the set is deduplicated.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.field.activity_level` | Activity level | Nivel de actividad | **PROPOSED** |
-| `sync.conflicts.field.affected_areas` | Body areas to treat carefully | Zonas del cuerpo a tratar con cuidado | **PROPOSED** |
-| `sync.conflicts.field.avg_calories` | Average calories | Calorías promedio | **PROPOSED** |
-| `sync.conflicts.field.avg_weight_kg` | Average weight | Peso promedio | **PROPOSED** |
-| `sync.conflicts.field.avoid_tag` | Ingredient to avoid | Ingrediente a evitar | **PROPOSED** |
-| `sync.conflicts.field.birth_date` | Date of birth | Fecha de nacimiento | **PROPOSED** |
-| `sync.conflicts.field.body_fat_pct` | Body fat | Grasa corporal | **PROPOSED** |
-| `sync.conflicts.field.calories_per_serving_snapshot` | Calories per serving | Calorías por porción | **PROPOSED** |
-| `sync.conflicts.field.carbs_per_serving_snapshot` | Carbs per serving | Carbohidratos por porción | **PROPOSED** |
-| `sync.conflicts.field.catalog_key` | Food | Alimento | **PROPOSED** |
-| `sync.conflicts.field.catalog_key_snapshot` | Food chosen | Alimento elegido | **PROPOSED** |
-| `sync.conflicts.field.catalog_version_snapshot` | Food list version | Versión de la lista de alimentos | **PROPOSED** |
-| `sync.conflicts.field.category` | Category | Categoría | **PROPOSED** |
-| `sync.conflicts.field.chest_cm` | Chest | Pecho | **PROPOSED** |
-| `sync.conflicts.field.completed` | Completed | Completada | **PROPOSED** |
-| `sync.conflicts.field.date` | Date | Fecha | **PROPOSED** |
-| `sync.conflicts.field.description` | Description | Descripción | **PROPOSED** |
-| `sync.conflicts.field.ended_at` | Ended | Finalizado | **PROPOSED** |
-| `sync.conflicts.field.equipment` | Equipment | Equipo | **PROPOSED** |
-| `sync.conflicts.field.evaluation_completed` | Professional evaluation completed | Evaluación profesional completada | **PROPOSED** |
-| `sync.conflicts.field.evaluation_date` | Date of the evaluation | Fecha de la evaluación | **PROPOSED** |
-| `sync.conflicts.field.exclusion_type` | Kind of exclusion | Tipo de exclusión | **PROPOSED** |
-| `sync.conflicts.field.fat_per_serving_snapshot` | Fat per serving | Grasas por porción | **PROPOSED** |
-| `sync.conflicts.field.fiber_per_serving_snapshot` | Fiber per serving | Fibra por porción | **PROPOSED** |
-| `sync.conflicts.field.finished_at` | Finished | Terminado | **PROPOSED** |
-| `sync.conflicts.field.fitness_level` | Fitness level | Nivel de acondicionamiento | **PROPOSED** |
-| `sync.conflicts.field.food_name_snapshot` | Food name | Nombre del alimento | **PROPOSED** |
-| `sync.conflicts.field.food_revision_snapshot` | Food version | Versión del alimento | **PROPOSED** |
-| `sync.conflicts.field.gender` | Gender | Género | **PROPOSED** |
-| `sync.conflicts.field.goal_type` | Goal type | Tipo de objetivo | **PROPOSED** |
-| `sync.conflicts.field.grams_per_serving_snapshot` | Grams per serving | Gramos por porción | **PROPOSED** |
-| `sync.conflicts.field.height_cm` | Height | Estatura | **PROPOSED** |
-| `sync.conflicts.field.hip_cm` | Hips | Cadera | **PROPOSED** |
-| `sync.conflicts.field.instructions` | Instructions | Instrucciones | **PROPOSED** |
-| `sync.conflicts.field.is_active` | Active | Activo | **PROPOSED** |
-| `sync.conflicts.field.is_deload_week` | Lighter week | Semana más ligera | **PROPOSED** |
-| `sync.conflicts.field.kind` | Kind | Tipo | **PROPOSED** |
-| `sync.conflicts.field.left_arm_cm` | Left arm | Brazo izquierdo | **PROPOSED** |
-| `sync.conflicts.field.movements_to_avoid` | Movements to avoid | Movimientos a evitar | **PROPOSED** |
-| `sync.conflicts.field.muscle_group` | Muscle group | Grupo muscular | **PROPOSED** |
-| `sync.conflicts.field.muscle_mass_kg` | Muscle mass | Masa muscular | **PROPOSED** |
-| `sync.conflicts.field.name` | Name | Nombre | **PROPOSED** |
-| `sync.conflicts.field.neck_cm` | Neck | Cuello | **PROPOSED** |
-| `sync.conflicts.field.note` | Note | Nota | **PROPOSED** |
-| `sync.conflicts.field.notes` | Notes | Notas | **PROPOSED** |
-| `sync.conflicts.field.occupation` | Occupation | Ocupación | **PROPOSED** |
-| `sync.conflicts.field.order_index` | Position in the routine | Posición en la rutina | **PROPOSED** |
-| `sync.conflicts.field.protein_per_serving_snapshot` | Protein per serving | Proteína por porción | **PROPOSED** |
-| `sync.conflicts.field.reps` | Reps | Repeticiones | **PROPOSED** |
-| `sync.conflicts.field.right_arm_cm` | Right arm | Brazo derecho | **PROPOSED** |
-| `sync.conflicts.field.rpe` | Effort | Esfuerzo | **PROPOSED** |
-| `sync.conflicts.field.rule_version` | Calculation version | Versión del cálculo | **PROPOSED** |
-| `sync.conflicts.field.serving_amount_snapshot` | Serving size | Tamaño de la porción | **PROPOSED** |
-| `sync.conflicts.field.serving_count` | Servings | Porciones | **PROPOSED** |
-| `sync.conflicts.field.serving_unit_snapshot` | Serving unit | Unidad de la porción | **PROPOSED** |
-| `sync.conflicts.field.session_duration_mins` | Session length | Duración de la sesión | **PROPOSED** |
-| `sync.conflicts.field.set_number` | Set number | Número de serie | **PROPOSED** |
-| `sync.conflicts.field.sleep_hours_baseline` | Usual sleep | Sueño habitual | **PROPOSED** |
-| `sync.conflicts.field.started_at` | Started | Iniciado | **PROPOSED** |
-| `sync.conflicts.field.stress_level_baseline` | Usual stress | Estrés habitual | **PROPOSED** |
-| `sync.conflicts.field.target_calories` | Calorie target | Meta de calorías | **PROPOSED** |
-| `sync.conflicts.field.target_carbs_g` | Carb target | Meta de carbohidratos | **PROPOSED** |
-| `sync.conflicts.field.target_date` | Target date | Fecha objetivo | **PROPOSED** |
-| `sync.conflicts.field.target_fat_g` | Fat target | Meta de grasas | **PROPOSED** |
-| `sync.conflicts.field.target_protein_g` | Protein target | Meta de proteína | **PROPOSED** |
-| `sync.conflicts.field.target_reps` | Target reps | Repeticiones objetivo | **PROPOSED** |
-| `sync.conflicts.field.target_sets` | Target sets | Series objetivo | **PROPOSED** |
-| `sync.conflicts.field.target_weight_kg` | Target weight | Peso objetivo | **PROPOSED** |
-| `sync.conflicts.field.total_volume_kg` | Total volume | Volumen total | **PROPOSED** |
-| `sync.conflicts.field.training_days_per_week` | Training days per week | Días de entrenamiento por semana | **PROPOSED** |
-| `sync.conflicts.field.waist_cm` | Waist | Cintura | **PROPOSED** |
-| `sync.conflicts.field.week_start` | Week of | Semana del | **PROPOSED** |
-| `sync.conflicts.field.weight_kg` | Weight | Peso | **PROPOSED** |
-| `sync.conflicts.field.workout_count` | Workouts | Entrenamientos | **PROPOSED** |
-| `sync.conflicts.field.years_training` | Years training | Años entrenando | **PROPOSED** |
+| `sync.conflicts.field.activity_level` | Activity level | Nivel de actividad | **SHIPPED** |
+| `sync.conflicts.field.affected_areas` | Body areas to treat carefully | Zonas del cuerpo a tratar con cuidado | **SHIPPED** |
+| `sync.conflicts.field.avg_calories` | Average calories | Calorías promedio | **SHIPPED** |
+| `sync.conflicts.field.avg_weight_kg` | Average weight | Peso promedio | **SHIPPED** |
+| `sync.conflicts.field.avoid_tag` | Ingredient to avoid | Ingrediente a evitar | **SHIPPED** |
+| `sync.conflicts.field.birth_date` | Date of birth | Fecha de nacimiento | **SHIPPED** |
+| `sync.conflicts.field.body_fat_pct` | Body fat | Grasa corporal | **SHIPPED** |
+| `sync.conflicts.field.calories_per_serving_snapshot` | Calories per serving | Calorías por porción | **SHIPPED** |
+| `sync.conflicts.field.carbs_per_serving_snapshot` | Carbs per serving | Carbohidratos por porción | **SHIPPED** |
+| `sync.conflicts.field.catalog_key` | Food | Alimento | **SHIPPED** |
+| `sync.conflicts.field.catalog_key_snapshot` | Food chosen | Alimento elegido | **SHIPPED** |
+| `sync.conflicts.field.catalog_version_snapshot` | Food list version | Versión de la lista de alimentos | **SHIPPED** |
+| `sync.conflicts.field.category` | Category | Categoría | **SHIPPED** |
+| `sync.conflicts.field.chest_cm` | Chest | Pecho | **SHIPPED** |
+| `sync.conflicts.field.completed` | Completed | Completada | **SHIPPED** |
+| `sync.conflicts.field.date` | Date | Fecha | **SHIPPED** |
+| `sync.conflicts.field.description` | Description | Descripción | **SHIPPED** |
+| `sync.conflicts.field.ended_at` | Ended | Finalizado | **SHIPPED** |
+| `sync.conflicts.field.equipment` | Equipment | Equipo | **SHIPPED** |
+| `sync.conflicts.field.evaluation_completed` | Professional evaluation completed | Evaluación profesional completada | **SHIPPED** |
+| `sync.conflicts.field.evaluation_date` | Date of the evaluation | Fecha de la evaluación | **SHIPPED** |
+| `sync.conflicts.field.exclusion_type` | Kind of exclusion | Tipo de exclusión | **SHIPPED** |
+| `sync.conflicts.field.fat_per_serving_snapshot` | Fat per serving | Grasas por porción | **SHIPPED** |
+| `sync.conflicts.field.fiber_per_serving_snapshot` | Fiber per serving | Fibra por porción | **SHIPPED** |
+| `sync.conflicts.field.finished_at` | Finished | Terminado | **SHIPPED** |
+| `sync.conflicts.field.fitness_level` | Fitness level | Nivel de acondicionamiento | **SHIPPED** |
+| `sync.conflicts.field.food_name_snapshot` | Food name | Nombre del alimento | **SHIPPED** |
+| `sync.conflicts.field.food_revision_snapshot` | Food version | Versión del alimento | **SHIPPED** |
+| `sync.conflicts.field.gender` | Gender | Género | **SHIPPED** |
+| `sync.conflicts.field.goal_type` | Goal type | Tipo de objetivo | **SHIPPED** |
+| `sync.conflicts.field.grams_per_serving_snapshot` | Grams per serving | Gramos por porción | **SHIPPED** |
+| `sync.conflicts.field.height_cm` | Height | Estatura | **SHIPPED** |
+| `sync.conflicts.field.hip_cm` | Hips | Cadera | **SHIPPED** |
+| `sync.conflicts.field.instructions` | Instructions | Instrucciones | **SHIPPED** |
+| `sync.conflicts.field.is_active` | Active | Activo | **SHIPPED** |
+| `sync.conflicts.field.is_deload_week` | Lighter week | Semana más ligera | **SHIPPED** |
+| `sync.conflicts.field.kind` | Kind | Tipo | **SHIPPED** |
+| `sync.conflicts.field.left_arm_cm` | Left arm | Brazo izquierdo | **SHIPPED** |
+| `sync.conflicts.field.movements_to_avoid` | Movements to avoid | Movimientos a evitar | **SHIPPED** |
+| `sync.conflicts.field.muscle_group` | Muscle group | Grupo muscular | **SHIPPED** |
+| `sync.conflicts.field.muscle_mass_kg` | Muscle mass | Masa muscular | **SHIPPED** |
+| `sync.conflicts.field.name` | Name | Nombre | **SHIPPED** |
+| `sync.conflicts.field.neck_cm` | Neck | Cuello | **SHIPPED** |
+| `sync.conflicts.field.note` | Note | Nota | **SHIPPED** |
+| `sync.conflicts.field.notes` | Notes | Notas | **SHIPPED** |
+| `sync.conflicts.field.occupation` | Occupation | Ocupación | **SHIPPED** |
+| `sync.conflicts.field.order_index` | Position in the routine | Posición en la rutina | **SHIPPED** |
+| `sync.conflicts.field.protein_per_serving_snapshot` | Protein per serving | Proteína por porción | **SHIPPED** |
+| `sync.conflicts.field.reps` | Reps | Repeticiones | **SHIPPED** |
+| `sync.conflicts.field.right_arm_cm` | Right arm | Brazo derecho | **SHIPPED** |
+| `sync.conflicts.field.rpe` | Effort | Esfuerzo | **SHIPPED** |
+| `sync.conflicts.field.rule_version` | Calculation version | Versión del cálculo | **SHIPPED** |
+| `sync.conflicts.field.serving_amount_snapshot` | Serving size | Tamaño de la porción | **SHIPPED** |
+| `sync.conflicts.field.serving_count` | Servings | Porciones | **SHIPPED** |
+| `sync.conflicts.field.serving_unit_snapshot` | Serving unit | Unidad de la porción | **SHIPPED** |
+| `sync.conflicts.field.session_duration_mins` | Session length | Duración de la sesión | **SHIPPED** |
+| `sync.conflicts.field.set_number` | Set number | Número de serie | **SHIPPED** |
+| `sync.conflicts.field.sleep_hours_baseline` | Usual sleep | Sueño habitual | **SHIPPED** |
+| `sync.conflicts.field.started_at` | Started | Iniciado | **SHIPPED** |
+| `sync.conflicts.field.stress_level_baseline` | Usual stress | Estrés habitual | **SHIPPED** |
+| `sync.conflicts.field.target_calories` | Calorie target | Meta de calorías | **SHIPPED** |
+| `sync.conflicts.field.target_carbs_g` | Carb target | Meta de carbohidratos | **SHIPPED** |
+| `sync.conflicts.field.target_date` | Target date | Fecha objetivo | **SHIPPED** |
+| `sync.conflicts.field.target_fat_g` | Fat target | Meta de grasas | **SHIPPED** |
+| `sync.conflicts.field.target_protein_g` | Protein target | Meta de proteína | **SHIPPED** |
+| `sync.conflicts.field.target_reps` | Target reps | Repeticiones objetivo | **SHIPPED** |
+| `sync.conflicts.field.target_sets` | Target sets | Series objetivo | **SHIPPED** |
+| `sync.conflicts.field.target_weight_kg` | Target weight | Peso objetivo | **SHIPPED** |
+| `sync.conflicts.field.total_volume_kg` | Total volume | Volumen total | **SHIPPED** |
+| `sync.conflicts.field.training_days_per_week` | Training days per week | Días de entrenamiento por semana | **SHIPPED** |
+| `sync.conflicts.field.waist_cm` | Waist | Cintura | **SHIPPED** |
+| `sync.conflicts.field.week_start` | Week of | Semana del | **SHIPPED** |
+| `sync.conflicts.field.weight_kg` | Weight | Peso | **SHIPPED** |
+| `sync.conflicts.field.workout_count` | Workouts | Entrenamientos | **SHIPPED** |
+| `sync.conflicts.field.years_training` | Years training | Años entrenando | **SHIPPED** |
+
+---
+
+## Write failure — 2 keys
+
+**Added by C-6, not by C-5.** C-5 worded one failure — "Something went wrong
+while opening this list" — which is true of a **read**. A choice that could not
+be saved is a different event and needs different words: the load copy would
+misdescribe it, and reusing it would leave the user unsure whether anything
+changed. Loading failures keep the existing wording.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.choiceErrorTitle` | We couldn't save your choice | No pudimos guardar tu elección | **SHIPPED** |
+| `sync.conflicts.choiceErrorBody` | Nothing changed. Review the options and try again. | Nada cambió. Revisa las opciones e inténtalo de nuevo. | **SHIPPED** |
+
+---
+
+## Value words — 3 keys
+
+**Added by C-6, not by C-5.** The comparison rows have to say "yes", "no" and
+"nothing recorded", and C-5 worded none of them. Borrowing `progress.weekly.*`
+would have coupled this surface's wording to another feature's, so the family
+owns its own. `No` is identical in both languages by nature; the Spanish is not
+distorted to make the strings differ.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.value.yes` | Yes | Sí | **SHIPPED** |
+| `sync.conflicts.value.no` | No | No | **SHIPPED** |
+| `sync.conflicts.value.notRecorded` | Nothing recorded | Sin datos registrados | **SHIPPED** |
+
+---
+
+## Web unavailable — 2 keys
+
+**Added by C-6, not by C-5.** ADR-P030 §Decision 1 requires a terminal
+Web-unavailable early return on this route, and every one of the twelve shipped
+Web-unavailable surfaces owns its own title/body pair. C-5 worded none for
+`/sync-conflicts`, so these two were written to the established pattern when the
+surface shipped. They take the catalogue to **1058/1058**, not 1056/1056.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `sync.conflicts.webUnavailableTitle` | Reviewing changes isn't available on the web | Revisar cambios no está disponible en la web | **SHIPPED** |
+| `sync.conflicts.webUnavailableBody` | Use the AppFitness mobile app to review these changes and choose which version to keep. | Usa la app móvil de AppFitness para revisar estos cambios y elegir qué versión conservar. | **SHIPPED** |
 
 ---
 
@@ -1374,17 +1423,27 @@ meaning is shared, so the set is deduplicated.
 | Not resolvable on this device | 8 |
 | Offline | 2 |
 | Dashboard entry | 2 |
-| Action needed | 2 |
 | Record labels | 13 |
 | Field labels | 75 |
-| **Total** | **152** |
+| **C-5 rows still standing** | **150** |
+| Action needed (**withdrawn** by C-6) | −2 |
+| Write failure (added by C-6) | 2 |
+| Value words (added by C-6) | 3 |
+| Web unavailable (added by C-6) | 2 |
+| **Family total on `main`** | **157** |
 
-**152 EN and 152 ES**, exact key-set parity, all `PROPOSED`.
+**157 EN and 157 ES**, exact key-set parity, all `SHIPPED`.
 
-The shipped catalogues currently hold **904 keys in EN and 904 in ES** (verified
-against `mobile/src/shared/localization/resources/`), with **no** existing
-`sync.conflicts.*` key, so the family collides with nothing. When **C-6** adds
-them the catalogues reach **1056/1056**.
+The catalogues held **904 keys in EN and 904 in ES** before this family, with
+**no** existing `sync.conflicts.*` key, so it collided with nothing. C-5 worded
+**152**; C-6 withdrew **2**, added **7**, and took both catalogues to
+**1061/1061**.
+
+ADR-P030 §Decision 15 projected 1056/1056 from a 152-key family. That projection
+stands corrected by implementation, not by preference: the Web-unavailable arm
+§Decision 1 mandates was unworded, a write failure and a read failure had been
+given one set of words, and the action-needed case did not belong to this
+family at all.
 
 ADR-P030 §Decision 15 recorded the parity target as "788/788 + N". That figure
 was accurate when the ADR was written on 2026-09-07 and has since been

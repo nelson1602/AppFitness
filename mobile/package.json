@@ -110,6 +110,9 @@
       "src/features/nutrition/infrastructure/**/*.ts",
       "src/features/nutrition/presentation/**/*.tsx",
       "src/features/dashboard/application/**/*.ts",
+    "src/features/sync-conflicts/application/**/*.ts",
+    "src/features/sync-conflicts/presentation/**/*.ts",
+    "src/features/sync-conflicts/presentation/**/*.tsx",
       "src/features/dashboard/presentation/**/*.tsx",
       "src/features/profile/application/**/*.ts",
       "src/features/profile/presentation/**/*.ts",
@@ -120,6 +123,7 @@
       "!**/*.spec.tsx",
       "!src/app/_layout.tsx",
       "!src/shared/infrastructure/sync/index.ts",
+    "!src/features/sync-conflicts/index.ts",
       "!src/shared/infrastructure/sync/types.ts",
       "!src/shared/infrastructure/logging/index.ts",
       "!src/features/authentication/infrastructure/auth-api.ts",
@@ -236,7 +240,19 @@
         "functions": 85,
         "branches": 70
       },
-      "src/features/dashboard/presentation/": {
+      "src/features/sync-conflicts/application/": {
+      "statements": 90,
+      "lines": 90,
+      "functions": 90,
+      "branches": 80
+    },
+    "src/features/sync-conflicts/presentation/": {
+      "statements": 95,
+      "lines": 95,
+      "functions": 95,
+      "branches": 85
+    },
+    "src/features/dashboard/presentation/": {
         "statements": 85,
         "lines": 85,
         "functions": 80,

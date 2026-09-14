@@ -52,6 +52,7 @@ export {
   type FoodLogSyncState,
   type FoodLogSyncSummary,
 } from './application/food-log.store';
+export { foodDisplayName, foodDisplayNameForKey } from './application/food-display.service';
 export {
   getCanonicalById,
   getCanonicalByCatalogKey,

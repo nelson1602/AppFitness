@@ -10107,9 +10107,9 @@ Status: **Accepted** (2026-09-07) — the **architecture** below is authorized.
 Acceptance does **not** authorize implementation slices automatically. **C-0
 (BUG-014), C-1 (per-user scoping) and C-2 (atomic conditional push) are
 implemented**; **C-3 (server resolve contract), C-4 (local resolution service
-+ outbox behaviour) and C-5 (the EN/ES copy deck) are implemented, while C-6
-and C-7 remain unauthorized** and each needs its own approval. **No owner decision
-remains open.**
++ outbox behaviour), C-5 (the EN/ES copy deck) and C-6 (the `/sync-conflicts`
+surface and dashboard entry) are implemented, while C-7 remains unauthorized**
+and needs its own approval. **No owner decision remains open.**
 Date: 2026-09-07 (revised seven times the same day after review — see
 §Revision note)
 Owner: Product / Mobile Architecture / Security
@@ -11458,9 +11458,9 @@ Fail **visible and closed**, never silent:
 #### 13. Implementation slices — prerequisites first
 
 Sequenced so no prerequisite can ship after the UI. **Acceptance of this ADR
-authorizes the architecture, not these slices.** **C-0**, **C-1**, **C-2** and
-**C-3**, **C-4** and **C-5** are implemented; **C-6 and C-7 remain
-unauthorized** and each requires its own approval before any code is written.
+authorizes the architecture, not these slices.** **C-0**, **C-1**, **C-2**,
+**C-3**, **C-4**, **C-5** and **C-6** are implemented; **C-7 remains
+unauthorized** and requires its own approval before any code is written.
 
 ### Slice C-2 Implementation Record — Atomic Conditional Push
 
@@ -11612,7 +11612,7 @@ outbox against real SQLite built from real migrations 001-007),
 `conflict-presenter.spec.ts` (52 cases), `conflict-resolution.scope.spec.ts`
 (11 scope invariants, including that no presentation file reaches SQLite and
 that C-4 ships no route, screen or copy key), plus transport and dashboard
-coverage. **BUG-012 stays Open; C-6 is the next prerequisite.**
+coverage. **BUG-012 stays Open; C-7 is the next prerequisite.**
 
 **Correction (2026-09-14) — C-4's atomicity claim was not proven when written,
 and was in fact false. See BUG-015.** `inTransaction` accepted the task but
@@ -11642,13 +11642,36 @@ dependency, API, UI, copy or wire-contract change.
 deliberately worded none of them. They are now worded, in
 `.ai/19_COPY_DECKS.md` §Conflict resolution, as one coherent
 `sync.conflicts.*` family of **152 keys** — **152 EN and 152 ES**, exact
-key-set parity, every row `PROPOSED`.
+key-set parity. Every row was `PROPOSED` when C-5 shipped. **150 are now
+`SHIPPED`** — C-6 added them to both catalogues and renders them — and **2 were
+withdrawn**.
 
-**Specification only.** No route, screen, component, control, catalogue entry,
-dependency, schema, migration or behaviour. A `PROPOSED` key does not exist:
-**C-6** adds these to both catalogues and builds the `/sync-conflicts` surface
-and the dashboard button, **C-7** verifies the journeys, and **BUG-012 stays
-Open** until a user can reach the flow.
+**Two defects in this slice, found and corrected by C-6.** They are recorded
+here rather than quietly fixed, because C-5's own review passed and did not
+catch them:
+
+- **The Web-unavailable arm was never worded.** §Decision 1 requires a terminal
+  Web-unavailable early return on `/sync-conflicts`, and all twelve shipped
+  Web-unavailable surfaces own a title/body pair. C-5 wrote none, leaving C-6 a
+  mandated arm with no copy. Reusing another screen's pair would have been
+  false ("Dashboard isn't available on the web").
+- **The action-needed case was over-assigned.** A catalog-revision park (A-8 /
+  BUG-007) carries `CATALOG_REVISION_UNSUPPORTED`: a sync-**queue** condition
+  with no two versions to choose between. C-4's service does not expose it, so
+  reaching it would mean bypassing the service to read the queue — which
+  §Decision 2 forbids — and the Food Log already owns its shipped actionable
+  treatment. `sync.conflicts.actionNeededTitle` / `actionNeededBody` are
+  **withdrawn**; they exist in neither catalogue.
+
+C-6 additionally found that a **write** failure and a **read** failure had been
+given one set of words, and that the family needed its own yes / no / nothing-
+recorded copy rather than borrowing `progress.weekly.*`. Both are corrected by
+keys C-6 authored; see its record below.
+
+**C-5 itself was specification only** — no route, screen, component, control,
+catalogue entry, dependency, schema, migration or behaviour. **C-7** verifies
+the journeys, and **BUG-012 stays Open** until a user's round trip is proven
+end to end.
 
 The family is written against the **C-4 review model**, not against an imagined
 screen: every `SettlementCondition`, `ConflictBlocker`, `PresenterRefusal`,
@@ -11680,6 +11703,151 @@ names are copy contracts only; VoiceOver, TalkBack, browser-AT, large-text and
 physical-device verification remain **UX-4C**, unrun, and no live region or
 announcement is prescribed.
 
+### Slice C-6 Implementation Record — Conflict Review and Resolution UI
+
+**Implemented 2026-09-14.** The flow BUG-012 has been waiting for is reachable:
+`/sync-conflicts` lists everything still owing this account an outcome, reviews
+each one inline, and records a decision. §Decision 1's inventory is met exactly
+— **one** native route, **no** tab, **no** modal stack, **no** per-entity screen,
+and screen count 18 → 19 with hub-and-spoke depth unchanged.
+
+**Entry.** The dashboard gains an explicit, labelled button to the route,
+rendered only while `sync.conflicts > 0` — the same unsettled count C-4 already
+feeds the banner. It is a real button with its own accessible name and a 44×44
+target, and it is the dashboard's only `primary` action when present. **The
+banner itself stays report-only and is not tappable**, and all **seven** existing
+row/badge reporting surfaces are untouched.
+
+**Layering.** The surface reaches nothing below the shipped C-4 application
+service: `listConflictsForReview`, `chooseConflictResolution` and
+`settlePendingResolutions`, plus the fail-closed presenter's model. No component
+or store touches SQLite, decrypts a payload, parses JSON, calls a transport or
+re-implements settlement, and a source-scanning spec enforces each of those.
+
+**Persistent state is the source of truth.** Every action re-reads the whole
+owner-scoped list from the service afterwards and republishes it; nothing is
+patched in place. Three outcomes C-4 keeps no row-level trace of — a settlement
+that committed, a stale comparison, being offline mid-attempt — are derived from
+the service's own return value **plus** the refreshed list, never invented, and
+never a substitute for the row state each card renders.
+
+**Fail closed, twice over.** The presenter refuses an unknown entity, an
+unaccounted column or an unreadable payload, and the surface renders the
+matching "can't be reviewed here" / "update to review this" treatment with no
+comparison and no choice. Independently, an entity kind or field identifier with
+no approved label is refused rather than printed, so a raw identifier can never
+reach a user even if the allow-list grows first.
+
+**Nothing internal is drawn.** No conflict id, entity id, owner, payload,
+ciphertext, `[REDACTED]`, outcome code or database term appears in the rendered
+tree; a spec asserts this against four card shapes at once. Ids travel only as
+callback arguments, and test handles are positional.
+
+**Only what C-4 offers.** `availableResolutions` is rendered verbatim and never
+widened: first-choice-wins stays enforced by the outbox's guarded claim (a
+second tap returns `ALREADY_CHOSEN` and the refreshed row shows whichever choice
+stands), a recorded-but-unsettled choice stays visible wearing the reassuring
+Pending-sync tone, a stale comparison requires a fresh review, and a
+`RESTORE_UNSUPPORTED` block offers only the resolution that remains. **No ninth
+canonical state and no automatic merge**: the surface is the single **Conflict**
+state composed with the ordinary Loading / Empty / Error / Web-unavailable arms.
+
+**Web.** A terminal early return in the established ADR-P019 shape, driven by
+the store's platform-boundary type guard rather than a `Platform.OS` check, so
+the route builds identically on both platforms. No retry, no fabricated data and
+no resolution control exists there, and the store never reaches a database.
+
+**Copy — 157 keys, 1061/1061.** All **150** surviving C-5 keys were added to
+both catalogues verbatim; a spec parses `.ai/19_COPY_DECKS.md` itself and fails
+on any reworded, missing or invented row. C-6 **withdrew 2** and **authored 7**:
+
+| Change | Keys | Why |
+|---|---|---|
+| Withdrawn | `actionNeededTitle`/`Body` | Not a version conflict; a queue condition C-4 does not expose and the Food Log already treats |
+| Added | `webUnavailableTitle`/`Body` | §Decision 1 mandates the arm; C-5 worded none, and another screen's pair would be false |
+| Added | `choiceErrorTitle`/`Body` | A failed **write** is not a failed **read**; the load copy says "while opening this list" |
+| Added | `value.yes` / `value.no` / `value.notRecorded` | The family owns its value words instead of borrowing `progress.weekly.*` |
+
+152 − 2 + 7 = **157**, on a 904-key baseline: **1061/1061**, not the 1056/1056
+§Decision 15 projected from a 152-key family. The projection is corrected by
+implementation, not preference — see the C-5 record above.
+
+**Stored values are localized, never shown raw.** The presenter's allow-list
+decides *what* may be seen and says nothing about its stored form: closed enums
+(`MUSCLE_GAIN`), vocabulary tokens (`lower_back`), catalogue slugs
+(`food.chicken_breast`) and version identifiers all pass through it. Every such
+field is classified once, in `conflict-vocabulary.ts`, and the classification is
+total over the presenter's `enum`, `tokens` and `text` fields — a spec reads the
+field list from the presenter's own source and fails on any that is
+unclassified.
+
+- **Controlled** (9 closed domains) map through the vocabulary their own feature
+  already ships — `profile.gender.*`, `profile.fitness.*`, `profile.activity.*`,
+  `goal.type.*`, `workout.custom.category*`, `nutrition.preferences.*`,
+  `nutrition.avoid.*`, `nutrition.unit.*`, and W-3's `AFFECTED_AREA_LABEL_KEY` /
+  `MOVEMENT_LABEL_KEY`. Each table is keyed by its **domain union**, so a new
+  member fails `tsc`; `GoalType.REHABILITATION` has no shipped wording and is
+  declared `null` rather than shown.
+- **Catalogue** keys resolve through the shipped localized food catalogue
+  (`foodDisplayNameForKey`, added to the nutrition feature's public API).
+- **Internal** identifiers — `rule_version`, `catalog_version_snapshot`,
+  `food_revision_snapshot` — are never shown.
+- **Free text** is shown verbatim, and only where the producing input was
+  verified: `name`, `muscle_group` (a plain text field placeheld "e.g. legs";
+  a shipped spec stores `mis piernas`) and `equipment` (a comma-separated text
+  field split by the profile form's adapter).
+
+**Nothing is prettified.** An unknown member, a malformed value, an unmapped
+token, a catalogue key the catalogue does not hold, or one bad token in a list
+all resolve to the approved withheld phrase. Under-casing, underscore-splitting
+and title-casing are deliberately absent: a beautified identifier is still an
+identifier and would read as real copy.
+
+**Two additive changes below this surface**, disclosed rather than absorbed, and
+neither touching schema, migration, endpoint, wire contract or settlement
+behaviour:
+
+- `LocalConflictView.serverDeleted`, computed with the already-exported
+  `isDeletedSnapshot` over the **decrypted** account snapshot. §Decision 3
+  requires that "the user is told plainly that the record was deleted elsewhere
+  and that keeping their version **restores** it", and no member of the C-4 view
+  carried that fact.
+- `SettlementReport.events` — one entry per conflict a pass touched, carrying
+  the conflict handle, a classification and the resolution that stands. The
+  counters are unchanged and every existing increment still happens in the same
+  branch. It exists because two outcomes leave no trace in the stored row: a
+  committed settlement removes the conflict from the unsettled set, and
+  `ALREADY_RESOLVED_OPPOSITE_CHOICE` is applied as an ordinary settlement. C-6
+  maps the acted-on conflict's event to its notice, so **first-choice-wins is now
+  visible** — the surface says another device decided first and names, in the
+  same words the cards use, whether "this device" or "your account" stands.
+  Payloads, entity ids and owners are absent from the event by construction, and
+  the handle is matched against, never rendered.
+
+**Accessibility requirements, not outcomes.** Every control is a real button with
+a localized accessible name and a 44×44 target; the two sides are distinguishable
+**in text** at any size, with no colour-only distinction; `hidden` never reads as
+empty; Conflict stays `warning`, never `error`. **No** `accessibilityLiveRegion`,
+`announceForAccessibility` or `aria-live` is introduced, no container swallows a
+focus target, and no text height is fixed — each enforced by the source scan.
+**No VoiceOver, TalkBack, browser-AT, large-text or physical-device outcome is
+claimed**; that verification remains **UX-4C**, unrun.
+
+Regression coverage lives in `mobile/src/features/sync-conflicts/`:
+`conflict-catalogue.spec.ts` (the import checked against the deck itself, both
+withdrawn keys proven absent, 157 / 1061 asserted), `conflict-copy.spec.ts` (13
+record labels and 75 field labels checked against the presenter, no medical, no
+orphans), `conflict-vocabulary.spec.ts` (classification total over the
+presenter's identifier-shaped fields, every controlled domain exhaustive and
+resolving to shipped EN/ES copy, fail-closed on unknown, unmapped and malformed
+values), `conflict-value.spec.ts`, `conflict-treatment.spec.ts`,
+`sync-conflicts.store.spec.ts` (both standing resolutions, exact per-conflict
+event mapping, and a counter that belongs to another conflict never read as this
+one's), `SyncConflictsScreen.spec.tsx` (including load-versus-write failure
+wording and the absence of any rendered identifier) and
+`conflict-surface.source.spec.ts`, plus the dashboard entry cases in
+`DashboardScreen.spec.tsx`. **BUG-012 stays Open; C-7 verifies the journeys.**
+
 | # | Slice | Depends on | API / schema |
 |---|---|---|---|
 | **C-0** | **BUG-014 guard fix** — `hasPendingOpFor` counts `'CONFLICT'`; regression proving a parked conflict survives a pull | — | none |
@@ -11687,8 +11855,8 @@ announcement is prescribed.
 | **C-2** | **Implemented 2026-09-11. Push transaction boundary + conditional write predicate + typed apply outcome** (§Decision 3): a **per-operation transaction** in `processOperation` with `tx` threaded through the idempotency probe, `getServerState`, `apply`, and the re-signatured `recordConflict`/`recordOutcome`; `apply` returning `ApplyOutcome`; the `STALE → recordConflict` branch; the new resolution method and owner-row reader; the **state-specific tombstone predicate**; and the owner + expected-version predicate on existing-row **`UPDATE`/`DELETE`** mutations in place of `where: { id }` (**`CREATE` stays an insert**). **This changes the shared `/sync/push` write path**, so it is *not* a behaviour-free refactor: a race that previously overwrote silently now reports a normal conflict, and a mutation now commits atomically with its terminal outcome. It closes A-15(b)'s TOCTOU **and** the mutation-without-recorded-op-id idempotency hole, and **owns the concurrency, atomicity and late-conflict tests for both** | C-1 | **15 handlers / 9 ports-adapters in the implemented inventory; 13 public resolution seams + 2 dormant medical tx-only conformances; `SyncService` per-op transaction across 5 call sites and 2 helpers; shared with `/sync/push`** |
 | **C-3** | **Implemented 2026-09-11 — server resolve contract** (§Decisions 3, 4, 9, 10, 11): both endpoints, DTOs, throttle, owner scoping, conditional claim, `Serializable` resolution transaction, per-operation semantics, stale outcome, best-effort audit, API e2e | C-2 | **2 endpoints** |
 | **C-4** | **Implemented 2026-09-14 — local resolution service + outbox behaviour** (§Decisions 2, 4, 6, 7, 10): **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts` behind the dashboard count, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under the existing backoff, and the fail-closed per-entity presenter allow-list over the 13 registered types. No UI, no copy, no schema | C-3 | none |
-| **C-5** | **Implemented 2026-09-14 — copy deck slice**: the §Decision 15 families worded in EN/ES as the **152-key** `sync.conflicts.*` family in `.ai/19_COPY_DECKS.md` §Conflict resolution. Every key is `PROPOSED`; specification only, with no route, component, catalogue entry, dependency, schema or behaviour. **C-6** adds the keys to both catalogues and builds the surface | C-4 | none |
-| **C-6** | **`/sync-conflicts` route** + dashboard labelled button + Web-unavailable arm | C-5 | none |
+| **C-5** | **Implemented 2026-09-14 — copy deck slice**: the §Decision 15 families worded in EN/ES as the **152-key** `sync.conflicts.*` family in `.ai/19_COPY_DECKS.md` §Conflict resolution. Specification only when it shipped, with no route, component, catalogue entry, dependency, schema or behaviour; **C-6** has since added the keys and built the surface, so every row is now `SHIPPED` | C-4 | none |
+| **C-6** | **Implemented 2026-09-14 — `/sync-conflicts` route** + dashboard labelled button + terminal Web-unavailable arm, built entirely over the C-4 service and presenter; 150 surviving C-5 keys plus 7 C-6 corrections added to both catalogues (**157** keys, **1061/1061**), stored values localized through each feature's shipped vocabulary and fail-closed otherwise | C-5 | none |
 | **C-7** | **End-to-end verification**: two-device Maestro journeys, both choices, offline-choose-then-settle, restart mid-settlement, stale re-review | C-6 | none |
 
 **The `/sync-conflicts` screen must not ship before C-0 … C-4.** Keep-server and
