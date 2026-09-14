@@ -10106,8 +10106,9 @@ behaviour.
 Status: **Accepted** (2026-09-07) — the **architecture** below is authorized.
 Acceptance does **not** authorize implementation slices automatically. **C-0
 (BUG-014), C-1 (per-user scoping) and C-2 (atomic conditional push) are
-implemented**; **C-3 (server resolve contract) is implemented, while C-4 … C-7
-remain unauthorized** and each needs its own approval. **No owner decision
+implemented**; **C-3 (server resolve contract) and C-4 (local resolution
+service + outbox behaviour) are implemented, while C-5 … C-7 remain
+unauthorized** and each needs its own approval. **No owner decision
 remains open.**
 Date: 2026-09-07 (revised seven times the same day after review — see
 §Revision note)
@@ -11458,8 +11459,8 @@ Fail **visible and closed**, never silent:
 
 Sequenced so no prerequisite can ship after the UI. **Acceptance of this ADR
 authorizes the architecture, not these slices.** **C-0**, **C-1**, **C-2** and
-**C-3** are implemented; **C-4 … C-7 remain unauthorized** and each requires
-its own approval before any code is written.
+**C-3** and **C-4** are implemented; **C-5 … C-7 remain unauthorized** and each
+requires its own approval before any code is written.
 
 ### Slice C-2 Implementation Record — Atomic Conditional Push
 
@@ -11524,13 +11525,103 @@ status-only reconciliation, all typed outcomes, complete CREATE and partial
 UPDATE semantics, deletes/restores/tombstones, audit cardinality, and
 resolution-versus-push plus same/opposite-choice concurrency.
 
+### Slice C-4 Implementation Record — Local Resolution Service and Outbox
+
+**Implemented 2026-09-14.** The dormant resolution-outbox columns migration 006
+pre-provisioned are now live, and every transition that touches them is a
+**guarded conditional update whose affected-row count is the decision**
+(§Decision 4). No migration, schema, server, endpoint, dependency, route,
+screen or copy change: the slice is a repository/application addition only.
+
+**T1** records the choice in one local transaction, guarded on owner, conflict
+id, an authoritative `PENDING` status and `chosen_resolution IS NULL`, so a
+double tap loses the claim instead of replacing a standing decision. It needs
+no network (§Decision 7) and a resolution the server has already refused is
+rejected by the store, not merely hidden by a surface.
+
+**Settlement** drains the outbox through the existing `backoff.ts` policy:
+`PENDING`, or `FAILED` whose backoff elapsed, claimed to `IN_FLIGHT` under a
+guard so one choice cannot be sent twice. Network and 5xx failures record
+`FAILED` with an incremented attempt count, a deterministic
+`next_attempt_at` and a **client-authored** diagnostic (`http_503`,
+`network_error`) — never server prose. A process that dies mid-attempt leaves
+`IN_FLIGHT`, which the next pass releases, so a restart always resumes.
+
+**T3** is one owner-scoped local transaction for `RESOLVED`,
+`ALREADY_RESOLVED_SAME_CHOICE` and `ALREADY_RESOLVED_OPPOSITE_CHOICE`: it
+applies the returned authoritative row through the entity's existing applier,
+removes the parked operation, moves the authoritative `status` and marks the
+outbox `SETTLED`. All four or none — a lost transition aborts the transaction
+and rolls the applied row and the removal back with it. **Nothing is ever
+enqueued.** The opposite-choice outcome converges to the server's standing
+decision using the row that answer carries, so first-choice-wins is preserved
+without leaving the loser stuck.
+
+**`STALE_COMPARISON`** atomically replaces `server_payload` and
+`server_version`, clears the choice, its timestamp and the outbox attempt, and
+returns the conflict to undecided — it never settles, and `base_version` is
+never rewritten. The reviewed tombstone state is re-derived from the refreshed
+snapshot, so version, row and `expectedDeleted` cannot disagree.
+**`RESTORE_UNSUPPORTED`** runs **T1′**: the stable code and the attempt are
+kept, `RESOLVED_LOCAL_WINS` is blocked, the uncommitted choice is cleared, and
+the conflict is re-armed with `SERVER_WINS` as the only remaining option —
+guarded on `status = 'PENDING' AND settlement_status <> 'SETTLED'` so a
+committed server decision can never be overturned.
+
+**Status reconciliation** treats absence as proof of nothing and an explicit
+resolved status as a **trigger only**: it arms the guaranteed resolve replay and
+changes no entity row and no authoritative status. Only the resolve response
+plus T3 settle anything.
+
+**`listUnsettledConflicts()`** returns rows whose authoritative status is still
+`PENDING` **or** whose settlement has not reached `SETTLED`, and the dashboard
+count now reads that set, so the number does not drop the instant a choice is
+recorded. **Remote-origin conflicts** — no deliverable parked operation — stay
+visible and are reported by the application contract as not locally resolvable,
+with neither choice offered.
+
+**The per-entity presenter allow-list** (§Decision 2) covers exactly the
+**13 registered** entity types and **fails closed**: an unknown entity, or any
+payload key that is neither allow-listed, explicitly hidden nor structural,
+refuses the whole presentation and withdraws both choices. Free text
+(`notes`, `note`, `description`, `instructions`, `occupation`) and the
+server-redacted `food_name_snapshot` are excluded outright and reported as
+**"a value exists and is not shown"** rather than as empty; a genuinely null
+value still reads as empty. Ids, `user_id`, whole-payload JSON, ciphertext and
+the literal `[REDACTED]` can never leave the presenter. `dietary_preferences`
+and `meal_items` enqueue as `sensitive`, so **both** of their stored payloads
+are `{"__enc": …}` envelopes; they are decrypted in the repository/application
+layer, below presentation (A-4), and a payload that will not decrypt fails
+closed. The review model is **copy-neutral** — stable field identifiers, value
+kinds, resolved values, and the permitted metadata (entity kind, comparison
+date basis, base and current versions, the conflict-age basis and the
+settlement condition). **C-5 supplies every EN/ES label; C-4 adds none.**
+
+Medical stays dormant structurally, not by naming: `registerMedicalSyncAppliers()`
+is never invoked, so those types have no applier and no presenter entry and can
+be neither resolved nor replayed.
+
+Per-user isolation holds throughout — every entry point takes the owner
+explicitly, and every mutating one takes a required session-generation guard
+re-evaluated after each await, so a pass whose account was replaced abandons
+without writing.
+
+Regression coverage lives in `mobile/src/shared/infrastructure/sync/`:
+`conflict-resolution.spec.ts` (64 cases running the real service and the real
+outbox against real SQLite built from real migrations 001-007, with
+`inTransaction` mapped to a genuine BEGIN/COMMIT/ROLLBACK),
+`conflict-presenter.spec.ts` (52 cases), `conflict-resolution.scope.spec.ts`
+(11 scope invariants, including that no presentation file reaches SQLite and
+that C-4 ships no route, screen or copy key), plus transport and dashboard
+coverage. **BUG-012 stays Open; C-5 is the next prerequisite.**
+
 | # | Slice | Depends on | API / schema |
 |---|---|---|---|
 | **C-0** | **BUG-014 guard fix** — `hasPendingOpFor` counts `'CONFLICT'`; regression proving a parked conflict survives a pull | — | none |
 | **C-1** | **Per-user scoping + outbox schema + session boundary** (§Decisions 8, 6) — **implemented**: local migration 006 — `user_id` on all three tables, `sync_state` rebuild + composite PK, cursor re-initialisation, entity-type-qualified fail-closed backfill, NULL quarantine, every accessor and call site scoped; **plus the §Decision 6 outbox columns on `sync_conflicts` as dormant schema**, because 006 can never be edited afterwards (no outbox behaviour); **plus the account-isolation boundary scoping depends on** (§Decision 8 addendum below) | C-0 | **local migration** |
 | **C-2** | **Implemented 2026-09-11. Push transaction boundary + conditional write predicate + typed apply outcome** (§Decision 3): a **per-operation transaction** in `processOperation` with `tx` threaded through the idempotency probe, `getServerState`, `apply`, and the re-signatured `recordConflict`/`recordOutcome`; `apply` returning `ApplyOutcome`; the `STALE → recordConflict` branch; the new resolution method and owner-row reader; the **state-specific tombstone predicate**; and the owner + expected-version predicate on existing-row **`UPDATE`/`DELETE`** mutations in place of `where: { id }` (**`CREATE` stays an insert**). **This changes the shared `/sync/push` write path**, so it is *not* a behaviour-free refactor: a race that previously overwrote silently now reports a normal conflict, and a mutation now commits atomically with its terminal outcome. It closes A-15(b)'s TOCTOU **and** the mutation-without-recorded-op-id idempotency hole, and **owns the concurrency, atomicity and late-conflict tests for both** | C-1 | **15 handlers / 9 ports-adapters in the implemented inventory; 13 public resolution seams + 2 dormant medical tx-only conformances; `SyncService` per-op transaction across 5 call sites and 2 helpers; shared with `/sync/push`** |
 | **C-3** | **Implemented 2026-09-11 — server resolve contract** (§Decisions 3, 4, 9, 10, 11): both endpoints, DTOs, throttle, owner scoping, conditional claim, `Serializable` resolution transaction, per-operation semantics, stale outcome, best-effort audit, API e2e | C-2 | **2 endpoints** |
-| **C-4** | **Local resolution service + outbox behaviour** (§Decisions 4, 6, 7, 10) — the columns already exist from C-1: **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts`, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under existing backoff, presenter allow-list. No UI | C-3 | none |
+| **C-4** | **Implemented 2026-09-14 — local resolution service + outbox behaviour** (§Decisions 2, 4, 6, 7, 10): **T1 / T3 / T1′**, guarded local transitions, `listUnsettledConflicts` behind the dashboard count, stale re-review, `RESTORE_UNSUPPORTED` recovery, settling on both `ALREADY_RESOLVED_*` outcomes, status reconciliation that closes a local row only from an **explicit** server status, retry under the existing backoff, and the fail-closed per-entity presenter allow-list over the 13 registered types. No UI, no copy, no schema | C-3 | none |
 | **C-5** | **Copy deck slice**: word the key families of §Decision 15 in EN/ES | C-4 | none |
 | **C-6** | **`/sync-conflicts` route** + dashboard labelled button + Web-unavailable arm | C-5 | none |
 | **C-7** | **End-to-end verification**: two-device Maestro journeys, both choices, offline-choose-then-settle, restart mid-settlement, stale re-review | C-6 | none |
@@ -11908,7 +11999,7 @@ authorization**.
 
 What remains is **authorization to implement**, which is a gate, not a design
 question. Acceptance settles the architecture only. **C-0 (BUG-014), C-1,
-C-2 and C-3 are implemented**; **C-4 … C-7 are not authorized**, and each
+C-2, C-3 and C-4 are implemented**; **C-5 … C-7 are not authorized**, and each
 needs its own approval before implementation begins.
 
 ### Supersedes / Preserves

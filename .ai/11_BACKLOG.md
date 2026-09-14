@@ -3383,14 +3383,18 @@ in each asserts exactly that. No resolution affordance was added.
 Status: **Open** — specification authored as ADR-P030 on 2026-09-07, revised
 seven times the same day after review, and **Accepted 2026-09-07**. The
 architecture is authorized. **C-0 (BUG-014), C-1 (per-user scoping), C-2
-(atomic conditional push) and C-3 (server resolve contract) are implemented**;
-**C-4 … C-7 remain unauthorized**. **No owner decision remains open.** Still
-blocked on the remaining per-slice authorizations
+(atomic conditional push), C-3 (server resolve contract) and C-4 (local
+resolution service + outbox behaviour, including the fail-closed presenter
+allow-list) are implemented**; **C-5 … C-7 remain unauthorized**. **No owner
+decision remains open.** The bug stays **Open** because no user-reachable
+resolution path exists yet: C-4 ships no route, screen or copy, so a user still
+cannot resolve a conflict. Still blocked on the remaining per-slice
+authorizations
 Priority: **P1** (raised from P2 — see §Re-audit)
 Type: Bug
 Owner: Unassigned
 Created: 2026-08-28
-Updated: 2026-09-11
+Updated: 2026-09-14
 
 ### Description
 

@@ -6,7 +6,7 @@ import {
   recordMyBodyWeight,
 } from '@/features/progress';
 import { saveMyProfile, setGoal } from '@/features/profile';
-import { countByStatus, listPendingConflicts } from '@/shared/infrastructure/sync';
+import { countByStatus, listUnsettledConflicts } from '@/shared/infrastructure/sync';
 
 import type { DataRequirement } from '../domain/dashboard.types';
 import { buildDashboardAssessment } from './icoach-adapter';
@@ -37,7 +37,7 @@ jest.mock('@/features/profile', () => ({
 }));
 jest.mock('@/shared/infrastructure/sync', () => ({
   countByStatus: jest.fn(() => Promise.resolve({})),
-  listPendingConflicts: jest.fn(() => Promise.resolve([])),
+  listUnsettledConflicts: jest.fn(() => Promise.resolve([])),
 }));
 jest.mock('./icoach-adapter', () => ({
   buildDashboardAssessment: jest.fn(),
@@ -46,7 +46,7 @@ jest.mock('./icoach-adapter', () => ({
 const mockGetSession = jest.mocked(getSession);
 const mockAdapter = jest.mocked(buildDashboardAssessment);
 const mockCounts = jest.mocked(countByStatus);
-const mockConflicts = jest.mocked(listPendingConflicts);
+const mockConflicts = jest.mocked(listUnsettledConflicts);
 
 const NOW = new Date('2026-07-06T12:00:00.000Z');
 
@@ -131,6 +131,27 @@ describe('dashboard service', () => {
     const data = await loadDashboardData(NOW);
 
     expect(data.missing.map((item) => item.id)).toEqual(['profile', 'default-goal', 'default-sex']);
+  });
+
+  it('counts unsettled conflicts, so a recorded choice does not drop the number', async () => {
+    // ADR-P030 Decision 6: a conflict the user has decided is still
+    // outstanding until its settlement round trip completes, so the count
+    // reads the unsettled set rather than the PENDING-only one.
+    mockAdapter.mockReturnValue(incompleteResult());
+    mockConflicts.mockResolvedValue([
+      { id: 'c1', status: 'PENDING', chosen_resolution: null } as never,
+      {
+        id: 'c2',
+        status: 'PENDING',
+        chosen_resolution: 'RESOLVED_LOCAL_WINS',
+        settlement_status: 'PENDING',
+      } as never,
+    ]);
+
+    const data = await loadDashboardData(NOW);
+
+    expect(mockConflicts).toHaveBeenCalledWith('user-1');
+    expect(data.sync.conflicts).toBe(2);
   });
 
   it('maps queue counts and conflicts into the sync summary', async () => {

@@ -198,6 +198,62 @@ export async function listParkedEntityIds(
   return rows.map((row) => row.entity_id);
 }
 
+/**
+ * Terminal park codes that are **not** version conflicts and therefore hold no
+ * resolvable operation (ADR-P030 Decision 12 / BUG-007). A catalog-revision
+ * rejection is parked in the same `'CONFLICT'` queue status, so the code on the
+ * queue row is the only positive evidence separating the two.
+ */
+const NON_CONFLICT_PARK_CODES = ['CATALOG_REVISION_UNSUPPORTED'] as const;
+
+const PARKED_OPERATION_PREDICATE = `user_id = ? AND entity_type = ? AND entity_id = ?
+     AND status = 'CONFLICT'
+     AND (last_error IS NULL OR last_error NOT IN (${NON_CONFLICT_PARK_CODES.map(() => '?').join(',')}))`;
+
+/**
+ * The retained local operation a conflict is asking the user about (ADR-P030
+ * Decision 9), or null when this device does not hold one.
+ *
+ * Null is the **remote-origin** case: the conflict was raised by another
+ * device, which still holds the unredacted payload. `CLIENT_WINS` cannot be
+ * delivered from here — the only local copy is the server's redacted snapshot,
+ * which must never be replayed — and `SERVER_WINS` cannot either, because the
+ * pending edit lives in the other device's queue.
+ */
+export async function findParkedOperation(
+  userId: string,
+  entityType: string,
+  entityId: string,
+): Promise<SyncQueueRow | null> {
+  return queryFirst<SyncQueueRow>(
+    `SELECT * FROM sync_queue WHERE ${PARKED_OPERATION_PREDICATE} ORDER BY rowid ASC`,
+    [userId, entityType, entityId, ...NON_CONFLICT_PARK_CODES],
+  );
+}
+
+/**
+ * **T3's queue half** (ADR-P030 Decision 6): the server has settled the
+ * conflict, so the parked operation has served its purpose and is dropped —
+ * **never** replaced by a new one. Deliberately not wrapped in its own
+ * transaction; the caller opens one so this commits with the applied row and
+ * the conflict transition.
+ *
+ * @returns the number of parked rows removed.
+ */
+export async function removeParkedOperation(
+  userId: string,
+  entityType: string,
+  entityId: string,
+): Promise<number> {
+  const result = await run(`DELETE FROM sync_queue WHERE ${PARKED_OPERATION_PREDICATE}`, [
+    userId,
+    entityType,
+    entityId,
+    ...NON_CONFLICT_PARK_CODES,
+  ]);
+  return result.changes;
+}
+
 export async function countByStatus(userId: string): Promise<Record<string, number>> {
   const rows = await queryAll<{ status: string; n: number }>(
     `SELECT status, COUNT(*) AS n FROM sync_queue WHERE user_id = ? GROUP BY status`,

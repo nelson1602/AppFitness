@@ -7,7 +7,7 @@ import {
 } from '@/features/progress';
 import { getActiveGoal, getMyProfile, saveMyProfile, setGoal } from '@/features/profile';
 import { resolveWellnessDeclaration } from '@/features/wellness';
-import { countByStatus, listPendingConflicts } from '@/shared/infrastructure/sync';
+import { countByStatus, listUnsettledConflicts } from '@/shared/infrastructure/sync';
 
 import type { DashboardData, SyncSummary } from '../domain/dashboard.types';
 import { buildDashboardAssessment } from './icoach-adapter';
@@ -22,7 +22,11 @@ export async function loadDashboardData(now: Date = new Date()): Promise<Dashboa
       getActiveGoal(session.user.id),
       getMyLatestPhysicalAssessment(),
       countByStatus(session.user.id),
-      listPendingConflicts(session.user.id),
+      // Unsettled, not merely pending (ADR-P030 Decision 6): a conflict the
+      // user has decided but whose settlement has not completed is still
+      // outstanding work, so the count must not drop the instant a choice is
+      // recorded. It falls only when T3 commits.
+      listUnsettledConflicts(session.user.id),
       // ADR-P031 W-4C. Owner-scoped, offline-first and read-only: it consumes
       // the local row plus the relevant PENDING conflict snapshots, so a
       // pending local edit protects the user before anything is pushed.
