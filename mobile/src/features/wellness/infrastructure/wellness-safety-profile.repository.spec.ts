@@ -1,6 +1,7 @@
 // `node:sqlite` is a Node built-in used ONLY by this Node/Jest test (no runtime
 // dependency added); its minimal types live in
 // ../../../shared/infrastructure/database/migrations/node-sqlite.d.ts.
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { DatabaseSync } from 'node:sqlite';
 
 import { MIGRATIONS } from '@/shared/infrastructure/database/migrations';
@@ -73,6 +74,9 @@ const A = '11111111-1111-4111-8111-111111111111';
 const B = '22222222-2222-4222-8222-222222222222';
 const NOW = '2026-09-09T10:00:00.000Z';
 const TODAY = '2026-09-09';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 function insertUser(id: string, email: string): void {
   mockDb
@@ -341,7 +345,7 @@ describe('pull applier requires and verifies the active user', () => {
   });
 
   it('applies the active user own row as synced', async () => {
-    await applyServerWellnessSafetyProfile(serverRow(A), false, A);
+    await applyServerWellnessSafetyProfile(serverRow(A), false, A, mockTx);
 
     expect(profileRow(A)).toMatchObject({
       id: A,
@@ -354,7 +358,7 @@ describe('pull applier requires and verifies the active user', () => {
   });
 
   it('rejects a hostile payload owned by another user, before any write', async () => {
-    await expect(applyServerWellnessSafetyProfile(serverRow(A), false, B)).rejects.toThrow(
+    await expect(applyServerWellnessSafetyProfile(serverRow(A), false, B, mockTx)).rejects.toThrow(
       /user_id: owner-mismatch/,
     );
     expect(rows(`SELECT * FROM wellness_safety_profiles`)).toHaveLength(0);
@@ -362,14 +366,14 @@ describe('pull applier requires and verifies the active user', () => {
 
   it('rejects a payload whose id is not the owner', async () => {
     const spoofed = { ...serverRow(A), id: '33333333-3333-4333-8333-333333333333' };
-    await expect(applyServerWellnessSafetyProfile(spoofed, false, A)).rejects.toThrow(
+    await expect(applyServerWellnessSafetyProfile(spoofed, false, A, mockTx)).rejects.toThrow(
       /id: id-mismatch/,
     );
     expect(rows(`SELECT * FROM wellness_safety_profiles`)).toHaveLength(0);
   });
 
   it('rejects a missing or empty active user rather than defaulting', async () => {
-    await expect(applyServerWellnessSafetyProfile(serverRow(A), false, '')).rejects.toThrow(
+    await expect(applyServerWellnessSafetyProfile(serverRow(A), false, '', mockTx)).rejects.toThrow(
       /requires the active user/,
     );
     await expect(markWellnessSafetyProfileConflict(A, NOW, '')).rejects.toThrow(
@@ -392,7 +396,7 @@ describe('pull applier requires and verifies the active user', () => {
     const before = profileRow(A);
 
     await expect(
-      applyServerWellnessSafetyProfile({ ...serverRow(A), ...overrides }, false, A),
+      applyServerWellnessSafetyProfile({ ...serverRow(A), ...overrides }, false, A, mockTx),
     ).rejects.toThrow();
 
     expect(profileRow(A)).toEqual(before);
@@ -403,6 +407,7 @@ describe('pull applier requires and verifies the active user', () => {
       { ...serverRow(A), deleted_at: NOW, deleted_by: A, version: 5 },
       true,
       A,
+      mockTx,
     );
     expect(profileRow(A)).toMatchObject({ deleted_at: NOW, version: 5, sync_status: 'synced' });
     expect(await getWellnessSafetyProfile(A)).toBeNull();
@@ -419,6 +424,7 @@ describe('pull applier requires and verifies the active user', () => {
       },
       false,
       A,
+      mockTx,
     );
     const stored = await getWellnessSafetyProfile(A);
     expect(stored?.affectedAreas).toEqual([]);
@@ -444,6 +450,7 @@ describe('dormant medical tables stay untouched', () => {
       },
       false,
       A,
+      mockTx,
     );
 
     expect(rows(`SELECT * FROM medical_evaluations`)).toHaveLength(0);

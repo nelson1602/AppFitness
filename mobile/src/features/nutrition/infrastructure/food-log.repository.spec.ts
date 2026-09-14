@@ -1,3 +1,4 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type { MealItemRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
@@ -14,7 +15,7 @@ import {
 } from './food-log.repository';
 
 jest.mock('@/shared/infrastructure/database', () => ({
-  inTransaction: jest.fn(<T>(fn: () => Promise<T>) => fn()),
+  inTransaction: jest.fn(<T>(fn: (tx: unknown) => Promise<T>) => fn(mockTx)),
   queryFirst: jest.fn(),
   queryAll: jest.fn(),
   run: jest.fn(),
@@ -38,6 +39,9 @@ const USER = 'user-1';
 const DATE = '2026-07-13';
 // Real canonical values for 'food.chicken_breast' (Slice 4A committed catalog).
 const CHICKEN_ID = '16cb6cd9-debe-55fd-b39e-aac043b8705e';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 function mealItemRow(overrides: Partial<MealItemRow> = {}): MealItemRow {
   return {
@@ -108,6 +112,7 @@ describe('food-log repository — local-first create (ADR-P012 Slice 4C)', () =>
         sensitive: true,
       },
       NOW,
+      mockTx,
     );
 
     // Parents created locally; catalog food seeded (FK target).
@@ -188,6 +193,7 @@ describe('food-log repository — edit serving_count', () => {
         sensitive: true,
       }),
       NOW,
+      mockTx,
     );
   });
 
@@ -224,6 +230,7 @@ describe('food-log repository — soft delete', () => {
         sensitive: true,
       }),
       NOW,
+      mockTx,
     );
   });
 });
@@ -337,6 +344,7 @@ describe('food-log repository — reads', () => {
         fat_per_serving_snapshot: 4,
       },
       false,
+      mockTx,
     );
 
     const sql = sqlOf('INSERT OR REPLACE INTO meal_items')[0];
@@ -388,6 +396,7 @@ describe('food-log repository — pull applier (server → local reconcile)', ()
         fiber_per_serving_snapshot: 2,
       },
       true,
+      mockTx,
     );
 
     const params = runParams();
@@ -413,6 +422,7 @@ describe('food-log repository — pull applier (server → local reconcile)', ()
         food_id: CHICKEN_ID,
       },
       true,
+      mockTx,
     );
 
     const params = runParams();

@@ -22,7 +22,8 @@ export function registerWellnessSyncAppliers(): void {
 
   registerApplier({
     entityType: WELLNESS_SAFETY_PROFILE_ENTITY,
-    applyServerChange: applyServerWellnessSafetyProfile,
+    applyServerChange: ({ data, deleted, userId, tx }) =>
+      applyServerWellnessSafetyProfile(data, deleted, userId, tx),
     markConflict: markWellnessSafetyProfileConflict,
   });
 }

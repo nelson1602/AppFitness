@@ -1,4 +1,4 @@
-import { run } from '@/shared/infrastructure/database';
+import { rootExecutor, run, type SqlExecutor } from '@/shared/infrastructure/database';
 
 import { BUILT_IN_EXERCISES, getBuiltInExerciseById } from './exercise-catalog.data';
 import type { BuiltInExercise } from '../domain/exercise-catalog';
@@ -20,16 +20,19 @@ const INSERT_SQL = `INSERT OR IGNORE INTO exercises
    (id, created_at, updated_at, version, sync_status, name, muscle_group, category, instructions, created_by)
    VALUES (?, ?, ?, 1, 'synced', ?, ?, ?, NULL, NULL)`;
 
-async function insertBuiltIn(e: BuiltInExercise, nowIso: string): Promise<void> {
-  await run(INSERT_SQL, [e.id, nowIso, nowIso, e.name, e.muscleGroup, e.category]);
+async function insertBuiltIn(e: BuiltInExercise, nowIso: string, tx: SqlExecutor): Promise<void> {
+  await run(INSERT_SQL, [e.id, nowIso, nowIso, e.name, e.muscleGroup, e.category], tx);
 }
 
 /** Seeds every built-in exercise (idempotent). Safe to call at each boot. */
 export async function seedBuiltInExercises(
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
+  // Boot-time seeding runs outside any transaction, so it names the root
+  // connection once rather than letting each write reach for it (BUG-015).
+  const tx = await rootExecutor();
   for (const e of BUILT_IN_EXERCISES) {
-    await insertBuiltIn(e, nowIso);
+    await insertBuiltIn(e, nowIso, tx);
   }
 }
 
@@ -40,10 +43,11 @@ export async function seedBuiltInExercises(
  */
 export async function ensureBuiltInExerciseSeeded(
   id: string,
+  tx: SqlExecutor,
   nowIso: string = new Date().toISOString(),
 ): Promise<boolean> {
   const e = getBuiltInExerciseById(id);
   if (!e) return false;
-  await insertBuiltIn(e, nowIso);
+  await insertBuiltIn(e, nowIso, tx);
   return true;
 }

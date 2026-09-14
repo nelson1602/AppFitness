@@ -10,7 +10,7 @@ import { bodyMeasurementMuscleMassMigration } from '../database/migrations/005-b
 import { syncUserScopingMigration } from '../database/migrations/006-sync-user-scoping';
 import { wellnessSafetyProfileMigration } from '../database/migrations/007-wellness-safety-profile';
 import type { SyncConflictRow } from '../database/types';
-import { getApplier, type EntityApplier } from './appliers';
+import { getApplier, type ApplyServerChangeInput, type EntityApplier } from './appliers';
 import {
   chooseConflictResolution,
   isDeletedSnapshot,
@@ -49,22 +49,69 @@ interface RunResult {
   changes: number | bigint;
 }
 
+/**
+ * **The root connection and the transaction connection are distinct objects.**
+ *
+ * That distinction is the whole point (BUG-015): the real
+ * `withExclusiveTransactionAsync` opens a *separate* native connection and
+ * hands it to the task, so a statement issued through the root one is outside
+ * the transaction. A double where both are the same object cannot detect that,
+ * and would have passed against the defective code.
+ *
+ * Both record what ran on them, so a test can ask which connection carried a
+ * given statement.
+ */
+interface Recorder {
+  readonly label: 'root' | 'tx';
+  readonly statements: string[];
+  runAsync(sql: string, params: unknown[]): Promise<{ changes: number; lastInsertRowId: number }>;
+  getFirstAsync(sql: string, params: unknown[]): Promise<unknown>;
+  getAllAsync(sql: string, params: unknown[]): Promise<unknown[]>;
+}
+
+function makeRecorder(label: 'root' | 'tx'): Recorder {
+  const statements: string[] = [];
+  return {
+    label,
+    statements,
+    runAsync: (sql, params) => {
+      statements.push(sql);
+      const result = mockDb.prepare(sql).run(...params) as RunResult;
+      return Promise.resolve({ changes: Number(result.changes), lastInsertRowId: 0 });
+    },
+    getFirstAsync: (sql, params) => {
+      statements.push(sql);
+      return Promise.resolve(mockDb.prepare(sql).get(...params) ?? null);
+    },
+    getAllAsync: (sql, params) => {
+      statements.push(sql);
+      return Promise.resolve(mockDb.prepare(sql).all(...params));
+    },
+  };
+}
+
+let mockRoot: Recorder;
+let mockTxConn: Recorder;
+
+// Mirrors the real `sql.ts`: the executor argument decides the connection, and
+// its absence falls back to the root one.
 jest.mock('../database', () => ({
-  queryAll: jest.fn((sql: string, params: unknown[] = []) =>
-    Promise.resolve(mockDb.prepare(sql).all(...params)),
+  queryAll: jest.fn((sql: string, params: unknown[] = [], tx?: Recorder) =>
+    (tx ?? mockRoot).getAllAsync(sql, params),
   ),
-  queryFirst: jest.fn((sql: string, params: unknown[] = []) =>
-    Promise.resolve(mockDb.prepare(sql).get(...params) ?? null),
+  queryFirst: jest.fn((sql: string, params: unknown[] = [], tx?: Recorder) =>
+    (tx ?? mockRoot).getFirstAsync(sql, params),
   ),
-  run: jest.fn((sql: string, params: unknown[] = []) => {
-    const result = mockDb.prepare(sql).run(...params) as RunResult;
-    return Promise.resolve({ changes: Number(result.changes), lastInsertRowId: 0 });
-  }),
-  // The real contract: commit on return, roll back on throw.
-  inTransaction: jest.fn(async (fn: () => Promise<unknown>) => {
+  run: jest.fn((sql: string, params: unknown[] = [], tx?: Recorder) =>
+    (tx ?? mockRoot).runAsync(sql, params),
+  ),
+  rootExecutor: jest.fn(() => Promise.resolve(mockRoot)),
+  // The real contract: a separate connection, committed on return and rolled
+  // back on throw.
+  inTransaction: jest.fn(async (fn: (tx: Recorder) => Promise<unknown>) => {
     mockDb.exec('BEGIN');
     try {
-      const result = await fn();
+      const result = await fn(mockTxConn);
       mockDb.exec('COMMIT');
       return result;
     } catch (error) {
@@ -202,15 +249,17 @@ function bodyWeight(id = ENTITY): { weight_kg: number; version: number; sync_sta
 function realisticApplier(overrides: Partial<EntityApplier> = {}): EntityApplier {
   return {
     entityType: 'body_weights',
-    applyServerChange: jest.fn((data: Record<string, unknown>) => {
-      mockDb
-        .prepare(
+    applyServerChange: jest.fn(({ data, tx }: ApplyServerChangeInput) =>
+      // Through the executor it was handed — never a captured connection, so
+      // the write joins T3's transaction and rolls back with it (BUG-015).
+      tx
+        .runAsync(
           `UPDATE body_weights SET weight_kg = ?, version = ?, sync_status = 'synced'
              WHERE id = ?`,
+          [data['weight_kg'] as number, data['version'] as number, data['id'] as string],
         )
-        .run(data['weight_kg'] as number, data['version'] as number, data['id'] as string);
-      return Promise.resolve();
-    }),
+        .then(() => undefined),
+    ),
     markConflict: jest.fn(() => Promise.resolve()),
     ...overrides,
   };
@@ -253,6 +302,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   sessionCurrent = true;
   mockDb = new DatabaseSync(':memory:');
+  mockRoot = makeRecorder('root');
+  mockTxConn = makeRecorder('tx');
   mockDb.exec('PRAGMA foreign_keys = ON');
   for (const migration of MIGRATIONS) {
     for (const statement of migration.statements) mockDb.exec(statement);

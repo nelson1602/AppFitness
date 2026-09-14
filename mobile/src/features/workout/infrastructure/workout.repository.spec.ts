@@ -1,3 +1,4 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type { RoutineRow, WorkoutLogRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
@@ -17,7 +18,7 @@ import {
 } from './workout.repository';
 
 jest.mock('@/shared/infrastructure/database', () => ({
-  inTransaction: jest.fn(<T>(fn: () => Promise<T>) => fn()),
+  inTransaction: jest.fn(<T>(fn: (tx: unknown) => Promise<T>) => fn(mockTx)),
   queryAll: jest.fn(),
   queryFirst: jest.fn(),
   run: jest.fn(),
@@ -35,6 +36,9 @@ const NOW = '2026-07-17T12:00:00.000Z';
 const USER = 'user-1';
 const RID = 'routine-1';
 const LID = 'log-1';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 function routineRow(o: Partial<RoutineRow> = {}): RoutineRow {
   return {
@@ -192,6 +196,7 @@ describe('pull appliers', () => {
     await applyServerRoutine(
       { id: RID, user_id: USER, created_at: NOW, updated_at: NOW, version: 4, name: 'Push day' },
       false,
+      mockTx,
     );
     const [sql] = mockRun.mock.calls[0];
     expect(sql).toContain('INSERT OR REPLACE INTO routines');
@@ -210,6 +215,7 @@ describe('pull appliers', () => {
         started_at: NOW,
       },
       false,
+      mockTx,
     );
     expect(mockRun.mock.calls[0][0]).toContain('INSERT OR REPLACE INTO workout_logs');
   });

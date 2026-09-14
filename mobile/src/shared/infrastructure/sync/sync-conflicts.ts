@@ -1,4 +1,4 @@
-import { inTransaction, queryAll, queryFirst, run } from '../database';
+import { inTransaction, queryAll, queryFirst, run, type SqlExecutor } from '../database';
 import type {
   ConflictResolutionStatus,
   OfferedResolution,
@@ -88,11 +88,13 @@ export async function listUnsettledConflicts(userId: string): Promise<SyncConfli
 export async function findOwnedConflict(
   userId: string,
   id: string,
+  tx?: SqlExecutor,
 ): Promise<SyncConflictRow | null> {
-  return queryFirst<SyncConflictRow>(`SELECT * FROM sync_conflicts WHERE id = ? AND user_id = ?`, [
-    id,
-    userId,
-  ]);
+  return queryFirst<SyncConflictRow>(
+    `SELECT * FROM sync_conflicts WHERE id = ? AND user_id = ?`,
+    [id, userId],
+    tx,
+  );
 }
 
 /**
@@ -113,7 +115,7 @@ export async function chooseResolution(
   choice: OfferedResolution,
   nowIso: string,
 ): Promise<boolean> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const result = await run(
       `UPDATE sync_conflicts
           SET chosen_resolution = ?, chosen_at = ?, settlement_status = 'PENDING',
@@ -123,6 +125,7 @@ export async function chooseResolution(
           AND chosen_resolution IS NULL
           AND (blocked_resolution IS NULL OR blocked_resolution <> ?)`,
       [choice, nowIso, id, userId, choice],
+      tx,
     );
     return result.changes === 1;
   });
@@ -233,6 +236,7 @@ export async function markConflictSettled(
   id: string,
   status: OfferedResolution,
   nowIso: string,
+  tx?: SqlExecutor,
 ): Promise<boolean> {
   const result = await run(
     `UPDATE sync_conflicts
@@ -240,6 +244,7 @@ export async function markConflictSettled(
             next_attempt_at = NULL, last_error = NULL
       WHERE id = ? AND user_id = ? AND settlement_status <> 'SETTLED'`,
     [status, nowIso, id, userId],
+    tx,
   );
   return result.changes === 1;
 }
@@ -266,7 +271,7 @@ export async function refreshConflictComparison(
   serverPayload: Record<string, unknown>,
   serverVersion: number,
 ): Promise<boolean> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const result = await run(
       `UPDATE sync_conflicts
           SET server_payload = ?, server_version = ?,
@@ -276,6 +281,7 @@ export async function refreshConflictComparison(
           AND status = 'PENDING'
           AND settlement_status <> 'SETTLED'`,
       [JSON.stringify(serverPayload), serverVersion, id, userId],
+      tx,
     );
     return result.changes === 1;
   });
@@ -302,7 +308,7 @@ export async function blockResolutionAndRearm(
   blocked: OfferedResolution,
   failureCode: string,
 ): Promise<boolean> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const result = await run(
       `UPDATE sync_conflicts
           SET last_failure_code = ?,
@@ -317,6 +323,7 @@ export async function blockResolutionAndRearm(
           AND status = 'PENDING'
           AND settlement_status <> 'SETTLED'`,
       [failureCode, failureCode, blocked, id, userId],
+      tx,
     );
     return result.changes === 1;
   });

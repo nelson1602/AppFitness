@@ -1,3 +1,4 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import type { WeeklyProgressSnapshot } from '@/features/icoach/domain/progress-analysis';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type {
@@ -25,7 +26,7 @@ import {
 } from './progress.repository';
 
 jest.mock('@/shared/infrastructure/database', () => ({
-  inTransaction: jest.fn(<T>(fn: () => Promise<T>) => fn()),
+  inTransaction: jest.fn(<T>(fn: (tx: unknown) => Promise<T>) => fn(mockTx)),
   queryAll: jest.fn(),
   queryFirst: jest.fn(),
   run: jest.fn(),
@@ -42,6 +43,9 @@ const mockUuid = jest.mocked(generateUuid);
 const NOW = '2026-08-04T12:00:00.000Z';
 const USER = 'user-1';
 const BW_ID = 'bw-1';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 function bwRow(o: Partial<BodyWeightRow> = {}): BodyWeightRow {
   return {
@@ -82,16 +86,13 @@ describe('progress.repository — body_weights', () => {
       1,
       expect.stringMatching(/user_id = \? AND date = \? AND deleted_at IS NULL/),
       [USER, '2026-08-03'],
+      mockTx,
     );
-    expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('INSERT INTO body_weights'), [
-      BW_ID,
-      USER,
-      NOW,
-      NOW,
-      80,
-      '2026-08-03',
-      'x',
-    ]);
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO body_weights'),
+      [BW_ID, USER, NOW, NOW, 80, '2026-08-03', 'x'],
+      mockTx,
+    );
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-1',
@@ -103,6 +104,7 @@ describe('progress.repository — body_weights', () => {
         baseVersion: 0,
       },
       NOW,
+      mockTx,
     );
     expect(result.weightKg).toBe(80);
     expect(result.date).toBe('2026-08-03');
@@ -123,14 +125,11 @@ describe('progress.repository — body_weights', () => {
 
     // No raw UNIQUE-violating INSERT: exactly one write, and it is the UPDATE.
     expect(mockRun).toHaveBeenCalledTimes(1);
-    expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('UPDATE body_weights SET'), [
-      84,
-      '2026-08-03',
-      null,
-      3,
-      NOW,
-      BW_ID,
-    ]);
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE body_weights SET'),
+      [84, '2026-08-03', null, 3, NOW, BW_ID],
+      mockTx,
+    );
     // id-stable: generateUuid used ONLY for the opId, never for a new row id.
     expect(mockUuid).toHaveBeenCalledTimes(1);
     // Offline-first: the queued op is an UPDATE with the prior version as base.
@@ -145,6 +144,7 @@ describe('progress.repository — body_weights', () => {
         baseVersion: 2,
       },
       NOW,
+      mockTx,
     );
     expect(result.id).toBe(BW_ID);
     expect(result.weightKg).toBe(84);
@@ -181,14 +181,11 @@ describe('progress.repository — body_weights', () => {
       NOW,
     );
 
-    expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('UPDATE body_weights SET'), [
-      81,
-      '2026-08-03',
-      null,
-      3,
-      NOW,
-      BW_ID,
-    ]);
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE body_weights SET'),
+      [81, '2026-08-03', null, 3, NOW, BW_ID],
+      mockTx,
+    );
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
         opId: 'op-2',
@@ -200,6 +197,7 @@ describe('progress.repository — body_weights', () => {
         baseVersion: 2,
       },
       NOW,
+      mockTx,
     );
     expect(result?.version).toBe(3);
   });
@@ -221,6 +219,7 @@ describe('progress.repository — body_weights', () => {
     expect(mockRun).toHaveBeenCalledWith(
       expect.stringMatching(/UPDATE body_weights SET deleted_at = \?, deleted_by = \?/),
       [NOW, USER, NOW, BW_ID],
+      mockTx,
     );
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
@@ -233,6 +232,7 @@ describe('progress.repository — body_weights', () => {
         baseVersion: 3,
       },
       NOW,
+      mockTx,
     );
   });
 
@@ -251,10 +251,12 @@ describe('progress.repository — body_weights', () => {
         notes: 'server',
       },
       false,
+      mockTx,
     );
     expect(mockRun).toHaveBeenCalledWith(
       expect.stringMatching(/INSERT OR REPLACE INTO body_weights[\s\S]*'synced'/),
       [BW_ID, USER, NOW, NOW, 4, null, null, 79.5, '2026-08-03', 'server'],
+      mockTx,
     );
   });
 
@@ -315,10 +317,12 @@ describe('progress.repository — progress_snapshots', () => {
     expect(mockQueryFirst).toHaveBeenCalledWith(
       expect.stringMatching(/week_start = \? AND rule_version = \? AND deleted_at IS NULL/),
       [USER, '2026-08-03', '1.1.0'],
+      mockTx,
     );
     expect(mockRun).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO progress_snapshots'),
       [SNAP_ID, USER, NOW, NOW, '2026-08-03', 80, 12000, 2100, 3, 0, '1.1.0'],
+      mockTx,
     );
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
@@ -340,6 +344,7 @@ describe('progress.repository — progress_snapshots', () => {
         baseVersion: 0,
       },
       NOW,
+      mockTx,
     );
     expect(result.id).toBe(SNAP_ID);
     expect(result.isDeloadWeek).toBe(false);
@@ -359,16 +364,11 @@ describe('progress.repository — progress_snapshots', () => {
 
     // id NEVER changes across recompute; generateUuid is only used for the opId.
     expect(mockUuid).toHaveBeenCalledTimes(1);
-    expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('UPDATE progress_snapshots'), [
-      80,
-      15000,
-      2100,
-      3,
-      1,
-      3,
-      NOW,
-      SNAP_ID,
-    ]);
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE progress_snapshots'),
+      [80, 15000, 2100, 3, 1, 3, NOW, SNAP_ID],
+      mockTx,
+    );
     expect(mockEnqueue).toHaveBeenCalledWith(
       expect.objectContaining({
         entityType: 'progress_snapshots',
@@ -383,6 +383,7 @@ describe('progress.repository — progress_snapshots', () => {
         }),
       }),
       NOW,
+      mockTx,
     );
     expect(result.id).toBe(SNAP_ID);
     expect(result.isDeloadWeek).toBe(true);
@@ -418,10 +419,12 @@ describe('progress.repository — progress_snapshots', () => {
         rule_version: '1.1.0',
       },
       false,
+      mockTx,
     );
     expect(mockRun).toHaveBeenCalledWith(
       expect.stringMatching(/INSERT OR REPLACE INTO progress_snapshots[\s\S]*'synced'/),
       [SNAP_ID, USER, NOW, NOW, 5, null, null, '2026-08-03', 79, 13000, 2000, 4, 1, '1.1.0'],
+      mockTx,
     );
   });
 
@@ -475,6 +478,7 @@ describe('progress.repository — body_measurements', () => {
       1,
       expect.stringMatching(/user_id = \? AND date = \? AND deleted_at IS NULL/),
       [USER, '2026-08-03'],
+      mockTx,
     );
     expect(mockEnqueue).toHaveBeenCalledWith(
       {
@@ -499,6 +503,7 @@ describe('progress.repository — body_measurements', () => {
         baseVersion: 0,
       },
       NOW,
+      mockTx,
     );
   });
 
@@ -511,21 +516,11 @@ describe('progress.repository — body_measurements', () => {
     await createBodyMeasurement(USER, { date: '2026-08-03', waistCm: 90 }, NOW);
 
     expect(mockRun).toHaveBeenCalledTimes(1);
-    expect(mockRun).toHaveBeenCalledWith(expect.stringContaining('UPDATE body_measurements SET'), [
-      '2026-08-03',
-      null,
-      null,
-      90,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      3,
-      NOW,
-      'bm-1',
-    ]);
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE body_measurements SET'),
+      ['2026-08-03', null, null, 90, null, null, null, null, null, null, 3, NOW, 'bm-1'],
+      mockTx,
+    );
     expect(mockUuid).toHaveBeenCalledTimes(1);
     expect(mockEnqueue).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -535,6 +530,7 @@ describe('progress.repository — body_measurements', () => {
         baseVersion: 2,
       }),
       NOW,
+      mockTx,
     );
   });
 
@@ -551,6 +547,7 @@ describe('progress.repository — body_measurements', () => {
         muscle_mass_kg: 36,
       },
       false,
+      mockTx,
     );
     const newClientParams = mockRun.mock.calls[0]?.[1];
     expect(Array.isArray(newClientParams)).toBe(true);
@@ -568,6 +565,7 @@ describe('progress.repository — body_measurements', () => {
         date: '2026-08-04',
       },
       false,
+      mockTx,
     );
     const oldClientParams = mockRun.mock.calls[0]?.[1];
     expect(Array.isArray(oldClientParams)).toBe(true);

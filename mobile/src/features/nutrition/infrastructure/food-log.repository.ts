@@ -1,4 +1,10 @@
-import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import {
+  inTransaction,
+  queryAll,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '@/shared/infrastructure/database';
 import type { MealItemRow, MealTypeName } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue, listParkedEntityIds, SYNC_ERROR_CODES } from '@/shared/infrastructure/sync';
@@ -59,10 +65,10 @@ export async function logFood(
   if (!(input.servingCount > 0)) throw new Error('serving count must be positive');
   const snapshot = deriveServingSnapshot(canonical);
 
-  return inTransaction(async () => {
-    const logId = await ensureNutritionLog(userId, input.date, nowIso);
-    const mealId = await ensureMeal(userId, logId, input.mealType, nowIso);
-    await ensureFoodSeeded(canonical, nowIso);
+  return inTransaction(async (tx) => {
+    const logId = await ensureNutritionLog(userId, input.date, nowIso, tx);
+    const mealId = await ensureMeal(userId, logId, input.mealType, nowIso, tx);
+    await ensureFoodSeeded(canonical, nowIso, tx);
 
     const id = generateUuid();
     await run(
@@ -96,6 +102,7 @@ export async function logFood(
         snapshot.fatPerServingSnapshot,
         snapshot.fiberPerServingSnapshot,
       ],
+      tx,
     );
 
     // Server reads only meal_id/food_id/serving_count; snapshot is derived
@@ -112,9 +119,10 @@ export async function logFood(
         sensitive: true,
       },
       nowIso,
+      tx,
     );
 
-    return rowToLoggedItem(await mustReadItem(id), input.mealType);
+    return rowToLoggedItem(await mustReadItem(id, tx), input.mealType);
   });
 }
 
@@ -126,16 +134,18 @@ export async function updateServingCount(
   nowIso: string = new Date().toISOString(),
 ): Promise<LoggedMealItem | null> {
   if (!(servingCount > 0)) throw new Error('serving count must be positive');
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const existing = await queryFirst<MealItemRow>(
       `SELECT * FROM meal_items WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!existing) return null;
 
     await run(
       `UPDATE meal_items SET serving_count = ?, updated_at = ?, sync_status = 'pending' WHERE id = ?`,
       [servingCount, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -149,10 +159,11 @@ export async function updateServingCount(
         sensitive: true,
       },
       nowIso,
+      tx,
     );
 
-    const type = await mealTypeOf(existing.meal_id);
-    return rowToLoggedItem(await mustReadItem(id), type);
+    const type = await mealTypeOf(existing.meal_id, tx);
+    return rowToLoggedItem(await mustReadItem(id, tx), type);
   });
 }
 
@@ -162,10 +173,11 @@ export async function removeMealItem(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const existing = await queryFirst<MealItemRow>(
       `SELECT * FROM meal_items WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!existing) return;
 
@@ -174,6 +186,7 @@ export async function removeMealItem(
          SET deleted_at = ?, deleted_by = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [nowIso, userId, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -187,6 +200,7 @@ export async function removeMealItem(
         sensitive: true,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -229,6 +243,8 @@ export async function listLoggedItems(userId: string, date: string): Promise<Log
 export async function applyServerMealItem(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   await run(
@@ -265,6 +281,7 @@ export async function applyServerMealItem(
       Number(row['fat_per_serving_snapshot'] ?? 0),
       numOrNull(row['fiber_per_serving_snapshot']),
     ],
+    tx,
   );
 }
 
@@ -278,10 +295,16 @@ export async function markMealItemConflict(id: string, nowIso: string): Promise<
 
 // ─── Local parent ensure (not synced in Slice 4C) ────────────────────────────
 
-async function ensureNutritionLog(userId: string, date: string, nowIso: string): Promise<string> {
+async function ensureNutritionLog(
+  userId: string,
+  date: string,
+  nowIso: string,
+  tx: SqlExecutor,
+): Promise<string> {
   const existing = await queryFirst<{ id: string }>(
     `SELECT id FROM nutrition_logs WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
     [userId, date],
+    tx,
   );
   if (existing) return existing.id;
   const id = generateUuid();
@@ -289,6 +312,7 @@ async function ensureNutritionLog(userId: string, date: string, nowIso: string):
     `INSERT INTO nutrition_logs (id, user_id, created_at, updated_at, version, sync_status, date, notes)
      VALUES (?, ?, ?, ?, 1, 'pending', ?, NULL)`,
     [id, userId, nowIso, nowIso, date],
+    tx,
   );
   return id;
 }
@@ -298,11 +322,13 @@ async function ensureMeal(
   nutritionLogId: string,
   type: MealTypeName,
   nowIso: string,
+  tx: SqlExecutor,
 ): Promise<string> {
   const existing = await queryFirst<{ id: string }>(
     `SELECT id FROM meals
       WHERE nutrition_log_id = ? AND type = ? AND deleted_at IS NULL`,
     [nutritionLogId, type],
+    tx,
   );
   if (existing) return existing.id;
   const id = generateUuid();
@@ -312,6 +338,7 @@ async function ensureMeal(
                         nutrition_log_id, type, order_index)
      VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?)`,
     [id, userId, nowIso, nowIso, nutritionLogId, type, orderIndex],
+    tx,
   );
   return id;
 }
@@ -322,7 +349,11 @@ async function ensureMeal(
  * never enqueued — the server already holds the byte-identical revision.
  * INSERT OR IGNORE keeps the immutable revision row stable across logs.
  */
-async function ensureFoodSeeded(food: CanonicalFood, nowIso: string): Promise<void> {
+async function ensureFoodSeeded(
+  food: CanonicalFood,
+  nowIso: string,
+  tx: SqlExecutor,
+): Promise<void> {
   await run(
     `INSERT OR IGNORE INTO foods (
        id, created_at, updated_at, version, sync_status,
@@ -348,21 +379,24 @@ async function ensureFoodSeeded(food: CanonicalFood, nowIso: string): Promise<vo
       food.fatPerServing,
       food.fiberPerServing,
     ],
+    tx,
   );
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-async function mustReadItem(id: string): Promise<MealItemRow> {
-  const row = await queryFirst<MealItemRow>(`SELECT * FROM meal_items WHERE id = ?`, [id]);
+async function mustReadItem(id: string, tx: SqlExecutor): Promise<MealItemRow> {
+  const row = await queryFirst<MealItemRow>(`SELECT * FROM meal_items WHERE id = ?`, [id], tx);
   if (!row) throw new Error('meal_item row disappeared mid-transaction');
   return row;
 }
 
-async function mealTypeOf(mealId: string): Promise<MealTypeName> {
-  const row = await queryFirst<{ type: MealTypeName }>(`SELECT type FROM meals WHERE id = ?`, [
-    mealId,
-  ]);
+async function mealTypeOf(mealId: string, tx: SqlExecutor): Promise<MealTypeName> {
+  const row = await queryFirst<{ type: MealTypeName }>(
+    `SELECT type FROM meals WHERE id = ?`,
+    [mealId],
+    tx,
+  );
   return row?.type ?? 'SNACK';
 }
 

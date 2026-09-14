@@ -1,3 +1,4 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { decryptText, encryptText } from '../../../shared/infrastructure/crypto/field-cipher';
 import { queryAll, queryFirst, run } from '../../../shared/infrastructure/database';
 import type { MedicalEvaluationRow } from '../../../shared/infrastructure/database/types';
@@ -24,7 +25,7 @@ jest.mock('../../../shared/infrastructure/crypto/field-cipher', () => ({
   getFieldKeyId: jest.fn(() => Promise.resolve('device-test')),
 }));
 jest.mock('../../../shared/infrastructure/database', () => ({
-  inTransaction: jest.fn(<T>(fn: () => Promise<T>) => fn()),
+  inTransaction: jest.fn(<T>(fn: (tx: unknown) => Promise<T>) => fn(mockTx)),
   queryAll: jest.fn(),
   queryFirst: jest.fn(),
   run: jest.fn(),
@@ -45,6 +46,9 @@ const mockUuid = jest.mocked(generateUuid);
 const NOW = '2026-07-06T12:00:00.000Z';
 const USER = 'user-1';
 const SECRET_NOTE = 'patient has arrhythmia — avoid HIIT';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 function evaluationRow(overrides: Partial<MedicalEvaluationRow> = {}): MedicalEvaluationRow {
   return {
@@ -238,6 +242,7 @@ describe('medical repository (ADR-0006 + ADR-P001)', () => {
         doctor_notes: SECRET_NOTE,
       },
       false,
+      mockTx,
     );
 
     expect(jest.mocked(encryptText)).toHaveBeenCalledWith(SECRET_NOTE);
@@ -263,6 +268,7 @@ describe('medical repository (ADR-0006 + ADR-P001)', () => {
         notes: 'server note',
       },
       true,
+      mockTx,
     );
 
     const [sql, params] = mockRun.mock.calls[0];

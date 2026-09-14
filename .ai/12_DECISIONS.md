@@ -11608,12 +11608,33 @@ without writing.
 
 Regression coverage lives in `mobile/src/shared/infrastructure/sync/`:
 `conflict-resolution.spec.ts` (64 cases running the real service and the real
-outbox against real SQLite built from real migrations 001-007, with
-`inTransaction` mapped to a genuine BEGIN/COMMIT/ROLLBACK),
+outbox against real SQLite built from real migrations 001-007),
 `conflict-presenter.spec.ts` (52 cases), `conflict-resolution.scope.spec.ts`
 (11 scope invariants, including that no presentation file reaches SQLite and
 that C-4 ships no route, screen or copy key), plus transport and dashboard
 coverage. **BUG-012 stays Open; C-5 is the next prerequisite.**
+
+**Correction (2026-09-14) — C-4's atomicity claim was not proven when written,
+and was in fact false. See BUG-015.** `inTransaction` accepted the task but
+discarded the `txn` argument `withExclusiveTransactionAsync` supplies, and the
+helpers underneath resolved their connection through `getDatabase()`. Expo
+SQLite opens a **separate native connection** for an exclusive transaction
+(`Transaction.createAsync` → `useNewConnection: true`) and runs
+`BEGIN`/`COMMIT`/`ROLLBACK` on it, so every statement inside every callback —
+T1, T1′ and T3 included — executed on the *main* connection: outside the
+transaction, committed independently, surviving the rollback, and liable to
+block on the exclusive lock.
+
+The original suite modelled a BEGIN/COMMIT/ROLLBACK around a single connection
+object, so it could not observe the split and passed against the defect. The
+sentence above has been narrowed accordingly: **those tests proved the
+transitions and their guards, not native transaction atomicity.**
+
+BUG-015 threads the executor end to end and re-establishes the T3 guarantee.
+Its harness keeps the root and transaction connections as **distinct objects**
+and asserts which one carried each statement, so the earlier blind spot cannot
+recur. C-4's behaviour is otherwise unchanged: no schema, migration,
+dependency, API, UI, copy or wire-contract change.
 
 | # | Slice | Depends on | API / schema |
 |---|---|---|---|

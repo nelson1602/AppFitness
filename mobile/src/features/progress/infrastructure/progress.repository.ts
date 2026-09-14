@@ -1,5 +1,11 @@
 import type { WeeklyProgressSnapshot } from '@/features/icoach/domain/progress-analysis';
-import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import {
+  inTransaction,
+  queryAll,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '@/shared/infrastructure/database';
 import type {
   BodyMeasurementRow,
   BodyWeightRow,
@@ -57,10 +63,11 @@ export async function createBodyWeight(
   nowIso: string = new Date().toISOString(),
 ): Promise<BodyWeight> {
   const notes = input.notes ?? null;
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const existing = await queryFirst<BodyWeightRow>(
       `SELECT * FROM body_weights WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
       [userId, input.date],
+      tx,
     );
 
     if (existing) {
@@ -69,6 +76,7 @@ export async function createBodyWeight(
         `UPDATE body_weights SET weight_kg = ?, date = ?, notes = ?, version = ?, updated_at = ?, sync_status = 'pending'
          WHERE id = ?`,
         [input.weightKg, input.date, notes, nextVersion, nowIso, existing.id],
+        tx,
       );
       await enqueue(
         {
@@ -81,10 +89,13 @@ export async function createBodyWeight(
           baseVersion: existing.version,
         },
         nowIso,
+        tx,
       );
-      const updated = await queryFirst<BodyWeightRow>(`SELECT * FROM body_weights WHERE id = ?`, [
-        existing.id,
-      ]);
+      const updated = await queryFirst<BodyWeightRow>(
+        `SELECT * FROM body_weights WHERE id = ?`,
+        [existing.id],
+        tx,
+      );
       if (!updated) throw new Error('body_weight row disappeared mid-transaction');
       return rowToBodyWeight(updated);
     }
@@ -94,6 +105,7 @@ export async function createBodyWeight(
       `INSERT INTO body_weights (id, user_id, created_at, updated_at, version, sync_status, weight_kg, date, notes)
        VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?)`,
       [id, userId, nowIso, nowIso, input.weightKg, input.date, notes],
+      tx,
     );
     await enqueue(
       {
@@ -106,8 +118,13 @@ export async function createBodyWeight(
         baseVersion: 0,
       },
       nowIso,
+      tx,
     );
-    const row = await queryFirst<BodyWeightRow>(`SELECT * FROM body_weights WHERE id = ?`, [id]);
+    const row = await queryFirst<BodyWeightRow>(
+      `SELECT * FROM body_weights WHERE id = ?`,
+      [id],
+      tx,
+    );
     if (!row) throw new Error('body_weight row disappeared mid-transaction');
     return rowToBodyWeight(row);
   });
@@ -136,10 +153,11 @@ export async function updateBodyWeight(
   input: BodyWeightInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<BodyWeight | null> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const row = await queryFirst<BodyWeightRow>(
       `SELECT * FROM body_weights WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return null;
     const notes = input.notes ?? null;
@@ -148,6 +166,7 @@ export async function updateBodyWeight(
       `UPDATE body_weights SET weight_kg = ?, date = ?, notes = ?, version = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [input.weightKg, input.date, notes, nextVersion, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -160,10 +179,13 @@ export async function updateBodyWeight(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
-    const updated = await queryFirst<BodyWeightRow>(`SELECT * FROM body_weights WHERE id = ?`, [
-      id,
-    ]);
+    const updated = await queryFirst<BodyWeightRow>(
+      `SELECT * FROM body_weights WHERE id = ?`,
+      [id],
+      tx,
+    );
     return updated ? rowToBodyWeight(updated) : null;
   });
 }
@@ -173,16 +195,18 @@ export async function deleteBodyWeight(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const row = await queryFirst<BodyWeightRow>(
       `SELECT * FROM body_weights WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return;
     await run(
       `UPDATE body_weights SET deleted_at = ?, deleted_by = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [nowIso, userId, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -195,6 +219,7 @@ export async function deleteBodyWeight(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -202,6 +227,8 @@ export async function deleteBodyWeight(
 export async function applyServerBodyWeight(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   await run(
@@ -220,6 +247,7 @@ export async function applyServerBodyWeight(
       str(row['date']),
       str(row['notes']),
     ],
+    tx,
   );
 }
 
@@ -255,10 +283,11 @@ export async function createBodyMeasurement(
     neck_cm: input.neckCm ?? null,
     notes: input.notes ?? null,
   };
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const existing = await queryFirst<BodyMeasurementRow>(
       `SELECT * FROM body_measurements WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
       [userId, input.date],
+      tx,
     );
 
     if (existing) {
@@ -282,6 +311,7 @@ export async function createBodyMeasurement(
           nowIso,
           existing.id,
         ],
+        tx,
       );
       await enqueue(
         {
@@ -294,10 +324,12 @@ export async function createBodyMeasurement(
           baseVersion: existing.version,
         },
         nowIso,
+        tx,
       );
       const updated = await queryFirst<BodyMeasurementRow>(
         `SELECT * FROM body_measurements WHERE id = ?`,
         [existing.id],
+        tx,
       );
       if (!updated) throw new Error('body_measurement row disappeared mid-transaction');
       return rowToBodyMeasurement(updated);
@@ -325,6 +357,7 @@ export async function createBodyMeasurement(
         p.neck_cm,
         p.notes,
       ],
+      tx,
     );
     await enqueue(
       {
@@ -337,10 +370,12 @@ export async function createBodyMeasurement(
         baseVersion: 0,
       },
       nowIso,
+      tx,
     );
     const row = await queryFirst<BodyMeasurementRow>(
       `SELECT * FROM body_measurements WHERE id = ?`,
       [id],
+      tx,
     );
     if (!row) throw new Error('body_measurement row disappeared mid-transaction');
     return rowToBodyMeasurement(row);
@@ -376,10 +411,11 @@ export async function updateBodyMeasurement(
   input: BodyMeasurementInput,
   nowIso: string = new Date().toISOString(),
 ): Promise<BodyMeasurement | null> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const row = await queryFirst<BodyMeasurementRow>(
       `SELECT * FROM body_measurements WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return null;
     const p = {
@@ -414,6 +450,7 @@ export async function updateBodyMeasurement(
         nowIso,
         id,
       ],
+      tx,
     );
     await enqueue(
       {
@@ -426,10 +463,12 @@ export async function updateBodyMeasurement(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
     const updated = await queryFirst<BodyMeasurementRow>(
       `SELECT * FROM body_measurements WHERE id = ?`,
       [id],
+      tx,
     );
     return updated ? rowToBodyMeasurement(updated) : null;
   });
@@ -440,16 +479,18 @@ export async function deleteBodyMeasurement(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const row = await queryFirst<BodyMeasurementRow>(
       `SELECT * FROM body_measurements WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return;
     await run(
       `UPDATE body_measurements SET deleted_at = ?, deleted_by = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [nowIso, userId, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -462,6 +503,7 @@ export async function deleteBodyMeasurement(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -469,6 +511,8 @@ export async function deleteBodyMeasurement(
 export async function applyServerBodyMeasurement(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   await run(
@@ -495,6 +539,7 @@ export async function applyServerBodyMeasurement(
       num(row['neck_cm']),
       str(row['notes']),
     ],
+    tx,
   );
 }
 
@@ -548,11 +593,12 @@ export async function upsertProgressSnapshot(
   snap: WeeklyProgressSnapshot,
   nowIso: string = new Date().toISOString(),
 ): Promise<ProgressSnapshot> {
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const existing = await queryFirst<ProgressSnapshotRow>(
       `SELECT * FROM progress_snapshots
         WHERE user_id = ? AND week_start = ? AND rule_version = ? AND deleted_at IS NULL`,
       [userId, snap.weekStart, snap.ruleVersion],
+      tx,
     );
     const deload = toSqlBool(snap.isDeloadWeek);
 
@@ -573,6 +619,7 @@ export async function upsertProgressSnapshot(
           nowIso,
           existing.id,
         ],
+        tx,
       );
       await enqueue(
         {
@@ -585,10 +632,12 @@ export async function upsertProgressSnapshot(
           baseVersion: existing.version,
         },
         nowIso,
+        tx,
       );
       const updated = await queryFirst<ProgressSnapshotRow>(
         `SELECT * FROM progress_snapshots WHERE id = ?`,
         [existing.id],
+        tx,
       );
       if (!updated) throw new Error('progress_snapshot row disappeared mid-transaction');
       return rowToProgressSnapshot(updated);
@@ -613,6 +662,7 @@ export async function upsertProgressSnapshot(
         deload,
         snap.ruleVersion,
       ],
+      tx,
     );
     await enqueue(
       {
@@ -625,10 +675,12 @@ export async function upsertProgressSnapshot(
         baseVersion: 0,
       },
       nowIso,
+      tx,
     );
     const row = await queryFirst<ProgressSnapshotRow>(
       `SELECT * FROM progress_snapshots WHERE id = ?`,
       [id],
+      tx,
     );
     if (!row) throw new Error('progress_snapshot row disappeared mid-transaction');
     return rowToProgressSnapshot(row);
@@ -638,6 +690,8 @@ export async function upsertProgressSnapshot(
 export async function applyServerProgressSnapshot(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   await run(
@@ -661,6 +715,7 @@ export async function applyServerProgressSnapshot(
       row['is_deload_week'] === true || row['is_deload_week'] === 1 ? 1 : 0,
       str(row['rule_version']),
     ],
+    tx,
   );
 }
 

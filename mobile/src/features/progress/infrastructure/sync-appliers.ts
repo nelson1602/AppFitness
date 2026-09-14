@@ -25,19 +25,19 @@ export function registerProgressSyncAppliers(): void {
 
   registerApplier({
     entityType: 'body_weights',
-    applyServerChange: applyServerBodyWeight,
+    applyServerChange: ({ data, deleted, tx }) => applyServerBodyWeight(data, deleted, tx),
     markConflict: markBodyWeightConflict,
   });
 
   registerApplier({
     entityType: 'body_measurements',
-    applyServerChange: applyServerBodyMeasurement,
+    applyServerChange: ({ data, deleted, tx }) => applyServerBodyMeasurement(data, deleted, tx),
     markConflict: markBodyMeasurementConflict,
   });
 
   registerApplier({
     entityType: 'progress_snapshots',
-    applyServerChange: applyServerProgressSnapshot,
+    applyServerChange: ({ data, deleted, tx }) => applyServerProgressSnapshot(data, deleted, tx),
     markConflict: markProgressSnapshotConflict,
   });
 }

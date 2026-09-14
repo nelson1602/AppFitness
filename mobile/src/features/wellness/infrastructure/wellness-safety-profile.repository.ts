@@ -1,4 +1,10 @@
-import { inTransaction, queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import {
+  inTransaction,
+  queryAll,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '@/shared/infrastructure/database';
 import type { WellnessSafetyProfileRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
@@ -62,10 +68,11 @@ export async function getWellnessSafetyProfile(
 }
 
 /** Any row for this owner, tombstone included — the singleton slot. */
-async function findSlot(userId: string): Promise<WellnessSafetyProfileRow | null> {
+async function findSlot(userId: string, tx: SqlExecutor): Promise<WellnessSafetyProfileRow | null> {
   return queryFirst<WellnessSafetyProfileRow>(
     `SELECT * FROM wellness_safety_profiles WHERE id = ? AND user_id = ?`,
     [wellnessSafetyProfileId(userId), userId],
+    tx,
   );
 }
 
@@ -92,8 +99,8 @@ export async function saveWellnessSafetyProfile(
   const movements = JSON.stringify(normalized.movementsToAvoid);
   const completed = normalized.evaluationCompleted ? 1 : 0;
 
-  return inTransaction(async () => {
-    const existing = await findSlot(userId);
+  return inTransaction(async (tx) => {
+    const existing = await findSlot(userId, tx);
 
     if (existing) {
       const nextVersion = existing.version + 1;
@@ -104,6 +111,7 @@ export async function saveWellnessSafetyProfile(
                 deleted_at = NULL, deleted_by = NULL, sync_status = 'pending'
           WHERE id = ? AND user_id = ?`,
         [completed, normalized.evaluationDate, areas, movements, nextVersion, nowIso, id, userId],
+        tx,
       );
       await enqueue(
         {
@@ -116,6 +124,7 @@ export async function saveWellnessSafetyProfile(
           baseVersion: existing.version,
         },
         nowIso,
+        tx,
       );
     } else {
       await run(
@@ -124,6 +133,7 @@ export async function saveWellnessSafetyProfile(
             evaluation_completed, evaluation_date, affected_areas, movements_to_avoid)
          VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?)`,
         [id, userId, nowIso, nowIso, completed, normalized.evaluationDate, areas, movements],
+        tx,
       );
       await enqueue(
         {
@@ -139,10 +149,11 @@ export async function saveWellnessSafetyProfile(
           baseVersion: 0,
         },
         nowIso,
+        tx,
       );
     }
 
-    const saved = await findSlot(userId);
+    const saved = await findSlot(userId, tx);
     if (!saved) throw new Error('wellness_safety_profiles row disappeared mid-transaction');
     return decodeStoredProfile(saved, userId);
   });
@@ -159,11 +170,12 @@ export async function softDeleteWellnessSafetyProfile(
   nowIso: string = new Date().toISOString(),
 ): Promise<boolean> {
   const id = wellnessSafetyProfileId(userId);
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     const existing = await queryFirst<WellnessSafetyProfileRow>(
       `SELECT * FROM wellness_safety_profiles
         WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!existing) return false;
 
@@ -172,6 +184,7 @@ export async function softDeleteWellnessSafetyProfile(
           SET deleted_at = ?, deleted_by = ?, version = ?, updated_at = ?, sync_status = 'pending'
         WHERE id = ? AND user_id = ?`,
       [nowIso, userId, existing.version + 1, nowIso, id, userId],
+      tx,
     );
     await enqueue(
       {
@@ -184,6 +197,7 @@ export async function softDeleteWellnessSafetyProfile(
         baseVersion: existing.version,
       },
       nowIso,
+      tx,
     );
     return true;
   });
@@ -218,6 +232,8 @@ export async function applyServerWellnessSafetyProfile(
   data: Record<string, unknown>,
   deleted: boolean,
   userId: string,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   if (!userId) throw new Error('wellness applier requires the active user id');
   const decoded = decodeServerProfile(data, deleted, userId);
@@ -240,6 +256,7 @@ export async function applyServerWellnessSafetyProfile(
       decoded.affectedAreas,
       decoded.movementsToAvoid,
     ],
+    tx,
   );
 }
 

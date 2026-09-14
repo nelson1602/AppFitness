@@ -1,3 +1,4 @@
+import { inertExecutor } from '../../../shared/infrastructure/database/testing/fake-executor';
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type { ExerciseRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
@@ -14,7 +15,8 @@ import {
 } from './exercise.repository';
 
 jest.mock('@/shared/infrastructure/database', () => ({
-  inTransaction: jest.fn(<T>(fn: () => Promise<T>) => fn()),
+  rootExecutor: jest.fn(() => Promise.resolve(mockTx)),
+  inTransaction: jest.fn(<T>(fn: (tx: unknown) => Promise<T>) => fn(mockTx)),
   queryAll: jest.fn(),
   queryFirst: jest.fn(),
   run: jest.fn(),
@@ -31,6 +33,9 @@ const mockUuid = jest.mocked(generateUuid);
 const NOW = '2026-07-21T12:00:00.000Z';
 const USER = 'user-1';
 const EID = 'exercise-1';
+
+/** The database module is mocked here, so no statement reaches this. */
+const mockTx = inertExecutor();
 
 function exerciseRow(o: Partial<ExerciseRow> = {}): ExerciseRow {
   return {
@@ -187,10 +192,10 @@ describe('custom exercises repository', () => {
 
   it('ownedCustomExerciseExists is scoped by id + created_by', async () => {
     mockQueryFirst.mockResolvedValue(exerciseRow());
-    expect(await ownedCustomExerciseExists(USER, EID)).toBe(true);
+    expect(await ownedCustomExerciseExists(USER, EID, mockTx)).toBe(true);
     expect(mockQueryFirst.mock.calls[0][1]).toEqual([EID, USER]);
     mockQueryFirst.mockResolvedValue(null);
-    expect(await ownedCustomExerciseExists(USER, EID)).toBe(false);
+    expect(await ownedCustomExerciseExists(USER, EID, mockTx)).toBe(false);
   });
 });
 
@@ -210,6 +215,7 @@ describe('custom exercises pull appliers', () => {
         deleted_at: null,
       },
       false,
+      mockTx,
     );
     const [sql, params] = mockRun.mock.calls[0];
     expect(sql).toContain('INSERT OR REPLACE INTO exercises');

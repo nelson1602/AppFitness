@@ -1,5 +1,11 @@
 import { encryptText, getFieldKeyId } from '../../../shared/infrastructure/crypto/field-cipher';
-import { inTransaction, queryAll, queryFirst, run } from '../../../shared/infrastructure/database';
+import {
+  inTransaction,
+  queryAll,
+  queryFirst,
+  run,
+  type SqlExecutor,
+} from '../../../shared/infrastructure/database';
 import type { DietaryPreferenceRow } from '../../../shared/infrastructure/database/types';
 import { generateUuid } from '../../../shared/infrastructure/ids';
 import { enqueue } from '../../../shared/infrastructure/sync';
@@ -33,7 +39,7 @@ export async function createDietaryPreference(
   const avoidTag = input.exclusionType === 'avoid_tag' ? (input.avoidTag ?? null) : null;
   const catalogKey = input.exclusionType === 'catalog_key' ? (input.catalogKey ?? null) : null;
 
-  return inTransaction(async () => {
+  return inTransaction(async (tx) => {
     await run(
       `INSERT INTO dietary_preferences (
          id, user_id, created_at, updated_at, version, sync_status,
@@ -51,6 +57,7 @@ export async function createDietaryPreference(
         noteEnc,
         noteEnc ? keyId : null,
       ],
+      tx,
     );
     await enqueue(
       {
@@ -71,11 +78,13 @@ export async function createDietaryPreference(
         sensitive: true,
       },
       nowIso,
+      tx,
     );
 
     const row = await queryFirst<DietaryPreferenceRow>(
       `SELECT * FROM dietary_preferences WHERE id = ?`,
       [id],
+      tx,
     );
     if (!row) throw new Error('dietary preference row disappeared mid-transaction');
     return rowToDietaryPreference(row);
@@ -97,10 +106,11 @@ export async function deleteDietaryPreference(
   id: string,
   nowIso: string = new Date().toISOString(),
 ): Promise<void> {
-  await inTransaction(async () => {
+  await inTransaction(async (tx) => {
     const row = await queryFirst<DietaryPreferenceRow>(
       `SELECT * FROM dietary_preferences WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
       [id, userId],
+      tx,
     );
     if (!row) return;
     await run(
@@ -108,6 +118,7 @@ export async function deleteDietaryPreference(
        SET deleted_at = ?, deleted_by = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
       [nowIso, userId, nowIso, id],
+      tx,
     );
     await enqueue(
       {
@@ -120,6 +131,7 @@ export async function deleteDietaryPreference(
         baseVersion: row.version,
       },
       nowIso,
+      tx,
     );
   });
 }
@@ -128,6 +140,8 @@ export async function deleteDietaryPreference(
 export async function applyServerDietaryPreference(
   data: Record<string, unknown>,
   deleted: boolean,
+  /** The connection this write must land on (BUG-015). */
+  tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
   const keyId = await getFieldKeyId();
@@ -152,6 +166,7 @@ export async function applyServerDietaryPreference(
       noteEnc,
       noteEnc ? keyId : null,
     ],
+    tx,
   );
 }
 
