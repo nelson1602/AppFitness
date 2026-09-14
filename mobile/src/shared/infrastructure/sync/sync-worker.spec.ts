@@ -103,6 +103,13 @@ function fakeTransport(overrides: Partial<SyncTransport> = {}): SyncTransport {
   return {
     push: jest.fn().mockResolvedValue([]),
     pull: jest.fn().mockResolvedValue({ changes: [], nextCursor: 0, hasMore: false }),
+    // The conflict-resolution half of the transport (ADR-P030 C-4) is never
+    // reached by the push/pull worker; stubbed so the stub still satisfies the
+    // full interface.
+    listConflicts: jest
+      .fn()
+      .mockResolvedValue({ conflicts: [], statuses: [], nextCursor: null, hasMore: false }),
+    resolveConflict: jest.fn(),
     ...overrides,
   };
 }
