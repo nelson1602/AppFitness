@@ -180,6 +180,12 @@ not outrank launch blockers.**
 | `BUG-006` Dormant `EvaluationHistory` is unrouted and pushes | **Open** | Dormant-domain defect; medical is decoupled from the public API (`MedicalModule` unmounted), which limits exposure, but the entry remains open. |
 | `TECHDEBT-004` Dormant nutrition schema latent integrity issues | **Open** | Dormant-schema debt. |
 
+**Coverage risk:**
+
+| Item | Status | Note |
+|---|---|---|
+| `RISK-001` A documentation file is a test fixture, but CI path filters exclude it | **Open, P2** | `conflict-catalogue.spec.ts` reads `.ai/19_COPY_DECKS.md` at run time, while `mobile-ci` is filtered on `mobile/**`. A `.ai/`-only commit makes the mobile quality job a **no-op that still reports `pass`**, so that deck can be edited into a broken suite behind green checks. Found while validating this re-gate; the suite was proven green **locally**, not by CI. Not fixed here — the fix is a workflow change. |
+
 **Open functional defects:**
 
 | Item | Status | Note |
@@ -243,6 +249,8 @@ on earlier ones; items within a stage are parallelisable.
 **Stage 3 — refresh engineering evidence on a real candidate (`in-repo`)**
 
 9. `in-repo` — Refresh the **dependency-audit triage** against current lockfiles.
+9a. `in-repo` — Close `RISK-001`: make CI actually exercise the tests that read
+    documentation fixtures, so a green PR means what it appears to mean.
 10. `in-repo` — Re-run the **cloud E2E** suite (gate E1) on the candidate.
 11. `in-repo` — Consider promoting the 14 **conflict journeys** into automated
     coverage, or record explicitly that they stay manual and two-device.

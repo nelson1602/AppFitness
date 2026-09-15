@@ -2511,6 +2511,66 @@ account-notification feature**.
 
 ---
 
+## [RISK-001] A Documentation File Is a Test Fixture, but CI Path Filters Exclude It
+
+Status: **Open**
+Priority: **P2**
+Type: Risk (CI coverage gap)
+Owner: Architecture / CI
+Created: 2026-09-15
+Updated: 2026-09-15
+
+### Description
+
+`mobile/src/features/sync-conflicts/presentation/conflict-catalogue.spec.ts`
+reads **`.ai/19_COPY_DECKS.md`** at run time as a test fixture:
+
+    const DECK = `${__dirname}/../../../../../.ai/19_COPY_DECKS.md`;
+
+It asserts that the shipped `sync.conflicts.*` catalogue matches **exactly** the
+rows that deck tabulates. Editing the deck can therefore fail the mobile suite.
+
+**But `mobile-ci` is path-filtered on `mobile/**`.** A commit that changes only
+`.ai/**` makes the mobile quality job a **no-op that still reports `pass`** —
+"No mobile/** changes in this event — skipping mobile quality checks."
+
+So a documentation-only edit to that deck can break `main` while every required
+check is green.
+
+### Evidence
+
+Found while validating the 2026-09-15 documentation re-gate. That change edited
+`.ai/19_COPY_DECKS.md`; PR CI reported all checks green **having executed no
+mobile test at all** (job log: `No-op (mobile unchanged)`). The suite was proven
+green only by running it locally — **194 suites / 2598 tests** — which is not a
+guarantee the next author will repeat.
+
+### Impact
+
+Low likelihood, moderate consequence: it needs someone to edit one specific
+documentation file, but the failure lands on `main` with a green PR behind it.
+No user-facing or security impact.
+
+### Options (none applied here — this entry records the risk only)
+
+1. Add `.ai/19_COPY_DECKS.md` (or `.ai/**`) to the `mobile-ci` path filter. Simplest;
+   costs a full mobile run on unrelated documentation edits.
+2. Narrow the filter to the specific fixture files tests actually read.
+3. Move the fixture into `mobile/` and have the deck be generated from it, so the
+   test's input lives beside the test.
+4. Accept it and rely on the author running the suite.
+
+**Deliberately not fixed here:** changing a workflow path filter is a CI
+configuration change, and the re-gate that found this was documentation-only.
+
+### Related Documents
+
+- `.github/workflows/mobile-ci.yml`
+- `.ai/19_COPY_DECKS.md`
+- `docs/RELEASE_READINESS.md`
+
+---
+
 ## [FEATURE-012] Azul Payment Integration (post-v1 track — unstarted)
 
 Status: **Proposed — unstarted.** Not authorized, not scoped, not designed.
