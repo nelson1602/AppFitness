@@ -525,9 +525,11 @@ cannot reach them. This is an **absent surface, not an unimplemented treatment**
 which is why the rows above are SHIPPED rather than PROPOSED. It contradicts this
 document's own earlier trigger wording and `.ai/19_COPY_DECKS.md` ("listed
 weight, measurement and snapshot rows"), both of which assumed a measurement list
-that does not exist. **BUG-011 stays open** carrying this residual; closing it
-needs either a measurement list (a design change with no copy in the deck) or a
-corrected acceptance criterion. **Not** absorbed into this slice.
+that does not exist. **BUG-011 is Done (2026-09-15)**, closed on the second of
+the two paths named here — a **corrected acceptance criterion**. The first path,
+a measurement list, was deliberately **not** taken: it is a design change with no
+copy in the deck, and inventing one to satisfy a criterion would have added a
+surface the product does not have. The rows above stay SHIPPED and unchanged.
 
 `TrendBars` and `WeeklySnapshotSummary` are embedded **presentational**
 components with no state source of their own; they render only when the screen
@@ -683,38 +685,37 @@ in this grid is unchanged, no ninth state exists, and no Conflict
 **resolution** was added anywhere — every Conflict treatment stays
 report-only (BUG-012).
 
-**Two owners still have open work that this grid does not track**, and neither is
-a missing treatment:
+**Three owners are recorded here because this grid does not track them**, and
+none was ever a missing treatment. BUG-011 and BUG-012 are now closed; BUG-014
+was closed earlier:
 
-- **BUG-011** stays open on the measurement-listing residual recorded at surface
-  10, footnote ³ — an **absent surface**, not an unimplemented treatment.
-- **BUG-012** stays open: no conflict-**resolution** path exists anywhere. Every
-  **On the quoted spec names.** Four rows quote the live test title
-  *"reports the conflict without offering a resolution (BUG-012 stays open)"*
-  verbatim, because that is the exact name in
-  `DietaryPreferences.spec.tsx`, `FoodLogScreen.spec.tsx`,
-  `ProgressScreen.spec.tsx` and `WorkoutLogScreen.spec.tsx`. Its
-  parenthetical is stale — BUG-012 is **Done** — but **what each test asserts is
-  still correct**: that *that* surface offers no resolution. Renaming a test is a
-  test change and is out of scope for a documentation-only pass, so the
-  quotations are left matching the code.
-
-  Conflict treatment in this grid is **report-only** by design. Its
-  specification now exists as **ADR-P030 (Accepted 2026-09-07)**, which would add
-  one native route (`/sync-conflicts`) as a future **PROPOSED** surface and keeps
-  every treatment in this grid report-only. Acceptance authorized the
-  **architecture only**, and at the time the surface-bearing slices **C-1 … C-7
-  were unauthorized**, so no status in this document changed. *(Since: C-1 … C-7
-  have all shipped. The `/sync-conflicts` route now exists and BUG-012 is
-  **Done** as of 2026-09-15. Every treatment in **this** grid is still
-  report-only, which is why no row's status changes even now.)*
-- **BUG-014** is opened by that same re-audit and is a **defect in this grid's
+- **BUG-011** is **Done** (2026-09-15). Its measurement-listing residual,
+  recorded at surface 10 footnote ³, was an **absent surface** rather than an
+  unimplemented treatment, and it is closed on the second of the two paths that
+  footnote names — a **corrected acceptance criterion**, not a new measurement
+  list. No surface, row, treatment or copy key was added.
+- **BUG-012** is **Done** (2026-09-15). Every Conflict treatment in this grid
+  remains **report-only** by design, which is why no row's status changes. Its
+  specification is **ADR-P030 (Accepted 2026-09-07)**; slices C-0 … C-7 have all
+  shipped, adding one native route (`/sync-conflicts`) that is a **separate
+  surface** from every surface in this grid. Resolution lives there, and the
+  grid's report-only contract is unaffected.
+- **BUG-014** was opened by that same re-audit as a **defect in this grid's
   Conflict premise**, not a new surface: a parked conflict loses pull protection,
   so on one interleaving the local version is silently overwritten while the
   Conflict treatment keeps reporting. Every Conflict row above therefore
   describes a **reported** condition whose underlying "both versions preserved"
   guarantee does not hold until BUG-014 is fixed. No treatment, trigger or status
   in this document changes.
+
+**On the quoted spec names.** Four rows above quote the live test title
+*"reports the conflict without offering a resolution (BUG-012 stays open)"*
+verbatim, because that is the exact name in `DietaryPreferences.spec.tsx`,
+`FoodLogScreen.spec.tsx`, `ProgressScreen.spec.tsx` and
+`WorkoutLogScreen.spec.tsx`. Its parenthetical is stale — BUG-012 is **Done** —
+but **what each test asserts is still correct**: that *that* surface offers no
+resolution. Renaming a test is a test change, so the quotations are left matching
+the code rather than drifting from it.
 
 **SHIPPED — non-conformant: none.** Food Log's Conflict tone was the only one
 and has since shipped conformant (BUG-007): it renders `warning`, and the

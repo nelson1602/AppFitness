@@ -2131,11 +2131,20 @@ recorded; Slice 5 = close-out when the matrix is all PASS/waived.
 
 ### Status
 
-**IN PROGRESS — last reconciled 2026-09-15 against `d498658`. Slices 1–3B-1 and
-4A–4C are implemented, as are W-0 … W-4E (ADR-P017 / ADR-P031) and ADR-P030
-C-0 … C-7 (conflict resolution, BUG-012 Done).** Still open: **W-5**
-(supplements), the complete deterministic workout routine, the bilingual
-product audit, and a fresh publication candidate with its own re-gate.
+**IN PROGRESS — last reconciled 2026-09-15 against `b395070`. Slices 1–3B-1
+and 4A–4C are implemented, as are W-0 … W-4E (ADR-P017 / ADR-P031) and ADR-P030
+C-0 … C-7 (conflict resolution, BUG-012 Done). The complete deterministic
+workout routine is also shipped and user-reachable** — verified in code against
+`.ai/07_ICOACH.md` on 2026-09-15 (`/routines` → `RoutineBuilder` →
+`GeneratedWorkoutPlan`: weekly schedule, recovery days, selection, sets,
+repetitions or duration, rest, progression, equipment-compatible substitutions,
+goal adaptation, declared-movement exclusions, deterministic versioned output,
+offline availability and localized presentation). **BUG-011 is Done**, closed by
+correcting its acceptance criterion rather than adding a measurement surface the
+product does not have. Still open: the **exhaustive bilingual surface audit** and
+the **bilingual quality review**, then a fresh publication candidate with its own
+re-gate. **W-5 (optional supplement education) remains unimplemented and does
+NOT block public v1.**
 Owner-approved under ADR-P017. Slice 2 adds the Spanish/English localization
 foundation, supported
 device-language resolution, English fallback, persisted in-app selector,

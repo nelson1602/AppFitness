@@ -1017,7 +1017,7 @@ leaving **none outstanding**:
 | BUG-009 | 2 | Progress-card Error distinct from Empty | **SHIPPED** |
 | BUG-007 | 5 | Food Log Conflict distinct from catalog incompatibility | **SHIPPED** |
 | BUG-008 | 6 | Food Log add/edit/remove failures distinct from load failure | **SHIPPED** |
-| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | **SHIPPED** — all 10 keys land; BUG-011 stays open on a measurement-listing residual, not on copy |
+| BUG-011 | 10 | Pending/Conflict row reporting across Workout, Preferences and Progress | **SHIPPED** — all 10 keys land. BUG-011 is **Done** (2026-09-15); its measurement-listing residual was never a copy gap, and it was closed by correcting the acceptance criterion rather than adding a list this deck has no keys for |
 | UX-4B | 7 | Advisory first-run checklist | **SHIPPED** |
 | UX-4A | 2 | Direct Food Log dashboard shortcut | **SHIPPED** |
 

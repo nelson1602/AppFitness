@@ -10535,9 +10535,12 @@ correction, not a behaviour change.
 
 #### A-14 — BUG-011 residual, and why reporting ≠ resolution
 
-BUG-011 stays open on one residual: `bodyMeasurements` reaches the Progress UI
-only as a count and an aggregated trend series, so no measurement **row** exists
-to carry a hint — an **absent surface**, not an unimplemented treatment. The
+BUG-011 was open at this audit on one residual: `bodyMeasurements` reaches the
+Progress UI only as a count and an aggregated trend series, so no measurement
+**row** exists to carry a hint — an **absent surface**, not an unimplemented
+treatment. *(BUG-011 is **Done** as of 2026-09-15, closed by correcting its
+acceptance criterion rather than adding a measurement list; the analysis below
+is unchanged and is why that was the right close.)* The
 distinction generalises: **reporting is per-row and per-feature**, so it needs a
 rendered row; **resolution is per-conflict**, and conflict rows exist regardless
 of whether any screen lists the entity. A conflict-scoped surface therefore
