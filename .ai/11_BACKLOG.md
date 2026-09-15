@@ -972,12 +972,14 @@ for full context, decisions D1–D6, and architecture references.
 
 ## [FEATURE-009] Public-v1 Wellness Rebaseline and Bilingual Product Completion
 
-Status: In Progress (Slices 1–3B-1 and 4A–4B implemented; later slices pending authorization)
+Status: In Progress (Slices 0–3B-1, 4A–4C and W-0 … W-4E implemented; W-5, the
+complete deterministic workout routine, the bilingual product audit and the
+fresh release candidate remain)
 Priority: P0
 Type: Feature
 Owner: Product / Architecture
 Created: 2026-08-10
-Updated: 2026-08-10
+Updated: 2026-09-15
 
 ### Description
 
@@ -1163,11 +1165,12 @@ that build would contradict the owner's clarified product intent.
       write, sync operation, enqueue, audit entry, log or crash report, and
       renders no raw token, count, date, missing pattern or conflict payload.
       **W-4E** is the documentation closure delivering this reconciliation.
-      **Still open, deliberately:** BUG-012 conflict **resolution** (ADR-P030
-      C-3 … C-7 stay unauthorized); the manual screen-reader / keyboard /
+      **Still open, deliberately:** the manual screen-reader / keyboard /
       large-text pass (UX-4C); the `features/wellness/domain`
       `collectCoverageFrom` decision; and **W-5 supplements**, which need their
-      own ADR and legal review.
+      own ADR and qualified legal/domain review. *(BUG-012 conflict
+      **resolution** was listed here as open; ADR-P030 C-3 … C-7 have since all
+      shipped and **BUG-012 is Done** as of 2026-09-15.)*
 - [x] Public-v1 iCoach does not read the dormant medical domain.
 - [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.
@@ -2508,6 +2511,115 @@ account-notification feature**.
 
 ---
 
+## [FEATURE-012] Azul Payment Integration (post-v1 track — unstarted)
+
+Status: **Proposed — unstarted.** Not authorized, not scoped, not designed.
+Priority: P3 (post-v1)
+Type: Feature
+Owner: Product / Architecture / Security
+Created: 2026-09-15
+Updated: 2026-09-15
+
+### Why this entry exists
+
+Azul has been named repeatedly as out of scope — ADR-P031 §14, the W-4E closure
+and the Phase 21 roadmap all list "payment / Azul" among the things they do not
+touch. Nothing in the repository defines what it would be. This entry gives that
+recurring exclusion a home so it stops being an unowned aside, and records what
+would have to be decided **before** any implementation slice could be proposed.
+
+**Nothing here authorizes work.** There is no payment code, dependency,
+endpoint, table, secret or provider account in the repository today, and this
+entry adds none.
+
+### What must be decided first (all owner/product, none technical-only)
+
+1. **Product scope** — what is actually sold: one-time purchase, subscription,
+   tiering, or in-app content. This determines whether store billing rules apply
+   at all, and Google Play / App Store policy may **require** their own billing
+   for digital content rather than a third-party processor. That policy question
+   is prior to every technical choice below.
+2. **An accepted ADR** — payment touches money, identity and retention, so it
+   cannot ride on an existing ADR. It needs its own, covering the provider
+   contract, the data actually stored, and what is deliberately never stored.
+3. **Security and compliance review** — PCI scope and how it is minimised
+   (hosted fields / redirect / tokenisation so card data never reaches the API),
+   what the API may persist, key custody and rotation, audit obligations, and
+   how this interacts with the health-data posture already in `.ai/05_SECURITY.md`.
+4. **Webhook and idempotency design** — settlement is asynchronous. Delivery is
+   at-least-once, out-of-order and replayable, so it needs signature
+   verification, an idempotency key per intent, a durable state machine, and a
+   reconciliation path for the provider disagreeing with local state. The
+   existing sync idempotency work (ADR-P030 C-2) is a precedent for the *shape*
+   of that guarantee, not a substitute for it.
+5. **UX and failure semantics** — currency and locale presentation in EN/ES,
+   refund and cancellation flows, dunning, receipts, what a user sees when a
+   charge is pending or fails, and what happens to access during each state.
+6. **Offline posture** — the app is offline-first. Purchase and entitlement are
+   the one area where optimistic local state is unsafe, so the boundary has to
+   be stated explicitly rather than inherited.
+
+### Non-Goals
+
+- Selecting a provider, SDK or dependency in this entry.
+- Implying v1 publication depends on this. It does not.
+
+---
+
+## [FEATURE-013] W-5 Supplement Education (optional track — unstarted)
+
+Status: **Proposed — unstarted, optional.** Not authorized. Requires its own
+accepted ADR **and** qualified legal/domain review before any slice.
+Priority: P3 (optional, post-v1)
+Type: Feature
+Owner: Product / Architecture / Legal
+Created: 2026-09-15
+Updated: 2026-09-15
+
+### Why this entry exists
+
+W-5 is the last slice of the ADR-P017 W-0 … W-5 Wellness Safety Profile plan.
+W-0 … W-4 have shipped; **W-5 has not, and is deliberately optional.** It is
+referenced in ADR-P017, ADR-P031 and FEATURE-009 but has no entry of its own.
+This records its constraints so they cannot drift.
+
+### Hard constraints (from ADR-P017; not negotiable at implementation time)
+
+W-5 is **educational and food-first only**. If it ships, it must:
+
+- give **no dosage of any kind**, in any unit, range, frequency or duration;
+- make **no diagnosis** and no assessment of deficiency, need or status;
+- give **no medication-interaction advice**, and no interaction advice at all;
+- recommend **no brand, product, retailer or specific supplement**;
+- prefer **whole-food sources** in every case where one exists;
+- defer to a **qualified professional** on any uncertainty, limitation, allergy,
+  health concern, medication question or symptom — mandatory, not advisory;
+- never describe the user as safe, cleared, deficient, at risk, or medically fit,
+  matching the wording discipline W-3 already enforces;
+- stay **computationally inert** with respect to iCoach unless a separate
+  accepted ADR says otherwise — it must not silently become an engine input the
+  way `movementsToAvoid` is.
+
+### What must be decided first
+
+1. **Its own accepted ADR**, as ADR-P017 requires — scope, storage (if any),
+   rule versioning, and the exact boundary against dietary advice.
+2. **Qualified legal review**, and separately **qualified nutrition-domain
+   review**. The precedent is W-4's retracted area → movement mapping: a draft
+   that was not repository-provable was withdrawn rather than shipped, and the
+   same bar applies here.
+3. **Regulatory posture** — whether any wording could be read as a health claim
+   in the target markets, which is a legal question, not an engineering one.
+4. **Whether it ships at all.** "Optional" is a real option: declining W-5 is a
+   valid outcome and costs the product nothing already promised.
+
+### Non-Goals
+
+- Authoring any supplement content in this entry.
+- Treating W-5 as a prerequisite for v1. It is not.
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation
@@ -2904,7 +3016,8 @@ could therefore not have been made correct. The fix starts at the read:
 - Ten regression specs. The tone assertions read the **rendered colour** against
   `lightTheme.colors`, not a prop name, so the rule cannot regress silently.
 
-**BUG-012 remains open and is explicitly preserved.** This slice makes a
+**BUG-012 remained open at the time of this slice and was explicitly
+preserved** *(it is **Done** as of 2026-09-15)*. This slice makes a
 conflict *legible*; it does not make it *resolvable*. No resolution affordance
 was added here or anywhere else, the Conflict copy carries no CTA, and the spec
 *"reports the conflict without offering a resolution (BUG-012 stays open)"*
@@ -3951,8 +4064,8 @@ rolls back as one).
 
 **Scope:** no schema, migration, dependency, API, UI, copy or wire-contract
 change, and medical stays dormant. **BUG-012 remained Open at the time of this
-fix, with ADR-P030 C-5 through C-7 unimplemented** (C-5 and C-6 have since
-shipped; C-7 remains).
+fix, with ADR-P030 C-5 through C-7 unimplemented** (C-5, C-6 and C-7 have all
+since shipped, and BUG-012 is **Done** as of 2026-09-15).
 
 ## [BUG-014] A Parked Conflict Loses Pull Protection, So the Local Version Can Be Silently Overwritten
 
@@ -4037,7 +4150,8 @@ No pull overwrites a row whose operation is parked in conflict.
       does not strand rows permanently.
 - [x] Queue status vocabulary is unchanged; no new status, column or migration.
 - [x] No change to the reporting surfaces, so BUG-011's report-only specs still
-      pass and **BUG-012 remains open**.
+      pass and **BUG-012 remained open** at the time of this fix *(Done
+      2026-09-15)*.
 
 ### Scope
 
@@ -4049,7 +4163,7 @@ resolution UI is ever built.
 
 **Authorization.** ADR-P030 was **Accepted 2026-09-07**, and **C-0 is separately
 authorized** to be implemented. That authorization covers **this predicate and
-its regressions only**; **C-1 … C-7 remain unauthorized**, so no scoping
+its regressions only**; **C-1 … C-7 were unauthorized at the time**, so no scoping
 migration, resolve endpoint, handler refactor, copy or UI may be started under
 it.
 
@@ -4079,10 +4193,11 @@ unchanged.
   those entities gain pull protection too. That is consistent — a parked op is
   unshipped local work either way — and Food Log's remove-and-re-add remedy
   still clears them.
-- **Scope held:** this closes BUG-014 only. **BUG-012 stays open**, and
-  **ADR-P030 slices C-1 … C-7 remain unimplemented and unauthorized** — no
+- **Scope held:** this closes BUG-014 only. **BUG-012 was still open**, and
+  **ADR-P030 slices C-1 … C-7 were then unimplemented and unauthorized** — no
   scoping migration, resolve endpoint, handler refactor, copy or UI is included
-  here.
+  here. *(Since: C-1 … C-7 have all shipped and BUG-012 is **Done** as of
+  2026-09-15.)*
 
 **Validated:** 37 focused sync tests; full mobile suite **151 suites / 1389
 tests** with coverage thresholds met; TypeScript, lint and formatting clean.

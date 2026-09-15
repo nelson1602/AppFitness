@@ -2131,8 +2131,13 @@ recorded; Slice 5 = close-out when the matrix is all PASS/waived.
 
 ### Status
 
-**IN PROGRESS 2026-08-11 — Slices 1–3B-1 and 4A–4C implemented.** Owner-approved under
-ADR-P017. Slice 2 adds the Spanish/English localization foundation, supported
+**IN PROGRESS — last reconciled 2026-09-15 against `d498658`. Slices 1–3B-1 and
+4A–4C are implemented, as are W-0 … W-4E (ADR-P017 / ADR-P031) and ADR-P030
+C-0 … C-7 (conflict resolution, BUG-012 Done).** Still open: **W-5**
+(supplements), the complete deterministic workout routine, the bilingual
+product audit, and a fresh publication candidate with its own re-gate.
+Owner-approved under ADR-P017. Slice 2 adds the Spanish/English localization
+foundation, supported
 device-language resolution, English fallback, persisted in-app selector,
 shared formatting helpers, and a translated authentication proof surface.
 Slice 3 moves public dashboard/iCoach weight and body-fat inputs to the wellness
@@ -2182,10 +2187,11 @@ engine only from an `available` read, the assessment's own
 canonical **Error** treatments for unreadable data and insufficient catalogue
 coverage, with **7** new EN/ES keys (**904** each, full parity). No schema,
 migration, API, dependency or external-configuration change was involved in
-either slice. **W-4E** is the documentation closure. BUG-012 conflict
-**resolution**, the manual accessibility pass, the wellness-domain coverage
-decision, W-5, Azul/payment work and the comprehensive security/release audit
-all stay open and separately gated.
+either slice. **W-4E** is the documentation closure. *(BUG-012 conflict
+**resolution** was open when this was written; ADR-P030 C-0 … C-7 have since
+shipped and BUG-012 is **Done** as of 2026-09-15.)* The manual accessibility
+pass, the wellness-domain coverage decision, W-5, Azul/payment work and the
+comprehensive security/release audit all stay open and separately gated.
 Slice 4A localizes the existing deterministic 15-day meal-plan presentation in
 English and Spanish (including portions, macro summaries, preference
 exclusions, baseline gaps, errors, disclaimer, and accessibility) while keeping
