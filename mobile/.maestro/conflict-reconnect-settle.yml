@@ -1,0 +1,56 @@
+# ADR-P030 C-7 journey 4b — the stored choice settles on reconnect.
+#
+# Precondition, and the reason this flow has no `launchApp`: it runs directly
+# after `conflict-restart-recovery` on the same device, in the app process
+# that flow left running. Maestro's `launchApp` force-stops before it starts,
+# which is the very thing `conflict-restart-recovery` exists to prove on its
+# own; repeating it here would collapse two journeys into one and leave the
+# in-process reconnect unproven. `openLink` brings the running app forward
+# without stopping it.
+#
+# The driver restores `adb reverse tcp:3001 tcp:3001` immediately before this
+# flow, and nothing else changes. There is no background drain on reconnect:
+# the resolution outbox is drained by the review surface's own retry control.
+# The dashboard's "Sync now" drives the entity sync queue, not the conflict
+# outbox, so this is the shipped way a user finishes an interrupted round trip.
+#
+# The driver must also let the settlement backoff elapse before this flow.
+# The outbox uses the shipped exponential schedule (backoff.ts: 30s x
+# 2^attempts), so the one failed offline attempt puts this row ~60s out.
+# Draining earlier is a legitimate no-op — listSettlementDue simply returns no
+# due row, the card is unchanged and no notice is shown. Tapping into that
+# window would test the retry policy, not the reconnect.
+#
+# What it proves (§Decision 7): the choice taken with no connectivity is not
+# re-entered. It stands, and one retry finishes the round trip.
+appId: com.appfitness.mobile
+---
+- openLink: appfitness://sync-conflicts
+- extendedWaitUntil:
+    visible: 'Changes to review'
+    timeout: 60000
+
+# Still outstanding when connectivity returns, and still reassuring.
+- assertVisible:
+    id: 'conflict-card-0'
+- assertVisible: "We'll try again shortly"
+- assertVisible: "Your choice is safe and still counts. We just couldn't reach your account this time."
+
+# Nothing is asked again — the standing choice is what settles.
+- assertNotVisible: "Keep this device's version"
+- assertNotVisible: "Keep my account's version"
+
+- scrollUntilVisible:
+    element:
+      id: 'conflict-retry-0'
+- tapOn:
+    id: 'conflict-retry-0'
+
+# T3 applies the standing answer and the conflict leaves the unsettled set.
+- extendedWaitUntil:
+    visible: 'All set'
+    timeout: 90000
+- assertVisible: 'This record now matches on this device and in your account.'
+- assertNotVisible:
+    id: 'conflict-card-0'
+- assertVisible: 'Nothing to review'

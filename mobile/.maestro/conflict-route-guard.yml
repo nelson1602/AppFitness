@@ -1,0 +1,29 @@
+# ADR-P030 C-7 journey 10 (device half) — the route's own session guard.
+#
+# `/sync-conflicts` is session-guarded like every other feature route. Signed
+# out, a direct deep link must land on the auth surface — never on another
+# account's decisions, and never on an empty review screen that implies there
+# is nothing to decide.
+appId: com.appfitness.mobile
+---
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element: 'Sign out'
+- tapOn: 'Sign out'
+- extendedWaitUntil:
+    visible: 'Sign in to continue.'
+    timeout: 60000
+
+# The route exists and is addressable; the guard is what stops it.
+- openLink: appfitness://sync-conflicts
+- extendedWaitUntil:
+    visible: 'Sign in to continue.'
+    timeout: 60000
+- assertNotVisible: 'Changes to review'
+- assertNotVisible: 'Nothing to review'
+- assertNotVisible: "Keep this device's version"

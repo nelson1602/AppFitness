@@ -1,0 +1,56 @@
+# ADR-P030 C-7 journey 1 — two-device conflict, reviewed on the losing device.
+#
+# Runs after the device pushed a stale edit and the server refused it. Proves
+# the dashboard entry (§Decision 1) and the review surface (§Decision 2): the
+# record is named by kind, the field by its label, both sides in text, and the
+# stored token values read as localized words rather than storage identifiers.
+appId: com.appfitness.mobile
+---
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+
+# The banner reports; the button navigates. Both must be present, and the
+# banner must not be the thing that moves you.
+- extendedWaitUntil:
+    visible: 'Conflicts pending'
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-sync-conflicts'
+- assertVisible: 'Review changes'
+- tapOn:
+    id: 'dashboard-sync-conflicts'
+
+# The review surface.
+- extendedWaitUntil:
+    visible: 'Changes to review'
+    timeout: 60000
+- assertVisible:
+    text: 'The same record changed here and in your account.*'
+- assertVisible:
+    id: 'conflict-card-0'
+
+# Named by kind and field, never by an id.
+- assertVisible: 'Wellness profile'
+- assertVisible: 'Body areas to treat carefully'
+- assertVisible: 'Different'
+
+# Both sides read in text, with localized token values.
+- assertVisible:
+    text: 'On this device: ${C7_LOCAL_LABEL}'
+- assertVisible:
+    text: 'Saved in your account: ${C7_SERVER_LABEL}'
+
+# Consequences are stated before either choice is offered.
+- assertVisible: 'Nothing changes until you choose.'
+- assertVisible: "Keep this device's version"
+- assertVisible: "Keep my account's version"
+
+# Nothing internal is ever drawn.
+- assertNotVisible: 'wellness_safety_profiles'
+- assertNotVisible: 'affected_areas'
+- assertNotVisible: 'RESOLVED_LOCAL_WINS'
+- assertNotVisible: '[REDACTED]'

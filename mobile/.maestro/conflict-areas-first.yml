@@ -1,0 +1,47 @@
+# ADR-P030 C-7 — create this account's wellness safety profile on a device.
+#
+# The wellness safety profile is the entity these journeys diverge: it is
+# reachable from the dashboard on every run and holds exactly one row per
+# account. `affected_areas` is an allow-listed **tokens** field, so a later
+# divergence renders as localized labels rather than raw storage tokens —
+# which exercises C-6's vocabulary as well as its comparison.
+#
+#   maestro --device <serial> test -e C7_AREA=knee .maestro/conflict-areas-first.yml
+appId: com.appfitness.mobile
+---
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-wellness-safety'
+- tapOn:
+    id: 'dashboard-wellness-safety'
+- extendedWaitUntil:
+    visible: 'Evaluation and limitations'
+    timeout: 60000
+
+- tapOn:
+    id: 'option-evaluationCompleted-no'
+- scrollUntilVisible:
+    element:
+      id: 'wellness-area-${C7_AREA}'
+- tapOn:
+    id: 'wellness-area-${C7_AREA}'
+- scrollUntilVisible:
+    element:
+      id: 'wellness-save'
+- tapOn:
+    id: 'wellness-save'
+
+# The write is local-first: it succeeds with or without connectivity. Its
+# confirmation wording depends on whether the write also synced, so the
+# assertion is on the outcome node rather than one of its three titles.
+- scrollUntilVisible:
+    element:
+      id: 'wellness-saved'
+    direction: UP
+    timeout: 60000

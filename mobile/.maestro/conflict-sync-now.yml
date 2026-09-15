@@ -1,0 +1,31 @@
+# ADR-P030 C-7 — drain the sync queue from the dashboard.
+#
+# The product ships no background scheduler, so "Sync now" is how a device
+# pushes and pulls. Every journey uses this rather than reaching into the
+# worker, so what runs is the shipped path.
+appId: com.appfitness.mobile
+---
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+# Gate on the dashboard data load: "Sync now" lives inside the same
+# `{data ? ... }` block as the sync banner, so scrolling for it before that
+# read resolves would run to the bottom and stop. The skeleton is the
+# skeleton's 'Loading content' accessibility label, which clears in every
+# sync state. This narrows the race rather than closing it: the check can
+# still run before the skeleton mounts, in which case the scroll reaches the
+# bottom and the control renders above the viewport. The driver retries that
+# specific selector and reports the retry.
+- extendedWaitUntil:
+    notVisible: 'Loading content'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element: 'Sync now'
+- tapOn: 'Sync now'
+# The control reports progress; wait for it to settle before moving on.
+- extendedWaitUntil:
+    visible: 'Sync now'
+    timeout: 90000

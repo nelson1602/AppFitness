@@ -1,0 +1,67 @@
+# ADR-P030 C-7 journey 4a — choose with no connectivity.
+#
+# The loopback is dropped before this flow, so the device cannot reach the
+# API. §Decision 7: the choice is recorded locally and the round trip happens
+# later — the surface must say that, and must not claim completion.
+#
+# The card lands on **retrying**, not on "your choice is saved". T1 records the
+# choice and the outbox is drained immediately; that attempt fails offline, so
+# §Decision 6 marks the row FAILED and it becomes due again after the backoff.
+# "Your choice is saved" exists only in the instant between those two steps,
+# which is not a state a device test can honestly wait for. Both wordings say
+# the same reassuring thing — the choice is safe and still counts.
+appId: com.appfitness.mobile
+---
+# Self-contained: it opens the review surface itself rather than relying on a
+# previous flow having left it there. The dashboard and the surface both read
+# from the local database, so this navigation works with no connectivity.
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+# Gate on the dashboard data load. The entry button exists only once the
+# dashboard's own read resolves; the subtitle asserted above is header
+# chrome and is on screen while the skeleton still is. The sync banner
+# comes from that same read, so waiting for it means the scroll below can
+# never run past an entry that has not rendered yet.
+#
+# Note the banner still reads "Conflicts pending" here, not "Offline":
+# dropping the loopback makes the API unreachable, it does not take the
+# device off the network, so sync status never reaches its offline branch.
+# The review surface still reports being offline, because the resolution
+# attempt fails at transport level and C-4 maps that to the offline outcome.
+- extendedWaitUntil:
+    visible: 'Conflicts pending'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-sync-conflicts'
+- tapOn:
+    id: 'dashboard-sync-conflicts'
+- extendedWaitUntil:
+    visible: 'Changes to review'
+    timeout: 60000
+- assertVisible:
+    id: 'conflict-card-0'
+- tapOn:
+    id: 'conflict-choose-${C7_SIDE}-0'
+
+# Truthful about both halves: stored here now, finished when connected.
+- extendedWaitUntil:
+    visible: "You're offline"
+    timeout: 90000
+- assertVisible: "You can still choose now. We'll save it on this device and finish when you're connected again."
+
+# Still outstanding, and reassuring rather than alarming.
+- assertVisible:
+    id: 'conflict-card-0'
+- assertVisible: "We'll try again shortly"
+- assertVisible: "Your choice is safe and still counts. We just couldn't reach your account this time."
+- assertNotVisible: 'All set'
+- assertNotVisible: "We couldn't save your choice"
+
+# The choice is not offered again — it stands.
+- assertNotVisible: "Keep this device's version"
+- assertNotVisible: "Keep my account's version"

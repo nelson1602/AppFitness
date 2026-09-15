@@ -1,0 +1,49 @@
+# ADR-P030 C-7 journey 9 (device half) — one account cannot see another's.
+#
+# This device is signed into account A. Account B has an outstanding conflict
+# of its own, created through the public contract. §Decision 8 scopes every
+# read to the owner, so A's surface must show nothing at all.
+appId: com.appfitness.mobile
+---
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+# Gate on the dashboard data load: "Sync now" lives inside the same
+# `{data ? ... }` block as the sync banner, so scrolling for it before that
+# read resolves would run to the bottom and stop. The skeleton is the
+# skeleton's 'Loading content' accessibility label, which clears in every
+# sync state. This narrows the race rather than closing it: the check can
+# still run before the skeleton mounts, in which case the scroll reaches the
+# bottom and the control renders above the viewport. The driver retries that
+# specific selector and reports the retry.
+- extendedWaitUntil:
+    notVisible: 'Loading content'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element: 'Sync now'
+- tapOn: 'Sync now'
+- extendedWaitUntil:
+    visible: 'Sync now'
+    timeout: 90000
+
+# No entry point appears, because this account has nothing to decide.
+- assertNotVisible:
+    id: 'dashboard-sync-conflicts'
+- assertNotVisible: 'Conflicts pending'
+
+# And reaching the surface directly shows an honest empty state, not the
+# other account's record.
+- openLink: appfitness://sync-conflicts
+- extendedWaitUntil:
+    visible: 'Nothing to review'
+    timeout: 60000
+# Prefix match: the shipped empty-state body is one text node that continues
+# past this sentence, and assertVisible is exact by default.
+- assertVisible:
+    text: 'Your records match on this device and in your account.*'
+- assertNotVisible:
+    id: 'conflict-card-0'
+- assertNotVisible: 'Wellness profile'

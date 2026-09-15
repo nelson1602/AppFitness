@@ -1,0 +1,66 @@
+# ADR-P030 C-7 journey 8 — the record was deleted in the account.
+#
+# This device holds a pending edit for a record the account has since removed.
+# §Decision 3 requires the user be told plainly that it was deleted elsewhere
+# and that keeping their version brings it back — before either choice.
+#
+# The outcome asserted here is not "whichever happens". It is the one this
+# entity's handler actually produces, read from the repository:
+# `WellnessSafetyProfileRepository.resolve` matches the existing singleton row
+# with `deletedAt: { not: null }` and writes `deletedAt: null, deletedBy: null`
+# for a non-DELETE resolution. The restore is an `updateMany` on a row that is
+# already there — no insert, so the unique-constraint path that raises
+# `RESTORE_UNSUPPORTED` cannot be reached for `wellness_safety_profiles`.
+#
+# The restore therefore SUCCEEDS, and this flow fails if it does not. Accepting
+# either outcome would let a silently broken restore pass.
+appId: com.appfitness.mobile
+---
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+
+# Gate on the dashboard data load. The entry button exists only once the
+# dashboard's own read resolves; the subtitle asserted above is header
+# chrome and is on screen while the skeleton still is. The sync banner
+# comes from that same read, so waiting for it means the scroll below can
+# never run past an entry that has not rendered yet.
+- extendedWaitUntil:
+    visible: 'Conflicts pending'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-sync-conflicts'
+- tapOn:
+    id: 'dashboard-sync-conflicts'
+- extendedWaitUntil:
+    visible: 'Changes to review'
+    timeout: 60000
+
+# The consequence is stated before the choice.
+- assertVisible: 'Deleted in your account'
+- assertVisible: "This record was removed somewhere else. Keeping this device's version brings it back."
+- assertVisible: "Keep this device's version"
+
+- tapOn:
+    id: 'conflict-choose-local-0'
+
+# The one correct outcome for this entity: the record comes back and settles.
+- extendedWaitUntil:
+    visible: 'All set'
+    timeout: 90000
+- assertVisible: 'This record now matches on this device and in your account.'
+- assertNotVisible:
+    id: 'conflict-card-0'
+- assertVisible: 'Nothing to review'
+
+# The refusal arm must NOT appear: for this entity it would be a regression,
+# not an acceptable alternative.
+- assertNotVisible: "We can't bring this one back"
+
+# Nothing internal was drawn.
+- assertNotVisible: 'RESTORE_UNSUPPORTED'
+- assertNotVisible: 'wellness_safety_profiles'
