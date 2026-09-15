@@ -3437,7 +3437,8 @@ rather than silently tolerated.
 
 ## [BUG-012] No Conflict Resolution Path Exists in Public V1
 
-Status: **Resolved 2026-09-15** — specification authored as ADR-P030 on
+Status: **Done** (2026-09-15 — verified end to end by ADR-P030 C-7; see
+Resolution) — specification authored as ADR-P030 on
 2026-09-07, revised seven times the same day after review, and **Accepted
 2026-09-07**. **C-0 (BUG-014), C-1 (per-user scoping), C-2 (atomic conditional
 push), C-3 (server resolve contract), C-4 (local resolution service + outbox
@@ -3445,6 +3446,8 @@ behaviour, including the fail-closed presenter allow-list), C-5 (the 152-key
 EN/ES `sync.conflicts.*` copy deck), C-6 (the `/sync-conflicts` route, the
 dashboard entry button and the catalogue import) and C-7 (end-to-end
 verification) are all implemented.** **No owner decision remains open.**
+
+### Resolution
 
 **What closes it.** C-7 drove fourteen Maestro journeys across two Android
 emulators against a disposable local stack and passed all ten authorized
