@@ -107,6 +107,126 @@ Maestro install (no admin): unzip the GitHub release
 (`mobile-dev-inc/maestro` → `maestro.zip`) and run `bin/maestro` with a
 JDK 17+ on PATH.
 
+## Conflict resolution — ADR-P030 C-7
+
+The conflict journeys are the one part of this suite that needs **two
+devices**: a conflict is by definition two clients disagreeing about the same
+record, and no single-device run can produce one honestly.
+
+**One journey is the exception, and it is not a shortcut.**
+`conflict-loser-standing` is a **concurrent public-client race**, not a second
+app device. The server records every conflict with `create`, so each stale push
+mints its own id, and a client only ever reconciles ids it already holds
+(`listConflicts({ ids })`). Two app devices therefore **cannot** share one
+conflict id, while `ALREADY_RESOLVED_*` is keyed on exactly that id. Staged
+with a second device the journey would produce a stale comparison or a plain
+successful claim — never the standing-decision outcome it exists to prove. It
+is staged instead with another client of the **same owner**, over the same
+public endpoint, deciding that device's own conflict id first.
+
+```
+maestro --device <A> test -e E2E_EMAIL=… -e E2E_PASSWORD=… .maestro/conflict-signin.yml
+maestro --device <B> test -e E2E_EMAIL=… -e E2E_PASSWORD=… .maestro/conflict-signin.yml
+```
+
+Both emulators need `adb reverse tcp:3001 tcp:3001`, and it must be
+**re-applied before each flow**: Maestro resets port forwarding for the device
+it drives, and a device that silently loses the loopback simply queues its
+writes instead of failing, which looks like a product bug and is not one.
+
+| Flow | What it proves |
+|---|---|
+| `conflict-signin` | Signs a disposable account in on one device, from a cleared state |
+| `conflict-areas-first` | Creates the account's wellness safety profile on a device |
+| `conflict-areas-swap` | Moves one allow-listed **tokens** value, so a divergence renders as localized labels |
+| `conflict-sync-now` | Drains the queue through the shipped "Sync now" control |
+| `conflict-review-open` | Dashboard entry + the review surface: record kind, field label, both sides in text, no identifiers |
+| `conflict-choose` | Records either resolution and settles it |
+| `conflict-offline-choice` | A choice with no connectivity: stored here, finished later |
+| `conflict-reconnect-settle` | The stored choice settles on reconnect without being re-entered |
+| `conflict-restart-recovery` | A settlement outstanding across a process force-stop |
+| `conflict-stale` | The account moved after the review: refused, refreshed, re-reviewed |
+| `conflict-loser-standing` | First choice wins through the public-client race above, and the losing device is told which side stands |
+| `conflict-deleted-elsewhere` | The deletion disclosure, and the **one** restore outcome this entity actually produces |
+| `conflict-isolation-device` | One account's surface shows nothing of another's |
+| `conflict-route-guard` | `/sync-conflicts` redirects a signed-out visitor |
+
+### Ordering: the offline, restart and reconnect triple
+
+These three run back to back on the same device, in this order, and the order
+is part of what they prove:
+
+1. `conflict-offline-choice` — loopback dropped first. The choice is recorded
+   and the immediate drain fails, leaving it retryable.
+2. `conflict-restart-recovery` — **still offline.** It issues an explicit
+   `stopApp` so the process death is caused by the test rather than inherited
+   from `launchApp`'s implicit stop, then asserts the choice survived in the
+   local database and is not offered again.
+3. **Let the settlement backoff elapse (~60s), then** `conflict-reconnect-settle`
+   — loopback restored, and **no `launchApp`**, so
+   it runs in the process the previous flow left alive. That keeps the
+   in-process reconnect distinct from the restart above; `openLink` brings the
+   running app forward without stopping it.
+
+The backoff wait is not padding. The resolution outbox uses the shipped
+exponential schedule (`backoff.ts`: 30s × 2^attempts), so the single failed
+offline attempt puts that row roughly a minute out. Draining it earlier is a
+legitimate no-op — `listSettlementDue` returns no due row, the card is
+unchanged and no notice appears — so tapping into that window would be testing
+the retry policy rather than the reconnect.
+
+A single combined flow cannot prove both: whichever one it restarts for, the
+other is left unproven. (An earlier `conflict-retry-settle` tried to carry both
+and proved neither honestly; it is replaced by the two flows above.) There is
+no background drain on reconnect either — the resolution outbox is drained by
+the review surface's own retry control, because the dashboard's "Sync now"
+drives the entity sync queue, not the conflict outbox.
+
+### Why the restore outcome is asserted exactly
+
+`conflict-deleted-elsewhere` asserts that the record **comes back**, and fails
+if it does not. That is not a guess between two acceptable endings:
+`WellnessSafetyProfileRepository.resolve` matches the existing singleton row
+with `deletedAt: { not: null }` and writes `deletedAt: null, deletedBy: null`
+for a non-`DELETE` resolution. The restore is an `updateMany` over a row that
+is already present — no insert — so the unique-constraint path that raises
+`RESTORE_UNSUPPORTED` is unreachable for `wellness_safety_profiles`. Accepting
+"either outcome" here would let a silently broken restore pass.
+
+### The harness
+
+`e2e/c7-conflicts.mjs` sits *around* the journeys, never inside them. It uses
+the same public contracts the app does — register, login, `/sync/push`,
+`/sync/pull`, `/sync/conflicts` — to create disposable accounts, act as a
+legitimate **third client** where a journey needs the account to move at a
+controlled moment, and read server state back so a device-side outcome can be
+checked against what the account actually holds.
+
+Its `decide-first` command is the third client for the race above: it resolves
+one conflict id as `SERVER_WINS`, which carries no payload and leaves the entity
+version untouched, so the device's stored comparison stays fresh and the
+outcome it meets is the standing decision rather than a stale one.
+
+Two things it deliberately does not do. It never sends a `deviceId`: that
+column is foreign-keyed to a registered device, and a harness that invents one
+is rejected — the app registers its own. And it never prints a token, password,
+payload or raw response: `redact()` is the only channel to stdout, and it emits
+versions, counts, statuses and synthetic token names only.
+
+It caches its session in the OS temp directory between invocations, because a
+client signs in once and keeps its session. Logging in per command turns a
+handful of checks into a burst that `/auth`'s throttle (120 / 15 min,
+ADR-P020) correctly refuses — the rate limiter working, not a defect.
+
+### Why the wellness safety profile
+
+These journeys diverge `wellness_safety_profiles`. It is reachable from the
+dashboard on every run, holds exactly one row per account, and its
+`affected_areas` is an allow-listed **tokens** field — so the comparison
+exercises C-6's localization vocabulary as well as its field rendering. The
+profile and goal surfaces are reachable only through a first-run data gap,
+which closes once answered, so neither can be edited repeatedly.
+
 ## CI
 
 `.github/workflows/mobile-e2e.yml` (manual `workflow_dispatch`) runs the

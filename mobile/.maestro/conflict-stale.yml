@@ -1,0 +1,71 @@
+# ADR-P030 C-7 journey 6 — the account moved after the review.
+#
+# A third client changed the account between this device's review and its
+# choice. §Decision 10: the server refuses the stale comparison, C-4 refreshes
+# it and returns the conflict to undecided, and the user must look again. The
+# refused choice must NOT be applied and must NOT survive as a standing one.
+appId: com.appfitness.mobile
+---
+# Self-contained: this flow opens the review surface itself rather than
+# relying on a previous one having left it there. Both screens read from the
+# local database, so the navigation also works with no connectivity.
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+# Gate on the dashboard data load. The entry button exists only once the
+# dashboard's own read resolves; the subtitle asserted above is header
+# chrome and is on screen while the skeleton still is. The sync banner
+# comes from that same read, so waiting for it means the scroll below can
+# never run past an entry that has not rendered yet.
+- extendedWaitUntil:
+    visible: 'Conflicts pending'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-sync-conflicts'
+- tapOn:
+    id: 'dashboard-sync-conflicts'
+- extendedWaitUntil:
+    visible: 'Changes to review'
+    timeout: 60000
+
+- assertVisible:
+    id: 'conflict-card-0'
+- tapOn:
+    id: 'conflict-choose-${C7_SIDE}-0'
+
+# Refused, and said plainly.
+- extendedWaitUntil:
+    visible: 'This changed again'
+    timeout: 90000
+- assertVisible:
+    text: 'Your account has newer information than what you reviewed.*'
+- assertVisible: 'Review again'
+
+# Nothing was applied and nothing stands: the conflict is choosable afresh.
+- assertNotVisible: 'All set'
+- assertNotVisible: 'Your choice is saved'
+
+- tapOn:
+    id: 'sync-conflicts-review-again'
+- extendedWaitUntil:
+    visible:
+      id: 'conflict-card-0'
+    timeout: 60000
+
+# The refreshed comparison shows the account's NEW value, and both choices
+# are on the table again.
+- assertVisible:
+    text: 'Saved in your account: ${C7_SERVER_LABEL}'
+- assertVisible: "Keep this device's version"
+- assertVisible: "Keep my account's version"
+
+# A newly reviewed choice succeeds.
+- tapOn:
+    id: 'conflict-choose-${C7_SIDE}-0'
+- extendedWaitUntil:
+    visible: 'All set'
+    timeout: 90000

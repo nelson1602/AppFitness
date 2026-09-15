@@ -1,0 +1,36 @@
+# ADR-P030 C-7 — sign a disposable account in on one device.
+#
+# Shared entry point for every conflict journey. Clears state first, so each
+# device starts from a known-empty local database: the conflicts a journey
+# then observes can only be the ones that journey created.
+#
+#   maestro --device <serial> test -e E2E_EMAIL=... -e E2E_PASSWORD=... \
+#     .maestro/conflict-signin.yml
+appId: com.appfitness.mobile
+---
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible: 'AppFitness'
+    timeout: 90000
+- assertVisible: 'Sign in to continue.'
+
+- tapOn:
+    id: 'input-email'
+- inputText: ${E2E_EMAIL}
+- hideKeyboard
+- tapOn:
+    id: 'input-password'
+- inputText: ${E2E_PASSWORD}
+- hideKeyboard
+# The route header and the submit control share the label "Sign in"; the
+# header is index 0. Targeting the control by index keeps the tap on the
+# button rather than on the title.
+- tapOn:
+    text: 'Sign in'
+    index: 1
+
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000

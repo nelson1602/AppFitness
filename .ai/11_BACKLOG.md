@@ -3378,17 +3378,91 @@ in each asserts exactly that. No resolution affordance was added.
 
 ---
 
+## [OBS-C7-1] "Try now" is a silent no-op inside the settlement backoff window
+
+Status: **Open**
+Priority: **P3**
+Type: Observation (UX)
+Owner: Unassigned
+Created: 2026-09-15
+
+Found by the **ADR-P030 C-7** verification campaign, on device, against a
+disposable local stack.
+
+The resolution outbox honours the shipped exponential backoff
+(`shared/infrastructure/sync/backoff.ts`: 30s × 2^attempts, capped at 1h). A
+choice recorded with no connectivity fails its immediate drain, which schedules
+the row roughly a minute out. Until then `listSettlementDue` returns no due row,
+so pressing the card's **Try now** control runs `settlePendingResolutions`,
+matches nothing, produces no per-conflict event, and therefore sets no notice:
+the card is unchanged and the user gets **no feedback at all**.
+
+Nothing is wrong with the retry policy, and no data is at risk — the choice is
+safe, still counted, and settles on the next due attempt. The gap is only that
+a deliberate user action can appear to do nothing. A disabled control, a
+"we'll retry shortly" acknowledgement, or a countdown would all close it.
+
+**Not a C-7 defect and not fixed by it.** C-7's
+`conflict-reconnect-settle` journey waits the window out so it tests the
+reconnect rather than the retry policy; the wait is documented in the flow
+header and in `mobile/e2e/README.md`.
+
+## [OBS-C7-2] Dashboard read can fail once on a launch that follows a force-stop during sync
+
+Status: **Open**
+Priority: **P3**
+Type: Observation (robustness)
+Owner: Unassigned
+Created: 2026-09-15
+
+Found by the **ADR-P030 C-7** verification campaign. Observed **once** across
+five full campaign runs, on a launch immediately after the app was force-stopped
+shortly after a sync that had just recorded a conflict.
+
+That launch rendered the dashboard's canonical **Error** treatment
+("Dashboard unavailable" / "Your dashboard could not be loaded right now.")
+instead of its data. Relaunching on the same device with identical local and
+server state loaded normally and every later journey passed, so the state was
+not corrupted and nothing was lost.
+
+No root cause is claimed. The suspicion — **unverified** — is contention or
+journal recovery on the local SQLite database when the process is killed near a
+sync write; `logError` output is not retained in the release build, so no
+diagnostic was captured. Reproducing it would need a debug build with the store's
+error surfaced, which is outside C-7's scope.
+
+Recorded rather than absorbed: the C-7 driver retries this specific condition
+**once** and reports the retry in its matrix, so a rate change would be visible
+rather than silently tolerated.
+
 ## [BUG-012] No Conflict Resolution Path Exists in Public V1
 
-Status: **Open** — specification authored as ADR-P030 on 2026-09-07, revised
-seven times the same day after review, and **Accepted 2026-09-07**. The
-architecture is authorized. **C-0 (BUG-014), C-1 (per-user scoping), C-2
-(atomic conditional push), C-3 (server resolve contract), C-4 (local
-resolution service + outbox behaviour, including the fail-closed presenter
-allow-list), C-5 (the 152-key EN/ES `sync.conflicts.*` copy deck) and C-6 (the
-`/sync-conflicts` route, the dashboard entry button and the catalogue import)
-are implemented**; **C-7 remains unauthorized**. **No owner decision remains
-open.** A user-reachable resolution path now exists: the dashboard shows an
+Status: **Done** (2026-09-15 — verified end to end by ADR-P030 C-7; see
+Resolution) — specification authored as ADR-P030 on
+2026-09-07, revised seven times the same day after review, and **Accepted
+2026-09-07**. **C-0 (BUG-014), C-1 (per-user scoping), C-2 (atomic conditional
+push), C-3 (server resolve contract), C-4 (local resolution service + outbox
+behaviour, including the fail-closed presenter allow-list), C-5 (the 152-key
+EN/ES `sync.conflicts.*` copy deck), C-6 (the `/sync-conflicts` route, the
+dashboard entry button and the catalogue import) and C-7 (end-to-end
+verification) are all implemented.** **No owner decision remains open.**
+
+### Resolution
+
+**What closes it.** C-7 drove fourteen Maestro journeys across two Android
+emulators against a disposable local stack and passed all ten authorized
+requirements in a single traceable run, with every device-side outcome checked
+against what the account actually holds. The user action `.ai/08_UI_UX.md`
+requires for the Conflict state — *"Review and choose"*, recovered by *"An
+explicit user decision"* — is now reachable, and both choices were proven to
+settle exactly once and in the right direction: keep-account left the account
+row untouched, keep-this-device applied the device's value, and neither was
+ever silently overwritten. The offline choice survived an explicit process
+force-stop and settled on reconnect without being re-entered; a stale
+comparison was refused, refreshed and re-reviewed; a decision taken first
+elsewhere was converged to rather than overturned; a record deleted in the
+account was restored; and one account's conflicts stayed invisible and
+unresolvable to another. A user-reachable resolution path now exists: the dashboard shows an
 explicit labelled button whenever unsettled conflicts remain, the route reviews
 each one inline over the C-4 service and fail-closed presenter, and all 152
 C-5 keys that survived review are in both catalogues, with the seven C-6

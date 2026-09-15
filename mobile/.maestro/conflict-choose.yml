@@ -1,0 +1,48 @@
+# ADR-P030 C-7 journeys 2 and 3 — record a resolution and let it settle.
+#
+#   maestro --device <serial> test -e C7_SIDE=local  .maestro/conflict-choose.yml
+#   maestro --device <serial> test -e C7_SIDE=account .maestro/conflict-choose.yml
+#
+# The surface is already open on the review screen.
+appId: com.appfitness.mobile
+---
+# Self-contained: this flow opens the review surface itself rather than
+# relying on a previous one having left it there. Both screens read from the
+# local database, so the navigation also works with no connectivity.
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+# Gate on the dashboard data load. The entry button exists only once the
+# dashboard's own read resolves; the subtitle asserted above is header
+# chrome and is on screen while the skeleton still is. The sync banner
+# comes from that same read, so waiting for it means the scroll below can
+# never run past an entry that has not rendered yet.
+- extendedWaitUntil:
+    visible: 'Conflicts pending'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-sync-conflicts'
+- tapOn:
+    id: 'dashboard-sync-conflicts'
+- extendedWaitUntil:
+    visible: 'Changes to review'
+    timeout: 60000
+
+- assertVisible:
+    id: 'conflict-card-0'
+- tapOn:
+    id: 'conflict-choose-${C7_SIDE}-0'
+
+# T1 records the choice, the outbox drains, T3 applies the answer and the
+# conflict leaves the unsettled set — so the confirmation replaces the card.
+- extendedWaitUntil:
+    visible: 'All set'
+    timeout: 90000
+- assertVisible: 'This record now matches on this device and in your account.'
+- assertNotVisible:
+    id: 'conflict-card-0'
+- assertVisible: 'Nothing to review'

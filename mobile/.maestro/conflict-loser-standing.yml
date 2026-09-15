@@ -1,0 +1,69 @@
+# ADR-P030 C-7 journey 7 — first choice wins, and the loser is told which.
+#
+# A **concurrent public-client race**, not a second app device. The server
+# records each conflict with `create`, so every stale push mints its own id,
+# and a client only ever reconciles ids it already holds — two app devices can
+# never share one conflict id, and `ALREADY_RESOLVED_*` is keyed on that id.
+# Setting this up with a second device would produce a stale comparison or a
+# plain successful claim, never the standing-decision outcome under test.
+#
+# So the race is run the only way it can honestly happen: another client of the
+# **same owner**, over the same public endpoint, resolves THIS device's own
+# conflict id first (`SERVER_WINS`, which carries no payload and leaves the
+# entity version untouched, so the device's stored comparison stays fresh).
+# This device then chooses the OPPOSITE side and meets
+# `ALREADY_RESOLVED_OPPOSITE_CHOICE`.
+#
+# §Decision 4: the first decision is not overturned. This device converges to
+# it through T3 and says so, naming the side that stands in the same words the
+# cards use — here "Saved in your account".
+appId: com.appfitness.mobile
+---
+# Self-contained: this flow opens the review surface itself rather than
+# relying on a previous one having left it there. Both screens read from the
+# local database, so the navigation also works with no connectivity.
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+# Gate on the dashboard data load. The entry button exists only once the
+# dashboard's own read resolves; the subtitle asserted above is header
+# chrome and is on screen while the skeleton still is. The sync banner
+# comes from that same read, so waiting for it means the scroll below can
+# never run past an entry that has not rendered yet.
+- extendedWaitUntil:
+    visible: 'Conflicts pending'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-sync-conflicts'
+- tapOn:
+    id: 'dashboard-sync-conflicts'
+- extendedWaitUntil:
+    visible: 'Changes to review'
+    timeout: 60000
+
+- assertVisible:
+    id: 'conflict-card-0'
+- tapOn:
+    id: 'conflict-choose-${C7_SIDE}-0'
+
+- extendedWaitUntil:
+    visible: 'Already decided'
+    timeout: 90000
+- assertVisible:
+    text: 'This one was decided somewhere else first.*'
+
+# The standing side is named, in text.
+- assertVisible:
+    id: 'sync-conflicts-standing-side'
+- assertVisible: '${C7_STANDING_LABEL}'
+
+# The stored resolution is never shown in its stored form.
+- assertNotVisible: 'RESOLVED_SERVER_WINS'
+- assertNotVisible: 'RESOLVED_LOCAL_WINS'
+
+# It is settled, not left hanging.
+- assertVisible: 'Nothing to review'

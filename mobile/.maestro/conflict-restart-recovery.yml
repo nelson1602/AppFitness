@@ -1,0 +1,67 @@
+# ADR-P030 C-7 journey 5 — a settlement outstanding across a process force-stop.
+#
+# Runs directly after `conflict-offline-choice`, still with no connectivity:
+# the choice is recorded on this device and the round trip has not happened.
+# This flow kills the app process outright and brings it back.
+#
+# `stopApp` is explicit rather than left to `launchApp`'s implicit stop. The
+# process death is the thing under test, so the flow causes it itself instead
+# of inheriting it from a launch that would have happened anyway — a test that
+# only ever restarts incidentally cannot claim to have proven recovery.
+#
+# What it proves (§Decision 6): the standing choice lives in the local
+# database, not in memory. After the restart the conflict is still counted,
+# the choice still stands, and the user is not asked to decide again. A
+# re-offer here would mean the choice had been lost; an "All set" here would
+# mean it had been reported complete without ever reaching the account.
+appId: com.appfitness.mobile
+---
+- stopApp
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+
+# Still counted: the dashboard entry is driven by the unsettled set, and a
+# recorded-but-unsettled choice does not drop out of it before T3 commits.
+# Gate on the dashboard data load. The entry button exists only once the
+# dashboard's own read resolves; the subtitle asserted above is header
+# chrome and is on screen while the skeleton still is. The sync banner
+# comes from that same read, so waiting for it means the scroll below can
+# never run past an entry that has not rendered yet.
+#
+# Note the banner still reads "Conflicts pending" here, not "Offline":
+# dropping the loopback makes the API unreachable, it does not take the
+# device off the network, so sync status never reaches its offline branch.
+# The review surface still reports being offline, because the resolution
+# attempt fails at transport level and C-4 maps that to the offline outcome.
+- extendedWaitUntil:
+    visible: 'Conflicts pending'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-sync-conflicts'
+- tapOn:
+    id: 'dashboard-sync-conflicts'
+- extendedWaitUntil:
+    visible: 'Changes to review'
+    timeout: 60000
+
+# The choice survived the process death, with its wording intact.
+- assertVisible:
+    id: 'conflict-card-0'
+- assertVisible: "We'll try again shortly"
+- assertVisible: "Your choice is safe and still counts. We just couldn't reach your account this time."
+
+# Not asked again, not silently completed, and not reported as a failure.
+- assertNotVisible: "Keep this device's version"
+- assertNotVisible: "Keep my account's version"
+- assertNotVisible: 'All set'
+- assertNotVisible: "We couldn't save your choice"
+
+# The retry control is the shipped way forward, and it is still offered after
+# the restart — the outbox row is due again, not abandoned.
+- assertVisible:
+    id: 'conflict-retry-0'

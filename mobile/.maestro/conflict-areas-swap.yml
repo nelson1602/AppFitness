@@ -1,0 +1,46 @@
+# ADR-P030 C-7 — move this device's declared area from one token to another.
+#
+# Both devices start from the same pulled row, so each swaps the same token
+# out for a different one. That makes the later comparison a single differing
+# value per side, which is what the review renders.
+#
+#   maestro --device <serial> test -e C7_FROM=knee -e C7_TO=wrist \
+#     .maestro/conflict-areas-swap.yml
+appId: com.appfitness.mobile
+---
+- launchApp
+- openLink: appfitness://dashboard
+- extendedWaitUntil:
+    visible: 'Your local iCoach assessment'
+    timeout: 90000
+
+- scrollUntilVisible:
+    element:
+      id: 'dashboard-wellness-safety'
+- tapOn:
+    id: 'dashboard-wellness-safety'
+- extendedWaitUntil:
+    visible: 'Evaluation and limitations'
+    timeout: 60000
+
+- scrollUntilVisible:
+    element:
+      id: 'wellness-area-${C7_FROM}'
+- tapOn:
+    id: 'wellness-area-${C7_FROM}'
+- scrollUntilVisible:
+    element:
+      id: 'wellness-area-${C7_TO}'
+- tapOn:
+    id: 'wellness-area-${C7_TO}'
+
+- scrollUntilVisible:
+    element:
+      id: 'wellness-save'
+- tapOn:
+    id: 'wellness-save'
+- scrollUntilVisible:
+    element:
+      id: 'wellness-saved'
+    direction: UP
+    timeout: 60000
