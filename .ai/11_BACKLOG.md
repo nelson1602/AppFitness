@@ -2511,9 +2511,9 @@ account-notification feature**.
 
 ---
 
-## [RISK-001] A Documentation File Is a Test Fixture, but CI Path Filters Exclude It
+## [RISK-001] Cross-Package Test Fixtures Were Excluded by CI Path Filters
 
-Status: **Open**
+Status: **Done** (2026-09-15 — fixed in this change; see Resolution)
 Priority: **P2**
 Type: Risk (CI coverage gap)
 Owner: Architecture / CI
@@ -2560,12 +2560,66 @@ No user-facing or security impact.
    test's input lives beside the test.
 4. Accept it and rely on the author running the suite.
 
-**Deliberately not fixed here:** changing a workflow path filter is a CI
-configuration change, and the re-gate that found this was documentation-only.
+**Deliberately not fixed in the re-gate that found it:** changing a workflow
+path filter is a CI configuration change, and that pass was documentation-only.
+It is fixed here instead.
+
+### Resolution (2026-09-15)
+
+A follow-up audit found the gap was **wider than the one edge that exposed it**.
+Three tests read a fixture from outside their own package, and **each direction
+was unprotected**:
+
+| # | Fixture (changing this…) | Consumer test (…can break this) | Consumer workflow |
+|---|---|---|---|
+| 1 | `.ai/19_COPY_DECKS.md` | `mobile/src/features/sync-conflicts/presentation/conflict-catalogue.spec.ts` | `mobile-ci` |
+| 2 | `api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration.sql` | `mobile/src/features/wellness/domain/wellness-safety-profile.spec.ts` | `mobile-ci` |
+| 3 | `mobile/src/features/workout/infrastructure/exercise-catalog.data.ts` | `api/src/modules/workout/domain/exercise-identity.spec.ts` | `api-ci` |
+
+Edge 3 is the mirror image of the one originally reported: an **API** suite
+reads a **mobile** source file to pin catalogue identity parity, so a
+mobile-only commit could break API tests behind a green `api-ci` no-op.
+
+**Fix.** Each detector's `grep -qE` alternation gained the exact paths it was
+missing — nothing else. The change is two `if` lines plus explanatory comments.
+
+**Deliberately preserved**, and verified unchanged in the diff: the required
+status contexts (jobs still always run, so a no-op still reports `SUCCESS`
+rather than leaving a required check unreported); the fail-safe branch that
+forces a full run when the base commit is unavailable; genuine no-op behaviour
+for unrelated documentation; and every audit job and threshold. Neither
+workflow was broadened to "run on any repository change", and no dependency was
+added.
+
+**Proof.** Two mechanical harnesses, both reading the shipped workflow files
+rather than a copy of the patterns:
+
+- *Selection* — the exact `grep -qE` pattern is extracted from each YAML and run
+  against 16 candidate paths: the three edges select their consumer, ordinary
+  in-package changes are unaffected, five unrelated documentation paths stay a
+  no-op in **both** workflows, and four near-miss paths (a `.bak` copy of the
+  deck, a deck under another directory, a different migration, a sibling of the
+  mobile fixture) do **not** over-select, proving the end anchors are real.
+- *Execution* — the detector's shell script is extracted from each YAML, its
+  GitHub expressions substituted, and **run** against a throwaway git
+  repository: unrelated doc gives false; each fixture gives true in its
+  consumer only; and an **empty** base and a **bogus** SHA each give true in
+  both workflows, confirming fail-safe is intact.
+
+Both packages were validated: mobile `tsc` / lint / **194 suites, 2598 tests**;
+api typecheck / lint / **43 suites, 606 tests**.
+
+*(Aside, recorded because it nearly shipped: the first attempt at this very
+documentation edit corrupted this file. Its replacement text contained a
+literal `$` immediately before a backtick, and JavaScript's string
+`replace()` treats that sequence as "insert everything before the match",
+splicing 2608 lines back in. It was caught by `git diff --check` and an anchor
+count, and the file was restored from `HEAD` rather than patched over.)*
 
 ### Related Documents
 
 - `.github/workflows/mobile-ci.yml`
+- `.github/workflows/api-ci.yml`
 - `.ai/19_COPY_DECKS.md`
 - `docs/RELEASE_READINESS.md`
 
