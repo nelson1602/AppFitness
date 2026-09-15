@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import SyncConflictsRoute from './sync-conflicts';
+import SyncConflictsRoute from '@/app/sync-conflicts';
 
 /**
  * The `/sync-conflicts` route itself — ADR-P030 **C-6**, verified by C-7.
@@ -103,7 +103,10 @@ describe('the session gate', () => {
 
 describe('the route stays platform-neutral', () => {
   it('leaves the Web decision to the screen, not to a platform check here', () => {
-    const source = require('node:fs').readFileSync(`${__dirname}/sync-conflicts.tsx`, 'utf8');
+    const source = require('node:fs').readFileSync(
+      `${__dirname}/../../app/sync-conflicts.tsx`,
+      'utf8',
+    );
 
     // ADR-P019's terminal arm is driven by a store status, so this file builds
     // identically for native and Web. Importing the platform module here would
