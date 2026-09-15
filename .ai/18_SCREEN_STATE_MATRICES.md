@@ -375,7 +375,7 @@ local** — the "start a workout" card renders regardless.
 | **Error** | `error !== null` — covers both the load failure and every write failure | `<Banner tone="error">`, `workout.log.errorTitle/Message`, above the working surface. No retry control | Next successful operation clears `error` | Native | `WorkoutLogScreen.tsx:140-144`; spec *"surfaces a safe error banner"* | SHIPPED |
 | **Pending sync** — set rows | `set.syncStatus === 'pending'` | `PendingHint` component, **row-level** caption, `workout.log.syncPending` + `syncPendingAccessibility` | The queue drains and the row re-reads as `synced` | Native | `WorkoutLogScreen.tsx:32-43`; spec *"surfaces a pending-sync hint on locally-saved sets"* | SHIPPED |
 | **Pending sync** — workout rows | `log.syncStatus === 'pending'` | Inline caption, `workout.log.savedOnDevice` + `savedAccessibility` | Same | Native | `WorkoutLogScreen.tsx:210-217` | SHIPPED |
-| **Conflict** | `log.syncStatus === 'conflict'` or `set.syncStatus === 'conflict'` — `SyncStatus` is `'pending' \| 'synced' \| 'conflict'` (`database/types.ts:11`), the rows expose it (`workout.ts:57`, `:111`), and the sync appliers set it | `ConflictHint` component, **row-level** caption with `tone="warning"`, `workout.log.syncConflict` + `syncConflictAccessibility`, on **both** workout rows and set rows. **Report-only** — no choose action | **None on this surface** — no resolution UI exists anywhere, see BUG-012 | Native | `WorkoutLogScreen.tsx:55-67`, `:242`, `:497`; `workout/infrastructure/sync-appliers.ts:47`, `:59`; specs *"surfaces a conflict hint on a diverged workout row (BUG-011)"*, *"…on a diverged set row (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* — the first two assert the rendered `warning` colour | SHIPPED |
+| **Conflict** | `log.syncStatus === 'conflict'` or `set.syncStatus === 'conflict'` — `SyncStatus` is `'pending' \| 'synced' \| 'conflict'` (`database/types.ts:11`), the rows expose it (`workout.ts:57`, `:111`), and the sync appliers set it | `ConflictHint` component, **row-level** caption with `tone="warning"`, `workout.log.syncConflict` + `syncConflictAccessibility`, on **both** workout rows and set rows. **Report-only** — no choose action | **None on this surface** — report-only by design; resolution lives on the separate `/sync-conflicts` route (ADR-P030 C-6), see BUG-012 | Native | `WorkoutLogScreen.tsx:55-67`, `:242`, `:497`; `workout/infrastructure/sync-appliers.ts:47`, `:59`; specs *"surfaces a conflict hint on a diverged workout row (BUG-011)"*, *"…on a diverged set row (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* — the first two assert the rendered `warning` colour | SHIPPED |
 | **Offline** | — | — | — | — | **No Offline signal reaches this surface at `fb02097`.** `useWorkoutStore` receives no connectivity or sync outcome, so there is nothing authoritative to render; today Offline is reported only on surfaces 1 and 8. This records what the screen receives, not a limit on what it could be given | **n/a** |
 | **Data-gap** | — | — | — | — | Workout logging computes nothing from profile prerequisites; a user with an empty profile can still log | **n/a** |
 
@@ -461,7 +461,7 @@ the richest state surface after the dashboard.
 | **Pending sync** — banner | `sync.state === 'pending'`, derived on load from item states | `<Banner tone="info">` with a pending count, one/many pluralized | Queue drains | Native | `FoodLogScreen.tsx:57-68`; `food-log.store.ts:66-68`; spec *"shows a sync-pending banner and a per-item pending chip"* | SHIPPED |
 | **Pending sync** — row chip | `item.syncState === 'pending'` | `ItemSyncChip`, muted caption, `nutrition.log.pendingShort` + `pendingAccessibility` | Same | Native | `FoodLogScreen.tsx:88-98` | SHIPPED |
 | **Error** — catalog incompatibility | `item.syncState === 'action_required'`, i.e. the row is marked **and** its queue op is parked with `CATALOG_REVISION_UNSUPPORTED` | `<Banner tone="error">` plus a row chip with `tone="error"`, `nutrition.log.action*` — the food is not on the server, so the user is told to remove and re-add it | The user removing and re-adding the food | Native | `food-log.repository.ts:205-215`, `:389`; `FoodLogScreen.tsx:45-58`, `:132-144`; spec *"shows an action-required (failed) banner when a food is unsupported server-side"*, which also asserts the `error` colour | SHIPPED |
-| **Conflict** | `item.syncState === 'conflict'`, i.e. `sync_status = 'conflict'` (`food-log.repository.ts:266`) with **no** parked catalog op | `<Banner tone="warning">` plus a row chip with `tone="warning"`, `nutrition.log.conflict*`. **Report-only**: both versions are preserved and no resolution is offered | **None on this surface** — no resolution UI exists anywhere, see BUG-012 | Native | `food-log.repository.ts:389`; `food-log.ts:26-45`; `FoodLogScreen.tsx:59-72`, `:146-158`; specs *"renders a sync conflict as warning, not error (BUG-007)"*, *"gives the conflict row chip its own label and warning tone (BUG-007)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* | SHIPPED |
+| **Conflict** | `item.syncState === 'conflict'`, i.e. `sync_status = 'conflict'` (`food-log.repository.ts:266`) with **no** parked catalog op | `<Banner tone="warning">` plus a row chip with `tone="warning"`, `nutrition.log.conflict*`. **Report-only**: both versions are preserved and no resolution is offered | **None on this surface** — report-only by design; resolution lives on the separate `/sync-conflicts` route (ADR-P030 C-6), see BUG-012 | Native | `food-log.repository.ts:389`; `food-log.ts:26-45`; `FoodLogScreen.tsx:59-72`, `:146-158`; specs *"renders a sync conflict as warning, not error (BUG-007)"*, *"gives the conflict row chip its own label and warning tone (BUG-007)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* | SHIPPED |
 | **Data-gap** | — | — | — | — | Logging never blocks on a missing prerequisite. Targets shown for comparison come from the dashboard store and simply do not render when absent | **n/a** |
 
 **Sync banner priority** (`FoodLogScreen.tsx:26-73`), highest first: `syncing` →
@@ -488,7 +488,7 @@ on the two read-only nutrition projections.
 | **Empty** | Read succeeded, `preferences.length === 0` | `nutrition.preferences.empty` muted text in the list section | User adds an exclusion | Native | `DietaryPreferences.tsx:289-290`; spec *"shows an empty message when there are no exclusions"* | SHIPPED |
 | **Error** | `error !== null` — covers **both** the load failure and save failures | `<Banner tone="error">`, `nutrition.preferences.errorTitle/Message`, above the form | Next successful operation | Both | `DietaryPreferences.tsx:149-153`; `dietary-preference.store.ts:55`, `:71-72`; spec *"surfaces a safe error banner"* | SHIPPED |
 | **Pending sync** | `preference.syncStatus === 'pending'` — exclusions are local-first writes that enqueue, and the listed rows expose the field | `SyncHint` component, **row-level** caption with `tone="muted"`, `nutrition.preferences.syncPending` + `syncPendingAccessibility`. Reassures — the write is safely stored | Queue drains | Native | `DietaryPreferences.tsx:47-71`, `:347`; `dietary-preference.ts:49`, `:67`; spec *"reassures that a queued exclusion is safely stored (BUG-011)"* | SHIPPED |
-| **Conflict** | `preference.syncStatus === 'conflict'`, set by `markDietaryPreferenceConflict` | Same `SyncHint`, caption with `tone="warning"`, `nutrition.preferences.syncConflict` + `syncConflictAccessibility`. **Report-only** — no choose action | **None on this surface** — no resolution UI exists anywhere, see BUG-012 | Native | `DietaryPreferences.tsx:47-71`, `:347`; `nutrition/infrastructure/sync-appliers.ts:32`; specs *"reports a diverged exclusion as warning, not error (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* — the first asserts the rendered `warning` colour | SHIPPED |
+| **Conflict** | `preference.syncStatus === 'conflict'`, set by `markDietaryPreferenceConflict` | Same `SyncHint`, caption with `tone="warning"`, `nutrition.preferences.syncConflict` + `syncConflictAccessibility`. **Report-only** — no choose action | **None on this surface** — report-only by design; resolution lives on the separate `/sync-conflicts` route (ADR-P030 C-6), see BUG-012 | Native | `DietaryPreferences.tsx:47-71`, `:347`; `nutrition/infrastructure/sync-appliers.ts:32`; specs *"reports a diverged exclusion as warning, not error (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* — the first asserts the rendered `warning` colour | SHIPPED |
 | **Offline** | — | — | — | — | **No Offline signal reaches this surface at `fb02097`.** `useDietaryPreferenceStore` receives no connectivity or sync outcome. This records what the screen receives, not a limit on what it could be given | **n/a** |
 | **Data-gap** | — | — | — | — | Preferences are user-entered, not computed; nothing is a prerequisite | **n/a** |
 
@@ -513,7 +513,7 @@ a house style.
 | **Error** — save | `error !== null` while otherwise ready | A **separate** `<Banner tone="error">`, `progress.screen.saveErrorTitle`, rendered inline **without wiping the forms** | Next successful save | Both | `ProgressScreen.tsx:136-140`; spec *"surfaces a localized save error inline (distinct from load) without wiping the forms"* | SHIPPED |
 | **Empty** | Read succeeded, no entries recorded | `progress.screen.noWeight` muted text | User records a first entry | Native | `ProgressScreen.tsx:155`; spec *"renders the empty state when nothing is recorded"* | SHIPPED |
 | **Pending sync** | `syncStatus === 'pending'` on a **listed** body weight or snapshot — every progress write lands as `pending` and the rows expose the field | Shared `SyncHint` component, **row-level** caption with `tone="muted"`, `progress.syncPending` + `syncPendingAccessibility`. Reassures — the write is safely stored | Queue drains | Native | `SyncHint.tsx`; `ProgressScreen.tsx:158` (latest weight); `WeeklySnapshotSummary.tsx:107`, `:127` (latest + earlier weeks); spec *"reassures that a queued body weight is safely stored (BUG-011)"* | SHIPPED³ |
-| **Conflict** | `syncStatus === 'conflict'`, set by `markBodyWeightConflict`, `markBodyMeasurementConflict` or `markProgressSnapshotConflict` | Same `SyncHint`, caption with `tone="warning"`, `progress.syncConflict` + `syncConflictAccessibility`. **Report-only** — no choose action | **None on this surface** — no resolution UI exists anywhere, see BUG-012 | Native | `SyncHint.tsx`; `ProgressScreen.tsx:158`; `WeeklySnapshotSummary.tsx:107`, `:127`; specs *"reports a diverged body weight as warning, not error (BUG-011)"*, *"reports an earlier week that diverged (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* | SHIPPED³ |
+| **Conflict** | `syncStatus === 'conflict'`, set by `markBodyWeightConflict`, `markBodyMeasurementConflict` or `markProgressSnapshotConflict` | Same `SyncHint`, caption with `tone="warning"`, `progress.syncConflict` + `syncConflictAccessibility`. **Report-only** — no choose action | **None on this surface** — report-only by design; resolution lives on the separate `/sync-conflicts` route (ADR-P030 C-6), see BUG-012 | Native | `SyncHint.tsx`; `ProgressScreen.tsx:158`; `WeeklySnapshotSummary.tsx:107`, `:127`; specs *"reports a diverged body weight as warning, not error (BUG-011)"*, *"reports an earlier week that diverged (BUG-011)"*, *"reports the conflict without offering a resolution (BUG-012 stays open)"* | SHIPPED³ |
 | **Offline** | — | — | — | — | **No Offline signal reaches this surface at `fb02097`.** `useProgressStore` receives no connectivity or sync outcome. Given how staleness-sensitive this screen is, wiring one in is a reasonable future design change — but it is a change, not a missing treatment | **n/a** |
 | **Data-gap** | — | — | — | — | Progress records user-entered values; nothing is a prerequisite. The *dashboard* names a missing weight as a gap and routes **here**, which is the reverse relationship | **n/a** |
 
@@ -689,12 +689,25 @@ a missing treatment:
 - **BUG-011** stays open on the measurement-listing residual recorded at surface
   10, footnote ³ — an **absent surface**, not an unimplemented treatment.
 - **BUG-012** stays open: no conflict-**resolution** path exists anywhere. Every
+  **On the quoted spec names.** Four rows quote the live test title
+  *"reports the conflict without offering a resolution (BUG-012 stays open)"*
+  verbatim, because that is the exact name in
+  `DietaryPreferences.spec.tsx`, `FoodLogScreen.spec.tsx`,
+  `ProgressScreen.spec.tsx` and `WorkoutLogScreen.spec.tsx`. Its
+  parenthetical is stale — BUG-012 is **Done** — but **what each test asserts is
+  still correct**: that *that* surface offers no resolution. Renaming a test is a
+  test change and is out of scope for a documentation-only pass, so the
+  quotations are left matching the code.
+
   Conflict treatment in this grid is **report-only** by design. Its
   specification now exists as **ADR-P030 (Accepted 2026-09-07)**, which would add
   one native route (`/sync-conflicts`) as a future **PROPOSED** surface and keeps
-  every treatment in this grid report-only. Acceptance authorizes the
-  **architecture only** — the surface-bearing slices **C-1 … C-7 remain
-  unauthorized** — so no status in this document changes.
+  every treatment in this grid report-only. Acceptance authorized the
+  **architecture only**, and at the time the surface-bearing slices **C-1 … C-7
+  were unauthorized**, so no status in this document changed. *(Since: C-1 … C-7
+  have all shipped. The `/sync-conflicts` route now exists and BUG-012 is
+  **Done** as of 2026-09-15. Every treatment in **this** grid is still
+  report-only, which is why no row's status changes even now.)*
 - **BUG-014** is opened by that same re-audit and is a **defect in this grid's
   Conflict premise**, not a new surface: a parked conflict loses pull protection,
   so on one interleaving the local version is silently overwritten while the
@@ -811,9 +824,12 @@ read, not at the banner:
 - `FoodLogScreen.tsx:59-72` and `:146-158` render Conflict as `warning`, and the
   new specs assert the rendered colour, not the prop name.
 
-**BUG-012 remains open and is unaffected.** The Conflict copy is deliberately
-report-only: no resolution affordance exists on this surface or anywhere else,
-and a spec asserts that the banner offers none.
+**BUG-012 remained open at the time of this slice and was unaffected by it**
+*(it is **Done** as of 2026-09-15)*. The Conflict copy on **this** surface is
+deliberately report-only, and a spec asserts that the banner offers none. The
+resolution affordance added later by ADR-P030 C-6 lives on its own
+`/sync-conflicts` route reached from the dashboard, not on this banner, so
+this surface's report-only contract is unchanged.
 
 ## C-4 — Food Log write failures are silent
 

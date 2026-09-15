@@ -6765,9 +6765,11 @@ W-1 takes 007 as that record requires.
 no API module, DTO or endpoint, no composition-root wiring, no UI, localization
 copy or onboarding (W-3), no iCoach consumption or rule-version change (W-4), no
 supplement capability (W-5), no dependency and no medical-domain change.
-**W-2 through W-5 remain unimplemented and unauthorized**; each still needs its
-own authorization, and W-5 additionally requires its own accepted ADR and legal
-review.
+**W-2 through W-5 remained unimplemented and unauthorized at the time of this
+record**; each needed its own authorization. *(Since: **W-2**, **W-3** and
+**W-4** have shipped — see their own records below and ADR-P031. **W-5**
+remains unimplemented and unauthorized, and still requires its own accepted ADR
+and qualified legal/domain review.)*
 
 ### Slice W-2 Implementation Record — Wellness Safety Profile Read/Write and Sync
 
@@ -6997,7 +6999,9 @@ application module reads conflict presence from the existing user-scoped
 the local and server token lists in their payloads; that query's result is
 reduced to a boolean immediately and **only the boolean leaves the application
 layer**, so no token can reach a component, a log or Sentry. Nothing is
-resolved — BUG-012 stays open and this surface offers no resolution path.
+resolved **on this surface**, which offers no resolution path by design.
+*(BUG-012 was open when this was written; it is **Done** as of 2026-09-15, and
+resolution now lives on its own `/sync-conflicts` route — not here.)*
 
 **Removal is confirmed and privacy-preserving.** A soft delete behind an
 explicit two-step confirmation (the shipped `EvaluationHistory` idiom):
@@ -10103,13 +10107,14 @@ behaviour.
 
 ## ADR-P030 — Public-V1 Conflict Review and Resolution
 
-Status: **Accepted** (2026-09-07) — the **architecture** below is authorized.
-Acceptance does **not** authorize implementation slices automatically. **C-0
-(BUG-014), C-1 (per-user scoping) and C-2 (atomic conditional push) are
-implemented**; **C-3 (server resolve contract), C-4 (local resolution service
-+ outbox behaviour), C-5 (the EN/ES copy deck) and C-6 (the `/sync-conflicts`
-surface and dashboard entry) are implemented, while C-7 remains unauthorized**
-and needs its own approval. **No owner decision remains open.**
+Status: **Accepted** (2026-09-07) — the **architecture** below is authorized;
+**fully implemented 2026-09-15**. Acceptance did **not** authorize implementation
+slices automatically, and each was approved in turn. **C-0 (BUG-014), C-1
+(per-user scoping), C-2 (atomic conditional push), C-3 (server resolve
+contract), C-4 (local resolution service + outbox behaviour), C-5 (the EN/ES
+copy deck), C-6 (the `/sync-conflicts` surface and dashboard entry) and C-7
+(end-to-end verification) are all implemented.** **No owner decision remains
+open**, and **BUG-012 is Done** (2026-09-15, PR #155, merged `d498658`).
 Date: 2026-09-07 (revised seven times the same day after review — see
 §Revision note)
 Owner: Product / Mobile Architecture / Security
@@ -11457,10 +11462,15 @@ Fail **visible and closed**, never silent:
 
 #### 13. Implementation slices — prerequisites first
 
-Sequenced so no prerequisite can ship after the UI. **Acceptance of this ADR
-authorizes the architecture, not these slices.** **C-0**, **C-1**, **C-2**,
-**C-3**, **C-4**, **C-5** and **C-6** are implemented; **C-7 remains
-unauthorized** and requires its own approval before any code is written.
+Sequenced so no prerequisite could ship after the UI. **Acceptance of this ADR
+authorized the architecture, not these slices**, and each was approved in turn.
+**C-0 … C-7 are all implemented** as of 2026-09-15.
+
+> **Reading these records.** Each Slice Implementation Record below is a
+> **point-in-time** account of one slice, kept as written. Their status clauses
+> describe the moment they were authored, not today. **Current state: ADR-P030
+> C-0 … C-7 are all implemented and BUG-012 is Done (2026-09-15, PR #155,
+> merged `d498658`).**
 
 ### Slice C-2 Implementation Record — Atomic Conditional Push
 
@@ -11495,8 +11505,8 @@ late CREATE primary-key conflict persistence, business-constraint
 classification, all 13 raw/Prisma field-equivalence cases (including defaults,
 `updated_at`, `sync_seq` and pull ordering), the already-deleted DELETE no-write
 rule, and the absence of unsafe or dynamically targeted raw SQL. C-2 adds no
-endpoint, DTO, schema, migration or client wire change. **BUG-012 stays Open;
-C-4 is the next prerequisite.**
+endpoint, DTO, schema, migration or client wire change. **BUG-012 was still
+Open at this slice; C-4 was the next prerequisite.**
 
 ### Slice C-3 Implementation Record — Server Resolve Contract
 
@@ -11612,7 +11622,8 @@ outbox against real SQLite built from real migrations 001-007),
 `conflict-presenter.spec.ts` (52 cases), `conflict-resolution.scope.spec.ts`
 (11 scope invariants, including that no presentation file reaches SQLite and
 that C-4 ships no route, screen or copy key), plus transport and dashboard
-coverage. **BUG-012 stays Open; C-7 is the next prerequisite.**
+coverage. **BUG-012 was still Open at this slice; C-7 was the next
+prerequisite.**
 
 **Correction (2026-09-14) — C-4's atomicity claim was not proven when written,
 and was in fact false. See BUG-015.** `inTransaction` accepted the task but
@@ -11670,8 +11681,8 @@ keys C-6 authored; see its record below.
 
 **C-5 itself was specification only** — no route, screen, component, control,
 catalogue entry, dependency, schema, migration or behaviour. **C-7** verifies
-the journeys, and **BUG-012 stays Open** until a user's round trip is proven
-end to end.
+the journeys, and **BUG-012 was still Open at this slice**, until a user's
+round trip was proven end to end.
 
 The family is written against the **C-4 review model**, not against an imagined
 screen: every `SettlementCondition`, `ConflictBlocker`, `PresenterRefusal`,
@@ -11846,7 +11857,8 @@ event mapping, and a counter that belongs to another conflict never read as this
 one's), `SyncConflictsScreen.spec.tsx` (including load-versus-write failure
 wording and the absence of any rendered identifier) and
 `conflict-surface.source.spec.ts`, plus the dashboard entry cases in
-`DashboardScreen.spec.tsx`. **BUG-012 stays Open; C-7 verifies the journeys.**
+`DashboardScreen.spec.tsx`. **BUG-012 was still Open at this slice; C-7
+verified the journeys.**
 
 | # | Slice | Depends on | API / schema |
 |---|---|---|---|
@@ -12222,8 +12234,8 @@ assumed away.
 - **`.ai/04_DATABASE.md` §Conflict Resolution is corrected** by this ADR's
   revision (A-13), so its Last-Writer-Wins wording no longer contradicts
   ADR-P012, ADR-P016 D6 or the no-silent-overwrite rule.
-- BUG-011's residual is untouched; **BUG-012 stays open**; **BUG-014 is opened**
-  for the guard defect.
+- BUG-011's residual is untouched; **BUG-012 was still open at this audit**
+  *(Done 2026-09-15)*; **BUG-014 is opened** for the guard defect.
 
 ### Open owner decisions
 
@@ -12344,10 +12356,13 @@ was sent.
 
 **What this closure does not claim.** No manual screen-reader, keyboard or
 large-text verification was performed (UX-4C still owns it); BUG-012
-conflict **resolution** does not exist and ADR-P030 C-3 … C-7 stay
-unauthorized; the `features/wellness/domain` `collectCoverageFrom` decision
-is still open; W-5 supplements, Azul/payment work and the comprehensive
-security/release audit are all untouched and separately gated.
+conflict **resolution** did not exist when this was written and ADR-P030
+C-3 … C-7 were then unauthorized; the `features/wellness/domain`
+`collectCoverageFrom` decision is still open; W-5 supplements, Azul/payment
+work and the comprehensive security/release audit are all untouched and
+separately gated. *(Since: ADR-P030 C-3 … C-7 have all shipped and **BUG-012
+is Done** as of 2026-09-15. UX-4C, the coverage decision, W-5, Azul and the
+security/release audit remain open.)*
 
 ### Revision note (2026-09-10, then accepted the same day)
 
@@ -13123,9 +13138,11 @@ alter the plan key. Tests 31 and 9 pin this in both directions.
 
 **W-5 supplements** (needs its own accepted ADR and legal review), payment /
 Azul, any medical advice, diagnosis or clearance semantics, **conflict
-resolution** (ADR-P030 C-3 … C-7 stay unauthorized), reactivating the medical
-domain, external configuration, and any schema, migration, dependency or API
-change. W-4 is a mobile-domain change: it adds no table, no column, no endpoint
+resolution** (ADR-P030 C-3 … C-7 were unauthorized when W-4 was scoped; they
+have all since shipped, and BUG-012 is Done — it remains out of scope *for
+W-4*), reactivating the medical domain, external configuration, and any schema,
+migration, dependency or API change. W-4 is a mobile-domain change: it adds no
+table, no column, no endpoint
 and no dependency.
 
 #### 15. When exclusions leave a required slot empty, report it — never re-include

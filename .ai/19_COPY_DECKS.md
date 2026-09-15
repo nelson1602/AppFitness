@@ -39,8 +39,8 @@ both catalogues and wired through `t()`. Editing this deck changes no runtime.
   `/sync-conflicts` route, the dashboard button and the 152 keys worded by C-5,
   which are therefore `SHIPPED` under §Conflict resolution. This deck still
   defines no route, screen, component or behaviour — it records the wording those
-  surfaces render. **C-7** owns the end-to-end journeys and **BUG-012 stays Open**
-  until they verify the flow. Conflict copy on the *existing* seven report-only
+  surfaces render. **C-7** verified the end-to-end journeys on 2026-09-15 and
+  **BUG-012 is Done**. Conflict copy on the *existing* seven report-only
   surfaces is unchanged.
 - **Not the UX-3D specification.** `.ai/20_PROGRESS_NONVISUAL.md` owns the
   non-visual equivalent for `TrendBars` and `WeeklySnapshotSummary` — its
@@ -1041,10 +1041,10 @@ would erase the fact that it completed.
 families ADR-P030 §Decision 15 named and deliberately left unworded. It still
 defines **no** route, component, control, state machine or behaviour.
 
-**Authorization.** ADR-P030 is Accepted and C-0 … C-6 are implemented: the
+**Authorization.** ADR-P030 is Accepted and C-0 … C-7 are all implemented: the
 wording below is authorized by C-5 and rendered by C-6's `/sync-conflicts` route
-and dashboard button. **C-7** (end-to-end journeys) remains unimplemented, and
-**BUG-012 stays Open** until those journeys verify the flow.
+and dashboard button, and **C-7** verified the end-to-end journeys on
+2026-09-15. **BUG-012 is Done.**
 
 ## What the copy is written against
 
@@ -1498,7 +1498,7 @@ record labels and the 75 field labels.
 |---|---|
 | Password recovery | **No longer deferred — shipped.** PR #102 merged as `724a18e7`: the `forgot-password` / `reset-password` endpoints (`auth.controller.ts:107`, `:133`), the `/forgot-password` and `/reset-password` routes, and the EN/ES copy are all on `main`, and Production validation on **2026-09-02** exercised a real delivery end to end. This row previously read "TARGET in PR #102, not on `main`"; that is corrected. The shipped recovery copy is not re-tabulated here — this deck's scope is state copy, and recovery's is owned by FEATURE-011 Vertical 1. |
 | Email verification | **All 23 keys above are now in the catalogues** in EN and ES (`mobile/src/shared/localization/resources/`), imported by **V2-D** and rendered by the `/verify-email` route and the dashboard reminder. The EN/ES *email* copy is a separate surface owned by V2-C and lives in `api/src/modules/mail/domain/email-verification.template.ts`, not in this deck. **Verification email is now sent** — this row previously read "No verification email is sent yet (V2-E)", which is corrected: **both V2-E halves passed 2026-09-04** and Production now attempts verification delivery for registrations (issuance stays best-effort; a mail failure is non-blocking, with resend available). Users therefore **do** reach the landing from a real link. **Deep-link completion remains a separate open V1 gate** — an emailed link still opens the Web portal, not the app. |
-| Conflict resolution actions/screens | **No longer deferred — worded.** ADR-P030 slice **C-5** is authorized, and the **152-key** `sync.conflicts.*` family is specified above in EN and ES. Every key is `PROPOSED`: none exists in either catalogue and none is reachable. **C-6** adds them and builds the `/sync-conflicts` route and the dashboard button; **C-7** verifies the journeys. **BUG-012 remains Open** — wording a choice is not shipping one. Conflict copy on the existing surfaces stays reporting-only and is unchanged, and chosen-but-unsettled reuses the **Pending sync** tone rather than introducing a ninth state. |
+| Conflict resolution actions/screens | **No longer deferred — worded and shipped.** ADR-P030 **C-5** worded the `sync.conflicts.*` family in EN and ES; **C-6** added the keys and built the `/sync-conflicts` route and the dashboard button, so every key is `SHIPPED` (157 in the family, 1061/1061 catalogue parity); **C-7** verified the journeys end to end on 2026-09-15 and **BUG-012 is Done**. Conflict copy on the existing report-only surfaces stays reporting-only and is unchanged, and chosen-but-unsettled reuses the **Pending sync** tone rather than introducing a ninth state. |
 | Trend-chart and weekly structure | Specified in `.ai/20_PROGRESS_NONVISUAL.md` (UX-3D), and implemented 2026-09-07. Its seven keys are worded above and are now **SHIPPED**; composition, accessibility structure and the no-nesting rule are not repeated here. |
 | Bottom tabs | Deferred by ADR-P027; the non-binding map is not a copy target. |
 | Dormant medical domain | Out of public V1 under ADR-P017. |
