@@ -30,6 +30,9 @@ node-compile-cache/
 # Claude Code local (user-specific) settings — shared .claude/settings.json stays tracked
 **/.claude/settings.local.json
 
+# Claude–Codex bridge runtime state (per-worktree, never committed)
+.ai/bridge/.runtime/
+
 # Logs
 *.log
 npm-debug.log*
@@ -39,6 +42,7 @@ npm-debug.log*
 Thumbs.db
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 .idea/
 *.swp

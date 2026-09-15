@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "decision": {
+      "type": "string",
+      "enum": ["continue", "needs_user", "complete"]
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 800
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 1200
+    },
+    "next_prompt": {
+      "type": "string",
+      "maxLength": 6000
+    }
+  },
+  "required": ["decision", "summary", "reason", "next_prompt"]
+}
