@@ -184,7 +184,7 @@ not outrank launch blockers.**
 
 | Item | Status | Note |
 |---|---|---|
-| `RISK-001` A documentation file is a test fixture, but CI path filters exclude it | **Open, P2** | `conflict-catalogue.spec.ts` reads `.ai/19_COPY_DECKS.md` at run time, while `mobile-ci` is filtered on `mobile/**`. A `.ai/`-only commit makes the mobile quality job a **no-op that still reports `pass`**, so that deck can be edited into a broken suite behind green checks. Found while validating this re-gate; the suite was proven green **locally**, not by CI. Not fixed here — the fix is a workflow change. |
+| `RISK-001` Cross-package test fixtures were excluded by CI path filters | **Done** (2026-09-15) | Three tests read a fixture from outside their own package, and each direction was unprotected: `.ai/19_COPY_DECKS.md` to mobile `conflict-catalogue.spec.ts`; `api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration.sql` to mobile `wellness-safety-profile.spec.ts`; and — the mirror image of the originally reported edge — `mobile/src/features/workout/infrastructure/exercise-catalog.data.ts` to API `exercise-identity.spec.ts`. Both detectors gained the exact missing paths and nothing else. Required contexts, fail-safe-on-unavailable-base, unrelated-documentation no-op, and every audit job and threshold are preserved and verified unchanged. Proven by extracting the shipped patterns and the shipped detector scripts and exercising them, including empty and bogus base SHAs. |
 
 **Open functional defects:**
 
@@ -249,8 +249,9 @@ on earlier ones; items within a stage are parallelisable.
 **Stage 3 — refresh engineering evidence on a real candidate (`in-repo`)**
 
 9. `in-repo` — Refresh the **dependency-audit triage** against current lockfiles.
-9a. `in-repo` — Close `RISK-001`: make CI actually exercise the tests that read
-    documentation fixtures, so a green PR means what it appears to mean.
+9a. ~~`in-repo` — Close `RISK-001`.~~ **Done 2026-09-15.** All three
+    cross-package fixture edges now select their consumer workflow, so a green
+    PR means what it appears to mean.
 10. `in-repo` — Re-run the **cloud E2E** suite (gate E1) on the candidate.
 11. `in-repo` — Consider promoting the 14 **conflict journeys** into automated
     coverage, or record explicitly that they stay manual and two-device.

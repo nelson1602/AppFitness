@@ -67,7 +67,12 @@ jobs:
           changed="$(git diff --name-only "$base" HEAD)"
           echo "Changed files:"
           printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -qE '^(api/|\.github/workflows/api-ci\.yml)'; then
+          # Cross-package fixture: an API spec READS a mobile source file to pin
+          # catalogue identity parity, so a change to it can break the API suite.
+          # Exact path only — this must not become "run API CI for any change".
+          #   mobile/src/features/workout/infrastructure/exercise-catalog.data.ts
+          #     -> modules/workout/domain/exercise-identity.spec.ts
+          if printf '%s\n' "$changed" | grep -qE '^(api/|\.github/workflows/api-ci\.yml|mobile/src/features/workout/infrastructure/exercise-catalog\.data\.ts$)'; then
             echo "api=true" >> "$GITHUB_OUTPUT"
           else
             echo "api=false" >> "$GITHUB_OUTPUT"

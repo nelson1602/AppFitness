@@ -56,7 +56,14 @@ jobs:
           changed="$(git diff --name-only "$base" HEAD)"
           echo "Changed files:"
           printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -qE '^(mobile/|\.github/workflows/mobile-ci\.yml)'; then
+          # Cross-package fixtures: two mobile specs READ files outside mobile/,
+          # so a change to either can break the mobile suite. Exact paths only —
+          # this must not become "run mobile CI for any repository change".
+          #   .ai/19_COPY_DECKS.md
+          #     -> features/sync-conflicts/presentation/conflict-catalogue.spec.ts
+          #   api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration.sql
+          #     -> features/wellness/domain/wellness-safety-profile.spec.ts
+          if printf '%s\n' "$changed" | grep -qE '^(mobile/|\.github/workflows/mobile-ci\.yml|\.ai/19_COPY_DECKS\.md$|api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration\.sql$)'; then
             echo "mobile=true" >> "$GITHUB_OUTPUT"
           else
             echo "mobile=false" >> "$GITHUB_OUTPUT"
