@@ -186,11 +186,13 @@ not outrank launch blockers.**
 |---|---|---|
 | `RISK-001` Cross-package test fixtures were excluded by CI path filters | **Done** (2026-09-15) | Three tests read a fixture from outside their own package, and each direction was unprotected: `.ai/19_COPY_DECKS.md` to mobile `conflict-catalogue.spec.ts`; `api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration.sql` to mobile `wellness-safety-profile.spec.ts`; and — the mirror image of the originally reported edge — `mobile/src/features/workout/infrastructure/exercise-catalog.data.ts` to API `exercise-identity.spec.ts`. Both detectors gained the exact missing paths and nothing else. Required contexts, fail-safe-on-unavailable-base, unrelated-documentation no-op, and every audit job and threshold are preserved and verified unchanged. Proven by extracting the shipped patterns and the shipped detector scripts and exercising them, including empty and bogus base SHAs. |
 
-**Open functional defects:**
+**Open functional defects:** none.
 
-| Item | Status | Note |
-|---|---|---|
-| `BUG-011` Local-first row state not surfaced on three screens | **Open** | All three feature slices shipped 2026-09-01; one residual item remains. |
+`BUG-011` was the last one and is **Done (2026-09-15)**. All four applicable
+row-level treatments are shipped; its residual was an **absent surface** —
+Progress never lists an individual body-measurement row — and was closed by
+correcting the acceptance criterion rather than adding a measurement list and
+copy the deck does not contain.
 
 **P3 observations — recorded, not launch blockers:**
 
@@ -221,16 +223,39 @@ on earlier ones; items within a stage are parallelisable.
 
 **Stage 1 — finish the product contract (`in-repo`)**
 
-1. `in-repo` — Complete the **deterministic workout routine** (FEATURE-009 scope
-   item 5). Still an unchecked acceptance criterion.
-2. `in-repo` — Complete the **bilingual product audit**. EN/ES parity is exact at
-   **1061/1061 keys**, which is necessary but **not sufficient**: the criterion
-   covers all user-facing, accessibility and error content, and has not been
-   audited surface by surface.
-3. `in-repo` — **Bilingual quality** review beyond parity: wording, tone, and
+Two items remain, and both are the same piece of work seen from different
+angles: coverage, then quality.
+
+1. `in-repo` — Complete the **exhaustive bilingual surface audit**. EN/ES parity
+   is exact at **1061/1061 keys**, which is necessary but **not sufficient**: the
+   criterion covers all user-facing, accessibility and error content, and no
+   surface-by-surface audit has been done.
+2. `in-repo` — **Bilingual quality** review beyond coverage: wording, tone, and
    correct locale formatting of dates, numbers and units. Evidence gate — a key
    count is not a translation-quality claim.
-4. `in-repo` — Resolve or explicitly defer `BUG-011`.
+
+*Closed out of this stage on 2026-09-15:*
+
+- ~~Complete the deterministic workout routine.~~ **Already shipped and
+  user-reachable**, verified in code against `.ai/07_ICOACH.md` without
+  modifying the generator: `/routines` → `RoutineBuilder` →
+  `GeneratedWorkoutPlan` renders a weekly schedule with active-recovery and
+  full-rest days, per-session exercise selection, sets, repetitions or duration,
+  rest, target RPE and equipment-compatible substitutions; progression is
+  explicit (`WorkoutProgressionRule`, three strategies); goals drive repetition
+  profiles; declared movements filter candidates; output is deterministic and
+  versioned with no randomness, clock or network in the generator; it is a pure
+  function over local data, so it works offline; and the domain emits stable ids
+  translated only at the presentation boundary.
+- ~~Resolve or explicitly defer `BUG-011`.~~ **Done.** All four applicable
+  row-level treatments are shipped (Workout Log, Dietary Preferences, body
+  weight, weekly snapshot). The residual was an **absent surface**, not a missing
+  treatment — Progress never lists an individual body-measurement row — so it was
+  closed by correcting the acceptance criterion rather than inventing a
+  measurement list and copy the deck does not contain.
+- **W-5 (optional supplement education) does not block v1** and never did. It is
+  the one W-slice ADR-P017 made optional; nothing depends on it, and declining it
+  is a valid outcome. Tracked as `FEATURE-013`.
 
 **Stage 2 — design and experience gates (`in-repo`, evidence-based)**
 
@@ -295,10 +320,12 @@ conflict resolution is now verified end to end. **But** two evidence gates are
 **stale** — the cloud E2E run and the dependency triage — so "green CI" is not
 the same as "current release evidence".
 
-**2. Feature completeness for public v1: NOT YET.** Phase 21 has delivered the
+**2. Feature completeness for public v1: NEARLY.** Phase 21 has delivered the
 medical decoupling, the Wellness Safety Profile (W-0 … W-4E), bilingual
-nutrition, and conflict resolution. The complete deterministic workout routine,
-the bilingual product audit and W-5 (optional) remain.
+nutrition, conflict resolution, and — verified in code on 2026-09-15 — the
+complete deterministic workout routine, user-reachable at `/routines`. What
+remains for the product contract is the **exhaustive bilingual surface audit**
+and the **bilingual quality review**. **W-5 is optional and does not block v1.**
 
 **3. Production / store-submission readiness: BLOCKED.** Blocked on owner and
 external gates — legal sign-off, Play Console, physical-device and accessibility

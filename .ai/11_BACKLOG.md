@@ -1047,11 +1047,14 @@ that build would contradict the owner's clarified product intent.
    closure.** This item previously read "The
    Wellness Safety Profile itself is **not** implemented", which stopped being
    true at W-1, and then read that W-4 was unimplemented, which stopped being
-   true at `bd71092`. **W-5 (supplements) stays optional**, pending its own ADR and legal
-   review: educational and food-first
-   only, with **no dosage of any kind**, no product or brand recommendation, and
-   a mandatory deferral to a qualified professional on any uncertainty,
-   limitation, allergy, health concern or medication question.
+   true at `bd71092`. **W-5 (supplements) stays optional and does NOT block
+   public v1** — it is the one W-slice ADR-P017 made optional, no other slice or
+   acceptance criterion depends on it, and declining it entirely is a valid
+   outcome. If it is ever taken up it needs its own accepted ADR and qualified
+   legal/domain review, and is educational and food-first only, with **no dosage
+   of any kind**, no product or brand recommendation, and a mandatory deferral to
+   a qualified professional on any uncertainty, limitation, allergy, health
+   concern or medication question. Tracked as **FEATURE-013**.
 4. Breakfast/lunch/dinner/optional-snack nutrition experience completion.
    **Slice 4A IMPLEMENTED 2026-08-11 (pending commit/review):** the existing
    deterministic 15-day meal-plan surface now presents its route, meals,
@@ -1174,8 +1177,27 @@ that build would contradict the owner's clarified product intent.
 - [x] Public-v1 iCoach does not read the dormant medical domain.
 - [x] Dormant medical data remains protected and account deletion remains valid.
 - [ ] Spanish and English cover all user-facing/accessibility/error content.
-- [ ] iCoach supplies goal-oriented meal suggestions and a complete deterministic
-      workout routine.
+- [x] iCoach supplies goal-oriented meal suggestions and a complete deterministic
+      workout routine. **Verified 2026-09-15 against `.ai/07_ICOACH.md`**, in
+      code on `main`, without modifying the generator. Reachable at
+      `/routines` (session-guarded, linked from the dashboard) →
+      `RoutineBuilder` → `GeneratedWorkoutPlan`. The routine carries a **weekly
+      schedule** with training days, **active-recovery and full-rest days**;
+      **exercise selection** per session; **sets**; **repetitions** (min–max) or
+      **duration** in seconds; **rest** in seconds; a target RPE; and
+      **equipment-compatible substitutions** filtered to the equipment actually
+      available. **Progression** is explicit — `WorkoutProgressionRule` with
+      `DOUBLE_PROGRESSION`, `REPETITION_PROGRESSION` and
+      `DURATION_PROGRESSION` strategies and a required-successful-sessions
+      threshold. **Goal adaptation** runs through goal-keyed repetition profiles.
+      **Declared-movement exclusions** filter candidates on the user's own
+      `movementsToAvoid` (ADR-P031 W-4D). Output is **deterministic and
+      versioned** — `WORKOUT_ROUTINE_RULE_VERSION` plus a contract version, with
+      no randomness, clock or network in the generator (asserted by
+      *"is deterministic, versioned, and language-neutral"*). It is
+      **offline-available**, being a pure function over locally stored data, and
+      **localized**: the domain emits stable explanation ids and exercise keys,
+      translated only at the presentation boundary.
 - [ ] Existing offline-first, sync, security, deletion, and monitoring guarantees
       remain green.
 - [ ] A fresh production candidate passes bilingual E2E, physical-device
@@ -3453,9 +3475,9 @@ question, not a copy decision, and was deliberately left as-is.
 
 ## [BUG-011] Local-First Row State Is Never Surfaced on Three Screens That Carry It
 
-Status: **Open** — all three feature slices shipped 2026-09-01; one residual
-remains: Progress lists no individual body-measurement row (see Progress by
-feature slice)
+Status: **Done** (2026-09-15 — all three feature slices shipped 2026-09-01; the
+remaining residual was closed by correcting the acceptance criterion, not by
+adding a surface; see Resolution)
 Priority: P2
 Type: Bug
 Owner: Unassigned
@@ -3489,6 +3511,34 @@ nothing for them to render — the matrices record that as justified `n/a`,
 describing what those surfaces **currently receive** rather than what they could
 ever receive. Exposing that signal more widely is a design change with no owning
 slice, not a conformance defect, and it is out of scope here.
+
+### Resolution (2026-09-15)
+
+**All four applicable treatments are shipped**, verified in code:
+
+| Surface | Treatment | Evidence |
+|---|---|---|
+| Workout Log | Pending **and** Conflict, row-level | `WorkoutLogScreen.tsx` `PendingHint` / `ConflictHint` on workout **and** set rows |
+| Dietary Preferences | Pending **and** Conflict, row-level | `DietaryPreferences.tsx` `SyncHint` handling both, rendered per listed exclusion |
+| Progress — body weight | Pending **and** Conflict | `ProgressScreen.tsx` renders `SyncHint` for the latest weight |
+| Progress — weekly snapshot | Pending **and** Conflict | `WeeklySnapshotSummary.tsx` renders `SyncHint` for the latest week and earlier weeks |
+
+**The residual was not a missing treatment — it was an absent surface.** Progress
+never lists an individual body-measurement row: `bodyMeasurements` reaches the UI
+only as a **count** and as the aggregated muscle-mass **trend series**. There is
+no row to annotate, so a row-level treatment cannot apply to it.
+
+`.ai/18_SCREEN_STATE_MATRICES.md` footnote ³ named the only two ways to close
+this: add a measurement list, or correct the acceptance criterion. **The second
+was taken.** Inventing a measurement list would have added a surface the product
+does not have, and the copy deck contains no keys for one — so no list, no row,
+no treatment and no copy key was added. The matrix rows stay SHIPPED and
+unchanged, and the footnote now records the resolution.
+
+Nothing about the shipped behaviour changed; only the criterion that described it
+did.
+
+### Original report
 
 P2 because it silently withholds data-integrity information: a user whose
 weigh-in is queued, or whose exclusion diverged from the server, is shown a row
