@@ -972,9 +972,11 @@ for full context, decisions D1–D6, and architecture references.
 
 ## [FEATURE-009] Public-v1 Wellness Rebaseline and Bilingual Product Completion
 
-Status: In Progress (Slices 0–3B-1, 4A–4C and W-0 … W-4E implemented; W-5, the
-complete deterministic workout routine, the bilingual product audit and the
-fresh release candidate remain)
+Status: In Progress (Slices 0–3B-1, 4A–4C and W-0 … W-4E implemented; the
+complete deterministic workout routine is shipped and the **exhaustive
+bilingual surface audit is complete** — `.ai/21_BILINGUAL_SURFACE_AUDIT.md`,
+2026-09-15; W-5, the bilingual **quality** review and the fresh release
+candidate remain)
 Priority: P0
 Type: Feature
 Owner: Product / Architecture
@@ -4377,6 +4379,189 @@ tests** with coverage thresholds met; TypeScript, lint and formatting clean.
 - `.ai/08_UI_UX.md` (§Canonical State Patterns — Conflict)
 - `.ai/04_DATABASE.md` (§Conflict Resolution — never auto-overwritten)
 - `.ai/09_TESTING.md` (§Bug Severity; §Regression Testing)
+
+---
+
+## [BUG-016] The Public-V1 Web Shell and Not-Found Surface Are English-Only
+
+Status: Open
+Priority: P2
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-15
+Updated: 2026-09-15
+
+### Description
+
+The three shipped Web portals — `/forgot-password`, `/reset-password` and
+`/verify-email` — resolve **every** string through the bilingual catalogues.
+The HTML **shell** around them does not, and neither does the not-found screen
+that an expired or mistyped portal link lands on.
+
+Recorded by `.ai/21_BILINGUAL_SURFACE_AUDIT.md` as findings F-4 … F-7, proven
+by exporting the static Web build (`npx expo export -p web`, 21 documents) and
+reading the emitted markup.
+
+### Problem
+
+Four distinct defects, all on the surfaces a Spanish-speaking user reaches
+**while already locked out of their account**:
+
+1. **`<html lang="en">` on 21 of 21 documents.** Spanish content is served
+   inside a document declared English, so screen readers select the wrong voice
+   and pronunciation rules and browsers offer to translate Spanish "from
+   English".
+2. **`<title>` is empty on 21 of 21 documents.** `Stack.Screen options.title`
+   is a native header title and never reaches the Web document title, so the
+   browser tab, bookmark, history entry and screen-reader page announcement are
+   all blank.
+3. **The prerendered body is English only.** `forgot-password.html` ships
+   `Reset your password` and `Send reset link` in its markup; a Spanish
+   visitor reads English until hydration replaces it.
+4. **The not-found screen is framework English.** No `app/+not-found.tsx`
+   exists, so Expo Router's built-in `Unmatched` screen renders
+   `Unmatched Route`, `Page could not be found.`, `Go back` and `Sitemap`
+   — untranslated in both languages, and `Sitemap` is a development
+   affordance.
+
+### Expected Outcome
+
+A Spanish visitor to any shipped Web surface gets a correctly tagged, correctly
+titled document in Spanish, and an unmatched URL gets a product not-found screen
+whose copy lives in the catalogues.
+
+### Scope
+
+Included:
+
+- `app/+html.tsx` (or the equivalent) for `lang` and `title`
+- `app/+not-found.tsx` with EN/ES copy
+- A decision on how a **statically prerendered** document carries a per-visitor
+  language: per-locale prerender, a client-side correction, or an accepted and
+  documented first-paint flash
+
+Excluded:
+
+- Any change to the portal screens themselves — they are already fully localized
+- Any Web feature scope; ADR-P018 / ADR-P019 stay in force
+
+### Acceptance Criteria
+
+- [ ] Every exported document declares the language it actually renders
+- [ ] Every exported document has a non-empty, localized title
+- [ ] An unmatched route renders product copy from `en.ts` / `es.ts`
+- [ ] The prerender decision is recorded, not left implicit
+- [ ] A regression guard asserts the shell invariants
+
+### Technical Notes
+
+`app.json` sets `web.output: "static"`. The repository authors no root HTML
+component, so Expo Router's defaults produce both the fixed `lang` and the
+empty `title`. The `Unmatched` screen lives in
+`expo-router/build/views/Unmatched.js` and is not `__DEV__`-gated.
+
+### Risks
+
+- A per-locale prerender multiplies the exported document count and needs a
+  routing/hosting decision on the owner-managed Cloudflare Workers
+- Changing the root HTML component affects hydration; the portals already carry
+  a deliberate three-state token-capture dance that must not regress
+
+### Dependencies
+
+- ADR-P026 (the portals exist because of it)
+- ADR-P018 / ADR-P019 (the Web boundary these surfaces sit inside)
+
+### Related Documents
+
+- .ai/21_BILINGUAL_SURFACE_AUDIT.md
+- docs/RELEASE_READINESS.md (§Web boundary)
+- .ai/12_DECISIONS.md (ADR-P018, ADR-P019, ADR-P026)
+
+---
+
+## [OBS-BSA-1] The Account-Deletion Confirmation Phrase Is Untranslated
+
+Status: Open
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-15
+Updated: 2026-09-15
+
+### Description
+
+`app/delete-account.tsx:10` fixes `CONFIRM_PHRASE = 'DELETE'` and substitutes
+it into `account.delete.confirmInstruction`. The Spanish instruction therefore
+reads `Escribe DELETE para confirmar` — a Spanish sentence asking for an
+English word. Recorded as finding F-9 of
+`.ai/21_BILINGUAL_SURFACE_AUDIT.md`.
+
+### Problem
+
+Whether the phrase should be localized is a **product and safety** question, not
+a translation one: a translated phrase changes what the guard actually guards,
+and a user who cannot type the English word cannot delete their account. The
+audit deliberately did not change it.
+
+### Expected Outcome
+
+An explicit, recorded decision — localize the phrase, or keep it fixed and say
+why.
+
+### Acceptance Criteria
+
+- [ ] The decision is recorded
+- [ ] If localized, both phrases are in the catalogues and the comparison is
+      localized with them
+
+### Related Documents
+
+- .ai/21_BILINGUAL_SURFACE_AUDIT.md (F-9)
+- .ai/12_DECISIONS.md (ADR-P011 — account deletion)
+
+---
+
+## [OBS-BSA-2] `/delete-account` Renders No Web-Unavailable State
+
+Status: Open
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-15
+Updated: 2026-09-15
+
+### Description
+
+Fourteen surfaces render the canonical Web-unavailable state. `/delete-account`
+does not, although it is reachable on Web from the dashboard and
+`deleteAccount()` wipes the local database, which is dormant on Web under
+ADR-P019. Recorded as finding F-13 of `.ai/21_BILINGUAL_SURFACE_AUDIT.md`.
+
+### Problem
+
+Nothing untranslated reaches the user — the failure is caught and surfaced as
+the localized `account.delete.errorMessage` — but the route presents a generic
+**failure** where every other database-backed surface presents a deliberate
+**informational** state. It is a state-coverage gap, not a copy gap.
+`docs/RELEASE_READINESS.md` §Web boundary lists neither behaviour for this
+route.
+
+### Expected Outcome
+
+Either the route renders the canonical Web-unavailable state, or the Web
+boundary records explicitly why this one route is different.
+
+### Acceptance Criteria
+
+- [ ] The behaviour is decided and implemented or recorded
+- [ ] `docs/RELEASE_READINESS.md` §Web boundary names the route either way
+
+### Related Documents
+
+- .ai/21_BILINGUAL_SURFACE_AUDIT.md (F-13)
+- .ai/18_SCREEN_STATE_MATRICES.md
+- .ai/12_DECISIONS.md (ADR-P019)
 
 ---
 

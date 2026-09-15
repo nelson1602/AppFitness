@@ -219,6 +219,21 @@ describe('ProfileForm', () => {
     expect(screen.queryByText('Create your profile')).toBeNull();
   });
 
+  it('resolves the birth-date format placeholder from the catalogue', async () => {
+    // The Spanish validation message already says AAAA-MM-DD, so an English
+    // literal in the field itself contradicted the error it produces.
+    setStore({ status: 'ready', profile: null });
+    await render(<ProfileForm onSaved={jest.fn()} />);
+    expect(screen.getByTestId('field-birthDate').props.placeholder).toBe('YYYY-MM-DD');
+  });
+
+  it('localizes the birth-date format placeholder in Spanish', async () => {
+    mockLanguage = 'es';
+    setStore({ status: 'ready', profile: null });
+    await render(<ProfileForm onSaved={jest.fn()} />);
+    expect(screen.getByTestId('field-birthDate').props.placeholder).toBe('AAAA-MM-DD');
+  });
+
   it('renders the web-unavailable state in Spanish', async () => {
     mockLanguage = 'es';
     setStore({ status: 'web-unavailable', profile: null });
