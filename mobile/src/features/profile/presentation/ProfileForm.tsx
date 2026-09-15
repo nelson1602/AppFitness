@@ -122,7 +122,7 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
         control={control}
         name="birthDate"
         label={t('profile.birthDate')}
-        placeholder="YYYY-MM-DD"
+        placeholder={t('profile.birthDatePlaceholder')}
         required
       />
       <FormField

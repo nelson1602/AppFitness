@@ -15,6 +15,7 @@ import {
   type FoodLogSyncSummary,
   type FoodLogWriteOperation,
 } from '../application/food-log.store';
+import type { ServingUnit } from '../domain/food-catalog';
 import type { ConsumedMacros, LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS } from '../domain/meal-plan';
 import { FoodLogAddForm } from './food-log/FoodLogAddForm';
@@ -26,6 +27,31 @@ const MEAL_KEY: Record<MealTypeName, TranslationKey> = {
   DINNER: 'nutrition.plan.dinner',
   SNACK: 'nutrition.plan.snack',
 };
+
+/**
+ * Serving units are stored as identifiers, so the logged row resolves them
+ * through the shipped vocabulary exactly as `FoodLogAddForm` and
+ * `NutritionPlanScreen` already do. Rendering the stored token instead left
+ * `piece`, `cup`, `tbsp`, `tsp` and `slice` in English inside a Spanish log.
+ */
+const UNIT_KEY: Record<ServingUnit, TranslationKey> = {
+  g: 'nutrition.unit.g',
+  ml: 'nutrition.unit.ml',
+  piece: 'nutrition.unit.piece',
+  cup: 'nutrition.unit.cup',
+  tbsp: 'nutrition.unit.tbsp',
+  tsp: 'nutrition.unit.tsp',
+  slice: 'nutrition.unit.slice',
+};
+
+/**
+ * A logged row stores its unit as a plain string, so the lookup is by string
+ * and an unrecognised unit keeps its stored form rather than vanishing — the
+ * same fail-safe shape as `DataGapCard`'s unknown-id fallback.
+ * `surface-coverage.spec.ts` keeps `UNIT_KEY` total over `ServingUnit`, which
+ * is what makes that fallback unreachable.
+ */
+const UNIT_LABEL: Readonly<Partial<Record<string, TranslationKey>>> = UNIT_KEY;
 
 function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
   const { t } = useLocalization();
@@ -177,6 +203,7 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
   const removeItem = useFoodLogStore((state) => state.removeItem);
   const canonical = item.catalogKey ? getById(item.catalogKey) : undefined;
   const displayName = canonical ? foodDisplayName(canonical, language) : item.name;
+  const unitKey = UNIT_LABEL[item.serving.unit];
 
   return (
     <View
@@ -191,10 +218,10 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
         <ItemSyncChip item={item} />
       </View>
       <AppText variant="caption" tone="muted">
-        {formatServingCount(item.servingCount)}× {item.serving.amount}
-        {item.serving.unit} · {item.consumed.calories} kcal · {t('nutrition.plan.protein')}{' '}
-        {item.consumed.proteinG}g · {t('nutrition.plan.carbs')} {item.consumed.carbsG}g ·{' '}
-        {t('nutrition.plan.fat')} {item.consumed.fatG}g
+        {formatServingCount(item.servingCount)}× {item.serving.amount}{' '}
+        {unitKey ? t(unitKey) : item.serving.unit} · {item.consumed.calories} kcal ·{' '}
+        {t('nutrition.plan.protein')} {item.consumed.proteinG}g · {t('nutrition.plan.carbs')}{' '}
+        {item.consumed.carbsG}g · {t('nutrition.plan.fat')} {item.consumed.fatG}g
       </AppText>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <ServingStepper

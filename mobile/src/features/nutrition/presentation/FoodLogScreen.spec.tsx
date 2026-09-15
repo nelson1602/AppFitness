@@ -186,6 +186,24 @@ describe('FoodLogScreen (Slice 4C)', () => {
     expect(logged.name).toBe('Chicken breast, cooked');
   });
 
+  it('renders the serving unit as a label, not the stored token', async () => {
+    setState({ items: [item({ servingCount: 1, serving: { amount: 1, unit: 'piece' } })] });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText(/1 piece/)).toBeOnTheScreen();
+  });
+
+  it('localizes the serving unit of a logged row in Spanish', async () => {
+    // `g` and `ml` read the same in both languages, so the regression this
+    // pins is only visible on a unit that is actually a word.
+    mockLanguage = 'es';
+    setState({ items: [item({ servingCount: 1, serving: { amount: 1, unit: 'piece' } })] });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByText(/1 unidad/)).toBeOnTheScreen();
+    expect(screen.queryByText(/piece/)).toBeNull();
+  });
+
   it('edits a serving count via the stepper', async () => {
     setState({ items: [item({ servingCount: 2 })] });
     await render(<FoodLogScreen />);
