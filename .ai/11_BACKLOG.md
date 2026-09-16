@@ -2760,6 +2760,72 @@ W-5 is **educational and food-first only**. If it ships, it must:
 
 ---
 
+## [FEATURE-014] Post-Mobile Web Product Parity (future phase — unstarted, unauthorized)
+
+Status: Proposed
+Priority: P4
+Type: Feature
+Owner: Unassigned
+Created: 2026-09-16
+Updated: 2026-09-16
+
+### Description
+
+The owner has recorded a **direction**: after the mobile product is fully
+complete, a separately planned phase may deliver functional Web parity with the
+mobile product. **ADR-P032 §Decision 7** records it; this entry is where it
+lives so it is not carried as folklore.
+
+This is a direction, not a plan. Nothing here is designed, estimated, scheduled
+or approved for implementation.
+
+### What this entry is not
+
+- **Not release-blocking.** Mobile V1 publication does not depend on it in any
+  way. It is not part of any stage of the route to publication in
+  `docs/RELEASE_READINESS.md`.
+- **Not a change to today’s Web boundary.** Until this phase is authorized and
+  delivered, ADR-P018 and ADR-P019 stay in force exactly as written: the
+  language preference is the only value in JS-readable Web storage, the Web
+  session is memory-only, the local database is dormant on Web, and every
+  database-backed feature renders the canonical Web-unavailable state. Public
+  V1 Web remains the bilingual account / recovery / verification portal of
+  ADR-P032 §Decision 1.
+- **Not authorized to bypass review.** It may not be started on the strength of
+  this entry, and it may not reuse the mobile architecture by assumption.
+
+### Prerequisites (all of them, before any implementation)
+
+- The mobile product is complete and published.
+- A **Web-specific architecture review** — Web data access is not the native
+  offline-first SQLite architecture and may not be assumed to be.
+- A **Web-specific security review** — at minimum the owner-gated persistent
+  Web authentication of ADR-P018 §Decision 5 (HttpOnly / Secure / SameSite
+  cookies, refresh rotation, logout clearing, explicit-origin credentialed
+  CORS, CSRF), since a parity Web app cannot run on a memory-only session.
+- A **data-synchronization review** — what a browser may hold, for how long,
+  and how conflicts are resolved without the native sync queue.
+- A **privacy review** of any browser persistence, which ADR-P019 §Decision 3
+  currently forbids for all fitness, nutrition, workout and progress data.
+- Its **own accepted ADR**, superseding or amending ADR-P019 §Decision 4
+  explicitly rather than by implication.
+
+### Acceptance Criteria
+
+- [ ] The prerequisites above are satisfied and recorded
+- [ ] A new ADR is accepted before any implementation slice begins
+- [ ] The scope, sequencing and gates are planned in
+      `.ai/13_MIGRATION_ROADMAP.md` as their own phase
+
+### Related Documents
+
+- `.ai/12_DECISIONS.md` — **ADR-P032** (§Decision 7), ADR-P018 (§Decision 5),
+  ADR-P019 (§Implementation Sequence item 5)
+- `docs/RELEASE_READINESS.md` — §Web boundary, §Future tracks
+- `.ai/11_BACKLOG.md` — `BUG-016` (Done)
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation
@@ -4386,12 +4452,14 @@ tests** with coverage thresholds met; TypeScript, lint and formatting clean.
 
 ## [BUG-016] The Public-V1 Web Shell and Not-Found Surface Are English-Only
 
-Status: Open
+Status: **Done** (2026-09-16 — closed by **ADR-P032**, which records the
+owner-approved Web boundary and the accepted static-prerender limitation; see
+Resolution)
 Priority: P2
 Type: Bug
 Owner: Unassigned
 Created: 2026-09-15
-Updated: 2026-09-15
+Updated: 2026-09-16
 
 ### Description
 
@@ -4449,13 +4517,73 @@ Excluded:
 
 ### Acceptance Criteria
 
-- [ ] Every exported document declares the language it actually renders
-- [ ] Every exported document has a non-empty, localized title
-- [ ] An unmatched route renders product copy from `en.ts` / `es.ts`
-- [ ] The prerender decision is recorded, not left implicit
-- [ ] A regression guard asserts the shell invariants
+- [x] Every exported document declares the language it actually renders —
+      `lang="en"` is the prerender fallback and is corrected to the visitor’s
+      language synchronously in `<head>`, before the body is parsed
+- [x] Every exported document has a non-empty title — **20 of 21**; the
+      criterion is met for every product document. `_sitemap.html` is the one
+      exemption and is recorded below, not quietly dropped. The **exported**
+      title is English by construction (see the prerender decision)
+- [x] An unmatched route renders product copy from `en.ts` / `es.ts`
+- [x] The prerender decision is recorded, not left implicit — **ADR-P032**
+- [x] A regression guard asserts the shell invariants —
+      `mobile/scripts/check-web-export.js` (`npm run verify:web-export`) over
+      the artifact, plus four specs over the source
+
+### Resolution (2026-09-16)
+
+Closed by **ADR-P032**, which settles both halves: the product question (what
+public-V1 Web *is*) and the mechanism question (what a single-language static
+export *can* carry).
+
+**The owner-approved boundary.** Public V1 Web is a responsive, polished
+bilingual portal for account, password-recovery and email-verification flows
+and for legal/public entry surfaces. Every database-backed fitness feature
+keeps its honest ADR-P019 Web-unavailable treatment. Functional Web parity with
+the mobile product is a **separate, later phase** — recorded as a direction
+only, not designed, not scheduled, not release-blocking for mobile V1, and not
+authorized to bypass a Web-specific architecture, security and data-sync
+review. Tracked as **`FEATURE-014`**.
+
+**What shipped.**
+
+| Defect | Closed by |
+|---|---|
+| F-5 `lang="en"` on every document | `app/+html.tsx` keeps `lang="en"` as the deterministic prerender fallback and inlines one synchronous `<head>` script that corrects it before the body renders, from the ADR-P018 language preference and the browser language list and nothing else |
+| F-6 empty `<title>` | a Web-only `DocumentHead` feeds `expo-router/head`; the product title `AppFitnessRD` by default, the portals’ own screen-title keys for the three portals, and an override for the not-found screen |
+| F-4 framework-English not-found | `app/+not-found.tsx` with EN/ES catalogue copy, one action to `/`, and **no `/_sitemap` affordance** |
+| F-7 English-only prerendered body | **accepted and recorded**, not claimed fixed — see below |
+
+**Why F-7 is accepted rather than fixed.** `app.json` sets
+`web.output: "static"`: every document is prerendered once, in Node, with no
+visitor attached, so the build cannot know a visitor’s language. Closing it
+needs per-locale prerendering plus Cloudflare routing, or a server render —
+infrastructure decisions ADR-P032 considers and defers. A Spanish visitor
+therefore reads English body copy for the first paint of a portal, and the
+**document language is already correct while they do**, which is the half with
+the accessibility consequence.
+
+**Residual — `_sitemap.html` keeps an empty title.** Expo Router appends
+`_sitemap` in `ExpoRoot` as a sibling of the app’s root slot, so it renders
+outside `app/_layout.tsx` and the repository has no mount point in it. Its
+`lang` and its pre-hydration script are correct, because the document shell
+does reach it. Giving it a title would mean disabling `/_sitemap` or replacing
+it with a repository-authored screen — routing decisions outside this bug. It
+is the single named exemption in the export gate.
+
+**Evidence.** A static export at `606c3e7` and one at this change were both
+read. Before: 21 documents, `<html  lang="en">` and
+`<title data-rh="true"></title>` on all 21, no `+not-found` product copy.
+After: 21 documents, all 21 carrying the pre-hydration correction, 20 of 21
+with a non-empty title, `+not-found.html` carrying the catalogue copy and no
+`_sitemap` link. The three portal documents are **identical to the baseline**
+apart from the added title text, the inline script and the bundle/CSS hashes,
+so the ADR-P026 token-capture and hydration behaviour is provably untouched.
 
 ### Technical Notes
+
+*(As recorded on 2026-09-15. All three statements were true then; the first two
+are what the Resolution above changed.)*
 
 `app.json` sets `web.output: "static"`. The repository authors no root HTML
 component, so Expo Router's defaults produce both the fixed `lang` and the
@@ -4478,7 +4606,8 @@ empty `title`. The `Unmatched` screen lives in
 
 - .ai/21_BILINGUAL_SURFACE_AUDIT.md
 - docs/RELEASE_READINESS.md (§Web boundary)
-- .ai/12_DECISIONS.md (ADR-P018, ADR-P019, ADR-P026)
+- .ai/12_DECISIONS.md (**ADR-P032**, ADR-P018, ADR-P019, ADR-P026, ADR-P028)
+- .ai/11_BACKLOG.md (`FEATURE-014` — the future Web-parity phase)
 
 ---
 

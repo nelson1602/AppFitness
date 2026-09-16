@@ -1,3 +1,4 @@
+export { DocumentHead } from './document-head';
 export { LanguageSelector } from './language-selector';
 export { formatDate, formatNumber, interpolate, localeForLanguage } from './format';
 export type { LanguagePreference, SupportedLanguage } from './language';

@@ -13360,6 +13360,262 @@ implementation slice.
 
 ---
 
+## ADR-P032 — Public-V1 Web Scope Boundary and the Statically Prerendered Document Shell
+
+Status: Accepted
+Date: 2026-09-16
+Owner: Product / Architecture
+
+### Context
+
+`.ai/21_BILINGUAL_SURFACE_AUDIT.md` proved that the three shipped Web portals —
+`/forgot-password`, `/reset-password`, `/verify-email` — resolve **every** string
+through the bilingual catalogues, and that the **document shell around them does
+not**. `BUG-016` recorded four defects, all reproduced here by exporting the
+static build at `606c3e7` (`npx expo export -p web`, **21** documents):
+
+| Defect | Evidence at `606c3e7` |
+|---|---|
+| F-5 fixed document language | `<html  lang="en">` on 21 of 21 documents |
+| F-6 empty document title | `<title data-rh="true"></title>` on 21 of 21 |
+| F-7 English-only prerendered body | `forgot-password.html` ships `Reset your password` |
+| F-4 framework-English not-found | no `app/+not-found.tsx`; `expo-router/build/views/Unmatched.js` serves every unmatched URL, un-`__DEV__`-gated, with a `Sitemap` link |
+
+Two of the four are **mechanism** questions that the pinned framework answers
+unambiguously; two are **product** questions that needed an owner decision.
+
+**What the pinned framework actually does** (read in `mobile/node_modules`,
+`expo-router@57.0.8` and `@expo/router-server@57.0.5`):
+
+- `@expo/router-server/build/static/getRootComponent.js` returns the app's
+  `+html` component when one exists, and its own `build/static/html.js` — which
+  hardcodes `<html lang="en">` — when none does. So the fixed `lang` is a
+  default, and `app/+html.tsx` is the supported override.
+  `expo-router/_ctx.{ios,android}.js` exclude `+html` from the native context,
+  so the file never reaches the mobile app.
+- `expo-router/build/ExpoRoot.js` sets React Navigation's
+  `documentTitle: { enabled: false }`. That is why `Stack.Screen options.title`
+  is a native header title and never becomes a Web document title.
+- `@expo/router-server/build/static/renderStaticContent.js` renders inside
+  `Head.Provider` and then splices Helmet's head tags in **immediately after
+  `<head>`**, ahead of anything the shell renders. The vendored `HelmetData`
+  server constructor seeds that context with an empty title, which is exactly
+  the `<title data-rh="true"></title>` the audit observed. Because a browser
+  takes the **first** `<title>` in a document, a `<title>` written into
+  `+html.tsx` would be emitted second and ignored: feeding Helmet through
+  `expo-router/head` is the only mechanism that reaches the exported title.
+  `expo-router/build/qualified-entry.js` already mounts `Head.Provider` on the
+  client, so no provider has to be added.
+- `expo-router/build/getRoutesCore.js` generates a `+not-found` route **only**
+  when the app directory does not define one, so authoring `app/+not-found.tsx`
+  replaces `Unmatched` outright.
+
+**What the framework cannot do here.** `app.json` sets `web.output: "static"`.
+Every document is prerendered once, in Node, with no visitor attached. The build
+therefore cannot know which of the two languages a given visitor reads. Nothing
+in the repository can make a single-language static export carry a per-visitor
+language; only per-locale prerendering plus hosting-level routing, or a server
+render, could — and both are infrastructure decisions.
+
+### Decision
+
+1. **Public-V1 Web scope (owner decision).** Public V1 Web is a **responsive,
+   polished bilingual portal** for account, password-recovery and
+   email-verification flows and for legal/public entry surfaces. Every
+   database-backed fitness feature keeps its honest **ADR-P019 Web-unavailable**
+   treatment. No Web product parity is claimed, designed or scheduled by this
+   ADR.
+
+2. **The static prerender stays single-language, and says so.** The exported
+   documents declare `lang="en"` and carry English body copy, because that is
+   the only thing a visitor-less prerender can honestly assert. This is an
+   **accepted, recorded first-paint limitation** (F-7), not a claim of
+   per-locale HTML.
+
+3. **The document language is corrected before the body renders.**
+   `app/+html.tsx` inlines one synchronous `<head>` script
+   (`mobile/src/shared/localization/web-document-language.ts`) that resolves the
+   visitor's language and assigns `document.documentElement.lang` before the
+   body is parsed. It may read **only** the non-sensitive UI language preference
+   ADR-P018 §Decision 2 already approves for `localStorage`, and the browser's
+   own language list. It reads no token, session, credential or user content; it
+   persists nothing; it contacts nothing; and every failure mode — storage
+   absent, storage throwing, no `navigator`, no `document` — resolves to the
+   deterministic English fallback rather than throwing. After hydration the live
+   language owns the attribute, so an in-app language switch retags the
+   document.
+
+4. **Titles go through `expo-router/head`.** A Web-only `DocumentHead` mounted
+   once in the root layout supplies the product title (`web.document.title` →
+   `AppFitnessRD`, per ADR-P028); the three shipped portals take the
+   screen-title keys they already render natively, so **no new portal copy
+   enters the product**; a screen may override it, which is how the not-found
+   document is titled. The native platform file renders `null`:
+   `Stack.Screen options.title` remains the only native mechanism and native
+   behaviour is unchanged.
+
+5. **The not-found screen is a repository-authored product surface.**
+   `app/+not-found.tsx` renders EN/ES catalogue copy, offers one action to `/`
+   (which resolves by session), and deliberately offers **no `/_sitemap`
+   affordance** — a development route enumeration that would list the surfaces
+   ADR-P019 keeps dormant on Web.
+
+6. **No new infrastructure.** No per-locale prerender, no server output, no
+   hosting-level language routing, no Cloudflare or DNS change, and no new
+   dependency. The entire correction is repository-owned and ships inside the
+   existing static export.
+
+7. **Future Web parity is a separate, later phase.** After the mobile product is
+   complete, a separately planned phase may deliver functional Web parity with
+   the mobile product. It is recorded as a direction only: it is **not designed,
+   not scheduled, and not release-blocking for mobile V1**, and it may not
+   bypass a Web-specific architecture, security and data-synchronization review
+   or its own ADR. Tracked as **`FEATURE-014`**.
+
+### Options Considered
+
+1. **Per-locale prerender (`/en/...`, `/es/...`).** Genuinely correct HTML per
+   language, at the cost of doubling the exported documents and requiring a
+   routing and redirect decision on the owner-managed Cloudflare Workers, plus
+   canonical / `hreflang` handling. Rejected for V1: it buys a correct first
+   paint on three portals in exchange for new infrastructure and a hosting
+   decision this slice may not make.
+2. **Server rendering (`web.output: "server"`).** Would let the document be
+   rendered per request in the visitor's language. Rejected: it turns a static
+   asset deployment into a running service and changes the deployment, security
+   and cost model of the recovery host.
+3. **Edge language routing at Cloudflare.** Same correctness as option 1 without
+   duplicating documents, but it puts product behaviour into infrastructure the
+   repository does not own or test. Rejected for V1.
+4. **Accepted first-paint limitation plus a synchronous pre-hydration shell
+   correction (selected).** The document is tagged correctly before the body
+   renders, the title is never empty, the not-found surface is a product
+   surface, and the one thing that cannot be fixed without infrastructure — the
+   language of the prerendered **body** — is documented and tested as accepted
+   rather than papered over.
+5. **A `<title>` written into `app/+html.tsx`.** Rejected on evidence: the
+   static renderer splices Helmet's empty title in ahead of it and the browser
+   uses the first one, so it would not work.
+6. **Duplicating portal copy into the shell script.** Rejected: it would put a
+   second, untranslated-by-construction copy of product copy outside the
+   catalogues, which is the class of defect this work exists to remove.
+
+### Rationale
+
+Option 4 is the smallest change that closes every part of `BUG-016` the
+repository can close, and it is honest about the part it cannot. `lang` is the
+defect with real accessibility consequence — a screen reader selecting English
+pronunciation for Spanish text, and a browser offering to translate Spanish
+"from English" — and it is fixed **before first paint**, synchronously, with no
+flash. The empty title, which blanked the browser tab, the bookmark, the history
+entry and the screen-reader page announcement, is closed for every product
+document. The prerendered body copy is the only residual, it lasts until
+hydration, and it is now recorded and tested as accepted rather than implied to
+be fixed.
+
+Restricting the shell script to the one value ADR-P018 already approves for
+browser storage keeps the security posture of ADR-P018 / ADR-P019 exactly where
+it was: nothing new is read, nothing new is written, and no sensitive material
+comes near the pre-hydration path.
+
+### Consequences
+
+Positive:
+
+- Every exported product document declares a language a browser and a screen
+  reader can act on, corrected to the visitor's own language before the body
+  renders.
+- Every exported product document has a non-empty title; the three shipped
+  portals are titled from the catalogues.
+- An unmatched or expired recovery link lands on a bilingual product surface
+  instead of framework English and a development sitemap link.
+- The Web boundary is now a recorded owner decision rather than an implication.
+- No infrastructure, dependency, hosting or DNS change. The Web-specific files
+  are either excluded from the native bundle (`+html.tsx`) or render `null` on
+  native (`document-head.tsx`), so no mobile product flow changes.
+- **One deliberate native side effect: the not-found screen.** `+not-found` is
+  not a Web-only route, so a malformed `appfitness://` deep link on native now
+  reaches the same bilingual product screen instead of `Unmatched Route` and a
+  `Sitemap` link. That is the point of F-4 — a Spanish user following a broken
+  link should not meet framework English on either platform — and it changes no
+  route reachable through product navigation. A Web-only `+not-found.web.tsx`
+  was rejected for exactly that reason.
+
+Negative / accepted:
+
+- **The prerendered body is English until hydration** (F-7). A Spanish visitor
+  sees English copy for the first paint of a portal. Accepted for V1; closing it
+  needs option 1, 2 or 3 above.
+- **The exported title is the English one**, for the same reason; Helmet
+  replaces it with the localized title on hydration.
+- **The correction is an inline `<script>`.** It has to be: it runs before the
+  bundle exists. No Content-Security-Policy is configured for the static Web
+  hosts today (Helmet applies to the API only, ADR-P021), and the export
+  already carries framework inline scripts — the hydration flag and the loader
+  data — so this introduces no new class of content. If a CSP is ever added, it
+  must allow this script or the correction **fails closed**: the document keeps
+  the deterministic `lang="en"` and nothing else changes.
+- **`_sitemap.html` keeps an empty title.** Expo Router appends `_sitemap` in
+  `ExpoRoot` as a sibling of the app's root slot, so it renders **outside**
+  `app/_layout.tsx` and the repository has no mount point in it. Its `lang` and
+  its pre-hydration script are correct, because the document shell does reach
+  it. Giving it a title would mean disabling `/_sitemap` or replacing it with a
+  repository-authored screen — routing decisions outside `BUG-016`. Recorded
+  here, and pinned as the single named exemption in the export gate.
+
+### Implementation
+
+Shipped in one slice, all of it repository-owned:
+
+- `mobile/src/app/+html.tsx` — the document shell: the `lang="en"` fallback plus
+  the inline pre-hydration correction, in `<head>`, before the body.
+- `mobile/src/shared/localization/web-document-language.ts` — the correction
+  itself, built from the shared language constants so it cannot drift from
+  `resolveLanguage()`, and serialized into the shell.
+- `mobile/src/shared/localization/document-head.web.tsx` and
+  `document-head.tsx` — the Web document title and live `lang`, and its native
+  no-op.
+- `mobile/src/app/+not-found.tsx` — the product not-found screen.
+- Four catalogue keys in `en.ts` / `es.ts` (`web.document.title`,
+  `notFound.title`, `notFound.body`, `notFound.action`); total **1067** each, at
+  parity.
+- `mobile/scripts/check-web-export.js` and `npm run verify:web-export` — the
+  artifact gate, with its predicates unit-tested against markup from both the
+  defective and the corrected export.
+
+**Verified on the artifact.** A static export at this change emits 21 documents;
+all 21 carry the pre-hydration correction, 20 of 21 carry a non-empty title
+(`_sitemap` excepted, above), and `+not-found.html` carries the catalogue copy
+with no `_sitemap` link. The three portal documents are **identical to the
+`606c3e7` baseline** apart from the added title text, the inline script and the
+bundle / CSS hashes — the ADR-P026 token-capture and hydration behaviour is
+untouched.
+
+### Supersedes / Preserves
+
+- **Preserves ADR-P018** — the language preference remains the only value in
+  JS-readable Web storage; no token, session or key is read or written.
+- **Preserves ADR-P019** — every database-backed feature keeps its
+  Web-unavailable state; no Web data capability is added or implied.
+- **Preserves ADR-P026** — the portal screens are untouched; the token-capture,
+  URL-scrub and hydration behaviour is unchanged, and proven so against the
+  baseline export.
+- **Preserves ADR-P028** — new user-facing copy uses `AppFitnessRD`.
+- **Preserves ADR-P017** — no dormant medical surface is exposed, and
+  `/_sitemap` is not offered as a product affordance.
+- Adds no claim of Web parity, Web publication readiness, or offline capability
+  on Web.
+
+### Related Documents
+
+- `.ai/11_BACKLOG.md` — `BUG-016` (closed by this ADR), `FEATURE-014`
+- `.ai/21_BILINGUAL_SURFACE_AUDIT.md` — findings F-4 … F-7
+- `.ai/12_DECISIONS.md` — ADR-P018, ADR-P019, ADR-P026, ADR-P028
+- `.ai/13_MIGRATION_ROADMAP.md` — Phase 21
+- `docs/RELEASE_READINESS.md` — §Web boundary, §Future tracks
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

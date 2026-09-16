@@ -25,6 +25,17 @@ App version `1.0.0` · Publication date: **not set**.
 > mobile suite moves to **196 suites / 2631 tests**; the catalogues stay at
 > **1063 / 1063**. No other row was re-verified against `96c81df`.
 
+> **Partial reconciliation, 2026-09-16 (`606c3e7`).** §Web boundary, the open-
+> defect list, §Future tracks, Stage 1 item 1 and verdict 2 were updated by the
+> **Web document-shell slice** — `BUG-016` (now **Done**) and **ADR-P032**, which
+> also records the owner-approved public-V1 Web boundary. Like the previous
+> reconciliation it is **not documentation-only**: it adds `app/+html.tsx` with a
+> pre-hydration language correction, the Web document title, a bilingual product
+> `+not-found` screen, four catalogue keys and an artifact gate
+> (`npm run verify:web-export`). The mobile suite moves to **200 suites / 2684
+> tests**; the catalogues move to **1067 / 1067**, still at exact parity. No
+> other row was re-verified against `606c3e7`.
+
 ## What this edition changed
 
 This is a **documentation-only reconciliation**. It changes no runtime code,
@@ -148,10 +159,28 @@ Legend:
 This section replaces any implication of Web app parity. **No responsive
 Web-app parity is claimed, and Web publication readiness is not claimed.**
 
+**The boundary is now a recorded owner decision.** **ADR-P032** (2026-09-16)
+states it: public V1 Web is a **responsive, polished bilingual portal** for
+account, password-recovery and email-verification flows and for legal/public
+entry surfaces, and every database-backed fitness feature keeps its honest
+ADR-P019 Web-unavailable treatment. Functional Web parity with the mobile
+product is a **separate, later phase** — a recorded direction only, not
+designed, not scheduled, **not release-blocking for mobile V1**, and not
+authorized to bypass a Web-specific architecture, security and data-sync
+review (`FEATURE-014`, §Future tracks).
+
 **What works on Web:**
 
 - The Expo Router app exports a static Web build (`app.json` → `web.output:
   "static"`).
+- **The document shell is bilingual-correct** (`BUG-016`, Done 2026-09-16).
+  Every exported document declares `lang="en"` as the prerender fallback and
+  corrects it to the visitor's language **synchronously, before the body is
+  parsed**, from the ADR-P018 language preference and the browser language
+  list only. Every product document carries a non-empty title, and the three
+  portals are titled from the catalogues. An unmatched or expired link lands
+  on a bilingual product not-found screen with no `/_sitemap` affordance.
+  Gated on the artifact by `npm run verify:web-export`.
 - The **account, recovery and verification portals work**: `/verify-email`,
   `/reset-password` and `/forgot-password` render on Web, capture the token from
   the URL **fragment** after hydration, scrub it from the URL and history, and
@@ -170,6 +199,15 @@ Web-app parity is claimed, and Web publication readiness is not claimed.**
   targets, dietary preferences), **profile and goal**, **progress**,
   **workout** (exercise library, routine builder, workout log), **wellness
   safety profile**, and **`/sync-conflicts`**.
+- **The prerendered body copy is English until hydration.** A single-language
+  static export has no visitor at build time, so it cannot carry a per-visitor
+  language. **Accepted and recorded** (ADR-P032 §Decision 2, audit finding
+  F-7); the document *language* is already correct while it happens. Closing
+  it needs per-locale prerendering or a server render — deferred
+  infrastructure decisions, not defects.
+- **`_sitemap.html` keeps an empty title.** Expo Router appends it outside the
+  app root layout, so the repository has no mount point in it; recorded as the
+  single named exemption of the export gate (ADR-P032 §Consequences).
 - **ADR-P018 / ADR-P019 govern this posture and remain in force.** Web is a
   capability-limited surface for account and recovery flows only.
 
@@ -214,15 +252,19 @@ not outrank launch blockers.**
 |---|---|---|
 | `RISK-001` Cross-package test fixtures were excluded by CI path filters | **Done** (2026-09-15) | Three tests read a fixture from outside their own package, and each direction was unprotected: `.ai/19_COPY_DECKS.md` to mobile `conflict-catalogue.spec.ts`; `api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration.sql` to mobile `wellness-safety-profile.spec.ts`; and — the mirror image of the originally reported edge — `mobile/src/features/workout/infrastructure/exercise-catalog.data.ts` to API `exercise-identity.spec.ts`. Both detectors gained the exact missing paths and nothing else. Required contexts, fail-safe-on-unavailable-base, unrelated-documentation no-op, and every audit job and threshold are preserved and verified unchanged. Proven by extracting the shipped patterns and the shipped detector scripts and exercising them, including empty and bogus base SHAs. |
 
-**Open functional defects:** one — **`BUG-016`** (P2), recorded 2026-09-15 by
-the bilingual surface audit: the Web document shell is English-only
-(`lang="en"`, empty `<title>`, English-only static prerender) and an unmatched
-URL lands on Expo Router's framework-English not-found screen. It affects the
-shipped account, recovery and verification portals, not the mobile publication
-target, and closing it needs new copy and a prerender decision. Two P3
-observations were recorded alongside it — `OBS-BSA-1` (the account-deletion
-confirmation phrase is the English word `DELETE` in both languages) and
-`OBS-BSA-2` (`/delete-account` renders no Web-unavailable state).
+**Open functional defects:** none. **`BUG-016`** (P2) was the last one and is
+**Done (2026-09-16)**, closed by **ADR-P032**. Recorded 2026-09-15 by the
+bilingual surface audit, it held that the Web document shell was English-only
+(`lang="en"`, empty `<title>`, English-only static prerender) and that an
+unmatched URL landed on Expo Router's framework-English not-found screen. The
+`lang`, the title and the not-found screen are corrected; the English
+prerendered **body** is accepted and recorded as the limitation of a
+single-language static export, and `_sitemap.html` keeps an empty title as a
+named exemption. It affected the shipped account, recovery and verification
+portals, never the mobile publication target. Two P3 observations remain open
+alongside it — `OBS-BSA-1` (the account-deletion confirmation phrase is the
+English word `DELETE` in both languages) and `OBS-BSA-2` (`/delete-account`
+renders no Web-unavailable state).
 
 `BUG-011` was the previous one and is **Done (2026-09-15)**. All four applicable
 row-level treatments are shipped; its residual was an **absent surface** —
@@ -244,6 +286,14 @@ copy the deck does not contain.
   processor for the intended purchase type), its own accepted ADR,
   security/compliance review including PCI scope, webhook and idempotency
   design, and UX/failure semantics. See `.ai/11_BACKLOG.md`.
+- **`FEATURE-014` Post-mobile Web product parity** — unstarted and
+  unauthorized. A recorded owner **direction** (ADR-P032 §Decision 7): after
+  the mobile product is complete, a separately planned phase may deliver
+  functional Web parity with the mobile product. It is **not designed, not
+  scheduled and not release-blocking for mobile V1**, and it may not start
+  without a Web-specific architecture, security, data-synchronization and
+  privacy review and its own accepted ADR. Until then ADR-P018 and ADR-P019
+  stay in force exactly as written. See `.ai/11_BACKLOG.md`.
 - **`FEATURE-013` W-5 supplement education** — optional and unauthorized.
   Educational, **food-first only**: no dosage of any kind, no diagnosis, no
   medication-interaction advice, no brand or product recommendation, mandatory
@@ -272,10 +322,13 @@ angles — coverage, then quality.
    coverage defects were corrected — the food log rendered the stored serving
    unit (`piece`, `cup`, `tbsp`, `tsp`, `slice` in a Spanish log), and two date
    fields hinted `YYYY-MM-DD` while their own Spanish validation message said
-   `AAAA-MM-DD`. **Web coverage is not complete**: `BUG-016` records a fixed
+   `AAAA-MM-DD`. **Web coverage was not complete**: `BUG-016` recorded a fixed
    `lang="en"`, an empty `<title>`, an English-only static prerender and a
    framework-English not-found screen, none correctable without new copy or an
-   architecture decision.
+   architecture decision. Both have since been supplied: `BUG-016` is **Done
+   2026-09-16** under **ADR-P032**, which corrects the `lang`, the titles and
+   the not-found screen and records the English prerendered body as the
+   accepted limitation of a single-language static export.
 2. ~~`in-repo` — **Bilingual quality** review beyond coverage: wording, tone, and
    correct locale formatting of dates, numbers and units.~~ **Done 2026-09-16** —
    `.ai/22_BILINGUAL_QUALITY_REVIEW.md`. All **43** user-facing numeric renders
@@ -370,7 +423,10 @@ angles — coverage, then quality.
 24. `post-v1` — Phase 18 (Habit Tracking), Phase 19 (Notifications).
 25. `post-v1` — `FEATURE-012` Azul payments.
 26. `post-v1` — `FEATURE-013` W-5 supplement education (optional).
-27. `post-v1` — `OBS-C7-1`, `OBS-C7-2`, `SECURITY-001`, `RESEARCH-001`,
+27. `post-v1` — `FEATURE-014` post-mobile Web product parity. A recorded
+    direction only (ADR-P032 §Decision 7); it starts after the mobile product
+    is complete and only with its own reviews and ADR.
+28. `post-v1` — `OBS-C7-1`, `OBS-C7-2`, `SECURITY-001`, `RESEARCH-001`,
     `BUG-006`, `TECHDEBT-004` unless a review promotes any of them.
 
 ## Verdicts (four distinct dimensions — do not conflate)
@@ -387,7 +443,8 @@ nutrition, conflict resolution, and — verified in code on 2026-09-15 — the
 complete deterministic workout routine, user-reachable at `/routines`. The
 **exhaustive bilingual surface audit** is **complete**
 (`.ai/21_BILINGUAL_SURFACE_AUDIT.md`, 2026-09-15): mobile coverage is complete,
-Web-shell coverage is not and is tracked as `BUG-016`. The **bilingual quality
+and the Web-shell gap it tracked as `BUG-016` is **Done (2026-09-16,
+ADR-P032)**. The **bilingual quality
 review** is **complete** for locale formatting and reviewed for wording
 (`.ai/22_BILINGUAL_QUALITY_REVIEW.md`, 2026-09-16); six wording, locale and
 input-contract decisions are recorded for an owner as `OBS-BQR-1 … OBS-BQR-6`,

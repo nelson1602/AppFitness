@@ -1,6 +1,6 @@
 # AppFitness Bilingual Surface Audit (public v1)
 
-Version: 1.1
+Version: 1.2
 Status: Active
 Last Updated: 2026-09-16
 
@@ -8,11 +8,18 @@ Last Updated: 2026-09-16
 
 # Purpose
 
-> **Partial reconciliation, 2026-09-16.** §Handoff to Stage 1 item 2 has been
-> discharged by `.ai/22_BILINGUAL_QUALITY_REVIEW.md`; the rows are kept and
-> annotated rather than removed, because the inventory is the evidence that the
-> work list was complete. Every other section still describes `051aecd` and is
-> unchanged.
+> **Partial reconciliation, 2026-09-16.** Two things have been discharged since
+> this audit was written, and both are annotated in place rather than removed —
+> the inventory is the evidence that the work list was complete.
+>
+> 1. §Handoff to Stage 1 item 2, by `.ai/22_BILINGUAL_QUALITY_REVIEW.md`.
+> 2. **Findings F-4 … F-7, the Web document shell, by `BUG-016` and
+>    `ADR-P032`** (2026-09-16). F-4, F-5 and F-6 are **corrected**; **F-7 is
+>    accepted and recorded** — a single-language static export cannot carry a
+>    per-visitor language, so the prerendered body stays English until
+>    hydration. The findings below still describe what was true at `051aecd`.
+>
+> Every other section still describes `051aecd` and is unchanged.
 
 This document discharges **Stage 1 item 1** of the route to publication in
 `docs/RELEASE_READINESS.md`: the *exhaustive bilingual surface audit*. It is the
@@ -157,6 +164,12 @@ title of their own.
 
 Two further Web documents are emitted that the repository does not author:
 `+not-found.html` and `_sitemap.html`. See **F-4**.
+
+> **Since corrected (BUG-016 / ADR-P032).** `app/+not-found.tsx` is now
+> authored, so `+not-found.html` is a product document with EN/ES catalogue
+> copy and no sitemap link. `_sitemap.html` is still framework-generated and
+> still unauthored; it renders outside the app root layout, which is why it is
+> the one document that keeps an empty title (ADR-P032 §Consequences).
 
 ## Embedded surfaces
 
@@ -312,6 +325,13 @@ screens.
 | Prerendered body is English only | `forgot-password.html` contains `Reset your password`, `Send reset link` — **F-7** |
 | `+not-found` is framework English | `expo-router/build/views/Unmatched.js` — **F-4** |
 
+> **Re-exported 2026-09-16 after `BUG-016`.** Still 21 documents. All 21 now
+> carry the pre-hydration language correction; 20 of 21 carry a non-empty title
+> (`_sitemap.html` excepted); `+not-found.html` carries the catalogue copy and
+> no `/_sitemap` link. The three portal documents are byte-identical to this
+> baseline apart from the added title text, the inline script and the
+> bundle/CSS hashes — the token-capture and hydration behaviour is untouched.
+
 ---
 
 # Findings
@@ -367,6 +387,11 @@ mistyped, truncated or expired portal URL lands there, which is exactly the
 moment a recovery user is already confused. Closing it needs a not-found screen
 and its copy — **a copy decision this slice may not make**.
 
+> **Corrected 2026-09-16 (BUG-016 / ADR-P032 §Decision 5).** `app/+not-found.tsx`
+> replaces the generated route, renders `notFound.title` / `notFound.body` /
+> `notFound.action` from both catalogues, offers one action to `/`, and offers
+> no `/_sitemap` affordance.
+
 ### F-5 — the Web portals declare `lang="en"` for Spanish content
 
 Every exported document carries `<html lang="en">`. A Spanish visitor to
@@ -376,6 +401,11 @@ translation offers to translate Spanish "from English". Correcting it needs an
 `app/+html.tsx` and a decision about how a **statically prerendered** document
 can carry a per-visitor language — an architecture decision, not a copy fix.
 
+> **Corrected 2026-09-16 (BUG-016 / ADR-P032 §Decision 3).** `app/+html.tsx`
+> keeps `lang="en"` as the deterministic prerender fallback and inlines one
+> synchronous `<head>` script that corrects it **before the body is parsed**,
+> from the ADR-P018 language preference and the browser language list only.
+
 ### F-6 — every exported page has an empty `<title>`
 
 `Stack.Screen options.title` is a native header title; it does not reach the Web
@@ -384,12 +414,27 @@ announcement are all empty on all three portals. Closing it needs both a
 mechanism and a decision about what the title should say (brand only, route
 only, or both).
 
+> **Corrected 2026-09-16 (BUG-016 / ADR-P032 §Decision 4).** The mechanism is
+> `expo-router/head` — React Navigation’s document-title integration is
+> switched off in `ExpoRoot`, and a `<title>` in `+html.tsx` would be spliced in
+> *after* Helmet’s and ignored. The decision is **both**: the product title
+> `AppFitnessRD` by default, and the portals’ own existing screen-title keys for
+> the three portals, so no new copy entered the product.
+
 ### F-7 — the static prerender embeds English copy regardless of visitor
 
 `forgot-password.html` ships `Reset your password` and `Send reset link` in its
 markup. A Spanish visitor sees English until hydration replaces it. This follows
 from a single-language static prerender and is the same architecture decision as
 F-5: per-locale prerendering, or an accepted and documented flash.
+
+> **Accepted, not corrected, 2026-09-16 (BUG-016 / ADR-P032 §Decision 2).** The
+> decision is the documented flash. `web.output: "static"` prerenders every
+> document once, in Node, with no visitor, so the build cannot know a visitor’s
+> language; per-locale prerendering and edge routing were considered and
+> deferred as infrastructure. The `lang` half — the half with the accessibility
+> consequence — is corrected before first paint, and the residual is now tested
+> as accepted rather than implied to be fixed.
 
 ### F-9 — the account-deletion confirmation phrase is untranslated
 
@@ -605,9 +650,12 @@ unidad` (`FoodLogScreen.spec.tsx`) and the birth-date placeholder renders
   found are the frozen brand name, two unit symbols that are identical in both
   languages, and the two date placeholders corrected here.
 - **Web.** The three shipped portals are fully localized **as screens**. The
-  document shell is not: fixed `lang="en"` (F-5), empty `<title>` (F-6), an
+  document shell was not: fixed `lang="en"` (F-5), empty `<title>` (F-6), an
   English-only prerender (F-7), and a framework-English not-found screen (F-4).
-  None is correctable without new copy or an architecture decision.
+  None was correctable without new copy or an architecture decision — both of
+  which `BUG-016` and **ADR-P032** have since supplied. **As of 2026-09-16 F-4,
+  F-5 and F-6 are corrected and F-7 is accepted and recorded**; the paragraph
+  above describes `051aecd` and is kept as the evidence baseline.
 
 **This is not a translation-quality claim.** Wording, tone and locale formatting
 remain Stage 1 item 2, and §Handoff is its input — **consumed on 2026-09-16** by
@@ -619,6 +667,8 @@ remain Stage 1 item 2, and §Handoff is its input — **consumed on 2026-09-16**
 
 - `.ai/22_BILINGUAL_QUALITY_REVIEW.md` — Stage 1 item 2, which discharges
   §Handoff above
+- `.ai/12_DECISIONS.md` — **ADR-P032**, which settles F-4 … F-7
+- `.ai/11_BACKLOG.md` — `BUG-016` (Done), `FEATURE-014`
 - `docs/RELEASE_READINESS.md` — Stage 1 items 1 and 2
 - `.ai/18_SCREEN_STATE_MATRICES.md` — which states each surface has
 - `.ai/19_COPY_DECKS.md` — what each state says
