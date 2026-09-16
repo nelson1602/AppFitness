@@ -27,17 +27,24 @@ import type { WellnessTokenOption } from './wellness-token-labels';
  *
  * ── Measured contrast (WCAG 2.2 AA, both themes) ────────────────────────────
  * The selected fill is the **container** pair rather than `FormSelect`'s
- * `primary` fill, which renders its label through `onSurface` and therefore
- * measures 1.42:1 in the dark theme (`.ai/08_UI_UX.md` §Finding 1, FEATURE-010).
- * This component must not reproduce that defect, and it decides no token value:
- * it uses the shipped `primaryContainer` role as designed.
+ * `primary` fill. That was originally chosen to avoid `FormSelect`'s
+ * `onSurface`-on-`primary` defect; **ADR-P022 Addendum A has since corrected
+ * `FormSelect` to `onPrimary`**, so the two components now differ by intent
+ * (quiet multi-select container versus filled single-select) rather than by one
+ * of them being wrong. This component still decides no token value: it uses the
+ * shipped `primaryContainer` role as designed, and neither container token
+ * changed in that addendum.
  *
  * | Pairing | Light | Dark |
  * |---|---|---|
  * | label `onSurface` on `primaryContainer` (selected) | 13.79:1 | 6.87:1 |
  * | label `onSurfaceVariant` on `surfaceVariant` (unselected) | 8.23:1 | 8.76:1 |
- * | border `primary` on `surfaceVariant` (selected, non-text ≥3:1) | 3.12:1 | 8.13:1 |
+ * | border `primary` on `surfaceVariant` (selected, non-text ≥3:1) | 5.36:1 | 8.13:1 |
  * | border `outline` on `surfaceVariant` (unselected, non-text ≥3:1) | 3.96:1 | 4.69:1 |
+ *
+ * The selected border rose from 3.12:1 to 5.36:1 in the light theme purely
+ * because `primary` was corrected; every other ratio here is unchanged. All
+ * four are re-measured from the live tokens by `shared/theme/contrast.spec.ts`.
  */
 
 /** Non-colour selected marker. Not an icon — a text glyph, hidden from AT. */

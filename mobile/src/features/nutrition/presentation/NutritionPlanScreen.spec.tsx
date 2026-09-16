@@ -1,4 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
+
+import { lightTheme } from '@/shared/theme';
 
 import type { DashboardState } from '@/features/dashboard/domain/dashboard.types';
 
@@ -215,6 +218,30 @@ describe('NutritionPlanScreen', () => {
     await fireEvent.press(screen.getByTestId('plan-day-3'));
     expect(screen.getByText('Day 3')).toBeOnTheScreen();
     expect(screen.queryByText('Day 1')).toBeNull();
+  });
+
+  /**
+   * ADR-P022 Addendum A. The selected day chip fills with `primary` and
+   * previously labelled itself through the default tone, resolving to
+   * `onSurface` — 1.42:1 in the dark theme. The canonical filled pair is
+   * `primary` / `onPrimary` (ADR-P022 Decision 5a). Asserted on the resolved
+   * colour and on the selection moving, so neither a tone rename nor a
+   * hard-coded first chip can hide a regression.
+   */
+  it('labels the selected day chip with onPrimary, never onSurface (ADR-P022 Addendum A)', async () => {
+    await render(<NutritionPlanScreen />);
+
+    const colorOf = (text: string) =>
+      StyleSheet.flatten(screen.getByText(text).props.style as StyleProp<TextStyle>)?.color;
+
+    expect(colorOf('1')).toBe(lightTheme.colors.onPrimary);
+    expect(colorOf('1')).not.toBe(lightTheme.colors.onSurface);
+    expect(colorOf('3')).toBe(lightTheme.colors.onSurfaceVariant);
+
+    await fireEvent.press(screen.getByTestId('plan-day-3'));
+
+    expect(colorOf('3')).toBe(lightTheme.colors.onPrimary);
+    expect(colorOf('1')).toBe(lightTheme.colors.onSurfaceVariant);
   });
 
   it('shows a data-gap state and falls back to the dashboard when no specific gaps are known', async () => {

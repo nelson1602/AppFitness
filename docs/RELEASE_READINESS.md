@@ -377,9 +377,26 @@ angles — coverage, then quality.
    *In Progress*, and ADR-P022's Material Symbols icon delivery mechanism is
    still **unresolved and separately gated** (no package, asset format or
    per-platform mapping selected). Gate on shipped evidence, not intent.
+   **Progress 2026-09-16 (ADR-P022 Addendum A, UX-1C-4):** the light-theme
+   WCAG 2.2 AA colour failures are closed — four token values corrected and four
+   foreground-pairing defects fixed, including one that rendered every
+   `secondary` and `text` button label as untinted black at **1.13–1.42:1 on
+   the dark theme's grounds**. **This does not advance gate 5 to done**: Inter,
+   icons, motion and dark surface-tint elevation are all still unimplemented, so
+   the app's appearance is still largely default MD3.
 6. `in-repo` — **Light and dark mode** verified across every shipped surface.
+   **Still UNVERIFIED.** ADR-P022 Addendum A added a deterministic contrast gate
+   that measures every approved pairing in **both** themes on every test run,
+   and it caught a live dark-theme defect that four documentation audits had
+   missed. That is **computed** evidence about the palette, and a precondition
+   for this gate — **not** the per-surface visual verification this gate
+   requires, which nobody has performed. Do not mark this done on the strength
+   of a green test suite.
 7. `in-repo` — **Accessibility (UX-4C)**: manual screen-reader, keyboard and
-   large-text passes. No outcome may be claimed until run.
+   large-text passes. No outcome may be claimed until run. **Unchanged by
+   ADR-P022 Addendum A** — contrast arithmetic is not an assistive-technology
+   outcome, and all five V1 accessibility release-review gates (ADR-P023 /
+   ADR-P024 / ADR-P025) remain open at the same severity.
 8. `in-repo` — **Responsive-Web scope decision**: today Web is account/recovery
    portals only, with every DB-backed feature on the Web-unavailable path.
    Either accept that boundary for v1 **or** open a separate track. Do not claim

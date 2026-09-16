@@ -1,6 +1,13 @@
 /**
  * Semantic color tokens per .ai/08_UI_UX.md (Material Design 3 roles).
  * Components must consume these via useTheme() — never raw hex values.
+ *
+ * The light `primary`, `success`, `warning`, and `accent` values were corrected
+ * by **ADR-P022 Addendum A** (2026-09-16) to close the recorded WCAG 2.2 AA
+ * failures. Every approved pairing is measured, in both themes, by
+ * `contrast.spec.ts`; editing a value here without re-reading that gate will
+ * fail the build rather than ship a regression. Semantic roles, role count, and
+ * every dark value are unchanged.
  */
 export interface ColorTokens {
   primary: string;
@@ -33,7 +40,7 @@ export interface ColorTokens {
 }
 
 export const lightColors: ColorTokens = {
-  primary: '#208AEF',
+  primary: '#0F62B8',
   onPrimary: '#FFFFFF',
   primaryContainer: '#D6E9FC',
   onPrimaryContainer: '#0A3D6B',
@@ -47,9 +54,9 @@ export const lightColors: ColorTokens = {
   onSurface: '#191C1F',
   surfaceVariant: '#EEF1F5',
   onSurfaceVariant: '#44474C',
-  success: '#1B873F',
+  success: '#187737',
   onSuccess: '#FFFFFF',
-  warning: '#B26A00',
+  warning: '#8F5500',
   onWarning: '#FFFFFF',
   error: '#BA1A1A',
   onError: '#FFFFFF',
@@ -59,7 +66,7 @@ export const lightColors: ColorTokens = {
   onDisabled: '#75787D',
   outline: '#74777D',
   divider: '#E1E4E9',
-  accent: '#00A6A6',
+  accent: '#007A79',
 };
 
 export const darkColors: ColorTokens = {

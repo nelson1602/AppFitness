@@ -58,6 +58,28 @@ export function AppButton({
     },
   };
 
+  /**
+   * A filled variant's label is the `on*` foreground of the role it is filled
+   * with: `onPrimary` on `primary`, `onError` on `error`. `destructive`
+   * previously borrowed `onPrimary`, which happens to be `#FFFFFF` in the light
+   * theme but is the dark theme's blue `#06345C` — a blue label on a red button
+   * (ADR-P022 Addendum A).
+   *
+   * The unfilled variants map to `undefined` and the colour is then omitted
+   * from the style **entirely**, never passed as `{ color: undefined }`.
+   * `AppText` composes `[typography, { color: tone }, style]`, and a trailing
+   * `{ color: undefined }` overwrites the tone when the array is flattened — so
+   * `tone="primary"` never reached a `secondary` or `text` label, which
+   * rendered React Native's default black instead: **1.23:1 on the dark
+   * `surface` and 1.13:1 on the dark `background`** across every `text` button
+   * in the app. Passing `undefined` for the whole style leaves the tone intact.
+   */
+  const labelColor: Record<ButtonVariant, string | undefined> = {
+    primary: theme.colors.onPrimary,
+    destructive: theme.colors.onError,
+    secondary: undefined,
+    text: undefined,
+  };
   const textTone = variant === 'primary' || variant === 'destructive' ? 'default' : 'primary';
 
   return (
@@ -79,23 +101,12 @@ export function AppButton({
       {...props}
     >
       {loading ? (
-        <ActivityIndicator
-          color={
-            variant === 'primary' || variant === 'destructive'
-              ? theme.colors.onPrimary
-              : theme.colors.primary
-          }
-        />
+        <ActivityIndicator color={labelColor[variant] ?? theme.colors.primary} />
       ) : (
         <AppText
           variant="label"
           tone={textTone}
-          style={{
-            color:
-              variant === 'primary' || variant === 'destructive'
-                ? theme.colors.onPrimary
-                : undefined,
-          }}
+          style={labelColor[variant] === undefined ? undefined : { color: labelColor[variant] }}
         >
           {children}
         </AppText>

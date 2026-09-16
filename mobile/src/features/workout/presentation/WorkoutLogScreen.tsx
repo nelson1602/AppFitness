@@ -173,7 +173,7 @@ export function WorkoutLogScreen() {
             accessibilityLabel={t('workout.log.name')}
             testID="workout-name"
             placeholder={t('workout.log.namePlaceholder')}
-            placeholderTextColor={theme.colors.outline}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
             value={name}
             onChangeText={setName}
             style={{
@@ -381,7 +381,7 @@ export function WorkoutLogScreen() {
                         accessibilityLabel={t('workout.log.reps')}
                         testID="set-reps-input"
                         placeholder={t('workout.log.reps')}
-                        placeholderTextColor={theme.colors.outline}
+                        placeholderTextColor={theme.colors.onSurfaceVariant}
                         keyboardType="numeric"
                         value={reps}
                         onChangeText={setReps}
@@ -398,7 +398,7 @@ export function WorkoutLogScreen() {
                         accessibilityLabel={t('workout.log.weightKg')}
                         testID="set-weight-input"
                         placeholder={t('workout.log.weightKg')}
-                        placeholderTextColor={theme.colors.outline}
+                        placeholderTextColor={theme.colors.onSurfaceVariant}
                         keyboardType="numeric"
                         value={weight}
                         onChangeText={setWeight}

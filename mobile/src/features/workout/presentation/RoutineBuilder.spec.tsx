@@ -1,4 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+
+import { lightTheme } from '@/shared/theme';
 
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 
@@ -165,6 +168,26 @@ describe('RoutineBuilder', () => {
     await fireEvent.press(screen.getByTestId('routine-create'));
 
     expect(createRoutine).toHaveBeenCalledWith({ name: 'Pull day' });
+  });
+
+  /**
+   * ADR-P022 Addendum A. `outline` is a boundary role at the 3:1 non-text
+   * threshold; used as placeholder *text* it measures 4.49:1 on `surface` in
+   * the light theme and fails the 4.5:1 requirement (WCAG ratios are not
+   * rounded upward). `onSurfaceVariant` is the canonical placeholder role and
+   * measures 9.33:1. `outline` remains correct on the border, which is asserted
+   * alongside so the fix cannot be over-applied.
+   */
+  it('renders placeholder text through onSurfaceVariant, never outline (ADR-P022 Addendum A)', async () => {
+    setStore({ status: 'ready', routines: [] });
+    await render(<RoutineBuilder />);
+
+    const input = screen.getByTestId('routine-name');
+    expect(input.props.placeholderTextColor).toBe(lightTheme.colors.onSurfaceVariant);
+    expect(input.props.placeholderTextColor).not.toBe(lightTheme.colors.outline);
+    expect(StyleSheet.flatten(input.props.style as StyleProp<ViewStyle>)?.borderColor).toBe(
+      lightTheme.colors.outline,
+    );
   });
 
   it('removes (soft-deletes) a routine through the store', async () => {
