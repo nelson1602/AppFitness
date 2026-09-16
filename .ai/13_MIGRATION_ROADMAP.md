@@ -2141,9 +2141,9 @@ repetitions or duration, rest, progression, equipment-compatible substitutions,
 goal adaptation, declared-movement exclusions, deterministic versioned output,
 offline availability and localized presentation). **BUG-011 is Done**, closed by
 correcting its acceptance criterion rather than adding a measurement surface the
-product does not have. Still open: the **exhaustive bilingual surface audit** and
-the **bilingual quality review**, then a fresh publication candidate with its own
-re-gate. **W-5 (optional supplement education) remains unimplemented and does
+product does not have. The **exhaustive bilingual surface audit** is **complete**
+(`.ai/21_BILINGUAL_SURFACE_AUDIT.md`, 2026-09-15). Still open: the **bilingual
+quality review**, then a fresh publication candidate with its own re-gate. **W-5 (optional supplement education) remains unimplemented and does
 NOT block public v1.**
 Owner-approved under ADR-P017. Slice 2 adds the Spanish/English localization
 foundation, supported

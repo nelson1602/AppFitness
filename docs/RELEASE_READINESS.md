@@ -8,6 +8,14 @@
 Last reconciled: **2026-09-15** · Current `main` baseline **`d498658`** ·
 App version `1.0.0` · Publication date: **not set**.
 
+> **Partial reconciliation, 2026-09-15 (`051aecd`).** Stage 1 item 1, the
+> localization evidence line, the open-defect list and verdict 2 were updated by
+> the exhaustive bilingual surface audit
+> (`.ai/21_BILINGUAL_SURFACE_AUDIT.md`). That change also moves the mobile
+> suite to **195 suites / 2618 tests** and the catalogues to 1063 keys. No
+> other row was re-verified against `051aecd`; the rest of this matrix still
+> describes `d498658`.
+
 ## What this edition changed
 
 This is a **documentation-only reconciliation**. It changes no runtime code,
@@ -65,8 +73,12 @@ Legend:
 - **Mobile tests:** **194 suites / 2598 tests**.
 - **API tests:** **43 suites / 606 unit tests**, plus the e2e suite in the
   `api-ci` "Migrations + e2e against disposable Postgres" job.
-- **Localization:** **1061 EN / 1061 ES keys at exact parity** (0 keys on either
-  side only), verified against the shipped catalogues.
+- **Localization:** **1063 EN / 1063 ES keys at exact parity** (0 keys on either
+  side only), verified against the shipped catalogues. Parity is no longer the
+  only evidence: `.ai/21_BILINGUAL_SURFACE_AUDIT.md` (2026-09-15) traces every
+  key to a surface and every public-v1 surface back to the catalogue, and
+  `mobile/src/shared/localization/surface-coverage.spec.ts` keeps that proof
+  from regressing.
 - **Migrations:** **16** Prisma migrations; **7** SQLite migrations (001–007).
 - **Conflict resolution (ADR-P030):** C-0 … C-7 implemented. C-7 drove **14
   Maestro journeys across two Android emulators** against a disposable local
@@ -186,9 +198,17 @@ not outrank launch blockers.**
 |---|---|---|
 | `RISK-001` Cross-package test fixtures were excluded by CI path filters | **Done** (2026-09-15) | Three tests read a fixture from outside their own package, and each direction was unprotected: `.ai/19_COPY_DECKS.md` to mobile `conflict-catalogue.spec.ts`; `api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration.sql` to mobile `wellness-safety-profile.spec.ts`; and — the mirror image of the originally reported edge — `mobile/src/features/workout/infrastructure/exercise-catalog.data.ts` to API `exercise-identity.spec.ts`. Both detectors gained the exact missing paths and nothing else. Required contexts, fail-safe-on-unavailable-base, unrelated-documentation no-op, and every audit job and threshold are preserved and verified unchanged. Proven by extracting the shipped patterns and the shipped detector scripts and exercising them, including empty and bogus base SHAs. |
 
-**Open functional defects:** none.
+**Open functional defects:** one — **`BUG-016`** (P2), recorded 2026-09-15 by
+the bilingual surface audit: the Web document shell is English-only
+(`lang="en"`, empty `<title>`, English-only static prerender) and an unmatched
+URL lands on Expo Router's framework-English not-found screen. It affects the
+shipped account, recovery and verification portals, not the mobile publication
+target, and closing it needs new copy and a prerender decision. Two P3
+observations were recorded alongside it — `OBS-BSA-1` (the account-deletion
+confirmation phrase is the English word `DELETE` in both languages) and
+`OBS-BSA-2` (`/delete-account` renders no Web-unavailable state).
 
-`BUG-011` was the last one and is **Done (2026-09-15)**. All four applicable
+`BUG-011` was the previous one and is **Done (2026-09-15)**. All four applicable
 row-level treatments are shipped; its residual was an **absent surface** —
 Progress never lists an individual body-measurement row — and was closed by
 correcting the acceptance criterion rather than adding a measurement list and
@@ -223,16 +243,31 @@ on earlier ones; items within a stage are parallelisable.
 
 **Stage 1 — finish the product contract (`in-repo`)**
 
-Two items remain, and both are the same piece of work seen from different
-angles: coverage, then quality.
+One of the two remains. They were the same piece of work seen from different
+angles — coverage, then quality — and coverage is now done.
 
-1. `in-repo` — Complete the **exhaustive bilingual surface audit**. EN/ES parity
-   is exact at **1061/1061 keys**, which is necessary but **not sufficient**: the
-   criterion covers all user-facing, accessibility and error content, and no
-   surface-by-surface audit has been done.
+1. ~~`in-repo` — Complete the **exhaustive bilingual surface audit**.~~ **Done
+   2026-09-15** — `.ai/21_BILINGUAL_SURFACE_AUDIT.md`. Every one of the 20 route
+   entry points, every embedded surface, the three shipped Web portals and both
+   non-catalogue content catalogues were traced in both directions. **Mobile
+   coverage is complete**: outside the dormant medical domain the only literals
+   left on a reachable surface are the frozen `AppFitness` brand and the unit
+   symbols `kcal` and `kg`, which are identical in both languages. Three
+   coverage defects were corrected — the food log rendered the stored serving
+   unit (`piece`, `cup`, `tbsp`, `tsp`, `slice` in a Spanish log), and two date
+   fields hinted `YYYY-MM-DD` while their own Spanish validation message said
+   `AAAA-MM-DD`. **Web coverage is not complete**: `BUG-016` records a fixed
+   `lang="en"`, an empty `<title>`, an English-only static prerender and a
+   framework-English not-found screen, none correctable without new copy or an
+   architecture decision.
 2. `in-repo` — **Bilingual quality** review beyond coverage: wording, tone, and
    correct locale formatting of dates, numbers and units. Evidence gate — a key
-   count is not a translation-quality claim.
+   count is not a translation-quality claim. **Its input now exists**:
+   `.ai/21_BILINGUAL_SURFACE_AUDIT.md` §Handoff lists all 43 user-facing numeric
+   renders that bypass the shared formatter, including the three fractional
+   sites that are wrong in Spanish today (serving count, logged serving count,
+   set weight) and the calorie total that reads `2,500` on one screen and `2500`
+   on another in English.
 
 *Closed out of this stage on 2026-09-15:*
 
@@ -323,9 +358,12 @@ the same as "current release evidence".
 **2. Feature completeness for public v1: NEARLY.** Phase 21 has delivered the
 medical decoupling, the Wellness Safety Profile (W-0 … W-4E), bilingual
 nutrition, conflict resolution, and — verified in code on 2026-09-15 — the
-complete deterministic workout routine, user-reachable at `/routines`. What
-remains for the product contract is the **exhaustive bilingual surface audit**
-and the **bilingual quality review**. **W-5 is optional and does not block v1.**
+complete deterministic workout routine, user-reachable at `/routines`. The
+**exhaustive bilingual surface audit** is **complete**
+(`.ai/21_BILINGUAL_SURFACE_AUDIT.md`, 2026-09-15): mobile coverage is complete,
+Web-shell coverage is not and is tracked as `BUG-016`. What remains for the
+product contract is the **bilingual quality review**. **W-5 is optional and does
+not block v1.**
 
 **3. Production / store-submission readiness: BLOCKED.** Blocked on owner and
 external gates — legal sign-off, Play Console, physical-device and accessibility

@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.16
+Version: 1.17
 Status: Active
-Last Updated: 2026-09-14
+Last Updated: 2026-09-15
 
 ---
 
@@ -1124,9 +1124,17 @@ Both sides must read differently **as text**, at any text size, with no colour.
 Labels only; the surface pairs each with the value the review model already
 carries.
 
+**Correction 2026-09-15 (`.ai/21_BILINGUAL_SURFACE_AUDIT.md`, finding F-8).**
+Five of the six ship as described. `sync.conflicts.meta.record` does **not**:
+the card names the record by its kind in its own title, through `recordLabel()`
+→ `sync.conflicts.record.*` (`conflict-card.tsx:51`, `:57`), and renders no
+`Record:` metadata row. The key is in both catalogues and is reachable from no
+surface. Its row below is restated accordingly. Adding the row would change the
+card, which is a design decision this deck does not make.
+
 | Key | EN | ES | Model source | Status |
 |---|---|---|---|---|
-| `sync.conflicts.meta.record` | Record | Registro | `entityKind` | **SHIPPED** |
+| `sync.conflicts.meta.record` | Record | Registro | `entityKind` | **CATALOGUED, NOT RENDERED** — see the correction above |
 | `sync.conflicts.meta.entryDate` | Entry date | Fecha del registro | `comparisonDate` | **SHIPPED** |
 | `sync.conflicts.meta.startingVersion` | You started from version | Partiste de la versión | `baseVersion` | **SHIPPED** |
 | `sync.conflicts.meta.accountVersion` | Your account is on version | Tu cuenta va en la versión | `currentServerVersion` | **SHIPPED** |

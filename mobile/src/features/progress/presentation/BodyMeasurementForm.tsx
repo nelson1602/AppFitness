@@ -71,7 +71,7 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
         control={control}
         name="date"
         label={t('progress.measurements.date')}
-        placeholder="YYYY-MM-DD"
+        placeholder={t('progress.measurements.datePlaceholder')}
         required
       />
       <FormField

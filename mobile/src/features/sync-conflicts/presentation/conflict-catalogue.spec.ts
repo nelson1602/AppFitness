@@ -129,9 +129,13 @@ describe('catalogue parity', () => {
     expect(Object.keys(es).sort()).toEqual(Object.keys(en).sort());
   });
 
-  it('reaches 1061 keys in each language — 904 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1061);
-    expect(Object.keys(es)).toHaveLength(1061);
+  // The total moved from 1061 to 1063 on 2026-09-15: the bilingual surface
+  // audit added `profile.birthDatePlaceholder` and
+  // `progress.measurements.datePlaceholder`, neither in this family, so the
+  // 157-key conflict family below is unchanged.
+  it('reaches 1063 keys in each language — 906 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1063);
+    expect(Object.keys(es)).toHaveLength(1063);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 
