@@ -2142,9 +2142,21 @@ goal adaptation, declared-movement exclusions, deterministic versioned output,
 offline availability and localized presentation). **BUG-011 is Done**, closed by
 correcting its acceptance criterion rather than adding a measurement surface the
 product does not have. The **exhaustive bilingual surface audit** is **complete**
-(`.ai/21_BILINGUAL_SURFACE_AUDIT.md`, 2026-09-15). Still open: the **bilingual
-quality review**, then a fresh publication candidate with its own re-gate. **W-5 (optional supplement education) remains unimplemented and does
-NOT block public v1.**
+(`.ai/21_BILINGUAL_SURFACE_AUDIT.md`, 2026-09-15), and so is the **bilingual
+quality review** (`.ai/22_BILINGUAL_QUALITY_REVIEW.md`, 2026-09-16). The
+**Web document shell** the audit recorded as `BUG-016` is also **closed**
+(2026-09-16, **ADR-P032**): the exported documents now correct their `lang`
+before the body renders and carry non-empty titles, an unmatched URL lands on
+a bilingual product not-found screen, and the one thing a single-language
+static export cannot do — carry a per-visitor language in the prerendered
+body — is recorded as accepted rather than claimed fixed. ADR-P032 also
+records the **owner-approved public-V1 Web boundary** (a bilingual account /
+recovery / verification portal; every database-backed feature stays
+Web-unavailable under ADR-P019) and notes that **functional Web parity is a
+separate, post-mobile phase** — recorded as a direction only, not designed,
+not scheduled and not release-blocking for mobile V1 (`FEATURE-014`). Still
+open: a fresh publication candidate with its own re-gate. **W-5 (optional
+supplement education) remains unimplemented and does NOT block public v1.**
 Owner-approved under ADR-P017. Slice 2 adds the Spanish/English localization
 foundation, supported
 device-language resolution, English fallback, persisted in-app selector,

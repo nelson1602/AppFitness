@@ -7,7 +7,7 @@ import { registerWellnessSyncAppliers } from '@/features/wellness';
 import { registerProfileSyncAppliers } from '@/features/profile';
 import { registerWorkoutSyncAppliers } from '@/features/workout';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
-import { useLocalization } from '@/shared/localization';
+import { DocumentHead, useLocalization } from '@/shared/localization';
 import { useTheme } from '@/shared/theme';
 
 // Composition root: features register their sync appliers once at app
@@ -41,6 +41,9 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={navigationTheme}>
+      {/* Web document title and lang (BUG-016, ADR-P032). Renders null on
+          native, where Stack.Screen options.title remains the only mechanism. */}
+      <DocumentHead />
       <StatusBar style={theme.dark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{

@@ -131,11 +131,13 @@ describe('catalogue parity', () => {
 
   // The total moved from 1061 to 1063 on 2026-09-15: the bilingual surface
   // audit added `profile.birthDatePlaceholder` and
-  // `progress.measurements.datePlaceholder`, neither in this family, so the
-  // 157-key conflict family below is unchanged.
-  it('reaches 1063 keys in each language — 906 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1063);
-    expect(Object.keys(es)).toHaveLength(1063);
+  // `progress.measurements.datePlaceholder`. It moved again to 1067 on
+  // 2026-09-16, when BUG-016 added the Web document title and the three
+  // not-found keys. None of the six is in this family, so the 157-key
+  // conflict family below is unchanged.
+  it('reaches 1067 keys in each language — 910 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1067);
+    expect(Object.keys(es)).toHaveLength(1067);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 

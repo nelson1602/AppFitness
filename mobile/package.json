@@ -59,6 +59,7 @@
     "lint": "expo lint",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx}\"",
+    "verify:web-export": "node scripts/check-web-export.js dist",
     "test": "jest"
   },
   "private": true,

@@ -1,5 +1,13 @@
 export const en = {
   'common.loadingContentAccessibility': 'Loading content',
+  // Web document shell and the product not-found surface (BUG-016, ADR-P032).
+  // 'web.document.title' is the product title every exported Web document
+  // carries; the three shipped portals reuse their own screen-title keys.
+  'web.document.title': 'AppFitnessRD',
+  'notFound.title': 'Page not found',
+  'notFound.body':
+    'This link may be incomplete, mistyped, or no longer valid. Password-reset and email-verification links expire and can be used only once.',
+  'notFound.action': 'Back to AppFitnessRD',
   'language.title': 'Language',
   'language.description': 'Choose the language used by AppFitness.',
   'language.system': 'Device language',

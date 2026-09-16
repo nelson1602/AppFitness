@@ -98,6 +98,13 @@ const TEXT_PROPS = new Set([
 const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
   'src/features/progress/presentation/ProgressScreen.tsx#todayLocalDate: y':
     'builds the ISO YYYY-MM-DD storage key that seeds the entry forms — data, not display',
+  // `app/+html.tsx` is the build-time Web document shell (BUG-016, ADR-P032):
+  // it runs in Node during `expo export`, renders no product copy, and these
+  // three are framework `ReactNode` slots whose type union merely includes
+  // `number`. Nothing numeric of the product passes through them.
+  'src/app/+html.tsx#Root: children': 'the rendered app tree — a framework slot, not a value',
+  'src/app/+html.tsx#Root: headNodes': 'renderer-supplied <head> nodes — a framework slot',
+  'src/app/+html.tsx#Root: bodyNodes': 'renderer-supplied <body> nodes — a framework slot',
 };
 
 interface Finding {

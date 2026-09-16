@@ -2,6 +2,13 @@ import type { TranslationKey } from './en';
 
 export const es = {
   'common.loadingContentAccessibility': 'Cargando contenido',
+  // Shell del documento web y superficie de producto para páginas no
+  // encontradas (BUG-016, ADR-P032).
+  'web.document.title': 'AppFitnessRD',
+  'notFound.title': 'Página no encontrada',
+  'notFound.body':
+    'Es posible que el enlace esté incompleto, mal escrito o que ya no sea válido. Los enlaces para restablecer la contraseña y para verificar el correo caducan y solo pueden usarse una vez.',
+  'notFound.action': 'Volver a AppFitnessRD',
   'language.title': 'Idioma',
   'language.description': 'Elige el idioma que usa AppFitness.',
   'language.system': 'Idioma del dispositivo',

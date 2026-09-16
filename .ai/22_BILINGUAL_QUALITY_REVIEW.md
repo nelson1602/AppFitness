@@ -434,6 +434,10 @@ input contract — not a defect a reviewer may settle alone.
 **Web remains what BUG-016 says it is.** The document shell defects (F-4 … F-7)
 are untouched and out of scope.
 
+> **Since this review: `BUG-016` is Done (2026-09-16, ADR-P032).** F-4, F-5 and
+> F-6 are corrected and F-7 is accepted and recorded. Nothing in this review
+> changed — the shell was, and remained, outside its scope.
+
 ---
 
 # Related documents

@@ -1,8 +1,10 @@
 import { logError } from '@/shared/infrastructure/logging/logger';
 
-import { isLanguagePreference, type LanguagePreference } from './language';
-
-const LANGUAGE_PREFERENCE_KEY = 'appfitness.language-preference';
+import {
+  isLanguagePreference,
+  LANGUAGE_PREFERENCE_STORAGE_KEY,
+  type LanguagePreference,
+} from './language';
 
 /**
  * Web language-preference storage (ADR-P018, Slice 2A).
@@ -34,7 +36,7 @@ export async function loadLanguagePreference(): Promise<LanguagePreference> {
   if (!storage) return 'system';
 
   try {
-    const stored = storage.getItem(LANGUAGE_PREFERENCE_KEY);
+    const stored = storage.getItem(LANGUAGE_PREFERENCE_STORAGE_KEY);
     return isLanguagePreference(stored) ? stored : 'system';
   } catch (error) {
     logError('localization.storage.web.load', error);
@@ -47,7 +49,7 @@ export async function saveLanguagePreference(preference: LanguagePreference): Pr
   if (!storage) return;
 
   try {
-    storage.setItem(LANGUAGE_PREFERENCE_KEY, preference);
+    storage.setItem(LANGUAGE_PREFERENCE_STORAGE_KEY, preference);
   } catch (error) {
     // Persistence is best-effort on Web: a full quota or blocked storage must
     // not break language selection. The in-memory preference still applies.
