@@ -16,6 +16,15 @@ App version `1.0.0` · Publication date: **not set**.
 > other row was re-verified against `051aecd`; the rest of this matrix still
 > describes `d498658`.
 
+> **Partial reconciliation, 2026-09-16 (`96c81df`).** Stage 1 item 2, the
+> localization evidence line and verdict 2 were updated by the bilingual
+> **quality** review (`.ai/22_BILINGUAL_QUALITY_REVIEW.md`). Unlike the two
+> reconciliations above it is **not documentation-only**: it migrates the 43
+> inventoried user-facing numeric renders onto the shared formatter, corrects
+> two catalogue values, and adds a compiler-backed regression spec. The
+> mobile suite moves to **196 suites / 2631 tests**; the catalogues stay at
+> **1063 / 1063**. No other row was re-verified against `96c81df`.
+
 ## What this edition changed
 
 This is a **documentation-only reconciliation**. It changes no runtime code,
@@ -78,7 +87,14 @@ Legend:
   only evidence: `.ai/21_BILINGUAL_SURFACE_AUDIT.md` (2026-09-15) traces every
   key to a surface and every public-v1 surface back to the catalogue, and
   `mobile/src/shared/localization/surface-coverage.spec.ts` keeps that proof
-  from regressing.
+  from regressing. **Locale formatting is now evidenced too**
+  (`.ai/22_BILINGUAL_QUALITY_REVIEW.md`, 2026-09-16): all 43 user-facing numeric
+  renders that bypassed the shared formatter now use it, `Intl` is constructed
+  in one module, every public display date is still on `formatDate`, and
+  `mobile/src/shared/localization/localized-formatting.spec.ts` fails the build
+  if a rendered number bypasses it again. **Wording is reviewed, not certified**:
+  1063 key pairs were read in both languages, three values changed, and six
+  decisions are recorded as `OBS-BQR-1 … OBS-BQR-6`.
 - **Migrations:** **16** Prisma migrations; **7** SQLite migrations (001–007).
 - **Conflict resolution (ADR-P030):** C-0 … C-7 implemented. C-7 drove **14
   Maestro journeys across two Android emulators** against a disposable local
@@ -243,8 +259,8 @@ on earlier ones; items within a stage are parallelisable.
 
 **Stage 1 — finish the product contract (`in-repo`)**
 
-One of the two remains. They were the same piece of work seen from different
-angles — coverage, then quality — and coverage is now done.
+**Both are now done.** They were the same piece of work seen from different
+angles — coverage, then quality.
 
 1. ~~`in-repo` — Complete the **exhaustive bilingual surface audit**.~~ **Done
    2026-09-15** — `.ai/21_BILINGUAL_SURFACE_AUDIT.md`. Every one of the 20 route
@@ -260,14 +276,24 @@ angles — coverage, then quality — and coverage is now done.
    `lang="en"`, an empty `<title>`, an English-only static prerender and a
    framework-English not-found screen, none correctable without new copy or an
    architecture decision.
-2. `in-repo` — **Bilingual quality** review beyond coverage: wording, tone, and
-   correct locale formatting of dates, numbers and units. Evidence gate — a key
-   count is not a translation-quality claim. **Its input now exists**:
-   `.ai/21_BILINGUAL_SURFACE_AUDIT.md` §Handoff lists all 43 user-facing numeric
-   renders that bypass the shared formatter, including the three fractional
-   sites that are wrong in Spanish today (serving count, logged serving count,
-   set weight) and the calorie total that reads `2,500` on one screen and `2500`
-   on another in English.
+2. ~~`in-repo` — **Bilingual quality** review beyond coverage: wording, tone, and
+   correct locale formatting of dates, numbers and units.~~ **Done 2026-09-16** —
+   `.ai/22_BILINGUAL_QUALITY_REVIEW.md`. All **43** user-facing numeric renders
+   from `.ai/21_BILINGUAL_SURFACE_AUDIT.md` §Handoff now resolve through the
+   shared formatter: the three fractional sites that were wrong in Spanish
+   (serving count, logged serving count, set weight) read `0,25`, `1,5` and
+   `82,5`, and the calorie total that read `2,500` on one screen and `2500` on
+   another in English now reads the same on both. Accessibility labels carry the
+   same formatted value as the text they describe. **Wording is reviewed, not
+   certified**: 1063 key pairs were read in both languages and **three** values
+   changed — the progression sentence whose count sat outside it in both
+   languages, and a Spanish reset confirmation that said the devices closed
+   rather than the sessions. Everything else provable but not settleable by a
+   reviewer — two Spanish movement vocabularies, mixed register, an approved
+   conflict-deck row, an unwritten sentence, the generic `es` locale, and a
+   numeric input contract that accepts only the English decimal separator — is
+   recorded as `OBS-BQR-1 … OBS-BQR-6`. **The evidence gate is met**: a key count is not the
+   claim, `mobile/src/shared/localization/localized-formatting.spec.ts` is.
 
 *Closed out of this stage on 2026-09-15:*
 
@@ -361,9 +387,12 @@ nutrition, conflict resolution, and — verified in code on 2026-09-15 — the
 complete deterministic workout routine, user-reachable at `/routines`. The
 **exhaustive bilingual surface audit** is **complete**
 (`.ai/21_BILINGUAL_SURFACE_AUDIT.md`, 2026-09-15): mobile coverage is complete,
-Web-shell coverage is not and is tracked as `BUG-016`. What remains for the
-product contract is the **bilingual quality review**. **W-5 is optional and does
-not block v1.**
+Web-shell coverage is not and is tracked as `BUG-016`. The **bilingual quality
+review** is **complete** for locale formatting and reviewed for wording
+(`.ai/22_BILINGUAL_QUALITY_REVIEW.md`, 2026-09-16); six wording, locale and
+input-contract decisions are recorded for an owner as `OBS-BQR-1 … OBS-BQR-6`,
+none of which is a defect a reviewer may settle alone. **Stage 1 is therefore closed in
+repo.** **W-5 is optional and does not block v1.**
 
 **3. Production / store-submission readiness: BLOCKED.** Blocked on owner and
 external gates — legal sign-off, Play Console, physical-device and accessibility

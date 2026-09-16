@@ -1,6 +1,11 @@
 import { View } from 'react-native';
 
-import { formatNumber, type TranslationKey, useLocalization } from '@/shared/localization';
+import {
+  formatNumber,
+  interpolate,
+  type TranslationKey,
+  useLocalization,
+} from '@/shared/localization';
 import { AppButton, AppText, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -33,13 +38,6 @@ const STEPS: readonly { id: string; gapIds: readonly string[]; label: Translatio
   { id: 'goal', gapIds: ['default-goal'], label: 'dashboard.onboarding.goal' },
   { id: 'weight', gapIds: ['weight'], label: 'dashboard.onboarding.weight' },
 ];
-
-function template(value: string, replacements: Record<string, string>): string {
-  return Object.entries(replacements).reduce(
-    (result, [key, replacement]) => result.replaceAll(`{${key}}`, replacement),
-    value,
-  );
-}
 
 /**
  * Advisory first-run checklist (ADR-P027 Decision 1, UX-4B). Derived entirely
@@ -75,7 +73,7 @@ export function OnboardingChecklistCard({
         <AppText variant="title">{t('dashboard.onboarding.title')}</AppText>
         <AppText tone="muted">{t('dashboard.onboarding.description')}</AppText>
         <AppText variant="label" tone="muted" testID="onboarding-progress">
-          {template(t('dashboard.onboarding.progress'), {
+          {interpolate(t('dashboard.onboarding.progress'), {
             completed: formatNumber(completed, language),
             total: formatNumber(STEPS.length, language),
           })}

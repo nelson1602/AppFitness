@@ -56,7 +56,7 @@ export const es = {
   'auth.reset.passwordMismatch': 'Las dos contraseñas deben coincidir.',
   'auth.reset.successTitle': 'Contraseña cambiada',
   'auth.reset.successBody':
-    'Inicia sesión con tu nueva contraseña. Los demás dispositivos se cerraron.',
+    'Inicia sesión con tu nueva contraseña. Se cerró la sesión en los demás dispositivos.',
   'auth.reset.goToSignIn': 'Ir a iniciar sesión',
   'auth.reset.missingTokenTitle': 'Este enlace está incompleto',
   'auth.reset.missingTokenBody': 'Vuelve a abrir el enlace desde tu correo o solicita uno nuevo.',
@@ -328,7 +328,7 @@ export const es = {
   'workout.plan.rest': 'descanso',
   'workout.plan.targetRpe': 'RPE objetivo',
   'workout.plan.substitutions': 'Sustituciones',
-  'workout.plan.afterSessions': 'Después de sesiones exitosas',
+  'workout.plan.afterSessions': 'Después de {count} sesiones exitosas',
   'workout.plan.addLoad': 'aumenta la carga en',
   'workout.plan.addRepetitions': 'agrega repeticiones',
   'workout.plan.addDuration': 'agrega segundos',

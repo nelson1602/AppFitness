@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { type TranslationKey, useLocalization } from '@/shared/localization';
+import { formatNumber, type TranslationKey, useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -217,7 +217,7 @@ export function ExerciseLibrary() {
                         {refCount === null
                           ? t('workout.library.checkingUsage')
                           : refCount > 0
-                            ? `${t('workout.library.usedIn')} ${refCount} ${t(refCount === 1 ? 'workout.library.routineOne' : 'workout.library.routineMany')} — ${t('workout.library.referencePreserved')}`
+                            ? `${t('workout.library.usedIn')} ${formatNumber(refCount, language)} ${t(refCount === 1 ? 'workout.library.routineOne' : 'workout.library.routineMany')} — ${t('workout.library.referencePreserved')}`
                             : t('workout.library.notUsed')}
                       </AppText>
                       <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>

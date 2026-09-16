@@ -1,5 +1,10 @@
 import type { Recommendation } from '@/features/icoach/domain/types';
-import { formatNumber, type SupportedLanguage, type TranslationKey } from '@/shared/localization';
+import {
+  formatNumber,
+  interpolate,
+  type SupportedLanguage,
+  type TranslationKey,
+} from '@/shared/localization';
 
 type Translate = (key: TranslationKey) => string;
 
@@ -12,13 +17,6 @@ export interface RecommendationCopy {
 function numberInput(recommendation: Recommendation, key: string): number | null {
   const value = recommendation.inputs[key];
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
-}
-
-function template(value: string, replacements: Record<string, string>): string {
-  return Object.entries(replacements).reduce(
-    (result, [key, replacement]) => result.replaceAll(`{${key}}`, replacement),
-    value,
-  );
 }
 
 /** Presentation-only copy adapter. Stable rule ids and inputs remain unchanged. */
@@ -39,7 +37,7 @@ export function resolveRecommendationCopy(
         explanation:
           recommendation.inputs.safetyFloorApplied === true
             ? t('dashboard.recommendation.calorieSafetyFloor')
-            : template(t('dashboard.recommendation.calorieExplanation'), {
+            : interpolate(t('dashboard.recommendation.calorieExplanation'), {
                 tdee: number('tdee'),
                 adjustment: number('adjustmentPct'),
               }),
@@ -47,7 +45,7 @@ export function resolveRecommendationCopy(
       };
     case 'NUTRITION:macro_targets':
       return {
-        title: template(t('dashboard.recommendation.macrosTitle'), {
+        title: interpolate(t('dashboard.recommendation.macrosTitle'), {
           protein: number('proteinG'),
           carbs: number('carbsG'),
           fat: number('fatG'),
@@ -57,7 +55,7 @@ export function resolveRecommendationCopy(
       };
     case 'TRAINING:intensity_plan':
       return {
-        title: template(t('dashboard.recommendation.trainingTitle'), {
+        title: interpolate(t('dashboard.recommendation.trainingTitle'), {
           days: number('daysPerWeek'),
           intensity: t(
             `dashboard.intensity.${String(recommendation.inputs.intensity).toLowerCase()}` as TranslationKey,
@@ -69,7 +67,7 @@ export function resolveRecommendationCopy(
     case 'RECOVERY:low_sleep':
       return {
         title: t('dashboard.recommendation.sleepTitle'),
-        explanation: template(t('dashboard.recommendation.sleepExplanation'), {
+        explanation: interpolate(t('dashboard.recommendation.sleepExplanation'), {
           hours: number('sleepHours'),
         }),
         evidence: t('dashboard.recommendation.sleepEvidence'),
@@ -87,7 +85,7 @@ export function resolveRecommendationCopy(
     case 'BODY:underweight_fat_loss_warning':
       return {
         title: t('dashboard.recommendation.underweightTitle'),
-        explanation: template(t('dashboard.recommendation.underweightExplanation'), {
+        explanation: interpolate(t('dashboard.recommendation.underweightExplanation'), {
           bmi: number('bmi'),
         }),
         evidence: t('dashboard.recommendation.underweightEvidence'),

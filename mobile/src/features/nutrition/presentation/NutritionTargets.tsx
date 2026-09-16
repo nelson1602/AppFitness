@@ -30,22 +30,37 @@ const GOAL_KEY: Record<Goal, TranslationKey> = {
   MAINTENANCE: 'nutrition.goal.maintenance',
 };
 
-function localizedGoalAdjustment(goal: Goal, adjustmentPct: number, t: Translate): string {
+function localizedGoalAdjustment(
+  goal: Goal,
+  adjustmentPct: number,
+  language: SupportedLanguage,
+  t: Translate,
+): string {
   const goalLabel = t(GOAL_KEY[goal]);
   if (adjustmentPct === 0) {
     return `${t('nutrition.targets.maintenancePrefix')} ${goalLabel}.`;
   }
   const direction = t(adjustmentPct < 0 ? 'nutrition.targets.below' : 'nutrition.targets.above');
-  return `${t('nutrition.targets.adjustmentPrefix')} ${Math.abs(adjustmentPct)}% ${direction} ${t('nutrition.targets.adjustmentSuffix')} ${goalLabel}.`;
+  return `${t('nutrition.targets.adjustmentPrefix')} ${formatNumber(Math.abs(adjustmentPct), language)}% ${direction} ${t('nutrition.targets.adjustmentSuffix')} ${goalLabel}.`;
 }
 
-function MacroRow({ label, grams, kcal }: { label: string; grams: number; kcal: number }) {
+function MacroRow({
+  label,
+  grams,
+  kcal,
+  language,
+}: {
+  label: string;
+  grams: number;
+  kcal: number;
+  language: SupportedLanguage;
+}) {
   const theme = useTheme();
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: theme.spacing.sm }}>
       <AppText tone="muted">{label}</AppText>
       <AppText variant="label">
-        {grams}g · {kcal} kcal
+        {formatNumber(grams, language)}g · {formatNumber(kcal, language)} kcal
       </AppText>
     </View>
   );
@@ -138,7 +153,7 @@ function NutritionContent({
           </AppText>
           <AppText variant="headline">{formatNumber(nutrition.calories, language)} kcal</AppText>
           <AppText tone="muted">
-            {localizedGoalAdjustment(goal, nutrition.adjustmentPct, t)}
+            {localizedGoalAdjustment(goal, nutrition.adjustmentPct, language, t)}
           </AppText>
         </View>
       </Card>
@@ -156,9 +171,20 @@ function NutritionContent({
             label={t('nutrition.plan.protein')}
             grams={nutrition.proteinG}
             kcal={kcal.protein}
+            language={language}
           />
-          <MacroRow label={t('nutrition.plan.carbs')} grams={nutrition.carbsG} kcal={kcal.carbs} />
-          <MacroRow label={t('nutrition.plan.fat')} grams={nutrition.fatG} kcal={kcal.fat} />
+          <MacroRow
+            label={t('nutrition.plan.carbs')}
+            grams={nutrition.carbsG}
+            kcal={kcal.carbs}
+            language={language}
+          />
+          <MacroRow
+            label={t('nutrition.plan.fat')}
+            grams={nutrition.fatG}
+            kcal={kcal.fat}
+            language={language}
+          />
         </View>
       </Card>
 

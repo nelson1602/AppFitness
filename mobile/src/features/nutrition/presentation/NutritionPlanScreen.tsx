@@ -52,7 +52,7 @@ function DaySelector({
   onSelect: (day: number) => void;
 }) {
   const theme = useTheme();
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
       {Array.from({ length: count }, (_, i) => i + 1).map((day) => {
@@ -61,7 +61,7 @@ function DaySelector({
           <Pressable
             key={day}
             accessibilityRole="button"
-            accessibilityLabel={`${t('nutrition.plan.showDay')} ${day}`}
+            accessibilityLabel={`${t('nutrition.plan.showDay')} ${formatNumber(day, language)}`}
             accessibilityState={{ selected: active }}
             testID={`plan-day-${day}`}
             onPress={() => onSelect(day)}
@@ -77,8 +77,10 @@ function DaySelector({
               paddingHorizontal: theme.spacing.sm,
             }}
           >
+            {/* The chip's visible label and the announced label above it are the
+                same number, so both resolve through the same formatter. */}
             <AppText tone={active ? 'default' : 'muted'} variant="label">
-              {day}
+              {formatNumber(day, language)}
             </AppText>
           </Pressable>
         );
@@ -121,7 +123,7 @@ function DayView({ day }: { day: MealPlanDay }) {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <AppText variant="title">
-        {t('nutrition.plan.day')} {day.day}
+        {t('nutrition.plan.day')} {formatNumber(day.day, language)}
       </AppText>
 
       {day.meals.map((meal) => (
@@ -146,11 +148,11 @@ function DayView({ day }: { day: MealPlanDay }) {
       </Card>
 
       <AppText variant="caption" tone="muted">
-        {t('nutrition.plan.day')} {day.day} {t('nutrition.plan.targetSummary')}:{' '}
-        {formatNumber(day.targets.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
-        {formatNumber(day.targets.proteinG, language)} g · {t('nutrition.plan.carbs')}{' '}
-        {formatNumber(day.targets.carbsG, language)} g · {t('nutrition.plan.fat')}{' '}
-        {formatNumber(day.targets.fatG, language)} g.
+        {t('nutrition.plan.day')} {formatNumber(day.day, language)}{' '}
+        {t('nutrition.plan.targetSummary')}: {formatNumber(day.targets.calories, language)} kcal ·{' '}
+        {t('nutrition.plan.protein')} {formatNumber(day.targets.proteinG, language)} g ·{' '}
+        {t('nutrition.plan.carbs')} {formatNumber(day.targets.carbsG, language)} g ·{' '}
+        {t('nutrition.plan.fat')} {formatNumber(day.targets.fatG, language)} g.
       </AppText>
       {day.rationale.safetyFloorApplied ? (
         <Banner title={t('nutrition.plan.safeMinimumTitle')} tone="info">

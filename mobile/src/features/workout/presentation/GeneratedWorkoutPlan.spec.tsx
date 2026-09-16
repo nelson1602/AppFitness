@@ -126,7 +126,7 @@ describe('GeneratedWorkoutPlan', () => {
     expect(screen.getByText(/3 sets.*8–12 reps.*90 seconds rest.*target RPE 7/)).toBeOnTheScreen();
     expect(screen.getByText(/Substitutions: Goblet squat/)).toBeOnTheScreen();
     expect(
-      screen.getByText(/After successful sessions 2: increase load by 2.5%/),
+      screen.getByText(/After 2 successful sessions: increase load by 2.5%/),
     ).toBeOnTheScreen();
   });
 
@@ -141,7 +141,9 @@ describe('GeneratedWorkoutPlan', () => {
     expect(screen.getAllByText('Sentadilla trasera')).toHaveLength(2);
     expect(screen.getByText(/Sustituciones: Sentadilla goblet/)).toBeOnTheScreen();
     expect(
-      screen.getByText(/Después de sesiones exitosas 2: aumenta la carga en 2,5%/),
+      // The count sits inside the phrase, not after it, and carries the
+      // Spanish decimal separator.
+      screen.getByText(/Después de 2 sesiones exitosas: aumenta la carga en 2,5%/),
     ).toBeOnTheScreen();
     expect(JSON.stringify(readySelection)).toBe(original);
   });

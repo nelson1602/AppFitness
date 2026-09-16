@@ -106,7 +106,7 @@ describe('NutritionTargets', () => {
       screen.getByText('Calories are set 20% below maintenance to support fat loss.'),
     ).toBeOnTheScreen();
     expect(screen.getByText('164g · 656 kcal')).toBeOnTheScreen();
-    expect(screen.getByText('280g · 1120 kcal')).toBeOnTheScreen();
+    expect(screen.getByText('280g · 1,120 kcal')).toBeOnTheScreen();
     expect(screen.getByText('74g · 666 kcal')).toBeOnTheScreen();
     // Non-medical disclaimer always present.
     expect(screen.getByText(/not medical or dietary advice/)).toBeOnTheScreen();
