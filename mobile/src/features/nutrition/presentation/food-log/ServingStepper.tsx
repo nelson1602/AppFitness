@@ -1,15 +1,21 @@
 import { Pressable, View } from 'react-native';
 
-import { useLocalization } from '@/shared/localization';
+import { formatNumber, useLocalization, type SupportedLanguage } from '@/shared/localization';
 import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 const STEP = 0.25;
 const MIN = 0.25;
 
-/** Format a serving count without trailing zeros (1, 1.5, 0.25). */
-export function formatServingCount(value: number): string {
-  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+/**
+ * Format a serving count for display, without trailing zeros (1, 1.5, 0.25 —
+ * and 1,5 / 0,25 in Spanish). Serving counts are fractional by construction
+ * (`STEP` is 0.25), so rendering them raw put an English decimal point in front
+ * of every Spanish user. `Intl` already drops trailing zeros, which is what the
+ * previous integer special-case was for.
+ */
+export function formatServingCount(value: number, language: SupportedLanguage): string {
+  return formatNumber(value, language, { maximumFractionDigits: 2 });
 }
 
 /**
@@ -29,7 +35,7 @@ export function ServingStepper({
   disabled?: boolean;
 }) {
   const theme = useTheme();
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
 
   const button = (sign: -1 | 1, label: string, testID: string): React.ReactElement => {
     const atFloor = sign === -1 && value <= MIN;
@@ -67,10 +73,10 @@ export function ServingStepper({
       <AppText
         variant="label"
         testID={`${testIDPrefix}-value`}
-        accessibilityLabel={`${formatServingCount(value)} ${t('nutrition.log.servings')}`}
+        accessibilityLabel={`${formatServingCount(value, language)} ${t('nutrition.log.servings')}`}
         style={{ minWidth: theme.spacing.x3l, textAlign: 'center' }}
       >
-        {formatServingCount(value)}×
+        {formatServingCount(value, language)}×
       </AppText>
       {button(1, t('nutrition.log.increaseServings'), `${testIDPrefix}-inc`)}
     </View>

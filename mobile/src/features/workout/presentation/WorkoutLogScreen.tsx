@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 
-import { useLocalization } from '@/shared/localization';
+import { formatNumber, useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -491,13 +491,13 @@ function SetList({
         return (
           <View key={set.id} testID={`set-${set.id}`} style={{ gap: theme.spacing.xs }}>
             <AppText variant="label">
-              {set.setNumber}. {displayName}
+              {formatNumber(set.setNumber, language)}. {displayName}
             </AppText>
             <PendingHint syncStatus={set.syncStatus} />
             <ConflictHint syncStatus={set.syncStatus} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
               <TextInput
-                accessibilityLabel={`${t('workout.log.repsForSetAccessibility')} ${set.setNumber}`}
+                accessibilityLabel={`${t('workout.log.repsForSetAccessibility')} ${formatNumber(set.setNumber, language)}`}
                 testID={`set-reps-${set.id}`}
                 keyboardType="numeric"
                 defaultValue={set.reps === null ? '' : String(set.reps)}
@@ -511,13 +511,15 @@ function SetList({
                   padding: theme.spacing.sm,
                 }}
               />
-              <AppText tone="muted">{set.weightKg === null ? '—' : `${set.weightKg} kg`}</AppText>
+              <AppText tone="muted">
+                {set.weightKg === null ? '—' : `${formatNumber(set.weightKg, language)} kg`}
+              </AppText>
               <AppButton
                 accessibilityLabel={`${t(
                   set.completed
                     ? 'workout.log.markNotDoneAccessibility'
                     : 'workout.log.markDoneAccessibility',
-                )} ${set.setNumber}`}
+                )} ${formatNumber(set.setNumber, language)}`}
                 testID={`set-toggle-${set.id}`}
                 variant="secondary"
                 loading={saving}
@@ -526,7 +528,7 @@ function SetList({
                 {set.completed ? t('workout.log.done') : t('workout.log.markDone')}
               </AppButton>
               <AppButton
-                accessibilityLabel={`${t('workout.log.removeSetAccessibility')} ${set.setNumber}`}
+                accessibilityLabel={`${t('workout.log.removeSetAccessibility')} ${formatNumber(set.setNumber, language)}`}
                 testID={`set-remove-${set.id}`}
                 variant="text"
                 loading={saving}

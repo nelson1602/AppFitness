@@ -11,6 +11,7 @@ import type {
 import { useProfileStore } from '@/features/profile/application/profile.store';
 import {
   formatNumber,
+  interpolate,
   type SupportedLanguage,
   type TranslationKey,
   useLocalization,
@@ -158,7 +159,7 @@ export function GeneratedWorkoutPlanView({ selection }: { selection: WorkoutRout
           </Banner>
         ) : null}
 
-        <Schedule routine={selection.routine} />
+        <Schedule routine={selection.routine} language={language} />
         <Sessions routine={selection.routine} language={language} />
         <Progression routine={selection.routine} language={language} />
 
@@ -170,11 +171,19 @@ export function GeneratedWorkoutPlanView({ selection }: { selection: WorkoutRout
   );
 }
 
-function Schedule({ routine }: { routine: GeneratedWorkoutRoutine }) {
+function Schedule({
+  routine,
+  language,
+}: {
+  routine: GeneratedWorkoutRoutine;
+  language: SupportedLanguage;
+}) {
   const theme = useTheme();
   const { t } = useLocalization();
+  // Localized at the point the number is produced, so the schedule line and the
+  // session heading below it always read the same way.
   const sessionNumbers = new Map(
-    routine.sessions.map((session, index) => [session.key, index + 1]),
+    routine.sessions.map((session, index) => [session.key, formatNumber(index + 1, language)]),
   );
 
   return (
@@ -213,7 +222,8 @@ function Sessions({
       {routine.sessions.map((session, index) => (
         <View key={session.key} style={{ gap: theme.spacing.sm }}>
           <AppText variant="label">
-            {t('workout.plan.session')} {index + 1} · {t('workout.plan.fullBody')}
+            {t('workout.plan.session')} {formatNumber(index + 1, language)} ·{' '}
+            {t('workout.plan.fullBody')}
           </AppText>
           {session.exercises.map((exercise) => (
             <Exercise key={exercise.exerciseKey} exercise={exercise} language={language} />
@@ -235,16 +245,17 @@ function Exercise({
   const { t } = useLocalization();
   const target =
     exercise.target.kind === 'REPETITIONS'
-      ? `${exercise.target.min}–${exercise.target.max} ${t('workout.plan.reps')}`
-      : `${exercise.target.seconds} ${t('workout.plan.seconds')}`;
+      ? `${formatNumber(exercise.target.min, language)}–${formatNumber(exercise.target.max, language)} ${t('workout.plan.reps')}`
+      : `${formatNumber(exercise.target.seconds, language)} ${t('workout.plan.seconds')}`;
 
   return (
     <View style={{ gap: theme.spacing.xs, paddingLeft: theme.spacing.sm }}>
       <AppText variant="label">{exerciseDisplayName(exercise.exerciseKey, language)}</AppText>
       <AppText variant="caption" tone="muted">
-        {exercise.sets} {t('workout.plan.sets')} · {target} · {exercise.restSeconds}{' '}
-        {t('workout.plan.seconds')} {t('workout.plan.rest')} · {t('workout.plan.targetRpe')}{' '}
-        {exercise.targetRpe}
+        {formatNumber(exercise.sets, language)} {t('workout.plan.sets')} · {target} ·{' '}
+        {formatNumber(exercise.restSeconds, language)} {t('workout.plan.seconds')}{' '}
+        {t('workout.plan.rest')} · {t('workout.plan.targetRpe')}{' '}
+        {formatNumber(exercise.targetRpe, language)}
       </AppText>
       {exercise.substitutions.length > 0 ? (
         <AppText variant="caption" tone="muted">
@@ -278,9 +289,14 @@ function Progression({
       <AppText variant="title">{t('workout.plan.progression')}</AppText>
       {routine.progression.map((rule) => (
         <View key={rule.id} style={{ gap: theme.spacing.xs }}>
+          {/* The count is substituted into the sentence instead of appended after
+              it: `After successful sessions 2` and `Después de sesiones exitosas
+              2` put the number outside the phrase it belongs to. */}
           <AppText>
-            {t('workout.plan.afterSessions')} {rule.requiredSuccessfulSessions}:{' '}
-            {progressionInstruction(rule, language, labels)}.
+            {interpolate(t('workout.plan.afterSessions'), {
+              count: formatNumber(rule.requiredSuccessfulSessions, language),
+            })}
+            : {progressionInstruction(rule, language, labels)}.
           </AppText>
           <AppText variant="caption" tone="muted">
             {rule.appliesToExerciseKeys
@@ -302,7 +318,7 @@ function progressionInstruction(
     return `${labels.addLoad} ${formatNumber(rule.loadIncreasePct, language)}%`;
   }
   if (rule.repetitionIncrease !== null) {
-    return `${labels.addRepetitions} +${rule.repetitionIncrease}`;
+    return `${labels.addRepetitions} +${formatNumber(rule.repetitionIncrease, language)}`;
   }
-  return `${labels.addDuration} +${rule.durationIncreaseSeconds ?? 0}`;
+  return `${labels.addDuration} +${formatNumber(rule.durationIncreaseSeconds ?? 0, language)}`;
 }

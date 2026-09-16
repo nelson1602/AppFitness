@@ -975,13 +975,15 @@ for full context, decisions D1–D6, and architecture references.
 Status: In Progress (Slices 0–3B-1, 4A–4C and W-0 … W-4E implemented; the
 complete deterministic workout routine is shipped and the **exhaustive
 bilingual surface audit is complete** — `.ai/21_BILINGUAL_SURFACE_AUDIT.md`,
-2026-09-15; W-5, the bilingual **quality** review and the fresh release
+2026-09-15 — and the bilingual **quality** review is complete —
+`.ai/22_BILINGUAL_QUALITY_REVIEW.md`, 2026-09-16, which discharges its §Handoff
+and records `OBS-BQR-1 … OBS-BQR-6`; W-5 and the fresh release
 candidate remain)
 Priority: P0
 Type: Feature
 Owner: Product / Architecture
 Created: 2026-08-10
-Updated: 2026-09-15
+Updated: 2026-09-16
 
 ### Description
 
@@ -4562,6 +4564,297 @@ boundary records explicitly why this one route is different.
 - .ai/21_BILINGUAL_SURFACE_AUDIT.md (F-13)
 - .ai/18_SCREEN_STATE_MATRICES.md
 - .ai/12_DECISIONS.md (ADR-P019)
+
+---
+
+## [OBS-BQR-1] Two Spanish Vocabularies For The Same Movement Domain
+
+Status: Open
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-16
+Updated: 2026-09-16
+
+### Description
+
+`workout.movement.*` (rendered by `ExerciseExclusionNote`, reachable from
+`RoutineBuilder`) and `wellness.safety.movement.*` (rendered by
+`WellnessSafetyProfileForm`) name the same **18** shared movement tokens.
+**Twelve** carry different Spanish, and **eight** of those twelve carry
+identical English — so the divergence is Spanish-side only. Recorded as
+`OBS-BQR-1` of `.ai/22_BILINGUAL_QUALITY_REVIEW.md`, which tabulates all eight.
+
+### Problem
+
+A user who declares a limitation on one surface and reads the consequence on the
+other sees the same movement under two names: `carrera` / `Correr`, `fondos` /
+`Fondos en paralelas`, `caminatas con carga` / `Transportes con carga`. Two
+entries need naming separately:
+
+- `workout.movement.goodMorning` is **`buenos días`**, indistinguishable from the
+  greeting inside a comma-separated list of movements. The wellness catalogue
+  calls the same movement `Flexión de tronco con barra`.
+- `skullCrushers` differs only by `acostado` (workout) against `tumbado`
+  (wellness); `tumbado` is peninsular.
+
+The quality review did not choose a winner: this is a glossary decision over
+safety-adjacent copy, and the two namespaces render on different surfaces with
+deliberately different English granularity.
+
+### Expected Outcome
+
+One Spanish name per movement token, or a recorded reason why two are correct.
+
+### Acceptance Criteria
+
+- [ ] A single Spanish vocabulary is chosen for the 18 shared tokens, or the
+      divergence is recorded as deliberate with its reason
+- [ ] `goodMorning` no longer reads as the greeting on either surface
+- [ ] A spec pins whichever outcome is chosen
+
+### Related Documents
+
+- .ai/22_BILINGUAL_QUALITY_REVIEW.md (OBS-BQR-1)
+- .ai/19_COPY_DECKS.md
+- .ai/12_DECISIONS.md (ADR-P031)
+
+---
+
+## [OBS-BQR-2] Spanish Register And English Apostrophes Are Mixed
+
+Status: Open
+Priority: P3
+Type: Technical Debt
+Owner: Unassigned
+Created: 2026-09-16
+Updated: 2026-09-16
+
+### Description
+
+Two shipped forms of the same term, in a product whose stated audience is
+Latin-American:
+
+| Term | Latin-American form | Peninsular form |
+|---|---|---|
+| *qualified professional* | `calificado` — `nutrition.plan.disclaimer` | `cualificado` — `wellness.safety.disclaimerBody`, `wellness.safety.recommendation.body` |
+| *Enter …* | `Ingresa` — 2 keys | `Introduce` — 12 keys |
+
+Separately, English contractions use a typographic `’` in 6 keys and a straight
+`'` in 50. Recorded as `OBS-BQR-2` of `.ai/22_BILINGUAL_QUALITY_REVIEW.md`.
+
+### Problem
+
+Both forms of each pair are correct Spanish, so neither is a defect a reviewer
+may settle alone — and the `cualificado` pair is **approved copy**: both rows
+are `SHIPPED` in `.ai/19_COPY_DECKS.md` §Wellness safety and
+`wellness-safety-copy.spec.ts:60` asserts the exact phrase. Serving the register
+would move the `Introduce` majority toward `Ingresa`, which is 12 keys of churn
+for a preference. Half a glossary is worse than either, so nothing moved.
+
+### Expected Outcome
+
+One recorded register decision applied across the whole catalogue in a single
+pass, with the deck and the wellness copy spec updated together.
+
+### Acceptance Criteria
+
+- [ ] A register is chosen and recorded
+- [ ] Every affected key follows it, including the two approved deck rows
+- [ ] English apostrophe style is consistent
+
+### Related Documents
+
+- .ai/22_BILINGUAL_QUALITY_REVIEW.md (OBS-BQR-2)
+- .ai/19_COPY_DECKS.md
+- .ai/00_PROJECT.md
+
+---
+
+## [OBS-BQR-3] The Conflict Card Names A Field Differently From Its Own Form
+
+Status: Open
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-16
+Updated: 2026-09-16
+
+### Description
+
+`profile.fitnessLevel` — the label on the form the user edits — is
+`Nivel de condición física`. `sync.conflicts.field.fitness_level` — the same
+field, in the conflict card — is `Nivel de acondicionamiento`. The English is
+`Fitness level` on both. Recorded as `OBS-BQR-3` of
+`.ai/22_BILINGUAL_QUALITY_REVIEW.md`.
+
+### Problem
+
+A conflict card exists to name the field the user changed, so naming it
+differently from the field itself works against the surface's purpose. It was
+not corrected because `.ai/19_COPY_DECKS.md` is, in its own words, "the
+authority on this wording" for the ADR-P030 C-5 family, and
+`conflict-catalogue.spec.ts` asserts that the catalogue matches the deck
+**exactly** — so the fix is an amendment to an approved deck row, which is the
+deck owner's call. The same family renders `Meta de calorías` against
+`Peso objetivo` for two targets on one card.
+
+### Expected Outcome
+
+The deck row is amended to the label the editing form already uses, or the
+difference is recorded as deliberate.
+
+### Acceptance Criteria
+
+- [ ] The deck row and the catalogue move together, or the difference is
+      recorded with its reason
+- [ ] `conflict-catalogue.spec.ts` still passes without being weakened
+
+### Related Documents
+
+- .ai/22_BILINGUAL_QUALITY_REVIEW.md (OBS-BQR-3)
+- .ai/19_COPY_DECKS.md (§Conflict resolution — ADR-P030 slice C-5)
+- .ai/12_DECISIONS.md (ADR-P030)
+
+---
+
+## [OBS-BQR-4] The `+N` Progression Instruction Reads As An Appended Token
+
+Status: Open
+Priority: P4
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-16
+Updated: 2026-09-16
+
+### Description
+
+`GeneratedWorkoutPlan` renders `add repetitions +2` /
+`agrega repeticiones +2`, and the same shape for seconds. Recorded as
+`OBS-BQR-4` of `.ai/22_BILINGUAL_QUALITY_REVIEW.md`.
+
+### Problem
+
+The number sits outside the phrase, exactly as `workout.plan.afterSessions` did
+before the quality review repaired it. That key could be repaired because moving
+its count inside the sentence used only words the catalogue already shipped.
+This one cannot: `add 2 repetitions` is a different sentence, and no approved
+wording for it exists. The value itself is localized — only the shape is wrong.
+
+### Expected Outcome
+
+Approved wording that places the count inside the instruction in both languages,
+or a recorded decision that the `+N` shape is intended.
+
+### Acceptance Criteria
+
+- [ ] Wording is approved and the keys carry a `{count}` token, or the shape is
+      recorded as deliberate
+- [ ] `GeneratedWorkoutPlan.spec.tsx` asserts the outcome in both languages
+
+### Related Documents
+
+- .ai/22_BILINGUAL_QUALITY_REVIEW.md (OBS-BQR-4)
+- .ai/19_COPY_DECKS.md
+
+---
+
+## [OBS-BQR-5] Spanish Is A Generic Locale, Not A Regional One
+
+Status: Open
+Priority: P3
+Type: Research
+Owner: Unassigned
+Created: 2026-09-16
+Updated: 2026-09-16
+
+### Description
+
+`mobile/src/shared/localization/format.ts` maps `en` → `en-US` and `es` → `es`,
+so every Spanish number and date follows generic Spanish CLDR data rather than
+any target market's. Recorded as `OBS-BQR-5` of
+`.ai/22_BILINGUAL_QUALITY_REVIEW.md` and first noted by
+`.ai/21_BILINGUAL_SURFACE_AUDIT.md` §Other items.
+
+### Problem
+
+It is the reason a four-digit calorie target renders `2,500` in English and
+`2500` in Spanish — correct for both locales, and a visible difference between
+the two versions of one screen. Choosing `es-DO`, `es-419` or `es-MX` changes
+grouping and separators for **every** shipped Spanish number, so it is an owner
+decision with an ADR, not a review finding. The quality review preserved the
+mapping deliberately.
+
+### Expected Outcome
+
+An ADR that either pins the generic `es` mapping with its reason, or moves to a
+regional locale and rebaselines the specs that assert Spanish output.
+
+### Acceptance Criteria
+
+- [ ] The decision is recorded in `.ai/12_DECISIONS.md`
+- [ ] `format.spec.ts` asserts whichever mapping is chosen
+- [ ] Every spec asserting Spanish numeric output is rebaselined if it changes
+
+### Related Documents
+
+- .ai/22_BILINGUAL_QUALITY_REVIEW.md (OBS-BQR-5)
+- .ai/21_BILINGUAL_SURFACE_AUDIT.md (§Other items)
+- .ai/12_DECISIONS.md
+
+---
+
+## [OBS-BQR-6] Numeric Input Accepts Only The English Decimal Separator
+
+Status: Open
+Priority: P2
+Type: Bug
+Owner: Unassigned
+Created: 2026-09-16
+Updated: 2026-09-16
+
+### Description
+
+The app **renders** Spanish decimals with a comma — `82,5 kg`, `0,25×`, `1,5` —
+and **accepts** only a dot. Every numeric form field is parsed by
+`z.coerce.number()` (`progress-forms.schema.ts:66` and the `optionalNumber`
+helper beside it), which is `Number('80,5')` → `NaN`, so a Spanish user who
+types their weight the way the app just showed it back is told the value must be
+greater than 0. Recorded as `OBS-BQR-6` of
+`.ai/22_BILINGUAL_QUALITY_REVIEW.md`.
+
+### Problem
+
+The Spanish placeholder `progress.weight.weightPlaceholder` (`p. ej., 80.5`)
+looks like a localization defect and is not: it describes the **input** contract
+correctly. The quality review drafted the "obvious" correction to `p. ej., 80,5`
+and reverted it, because it would have asked Spanish users for input the form
+refuses — a worse defect than the one it appeared to fix.
+
+The asymmetry itself is the defect, and closing it means a locale-aware parse at
+the form boundary: new input behaviour, not a copy change. A Spanish user on a
+decimal keypad is the likely reporter, which is why this sits above the other
+`OBS-BQR-*` items in priority.
+
+### Expected Outcome
+
+Numeric fields accept the decimal separator the same locale renders, or the
+asymmetry is recorded as deliberate with its reason.
+
+### Acceptance Criteria
+
+- [ ] A Spanish user can enter `80,5` in every numeric field, or the refusal is
+      recorded as deliberate
+- [ ] Storage and domain values stay dot-decimal `number`s regardless
+- [ ] Whichever outcome is chosen is asserted in the form specs, in both
+      languages
+- [ ] `progress.weight.weightPlaceholder` matches whatever the field accepts
+
+### Related Documents
+
+- .ai/22_BILINGUAL_QUALITY_REVIEW.md (OBS-BQR-6)
+- .ai/03_CODING_STANDARDS.md
+- .ai/08_UI_UX.md
 
 ---
 

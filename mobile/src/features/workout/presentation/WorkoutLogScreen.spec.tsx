@@ -357,6 +357,20 @@ describe('WorkoutLogScreen', () => {
     expect(screen.queryByText('Training is on hold')).not.toBeOnTheScreen();
   });
 
+  it('renders a fractional set weight with the Spanish decimal separator', async () => {
+    // `82.5 kg` reached every Spanish reader unchanged; the stored value is
+    // untouched, only its presentation changes.
+    mockLanguage = 'es';
+    const set = wset({ id: 's1', weightKg: 82.5 });
+    setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [set] });
+    await render(<WorkoutLogScreen />);
+    await fireEvent.press(screen.getByTestId('workout-select-l1'));
+
+    expect(screen.getByText('82,5 kg')).toBeOnTheScreen();
+    expect(screen.queryByText('82.5 kg')).toBeNull();
+    expect(set.weightKg).toBe(82.5);
+  });
+
   it('surfaces a pending-sync hint on locally-saved sets', async () => {
     setStore({
       status: 'ready',

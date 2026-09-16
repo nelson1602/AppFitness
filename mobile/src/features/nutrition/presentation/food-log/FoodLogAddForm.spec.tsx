@@ -12,7 +12,10 @@ jest.mock('@/shared/localization', () => {
   const { es } = jest.requireActual('@/shared/localization/resources/es') as {
     es: Record<string, string>;
   };
+  // Only the hook is faked. `formatNumber` stays real, because what the user
+  // reads is the formatter's output and these assertions are about that.
   return {
+    ...jest.requireActual('@/shared/localization'),
     useLocalization: () => ({
       language: mockLanguage,
       t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,

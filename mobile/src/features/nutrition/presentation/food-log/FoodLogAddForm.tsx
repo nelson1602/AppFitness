@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
-import { useLocalization, type TranslationKey } from '@/shared/localization';
+import { formatNumber, useLocalization, type TranslationKey } from '@/shared/localization';
 import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -170,7 +170,8 @@ export function FoodLogAddForm({
                 >
                   <AppText>{displayName}</AppText>
                   <AppText variant="caption" tone="muted">
-                    {food.servingSize.amount} {t(UNIT_KEY[food.servingSize.unit])} · {food.calories}{' '}
+                    {formatNumber(food.servingSize.amount, language)}{' '}
+                    {t(UNIT_KEY[food.servingSize.unit])} · {formatNumber(food.calories, language)}{' '}
                     kcal
                   </AppText>
                 </Pressable>
@@ -190,8 +191,10 @@ export function FoodLogAddForm({
             <View style={{ gap: 2 }}>
               <AppText variant="label">{selectedDisplayName}</AppText>
               <AppText variant="caption" tone="muted">
-                {t('nutrition.log.oneServing')} = {selected.servingSize.amount}{' '}
-                {t(UNIT_KEY[selected.servingSize.unit])} · {selected.calories} kcal
+                {t('nutrition.log.oneServing')} ={' '}
+                {formatNumber(selected.servingSize.amount, language)}{' '}
+                {t(UNIT_KEY[selected.servingSize.unit])} ·{' '}
+                {formatNumber(selected.calories, language)} kcal
               </AppText>
             </View>
             {exclusion && selectedDisplayName ? (

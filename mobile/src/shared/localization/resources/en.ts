@@ -322,7 +322,7 @@ export const en = {
   'workout.plan.rest': 'rest',
   'workout.plan.targetRpe': 'target RPE',
   'workout.plan.substitutions': 'Substitutions',
-  'workout.plan.afterSessions': 'After successful sessions',
+  'workout.plan.afterSessions': 'After {count} successful sessions',
   'workout.plan.addLoad': 'increase load by',
   'workout.plan.addRepetitions': 'add repetitions',
   'workout.plan.addDuration': 'add seconds',

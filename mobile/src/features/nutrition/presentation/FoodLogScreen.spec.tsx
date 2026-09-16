@@ -31,7 +31,10 @@ jest.mock('@/shared/localization', () => {
   const { es } = jest.requireActual('@/shared/localization/resources/es') as {
     es: Record<string, string>;
   };
+  // Only the hook is faked. `formatNumber` stays real, because what the user
+  // reads is the formatter's output and these assertions are about that.
   return {
+    ...jest.requireActual('@/shared/localization'),
     useLocalization: () => ({
       language: mockLanguage,
       t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
@@ -169,7 +172,10 @@ describe('FoodLogScreen (Slice 4C)', () => {
     await render(<FoodLogScreen />);
     expect(screen.getByTestId('logged-item-i1')).toBeOnTheScreen();
     expect(screen.getByText('Chicken breast, cooked')).toBeOnTheScreen();
-    expect(screen.getByText('320 / 2000 kcal')).toBeOnTheScreen();
+    // Grouped, exactly as the dashboard assessment card and Nutrition targets
+    // render the same target — `2000` here against `2,500` there was the
+    // cross-surface disagreement this slice closed.
+    expect(screen.getByText('320 / 2,000 kcal')).toBeOnTheScreen();
   });
 
   it('presents a logged catalog item in Spanish without changing its stored snapshot', async () => {
@@ -209,6 +215,41 @@ describe('FoodLogScreen (Slice 4C)', () => {
     await render(<FoodLogScreen />);
     fireEvent.press(screen.getByTestId('edit-serving-i1-inc'));
     expect(mockState.editServing).toHaveBeenCalledWith('i1', 2.25);
+  });
+
+  it('writes a fractional serving count with the Spanish decimal separator', async () => {
+    // Serving counts step by 0.25, so a fraction is the normal case rather than
+    // an edge one, and `0.25` reached every Spanish reader unchanged.
+    mockLanguage = 'es';
+    setState({ items: [item({ servingCount: 0.25 })] });
+    await render(<FoodLogScreen />);
+
+    expect(screen.getByTestId('edit-serving-i1-value')).toHaveTextContent('0,25×');
+    expect(screen.queryByText(/0\.25/)).toBeNull();
+  });
+
+  it('announces the same formatted serving count it shows', async () => {
+    // The visible label and the announced one are the same datum, so they must
+    // not be able to disagree — ADR-P023/ADR-P024 accessibility parity.
+    mockLanguage = 'es';
+    setState({ items: [item({ servingCount: 1.5 })] });
+    await render(<FoodLogScreen />);
+
+    const value = screen.getByTestId('edit-serving-i1-value');
+    expect(value).toHaveTextContent('1,5×');
+    expect(value.props.accessibilityLabel).toBe('1,5 porciones');
+    expect(screen.getByTestId('logged-item-i1').props.accessibilityLabel).toContain(
+      '1,5 porciones',
+    );
+  });
+
+  it('keeps the stored serving count out of the presentation change', async () => {
+    mockLanguage = 'es';
+    const logged = item({ servingCount: 1.5 });
+    setState({ items: [logged] });
+    await render(<FoodLogScreen />);
+
+    expect(logged.servingCount).toBe(1.5);
   });
 
   it('removes an entry', async () => {

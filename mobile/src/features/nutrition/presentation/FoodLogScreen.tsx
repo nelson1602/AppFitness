@@ -3,7 +3,12 @@ import { Pressable, View } from 'react-native';
 
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
-import { useLocalization, type TranslationKey } from '@/shared/localization';
+import {
+  formatNumber,
+  useLocalization,
+  type SupportedLanguage,
+  type TranslationKey,
+} from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -54,7 +59,7 @@ const UNIT_KEY: Record<ServingUnit, TranslationKey> = {
 const UNIT_LABEL: Readonly<Partial<Record<string, TranslationKey>>> = UNIT_KEY;
 
 function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
   switch (sync.state) {
     case 'syncing':
       return (
@@ -74,7 +79,7 @@ function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
       // only this one asks the user to remove and re-add the food (BUG-007).
       return (
         <Banner title={t('nutrition.log.actionTitle')} tone="error">
-          {sync.actionRequired}{' '}
+          {formatNumber(sync.actionRequired, language)}{' '}
           {t(
             sync.actionRequired === 1
               ? 'nutrition.log.actionMessageOne'
@@ -88,7 +93,7 @@ function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
       // is no resolution affordance to offer while BUG-012 is open.
       return (
         <Banner title={t('nutrition.log.conflictTitle')} tone="warning">
-          {sync.conflicts}{' '}
+          {formatNumber(sync.conflicts, language)}{' '}
           {t(
             sync.conflicts === 1
               ? 'nutrition.log.conflictMessageOne'
@@ -105,7 +110,7 @@ function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
     case 'pending':
       return (
         <Banner title={t('nutrition.log.pendingTitle')} tone="info">
-          {sync.pending}{' '}
+          {formatNumber(sync.pending, language)}{' '}
           {t(
             sync.pending === 1
               ? 'nutrition.log.pendingMessageOne'
@@ -207,7 +212,7 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
 
   return (
     <View
-      accessibilityLabel={`${displayName}, ${formatServingCount(item.servingCount)} ${t('nutrition.log.servings')}`}
+      accessibilityLabel={`${displayName}, ${formatServingCount(item.servingCount, language)} ${t('nutrition.log.servings')}`}
       testID={`logged-item-${item.id}`}
       style={{ gap: theme.spacing.sm }}
     >
@@ -218,10 +223,12 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
         <ItemSyncChip item={item} />
       </View>
       <AppText variant="caption" tone="muted">
-        {formatServingCount(item.servingCount)}× {item.serving.amount}{' '}
-        {unitKey ? t(unitKey) : item.serving.unit} · {item.consumed.calories} kcal ·{' '}
-        {t('nutrition.plan.protein')} {item.consumed.proteinG}g · {t('nutrition.plan.carbs')}{' '}
-        {item.consumed.carbsG}g · {t('nutrition.plan.fat')} {item.consumed.fatG}g
+        {formatServingCount(item.servingCount, language)}×{' '}
+        {formatNumber(item.serving.amount, language)} {unitKey ? t(unitKey) : item.serving.unit} ·{' '}
+        {formatNumber(item.consumed.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
+        {formatNumber(item.consumed.proteinG, language)}g · {t('nutrition.plan.carbs')}{' '}
+        {formatNumber(item.consumed.carbsG, language)}g · {t('nutrition.plan.fat')}{' '}
+        {formatNumber(item.consumed.fatG, language)}g
       </AppText>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <ServingStepper
@@ -267,16 +274,18 @@ function TargetLine({
   consumed,
   target,
   unit,
+  language,
 }: {
   label: string;
   consumed: number;
   target: number | null;
   unit: string;
+  language: SupportedLanguage;
 }) {
   return (
     <AppText variant="caption" tone="muted">
-      {label} {consumed}
-      {target != null ? ` / ${target}` : ''}
+      {label} {formatNumber(consumed, language)}
+      {target != null ? ` / ${formatNumber(target, language)}` : ''}
       {unit}
     </AppText>
   );
@@ -284,7 +293,7 @@ function TargetLine({
 
 function DailyTotals({ totals }: { totals: ConsumedMacros }) {
   const theme = useTheme();
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
   const nutrition = useDashboardStore(
     (state) => state.data?.assessment?.assessment.nutrition ?? null,
   );
@@ -293,9 +302,12 @@ function DailyTotals({ totals }: { totals: ConsumedMacros }) {
     <Card accessibilityLabel={t('nutrition.log.totalsAccessibility')}>
       <View style={{ gap: theme.spacing.xs }}>
         <AppText variant="label">{t('nutrition.log.totals')}</AppText>
+        {/* The same datum the assessment card and Nutrition targets render, so it
+            goes through the same formatter — `2,500` there and `2500` here was a
+            cross-surface disagreement in English, not a style choice. */}
         <AppText variant="headline">
-          {totals.calories}
-          {nutrition ? ` / ${nutrition.calories}` : ''} kcal
+          {formatNumber(totals.calories, language)}
+          {nutrition ? ` / ${formatNumber(nutrition.calories, language)}` : ''} kcal
         </AppText>
         <View style={{ gap: 2 }}>
           <TargetLine
@@ -303,18 +315,21 @@ function DailyTotals({ totals }: { totals: ConsumedMacros }) {
             consumed={totals.proteinG}
             target={nutrition?.proteinG ?? null}
             unit="g"
+            language={language}
           />
           <TargetLine
             label={t('nutrition.plan.carbs')}
             consumed={totals.carbsG}
             target={nutrition?.carbsG ?? null}
             unit="g"
+            language={language}
           />
           <TargetLine
             label={t('nutrition.plan.fat')}
             consumed={totals.fatG}
             target={nutrition?.fatG ?? null}
             unit="g"
+            language={language}
           />
           {totals.fiberG != null ? (
             <TargetLine
@@ -322,6 +337,7 @@ function DailyTotals({ totals }: { totals: ConsumedMacros }) {
               consumed={totals.fiberG}
               target={null}
               unit="g"
+              language={language}
             />
           ) : null}
         </View>

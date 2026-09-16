@@ -1,12 +1,18 @@
 # AppFitness Bilingual Surface Audit (public v1)
 
-Version: 1.0
+Version: 1.1
 Status: Active
-Last Updated: 2026-09-15
+Last Updated: 2026-09-16
 
 ---
 
 # Purpose
+
+> **Partial reconciliation, 2026-09-16.** §Handoff to Stage 1 item 2 has been
+> discharged by `.ai/22_BILINGUAL_QUALITY_REVIEW.md`; the rows are kept and
+> annotated rather than removed, because the inventory is the evidence that the
+> work list was complete. Every other section still describes `051aecd` and is
+> unchanged.
 
 This document discharges **Stage 1 item 1** of the route to publication in
 `docs/RELEASE_READINESS.md`: the *exhaustive bilingual surface audit*. It is the
@@ -30,7 +36,8 @@ catalogue.
 # What this document is not
 
 - **Not the bilingual quality review.** Stage 1 item 2 owns wording, tone, and
-  the correct locale formatting of dates, numbers and units. Where this audit
+  the correct locale formatting of dates, numbers and units — it has since run,
+  as `.ai/22_BILINGUAL_QUALITY_REVIEW.md`. Where this audit
   found a formatting call site that bypasses the shared formatter, it is
   **recorded here and handed to that slice** — it is not corrected here. §Handoff
   to Stage 1 item 2 is the complete list.
@@ -457,11 +464,22 @@ database-backed surface presents the canonical informational state. This is an
 
 # Handoff to Stage 1 item 2 (bilingual quality)
 
+> **Discharged 2026-09-16** by `.ai/22_BILINGUAL_QUALITY_REVIEW.md`. Every site
+> below now resolves through `formatNumber`, and
+> `mobile/src/shared/localization/localized-formatting.spec.ts` fails if one
+> stops. The inventory is kept **exactly as the audit recorded it**, because it
+> is the evidence that the work list was complete: re-running this pass against
+> the quality slice reproduced these 43 sites and no others. Where a row
+> described a defect that is now fixed, it says so inline — nothing is deleted.
+
 Every locale-sensitive value that bypasses the shared formatter, found by type
 rather than by name. **None of these is corrected here**: locale formatting of
 dates, numbers and units is that slice's stated scope.
 
 ## Fractional values — wrong in Spanish today
+
+**Fixed.** All three now go through `formatNumber`; `FoodLogScreen.spec.tsx` and
+`WorkoutLogScreen.spec.tsx` pin `0,25×`, `1,5 porciones` and `82,5 kg`.
 
 Spanish uses a comma as the decimal separator (`Intl` gives `25,9` and `0,25`),
 so any fractional value rendered without `formatNumber` is wrong in Spanish now.
@@ -473,6 +491,9 @@ so any fractional value rendered without `formatNumber` is wrong in Spanish now.
 | `WorkoutLogScreen.tsx:514` | `set.weightKg` | `82.5 kg` rather than `82,5 kg` |
 
 ## Thousands grouping — inconsistent in English today
+
+**Fixed.** The food log renders the same datum through the same formatter as
+Nutrition targets and the assessment card.
 
 `Intl` groups four-digit numbers in `en-US` (`2,500`) but not in `es` (`2500`).
 Two shipped surfaces therefore disagree **in English** about the same datum:
@@ -502,6 +523,9 @@ Note that `.ai/19_COPY_DECKS.md` §Copy rules rule 5 states that the `*One` /
 prepend a raw one. For the value ranges involved the two agree except where
 noted above.
 
+**Resolved 2026-09-16.** The rule was right and the code was wrong, so the code
+changed; the deck row is unmodified.
+
 ## Date and instant formatting
 
 Every date and instant on a public-v1 surface **does** go through `formatDate`:
@@ -514,7 +538,8 @@ data, not display.
 
 - `formatNumber`'s Spanish locale is `'es'`, not a region — grouping and
   separators therefore follow the generic Spanish CLDR data rather than any
-  target market's. Deliberate or not, it is unrecorded.
+  target market's. Deliberate or not, it is unrecorded. **Now recorded** and
+  deliberately preserved: `OBS-BQR-5`.
 - `food-display.service.ts:21` calls `toLocaleLowerCase()` with no locale, so
   search normalization follows the runtime default. Harmless for `en`/`es`.
 - `progress.measurements.muscleMassRange` and `progress.measurements.atLeastOne`
@@ -522,7 +547,9 @@ data, not display.
   while their eight siblings live in `progress.validation.*`.
 - `kcal` and `kg` are rendered as literals at 13 sites. Both are identical in
   both languages, and no catalogue key exists for either — unlike the seven
-  `nutrition.unit.*` keys. Consistency, not correctness.
+  `nutrition.unit.*` keys. Consistency, not correctness. **Kept as literals**:
+  they are language-neutral and consistent, and inventing copy to wrap them was
+  out of scope.
 
 ---
 
@@ -583,12 +610,15 @@ unidad` (`FoodLogScreen.spec.tsx`) and the birth-date placeholder renders
   None is correctable without new copy or an architecture decision.
 
 **This is not a translation-quality claim.** Wording, tone and locale formatting
-remain Stage 1 item 2, and §Handoff is its input.
+remain Stage 1 item 2, and §Handoff is its input — **consumed on 2026-09-16** by
+`.ai/22_BILINGUAL_QUALITY_REVIEW.md`.
 
 ---
 
 # Related documents
 
+- `.ai/22_BILINGUAL_QUALITY_REVIEW.md` — Stage 1 item 2, which discharges
+  §Handoff above
 - `docs/RELEASE_READINESS.md` — Stage 1 items 1 and 2
 - `.ai/18_SCREEN_STATE_MATRICES.md` — which states each surface has
 - `.ai/19_COPY_DECKS.md` — what each state says
@@ -624,7 +654,9 @@ of them** instead, so the fallback stays unreachable.
 
 A number, date or unit that bypasses `formatNumber` / `formatDate` belongs in
 §Handoff. Do not correct it here, and do not treat "looks the same today" as
-"is correct".
+"is correct". That slice has since run: the rule it enforces now lives in
+`mobile/src/shared/localization/localized-formatting.spec.ts`, so a new bypass
+fails CI rather than waiting for an audit.
 
 ## 5. Dormant is excluded, not forgotten
 
