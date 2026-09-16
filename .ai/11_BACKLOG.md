@@ -2741,6 +2741,55 @@ count, and the file was restored from `HEAD` rather than patched over.)*
 
 ---
 
+## [OBS-T1] Disabled Filled Buttons Fall Below 4.5:1 in Both Themes
+
+Status: **Open**
+Priority: **P3**
+Type: Observation (visual legibility)
+Owner: Design / Architecture
+Created: 2026-09-16
+Updated: 2026-09-16
+
+Found by the Stage 2 gate 6 per-surface light/dark verification
+(`.ai/23_THEME_SURFACE_VERIFICATION.md`, finding T-1).
+
+`AppButton` renders its disabled state as `opacity: 0.56` across the whole
+control, so the fill **and** the label both composite toward the page ground.
+Measured label-vs-fill contrast:
+
+| Button | Enabled | Disabled |
+|---|---|---|
+| Primary, light | 6.07:1 | **2.52:1** |
+| Primary, dark | 6.95:1 | **3.35:1** |
+| Destructive, light | 6.46:1 | **2.89:1** |
+| Destructive, dark | 7.72:1 | **3.75:1** |
+
+Observed on `/delete-account`, `/dietary-preferences` and `/routines`.
+
+**Not a conformance failure.** WCAG 2.2 §1.4.3 exempts inactive controls, and
+`contrast.spec.ts` is right to pass: it measures the declared **enabled**
+pairings (`onPrimary` on `primary`, `onError` on `error`), which clear the
+threshold comfortably. The disabled appearance is produced at render time by an
+opacity composite, not by a token pair, so no token-level gate can see it.
+
+**Recorded correction.** This initially looked dark-specific, because a dark
+label on a mid-tone fill over a dark ground reads as muddy. Computing the
+composite showed the opposite — **light is worse at every measurement**. The
+visual impression was wrong; the arithmetic settled it.
+
+**Options, none applied:** give the disabled state its own token pair rather
+than a blanket opacity; reduce the opacity applied to the label only; or accept
+it as an exempt state and record that decision. Any of these is a design
+decision, not a defect fix.
+
+### Related Documents
+
+- `.ai/23_THEME_SURFACE_VERIFICATION.md`
+- `mobile/src/shared/presentation/app-button.tsx`
+- `mobile/src/shared/theme/contrast.spec.ts`
+
+---
+
 ## [FEATURE-012] Azul Payment Integration (post-v1 track — unstarted)
 
 Status: **Proposed — unstarted.** Not authorized, not scoped, not designed.

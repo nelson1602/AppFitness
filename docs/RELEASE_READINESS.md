@@ -385,13 +385,23 @@ angles — coverage, then quality.
    icons, motion and dark surface-tint elevation are all still unimplemented, so
    the app's appearance is still largely default MD3.
 6. `in-repo` — **Light and dark mode** verified across every shipped surface.
-   **Still UNVERIFIED.** ADR-P022 Addendum A added a deterministic contrast gate
-   that measures every approved pairing in **both** themes on every test run,
-   and it caught a live dark-theme defect that four documentation audits had
-   missed. That is **computed** evidence about the palette, and a precondition
-   for this gate — **not** the per-surface visual verification this gate
-   requires, which nobody has performed. Do not mark this done on the strength
-   of a green test suite.
+   **PARTIALLY VERIFIED 2026-09-16** — `.ai/23_THEME_SURFACE_VERIFICATION.md`.
+   **18 of the 19 reachable routes were captured and visually reviewed in both
+   themes** (36 captures) from a release APK built from `5dee02b`, the first
+   build containing ADR-P022 Addendum A. **No dark-mode rendering failure was
+   found**: every string was legible, no surface failed to adapt, selected chips
+   and enabled filled buttons are correct in both themes, and the 1.13–1.42:1
+   label defect Addendum A describes is confirmed absent from this build. One
+   low-severity finding, **T-1**: disabled filled buttons fall to **2.52–3.75:1**
+   label-vs-fill because the disabled state is a blanket `opacity: 0.56`
+   composite rather than a token pair — WCAG-exempt as an inactive control, and
+   **worse in light than dark**.
+   **Still not done**, and deliberately so: every signed-in surface was captured
+   in its **empty or data-gap** state, so populated rows, `TrendBars`,
+   `WeeklySnapshotSummary`, `GeneratedWorkoutPlan` and the conflict **card**
+   were never rendered, and the three Web portals were not covered. The
+   most theme-sensitive components in the product are precisely the ones still
+   unverified. Do not mark this done until those states are seeded and seen.
 7. `in-repo` — **Accessibility (UX-4C)**: manual screen-reader, keyboard and
    large-text passes. No outcome may be claimed until run. **Unchanged by
    ADR-P022 Addendum A** — contrast arithmetic is not an assistive-technology
