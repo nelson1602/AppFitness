@@ -57,21 +57,32 @@ function Convert-ContentToText($Content) {
   return ($parts -join "`n")
 }
 
-function Get-RecentTranscript([string]$TranscriptPath) {
+function Test-IsHookFeedback([string]$Text) {
+  if ([string]::IsNullOrWhiteSpace($Text)) { return $false }
+  return $Text.TrimStart().StartsWith('Stop hook feedback:', [StringComparison]::Ordinal)
+}
+
+function Get-TranscriptContext([string]$TranscriptPath) {
   $result = @{ user = ''; assistant = '' }
   if ([string]::IsNullOrWhiteSpace($TranscriptPath) -or -not (Test-Path -LiteralPath $TranscriptPath)) {
     return $result
   }
 
-  $lines = @(Get-Content -LiteralPath $TranscriptPath -Tail 400)
-  foreach ($line in $lines) {
+  # Claude transcripts can grow well beyond 400 JSONL entries during one
+  # substantial task. Stream the complete file so the original authorization
+  # cannot fall out of a fixed tail window, while keeping memory bounded.
+  foreach ($line in [IO.File]::ReadLines($TranscriptPath)) {
     try { $entry = $line | ConvertFrom-Json } catch { continue }
     $type = [string](Get-Property $entry 'type' '')
     $message = Get-Property $entry 'message' $null
     if ($null -eq $message) { continue }
     $role = [string](Get-Property $message 'role' $type)
     $text = Convert-ContentToText (Get-Property $message 'content' '')
-    if ($role -eq 'user' -and -not [string]::IsNullOrWhiteSpace($text)) {
+    if (
+      $role -eq 'user' -and
+      -not [string]::IsNullOrWhiteSpace($text) -and
+      -not (Test-IsHookFeedback $text)
+    ) {
       $result.user = $text
     }
     if ($role -eq 'assistant' -and -not [string]::IsNullOrWhiteSpace($text)) {
@@ -276,6 +287,42 @@ switch ($Mode) {
       $invalidWasRejected = $true
     }
     if (-not $invalidWasRejected) { throw 'Invalid review self-test failed.' }
+
+    $transcriptPath = Join-Path ([IO.Path]::GetTempPath()) "appfitness-ai-bridge-$([Guid]::NewGuid().ToString('N')).jsonl"
+    try {
+      $transcriptLines = [Collections.Generic.List[string]]::new()
+      $transcriptLines.Add((@{
+        type = 'user'
+        message = @{ role = 'user'; content = 'Authorized original task.' }
+      } | ConvertTo-Json -Compress -Depth 5))
+      foreach ($index in 1..450) {
+        $transcriptLines.Add((@{
+          type = 'assistant'
+          message = @{ role = 'assistant'; content = "Progress entry $index" }
+        } | ConvertTo-Json -Compress -Depth 5))
+      }
+      $transcriptLines.Add((@{
+        type = 'user'
+        message = @{ role = 'user'; content = 'Stop hook feedback: generated correction, not new authority.' }
+      } | ConvertTo-Json -Compress -Depth 5))
+      $transcriptLines.Add((@{
+        type = 'assistant'
+        message = @{ role = 'assistant'; content = 'Final task report.' }
+      } | ConvertTo-Json -Compress -Depth 5))
+      [IO.File]::WriteAllLines($transcriptPath, $transcriptLines, [Text.UTF8Encoding]::new($false))
+
+      $context = Get-TranscriptContext $transcriptPath
+      if ($context.user -ne 'Authorized original task.') {
+        throw 'Long-transcript authorization recovery self-test failed.'
+      }
+      if ($context.assistant -ne 'Final task report.') {
+        throw 'Long-transcript final-report recovery self-test failed.'
+      }
+    } finally {
+      if (Test-Path -LiteralPath $transcriptPath) {
+        Remove-Item -LiteralPath $transcriptPath -Force
+      }
+    }
     Write-Output 'AI Bridge self-test passed without calling Claude or Codex models.'
     break
   }
@@ -317,7 +364,7 @@ switch ($Mode) {
     }
 
     $transcriptPath = [string](Get-Property $event 'transcript_path' '')
-    $recent = Get-RecentTranscript $transcriptPath
+    $recent = Get-TranscriptContext $transcriptPath
     $authorizedPrompt = [string]$recent.user
     $claudeReport = [string](Get-Property $event 'last_assistant_message' '')
     if ([string]::IsNullOrWhiteSpace($claudeReport)) { $claudeReport = [string]$recent.assistant }

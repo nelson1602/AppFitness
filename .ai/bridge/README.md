@@ -13,6 +13,8 @@ Codex may return a correction only inside the already-authorized scope. The brid
 
 The arm is consumed by the first Claude session that stops in that worktree. Runtime state is stored under `.ai/bridge/.runtime/`, is ignored by Git, and contains no prompts, responses, diffs or secrets. Common credential, token, URL-parameter and email shapes are redacted before a report is sent to Codex. Keeping state per-worktree prevents an unrelated Claude session from consuming the arm.
 
+The stop hook streams the complete Claude JSONL transcript when recovering the authorized user prompt. It does not rely on a fixed tail window, and it ignores its own `Stop hook feedback:` messages so a long task or correction cycle cannot replace the original human authorization with bridge-generated text. `SelfTest` covers this with an authorization more than 400 entries from the end of a synthetic transcript.
+
 ## Controls
 
 VS Code exposes four tasks:
