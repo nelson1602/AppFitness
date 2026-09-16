@@ -79,7 +79,7 @@ function DaySelector({
           >
             {/* The chip's visible label and the announced label above it are the
                 same number, so both resolve through the same formatter. */}
-            <AppText tone={active ? 'default' : 'muted'} variant="label">
+            <AppText tone={active ? 'onPrimary' : 'muted'} variant="label">
               {formatNumber(day, language)}
             </AppText>
           </Pressable>

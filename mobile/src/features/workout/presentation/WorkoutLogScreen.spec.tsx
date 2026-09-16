@@ -185,6 +185,38 @@ describe('WorkoutLogScreen', () => {
     expect(startWorkout).toHaveBeenCalledWith({ name: 'Leg day' });
   });
 
+  it('renders the workout-name placeholder through onSurfaceVariant (ADR-P022 Addendum A)', async () => {
+    setStore({ status: 'ready', workoutLogs: [] });
+    await render(<WorkoutLogScreen />);
+
+    const input = screen.getByTestId('workout-name');
+    expect(input.props.placeholderTextColor).toBe(lightTheme.colors.onSurfaceVariant);
+    expect(input.props.placeholderTextColor).not.toBe(lightTheme.colors.outline);
+  });
+
+  /**
+   * ADR-P022 Addendum A. `outline` is a boundary role at the 3:1 non-text
+   * threshold; used as placeholder *text* it measures 4.49:1 on `surface` in
+   * the light theme and fails the 4.5:1 requirement (WCAG ratios are not
+   * rounded upward). `onSurfaceVariant` is the canonical placeholder role and
+   * measures 9.33:1. This screen carries three of the six corrected sites.
+   */
+  it('renders every placeholder through onSurfaceVariant, never outline (ADR-P022 Addendum A)', async () => {
+    setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [] });
+    await render(<WorkoutLogScreen />);
+
+    await fireEvent.press(screen.getByTestId('workout-select-l1'));
+
+    for (const testID of ['set-reps-input', 'set-weight-input']) {
+      const input = screen.getByTestId(testID);
+      expect([testID, input.props.placeholderTextColor]).toEqual([
+        testID,
+        lightTheme.colors.onSurfaceVariant,
+      ]);
+      expect(input.props.placeholderTextColor).not.toBe(lightTheme.colors.outline);
+    }
+  });
+
   it('defaults the workout name when none is entered', async () => {
     setStore({ status: 'ready', workoutLogs: [] });
     await render(<WorkoutLogScreen />);

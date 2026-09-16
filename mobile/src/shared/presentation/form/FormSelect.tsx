@@ -62,7 +62,7 @@ export function FormSelect<T extends FieldValues>({
                     paddingHorizontal: theme.spacing.md,
                   }}
                 >
-                  <AppText tone={selected ? 'default' : 'muted'}>{opt.label}</AppText>
+                  <AppText tone={selected ? 'onPrimary' : 'muted'}>{opt.label}</AppText>
                 </Pressable>
               );
             })}

@@ -305,4 +305,40 @@ describe('DietaryPreferences', () => {
       screen.getByLabelText('Preferencia guardada en este dispositivo; sincronización pendiente'),
     ).toHaveTextContent('Guardado en este dispositivo');
   });
+  /**
+   * ADR-P022 Addendum A. The active chip fills with `primary` and previously
+   * labelled itself through the default tone, which resolves to `onSurface`:
+   * 1.42:1 in the dark theme. The canonical filled pair is `primary` /
+   * `onPrimary` (ADR-P022 Decision 5a). Asserted on the resolved colour, so a
+   * tone rename cannot reintroduce the defect silently.
+   */
+  it('labels the active chip with onPrimary, never onSurface (ADR-P022 Addendum A)', async () => {
+    setStore({});
+    await render(<DietaryPreferences />);
+
+    const activeLabel = screen.getByText('A category');
+    expect(colorOf(activeLabel)).toBe(lightTheme.colors.onPrimary);
+    expect(colorOf(activeLabel)).not.toBe(lightTheme.colors.onSurface);
+
+    // The inactive sibling keeps the muted foreground over its recessed fill.
+    expect(colorOf(screen.getByText('A specific food'))).toBe(lightTheme.colors.onSurfaceVariant);
+  });
+
+  /**
+   * ADR-P022 Addendum A. `outline` is a >=3:1 boundary role; as placeholder
+   * *text* it measures 4.49:1 on `surface` in the light theme and fails the
+   * 4.5:1 threshold. `onSurfaceVariant` is the canonical placeholder role.
+   */
+  it('renders placeholder text through onSurfaceVariant, never outline (ADR-P022 Addendum A)', async () => {
+    setStore({});
+    await render(<DietaryPreferences />);
+
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+
+    for (const testID of ['dp-food-search', 'dp-note']) {
+      const input = screen.getByTestId(testID);
+      expect(input.props.placeholderTextColor).toBe(lightTheme.colors.onSurfaceVariant);
+      expect(input.props.placeholderTextColor).not.toBe(lightTheme.colors.outline);
+    }
+  });
 });

@@ -1225,7 +1225,38 @@ Priority: P1
 Type: Feature
 Owner: Product / Design / Architecture
 Created: 2026-08-24
-Updated: 2026-08-26
+Updated: 2026-09-16
+
+> **ADR-P022 ADDENDUM A ACCEPTED 2026-09-16 — Accessible colour foundation
+> (UX-1C-4). The light-theme contrast blockers are CLOSED.** Four light token
+> values corrected (`primary #0F62B8`, `warning #8F5500`, `accent #007A79`,
+> `success #187737`); **no dark value changed**, no role added or renamed.
+> Five foreground and boundary defects corrected: the selected chip in **4** files
+> (`onSurface` on `primary`, **1.42:1 dark** → `onPrimary`, 6.95:1), the
+> placeholder role at **6** sites (`outline` as text → `onSurfaceVariant`), the
+> `destructive` button label (`onPrimary` → `onError` — a semantic fix; both
+> pass), and **a new, more severe defect**: `AppButton`'s `secondary` and
+> `text` labels produced **no theme colour at all**, rendering React Native's
+> default black at **1.13–1.42:1 on the dark theme's grounds**, across 16
+> `text` usages and every `secondary` button. A fifth defect was found in the
+> self-review: `FoodLogAddForm`'s food-result `Pressable` was bounded by
+> `divider` alone (**1.27:1 / 1.29:1**) — the exact case `.ai/08_UI_UX.md`
+> already named as requiring `outline`. The audit also found **two
+> light-theme token failures no revision had measured** — `success` and
+> `warning` on `background` — and **rejected the documented `warning`
+> candidate `#A05F00`**, which fails at 4.486:1 on `surfaceVariant` because the
+> candidate table measured `#FFFFFF` only.
+> **A deterministic contrast gate and source-level usage guards now enforce all
+> of it**, with a negative control proving the gate is not vacuous.
+> **Still blocked, explicitly:** accent emphasis on a primary action, in **both**
+> themes — Decision 5a needs an accent foreground/background *pairing*, there is
+> **no `onAccent` role**, and none was introduced. **UX-1C-3 / `FormSelect`
+> remains blocked** on required / invalid / group accessibility. **ADR-P027 is
+> not reopened** — one clause of its rationale is corrected; hub-and-spoke is
+> retained and tabs stay deferred.
+> **FEATURE-010 remains In Progress. No accessibility outcome is claimed: UX-4C
+> is open and unrun, dark-mode verification across every shipped surface is
+> unverified, and all five accessibility release-review gates stay open.**
 
 > **ADR-P022 ACCEPTED 2026-08-24** — visual direction `Confident Clarity`,
 > mobile-first V1, explicit Web non-parity, wellness-not-medical visual posture,
@@ -1326,6 +1357,12 @@ fails WCAG 2.2 AA in **five pairs across four semantic roles** — `warning` on
 `surface` (4.24:1), `primary` on `surface` (3.53:1), `onPrimary` on `primary`
 (3.53:1), `primary` on `surfaceVariant` (3.12:1), and `accent` on `surface`
 (2.998:1).
+
+**The contrast half of this problem statement is RESOLVED (ADR-P022 Addendum A,
+2026-09-16)** — and the count of five was itself incomplete: the full audit found
+**seven** light-theme token failures across **five** roles, plus four
+foreground-pairing defects. Icons, images, animations, haptics, font loading, the
+unused motion tokens and dark elevation are **unchanged and still open**.
 
 Without a recorded direction and specification, component work would invent its
 own contract implicitly, and the accessibility failures would ship unexamined.
@@ -1566,10 +1603,26 @@ Excluded:
       **`aria-live` is not an unblocker.** Revisit only on a supported typed
       upstream capability, an approved localized accessible-copy strategy, or a
       relevant stack upgrade.
-   5. **UX-1C-3 — `FormSelect`. Still blocked** by its recorded selected-chip
-      contrast decision **and** by the unresolved required / invalid / group
-      accessibility outcomes. Neither UX-1B2D nor ADR-P024 unblocks it.
-   6. **UX-5 — all seven REDUCED-family inputs**, including migration of the
+   5. **UX-1C-3 — `FormSelect`. Still BLOCKED — for one reason now, not two.**
+      Its **selected-chip contrast blocker is CLEARED** (ADR-P022 Addendum A,
+      2026-09-16): the chip pairs `primary` with `onPrimary` and measures
+      **6.07:1 light / 6.95:1 dark**, and `FormSelect` gained its first
+      component spec, covering the selected foreground, the non-colour
+      redundancy signals and the radio roles. It **remains blocked** by the
+      unresolved required / invalid / group accessibility outcomes — neither
+      UX-1B2D, ADR-P024, ADR-P025 nor Addendum A unblocks those.
+   6. **UX-1C-4 — Accessible colour foundation. COMPLETE** (ADR-P022
+      Addendum A, 2026-09-16). Four light token values, five foreground and
+      boundary corrections (two of them previously unrecorded dark-theme
+      defects), a
+      deterministic both-theme contrast gate with a negative control,
+      source-level usage guards, and targeted component regressions.
+      Documentation reconciled across ADR-P022, `.ai/08_UI_UX.md` v1.10, this
+      entry, `.ai/20_PROGRESS_NONVISUAL.md` and `docs/RELEASE_READINESS.md`.
+      **Claims computed WCAG contrast only** — no assistive-technology,
+      large-text, dark-mode or on-device visual verification — and it advances
+      neither UX-4C nor FEATURE-010's completion.
+   7. **UX-5 — all seven REDUCED-family inputs**, including migration of the
       existing uncontrolled workout consumer (the per-set reps editor in
       `WorkoutLogScreen.tsx`). Per-feature authorization, behaviour-visible
       because those inputs gain a 48px floor and a type token. **Confirmed
@@ -1605,7 +1658,12 @@ Excluded:
    approved for UX-4A. **Bottom tabs are deferred, not unavailable** — they need
    no new dependency (`expo-router@57` vendors bottom-tabs), but activating the
    Selected-navigation `accent` role would land V1 on an unresolved **2.998:1**
-   AA failure. `.ai/17_PRODUCT_FLOWS.md` v1.1 reconciles Flow 1 and Flow 3.
+   AA failure. **That last clause no longer holds** — the light `accent` is
+   `#007A79` at 5.17:1 since ADR-P022 Addendum A (2026-09-16). **ADR-P027 is
+   not reopened:** hub-and-spoke is retained, bottom tabs stay deferred, and no
+   revisit trigger fires. This is an evidence correction to supporting
+   rationale, exactly as the UX-3D F-2 correction was.
+   `.ai/17_PRODUCT_FLOWS.md` v1.1 reconciles Flow 1 and Flow 3.
    ADR-P027 changed **no runtime**; the checklist and the shortcut are approved
    in principle and remain **PROPOSED until implemented**.
    Remaining UX-3 specification slices, in order:
@@ -1911,10 +1969,17 @@ Excluded:
 - [ ] Component and state contracts are frozen before component code is written.
 - [ ] Shared components satisfy their contracts, including contrast in both
       themes and non-colour redundancy for selected/success/warning/error.
-- [ ] The five light-theme AA failing pairs across four roles (`primary` on
+- [x] The five light-theme AA failing pairs across four roles (`primary` on
       `surface` and on `surfaceVariant`, `onPrimary` on `primary`, `warning`,
       `accent`) are resolved by an authorized token-value decision, or recorded as
       accepted exceptions with the exemption cited.
+      (**ADR-P022 Addendum A, 2026-09-16** — resolved by token-value change,
+      together with the two further failures the audit found (`success` and
+      `warning` on `background`) and the five pairing/boundary defects. Every remaining
+      exempt pairing cites its WCAG exception. Continuously re-measured by
+      `mobile/src/shared/theme/contrast.spec.ts`. **This criterion covers
+      computed contrast only** — it is not an accessibility outcome and does not
+      advance UX-4C.)
 - [ ] Inter delivery, the Material Symbols cross-platform delivery mechanism
       (including reconciling the `.ai/02_TECH_STACK.md` icon entry and an
       ADR/technology update if the choice falls outside the approved stack),
@@ -1947,17 +2012,32 @@ never become a CTA background or label. Accent on a primary action is subordinat
 non-exclusive emphasis only, and the CTA must remain recognizable without it.
 **There is no shipped `onAccent` role and none is introduced here.**
 
-The accent is currently **unusable in the light theme** (`#00A6A6` measures
-2.998:1 on `#FFFFFF`, below even the 3:1 non-text threshold), so UX-1C cannot ship
-an accent-bearing surface in light mode until the token-value decision in the
-acceptance criteria is taken. Accent emphasis on primary actions is blocked in
-**both** themes until that value *and* an accessible foreground/background pairing
-are approved, so the rule stays identical across themes. Candidate values recorded
-in `.ai/08_UI_UX.md` are labelled PROPOSED and are not approved.
+~~The accent is currently **unusable in the light theme**~~ — **RESOLVED
+2026-09-16 (ADR-P022 Addendum A).** The light `accent` is `#007A79`, measuring
+5.17:1 on `surface`, 4.94:1 on `background` and 4.57:1 on `surfaceVariant` —
+text AA on every ground, not merely the 3:1 non-text bar. **UX-1C may now ship an
+accent-bearing surface in light mode** for achievements, positive progress deltas
+and selected navigation.
 
-**UX-1B2A light-theme blockers — OPEN, not resolved by this slice.** Four of the
-five recorded failing pairs land directly on the state surfaces UX-1B2A specifies
-(detail in `.ai/08_UI_UX.md` §Impact on the canonical state UI):
+**Accent emphasis on a primary action is STILL blocked, in both themes.**
+Decision 5a required an approved accent *value* **and** an approved accent
+foreground/background *pairing*. Only the value is approved: there is **no
+shipped `onAccent` role**, the addendum neither introduced nor approved one, and
+adding a colour role was outside its authority. The block stays symmetric so the
+semantic rule is identical across themes.
+
+**UX-1B2A light-theme blockers — CLOSED 2026-09-16 (ADR-P022 Addendum A).** The
+four bullets below are the historical record; all four pairs now pass —
+`onPrimary` on `primary` 6.07:1, `primary` on `surfaceVariant` 5.36:1,
+`primary` on `surface` 6.07:1, `warning` on `surfaceVariant` 5.35:1. **The
+sequencing consequence is lifted:** an action-bearing state form is no longer
+blocked *by contrast* in the light theme. It may still be blocked by the
+input-accessibility gates, and **nothing may be declared AA-complete on computed
+contrast alone — UX-4C is open and unrun.**
+
+Four of the five recorded failing pairs land directly on the state surfaces
+UX-1B2A specifies (detail in `.ai/08_UI_UX.md` §Impact on the canonical state
+UI):
 
 - `EmptyState`'s creation action and `ErrorState`'s retry are **blocked from AA
   completion** — a filled primary action fails AA in the light theme, and a
@@ -1970,10 +2050,12 @@ five recorded failing pairs land directly on the state surfaces UX-1B2A specifie
 - The accent is **not used by any UX-1B2A contract**, so the accent block does not
   gate this work.
 
-Consequence for UX-1C: the **copy-only** state forms may proceed; **no
-action-bearing state form may be declared AA-complete in the light theme** until
-the owner-gated token-value decision in the acceptance criteria above is taken.
-No contract claims otherwise, and no candidate value is approved here.
+Consequence for UX-1C (**historical — that decision has since been taken**): the
+copy-only state forms may proceed; no action-bearing state form may be declared
+AA-complete in the light theme until the owner-gated token-value decision in the
+acceptance criteria above is taken. It landed on 2026-09-16, so the **contrast**
+half of this constraint is discharged; the input-accessibility gates and the
+unrun UX-4C pass are untouched.
 
 **UX-1B2B usage-level contrast findings — OPEN, tracked separately from the five.**
 The five failing pairs above are the **original owner-gated token set** (five
@@ -1999,6 +2081,14 @@ selected-chip pairing. They must not be folded into the count of five. Detail in
    shipped placeholder sites use `outline`.
 
 **No code is fixed by UX-1B2B**; both findings are documentation-only records.
+
+> **FIXED IN CODE 2026-09-16 (ADR-P022 Addendum A Decision 2).** All four
+> selected-chip sites now use `onPrimary` (dark 1.42 → **6.95:1**; light
+> **6.07:1** after the token change), and all six placeholder sites now use
+> `onSurfaceVariant` (**9.33:1** on `surface`). `outline` is unchanged on every
+> border. Both are enforced by
+> `mobile/src/shared/theme/color-usage.source.spec.ts` plus targeted component
+> regressions, so neither can return silently.
 
 **UX-1B2C additional usage-level contrast findings — OPEN.** The primitive audit
 measured every tone/ground pairing the five shipped primitives actually produce

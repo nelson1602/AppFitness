@@ -140,7 +140,7 @@ export function RoutineBuilder() {
             accessibilityLabel={t('workout.builder.name')}
             testID="routine-name"
             placeholder={t('workout.builder.namePlaceholder')}
-            placeholderTextColor={theme.colors.outline}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
             value={name}
             onChangeText={setName}
             style={{

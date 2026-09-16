@@ -132,7 +132,7 @@ export function FoodLogAddForm({
                   paddingHorizontal: theme.spacing.md,
                 }}
               >
-                <AppText tone={active ? 'default' : 'muted'}>{label}</AppText>
+                <AppText tone={active ? 'onPrimary' : 'muted'}>{label}</AppText>
               </Pressable>
             );
           })}
@@ -162,7 +162,15 @@ export function FoodLogAddForm({
                   testID={`food-option-${food.id}`}
                   onPress={() => setSelected(food)}
                   style={{
-                    borderColor: theme.colors.divider,
+                    // `outline`, not `divider`: this border is the only thing
+                    // bounding an interactive element, so WCAG 1.4.11's 3:1
+                    // applies. `divider` is exempt only while it stays
+                    // decorative, and measures 1.27:1 light / 1.29:1 dark —
+                    // the escape `.ai/08_UI_UX.md` already names for this case
+                    // ("if a divider ever becomes the sole boundary of an
+                    // interactive element, it must meet 3:1 or an `outline`
+                    // must be used instead"). ADR-P022 Addendum A.
+                    borderColor: theme.colors.outline,
                     borderRadius: theme.radius.medium,
                     borderWidth: 1,
                     padding: theme.spacing.md,

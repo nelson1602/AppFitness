@@ -113,7 +113,7 @@ function Chip({
         paddingVertical: theme.spacing.sm,
       }}
     >
-      <AppText tone={active ? 'default' : 'muted'} variant="label">
+      <AppText tone={active ? 'onPrimary' : 'muted'} variant="label">
         {label}
       </AppText>
     </Pressable>
@@ -257,7 +257,7 @@ export function DietaryPreferences() {
                 accessibilityLabel={t('nutrition.preferences.searchAccessibility')}
                 testID="dp-food-search"
                 placeholder={t('nutrition.preferences.searchPlaceholder')}
-                placeholderTextColor={theme.colors.outline}
+                placeholderTextColor={theme.colors.onSurfaceVariant}
                 value={query}
                 onChangeText={(text) => {
                   setQuery(text);
@@ -295,7 +295,7 @@ export function DietaryPreferences() {
             accessibilityLabel={t('nutrition.preferences.noteAccessibility')}
             testID="dp-note"
             placeholder={t('nutrition.preferences.notePlaceholder')}
-            placeholderTextColor={theme.colors.outline}
+            placeholderTextColor={theme.colors.onSurfaceVariant}
             value={note}
             onChangeText={setNote}
             style={{

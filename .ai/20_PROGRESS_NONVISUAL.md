@@ -230,8 +230,19 @@ part of it.
 
 `.ai/12_DECISIONS.md` **ADR-P027** Consequences stated that the `accent` role
 "remains unused". That clause is factually wrong at this commit and is corrected
-there. `.ai/08_UI_UX.md:742` records `accent #00A6A6` on `surface #FFFFFF` at
+there. `.ai/08_UI_UX.md` recorded `accent #00A6A6` on `surface #FFFFFF` at
 **2.998 : 1 — FAIL at 4.5 and below the 3:1 non-text threshold**.
+
+> **RESOLVED 2026-09-16 — ADR-P022 Addendum A.** The light `accent` is now
+> `#007A79`, measuring **5.17 : 1** on `surface` — clearing the 4.5 : 1 text
+> threshold, not merely the 3 : 1 non-text one. `TrendBars` is unchanged: it
+> still fills the latest bar with `accent` and the rest with `primary`
+> (`primary #0F62B8` now measures 6.07 : 1 on `surface`), and every UX-3D
+> requirement — the visible latest marker, the descriptor, the window notice and
+> the per-bar labels — is untouched. The open question this section declined to
+> rule on is therefore **moot**: the pairing passes either way, whether or not
+> the accent fill is load-bearing. The ratios are re-measured on every test run
+> by `mobile/src/shared/theme/contrast.spec.ts`.
 
 **What this document does and does not conclude.** It records the usage and
 corrects the ADR's factual clause. It does **not** rule on whether this specific

@@ -1,4 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+
+import { darkTheme, lightTheme } from '@/shared/theme';
 
 import type { DietaryPreference } from '../../domain/dietary-preference';
 import { FoodLogAddForm } from './FoodLogAddForm';
@@ -50,6 +53,30 @@ function pref(over: Partial<DietaryPreference> = {}): DietaryPreference {
  * covers the ServingStepper interaction and the no-results state.
  */
 describe('FoodLogAddForm (Slice 4D)', () => {
+  /**
+   * ADR-P022 Addendum A. The selected meal-slot chip fills with `primary` and
+   * previously labelled itself through the default tone, resolving to
+   * `onSurface` — 1.42:1 in the dark theme. The canonical filled pair is
+   * `primary` / `onPrimary` (ADR-P022 Decision 5a). Asserted on the resolved
+   * colour and on the selection moving, so neither a tone rename nor a
+   * hard-coded default slot can hide a regression.
+   */
+  it('labels the selected meal chip with onPrimary, never onSurface (ADR-P022 Addendum A)', async () => {
+    await render(<FoodLogAddForm onAdd={jest.fn()} />);
+
+    const colorOf = (text: string) =>
+      StyleSheet.flatten(screen.getByText(text).props.style as StyleProp<TextStyle>)?.color;
+
+    expect(colorOf('Breakfast')).toBe(lightTheme.colors.onPrimary);
+    expect(colorOf('Breakfast')).not.toBe(lightTheme.colors.onSurface);
+    expect(colorOf('Lunch')).toBe(lightTheme.colors.onSurfaceVariant);
+
+    await fireEvent.press(screen.getByTestId('meal-type-LUNCH'));
+
+    expect(colorOf('Lunch')).toBe(lightTheme.colors.onPrimary);
+    expect(colorOf('Breakfast')).toBe(lightTheme.colors.onSurfaceVariant);
+  });
+
   it('searches the catalog, adjusts servings, and logs the selected food', async () => {
     const onAdd = jest.fn();
     await render(<FoodLogAddForm onAdd={onAdd} />);
@@ -66,6 +93,23 @@ describe('FoodLogAddForm (Slice 4D)', () => {
     await fireEvent.press(screen.getByTestId('food-log-add-submit'));
 
     expect(onAdd).toHaveBeenCalledWith('food.chicken_breast', 'LUNCH', 1.25);
+  });
+
+  /**
+   * ADR-P022 Addendum A. A food result is a `Pressable` whose border is its
+   * only boundary, so WCAG 1.4.11's 3:1 applies. It used `divider` — exempt
+   * only while decorative, and measuring 1.27:1 light / 1.29:1 dark. `outline`
+   * is the role `.ai/08_UI_UX.md` names for precisely this case (4.49:1).
+   */
+  it('bounds a food result with outline, never divider (ADR-P022 Addendum A)', async () => {
+    await render(<FoodLogAddForm onAdd={jest.fn()} />);
+
+    await fireEvent.changeText(screen.getByTestId('food-search-input'), 'chicken');
+    const option = await screen.findByTestId('food-option-food.chicken_breast');
+    const border = StyleSheet.flatten(option.props.style as StyleProp<ViewStyle>)?.borderColor;
+
+    expect([lightTheme.colors.outline, darkTheme.colors.outline]).toContain(border);
+    expect([lightTheme.colors.divider, darkTheme.colors.divider]).not.toContain(border);
   });
 
   it('shows a no-results message for an unmatched query', async () => {

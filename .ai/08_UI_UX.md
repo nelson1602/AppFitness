@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.9
+Version: 1.10
 Status: Active
-Last Updated: 2026-09-09
+Last Updated: 2026-09-16
 
 ---
 
@@ -347,6 +347,68 @@ changed.
 
 ---
 
+# Revision Scope (v1.10 — ADR-P022 Addendum A)
+
+This revision records the **resolution** of the light-theme contrast failures
+that v1.2 first measured and every revision since has carried forward. It is
+decided by **ADR-P022 Addendum A — Accessible colour foundation (UX-1C-4)**,
+accepted 2026-09-16, and unlike v1.2 … v1.8 it **is** accompanied by a runtime
+change: four light-theme token values and a small set of foreground pairings.
+
+Included in v1.10:
+
+- **Four light-theme token values corrected** — `primary`, `warning`,
+  `accent` and `success`. Dark values are unchanged.
+- **Five foreground and boundary corrections** — the selected-chip foreground
+  (4 sites), the placeholder role (6 sites), the `destructive` button label,
+  the `secondary` / `text` button labels, and a `divider` used as the sole
+  boundary of an interactive element.
+- **Three pairings no prior revision had measured** are recorded: `success` on
+  `background` (4.38:1), `warning` on `background` (4.05:1), and the
+  `AppButton` unfilled-label defect below.
+- **A new, more severe finding — Finding 4.** `AppButton`'s `secondary` and
+  `text` labels rendered **no theme colour at all**, falling back to React
+  Native's default black at **1.13–1.42:1 on the dark theme's grounds**. This
+  contradicts the standing claim that the dark theme "passes throughout": that
+  audit measured the pair the component *intended*, never the colour it
+  produced.
+- **A documented candidate was rejected on evidence.** The proposed `warning`
+  value `#A05F00` measures 5.08:1 on `surface` but **4.486:1 on
+  `surfaceVariant`**, where the warning Banner title lives. The candidate table
+  below measured `#FFFFFF` only.
+- **Owner-gated decision 3 is CLOSED.**
+- **A deterministic contrast gate** (`mobile/src/shared/theme/contrast.spec.ts`)
+  and **source-level usage guards**
+  (`mobile/src/shared/theme/color-usage.source.spec.ts`) now enforce all of the
+  above on every run, with a negative control proving the gate is not vacuous.
+
+**Not** in v1.10, and explicitly not authorized:
+
+- **No `onAccent` role**, and therefore **accent emphasis on a primary action
+  stays BLOCKED in both themes** — Decision 5a needs an approved accent
+  *pairing* as well as an approved accent *value*, and only the value is
+  approved.
+- No new colour role, dependency, asset, package, icon mechanism or
+  platform-specific palette; no dark-theme token change.
+- Material Symbols delivery, Inter, motion, the dark surface-tint ramp,
+  `FormSelect` required/invalid semantics, the `FormField` migration, UX-4B-1
+  identity, UX-4C manual verification and Web parity all remain exactly where
+  they were.
+
+**What v1.10 does NOT claim.** Contrast arithmetic is not an accessibility
+outcome. **No VoiceOver, TalkBack, browser-AT, large-text or on-device visual
+result is claimed. UX-4C remains open and unrun, FEATURE-010 remains In
+Progress, and dark-mode verification across every shipped surface remains
+unverified.** All five V1 accessibility release-review gates stay open at the
+same severity.
+
+**Evidence baseline for v1.10.** Verified against `main` at
+`ddac012093dff93fc7e48404702acd0cbb409cd6`. Every ratio was recomputed from the
+shipped token modules with the §Audit method below; all previously recorded
+figures reproduced exactly.
+
+---
+
 # Design Philosophy
 
 The design language follows five principles:
@@ -615,15 +677,27 @@ would diverge.
 6. **There is no shipped `onAccent` role**, so no approved foreground exists for
    an accent-filled surface. This revision neither introduces nor approves one.
 
-**Status: BLOCKED in both themes.** Accent emphasis on primary actions is blocked
-until *both* (a) the light-theme `accent` value is approved (it currently measures
-2.998:1 on `surface`, failing even the 3:1 non-text threshold) and (b) an
-accessible foreground/background pairing for accent is approved. The block applies
-to **both** themes deliberately — even though the shipped dark `accent #4DD0D0`
-measures 9.17:1 on `surface` — so that the same semantic rule holds in light and
-dark and the two themes cannot drift apart. Achievements, positive progress
-deltas, and selected navigation are unaffected by this particular block; they are
-separately constrained by the light-theme accent value.
+**Status: STILL BLOCKED in both themes — condition (a) is now satisfied,
+condition (b) is not.** Accent emphasis on primary actions required *both* (a) an
+approved light-theme `accent` value and (b) an approved accessible
+foreground/background pairing for an accent-filled surface.
+
+**ADR-P022 Addendum A (2026-09-16) satisfies (a) only.** The light `accent` is
+now `#007A79`, measuring **5.17:1 on `surface`**, 4.94:1 on `background` and
+4.57:1 on `surfaceVariant` — text AA on every ground, not merely the 3:1
+non-text threshold. The shipped dark `accent #4DD0D0` measures 9.17:1 and is
+unchanged.
+
+**Condition (b) is untouched.** There is still **no shipped `onAccent` role**,
+the addendum neither introduces nor approves one, and adding a colour role was
+outside its authority. The block therefore stands in **both** themes, so the
+semantic rule remains identical in light and dark and the themes cannot drift
+apart.
+
+**What the accent value DOES unblock:** achievements, positive progress deltas
+and selected navigation may now use the accent in the light theme, as a
+graphical mark and as text. Those were constrained only by the value, and the
+value is approved.
 
 ## Non-colour redundancy (mandatory)
 
@@ -644,18 +718,23 @@ than advisory.
 
 ## Shipped palette (SHIPPED)
 
-Verified from `mobile/src/shared/theme/colors.ts` at `origin/main`
-`9dbe2258`. 27 roles per theme (54 declared values in total).
+Verified from `mobile/src/shared/theme/colors.ts`. 27 roles per theme (54
+declared values in total). **Four light values were corrected by ADR-P022
+Addendum A on 2026-09-16** and are marked ← below; every dark value is unchanged
+from `origin/main` `9dbe2258`.
 
-Light: `primary #208AEF` · `onPrimary #FFFFFF` · `primaryContainer #D6E9FC` ·
+Light: `primary #0F62B8` ← · `onPrimary #FFFFFF` · `primaryContainer #D6E9FC` ·
 `onPrimaryContainer #0A3D6B` · `secondary #4F6070` · `onSecondary #FFFFFF` ·
 `tertiary #5E5A7D` · `onTertiary #FFFFFF` · `background #F8FAFC` ·
 `onBackground #191C1F` · `surface #FFFFFF` · `onSurface #191C1F` ·
-`surfaceVariant #EEF1F5` · `onSurfaceVariant #44474C` · `success #1B873F` ·
-`onSuccess #FFFFFF` · `warning #B26A00` · `onWarning #FFFFFF` ·
+`surfaceVariant #EEF1F5` · `onSurfaceVariant #44474C` · `success #187737` ← ·
+`onSuccess #FFFFFF` · `warning #8F5500` ← · `onWarning #FFFFFF` ·
 `error #BA1A1A` · `onError #FFFFFF` · `info #0B6BCB` · `onInfo #FFFFFF` ·
 `disabled #C4C7CC` · `onDisabled #75787D` · `outline #74777D` ·
-`divider #E1E4E9` · `accent #00A6A6`
+`divider #E1E4E9` · `accent #007A79` ←
+
+Superseded light values, for traceability: `primary #208AEF`,
+`success #1B873F`, `warning #B26A00`, `accent #00A6A6`.
 
 Dark: `primary #8FC5F7` · `onPrimary #06345C` · `primaryContainer #0F4C82` ·
 `onPrimaryContainer #D6E9FC` · `secondary #B7C7D8` · `onSecondary #22323F` ·
@@ -704,11 +783,27 @@ to two decimal places (`accent` on `surface` to three, because it sits on the
 
 ## Audit result — SHIPPED palette
 
-**Dark theme: passes.** Every text and UI pair listed below meets its threshold
-(lowest measured text pair: `onPrimary #06345C` on `primary #8FC5F7` = 6.95:1;
-`primary`, `success`, `warning`, `error`, `info`, and `accent` on
-`surface #191C1F` all measure 9.1–10.1:1; `outline #8E9195` on
-`surfaceVariant #24282C` = 4.69:1 against a 3:1 requirement).
+> **RESOLVED 2026-09-16 by ADR-P022 Addendum A.** The table in this subsection
+> is the **historical** audit of the pre-addendum palette, retained because
+> several sections reference its figures. The current measured state is in
+> §Audit result — palette as shipped today, immediately below it. The
+> **authoritative, continuously re-measured** record is
+> `mobile/src/shared/theme/contrast.spec.ts`, which recomputes every approved
+> pairing in both themes on every test run.
+
+**Dark theme: the palette pairs passed; one component did not produce them.**
+Every *token pair* listed below meets its threshold (lowest measured text pair:
+`onPrimary #06345C` on `primary #8FC5F7` = 6.95:1; `primary`, `success`,
+`warning`, `error`, `info`, and `accent` on `surface #191C1F` all measure
+9.1–10.1:1; `outline #8E9195` on `surfaceVariant #24282C` = 4.69:1 against a
+3:1 requirement).
+
+**The earlier unqualified claim that the dark theme "passes throughout" was
+wrong**, and is corrected here. It measured the pairs components *intended*,
+never the colour they produced. Two dark-theme defects were live at the time:
+the selected-chip foreground at **1.42:1** (§Finding 1) and the `AppButton`
+unfilled label at **1.13–1.42:1** (§Finding 4). Both are corrected; the caution
+stands as a method note.
 
 **Light theme: five failing pairs across four semantic roles — `primary`,
 `onPrimary`, `warning`, and `accent`.** The five pairs, in the order they appear
@@ -722,6 +817,13 @@ in the table below:
 
 Four roles, five pairs — `primary` fails against two different backgrounds.
 
+**This count was incomplete.** The Addendum A audit walked every role to its
+consumers and every consumer to its ground, and found **two further light-theme
+token failures on a ground no revision had measured**: `success` on
+`background` (4.38:1) and `warning` on `background` (4.05:1). The honest
+pre-addendum total is therefore **seven** light-theme token-value failures across
+**five** roles, not five across four.
+
 | Pair (light) | Ratio | Verdict |
 |---|---|---|
 | `onSurface #191C1F` on `surface #FFFFFF` | 17.11 : 1 | PASS |
@@ -734,16 +836,70 @@ Four roles, five pairs — `primary` fails against two different backgrounds.
 | `info #0B6BCB` on `surface #FFFFFF` | 5.28 : 1 | PASS |
 | `onPrimaryContainer #0A3D6B` on `primaryContainer #D6E9FC` | 8.94 : 1 | PASS |
 | `outline #74777D` on `surfaceVariant #EEF1F5` | 3.96 : 1 | PASS (3:1) |
-| `success #1B873F` on `surface #FFFFFF` | 4.58 : 1 | PASS (narrow margin) |
-| `warning #B26A00` on `surface #FFFFFF` | 4.24 : 1 | **FAIL** at 4.5; passes large-text 3:1 |
-| `primary #208AEF` on `surface #FFFFFF` | 3.53 : 1 | **FAIL** at 4.5; passes large-text 3:1 |
-| `onPrimary #FFFFFF` on `primary #208AEF` | 3.53 : 1 | **FAIL** at 4.5; passes large-text 3:1 |
-| `primary #208AEF` on `surfaceVariant #EEF1F5` | 3.12 : 1 | **FAIL** at 4.5; passes large-text 3:1 |
-| `accent #00A6A6` on `surface #FFFFFF` | 2.998 : 1 | **FAIL** at 4.5 **and** below the 3:1 non-text threshold |
+| `success #1B873F` on `surface #FFFFFF` | 4.58 : 1 | PASS (narrow margin) — value since darkened |
+| `warning #B26A00` on `surface #FFFFFF` | 4.24 : 1 | **FAIL** at 4.5 — RESOLVED |
+| `primary #208AEF` on `surface #FFFFFF` | 3.53 : 1 | **FAIL** at 4.5 — RESOLVED |
+| `onPrimary #FFFFFF` on `primary #208AEF` | 3.53 : 1 | **FAIL** at 4.5 — RESOLVED |
+| `primary #208AEF` on `surfaceVariant #EEF1F5` | 3.12 : 1 | **FAIL** at 4.5 — RESOLVED |
+| `accent #00A6A6` on `surface #FFFFFF` | 2.998 : 1 | **FAIL** at 4.5 **and** below 3:1 — RESOLVED |
+| `success #1B873F` on `background #F8FAFC` | 4.38 : 1 | **FAIL** at 4.5 — unmeasured until 2026-09-16, RESOLVED |
+| `warning #B26A00` on `background #F8FAFC` | 4.05 : 1 | **FAIL** at 4.5 — unmeasured until 2026-09-16, RESOLVED |
+| `success #1B873F` on `surfaceVariant #EEF1F5` | 4.04 : 1 | **FAIL** at 4.5 (recorded v1.5) — RESOLVED |
+| `warning #B26A00` on `surfaceVariant #EEF1F5` | 3.74 : 1 | **FAIL** at 4.5 (recorded v1.5) — RESOLVED |
+| `primary #208AEF` on `background #F8FAFC` | 3.38 : 1 | **FAIL** at 4.5 (recorded v1.5) — RESOLVED |
 | `onDisabled #75787D` on `disabled #C4C7CC` | 2.61 : 1 | Exempt (inactive control) but poor |
 | `divider #E1E4E9` on `surface #FFFFFF` | 1.27 : 1 | Exempt (decorative separator only) |
 
-## Consequences of the light-theme failures (honest statement)
+## Audit result — palette as shipped today (SHIPPED, 2026-09-16)
+
+Measured from the corrected tokens. Dark values did not change, so only the
+light column moved; the dark figures are restated for completeness because the
+gate asserts both.
+
+| Pairing | Light | Dark | Threshold |
+|---|---|---|---|
+| `primary #0F62B8` on `surface` | **6.07 : 1** | 9.37 : 1 | 4.5 : 1 |
+| `primary` on `background` | **5.80 : 1** | 10.14 : 1 | 4.5 : 1 |
+| `primary` on `surfaceVariant` | **5.36 : 1** | 8.13 : 1 | 4.5 : 1 |
+| `onPrimary` on `primary` | **6.07 : 1** | 6.95 : 1 | 4.5 : 1 |
+| `warning #8F5500` on `surface` | **6.06 : 1** | 10.06 : 1 | 4.5 : 1 |
+| `warning` on `background` | **5.79 : 1** | 10.89 : 1 | 4.5 : 1 |
+| `warning` on `surfaceVariant` | **5.35 : 1** | 8.73 : 1 | 4.5 : 1 |
+| `success #187737` on `surface` | **5.63 : 1** | 9.36 : 1 | 4.5 : 1 |
+| `success` on `background` | **5.38 : 1** | 10.13 : 1 | 4.5 : 1 |
+| `success` on `surfaceVariant` | **4.97 : 1** | 8.12 : 1 | 4.5 : 1 |
+| `accent #007A79` on `surface` | **5.17 : 1** | 9.17 : 1 | 4.5 : 1 |
+| `accent` on `background` | **4.94 : 1** | 9.92 : 1 | 4.5 : 1 |
+| `accent` on `surfaceVariant` | **4.57 : 1** | 7.95 : 1 | 4.5 : 1 |
+| `error` on `surface` / `background` / `surfaceVariant` | 6.46 / 6.18 / 5.70 : 1 | 10.08 / 10.91 / 8.74 : 1 | 4.5 : 1 |
+| `onError` on `error` | 6.46 : 1 | 7.72 : 1 | 4.5 : 1 |
+| `onSurface` on `primaryContainer` | 13.79 : 1 | 6.87 : 1 | 4.5 : 1 |
+| `outline` on `surface` / `background` / `surfaceVariant` (non-text) | 4.49 / 4.29 / 3.96 : 1 | 5.41 / 5.85 / 4.69 : 1 | 3 : 1 |
+| `info` on `surfaceVariant` (non-text border) | 4.66 : 1 | 8.13 : 1 | 3 : 1 |
+
+Every neutral pairing (`onSurface`, `onSurfaceVariant`, `onBackground` on each
+ground) passes in both themes and is asserted by the gate; the lowest is 8.23:1.
+
+**Exemptions, cited rather than omitted.** `divider` on `surface` (1.27 / 1.29)
+is a decorative separator under 1.4.11. A chip's or input's **fill** against its
+ground (`surfaceVariant` 1.13 / 1.15; `primaryContainer` 1.24 / 1.94) is exempt
+because the component boundary is carried by its `outline` or `primary`
+**border**, which is gated above — and, for selection, by marker glyph, border
+width and `accessibilityState`. Disabled composites remain exempt under the
+1.4.3 inactive-control exception; the treatment is opacity, and the
+`disabled` / `onDisabled` roles still have no consumer.
+
+## Consequences of the light-theme failures (historical — RESOLVED 2026-09-16)
+
+> Every consequence in this subsection was **discharged by ADR-P022
+> Addendum A**. It is retained because other sections cite it. In short:
+> `primary`-toned text now passes at every size on every ground (5.36:1 worst
+> case); the filled primary action passes at 6.07:1; `warning` passes at 5.35:1
+> worst case; `success` was **darkened**, not lightened, and passes at 4.97:1
+> worst case; and the `accent` may now be used in the light theme, for text and
+> for graphical marks, at 4.57:1 worst case. **Accent emphasis on a primary
+> action remains blocked** — that needs an accent *pairing*, which no `onAccent`
+> role exists to provide.
 
 - Any text using the `primary` tone at `body`, `label`, or `caption` size fails
   AA in the light theme.
@@ -763,8 +919,28 @@ Four roles, five pairs — `primary` fails against two different backgrounds.
 - `divider` is exempt only while it remains decorative. If a divider ever becomes
   the sole boundary of an interactive element, it must meet 3:1 or an `outline`
   must be used instead.
+  > **This rule was being violated, and is now enforced (ADR-P022 Addendum A,
+  > 2026-09-16).** `FoodLogAddForm`'s food-result `Pressable` was bounded by
+  > `divider` alone — **1.27:1 light / 1.29:1 dark** — and now uses `outline`
+  > (4.49:1 / 5.41:1). `divider` is unchanged on `Card`, which is passive and
+  > stays exempt. `mobile/src/shared/theme/color-usage.source.spec.ts` forbids
+  > `divider` on any `Pressable` border, so the exemption cannot silently
+  > expand again.
 
-## Impact on the canonical state UI (UX-1B2A)
+## Impact on the canonical state UI (UX-1B2A) — RESOLVED 2026-09-16
+
+> **All five pairings in the table below now pass**, so none of the recorded
+> consequences still gates UX-1B2A or UX-1C. `EmptyState`'s creation action and
+> `ErrorState`'s retry are no longer blocked from AA completion by contrast
+> (`onPrimary` on `primary` = 6.07:1; a text-style action = 5.36:1 worst
+> ground). `WebUnavailableNotice`'s info title measures 5.36:1 on all 12
+> surfaces. `SyncStatusHint`'s conflict variant and the offline banner measure
+> 5.35:1. **The sequencing consequence is lifted: an action-bearing state form
+> is no longer blocked *by contrast* from AA completion in the light theme.**
+> It may still be blocked by the input-accessibility gates (ADR-P023 /
+> ADR-P024 / ADR-P025), which this change does not touch, and **AA completion
+> is never claimed on computed contrast alone — UX-4C is unrun.** The table is
+> retained as the historical record.
 
 The five failing pairs recorded above are not abstract — four of them land
 directly on the state surfaces specified in §State Component Contracts (UX-1B2A).
@@ -789,7 +965,16 @@ action-bearing state form can be declared AA-complete in the light theme until t
 owner-gated token-value decision lands.** No contract in this document claims
 otherwise.
 
-## Usage-level contrast findings (UX-1B2B)
+## Usage-level contrast findings (UX-1B2B) — FIXED IN CODE 2026-09-16
+
+> **Both findings below are corrected**, by ADR-P022 Addendum A Decision 2.
+> Finding 1's four selected chips now use `onPrimary` (dark 1.42:1 → 6.95:1;
+> light 6.07:1), and Finding 2's six placeholder sites now use
+> `onSurfaceVariant` (9.33:1 on `surface`). `outline` remains in use, unchanged,
+> on every border. Both are enforced by
+> `mobile/src/shared/theme/color-usage.source.spec.ts` and by targeted component
+> regressions. The sentence "No code is fixed in this documentation slice" below
+> was true of UX-1B2B and is no longer true of the repository.
 
 These are **distinct from the five failing pairs above** and must never be folded
 into that count. The five are the **original owner-gated token set**: five
@@ -833,6 +1018,14 @@ in both themes** until the existing owner-gated `primary`/`onPrimary` decision i
 resolved. This revision does **not** choose `primaryContainer`, another fill, or a
 new token — that would be a token decision, which is out of scope here.
 
+> **RESOLVED 2026-09-16.** The token decision landed (ADR-P022 Addendum A) and
+> the pairing was corrected in all four files. The selected chip now measures
+> **6.07:1 light / 6.95:1 dark**. `UX-1C-3` is **no longer blocked by
+> contrast**, but **remains blocked** by its other recorded obstruction — the
+> unresolved required / invalid / group accessibility outcomes (ADR-P023,
+> ADR-P025). No AA-completion claim is made here: computed contrast is a
+> precondition, and UX-4C is unrun.
+
 ### Finding 2 — placeholder role misuse (light theme)
 
 Placeholder text rendered through the `outline` role fails AA **as text** in the
@@ -853,7 +1046,18 @@ eight shipped placeholder sites use `outline`; two already use
 This is a **usage correction, not a token-value change**. Both findings are
 tracked in **FEATURE-010**.
 
-## Usage-level contrast findings (UX-1B2C)
+## Usage-level contrast findings (UX-1B2C) — RESOLVED 2026-09-16
+
+> All three pairings below were **token-value** problems on grounds earlier
+> revisions had not measured, and all three are closed by ADR-P022 Addendum A:
+> `primary` on `background` 3.38 → **5.80:1**, `warning` on `surfaceVariant`
+> 3.74 → **5.35:1**, `success` on `surfaceVariant` 4.04 → **4.97:1**.
+>
+> The same class of omission recurred and is recorded honestly: the Addendum A
+> audit found that **`success` and `warning` on `background` had never been
+> measured either** (4.38:1 and 4.05:1 — both failing). The lesson is in the
+> gate: `contrast.spec.ts` now enumerates every role against every ground it
+> reaches, so a ground cannot be skipped again.
 
 The UX-1B2C primitive audit measured every tone/ground pairing the five shipped
 primitives actually produce, in both themes. It found **exactly three additional
@@ -894,6 +1098,16 @@ double-counted.
   lightened" was measured on `surface` only; it is accurate but incomplete.
 - **All relevant dark-theme text pairings pass** across all five primitives — the
   lowest measured dark text pairing is 6.95 : 1 (`onPrimary` on `primary`).
+  > **CORRECTED 2026-09-16.** This was measured on the *token pairs the
+  > primitives intended*. `AppButton`'s `secondary` and `text` variants did not
+  > produce their intended pair at all: a trailing `{ color: undefined }`
+  > overwrote the resolved tone when the style array was flattened, so the label
+  > fell back to React Native's default black — **1.23:1 on the dark `surface`,
+  > 1.13:1 on the dark `background`**, across 16 shipped `text` usages and every
+  > `secondary` button. Verified by rendering the unmodified component at
+  > `ddac0120`, not inferred. Fixed by ADR-P022 Addendum A Decision 2 Finding 4;
+  > the label now resolves to `primary` (9.37:1 dark `surface`). A source guard
+  > forbids `color: undefined` in a style object.
 - **`AppButton` disabled composites are exempt but poor.** `opacity 0.56`
   composites both fill and label against the ground, yielding label-on-fill
   ratios of **1.99 : 1** (light) and **3.35 : 1** (dark). WCAG 1.4.3 exempts
@@ -910,26 +1124,47 @@ double-counted.
   **no code or token value is changed** by this revision. All three findings are
   tracked in **FEATURE-010**.
 
-## Candidate remedies — PROPOSED, not approved, not in code
+## Candidate remedies — RESOLVED 2026-09-16 (three adopted, three rejected)
 
-These are worked candidates only. **None is approved, and none exists in
-`mobile/src`.** Selecting values requires its own decision (see §Change Control
-and Slice Boundaries).
+These were worked candidates. **ADR-P022 Addendum A selected from them**, after
+re-measuring each against **every** ground the role actually reaches rather than
+against `#FFFFFF` alone. Measuring on white only is what let two of them look
+adequate when they are not.
 
-| Role (light) | Candidate | Measured on `#FFFFFF` |
-|---|---|---|
-| `primary` | `#0B6BCB` (equals the SHIPPED `info` value) | 5.28 : 1 |
-| `primary` | `#0F62B8` | 6.07 : 1 |
-| `warning` | `#A05F00` | 5.08 : 1 |
-| `warning` | `#8F5500` | 6.06 : 1 |
-| `accent` | `#00807F` | 4.78 : 1 |
-| `accent` | `#007A79` | 5.17 : 1 |
+| Role (light) | Candidate | On `surface` | On `background` | On `surfaceVariant` | Outcome |
+|---|---|---|---|---|---|
+| `primary` | `#0B6BCB` (equals the SHIPPED `info` value) | 5.28 : 1 | 5.04 : 1 | 4.66 : 1 | **Rejected** — passes, but collapses `primary` and `info` to one value and leaves only 0.16 margin on `surfaceVariant` |
+| `primary` | `#0F62B8` | 6.07 : 1 | 5.80 : 1 | 5.36 : 1 | **ADOPTED** |
+| `warning` | `#A05F00` | 5.08 : 1 | 4.86 : 1 | **4.486 : 1** | **Rejected — FAILS** on `surfaceVariant`, where the warning Banner title lives |
+| `warning` | `#8F5500` | 6.06 : 1 | 5.79 : 1 | 5.35 : 1 | **ADOPTED** |
+| `accent` | `#00807F` | 4.78 : 1 | 4.57 : 1 | 4.22 : 1 | **Rejected** — below 4.5 : 1 on `surfaceVariant` (clears the 3 : 1 non-text bar only) |
+| `accent` | `#007A79` | 5.17 : 1 | 4.94 : 1 | 4.57 : 1 | **ADOPTED** |
+| `success` | *(no candidate existed)* | — | — | — | **`#187737` DERIVED** — a hue/saturation-preserving darkening (each channel × 0.88) of the shipped `#1B873F`; 5.63 / 5.38 / **4.97** : 1 |
 
-Any adopted change must be re-audited for the *inverse* pair as well — e.g. a
-darker `primary` also raises `onPrimary #FFFFFF` on `primary` to the same ratio,
-which is how the filled-button failure is resolved.
+Any adopted change must be re-audited for the *inverse* pair as well — a darker
+`primary` also raises `onPrimary #FFFFFF` on `primary` to the same ratio, which
+is how the filled-button failure is resolved (3.53 → **6.07 : 1**).
+
+**Standing rule, learned here: a candidate is only adequate when it clears every
+ground the role actually reaches.** `contrast.spec.ts` enforces this, and carries
+`#A05F00` as an explicit negative control.
 
 ## Verification requirement
+
+**SHIPPED as of 2026-09-16 for the palette:**
+`mobile/src/shared/theme/contrast.spec.ts` recomputes every approved pairing in
+both themes on every test run, failing by pairing name and measured ratio. It
+computes WCAG relative luminance from the live token objects rather than
+asserting hex equality, carries a negative control (the pre-addendum palette must
+fail on exactly the recorded pairings, and `#A05F00` must fail on
+`surfaceVariant`), and asserts that all 27 roles are either measured or
+explicitly declared unconsumed. Pairing *correctness* — which `on*` foreground a
+fill takes — is guarded separately by
+`mobile/src/shared/theme/color-usage.source.spec.ts`.
+
+**A passing gate is a contrast result, never an accessibility result.** It says
+nothing about screen-reader announcement, traversal, large text or on-device
+rendering; those remain UX-4C, which is open and unrun.
 
 **TARGET:** every text/background and icon/background pair used by a component
 carries a recorded ratio and a pass/fail verdict, in **both** themes, before that
@@ -2688,9 +2923,13 @@ audited, and reviewed; neither is the "real" one.
 - Every contrast pair is audited in both themes (§Contrast Requirements).
 - Elevation behaves differently by theme: shadow in light, surface tint in dark
   (TARGET — §Elevation).
-- The energy accent must be legible in both themes. It currently is not in light
-  (2.998:1) — see §Contrast Requirements. Accent emphasis on primary actions is
-  blocked in **both** themes so the semantic rule stays identical across them.
+- The energy accent must be legible in both themes, and now is: light
+  `#007A79` measures 5.17:1 on `surface` and dark `#4DD0D0` 9.17:1 (ADR-P022
+  Addendum A, 2026-09-16 — it previously measured 2.998:1 in light). **Accent
+  emphasis on primary actions remains blocked in both themes**, now for the
+  remaining reason only: no `onAccent` role exists to pair with an
+  accent-filled surface. The block stays symmetric so the semantic rule is
+  identical across themes.
 
 **SHIPPED behaviour:** the active theme resolves from the OS colour scheme only
 (`mobile/src/shared/theme/use-theme.ts` reads `useColorScheme()`). There is **no**
@@ -2932,6 +3171,21 @@ Every screen must verify:
 
 # Change Control and Slice Boundaries
 
+## What v1.10 (ADR-P022 Addendum A) authorizes
+
+**v1.10 is the first revision of this document accompanied by a runtime change.**
+It authorizes exactly: four light-theme colour **token values**; the foreground
+**pairing** corrections at the call sites named in ADR-P022 Addendum A §What
+changed; one new `AppText` **tone** (`onPrimary`, naming an already-shipped
+token — not a new role); and the two theme specs that gate both. Nothing else.
+
+It authorizes **no** new colour role (specifically **no `onAccent`**),
+dependency, asset, package, icon mechanism, platform-specific palette, dark-theme
+token change, component API change, navigation change, copy or localization key.
+Material Symbols delivery, Inter, motion, the dark surface-tint ramp,
+`FormSelect` required/invalid semantics, the `FormField` migration, UX-4B-1 and
+UX-4C are all untouched.
+
 ## What v1.2 (UX-1B1) through v1.8 (ADR-P025) authorize
 
 Documentation only. v1.2 records the approved visual foundation; v1.3 the
@@ -2954,6 +3208,11 @@ information-architecture change, mockup, screen change, or any mobile / API /
 schema / sync / CI / EAS / Railway / deployment change. See ADR-P022
 Decision 14.
 
+**This remains the standing rule.** v1.10 is a bounded exception to the
+token-value and component clauses only, for the values and call sites ADR-P022
+Addendum A enumerates; every other prohibition above is unchanged and still
+binds.
+
 ## Owner-gated decisions still open after this revision
 
 Each requires its own authorization before any code:
@@ -2970,14 +3229,15 @@ Each requires its own authorization before any code:
    recommended and does not provide Material Symbols); and an ADR / technology
    update if the chosen mechanism falls outside or supersedes the approved stack.
    The visual vocabulary itself is already approved and is not reopened.
-3. Light-theme token-value remedies for the five failing pairs across four roles
-   — `primary` (on `surface` and on `surfaceVariant`), `onPrimary`, `warning`,
-   and `accent` (candidates in §Contrast Requirements are PROPOSED only). This
-   decision also unblocks accent emphasis on primary actions, which additionally
-   requires an approved, contrast-safe foreground/background pairing, **and it
-   gates the selected `FormSelect` chip** (§Usage-level contrast findings). The
-   two usage-level findings recorded in v1.4 are **not** part of this decision —
-   they are pairing corrections, not token-value questions.
+3. ~~Light-theme token-value remedies~~ — **CLOSED 2026-09-16 by ADR-P022
+   Addendum A.** `primary` → `#0F62B8`, `warning` → `#8F5500`,
+   `accent` → `#007A79`, `success` → `#187737`. All light-theme pairings now
+   pass; dark values are unchanged. The v1.4 and v1.5 usage-level findings were
+   corrected in the same slice. **Two things this did NOT close:** accent
+   emphasis on a primary action still needs an approved accent
+   foreground/background *pairing* — there is no `onAccent` role and none was
+   introduced — and `UX-1C-3` / `FormSelect` remains blocked on its required /
+   invalid / group accessibility outcomes (decision 10 below).
 4. The dark-mode surface-tint elevation ramp.
 5. Motion adoption, including easing curves and reduce-motion detection.
 6. Responsive rules — breakpoints and the concrete content measure.

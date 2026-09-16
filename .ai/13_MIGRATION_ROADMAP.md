@@ -782,7 +782,12 @@ and quick actions, per `08_UI_UX.md`'s dashboard priority order.
 
 * Performance profiling against `06_MOBILE.md` targets.
 * Component tests (React Native Testing Library).
-* Accessibility audit (WCAG 2.2 AA per `08_UI_UX.md`).
+* Accessibility audit (WCAG 2.2 AA per `08_UI_UX.md`). The **colour-contrast**
+  portion is automated as of 2026-09-16 —
+  `mobile/src/shared/theme/contrast.spec.ts` measures every approved pairing in
+  both themes on every run (ADR-P022 Addendum A). The remaining portions —
+  screen-reader, keyboard and large-text verification — are **manual and unrun**
+  (UX-4C).
 
 ### Exit Criteria
 
