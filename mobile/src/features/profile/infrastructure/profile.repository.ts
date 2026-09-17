@@ -89,7 +89,7 @@ async function createNew(
     tx,
   );
 
-  const row = await mustRead(id);
+  const row = await mustRead(id, tx);
   await enqueue(
     {
       opId: generateUuid(),
@@ -146,7 +146,7 @@ async function updateExisting(
     tx,
   );
 
-  const row = await mustRead(existing.id);
+  const row = await mustRead(existing.id, tx);
   await enqueue(
     {
       opId: generateUuid(),
@@ -210,8 +210,15 @@ export async function applyServerProfile(
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-async function mustRead(id: string): Promise<UserProfileRow> {
-  const row = await queryFirst<UserProfileRow>(`SELECT * FROM user_profiles WHERE id = ?`, [id]);
+async function mustRead(id: string, tx: SqlExecutor): Promise<UserProfileRow> {
+  // The write above is not visible on expo-sqlite's separate root connection
+  // until commit. Reading through that connection here caused BUG-018 to throw
+  // and roll back every profile save on device.
+  const row = await queryFirst<UserProfileRow>(
+    `SELECT * FROM user_profiles WHERE id = ?`,
+    [id],
+    tx,
+  );
   if (!row) throw new Error('profile row disappeared mid-transaction');
   return row;
 }

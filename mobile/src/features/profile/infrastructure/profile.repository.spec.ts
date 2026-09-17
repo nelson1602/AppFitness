@@ -88,13 +88,26 @@ describe('profile repository (local-first, ADR-0006)', () => {
     await saveProfile(USER, { heightCm: 178 }, NOW);
 
     expect(jest.mocked(inTransaction)).toHaveBeenCalledTimes(1);
-    const [insertSql, insertParams] = mockRun.mock.calls[0];
+    expect(mockQueryFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('FROM user_profiles'),
+      [USER],
+      mockTx,
+    );
+    expect(mockQueryFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('FROM user_profiles'),
+      ['uuid-1'],
+      mockTx,
+    );
+    const [insertSql, insertParams, insertTx] = mockRun.mock.calls[0];
     expect(insertSql).toContain('INSERT INTO user_profiles');
     expect(insertSql).toContain(`1, 'pending'`); // version 1, pending
     expect((insertParams as unknown[])[0]).toBe('uuid-1');
+    expect(insertTx).toBe(mockTx);
 
     expect(mockEnqueue).toHaveBeenCalledTimes(1);
-    const [op] = mockEnqueue.mock.calls[0];
+    const [op, enqueueTime, enqueueTx] = mockEnqueue.mock.calls[0];
     expect(op).toMatchObject({
       entityType: 'user_profiles',
       entityId: 'uuid-1',
@@ -103,6 +116,8 @@ describe('profile repository (local-first, ADR-0006)', () => {
     });
     // Wire payload carries equipment as a real array, not a JSON string.
     expect(op.payload['equipment']).toEqual(['dumbbells']);
+    expect(enqueueTime).toBe(NOW);
+    expect(enqueueTx).toBe(mockTx);
   });
 
   it('updates an existing profile without bumping version and enqueues UPDATE with the acked baseVersion', async () => {
@@ -113,16 +128,24 @@ describe('profile repository (local-first, ADR-0006)', () => {
 
     await saveProfile(USER, { heightCm: 180 }, NOW);
 
-    const [updateSql] = mockRun.mock.calls[0];
+    expect(mockQueryFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('FROM user_profiles'),
+      ['profile-1'],
+      mockTx,
+    );
+    const [updateSql, , updateTx] = mockRun.mock.calls[0];
     expect(updateSql).toContain('UPDATE user_profiles SET');
     expect(updateSql).toContain(`sync_status = 'pending'`);
     expect(updateSql).not.toContain('version ='); // version stays server-acked
+    expect(updateTx).toBe(mockTx);
 
     expect(mockEnqueue.mock.calls[0][0]).toMatchObject({
       operation: 'UPDATE',
       entityId: 'profile-1',
       baseVersion: 4,
     });
+    expect(mockEnqueue.mock.calls[0][2]).toBe(mockTx);
   });
 
   it('merge preserves fields the input does not mention', async () => {
