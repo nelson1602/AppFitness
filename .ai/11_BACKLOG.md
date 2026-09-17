@@ -2794,6 +2794,79 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-019] The Dashboard Does Not Refresh When Returned To — Onboarding Looks Stuck
+
+Status: **Open**
+Priority: **P2**
+Type: Bug (stale surface)
+Owner: Mobile Architecture
+Created: 2026-09-17
+Updated: 2026-09-17
+
+Found while verifying the **BUG-018** fix and refreshing gate **E1**.
+
+### Symptom
+
+Record a body weight from the dashboard's onboarding checklist, then press
+**back**. The dashboard still shows the pre-weight state: the checklist reads
+**"1 of 3 complete"** and still lists **"Record your first weight"**, and the
+iCoach assessment does not appear — even though the weight is saved and the
+Progress preview on the same screen shows it.
+
+The user is told to do something they have just done.
+
+### Cause
+
+`DashboardScreen` reads its data in a **mount effect only**. Returning by
+`back` pops the Progress route and reveals the dashboard instance that was
+never unmounted, so nothing re-reads. **No screen in the app uses
+`useFocusEffect`** — verified across `src`.
+
+The profile step hides this by accident: `/profile-edit` finishes with
+`router.replace('/dashboard')`, which **remounts** the dashboard, so its gaps
+close correctly. The weight step uses `back` and does not.
+
+### Evidence
+
+Release APK built from `6fce7c1` (with the BUG-018 fix), emulator, local
+disposable stack, fresh account:
+
+1. Complete the profile → dashboard remounts, profile gaps close correctly.
+2. Record a weight through `gap-fix-weight` → **Save weight** → `back`.
+3. Dashboard shows **"1 of 3 complete"**, still lists "Record your first
+   weight", no assessment — while the Progress preview on the same screen
+   already shows **82 kg**.
+4. `am force-stop` and relaunch, changing nothing else: the assessment is
+   **ready**, with calorie target, macros and training recommendations.
+
+Step 4 is the control: the data was always sufficient. Only the surface was
+stale.
+
+### Why it matters
+
+It lands on the **first-run path**, the one surface whose whole job is telling a
+new user what is left to do. It also makes the product look broken in a way the
+data does not support, and it is invisible to the unit suite, which renders the
+screen directly rather than navigating to it.
+
+### Correction recorded
+
+This was first misdiagnosed — by me — as "ADR-P027 made the goal a baseline
+prerequisite, so profile + weight no longer reach `ready`". That is **wrong**:
+a fresh launch with exactly profile + weight reaches `ready` with the default
+maintenance goal. The journey edits that encoded the misdiagnosis were reverted
+rather than shipped, and `onboarding-loop.yml` deliberately still asserts the
+**correct** behaviour, so it fails until this is fixed.
+
+### Related Documents
+
+- `mobile/src/features/dashboard/presentation/DashboardScreen.tsx`
+- `mobile/src/app/profile-edit.tsx` (the `router.replace` that masks it)
+- `mobile/.maestro/onboarding-loop.yml`
+- `docs/RELEASE_READINESS.md` — gate E1
+
+---
+
 ## [BUG-018] The Profile Form Cannot Save on Device — First-Run Onboarding Is Blocked
 
 Status: **Open**
