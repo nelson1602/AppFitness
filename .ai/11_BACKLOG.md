@@ -2794,6 +2794,89 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-018] The Profile Form Cannot Save on Device — First-Run Onboarding Is Blocked
+
+Status: **Open**
+Priority: **P1** — blocks first-run onboarding for a new account.
+Type: Bug (local-first write)
+Owner: Mobile Architecture
+Created: 2026-09-17
+Updated: 2026-09-17
+
+Found while refreshing the stale E2E journeys for gate **E1** (OBS-T2-4).
+
+### Symptom
+
+On a brand-new account, completing **Create your profile** and pressing **Save
+profile** fails. The form reports it honestly — the canonical write-failure
+treatment appears above the fields:
+
+> **Couldn't save** — *Your profile could not be saved right now. Try again.*
+
+The app stays on `/profile-edit`; `router.replace('/dashboard')` never runs
+because `ProfileForm` navigates only on `if (ok) onSaved()`. Local
+`user_profiles` stays at **0 rows**.
+
+### Reproduction
+
+Release APK built from `5dee02b` (`mobile/src` identical to current `main`),
+`appfitness-c7-a` emulator, local disposable API + PostgreSQL.
+
+1. `pm clear`, then register a new account (`.maestro/registration.yml`).
+2. Open the onboarding checklist → **Add now** on "Add your profile basics".
+3. Enter birth date `1990-01-15`, height `178`, select a gender.
+4. Press **Save profile**.
+
+Reproduced on every attempt.
+
+### What has been ruled out
+
+- **Not validation.** `handleSubmit` would skip `onSubmit` and surface
+  field-level errors instead; the write-failure banner proves `save()` ran and
+  returned `false`, i.e. `saveMyProfile` threw.
+- **Not the empty optional numerics.** Filling `trainingDaysPerWeek` and
+  `sessionDurationMins` changes nothing; all optionals are null-coalesced in
+  `toProfileInput` and again in the repository.
+- **Not the local database, and not local-first writes generally.** Migrations
+  1–7 are applied, `local_user` has its row, and on the **same build, session
+  and database** a body weight saved successfully through
+  `/progress` (`body_weights` went to 1 row). Only the profile path fails.
+- **Not a schema mismatch.** The repository's `INSERT INTO user_profiles`
+  column list matches `PRAGMA table_info` exactly, and `equipment` is written
+  with `JSON.stringify`, satisfying its `json_valid` constraint.
+- **Not caught by unit tests.** `profile.repository.spec.ts` passes — it mocks
+  the SQL executor, so a real-device failure is invisible to it. The whole suite
+  (203 files / 2812 tests) is green.
+
+### Not yet root-caused
+
+`profile.store` swallows the cause into `logError('profile.save', error)`, which
+a release build does not surface. The remaining candidates are the in-transaction
+`enqueue` of the sync operation and the transaction wrapper itself. **Pinning it
+needs a debug build that surfaces the thrown error** — outside the E2E-refresh
+slice that found it, and its own piece of work.
+
+### Why it is P1
+
+The profile is the first step of the onboarding checklist and a prerequisite for
+the assessment, nutrition targets and the generated workout routine. A new user
+who cannot save a profile cannot reach any of them. It also means the cloud E2E
+journeys (gate **E1**) cannot pass end to end regardless of the assertion fixes,
+because `onboarding-loop.yml` completes the profile through this exact form.
+
+**Note on how long this may have been broken.** The cloud E2E evidence is stale
+since 2026-08-05 (gate E1), and the gate 6 pass-2 seeding went through the
+**API**, not the UI — so no recent verification exercised this form's save.
+
+### Related Documents
+
+- `mobile/src/features/profile/presentation/ProfileForm.tsx`
+- `mobile/src/features/profile/application/profile.store.ts`
+- `mobile/src/features/profile/infrastructure/profile.repository.ts`
+- `docs/RELEASE_READINESS.md` — gate E1
+
+---
+
 ## [BUG-017] The Three Public Web Portals Do Not Render the Dark Theme
 
 Status: **Open**
@@ -2954,9 +3037,24 @@ wrong. The key `dashboard.gap.title` still exists and is still rendered — in a
 different state.
 
 This is consistent with the already recorded staleness of the cloud E2E
-evidence (`docs/RELEASE_READINESS.md` gate E1), which predates ADR-P027. **Not
-fixed here** — correcting shipped journeys is outside a verification slice, and
-the fix should be taken together with the rest of the gate E1 refresh.
+evidence (`docs/RELEASE_READINESS.md` gate E1), which predates ADR-P027.
+
+**Fixed 2026-09-17**, and the diagnosis needed one correction: there were **two**
+compounding causes, not one.
+
+1. **The copy changed (ADR-P027).** The first-run dashboard renders
+   `OnboardingChecklistCard` — "Finish setting up AppFitness", with steps
+   "Add your profile basics" / "Choose your goal" / "Record your first weight".
+   `DataGapCard`'s "Finish your baseline" now renders only in the `ready` state.
+2. **The card moved below the fold.** The verification reminder (V2-D) and the
+   wellness recommendation card (W-3) were added above it, so on a phone
+   viewport the checklist is off-screen. A bare `visible:` wait can never find
+   it — the flows now `scrollUntilVisible` instead. Asserting the corrected copy
+   alone would still have failed.
+
+`registration.yml` now passes end to end. `onboarding-loop.yml` gets through
+registration, the checklist and the profile form, then stops on **BUG-018** — a
+separate, genuine defect where the profile cannot be saved on device.
 
 ### Related Documents
 
