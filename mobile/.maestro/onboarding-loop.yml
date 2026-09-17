@@ -21,16 +21,27 @@ appId: com.appfitness.mobile
 ---
 - launchApp
 
-# Session restore → dashboard empty/data-gap state for the new account.
+# Session restore → the dashboard's `empty` state for the new account, which
+# renders the ADR-P027 onboarding checklist. "Finish your baseline" belongs to
+# `DataGapCard` and appears only once the assessment is `ready`.
+#
+# The checklist is below the verification reminder and the wellness
+# recommendation card, so every interaction with it scrolls first.
 - extendedWaitUntil:
     visible: 'Your local iCoach assessment'
     timeout: 30000
-- assertVisible: 'Finish your baseline'
-- assertVisible: 'Create your profile'
+- scrollUntilVisible:
+    element: 'Finish setting up AppFitness'
+    timeout: 30000
+- assertVisible: 'Add your profile basics'
 # Dev-only seed action must never appear in a release build.
 - assertNotVisible: 'Load sample data'
 
 # --- 1. Complete the profile through the dashboard gap action ---
+- scrollUntilVisible:
+    element:
+      id: 'gap-fix-profile'
+    timeout: 30000
 - tapOn:
     id: 'gap-fix-profile'
 - extendedWaitUntil:

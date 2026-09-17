@@ -36,13 +36,22 @@ appId: com.appfitness.mobile
 - hideKeyboard
 - tapOn: 'Register'
 
-# Registration hits the local API, then routes to the dashboard, which
-# renders the empty/data-gap state for a brand-new account.
+# Registration hits the local API, then routes to the dashboard. A brand-new
+# account has no assessment, so the dashboard resolves to its `empty` state and
+# renders the ADR-P027 onboarding checklist. "Finish your baseline" belongs to
+# `DataGapCard`, which renders only once the assessment is `ready` — asserting
+# it here is what made this flow stale.
+#
+# The checklist also sits below the verification reminder and the wellness
+# recommendation card, so on a phone viewport it is below the fold and must be
+# scrolled to rather than merely waited for.
 - extendedWaitUntil:
-    visible: 'Finish your baseline'
+    visible: 'Your local iCoach assessment'
     timeout: 45000
-- assertVisible: 'Create your profile'
-- assertVisible: 'Your local iCoach assessment'
+- scrollUntilVisible:
+    element: 'Finish setting up AppFitness'
+    timeout: 30000
+- assertVisible: 'Add your profile basics'
 
 # Dev-only seed action must not exist in release builds.
 - assertNotVisible: 'Load sample data'
