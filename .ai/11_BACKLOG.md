@@ -2743,7 +2743,7 @@ count, and the file was restored from `HEAD` rather than patched over.)*
 
 ## [OBS-T1] Disabled Filled Buttons Fall Below 4.5:1 in Both Themes
 
-Status: **Open**
+Status: **Done** (2026-09-17)
 Priority: **P3**
 Type: Observation (visual legibility)
 Owner: Design / Architecture
@@ -2848,13 +2848,24 @@ Reproduced on every attempt.
   the SQL executor, so a real-device failure is invisible to it. The whole suite
   (203 files / 2812 tests) is green.
 
-### Not yet root-caused
+### Root cause and correction
 
-`profile.store` swallows the cause into `logError('profile.save', error)`, which
-a release build does not surface. The remaining candidates are the in-transaction
-`enqueue` of the sync operation and the transaction wrapper itself. **Pinning it
-needs a debug build that surfaces the thrown error** — outside the E2E-refresh
-slice that found it, and its own piece of work.
+The `INSERT`/`UPDATE` ran through the executor supplied by
+`withExclusiveTransactionAsync`, but the immediate `mustRead(id)` helper omitted
+that executor and read through the separate root connection. Expo SQLite does
+not expose an uncommitted transaction row to that connection, so `mustRead`
+threw `profile row disappeared mid-transaction` and rolled back the profile and
+queue write together. This exactly explains the zero-row device outcome.
+
+`mustRead` now requires `SqlExecutor` and both create/update paths pass the
+active transaction. The repository regression asserts that the existence read,
+entity write and queue write all receive the identical executor. The new
+assertions fail twice against the defective code (CREATE and UPDATE) and pass
+after the correction; the transaction-threading guard and TypeScript also pass.
+
+This closes BUG-018 itself. Gate E1 remains stale until its full cloud journey
+is re-run on an APK containing the correction; no device or E2E result is
+inferred from the repository proof.
 
 ### Why it is P1
 
