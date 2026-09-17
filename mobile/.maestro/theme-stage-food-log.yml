@@ -1,0 +1,54 @@
+# Theme-verification STAGING flow — gate 6, `.ai/23_THEME_SURFACE_VERIFICATION.md`.
+#
+# NOT a journey and NOT part of the CI e2e suite: it asserts nothing about the
+# product and proves nothing on its own. Its only job is to leave the food log
+# in a POPULATED state so `e2e/theme-capture.mjs` can photograph that state in
+# both themes. `food-log.yml` — the real journey — deliberately ends by removing
+# the entry it logged, which is correct for a journey and useless for a capture.
+#
+# Everything here goes through the shipped UI: catalog search, the serving
+# stepper and the add-to-log control. No fixture is written behind the app's
+# back, because the food log is device-local — a meal has no server row, so the
+# public sync contract `theme-seed.mjs` uses cannot seed one.
+#
+# It logs ONE catalog entry per run; run it twice to get a multi-row meal group.
+# A second food in the same run is not attempted on purpose: Maestro matches
+# text case-insensitively as a SUBSTRING, so the query still sitting in the
+# search field also matches the result row's name, and the tap lands back in the
+# input instead of on the row. Repeating the one reliable path is honest; a
+# flaky second path in a staging file would only produce unreliable evidence.
+#
+# Prereqs: the account is signed in with a complete baseline (see
+# `e2e/theme-seed.mjs`), so the food-log route is reachable.
+appId: com.appfitness.mobile
+---
+- launchApp
+# Wait for the session-restored dashboard before deep-linking: a link fired
+# while the app is still booting is swallowed, and the flow then fails on a
+# route it never left.
+- extendedWaitUntil:
+    visible: 'AppFitness'
+    timeout: 45000
+- openLink: appfitness:///food-log
+- extendedWaitUntil:
+    visible: 'Food log'
+    timeout: 30000
+
+# --- A catalog food, logged at a non-default serving count. ---
+- tapOn:
+    id: 'food-search-input'
+- inputText: 'chicken'
+- hideKeyboard
+- extendedWaitUntil:
+    visible: 'Chicken breast, cooked'
+    timeout: 15000
+- tapOn: 'Chicken breast, cooked'
+- tapOn:
+    id: 'add-serving-inc'
+- scrollUntilVisible:
+    element:
+      id: 'food-log-add-submit'
+- tapOn:
+    id: 'food-log-add-submit'
+- scrollUntilVisible:
+    element: 'Today.s totals'

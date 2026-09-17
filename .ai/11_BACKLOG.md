@@ -2788,6 +2788,182 @@ decision, not a defect fix.
 - `mobile/src/shared/presentation/app-button.tsx`
 - `mobile/src/shared/theme/contrast.spec.ts`
 
+**Reconfirmed 2026-09-17** by the gate 6 pass-2 captures (`routines-rows`,
+`dietary-preferences-rows`), including the direction: the light capture is the
+harder of the two to read. No new measurement; no change of severity.
+
+---
+
+## [BUG-017] The Three Public Web Portals Do Not Render the Dark Theme
+
+Status: **Open**
+Priority: **P2**
+Type: Bug (Web rendering / theming)
+Owner: Design / Architecture (owner decision required)
+Created: 2026-09-17
+Updated: 2026-09-17
+
+Found by the Stage 2 gate 6 pass-2 verification
+(`.ai/23_THEME_SURFACE_VERIFICATION.md`, finding T-2).
+
+With `prefers-color-scheme: dark` confirmed **inside the page**, the static Web
+export of `ef8b181` never renders the dark theme on the three public portals:
+
+| Route | Dark rendering |
+|---|---|
+| `/forgot-password` | **pixel-identical to light** at 360 / 414 / 768 / 1280 px — no adaptation at all |
+| `/reset-password` | **mixed** — light page and card, dark `surfaceVariant` banner and dark `primary` button |
+| `/verify-email` | **mixed** — same split |
+
+Sampled computed backgrounds are stable at 1.5 s, 4 s and 9 s after load, so
+this is an end state and not a hydration race. `/reset-password` and
+`/verify-email` carry `#F8FAFC` and `#FFFFFF` (light) **together with** `#24282C`
+and `#8FC5F7` (dark) — two themes on one page.
+
+**Cause, as far as the evidence goes.** The export is prerendered in Node where
+`useColorScheme()` has no media query to read, so the HTML hard-codes the light
+values (`forgot-password.html` contains `rgba(248,250,252…)` and no dark token)
+and the export contains **no `prefers-color-scheme` rule anywhere**. Hydration
+reuses that tree, the media query never *changes*, so nothing forces a
+re-render; only subtrees that re-render for their own reasons adopt the dark
+values. Native is unaffected — it has no prerender.
+
+**Why it matters.** ADR-P032 records public V1 Web as a *responsive, polished
+bilingual portal* for account, recovery and verification. A portal that shows a
+dark-mode visitor a light page, or half of each, does not meet that. Switching
+the OS theme while a portal is open additionally leaves the `Email` label as
+dark-theme muted text on a white card — a low-contrast pairing.
+
+**Scope note.** Verified against a **local** static export only. The hosted
+Cloudflare Worker portals were deliberately not contacted, so whether they serve
+this same artifact is unverified.
+
+**Not fixed, deliberately.** Every plausible direction — a `color-scheme` /
+media-query-driven shell, a themed prerender, or forcing a post-hydration
+re-render from `Appearance` — changes product behaviour on a deployed surface
+and needs an owner decision, not a verification slice.
+
+### Related Documents
+
+- `.ai/23_THEME_SURFACE_VERIFICATION.md` — finding T-2, method and captures
+- `.ai/12_DECISIONS.md` — ADR-P032 (public-V1 Web boundary)
+- `mobile/src/app/+html.tsx`, `mobile/src/shared/theme/use-theme.ts`
+- `mobile/e2e/theme-web-capture.mjs` — the capture harness
+
+---
+
+## [OBS-T2-1] `TrendBars` Latest-Point Accent Collapses When the Newest Value Is the Minimum
+
+Status: **Open**
+Priority: **P3**
+Type: Observation (chart legibility)
+Owner: Design
+Created: 2026-09-17
+Updated: 2026-09-17
+
+`TrendBars` min-normalizes bar heights, so when the newest reading is the
+series minimum it gets `MIN_BAR` (4 px) and the `accent` "latest" cue is barely
+visible. Observed on the body-weight series (a downward trend — an ordinary
+case, not a contrived one).
+
+**Not a theme defect and not an accessibility failure.** It is identical in both
+themes, and UX-3D already forbids colour from being the sole signal: the latest
+point is named in the visible summary text and in the per-bar accessibility
+label. Recorded because the visual channel degrades exactly when the data is
+most ordinary.
+
+### Related Documents
+
+- `.ai/23_THEME_SURFACE_VERIFICATION.md`
+- `.ai/20_PROGRESS_NONVISUAL.md`
+- `mobile/src/features/progress/presentation/TrendBars.tsx`
+
+---
+
+## [OBS-T2-2] The Web Portals Have No Maximum Content Width
+
+Status: **Open**
+Priority: **P3**
+Type: Observation (responsive design)
+Owner: Design
+Created: 2026-09-17
+Updated: 2026-09-17
+
+At 1280 px the portal card and its submit control span the full viewport; there
+is no max-width container. Legible and functional at all four widths captured
+(360 / 414 / 768 / 1280). Whether it is *polished* at desktop width, as ADR-P032
+asks of public V1 Web, is a design judgement, not something a capture settles.
+
+### Related Documents
+
+- `.ai/23_THEME_SURFACE_VERIFICATION.md`
+- `.ai/12_DECISIONS.md` — ADR-P032
+
+---
+
+## [OBS-T2-3] Seeded `equipment` Value `bench` Is Outside the iCoach Vocabulary
+
+Status: **Open**
+Priority: **P3**
+Type: Observation (dev/test fixture consistency)
+Owner: Architecture
+Created: 2026-09-17
+Updated: 2026-09-17
+
+`TRAINING_EQUIPMENT` (`mobile/src/features/icoach/domain/workout-routine.ts`)
+has no `bench` and no alias for it, so a profile carrying it makes
+`GeneratedWorkoutPlan` render "Equipment not recognized … bench".
+
+Both `mobile/e2e/seed.mjs` and the `__DEV__` `loadSampleDashboardData` seeder
+seed `['dumbbells', 'bench']`, so **the shipped dev sample data produces that
+notice**. The generator is behaving correctly — unrecognized values are
+surfaced rather than silently dropped — but the sample data makes a first-run
+developer or E2E dashboard look as if something is wrong.
+
+Either add a `bench` alias (a product decision about the vocabulary) or correct
+the seeders' fixture value. Neither was done here.
+
+### Related Documents
+
+- `.ai/23_THEME_SURFACE_VERIFICATION.md`
+- `mobile/src/features/icoach/domain/workout-routine.ts`
+- `mobile/e2e/seed.mjs`, `mobile/src/features/dashboard/application/dashboard.service.ts`
+
+---
+
+## [OBS-T2-4] Two Shipped Maestro Journeys Assert First-Run Copy the Product No Longer Renders
+
+Status: **Open**
+Priority: **P3**
+Type: Observation (test staleness)
+Owner: QA
+Created: 2026-09-17
+Updated: 2026-09-17
+
+`mobile/.maestro/registration.yml` and `mobile/.maestro/onboarding-loop.yml`
+both assert `dashboard.gap.title` — "Finish your baseline" — immediately after
+registration. ADR-P027 made the first-run `empty` dashboard render
+`OnboardingChecklistCard` ("Finish setting up AppFitness") instead;
+`DataGapCard` now renders only in the `ready` state. Both flows therefore fail
+at that assertion.
+
+Reproduced on `ef8b181` against a local disposable stack on `appfitness-c7-a`
+while staging the gate 6 pass-2 data: registration itself **succeeded** (the
+account exists on the server and the dashboard rendered), only the assertion is
+wrong. The key `dashboard.gap.title` still exists and is still rendered — in a
+different state.
+
+This is consistent with the already recorded staleness of the cloud E2E
+evidence (`docs/RELEASE_READINESS.md` gate E1), which predates ADR-P027. **Not
+fixed here** — correcting shipped journeys is outside a verification slice, and
+the fix should be taken together with the rest of the gate E1 refresh.
+
+### Related Documents
+
+- `.ai/23_THEME_SURFACE_VERIFICATION.md`
+- `docs/RELEASE_READINESS.md` — gate E1
+- `mobile/src/features/dashboard/presentation/DashboardScreen.tsx`
+
 ---
 
 ## [FEATURE-012] Azul Payment Integration (post-v1 track — unstarted)
