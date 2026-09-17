@@ -236,6 +236,41 @@ requires an **`EXPO_TOKEN`** repository secret (Expo access token from
 https://expo.dev/accounts/[account]/settings/access-tokens). Without the
 secret the workflow fails fast with a clear message.
 
+## Theme verification — Stage 2 gate 6
+
+Three harnesses and one staging flow exist only to produce **light/dark visual
+evidence** for `.ai/23_THEME_SURFACE_VERIFICATION.md`. They are not journeys,
+they are not in `mobile-e2e.yml`, and they assert nothing about the product —
+they put the app into a state and photograph it. They never touch a hosted
+environment.
+
+| File                                   | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `theme-seed.mjs`                       | Seeds the populated account states through the **public** contracts (`PUT /users/me/profile`, `POST /sync/push`) — weights, measurements, weekly snapshots, goal, wellness profile, custom exercises, routine, workout logs and sets, dietary exclusions. The device then PULLS them by tapping the shipped "Sync now". Deterministic in what it writes — fixed values, dates derived from `--anchor` (default today) in 7-day steps — so a fresh account seeded with the same anchor gets the same dataset apart from its random entity UUIDs. **Single-use:** every op is a `CREATE`, so it fails fast on a 409 from registration rather than layering a second copy on an existing account. |
+| `theme-capture.mjs`                    | Drives the installed app with `adb` only. Per target: deep link → fixed swipes → capture light → toggle `cmd uimode night` **while the surface sits still** → capture dark. The applied night state is read back, every capture is PNG-header checked, and `inventory.json` merges across runs and indexes every file with its SHA-256.                                                                                                                                                                                                                                                                                                                                                        |
+| `theme-web-capture.mjs`                | Serves a LOCAL `expo export --platform web` output from 127.0.0.1 and drives a local headless Chrome/Edge over the DevTools protocol using Node's built-in `WebSocket` — **no dependency added**. Captures the three public portals at 360 / 414 / 768 / 1280 px in both colour schemes, asserting `matchMedia` and `innerWidth` inside the page before each shot. `--self-test` runs its path-containment checks (with negative controls) and exits, needing no export, browser or network.                                                                                                                                                                                                   |
+| `../.maestro/theme-stage-food-log.yml` | Logs one catalog food through the shipped UI so the food log is left POPULATED. `food-log.yml` removes its entry by design, which is right for a journey and useless for a capture. A meal has no server row, so the sync contract cannot seed one.                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+
+```bash
+# with the disposable local stack up and `adb reverse tcp:3001 tcp:3001` applied
+THEME_EMAIL=<fresh disposable> node e2e/theme-seed.mjs  # single-use; then tap "Sync now"
+maestro test .maestro/theme-stage-food-log.yml     # once per food-log row wanted
+node e2e/theme-capture.mjs --out=<evidence-dir>/native
+
+EXPO_PUBLIC_API_URL=http://127.0.0.1:3001 npx expo export --platform web --output-dir <dist>
+node e2e/theme-web-capture.mjs --dist=<dist> --out=<evidence-dir>/web
+```
+
+Captures are written **outside the repository** and are not committed; each
+output directory carries an `inventory.json` recording byte length and SHA-256
+per file.
+
+The conflict-card treatments are staged with the existing C-7 tooling rather
+than anything new: `c7-conflicts.mjs bump-areas` → `conflict-areas-swap.yml` →
+`conflict-sync-now.yml` for the undecided card, `conflict-offline-choice.yml`
+with the loopback dropped for **retrying**, and `conflict-reconnect-settle.yml`
+after the backoff for **settled**.
+
 ## Boundaries
 
 - Public API/sync contracts only — no test-only backend endpoints.

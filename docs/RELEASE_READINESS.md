@@ -36,6 +36,19 @@ App version `1.0.0` · Publication date: **not set**.
 > tests**; the catalogues move to **1067 / 1067**, still at exact parity. No
 > other row was re-verified against `606c3e7`.
 
+> **Partial reconciliation, 2026-09-17 (`ef8b181`).** Stage 2 gate 6, §Web
+> boundary and the open-defect list were updated by **pass 2** of the light/dark
+> per-surface verification (`.ai/23_THEME_SURFACE_VERIFICATION.md`). It closes
+> the five native gaps pass 1 left open — populated rows, `TrendBars`,
+> `WeeklySnapshotSummary`, `GeneratedWorkoutPlan` and the conflict card — with
+> 40 native captures from the same verified build, and covers the three public
+> Web portals at four widths, where it found **`BUG-017`**: the portals do not
+> render dark mode. Like the first two reconciliations above it is
+> **documentation plus test-only tooling**: three `mobile/e2e/theme-*.mjs`
+> harnesses and one staging Maestro flow, no product source, no dependency, no
+> lockfile, no schema, no configuration and no hosted service. Test counts are
+> unchanged. No other row was re-verified against `ef8b181`.
+
 ## What this edition changed
 
 This is a **documentation-only reconciliation**. It changes no runtime code,
@@ -188,6 +201,9 @@ review (`FEATURE-014`, §Future tracks).
   `account.appfitnessrd.com`, `account-dev.appfitnessrd.com` and
   `recovery.appfitnessrd.com`, and they are Production-validated (2026-09-02 and
   2026-09-04).
+  **Qualified 2026-09-17:** they work *functionally*. They do **not** honour a
+  dark-mode visitor — `BUG-017` / `.ai/23` finding T-2, verified on a local
+  static export of `main`, not against the hosted Workers.
 
 **What does not work on Web:**
 
@@ -236,6 +252,7 @@ not outrank launch blockers.**
 | Rollback dry-run | **BLOCKED-OWNER** | Untested runbook is an unproven recovery path. |
 | Production log / monitoring review | **PENDING-HUMAN** | Required by the deployment checklist. |
 | Performance evidence (`PERF-001`) | **NOT STARTED** | No baseline of any kind exists. |
+| `BUG-017` Web portals do not render dark mode | **Open (P2)** | The three public portals render light — or two themes at once — for a dark-mode visitor. Verified on a local static export of `main` (`.ai/23`, finding T-2); the hosted portals were not contacted. Blocks closing Stage 2 gate 6 and contradicts the ADR-P032 "polished portal" boundary. Does not affect the native product. |
 
 **Security / privacy items carried in the backlog:**
 
@@ -396,12 +413,32 @@ angles — coverage, then quality.
    label-vs-fill because the disabled state is a blanket `opacity: 0.56`
    composite rather than a token pair — WCAG-exempt as an inactive control, and
    **worse in light than dark**.
-   **Still not done**, and deliberately so: every signed-in surface was captured
-   in its **empty or data-gap** state, so populated rows, `TrendBars`,
-   `WeeklySnapshotSummary`, `GeneratedWorkoutPlan` and the conflict **card**
-   were never rendered, and the three Web portals were not covered. The
-   most theme-sensitive components in the product are precisely the ones still
-   unverified. Do not mark this done until those states are seeded and seen.
+   **PASS 2 — 2026-09-17, from `ef8b181`.** The five gaps pass 1 recorded are
+   closed on **native**: populated rows, `TrendBars`, `WeeklySnapshotSummary`,
+   `GeneratedWorkoutPlan` and the conflict **card** (undecided, retrying and
+   settled treatments) were seeded, rendered and captured in both themes — **40
+   native captures, 20 light/dark pairs, not one pair identical**, from the same
+   verified build (byte-identical to pass 1's artifact by SHA-256; `mobile/src`
+   is unchanged between `5dee02b` and `ef8b181`; that artifact is the **`e2e`
+   variant** of the release build, which is why it can reach only a local API).
+   Data came from a **local disposable stack** through the public sync contract;
+   no hosted environment was contacted.
+   **No native theme defect was found**, and **T-1 is reconfirmed** including its
+   direction (light is the harder one to read).
+   **The Web portals are now covered, and they fail.** New finding **T-2**
+   (`BUG-017`, P2): with `prefers-color-scheme: dark` asserted inside the page,
+   the local static export never renders dark — `/forgot-password` is
+   **pixel-identical to light** at 360 / 414 / 768 / 1280 px, while
+   `/reset-password` and `/verify-email` render **two themes at once** (light
+   page and card, dark banner and button). The export is prerendered light-only
+   and contains no `prefers-color-scheme` rule at all. Verified against a local
+   export; the hosted Cloudflare portals were deliberately not contacted.
+   **Gate 6 is therefore still NOT done.** Native is now evidenced; Web is
+   evidenced as **broken**. Closing it needs `BUG-017` resolved — an owner
+   decision, since every fix changes behaviour on a deployed surface — and
+   re-verification afterwards. Four observations are recorded as
+   `OBS-T2-1 … OBS-T2-4`, one of which (`OBS-T2-4`) is a second, independent
+   confirmation that the E2E journeys are stale against ADR-P027 (see gate E1).
 7. `in-repo` — **Accessibility (UX-4C)**: manual screen-reader, keyboard and
    large-text passes. No outcome may be claimed until run. **Unchanged by
    ADR-P022 Addendum A** — contrast arithmetic is not an assistive-technology
