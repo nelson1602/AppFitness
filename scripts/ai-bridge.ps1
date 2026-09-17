@@ -78,8 +78,12 @@ function Get-TranscriptContext([string]$TranscriptPath) {
     if ($null -eq $message) { continue }
     $role = [string](Get-Property $message 'role' $type)
     $text = Convert-ContentToText (Get-Property $message 'content' '')
+    $isMetadata = [bool](Get-Property $entry 'isMeta' $false)
+    $toolUseResult = Get-Property $entry 'toolUseResult' $null
     if (
       $role -eq 'user' -and
+      -not $isMetadata -and
+      $null -eq $toolUseResult -and
       -not [string]::IsNullOrWhiteSpace($text) -and
       -not (Test-IsHookFeedback $text)
     ) {
@@ -301,6 +305,14 @@ switch ($Mode) {
           message = @{ role = 'assistant'; content = "Progress entry $index" }
         } | ConvertTo-Json -Compress -Depth 5))
       }
+      $transcriptLines.Add((@{
+        type = 'user'
+        isMeta = $true
+        message = @{
+          role = 'user'
+          content = '[Image: synthetic transcript metadata, not new authority.]'
+        }
+      } | ConvertTo-Json -Compress -Depth 5))
       $transcriptLines.Add((@{
         type = 'user'
         message = @{ role = 'user'; content = 'Stop hook feedback: generated correction, not new authority.' }
