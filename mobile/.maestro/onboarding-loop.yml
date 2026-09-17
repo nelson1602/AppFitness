@@ -65,17 +65,26 @@ appId: com.appfitness.mobile
     element: 'Save profile'
 - tapOn: 'Save profile'
 
-# Back on the dashboard: profile / birth-date / height gaps close. Weight
-# remains, so the assessment is still incomplete.
+# Back on the dashboard: the profile step is done, so the checklist drops it.
+# Weight and goal remain, so the assessment is still incomplete and the state
+# is still `empty` — the ADR-P027 checklist, not `DataGapCard`. Its label for
+# the weight step is "Record your first weight"; "Record a weight measurement"
+# is the `DataGapCard` wording and appears only once the assessment is `ready`.
 - extendedWaitUntil:
     visible: 'Your local iCoach assessment'
     timeout: 30000
 - assertNotVisible: 'Create your profile'
 - assertNotVisible: 'Add your birth date'
 - assertNotVisible: 'Add your height'
-- assertVisible: 'Record a weight measurement'
+- scrollUntilVisible:
+    element: 'Record your first weight'
+    timeout: 30000
 
 # --- 2. Record body weight through the wellness Progress surface ---
+- scrollUntilVisible:
+    element:
+      id: 'gap-fix-weight'
+    timeout: 30000
 - tapOn:
     id: 'gap-fix-weight'
 - extendedWaitUntil:
@@ -92,19 +101,33 @@ appId: com.appfitness.mobile
 - tapOn: 'Save weight'
 - back
 
-# Back on the dashboard: with a local profile + local weight, the iCoach
-# assessment reaches `ready` from purely local data — no server round-trip.
-# The weight gap closes; the maintenance-goal note appears below the
-# assessment, so scroll it into view.
+# Back on the dashboard: with a local profile + local weight the iCoach
+# assessment reaches `ready` from purely local data — no server round-trip and
+# no goal required, the default maintenance goal applies. The weight gap
+# closes and the maintenance-goal note appears below the assessment.
+#
+# `back` pops rather than remounts, and the dashboard reads its data only in a
+# mount effect — no screen in the app uses `useFocusEffect` — so this assertion
+# currently fails against a dashboard still showing pre-weight state. That is
+# **BUG-019**, a product defect, not a stale assertion: a user who records a
+# weight and presses back is still told to record their first weight. The
+# assertion is deliberately left describing correct behaviour.
+- scrollUntilVisible:
+    element: 'Your local iCoach assessment'
+    direction: UP
+    timeout: 30000
 - extendedWaitUntil:
     visible: "Today's assessment"
     timeout: 30000
 - assertVisible: '.*kcal.*'
-- assertNotVisible: 'Record a weight measurement'
 - scrollUntilVisible:
     element: 'Using maintenance goal'
 
 # --- 3. Complete the active goal through the dashboard gap action ---
+- scrollUntilVisible:
+    element:
+      id: 'gap-fix-default-goal'
+    timeout: 30000
 - tapOn:
     id: 'gap-fix-default-goal'
 - extendedWaitUntil:
