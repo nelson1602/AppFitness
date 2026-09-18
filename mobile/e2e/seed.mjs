@@ -10,10 +10,9 @@
 //   E2E_EMAIL     (default demo@appfitness.local — must match the flow)
 //   E2E_PASSWORD  (default password12345 — the dev prefill)
 //
-// Seeds profile + evaluation + goal for the seeded-pull flow
-// (dashboard-sync.yml). The device-side onboarding-loop flow needs no seed
-// — it enters profile, evaluation/weight, and goal entirely on the device
-// (Phase 14).
+// Seeds profile + body weight + body composition + goal for the seeded-pull
+// flow (dashboard-sync.yml). The device-side onboarding-loop flow needs no
+// seed — it enters profile, weight and goal entirely on the device (Phase 14).
 
 import { randomUUID } from 'node:crypto';
 
@@ -81,56 +80,65 @@ await request(
 );
 console.log('[seed] profile saved');
 
-await request(
-  'POST',
-  '/medical/evaluations',
-  {
-    evaluationDate: today,
-    weightKg: 82,
-    bodyFatPct: 21,
-    muscleMassKg: 36,
-    bloodPressureSystolic: 122,
-    bloodPressureDiastolic: 78,
-    restingHeartRate: 62,
-    sleepQuality: 4,
-    stressLevel: 2,
-    activityLevel: 'MODERATE',
-  },
-  accessToken,
-);
-console.log('[seed] evaluation recorded');
-
-// Goals have no REST endpoint — seed by emulating a device push through
-// the public sync contract (doubles as a second-device sync test).
-const goalId = randomUUID();
-const push = await request(
-  'POST',
-  '/sync/push',
-  {
-    operations: [
-      {
-        opId: randomUUID(),
-        entityType: 'goals',
-        entityId: goalId,
-        operation: 'CREATE',
-        baseVersion: 0,
-        payload: {
-          id: goalId,
-          goal_type: 'RECOMPOSITION',
-          target_weight_kg: 78,
-          target_date: '2026-12-31',
-          is_active: 1,
-          started_at: nowIso,
-          ended_at: null,
-        },
-      },
-    ],
-  },
-  accessToken,
-);
-const goalResult = push.results?.[0];
-if (goalResult?.status !== 'APPLIED') {
-  throw new Error(`goal sync push not applied: ${JSON.stringify(goalResult)}`);
+// Weight, body composition and goals have no REST endpoint on the public API,
+// so they are seeded by emulating a device push through the public sync
+// contract (which doubles as a second-device sync test).
+//
+// Weight used to be seeded with `POST /medical/evaluations`. That route is
+// unreachable in public V1 by design: ADR-P017 Decision 4 excludes
+// `MedicalModule` from the composition root, so the medical domain is dormant
+// and the path 404s. The public replacements are the ADR-P016 progress
+// entities `body_weights` and `body_measurements`, whose values below mirror
+// the __DEV__ sample seeder in `dashboard.service.ts`.
+function createOp(entityType, payload) {
+  return {
+    opId: randomUUID(),
+    entityType,
+    entityId: randomUUID(),
+    operation: 'CREATE',
+    baseVersion: 0,
+    payload,
+  };
 }
-console.log('[seed] goal applied via /sync/push');
+
+const goalId = randomUUID();
+const operations = [
+  createOp('body_weights', { date: today, weight_kg: 82 }),
+  createOp('body_measurements', {
+    date: today,
+    body_fat_pct: 21,
+    waist_cm: 84,
+  }),
+  {
+    opId: randomUUID(),
+    entityType: 'goals',
+    entityId: goalId,
+    operation: 'CREATE',
+    baseVersion: 0,
+    payload: {
+      id: goalId,
+      goal_type: 'RECOMPOSITION',
+      target_weight_kg: 78,
+      target_date: '2026-12-31',
+      is_active: 1,
+      started_at: nowIso,
+      ended_at: null,
+    },
+  },
+];
+
+const push = await request('POST', '/sync/push', { operations }, accessToken);
+
+// `results` is returned in operation order. Every entity must apply: a
+// partially seeded account produces a dashboard that is neither the empty
+// first-run state nor the populated one the flow asserts.
+operations.forEach((operation, index) => {
+  const result = push.results?.[index];
+  if (result?.status !== 'APPLIED') {
+    throw new Error(
+      `${operation.entityType} sync push not applied: ${JSON.stringify(result)}`,
+    );
+  }
+});
+console.log(`[seed] ${operations.length} entities applied via /sync/push`);
 console.log('[seed] done — dashboard data ready to pull');
