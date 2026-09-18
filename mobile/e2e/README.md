@@ -22,7 +22,7 @@ other variants never load the plugin and keep cleartext blocked.
 | `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → nutrition targets + 15-day meal plan render → sync clears pending → sign out & back in |
 | `food-log.yml` | yes (no seed) | open the food log from the meal-plan entry point, log a catalog food, see daily totals update, confirm a sync attempt keeps the (pending) entry, soft-delete it (runs after onboarding-loop, same session) |
 | `food-log-exclusion-warning.yml` | yes (no seed) | add a "Nuts" allergy via the dietary-preferences surface, then confirm selecting a nut food on the food log shows the non-blocking allergy/sensitivity warning and can still be logged (ADR-P014 Slice 4). Wired into `mobile-e2e.yml` after `food-log.yml` (same onboard session). **PENDING a first green run**: it needs an EAS `e2e` APK built from the Slice 4 commit (878af06) or later — an older APK predating the warning UI fails the assertions. Until that run, Slice 4 is verified by unit/component tests. |
-| `medical-management.yml` | yes (no seed) | add/list/end a restriction; open evaluation history, see the recorded weight, two-step soft-delete it (runs after onboarding-loop, same session) |
+| `medical-management.yml` | retained, **not run** | historical medical-management flow; excluded from public-v1 journeys by ADR-P017 |
 | `offline-entry.yml` | API unreachable | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync shows "Local changes pending" |
 | `reconnect-sync.yml` | yes | with the loopback restored: the offline-queued change syncs to "Local data ready" |
 
@@ -30,10 +30,10 @@ Two journeys run against the same disposable DB with distinct synthetic
 users:
 
 - **Journey A (seeded pull):** `registration.yml` (demo user) →
-  `node e2e/seed.mjs` (full: profile/evaluation REST + goal via
+  `node e2e/seed.mjs` (profile REST + wellness body metrics and goal via
   `/sync/push`) → `dashboard-sync.yml` pulls it all through the real
-  appliers.
-- **Journey B (full device onboarding + medical management):**
+  public-v1 appliers. The retained medical routes are never invoked.
+- **Journey B (full device onboarding):**
   `registration.yml` (onboard user) → `onboarding-loop.yml` enters the
   profile, physical evaluation (weight), and goal entirely on the device
   through the dashboard gap actions. The iCoach assessment reaches `ready`
@@ -43,9 +43,8 @@ users:
   point, confirms the daily totals update and the entry survives a sync
   attempt as pending (the local parent meal is not yet server-synced, so
   the `meal_items` op returns `DEPENDENCY_NOT_READY` and stays queued —
-  never data loss), then soft-deletes it. → `medical-management.yml` then
-  adds/lists/ends a restriction and soft-deletes the recorded evaluation
-  from the history screen.
+  never data loss), then soft-deletes it. The retained
+  `medical-management.yml` flow is deliberately not part of this journey.
 
 - **Journey C (offline data entry, Phase 14.5):** `registration.yml`
   (offline user, online) → `adb reverse --remove tcp:3001` (simulate

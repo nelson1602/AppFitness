@@ -1,7 +1,7 @@
 # ADR-P008 — populated dashboard via real sync pull.
 #
 # Run order matters: registration.yml first (creates the session on the
-# device), then `node e2e/seed.mjs` (seeds profile/evaluation/goal
+# device), then `node e2e/seed.mjs` (seeds profile/wellness progress/goal
 # server-side through public contracts), then this flow. Launches WITHOUT
 # clearing state so the persisted session restores straight to the
 # dashboard; "Sync now" pulls the seeded data through the real appliers.
