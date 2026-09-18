@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { View } from 'react-native';
 
 import { signOut } from '@/features/authentication';
@@ -40,9 +40,15 @@ export function DashboardScreen() {
   const { t } = useLocalization();
   const { status, data, error, refresh, syncNow, loadSampleData } = useDashboardStore();
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
+  // BUG-019: `back` from Progress reveals this screen's existing instance
+  // instead of remounting it, so a mount-only effect never re-reads. Focus
+  // fires on that reveal (and on initial mount, which is also a focus), so a
+  // single effect covers both without a second, duplicate load path.
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh]),
+  );
 
   return (
     <Screen>

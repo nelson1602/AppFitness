@@ -40,9 +40,21 @@ jest.mock('@/shared/localization', () => {
     }),
   };
 });
-jest.mock('expo-router', () => ({
-  router: { push: jest.fn() },
-}));
+// A faithful-enough double of expo-router's useFocusEffect (v57): it runs the
+// effect on registration (mirroring the initial-mount focus) and exposes the
+// latest registered callback so tests can simulate a later refocus — e.g.
+// returning from Progress via `back` — without a real navigation container.
+let latestFocusEffect: (() => void | (() => void)) | undefined;
+jest.mock('expo-router', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  return {
+    router: { push: jest.fn() },
+    useFocusEffect: (effect: () => void | (() => void)) => {
+      latestFocusEffect = effect;
+      React.useEffect(() => effect(), [effect]);
+    },
+  };
+});
 // Stub the cross-feature progress card so this test doesn't pull the progress
 // store/repository; it only needs the pressable that forwards onPress.
 jest.mock('@/features/progress', () => {
@@ -164,6 +176,7 @@ describe('DashboardScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLanguage = 'en';
+    latestFocusEffect = undefined;
   });
 
   it('refreshes on mount and renders the loading skeleton', async () => {
@@ -173,6 +186,36 @@ describe('DashboardScreen', () => {
 
     await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
     expect(screen.getAllByLabelText('Loading content')).toHaveLength(3);
+  });
+
+  // ── BUG-019 ──────────────────────────────────────────────────────────────
+
+  it('refreshes again when the screen regains focus (e.g. returning from Progress via back)', async () => {
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+
+    // `back` reveals the existing instance rather than remounting it, so the
+    // regression is exercised by re-firing the same registered focus
+    // callback rather than by mounting a second screen.
+    latestFocusEffect?.();
+
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not refresh again on an unrelated re-render (no duplicate load loop)', async () => {
+    setStore({ status: 'ready', data: baseData });
+
+    const view = await render(<DashboardScreen />);
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
+
+    // Same `refresh` identity, new data object: a plain re-render, not a
+    // focus event. useCallback keyed on `refresh` must not refire.
+    setStore({ status: 'ready', data: { ...baseData } });
+    view.rerender(<DashboardScreen />);
+
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('renders the first-run checklist and dev sample action on the empty state', async () => {
