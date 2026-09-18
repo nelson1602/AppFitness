@@ -108,18 +108,12 @@ appId: com.appfitness.mobile
 # no goal required, the default maintenance goal applies. The weight gap
 # closes and the maintenance-goal note appears below the assessment.
 #
-# `back` pops rather than remounts, and the dashboard reads its data only in a
-# mount effect — no screen in the app uses `useFocusEffect` — so this assertion
-# currently fails against a dashboard still showing pre-weight state. That is
-# **BUG-019**, a product defect, not a stale assertion: a user who records a
-# weight and presses back is still told to record their first weight. The
-# assertion is deliberately left describing correct behaviour.
+# `back` pops rather than remounts, so the dashboard only re-reads because
+# BUG-019's fix made it refresh on route focus. The assessment card sits below
+# the reminder and wellness cards, so it is scrolled to rather than asserted
+# from the top — the dashboard has grown since this journey was written.
 - scrollUntilVisible:
-    element: 'Your local iCoach assessment'
-    direction: UP
-    timeout: 30000
-- extendedWaitUntil:
-    visible: "Today's assessment"
+    element: "Today's assessment"
     timeout: 30000
 - assertVisible: '.*kcal.*'
 - scrollUntilVisible:
@@ -143,12 +137,16 @@ appId: com.appfitness.mobile
     element: 'Save goal'
 - tapOn: 'Save goal'
 
-# Back on the dashboard (scrolled to top after remount): the
+# Back on the dashboard, scrolled to top after the remount: the
 # maintenance-goal note clears (iCoach recalculated with the chosen goal)
 # and, with sex + goal both set, the setup card disappears entirely while
-# the assessment stays.
+# the assessment stays. The assessment is below the reminder and wellness
+# cards, so scroll to it rather than asserting it from the top.
 - extendedWaitUntil:
-    visible: "Today's assessment"
+    visible: 'Your local iCoach assessment'
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Today's assessment"
     timeout: 30000
 - assertNotVisible: 'Using maintenance goal'
 - assertNotVisible: 'Finish your baseline'
@@ -215,10 +213,17 @@ appId: com.appfitness.mobile
       id: 'input-password'
 
 # Existing account restores straight to the populated, already-synced
-# dashboard — local data survived sign-out.
+# dashboard — local data survived sign-out. The sync banner sits above the
+# assessment, so assert it from the top and scroll to the assessment.
 - extendedWaitUntil:
-    visible: "Today's assessment"
+    visible: 'Your local iCoach assessment'
     timeout: 45000
 - assertVisible: 'Local data ready'
-- assertNotVisible: 'Finish your baseline'
+# The first-run checklist must be gone: the baseline is complete. Asserted
+# while the top of the dashboard is in view, where it would render.
+- assertNotVisible: 'Finish setting up AppFitness'
 - assertNotVisible: 'Load sample data'
+- scrollUntilVisible:
+    element: "Today's assessment"
+    timeout: 45000
+- assertNotVisible: 'Finish your baseline'
