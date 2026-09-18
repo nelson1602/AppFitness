@@ -49,9 +49,11 @@ appId: com.appfitness.mobile
     visible: 'Your local iCoach assessment'
     timeout: 45000
 - scrollUntilVisible:
-    element: 'Finish setting up AppFitness'
+    element:
+      id: 'onboarding-step-profile'
     timeout: 30000
-- assertVisible: 'Add your profile basics'
+- assertVisible:
+    id: 'onboarding-step-profile'
 
 # Dev-only seed action must not exist in release builds.
 - assertNotVisible: 'Load sample data'
