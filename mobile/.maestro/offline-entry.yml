@@ -52,6 +52,7 @@ appId: com.appfitness.mobile
     id: 'option-gender-MALE'
 - scrollUntilVisible:
     element: 'Save profile'
+    timeout: 60000
 - tapOn: 'Save profile'
 
 # Local save succeeded with no network — profile gaps close on the

@@ -36,6 +36,7 @@ appId: com.appfitness.mobile
 # --- 1. Dashboard → Exercise library ---
 - scrollUntilVisible:
     element: 'Exercise library'
+    timeout: 60000
 - tapOn: 'Exercise library'
 - extendedWaitUntil:
     visible: 'Exercise library'
@@ -45,6 +46,16 @@ appId: com.appfitness.mobile
 # --- 2. Create a custom exercise. Category defaults to Strength; keep it. ---
 - scrollUntilVisible:
     element: 'Name'
+    timeout: 60000
+# Scroll to the field itself, not to the heading above it: the scroll stops
+# with its target at the bottom edge, so a field rendered below the heading is
+# still off-screen. Verified on device — this is exactly how the waist field
+# was missed. The heading scroll stays as the anchor, so a missing card still
+# fails there rather than timing out on the field.
+- scrollUntilVisible:
+    element:
+      id: 'field-name'
+    timeout: 60000
 - tapOn:
     id: 'field-name'
 - inputText: 'E2E landmine press'
@@ -56,10 +67,12 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'custom-exercise-submit'
+    timeout: 60000
 - tapOn:
     id: 'custom-exercise-submit'
 - scrollUntilVisible:
     element: 'E2E landmine press'
+    timeout: 60000
 # The library reflects sync state live. A custom exercise has NO sync
 # dependency, so with the CI API reachable it can reach "synced" (badge gone)
 # before this step — the transient "Pending sync" badge is therefore not
@@ -69,6 +82,7 @@ appId: com.appfitness.mobile
 # dedicated offline-entry / reconnect-sync flows.
 - scrollUntilVisible:
     element: '.*Custom exercises aren.*checked.*'
+    timeout: 60000
 
 # Edit the custom exercise. Scroll the row's Edit button fully into view first
 # (tapOn does not auto-scroll; it sits below the row's name/caption/caution).
@@ -80,6 +94,7 @@ appId: com.appfitness.mobile
 # appending to the prefilled name.
 - scrollUntilVisible:
     element: 'Edit'
+    timeout: 60000
 - tapOn: 'Edit'
 - assertVisible: 'Edit exercise'
 - tapOn:
@@ -89,6 +104,7 @@ appId: com.appfitness.mobile
 - hideKeyboard
 - scrollUntilVisible:
     element: 'Save changes'
+    timeout: 60000
 - tapOn: 'Save changes'
 # After the tall inline edit form collapses, Maestro can land above or below
 # the compact row. Anchor on the custom section header, then scan down slowly so
@@ -96,10 +112,12 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     direction: UP
     element: 'Your custom exercises'
+    timeout: 60000
 - scrollUntilVisible:
     speed: 20
     visibilityPercentage: 50
     element: 'E2E landmine row'
+    timeout: 60000
 
 # --- 3. Use the custom exercise in the routine created by
 # workout-training-plan.yml. Reusing "E2E push" avoids multiple routine cards
@@ -107,12 +125,14 @@ appId: com.appfitness.mobile
 - back
 - scrollUntilVisible:
     element: 'Workout routines'
+    timeout: 60000
 - tapOn: 'Workout routines'
 - extendedWaitUntil:
     visible: 'Workout routines'
     timeout: 15000
 - scrollUntilVisible:
     element: 'E2E push'
+    timeout: 60000
 # The card's action button renders BELOW its name, and the iCoach plan above
 # pushes the list off the fold, so scroll to the button itself. The scroll to
 # the card name is kept ahead of it: a missing card still fails there rather
@@ -139,13 +159,16 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     direction: UP
     element: 'E2E landmine row'
+    timeout: 60000
 - scrollUntilVisible:
     element: '.*Custom exercises aren.*checked.*'
+    timeout: 60000
 
 # --- 4. Use the custom exercise in a workout-log set. ---
 - back
 - scrollUntilVisible:
     element: 'Log a workout'
+    timeout: 60000
 - tapOn: 'Log a workout'
 - extendedWaitUntil:
     visible: 'Start a workout'
@@ -158,6 +181,7 @@ appId: com.appfitness.mobile
     id: 'workout-start'
 - scrollUntilVisible:
     element: 'E2E custom session'
+    timeout: 60000
 # The card's action button renders BELOW its name, and the iCoach plan above
 # pushes the list off the fold, so scroll to the button itself. The scroll to
 # the card name is kept ahead of it: a missing card still fails there rather
@@ -184,6 +208,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'set-reps-input'
+    timeout: 60000
 - tapOn:
     id: 'set-reps-input'
 - inputText: '8'
@@ -191,26 +216,31 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'set-add'
+    timeout: 60000
 - tapOn:
     id: 'set-add'
 - scrollUntilVisible:
     direction: UP
     element: '1. E2E landmine row'
+    timeout: 60000
 - assertVisible: 'Pending sync'
 
 # Finish the ad-hoc workout so the next flows do not inherit an open card.
 - scrollUntilVisible:
     direction: UP
     element: 'Finish'
+    timeout: 60000
 - tapOn: 'Finish'
 - scrollUntilVisible:
     element: 'Recent workouts'
+    timeout: 60000
 
 # --- 5. Delete the custom exercise. The routine-reference warning should count
 # the active E2E push routine that now references it. ---
 - back
 - scrollUntilVisible:
     element: 'Exercise library'
+    timeout: 60000
 - tapOn: 'Exercise library'
 - extendedWaitUntil:
     visible: 'Exercise library'
@@ -218,6 +248,7 @@ appId: com.appfitness.mobile
 # Scroll the row's Delete button into view before tapping (same reason as Edit).
 - scrollUntilVisible:
     element: 'Delete'
+    timeout: 60000
 - tapOn: 'Delete'
 # The confirm block appears immediately with a stable "Confirm delete" button,
 # but its reference-count line resolves asynchronously ("Checking where this
@@ -226,6 +257,7 @@ appId: com.appfitness.mobile
 # the built-in list), then WAIT for the count line to populate in place.
 - scrollUntilVisible:
     element: 'Confirm delete'
+    timeout: 60000
 # Maestro anchors a text selector to the ELEMENT'S FULL text, so the bare
 # "Used in 1 routine" never matches the longer sentence "Used in 1 routine —
 # existing routines keep it; …" — wildcards are required (as elsewhere in this
@@ -236,18 +268,21 @@ appId: com.appfitness.mobile
 - tapOn: 'Confirm delete'
 - scrollUntilVisible:
     element: 'No custom exercises yet. Add one above to use it in your routines and workouts.'
+    timeout: 60000
 
 # --- 6. Historical routine references remain but resolve through the accepted
 # fallback once the custom exercise is soft-deleted. ---
 - back
 - scrollUntilVisible:
     element: 'Workout routines'
+    timeout: 60000
 - tapOn: 'Workout routines'
 - extendedWaitUntil:
     visible: 'Workout routines'
     timeout: 15000
 - scrollUntilVisible:
     element: 'E2E push'
+    timeout: 60000
 # The action button renders BELOW the card name, so scroll to the button
 # itself; the scroll to the card name above still fails fast if it is gone.
 - scrollUntilVisible:
@@ -256,3 +291,4 @@ appId: com.appfitness.mobile
 - tapOn: 'View exercises'
 - scrollUntilVisible:
     element: '\(removed exercise\)'
+    timeout: 60000

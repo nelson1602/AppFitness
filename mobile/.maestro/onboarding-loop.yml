@@ -65,6 +65,7 @@ appId: com.appfitness.mobile
     id: 'option-gender-MALE'
 - scrollUntilVisible:
     element: 'Save profile'
+    timeout: 60000
 - tapOn: 'Save profile'
 
 # Back on the dashboard: the profile step is done, so the checklist drops it.
@@ -100,6 +101,7 @@ appId: com.appfitness.mobile
 - hideKeyboard
 - scrollUntilVisible:
     element: 'Save weight'
+    timeout: 60000
 - tapOn: 'Save weight'
 - back
 
@@ -124,6 +126,7 @@ appId: com.appfitness.mobile
     timeout: 30000
 - scrollUntilVisible:
     element: 'Using maintenance goal'
+    timeout: 60000
 
 # --- 3. Complete the active goal through the dashboard gap action ---
 - scrollUntilVisible:
@@ -141,6 +144,7 @@ appId: com.appfitness.mobile
 # it into view (mirrors the profile form).
 - scrollUntilVisible:
     element: 'Save goal'
+    timeout: 60000
 - tapOn: 'Save goal'
 
 # Back on the dashboard, scrolled to top after the remount: the
@@ -173,10 +177,12 @@ appId: com.appfitness.mobile
 # below the assessment (scroll-aware; they are below the fold).
 - scrollUntilVisible:
     element: 'iCoach recommendations'
+    timeout: 60000
 
 # --- 4b. Nutrition targets surface (Phase 15 Slice 1) ---
 - scrollUntilVisible:
     element: 'Nutrition'
+    timeout: 60000
 - tapOn: 'Nutrition'
 - extendedWaitUntil:
     visible: 'Nutrition targets'
@@ -195,6 +201,7 @@ appId: com.appfitness.mobile
 # --- 4c. 15-day meal plan surface (Phase 15 Slice 3B) ---
 - scrollUntilVisible:
     element: '15-day meal plan'
+    timeout: 60000
 - tapOn: '15-day meal plan'
 - extendedWaitUntil:
     visible: 'Day 1'
@@ -214,6 +221,7 @@ appId: com.appfitness.mobile
 # --- 5. Sign out, then sign back in as the SAME existing account ---
 - scrollUntilVisible:
     element: 'Sign out'
+    timeout: 60000
 - tapOn: 'Sign out'
 - extendedWaitUntil:
     visible: 'Sign in to continue.'

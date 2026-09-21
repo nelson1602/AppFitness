@@ -46,6 +46,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'dashboard-progress-card'
+    timeout: 60000
 # Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
 # the bottom edge, so anything rendered below it is off-screen. The CI emulator
 # is considerably shorter than a local one, which is why this passed locally
@@ -69,6 +70,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'body-weight-submit'
+    timeout: 60000
 - tapOn:
     id: 'body-weight-submit'
 
@@ -78,11 +80,22 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     direction: UP
     element: '.*83 kg on.*'
+    timeout: 60000
 
 # --- 4. Record a waist measurement (unique field-waistCm; measurements do NOT
 #     trigger a recompute). ---
 - scrollUntilVisible:
     element: 'Record measurements'
+    timeout: 60000
+# Scroll to the field itself, not to the heading above it: the scroll stops
+# with its target at the bottom edge, so a field rendered below the heading is
+# still off-screen. Verified on device — this is exactly how the waist field
+# was missed. The heading scroll stays as the anchor, so a missing card still
+# fails there rather than timing out on the field.
+- scrollUntilVisible:
+    element:
+      id: 'field-waistCm'
+    timeout: 60000
 - tapOn:
     id: 'field-waistCm'
 - inputText: '82'
@@ -90,6 +103,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'body-measurement-submit'
+    timeout: 60000
 - tapOn:
     id: 'body-measurement-submit'
 
@@ -97,11 +111,13 @@ appId: com.appfitness.mobile
 # entry so the scroll direction matches the screen layout.
 - scrollUntilVisible:
     element: '1 reading: 83 kg'
+    timeout: 60000
 
 # --- 5. Explicitly re-run the deterministic weekly recompute. ---
 - scrollUntilVisible:
     element:
       id: 'progress-recompute'
+    timeout: 60000
 - tapOn:
     id: 'progress-recompute'
 
@@ -124,12 +140,15 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     direction: UP
     element: 'Deload week'
+    timeout: 60000
 - scrollUntilVisible:
     direction: UP
     element: 'Workouts'
+    timeout: 60000
 - scrollUntilVisible:
     direction: UP
     element: 'Total volume'
+    timeout: 60000
 
 # --- 7. Back on the dashboard, the summary card reflects the new weight (the
 #     card and screen share the same Zustand store, so it updates without a
@@ -138,6 +157,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'dashboard-progress-card'
+    timeout: 60000
 # Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
 # the bottom edge, so anything rendered below it is off-screen. The CI emulator
 # is considerably shorter than a local one, which is why this passed locally

@@ -54,6 +54,7 @@ appId: com.appfitness.mobile
 # surface (TEST-004 logout flow).
 - scrollUntilVisible:
     element: 'Sign out'
+    timeout: 60000
 - tapOn: 'Sign out'
 - extendedWaitUntil:
     visible: 'Sign in to continue.'

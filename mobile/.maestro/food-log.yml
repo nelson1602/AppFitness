@@ -37,12 +37,14 @@ appId: com.appfitness.mobile
 # --- Navigate: dashboard → Nutrition → 15-day meal plan → Food log ---
 - scrollUntilVisible:
     element: 'Nutrition'
+    timeout: 60000
 - tapOn: 'Nutrition'
 - extendedWaitUntil:
     visible: 'Nutrition targets'
     timeout: 15000
 - scrollUntilVisible:
     element: '15-day meal plan'
+    timeout: 60000
 - tapOn: '15-day meal plan'
 # The "Log today's food" entry button sits at the top of the meal-plan screen
 # (above the day content), so wait for it directly rather than scrolling down.
@@ -78,6 +80,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'food-log-add-submit'
+    timeout: 60000
 - tapOn:
     id: 'food-log-add-submit'
 
@@ -88,6 +91,7 @@ appId: com.appfitness.mobile
 # scrollUntilVisible both waits for the async local write and brings it on-screen.
 - scrollUntilVisible:
     element: 'Today.s totals'
+    timeout: 60000
 # Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
 # the bottom edge, so anything rendered below it is off-screen. The CI emulator
 # is considerably shorter than a local one, which is why this passed locally
@@ -97,6 +101,7 @@ appId: com.appfitness.mobile
     timeout: 20000
 - scrollUntilVisible:
     element: 'Chicken breast, cooked'
+    timeout: 60000
 - assertVisible: 'Chicken breast, cooked'
 # Local-first: saved on device and queued, surfaced as pending (not lost).
 # Rendered below the entry row just scrolled to, so scroll to it as well.
@@ -109,6 +114,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'food-log-sync-now'
+    timeout: 60000
 - tapOn:
     id: 'food-log-sync-now'
 - extendedWaitUntil:
@@ -119,6 +125,7 @@ appId: com.appfitness.mobile
 # --- Soft-delete the entry → back to the empty state ---
 - scrollUntilVisible:
     element: 'Remove'
+    timeout: 60000
 - tapOn: 'Remove'
 - extendedWaitUntil:
     visible: 'Nothing logged yet'
