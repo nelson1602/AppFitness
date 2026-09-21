@@ -6444,6 +6444,78 @@ state.
 
 ---
 
+## [TEST-005] Promote the Single-Device Half of the Conflict Journeys into CI
+
+Status: **Open — sized, not started.**
+Priority: **P3**
+Type: Test (automated coverage)
+Owner: QA / Mobile
+Created: 2026-09-21
+Updated: 2026-09-21
+
+### Why this exists
+
+Release-queue item 11 asked whether the fourteen ADR-P030 C-7 conflict journeys
+should be promoted into automated coverage. The answer recorded there is *not
+for v1*, but the premise the question carried — that all fourteen are
+irreducibly two-device — is **not accurate**, and this entry records the part
+that is promotable so the finding is not lost.
+
+### What is genuinely two-device
+
+Device-to-device staging (`conflict-areas-swap` run on A and on B) is what
+exercises the app's **own** conflict-creation path: its push queue, its
+registered `deviceId`, its retry behaviour. One emulator cannot reproduce that,
+and no harness substitute should claim to.
+
+### What is not
+
+`e2e/c7-conflicts.mjs` is a legitimate public client of the same owner — the
+standing that `conflict-loser-standing` already depends on — and
+`make-remote-conflict` stages a real server-side conflict by pushing a stale
+`baseVersion` through `/sync/push`.
+
+**This is already in-repo practice, not a proposal.** The gate-6 pass-2
+conflict-card captures (`.ai/23_THEME_SURFACE_VERIFICATION.md`) were produced on
+a **single** device: `bump-areas` → `conflict-areas-swap` → `conflict-sync-now`
+for the undecided card, then `conflict-offline-choice` and
+`conflict-reconnect-settle` for retrying and settled.
+
+So the **detection, review, resolution and settlement** surface — ADR-P030 C-6,
+which is what most of the fourteen actually assert — can run on the existing
+single-emulator `mobile-e2e` runner. That job already provisions the API and a
+disposable Postgres, so the marginal cost is the flows themselves.
+
+### What promotion still has to solve
+
+1. **Per-flow `adb reverse` re-application.** Maestro resets port forwarding for
+   the device it drives, and a device that silently loses the loopback **queues
+   its writes instead of failing** — which reads as a product bug and is not
+   one.
+2. **A hard ~60s wait** for the offline → restart → reconnect triple. The
+   resolution outbox uses the shipped `backoff.ts` schedule (30s × 2^attempts);
+   draining earlier is a legitimate no-op, so shortening it tests the retry
+   policy rather than the reconnect. These three are the natural first
+   exclusion if CI time matters.
+3. **Strict ordering**, including `conflict-reconnect-settle`'s requirement that
+   it run with **no `launchApp`**, in the process the previous flow left alive.
+
+### Why it was not done with item 11
+
+Adding this to `mobile-e2e` changes a release gate that was only restored to
+green on 2026-09-21 (gate **E1**, run `35600746413`). Destabilising it as a side
+effect of a "consider" item would be the wrong trade. It should be its own
+slice, with its own verification, on a deliberate decision.
+
+### Related Documents
+
+- `docs/RELEASE_READINESS.md` — release-queue item 11
+- `mobile/e2e/README.md` — §Conflict resolution, §The harness, §Ordering
+- `mobile/e2e/c7-conflicts.mjs` — `make-remote-conflict`, `bump-areas`
+- `.ai/23_THEME_SURFACE_VERIFICATION.md` — the single-device precedent
+
+---
+
 ## [TEST-004] Phase 11 Carry-Forwards — Deferred E2E Flows, Cloud Maestro, Phased Coverage
 
 Status: In Progress
