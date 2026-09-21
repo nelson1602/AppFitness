@@ -115,7 +115,13 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element: "Today's assessment"
     timeout: 30000
-- assertVisible: '.*kcal.*'
+# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
+# the bottom edge, so anything rendered below it is off-screen. The CI emulator
+# is considerably shorter than a local one, which is why this passed locally
+# and failed in the cloud with the assessment title only 5px tall at the fold.
+- scrollUntilVisible:
+    element: '.*kcal.*'
+    timeout: 30000
 - scrollUntilVisible:
     element: 'Using maintenance goal'
 
@@ -150,7 +156,13 @@ appId: com.appfitness.mobile
     timeout: 30000
 - assertNotVisible: 'Using maintenance goal'
 - assertNotVisible: 'Finish your baseline'
-- assertVisible: '.*kcal.*'
+# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
+# the bottom edge, so anything rendered below it is off-screen. The CI emulator
+# is considerably shorter than a local one, which is why this passed locally
+# and failed in the cloud with the assessment title only 5px tall at the fold.
+- scrollUntilVisible:
+    element: '.*kcal.*'
+    timeout: 30000
 
 # --- 4. Sync the local profile + goal; the pending state clears ---
 - tapOn: 'Sync now'
@@ -169,9 +181,14 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Nutrition targets'
     timeout: 15000
-# Calorie target + macro breakdown render from the deterministic engine.
-- assertVisible: '.*kcal.*'
-- assertVisible: 'Protein'
+# Calorie target + macro breakdown render from the deterministic engine. Both
+# sit below the screen heading on a short viewport, so scroll to each.
+- scrollUntilVisible:
+    element: '.*kcal.*'
+    timeout: 20000
+- scrollUntilVisible:
+    element: 'Protein'
+    timeout: 20000
 # No dev-only sample-data path on this surface.
 - assertNotVisible: 'Load sample data'
 
@@ -182,8 +199,13 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Day 1'
     timeout: 15000
-- assertVisible: 'Breakfast'
-- assertVisible: '.*kcal.*'
+# Below the day heading on a short viewport, so scroll to each.
+- scrollUntilVisible:
+    element: 'Breakfast'
+    timeout: 20000
+- scrollUntilVisible:
+    element: '.*kcal.*'
+    timeout: 20000
 - assertNotVisible: 'Load sample data'
 # Back to /nutrition, then back to the dashboard.
 - back

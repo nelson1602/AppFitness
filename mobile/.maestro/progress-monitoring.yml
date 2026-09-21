@@ -46,7 +46,13 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'dashboard-progress-card'
-- assertVisible: 'View your progress'
+# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
+# the bottom edge, so anything rendered below it is off-screen. The CI emulator
+# is considerably shorter than a local one, which is why this passed locally
+# and failed in the cloud with the assessment title only 5px tall at the fold.
+- scrollUntilVisible:
+    element: 'View your progress'
+    timeout: 20000
 - tapOn:
     id: 'dashboard-progress-card'
 - extendedWaitUntil:
@@ -132,4 +138,10 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'dashboard-progress-card'
-- assertVisible: '.*83 kg.*'
+# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
+# the bottom edge, so anything rendered below it is off-screen. The CI emulator
+# is considerably shorter than a local one, which is why this passed locally
+# and failed in the cloud with the assessment title only 5px tall at the fold.
+- scrollUntilVisible:
+    element: '.*83 kg.*'
+    timeout: 20000

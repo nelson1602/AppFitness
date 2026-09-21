@@ -88,12 +88,21 @@ appId: com.appfitness.mobile
 # scrollUntilVisible both waits for the async local write and brings it on-screen.
 - scrollUntilVisible:
     element: 'Today.s totals'
-- assertVisible: '.*kcal.*'
+# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
+# the bottom edge, so anything rendered below it is off-screen. The CI emulator
+# is considerably shorter than a local one, which is why this passed locally
+# and failed in the cloud with the assessment title only 5px tall at the fold.
+- scrollUntilVisible:
+    element: '.*kcal.*'
+    timeout: 20000
 - scrollUntilVisible:
     element: 'Chicken breast, cooked'
 - assertVisible: 'Chicken breast, cooked'
 # Local-first: saved on device and queued, surfaced as pending (not lost).
-- assertVisible: 'Pending sync'
+# Rendered below the entry row just scrolled to, so scroll to it as well.
+- scrollUntilVisible:
+    element: 'Pending sync'
+    timeout: 20000
 
 # --- A sync attempt keeps the entry (DEPENDENCY_NOT_READY is retryable,
 #     never data loss — the local parent meal is not yet server-synced). ---
