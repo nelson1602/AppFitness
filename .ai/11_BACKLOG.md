@@ -6297,12 +6297,13 @@ kombucha_unsweet (see the A1 ledgers). Nothing fabricated.
 
 ## [PERF-001] Mobile Startup Performance Baseline
 
-Status: Proposed
+Status: **Partially done — startup baseline measured 2026-09-21; two criteria
+need instrumentation the app does not have.**
 Priority: P2
 Type: Performance
-Owner: Unassigned
+Owner: Mobile
 Created: 2026-07-03
-Updated: 2026-07-03
+Updated: 2026-09-21
 
 ### Description
 
@@ -6310,14 +6311,41 @@ Establish baseline startup performance targets for the mobile application.
 
 ### Acceptance Criteria
 
-* [ ] Cold start measured
-* [ ] Dashboard render time measured
-* [ ] SQLite initialization time measured
-* [ ] Performance bottlenecks documented
-* [ ] No optimization performed without measurements
+* [x] **Cold start measured** — `docs/PERFORMANCE_BASELINE.md`. Steady-state
+  cold start median **1715 ms** (n=9, 1655–1917); first run, which creates the
+  database and runs migrations, median **2320 ms** (n=4); first launch after
+  install **4028 ms** (one-time dex optimization, reported separately).
+  Measured with `am start -W` — the platform's own instrumentation, which is
+  why it needed no code change.
+* [ ] **Dashboard render time measured** — **not done.** `TotalTime` is time to
+  first frame, not to a populated dashboard, and the app has no timing spans
+  around the dashboard's async local read.
+* [~] **SQLite initialization time measured** — **derived, not instrumented.**
+  The first-run minus steady-state median difference is **≈605 ms**, paid once
+  per install. That bounds database creation + migrations + other first-run
+  work together; it does not isolate SQLite, and the doc says so rather than
+  labelling it more precisely than the method supports.
+* [~] **Performance bottlenecks documented** — one identified (the ~605 ms
+  one-time database cost). No per-launch bottleneck is visible at this
+  resolution.
+* [x] **No optimization performed without measurements** — nothing was changed.
+
+### What remains
+
+Both open criteria need **timing instrumentation in runtime code** (there is
+none today — no `performance.now()`/`Date.now()` spans around the database open,
+the migrations or the dashboard read, and the shared logger emits no timing
+events) plus a rebuild. Adding instrumentation as part of a measurement task
+would have changed the thing being measured, so it was not done.
+
+The baseline itself also needs re-measuring on **physical hardware**: it was
+taken on a software-rendered x86_64 emulator, which is a valid build-over-build
+comparator and **not** a device-representative number. Release-queue item 15
+already requires physical-device validation.
 
 ### Related Documents
 
+* `docs/PERFORMANCE_BASELINE.md` — method, environment, raw readings
 * .ai/06_MOBILE.md
 * .ai/09_TESTING.md
 
