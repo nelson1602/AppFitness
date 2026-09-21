@@ -13856,7 +13856,30 @@ untouched.
   Web-unavailable state; no Web data capability is added or implied.
 - **Preserves ADR-P026** — the portal screens are untouched; the token-capture,
   URL-scrub and hydration behaviour is unchanged, and proven so against the
-  baseline export.
+baseline export.
+
+### Addendum A — Browser color scheme after static hydration (2026-09-21)
+
+**Status: Accepted.** Owner authorization resolves `BUG-017` as follows:
+
+1. The visitor-less static render and React server snapshot are deterministically
+   light. The browser may show that first frame briefly to a dark-mode visitor;
+   this flash is an accepted V1 limitation, analogous to (but independent from)
+   the single-language body limitation above.
+2. Web owns a platform-specific `useTheme()` adapter backed by
+   `useSyncExternalStore` and `prefers-color-scheme`. React hydrates against the
+   same light server snapshot, then reads the browser snapshot, re-renders the
+   **whole theme tree**, and subscribes to later OS changes. Partial subtree
+   correction is not an accepted outcome.
+3. Native keeps the existing `useColorScheme()` implementation. Shared theme
+   definitions move to a platform-neutral module solely to prevent the Web
+   adapter from importing `react-native`; the public theme API is unchanged.
+4. No inline colour script, dependency, infrastructure, hosting, DNS or API
+   change is authorized. Overscroll outside the React Native root is not proven
+   by the viewport captures and remains an explicit residual for hosted review.
+5. Repository/export correction and hosted publication are separate gates.
+   Closing the repository defect does not claim the Cloudflare Workers serve the
+   new artifact; publication and hosted light/dark confirmation remain required.
 - **Preserves ADR-P028** — new user-facing copy uses `AppFitnessRD`.
 - **Preserves ADR-P017** — no dormant medical surface is exposed, and
   `/_sitemap` is not offered as a product affordance.
@@ -13865,7 +13888,8 @@ untouched.
 
 ### Related Documents
 
-- `.ai/11_BACKLOG.md` — `BUG-016` (closed by this ADR), `FEATURE-014`
+- `.ai/11_BACKLOG.md` — `BUG-016`, `BUG-017`, `FEATURE-014`
+- `.ai/23_THEME_SURFACE_VERIFICATION.md` — `BUG-017` capture evidence
 - `.ai/21_BILINGUAL_SURFACE_AUDIT.md` — findings F-4 … F-7
 - `.ai/12_DECISIONS.md` — ADR-P018, ADR-P019, ADR-P026, ADR-P028
 - `.ai/13_MIGRATION_ROADMAP.md` — Phase 21

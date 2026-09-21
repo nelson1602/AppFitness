@@ -3045,12 +3045,12 @@ since 2026-08-05 (gate E1), and the gate 6 pass-2 seeding went through the
 
 ## [BUG-017] The Three Public Web Portals Do Not Render the Dark Theme
 
-Status: **Open**
+Status: **Implemented in repository; hosted publication pending** (2026-09-21)
 Priority: **P2**
 Type: Bug (Web rendering / theming)
 Owner: Design / Architecture (owner decision required)
 Created: 2026-09-17
-Updated: 2026-09-17
+Updated: 2026-09-21
 
 Found by the Stage 2 gate 6 pass-2 verification
 (`.ai/23_THEME_SURFACE_VERIFICATION.md`, finding T-2).
@@ -3091,6 +3091,18 @@ this same artifact is unverified.
 media-query-driven shell, a themed prerender, or forcing a post-hydration
 re-render from `Appearance` — changes product behaviour on a deployed surface
 and needs an owner decision, not a verification slice.
+
+**Resolution (2026-09-21).** Owner authorization selected a Web-only external
+store over `prefers-color-scheme`, recorded by ADR-P032 Addendum A. The
+static/server snapshot remains deterministically light; after hydration the
+browser snapshot re-renders the whole theme tree and subscribes to later OS
+changes. Native still uses `useColorScheme()`. A regression spec covers the
+deterministic server snapshot, live theme changes, missing `matchMedia`, legacy
+Safari listeners and cleanup. A fresh local static export produced 24/24
+coherent captures (three portals × four widths × two themes); every light/dark
+pair differs and all images were visually reviewed. This closes the repository
+defect, not deployment of the artifact: the hosted Cloudflare portals were not
+contacted and require their normal publication/re-verification lifecycle.
 
 ### Related Documents
 
