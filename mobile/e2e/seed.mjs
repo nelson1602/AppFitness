@@ -10,9 +10,10 @@
 //   E2E_EMAIL     (default demo@appfitness.local — must match the flow)
 //   E2E_PASSWORD  (default password12345 — the dev prefill)
 //
-// Seeds profile + body weight + body composition + goal for the seeded-pull
-// flow (dashboard-sync.yml). The device-side onboarding-loop flow needs no
-// seed — it enters profile, weight and goal entirely on the device (Phase 14).
+// Seeds profile + wellness progress + goal for the seeded-pull flow
+// (dashboard-sync.yml). The device-side onboarding-loop flow needs no seed
+// — it enters profile, weight, and goal entirely on the device
+// (Phase 14).
 
 import { randomUUID } from 'node:crypto';
 
@@ -80,65 +81,73 @@ await request(
 );
 console.log('[seed] profile saved');
 
-// Weight, body composition and goals have no REST endpoint on the public API,
-// so they are seeded by emulating a device push through the public sync
-// contract (which doubles as a second-device sync test).
-//
-// Weight used to be seeded with `POST /medical/evaluations`. That route is
-// unreachable in public V1 by design: ADR-P017 Decision 4 excludes
-// `MedicalModule` from the composition root, so the medical domain is dormant
-// and the path 404s. The public replacements are the ADR-P016 progress
-// entities `body_weights` and `body_measurements`, whose values below mirror
-// the __DEV__ sample seeder in `dashboard.service.ts`.
-function createOp(entityType, payload) {
-  return {
-    opId: randomUUID(),
-    entityType,
-    entityId: randomUUID(),
-    operation: 'CREATE',
-    baseVersion: 0,
-    payload,
-  };
-}
-
+// Wellness progress and goals have no REST endpoint — seed them by emulating
+// a device push through the public sync contract (also a second-device sync
+// test). Retained medical routes are deliberately dormant for public v1.
+const weightId = randomUUID();
+const measurementId = randomUUID();
 const goalId = randomUUID();
-const operations = [
-  createOp('body_weights', { date: today, weight_kg: 82 }),
-  createOp('body_measurements', {
-    date: today,
-    body_fat_pct: 21,
-    waist_cm: 84,
-  }),
+const push = await request(
+  'POST',
+  '/sync/push',
   {
-    opId: randomUUID(),
-    entityType: 'goals',
-    entityId: goalId,
-    operation: 'CREATE',
-    baseVersion: 0,
-    payload: {
-      id: goalId,
-      goal_type: 'RECOMPOSITION',
-      target_weight_kg: 78,
-      target_date: '2026-12-31',
-      is_active: 1,
-      started_at: nowIso,
-      ended_at: null,
-    },
+    operations: [
+      {
+        opId: randomUUID(),
+        entityType: 'body_weights',
+        entityId: weightId,
+        operation: 'CREATE',
+        baseVersion: 0,
+        payload: {
+          id: weightId,
+          date: today,
+          weight_kg: 82,
+          notes: null,
+        },
+      },
+      {
+        opId: randomUUID(),
+        entityType: 'body_measurements',
+        entityId: measurementId,
+        operation: 'CREATE',
+        baseVersion: 0,
+        payload: {
+          id: measurementId,
+          date: today,
+          body_fat_pct: 21,
+          muscle_mass_kg: 36,
+          waist_cm: 84,
+          hip_cm: null,
+          chest_cm: null,
+          left_arm_cm: null,
+          right_arm_cm: null,
+          neck_cm: null,
+          notes: null,
+        },
+      },
+      {
+        opId: randomUUID(),
+        entityType: 'goals',
+        entityId: goalId,
+        operation: 'CREATE',
+        baseVersion: 0,
+        payload: {
+          id: goalId,
+          goal_type: 'RECOMPOSITION',
+          target_weight_kg: 78,
+          target_date: '2026-12-31',
+          is_active: 1,
+          started_at: nowIso,
+          ended_at: null,
+        },
+      },
+    ],
   },
-];
-
-const push = await request('POST', '/sync/push', { operations }, accessToken);
-
-// `results` is returned in operation order. Every entity must apply: a
-// partially seeded account produces a dashboard that is neither the empty
-// first-run state nor the populated one the flow asserts.
-operations.forEach((operation, index) => {
-  const result = push.results?.[index];
-  if (result?.status !== 'APPLIED') {
-    throw new Error(
-      `${operation.entityType} sync push not applied: ${JSON.stringify(result)}`,
-    );
-  }
-});
-console.log(`[seed] ${operations.length} entities applied via /sync/push`);
+  accessToken,
+);
+const results = push.results ?? [];
+if (results.length !== 3 || results.some((result) => result.status !== 'APPLIED')) {
+  throw new Error(`wellness/goal sync push not applied: ${JSON.stringify(results)}`);
+}
+console.log('[seed] wellness progress and goal applied via /sync/push');
 console.log('[seed] done — dashboard data ready to pull');
