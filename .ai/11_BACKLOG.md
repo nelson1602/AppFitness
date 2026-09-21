@@ -2796,12 +2796,24 @@ harder of the two to read. No new measurement; no change of severity.
 
 ## [BUG-019] The Dashboard Does Not Refresh When Returned To — Onboarding Looks Stuck
 
-Status: **Open**
+Status: **Closed — fixed and verified on device.**
 Priority: **P2**
 Type: Bug (stale surface)
 Owner: Mobile Architecture
 Created: 2026-09-17
-Updated: 2026-09-17
+Updated: 2026-09-21
+
+`DashboardScreen` now reads through `useFocusEffect`, so returning by `back`
+re-reads. Verified on a device build, and again by the journey that exposed it:
+`onboarding-loop.yml` records a weight, presses `back` and finds the assessment
+rendered without a relaunch — green in cloud run `35597775166` (gate **E1**).
+
+The **pattern** question this opened is deliberately left open and is *not* part
+of this closure: the dashboard is the only screen using `useFocusEffect`, and
+whether the other mount-only screens should follow is an owner decision. A sweep
+found one candidate, `NutritionPlanScreen`, which pushes to `/food-log`; it
+renders iCoach targets and dietary preferences, neither of which food logging
+mutates, so no second instance of this defect was found.
 
 Found while verifying the **BUG-018** fix and refreshing gate **E1**.
 
@@ -2869,12 +2881,18 @@ rather than shipped, and `onboarding-loop.yml` deliberately still asserts the
 
 ## [BUG-018] The Profile Form Cannot Save on Device — First-Run Onboarding Is Blocked
 
-Status: **Open**
-Priority: **P1** — blocks first-run onboarding for a new account.
+Status: **Closed — fixed and verified on device.**
+Priority: **P1** — blocked first-run onboarding for a new account.
 Type: Bug (local-first write)
 Owner: Mobile Architecture
 Created: 2026-09-17
-Updated: 2026-09-17
+Updated: 2026-09-21
+
+The transaction is threaded through the post-write read, with a red-before /
+green-after regression for CREATE and UPDATE. Confirmed on a device build, and
+the device journey the entry said was required is now green: cloud run
+`35597775166` (gate **E1**) completes `onboarding-loop.yml`, which saves the
+profile through this exact form.
 
 Found while refreshing the stale E2E journeys for gate **E1** (OBS-T2-4).
 
@@ -2936,9 +2954,9 @@ entity write and queue write all receive the identical executor. The new
 assertions fail twice against the defective code (CREATE and UPDATE) and pass
 after the correction; the transaction-threading guard and TypeScript also pass.
 
-This closes BUG-018 itself. Gate E1 remains stale until its full cloud journey
-is re-run on an APK containing the correction; no device or E2E result is
-inferred from the repository proof.
+This closes BUG-018 itself. No device or E2E result was inferred from the
+repository proof: gate E1 stayed stale until the full cloud journey ran on an
+APK containing the correction, which it did on 2026-09-21 (run `35597775166`).
 
 ### Why it is P1
 
@@ -3140,11 +3158,56 @@ compounding causes, not one.
 registration, the checklist and the profile form, then stops on **BUG-018** — a
 separate, genuine defect where the profile cannot be saved on device.
 
+**Scope was larger than two flows — 2026-09-21.** Running CI's full documented
+journey order on a device, rather than the two flows this entry started with,
+found the same two causes in **seven further flows** — nine of the eleven CI
+flows in total, once `registration` and `onboarding-loop` are counted. Both
+causes are restated here because the earlier fix addressed only the two places
+they had been seen, not the class.
+
+1. **Above the fold.** `dashboard-sync`, `food-log`,
+   `food-log-exclusion-warning`, `workout-training-plan`,
+   `workout-custom-exercise`, `offline-entry` and `reconnect-sync` all
+   asserted or tapped dashboard content — the assessment, "Sync now", the
+   checklist, the sync banner — from the top of the screen. All now anchor on
+   `Your local iCoach assessment` and scroll from there. The same shape appears
+   *within* routine and open-workout cards, whose action buttons render below
+   the card name the flows scrolled to.
+2. **Copy the product no longer renders.** `workout-training-plan` waited on
+   "Your training guidance", which survives only in `TrainingPlanCard` — an
+   unreachable leftover that shipped `GeneratedWorkoutPlan` replaced, and which
+   `surface-coverage.spec.ts` already describes as such. That assertion could
+   not have passed since the replacement. `offline-entry` asserted DataGapCard's
+   "Create your profile", which ADR-P027 confined to the `ready` state, and its
+   paired `assertNotVisible` had therefore become vacuously true.
+
+A third, separate finding sat in the harness rather than the journeys:
+`mobile/e2e/seed.mjs` seeded weight with `POST /medical/evaluations`, a route
+ADR-P017 Decision 4 made unreachable by excluding `MedicalModule` from the
+composition root. The 404 was correct product behaviour; the seeder now pushes
+`body_weights` and `body_measurements` through the public sync contract, the
+same values the `__DEV__` sample seeder writes on device.
+
+**Guard added.** `mobile/src/shared/localization/maestro-flow-copy.spec.ts` pins
+what a source-level check can actually prove about every journey assertion: the
+copy exists in shipped source, and it lives in a module reachable transitively
+from the Expo Router entry points. Reachability is measured from the entry
+points, not as "something imports it" — a dormant feature's own files import
+each other, so the weaker definition calls all of it reachable and misses
+exactly the `TrainingPlanCard` shape. Validated in both directions.
+
+It does **not** close this entry's first cause. Whether copy is above the fold,
+or renders in the state a journey is in, is not decidable from source; only the
+cloud suite proves that. Recorded here so the guard is not mistaken for more
+coverage than it has.
+
 ### Related Documents
 
 - `.ai/23_THEME_SURFACE_VERIFICATION.md`
 - `docs/RELEASE_READINESS.md` — gate E1
 - `mobile/src/features/dashboard/presentation/DashboardScreen.tsx`
+- `mobile/src/shared/localization/maestro-flow-copy.spec.ts` — the guard
+- `mobile/e2e/seed.mjs` — the dormant-route finding
 
 ---
 
