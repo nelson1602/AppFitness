@@ -8505,6 +8505,52 @@ and deterministic iCoach — this is a presentation change only).
 
 ---
 
+### Addendum B — Bounded dark Card hierarchy (UX-1C-5)
+
+Status: Accepted
+Date: 2026-09-21
+Owner: Product / Design / Architecture
+
+#### Decision
+
+The first dark surface-tint implementation is deliberately bounded to the only
+production consumer of an elevation token: the shared passive `Card`.
+
+- Light `Card` is unchanged: `surface` fill plus `elevations.level1`.
+- Dark `Card` uses the existing lighter neutral `surfaceVariant` fill plus
+  `elevations.level0`; it does not cast a black shadow that cannot be perceived
+  on the dark surface.
+- The caller's `style` stays last and may override these defaults. Border,
+  radius, padding, `ViewProps`, passive semantics and accessibility behaviour
+  remain unchanged.
+- `surfaceVariant` is reused asymmetrically because it is the only existing
+  neutral role lighter than dark `surface`. No new colour role, raw colour,
+  component variant, prop, dependency or platform branch is introduced.
+
+This ships **one mapping, not the complete dark elevation ramp**. Levels 2–5,
+transient overlays and any future raised surface remain TARGET and require a
+separate decision. The decorative `divider` boundary remains below 3:1 and may
+not become the sole indicator of interaction, selection or state.
+
+#### Rationale and evidence boundary
+
+The mapping is the smallest implementation of Decision 10 that produces a
+**code-level lighter surface hierarchy** today: `Card` is the only production
+elevation-token consumer. Existing foregrounds remain strongly legible on dark
+`surfaceVariant`; focused contrast tests continue to gate the approved pairings.
+Unit tests freeze the light/dark mapping and caller precedence.
+
+**No visual outcome is claimed.** The hierarchy asserted here is the one the
+repository can prove — which token each theme resolves to — not a verified
+on-device appearance. **There is no native visual verification of this change**:
+the existing gate-6 native captures predate it, so they cannot evidence it.
+Final visual confirmation must additionally review **content nested inside a
+dark Card**, where a child now sits on `surfaceVariant` rather than `surface`.
+
+This addendum claims a repository implementation only. It does not claim a
+manual iOS/Android visual outcome, close UX-4C, select Material Symbols or
+Inter, adopt motion, or complete FEATURE-010.
+
 ## ADR-P023 — Platform-Honest Input Accessibility Staging
 
 Status: Accepted
