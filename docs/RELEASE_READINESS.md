@@ -477,8 +477,34 @@ angles — coverage, then quality.
     PR means what it appears to mean.
 10. ~~`in-repo` — Re-run the **cloud E2E** suite (gate E1) on the candidate.~~
     **Done 2026-09-21.** Run `35597775166`, all eleven flows green.
-11. `in-repo` — Consider promoting the 14 **conflict journeys** into automated
-    coverage, or record explicitly that they stay manual and two-device.
+11. ~~`in-repo` — Consider promoting the 14 **conflict journeys** into automated
+    coverage, or record explicitly that they stay manual and two-device.~~
+    **Decided 2026-09-21 — they stay manual for v1, but the premise needed
+    correcting.** The campaign as documented is two-device, and device-to-device
+    staging is what exercises the app's *own* conflict-creation path — its push
+    queue, its registered `deviceId`, its retry. That part is not reproducible
+    on one emulator.<br><br>**A subset does not need the second device, and this
+    is not hypothetical.** `e2e/c7-conflicts.mjs` is a legitimate public client
+    of the same owner — the same standing `conflict-loser-standing` already
+    relies on — and `make-remote-conflict` stages a real server-side conflict
+    through `/sync/push` with a stale `baseVersion`. The gate-6 pass-2 captures
+    were produced exactly that way on a **single** device:
+    `bump-areas` → `conflict-areas-swap` → `conflict-sync-now`. So the
+    detection, review, resolution and settlement surface (ADR-P030 C-6) — which
+    is what most of the fourteen assert — is promotable to the existing
+    single-emulator `mobile-e2e` runner, which already provisions the API and a
+    disposable Postgres.<br><br>**Not promoted here, deliberately.** Adding it
+    changes a release gate that was only just restored to green on 2026-09-21,
+    and three of the fourteen carry a hard **~60s** real-time wait — the shipped
+    `backoff.ts` schedule (30s × 2^attempts), which cannot be shortened without
+    testing the retry policy instead of the reconnect. Promotion also needs
+    per-flow `adb reverse` re-application, because Maestro resets port
+    forwarding for the device it drives and a device that silently loses the
+    loopback queues its writes rather than failing. That is a sized slice, not a
+    configuration tweak, and it is tracked as **`TEST-005`**.<br><br>For v1 the
+    fourteen stay **manual**, with the completed C-7 campaign as their evidence.
+    EAS *cloud* Maestro remains blocked on billing (ADR-P007/P008) independently
+    of this.
 12. `in-repo` — Produce **performance evidence** (`PERF-001`): at minimum a
     startup baseline on the candidate build.
 13. `in-repo` — Rewrite `docs/releases/v1.0.0.md` for the actual candidate.
