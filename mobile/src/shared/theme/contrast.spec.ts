@@ -80,7 +80,7 @@ const PAIRINGS: readonly Pairing[] = [
     background: 'surface',
     requirement: 'text',
     status: 'rendered',
-    where: 'AppText default tone inside Card',
+    where: 'AppText default tone inside light Card',
   },
   {
     foreground: 'onSurface',
@@ -94,14 +94,14 @@ const PAIRINGS: readonly Pairing[] = [
     background: 'surfaceVariant',
     requirement: 'text',
     status: 'rendered',
-    where: 'AppTextInput / FormField value text on its filled ground',
+    where: 'AppText default tone inside dark Card; AppTextInput / FormField value text',
   },
   {
     foreground: 'onSurfaceVariant',
     background: 'surface',
     requirement: 'text',
     status: 'rendered',
-    where: 'AppText tone="muted" inside Card',
+    where: 'AppText tone="muted" inside light Card',
   },
   {
     foreground: 'onSurfaceVariant',
@@ -115,7 +115,7 @@ const PAIRINGS: readonly Pairing[] = [
     background: 'surfaceVariant',
     requirement: 'text',
     status: 'rendered',
-    where: 'Banner body copy; placeholder text in every input',
+    where: 'AppText tone="muted" inside dark Card; Banner body; input placeholder',
   },
   {
     foreground: 'onBackground',
@@ -242,7 +242,7 @@ const PAIRINGS: readonly Pairing[] = [
     background: 'surface',
     requirement: 'nonText',
     status: 'rendered',
-    where: 'input and chip borders over a Card ground',
+    where: 'input and chip borders over a light Card ground',
   },
   {
     foreground: 'outline',
@@ -256,7 +256,7 @@ const PAIRINGS: readonly Pairing[] = [
     background: 'surfaceVariant',
     requirement: 'nonText',
     status: 'rendered',
-    where: 'the border of a filled input against its own fill',
+    where: 'a filled input border against its own fill; borders over a dark Card ground',
   },
   {
     foreground: 'info',
@@ -316,14 +316,19 @@ const UNCONSUMED_ROLES: readonly (keyof ColorTokens)[] = [
  */
 const EXEMPT: readonly { readonly pairing: string; readonly exemption: string }[] = [
   {
-    pairing: 'divider on surface',
+    pairing: 'divider border on the Card ground — light surface, dark surfaceVariant',
     exemption:
-      'WCAG 1.4.11 — a purely decorative separator (1.27:1 light / 1.29:1 dark). The exemption holds only while it stays decorative, so color-usage.source.spec.ts forbids divider on the boundary of any Pressable; the one site that did that now uses outline.',
+      'WCAG 1.4.11 — a purely decorative grouping separator: 1.275:1 light (divider on surface) and 1.116:1 dark (divider on surfaceVariant, after ADR-P022 Addendum B moved the dark Card ground). The exemption holds only while it stays decorative, so color-usage.source.spec.ts forbids divider on the boundary of any Pressable; the one site that did that now uses outline.',
   },
   {
-    pairing: 'surfaceVariant fill on surface / background',
+    pairing: 'surfaceVariant fill on background — the dark Card ground (passive)',
     exemption:
-      'WCAG 1.4.11 — the component boundary is carried by its outline/primary border, which is gated above; the fill itself identifies nothing on its own.',
+      'WCAG 1.4.11 — a passive grouping container (1.248:1). ADR-P022 Addendum B gives the dark Card a lighter ground than background, conveying hierarchy at code level where the shadow scale cannot. It identifies no component, information or state on its own, and Card has no press, selection or disclosure behaviour. Held separately from the bordered-control exemption below because nothing here carries the boundary: this fill has no outline or primary border. Reassess if Card ever becomes interactive or the boundary becomes semantically necessary.',
+  },
+  {
+    pairing: 'surfaceVariant fill on surface / background — bordered controls',
+    exemption:
+      'WCAG 1.4.11 — the component boundary is carried by its outline/primary border, which is gated above; the fill itself identifies nothing on its own. Scoped to controls that have such a border (AppTextInput / FormField); the passive Card ground is exempt separately above, on different grounds.',
   },
   {
     pairing: 'primaryContainer fill on surface',

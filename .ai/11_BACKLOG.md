@@ -983,7 +983,7 @@ Priority: P0
 Type: Feature
 Owner: Product / Architecture
 Created: 2026-08-10
-Updated: 2026-09-16
+Updated: 2026-09-21
 
 ### Description
 
@@ -1225,7 +1225,7 @@ Priority: P1
 Type: Feature
 Owner: Product / Design / Architecture
 Created: 2026-08-24
-Updated: 2026-09-16
+Updated: 2026-09-21
 
 > **ADR-P022 ADDENDUM A ACCEPTED 2026-09-16 — Accessible colour foundation
 > (UX-1C-4). The light-theme contrast blockers are CLOSED.** Four light token
@@ -1254,9 +1254,17 @@ Updated: 2026-09-16
 > remains blocked** on required / invalid / group accessibility. **ADR-P027 is
 > not reopened** — one clause of its rationale is corrected; hub-and-spoke is
 > retained and tabs stay deferred.
-> **FEATURE-010 remains In Progress. No accessibility outcome is claimed: UX-4C
-> is open and unrun, dark-mode verification across every shipped surface is
-> unverified, and all five accessibility release-review gates stay open.**
+> **ADR-P022 ADDENDUM B ACCEPTED 2026-09-21 — bounded dark Card hierarchy
+> (UX-1C-5).** The only production elevation-token consumer now uses the
+> existing `surfaceVariant` fill with `elevations.level0` in dark mode; its light
+> `surface` + `level1` treatment is unchanged. This is one shipped mapping, not
+> the complete levels 2–5 ramp. No token, role, dependency, component API or
+> accessibility behaviour changed.
+>
+> **FEATURE-010 remains In Progress. No accessibility outcome is claimed:**
+> UX-4C is open and unrun, all five accessibility release-review gates stay
+> open, and the new Card mapping still needs final-candidate visual confirmation
+> on native. The existing gate-6 captures predate this mapping.
 
 > **ADR-P022 ACCEPTED 2026-08-24** — visual direction `Confident Clarity`,
 > mobile-first V1, explicit Web non-parity, wellness-not-medical visual posture,

@@ -399,8 +399,11 @@ angles — coverage, then quality.
    foreground-pairing defects fixed, including one that rendered every
    `secondary` and `text` button label as untinted black at **1.13–1.42:1 on
    the dark theme's grounds**. **This does not advance gate 5 to done**: Inter,
-   icons, motion and dark surface-tint elevation are all still unimplemented, so
-   the app's appearance is still largely default MD3.
+   icons and motion remain unimplemented. **The first dark surface-tint mapping
+   shipped 2026-09-21 under ADR-P022 Addendum B:** `Card`, the only production
+   elevation-token consumer, now uses the existing lighter neutral surface
+   without an invisible black shadow. Levels 2–5 remain open, so this advances
+   but does not close gate 5.
 6. `in-repo` — **Light and dark mode** verified across every shipped surface.
    **PARTIALLY VERIFIED 2026-09-16** — `.ai/23_THEME_SURFACE_VERIFICATION.md`.
    **18 of the 19 reachable routes were captured and visually reviewed in both
@@ -446,6 +449,10 @@ angles — coverage, then quality.
    in both themes. This discharges the in-repository Web theme defect. Hosted
    Cloudflare artifacts were not published or contacted, so final hosted
    confirmation remains part of the publication lifecycle.
+   **Post-capture visual change, 2026-09-21:** ADR-P022 Addendum B changes only
+   the shared dark `Card` mapping and is fully unit/contrast gated, but the
+   existing native captures predate it. Final-candidate native visual review
+   must confirm that nested `surfaceVariant` content remains distinguishable.
 7. `in-repo` — **Accessibility (UX-4C)**: manual screen-reader, keyboard and
    large-text passes. No outcome may be claimed until run. **Unchanged by
    ADR-P022 Addendum A** — contrast arithmetic is not an assistive-technology

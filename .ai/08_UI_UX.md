@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.10
+Version: 1.11
 Status: Active
-Last Updated: 2026-09-16
+Last Updated: 2026-09-21
 
 ---
 
@@ -56,9 +56,21 @@ not interchangeable.
 | **TARGET** | Approved behaviour that code must eventually satisfy. **Not implemented.** |
 | **PROPOSED** | A candidate value or approach that is **not approved and not in code**. Requires its own decision before use. |
 
-Nothing labelled TARGET or PROPOSED exists in the mobile application today.
-Inter, icons, motion adoption, surface-tint elevation, navigation, and shared
-components are **all** unimplemented as of this revision.
+That blanket statement held when it was written at v1.3. It no longer does, and
+is corrected here rather than left standing:
+
+- **Shared components are SHIPPED.** UX-1C delivered the shared primitives in
+  `mobile/src/shared/presentation/` — `Screen`, `Card`, `AppText`,
+  `AppButton`, `Banner` and `AppTextInput`.
+- **Surface-tint elevation is PARTIAL, not absent.** ADR-P022 Addendum B ships
+  one bounded mapping — dark `Card` on `surfaceVariant` with
+  `elevations.level0` — and `Card` is the only production consumer of an
+  elevation token. The **general levels 2–5 ramp remains TARGET** (§Elevation).
+- **Inter, icons and motion adoption remain unimplemented**, as their own
+  sections record.
+
+Each section below states its own status. Where this summary and a section
+disagree, **the section governs**.
 
 ---
 
@@ -406,6 +418,17 @@ same severity.
 `ddac012093dff93fc7e48404702acd0cbb409cd6`. Every ratio was recomputed from the
 shipped token modules with the §Audit method below; all previously recorded
 figures reproduced exactly.
+
+---
+
+# Revision Scope (v1.11 — ADR-P022 Addendum B)
+
+This revision ships one bounded dark hierarchy mapping: the shared `Card`, the
+only production elevation-token consumer, uses `surfaceVariant` plus
+`elevations.level0` in dark mode. Its light treatment stays `surface` plus
+`elevations.level1`; caller style precedence and the passive component contract
+are unchanged. This is not the full dark elevation ramp: levels 2–5 and future
+raised surfaces remain TARGET.
 
 ---
 
@@ -1113,8 +1136,8 @@ double-counted.
   ratios of **1.99 : 1** (light) and **3.35 : 1** (dark). WCAG 1.4.3 exempts
   inactive controls, so these are **not failures** — they remain a **usability
   concern**, and opacity is currently the only disabled signal.
-- **The `Card` boundary is exempt while decorative.** `surface` on `background`
-  (1.05 : 1 light / 1.08 : 1 dark) and the `divider` border (1.22 / 1.39) are far
+- **The `Card` boundary is exempt while decorative.** Light `surface` or dark
+  `surfaceVariant` on `background`, and the `divider` border, remain far
   below 3 : 1, but a passive grouping boundary is not information required to
   identify a component or state. **Reassess if it ever becomes semantically
   necessary or interactive.**
@@ -1422,7 +1445,7 @@ level is a black shadow plus the Android `elevation` value:
 
 `shadowColor` is `#000000` at every level.
 
-## Dark-mode surface tint (TARGET — not implemented)
+## Dark-mode surface tint (PARTIAL — Card shipped; ramp remains TARGET)
 
 A black shadow at 8–16% opacity is effectively invisible against the shipped dark
 surfaces `background #101416`, `surface #191C1F`, and `surfaceVariant #24282C`.
@@ -1433,9 +1456,12 @@ The shipped elevation scale therefore conveys **no** hierarchy in dark mode.
 surface; borders carry the remaining separation. Light mode keeps the shadow
 scale, used sparingly.
 
-**Not implemented:** no change to `elevation.ts`, and no tint values are proposed
-here. Defining the dark elevation ramp is a later, separately authorized
-token-value decision.
+**Shipped bounded mapping (ADR-P022 Addendum B):** dark `Card` uses the existing
+`surfaceVariant` role and `elevations.level0`; light `Card` remains on `surface`
+with `elevations.level1`. No colour or elevation token changed.
+
+**Still not implemented:** a general levels 2–5 tint ramp and mappings for
+future raised surfaces. Those remain separately authorized token-value work.
 
 ---
 
@@ -2617,19 +2643,19 @@ spec or Maestro flow depends on a primitive-internal id. What must survive is
 |---|---|
 | **Responsibility** | A **passive** structural container that groups related content on a surface. |
 | **Non-responsibilities** | **No press handling, no selection, no expansion or disclosure, no media slot, no header/footer, no action slot.** It renders a `View`. |
-| **Anatomy (SHIPPED)** | `View` — `surface` fill, **1 px** `divider` border, `radius.large`, `padding: lg`, `elevations.level1` — with the caller's `style` merged **after** the defaults and the remaining `ViewProps` spread onto the node. |
+| **Anatomy (SHIPPED)** | `View` — light: `surface` fill + `elevations.level1`; dark: `surfaceVariant` fill + `elevations.level0`; both: **1 px** `divider` border, `radius.large`, `padding: lg` — with the caller's `style` merged **after** the defaults and the remaining `ViewProps` spread onto the node. |
 | **Variants** | None. A single passive form. |
 | **Props** | required: `children`. optional: the full `ViewProps` surface, including `style` (0 usages today) and `accessibilityLabel` (25 usages). |
 | **Pressable / selected surfaces** | These are **external compositions, never `Card` variants**. The shipped progress summary wraps `Card` in an outer `Pressable` that owns the press, the role, and the `dashboard-progress-card` hook. That separation is correct and is preserved, not absorbed. |
 | **State behavior** | Stateless. Product states are **composed inside** it — the shipped `inline` empty form sits within a card, and a success notice would be feature-owned content (commonly `Banner tone="success"`), since **no frozen success-confirmation component exists**. **No state prop may be added.** |
-| **Semantic token roles** | `surface` fill · `divider` border · `radius.large` · `spacing.lg` padding · `elevations.level1`. |
+| **Semantic token roles** | Light: `surface` + `elevations.level1`. Dark: `surfaceVariant` + `elevations.level0`. Both: `divider` border · `radius.large` · `spacing.lg` padding. |
 | **Accessibility — precise** | `accessibilityLabel` pass-through is preserved, and its spec proves the **prop and query path** survive. That is **not** proof of equivalent screen-reader **grouping semantics on every platform**: React Native derives grouping from `accessible`, which `Card` does **not** set. **`Card` must not become an accessibility element by default** — doing so could collapse or hide descendant semantics. Caller-owned grouping semantics therefore require **platform validation**, and this contract states the outcome rather than prescribing a prop. |
 | **EN/ES + dynamic type** | Height is content-driven; padding is a floor, never a ceiling. |
 | **Responsive / Web** | Identical on all platforms. |
 | **Test hooks** | None of its own; `testID` and `accessibilityLabel` pass through. |
 | **Unit / component regression** | Children render; a caller `accessibilityLabel` is queryable; caller `style` merges after the defaults; no press affordance exists in any configuration. |
-| **Contrast note** | The card boundary is weak: `surface` on `background` and the `divider` border are both far below 3:1 in either theme. It is **not currently classified as an AA failure** *only* because the boundary is decorative grouping — it is not required to identify a component, information, or a state. **Reassessment is required if the boundary ever becomes semantically necessary or interactive** (for example the sole indicator of selection), at which point 3:1 applies. |
-| **Blockers** | `elevations.level1` is shadow-only and therefore effectively invisible on dark surfaces. The **dark surface-tint TARGET** (§Elevation) applies; **no tint value is chosen here.** |
+| **Contrast note** | The card boundary is weak: light `surface` or dark `surfaceVariant` on `background`, plus the `divider` border, remain below 3:1. It is **not currently classified as an AA failure** *only* because the boundary is decorative grouping — it is not required to identify a component, information, or a state. **Reassessment is required if the boundary ever becomes semantically necessary or interactive** (for example the sole indicator of selection), at which point 3:1 applies. |
+| **Blockers** | The Card/level1 dark mapping is shipped by ADR-P022 Addendum B. The complete levels 2–5 dark ramp and any future raised surface remain TARGET. |
 
 ---
 
@@ -3238,7 +3264,9 @@ Each requires its own authorization before any code:
    foreground/background *pairing* — there is no `onAccent` role and none was
    introduced — and `UX-1C-3` / `FormSelect` remains blocked on its required /
    invalid / group accessibility outcomes (decision 10 below).
-4. The dark-mode surface-tint elevation ramp.
+4. The dark-mode surface-tint elevation ramp — **PARTIAL 2026-09-21 by
+   ADR-P022 Addendum B:** the Card/level1 mapping is shipped; levels 2–5 and
+   future raised surfaces remain open.
 5. Motion adoption, including easing curves and reduce-motion detection.
 6. Responsive rules — breakpoints and the concrete content measure.
 7. Whether small empty-state illustrations are adopted.
