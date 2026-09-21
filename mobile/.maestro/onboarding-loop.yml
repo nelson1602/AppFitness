@@ -235,16 +235,21 @@ appId: com.appfitness.mobile
       id: 'input-password'
 
 # Existing account restores straight to the populated, already-synced
-# dashboard — local data survived sign-out. The sync banner sits above the
-# assessment, so assert it from the top and scroll to the assessment.
+# dashboard — local data survived sign-out.
+#
+# The checklist must be gone: the baseline is complete. Both absence checks are
+# made while the top of the dashboard is in view, where the checklist would
+# render, and before any scrolling.
 - extendedWaitUntil:
     visible: 'Your local iCoach assessment'
     timeout: 45000
-- assertVisible: 'Local data ready'
-# The first-run checklist must be gone: the baseline is complete. Asserted
-# while the top of the dashboard is in view, where it would render.
 - assertNotVisible: 'Finish setting up AppFitness'
 - assertNotVisible: 'Load sample data'
+# The sync banner sits below the two advisory cards that open the dashboard, so
+# it is off-screen from the top on a short viewport — scrolled to, not asserted.
+- scrollUntilVisible:
+    element: 'Local data ready'
+    timeout: 45000
 - scrollUntilVisible:
     element: "Today's assessment"
     timeout: 45000

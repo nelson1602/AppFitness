@@ -126,8 +126,14 @@ appId: com.appfitness.mobile
 # scrollable list: it renders, and `assertVisible` finds it, but
 # `scrollUntilVisible` at 100% visibility cannot settle on it — verified on
 # device, where the assertion passes on the exact screen the scroll gives up on.
+#
+# The custom section sits below the **entire** built-in catalog, so reaching it
+# is a long scroll. The default 20s expires mid-traverse: the failure screenshot
+# shows the list still in the built-ins, and an earlier run timed out on the very
+# swipe that brought the section into view. This is distance, not absence.
 - scrollUntilVisible:
     element: 'E2E landmine row'
+    timeout: 60000
 - assertVisible: 'My exercises'
 - tapOn: 'E2E landmine row'
 - scrollUntilVisible:
@@ -165,8 +171,14 @@ appId: com.appfitness.mobile
 # scrollable list: it renders, and `assertVisible` finds it, but
 # `scrollUntilVisible` at 100% visibility cannot settle on it — verified on
 # device, where the assertion passes on the exact screen the scroll gives up on.
+#
+# The custom section sits below the **entire** built-in catalog, so reaching it
+# is a long scroll. The default 20s expires mid-traverse: the failure screenshot
+# shows the list still in the built-ins, and an earlier run timed out on the very
+# swipe that brought the section into view. This is distance, not absence.
 - scrollUntilVisible:
     element: 'E2E landmine row'
+    timeout: 60000
 - assertVisible: 'My exercises'
 - tapOn: 'E2E landmine row'
 - scrollUntilVisible:
