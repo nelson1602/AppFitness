@@ -14,7 +14,12 @@ appId: com.appfitness.mobile
     visible: 'Your local iCoach assessment'
     timeout: 30000
 
-# The offline-queued profile now pushes; the pending state clears.
+# The offline-queued profile now pushes; the pending state clears. The sync
+# control sits below the dashboard's two advisory cards, so scroll to it; the
+# assertion above already anchored the screen.
+- scrollUntilVisible:
+    element: 'Sync now'
+    timeout: 30000
 - tapOn: 'Sync now'
 - extendedWaitUntil:
     visible: 'Local data ready'

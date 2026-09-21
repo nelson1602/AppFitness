@@ -5,6 +5,14 @@
 # server-side through public contracts), then this flow. Launches WITHOUT
 # clearing state so the persisted session restores straight to the
 # dashboard; "Sync now" pulls the seeded data through the real appliers.
+#
+# Everything below the two advisory cards at the top of the dashboard — the
+# ADR-P026 verification reminder and the ADR-P017 W-3 wellness recommendation
+# — is off-screen on a phone viewport, so the sync control and the assessment
+# are scrolled to rather than asserted from the top. Each scroll is anchored
+# by a preceding assertion on content that must already be on screen, so a
+# blank or errored dashboard still fails fast instead of scrolling into a
+# timeout.
 appId: com.appfitness.mobile
 ---
 - launchApp
@@ -15,20 +23,38 @@ appId: com.appfitness.mobile
     timeout: 30000
 
 # Pull the seeded server data through the real sync path.
+- scrollUntilVisible:
+    element: 'Sync now'
+    timeout: 30000
 - tapOn: 'Sync now'
 
 # Populated state: assessment summary + recommendations from local iCoach.
-- extendedWaitUntil:
-    visible: "Today's assessment"
+# The pull, the local appliers and the iCoach recalculation all have to finish
+# before the assessment can render, so this scroll is also the wait for sync
+# to settle — nothing else reports completion this precisely.
+- scrollUntilVisible:
+    element: "Today's assessment"
     timeout: 60000
-- assertVisible: '.*kcal.*'
-- assertVisible: 'iCoach recommendations'
-- assertVisible: 'Local data ready'
+- scrollUntilVisible:
+    element: '.*kcal.*'
+    timeout: 30000
+- scrollUntilVisible:
+    element: 'iCoach recommendations'
+    timeout: 30000
+
+# The sync banner sits above the sync control, so scroll back UP for it. It
+# must read ready rather than syncing, pending or error: a settled pull is
+# what this flow proves, not merely that an assessment appeared.
+- scrollUntilVisible:
+    element: 'Local data ready'
+    direction: UP
+    timeout: 30000
 
 # Sign out clears the session; the route guard returns to the auth
 # surface (TEST-004 logout flow).
 - scrollUntilVisible:
     element: 'Sign out'
+    timeout: 60000
 - tapOn: 'Sign out'
 - extendedWaitUntil:
     visible: 'Sign in to continue.'

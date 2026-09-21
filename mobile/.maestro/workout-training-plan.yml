@@ -24,24 +24,39 @@ appId: com.appfitness.mobile
 - launchApp
 
 # Session restore → the ready dashboard for the onboard wellness account.
+# The dashboard opens with two advisory cards — the ADR-P026 verification
+# reminder and the ADR-P017 W-3 wellness recommendation — so the assessment is
+# below the fold on a phone viewport. Anchor on the headline, which is always
+# at the top, then scroll to the assessment: the anchor keeps a blank or
+# errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: "Today's assessment"
+    visible: 'Your local iCoach assessment'
+    timeout: 45000
+- scrollUntilVisible:
+    element: "Today's assessment"
     timeout: 45000
 
 # --- 1. Navigate: dashboard → Workout routines ---
 - scrollUntilVisible:
     element: 'Workout routines'
+    timeout: 60000
 - tapOn: 'Workout routines'
 
 # --- 2. TrainingPlan guidance is surfaced read-only from wellness inputs. ---
+# The shipped heading is `workout.plan.title` in GeneratedWorkoutPlan. The
+# previous assertion used "Your training guidance", which belongs to
+# TrainingPlanCard — an unreachable leftover carrying hardcoded English, as
+# `surface-coverage.spec.ts` already records. That assertion could not have
+# passed since GeneratedWorkoutPlan replaced it.
 - extendedWaitUntil:
-    visible: 'Your training guidance'
+    visible: 'Your weekly iCoach plan'
     timeout: 30000
 
 # --- 3. Create a routine, then view its exercises and add a built-in one. ---
 - scrollUntilVisible:
     element:
       id: 'routine-name'
+    timeout: 60000
 - tapOn:
     id: 'routine-name'
 - inputText: 'E2E push'
@@ -49,22 +64,33 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'routine-create'
+    timeout: 60000
 - tapOn:
     id: 'routine-create'
 # The created routine lands in "Your routines" below the create card.
 - scrollUntilVisible:
     element: 'E2E push'
+    timeout: 60000
+# The card's action button renders BELOW its name, and the iCoach plan above
+# pushes the list off the fold, so scroll to the button itself. The scroll to
+# the card name is kept ahead of it: a missing card still fails there rather
+# than timing out on the button.
+- scrollUntilVisible:
+    element: 'View exercises'
+    timeout: 20000
 - tapOn: 'View exercises'
 
 # --- The built-in catalog list appears and can be used in the routine. ---
 - scrollUntilVisible:
     element:
       id: 'add-exercise-exercise.back_squat'
+    timeout: 60000
 - tapOn:
     id: 'add-exercise-exercise.back_squat'
 # The routine now lists the exercise (top of the routine's exercise list).
 - scrollUntilVisible:
     element: 'Back squat'
+    timeout: 60000
 
 # --- 4. Navigate: dashboard → Log a workout ---
 # `back` restores the dashboard's scrolled position (near "Workout routines"),
@@ -73,6 +99,7 @@ appId: com.appfitness.mobile
 - back
 - scrollUntilVisible:
     element: 'Log a workout'
+    timeout: 60000
 - tapOn: 'Log a workout'
 - extendedWaitUntil:
     visible: 'Start a workout'
@@ -88,6 +115,14 @@ appId: com.appfitness.mobile
 # The open workout appears under "Open workouts"; open its set list.
 - scrollUntilVisible:
     element: 'E2E session'
+    timeout: 60000
+# The card's action button renders BELOW its name, and the iCoach plan above
+# pushes the list off the fold, so scroll to the button itself. The scroll to
+# the card name is kept ahead of it: a missing card still fails there rather
+# than timing out on the button.
+- scrollUntilVisible:
+    element: 'Log sets'
+    timeout: 20000
 - tapOn: 'Log sets'
 # Choose a built-in exercise, then enter reps + weight. The reps/weight inputs
 # render BELOW the built-in exercise catalog, so scroll each into view before
@@ -95,11 +130,13 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'set-exercise-exercise.back_squat'
+    timeout: 60000
 - tapOn:
     id: 'set-exercise-exercise.back_squat'
 - scrollUntilVisible:
     element:
       id: 'set-reps-input'
+    timeout: 60000
 - tapOn:
     id: 'set-reps-input'
 - inputText: '5'
@@ -107,6 +144,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'set-weight-input'
+    timeout: 60000
 - tapOn:
     id: 'set-weight-input'
 - inputText: '100'
@@ -114,6 +152,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'set-add'
+    timeout: 60000
 - tapOn:
     id: 'set-add'
 
@@ -123,6 +162,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     direction: UP
     element: '1. Back squat'
+    timeout: 60000
 - assertVisible: 'Pending sync'
 
 # --- Finish the workout → it moves to "Recent workouts". The Finish button sits
@@ -130,9 +170,11 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     direction: UP
     element: 'Finish'
+    timeout: 60000
 - tapOn: 'Finish'
 # Finishing collapses the open card and shifts the layout, so scroll the
 # "Recent workouts" section into view rather than asserting statically.
 - scrollUntilVisible:
     element: 'Recent workouts'
+    timeout: 60000
 - assertVisible: 'Finished'

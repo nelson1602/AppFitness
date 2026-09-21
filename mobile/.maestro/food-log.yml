@@ -22,19 +22,29 @@ appId: com.appfitness.mobile
 - launchApp
 
 # Session restore → populated dashboard for the onboard account.
+# The dashboard opens with two advisory cards — the ADR-P026 verification
+# reminder and the ADR-P017 W-3 wellness recommendation — so the assessment is
+# below the fold on a phone viewport. Anchor on the headline, which is always
+# at the top, then scroll to the assessment: the anchor keeps a blank or
+# errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: "Today's assessment"
+    visible: 'Your local iCoach assessment'
+    timeout: 45000
+- scrollUntilVisible:
+    element: "Today's assessment"
     timeout: 45000
 
 # --- Navigate: dashboard → Nutrition → 15-day meal plan → Food log ---
 - scrollUntilVisible:
     element: 'Nutrition'
+    timeout: 60000
 - tapOn: 'Nutrition'
 - extendedWaitUntil:
     visible: 'Nutrition targets'
     timeout: 15000
 - scrollUntilVisible:
     element: '15-day meal plan'
+    timeout: 60000
 - tapOn: '15-day meal plan'
 # The "Log today's food" entry button sits at the top of the meal-plan screen
 # (above the day content), so wait for it directly rather than scrolling down.
@@ -70,6 +80,7 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'food-log-add-submit'
+    timeout: 60000
 - tapOn:
     id: 'food-log-add-submit'
 
@@ -80,18 +91,30 @@ appId: com.appfitness.mobile
 # scrollUntilVisible both waits for the async local write and brings it on-screen.
 - scrollUntilVisible:
     element: 'Today.s totals'
-- assertVisible: '.*kcal.*'
+    timeout: 60000
+# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
+# the bottom edge, so anything rendered below it is off-screen. The CI emulator
+# is considerably shorter than a local one, which is why this passed locally
+# and failed in the cloud with the assessment title only 5px tall at the fold.
+- scrollUntilVisible:
+    element: '.*kcal.*'
+    timeout: 20000
 - scrollUntilVisible:
     element: 'Chicken breast, cooked'
+    timeout: 60000
 - assertVisible: 'Chicken breast, cooked'
 # Local-first: saved on device and queued, surfaced as pending (not lost).
-- assertVisible: 'Pending sync'
+# Rendered below the entry row just scrolled to, so scroll to it as well.
+- scrollUntilVisible:
+    element: 'Pending sync'
+    timeout: 20000
 
 # --- A sync attempt keeps the entry (DEPENDENCY_NOT_READY is retryable,
 #     never data loss — the local parent meal is not yet server-synced). ---
 - scrollUntilVisible:
     element:
       id: 'food-log-sync-now'
+    timeout: 60000
 - tapOn:
     id: 'food-log-sync-now'
 - extendedWaitUntil:
@@ -102,6 +125,7 @@ appId: com.appfitness.mobile
 # --- Soft-delete the entry → back to the empty state ---
 - scrollUntilVisible:
     element: 'Remove'
+    timeout: 60000
 - tapOn: 'Remove'
 - extendedWaitUntil:
     visible: 'Nothing logged yet'

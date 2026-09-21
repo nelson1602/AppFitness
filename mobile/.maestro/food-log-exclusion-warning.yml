@@ -15,13 +15,22 @@ appId: com.appfitness.mobile
 - launchApp
 
 # Session restore → populated dashboard for the onboard account.
+# The dashboard opens with two advisory cards — the ADR-P026 verification
+# reminder and the ADR-P017 W-3 wellness recommendation — so the assessment is
+# below the fold on a phone viewport. Anchor on the headline, which is always
+# at the top, then scroll to the assessment: the anchor keeps a blank or
+# errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: "Today's assessment"
+    visible: 'Your local iCoach assessment'
+    timeout: 45000
+- scrollUntilVisible:
+    element: "Today's assessment"
     timeout: 45000
 
 # --- Add a "Nuts" allergy via the dietary-preferences surface (Slice 2B) ---
 - scrollUntilVisible:
     element: 'Dietary preferences'
+    timeout: 60000
 - tapOn: 'Dietary preferences'
 - extendedWaitUntil:
     visible: 'Dietary preferences & allergies'
@@ -32,25 +41,30 @@ appId: com.appfitness.mobile
 - scrollUntilVisible:
     element:
       id: 'dp-tag-nut_allergy'
+    timeout: 60000
 - tapOn:
     id: 'dp-tag-nut_allergy'
 - scrollUntilVisible:
     element:
       id: 'dp-add'
+    timeout: 60000
 - tapOn:
     id: 'dp-add'
 # The new entry lands in "Your exclusions" below the add card — scroll it into
 # view to confirm it persisted (a static wait would time out off-screen).
 - scrollUntilVisible:
     element: 'Nuts · category'
+    timeout: 60000
 
 # --- Navigate to the food log via dashboard → Nutrition → meal plan ---
 - back
 - scrollUntilVisible:
     element: 'Nutrition'
+    timeout: 60000
 - tapOn: 'Nutrition'
 - scrollUntilVisible:
     element: '15-day meal plan'
+    timeout: 60000
 - tapOn: '15-day meal plan'
 - extendedWaitUntil:
     visible:
@@ -77,17 +91,21 @@ appId: com.appfitness.mobile
 # The non-blocking warning renders below the selected food — scroll it in.
 - scrollUntilVisible:
     element: 'Heads up — this matches an allergy or sensitivity'
+    timeout: 60000
 # Advisory, not a medical directive. The disclaimer is the banner's last line,
 # below the title — scroll it into view rather than asserting statically.
 - scrollUntilVisible:
     element: '.*not emergency medical advice.*'
+    timeout: 60000
 
 # --- The warning never blocks: the food can still be logged ---
 - scrollUntilVisible:
     element:
       id: 'food-log-add-submit'
+    timeout: 60000
 - tapOn:
     id: 'food-log-add-submit'
 - scrollUntilVisible:
     element: 'Almonds'
+    timeout: 60000
 - assertVisible: 'Almonds'
