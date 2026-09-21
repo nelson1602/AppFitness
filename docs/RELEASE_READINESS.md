@@ -505,8 +505,25 @@ angles — coverage, then quality.
     fourteen stay **manual**, with the completed C-7 campaign as their evidence.
     EAS *cloud* Maestro remains blocked on billing (ADR-P007/P008) independently
     of this.
-12. `in-repo` — Produce **performance evidence** (`PERF-001`): at minimum a
-    startup baseline on the candidate build.
+12. ~~`in-repo` — Produce **performance evidence** (`PERF-001`): at minimum a
+    startup baseline on the candidate build.~~ **Done 2026-09-21** —
+    `docs/PERFORMANCE_BASELINE.md`. Steady-state cold start median **1715 ms**
+    (n=9, 1655–1917); first run, which creates the database and runs migrations,
+    **2320 ms** (n=4); first launch after install **4028 ms**, reported
+    separately because it carries one-time dex optimization. The difference
+    between the first two yields a **derived ≈605 ms** one-time database cost —
+    the only bottleneck at this resolution, and paid once per install rather
+    than per launch.<br><br>Measured with `am start -W`, the platform's own
+    instrumentation, so no code change was needed. **Two of `PERF-001`'s five
+    criteria remain open** and are recorded as such rather than approximated:
+    dashboard render time and a true SQLite-init figure both need timing
+    instrumentation the app does not have, and adding it during a measurement
+    task would have changed what was being measured.<br><br>**This is not a
+    device number.** It was taken on a software-rendered x86_64 emulator
+    (Android 15, 4 cores, 2 GB). It is a valid build-over-build comparator; item
+    15's physical-device validation is where a quotable figure comes from. The
+    APK is from `1f893c8`; the only `mobile/src` changes since are two spec
+    files that no production file imports, so the shipped bundle is unchanged.
 13. `in-repo` — Rewrite `docs/releases/v1.0.0.md` for the actual candidate.
 
 **Stage 4 — build and validate the candidate (`owner` + `in-repo`)**
