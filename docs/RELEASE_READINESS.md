@@ -252,7 +252,7 @@ not outrank launch blockers.**
 | Rollback dry-run | **BLOCKED-OWNER** | Untested runbook is an unproven recovery path. |
 | Production log / monitoring review | **PENDING-HUMAN** | Required by the deployment checklist. |
 | Performance evidence (`PERF-001`) | **NOT STARTED** | No baseline of any kind exists. |
-| `BUG-017` Web portals do not render dark mode | **Open (P2)** | The three public portals render light — or two themes at once — for a dark-mode visitor. Verified on a local static export of `main` (`.ai/23`, finding T-2); the hosted portals were not contacted. Blocks closing Stage 2 gate 6 and contradicts the ADR-P032 "polished portal" boundary. Does not affect the native product. |
+| `BUG-017` Web portals do not render dark mode | **Implemented in repository (2026-09-21); publication pending** | ADR-P032 Addendum A records a Web-only browser-theme subscription: the static snapshot stays deterministic, then the whole tree re-renders from `prefers-color-scheme`. A fresh local export passed 24/24 captures across three portals, four widths and two themes. Hosted Workers were not contacted or published, so their artifact remains unverified. |
 
 **Security / privacy items carried in the backlog:**
 
@@ -439,8 +439,13 @@ angles — coverage, then quality.
    re-verification afterwards. Four observations are recorded as
    `OBS-T2-1 … OBS-T2-4`, one of which (`OBS-T2-4`) was a second, independent
    confirmation that the E2E journeys had gone stale against ADR-P027. That
-   staleness is now resolved — gate E1 passed on 2026-09-21 — but `BUG-017`
-   is untouched by it and still gates this item.
+   staleness is now resolved — gate E1 passed on 2026-09-21.
+   **PASS 3 — 2026-09-21.** `BUG-017` is corrected in the repository. A fresh
+   local export completed **24/24 Web captures** (three portals × four widths ×
+   light/dark); all 12 pairs differ and visual review found each portal coherent
+   in both themes. This discharges the in-repository Web theme defect. Hosted
+   Cloudflare artifacts were not published or contacted, so final hosted
+   confirmation remains part of the publication lifecycle.
 7. `in-repo` — **Accessibility (UX-4C)**: manual screen-reader, keyboard and
    large-text passes. No outcome may be claimed until run. **Unchanged by
    ADR-P022 Addendum A** — contrast arithmetic is not an assistive-technology

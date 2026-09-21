@@ -355,6 +355,32 @@ forcing a post-hydration re-render from `Appearance` — all change product
 behaviour on a deployed surface and belong to an owner decision. Tracked as
 `BUG-017`.
 
+### Pass 3 — BUG-017 repository correction (2026-09-21)
+
+Owner authorization selected a Web-only `useSyncExternalStore` subscription to
+`prefers-color-scheme`, recorded by ADR-P032 Addendum A. The server and
+hydration snapshot deliberately remains light; the browser snapshot then
+re-renders the full tree and follows later OS changes. Native behaviour is
+unchanged. A brief light first frame for a dark visitor is accepted; overscroll
+outside the React Native root was not exercised by this pass.
+
+A fresh local static export was captured with the same harness across all three
+portals, at 360 / 414 / 768 / 1280 px, in light and dark: **24/24 captures
+completed, all 12 light/dark pairs differ, and every image was visually
+reviewed**. Each portal is coherent in both themes; the light-only and mixed
+states above are absent. The export shell gate also passes all 21 documents.
+
+The capture source is attributable to current main `b475a31` plus these three
+runtime blobs, in order (`use-theme.ts`, `theme-definition.ts`,
+`use-theme.web.ts`): `6b575de1481bb3b86c0619dd569adee9775623aa`,
+`3a6411d8fd52361b413fd2da0578dbdac4261ad0`,
+`dc6242619818d9bdfef26616f0b90ea108d60951`. The capture
+`inventory.json` SHA-256 is
+`347AEA769107A961C806A495B2E04F23618D8101F29DB9343D014054EFBC68F5`.
+
+This is repository/export evidence only. No hosted Worker was contacted or
+published, so it makes no claim about the currently hosted artifacts.
+
 ## Observations (not defects)
 
 - **OBS-T2-1 — the latest `TrendBars` bar can collapse to a 4 px sliver.** When
