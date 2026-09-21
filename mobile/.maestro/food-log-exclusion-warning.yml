@@ -15,8 +15,16 @@ appId: com.appfitness.mobile
 - launchApp
 
 # Session restore → populated dashboard for the onboard account.
+# The dashboard opens with two advisory cards — the ADR-P026 verification
+# reminder and the ADR-P017 W-3 wellness recommendation — so the assessment is
+# below the fold on a phone viewport. Anchor on the headline, which is always
+# at the top, then scroll to the assessment: the anchor keeps a blank or
+# errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: "Today's assessment"
+    visible: 'Your local iCoach assessment'
+    timeout: 45000
+- scrollUntilVisible:
+    element: "Today's assessment"
     timeout: 45000
 
 # --- Add a "Nuts" allergy via the dietary-preferences surface (Slice 2B) ---

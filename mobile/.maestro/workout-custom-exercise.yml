@@ -21,8 +21,16 @@ appId: com.appfitness.mobile
 # Session restore → populated dashboard for the onboard account. Although the
 # previous workout flow finishes on /workout-log, the established suite pattern
 # is to cold-launch each flow and wait for the dashboard landing state.
+# The dashboard opens with two advisory cards — the ADR-P026 verification
+# reminder and the ADR-P017 W-3 wellness recommendation — so the assessment is
+# below the fold on a phone viewport. Anchor on the headline, which is always
+# at the top, then scroll to the assessment: the anchor keeps a blank or
+# errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: "Today's assessment"
+    visible: 'Your local iCoach assessment'
+    timeout: 45000
+- scrollUntilVisible:
+    element: "Today's assessment"
     timeout: 45000
 
 # --- 1. Dashboard → Exercise library ---
@@ -105,11 +113,22 @@ appId: com.appfitness.mobile
     timeout: 15000
 - scrollUntilVisible:
     element: 'E2E push'
-- tapOn: 'View exercises'
+# The card's action button renders BELOW its name, and the iCoach plan above
+# pushes the list off the fold, so scroll to the button itself. The scroll to
+# the card name is kept ahead of it: a missing card still fails there rather
+# than timing out on the button.
 - scrollUntilVisible:
-    element: 'My exercises'
+    element: 'View exercises'
+    timeout: 20000
+- tapOn: 'View exercises'
+# Scroll to the custom exercise itself, then assert the section header that
+# must be above it. The header is a short label inside the picker's own
+# scrollable list: it renders, and `assertVisible` finds it, but
+# `scrollUntilVisible` at 100% visibility cannot settle on it — verified on
+# device, where the assertion passes on the exact screen the scroll gives up on.
 - scrollUntilVisible:
     element: 'E2E landmine row'
+- assertVisible: 'My exercises'
 - tapOn: 'E2E landmine row'
 - scrollUntilVisible:
     direction: UP
@@ -133,11 +152,22 @@ appId: com.appfitness.mobile
     id: 'workout-start'
 - scrollUntilVisible:
     element: 'E2E custom session'
-- tapOn: 'Log sets'
+# The card's action button renders BELOW its name, and the iCoach plan above
+# pushes the list off the fold, so scroll to the button itself. The scroll to
+# the card name is kept ahead of it: a missing card still fails there rather
+# than timing out on the button.
 - scrollUntilVisible:
-    element: 'My exercises'
+    element: 'Log sets'
+    timeout: 20000
+- tapOn: 'Log sets'
+# Scroll to the custom exercise itself, then assert the section header that
+# must be above it. The header is a short label inside the picker's own
+# scrollable list: it renders, and `assertVisible` finds it, but
+# `scrollUntilVisible` at 100% visibility cannot settle on it — verified on
+# device, where the assertion passes on the exact screen the scroll gives up on.
 - scrollUntilVisible:
     element: 'E2E landmine row'
+- assertVisible: 'My exercises'
 - tapOn: 'E2E landmine row'
 - scrollUntilVisible:
     element:
@@ -206,6 +236,11 @@ appId: com.appfitness.mobile
     timeout: 15000
 - scrollUntilVisible:
     element: 'E2E push'
+# The action button renders BELOW the card name, so scroll to the button
+# itself; the scroll to the card name above still fails fast if it is gone.
+- scrollUntilVisible:
+    element: 'View exercises'
+    timeout: 20000
 - tapOn: 'View exercises'
 - scrollUntilVisible:
     element: '\(removed exercise\)'

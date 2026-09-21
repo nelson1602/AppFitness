@@ -21,7 +21,17 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Your local iCoach assessment'
     timeout: 30000
-- assertVisible: 'Create your profile'
+# First run renders the ADR-P027 checklist, whose profile step reads "Add your
+# profile basics"; DataGapCard's "Create your profile" now appears only in the
+# `ready` state. The checklist also sits below the verification reminder and
+# the wellness recommendation card, so it is scrolled to rather than merely
+# waited for — the same pattern registration.yml uses.
+- scrollUntilVisible:
+    element:
+      id: 'onboarding-step-profile'
+    timeout: 30000
+- assertVisible:
+    id: 'onboarding-step-profile'
 
 # --- Enter a profile OFFLINE: the local-first write must succeed. ---
 - tapOn:
@@ -55,5 +65,12 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Your local iCoach assessment'
     timeout: 30000
-- assertNotVisible: 'Create your profile'
-- assertVisible: 'Local changes pending'
+# The profile step leaves the checklist entirely — asserted by its own testID,
+# because the old "Create your profile" copy no longer renders in this state
+# and would have passed vacuously.
+- assertNotVisible:
+    id: 'onboarding-step-profile'
+# The sync banner sits below the two advisory cards, so scroll to it.
+- scrollUntilVisible:
+    element: 'Local changes pending'
+    timeout: 30000
