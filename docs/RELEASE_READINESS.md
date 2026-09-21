@@ -524,7 +524,20 @@ angles — coverage, then quality.
     15's physical-device validation is where a quotable figure comes from. The
     APK is from `1f893c8`; the only `mobile/src` changes since are two spec
     files that no production file imports, so the shipped bundle is unchanged.
-13. `in-repo` — Rewrite `docs/releases/v1.0.0.md` for the actual candidate.
+13. ~~`in-repo` — Rewrite `docs/releases/v1.0.0.md` for the actual candidate.~~
+    **Done 2026-09-21.** The Phase 20 draft had been carrying a SUPERSEDED
+    banner since 2026-08-10 and was actively wrong about the product: it listed
+    **"medical / physical evaluation"** among the user-facing highlights, of a
+    product whose medical domain ADR-P017 made dormant, and its dependency
+    figures ("api prod audit is clean (0)") predated the 2026-09-21 refresh.
+    Rewritten around what Phase 21 actually ships — bilingual EN/ES at parity,
+    deterministic on-device iCoach, the ADR-P030 conflict review, ADR-P026
+    recovery and verification, ADR-P027 advisory onboarding, and the ADR-P032
+    Web boundary — with the medical dormancy stated as a property of the product
+    rather than omitted.<br><br>**It remains a DRAFT and says so twice**, because
+    gates 5, 6 and 7 are open: the note carries an explicit *Gates still open*
+    table listing every in-repo, owner and external gate that is not passed. A
+    release note describes a candidate; it does not assert one is shippable.
 
 **Stage 4 — build and validate the candidate (`owner` + `in-repo`)**
 
