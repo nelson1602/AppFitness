@@ -453,7 +453,25 @@ angles — coverage, then quality.
 
 **Stage 3 — refresh engineering evidence on a real candidate (`in-repo`)**
 
-9. `in-repo` — Refresh the **dependency-audit triage** against current lockfiles.
+9. ~~`in-repo` — Refresh the **dependency-audit triage** against current
+   lockfiles.~~ **Done 2026-09-21** — `docs/DEPENDENCY_AUDIT.md`. The register
+   was stale against `9da7482`; thirteen lockfile commits had landed since,
+   including the Expo SDK 57 series and the API's rate-limiting and HTTP
+   hardening. Refreshed against `11f92d2`: **critical stays 0 in both packages**,
+   so the deterministic CI gate was never wrong, but **18 HIGH advisories had
+   accumulated untriaged** (api 0 → 11, mobile 0 → 7). All eighteen are now
+   triaged against the dependency graph and the source rather than by package
+   name: the mobile seven are Metro, Expo prebuild and `@expo/xcpretty`, none on
+   the shipped RN runtime; the api eleven are the Prisma CLI chain, `multer`
+   (**no multipart route exists in `api/src`**) and `js-yaml` behind the
+   `API_DOCS_ENABLED` gate, which is unset on both deployed environments.
+   **Nothing was remediated** — the policy reserves that for explicit owner
+   approval, and every HIGH resolves only through a semver-major upgrade.
+   **One finding is both live and cheap:** `qs` (MODERATE) parses the query
+   string of every request via `express@5.2.1` and has a non-breaking fix. It is
+   the recommended next remediation and is tracked as **`RISK-002`**; the NestJS 11 → 12, Prisma and Expo SDK
+   bumps behind the HIGHs are framework decisions, not audit decisions, and the
+   Expo one would invalidate the gate-E1 evidence.
 9a. ~~`in-repo` — Close `RISK-001`.~~ **Done 2026-09-15.** All three
     cross-package fixture edges now select their consumer workflow, so a green
     PR means what it appears to mean.

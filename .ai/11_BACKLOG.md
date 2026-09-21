@@ -2627,6 +2627,70 @@ account-notification feature**.
 
 ---
 
+## [RISK-002] `qs` Query-String Advisories Are on the Live Request Path
+
+Status: **Open — awaiting owner authorization to remediate.**
+Priority: **P2**
+Type: Risk (dependency advisory, runtime-reachable)
+Owner: Eng / Security (owner approval required to upgrade)
+Created: 2026-09-21
+Updated: 2026-09-21
+
+### Description
+
+The 2026-09-21 dependency-audit refresh (`docs/DEPENDENCY_AUDIT.md`, release-queue
+item 9) found 18 HIGH advisories that had accumulated untriaged since 2026-08-05.
+Seventeen are unreachable — Metro and Expo build tooling on mobile, and on the API
+the Prisma CLI chain, `multer` (no multipart route exists in `api/src`) and
+`js-yaml` behind the `API_DOCS_ENABLED` gate.
+
+**`qs` is the exception.** It is MODERATE rather than HIGH, which is why it is
+easy to overlook, but it is the one finding that is genuinely on a live path:
+
+    @nestjs/platform-express@11.1.28 → express@5.2.1 → qs@6.15.3
+
+`qs` parses the query string of **every** request the API serves. Two advisories
+apply:
+
+- **GHSA-x5fp-wj9c-mxmx** — array-limit bypass via bracket-key comma parsing.
+- **GHSA-4mjr-xmp4-gh2g** — denial of service via attacker-controlled `isBuffer`.
+
+### Why it is P2 rather than P1
+
+Neither advisory is critical, the CI gate (`--audit-level=critical`) is
+correctly unaffected, and the API sits behind the rate limiting and brute-force
+protection added in Phase 21. It is not an active incident. It is recorded at P2
+because it is the only reachable one, and because leaving it unfixed is now a
+recorded decision rather than an oversight.
+
+### Why it is not already fixed
+
+`docs/DEPENDENCY_AUDIT.md` states that the register records findings and **does
+not authorize `npm audit fix`**; upgrades need explicit owner approval. That
+policy was followed here.
+
+### What makes this one actionable
+
+Unlike the eighteen HIGHs, `qs` reports `fixAvailable: true` — **not**
+semver-major. Clearing the HIGHs at source would mean NestJS 11 → 12, Prisma →
+6.19.3 and an Expo SDK bump; those are framework decisions with their own
+regression surfaces, and the Expo one would invalidate the gate-E1 evidence
+captured on the current SDK. `qs` needs none of that.
+
+### Recommended action
+
+Authorize a narrow, lockfile-only `npm audit fix --omit=dev` scoped to `qs` in
+`api/`, then re-run `api-ci` and reconcile the register. No `package.json`
+change, no framework upgrade.
+
+### Related Documents
+
+- `docs/DEPENDENCY_AUDIT.md` — §Refresh 2026-09-21
+- `docs/RELEASE_READINESS.md` — release-queue item 9
+- `.github/workflows/api-ci.yml` — the critical-only audit gate
+
+---
+
 ## [RISK-001] Cross-Package Test Fixtures Were Excluded by CI Path Filters
 
 Status: **Done** (2026-09-15 — fixed in this change; see Resolution)
