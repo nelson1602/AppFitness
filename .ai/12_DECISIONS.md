@@ -13943,6 +13943,331 @@ baseline export.
 
 ---
 
+## ADR-P033 — Material Symbols Delivery in React Native (UX-1B1 icon gate)
+
+Status: **Proposed — the recommended plan is built, licensed and measured as a
+feasibility pilot. Web rendering is verified in a real browser; iOS and Android
+device rendering are not.** No npm dependency was added; two Apache-2.0 font
+assets were.
+Date: 2026-09-22 (revised the same day after a font-capability review)
+Owner: Product / Design / Architecture
+Supersedes: nothing. Resolves the delivery question ADR-P022 Decision 9 left open.
+
+### Context
+
+ADR-P022 Decision 9 confirmed **Material Symbols** as the approved V1 icon
+family, left the React Native **delivery mechanism** unresolved, and required
+this slice to compare the supported Expo mechanisms, decide between *identical
+Material Symbols everywhere* and *platform-native equivalents behind a shared
+semantic mapping*, and reconcile `02_TECH_STACK.md`.
+
+Decision 9 also sets a **two-state** requirement: icons are **outlined by
+default and filled only for selection or an active state**. Any delivery
+mechanism must satisfy **both** states, not just the outlined one.
+
+### Finding 1 — no mechanism in the installed stack renders Material Symbols on iOS
+
+| Mechanism | iOS | Android | Web | New npm dependency |
+|---|---|---|---|---|
+| `expo-symbols` 57.0.3 *(installed)* | **SF Symbols only** | Material Symbols | Material Symbols | No |
+| `@expo/ui` 57.0.11 universal `Icon` *(installed)* | SF Symbol | Material Symbol (XML drawable) | **no Web build** | Yes — `@expo/material-symbols`, absent |
+| `@expo/vector-icons` | deprecated by Expo; ships Ionicons/FontAwesome, **not** Material Symbols | | | Yes — **not installed at all** |
+| Material Symbols **font** via `expo-font` 57.0.4 *(installed)* | Material Symbols | Material Symbols | Material Symbols | See Finding 2 |
+
+The `expo-symbols` limit is structural: `SymbolViewProps.name` is
+`SFSymbol | { ios?: SFSymbol; android?: AndroidSymbol; web?: AndroidSymbol }` —
+the `ios` slot accepts **only** an `SFSymbol` — and its other export,
+`unstable_getMaterialSymbolSourceAsync`, ships an iOS build that is literally
+*"A noop for iOS"* returning `null`, annotated `@platform android`.
+
+### Finding 2 — the font route cannot express the **filled** state either (corrects the first draft)
+
+The first draft of this ADR recommended the `@expo-google-fonts/material-symbols`
+face and called it *"the only route"* that satisfies the contract. **That was
+wrong**, and the error was recommending an asset without first checking its
+capability. Verified by reading the shipped binaries:
+
+- **All seven faces are static.** None contains an `fvar` or `gvar` table, so no
+  axis can be varied at runtime. They are `wght` instances 100–700, each
+  ≈0.92–0.95 MB.
+- Their `STAT` table *does* name five design axes — `FILL`, `GRAD`, `ROND`,
+  `opsz`, `wght` — but `STAT` only records **where an instance sits** in the
+  design space. Without `fvar` it does not make the file variable. A `STAT`
+  axis list must not be mistaken for a usable `FILL` axis.
+- The package ships **no filled face**: the seven directories vary weight only.
+
+So this route delivers **outlined only**. It cannot satisfy Decision 9's
+filled-for-selected state.
+
+The same limit applies to `expo-symbols` on Android and Web, which selects among
+those *same* seven static weight faces. Its 4,055-name table contains only **13**
+legacy `*_filled` names inherited from Material Icons
+(`directions_car_filled` and similar); there is no systematic filled variant,
+and the natural pilot candidates — `restaurant`, `fitness_center`,
+`monitoring` — have none.
+
+**The capability is therefore inverted:** the only platform that can currently
+express "filled when selected" is **iOS**, through SF Symbols' `.fill` names —
+that is, through the family the specification does **not** approve.
+
+### Finding 3 — corrections to three claims in the first draft
+
+| First draft said | Correct position |
+|---|---|
+| the font route is *"the only route"* satisfying the contract | It satisfies **neither** the full contract nor the family requirement on its own, because it cannot render the filled state. **No route is currently proven.** |
+| *"font loading at startup"* is required | Wrong for native. `expo-font` ships a config plugin (`withFonts`) that **links font files into the native iOS/Android project at build time**, so no runtime `loadAsync` is needed there. Runtime loading applies to **Web**. The plugin does imply a **native rebuild** — it is not OTA-eligible. |
+| *"adds no new download"* | This conflated **npm resolution** with **app bundle cost**. Correct: the face is already resolved in the lockfile transitively, so `npm ci` fetches nothing new; but **nothing references it today, so it contributes 0 bytes to the shipped app**. Shipping it adds ≈**0.92 MB per face actually referenced**, and the two-state requirement implies **two** faces. *Measured once built: 2,409,920 B for the pair.* |
+
+### Recommended plan (single, testable — not yet proven)
+
+**Two static Material Symbols faces — `FILL=0` outlined and `FILL=1` filled —
+vendored into `mobile/assets/fonts/`, linked natively through the `expo-font`
+config plugin, and served by the same files on Web.** A semantic mapping layer
+names each icon once; the primitive swaps `fontFamily` between the two faces to
+express selection.
+
+Chosen over the alternatives because the Material Symbols **variable** font would
+be one file but React Native exposes no portable way to drive a `FILL` axis at
+runtime (`fontVariationSettings` is a Web/CSS facility); `@expo/ui` has no Web
+build; and `expo-symbols` cannot reach the approved family on iOS.
+
+| Implication | Position |
+|---|---|
+| **Asset / dependency** | **No new npm dependency.** Two vendored `.ttf` files, Apache-2.0, provenance and SHA-256 recorded. Vendoring is preferred over reaching into `@expo-google-fonts` internals so the app owns its assets — and that package has no `FILL=1` face to offer in any case. |
+| **Filled state** | Satisfied by swapping between two faces, not by an axis. |
+| **Offline** | Fully offline on native: the plugin embeds the files in the binary. Web needs the files present in the export output. |
+| **Bundle size** | Baseline **0 bytes** — nothing referenced a font. Estimated ≈**1.84 MB** unsubsetted for both faces; **measured at 2,409,920 B** once built (see *Pilot results* below). Subsetting to the mapped glyph set would cut that by orders of magnitude but adds a build step, so it is **not** part of this plan. |
+| **Rebuild** | A config-plugin change requires a **native rebuild** and cannot ship OTA. This couples the icon pilot to release-queue item 14. |
+
+### Pilot results (2026-09-22)
+
+The recommended plan was implemented as a feasibility pilot on three existing,
+visibly labelled dashboard actions. Each of the five proofs is marked with what
+was **observed**, not with what the mechanism is expected to do:
+
+**1. Assets obtained, licensed and reproducible — MET.** Two static instances
+from the Google Fonts CSS API v2 (`fonts.gstatic.com`), **Apache-2.0**. Both are
+`Version 2.972`, neither has an `fvar` table, and their internal family names
+differ — which is what makes a two-face swap possible at all:
+
+| Face | Internal family | Bytes | SHA-256 |
+|---|---|---|---|
+| `FILL=0` | `Material Symbols Outlined` | 970,196 | `5456ee48d2c58c0f444386ac6fb88a90a536d46e083cb4838252e7f1ebeb9f7d` |
+| `FILL=1` | `Material Symbols Outlined Filled` | 1,439,724 | `fbd6c6ab98b9c08d80676f5d430e67874d9bbfa29f946534f4fa2d63fe6615f3` |
+
+**Licence and notices ship with the files.** `mobile/assets/fonts/LICENSE` is the
+verbatim Apache-2.0 text (11,357 bytes, SHA-256 `58d1e17f…99d8bd`), copied
+byte-for-byte from the `LICENSE_FONT` that `@expo-google-fonts/material-symbols`
+already ships for these same upstream faces, so the notice comes from the
+distribution rather than being retyped. `mobile/assets/fonts/NOTICE.md` carries
+the attribution, the §4 "no modification" statement — the vendored bytes are
+unmodified; only the *file names* differ from the API's opaque ones — and the
+full provenance.
+
+**The fetch was re-verified and both SHA-256 values reproduced exactly.** The
+recorded recipe is a `css2` request per `FILL` value followed by the single
+`src: url(...)` it returns. One trap is recorded with it, because it silently
+produces the wrong file: **the `User-Agent` selects the format.** The same URL
+returns `woff2` to a modern browser UA and `eot` to an MSIE 6 UA — an `eot` is
+a *different container* whose bytes will never match these hashes. Only a UA
+advertising none of those (curl's default does) yields the `truetype` the
+vendored files are. Resolved `gstatic` URLs carry an opaque hash and a `v###`
+revision, so they are **not** a stable contract: the SHA-256 values are.
+
+**2. Glyph parity — MET**, and enforced by `icon-glyphs.spec.ts`, which parses
+the shipped `.ttf` files and resolves each name through the font's own ligature
+table. Both faces carry `rlig` lookups and every piloted name resolves in both.
+On advance width the fonts are stronger than a per-glyph check: each declares
+`unitsPerEm = 960` and `numHMetrics = 1`, a single horizontal metric of 960 for
+**every** glyph. Both faces are therefore uniformly one em wide, so switching a
+glyph to its filled form **cannot** shift the label beside it. A browser
+confirmed this independently (proof 3): at `font-size: 44px` each icon measured
+exactly **44.0 px**.
+
+A finding worth recording: **many Material Symbols are byte-identical in both
+faces.** `restaurant`, `fitness_center`, `monitoring` and `trending_up` all
+are. Such a glyph cannot demonstrate a selected state, so the pilot uses
+`nutrition`, `exercise` and `analytics`, whose outlines genuinely differ, and
+the spec asserts that difference for every mapped name.
+
+The ligature tables are stored as **LookupType 7 (Extension Substitution)**
+wrapping LookupType 4, under the `rlig` feature rather than `liga`. A reader
+that only walks LookupType 4 concludes the fonts have no ligatures at all.
+
+**3. Rendering — MET ON WEB, still OPEN on iOS and Android.**
+
+*Web — verified in a real browser (Chrome 153, Blink + HarfBuzz).* Both `.ttf`
+files were served over HTTP and registered under the same two family names the
+app uses, and the three mapped names were rendered at 44px in both faces, on the
+real light (`#FFFFFF`/`#191C1F`) and dark (`#191C1F`/`#E1E3E6`) surface
+tokens. The glyph names were read out of `icon-glyphs.ts` rather than retyped,
+so the harness cannot drift from the mapping. Three things were checked:
+
+| Check | Result |
+|---|---|
+| Ligature applied, not the literal word | every name measured **44.0 px** at `font-size: 44px` — exactly one em, one glyph — against **144–156 px** for the same string in `serif` (ratio 0.28–0.31) |
+| Filled distinct from outlined | rendered to canvas and compared pixel by pixel: **335 / 642 / 701** differing pixels for `nutrition` / `exercise` / `analytics` |
+| Both faces registered | `document.fonts.check()` true for both |
+
+The rendered page was **looked at**, not just measured, in the house style of
+`.ai/23_THEME_SURFACE_VERIFICATION.md`: all three appear as icons — an apple, a
+dumbbell, a bar chart — outlined and filled visibly different, legible on both
+grounds, and inheriting the surface's text colour rather than introducing one. A
+deliberate control row rendered the same strings with **no icon font**, printing
+the literal words "nutrition", "exercise", "analytics"; the contrast between the
+two rows is what makes this proof rather than an assumption.
+
+Two honest limits. This proves the **faces and the ligature mechanism** in a
+browser, not the app's own Web screen end to end. And it is **Chrome only** — the
+app's other Web engines are unverified.
+
+*Android — OPEN.* Native registration is proven at project level (proof 5), but
+**no APK was produced and no glyph has been observed on a device** — the release
+build is blocked by a local toolchain fault, described in proof 4b.
+
+*iOS — OPEN, and nothing here may be read as evidence for it.* This work was done
+on Windows. There is **no iOS build and no iOS rendering check**; a Windows
+export proves bundling and says nothing about CoreText applying `rlig`. Chrome's
+result does not transfer: it is a different shaping stack. Closing this needs
+macOS, and no paid EAS build or Apple provisioning was initiated.
+
+**4. Size — MET for the JS/Web export; native binary measured separately.**
+
+An earlier draft of this ADR reported the export figures alone. That was
+misleading and is corrected here: **`expo export` measures JavaScript bundles
+and Web assets, not the native binary.** On iOS and Android the two faces are
+*not* in the JS bundle at all — the config plugin puts them in the built app —
+so the small native bundle deltas below are the pilot's **code**, and say
+nothing about the cost of the fonts on those platforms. The two tables are
+different units and must not be added together.
+
+*4a. JS bundles and Web assets —* `expo export --platform all`, same tree:
+
+| | Baseline | Pilot | Delta |
+|---|---|---|---|
+| Android JS bundle | 6,121,571 | 6,124,711 | **+3,140 B** (code only) |
+| iOS JS bundle | 5,814,107 | 5,816,975 | **+2,868 B** (code only) |
+| Web JS bundle | 3,438,316 | 3,466,714 | **+28,398 B** |
+| Font assets in export | 0 | 2,409,920 | **+2,409,920 B** — **Web delivery path only** |
+
+So the real cost *on Web* is the 2.41 MB of font assets a browser must fetch,
+not the bundle delta.
+
+Re-exported on review: the font assets and the Android and Web figures reproduced
+exactly; iOS came back one byte larger (5,816,976). Expo exports are not
+byte-reproducible at that resolution, so the pilot column is left as originally
+measured rather than have one half of a delta come from a different run.
+
+*4b. Native binary — NOT MEASURED. The release APK could not be built here.*
+
+Four attempts were made; none produced an APK. Two distinct causes were found
+and one was fixed:
+
+- **Sentry source-map upload.** `assembleRelease` runs a `sentry-cli` upload
+  that fails without an organization. Fixed for local builds by setting
+  `SENTRY_DISABLE_AUTO_UPLOAD=true`, which also keeps the build offline.
+- **Native C/C++ compilation fails — unresolved.** `expo-modules-core` and
+  `react-native-reanimated` both die with
+  `ninja: error: manifest 'build.ninja' still dirty after 100 tries`. It
+  survived deleting every `.cxx` directory and a clean CMake configure. A
+  related symptom appeared in Gradle's artifact cache, which reported its
+  immutable workspace as modified; that entry sits behind paths of 228+
+  characters and the machine has `LongPathsEnabled = 0`, so `MAX_PATH` is a
+  plausible common cause, though not proven.
+
+**This failure is not attributable to the pilot.** The failing tasks compile the
+native C++ of two modules the pilot never touches; the fonts enter the build as
+Android *resources* through a config plugin and cannot affect CMake. The same
+two tasks would fail on `origin/main`.
+
+**Derived — not measured.** Since no APK exists, the native cost is *calculated*
+rather than observed. An APK stores `res/font` entries deflated, so the honest
+figure is the fonts' compressed size:
+
+| Face | Raw | Deflated (level 9) | Ratio |
+|---|---|---|---|
+| `FILL=0` | 970,196 | 436,455 | 0.450 |
+| `FILL=1` | 1,439,724 | 559,782 | 0.389 |
+| **Both** | **2,409,920** | **996,237** | **0.413** |
+
+So the expected native binary cost is **≈1.0 MB, not the 2.41 MB raw figure** —
+plus a negligible resource-table entry and the small code delta from 4a. This
+materially changes the trade: the headline "2.3 MB" overstates what an installed
+app actually carries by roughly 2.4×. **It remains a calculation.** Confirming it
+needs one successful `assembleRelease` on a working toolchain, compared against
+the same tree with the `expo-font` plugin entry removed — a baseline app config
+was prepared for exactly that comparison and is the one-line difference to make.
+
+The first attempt shipped the faces **twice on native** — once linked by the
+plugin and once as a Metro asset, because a static `require()` is reachable from
+every platform. Splitting the loader into `icon-font.ts` / `icon-font.web.ts`
+removed 2,426,678 B of duplication from the export. Native now takes the fonts
+only from the binary the plugin builds; Web takes them only from the export.
+
+**5. Native linking — MET at the project level.** `expo prebuild` was run for
+Android and the generated project registers both faces under exactly the family
+names the code uses:
+
+    ReactFontManager.getInstance().addCustomFont(this, "Material Symbols Outlined", …)
+    ReactFontManager.getInstance().addCustomFont(this, "Material Symbols Outlined Filled", …)
+
+This required correcting the plugin configuration. The **string** form of
+`fonts` copies into `assets/fonts`, where React Native resolves a family by
+**file name** — Android would have needed `MaterialSymbolsOutlined-Fill0`. The
+**object** form emits a `res/font` XML family instead, which is what allows one
+`fontFamily` string to be valid on both platforms. iOS `UIAppFonts` lists both
+files. The generated `android/` directory was removed afterwards; it is ignored
+and was only evidence.
+
+### Remaining before this ADR can be accepted
+
+- **Rendering on an iOS device.** The largest gap, and untouched: it needs
+  macOS. Nothing in this pilot is evidence about iOS, and no paid EAS build or
+  Apple provisioning was initiated.
+- **An Android release build at all**, which is blocked by the local toolchain
+  fault in proof 4b, not by the pilot. Until one succeeds there is no APK, so
+  both the **measured** native size and Android device rendering stay open.
+- **Rendering on an Android device**, which needs that APK *and* a way onto the
+  authenticated dashboard — the pilot icons sit behind a local API and database
+  this work deliberately did not start.
+- **Web beyond Chrome.** Verified in Blink/HarfBuzz only, and against the font
+  files rather than the app's own Web screen end to end.
+- A decision on the **2.3 MB** cost. Subsetting to the mapped glyphs would cut it
+  by orders of magnitude but adds a build step and was deliberately left out.
+
+The Web result narrows the risk but does not remove it: it proves the faces and
+the ligature mechanism are sound, so a failure on iOS or Android would be a
+*platform shaping or registration* failure, not a bad asset. If one occurs, the
+fallbacks are unchanged: a subsetted asset pipeline, or accepting SF Symbols on
+iOS — the latter requiring `.ai/08_UI_UX.md` §Icons to be amended first, since
+it states that *"no alternative visual vocabulary is under consideration"*.
+
+### Consequences
+
+- **Three icons now render**, on the nutrition, routines and progress dashboard
+  actions. Each keeps its visible bilingual label and its own
+  `accessibilityLabel`; the icon itself is hidden from assistive technology
+  because it duplicates that label. All three render **outlined** — none of those
+  actions has a selected state — so the filled face is exercised by tests, not by
+  the pilot surface.
+- FEATURE-010 gate 5 stays open: this is a feasibility pilot, not the icon system.
+  Levels 2–5 of the elevation ramp, Inter and motion are untouched.
+- Licensing does not differentiate the options: the Material Symbols font is
+  **Apache-2.0**, the Expo wrapper MIT.
+- Accessibility is unaffected by the choice: a meaningful icon needs a text
+  equivalent, and an icon duplicating adjacent visible text must be hidden from
+  assistive technology rather than labelled twice.
+
+### Related Documents
+
+- `.ai/12_DECISIONS.md` — ADR-P022 Decision 9
+- `.ai/08_UI_UX.md` — §Icons, §Icon visual contract
+- `.ai/02_TECH_STACK.md` — §UI Components (reconciled by this slice)
+- `docs/RELEASE_READINESS.md` — release-queue item 5, item 14 (native rebuild)
+
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

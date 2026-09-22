@@ -1,8 +1,10 @@
 export { AppButton } from './app-button';
+export { AppIcon } from './app-icon';
 export { AppText } from './app-text';
 export { AppTextInput, type AppTextInputProps } from './app-text-input';
 export { Banner } from './banner';
 export { Card } from './card';
+export { ICON_FONT_FAMILY, ICON_GLYPHS, type IconName } from './icon-glyphs';
 export { Screen } from './screen';
 export { FormField } from './form/FormField';
 export { FormSelect } from './form/FormSelect';

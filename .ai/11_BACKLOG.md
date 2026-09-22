@@ -1218,6 +1218,95 @@ that build would contradict the owner's clarified product intent.
 
 ---
 
+## [DECISION-001] Material Symbols Delivery Mechanism — Owner Decision Required
+
+Status: **Open — blocked on an owner decision (ADR-P033 Proposed).**
+Priority: **P2**
+Type: Decision (blocks FEATURE-010 gate 5)
+Owner: Product / Design
+Created: 2026-09-22
+Updated: 2026-09-22
+
+### Why this is blocked rather than in progress
+
+The icon-delivery slice compared the mechanisms against the **installed** Expo
+SDK 57 tree and found that **no mechanism in the current stack renders Material
+Symbols on iOS**:
+
+- `expo-symbols` types `name.ios` as `SFSymbol` only, and its
+  `unstable_getMaterialSymbolSourceAsync` ships an iOS build that is *"A noop for
+  iOS"* returning `null`;
+- `@expo/ui`'s universal `Icon` has the same iOS substitution, **no Web build**,
+  and needs `@expo/material-symbols`, which is not installed;
+- `@expo/vector-icons` is not a dependency at all, is deprecated by Expo, and
+  does not ship Material Symbols.
+
+### The filled state is the harder half (revised 2026-09-22)
+
+An earlier draft called the Material Symbols **font** through the installed
+`expo-font` "the only route" that satisfies the contract. That was wrong. The
+shipped `@expo-google-fonts/material-symbols` faces are **static** — no `fvar`
+or `gvar` table in any of the seven — so the `FILL` axis cannot be varied at
+runtime, and the package ships **no filled face**. Their `STAT` table lists
+five axes including `FILL`, but `STAT` only records where an instance sits in
+the design space; it does not make the file variable.
+
+ADR-P022 Decision 9 requires icons to be **outlined by default and filled for
+selection or an active state**. Neither those faces nor `expo-symbols` on
+Android/Web — which selects among the *same* seven static weight faces, and
+whose table holds only 13 legacy `*_filled` names, none of them a plausible
+pilot icon — can express the filled half. **Only iOS can, through SF Symbols'
+`.fill` names: the family the specification does not approve.**
+
+### The decision
+
+Either (A) accept **SF Symbols on iOS** behind a shared semantic mapping, which
+requires amending `.ai/08_UI_UX.md` §Icons, since it currently states that *"no
+alternative visual vocabulary is under consideration"*; or (B) authorize
+**two vendored static faces** (`FILL=0` and `FILL=1`, Apache-2.0) linked through
+the `expo-font` config plugin. **ADR-P033 recommends B and remains Proposed**
+— of its five proofs, four are now met by the pilot below; device and browser
+rendering are not.
+
+Two cost corrections that the earlier draft got wrong: `npm ci` fetches nothing
+new (the face is already in the lockfile), but **nothing references it today, so
+it ships 0 bytes** — adding it costs ≈0.92 MB *per face*, and two states imply
+two faces (**measured at 2,409,920 B** for the pair once built). And font loading is **not** required at startup on native: the
+`expo-font` config plugin links the files into the native project at build
+time. That does, however, require a **native rebuild** and cannot ship OTA.
+
+### Pilot built 2026-09-22
+
+Option B was then implemented as a feasibility pilot rather than argued further.
+Both faces are vendored, linked natively by the `expo-font` config plugin and
+loaded from the same files on Web; three existing dashboard actions carry an
+outlined icon behind a typed semantic mapping, keeping their visible labels.
+**No npm dependency was added.** Measured: **+3,140 B** Android, **+2,868 B**
+iOS, **+28,398 B** Web, plus **2,409,920 B** of font assets.
+
+**The decision above is still the owner's.** The pilot shows B is *buildable*
+and what it costs — roughly **2.3 MB** unsubsetted — not that it is the right
+trade. **Web rendering is verified in a real browser; Android and iOS are not** —
+no Android APK could be built here, for a local toolchain reason unrelated to
+the pilot. One number did move: the faces **deflate to 996,237 B**, so installed
+cost should be **≈1.0 MB** rather than 2.41 MB — a calculation, not a measured
+APK. See ADR-P033 for the evidence and the exact remaining gates.
+
+Two findings worth keeping whichever way it goes. Many Material Symbols are
+**byte-identical** outlined and filled — `restaurant`, `fitness_center` and
+`monitoring` among them — so the icons must be chosen partly for whether they
+can express selection at all. And the faces store ligatures as **LookupType 7**
+(Extension Substitution) wrapping LookupType 4, under `rlig` rather than
+`liga` — easy to misread as "this font has no ligatures".
+
+### Related Documents
+
+- `.ai/12_DECISIONS.md` — **ADR-P033 (Proposed)**, ADR-P022 Decision 9
+- `.ai/08_UI_UX.md` — §Icons
+- `.ai/02_TECH_STACK.md` — §UI Components, §Design System → Icons
+
+---
+
 ## [FEATURE-010] V1 Visual Design Foundation and Design-System Evolution (UX Stream)
 
 Status: In Progress

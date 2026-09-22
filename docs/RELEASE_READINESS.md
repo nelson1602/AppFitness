@@ -404,6 +404,60 @@ angles — coverage, then quality.
    elevation-token consumer, now uses the existing lighter neutral surface
    without an invisible black shadow. Levels 2–5 remain open, so this advances
    but does not close gate 5.
+   **Icon delivery investigated 2026-09-22 — still blocked, now with a reason.**
+   Measured against the installed SDK 57 tree rather than documentation, **no
+   mechanism in the current stack renders Material Symbols on iOS**:
+   `expo-symbols` types `name.ios` as `SFSymbol` only and its Material image
+   source is an explicit iOS no-op; `@expo/ui`'s `Icon` shares that substitution,
+   has **no Web build**, and needs an uninstalled package; `@expo/vector-icons`
+   is not a dependency, is deprecated, and does not ship Material Symbols.
+   **The filled state is the harder half.** ADR-P022 Decision 9 requires icons
+   **outlined by default and filled when selected**. The
+   `@expo-google-fonts/material-symbols` faces are **static** — no `fvar` in any
+   of the seven — so the `FILL` axis cannot be varied, and no filled face is
+   shipped; `expo-symbols` on Android/Web draws on those same faces and offers
+   only 13 legacy `*_filled` names. **Only iOS can express filled today, via SF
+   Symbols — the unapproved family.** The recommendation was therefore two
+   vendored static faces (`FILL=0`/`FILL=1`, Apache-2.0) linked by the
+   `expo-font` config plugin, which needs a **native rebuild** (item 14) against
+   a **0-byte** baseline — nothing referenced a font at all. Recorded as
+   **ADR-P033** and **`DECISION-001`**; the `02_TECH_STACK.md` "Expo Vector
+   Icons" entry ADR-P022 required reconciling is corrected.
+
+   **Feasibility pilot built and measured 2026-09-22.** That recommendation was
+   then implemented rather than left as an argument. Both Apache-2.0 faces are
+   vendored (SHA-256 recorded in ADR-P033), linked natively by the `expo-font`
+   plugin and loaded from the **same files** on Web, behind a typed semantic
+   mapping. **Three existing dashboard actions — nutrition, routines, progress —
+   now show an outlined icon** beside their unchanged bilingual labels; each icon
+   is hidden from assistive technology because it duplicates the label beside it.
+   **No npm dependency was added.** Measured against a same-tree baseline export:
+   **+3,140 B** Android bundle, **+2,868 B** iOS, **+28,398 B** Web, plus
+   **2,409,920 B** of font assets — the 2.3 MB of unsubsetted faces is the
+   dominant cost and supersedes the earlier ≈1.84 MB estimate. The faces carry
+   their **Apache-2.0 licence and a provenance notice**, and both SHA-256 values
+   were re-verified against a reproducible fetch.
+
+   **Web rendering is verified in a real browser** (Chrome 153): all three
+   glyphs render as icons in light and dark, each measuring exactly one em
+   rather than the literal ligature word, with filled visibly distinct from
+   outlined.
+
+   **Gate 5 stays open and ADR-P033 stays Proposed**, because the two platforms
+   that matter most for V1 are unproven. **No Android release APK could be
+   built**: `expo-modules-core` and `react-native-reanimated` fail native C/C++
+   compilation with `ninja: manifest 'build.ninja' still dirty` — a local
+   toolchain fault in modules the pilot never touches, so it is **not caused by
+   this work**, but it leaves native size unmeasured and Android device
+   rendering unobserved. **iOS is entirely unverified** — no iOS build exists and
+   nothing here may be read as evidence for it. Android native registration *is*
+   proven at project level by `expo prebuild`.
+
+   One correction the build attempt did produce: the fonts **deflate to 996,237 B**,
+   so an installed app should carry **≈1.0 MB**, not the 2.41 MB raw figure —
+   the headline number overstates installed cost by roughly 2.4×. That is a
+   calculation from the compressed bytes, **not** a measured APK delta. Levels
+   2–5, Inter and motion are untouched.
 6. `in-repo` — **Light and dark mode** verified across every shipped surface.
    **PARTIALLY VERIFIED 2026-09-16** — `.ai/23_THEME_SURFACE_VERIFICATION.md`.
    **18 of the 19 reachable routes were captured and visually reviewed in both
