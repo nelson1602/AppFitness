@@ -443,21 +443,18 @@ angles — coverage, then quality.
    rather than the literal ligature word, with filled visibly distinct from
    outlined.
 
-   **Gate 5 stays open and ADR-P033 stays Proposed**, because the two platforms
-   that matter most for V1 are unproven. **No Android release APK could be
-   built**: `expo-modules-core` and `react-native-reanimated` fail native C/C++
-   compilation with `ninja: manifest 'build.ninja' still dirty` — a local
-   toolchain fault in modules the pilot never touches, so it is **not caused by
-   this work**, but it leaves native size unmeasured and Android device
-   rendering unobserved. **iOS is entirely unverified** — no iOS build exists and
-   nothing here may be read as evidence for it. Android native registration *is*
-   proven at project level by `expo prebuild`.
-
-   One correction the build attempt did produce: the fonts **deflate to 996,237 B**,
-   so an installed app should carry **≈1.0 MB**, not the 2.41 MB raw figure —
-   the headline number overstates installed cost by roughly 2.4×. That is a
-   calculation from the compressed bytes, **not** a measured APK delta. Levels
-   2–5, Inter and motion are untouched.
+   **Gate 5 stays open and ADR-P033 stays Proposed.** Android now has a successful
+   same-profile EAS comparison: baseline `01641be` build `ecdca4ff…` is
+   **117,304,493 B**; pilot `2db2aa9` build `d2098381…` is **118,293,313 B** — a
+   measured **+988,820 B (0.843%)**. Both use the same package/version/signing
+   identity, and extracting the pilot's two additional TTF resources reproduces
+   the vendored source SHA-256 values exactly. This closes Android build,
+   packaging and native-size uncertainty, but **not Android device rendering**:
+   no glyph has yet been observed on a device. **iOS is entirely unverified** —
+   no iOS build exists and nothing here may be read as evidence for it. The local
+   `ninja: manifest 'build.ninja' still dirty` failure remains a machine-specific
+   toolchain issue, superseded as product-build evidence by the successful EAS
+   APKs. Levels 2–5, Inter and motion are untouched.
 6. `in-repo` — **Light and dark mode** verified across every shipped surface.
    **PARTIALLY VERIFIED 2026-09-16** — `.ai/23_THEME_SURFACE_VERIFICATION.md`.
    **18 of the 19 reachable routes were captured and visually reviewed in both

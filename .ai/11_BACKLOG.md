@@ -1285,12 +1285,12 @@ outlined icon behind a typed semantic mapping, keeping their visible labels.
 iOS, **+28,398 B** Web, plus **2,409,920 B** of font assets.
 
 **The decision above is still the owner's.** The pilot shows B is *buildable*
-and what it costs — roughly **2.3 MB** unsubsetted — not that it is the right
-trade. **Web rendering is verified in a real browser; Android and iOS are not** —
-no Android APK could be built here, for a local toolchain reason unrelated to
-the pilot. One number did move: the faces **deflate to 996,237 B**, so installed
-cost should be **≈1.0 MB** rather than 2.41 MB — a calculation, not a measured
-APK. See ADR-P033 for the evidence and the exact remaining gates.
+and now measures its platform-specific costs: **2,409,920 B** of Web font assets
+and **+988,820 B** in a same-profile Android APK comparison. **Web rendering is
+verified in a real browser. Android now has a successful EAS APK whose packaged
+font bytes match the vendored sources exactly, but no glyph has yet been observed
+on an Android device; iOS remains entirely unverified.** See ADR-P033 for the
+evidence and the exact remaining gates.
 
 Two findings worth keeping whichever way it goes. Many Material Symbols are
 **byte-identical** outlined and filled — `restaurant`, `fitness_center` and

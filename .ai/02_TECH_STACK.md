@@ -455,13 +455,14 @@ Icons
   npm dependency was added**. Both files ship with the Apache-2.0 `LICENSE` and
   a `NOTICE.md` recording provenance and SHA-256.
 - **Cost:** 2,409,920 B of unsubsetted font assets — the figure a Web client
-  fetches. They **deflate to 996,237 B**, so an installed native app should carry
-  **≈1.0 MB**; that is calculated from the compressed bytes, **not** a measured
-  APK, because no Android release build could be produced here. Because the faces
+  fetches. A same-profile EAS comparison measured the Android APK impact at
+  **+988,820 B** (`117,304,493` B baseline → `118,293,313` B pilot), closely
+  matching the prior 996,237 B deflate estimate. Because the faces
   arrive through a config plugin, adding or changing one needs a **native
   rebuild** and cannot ship OTA. See **ADR-P033 (Proposed)** — **Web rendering is
-  verified in a real browser**, but **Android and iOS remain unverified**, so
-  this is not yet the accepted icon system.
+  verified in a real browser**, an Android APK now builds and contains both
+  source-identical faces, but **Android device rendering and all iOS rendering
+  remain unverified**, so this is not yet the accepted icon system.
 
 Typography
 

@@ -13946,9 +13946,9 @@ baseline export.
 ## ADR-P033 — Material Symbols Delivery in React Native (UX-1B1 icon gate)
 
 Status: **Proposed — the recommended plan is built, licensed and measured as a
-feasibility pilot. Web rendering is verified in a real browser; iOS and Android
-device rendering are not.** No npm dependency was added; two Apache-2.0 font
-assets were.
+feasibility pilot. Web rendering is verified in a real browser; an Android APK
+build and its binary cost are verified, but iOS and Android device rendering are
+not.** No npm dependency was added; two Apache-2.0 font assets were.
 Date: 2026-09-22 (revised the same day after a font-capability review)
 Owner: Product / Design / Architecture
 Supersedes: nothing. Resolves the delivery question ADR-P022 Decision 9 left open.
@@ -14121,9 +14121,10 @@ Two honest limits. This proves the **faces and the ligature mechanism** in a
 browser, not the app's own Web screen end to end. And it is **Chrome only** — the
 app's other Web engines are unverified.
 
-*Android — OPEN.* Native registration is proven at project level (proof 5), but
-**no APK was produced and no glyph has been observed on a device** — the release
-build is blocked by a local toolchain fault, described in proof 4b.
+*Android — PARTIAL.* Native registration is now proven both at project level
+(proof 5) and in a successful EAS APK: both source font SHA-256 values were
+reproduced from the packaged `res/*.ttf` entries. **No glyph has yet been
+observed on an Android device**, so shaping and family selection remain open.
 
 *iOS — OPEN, and nothing here may be read as evidence for it.* This work was done
 on Windows. There is **no iOS build and no iOS rendering check**; a Windows
@@ -14158,10 +14159,10 @@ exactly; iOS came back one byte larger (5,816,976). Expo exports are not
 byte-reproducible at that resolution, so the pilot column is left as originally
 measured rather than have one half of a delta come from a different run.
 
-*4b. Native binary — NOT MEASURED. The release APK could not be built here.*
+*4b. Native binary — MEASURED BY SAME-PROFILE EAS APK COMPARISON.*
 
-Four attempts were made; none produced an APK. Two distinct causes were found
-and one was fixed:
+Four local attempts produced no APK. Two distinct local causes were found and
+one was fixed:
 
 - **Sentry source-map upload.** `assembleRelease` runs a `sentry-cli` upload
   that fails without an organization. Fixed for local builds by setting
@@ -14175,14 +14176,12 @@ and one was fixed:
   characters and the machine has `LongPathsEnabled = 0`, so `MAX_PATH` is a
   plausible common cause, though not proven.
 
-**This failure is not attributable to the pilot.** The failing tasks compile the
+**That local failure is not attributable to the pilot.** The failing tasks compile the
 native C++ of two modules the pilot never touches; the fonts enter the build as
-Android *resources* through a config plugin and cannot affect CMake. The same
-two tasks would fail on `origin/main`.
+Android *resources* through a config plugin and cannot affect CMake.
 
-**Derived — not measured.** Since no APK exists, the native cost is *calculated*
-rather than observed. An APK stores `res/font` entries deflated, so the honest
-figure is the fonts' compressed size:
+Before a working builder was available, the native cost was estimated from the
+fonts' compressed size:
 
 | Face | Raw | Deflated (level 9) | Ratio |
 |---|---|---|---|
@@ -14190,13 +14189,21 @@ figure is the fonts' compressed size:
 | `FILL=1` | 1,439,724 | 559,782 | 0.389 |
 | **Both** | **2,409,920** | **996,237** | **0.413** |
 
-So the expected native binary cost is **≈1.0 MB, not the 2.41 MB raw figure** —
-plus a negligible resource-table entry and the small code delta from 4a. This
-materially changes the trade: the headline "2.3 MB" overstates what an installed
-app actually carries by roughly 2.4×. **It remains a calculation.** Confirming it
-needs one successful `assembleRelease` on a working toolchain, compared against
-the same tree with the `expo-font` plugin entry removed — a baseline app config
-was prepared for exactly that comparison and is the one-line difference to make.
+The EAS `preview` comparison subsequently measured it directly, using the same
+remote credentials, profile, package id, version code and SDK on both commits:
+
+| APK | Commit | EAS build | Bytes |
+|---|---|---|---:|
+| Baseline | `01641be` | `ecdca4ff-42a0-4c4e-91d6-d4f61af613f7` | 117,304,493 |
+| Pilot | `2db2aa9` | `d2098381-c7a2-4c93-909f-47f00b366224` | 118,293,313 |
+| **Delta** | | | **+988,820 B (0.843%)** |
+
+That is 7,417 B below the 996,237 B deflate estimate and confirms that the
+native cost is **≈0.99 MB, not the 2.41 MB raw Web figure**. Both APKs verify
+under APK Signature Scheme v2 with the same signing-certificate SHA-256. The
+pilot APK contains two additional TTF resources; extracting them reproduces the
+two vendored source SHA-256 values exactly. The APK proves build, packaging and
+cost — **not on-device glyph rendering**.
 
 The first attempt shipped the faces **twice on native** — once linked by the
 plugin and once as a Metro asset, because a static `require()` is reachable from
@@ -14224,16 +14231,14 @@ and was only evidence.
 - **Rendering on an iOS device.** The largest gap, and untouched: it needs
   macOS. Nothing in this pilot is evidence about iOS, and no paid EAS build or
   Apple provisioning was initiated.
-- **An Android release build at all**, which is blocked by the local toolchain
-  fault in proof 4b, not by the pilot. Until one succeeds there is no APK, so
-  both the **measured** native size and Android device rendering stay open.
-- **Rendering on an Android device**, which needs that APK *and* a way onto the
+- **Rendering on an Android device**, using the now-built pilot APK and a way onto the
   authenticated dashboard — the pilot icons sit behind a local API and database
   this work deliberately did not start.
 - **Web beyond Chrome.** Verified in Blink/HarfBuzz only, and against the font
   files rather than the app's own Web screen end to end.
-- A decision on the **2.3 MB** cost. Subsetting to the mapped glyphs would cut it
-  by orders of magnitude but adds a build step and was deliberately left out.
+- A decision on the measured cost: **+988,820 B in the Android APK** and
+  **2,409,920 B of Web font assets**. Subsetting to the mapped glyphs would cut
+  both by orders of magnitude but adds a build step and was deliberately left out.
 
 The Web result narrows the risk but does not remove it: it proves the faces and
 the ligature mechanism are sound, so a failure on iOS or Android would be a
