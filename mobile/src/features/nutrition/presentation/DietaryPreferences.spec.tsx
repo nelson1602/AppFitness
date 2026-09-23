@@ -140,6 +140,63 @@ describe('DietaryPreferences', () => {
     expect(chip).toMatchObject({ paddingHorizontal: 12, paddingVertical: 8 });
   });
 
+  /**
+   * BUG-024. A chip wider than its wrapping row neither shrank nor wrapped, so
+   * at 1.3× text the Spanish "Preferencia / desagrado" ran past the card edge
+   * and clipped. Capping each chip at the row width lets its label wrap.
+   */
+  it('caps every chip at the row width so a long label wraps instead of clipping', async () => {
+    setStore({ status: 'ready', preferences: [] });
+    await render(<DietaryPreferences />);
+
+    const chipIds = ['dp-mode-category', 'dp-mode-food', 'dp-kind-allergy', 'dp-kind-preference'];
+    for (const testID of chipIds) {
+      const chip = screen.getByTestId(testID);
+      const style = StyleSheet.flatten(chip.props.style);
+      expect(style.maxWidth).toBe('100%');
+      // The BUG-023 floor still holds.
+      expect(style.minHeight).toBeGreaterThanOrEqual(48);
+      expect(style.minWidth).toBeGreaterThanOrEqual(48);
+    }
+    const tag = StyleSheet.flatten(screen.getByTestId('dp-tag-gluten_sensitive').props.style);
+    expect(tag.maxWidth).toBe('100%');
+  });
+
+  /**
+   * BUG-024's root cause: the "what" and "why" chip pairs sat in rows that did
+   * not wrap, so at 1.3× text the second chip was pushed past the card edge
+   * (Spanish and English alike). Every chip row must wrap.
+   */
+  it('lets every chip row wrap so a chip that no longer fits moves to the next line', async () => {
+    setStore({ status: 'ready', preferences: [] });
+    await render(<DietaryPreferences />);
+
+    const root = screen.root;
+    if (root === null) throw new Error('DietaryPreferences rendered no root');
+    for (const testID of ['dp-mode-category', 'dp-kind-allergy', 'dp-tag-gluten_sensitive']) {
+      const [row] = root.queryAll(
+        (node) =>
+          node.type === 'View' &&
+          StyleSheet.flatten(node.props.style)?.flexDirection === 'row' &&
+          node.queryAll((child) => child.props.testID === testID).length > 0,
+      );
+      expect(StyleSheet.flatten(row?.props.style)).toMatchObject({
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+      });
+    }
+  });
+
+  it('never truncates a chip label to a fixed number of lines', async () => {
+    setStore({ status: 'ready', preferences: [] });
+    await render(<DietaryPreferences />);
+
+    const label = screen.getByText('Preference / dislike');
+    expect(label.props.numberOfLines).toBeUndefined();
+    expect(label.props.ellipsizeMode).toBeUndefined();
+  });
+
   it('gives every food search result at least a 48-high touch target', async () => {
     setStore({ status: 'ready', preferences: [] });
     await render(<DietaryPreferences />);

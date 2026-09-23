@@ -2868,7 +2868,8 @@ harder of the two to read. No new measurement; no change of severity.
 
 ## [BUG-024] A Long Spanish Chip Label Clips at 1.3× Text
 
-Status: **Open — pre-existing; recorded during BUG-023, not fixed there.**
+Status: **Closed — fixed with regression coverage and Android 15 emulator measurements (2026-09-23).**
+Previous status: Open — pre-existing; recorded during BUG-023, not fixed there.
 Priority: **P3**
 Type: Bug (layout — text clipping at enlarged text size)
 Owner: Mobile Architecture
@@ -2893,6 +2894,51 @@ keeping the 48 dp floor.
 **Acceptance criteria.** At Spanish 1.3× on the Android emulator, both labels
 are fully visible (wrapping allowed), no chip extends past the content edge,
 every chip stays at least 48×48 dp, and English and 1.0× layouts do not regress.
+
+### Resolution (2026-09-23)
+
+**The hypothesis above was wrong.** The "Observed" note also said the chips sat
+in a wrapping row; that was wrong too, and it is left as first written.
+
+- **Cause.** Only the category chips sat in a wrapping row. The "what" pair
+  (category / specific food) and the "why" pair (allergy / preference) each sat
+  in a `flexDirection: 'row'` view **without `flexWrap`**. At 1.3× the two chips
+  together were wider than the card, so the second was pushed past the card's
+  content edge and clipped.
+- **Emulator evidence against the first attempt.** Capping each chip with
+  `maxWidth: '100%'` alone left the clipping unchanged: the same 149.0 dp and
+  209.9 dp widths, ending at x = 1038 px.
+- **English was affected too.** At 1.3×, "Allergy / sensitivity" plus
+  "Preference / dislike" come to about 388 dp, wider than the 345 dp card.
+
+**Fix (`DietaryPreferences.tsx` only).**
+
+- The two chip rows get `flexWrap: 'wrap'`, like the category row, `FormSelect`
+  and the meal chips. A chip that no longer fits moves to the next line.
+- Each chip also gets `maxWidth: '100%'`, so a single chip wider than the whole
+  row wraps its own label instead of overflowing.
+- **Unchanged:** the 48 dp floors from BUG-023, padding, the `sm` gap, roles,
+  states, test ids and copy. No other screen changed.
+
+**Regression coverage.**
+
+- `DietaryPreferences.spec.tsx` asserts that every chip row wraps with the 8 dp
+  gap, that every chip is capped at 100% and keeps its 48 dp floors, and that no
+  chip label is truncated to a fixed number of lines.
+- Reverting the file fails 2 tests. Removing only `flexWrap` fails the wrap
+  test.
+
+**Android 15 emulator evidence (2026-09-23).** Expo Go 57.0.2, disposable local
+data, sizes from the accessibility-node bounds. The card's content edge is at
+x = 993 px.
+
+| State | Result |
+|---|---|
+| Spanish 1.3× | "Un alimento específico" (220.6 dp) and "Preferencia / desagrado" (230.9 dp) each wrap to their own line and are fully visible. Every chip is 48 dp tall with its right edge at 976 px or less. Wrapped lines keep the 8 dp gap. |
+| English 1.3× | "Preference / dislike" wraps to its own line and is fully visible. |
+| Spanish and English 1.0× | Unchanged from the BUG-023 measurements: the same widths, with both pairs still side by side. |
+
+**Not claimed:** physical-device or iOS layout.
 
 ---
 
