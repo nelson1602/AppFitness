@@ -223,8 +223,12 @@ describe('SignInScreen', () => {
       await render(<SignInScreen />);
       await fireEvent.press(screen.getByRole('button', { name: 'Sign in' }));
 
-      // Spinner up: the label is replaced while the attempt is in flight.
-      expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+      // Spinner up: the attempt is in flight. The button keeps its name while
+      // loading (BUG-020), so the in-flight signal is the busy state, not the
+      // disappearance of the label.
+      expect(screen.getByRole('button', { name: 'Sign in' }).props.accessibilityState?.busy).toBe(
+        true,
+      );
 
       // Superseded by something outside this screen (e.g. a sign-out). Every
       // resolution is flushed inside `act`, so the continuation it schedules
@@ -262,8 +266,12 @@ describe('SignInScreen', () => {
         first.resolve({ status: 'superseded' });
       });
 
-      // The spinner belongs to the newer submission and must still be up.
-      expect(screen.queryByRole('button', { name: 'Sign in' })).toBeNull();
+      // The spinner belongs to the newer submission and must still be up: the
+      // older, superseded one must not clear it. Asserted through the busy
+      // state, which survives the label (BUG-020).
+      expect(screen.getByRole('button', { name: 'Sign in' }).props.accessibilityState?.busy).toBe(
+        true,
+      );
       expect(mockReplace).not.toHaveBeenCalled();
 
       // The newer submission then succeeds and owns the outcome.
