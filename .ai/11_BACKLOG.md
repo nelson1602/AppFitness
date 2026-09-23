@@ -2866,6 +2866,79 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-021] The First Tap on Save Is Eaten by the Keyboard
+
+Status: **Closed — fixed with regression coverage.**
+Priority: **P2**
+Type: Bug (interaction friction)
+Owner: Mobile Architecture
+Created: 2026-09-23
+Updated: 2026-09-23
+
+Found by the UX/UI product audit at `origin/main` `01641be`.
+
+### Symptom
+
+On any scrollable form, after typing in a field the user taps **Save** and
+nothing happens — the keyboard closes instead. The second tap submits. Every
+form in the app cost one wasted tap per submission.
+
+### Cause
+
+`mobile/src/shared/presentation/screen.tsx` rendered its `ScrollView` without
+`keyboardShouldPersistTaps`. React Native's default is `"never"`, under which a
+touch that lands while the keyboard is open is spent dismissing it rather than
+reaching the control underneath.
+
+This was never a per-screen bug: it lived in the one shared layout primitive
+every route renders, which is why it is fixed in one line rather than in twelve
+routes.
+
+### Fix
+
+`keyboardShouldPersistTaps="handled"` on that `ScrollView`. `"handled"` keeps the
+keyboard up only until a child actually handles the touch, so a tap on a button
+now activates it while a tap on empty space still dismisses the keyboard as
+before. `"always"` was **not** used: it would stop empty-space taps from
+dismissing, changing behaviour users already rely on.
+
+No `KeyboardAvoidingView`, no `keyboardDismissMode`, no dependency and no
+route-specific workaround. The `scroll={false}` branch is untouched and still
+renders a plain `View` — it has no `ScrollView`, so the defect never applied to
+it.
+
+The `Screen` contract in `.ai/08_UI_UX.md` (v1.12) is reconciled to match: its
+former blanket "no keyboard handling" clause is replaced by precise exclusions,
+and keyboard avoidance stays rejected.
+
+### Verified impact
+
+**12 of the 18 product-surface routes** (the set captured in
+`.ai/23_THEME_SURFACE_VERIFICATION.md`) render a text input inside the shared
+scrollable `Screen` and were affected: `/sign-in`, `/forgot-password`,
+`/reset-password`, `/profile-edit`, `/goal-edit`, `/dietary-preferences`,
+`/progress`, `/routines`, `/workout-log`, `/exercises`, `/food-log` and
+`/wellness-safety-profile`. `/delete-account` is the only `scroll={false}` usage
+in the repository and was never affected; the remaining five routes render no
+text input. The two other route entry points render none either: `/` is a
+redirect that shows only the loading skeleton, and `+not-found` shows copy and a
+button. No route file was edited.
+
+### Coverage
+
+`screen.spec.tsx` asserts the prop reaches the host `RCTScrollView`, and that
+the `scroll={false}` branch still creates no `ScrollView`. Reverting the
+component alone fails the first of those.
+
+**What this proves, and what it does not.** These assert the **prop React Native
+received** — that is the whole of what a component test can observe here,
+because `jest-expo` has no keyboard and cannot simulate a touch being consumed
+by one. **No physical-device result is claimed.** Confirming that Save now
+responds to the first tap requires a device or emulator pass and remains
+outstanding.
+
+---
+
 ## [BUG-020] A Loading Button Loses Its Accessible Name
 
 Status: **Closed — fixed with regression coverage.**
