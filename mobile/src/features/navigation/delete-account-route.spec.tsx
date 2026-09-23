@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { deleteAccount } from '@/features/authentication';
 import DeleteAccountScreen from '../../app/delete-account';
@@ -120,6 +121,40 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
     expect(
       screen.getByRole('button', { name: 'Cancelar la eliminación de la cuenta' }),
     ).toBeOnTheScreen();
+  });
+
+  /**
+   * BUG-022. The screen used the fixed (`scroll={false}`) form, where the
+   * Android keyboard covered the confirm and cancel actions with no way to reach
+   * them. It now uses the scrollable form, which is the one `Screen` adds keyboard
+   * clearance to, and keeps its centred presentation by growing — never
+   * shrinking — to the viewport.
+   */
+  it('renders inside a scroll view so the keyboard cannot cover its actions', async () => {
+    await render(<DeleteAccountScreen />);
+
+    const root = screen.root;
+    if (root === null) throw new Error('Screen rendered no root');
+    const [scrollView] = root.queryAll((node) => node.type === 'RCTScrollView');
+    expect(scrollView).toBeDefined();
+    expect(StyleSheet.flatten(scrollView?.props.contentContainerStyle)).toMatchObject({
+      flexGrow: 1,
+    });
+  });
+
+  it('keeps its content centred when the keyboard is absent', async () => {
+    await render(<DeleteAccountScreen />);
+
+    const root = screen.root;
+    if (root === null) throw new Error('Screen rendered no root');
+    const [column] = root.queryAll(
+      (node) =>
+        node.type === 'View' && StyleSheet.flatten(node.props.style)?.justifyContent === 'center',
+    );
+    const columnStyle = StyleSheet.flatten(column?.props.style);
+    expect(columnStyle).toMatchObject({ flexGrow: 1, justifyContent: 'center' });
+    // `flex: 1` would let the column shrink below its content inside a scroll view.
+    expect(columnStyle?.flex).toBeUndefined();
   });
 
   it('redirects to sign-in when unauthenticated', async () => {

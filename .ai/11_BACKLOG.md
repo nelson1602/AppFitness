@@ -2868,7 +2868,8 @@ harder of the two to read. No new measurement; no change of severity.
 
 ## [BUG-022] The Android Keyboard Hides Bottom Form Actions
 
-Status: **Open — audited; fix awaiting owner decision.**
+Status: **Closed — fixed with regression coverage and Android 15 emulator evidence (2026-09-23).**
+Previous status: Open — audited; fix awaiting owner decision.
 Priority: **P2**
 Type: Bug (interaction — keyboard occlusion)
 Owner: Mobile Architecture
@@ -2990,6 +2991,80 @@ dated amendment of that contract row; ADR-P023 is not affected.
    emulator run.
 6. iOS is either verified on a simulator or explicitly recorded as unverified.
    No physical-device result is claimed without one.
+
+### Resolution (2026-09-23)
+
+The recommendation above (Option C, `KeyboardAvoidingView`) **did not survive
+the emulator gate** and was not shipped. Candidates, all owner-authorized and
+tried in turn on the Android 15 emulator:
+
+1. **`KeyboardAvoidingView`, `padding` or `height`, no offset — failed.** It
+   compares its parent-relative layout frame with the keyboard's window
+   position, so under the navigation header it under-compensated by about the
+   header's height; Save on `/profile-edit` stayed under the keyboard.
+2. **`KeyboardAvoidingView` with a `measureInWindow` offset — failed.** Save
+   was still only a sliver above the keyboard, and the wrapper reported two
+   inconsistent window positions (56.0 dp / 107.8 dp), so the measurement was not
+   a stable description of layout.
+3. **Android scroll clearance alone — stopped.** It made Save on
+   `/profile-edit` fully visible, but `/delete-account` used the non-scroll form,
+   whose centred card left **Delete my account** and **Cancel** under the keyboard.
+   This settles that inventory row: it was affected, not borderline.
+4. **Shipped:** scroll clearance plus moving `/delete-account` to the scroll form.
+
+**Fix.**
+
+- **`Screen`.** On Android only, while the keyboard is shown, the scroll form
+  appends one empty spacer whose height is the keyboard height React Native
+  reports, rounded up; the spacer is removed when the keyboard hides.
+  - The spacer is hidden from assistive technology and transparent to touches.
+  - The state updates only when the effective height changes.
+  - The listeners are removed on unmount.
+  - The non-scroll form, iOS and Web are unaffected.
+- **`/delete-account`.** It moves to the scroll form, passing `{ flexGrow: 1 }`
+  through `Screen`'s existing `style` prop and growing its centred column rather
+  than flexing it. Copy, the typed-phrase gate, the disabled state, labels,
+  deletion, cancellation and error handling are unchanged.
+- **Unchanged.** No dependency, native configuration or `Screen` prop changed.
+  `KeyboardAvoidingView` stays rejected in `.ai/08_UI_UX.md` (v1.13).
+
+**Regression coverage.**
+
+- `screen.spec.tsx` drives the real `Keyboard` subscription. Reverting
+  `screen.tsx` fails 8 of its tests.
+- `delete-account-route.spec.tsx` asserts the scroll form and the grow-and-centre
+  layout. Reverting `delete-account.tsx` fails both new tests.
+- Specs prove the clearance and its lifecycle, not the on-device result.
+
+### Android 15 emulator evidence (2026-09-23)
+
+Expo Go 57.0.2 on the Android 15 emulator, serving this change against a
+disposable local API and a throwaway Postgres. Only a disposable test account
+was used.
+
+| Surface | Observed |
+|---|---|
+| `/profile-edit` | With the keyboard open, Save profile was **fully visible** at maximum scroll. **One** tap saved a typed Occupation, and reopening showed it. The clearance followed the keyboard switching from numeric to text. |
+| `/goal-edit` | The page, previously unscrollable, scrolled with the keyboard open. Target date and Save goal were fully visible. **One** tap saved `target_date = 2027-01-15`, and reopening showed it. |
+| `/progress` | **One** tap on Save weight with the keyboard open wrote exactly one row. |
+| `/sign-in` | **One** Register tap with the keyboard open created the account. |
+| `/delete-account` | With the keyboard hidden, the layout was the same as before. With it open, the card re-centred above the keyboard and **Delete my account** and **Cancel** were fully visible. With an incomplete phrase (`DELET`), Delete stayed disabled. **One** tap on Cancel returned to the dashboard. **Deletion was never invoked**: the server's `users` row was still present with `deleted_at` unset. |
+| Empty space | A tap on blank space and a tap on the clearance spacer each dismissed the keyboard and wrote nothing. |
+| Keyboard closed | The layout returned exactly to baseline. A further over-scroll attempt produced a byte-identical screenshot, so no stale scroll range remained. |
+| Mount / accessibility | On `/delete-account`, frames captured during mount matched the settled frame (no flicker). The accessibility tree with the keyboard open contained no spacer-sized or focusable node below Save. |
+
+**Acceptance criteria:**
+
+- 1, 3, 4 and 6: met. For criterion 6, iOS is recorded as unverified.
+- 2: met only **partly**. The lower fields can be scrolled into view with the
+  keyboard open, but nothing scrolls to the focused field automatically; that
+  remains excluded by the `Screen` contract.
+- 5: **superseded**. The shipped design has no avoidance wrapper, so the spec
+  asserts the clearance instead.
+
+**Scope of this evidence.** Android 15 emulator only. **iOS was not run**:
+iOS gets no clearance and is unchanged by this fix. **No physical-device result
+is claimed.**
 
 ---
 

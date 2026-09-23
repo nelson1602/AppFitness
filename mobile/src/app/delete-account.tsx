@@ -42,9 +42,13 @@ export default function DeleteAccountScreen() {
   };
 
   return (
-    <Screen scroll={false}>
+    // BUG-022. Scrollable so the Android keyboard cannot cover the confirm and
+    // cancel actions: `Screen` adds keyboard clearance only to its scroll form.
+    // `flexGrow` (not `flex: 1`) lets the column fill the viewport and stay
+    // centred without ever shrinking below its content.
+    <Screen style={{ flexGrow: 1 }}>
       <Stack.Screen options={{ title: t('account.delete.screenTitle') }} />
-      <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.lg }}>
+      <View style={{ flexGrow: 1, justifyContent: 'center', gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
           <AppText variant="headline">{t('account.delete.title')}</AppText>
           <AppText tone="muted">{t('account.delete.description')}</AppText>
