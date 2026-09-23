@@ -109,6 +109,11 @@ function Chip({
         borderColor: active ? theme.colors.primary : theme.colors.outline,
         borderRadius: theme.radius.medium,
         borderWidth: 1,
+        // BUG-023: the 44×44 touch-target floor. Padding and one label line
+        // alone came to 38 dp tall, and a short tag could be narrower still.
+        justifyContent: 'center',
+        minHeight: theme.spacing.x5l,
+        minWidth: theme.spacing.x5l,
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.sm,
       }}
@@ -283,6 +288,8 @@ export function DietaryPreferences() {
                     accessibilityRole="button"
                     testID={`dp-food-result-${result.id}`}
                     onPress={() => setFood({ catalogKey: result.id })}
+                    // BUG-023: one unpadded text line was only 24 dp tall.
+                    style={{ justifyContent: 'center', minHeight: theme.spacing.x5l }}
                   >
                     <AppText>{foodDisplayName(result, language)}</AppText>
                   </Pressable>

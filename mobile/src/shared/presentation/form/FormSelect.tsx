@@ -58,6 +58,9 @@ export function FormSelect<T extends FieldValues>({
                     borderRadius: theme.radius.medium,
                     borderWidth: 1,
                     minHeight: theme.spacing.x5l,
+                    // BUG-023: a short option label ("Sí") left the target
+                    // 39.6 dp wide, under the 44×44 floor.
+                    minWidth: theme.spacing.x5l,
                     justifyContent: 'center',
                     paddingHorizontal: theme.spacing.md,
                   }}

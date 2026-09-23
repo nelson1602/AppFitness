@@ -241,7 +241,14 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
           accessibilityLabel={`${t('nutrition.log.removeAccessibility')} ${displayName}`}
           testID={`remove-item-${item.id}`}
           onPress={() => void removeItem(item.id)}
-          style={{ padding: theme.spacing.sm }}
+          // BUG-023: padding and one label line alone came to 36 dp tall.
+          style={{
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: theme.spacing.x5l,
+            minWidth: theme.spacing.x5l,
+            padding: theme.spacing.sm,
+          }}
         >
           <AppText tone="error" variant="label">
             {t('nutrition.log.remove')}
