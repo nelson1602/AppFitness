@@ -33,11 +33,40 @@ export function AppButton({
   loading = false,
   disabled,
   accessibilityRole = 'button',
+  accessibilityLabel,
+  accessibilityState,
   style,
   ...props
 }: AppButtonProps) {
   const theme = useTheme();
   const isDisabled = disabled || loading;
+
+  /**
+   * BUG-020. While `loading` the visible label is replaced by a spinner, so a
+   * button whose name came only from its child text became a **button with a
+   * role and no name** exactly when it was busy (WCAG 4.1.2). Deriving the name
+   * from string children keeps it stable across the swap, at no cost to callers
+   * and with no new copy: the string is the label already on screen.
+   *
+   * An explicit `accessibilityLabel` always wins — several callers pass a
+   * longer, more descriptive name than the visible text. Non-string children
+   * (an element, a fragment) cannot be reduced to a name here without
+   * inventing copy, so they are left to the caller.
+   */
+  const derivedLabel = typeof children === 'string' ? children : undefined;
+
+  /**
+   * The caller's state is merged, never replaced, so fields this component does
+   * not own — `selected`, `expanded`, `checked` — survive. The two fields it
+   * *does* own are applied last: `disabled` and `busy` describe the button's
+   * actual interactivity, which `AppButton` alone computes, so a caller must
+   * not be able to announce "not busy" while presses are being blocked.
+   */
+  const mergedAccessibilityState = {
+    ...accessibilityState,
+    disabled: isDisabled,
+    busy: loading,
+  };
 
   const variantStyle: Record<ButtonVariant, ViewStyle> = {
     primary: {
@@ -85,6 +114,8 @@ export function AppButton({
   return (
     <Pressable
       accessibilityRole={accessibilityRole}
+      accessibilityLabel={accessibilityLabel ?? derivedLabel}
+      accessibilityState={mergedAccessibilityState}
       disabled={isDisabled}
       style={({ pressed }) => [
         styles.base,

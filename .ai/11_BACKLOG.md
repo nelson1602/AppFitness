@@ -2866,6 +2866,72 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-020] A Loading Button Loses Its Accessible Name
+
+Status: **Closed — fixed with regression coverage.**
+Priority: **P2**
+Type: Bug (accessibility — WCAG 4.1.2 Name, Role, Value)
+Owner: Mobile Architecture
+Created: 2026-09-23
+Updated: 2026-09-23
+
+Found by the **UX-4C** read-only accessibility audit at `origin/main` `01641be`.
+
+### Symptom
+
+`AppButton` replaces its visible label with an `ActivityIndicator` while
+`loading`. A caller that passed no explicit `accessibilityLabel` therefore lost
+the button's accessible name at the exact moment the button was working: screen
+readers announced a **button with a role and no name**.
+
+A static sweep of all **83** `AppButton` call sites found **three** affected, and
+all three are authentication entry routes — the first screens a new user meets:
+
+- `mobile/src/app/sign-in.tsx`
+- `mobile/src/app/forgot-password.tsx`
+- `mobile/src/app/reset-password.tsx`
+
+Separately, `accessibilityState.busy` was used **nowhere** in the codebase, so no
+button announced that it was working. Unlike programmatic `invalid` and
+`required` (ADR-P023), `busy` **is** typed and supported on iOS, Android and Web
+— this was an unused capability, not a platform limitation.
+
+### Cause and fix
+
+The name came only from the child `Text`, which the spinner replaced. Fixed in
+the component, not at the call sites: `AppButton` now derives its accessible
+name from string `children` so the name is stable across the swap, and exposes
+the state it alone computes — `disabled: disabled || loading` and
+`busy: loading`. An explicit caller `accessibilityLabel` still wins, and the
+caller's `accessibilityState` is **merged** rather than replaced so fields the
+component does not own (`selected`, `expanded`) survive. The owned fields are
+applied last, so a caller cannot announce "idle and enabled" while presses are
+being blocked.
+
+No copy, dependency, route or call site changed, and every visual, variant,
+touch-target and press-blocking behaviour is unchanged.
+
+### Coverage
+
+`app-button.spec.tsx` queries by **role and name together** — a `getByText`
+would pass on a label that is no longer the accessible name, which is the
+regression itself. Six tests cover: the name surviving `loading`; `busy` and
+`disabled` while loading; named-and-not-busy when idle; an explicit label
+overriding the derived one; caller state surviving the merge; and a caller being
+unable to falsify the owned fields.
+
+Two pre-existing tests in `sign-in-route.spec.tsx` had been using the **absence
+of the accessible name** as their proxy for "the spinner is up" — that is, they
+asserted the defect. Both now assert `accessibilityState.busy`, which states the
+same intent precisely and is independent of the bug. Their concurrent-submission
+and superseded-race coverage is unchanged.
+
+**No assistive-technology outcome is claimed.** These assert props only. Whether
+VoiceOver or TalkBack announces the name and busy state is the **UX-4C** manual
+pass, which remains unrun (ADR-P023 / ADR-P024). This closes a defect, not a gate.
+
+---
+
 ## [BUG-019] The Dashboard Does Not Refresh When Returned To — Onboarding Looks Stuck
 
 Status: **Closed — fixed and verified on device.**

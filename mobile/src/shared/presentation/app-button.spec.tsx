@@ -38,6 +38,97 @@ describe('AppButton', () => {
     expect(screen.getByRole('button').props.accessibilityState?.disabled).toBe(true);
   });
 
+  /**
+   * BUG-020. While `loading`, the visible label is replaced by a spinner. The
+   * accessible name must survive that swap — otherwise the three auth submit
+   * buttons (`sign-in`, `forgot-password`, `reset-password`) become a button
+   * with a role and no name at the exact moment they are working.
+   *
+   * The query is by **role and name together**: a `getByText` would pass on a
+   * label that is no longer the button's accessible name, which is the very
+   * regression this guards.
+   */
+  it('keeps its accessible name while loading', async () => {
+    await render(
+      <AppButton loading onPress={jest.fn()}>
+        Sign in
+      </AppButton>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
+    expect(screen.queryByText('Sign in')).toBeNull(); // the spinner replaced it
+  });
+
+  it('exposes busy and disabled while loading', async () => {
+    await render(
+      <AppButton loading onPress={jest.fn()}>
+        Saving
+      </AppButton>,
+    );
+
+    const state = screen.getByRole('button').props.accessibilityState;
+    expect(state?.busy).toBe(true);
+    expect(state?.disabled).toBe(true);
+  });
+
+  it('is named but not busy when idle', async () => {
+    await render(<AppButton onPress={jest.fn()}>Save</AppButton>);
+
+    const button = screen.getByRole('button', { name: 'Save' });
+    expect(button).toBeOnTheScreen();
+    expect(button.props.accessibilityState?.busy).toBe(false);
+    expect(button.props.accessibilityState?.disabled).toBe(false);
+  });
+
+  // Several callers pass a longer, more descriptive name than the visible text;
+  // deriving a name from children must never overwrite it.
+  it('prefers an explicit accessibilityLabel over the child text', async () => {
+    await render(
+      <AppButton loading accessibilityLabel="Delete account permanently" onPress={jest.fn()}>
+        Delete
+      </AppButton>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Delete account permanently' })).toBeOnTheScreen();
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+  });
+
+  // The component owns `disabled`/`busy`; everything else belongs to the caller
+  // and must pass through untouched.
+  it('merges caller accessibilityState instead of replacing it', async () => {
+    await render(
+      <AppButton accessibilityState={{ selected: true, expanded: false }} onPress={jest.fn()}>
+        Filters
+      </AppButton>,
+    );
+
+    const state = screen.getByRole('button').props.accessibilityState;
+    expect(state?.selected).toBe(true);
+    expect(state?.expanded).toBe(false);
+    expect(state?.busy).toBe(false);
+  });
+
+  /**
+   * The component-owned fields are applied last, so a caller cannot announce
+   * "idle and enabled" while `AppButton` is actually blocking presses — the
+   * announcement would contradict the behaviour.
+   */
+  it('does not let a caller falsify the owned disabled and busy state', async () => {
+    const onPress = jest.fn();
+    await render(
+      <AppButton loading accessibilityState={{ disabled: false, busy: false }} onPress={onPress}>
+        Saving
+      </AppButton>,
+    );
+
+    const state = screen.getByRole('button').props.accessibilityState;
+    expect(state?.disabled).toBe(true);
+    expect(state?.busy).toBe(true);
+
+    await fireEvent.press(screen.getByRole('button'));
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
   it('blocks presses when explicitly disabled', async () => {
     const onPress = jest.fn();
     await render(
