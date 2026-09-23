@@ -112,6 +112,10 @@ function Chip({
         // BUG-023: the 44×44 touch-target floor. Padding and one label line
         // alone came to 38 dp tall, and a short tag could be narrower still.
         justifyContent: 'center',
+        // BUG-024: never wider than its row. The rows wrap, which moves a chip
+        // that no longer fits to the next line; this cap covers one chip that
+        // is wider than the whole row, whose label then wraps inside it.
+        maxWidth: '100%',
         minHeight: theme.spacing.x5l,
         minWidth: theme.spacing.x5l,
         paddingHorizontal: theme.spacing.md,
@@ -203,7 +207,9 @@ export function DietaryPreferences() {
           <AppText variant="label" tone="muted">
             {t('nutrition.preferences.what')}
           </AppText>
-          <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+          {/* BUG-024: wrap, like the category row below, so a chip that no
+              longer fits at a larger text size moves to the next line. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
             <Chip
               label={t('nutrition.preferences.categoryChoice')}
               testID="dp-mode-category"
@@ -221,7 +227,9 @@ export function DietaryPreferences() {
           <AppText variant="label" tone="muted">
             {t('nutrition.preferences.why')}
           </AppText>
-          <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+          {/* BUG-024: wrap, like the category row below, so a chip that no
+              longer fits at a larger text size moves to the next line. */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
             <Chip
               label={t(KIND_KEY.allergy)}
               testID="dp-kind-allergy"
