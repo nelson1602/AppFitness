@@ -2937,6 +2937,35 @@ by one. **No physical-device result is claimed.** Confirming that Save now
 responds to the first tap requires a device or emulator pass and remains
 outstanding.
 
+### Android emulator evidence (2026-09-23)
+
+Run against merged `main` `e1a1208`, served by Metro from a clean worktree to
+Expo Go 57.0.2 on the Android 15 emulator (`sdk_gphone64_x86_64`), against a
+disposable local API and a throwaway Postgres. Only a disposable test account
+was used.
+
+- **`/progress`, Record weight — pass.** With the numeric keyboard visibly open
+  (`mInputShown=true`) after typing a weight, **one** tap on **Save weight**
+  saved it. Exactly one `body_weights` row was written. The form reset, and the
+  Latest card showed the new value. The keyboard stayed up after that tap, as
+  `"handled"` intends. After a full Expo Go restart the Latest card still
+  showed the value from the local database.
+- **Empty-space tap — pass.** With the keyboard open, a tap on blank card space
+  next to a heading dismissed it (`mInputShown` true → false) and wrote nothing.
+- **`/sign-in`, Register — pass.** With the keyboard open after typing the
+  password, one tap on **Register** created the account and opened the
+  dashboard.
+- **`/profile-edit` — not exercisable, and not a BUG-021 result.** Save sits at
+  the bottom of the form. With the keyboard open, the keyboard covers both Save
+  and the lower fields, and the content could not be scrolled far enough to
+  reveal Save. Reaching it needed the keyboard dismissed first. This is
+  keyboard **occlusion**, which `Screen` deliberately does not handle (keyboard
+  avoidance stays rejected in `.ai/08_UI_UX.md`). It is a different problem
+  from the tap consumption fixed here, and is recorded as an observation only.
+
+**Scope of this evidence.** Android emulator only. No iOS result and no
+physical-phone result is claimed.
+
 ---
 
 ## [BUG-020] A Loading Button Loses Its Accessible Name
