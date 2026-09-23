@@ -1,6 +1,6 @@
 # AppFitness Design System Specification
 
-Version: 1.13
+Version: 1.14
 Status: Active
 Last Updated: 2026-09-23
 
@@ -455,6 +455,25 @@ to the scroll form, leaving the non-scroll form with zero consumers; that form
 is retained. `Screen`'s props are unchanged. `KeyboardAvoidingView` and
 per-route keyboard workarounds stay rejected. No token, dependency, native
 configuration, copy or other primitive changes.
+
+---
+
+# Revision Scope (v1.14 — BUG-023)
+
+This revision records geometric compliance with the existing 44×44
+touch-target floor (`.ai/11_BACKLOG.md` §BUG-023). An audit on 2026-09-23
+counted **16** production `<Pressable>` sites.
+
+- **Four ad-hoc sites were under the floor**, at 24–42 dp tall: the
+  dietary-preferences filter chip and food search result, the food-log Remove
+  control, and the workout-log built-in exercise row.
+- **One `FormSelect` option was too narrow:** the Spanish "Sí" measured
+  39.6 dp wide.
+- **All five now reach 48 dp** through the existing `spacing.x5l` token.
+
+`AppButton` enforces its own 44×44 floor and is unchanged. A source guard
+(`touch-target.source.spec.ts`) now lists every production `<Pressable>`.
+No token, dependency, copy, colour, typography or component API changes.
 
 ---
 
@@ -2513,6 +2532,7 @@ those flows.
 | **Deliberately NOT inferred from the optional model** | No clear/deselect action once a choice is made · no synthetic "None" option · no placeholder UI · no null-option rendering · no modal or list picker. There is **no interaction evidence** for any of these, so each remains **deferred**. Optional means "may start empty", nothing more. |
 | **Disabled options** | **TARGET**, supported by the shipped sibling radio-chip pattern in the language selector, which pairs `disabled` with a programmatic disabled state. Stated honestly: the current shared `FormSelect` option type is `{ label, value }` and **does not implement option-level disabled today**. When added, a disabled option must expose its state **programmatically and visibly** and must **not** invoke selection. This must **not** be generalised into a disabled-field or read-only API — no evidence supports either. |
 | **Anatomy** | label (with required indication) → wrapping chip row → adjacent error message when invalid. |
+| **Touch target (v1.14, BUG-023)** | Each option chip has `minHeight` and `minWidth` of `spacing.x5l` (48 dp), so a short label cannot leave it under the 44×44 floor: the Spanish "Sí" measured 39.6 dp wide before and 48 dp after on the Android emulator. **Geometry only:** the chip's padding, the `sm` gap and wrapping, its role, name, state, selection behaviour and API are unchanged. `FormSelect` **stays frozen**, and the required / invalid / group accessibility blocker below remains **open**. This row claims no assistive-technology outcome and does not complete UX-1C-3. |
 | **Semantic token roles** | Unselected chip: `surfaceVariant` fill, `outline` border at **1 px**, muted on-surface-variant label — passes AA in both themes. Selected chip: `primary` fill **plus a visible geometric distinction from the 1 px unselected border** (§Non-colour redundancy); the exact selected border role/width is **BLOCKED** — it cannot be proven from the accepted token set and must not be invented here. The selected chip's **foreground pairing is also blocked** — see §Usage-level contrast findings. |
 | **Accessibility — required outcomes** | Assistive technology must be able to perceive **all** of: (a) the **field/group label**; (b) that the options form **one single-choice group**; (c) **each option's name**; (d) each option's **selected** and, when implemented, **disabled** state; (e) the **required** and **invalid** state of the field/group; (f) the **relationship between the invalid group and its adjacent error message**. These are outcomes, not APIs: this contract does **not** prescribe a universal `radiogroup` role, any `aria-*` attribute, or any specific React Native prop, and none may be adopted without verification against the installed Expo / React Native versions on iOS, Android, and Web. The shipped component already provides the radio role per option, the programmatic selected state, and `${label}: ${option}` names; group identity, required, invalid, and the error relationship are the outcomes still to be satisfied. 44×44 minimum. Selection must never be conveyed by colour alone — see §Non-colour redundancy. **UX-1B2D amendment (ADR-P023):** outcomes **(e)** required/invalid and **(f)** the invalid-group↔message relationship are subject to the same verified native limitation (§Verified platform capability matrix) and remain **unsatisfied**. UX-1B2D selects no mechanism for `FormSelect` and **does not unblock UX-1C-3**; group identity and option-level disabled remain separate open outcomes. |
 | **EN/ES + dynamic type** | Chips wrap and grow; option labels are never clipped or ellipsized. |
@@ -3288,6 +3308,22 @@ configuration, copy, validation or deletion behaviour. The UX-1B2C snapshot
 figures (including `scroll={false}` used once and `Platform` at zero) are left as
 written: they were accurate when recorded; the `Screen` contract rows state the
 current position.
+
+## What v1.14 (BUG-023) authorizes
+
+**Reconciliation note, 2026-09-23.** It adds geometric touch-target floors only:
+
+- `minHeight` and, where a label can be short, `minWidth` at `spacing.x5l`
+  on the four under-floor ad-hoc `<Pressable>`s (`DietaryPreferences`,
+  `FoodLogScreen`, `WorkoutLogScreen`);
+- `minWidth` on `FormSelect` options.
+
+This is a bounded exception to the component clause for exactly those style
+properties, authorized by the owner as a bug correction. It changes no token,
+dependency, copy, colour, typography, role, state or API. `FormSelect` remains
+frozen, with its accessibility blocker open. The accessibility-scaffolding
+snapshot above (`AppButton` enforcing 44×44) is left as written; it remains
+accurate.
 
 ## Owner-gated decisions still open after this revision
 

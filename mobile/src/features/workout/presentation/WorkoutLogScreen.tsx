@@ -331,6 +331,10 @@ export function WorkoutLogScreen() {
                                   : theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
+                              // BUG-023: padding, border and one name line came
+                              // to 42 dp tall, under the 44×44 floor.
+                              justifyContent: 'center',
+                              minHeight: theme.spacing.x5l,
                               padding: theme.spacing.sm,
                             }}
                           >

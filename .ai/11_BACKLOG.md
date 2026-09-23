@@ -2866,6 +2866,132 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-024] A Long Spanish Chip Label Clips at 1.3× Text
+
+Status: **Open — pre-existing; recorded during BUG-023, not fixed there.**
+Priority: **P3**
+Type: Bug (layout — text clipping at enlarged text size)
+Owner: Mobile Architecture
+Created: 2026-09-23
+Updated: 2026-09-23
+
+**Observed (Android 15 emulator, Spanish, system font scale 1.3).** On
+`/dietary-preferences`, the reason chip **"Preferencia / desagrado"** runs past
+the right edge of the screen and is clipped. The chip beside it, **"Un alimento
+específico"**, reaches the edge too. Both chips end at x = 1038 px. The chips
+sit in a wrapping row, but a single chip wider than the row neither shrinks nor
+wraps its own label.
+
+**Pre-existing, not a BUG-023 regression.** The same state on `main` `f212a88`,
+before BUG-023, gives identical widths (149.0 dp and 209.9 dp) and the same
+clipping. BUG-023 only added height and width floors.
+
+**Hypothesis (unverified).** The chip does not shrink, so its label cannot
+wrap. A fix would let the chip shrink within the row so the label wraps, while
+keeping the 48 dp floor.
+
+**Acceptance criteria.** At Spanish 1.3× on the Android emulator, both labels
+are fully visible (wrapping allowed), no chip extends past the content edge,
+every chip stays at least 48×48 dp, and English and 1.0× layouts do not regress.
+
+---
+
+## [BUG-023] Touch Targets Under the 44×44 Floor
+
+Status: **Closed — fixed with regression coverage and Android 15 emulator measurements (2026-09-23).**
+Priority: **P2**
+Type: Bug (accessibility — target size)
+Owner: Mobile Architecture
+Created: 2026-09-23
+Updated: 2026-09-23
+
+`.ai/08_UI_UX.md` requires every interactive element to be at least 44×44. This
+slice brings every production `<Pressable>` up to it, as geometry only.
+
+### Audit (`main` `f212a88`)
+
+**16** production `<Pressable>` sites across 12 files. An earlier informal count
+of 10 was not reused. Heights below are computed from padding, border and the
+typography line heights (body 24, label 20, caption 16) at default text size.
+
+**Under the floor — fixed:**
+
+| Site | Before |
+|---|---|
+| Dietary-preferences filter chip | 38 dp tall |
+| Dietary-preferences food search result | 24 dp tall |
+| Food-log Remove | 36 dp tall |
+| Workout-log built-in exercise row | 42 dp tall |
+| `FormSelect` option, Spanish "Sí" | 39.6 dp wide (measured on the emulator) |
+
+**Already compliant — unchanged:**
+
+- Meal-slot chips, measured 69–95 × 48 dp.
+- Food-log food options and serving stepper.
+- Plan-day chips.
+- Progress summary card.
+- Wellness token chips; the narrowest, "Pie", measured 48.4 dp.
+- Both routine-builder rows, measured 57.9 dp.
+- Custom workout row.
+- Language selector.
+- `AppButton`, which enforces its own 44×44 floor.
+
+### Fix
+
+- **Floors.** `minHeight: theme.spacing.x5l` (48) on the four ad-hoc sites.
+  `minWidth` as well on the filter chip, the Remove control and `FormSelect`
+  options, where a short label could be narrower.
+- **Centring.** `justifyContent: 'center'` on the four ad-hoc sites, so
+  single-line content stays centred in the taller target.
+- **Unchanged.** Padding, the gap between targets, wrapping, roles, names,
+  states, test ids, copy, colours and APIs. No new token, dependency or barrel
+  export.
+- **`FormSelect`.** The one-property change is geometric only. The component
+  stays frozen, and its required / invalid / group accessibility blocker stays
+  open.
+
+### Regression coverage
+
+- **Render assertions.** Each changed site asserts a 48 dp floor: the
+  dietary-preferences chip and result, food-log Remove, the workout exercise
+  row, and `FormSelect` options with a two-letter "Sí" label.
+- **Wrap and gap.** A `FormSelect` test asserts the wrapping row and the `sm`
+  gap.
+- **Source guard.** `shared/presentation/touch-target.source.spec.ts` lists all
+  16 production `<Pressable>` sites by file and states how each meets the floor.
+  A new or removed site fails until it is classified.
+- **Revert proofs.** Reverting each changed file fails its tests: 4 for
+  `DietaryPreferences`, 2 for `FoodLogScreen`, 2 for `WorkoutLogScreen` and 3 for
+  `FormSelect`.
+- **Behaviour.** The existing selection, add, remove and logging specs pass
+  unchanged.
+
+### Android 15 emulator evidence (2026-09-23)
+
+Expo Go 57.0.2 against a disposable local API and database. Targets were
+measured from the accessibility-node bounds.
+
+- **English and Spanish at 1.0× and 1.3×:**
+  - Every `FormSelect` option is at least 48 × 48 dp, including Spanish "Sí"
+    at exactly 48.0 × 48.0.
+  - The 8 dp gap between options is kept, and no option passes the content
+    edge.
+  - The four corrected sites measure 48 dp tall. The chip and Remove are at
+    least 56 and 67 dp wide.
+- **Behaviour on device, one tap each:**
+  - Choosing a food result enabled Add, and the exclusion was written.
+  - Choosing an exercise and adding a set logged the set.
+  - **Remove** soft-deleted the food-log row and removed it from the screen.
+- **No new clipping or overlap.** The one clipping case, at Spanish 1.3×, is
+  pre-existing and recorded as BUG-024.
+- **Cosmetic, not a defect.** In the widened `FormSelect` chip, the short label
+  "Sí" sits left of centre, because only `minWidth` was added.
+
+**Not claimed:** any physical-device, screen-reader or assistive-technology
+outcome, and no iOS measurement.
+
+---
+
 ## [BUG-022] The Android Keyboard Hides Bottom Form Actions
 
 Status: **Closed — fixed with regression coverage and Android 15 emulator evidence (2026-09-23).**

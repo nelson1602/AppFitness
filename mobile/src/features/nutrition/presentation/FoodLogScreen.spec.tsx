@@ -259,6 +259,17 @@ describe('FoodLogScreen (Slice 4C)', () => {
     expect(mockState.removeItem).toHaveBeenCalledWith('i1');
   });
 
+  // BUG-023: the 44×44 touch-target floor (`.ai/08_UI_UX.md`), met at 48.
+  it('gives the remove control at least a 48×48 touch target', async () => {
+    setState({ items: [item()] });
+    await render(<FoodLogScreen />);
+
+    const remove = StyleSheet.flatten(screen.getByTestId('remove-item-i1').props.style);
+    expect(remove.minHeight).toBeGreaterThanOrEqual(48);
+    expect(remove.minWidth).toBeGreaterThanOrEqual(48);
+    expect(remove.padding).toBe(8);
+  });
+
   it('shows a sync-pending banner and a per-item pending chip', async () => {
     setState({
       items: [item()],

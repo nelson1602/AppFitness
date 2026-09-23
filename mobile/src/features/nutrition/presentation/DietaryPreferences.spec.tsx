@@ -128,6 +128,30 @@ describe('DietaryPreferences', () => {
     });
   });
 
+  // BUG-023: the 44×44 touch-target floor (`.ai/08_UI_UX.md`), met at 48.
+  it('gives every avoid-tag chip at least a 48×48 touch target', async () => {
+    setStore({ status: 'ready', preferences: [] });
+    await render(<DietaryPreferences />);
+
+    const chip = StyleSheet.flatten(screen.getByTestId('dp-tag-gluten_sensitive').props.style);
+    expect(chip.minHeight).toBeGreaterThanOrEqual(48);
+    expect(chip.minWidth).toBeGreaterThanOrEqual(48);
+    // The floor is added, not swapped for the existing chip padding.
+    expect(chip).toMatchObject({ paddingHorizontal: 12, paddingVertical: 8 });
+  });
+
+  it('gives every food search result at least a 48-high touch target', async () => {
+    setStore({ status: 'ready', preferences: [] });
+    await render(<DietaryPreferences />);
+
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+    fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pomegranate');
+    const result = await screen.findByTestId('dp-food-result-food.pomegranate');
+
+    // Full-width row in a column, so only its height needs a floor.
+    expect(StyleSheet.flatten(result.props.style).minHeight).toBeGreaterThanOrEqual(48);
+  });
+
   it('adds an explicit catalog-food exclusion via search and selection', async () => {
     setStore({ status: 'ready', preferences: [] });
     await render(<DietaryPreferences />);

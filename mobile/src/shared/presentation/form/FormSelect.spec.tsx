@@ -26,6 +26,60 @@ const fillOf = (testID: string): ViewStyle['backgroundColor'] =>
   StyleSheet.flatten(screen.getByTestId(testID).props.style as StyleProp<ViewStyle>)
     ?.backgroundColor;
 
+/** A two-letter option — the shape of the Spanish "Sí" that measured 39.6 dp wide. */
+function ShortLabelHarness() {
+  const { control } = useForm<{ answer: string }>({ defaultValues: { answer: 'no' } });
+  return (
+    <FormSelect
+      control={control}
+      name="answer"
+      label="Evaluación"
+      options={[
+        { label: 'Sí', value: 'yes' },
+        { label: 'No', value: 'no' },
+      ]}
+    />
+  );
+}
+
+describe('FormSelect touch targets (BUG-023)', () => {
+  it('gives every option, however short its label, at least a 48×48 target', async () => {
+    await render(<ShortLabelHarness />);
+
+    for (const testID of ['option-answer-yes', 'option-answer-no']) {
+      const option = StyleSheet.flatten(
+        screen.getByTestId(testID).props.style as StyleProp<ViewStyle>,
+      );
+      expect(option.minWidth).toBeGreaterThanOrEqual(48);
+      expect(option.minHeight).toBeGreaterThanOrEqual(48);
+      // The floor is added; the option's own padding is unchanged.
+      expect(option.paddingHorizontal).toBe(12);
+    }
+  });
+
+  it('keeps the options wrapping with the existing gap between targets', async () => {
+    await render(<ShortLabelHarness />);
+
+    const root = screen.root;
+    if (root === null) throw new Error('FormSelect rendered no root');
+    const [group] = root.queryAll(
+      (node) =>
+        node.type === 'View' &&
+        StyleSheet.flatten(node.props.style as StyleProp<ViewStyle>)?.flexWrap === 'wrap',
+    );
+    expect(StyleSheet.flatten(group?.props.style as StyleProp<ViewStyle>)).toMatchObject({
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+    });
+    // Both options live inside that wrapping row.
+    const ids = group?.queryAll((node) => typeof node.props.testID === 'string');
+    expect(ids?.map((node) => node.props.testID)).toEqual(
+      expect.arrayContaining(['option-answer-yes', 'option-answer-no']),
+    );
+  });
+});
+
 describe('FormSelect', () => {
   /**
    * ADR-P022 Addendum A, `.ai/08_UI_UX.md` §Usage-level contrast findings

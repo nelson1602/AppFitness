@@ -242,6 +242,21 @@ describe('WorkoutLogScreen', () => {
     expect(loadWorkoutSets).toHaveBeenCalledWith('l1');
   });
 
+  // BUG-023: the 44×44 touch-target floor (`.ai/08_UI_UX.md`), met at 48.
+  it('gives every built-in exercise choice at least a 48-high touch target', async () => {
+    setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [] });
+    await render(<WorkoutLogScreen />);
+
+    await fireEvent.press(screen.getByTestId('workout-select-l1'));
+    const choice = StyleSheet.flatten(
+      screen.getByTestId('set-exercise-exercise.back_squat').props.style,
+    );
+
+    // Full-width row in a column, so only its height needs a floor.
+    expect(choice.minHeight).toBeGreaterThanOrEqual(48);
+    expect(choice.padding).toBe(8);
+  });
+
   it('adds a set for the chosen exercise through the store', async () => {
     setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [] });
     await render(<WorkoutLogScreen />);
