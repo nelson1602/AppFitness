@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.11
+Version: 1.12
 Status: Active
-Last Updated: 2026-09-21
+Last Updated: 2026-09-23
 
 ---
 
@@ -429,6 +429,18 @@ only production elevation-token consumer, uses `surfaceVariant` plus
 `elevations.level1`; caller style precedence and the passive component contract
 are unchanged. This is not the full dark elevation ramp: levels 2–5 and future
 raised surfaces remain TARGET.
+
+---
+
+# Revision Scope (v1.12 — BUG-021)
+
+This revision reconciles the `Screen` contract with one owner-authorized bug
+correction (`.ai/11_BACKLOG.md` §BUG-021). The shared scrollable `Screen` now
+sets `keyboardShouldPersistTaps="handled"` on its `ScrollView`, so a tap on a
+control that handles it is no longer spent dismissing the open keyboard. The
+`scroll={false}` form, the props, and every other `Screen` clause are unchanged;
+keyboard avoidance stays rejected. No token, dependency, route, copy or other
+primitive changes.
 
 ---
 
@@ -2620,8 +2632,8 @@ spec or Maestro flow depends on a primitive-internal id. What must survive is
 | Aspect | Contract |
 |---|---|
 | **Responsibility** | The screen shell: it owns **safe-area insets**, the screen **background** ground, the single content column, and the default `lg` padding / `lg` gap rhythm. |
-| **Non-responsibilities** | No product state, no navigation, no header, no keyboard handling, no refresh, no responsive container, no per-screen background variant. |
-| **Anatomy (SHIPPED)** | `SafeAreaView` (from `react-native-safe-area-context`, `flex: 1`, `background` fill) → when `scroll` is `true` (the default) a `ScrollView` whose `contentContainerStyle` carries `padding: lg` + `gap: lg`; when `scroll` is `false` a `flex: 1` `View` carrying the same content style. The background role is applied on the safe area and again on the scroll/inner container. |
+| **Non-responsibilities** | No product state, no navigation, no header, no refresh, no responsive container, no per-screen background variant. On the keyboard it owns **only** the tap-persistence setting in Anatomy: no keyboard avoidance, no focus orchestration, no keyboard-state management, no automatic scrolling to a focused field, and no per-screen keyboard workaround. |
+| **Anatomy (SHIPPED)** | `SafeAreaView` (from `react-native-safe-area-context`, `flex: 1`, `background` fill) → when `scroll` is `true` (the default) a `ScrollView` whose `contentContainerStyle` carries `padding: lg` + `gap: lg` and which sets `keyboardShouldPersistTaps="handled"` (v1.12, BUG-021), so a tap on a control that handles it is not consumed by keyboard dismissal while a tap on empty space still dismisses; when `scroll` is `false` a `flex: 1` `View` carrying the same content style, with no `ScrollView` and no keyboard setting. The background role is applied on the safe area and again on the scroll/inner container. |
 | **Variants** | `scroll` (default) · non-scroll. Exactly these two; the non-scroll form is used once, by the account-deletion surface, which centres a fixed form. |
 | **Props** | required: `children`. optional: `scroll`, `style`. |
 | **`style` — accurate statement** | `style` is merged **into the content container**, *after* the default content style, so a caller can override the padding and gap rhythm. **Zero consumers currently use it.** It is **preserved for compatibility in this slice**; narrowing it (for example to a documented override-only escape hatch) or removing it is a **later implementation decision**, not a silent deletion here. |
@@ -2630,9 +2642,9 @@ spec or Maestro flow depends on a primitive-internal id. What must survive is
 | **Accessibility** | Sets no accessibility props and must not: it is a layout shell, and making it an accessibility element could collapse descendant semantics. Safe-area handling is its accessibility-relevant contribution. |
 | **EN/ES + dynamic type** | Content-driven height; the single column lets long ES copy wrap freely. |
 | **Responsive / Web** | Identical on all platforms today; `Platform` has zero occurrences. **Content measure / max width is DEFERRED** — no shipped evidence (`maxWidth` count is zero), so no breakpoint or measure is specified. |
-| **Test hooks** | None of its own; it forwards nothing. Its spec asserts children render in both the scroll and non-scroll forms. |
-| **Unit / component regression** | Children render in both forms; the background role is applied; the default padding and gap are present; a caller `style` overrides them (documenting current behaviour, not endorsing it). |
-| **Rejected — zero evidence** | keyboard avoidance · refresh control / pull-to-refresh · headers · navigation · background variants · safe-area edge selection · responsive-container APIs. Each requires its own evidence and authorization. |
+| **Test hooks** | None of its own; it forwards nothing. Its spec asserts children render in both the scroll and non-scroll forms, reads `keyboardShouldPersistTaps` from the host `RCTScrollView` node, and asserts the non-scroll form creates no `RCTScrollView`. |
+| **Unit / component regression** | Children render in both forms; the host `RCTScrollView` receives `keyboardShouldPersistTaps="handled"`; the non-scroll form renders no `ScrollView`; the background role is applied; the default padding and gap are present; a caller `style` overrides them (documenting current behaviour, not endorsing it). **The keyboard assertion proves only that the prop reaches React Native.** `jest-expo` has no keyboard and cannot simulate a touch being consumed by one, so the interaction outcome — Save responding to the first tap — is a physical-device check and is **not** claimed by the spec. |
+| **Rejected — zero evidence** | keyboard avoidance · refresh control / pull-to-refresh · headers · navigation · background variants · safe-area edge selection · responsive-container APIs. Each requires its own evidence and authorization. BUG-021's tap persistence is not keyboard avoidance and does not reopen it. |
 | **Blockers** | None. Its only token pairing is a ground colour with no foreground of its own. |
 
 ---
@@ -3238,6 +3250,16 @@ Decision 14.
 token-value and component clauses only, for the values and call sites ADR-P022
 Addendum A enumerates; every other prohibition above is unchanged and still
 binds.
+
+## What v1.12 (BUG-021) authorizes
+
+**Reconciliation note, 2026-09-23.** Exactly one component change: the shared
+`Screen` `ScrollView` sets `keyboardShouldPersistTaps="handled"`, with its spec.
+It is a bounded exception to the component clause for that one prop, authorized
+by the owner as a bug correction. It adds no prop to `Screen`'s API and changes
+no token, dependency, route, copy or other primitive. The evidence recorded in
+earlier revisions — including the UX-1B2C snapshot that `Screen` contains no
+`KeyboardAvoidingView` — is left as written; it was, and remains, accurate.
 
 ## Owner-gated decisions still open after this revision
 

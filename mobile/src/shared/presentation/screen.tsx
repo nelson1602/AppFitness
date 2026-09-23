@@ -22,6 +22,16 @@ export function Screen({ children, scroll = true, style }: ScreenProps) {
       {scroll ? (
         <ScrollView
           contentContainerStyle={[contentStyle, style]}
+          /**
+           * BUG-021. React Native defaults this to `"never"`, which lets the
+           * first tap on a control be spent dismissing the open keyboard rather
+           * than activating the control. On a form that means **Save has to be
+           * tapped twice** after typing: once to close the keyboard, once to
+           * submit. `"handled"` keeps the keyboard up only until a child
+           * actually handles the touch, so the tap reaches the button while a
+           * tap on empty space still dismisses as before.
+           */
+          keyboardShouldPersistTaps="handled"
           style={{ backgroundColor: theme.colors.background }}
         >
           {children}
