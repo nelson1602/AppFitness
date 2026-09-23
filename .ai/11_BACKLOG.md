@@ -2866,6 +2866,133 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-022] The Android Keyboard Hides Bottom Form Actions
+
+Status: **Open — audited; fix awaiting owner decision.**
+Priority: **P2**
+Type: Bug (interaction — keyboard occlusion)
+Owner: Mobile Architecture
+Created: 2026-09-23
+Updated: 2026-09-23
+
+Found during the BUG-021 emulator pass and audited at `origin/main` `6272ee0`.
+This entry is evidence and a recommendation only: no runtime, configuration,
+dependency, ADR or `Screen`-contract change is made here.
+
+### Symptom
+
+On Android, when the software keyboard is open, it covers the lower part of the
+screen, and the shared `Screen` cannot scroll far enough to reveal what is
+underneath. On a form whose primary action is at the end of its content, **Save
+cannot be reached while the keyboard is open**. The focused field itself can be
+covered too. The user has to close the keyboard (Back, or the keyboard's own
+dismiss key) and only then tap Save.
+
+### Reproduction (verified, Android emulator)
+
+1. Android 15 emulator. Two builds showed the same result: Expo Go 57.0.2
+   loading `e1a1208`, and the standalone release APK (`targetSdkVersion` 36,
+   sha256 `a2d9158a…`), whose native config (`app.json`, `app.config.js`,
+   plugins, `package.json`) is identical to `main`.
+2. Open `/profile-edit` and scroll to the bottom.
+3. Tap **Occupation** so the keyboard opens.
+4. **Observed:** the keyboard covers Occupation, Equipment and **Save profile**.
+   Two scroll swipes with the keyboard open moved nothing.
+
+**`/goal-edit`** — the same result on a short page. The page does not scroll at
+all; with the keyboard open, **Target date** and **Save goal** are both under
+it.
+
+Because the standalone build behaves exactly like Expo Go, this is not an Expo
+Go artifact.
+
+### Cause (verified configuration; mechanism is a hypothesis)
+
+- **Verified.** The APK's main activity already declares
+  `windowSoftInputMode=adjustResize` (`0x10`), which is Expo's default. The
+  window did not resize.
+- **Verified.** Expo SDK 57 makes edge-to-edge mandatory: its prebuild plugin
+  rejects `android.edgeToEdgeEnabled` because "Android 16 makes edge-to-edge
+  mandatory".
+- **Hypothesis.** Under edge-to-edge, `adjustResize` no longer shrinks the
+  window, and the keyboard arrives only as an IME inset. Nothing in `Screen`
+  consumes that inset, so the scroll viewport keeps its full height behind the
+  keyboard. `src` contains no `KeyboardAvoidingView`, no `Keyboard` listener,
+  and no keyboard inset handling.
+
+The occlusion rule that follows from this is structural. An action is reachable
+while the keyboard is open only if **at least one keyboard-height of content
+follows it**, or if the page is short enough that the action already sits above
+the keyboard.
+
+### Affected-surface inventory
+
+Static audit of the 12 routes with text inputs (BUG-021's list).
+"Emulator" rows were observed; every other row is **inferred from structure and
+unverified**.
+
+| Route | Primary action placement | Classification |
+|---|---|---|
+| `/profile-edit` | Save is the last element of a long form | **Affected — emulator** |
+| `/goal-edit` | Save is the last element of a short, non-scrolling page | **Affected — emulator** |
+| `/progress` (weight) | Save weight is followed by the measurements form | **Reachable — emulator** (BUG-021 pass) |
+| `/sign-in` | Register sits above the keyboard line | **Reachable — emulator** |
+| `/progress` (measurements) | Save is followed only by the snapshot summary and one button | Likely affected — unverified |
+| `/wellness-safety-profile` | Save is followed only by the remove controls | Likely affected — unverified |
+| `/dietary-preferences` | Add is followed by the preference list | Depends on list length — unverified |
+| `/food-log` | Add is followed by the day's entries or an empty card | Depends on log length — unverified |
+| `/exercises`, `/routines`, `/workout-log` | Inline forms followed by lists | Depends on list length — unverified |
+| `/forgot-password`, `/reset-password` | Short pages with fields near the top | Likely reachable — unverified |
+| `/delete-account` (`scroll={false}`) | Fixed card centred on screen | Borderline — unverified |
+
+### Workaround
+
+Close the keyboard (system Back, or the keyboard's dismiss key) and then tap the
+action. Typed values are expected to stay in the form, because its state is
+held by the form rather than by the keyboard; this was not separately verified.
+
+### Options compared
+
+| Option | Android | iOS | Web | Build / OTA | Accessibility | Contract / architecture | Testability | Risk |
+|---|---|---|---|---|---|---|---|---|
+| **A. Window resize config** (`softwareKeyboardLayoutMode`) | `resize` is already the effective setting and was observed not to resize; `pan` only brings the focused field into view (documented platform behaviour, not tested), so Save would stay hidden | n/a | n/a | Native rebuild | None | None | Emulator only | **Does not fix — rejected on evidence** |
+| **B. `ScrollView` keyboard insets** (`automaticallyAdjustKeyboardInsets`) | **No effect**: implemented only in RN's iOS native code | Works | n/a | JS only | Neutral | One `Screen` prop | Prop assertion + device | Leaves Android broken |
+| **C. `KeyboardAvoidingView` in `Screen`** (core RN, no dependency) | Hypothesis: works. RN 0.86 reports `keyboardDidShow` from `WindowInsetsCompat.Type.ime()` insets, which edge-to-edge does not suppress | Works (`padding`) | Renders a plain wrapper; no change expected | JS only; no native rebuild. **No OTA channel** (`expo-updates` is not installed), so it ships in the next binary | Expected to keep the focused field and Save visible; no focus-order or announcement change expected | **Needs a `Screen` contract amendment**: keyboard avoidance is explicitly rejected in `.ai/08_UI_UX.md` | Prop assertion in `screen.spec.tsx` + emulator run on the two verified routes | Low–medium: must be checked on Android and iOS; could double-adjust if a window ever did resize |
+| **D. Extra scroll padding** (static, or keyboard-height padding) | Static padding wastes space and cannot match varying keyboard heights; dynamic padding is a hand-written copy of C | Same | Wasted space | JS only | Neutral | Same amendment as C | Weak | Medium; duplicates C |
+| **E. Sticky or repositioned action area** | Still covered by the keyboard unless combined with C | Same | Layout change | JS only | Needs a focus-order review | Per-screen redesign; new layout pattern | Per screen | High scope |
+| **F. Per-screen workarounds** | Possible | Possible | — | JS only | Inconsistent | **Violates** the contract's "no per-screen keyboard workaround" | Per screen | High; spreads the same fix across many routes |
+| G. `react-native-keyboard-controller` | Likely works | Works | — | **New native dependency + rebuild** | — | New technology: **requires an ADR** | Device | Out of proportion to a P2 |
+
+### Recommendation
+
+**Option C.** Wrap `Screen` in one core `KeyboardAvoidingView` with
+`behavior="padding"`, so a single shared change covers every form and adds no
+dependency. Whether the same `behavior` value suits both platforms, or Android
+needs `height`, must be settled by an emulator run during implementation; that
+is a hypothesis, not a finding.
+
+**Owner decision required.** `.ai/08_UI_UX.md` lists keyboard avoidance as
+**rejected** for `Screen`, pending "its own evidence and authorization". This
+entry supplies the evidence. Implementing C needs owner authorization and a
+dated amendment of that contract row; ADR-P023 is not affected.
+
+### Acceptance criteria
+
+1. On the Android emulator, with the keyboard open, Save on `/profile-edit` and
+   `/goal-edit` can be tapped without first closing the keyboard, and the change
+   persists.
+2. The focused field stays visible above the keyboard on those routes.
+3. `/progress` and `/sign-in`, already reachable, do not regress. BUG-021's
+   first-tap behaviour and empty-space dismissal still hold.
+4. `scroll={false}` (`/delete-account`) is checked and does not regress.
+5. `screen.spec.tsx` asserts the avoidance wrapper and its `behavior`. As with
+   BUG-021, the spec proves only the prop; the device outcome is proved by the
+   emulator run.
+6. iOS is either verified on a simulator or explicitly recorded as unverified.
+   No physical-device result is claimed without one.
+
+---
+
 ## [BUG-021] The First Tap on Save Is Eaten by the Keyboard
 
 Status: **Closed — fixed with regression coverage.**
