@@ -1225,7 +1225,7 @@ Priority: **P2**
 Type: Decision (blocks FEATURE-010 gate 5)
 Owner: Product / Design
 Created: 2026-09-22
-Updated: 2026-09-22
+Updated: 2026-09-23
 
 ### Why this is blocked rather than in progress
 
@@ -1265,7 +1265,8 @@ requires amending `.ai/08_UI_UX.md` §Icons, since it currently states that *"no
 alternative visual vocabulary is under consideration"*; or (B) authorize
 **two vendored static faces** (`FILL=0` and `FILL=1`, Apache-2.0) linked through
 the `expo-font` config plugin. **ADR-P033 recommends B and remains Proposed**
-— of its five proofs, four are now met by the pilot below; device and browser
+— of its five proofs, four are now met by the pilot below; Web and Android's
+default outlined rendering are proven, while Android's filled state and all iOS
 rendering are not.
 
 Two cost corrections that the earlier draft got wrong: `npm ci` fetches nothing
@@ -1287,10 +1288,11 @@ iOS, **+28,398 B** Web, plus **2,409,920 B** of font assets.
 **The decision above is still the owner's.** The pilot shows B is *buildable*
 and now measures its platform-specific costs: **2,409,920 B** of Web font assets
 and **+988,820 B** in a same-profile Android APK comparison. **Web rendering is
-verified in a real browser. Android now has a successful EAS APK whose packaged
-font bytes match the vendored sources exactly, but no glyph has yet been observed
-on an Android device; iOS remains entirely unverified.** See ADR-P033 for the
-evidence and the exact remaining gates.
+verified in a real browser. On Android 15, the installed EAS APK reached the
+authenticated dashboard against a disposable local API/database and visibly
+rendered all three default outlined glyphs beside their unchanged labels. The
+filled/selected face was not reachable in this pilot UI, and iOS remains entirely
+unverified.** See ADR-P033 for the evidence and the exact remaining gates.
 
 Two findings worth keeping whichever way it goes. Many Material Symbols are
 **byte-identical** outlined and filled — `restaurant`, `fitness_center` and

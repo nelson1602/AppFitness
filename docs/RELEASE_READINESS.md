@@ -449,9 +449,14 @@ angles — coverage, then quality.
    measured **+988,820 B (0.843%)**. Both use the same package/version/signing
    identity, and extracting the pilot's two additional TTF resources reproduces
    the vendored source SHA-256 values exactly. This closes Android build,
-   packaging and native-size uncertainty, but **not Android device rendering**:
-   no glyph has yet been observed on a device. **iOS is entirely unverified** —
-   no iOS build exists and nothing here may be read as evidence for it. The local
+   packaging and native-size uncertainty. An `e2e` APK from `7e8f31b` (EAS build
+   `34620f75-cd97-429d-abea-d27e18b2bc48`) was then installed on Android 15 and
+   exercised against a disposable local API/database: all three default outlined
+   dashboard glyphs visibly rendered beside their unchanged labels, with no
+   literal ligature names, blanks or missing-glyph boxes. The pilot UI exposes no
+   selected `AppIcon`, so **Android's filled face remains unverified**. **iOS is
+   entirely unverified** — no iOS build exists and nothing here may be read as
+   evidence for it. The local
    `ninja: manifest 'build.ninja' still dirty` failure remains a machine-specific
    toolchain issue, superseded as product-build evidence by the successful EAS
    APKs. Levels 2–5, Inter and motion are untouched.

@@ -13946,10 +13946,10 @@ baseline export.
 ## ADR-P033 — Material Symbols Delivery in React Native (UX-1B1 icon gate)
 
 Status: **Proposed — the recommended plan is built, licensed and measured as a
-feasibility pilot. Web rendering is verified in a real browser; an Android APK
-build and its binary cost are verified, but iOS and Android device rendering are
-not.** No npm dependency was added; two Apache-2.0 font assets were.
-Date: 2026-09-22 (revised the same day after a font-capability review)
+feasibility pilot. Web rendering and Android's default outlined rendering are
+verified; Android's filled/selected state and all iOS rendering are not.** No npm
+dependency was added; two Apache-2.0 font assets were.
+Date: 2026-09-22 (revised 2026-09-23 after Android device verification)
 Owner: Product / Design / Architecture
 Supersedes: nothing. Resolves the delivery question ADR-P022 Decision 9 left open.
 
@@ -14094,7 +14094,7 @@ The ligature tables are stored as **LookupType 7 (Extension Substitution)**
 wrapping LookupType 4, under the `rlig` feature rather than `liga`. A reader
 that only walks LookupType 4 concludes the fonts have no ligatures at all.
 
-**3. Rendering — MET ON WEB, still OPEN on iOS and Android.**
+**3. Rendering — MET ON WEB; PARTIAL on Android; OPEN on iOS.**
 
 *Web — verified in a real browser (Chrome 153, Blink + HarfBuzz).* Both `.ttf`
 files were served over HTTP and registered under the same two family names the
@@ -14121,10 +14121,17 @@ Two honest limits. This proves the **faces and the ligature mechanism** in a
 browser, not the app's own Web screen end to end. And it is **Chrome only** — the
 app's other Web engines are unverified.
 
-*Android — PARTIAL.* Native registration is now proven both at project level
-(proof 5) and in a successful EAS APK: both source font SHA-256 values were
-reproduced from the packaged `res/*.ttf` entries. **No glyph has yet been
-observed on an Android device**, so shaping and family selection remain open.
+*Android — PARTIAL.* Native registration is proven both at project level (proof
+5) and in successful EAS APKs: both source font SHA-256 values were reproduced
+from the packaged `res/*.ttf` entries. The `e2e` APK built from `7e8f31b` (EAS
+build `34620f75-cd97-429d-abea-d27e18b2bc48`) was installed on an Android 15
+emulator and exercised against a disposable local API and PostgreSQL database.
+After registering a synthetic account, the authenticated dashboard visibly
+rendered the three mapped **default outlined** glyphs — apple, dumbbell and bar
+chart — beside the unchanged Nutrition, Workout routines and Progress labels.
+None rendered as its literal ligature name, a blank or a missing-glyph box.
+The pilot has no user-reachable selected `AppIcon`, so this does **not** prove
+the filled face on Android; that state remains open.
 
 *iOS — OPEN, and nothing here may be read as evidence for it.* This work was done
 on Windows. There is **no iOS build and no iOS rendering check**; a Windows
@@ -14231,18 +14238,19 @@ and was only evidence.
 - **Rendering on an iOS device.** The largest gap, and untouched: it needs
   macOS. Nothing in this pilot is evidence about iOS, and no paid EAS build or
   Apple provisioning was initiated.
-- **Rendering on an Android device**, using the now-built pilot APK and a way onto the
-  authenticated dashboard — the pilot icons sit behind a local API and database
-  this work deliberately did not start.
+- **Rendering the filled/selected face on Android.** The installed EAS APK proves
+  all three default outlined glyphs, but this pilot has no user-reachable selected
+  `AppIcon`; unit/font tests are not device-rendering evidence.
 - **Web beyond Chrome.** Verified in Blink/HarfBuzz only, and against the font
   files rather than the app's own Web screen end to end.
 - A decision on the measured cost: **+988,820 B in the Android APK** and
   **2,409,920 B of Web font assets**. Subsetting to the mapped glyphs would cut
   both by orders of magnitude but adds a build step and was deliberately left out.
 
-The Web result narrows the risk but does not remove it: it proves the faces and
-the ligature mechanism are sound, so a failure on iOS or Android would be a
-*platform shaping or registration* failure, not a bad asset. If one occurs, the
+The Web result and Android outlined result narrow the risk but do not remove it:
+they prove the assets and ligature mechanism are sound in two shaping stacks, so
+a failure on iOS or in Android's filled face would be a *platform shaping or
+registration* failure, not a bad asset. If one occurs, the
 fallbacks are unchanged: a subsetted asset pipeline, or accepting SF Symbols on
 iOS — the latter requiring `.ai/08_UI_UX.md` §Icons to be amended first, since
 it states that *"no alternative visual vocabulary is under consideration"*.

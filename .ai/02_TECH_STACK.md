@@ -460,9 +460,10 @@ Icons
   matching the prior 996,237 B deflate estimate. Because the faces
   arrive through a config plugin, adding or changing one needs a **native
   rebuild** and cannot ship OTA. See **ADR-P033 (Proposed)** — **Web rendering is
-  verified in a real browser**, an Android APK now builds and contains both
-  source-identical faces, but **Android device rendering and all iOS rendering
-  remain unverified**, so this is not yet the accepted icon system.
+  verified in a real browser**, and the three default outlined dashboard icons
+  are visually verified from the EAS APK on Android 15. The Android filled/
+  selected state and **all iOS rendering remain unverified**, so this is not yet
+  the accepted icon system.
 
 Typography
 
