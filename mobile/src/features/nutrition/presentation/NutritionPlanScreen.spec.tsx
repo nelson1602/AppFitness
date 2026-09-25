@@ -43,6 +43,8 @@ jest.mock('@/shared/localization', () => {
   return {
     formatNumber: (value: number, language: 'en' | 'es') =>
       new Intl.NumberFormat(language === 'es' ? 'es' : 'en-US').format(value),
+    // The real joiner, so the value–unit separator under test is the shipped one.
+    formatQuantity: jest.requireActual('@/shared/localization/format').formatQuantity,
     useLocalization: () => ({
       language: mockLanguage,
       t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
@@ -201,6 +203,61 @@ describe('NutritionPlanScreen', () => {
     expect(
       screen.getByText('Protein 128 / 130 g · Carbs 262 / 260 g · Fat 74 / 76 g'),
     ).toBeOnTheScreen();
+  });
+
+  /**
+   * BUG-028. The plan joined each value to its unit with a plain space, so at
+   * large text a line could break inside "Carbohidratos 36 g". The raw text
+   * (no whitespace normalizer) must join every value and unit with U+00A0 in
+   * English and Spanish, leave no breakable value–unit space, and leave the
+   * accessibility labels untouched.
+   */
+  describe('keeps every value joined to its unit (BUG-028)', () => {
+    const raw = { normalizer: (text: string) => text };
+    const N = '\u00A0';
+
+    it.each([
+      [
+        'en',
+        new RegExp(
+          `150${N}g · 1\\.5× · 300${N}kcal · Protein 20${N}g / Carbs 30${N}g / Fat 8${N}g`,
+        ),
+        `Calories: 2,312 / 2,300${N}kcal`,
+        `Protein 128 / 130${N}g · Carbs 262 / 260${N}g · Fat 74 / 76${N}g`,
+        `Day 1 target: 2,300${N}kcal · Protein 130${N}g · Carbs 260${N}g · Fat 76${N}g.`,
+      ],
+      [
+        'es',
+        new RegExp(
+          `150${N}g · 1,5× · 300${N}kcal · Proteína 20${N}g / Carbohidratos 30${N}g / Grasa 8${N}g`,
+        ),
+        `Calorías: 2312 / 2300${N}kcal`,
+        `Proteína 128 / 130${N}g · Carbohidratos 262 / 260${N}g · Grasa 74 / 76${N}g`,
+        `Día 1 objetivo: 2300${N}kcal · Proteína 130${N}g · Carbohidratos 260${N}g · Grasa 76${N}g.`,
+      ],
+    ] as const)(
+      'joins values and units in %s',
+      async (language, foodLine, calories, macros, summary) => {
+        mockLanguage = language;
+        await render(<NutritionPlanScreen />);
+
+        expect(screen.getAllByText(foodLine, raw)).toHaveLength(4);
+        expect(screen.getAllByText(new RegExp(`: [\\d.,]+${N}kcal$`), raw)).toHaveLength(4);
+        expect(screen.getByText(calories, raw)).toBeOnTheScreen();
+        expect(screen.getByText(macros, raw)).toBeOnTheScreen();
+        expect(screen.getByText(summary, raw)).toBeOnTheScreen();
+        expect(screen.queryAllByText(/\d (g|kcal)\b/, raw)).toEqual([]);
+
+        const root = screen.root;
+        if (root === null) throw new Error('NutritionPlanScreen rendered no root');
+        const labelsWithNbsp = root.queryAll(
+          (node) =>
+            typeof node.props.accessibilityLabel === 'string' &&
+            node.props.accessibilityLabel.includes(N),
+        );
+        expect(labelsWithNbsp).toEqual([]);
+      },
+    );
   });
 
   it('renders the day rationale and the non-medical disclaimer', async () => {

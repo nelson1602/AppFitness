@@ -4,7 +4,12 @@ import { Pressable, View } from 'react-native';
 
 import { getSession } from '@/features/authentication';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
-import { formatNumber, useLocalization, type TranslationKey } from '@/shared/localization';
+import {
+  formatNumber,
+  formatQuantity,
+  useLocalization,
+  type TranslationKey,
+} from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -100,17 +105,19 @@ function MealCard({ meal }: { meal: MealPlanMeal }) {
         {meal.foods.map((f, idx) => (
           <View key={`${f.foodId}-${idx}`} style={{ gap: 2 }}>
             <AppText>{foodDisplayName({ id: f.foodId, name: f.name }, language)}</AppText>
+            {/* BUG-028: formatQuantity keeps each value and its unit on one line. */}
             <AppText variant="caption" tone="muted">
-              {formatNumber(f.serving.amount, language)} {t(UNIT_KEY[f.serving.unit])} ·{' '}
-              {formatNumber(f.servings, language)}× · {formatNumber(f.macros.calories, language)}{' '}
-              kcal · {t('nutrition.plan.protein')} {formatNumber(f.macros.proteinG, language)} g /{' '}
-              {t('nutrition.plan.carbs')} {formatNumber(f.macros.carbsG, language)} g /{' '}
-              {t('nutrition.plan.fat')} {formatNumber(f.macros.fatG, language)} g
+              {formatQuantity(f.serving.amount, t(UNIT_KEY[f.serving.unit]), language)} ·{' '}
+              {formatNumber(f.servings, language)}× ·{' '}
+              {formatQuantity(f.macros.calories, 'kcal', language)} · {t('nutrition.plan.protein')}{' '}
+              {formatQuantity(f.macros.proteinG, 'g', language)} / {t('nutrition.plan.carbs')}{' '}
+              {formatQuantity(f.macros.carbsG, 'g', language)} / {t('nutrition.plan.fat')}{' '}
+              {formatQuantity(f.macros.fatG, 'g', language)}
             </AppText>
           </View>
         ))}
         <AppText variant="caption" tone="muted">
-          {t('nutrition.plan.mealTotal')}: {formatNumber(meal.totals.calories, language)} kcal
+          {t('nutrition.plan.mealTotal')}: {formatQuantity(meal.totals.calories, 'kcal', language)}
         </AppText>
       </View>
     </Card>
@@ -135,24 +142,26 @@ function DayView({ day }: { day: MealPlanDay }) {
           <AppText variant="label">{t('nutrition.plan.dayTotalTarget')}</AppText>
           <AppText tone="muted">
             {t('nutrition.plan.calories')}: {formatNumber(day.totals.calories, language)} /{' '}
-            {formatNumber(day.targets.calories, language)} kcal
+            {formatQuantity(day.targets.calories, 'kcal', language)}
           </AppText>
           <AppText variant="caption" tone="muted">
             {t('nutrition.plan.protein')} {formatNumber(day.totals.proteinG, language)} /{' '}
-            {formatNumber(day.targets.proteinG, language)} g · {t('nutrition.plan.carbs')}{' '}
+            {formatQuantity(day.targets.proteinG, 'g', language)} · {t('nutrition.plan.carbs')}{' '}
             {formatNumber(day.totals.carbsG, language)} /{' '}
-            {formatNumber(day.targets.carbsG, language)} g · {t('nutrition.plan.fat')}{' '}
-            {formatNumber(day.totals.fatG, language)} / {formatNumber(day.targets.fatG, language)} g
+            {formatQuantity(day.targets.carbsG, 'g', language)} · {t('nutrition.plan.fat')}{' '}
+            {formatNumber(day.totals.fatG, language)} /{' '}
+            {formatQuantity(day.targets.fatG, 'g', language)}
           </AppText>
         </View>
       </Card>
 
       <AppText variant="caption" tone="muted">
         {t('nutrition.plan.day')} {formatNumber(day.day, language)}{' '}
-        {t('nutrition.plan.targetSummary')}: {formatNumber(day.targets.calories, language)} kcal ·{' '}
-        {t('nutrition.plan.protein')} {formatNumber(day.targets.proteinG, language)} g ·{' '}
-        {t('nutrition.plan.carbs')} {formatNumber(day.targets.carbsG, language)} g ·{' '}
-        {t('nutrition.plan.fat')} {formatNumber(day.targets.fatG, language)} g.
+        {t('nutrition.plan.targetSummary')}:{' '}
+        {formatQuantity(day.targets.calories, 'kcal', language)} · {t('nutrition.plan.protein')}{' '}
+        {formatQuantity(day.targets.proteinG, 'g', language)} · {t('nutrition.plan.carbs')}{' '}
+        {formatQuantity(day.targets.carbsG, 'g', language)} · {t('nutrition.plan.fat')}{' '}
+        {formatQuantity(day.targets.fatG, 'g', language)}.
       </AppText>
       {day.rationale.safetyFloorApplied ? (
         <Banner title={t('nutrition.plan.safeMinimumTitle')} tone="info">
