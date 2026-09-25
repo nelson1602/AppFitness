@@ -2866,6 +2866,59 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-028] Nutrition-Plan Numbers Split From Their Units
+
+Status: **Done — values joined to units; regression and full validation green (2026-09-25).**
+Previous status: In Progress.
+Priority: **P3**
+Type: Bug (text wrapping — value separated from its unit)
+Owner: Mobile Architecture
+Created: 2026-09-25
+Updated: 2026-09-25
+
+**Observed (Android 15 emulator, `main` `1e0c8d7`, A6 audit).** On
+`/nutrition-plan`, a line break could fall between a number and its unit, for
+example "Carbohidratos 36 ⏎ g" and "Carbohidratos 67,5 ⏎ g". It happened in
+Spanish even at 1.0× and more often at larger text. The plan joined each value
+and unit with a plain space. That breaks the rule in `.ai/08_UI_UX.md`
+§Dynamic-type safety: "Numbers must not be allowed to overflow their unit or
+their label."
+
+**Fix.** A shared `formatQuantity(value, unit, language)` in
+`shared/localization/format.ts` returns `formatNumber(value, language)`, a
+no-break space (U+00A0) and the unit. The nutrition plan uses it for every
+value–unit pair: serving amounts ("1,5 taza"), kcal and grams in each food
+line, meal totals, day totals against targets, and the day target summary.
+Numbers, units, calculations, copy keys and accessibility labels are
+unchanged. The source uses the explicit `\u00A0` escape, not an invisible
+character.
+
+**Regression coverage.**
+
+- `format.spec.ts`: English and Spanish values are joined to "g", "kcal",
+  "taza" and "cup" with U+00A0. The number part is identical to `formatNumber`,
+  options included, and the unit is passed through.
+- `NutritionPlanScreen.spec.tsx`: reading the raw rendered text (no whitespace
+  normalizer), every food line, meal total, day total and target summary joins
+  value and unit with U+00A0 in English and Spanish. No breakable value–unit
+  space remains, and no accessibility label contains U+00A0.
+- The existing whitespace-normalized assertions still pass unchanged, so the
+  text still reads the same.
+- Reverting the separator to a plain space fails 10 tests.
+
+**Not changed (not shown to fail).** Other nutrition surfaces also join values
+and units with a plain space: the nutrition-targets screen and the dashboard
+assessment card. They can adopt `formatQuantity` if a failure is observed.
+
+### Related Documents
+
+- `.ai/08_UI_UX.md` §Dynamic-type safety
+- `mobile/src/shared/localization/format.ts`,
+  `mobile/src/features/nutrition/presentation/NutritionPlanScreen.tsx` and
+  their specs
+
+---
+
 ## [BUG-027] The Dietary-Note Placeholder Is Clipped at Large Text
 
 Status: **Open — linked to UX-5; not scheduled.**

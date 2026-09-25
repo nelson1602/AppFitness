@@ -17,6 +17,21 @@ export function formatNumber(
   return new Intl.NumberFormat(localeForLanguage(language), options).format(value);
 }
 
+/**
+ * A number and its unit ("16,5 g", "317 kcal", "1,5 taza") joined by a
+ * no-break space (U+00A0), so a line break can never separate the value from
+ * its unit (BUG-028). The number is formatted exactly as `formatNumber` does,
+ * and `unit` is passed through untouched — callers localize it first.
+ */
+export function formatQuantity(
+  value: number,
+  unit: string,
+  language: SupportedLanguage,
+  options?: Intl.NumberFormatOptions,
+): string {
+  return `${formatNumber(value, language, options)}\u00A0${unit}`;
+}
+
 export function formatDate(
   value: Date | number,
   language: SupportedLanguage,
