@@ -25,6 +25,11 @@ export function Banner({ title, children, tone = 'info' }: BannerProps) {
   return (
     <View
       accessibilityRole="summary"
+      // BUG-025 / ADR-P024 bounded extension: only the error tone requests a
+      // polite announcement, on this existing root. `aria-live` is
+      // `@platform android` and mapped to the DOM by react-native-web; iOS is
+      // not covered. Other tones stay passive and carry no live-region prop.
+      aria-live={tone === 'error' ? 'polite' : undefined}
       style={{
         backgroundColor: theme.colors.surfaceVariant,
         borderColor: toneColor[tone],

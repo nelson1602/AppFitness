@@ -8939,6 +8939,62 @@ documentation only.
   `mobile/src/shared/presentation/app-text-input.tsx` — the shipped code the
   border finding was verified against
 
+### Bounded Extension — Error Banner announcement request (BUG-025, 2026-09-25)
+
+**Status: Accepted.** Owner authorization. Everything above is kept as the
+historical record. This extension supersedes **one** clause: the restriction,
+cited from Decision 3, that `aria-live` may sit on **exactly one node**. That
+restriction now has **one** named exception, and nothing else about ADR-P024
+changes.
+
+**Context.** Error `Banner`s are how screens report load, save, sync and auth
+failures. They carried no announcement request, so a TalkBack or browser
+screen-reader user could miss an error that appears after an action. An audit at
+`origin/main` `37d940460779669a02f564fb1550f2e3fc344e79` found **42**
+error-capable `Banner` call sites: **41** with a static `tone="error"` and
+**1** dynamic (`verification-reminder-card.tsx`, `success` or `error`). **4**
+of them sit in the dormant medical presentation (`EvaluationForm`,
+`EvaluationHistory`, `Restrictions`, `TrainingPlanCard`), which no route
+imports (ADR-P017). That leaves **38 reachable error paths in 23 files**. The
+other three dynamic tones never produce `error`.
+
+**Decision.**
+
+1. The shared `Banner` sets `aria-live="polite"` on its **existing root
+   `View`** — the node that already carries `accessibilityRole="summary"` —
+   **only when `tone === 'error'`**. `info`, `success`, `warning` and the
+   default tone get **no** live-region prop.
+2. No duplicate or hidden copy of the title or body. The API, the `summary`
+   role, layout, copy and styling are unchanged.
+3. **Platform scope is the same as Decision 4.** `aria-live` on `View` is typed
+   `@platform android` in `react-native@0.86.3`, and `react-native-web@0.21.2`
+   maps it to the DOM attribute. So this targets **Android and Web only**.
+   **iOS announcement is still unmet.**
+4. **Still forbidden (Decision 5 holds):** `AccessibilityInfo` or any
+   imperative announcement, an `assertive` policy, a new dependency, a platform
+   branch, new copy, and live regions on any other node.
+5. **Evidence (Decision 6 holds).** `banner.spec.tsx` proves that the prop is
+   **present** on the error root and **absent** on every other tone. It does
+   **not** prove that TalkBack or a browser screen reader announced anything.
+   A live region on an element that is **newly inserted** may not be announced
+   by some browser screen readers; only manual testing can settle that.
+6. **Gates (Decision 7 holds).** All **five** V1 accessibility release-review
+   gates stay **open**: programmatic invalid state, programmatic required
+   state, field↔message association, iOS error announcement, and manual
+   VoiceOver / TalkBack / browser-AT verification. **UX-4C stays open and
+   unrun.**
+
+**Preserved.** Decision 3's `FormField` message node and the
+`auth-text-field.tsx` message node are unchanged. ADR-P023 Decision 5, ADR-P025
+and ADR-P017 dormancy are unchanged. The medical Banners get the prop through
+the shared component, but they stay unrouted, so nothing reaches users there.
+Other ADRs and specs that quote the single-node rule (for example ADR-P017 W-3's
+date-field note) remain correct about the node they discuss: the wellness date
+container is still **not** a live region.
+
+**Related.** `.ai/11_BACKLOG.md` §BUG-025; `.ai/08_UI_UX.md` v1.15;
+`mobile/src/shared/presentation/banner.tsx`, `banner.spec.tsx`.
+
 ---
 
 ## ADR-P025 — FormField Primitive Migration Deferred from V1

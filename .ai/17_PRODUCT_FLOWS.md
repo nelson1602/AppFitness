@@ -1165,6 +1165,9 @@ reachable when the answer is "yes", and that is the whole claim: its
 authorizes `aria-live` on exactly one node — the localized validation-error
 message `FormField` already renders — so W-3 adds **no** announcement
 mechanism of its own, and `FormField`'s shipped error behaviour is untouched.
+*(Reconciled 2026-09-25: the ADR-P024 bounded extension for BUG-025 now also
+allows `aria-live="polite"` on the root of an error-tone `Banner`. That does
+not change this field. Its container is still not a live region.)*
 
 **All of that is code-level intent, not a verified outcome.** No VoiceOver,
 TalkBack or browser-AT behaviour is claimed — that remains the UX-4C manual

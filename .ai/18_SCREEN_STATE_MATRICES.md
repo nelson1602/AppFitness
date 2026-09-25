@@ -1108,6 +1108,11 @@ What the audit established about the state banners, and nothing beyond it:
 - The audited state surfaces contain **no explicit live-region declaration and no
   imperative announcement**: `accessibilityLiveRegion` and
   `announceForAccessibility` occur **zero** times in `mobile/src`.
+  **Reconciled 2026-09-25 (BUG-025):** that was true at audit time. Since the
+  ADR-P024 bounded extension, a banner with `tone="error"` carries
+  `aria-live="polite"` on its root (Android and Web only; iOS unmet). Banners
+  with other tones still carry no live-region declaration. The two counts
+  above are unchanged.
 - What assistive technology does **automatically** when such a banner appears or
   changes — under VoiceOver, TalkBack, or a browser AT — is **unverified**. The
   absence of an explicit mechanism is an established fact; silence is not, and

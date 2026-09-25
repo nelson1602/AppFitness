@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.14
+Version: 1.15
 Status: Active
-Last Updated: 2026-09-23
+Last Updated: 2026-09-25
 
 ---
 
@@ -474,6 +474,26 @@ counted **16** production `<Pressable>` sites.
 `AppButton` enforces its own 44×44 floor and is unchanged. A source guard
 (`touch-target.source.spec.ts`) now lists every production `<Pressable>`.
 No token, dependency, copy, colour, typography or component API changes.
+
+---
+
+# Revision Scope (v1.15 — BUG-025)
+
+This revision records one owner-authorized accessibility fix
+(`.ai/11_BACKLOG.md` §BUG-025), decided by the **ADR-P024 bounded extension
+of 2026-09-25**. The shared `Banner` now sets `aria-live="polite"` on its
+existing `summary` root **only for `tone="error"`**. The other tones get no
+live-region prop.
+
+- **Reach:** 38 reachable error paths in 23 files, audited at `37d9404`. The 4
+  dormant medical error Banners are unrouted.
+- **Platforms:** Android and Web only. **iOS announcement is still unmet.**
+- **Evidence:** the spec proves the prop is present, not that anything was
+  announced.
+
+No token, dependency, copy, layout, role or component API changes. All five V1
+accessibility release-review gates stay open, and **UX-4C stays open and
+unrun**.
 
 ---
 
@@ -2096,6 +2116,15 @@ has none** — the existing `aria-live` props cover field validation, not state
 transitions, and no surface announces entering Loading, Error, Offline,
 Pending sync, Conflict or Web unavailable.
 
+**Reconciled 2026-09-25 (v1.15, BUG-025).** The count above was true when
+written; it is now **3**. The third is the root `View` of the shared
+`Banner` (`banner.tsx`), set to `polite` **only for `tone="error"`**, under the
+**ADR-P024 bounded extension**. So an **Error** state rendered as an error
+`Banner` now *requests* a polite announcement on Android and Web. Loading,
+Offline, Pending sync, Conflict and Web unavailable still request none, and no
+announcement is proven on any platform. `accessibilityLiveRegion` and
+`announceForAccessibility` are still **0** in the source.
+
 ## Future flow needs with insufficient current evidence
 
 **Success confirmation** and **permission denied** are real future needs — the
@@ -2756,14 +2785,14 @@ spec or Maestro flow depends on a primitive-internal id. What must survive is
 | Aspect | Contract |
 |---|---|
 | **Responsibility** | The passive notice atom: a toned, recessed block carrying a **required title** and an **optional textual body** supplied entirely by the caller. |
-| **Non-responsibilities** | **No actions, no dismissal, no icons, no navigation.** It owns **no copy**. It makes **no live-region guarantee**, and it has nothing to do with a Permissions-Policy header. |
+| **Non-responsibilities** | **No actions, no dismissal, no icons, no navigation.** It owns **no copy**. It makes **no live-region guarantee** — the error-tone `aria-live` request (v1.15, below) is a request, not a guarantee — and it has nothing to do with a Permissions-Policy header. |
 | **Anatomy (SHIPPED)** | `View` — `surfaceVariant` fill, **left** tone border of `spacing.xs` (4 px), `radius.medium`, `padding: md`, `gap: xs`, `accessibilityRole="summary"` → title as `AppText variant="label"` with `titleTone = tone === 'info' ? 'primary' : tone` → optional body as `AppText variant="caption" tone="muted"`. |
 | **Tones — exactly four, all SHIPPED** | `info` (default, 18 usages) · `success` (2) · `warning` (9) · `error` (26). |
 | **Props** | required: `title`. optional: `children`, `tone`. |
 | **Body slot — accurate** | `children?: ReactNode` is **rendered inside an `AppText`**. The body is therefore **textual content, not an arbitrary layout or action slot**; passing a pressable or a layout tree would nest it inside a `Text`. |
 | **State behavior** | Stateless and passive. It is the **atom**; `SyncStatusBanner`, `WebUnavailableNotice`, `ErrorState`, and the other UX-1B2A components are **compositions above it** and remain distinct — `Banner` must not absorb their status logic, copy, or structural guarantees. |
 | **Semantic token roles** | `surfaceVariant` ground · tone role on the left border · title in the tone role (`primary` for `info`) · body in `onSurfaceVariant`. |
-| **Accessibility — platform outcome** | The `summary` role and the resulting query path are **preserved**. This contract does **not** claim that `summary` creates a **live announcement**: `accessibilityLiveRegion` and `announceForAccessibility` have **zero** occurrences in `mobile/src`. Where a notice must be *announced* on appearance, that is an outcome to be **verified per platform** and belongs to the composing state component (for example `ErrorState`), not to this atom. |
+| **Accessibility — platform outcome** | The `summary` role and the resulting query path are **preserved**. This contract does **not** claim that `summary` creates a **live announcement**: `accessibilityLiveRegion` and `announceForAccessibility` have **zero** occurrences in `mobile/src`. Where a notice must be *announced* on appearance, that is an outcome to be **verified per platform** and belongs to the composing state component (for example `ErrorState`), not to this atom. **Amended 2026-09-25 (v1.15, BUG-025, ADR-P024 bounded extension):** for `tone="error"` only, the root also carries `aria-live="polite"`. This is Android and Web only; iOS is still unmet. Other tones carry no live-region prop. The spec proves the prop is present, not that anything is announced. |
 | **EN/ES + dynamic type** | Title and body both wrap; the block grows with the text scale. Measured Web-unavailable titles run up to +38% longer in ES. |
 | **Responsive / Web** | Identical on all platforms. |
 | **Test hooks** | None of its own. Its spec asserts title-only renders without an empty body node and that all four tones render. |
@@ -2937,8 +2966,9 @@ Accessibility is verified, not asserted. WCAG 2.2 AA is the floor.
 **Prop presence is not assistive-technology behaviour (UX-1B2D / ADR-P023,
 reaffirmed by ADR-P024).** This distinction is mandatory in every completion
 claim, review, and commit message, and it applies without exception to the
-`aria-live` prop authorized for UX-1C-2B-a: asserting it is present proves the
-prop, never a TalkBack or browser-AT announcement.
+`aria-live` prop authorized for UX-1C-2B-a, and to the error-`Banner` request
+added by BUG-025: asserting it is present proves the prop, never a TalkBack or
+browser-AT announcement.
 
 - An automated assertion that a component renders `accessibilityState`,
   `accessibilityLabel`, `accessibilityRole`, or any `aria-*` property proves
@@ -3324,6 +3354,17 @@ dependency, copy, colour, typography, role, state or API. `FormSelect` remains
 frozen, with its accessibility blocker open. The accessibility-scaffolding
 snapshot above (`AppButton` enforcing 44×44) is left as written; it remains
 accurate.
+
+## What v1.15 (BUG-025) authorizes
+
+**Reconciliation note, 2026-09-25.** Exactly one component change: the shared
+`Banner` root sets `aria-live="polite"` when `tone === 'error'`, with its spec.
+It is a bounded exception to the component clause for that one prop, under the
+ADR-P024 bounded extension. It changes no Banner API, role, layout, copy,
+token or dependency. It adds no imperative announcement, `assertive` policy or
+platform branch. The UX-1B2C Banner snapshot figures, including the tone usage
+counts, are left as written. The five V1 accessibility release-review gates
+and UX-4C are untouched.
 
 ## Owner-gated decisions still open after this revision
 

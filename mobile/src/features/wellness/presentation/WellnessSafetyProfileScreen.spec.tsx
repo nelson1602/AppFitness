@@ -420,7 +420,8 @@ describe('the evaluation question and its conditional date', () => {
     // ADR-P024 Decision 3 authorizes `aria-live` on exactly one node — the
     // localized validation-error message `FormField` already renders — so this
     // slice attaches NO announcement mechanism to the newly inserted content,
-    // and claims none. The field is simply visible and reachable.
+    // and claims none. The field is simply visible and reachable. (The ADR-P024
+    // BUG-025 extension adds only the error-tone `Banner` root.)
     expect(section.props['aria-live']).toBeUndefined();
     expect(section.props.accessibilityLiveRegion).toBeUndefined();
     const input = screen.getByTestId('field-evaluationDate');
