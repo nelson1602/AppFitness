@@ -240,7 +240,8 @@ export function WorkoutLogScreen() {
                   </AppText>
                 ) : null}
                 <ConflictHint syncStatus={log.syncStatus} />
-                <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                {/* BUG-026: wraps so a large-text action is not pushed off the card. */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
                   <AppButton
                     accessibilityLabel={`${t('workout.log.logSetsAccessibility')} ${log.name}`}
                     testID={`workout-select-${log.id}`}
@@ -499,7 +500,15 @@ function SetList({
             </AppText>
             <PendingHint syncStatus={set.syncStatus} />
             <ConflictHint syncStatus={set.syncStatus} />
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+            {/* BUG-026: wraps so the set controls stay on the card at large text. */}
+            <View
+              style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: theme.spacing.sm,
+              }}
+            >
               <TextInput
                 accessibilityLabel={`${t('workout.log.repsForSetAccessibility')} ${formatNumber(set.setNumber, language)}`}
                 testID={`set-reps-${set.id}`}

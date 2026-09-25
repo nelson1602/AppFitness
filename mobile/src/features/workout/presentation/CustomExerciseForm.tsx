@@ -147,7 +147,8 @@ export function CustomExerciseForm({
 
       <CustomExerciseNote />
 
-      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+      {/* BUG-026: wraps so "Cancel" is never clipped at large text. */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
         <AppButton
           accessibilityLabel={
             initial ? t('workout.custom.saveChanges') : t('workout.custom.addExerciseAccessibility')

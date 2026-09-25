@@ -220,7 +220,10 @@ export function ExerciseLibrary() {
                             ? `${t('workout.library.usedIn')} ${formatNumber(refCount, language)} ${t(refCount === 1 ? 'workout.library.routineOne' : 'workout.library.routineMany')} — ${t('workout.library.referencePreserved')}`
                             : t('workout.library.notUsed')}
                       </AppText>
-                      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                      {/* BUG-026: wraps so "Cancel" is never clipped at large text. */}
+                      <View
+                        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}
+                      >
                         <AppButton
                           accessibilityLabel={`${t('workout.library.confirmDeleteAccessibility')} ${exercise.name}`}
                           testID={`custom-delete-confirm-${exercise.id}`}
