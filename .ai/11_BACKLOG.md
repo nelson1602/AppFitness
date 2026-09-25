@@ -2866,6 +2866,67 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-025] Error Banners Carry No Announcement Request
+
+Status: **Done — implemented with regression coverage; local gates green (2026-09-25).**
+Previous status: In Progress. Manual assistive-technology outcomes remain open
+under UX-4C (see *Not claimed*).
+Priority: **P2**
+Type: Bug (accessibility — error feedback not requested for announcement)
+Owner: Mobile Architecture / Accessibility
+Created: 2026-09-25
+Updated: 2026-09-25
+
+**Problem.** Screens report load, save, sync and auth failures with the shared
+`Banner` at `tone="error"`. The Banner root carried only
+`accessibilityRole="summary"` and no live-region request. A TalkBack or
+browser screen-reader user could miss an error that appears after an action.
+
+**Audit (`origin/main` `37d940460779669a02f564fb1550f2e3fc344e79`).**
+
+- **42** error-capable `Banner` call sites: **41** static `tone="error"`, plus
+  **1** dynamic (`verification-reminder-card.tsx`, `success` or `error`). The
+  other three dynamic tones never produce `error`.
+- **4** are in the dormant medical presentation (`EvaluationForm`,
+  `EvaluationHistory`, `Restrictions`, `TrainingPlanCard`). No route imports
+  them (ADR-P017).
+- That leaves **38 reachable error paths in 23 files**: the auth routes
+  (sign-in, forgot/reset password, verify email, delete account), the
+  dashboard, nutrition, profile, progress, sync conflicts, wellness, workout
+  and the language selector.
+
+**Fix (ADR-P024 bounded extension, 2026-09-25).** `banner.tsx` sets
+`aria-live="polite"` on its existing root **only when `tone === 'error'`**.
+Other tones get no prop. The API, role, layout, copy and styling are
+unchanged. There is no imperative announcement, no `assertive` policy, no
+dependency and no platform branch.
+
+**Regression coverage.** `banner.spec.tsx` asserts:
+
+- the error root has `aria-live="polite"`;
+- `info`, `success`, `warning` and the default tone have no `aria-live` and no
+  `accessibilityLiveRegion`;
+- only the root is marked, and the title and body each render once.
+
+Widening the condition to non-`info` tones fails 2 tests.
+
+**Platform scope.** Android and Web only. `aria-live` on `View` is typed
+`@platform android`, and `react-native-web@0.21.2` maps it to the DOM.
+**iOS is still unmet.**
+
+**Not claimed.** The tests prove that the prop is present, not that anything
+was announced. A live region on a newly inserted element may not be announced
+by some browser screen readers. All **five** V1 accessibility release-review
+gates stay open, and **UX-4C stays open and unrun**.
+
+### Related Documents
+
+- `.ai/12_DECISIONS.md` ADR-P024 §Bounded Extension (BUG-025)
+- `.ai/08_UI_UX.md` v1.15 (§5 `Banner`, §Change Control)
+- `mobile/src/shared/presentation/banner.tsx`, `banner.spec.tsx`
+
+---
+
 ## [BUG-024] A Long Spanish Chip Label Clips at 1.3× Text
 
 Status: **Closed — fixed with regression coverage and Android 15 emulator measurements (2026-09-23).**

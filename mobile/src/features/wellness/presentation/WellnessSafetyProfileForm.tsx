@@ -122,7 +122,8 @@ export function WellnessSafetyProfileForm({
         // `FormField` already renders — and nothing else, so putting it on this
         // container would be a second announcement mechanism this slice has no
         // authorization to add. The field is visible and keyboard reachable, and
-        // `FormField`'s shipped validation-error behaviour is untouched.
+        // `FormField`'s shipped validation-error behaviour is untouched. (The
+        // ADR-P024 BUG-025 extension adds only the error-tone `Banner` root.)
         <View style={{ gap: theme.spacing.xs }} testID="wellness-date-section">
           <FormField
             control={control}

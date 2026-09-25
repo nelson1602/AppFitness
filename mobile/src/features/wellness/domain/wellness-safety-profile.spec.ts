@@ -332,7 +332,9 @@ describe('Wellness Safety Profile contract', () => {
     it('adds no announcement mechanism (ADR-P024 Decision 3 is single-node)', () => {
       // ADR-P024 authorizes `aria-live` on exactly one node — the localized
       // validation-error message `FormField` already renders — so no W-3 file
-      // may introduce one of its own, on a container or anywhere else.
+      // may introduce one of its own, on a container or anywhere else. (The
+      // ADR-P024 BUG-025 extension adds only the shared error-tone `Banner`
+      // root, which lives outside this feature.)
       const fs = require('node:fs');
       for (const file of filesUnder(FEATURE_DIR)) {
         if (file.includes('.spec.')) continue;

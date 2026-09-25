@@ -1522,7 +1522,10 @@ This deck proves only that copy exists or has been specified.
 - Proposed `*Accessibility` strings are names, not verified screen-reader
   output.
 - `aria-live="polite"` on FormField remains the limited ADR-P024 request; it
-  does not apply automatically to state banners.
+  does not apply automatically to state banners. *(Reconciled 2026-09-25,
+  BUG-025: the ADR-P024 bounded extension adds the same polite request to
+  error-tone `Banner`s only. It is a request, not a proven announcement, and
+  other banner tones get none.)*
 - Manual VoiceOver, TalkBack and browser-AT verification remains UX-4C and must
   be recorded per surface before any outcome is marked satisfied.
 
