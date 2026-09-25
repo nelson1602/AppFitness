@@ -1338,6 +1338,20 @@ the font-delivery slice, since tabular figures depend on the chosen face.
   `spacing.x5l` (48), which is a floor and must not become a ceiling.
 - Numbers must not be allowed to overflow their unit or their label.
 
+**Large-text evidence, 2026-09-25 — the typography ramp is not the defect
+(A6 retracted).** In `react-native@0.86.3`, `allowFontScaling` scales **both**
+`fontSize` and `lineHeight`. On Android each goes through
+`TypedValue.applyDimension(SP)` on its own, so Android 14+ non-linear font
+scaling grows large line heights less than their font sizes. Title (20/28)
+falls from a 1.40 to a 1.10 line-height ratio at 2.0×. On iOS one multiplier
+scales both. An Android 15 emulator audit of 15 routes in Spanish and English
+at 1.0×, 1.3×, 1.5× and 2.0× (120 combinations) measured no text overlap, no
+horizontal overflow and no clipped glyphs from the ramp, so **no systemic
+typography-ramp defect exists and the ramp stays frozen**. The failures found
+were button rows that did not wrap (`.ai/11_BACKLOG.md` §BUG-026), a clipped
+input placeholder (§BUG-027) and numbers splitting from their units, which
+also happens at 1.0× and is fixed separately.
+
 ---
 
 # Bilingual Layout Safety (ES / EN)

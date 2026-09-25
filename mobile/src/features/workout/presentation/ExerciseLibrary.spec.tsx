@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import { lightTheme } from '@/shared/theme';
 
 import type { CustomExercise } from '../domain/workout';
 import type { WorkoutState } from '../application/workout.store';
@@ -185,6 +187,61 @@ describe('ExerciseLibrary', () => {
     );
   });
 
+  /**
+   * BUG-026. The custom-exercise form's Save/Cancel row did not wrap, so at
+   * 2.0× Spanish text "Cancelar" ran into the card border and lost its last
+   * letter. The row must wrap, keep its `sm` gap and keep submit-then-cancel
+   * order; cancelling an edit closes the form without saving or deleting.
+   */
+  it.each([
+    ['en', 'Save changes', 'Cancel', 'Add exercise'],
+    ['es', 'Guardar cambios', 'Cancelar', 'Agregar ejercicio'],
+  ] as const)(
+    'wraps the %s custom-exercise form actions without changing behaviour (BUG-026)',
+    async (language, saveLabel, cancelLabel, addLabel) => {
+      mockLanguage = language;
+      setStore({ customExercises: [customExercise()] });
+      await render(<ExerciseLibrary />);
+
+      const actionRow = (fromTestID: string, index: number) => {
+        let row = screen.getAllByTestId(fromTestID)[index].parent;
+        while (row && StyleSheet.flatten(row.props.style)?.flexDirection !== 'row') {
+          row = row.parent;
+        }
+        if (!row) throw new Error(`no row contains ${fromTestID}`);
+        return row;
+      };
+      const wraps = { flexDirection: 'row', flexWrap: 'wrap', gap: lightTheme.spacing.sm };
+
+      // Create mode: the same row, with its single submit action.
+      const createRow = actionRow('custom-exercise-submit', 0);
+      expect(StyleSheet.flatten(createRow.props.style)).toMatchObject(wraps);
+      expect(screen.getByText(addLabel)).toBeOnTheScreen();
+
+      // Edit mode: submit then cancel, both localized, in a wrapping row.
+      await fireEvent.press(screen.getByTestId('custom-edit-ce1'));
+      const cancel = screen.getByTestId('custom-exercise-cancel');
+      const editRow = actionRow('custom-exercise-cancel', 0);
+      expect(StyleSheet.flatten(editRow.props.style)).toMatchObject(wraps);
+      expect(
+        editRow
+          .queryAll((child) =>
+            ['custom-exercise-submit', 'custom-exercise-cancel'].includes(child.props.testID),
+          )
+          .map((child) => child.props.testID)
+          .filter((id, i, all) => all.indexOf(id) === i),
+      ).toEqual(['custom-exercise-submit', 'custom-exercise-cancel']);
+      expect(screen.getByText(saveLabel)).toBeOnTheScreen();
+      expect(screen.getByText(cancelLabel)).toBeOnTheScreen();
+
+      await fireEvent.press(cancel);
+      expect(screen.queryByTestId('custom-exercise-cancel')).toBeNull();
+      expect(updateCustomExercise).not.toHaveBeenCalled();
+      expect(createCustomExercise).not.toHaveBeenCalled();
+      expect(removeCustomExercise).not.toHaveBeenCalled();
+    },
+  );
+
   it('selects prefilled text on focus so editing replaces the name cleanly', async () => {
     // Regression: without selectTextOnFocus, tapping a prefilled field in the
     // E2E landed a mid-text cursor and eraseText left trailing characters,
@@ -210,6 +267,41 @@ describe('ExerciseLibrary', () => {
     await fireEvent.press(screen.getByTestId('custom-delete-confirm-ce1'));
 
     await waitFor(() => expect(removeCustomExercise).toHaveBeenCalledWith('ce1'));
+  });
+
+  /**
+   * BUG-026. The delete-confirmation row did not wrap, so at 2.0× Spanish text
+   * the safe choice "Cancelar" was clipped to "Canc" beside a fully legible
+   * "Confirmar eliminación". The row must wrap, keep its `sm` gap and keep
+   * confirm-then-cancel order; cancelling still dismisses without deleting.
+   */
+  it('wraps the delete confirmation so Cancel stays whole (BUG-026)', async () => {
+    countRoutineReferences.mockResolvedValue(0);
+    setStore({ customExercises: [customExercise()] });
+    await render(<ExerciseLibrary />);
+
+    await fireEvent.press(screen.getByTestId('custom-delete-ce1'));
+    const cancel = await screen.findByTestId('custom-delete-cancel-ce1');
+    const ids = ['custom-delete-confirm-ce1', 'custom-delete-cancel-ce1'];
+    let row = cancel.parent;
+    while (row && StyleSheet.flatten(row.props.style)?.flexDirection !== 'row') row = row.parent;
+    if (!row) throw new Error('no row contains the confirmation actions');
+    const found = row;
+    expect(StyleSheet.flatten(found.props.style)).toMatchObject({
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: lightTheme.spacing.sm,
+    });
+    expect(
+      found
+        .queryAll((child) => ids.includes(child.props.testID))
+        .map((child) => child.props.testID)
+        .filter((id, i, all) => all.indexOf(id) === i),
+    ).toEqual(ids);
+
+    await fireEvent.press(cancel);
+    expect(screen.queryByTestId('custom-delete-confirm-ce1')).toBeNull();
+    expect(removeCustomExercise).not.toHaveBeenCalled();
   });
 
   it('shows sync state and custom-exercise neutrality copy', async () => {

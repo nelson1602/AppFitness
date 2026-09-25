@@ -2866,6 +2866,104 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-027] The Dietary-Note Placeholder Is Clipped at Large Text
+
+Status: **Open — linked to UX-5; not scheduled.**
+Priority: **P3**
+Type: Bug (large text — clipped hint that carries privacy information)
+Owner: Mobile Architecture / Product Design
+Created: 2026-09-25
+Updated: 2026-09-25
+
+**Observed (Android 15 emulator, audit of `main` `1e0c8d7`).** On
+`/dietary-preferences`, the optional-note field's placeholder reads "Optional
+note (encrypted on your device)" / "Nota opcional (cifrada en tu dispositivo)".
+At 1.5× and 2.0×, in both languages, the placeholder wraps to two lines but the
+field stays one line tall (48.0 dp at 1.5×, 53.3–53.7 dp at 2.0×), so the second
+line — the encryption notice — is cut off. At 1.0× and 1.3× it fits.
+
+**Why it matters.** The encryption notice exists **only** in the placeholder;
+the field's accessibility label is just "Optional note". Important, lasting
+information should not live only in a placeholder: it is cut off at large
+text, and it disappears as soon as the user types.
+
+**Scope.** The field is one of the seven REDUCED-family raw inputs
+(`DietaryPreferences.tsx`, `.ai/08_UI_UX.md` §Input style-family
+reconciliation), whose migration is **UX-5** work. The final copy treatment
+(for example, a persistent label or helper text) is **not chosen here** and
+needs a copy decision.
+
+### Related Documents
+
+- `.ai/08_UI_UX.md` §Input style-family reconciliation, §Dynamic-type safety
+- `mobile/src/features/nutrition/presentation/DietaryPreferences.tsx`
+
+---
+
+## [BUG-026] Large-Text Action Rows Push Buttons Off the Card
+
+Status: **Done — four rows wrap; regression and emulator gates green (2026-09-25).**
+Previous status: In Progress.
+Priority: **P2**
+Type: Bug (large text — actions clipped or unreachable)
+Owner: Mobile Architecture
+Created: 2026-09-25
+Updated: 2026-09-25
+
+**Observed (Android 15 emulator, `main` `1e0c8d7`).** Four rows laid their
+controls side by side without wrapping:
+
+| Row | Spanish 1.5× | Spanish 2.0× |
+|---|---|---|
+| Open-workout actions (`WorkoutLogScreen.tsx`) | "Eliminar" clipped to "Elim", 41.1 dp wide | "Eliminar" off the card, 0.8–17 dp wide — **unreachable** |
+| Custom-exercise delete confirmation (`ExerciseLibrary.tsx`) | "Cancelar" crosses the box border | "Cancelar" clipped to "Canc" next to a fully legible "Confirmar eliminación" |
+| Workout set row (`WorkoutLogScreen.tsx`) | — | "Marcar completada" runs past the card edge; "Eliminar serie" pushed off |
+| Custom-exercise form Save/Cancel (`CustomExerciseForm.tsx`) | — | "Cancelar" runs into the card border (x = 723–1038 px, edge 996 px) and loses its last letter |
+
+English stayed legible up to 2.0×. Same root cause as BUG-024.
+
+**Fix.** Each of the four rows gets `flexWrap: 'wrap'`, so a control that no
+longer fits moves to the next line. Button order, copy, variants, handlers,
+the `sm` gap, target floors and component APIs are unchanged. No typography
+token, `AppText`, `AppButton`, shared layout primitive or REDUCED input
+changed.
+
+**Other multi-button rows, audited and unchanged.** The custom-exercise
+Edit/Delete row and the routine View/Remove row fit in both languages at every
+scale tested, so they were left alone.
+
+**Regression coverage.** `WorkoutLogScreen.spec.tsx` and
+`ExerciseLibrary.spec.tsx` assert that each row wraps, keeps the `sm` gap and
+keeps its control order. The delete confirmation's Cancel still deletes
+nothing. The form test runs in English and Spanish, covers create and edit
+modes, and checks that Cancel closes the edit without saving, creating or
+deleting. Removing the wraps fails 5 tests.
+
+**Emulator gate (Android 15, 2026-09-25, disposable data).**
+
+- All four rows, Spanish and English, at 1.0×, 1.5× and 2.0×, light and dark:
+  every label is whole and every control is inside the card. At 2.0× the
+  controls move to a second line with no overlap. The routine and Edit/Delete
+  rows did not regress.
+- Create, edit-and-save and delete of a custom exercise all work at Spanish
+  2.0× through the wrapped rows.
+- AppButton targets measure 43.8–44.2 dp. That is device-pixel rounding (115
+  or 116 px at 420 dpi) of its declared 44 dp floor, which
+  `app-button.spec.tsx` asserts.
+
+**Excluded — pre-existing, UX-5.** The set row's reps input is a REDUCED-family
+raw input with no height floor: 37.7 dp tall at 1.0×, and 48.0 dp and 53.3 dp
+at 1.5× and 2.0×. Its floor belongs to UX-5 (`.ai/08_UI_UX.md` §Input
+style-family reconciliation). It is not part of BUG-026 and was not changed.
+
+### Related Documents
+
+- `.ai/08_UI_UX.md` §Dynamic-type safety (A6 retraction note)
+- `mobile/src/features/workout/presentation/WorkoutLogScreen.tsx`,
+  `ExerciseLibrary.tsx`, `CustomExerciseForm.tsx` and their specs
+
+---
+
 ## [BUG-025] Error Banners Carry No Announcement Request
 
 Status: **Done — implemented with regression coverage; local gates green (2026-09-25).**

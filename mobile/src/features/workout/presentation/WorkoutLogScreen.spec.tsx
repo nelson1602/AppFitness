@@ -327,6 +327,66 @@ describe('WorkoutLogScreen', () => {
     expect(screen.getByTestId('set-add')).toBeDisabled();
   });
 
+  /**
+   * BUG-026. These rows did not wrap, so at 1.5× Spanish text the workout's
+   * "Eliminar" was clipped to "Elim" and at 2.0× it vanished off the card;
+   * the set row pushed "Marcar completada" past the card edge. Each row must
+   * wrap, keep its `sm` gap and keep its controls in the same order.
+   */
+  describe('large-text action rows wrap (BUG-026)', () => {
+    type HostNode = NonNullable<ReturnType<typeof screen.queryByTestId>>;
+    const rowContaining = (testIDs: string[]): HostNode => {
+      let node: HostNode | null = screen.getByTestId(testIDs[0]).parent;
+      while (node) {
+        const style = StyleSheet.flatten(node.props.style);
+        const candidate = node;
+        if (
+          style?.flexDirection === 'row' &&
+          testIDs.every((id) => candidate.queryAll((child) => child.props.testID === id).length > 0)
+        ) {
+          return node;
+        }
+        node = node.parent;
+      }
+      throw new Error(`no row contains ${testIDs.join(', ')}`);
+    };
+    const orderIn = (row: HostNode, testIDs: string[]) =>
+      row
+        .queryAll((child) => testIDs.includes(child.props.testID))
+        .map((child) => child.props.testID)
+        .filter((id, i, all) => all.indexOf(id) === i);
+
+    it('wraps the open-workout actions and keeps their order', async () => {
+      setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [] });
+      await render(<WorkoutLogScreen />);
+
+      const ids = ['workout-select-l1', 'workout-finish-l1', 'workout-remove-l1'];
+      const row = rowContaining(ids);
+      expect(StyleSheet.flatten(row.props.style)).toMatchObject({
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: lightTheme.spacing.sm,
+      });
+      expect(orderIn(row, ids)).toEqual(ids);
+    });
+
+    it('wraps the set row and keeps its controls in order', async () => {
+      setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [wset({ id: 's1' })] });
+      await render(<WorkoutLogScreen />);
+      await fireEvent.press(screen.getByTestId('workout-select-l1'));
+
+      const ids = ['set-reps-s1', 'set-toggle-s1', 'set-remove-s1'];
+      const row = rowContaining(ids);
+      expect(StyleSheet.flatten(row.props.style)).toMatchObject({
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
+        gap: lightTheme.spacing.sm,
+      });
+      expect(orderIn(row, ids)).toEqual(ids);
+    });
+  });
+
   it('edits a set’s completion through the store', async () => {
     setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [wset({ id: 's1' })] });
     await render(<WorkoutLogScreen />);
