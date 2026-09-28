@@ -4426,12 +4426,13 @@ leaves the Progress screen usable; raw SQLite/native text never renders.
 
 ## [BUG-006] Dormant EvaluationHistory Is Unrouted and Pushes to a Non-Existent `/evaluation-edit`
 
-Status: Open
+Status: **Done — option (a): dangling push removed, domain still dormant; all gates green (2026-09-28).**
+Previous status: Open.
 Priority: P3
 Type: Bug
-Owner: Unassigned
+Owner: Mobile Architecture
 Created: 2026-08-28
-Updated: 2026-08-28
+Updated: 2026-09-28
 
 ### Description
 
@@ -4482,20 +4483,56 @@ push to a missing route.
 
 ### Acceptance Criteria
 
-- [ ] No source file pushes to `/evaluation-edit` while
+- [x] No source file pushes to `/evaluation-edit` while
       `mobile/src/app/evaluation-edit.tsx` does not exist.
-- [ ] A check proves the invariant generally: every `router.push` /
+- [x] A check proves the invariant generally: every `router.push` /
       `router.replace` string literal in `mobile/src` resolves to a file in
       `mobile/src/app/`. Manual verification is acceptable for V1; a test or lint
       rule is preferred.
-- [ ] `EvaluationHistory` is either (a) left dormant with the dangling push
+- [x] `EvaluationHistory` is either (a) left dormant with the dangling push
       removed, or (b) deleted, or (c) routed — **(c) only under a separate
       authorization that lifts ADR-P017 dormancy**.
-- [ ] Whichever option is taken, **no medical surface becomes user-reachable in
+- [x] Whichever option is taken, **no medical surface becomes user-reachable in
       public-v1** as a side effect.
-- [ ] No change to medical data handling, encryption, or the medical schema.
-- [ ] `.ai/17_PRODUCT_FLOWS.md` is updated if the resolution changes what the
+- [x] No change to medical data handling, encryption, or the medical schema.
+- [x] `.ai/17_PRODUCT_FLOWS.md` is updated if the resolution changes what the
       flow document asserts.
+
+### Resolution (2026-09-28) — option (a)
+
+**Symptom reproduced.** With the route types Expo generates
+(`.expo/types/router.d.ts`, created by `expo start` because `typedRoutes` is
+on), `tsc` reported exactly one error:
+`EvaluationHistory.tsx(111,36)`, `'/evaluation-edit'` not assignable to the
+typed route union. There were no other errors. Without the generated types,
+which is how CI runs, `tsc` passed, so the defect was invisible to CI.
+
+**Fix.** `EvaluationHistory` no longer renders the "Record new evaluation"
+action, and its now-unused `router` import is gone. Nothing else changed:
+
+- no route, dashboard entry or replacement navigation was added;
+- the history list, the non-sensitive vitals summary, sync status and the
+  two-step soft delete are unchanged;
+- medical data, encryption, schema and migrations are untouched;
+- the component is still imported by no route, so the medical domain stays
+  dormant and unreachable (ADR-P017).
+
+**Regression coverage.**
+
+- `EvaluationHistory.spec.tsx`: with and without history, no entry control is
+  exposed and `router.push` / `replace` / `navigate` are never called, including
+  through the remove flow. The old test asserting the push to `/evaluation-edit`
+  was replaced by this one.
+- `shared/presentation/route-targets.source.spec.ts`: every string-literal
+  target of `router.push` / `replace` / `navigate` in `mobile/src` must resolve
+  to a file in `mobile/src/app`. It follows Expo Router conventions (`index`,
+  `(group)`, `[param]`, `[...rest]`, with `_` and `+` files excluded), ignores
+  `?query` and `#hash`, and reads both branches of a conditional target. Runtime
+  targets are skipped rather than guessed. It fails if it finds fewer than 25
+  literal targets, so it cannot pass vacuously.
+- Restoring the old component fails 4 tests, and the guard names the offending
+  call.
+- `tsc` passes both from a clean state and with the generated route types.
 
 ### Constraints
 
