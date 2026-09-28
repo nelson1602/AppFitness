@@ -7,7 +7,9 @@ import type { EnqueueInput } from './types';
 /**
  * Local sync queue (device side of ADR-0006). Repositories enqueue every
  * local write; the Phase 5+ sync worker drains the queue in FIFO order
- * (rowid) so causality is preserved (parent CREATE before child CREATE).
+ * (rowid) so causality is preserved (parent CREATE before child CREATE). Within
+ * one entity, a queued CREATE also holds back that entity's later UPDATE and
+ * DELETE until it is applied (`peekReady`, BUG-029).
  *
  * Lifecycle: PENDING → IN_FLIGHT → (removed on APPLIED)
  *                                → FAILED (retry with backoff)
@@ -66,7 +68,23 @@ export async function readQueuePayload(
   return { payload: parsed, sensitive: false };
 }
 
-/** Next batch ready to push for this user: PENDING, or FAILED whose backoff has elapsed. FIFO. */
+/**
+ * Next batch ready to push for this user: PENDING, or FAILED whose backoff has
+ * elapsed. FIFO.
+ *
+ * **A queued CREATE is a causal barrier (BUG-029).** An UPDATE or DELETE is not
+ * selected while an earlier CREATE for the same user, entity type and entity id
+ * is still in the queue, in any retained status: PENDING, IN_FLIGHT, FAILED (in
+ * or out of backoff) or CONFLICT. Before this, a CREATE deferred as
+ * `DEPENDENCY_NOT_READY` stayed queued while the UPDATE behind it was pushed and
+ * rejected `NOT_FOUND`. `removeRejected` then dropped the UPDATE, and the next
+ * pull overwrote the local edit.
+ *
+ * The CREATE itself keeps its ordinary readiness and backoff. Once it is
+ * applied and removed, the later ops become eligible in FIFO order on the next
+ * batch. Other entities are never held back. A held op is simply not selected,
+ * so an entity waiting on its CREATE adds no work to the push loop.
+ */
 export async function peekReady(
   userId: string,
   nowIso: string,
@@ -77,6 +95,13 @@ export async function peekReady(
      WHERE user_id = ?
        AND (status = 'PENDING'
             OR (status = 'FAILED' AND (next_retry_at IS NULL OR next_retry_at <= ?)))
+       AND NOT (operation IN ('UPDATE','DELETE') AND EXISTS (
+             SELECT 1 FROM sync_queue AS barrier
+             WHERE barrier.user_id = sync_queue.user_id
+               AND barrier.entity_type = sync_queue.entity_type
+               AND barrier.entity_id = sync_queue.entity_id
+               AND barrier.operation = 'CREATE'
+               AND barrier.rowid < sync_queue.rowid))
      ORDER BY rowid ASC
      LIMIT ?`,
     [userId, nowIso, limit],
