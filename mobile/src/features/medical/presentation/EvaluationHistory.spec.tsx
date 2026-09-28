@@ -12,7 +12,10 @@ let mockStoreState: EvaluationFormState;
 jest.mock('../application/evaluation.store', () => ({
   useEvaluationStore: () => mockStoreState,
 }));
-jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
+// Kept so the BUG-006 regression can prove the surface never navigates.
+jest.mock('expo-router', () => ({
+  router: { push: jest.fn(), replace: jest.fn(), navigate: jest.fn() },
+}));
 
 function setStore(partial: Partial<EvaluationFormState>) {
   mockStoreState = {
@@ -65,13 +68,33 @@ describe('EvaluationHistory', () => {
     expect(screen.getByText('No evaluations recorded yet.')).toBeOnTheScreen();
   });
 
-  it('routes to evaluation entry from "Record new evaluation" (even with no history)', async () => {
+  /**
+   * BUG-006. The history offered "Record new evaluation", which pushed to
+   * `/evaluation-edit` — a route that does not exist. The medical domain is
+   * dormant (ADR-P017), so the action is removed rather than routed: the
+   * surface exposes no entry control and never navigates, with or without
+   * history and through the whole remove flow.
+   */
+  it.each([
+    ['with no history', [] as Evaluation[]],
+    ['with history', [evaluation]],
+  ])('exposes no entry action and never navigates (%s)', async (_label, evaluations) => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', evaluations: [] });
+    setStore({ status: 'ready', evaluations });
     await render(<EvaluationHistory />);
 
-    fireEvent.press(screen.getByTestId('record-new-evaluation'));
-    expect(router.push).toHaveBeenCalledWith('/evaluation-edit');
+    expect(screen.queryByTestId('record-new-evaluation')).toBeNull();
+    expect(screen.queryByText('Record new evaluation')).toBeNull();
+    expect(screen.queryByLabelText('Record a new evaluation')).toBeNull();
+
+    if (evaluations.length > 0) {
+      await fireEvent.press(screen.getByTestId('evaluation-remove-e1'));
+      await fireEvent.press(screen.getByTestId('evaluation-remove-confirm-e1'));
+      expect(remove).toHaveBeenCalledWith('e1');
+    }
+    expect(router.push).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 
   it('renders date, non-sensitive vitals, and sync status — never free-text', async () => {

@@ -1,8 +1,8 @@
 # AppFitness Low-Fidelity Product Flows (V1)
 
-Version: 1.7
+Version: 1.9
 Status: Active
-Last Updated: 2026-09-09
+Last Updated: 2026-09-28
 
 ---
 
@@ -109,6 +109,12 @@ three sections and this baseline note changed; no other flow, screen
 inventory, state applicability or status moved, and the eight canonical state
 names are untouched. Localization at this commit: **904 keys each in EN and
 ES — full parity** (696 at the earlier baseline).
+
+**v1.9 (BUG-006).** §"Known repository defect" and §Unresolved risks item 2
+record that the dangling `/evaluation-edit` push was removed (option (a)). The
+medical domain stays dormant and unreachable, and no route or navigation was
+added. No flow, screen inventory, state applicability or status changed. The
+header read 1.7 after the v1.8 revision above; it now matches.
 
 Inspected: `mobile/src/app/` (15 files — 14 user-facing routes plus
 `_layout.tsx`), `mobile/src/features/*`,
@@ -787,6 +793,16 @@ navigation.
 the remedy is *not* to build `/evaluation-edit`. See BUG-006 for the accepted
 resolution options.
 
+**Resolved 2026-09-28 (BUG-006, option (a)).** The two paragraphs above
+describe the defect as it was found. The dangling action has since been
+removed. `EvaluationHistory` now renders no entry action and navigates
+nowhere. It is still imported by no route, so the medical domain stays dormant
+and user-unreachable, and **no route, dashboard entry or replacement navigation
+was added**. A source guard (`route-targets.source.spec.ts`) now requires every
+string-literal `router` target to resolve to a file in `mobile/src/app`. This
+section remains a record, not a product flow: reviving the domain still needs
+its own authorization and a real route before any surface becomes reachable.
+
 ---
 
 # Flow 4 — Dashboard
@@ -1226,7 +1242,9 @@ pass, per §Accessibility posture.
    `EvaluationHistory` is imported by no route and pushes to the non-existent
    `/evaluation-edit`. **Not SHIPPED behaviour**: dormant and user-unreachable
    (ADR-P017), so no user is affected — but a crash waiting for whoever revives
-   the domain.
+   the domain. **Resolved 2026-09-28:** the push was removed (BUG-006 option
+   (a)); the domain stays dormant and a source guard prevents a new dangling
+   literal target.
 3. **Daily loops are three taps deep.** Food logging sits behind
    dashboard → nutrition → plan → log. Acceptable for V1; a real cost for a
    daily-use product.

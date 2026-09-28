@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
@@ -105,14 +104,9 @@ export function EvaluationHistory() {
         </AppText>
       </View>
 
-      <AppButton
-        accessibilityLabel="Record a new evaluation"
-        testID="record-new-evaluation"
-        onPress={() => router.push('/evaluation-edit')}
-      >
-        Record new evaluation
-      </AppButton>
-
+      {/* BUG-006: no entry action. `/evaluation-edit` does not exist and the
+          medical domain stays dormant (ADR-P017), so this surface navigates
+          nowhere. Reviving it needs its own authorization and a real route. */}
       {error ? (
         <Banner title="Something went wrong" tone="error">
           {error}
