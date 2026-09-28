@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.17
+Version: 1.18
 Status: Active
-Last Updated: 2026-09-15
+Last Updated: 2026-09-28
 
 ---
 
@@ -390,6 +390,19 @@ copy promise *"Your selections are still here."*
 | `nutrition.preferences.syncPendingAccessibility` | Preference saved on this device; sync pending | Preferencia guardada en este dispositivo; sincronización pendiente | **SHIPPED** |
 | `nutrition.preferences.syncConflict` | Conflict | Conflicto | **SHIPPED** |
 | `nutrition.preferences.syncConflictAccessibility` | Dietary preference sync conflict | Conflicto de sincronización de la preferencia alimentaria | **SHIPPED** |
+| `nutrition.preferences.notePlaceholder` | Optional note | Nota opcional | **SHIPPED** (shortened by BUG-027) |
+| `nutrition.preferences.noteHelper` | Encrypted on your device. | Cifrada en tu dispositivo. | **SHIPPED** (added by BUG-027) |
+
+**BUG-027 (2026-09-28, UX-5 Nutrition slice).** The note placeholder used to
+read "Optional note (encrypted on your device)" / "Nota opcional (cifrada en tu
+dispositivo)". That notice was cut off at large text and vanished once the user
+typed, so it moved into `noteHelper`, a persistent muted caption directly below
+the field. The claim was checked against the repository: the note is encrypted
+before SQLite, in the sync queue and in stored conflicts. It is not end-to-end
+encryption — the server receives the note over TLS — so the copy says "on your
+device" and nothing more. The field's accessible name stays "Optional note" /
+"Nota opcional"; no field-to-helper association or screen-reader outcome is
+claimed. The catalogues move from 1067 to **1068 keys each**, parity exact.
 
 ---
 

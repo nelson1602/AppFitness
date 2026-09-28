@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.15
+Version: 1.16
 Status: Active
-Last Updated: 2026-09-25
+Last Updated: 2026-09-28
 
 ---
 
@@ -494,6 +494,40 @@ live-region prop.
 No token, dependency, copy, layout, role or component API changes. All five V1
 accessibility release-review gates stay open, and **UX-4C stays open and
 unrun**.
+
+---
+
+# Revision Scope (v1.16 — UX-5 Nutrition slice, BUG-027)
+
+This revision records the first owner-authorized UX-5 slice: the **Nutrition**
+feature (`.ai/11_BACKLOG.md` §BUG-027, FEATURE-010 step 7).
+
+- **Migrated:** the two raw `TextInput`s in `DietaryPreferences.tsx` — food
+  search (`dp-food-search`) and the optional note (`dp-note`) — now render
+  through `AppTextInput`'s existing controlled model. Both gain the FULL-family
+  48 dp floor, `surfaceVariant` fill, body type token, focus border and the
+  `onSurfaceVariant` placeholder role. Test IDs, accessible names, values and
+  handlers are unchanged; changing the search query still clears the selected
+  food.
+- **BUG-027 copy:** the note placeholder is shortened to "Optional note" /
+  "Nota opcional". The encryption notice moves into persistent helper copy
+  directly below the field — "Encrypted on your device." / "Cifrada en tu
+  dispositivo." (`nutrition.preferences.noteHelper`) — rendered with the
+  existing `AppText` `caption` variant and `muted` tone. It stays visible before,
+  during and after typing. The claim was verified against the repository before
+  it was kept: the note is AES-256-GCM encrypted before SQLite (`note_enc`), its
+  sync-queue payload is a `sensitive` encrypted envelope, and conflict payloads
+  are stored as encrypted envelopes. It travels to the server over TLS as
+  designed, so the copy claims on-device encryption only.
+- **Not claimed:** the helper has no programmatic association with the field,
+  and no screen-reader outcome is claimed. The field's accessible name is still
+  "Optional note".
+- **UX-5 progress: 2 of 7** REDUCED-family inputs migrated. The five Workout
+  inputs (`RoutineBuilder.tsx` ×1, `WorkoutLogScreen.tsx` ×4) remain pending.
+
+No token, dependency, schema, migration, API, route or `AppTextInput` contract
+change. One catalogue key is added in each language (1068 / 1068, parity
+exact). UX-4C stays open and unrun.
 
 ---
 
@@ -1350,7 +1384,8 @@ horizontal overflow and no clipped glyphs from the ramp, so **no systemic
 typography-ramp defect exists and the ramp stays frozen**. The failures found
 were button rows that did not wrap (`.ai/11_BACKLOG.md` §BUG-026), a clipped
 input placeholder (§BUG-027) and numbers splitting from their units, which
-also happens at 1.0× and is fixed separately.
+also happens at 1.0× and is fixed separately. (BUG-027 was closed in v1.16 by
+the UX-5 Nutrition slice.)
 
 ---
 
@@ -2596,8 +2631,14 @@ Two divergent families ship today.
 
 | Family | Where | Shape |
 |---|---|---|
-| **FULL** — canonical TARGET | sign-in, delete-account, `FormField`, `FoodLogAddForm` | `surfaceVariant` fill · `minHeight: spacing.x5l` · horizontal `spacing.md` · body typography |
-| **REDUCED** | 7 raw inputs across 3 files | `padding: spacing.sm` · **no fill, no minimum height, no typography token** |
+| **FULL** — canonical TARGET | sign-in, delete-account, `FormField`, `FoodLogAddForm`, `DietaryPreferences` (v1.16) | `surfaceVariant` fill · `minHeight: spacing.x5l` · horizontal `spacing.md` · body typography |
+| **REDUCED** | ~~7 raw inputs across 3 files~~ **5 raw inputs across 2 files** since v1.16: `RoutineBuilder.tsx` ×1, `WorkoutLogScreen.tsx` ×4 | `padding: spacing.sm` · **no fill, no minimum height, no typography token** |
+
+**Reconciled 2026-09-28 (v1.16, UX-5 Nutrition slice).** The two
+`DietaryPreferences.tsx` inputs moved to FULL through `AppTextInput`. UX-5
+progress is **2 of 7**; the five Workout inputs above are still pending and need
+their own authorization. The `placeholderTextColor` count in the next paragraph
+is the UX-1B2B snapshot and is left as written.
 
 The REDUCED family therefore sits **below the 44×44 floor** and **outside the type
 scale**, and six of the eight shipped `placeholderTextColor` sites use the
@@ -3380,6 +3421,17 @@ platform branch. The UX-1B2C Banner snapshot figures, including the tone usage
 counts, are left as written. The five V1 accessibility release-review gates
 and UX-4C are untouched.
 
+## What v1.16 (UX-5 Nutrition slice, BUG-027) authorizes
+
+**Reconciliation note, 2026-09-28.** Exactly the owner-authorized Nutrition
+slice of UX-5: the two `DietaryPreferences.tsx` inputs move onto
+`AppTextInput`'s controlled model, the note placeholder is shortened, and one
+persistent helper caption (`nutrition.preferences.noteHelper`) is added below
+the note field. `AppTextInput`'s API and contract are unchanged — it is still a
+staged partial implementation. No token, dependency, schema, migration, API or
+route changes, and no Workout input is touched. The input frozen-hook register
+entry for dietary preferences holds unchanged.
+
 ## Owner-gated decisions still open after this revision
 
 Each requires its own authorization before any code:
@@ -3487,7 +3539,10 @@ UX-1B2 is delivered as four documentation slices:
   are confirmed **unaffected by the error-border blocker** — their `error`
   references are screen-level messages, not input borders — so `FormField` is the
   **only** remaining consumer with an error border. UX-5 still needs its own
-  per-feature authorization.
+  per-feature authorization. **Progress (v1.16, 2026-09-28): 2 of 7** — the
+  Nutrition slice migrated both `DietaryPreferences.tsx` inputs and closed
+  BUG-027. **Pending:** the five Workout inputs (`RoutineBuilder.tsx` ×1,
+  `WorkoutLogScreen.tsx` ×4, including the uncontrolled per-set reps editor).
 
 Tracked as **FEATURE-010** in `.ai/11_BACKLOG.md`; decided by **ADR-P022**, and
 for input accessibility by **ADR-P023** (staging), **ADR-P024** (announcement

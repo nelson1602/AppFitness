@@ -1637,7 +1637,9 @@ Excluded:
       unaffected by the error-border blocker** — in `DietaryPreferences.tsx`,
       `RoutineBuilder.tsx` and `WorkoutLogScreen.tsx` the `error` references are
       screen-level messages, not input borders — so **`FormField` is the only
-      remaining consumer with an error border**.
+      remaining consumer with an error border**. **Progress 2026-09-28: 2 of
+      7** — the Nutrition slice migrated both `DietaryPreferences.tsx` inputs;
+      the five Workout inputs remain pending.
 4. **UX-2 — Low-fidelity product flows. Status: DELIVERED 2026-08-28 —
    `.ai/17_PRODUCT_FLOWS.md` v1.0.** Onboarding, authentication including
    verification and recovery surfaces, navigation and information architecture,
@@ -1964,9 +1966,15 @@ Excluded:
      **Blocked on UX-4B-1** for the iOS/VoiceOver column; the Android/TalkBack
      and browser-AT columns are not blocked by identity, but running them before
      the rename would verify an artifact that is about to be replaced.
-7. **UX-5 — Progressive feature migration. Status: Proposed.** One feature per
-   slice, behaviour preserved, with bilingual, dark-theme, and accessibility
-   verification per slice.
+7. **UX-5 — Progressive feature migration. Status: In Progress (2 of 7 REDUCED
+   inputs).** One feature per slice, behaviour preserved, with bilingual,
+   dark-theme, and accessibility verification per slice.
+   - **Nutrition slice — Done (2026-09-28).** Both `DietaryPreferences.tsx`
+     inputs (food search, optional note) render through `AppTextInput`; closes
+     **BUG-027**. See §BUG-027 and `.ai/08_UI_UX.md` v1.16.
+   - **Pending — the five Workout inputs**, each needing its own authorization:
+     `RoutineBuilder.tsx` ×1 and `WorkoutLogScreen.tsx` ×4, including the
+     uncontrolled per-set reps editor.
 
 ### Acceptance Criteria
 
@@ -2921,12 +2929,14 @@ assessment card. They can adopt `formatQuantity` if a failure is observed.
 
 ## [BUG-027] The Dietary-Note Placeholder Is Clipped at Large Text
 
-Status: **Open — linked to UX-5; not scheduled.**
+Status: **Done — closed by the UX-5 Nutrition slice; regression and emulator
+gates green (2026-09-28).**
+Previous status: Open — linked to UX-5; not scheduled.
 Priority: **P3**
 Type: Bug (large text — clipped hint that carries privacy information)
 Owner: Mobile Architecture / Product Design
 Created: 2026-09-25
-Updated: 2026-09-25
+Updated: 2026-09-28
 
 **Observed (Android 15 emulator, audit of `main` `1e0c8d7`).** On
 `/dietary-preferences`, the optional-note field's placeholder reads "Optional
@@ -2946,10 +2956,72 @@ reconciliation), whose migration is **UX-5** work. The final copy treatment
 (for example, a persistent label or helper text) is **not chosen here** and
 needs a copy decision.
 
+**Fix (owner-authorized UX-5 Nutrition slice, 2026-09-28).**
+
+- Both raw `TextInput`s in `DietaryPreferences.tsx` — food search and the
+  optional note — now render through `AppTextInput`'s existing controlled model.
+  They gain the FULL-family 48 dp floor, fill, body type token, focus border and
+  placeholder role. Test IDs (`dp-food-search`, `dp-note`), accessible names,
+  values, handlers and business logic are unchanged. Changing the query still
+  clears the selected food. `AppTextInput`'s API is unchanged.
+- **Copy decision:** the placeholder becomes "Optional note" / "Nota opcional".
+  A persistent helper caption, "Encrypted on your device." / "Cifrada en tu
+  dispositivo." (`nutrition.preferences.noteHelper`, `AppText` caption, muted),
+  sits directly below the field. It stays visible before, during and after
+  typing. Catalogues: 1068 keys each, parity exact.
+- **Claim verified before it was kept.** `createDietaryPreference` encrypts the
+  note with AES-256-GCM (per-device key held in SecureStore) before writing
+  `note_enc`. It enqueues the sync op as `sensitive`, so the queue holds an
+  encrypted `{"__enc": …}` envelope. The sync worker stores sensitive conflict
+  payloads as envelopes too, and the pull-side applier re-encrypts incoming
+  notes. The note reaches the server over TLS by design, so the copy claims
+  on-device encryption only.
+- **Not claimed:** no programmatic association between field and helper, and no
+  screen-reader outcome. The accessible name is still "Optional note". UX-4C is
+  unaffected.
+
+**Regression coverage.** `DietaryPreferences.spec.tsx` adds 11 tests: frozen test
+IDs on the named nodes in EN and ES, controlled value round-trip, selection
+cleared on query change, FULL-family presentation with a 48 dp floor and focus
+border, helper copy in EN and ES, the helper persisting through focus, typing
+and blur, a trimmed note handed to the store and cleared on success, the note
+kept on a failed add, and a whitespace-only note sent as `null`. The repository
+spec already asserts the encryption and the sensitive enqueue. Run against the
+pre-fix component, 5 of the new tests fail.
+
+**Emulator gate (Android 15, Expo Go, disposable account and tmpfs Postgres,
+2026-09-28).**
+
+| Scale | Input height (both) | Helper height | Helper gap below note |
+|---|---|---|---|
+| 1.0× | 48.0 dp | 16.0 dp | 3.8 dp |
+| 1.5× | 51.4 dp | 23.2 dp | 3.4 dp |
+| 2.0× | 59.4–59.8 dp | 28.2 dp | 3.0–3.4 dp |
+
+- EN and ES, light and dark, at every scale (12 combinations): placeholder and
+  helper are whole on one line, nothing overlaps, and no node runs past the
+  screen edge. Both inputs span x = 87–995 px inside the card.
+- At EN 2.0×: search for "pomegranate", selection shown, one character deleted
+  clears the selection and disables Add, re-selection works. A preference added
+  with a note appears as "Pomegranate arils · food" with "note saved". The
+  helper stays visible after typing and after the add.
+- Local SQLite for that user: `note_enc` is 52 bytes (12-byte nonce + 24 +
+  16-byte tag for the 24-character note), with no plaintext. The queued payload
+  is an `__enc` envelope, also with no plaintext.
+- Font scale, theme and app locale were restored afterwards.
+
+**Scope kept.** UX-5 progress is **2 of 7**. The five Workout inputs
+(`RoutineBuilder.tsx` ×1, `WorkoutLogScreen.tsx` ×4) stay pending. No token,
+dependency, schema, migration, API, route or unrelated copy change.
+
 ### Related Documents
 
-- `.ai/08_UI_UX.md` §Input style-family reconciliation, §Dynamic-type safety
-- `mobile/src/features/nutrition/presentation/DietaryPreferences.tsx`
+- `.ai/08_UI_UX.md` §Input style-family reconciliation, §Dynamic-type safety,
+  §Revision Scope (v1.16)
+- `.ai/19_COPY_DECKS.md` §Dietary Preferences
+- `mobile/src/features/nutrition/presentation/DietaryPreferences.tsx` and its
+  spec
+- `mobile/src/features/nutrition/infrastructure/dietary-preference.repository.ts`
 
 ---
 

@@ -423,3 +423,156 @@ describe('DietaryPreferences', () => {
     }
   });
 });
+
+/**
+ * UX-5 (Nutrition slice) and BUG-027. Both raw REDUCED-family inputs now render
+ * through `AppTextInput`, gaining the FULL-family floor, fill, type token and
+ * focus border. The encryption notice moved out of the note placeholder, where
+ * it clipped at large text and vanished on typing, into persistent helper copy.
+ */
+describe('DietaryPreferences inputs (UX-5, BUG-027)', () => {
+  const EN_HELPER = 'Encrypted on your device.';
+  const ES_HELPER = 'Cifrada en tu dispositivo.';
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLanguage = 'en';
+    add.mockResolvedValue(true);
+    setStore({ status: 'ready', preferences: [] });
+  });
+
+  it.each([
+    ['en', 'Search foods to exclude', 'Optional note'],
+    ['es', 'Buscar alimentos para excluir', 'Nota opcional'],
+  ] as const)(
+    'keeps the frozen test IDs on the nodes that carry the accessible names (%s)',
+    async (language, searchName, noteName) => {
+      mockLanguage = language;
+      await render(<DietaryPreferences />);
+      await fireEvent.press(screen.getByTestId('dp-mode-food'));
+
+      expect(screen.getByLabelText(searchName).props.testID).toBe('dp-food-search');
+      expect(screen.getByLabelText(noteName).props.testID).toBe('dp-note');
+    },
+  );
+
+  it('gives both inputs the FULL-family 48 dp floor, fill, type token and focus border', async () => {
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+
+    for (const testID of ['dp-food-search', 'dp-note']) {
+      const style = StyleSheet.flatten(screen.getByTestId(testID).props.style);
+      expect(style.minHeight).toBeGreaterThanOrEqual(48);
+      expect(style).toMatchObject({
+        backgroundColor: lightTheme.colors.surfaceVariant,
+        borderColor: lightTheme.colors.outline,
+        borderWidth: 1,
+        color: lightTheme.colors.onSurface,
+        paddingHorizontal: 12,
+        fontSize: 16,
+        lineHeight: 24,
+      });
+      // The REDUCED all-round padding is gone.
+      expect(style.padding).toBeUndefined();
+      expect(screen.getByTestId(testID).props.allowFontScaling).toBe(true);
+
+      await fireEvent(screen.getByTestId(testID), 'focus');
+      expect(StyleSheet.flatten(screen.getByTestId(testID).props.style).borderWidth).toBe(2);
+    }
+  });
+
+  it('keeps both inputs controlled: the typed value round-trips through state', async () => {
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+
+    await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pome');
+    expect(screen.getByTestId('dp-food-search').props.value).toBe('pome');
+    await fireEvent.changeText(screen.getByTestId('dp-note'), 'reacts badly');
+    expect(screen.getByTestId('dp-note').props.value).toBe('reacts badly');
+  });
+
+  it('clears the selected food when the search query changes', async () => {
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+
+    await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pomegranate');
+    await fireEvent.press(await screen.findByTestId('dp-food-result-food.pomegranate'));
+    expect(screen.getByText(/^Selected:/)).toBeOnTheScreen();
+    expect(screen.getByTestId('dp-add')).toBeEnabled();
+
+    await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pomegranat');
+    expect(screen.queryByText(/^Selected:/)).not.toBeOnTheScreen();
+    expect(screen.getByTestId('dp-add')).toBeDisabled();
+    expect(await screen.findByTestId('dp-food-result-food.pomegranate')).toBeOnTheScreen();
+  });
+
+  it.each([
+    ['en', 'Optional note', EN_HELPER],
+    ['es', 'Nota opcional', ES_HELPER],
+  ] as const)(
+    'moves the encryption notice out of the placeholder into persistent muted helper copy (%s)',
+    async (language, placeholder, helper) => {
+      mockLanguage = language;
+      await render(<DietaryPreferences />);
+
+      expect(screen.getByTestId('dp-note').props.placeholder).toBe(placeholder);
+      const helperText = screen.getByText(helper);
+      expect(StyleSheet.flatten(helperText.props.style)).toMatchObject({
+        color: lightTheme.colors.onSurfaceVariant,
+        fontSize: 12,
+      });
+    },
+  );
+
+  it('keeps the privacy helper visible while and after the note is typed', async () => {
+    await render(<DietaryPreferences />);
+    expect(screen.getByText(EN_HELPER)).toBeOnTheScreen();
+
+    await fireEvent(screen.getByTestId('dp-note'), 'focus');
+    await fireEvent.changeText(screen.getByTestId('dp-note'), 'Severe peanut reaction');
+    expect(screen.getByText(EN_HELPER)).toBeOnTheScreen();
+    await fireEvent(screen.getByTestId('dp-note'), 'blur');
+    expect(screen.getByText(EN_HELPER)).toBeOnTheScreen();
+  });
+
+  it('hands the trimmed note to the store, clears it on success and never renders it', async () => {
+    await render(<DietaryPreferences />);
+
+    await fireEvent.press(screen.getByTestId('dp-tag-nut_allergy'));
+    await fireEvent.changeText(screen.getByTestId('dp-note'), '  Severe peanut reaction  ');
+    await fireEvent.press(screen.getByTestId('dp-add'));
+
+    // Encryption happens below the store (repository); the screen only passes it on.
+    expect(add).toHaveBeenCalledWith({
+      exclusionType: 'avoid_tag',
+      avoidTag: 'nut_allergy',
+      kind: 'allergy',
+      note: 'Severe peanut reaction',
+    });
+    await waitFor(() => expect(screen.getByTestId('dp-note').props.value).toBe(''));
+    expect(screen.queryByText(/Severe peanut reaction/)).not.toBeOnTheScreen();
+    expect(screen.getByText(EN_HELPER)).toBeOnTheScreen();
+  });
+
+  it('keeps the typed note when the store rejects the add', async () => {
+    add.mockResolvedValue(false);
+    await render(<DietaryPreferences />);
+
+    await fireEvent.press(screen.getByTestId('dp-tag-nut_allergy'));
+    await fireEvent.changeText(screen.getByTestId('dp-note'), 'Severe peanut reaction');
+    await fireEvent.press(screen.getByTestId('dp-add'));
+
+    await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('dp-note').props.value).toBe('Severe peanut reaction');
+  });
+
+  it('sends a whitespace-only note as null', async () => {
+    await render(<DietaryPreferences />);
+
+    await fireEvent.press(screen.getByTestId('dp-tag-nut_allergy'));
+    await fireEvent.changeText(screen.getByTestId('dp-note'), '   ');
+    await fireEvent.press(screen.getByTestId('dp-add'));
+
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ note: null }));
+  });
+});

@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import {
   useLocalization,
   type SupportedLanguage,
   type TranslationKey,
 } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
+import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { SyncStatus } from '@/shared/infrastructure/database/types';
@@ -266,22 +266,14 @@ export function DietaryPreferences() {
               <AppText variant="label" tone="muted">
                 {t('nutrition.preferences.findFood')}
               </AppText>
-              <TextInput
+              <AppTextInput
                 accessibilityLabel={t('nutrition.preferences.searchAccessibility')}
                 testID="dp-food-search"
                 placeholder={t('nutrition.preferences.searchPlaceholder')}
-                placeholderTextColor={theme.colors.onSurfaceVariant}
                 value={query}
                 onChangeText={(text) => {
                   setQuery(text);
                   setFood(null);
-                }}
-                style={{
-                  borderColor: theme.colors.outline,
-                  borderRadius: theme.radius.medium,
-                  borderWidth: 1,
-                  color: theme.colors.onSurface,
-                  padding: theme.spacing.sm,
                 }}
               />
               {food ? (
@@ -306,21 +298,21 @@ export function DietaryPreferences() {
             </View>
           )}
 
-          <TextInput
-            accessibilityLabel={t('nutrition.preferences.noteAccessibility')}
-            testID="dp-note"
-            placeholder={t('nutrition.preferences.notePlaceholder')}
-            placeholderTextColor={theme.colors.onSurfaceVariant}
-            value={note}
-            onChangeText={setNote}
-            style={{
-              borderColor: theme.colors.outline,
-              borderRadius: theme.radius.medium,
-              borderWidth: 1,
-              color: theme.colors.onSurface,
-              padding: theme.spacing.sm,
-            }}
-          />
+          {/* BUG-027: the encryption notice lived only in the placeholder, which
+              clipped at large text and vanished once the user typed. It is now
+              persistent helper copy below the field. */}
+          <View style={{ gap: theme.spacing.xs }}>
+            <AppTextInput
+              accessibilityLabel={t('nutrition.preferences.noteAccessibility')}
+              testID="dp-note"
+              placeholder={t('nutrition.preferences.notePlaceholder')}
+              value={note}
+              onChangeText={setNote}
+            />
+            <AppText variant="caption" tone="muted">
+              {t('nutrition.preferences.noteHelper')}
+            </AppText>
+          </View>
 
           <AppButton
             accessibilityLabel={t('nutrition.preferences.addAccessibility')}
