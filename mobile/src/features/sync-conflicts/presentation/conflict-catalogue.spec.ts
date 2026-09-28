@@ -133,11 +133,13 @@ describe('catalogue parity', () => {
   // audit added `profile.birthDatePlaceholder` and
   // `progress.measurements.datePlaceholder`. It moved again to 1067 on
   // 2026-09-16, when BUG-016 added the Web document title and the three
-  // not-found keys. None of the six is in this family, so the 157-key
-  // conflict family below is unchanged.
-  it('reaches 1067 keys in each language — 910 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1067);
-    expect(Object.keys(es)).toHaveLength(1067);
+  // not-found keys. It moved to 1068 on 2026-09-28, when BUG-027 added the
+  // persistent dietary-note helper `nutrition.preferences.noteHelper`. None of
+  // the seven is in this family, so the 157-key conflict family below is
+  // unchanged.
+  it('reaches 1068 keys in each language — 911 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1068);
+    expect(Object.keys(es)).toHaveLength(1068);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 
