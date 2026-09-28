@@ -615,3 +615,380 @@ describe('WorkoutLogScreen', () => {
     expect(jest.mocked(run)).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * UX-5 (Workout slice). The four raw REDUCED-family inputs on this screen now
+ * render through `AppTextInput`, gaining the FULL-family floor, fill, type token
+ * and focus border. Hooks, names, values, keyboards and handlers are unchanged,
+ * and the per-set reps editor keeps its uncontrolled commit-on-end model.
+ */
+describe('WorkoutLogScreen inputs (UX-5)', () => {
+  type HostNode = ReturnType<typeof screen.getByTestId>;
+
+  /** The nearest host `View` above a node; composite parents are skipped. */
+  const viewAbove = (node: HostNode): HostNode => {
+    let current = node.parent;
+    while (current && current.type !== 'View') current = current.parent;
+    if (!current) throw new Error(`no View above ${String(node.props.testID)}`);
+    return current;
+  };
+
+  const expectFullFamily = async (testID: string) => {
+    const style = StyleSheet.flatten(screen.getByTestId(testID).props.style);
+    expect(style.minHeight).toBeGreaterThanOrEqual(48);
+    expect(style).toMatchObject({
+      backgroundColor: lightTheme.colors.surfaceVariant,
+      borderColor: lightTheme.colors.outline,
+      borderRadius: lightTheme.radius.medium,
+      borderWidth: 1,
+      color: lightTheme.colors.onSurface,
+      paddingHorizontal: 12,
+      fontSize: 16,
+      lineHeight: 24,
+    });
+    // The REDUCED all-round padding is gone.
+    expect(style.padding).toBeUndefined();
+    expect(screen.getByTestId(testID).props.allowFontScaling).toBe(true);
+    expect(screen.getByTestId(testID).props.placeholderTextColor).toBe(
+      lightTheme.colors.onSurfaceVariant,
+    );
+
+    await fireEvent(screen.getByTestId(testID), 'focus');
+    expect(StyleSheet.flatten(screen.getByTestId(testID).props.style).borderWidth).toBe(2);
+    await fireEvent(screen.getByTestId(testID), 'blur');
+    expect(StyleSheet.flatten(screen.getByTestId(testID).props.style).borderWidth).toBe(1);
+  };
+
+  const openWorkoutWithSet = async () => {
+    setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [wset({ id: 's1' })] });
+    await render(<WorkoutLogScreen />);
+    await fireEvent.press(screen.getByTestId('workout-select-l1'));
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLanguage = 'en';
+    startWorkout.mockResolvedValue(true);
+    loadWorkoutSets.mockResolvedValue(undefined);
+    logWorkoutSet.mockResolvedValue(true);
+    updateWorkoutSet.mockResolvedValue(true);
+  });
+
+  it.each([
+    ['en', 'Workout name', 'Reps', 'Weight (kg)', 'Reps for set 1'],
+    ['es', 'Nombre del entrenamiento', 'Repeticiones', 'Peso (kg)', 'Repeticiones de la serie 1'],
+  ] as const)(
+    'keeps the four frozen test IDs on the nodes that carry the accessible names (%s)',
+    async (language, workoutName, reps, weight, setReps) => {
+      mockLanguage = language;
+      await openWorkoutWithSet();
+
+      expect(screen.getByLabelText(workoutName).props.testID).toBe('workout-name');
+      expect(screen.getByLabelText(reps).props.testID).toBe('set-reps-input');
+      expect(screen.getByLabelText(weight).props.testID).toBe('set-weight-input');
+      expect(screen.getByLabelText(setReps).props.testID).toBe('set-reps-s1');
+    },
+  );
+
+  it.each([
+    ['en', 'e.g. Morning session', 'Reps', 'Weight (kg)'],
+    ['es', 'p. ej., Sesión matutina', 'Repeticiones', 'Peso (kg)'],
+  ] as const)('keeps the placeholders (%s)', async (language, workoutName, reps, weight) => {
+    mockLanguage = language;
+    await openWorkoutWithSet();
+
+    expect(screen.getByTestId('workout-name').props.placeholder).toBe(workoutName);
+    expect(screen.getByTestId('set-reps-input').props.placeholder).toBe(reps);
+    expect(screen.getByTestId('set-weight-input').props.placeholder).toBe(weight);
+    expect(screen.getByTestId('set-reps-s1').props.placeholder).toBeUndefined();
+  });
+
+  it('gives all four inputs the FULL-family 48 dp floor, fill, type token and focus border', async () => {
+    await openWorkoutWithSet();
+
+    for (const testID of ['workout-name', 'set-reps-input', 'set-weight-input', 'set-reps-s1']) {
+      await expectFullFamily(testID);
+    }
+  });
+
+  it('keeps the keyboards: default for the name, numeric for every reps and weight input', async () => {
+    await openWorkoutWithSet();
+
+    expect(screen.getByTestId('workout-name').props.keyboardType).toBeUndefined();
+    for (const testID of ['set-reps-input', 'set-weight-input', 'set-reps-s1']) {
+      expect([testID, screen.getByTestId(testID).props.keyboardType]).toEqual([testID, 'numeric']);
+    }
+  });
+
+  it('keeps the three new-entry inputs controlled: typed values round-trip through state', async () => {
+    await openWorkoutWithSet();
+
+    for (const [testID, text] of [
+      ['workout-name', 'Leg day'],
+      ['set-reps-input', '12'],
+      ['set-weight-input', '82.5'],
+    ] as const) {
+      expect(screen.getByTestId(testID).props.value).toBe('');
+      expect(screen.getByTestId(testID).props.defaultValue).toBeUndefined();
+      await fireEvent.changeText(screen.getByTestId(testID), text);
+      expect(screen.getByTestId(testID).props.value).toBe(text);
+    }
+  });
+
+  it('starts the named workout and clears the name on success', async () => {
+    setStore({ status: 'ready', workoutLogs: [] });
+    await render(<WorkoutLogScreen />);
+
+    await fireEvent.changeText(screen.getByTestId('workout-name'), '  Leg day  ');
+    await fireEvent.press(screen.getByTestId('workout-start'));
+
+    expect(startWorkout).toHaveBeenCalledWith({ name: 'Leg day' });
+    await waitFor(() => expect(screen.getByTestId('workout-name').props.value).toBe(''));
+  });
+
+  it('keeps the typed workout name when the store rejects the start', async () => {
+    startWorkout.mockResolvedValue(false);
+    setStore({ status: 'ready', workoutLogs: [] });
+    await render(<WorkoutLogScreen />);
+
+    await fireEvent.changeText(screen.getByTestId('workout-name'), 'Leg day');
+    await fireEvent.press(screen.getByTestId('workout-start'));
+
+    await waitFor(() => expect(startWorkout).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('workout-name').props.value).toBe('Leg day');
+  });
+
+  it('parses reps and a decimal weight into the set, then clears both on success', async () => {
+    await openWorkoutWithSet();
+
+    await fireEvent.press(screen.getByTestId('set-exercise-exercise.back_squat'));
+    await fireEvent.changeText(screen.getByTestId('set-reps-input'), '12');
+    await fireEvent.changeText(screen.getByTestId('set-weight-input'), '82.5');
+    await fireEvent.press(screen.getByTestId('set-add'));
+
+    expect(logWorkoutSet).toHaveBeenCalledWith('l1', {
+      exerciseId: BACK_SQUAT_ID,
+      setNumber: 2,
+      reps: 12,
+      weightKg: 82.5,
+    });
+    await waitFor(() => expect(screen.getByTestId('set-reps-input').props.value).toBe(''));
+    expect(screen.getByTestId('set-weight-input').props.value).toBe('');
+  });
+
+  it('keeps the typed reps and weight when the store rejects the set', async () => {
+    logWorkoutSet.mockResolvedValue(false);
+    await openWorkoutWithSet();
+
+    await fireEvent.press(screen.getByTestId('set-exercise-exercise.back_squat'));
+    await fireEvent.changeText(screen.getByTestId('set-reps-input'), '12');
+    await fireEvent.changeText(screen.getByTestId('set-weight-input'), '82.5');
+    await fireEvent.press(screen.getByTestId('set-add'));
+
+    await waitFor(() => expect(logWorkoutSet).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('set-reps-input').props.value).toBe('12');
+    expect(screen.getByTestId('set-weight-input').props.value).toBe('82.5');
+  });
+
+  it('keeps the paired reps and weight inputs side by side at equal width in one row', async () => {
+    await openWorkoutWithSet();
+
+    const repsCell = viewAbove(screen.getByTestId('set-reps-input'));
+    const weightCell = viewAbove(screen.getByTestId('set-weight-input'));
+    expect(repsCell).not.toBe(weightCell);
+    for (const cell of [repsCell, weightCell]) {
+      expect(StyleSheet.flatten(cell.props.style)).toEqual({ flex: 1 });
+    }
+
+    const row = viewAbove(repsCell);
+    expect(viewAbove(weightCell)).toBe(row);
+    // The pair stays one non-wrapping row, in order, with its `sm` gap.
+    expect(StyleSheet.flatten(row.props.style)).toEqual({
+      flexDirection: 'row',
+      gap: lightTheme.spacing.sm,
+    });
+    expect(
+      row
+        .queryAll((child) => child.type === 'TextInput')
+        .map((child) => child.props.testID as string),
+    ).toEqual(['set-reps-input', 'set-weight-input']);
+  });
+
+  describe('paired new-set inputs at large text (UX-5, Option A)', () => {
+    // The measurers are hidden from accessibility, so queries must opt in.
+    const HIDDEN = { includeHiddenElements: true } as const;
+    const layout = (width: number) => ({ nativeEvent: { layout: { width, height: 24 } } });
+
+    /** Feeds the measured placeholder widths and the row width, in dp. */
+    const measurePair = async (repsWidth: number, weightWidth: number, rowWidth: number) => {
+      await fireEvent(
+        screen.getByTestId('set-reps-input-measure', HIDDEN),
+        'layout',
+        layout(repsWidth),
+      );
+      await fireEvent(
+        screen.getByTestId('set-weight-input-measure', HIDDEN),
+        'layout',
+        layout(weightWidth),
+      );
+      await fireEvent(viewAbove(screen.getByTestId('set-inputs-pair')), 'layout', layout(rowWidth));
+    };
+    const pairStyle = () => StyleSheet.flatten(screen.getByTestId('set-inputs-pair').props.style);
+    const cellStyle = (testID: string) =>
+      StyleSheet.flatten(viewAbove(screen.getByTestId(testID)).props.style);
+
+    it('keeps the pair side by side at equal width when both placeholders fit', async () => {
+      await openWorkoutWithSet();
+      // EN 1.0× on the Pixel 7: "Weight (kg)" ≈ 85 dp in a 346 dp row.
+      await measurePair(38, 85, 346);
+
+      expect(pairStyle()).toEqual({ flexDirection: 'row', gap: lightTheme.spacing.sm });
+      expect(cellStyle('set-reps-input')).toEqual({ flex: 1 });
+      expect(cellStyle('set-weight-input')).toEqual({ flex: 1 });
+    });
+
+    it('stays side by side when the pair exactly fits', async () => {
+      await openWorkoutWithSet();
+      // (141 + 12·2 + 4) · 2 + 8 = 346: the widest placeholder fills its half.
+      await measurePair(141, 120, 346);
+
+      expect(pairStyle().flexDirection).toBe('row');
+    });
+
+    it('stacks the pair, in order and full width, once a placeholder no longer fits', async () => {
+      await openWorkoutWithSet();
+      // ES 2.0×: "Repeticiones" is wider than half the row.
+      await measurePair(155, 117, 346);
+
+      expect(pairStyle()).toEqual({ flexDirection: 'column', gap: lightTheme.spacing.sm });
+      // No flex: each cell stretches to the full row width.
+      expect(cellStyle('set-reps-input')?.flex).toBeUndefined();
+      expect(cellStyle('set-weight-input')?.flex).toBeUndefined();
+      expect(
+        screen
+          .getByTestId('set-inputs-pair')
+          .queryAll((child) => child.type === 'TextInput')
+          .map((child) => child.props.testID as string),
+      ).toEqual(['set-reps-input', 'set-weight-input']);
+    });
+
+    it('returns to side by side when the text shrinks again', async () => {
+      await openWorkoutWithSet();
+      await measurePair(155, 117, 346);
+      expect(pairStyle().flexDirection).toBe('column');
+
+      await measurePair(38, 85, 346);
+      expect(pairStyle().flexDirection).toBe('row');
+    });
+
+    it('keeps controlled values, keyboards and hooks while stacked', async () => {
+      await openWorkoutWithSet();
+      await measurePair(155, 117, 346);
+
+      await fireEvent.changeText(screen.getByTestId('set-reps-input'), '12');
+      await fireEvent.changeText(screen.getByTestId('set-weight-input'), '82,5');
+      expect(screen.getByTestId('set-reps-input').props.value).toBe('12');
+      expect(screen.getByTestId('set-weight-input').props.value).toBe('82,5');
+      expect(screen.getByLabelText('Reps').props.keyboardType).toBe('numeric');
+      expect(screen.getByLabelText('Weight (kg)').props.keyboardType).toBe('numeric');
+    });
+
+    it('measures each placeholder in the input’s own scaled body type, hidden from everyone', async () => {
+      mockLanguage = 'es';
+      await openWorkoutWithSet();
+
+      for (const [testID, text] of [
+        ['set-reps-input-measure', 'Repeticiones'],
+        ['set-weight-input-measure', 'Peso (kg)'],
+      ] as const) {
+        const measurer = screen.getByTestId(testID, HIDDEN);
+        expect(measurer.props.children).toBe(text);
+        expect(measurer.props.allowFontScaling).toBe(true);
+        expect(measurer.props.numberOfLines).toBe(1);
+        expect(StyleSheet.flatten(measurer.props.style)).toMatchObject({
+          fontSize: lightTheme.typography.body.fontSize,
+          lineHeight: lightTheme.typography.body.lineHeight,
+        });
+      }
+
+      const shell = viewAbove(screen.getByTestId('set-reps-input-measure', HIDDEN));
+      expect(shell.props.importantForAccessibility).toBe('no-hide-descendants');
+      expect(shell.props.accessibilityElementsHidden).toBe(true);
+      expect(shell.props.pointerEvents).toBe('none');
+      expect(StyleSheet.flatten(shell.props.style)).toMatchObject({
+        position: 'absolute',
+        opacity: 0,
+      });
+      // The accessible names still resolve to the inputs alone.
+      expect(screen.getAllByLabelText('Repeticiones')).toHaveLength(1);
+    });
+  });
+
+  it('keeps the set-row reps editor compact inside the wrapping set row', async () => {
+    await openWorkoutWithSet();
+
+    const input = screen.getByTestId('set-reps-s1');
+    const cell = viewAbove(input);
+    // The pre-migration minWidth, moved to a wrapper; no flex, so it cannot
+    // push the toggle and remove controls off the card.
+    expect(StyleSheet.flatten(cell.props.style)).toEqual({
+      minWidth: lightTheme.spacing.xl * 2,
+    });
+    const inputStyle = StyleSheet.flatten(input.props.style);
+    expect(inputStyle.width).toBeUndefined();
+    expect(inputStyle.flex).toBeUndefined();
+
+    expect(StyleSheet.flatten(viewAbove(cell).props.style)).toMatchObject({
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+    });
+  });
+
+  it('keeps the set-row reps editor uncontrolled: seeded by defaultValue, no live change handler', async () => {
+    setStore({
+      status: 'ready',
+      workoutLogs: [log()],
+      workoutSets: [wset({ id: 's1', reps: 5 }), wset({ id: 's2', setNumber: 2, reps: null })],
+    });
+    await render(<WorkoutLogScreen />);
+    await fireEvent.press(screen.getByTestId('workout-select-l1'));
+
+    const input = screen.getByTestId('set-reps-s1');
+    expect(input.props.defaultValue).toBe('5');
+    expect(input.props.value).toBeUndefined();
+    expect(input.props.onChangeText).toBeUndefined();
+    expect(typeof input.props.onEndEditing).toBe('function');
+    expect(screen.getByTestId('set-reps-s2').props.defaultValue).toBe('');
+  });
+
+  it('commits the set-row reps exactly once, on end editing only', async () => {
+    await openWorkoutWithSet();
+    const input = screen.getByTestId('set-reps-s1');
+
+    await fireEvent(input, 'focus');
+    await fireEvent.changeText(input, '1');
+    await fireEvent.changeText(input, '12');
+    await fireEvent(input, 'blur');
+    expect(updateWorkoutSet).not.toHaveBeenCalled();
+
+    await fireEvent(input, 'endEditing', { nativeEvent: { text: '12' } });
+    expect(updateWorkoutSet).toHaveBeenCalledTimes(1);
+    expect(updateWorkoutSet).toHaveBeenCalledWith('s1', { reps: 12 });
+  });
+
+  it('commits a cleared set-row reps as null and ignores a non-numeric one', async () => {
+    await openWorkoutWithSet();
+
+    await fireEvent(screen.getByTestId('set-reps-s1'), 'endEditing', {
+      nativeEvent: { text: '  ' },
+    });
+    expect(updateWorkoutSet).toHaveBeenCalledWith('s1', { reps: null });
+
+    updateWorkoutSet.mockClear();
+    await fireEvent(screen.getByTestId('set-reps-s1'), 'endEditing', {
+      nativeEvent: { text: 'abc' },
+    });
+    expect(updateWorkoutSet).not.toHaveBeenCalled();
+  });
+});

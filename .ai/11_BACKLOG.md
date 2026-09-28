@@ -1225,7 +1225,13 @@ Priority: P1
 Type: Feature
 Owner: Product / Design / Architecture
 Created: 2026-08-24
-Updated: 2026-09-21
+Updated: 2026-09-28
+
+> **UX-5 COMPLETE 2026-09-28 — all seven REDUCED-family inputs migrated**
+> (Nutrition 2 of 2, `.ai/08_UI_UX.md` v1.16; Workout 5 of 5, v1.17). No
+> REDUCED-family input remains. This advances one step of FEATURE-010. It does
+> **not** complete FEATURE-010. `FormField` migration, required/invalid
+> exposure, UX-4C and the accessibility release-review gates remain open.
 
 > **ADR-P022 ADDENDUM A ACCEPTED 2026-09-16 — Accessible colour foundation
 > (UX-1C-4). The light-theme contrast blockers are CLOSED.** Four light token
@@ -1637,9 +1643,10 @@ Excluded:
       unaffected by the error-border blocker** — in `DietaryPreferences.tsx`,
       `RoutineBuilder.tsx` and `WorkoutLogScreen.tsx` the `error` references are
       screen-level messages, not input borders — so **`FormField` is the only
-      remaining consumer with an error border**. **Progress 2026-09-28: 2 of
-      7** — the Nutrition slice migrated both `DietaryPreferences.tsx` inputs;
-      the five Workout inputs remain pending.
+      remaining consumer with an error border**. **COMPLETE 2026-09-28: 7 of
+      7** — the Nutrition slice migrated both `DietaryPreferences.tsx` inputs,
+      and the Workout slice migrated `RoutineBuilder.tsx` ×1 and
+      `WorkoutLogScreen.tsx` ×4, including the uncontrolled per-set reps editor.
 4. **UX-2 — Low-fidelity product flows. Status: DELIVERED 2026-08-28 —
    `.ai/17_PRODUCT_FLOWS.md` v1.0.** Onboarding, authentication including
    verification and recovery surfaces, navigation and information architecture,
@@ -1966,15 +1973,39 @@ Excluded:
      **Blocked on UX-4B-1** for the iOS/VoiceOver column; the Android/TalkBack
      and browser-AT columns are not blocked by identity, but running them before
      the rename would verify an artifact that is about to be replaced.
-7. **UX-5 — Progressive feature migration. Status: In Progress (2 of 7 REDUCED
-   inputs).** One feature per slice, behaviour preserved, with bilingual,
-   dark-theme, and accessibility verification per slice.
+7. **UX-5 — Progressive feature migration. Status: Done (7 of 7 REDUCED
+   inputs, 2026-09-28).** One feature per slice, behaviour preserved, with
+   bilingual, dark-theme and large-text device verification per slice. No
+   assistive-technology outcome is claimed.
    - **Nutrition slice — Done (2026-09-28).** Both `DietaryPreferences.tsx`
      inputs (food search, optional note) render through `AppTextInput`; closes
      **BUG-027**. See §BUG-027 and `.ai/08_UI_UX.md` v1.16.
-   - **Pending — the five Workout inputs**, each needing its own authorization:
-     `RoutineBuilder.tsx` ×1 and `WorkoutLogScreen.tsx` ×4, including the
-     uncontrolled per-set reps editor.
+   - **Workout slice — Done (2026-09-28).** `routine-name`, `workout-name`,
+     `set-reps-input` and `set-weight-input` use the controlled model. The
+     per-set reps editor `set-reps-${set.id}` uses the uncontrolled
+     commit-on-end model and still commits once, on end editing. The paired
+     new-set inputs stay side by side at equal width while both placeholders
+     fit, and stack otherwise (owner-approved Option A). This fixed a
+     Spanish 2.0× clip of "Repeticiones" that the migration had introduced.
+     `AppTextInput`'s API, shared tokens and copy are unchanged, and the
+     catalogues stay at 1068 / 1068.
+     - **Regression coverage:**
+       - `RoutineBuilder.spec.tsx`: 7 tests.
+       - `WorkoutLogScreen.spec.tsx`: 22 tests. They cover frozen hooks and
+         names in EN and ES, placeholders, numeric keyboards, controlled
+         round-trips, create/start/add success and failure, the
+         FULL-family floor, fill, type and focus, paired side-by-side and
+         stacked layouts, the reps editor's compact wrapper, and
+         `defaultValue` with no live change handler and exactly one commit
+         on end editing.
+       - `shared/presentation/ux5-inputs.source.spec.ts`: a guard bounded
+         to the three UX-5 files, with a negative control.
+     - **Negative checks:**
+       - Reverting any one of the five migrations fails 4–6 focused tests.
+       - Forcing the pair side by side fails 2.
+     - **Emulator gate:** 12 combinations and 60 captures pass (see
+       `.ai/08_UI_UX.md` v1.17). Found there, and left out of scope:
+       **BUG-029**.
 
 ### Acceptance Criteria
 
@@ -2874,6 +2905,68 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-029] An Edit Queued Behind a Deferred CREATE Is Dropped, Then Overwritten by Pull
+
+Status: **Open — found during the UX-5 Workout emulator gate; not scheduled.**
+Priority: **P2**
+Type: Bug (sync — silent loss of a local edit)
+Owner: Mobile Architecture / Sync
+Created: 2026-09-28
+Updated: 2026-09-28
+
+**Observed (Android 15 emulator, disposable account, tmpfs Postgres and local
+API, branch `codex/ux5-workout-input-migration` on `main` `e72cf1d`).**
+
+1. A set was logged with reps 10 and weight 62.5, and then its reps were edited
+   to 12. Locally the row became reps 12, version 2, `pending`. The queue held
+   a `workout_sets` CREATE (reps 10) and one UPDATE (reps 12).
+2. On "Sync now", the server rejected the CREATE as `DEPENDENCY_NOT_READY`,
+   because the disposable database had no built-in exercise catalog seeded. The
+   worker kept it for retry, as designed.
+3. The UPDATE in the same batch came back `REJECTED` / `NOT_FOUND`, because the
+   server had no such set yet. This was confirmed by pushing an equivalent
+   UPDATE for an unsynced set id straight to `/sync/push`. `sync-worker.ts`
+   treats every non-retryable rejection with `removeRejected`, so the UPDATE
+   was **deleted from the queue**.
+4. After the catalog was seeded, the next sync applied the CREATE with reps 10.
+   The pull then found no pending op for the entity (`hasPendingOpFor`) and
+   overwrote the local row with the server copy: **reps 10, version 1,
+   `synced`**. The user's committed edit to 12 was lost. The only trace was a
+   development-build LogBox warning, "[sync.push] operation rejected:
+   workout_sets/…". Nothing appears in the product UI.
+
+**Why it matters.** A value the user saved is replaced without any conflict or
+notice. The explicit no-silent-overwrite rules (`.ai/04_DATABASE.md`,
+CLAUDE.md) are written for medical data, and workout data is not medical, but
+the same worker path serves every synchronized entity type. The trigger is any dependent UPDATE (or DELETE) pushed while
+its own CREATE is deferred. In production the built-in catalog is seeded, so the
+reproduction above depends on that gap. A deferred parent (for example a custom
+exercise or a routine that has not synced yet) is a plausible real trigger,
+**but this has not been demonstrated**.
+
+**Not caused by UX-5.** The Workout slice changes presentation only. The reps
+editor still commits once, on end editing, through the unchanged
+`onEditReps → updateWorkoutSet(id, { reps })` path. The sync worker, queue,
+appliers and API are untouched.
+
+**Options (none chosen; a sync change needs its own authorization):**
+
+- Treat `NOT_FOUND` for an entity whose CREATE is still queued as retryable.
+- Hold later ops for an entity until its CREATE is applied.
+- Fold UPDATEs into a still-queued CREATE payload.
+
+Each changes sync-queue semantics, so it needs the sync regression suite and
+possibly an ADR. It may also interact with the ADR-P030 conflict-review path.
+
+### Related Documents
+
+- `mobile/src/shared/infrastructure/sync/sync-worker.ts` (push `REJECTED`
+  branch, pull `hasPendingOpFor` guard)
+- `api/src/modules/sync/application/sync.service.ts`
+- `api/src/modules/workout/infrastructure/workout-set-sync.handler.ts`
+
+---
+
 ## [BUG-028] Nutrition-Plan Numbers Split From Their Units
 
 Status: **Done — values joined to units; regression and full validation green (2026-09-25).**
@@ -3080,6 +3173,9 @@ deleting. Removing the wraps fails 5 tests.
 raw input with no height floor: 37.7 dp tall at 1.0×, and 48.0 dp and 53.3 dp
 at 1.5× and 2.0×. Its floor belongs to UX-5 (`.ai/08_UI_UX.md` §Input
 style-family reconciliation). It is not part of BUG-026 and was not changed.
+**Resolved 2026-09-28 by the UX-5 Workout slice** (`.ai/08_UI_UX.md` v1.17): the
+editor now has the FULL-family 48 dp floor. It measured 48.0 / 51.4 / 59.4 dp at
+1.0× / 1.5× / 2.0× and stays inside the wrapping set row.
 
 ### Related Documents
 

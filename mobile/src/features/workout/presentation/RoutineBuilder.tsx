@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import {
   type SupportedLanguage,
   type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
+import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { exerciseDisplayName } from '../application/exercise-display.service';
@@ -136,20 +136,12 @@ export function RoutineBuilder() {
       <Card accessibilityLabel={t('workout.builder.createAccessibility')}>
         <View style={{ gap: theme.spacing.md }}>
           <AppText variant="title">{t('workout.builder.createTitle')}</AppText>
-          <TextInput
+          <AppTextInput
             accessibilityLabel={t('workout.builder.name')}
             testID="routine-name"
             placeholder={t('workout.builder.namePlaceholder')}
-            placeholderTextColor={theme.colors.onSurfaceVariant}
             value={name}
             onChangeText={setName}
-            style={{
-              borderColor: theme.colors.outline,
-              borderRadius: theme.radius.medium,
-              borderWidth: 1,
-              color: theme.colors.onSurface,
-              padding: theme.spacing.sm,
-            }}
           />
           <AppButton
             accessibilityLabel={t('workout.builder.createButton')}
