@@ -2957,7 +2957,25 @@ dated implementation note under ADR-P012 records this as delivery of ADR-0006's
 retry and idempotency guarantees. ADR-0006, ADR-P012 and ADR-P030 were audited,
 and none contradicts the contract.
 
-**Regression coverage.** `sync-worker.recovery.integration.spec.ts` has 15
+**Follow-up (2026-09-28, AI Bridge review): an incomplete push response is a
+failed exchange.** The first delivery (PR #197) recovered and replayed an op
+that a response had omitted. The values converged, but the local row's
+`sync_status` stayed `pending`:
+1. The same run went on to pull.
+2. It skipped the still-outstanding entity, but advanced the cursor past the
+   server's new version.
+3. The replayed duplicate bumped no server sequence, so the row was never
+   re-pulled.
+
+Now, when a batch response leaves any op unanswered, the push loop handles the
+answered ops normally, leaves the unanswered ones `IN_FLIGHT`, and ends the run
+as `offline` before pulling. No cursor moves. The next run recovers and replays
+the ops, then pulls from the unchanged cursor, and the row converges fully. This
+matches how the worker already treats a push that throws. No schema, wire or
+pull-contract change: the pull loop and its cursor semantics are untouched.
+Removing this early return fails the 2 new convergence tests.
+
+**Regression coverage.** `sync-worker.recovery.integration.spec.ts` has 16
 tests. They run on real SQLite from the real migrations, with the real
 `runSync`, queue, workout repositories and appliers, against an in-memory server
 that follows the API's per-op rules, including op-id idempotency.
@@ -2982,13 +3000,16 @@ that follows the API's per-op rules, including op-id idempotency.
     charged once, for the server's answer.
   - After a crash that followed the server applying the batch, the same op ids
     are replayed as duplicates. The entity is mutated once per op.
-  - An op stranded by an incomplete response stays queued, protected from pull,
-    and pushed once per run with no spinning. It is replayed as a duplicate on
-    the next run.
+  - An op stranded by an incomplete response stays queued and protected, and is
+    pushed once per run with no spinning. The run ends as `offline` without
+    pulling. With no further server-side edit, the next run replays it as a
+    duplicate. The queue drains, and the local row converges on the server:
+    values, version and `sync_status = 'synced'`.
+  - The answered ops of an incomplete batch are still handled normally.
   - A recovered DELETE deletes on both sides.
   - With nothing abandoned, there is no extra work.
 
-Removing the recovery call fails 5 of these tests. Removing the shared-run check
+Removing the recovery call fails 6 of these tests. Removing the shared-run check
 fails the one-transport-execution test. The BUG-029 barrier suites and all other
 sync suites pass unchanged. The API's op-id idempotency was re-verified against a
 throwaway local PostgreSQL: the unit test "a replayed opId returns the recorded
@@ -2997,13 +3018,6 @@ outcome without re-applying" passes, and the full e2e suite passes, 14 suites an
 standing outcome" and "replays one operation idempotently".
 
 **Residual risks (recorded, not changed).**
-- **Stale sync flag after an incomplete response.** When an applied op's result
-  was omitted, the same run's pull skips the server's new version, because the
-  op is still outstanding. The pull still advances the cursor past it. The
-  replayed duplicate bumps no server sequence. Values converge, but the local
-  row's `sync_status` stays `pending` until the entity next changes on the
-  server. This is pre-existing pull-cursor behaviour for skipped changes, and no
-  data is lost.
 - **Shared runs.** A caller that joins a standing run receives that run's report.
   A write it made after the run's last queue read goes out in the next run.
 - **Signed-out runs.** A run that returns `unauthenticated` before pushing does

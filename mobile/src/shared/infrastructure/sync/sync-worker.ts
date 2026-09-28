@@ -240,6 +240,20 @@ async function pushLoop(
         }
       }
     }
+
+    // An incomplete response is a failed exchange (BUG-030). The server may
+    // have applied an unanswered op, so the op stays IN_FLIGHT for the next run
+    // to recover and replay under its own op id. The run also ends here,
+    // without pulling. A pull now would skip that entity, because work is still
+    // outstanding, and advance the cursor past its new server version. The
+    // replayed duplicate bumps no sequence, so the row would never be re-pulled
+    // and would stay 'pending'.
+    const answered = new Set(results.map((result) => result.opId));
+    const unanswered = batch.filter((row) => !answered.has(row.op_id));
+    if (unanswered.length > 0) {
+      logWarn('sync.push', `incomplete response: ${unanswered.length} operation(s) unanswered`);
+      return 'offline';
+    }
   }
 }
 
