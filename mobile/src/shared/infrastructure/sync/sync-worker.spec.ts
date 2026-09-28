@@ -51,6 +51,8 @@ jest.mock('./sync-queue', () => ({
   markInFlight: jest.fn(),
   peekReady: jest.fn(),
   readQueuePayload: jest.fn(),
+  // BUG-030: nothing is abandoned in these unit scenarios.
+  recoverAbandonedInFlight: jest.fn(() => Promise.resolve(0)),
   removeRejected: jest.fn(),
 }));
 jest.mock('./sync-state', () => ({

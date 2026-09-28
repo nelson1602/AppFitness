@@ -12,6 +12,7 @@ import {
   markInFlight,
   peekReady,
   readQueuePayload,
+  recoverAbandonedInFlight,
   removeRejected,
 } from './sync-queue';
 import { getCursor, setCursor } from './sync-state';
@@ -56,6 +57,8 @@ export interface SyncReport {
   pulledApplied: number;
   /** Pulled changes skipped because the entity still has local pending ops. */
   skippedPending: number;
+  /** Abandoned `IN_FLIGHT` ops returned to the queue for replay (BUG-030). */
+  recovered: number;
 }
 
 export interface SyncDeps {
@@ -70,7 +73,28 @@ export interface SyncDeps {
   now?(): string;
 }
 
-export async function runSync(deps: SyncDeps): Promise<SyncReport> {
+/**
+ * The run currently executing for each user (BUG-030). Only one `runSync` runs
+ * per user in this JS process at a time. That is what makes an `IN_FLIGHT` row
+ * seen at the start of a run provably abandoned, and not another live run's
+ * batch. A caller that arrives while a run is standing shares it and receives
+ * its report: it never starts a second push. Its own later writes are picked up
+ * by the next run. Different users never share an entry.
+ */
+const standingRuns = new Map<string, Promise<SyncReport>>();
+
+export function runSync(deps: SyncDeps): Promise<SyncReport> {
+  const standing = standingRuns.get(deps.userId);
+  if (standing) return standing;
+
+  const execution = executeSync(deps).finally(() => {
+    if (standingRuns.get(deps.userId) === execution) standingRuns.delete(deps.userId);
+  });
+  standingRuns.set(deps.userId, execution);
+  return execution;
+}
+
+async function executeSync(deps: SyncDeps): Promise<SyncReport> {
   const report: SyncReport = {
     outcome: 'success',
     pushedApplied: 0,
@@ -80,6 +104,7 @@ export async function runSync(deps: SyncDeps): Promise<SyncReport> {
     actionRequired: 0,
     pulledApplied: 0,
     skippedPending: 0,
+    recovered: 0,
   };
   if (!deps.getToken()) {
     return { ...report, outcome: 'unauthenticated' };
@@ -87,6 +112,10 @@ export async function runSync(deps: SyncDeps): Promise<SyncReport> {
 
   const transport = createSyncTransport(deps.getToken, deps.baseUrl);
   const now = deps.now ?? ((): string => new Date().toISOString());
+
+  // This run holds the user's exclusive boundary, so any IN_FLIGHT row is
+  // left over from an earlier run. Return it for replay under its own op id.
+  report.recovered = await recoverAbandonedInFlight(deps.userId, now());
 
   const pushOutcome = await pushLoop(deps.userId, transport, now, report);
   if (pushOutcome !== 'success') return { ...report, outcome: pushOutcome };

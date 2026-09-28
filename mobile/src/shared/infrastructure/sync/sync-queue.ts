@@ -14,6 +14,8 @@ import type { EnqueueInput } from './types';
  * Lifecycle: PENDING → IN_FLIGHT → (removed on APPLIED)
  *                                → FAILED (retry with backoff)
  *                                → CONFLICT (awaits user resolution)
+ *                                → PENDING (abandoned; recovered when the
+ *                                  next run starts, BUG-030)
  *
  * Every accessor is scoped by `userId` since migration 006 (ADR-P030
  * Decision 8). `signOut()` deliberately preserves the database, so without
@@ -115,6 +117,35 @@ export async function markInFlight(userId: string, opIds: string[], nowIso: stri
       [nowIso, opId, userId],
     );
   }
+}
+
+/**
+ * Returns this user's abandoned `IN_FLIGHT` ops to `PENDING` so the next push
+ * replays them (BUG-030).
+ *
+ * Only `runSync` marks ops `IN_FLIGHT`, and it runs at most once at a time per
+ * user. So an `IN_FLIGHT` row seen when a run starts was left by an earlier run
+ * that never recorded an outcome: the app died mid-push, or a response omitted
+ * the op. Nothing else ever returned such a row to the queue, so the op was
+ * never retried and its entity never synced.
+ *
+ * It is one owner-scoped statement. It keeps `op_id`, the payload (encrypted
+ * envelope included), `base_version`, `retry_count`, `next_retry_at` and
+ * `last_error`, because a stopped process is not a failed attempt. It creates
+ * no replacement op. Replaying the same `op_id` is safe: the server's op-id
+ * idempotency answers an already-applied op as a duplicate (ADR-P012). PENDING,
+ * FAILED and CONFLICT rows, and other users' rows, are untouched. A recovered
+ * CREATE is still a barrier for its entity's later ops (`peekReady`, BUG-029).
+ *
+ * @returns the number of ops recovered.
+ */
+export async function recoverAbandonedInFlight(userId: string, nowIso: string): Promise<number> {
+  const result = await run(
+    `UPDATE sync_queue SET status = 'PENDING', updated_at = ?
+     WHERE user_id = ? AND status = 'IN_FLIGHT'`,
+    [nowIso, userId],
+  );
+  return result.changes;
 }
 
 /** Server applied the op — the queue item has served its purpose. */

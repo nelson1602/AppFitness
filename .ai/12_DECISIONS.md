@@ -2194,6 +2194,22 @@ Identity and Versioning*). Decision for v1:
   (duplicate retries are no-ops, `duplicate:true`); soft-delete tombstones
   (`deleted_at`, `deleted_by`) replicate as UPDATE ops in causal (child-first)
   order; retries use the existing FAILED-with-backoff queue.
+  **Implementation note (2026-09-28, BUG-030).** The retry promise did not
+  cover an op the device had marked `IN_FLIGHT` but never resolved. This
+  happens when the app dies mid-push or a response omits the op. Nothing ever
+  returned such an op to the queue, so it was never retried.
+  - `runSync` now runs at most once at a time per user in the JS process. A
+    concurrent same-user caller shares the standing run.
+  - Once a run holds that boundary, one owner-scoped statement returns the
+    user's `IN_FLIGHT` rows to `PENDING` (`recoverAbandonedInFlight`). It keeps
+    their op id, payload, base version and retry count, and creates no
+    replacement op.
+  - Replay relies on the idempotency key above: an op the server already applied
+    is answered as a duplicate and is not applied twice.
+  - A recovered CREATE still holds its entity's later ops (BUG-029).
+
+  This delivers ADR-0006's retry and idempotency guarantees and amends no
+  decision. There is no schema, wire or API change.
 - **Per-entity conflict policy (multi-device):** every entity is
   **version-guarded**; a base-version mismatch records a `sync_conflicts` row
   and is **never auto-overwritten** (evidence). **No automatic merge** for any
