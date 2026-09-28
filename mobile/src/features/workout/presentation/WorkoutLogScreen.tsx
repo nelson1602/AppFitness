@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, View, type LayoutChangeEvent } from 'react-native';
 
 import { formatNumber, useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
+import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { SyncStatus } from '@/shared/infrastructure/database/types';
@@ -169,20 +169,12 @@ export function WorkoutLogScreen() {
       <Card accessibilityLabel={t('workout.log.startAccessibility')}>
         <View style={{ gap: theme.spacing.md }}>
           <AppText variant="title">{t('workout.log.startTitle')}</AppText>
-          <TextInput
+          <AppTextInput
             accessibilityLabel={t('workout.log.name')}
             testID="workout-name"
             placeholder={t('workout.log.namePlaceholder')}
-            placeholderTextColor={theme.colors.onSurfaceVariant}
             value={name}
             onChangeText={setName}
-            style={{
-              borderColor: theme.colors.outline,
-              borderRadius: theme.radius.medium,
-              borderWidth: 1,
-              color: theme.colors.onSurface,
-              padding: theme.spacing.sm,
-            }}
           />
           <AppButton
             accessibilityLabel={t('workout.log.startButton')}
@@ -381,42 +373,12 @@ export function WorkoutLogScreen() {
                       </View>
                     )}
 
-                    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                      <TextInput
-                        accessibilityLabel={t('workout.log.reps')}
-                        testID="set-reps-input"
-                        placeholder={t('workout.log.reps')}
-                        placeholderTextColor={theme.colors.onSurfaceVariant}
-                        keyboardType="numeric"
-                        value={reps}
-                        onChangeText={setReps}
-                        style={{
-                          borderColor: theme.colors.outline,
-                          borderRadius: theme.radius.medium,
-                          borderWidth: 1,
-                          color: theme.colors.onSurface,
-                          flex: 1,
-                          padding: theme.spacing.sm,
-                        }}
-                      />
-                      <TextInput
-                        accessibilityLabel={t('workout.log.weightKg')}
-                        testID="set-weight-input"
-                        placeholder={t('workout.log.weightKg')}
-                        placeholderTextColor={theme.colors.onSurfaceVariant}
-                        keyboardType="numeric"
-                        value={weight}
-                        onChangeText={setWeight}
-                        style={{
-                          borderColor: theme.colors.outline,
-                          borderRadius: theme.radius.medium,
-                          borderWidth: 1,
-                          color: theme.colors.onSurface,
-                          flex: 1,
-                          padding: theme.spacing.sm,
-                        }}
-                      />
-                    </View>
+                    <NewSetInputs
+                      reps={reps}
+                      weight={weight}
+                      onChangeReps={setReps}
+                      onChangeWeight={setWeight}
+                    />
                     <AppButton
                       accessibilityLabel={t('workout.log.addSet')}
                       testID="set-add"
@@ -465,6 +427,91 @@ export function WorkoutLogScreen() {
   );
 }
 
+/**
+ * The paired new-set reps and weight inputs (UX-5). They sit side by side at
+ * equal width while both placeholders fit, and stack when they do not: at 2.0×
+ * text the Spanish "Repeticiones" is wider than half the card.
+ *
+ * The decision is content-driven. Each placeholder is laid out off-screen in
+ * the input's own body type (`AppText` body, font scaling on), and the widest
+ * one plus the input's horizontal padding and focused border is compared with
+ * the row's measured width. `AppTextInput` takes no style, so plain wrapper
+ * `View`s carry the layout. Until both are measured, the pair renders side by
+ * side, as it always has.
+ */
+function NewSetInputs({
+  reps,
+  weight,
+  onChangeReps,
+  onChangeWeight,
+}: {
+  reps: string;
+  weight: string;
+  onChangeReps: (next: string) => void;
+  onChangeWeight: (next: string) => void;
+}) {
+  const theme = useTheme();
+  const { t } = useLocalization();
+  const [rowWidth, setRowWidth] = useState(0);
+  const [placeholderWidths, setPlaceholderWidths] = useState({ reps: 0, weight: 0 });
+
+  // Both sides' horizontal padding, plus both sides of the 2 px focused border.
+  const chrome = theme.spacing.md * 2 + theme.spacing.xs;
+  const cellWidth = Math.max(placeholderWidths.reps, placeholderWidths.weight) + chrome;
+  const stacked = rowWidth > 0 && cellWidth * 2 + theme.spacing.sm > rowWidth;
+
+  const measure = (key: 'reps' | 'weight') => (event: LayoutChangeEvent) => {
+    const { width } = event.nativeEvent.layout;
+    setPlaceholderWidths((current) =>
+      current[key] === width ? current : { ...current, [key]: width },
+    );
+  };
+
+  return (
+    <View onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}>
+      {/* Off-screen measurers: never visible, never announced, never touched. */}
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        pointerEvents="none"
+        style={{ position: 'absolute', top: 0, left: 0, opacity: 0 }}
+      >
+        <AppText testID="set-reps-input-measure" numberOfLines={1} onLayout={measure('reps')}>
+          {t('workout.log.reps')}
+        </AppText>
+        <AppText testID="set-weight-input-measure" numberOfLines={1} onLayout={measure('weight')}>
+          {t('workout.log.weightKg')}
+        </AppText>
+      </View>
+      <View
+        testID="set-inputs-pair"
+        style={{ flexDirection: stacked ? 'column' : 'row', gap: theme.spacing.sm }}
+      >
+        <View style={stacked ? undefined : { flex: 1 }}>
+          <AppTextInput
+            accessibilityLabel={t('workout.log.reps')}
+            testID="set-reps-input"
+            placeholder={t('workout.log.reps')}
+            keyboardType="numeric"
+            value={reps}
+            onChangeText={onChangeReps}
+          />
+        </View>
+        <View style={stacked ? undefined : { flex: 1 }}>
+          <AppTextInput
+            accessibilityLabel={t('workout.log.weightKg')}
+            testID="set-weight-input"
+            placeholder={t('workout.log.weightKg')}
+            keyboardType="numeric"
+            value={weight}
+            onChangeText={onChangeWeight}
+          />
+        </View>
+      </View>
+    </View>
+  );
+}
+
 function SetList({
   sets,
   customExercises,
@@ -509,21 +556,17 @@ function SetList({
                 gap: theme.spacing.sm,
               }}
             >
-              <TextInput
-                accessibilityLabel={`${t('workout.log.repsForSetAccessibility')} ${formatNumber(set.setNumber, language)}`}
-                testID={`set-reps-${set.id}`}
-                keyboardType="numeric"
-                defaultValue={set.reps === null ? '' : String(set.reps)}
-                onEndEditing={(e) => onEditReps(set.id, e.nativeEvent.text)}
-                style={{
-                  borderColor: theme.colors.outline,
-                  borderRadius: theme.radius.medium,
-                  borderWidth: 1,
-                  color: theme.colors.onSurface,
-                  minWidth: theme.spacing.xl * 2,
-                  padding: theme.spacing.sm,
-                }}
-              />
+              {/* UX-5: the compact width lives on a wrapper because AppTextInput
+                  takes no style; the input stretches to fill it. */}
+              <View style={{ minWidth: theme.spacing.xl * 2 }}>
+                <AppTextInput
+                  accessibilityLabel={`${t('workout.log.repsForSetAccessibility')} ${formatNumber(set.setNumber, language)}`}
+                  testID={`set-reps-${set.id}`}
+                  keyboardType="numeric"
+                  defaultValue={set.reps === null ? '' : String(set.reps)}
+                  onCommitEnd={(text) => onEditReps(set.id, text)}
+                />
+              </View>
               <AppText tone="muted">
                 {set.weightKg === null ? '—' : `${formatNumber(set.weightKg, language)} kg`}
               </AppText>

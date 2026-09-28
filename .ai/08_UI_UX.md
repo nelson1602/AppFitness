@@ -1,6 +1,6 @@
 # AppFitness Design System Specification
 
-Version: 1.16
+Version: 1.17
 Status: Active
 Last Updated: 2026-09-28
 
@@ -528,6 +528,73 @@ feature (`.ai/11_BACKLOG.md` §BUG-027, FEATURE-010 step 7).
 No token, dependency, schema, migration, API, route or `AppTextInput` contract
 change. One catalogue key is added in each language (1068 / 1068, parity
 exact). UX-4C stays open and unrun.
+
+---
+
+# Revision Scope (v1.17 — UX-5 Workout slice; UX-5 complete)
+
+This revision records the second and last owner-authorized UX-5 slice, the
+**Workout** feature. With it, all seven REDUCED-family inputs are migrated:
+Nutrition 2 of 2 (v1.16) and Workout 5 of 5.
+
+- **Migrated onto the controlled model:** `routine-name`
+  (`RoutineBuilder.tsx`), and `workout-name`, `set-reps-input` and
+  `set-weight-input` (`WorkoutLogScreen.tsx`). Both new-set inputs keep the
+  `numeric` keyboard.
+- **Migrated onto the uncontrolled commit-on-end model:** the per-set reps editor
+  `set-reps-${set.id}`. It keeps `defaultValue`, has no live change handler, and
+  commits once, on end editing. Its compact `minWidth: spacing.xl * 2` moved to a
+  wrapper `View`, and it stays inside the BUG-026 wrapping set row.
+- **Gained by all five:** the FULL-family 48 dp floor, `surfaceVariant` fill, body
+  type token, focus border and `onSurfaceVariant` placeholder role. Test IDs,
+  accessible names, values, placeholders, keyboards and handlers are unchanged.
+- **Paired new-set inputs at large text (owner-approved Option A).** The first
+  device run found one regression. At Spanish 2.0× the migrated reps placeholder
+  "Repeticiones" clipped to "Repeticione" in its 169.1 dp half. The REDUCED input
+  had fit, because it used a smaller default font and 8 dp padding. The pair is
+  now a local layout decision in `WorkoutLogScreen.tsx`. Each placeholder is laid
+  out off-screen in the input's own scaled body type, hidden from assistive
+  technology and touch. The widest one plus `spacing.md` padding on both sides and
+  `spacing.xs` for the focused border is compared with the row's measured width.
+  - When both fit, the pair stays side by side at equal width.
+  - Otherwise it stacks, in the same order, at full width.
+
+  `AppTextInput`, shared typography, spacing tokens and copy are unchanged.
+
+**Emulator gate (Android 15 Pixel 7, Expo Go, disposable account, tmpfs Postgres
+and local API, 2026-09-28).** EN and ES, light and dark, at 1.0×, 1.5× and 2.0×:
+12 combinations and 60 captures, all passing.
+
+| Scale | Input heights (all five) | Paired new-set inputs | Per-set reps editor |
+|---|---|---|---|
+| 1.0× | 48.0 dp | side by side, 169.1 dp each | 44.6 × 48.0 dp |
+| 1.5× | 51.4–51.8 dp | side by side, 169.1 dp each | 52.6 × 51.4 dp |
+| 2.0× | 59.4–59.8 dp | stacked, 345.9 dp each | 58.3 × 59.4 dp |
+
+- Every placeholder is whole, including "Repeticiones" and "Weight (kg)" at 2.0×.
+  No control overlaps another, and nothing runs past the screen edge. The BUG-026
+  open-workout and set rows still wrap inside the card.
+- The flow ran end to end:
+  - A routine was created, a named workout started, and a set of 10 reps ×
+    62.5 kg added. Each name input cleared on success.
+  - A set's reps were edited to 12. While typing, the local row stayed at 10,
+    version 1, with one queued op. After end editing it was 12, version 2, with
+    exactly one new UPDATE.
+  - After sync the queue was empty, and local and server both held 12 / 62.5 /
+    version 2.
+- Font scale, theme and app locale were restored afterwards.
+
+**Found, not changed: BUG-029** (`.ai/11_BACKLOG.md`). When a set's CREATE is
+deferred, a queued reps UPDATE can be rejected and dropped, and the pull then
+overwrites the edit. This is a pre-existing sync-worker path. This slice changes
+no sync code.
+
+**Not claimed.** No `FormField` migration (UX-1C-2B-b stays deferred and
+blocked). No required or invalid exposure. No assistive-technology outcome:
+UX-4C stays open and unrun, and the hidden measurers' exclusion from assistive
+technology is asserted by props only. No dormant-medical change. No token,
+dependency, copy, schema, migration, sync, API, route or `AppTextInput`
+contract change. Catalogues stay at 1068 / 1068.
 
 ---
 
@@ -2551,7 +2618,7 @@ Stated precisely, because the shipped inventory is **not** uniform:
 | **Responsibility** | A theme-aware React Native text-control primitive. It owns the input node, value entry, the visual input states, its semantic tokens, its accessible name, and native `TextInput` behaviour. |
 | **Non-responsibilities** | Owns **no** visible field label, **no** helper text, **no** validation message, **no** schema, **no** React Hook Form controller, **no** store or repository access, **no** navigation, and **no** business logic. |
 | **Anatomy** | A single-line text control only. No surrounding label, no message row, no adornment slots. |
-| **Control models (discriminated — never mixed)** | **Controlled:** requires `value` **and** a change callback; **does not accept** `defaultValue`. **Uncontrolled commit-on-end:** requires `defaultValue` **and** the end-edit commit callback; **does not accept** the controlled `value`/change pair. A partial or mixed pair must be **inexpressible**, not silently resolved. The uncontrolled shape exists only because one shipped consumer needs it (the per-set reps editor); it must not be widened into a general uncontrolled API. **UX-1B2D confirmation (ADR-P023 Decision 6 and 10):** **both** models are **mandatory in UX-1C-1**, with component regression coverage for each — the uncontrolled member is an accepted contract backed by an existing consumer, not a speculative abstraction, and is **not** deferrable. Migration of that consumer (the per-set reps editor in `WorkoutLogScreen.tsx`) remains **UX-5**, so the uncontrolled member ships with coverage and no caller. |
+| **Control models (discriminated — never mixed)** | **Controlled:** requires `value` **and** a change callback; **does not accept** `defaultValue`. **Uncontrolled commit-on-end:** requires `defaultValue` **and** the end-edit commit callback; **does not accept** the controlled `value`/change pair. A partial or mixed pair must be **inexpressible**, not silently resolved. The uncontrolled shape exists only because one shipped consumer needs it (the per-set reps editor); it must not be widened into a general uncontrolled API. **UX-1B2D confirmation (ADR-P023 Decision 6 and 10):** **both** models are **mandatory in UX-1C-1**, with component regression coverage for each — the uncontrolled member is an accepted contract backed by an existing consumer, not a speculative abstraction, and is **not** deferrable. Migration of that consumer (the per-set reps editor in `WorkoutLogScreen.tsx`) remains **UX-5**, so the uncontrolled member ships with coverage and no caller. **v1.17 (UX-5 Workout slice):** that consumer is migrated. The uncontrolled member now has exactly this one caller and is not widened. |
 | **Evidenced optional configuration** | placeholder · secure text entry · auto-capitalization · auto-correction · `selectTextOnFocus` · blur and end-edit callbacks. Keyboard types: **default, numeric, decimal-pad, email-address** — these four only. |
 | **States** | default · focused · populated · error/invalid · **disabled**. Disabled is a TARGET standard state and is **currently unexercised** — there are zero shipped `editable`/`readOnly` usages, so no consumer proves its behaviour yet. A distinct **read-only** state (non-editable but not de-emphasised) is **deferred**; it must not be treated as a synonym for disabled. |
 | **Semantic token roles (FULL family is canonical)** | `surfaceVariant` fill · `onSurface` value text · **`onSurfaceVariant` placeholder text** · `outline` border at **1 px** by default · `error` border in the invalid state · a **thicker-than-default** border when focused (§Non-colour redundancy) · medium radius · `spacing.x5l` minimum height · horizontal `spacing.md` · body typography. **`outline` must not be used for placeholder text** — that pairing is a measured contrast failure (§Usage-level contrast findings). |
@@ -2631,14 +2698,23 @@ Two divergent families ship today.
 
 | Family | Where | Shape |
 |---|---|---|
-| **FULL** — canonical TARGET | sign-in, delete-account, `FormField`, `FoodLogAddForm`, `DietaryPreferences` (v1.16) | `surfaceVariant` fill · `minHeight: spacing.x5l` · horizontal `spacing.md` · body typography |
-| **REDUCED** | ~~7 raw inputs across 3 files~~ **5 raw inputs across 2 files** since v1.16: `RoutineBuilder.tsx` ×1, `WorkoutLogScreen.tsx` ×4 | `padding: spacing.sm` · **no fill, no minimum height, no typography token** |
+| **FULL** — canonical TARGET | sign-in, delete-account, `FormField`, `FoodLogAddForm`, `DietaryPreferences` (v1.16), `RoutineBuilder`, `WorkoutLogScreen` (v1.17) | `surfaceVariant` fill · `minHeight: spacing.x5l` · horizontal `spacing.md` · body typography |
+| **REDUCED** | ~~7 raw inputs across 3 files~~ ~~5 raw inputs across 2 files (v1.16)~~ **none since v1.17** | `padding: spacing.sm` · **no fill, no minimum height, no typography token** |
 
 **Reconciled 2026-09-28 (v1.16, UX-5 Nutrition slice).** The two
 `DietaryPreferences.tsx` inputs moved to FULL through `AppTextInput`. UX-5
 progress is **2 of 7**; the five Workout inputs above are still pending and need
 their own authorization. The `placeholderTextColor` count in the next paragraph
 is the UX-1B2B snapshot and is left as written.
+
+**Reconciled 2026-09-28 (v1.17, UX-5 Workout slice).** The five Workout inputs
+moved to FULL through `AppTextInput`: `routine-name` in `RoutineBuilder.tsx`, and
+`workout-name`, `set-reps-input`, `set-weight-input` and the per-set reps editor
+`set-reps-${set.id}` in `WorkoutLogScreen.tsx`. **UX-5 is 7 of 7 and complete.**
+No REDUCED-family input remains. `ux5-inputs.source.spec.ts` guards the three
+UX-5 files only. It makes no claim about `FormField`, which keeps its raw
+`TextInput` for V1 (ADR-P025), about the dormant medical domain, or about any
+other input. The next paragraph describes the REDUCED family as it shipped.
 
 The REDUCED family therefore sits **below the 44×44 floor** and **outside the type
 scale**, and six of the eight shipped `placeholderTextColor` sites use the
@@ -3432,6 +3508,23 @@ staged partial implementation. No token, dependency, schema, migration, API or
 route changes, and no Workout input is touched. The input frozen-hook register
 entry for dietary preferences holds unchanged.
 
+## What v1.17 (UX-5 Workout slice) authorizes
+
+**Reconciliation note, 2026-09-28.** Exactly the owner-authorized Workout slice
+of UX-5. The five remaining REDUCED-family inputs move onto `AppTextInput`:
+four onto its controlled model, and the per-set reps editor onto its existing
+uncontrolled commit-on-end model. Layout moves to plain wrapper `View`s: a
+`flex: 1` cell for each paired new-set input, and the editor's original
+`minWidth: spacing.xl * 2` on its own wrapper. It also authorizes (owner
+decision, Option A) the local large-text layout decision for the pair: side by
+side while both placeholders fit, and stacked otherwise (§Revision Scope
+v1.17). **`AppTextInput`'s API and
+contract are unchanged.** It gains no `style` prop and is still a staged
+partial implementation. No copy, token, dependency, schema, migration, sync,
+API or route changes, and the catalogues stay at 1068 / 1068. The input
+frozen-hook register entries for the workout surfaces and the per-set reps
+editor hold unchanged.
+
 ## Owner-gated decisions still open after this revision
 
 Each requires its own authorization before any code:
@@ -3539,10 +3632,14 @@ UX-1B2 is delivered as four documentation slices:
   are confirmed **unaffected by the error-border blocker** — their `error`
   references are screen-level messages, not input borders — so `FormField` is the
   **only** remaining consumer with an error border. UX-5 still needs its own
-  per-feature authorization. **Progress (v1.16, 2026-09-28): 2 of 7** — the
-  Nutrition slice migrated both `DietaryPreferences.tsx` inputs and closed
-  BUG-027. **Pending:** the five Workout inputs (`RoutineBuilder.tsx` ×1,
-  `WorkoutLogScreen.tsx` ×4, including the uncontrolled per-set reps editor).
+  per-feature authorization. **COMPLETE (v1.17, 2026-09-28): 7 of 7.** The
+  Nutrition slice (v1.16) migrated both `DietaryPreferences.tsx` inputs and
+  closed BUG-027. The Workout slice (v1.17) migrated `RoutineBuilder.tsx` ×1 and
+  `WorkoutLogScreen.tsx` ×4, including the uncontrolled per-set reps editor.
+  UX-5 closes the REDUCED family only. It does **not** migrate `FormField`
+  (UX-1C-2B-b stays deferred and blocked), expose required or invalid state,
+  verify any assistive-technology outcome (UX-4C stays open and unrun), or touch
+  the dormant medical domain.
 
 Tracked as **FEATURE-010** in `.ai/11_BACKLOG.md`; decided by **ADR-P022**, and
 for input accessibility by **ADR-P023** (staging), **ADR-P024** (announcement

@@ -385,3 +385,98 @@ describe('RoutineBuilder', () => {
     expect(screen.queryByText('Create a routine')).toBeNull();
   });
 });
+
+/**
+ * UX-5 (Workout slice). The routine-name input was a raw REDUCED-family
+ * `TextInput`; it now renders through `AppTextInput`'s controlled model and
+ * gains the FULL-family floor, fill, type token and focus border.
+ */
+describe('RoutineBuilder routine-name input (UX-5)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLanguage = 'en';
+    createRoutine.mockResolvedValue(true);
+    setStore({ status: 'ready', routines: [] });
+  });
+
+  it.each([
+    ['en', 'Routine name', 'e.g. Push day'],
+    ['es', 'Nombre de la rutina', 'p. ej., Día de empuje'],
+  ] as const)(
+    'keeps the frozen test ID, accessible name and placeholder on one node (%s)',
+    async (language, name, placeholder) => {
+      mockLanguage = language;
+      await render(<RoutineBuilder />);
+
+      const input = screen.getByLabelText(name);
+      expect(input.props.testID).toBe('routine-name');
+      expect(input.props.placeholder).toBe(placeholder);
+      expect(input.props.keyboardType).toBeUndefined();
+    },
+  );
+
+  it('gives the input the FULL-family 48 dp floor, fill, type token and focus border', async () => {
+    await render(<RoutineBuilder />);
+
+    const style = StyleSheet.flatten(screen.getByTestId('routine-name').props.style);
+    expect(style.minHeight).toBeGreaterThanOrEqual(48);
+    expect(style).toMatchObject({
+      backgroundColor: lightTheme.colors.surfaceVariant,
+      borderColor: lightTheme.colors.outline,
+      borderRadius: lightTheme.radius.medium,
+      borderWidth: 1,
+      color: lightTheme.colors.onSurface,
+      paddingHorizontal: 12,
+      fontSize: 16,
+      lineHeight: 24,
+    });
+    // The REDUCED all-round padding is gone.
+    expect(style.padding).toBeUndefined();
+    expect(screen.getByTestId('routine-name').props.allowFontScaling).toBe(true);
+
+    await fireEvent(screen.getByTestId('routine-name'), 'focus');
+    expect(StyleSheet.flatten(screen.getByTestId('routine-name').props.style).borderWidth).toBe(2);
+    await fireEvent(screen.getByTestId('routine-name'), 'blur');
+    expect(StyleSheet.flatten(screen.getByTestId('routine-name').props.style).borderWidth).toBe(1);
+  });
+
+  it('stays controlled: the typed value round-trips and enables create', async () => {
+    await render(<RoutineBuilder />);
+
+    const input = screen.getByTestId('routine-name');
+    expect(input.props.value).toBe('');
+    expect(input.props.defaultValue).toBeUndefined();
+    await fireEvent.changeText(input, 'Pull day');
+    expect(screen.getByTestId('routine-name').props.value).toBe('Pull day');
+    expect(screen.getByTestId('routine-create')).toBeEnabled();
+  });
+
+  it('creates the trimmed routine and clears the name on success', async () => {
+    await render(<RoutineBuilder />);
+
+    await fireEvent.changeText(screen.getByTestId('routine-name'), '  Pull day  ');
+    await fireEvent.press(screen.getByTestId('routine-create'));
+
+    expect(createRoutine).toHaveBeenCalledWith({ name: 'Pull day' });
+    await waitFor(() => expect(screen.getByTestId('routine-name').props.value).toBe(''));
+    expect(screen.getByTestId('routine-create')).toBeDisabled();
+  });
+
+  it('keeps the typed name when the store rejects the create', async () => {
+    createRoutine.mockResolvedValue(false);
+    await render(<RoutineBuilder />);
+
+    await fireEvent.changeText(screen.getByTestId('routine-name'), 'Pull day');
+    await fireEvent.press(screen.getByTestId('routine-create'));
+
+    await waitFor(() => expect(createRoutine).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('routine-name').props.value).toBe('Pull day');
+  });
+
+  it('keeps create disabled for a whitespace-only name', async () => {
+    await render(<RoutineBuilder />);
+
+    await fireEvent.changeText(screen.getByTestId('routine-name'), '   ');
+    expect(screen.getByTestId('routine-create')).toBeDisabled();
+  });
+});
