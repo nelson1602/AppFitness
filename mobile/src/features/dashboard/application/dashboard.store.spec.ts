@@ -68,6 +68,7 @@ function report(outcome: SyncOutcome): SyncReport {
     actionRequired: 0,
     pulledApplied: 0,
     skippedPending: 0,
+    recovered: 0,
   };
 }
 

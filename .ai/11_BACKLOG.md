@@ -2905,6 +2905,123 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-030] An Abandoned IN_FLIGHT Sync Operation Is Never Retried
+
+Status: **Done — per-user sync boundary plus abandoned-`IN_FLIGHT` recovery;
+regression, real-SQLite integration and API idempotency gates green
+(2026-09-28).**
+Priority: **P2**
+Type: Bug (sync — a stranded operation blocks its entity forever)
+Owner: Mobile Architecture / Sync
+Created: 2026-09-28
+Updated: 2026-09-28
+
+**Defect.** The push loop marks each batch `IN_FLIGHT` before sending it. An
+op leaves that state only when the device handles its result. Two cases left it
+stranded:
+- The app died mid-push.
+- A response omitted the op: the worker skips a result it never received.
+
+`peekReady` never selects `IN_FLIGHT`, and nothing returned such a row to the
+queue. So the op was never retried, and `hasPendingOpFor` kept its entity out of
+every pull. With BUG-029's barrier, an abandoned CREATE also held every later
+edit to its entity indefinitely. Recovery was not safe until now either: two
+`runSync` calls for one user could overlap (the dashboard and food-log stores
+both call it), so an `IN_FLIGHT` row might have belonged to a live run.
+
+**Fix (owner-authorized contract).**
+
+1. **One run per user.** `runSync` keeps a per-user map of the standing run in
+   the JS process. A same-user caller that arrives while a run is standing
+   shares it: same promise, same report, no second push. Its own later writes go
+   out in the next run. Different users never share an entry. The entry is
+   released when the run settles, including on failure.
+2. **Recovery at the boundary.** Once a run holds that boundary,
+   `recoverAbandonedInFlight(userId)` returns the user's `IN_FLIGHT` rows to
+   `PENDING`, so they are eligible immediately, in their original FIFO order.
+   - It is one owner-scoped `UPDATE`.
+   - It keeps `op_id`, the payload (the encrypted envelope byte-for-byte),
+     `base_version`, `retry_count`, `next_retry_at` and `last_error`.
+   - It creates no replacement op and charges no retry.
+   - PENDING, FAILED, CONFLICT and action-required rows are untouched, and so
+     are other users' rows.
+   - The number recovered is reported as `SyncReport.recovered`.
+3. **Replay is safe.** It reuses the op id, so an op the server had already
+   applied comes back `APPLIED`, `duplicate: true`, and is not applied twice
+   (ADR-P012 op-id idempotency).
+4. **Barrier preserved.** A recovered CREATE still holds its entity's later
+   UPDATE and DELETE until it is applied (BUG-029).
+
+No schema, migration, API, wire-contract or dependency change. No new ADR: a
+dated implementation note under ADR-P012 records this as delivery of ADR-0006's
+retry and idempotency guarantees. ADR-0006, ADR-P012 and ADR-P030 were audited,
+and none contradicts the contract.
+
+**Regression coverage.** `sync-worker.recovery.integration.spec.ts` has 15
+tests. They run on real SQLite from the real migrations, with the real
+`runSync`, queue, workout repositories and appliers, against an in-memory server
+that follows the API's per-op rules, including op-id idempotency.
+
+- **Recovery:**
+  - Abandoned CREATE, UPDATE and DELETE become PENDING, with every other column
+    unchanged. A prior retry count and error survive.
+  - Recovered ops are immediately eligible, in FIFO order.
+  - Another user's `IN_FLIGHT` row is untouched.
+  - PENDING, FAILED, CONFLICT and action-required rows are byte-identical before
+    and after.
+  - A sensitive payload keeps its envelope and decodes identically.
+- **Boundary:**
+  - Concurrent same-user calls share one promise and one transport execution.
+  - A finished run lets a fresh one start.
+  - A failed run releases the boundary.
+  - Two users run concurrently against separate queues and servers.
+- **Journeys:**
+  - A recovered CREATE is pushed first; the UPDATE behind it stays held, then
+    applies.
+  - A recovered CREATE deferred again keeps holding the UPDATE; its retry is
+    charged once, for the server's answer.
+  - After a crash that followed the server applying the batch, the same op ids
+    are replayed as duplicates. The entity is mutated once per op.
+  - An op stranded by an incomplete response stays queued, protected from pull,
+    and pushed once per run with no spinning. It is replayed as a duplicate on
+    the next run.
+  - A recovered DELETE deletes on both sides.
+  - With nothing abandoned, there is no extra work.
+
+Removing the recovery call fails 5 of these tests. Removing the shared-run check
+fails the one-transport-execution test. The BUG-029 barrier suites and all other
+sync suites pass unchanged. The API's op-id idempotency was re-verified against a
+throwaway local PostgreSQL: the unit test "a replayed opId returns the recorded
+outcome without re-applying" passes, and the full e2e suite passes, 14 suites and
+225 tests. That includes "applies one concurrent opId exactly once and returns its
+standing outcome" and "replays one operation idempotently".
+
+**Residual risks (recorded, not changed).**
+- **Stale sync flag after an incomplete response.** When an applied op's result
+  was omitted, the same run's pull skips the server's new version, because the
+  op is still outstanding. The pull still advances the cursor past it. The
+  replayed duplicate bumps no server sequence. Values converge, but the local
+  row's `sync_status` stays `pending` until the entity next changes on the
+  server. This is pre-existing pull-cursor behaviour for skipped changes, and no
+  data is lost.
+- **Shared runs.** A caller that joins a standing run receives that run's report.
+  A write it made after the run's last queue read goes out in the next run.
+- **Signed-out runs.** A run that returns `unauthenticated` before pushing does
+  not recover anything. The rows stay protected and are recovered on the next
+  authenticated run.
+- **One JS process only.** The boundary covers this process. Nothing in the app
+  runs a second one, such as a background task.
+
+### Related Documents
+
+- `mobile/src/shared/infrastructure/sync/sync-worker.ts`, `sync-queue.ts` and
+  `sync-worker.recovery.integration.spec.ts`
+- `.ai/12_DECISIONS.md` ADR-P012 §Idempotency / retries (implementation note),
+  ADR-0006
+- §BUG-029
+
+---
+
 ## [BUG-029] An Edit Queued Behind a Deferred CREATE Is Dropped, Then Overwritten by Pull
 
 Status: **Done — a queued CREATE is now a causal barrier; regression,
@@ -3023,7 +3140,8 @@ original report.
 `IN_FLIGHT` by a process that dies mid-push. Such a CREATE was already never
 retried. Its held follow-ups now also stay queued instead of being pushed and
 dropped. The edit is preserved, but the entity does not sync until that row is
-recovered.
+recovered. **Resolved by BUG-030 (2026-09-28):** abandoned `IN_FLIGHT` rows are
+now recovered when the next run starts.
 
 ### Related Documents
 
