@@ -526,35 +526,55 @@ describe('replaying abandoned work end to end (BUG-030)', () => {
     expect(localSet(set.id)).toMatchObject({ reps: 12, version: 2, sync_status: 'synced' });
   });
 
-  it('recovers an op left IN_FLIGHT by an incomplete response, without losing or overwriting it', async () => {
+  it('recovers an op left IN_FLIGHT by an incomplete response and converges fully on replay', async () => {
     const { set } = await loggedSet(A, 10);
     await sync(A); // log + set are on the server
     await updateWorkoutSet(A, set.id, { reps: 12 }, T1);
     const [update] = queue(set.id);
     servers[A].omitFromNextResponse = new Set([update.op_id]);
     servers[A].pushes.length = 0;
+    servers[A].pull.mockClear();
 
-    await sync(A);
+    const incomplete = await sync(A);
 
-    // The server applied it, but the response never said so.
+    // The server applied it, but the response never said so. The exchange
+    // counts as failed: the op stays IN_FLIGHT, and the run ends before
+    // pulling, so no cursor moves past the server's new version.
+    expect(incomplete).toMatchObject({ outcome: 'offline' });
     expect(servers[A].push).toHaveBeenCalledTimes(2); // one batch per run, no spinning
     expect(servers[A].pushes).toHaveLength(1);
+    expect(servers[A].pull).not.toHaveBeenCalled();
     expect(states(set.id)).toEqual(['UPDATE:IN_FLIGHT']);
-    // The pull saw the server's reps 12 but must not touch a row with work outstanding.
-    expect(localSet(set.id)).toMatchObject({ reps: 12, sync_status: 'pending' });
+    expect(localSet(set.id)).toMatchObject({ reps: 12, version: 2, sync_status: 'pending' });
 
+    // No further server-side edit happens before the replay.
     const next = await sync(A);
 
-    expect(next).toMatchObject({ recovered: 1, pushedApplied: 1 });
+    expect(next).toMatchObject({ outcome: 'success', recovered: 1, pushedApplied: 1 });
     expect(servers[A].pushes[1].map((op) => op.opId)).toEqual([update.op_id]);
     expect(servers[A].mutations.get(set.id)).toBe(2); // CREATE + one UPDATE, not two
-    expect(states(set.id)).toEqual([]);
-    // Values converge. The row's sync flag stays 'pending': the pull that
-    // skipped the server's v2 while the op was outstanding already advanced
-    // the cursor, and a duplicate answer bumps no sequence (pre-existing pull
-    // behaviour, recorded under BUG-030).
-    expect(localSet(set.id)).toMatchObject({ reps: 12, version: 2 });
+    // The queue drains, and the local row converges on the server outcome:
+    // values, version and sync status.
+    expect(queue(set.id)).toEqual([]);
     expect(servers[A].rows.get(set.id)).toMatchObject({ version: 2, data: { reps: 12 } });
+    expect(localSet(set.id)).toMatchObject({ reps: 12, version: 2, sync_status: 'synced' });
+  });
+
+  it('still handles the answered ops of an incomplete batch', async () => {
+    const { log, set } = await loggedSet(A, 10);
+    const [logCreate] = queue(log.id);
+    const [setCreate] = queue(set.id);
+    servers[A].omitFromNextResponse = new Set([setCreate.op_id]);
+
+    await expect(sync(A)).resolves.toMatchObject({ outcome: 'offline', pushedApplied: 1 });
+
+    expect(queue(log.id)).toEqual([]); // answered: applied and removed
+    expect(queue(set.id).map((r) => r.status)).toEqual(['IN_FLIGHT']);
+    expect(logCreate.op_id).not.toBe(setCreate.op_id);
+
+    await expect(sync(A)).resolves.toMatchObject({ outcome: 'success', recovered: 1 });
+    expect(queue()).toEqual([]);
+    expect(localSet(set.id)).toMatchObject({ reps: 10, version: 1, sync_status: 'synced' });
   });
 
   it('recovers an abandoned DELETE and deletes on both sides', async () => {

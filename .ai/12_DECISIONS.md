@@ -2207,6 +2207,10 @@ Identity and Versioning*). Decision for v1:
   - Replay relies on the idempotency key above: an op the server already applied
     is answered as a duplicate and is not applied twice.
   - A recovered CREATE still holds its entity's later ops (BUG-029).
+  - A push response that leaves any op unanswered is a failed exchange. The
+    answered ops are handled, the unanswered ones stay `IN_FLIGHT` for the next
+    run, and the run ends before pulling. Otherwise the pull would move the
+    cursor past a change it had to skip.
 
   This delivers ADR-0006's retry and idempotency guarantees and amends no
   decision. There is no schema, wire or API change.
