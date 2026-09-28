@@ -2403,6 +2403,18 @@ item (small storage cost, deliberate).
 - Push causal order holds; a not-yet-ready child yields **`DEPENDENCY_NOT_READY`**
   and is **retried** (FAILED-with-backoff), never `removeRejected`ed; permanent
   rejections stay non-retryable.
+  **Implementation note (2026-09-28, BUG-029).** Causal order across entities
+  held, but not *within* one entity. A deferred CREATE stayed queued while the
+  device still pushed the entity's later UPDATE or DELETE. That op came back
+  `NOT_FOUND`, a permanent rejection, and was dropped. The next pull then
+  overwrote the edit. `peekReady` now treats a queued CREATE as a barrier: it
+  does not select a later UPDATE or DELETE for the same user, entity type and
+  entity id while that CREATE is in any retained status. The CREATE keeps its own
+  readiness and backoff. The later ops become eligible in FIFO order once it is
+  applied. This delivers the causal order this consequence already promised, so
+  it amends no decision. No wire, schema, API or rejection semantics changed:
+  `NOT_FOUND` stays terminal, and conflict, encryption and owner-scoping
+  behaviour is unchanged.
 - Deterministic per-applier pull order (`nutrition_logs` → `meals` →
   `meal_items`), all parent pages before children; a missing parent fails the
   pull **without advancing its cursor** and retries next sync.

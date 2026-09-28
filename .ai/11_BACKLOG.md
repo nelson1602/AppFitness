@@ -2907,7 +2907,9 @@ harder of the two to read. No new measurement; no change of severity.
 
 ## [BUG-029] An Edit Queued Behind a Deferred CREATE Is Dropped, Then Overwritten by Pull
 
-Status: **Open — found during the UX-5 Workout emulator gate; not scheduled.**
+Status: **Done — a queued CREATE is now a causal barrier; regression,
+real-SQLite integration and on-device gates green (2026-09-28).**
+Previous status: Open — found during the UX-5 Workout emulator gate.
 Priority: **P2**
 Type: Bug (sync — silent loss of a local edit)
 Owner: Mobile Architecture / Sync
@@ -2949,14 +2951,79 @@ editor still commits once, on end editing, through the unchanged
 `onEditReps → updateWorkoutSet(id, { reps })` path. The sync worker, queue,
 appliers and API are untouched.
 
-**Options (none chosen; a sync change needs its own authorization):**
+**Options considered.** Treating a `NOT_FOUND` whose CREATE is still queued as
+retryable; holding later ops until the CREATE is applied; folding UPDATEs into
+a still-queued CREATE payload.
 
-- Treat `NOT_FOUND` for an entity whose CREATE is still queued as retryable.
-- Hold later ops for an entity until its CREATE is applied.
-- Fold UPDATEs into a still-queued CREATE payload.
+**Fix (owner-authorized; the second option).** A queued CREATE is a causal
+barrier. `peekReady` (`mobile/src/shared/infrastructure/sync/sync-queue.ts`) no
+longer selects an UPDATE or DELETE while an earlier CREATE for the same
+`user_id`, `entity_type` and `entity_id` is still in the queue, in any retained
+status: PENDING, IN_FLIGHT, FAILED (in or out of backoff), or CONFLICT
+(including action-required).
+- The CREATE keeps its ordinary readiness and backoff.
+- Once it is applied and removed, the held ops become eligible in FIFO order.
+- Other entities are never held back, and held ops take no batch slots.
+- A terminally rejected CREATE, or one removed by conflict resolution, releases
+  the held ops to their own server outcome.
 
-Each changes sync-queue semantics, so it needs the sync regression suite and
-possibly an ADR. It may also interact with the ADR-P030 conflict-review path.
+It is one added `NOT EXISTS` predicate in the selection query. No payload
+merging. `NOT_FOUND` stays terminal. No change to conflict resolution,
+encryption, backoff, owner scoping, schema, migrations, wire contract, API or
+dependencies. No new ADR: this delivers the push causal order ADR-P012 already
+promised, and a dated implementation note records it there.
+
+**Regression coverage.**
+
+- `sync-queue.barrier.spec.ts`: 17 tests on real SQLite built from the real
+  migrations. They cover:
+  - UPDATE and DELETE held behind a CREATE, then released in FIFO order;
+  - a CREATE in FAILED/backoff, IN_FLIGHT, CONFLICT or action-required never
+    lets a later op escape;
+  - the CREATE keeps its own backoff;
+  - pull protection holds while the op is held;
+  - independent entities are not blocked, and held ops take no batch slots;
+  - scoping by entity type and by user;
+  - only ops queued *after* the CREATE are held;
+  - release on terminal rejection and on `removeParkedOperation`;
+  - a held sensitive payload stays encrypted and decodes unchanged.
+- `sync-worker.barrier.integration.spec.ts`: 7 end-to-end tests of the real
+  `runSync`, the real queue, the real workout repositories and appliers, and
+  real SQLite, against an in-memory server that follows the API's per-op rules.
+  They cover:
+  - only the CREATE is pushed while it is deferred;
+  - no busy loop: one batch, and a rerun inside the backoff pushes nothing;
+  - the CREATE applies, then the UPDATE, and server and device both keep 12;
+  - after a lost response, a pulled server copy is skipped until the held ops
+    ship;
+  - DELETE behind a CREATE;
+  - an independent entity is unaffected;
+  - an ordinary `NOT_FOUND` not behind a CREATE is still dropped.
+- Removing the barrier predicate fails 15 of the 24 new tests. The existing
+  sync, conflict-resolution, isolation and settlement suites pass unchanged.
+
+**On-device journey (Android 15 emulator, Expo Go, disposable account, local
+API, and a throwaway PostgreSQL 18 cluster in a scratch directory, deleted
+afterwards).** The database started with **no exercise catalog**, as in the
+original report.
+
+1. A workout was started, a set logged at 10 × 62.5 kg, and its reps edited to 12.
+2. First sync:
+   - The CREATE came back `DEPENDENCY_NOT_READY` (FAILED, retry 1).
+   - The UPDATE stayed PENDING with retry 0: it was never pushed.
+   - The server held the workout but no set and no op for it.
+   - The device row kept 12 / v2 / pending.
+3. A second sync inside the backoff pushed nothing and changed nothing.
+4. After the catalog was seeded and the 60 s backoff elapsed, the server
+   recorded the CREATE APPLIED, then the UPDATE APPLIED 95 ms later.
+   - Server: reps 12, 62.5 kg, v2.
+   - Device: 12 / 62.5 / v2 / synced, with an empty queue.
+
+**Residual risk (pre-existing, not changed).** No code resets a queue row left
+`IN_FLIGHT` by a process that dies mid-push. Such a CREATE was already never
+retried. Its held follow-ups now also stay queued instead of being pushed and
+dropped. The edit is preserved, but the entity does not sync until that row is
+recovered.
 
 ### Related Documents
 
