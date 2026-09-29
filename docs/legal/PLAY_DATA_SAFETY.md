@@ -77,5 +77,12 @@ storage, access control, or platform protections.
    in the live form.
 5. **Privacy-contact mailbox:** verify that `privacy@appfitnessrd.com` receives
    mail before publishing it.
-6. **Published privacy-policy URL and owner approval:** neither is supplied by
+6. **External account-deletion request resource:** Google requires a user who
+   no longer has the app to be able to initiate account and associated-data
+   deletion through a functional Web resource. The in-app deletion flow is
+   complete. `https://account.appfitnessrd.com/delete-account` returned HTTP
+   200 and rendered the deletion surface on 2026-09-29, but its complete
+   signed-out journey and compliance with Google's discoverability/completion
+   rules remain unverified.
+7. **Published privacy-policy URL and owner approval:** neither is supplied by
    this draft.
