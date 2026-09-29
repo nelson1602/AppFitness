@@ -4441,58 +4441,96 @@ coverage than it has.
 
 ---
 
-## [FEATURE-012] Azul Payment Integration (post-v1 track — unstarted)
+## [FEATURE-012] V1 Store Subscription and Entitlement (unstarted)
 
-Status: **Proposed — unstarted.** Not authorized, not scoped, not designed.
-Priority: P3 (post-v1)
+Status: **ADR-P034 Accepted 2026-09-29; implementation unstarted.**
+Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
 Created: 2026-09-15
-Updated: 2026-09-15
+Updated: 2026-09-29
 
 ### Why this entry exists
 
-Azul has been named repeatedly as out of scope — ADR-P031 §14, the W-4E closure
-and the Phase 21 roadmap all list "payment / Azul" among the things they do not
-touch. Nothing in the repository defines what it would be. This entry gives that
-recurring exclusion a home so it stops being an unowned aside, and records what
-would have to be decided **before** any implementation slice could be proposed.
+The owner changed the launch contract on 2026-09-29: public v1 is no longer a
+free product. It must offer one auto-renewing monthly subscription, a one-month
+free trial, and an owner target of US$5/month, with no ads. The initial market
+is the Dominican Republic.
 
-**Nothing here authorizes work.** There is no payment code, dependency,
-endpoint, table, secret or provider account in the repository today, and this
-entry adds none.
+The current repository still has **no** payment code, dependency, endpoint,
+table, secret, provider account, store product, paywall, entitlement guard, or
+subscription copy. Consequently this is a launch blocker, not a declaration
+that charging is already available.
 
-### What must be decided first (all owner/product, none technical-only)
+### Policy result and recommended architecture
 
-1. **Product scope** — what is actually sold: one-time purchase, subscription,
-   tiering, or in-app content. This determines whether store billing rules apply
-   at all, and Google Play / App Store policy may **require** their own billing
-   for digital content rather than a third-party processor. That policy question
-   is prior to every technical choice below.
-2. **An accepted ADR** — payment touches money, identity and retention, so it
-   cannot ride on an existing ADR. It needs its own, covering the provider
-   contract, the data actually stored, and what is deliberately never stored.
-3. **Security and compliance review** — PCI scope and how it is minimised
-   (hosted fields / redirect / tokenisation so card data never reaches the API),
-   what the API may persist, key custody and rotation, audit obligations, and
-   how this interacts with the health-data posture already in `.ai/05_SECURITY.md`.
-4. **Webhook and idempotency design** — settlement is asynchronous. Delivery is
-   at-least-once, out-of-order and replayable, so it needs signature
-   verification, an idempotency key per intent, a durable state machine, and a
-   reconciliation path for the provider disagreeing with local state. The
-   existing sync idempotency work (ADR-P030 C-2) is a precedent for the *shape*
-   of that guarantee, not a substitute for it.
-5. **UX and failure semantics** — currency and locale presentation in EN/ES,
-   refund and cancellation flows, dunning, receipts, what a user sees when a
-   charge is pending or fails, and what happens to access during each state.
-6. **Offline posture** — the app is offline-first. Purchase and entitlement are
-   the one area where optimistic local state is unsafe, so the boundary has to
-   be stated explicitly rather than inherited.
+- Google Play identifies fitness subscriptions as digital subscriptions that
+  must use Play Billing unless an applicable program exception exists. The
+  Dominican Republic is not listed among Google's current alternative-billing
+  markets.
+- Apple requires In-App Purchase for digital features consumed in the app and
+  permits auto-renewing subscriptions that provide ongoing value.
+- Therefore **Azul is not the mobile v1 checkout**. It remains a future
+  candidate for a policy-permitted Web or physical-service purchase; placing an
+  Azul button/link in the native subscription path would create store-rejection
+  risk.
+- **ADR-P034 accepts RevenueCat + `react-native-purchases`** as the shared
+  entitlement layer over StoreKit and Google Play Billing. Expo documents that
+  library as a supported IAP option. The alternative is direct store integration
+  with `expo-iap`, which avoids the additional processor but requires AppFitness
+  to own both receipt/server-notification stacks and is not the fastest route.
+
+RevenueCat is architecturally approved by ADR-P034. It adds a provider,
+data-processing/disclosure work, account terms, secrets and a cost above its
+free threshold. Architecture acceptance does not accept external account terms
+or create/configure any provider resource on the owner's behalf.
+
+### Owner decisions already frozen
+
+1. One monthly auto-renewing subscription; no tiers and no ads.
+2. One-month free trial; store eligibility is authoritative.
+3. Owner target US$5/month. The paywall must render the store-provided localized
+   price and period, never a hardcoded `$5` string.
+4. Mobile purchases go through Apple/Google billing. Full card/bank data never
+   reaches AppFitnessRD.
+5. Initial market: Dominican Republic; product minimum age: 16, subject to the
+   separate legal/guardian-consent decision.
+
+### Accepted owner decisions and remaining gates
+
+Accepted: RevenueCat, the post-trial read-only boundary, the provider-controlled
+maximum three-day offline entitlement window, store-reported trial eligibility,
+and US$5 as a base price target rather than hardcoded worldwide pricing.
+
+Still gated: implementation identifiers before external console creation;
+EN/ES paywall/copy review; billing retry/grace, cancellation,
+refund/revocation and deletion tests; qualified legal review; provider
+agreement/DPA review; and final Apple/Google privacy/billing declarations.
+
+### Delivery slices after ADR acceptance
+
+1. **S-1 Contract and infrastructure:** entitlement domain, database migration,
+   signed/idempotent webhook ingestion, reconciliation, deletion and audit.
+2. **S-2 Native purchase adapter:** minimal SDK integration behind a port;
+   authenticated account UUID as the app-user identifier; no email or health
+   attributes sent; restore and account-switch tests.
+3. **S-3 Paywall and account UX:** AppFitness design system, EN/ES, store price
+   and eligibility, subscribe/restore/manage/cancel states, accessibility,
+   light/dark and large-text verification.
+4. **S-4 Entitlement enforcement:** server-side authorization plus the accepted
+   offline/read-only boundary; a modified client cannot unlock paid writes.
+5. **S-5 Store sandbox and release evidence:** Apple/Google trial, renewal,
+   cancellation, billing retry, grace, refund/revocation, restore, cross-device,
+   account deletion and webhook replay/out-of-order journeys.
+6. **S-6 Legal/store closure:** final data inventory and EN/ES legal copy,
+   provider disclosures, console answers, published URLs and counsel approval.
 
 ### Non-Goals
 
-- Selecting a provider, SDK or dependency in this entry.
-- Implying v1 publication depends on this. It does not.
+- Collecting, transmitting or storing full card/bank data in AppFitnessRD.
+- Hardcoding price, currency, trial eligibility or renewal dates.
+- Treating a client-only entitlement flag as authorization.
+- Adding Azul to the native mobile checkout in conflict with store policy.
 
 ---
 

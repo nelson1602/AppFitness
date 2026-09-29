@@ -240,13 +240,14 @@ not outrank launch blockers.**
 
 | Item | Status | Impact |
 |---|---|---|
+| `FEATURE-012` v1 store subscription | **ARCHITECTURE ACCEPTED / NOT IMPLEMENTED** | ADR-P034 accepts StoreKit/Play Billing through RevenueCat, a one-month eligible-user trial, US$5 base-price target, post-trial read-only access, and a maximum three-day offline entitlement window. Schema/runtime, paywall, store products, external account/terms and sandbox evidence remain outstanding. Blocks the paid-v1 contract. |
 | Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
 | App Store Connect / Play Console privacy forms, policy URLs, listing assets | **BLOCKED-OWNER** | Blocks submission. The provisional form mapping is in `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`; it is not approved for entry. |
 | External Web account-deletion request | **UNVERIFIED — V1 gate** | Google requires a functional external request resource in addition to in-app deletion. `https://account.appfitnessrd.com/delete-account` returned 200 and rendered the AppFitnessRD deletion surface on 2026-09-29; the signed-out end-to-end journey and live-policy compliance are not verified. |
 | Physical-device + biometric validation | **BLOCKED-OWNER** | Blocks publication; all evidence to date is emulator-only. |
 | Accessibility pass (UX-4C) | **PENDING-HUMAN** | Blocks a credible accessibility claim; no outcome is claimed today. |
 | Universal / App Links + native rebuild | **NOT STARTED** | Emailed links open the Web portal, not the app. |
-| Privacy-contact mailbox receipt | **BLOCKED-OWNER** | A published privacy contact that does not receive mail is a compliance exposure. |
+| Privacy-contact mailbox receipt | **PASS — OWNER CONFIRMED 2026-09-29** | `privacy@appfitnessrd.com` receives mail. Reconfirm only if routing changes before release. |
 | Production backups / PITR | **WAIVED** (owner-accepted) | Data-loss risk explicitly accepted for v1; no restore test exists. |
 | Dependency-audit triage currency | **STALE** | Triage predates several lockfile changes; must be refreshed. |
 | Cloud E2E currency (E1) | **PASS** | Runs `35597775166` and `35600746413` (post-merge), 2026-09-21, all eleven flows green on the Phase 21 candidate. |
@@ -297,13 +298,22 @@ copy the deck does not contain.
 | `OBS-C7-1` "Try now" is a silent no-op inside the settlement backoff window | **Open, P3** | Retry policy is correct and **no data is at risk**; the gap is absent feedback for a deliberate user action. |
 | `OBS-C7-2` Dashboard read failed once after a force-stop during sync | **Open, P3** | Observed **once in five campaign runs**; not reproducible on relaunch with identical state; **no root cause claimed**. |
 
+## V1 subscription track (new owner requirement, unstarted)
+
+- **`FEATURE-012` store subscription** is now a **v1 publication blocker**, not
+  a future Azul integration. Store policy requires the native digital
+  subscription to use Apple In-App Purchase / Google Play Billing for this
+  initial market. **ADR-P034 was Accepted 2026-09-29** with RevenueCat as the
+  shared entitlement layer, a post-trial read-only boundary and a maximum
+  three-day offline entitlement window. Legal/DPA review and external-account
+  acceptance remain separate. No dependency, store product, provider account,
+  code, schema or secret exists yet.
+- Azul is not selected for native mobile checkout. It remains only a future
+  candidate for a policy-permitted Web or physical-service flow under a separate
+  decision.
+
 ## Future tracks (recorded, unstarted, not v1)
 
-- **`FEATURE-012` Azul payments** — unstarted and unauthorized. Requires product
-  scope (including whether store billing policy even permits a third-party
-  processor for the intended purchase type), its own accepted ADR,
-  security/compliance review including PCI scope, webhook and idempotency
-  design, and UX/failure semantics. See `.ai/11_BACKLOG.md`.
 - **`FEATURE-014` Post-mobile Web product parity** — unstarted and
   unauthorized. A recorded owner **direction** (ADR-P032 §Decision 7): after
   the mobile product is complete, a separately planned phase may deliver
@@ -388,6 +398,19 @@ angles — coverage, then quality.
 - **W-5 (optional supplement education) does not block v1** and never did. It is
   the one W-slice ADR-P017 made optional; nothing depends on it, and declining it
   is a valid outcome. Tracked as `FEATURE-013`.
+
+**Stage 1B — freeze and deliver the paid-v1 contract (`owner` + `in-repo` +
+`external`)**
+
+3. ~~`owner` — Accept/reject **ADR-P034 option 1 (RevenueCat)**, accept/replace
+   the recommended post-trial read-only boundary, and approve bounded offline
+   entitlement semantics.~~ **Done 2026-09-29 — accepted as drafted.**
+4. `in-repo` — Deliver FEATURE-012 slices S-1…S-4: durable entitlement state,
+   signed/idempotent reconciliation, minimal native adapter, AppFitness EN/ES
+   paywall/restore/manage UX, and server-side enforcement.
+5. `owner` + `external` — Configure Apple/Google products and the one-month
+   introductory offer; run sandbox/TestFlight/Play-track lifecycle evidence;
+   complete subscription-specific legal/provider/store review (S-5/S-6).
 
 **Stage 2 — design and experience gates (`in-repo`, evidence-based)**
 
@@ -571,7 +594,8 @@ angles — coverage, then quality.
     `docs/legal/LEGAL_APPROVAL_HANDOFF.md` now provides the closed owner-input,
     counsel-decision and acceptance checklist; its open rows are the exact
     remaining legal gate, not optional editorial work.
-20. `owner` — **Privacy-contact mailbox receipt** verification.
+20. ~~`owner` — **Privacy-contact mailbox receipt** verification.~~ **Done —
+    owner confirmed receipt on 2026-09-29.**
 21. `in-repo` + `owner` — Publish the final legal pages and verify/harden the
     **external account-deletion request resource**. Google requires this Web
     path even though AppFitnessRD already deletes accounts in-app. The deployed
@@ -588,7 +612,8 @@ angles — coverage, then quality.
 **Post-v1**
 
 25. `post-v1` — Phase 18 (Habit Tracking), Phase 19 (Notifications).
-26. `post-v1` — `FEATURE-012` Azul payments.
+26. `post-v1` — Any policy-permitted Azul/Web or physical-service payment flow;
+    native FEATURE-012 is now a v1 track.
 27. `post-v1` — `FEATURE-013` W-5 supplement education (optional).
 28. `post-v1` — `FEATURE-014` post-mobile Web product parity. A recorded
     direction only (ADR-P032 §Decision 7); it starts after the mobile product

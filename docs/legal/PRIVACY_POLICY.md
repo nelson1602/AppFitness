@@ -11,9 +11,11 @@
 > wellness-safety declarations, conflict resolution, password recovery, and
 > email verification. External legal review remains pending.
 
-Effective date: `[PLACEHOLDER — set on publication]`
-Data controller: `[PLACEHOLDER — legal entity name, address, contact]`
-Contact: `privacy@appfitnessrd.com`
+Effective date: `[PLACEHOLDER — actual first-public-release date; owner target November 2026 or earlier]`
+Data controller: Nelson Deschamps, an individual trading as HardTech Solutions,
+Calle La Guardia 41, Santo Domingo D.N., Dominican Republic
+Privacy contact: `privacy@appfitnessrd.com`
+Support contact: `support@appfitnessrd.com`
 
 ## 1. Summary
 
@@ -78,8 +80,17 @@ iCoach. Any retained legacy rows remain protected and are removed by account
 deletion.
 
 We do **not** collect precise location, contacts, photos, microphone/audio, or
-advertising identifiers. Payments, habits, push notifications, and supplement
-education are not implemented in public v1.
+advertising identifiers. Habits, push notifications, and supplement education
+are not implemented in public v1.
+
+**Subscription implementation gate:** the owner has selected a one-month free
+trial followed by an auto-renewing monthly subscription with a target base price
+of US$5. The current repository does not yet implement purchases or process
+subscription identifiers. Before release, this policy must be reconciled to the
+implemented Apple/Google purchase path, the ADR-P034-approved RevenueCat
+entitlement service, retention/deletion behavior, and the exact store
+disclosures. AppFitnessRD must
+never receive or store full payment-card details for the mobile subscription.
 
 ## 3. How we use data
 
@@ -121,6 +132,9 @@ The engineering inventory identifies these external service paths:
 - Cloudflare serves the deployed account/recovery/verification Web portals.
 - Sentry receives scrubbed diagnostics from configured builds.
 
+ADR-P034 approves RevenueCat for the future store-subscription implementation.
+It is not integrated today and therefore is not yet an active service path.
+
 The app contains no advertising or third-party analytics SDK. `[PLACEHOLDER:
 qualified legal review must classify each service relationship, finalize the
 subprocessor list, regions, transfer terms, and required disclosures; do not
@@ -131,7 +145,9 @@ infer a Play/App Store “sharing” answer from this engineering description.]`
 **Current product behavior:** the in-app **Delete account** action immediately
 and irreversibly deletes the account and its user-owned data, including profile,
 wellness-safety, nutrition, workout, progress, token, sync, and conflict rows.
-Only an anonymized security audit record is retained. The local database is
+Only an anonymized security audit record is retained. The owner's selected
+retention period for that anonymized record is 12 months, subject to qualified
+legal confirmation and an implemented expiry/deletion procedure. The local database is
 wiped as part of successful account deletion; uninstalling the app removes its
 app-private local data. A separate user-facing data-export flow is not yet
 available.
@@ -144,14 +160,20 @@ jurisdiction conflicts with immediate irreversible deletion.]`
 
 Subject to applicable law, you may have rights to access, export, correct,
 delete, restrict processing, or withdraw consent. Deletion can be exercised
-directly in the app. `[PLACEHOLDER: applicable rights, jurisdiction-specific
-wording, and an interim process for requests not available as self-service
-features, including export.]`
+directly in the app. Until self-service export exists, send other requests from
+the account's registered email to `privacy@appfitnessrd.com`. The operator will
+verify control of the account, prepare the data available to the service,
+deliver it through a secure channel, record completion, and confirm the outcome
+to the requester. `[PLACEHOLDER: counsel must approve the applicable rights,
+identity-verification standard, secure-delivery method, and statutory response
+deadline.]`
 
 ## 8. Children
 
-`[PLACEHOLDER — minimum age and children's-data position. Must be decided in
-qualified legal review.]`
+The owner-selected product minimum age is 16. The service is not directed to
+children under 16. `[PLACEHOLDER — qualified legal review must decide whether
+users aged 16–17 require parent/guardian consent, how age is verified, and the
+corresponding store audience settings.]`
 
 ## 9. International transfers
 
@@ -160,6 +182,8 @@ confirmed in qualified legal review.]`
 
 ## 10. Changes and contact
 
-We will update this policy as the product evolves. Contact:
-`privacy@appfitnessrd.com`. Receipt by this mailbox must be verified before
-publication.
+We will update this policy as the product evolves. Spanish is the controlling
+legal version; English is provided as a translation, while the app displays the
+user's selected language. Contact `privacy@appfitnessrd.com` for privacy
+requests or `support@appfitnessrd.com` for product support. The owner confirmed
+receipt at the privacy mailbox on 2026-09-29.

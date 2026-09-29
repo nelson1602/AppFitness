@@ -14031,6 +14031,198 @@ baseline export.
 
 ---
 
+## ADR-P034 — V1 Store Subscription, Entitlement Authority, and Access Boundary
+
+Status: **Accepted**
+Date: 2026-09-29
+Accepted: 2026-09-29 by project owner, with Decisions 1–12 and the four
+acceptance decisions below approved as drafted
+Owner: Product / Architecture / Security / Legal
+
+### Context
+
+The owner selected a paid public-v1 model on 2026-09-29:
+
+- one auto-renewing monthly subscription;
+- one month free before the paid renewal;
+- owner target of US$5/month;
+- no advertising;
+- initial launch in the Dominican Republic.
+
+The repository contains no purchase SDK, store product, payment endpoint,
+subscription table, entitlement guard, paywall, webhook, receipt verifier,
+provider account or secret. Existing statements that payments are post-v1 are
+therefore superseded only as **planning statements**: implementation remains
+zero.
+
+This purchase unlocks digital app functionality. Google Play's Payments policy
+names fitness subscriptions among purchases that use Play Billing unless an
+applicable exception/program applies. The Dominican Republic is not on Google's
+current alternative-billing market list. Apple App Review Guidelines require
+In-App Purchase for digital features consumed in the app and permit
+auto-renewing subscriptions that provide ongoing value. Azul is consequently
+not a compliant default native checkout for this product contract.
+
+Expo's official IAP guide lists both `react-native-purchases` (RevenueCat) and
+`expo-iap`. Both require custom native code and a development build; Expo Go
+cannot execute real purchases.
+
+### Decision
+
+1. **Store-native billing.** iOS uses Apple In-App Purchase and Android uses
+   Google Play Billing. The app never collects full card or bank data. Azul is
+   excluded from the native v1 subscription path. A future Web/physical-service
+   use requires its own policy and architecture decision.
+
+2. **RevenueCat is the accepted entitlement layer.** Use
+   `react-native-purchases` without RevenueCat's remotely authored paywall UI.
+   AppFitness owns the paywall in its design system; RevenueCat wraps StoreKit /
+   Play Billing, validates purchases and unifies entitlement state. This is the
+   fastest path and avoids building two receipt/server-notification stacks.
+   This adds RevenueCat as a processor/subprocessor, requires its current
+   terms/DPA and deletion behavior to be reviewed, and accepts its current
+   pricing model (free below its published MTR threshold, then provider fees).
+
+3. **One stable entitlement, one product per store.** Proposed identifiers:
+   entitlement `appfitness_pro`; store product `appfitness_pro_monthly`;
+   offering `default`. Exact identifiers are immutable after console creation
+   and must be rechecked before acceptance. Store-localized price, currency,
+   billing period and introductory-offer eligibility are authoritative. The
+   UI never hardcodes `$5`, “free for everyone”, or a renewal date.
+
+4. **Account identity and minimization.** The authenticated AppFitness user UUID
+   is the RevenueCat App User ID. Never send email, username, health, wellness,
+   nutrition, workout or progress attributes. Configure/login only after a
+   session is established; logout/reset on account switch. Public SDK keys may
+   be present in the client; secret keys live only in managed server secrets.
+
+5. **Server authorization remains mandatory.** A client entitlement is UX
+   evidence, never authority for protected API mutations. RevenueCat webhooks
+   enter a dedicated authenticated endpoint, are processed idempotently and
+   out of order against durable event/entitlement state, and drive a server-side
+   authorization policy. Reconciliation must recover from missed webhooks by
+   querying the provider with a server credential. Raw receipts and full
+   provider payloads are not retained unless a proven requirement is accepted.
+
+6. **Post-trial boundary.** When no
+   active entitlement exists, keep sign-in, legal/privacy/support, subscription
+   status, subscribe/restore/manage, account export and deletion available.
+   Preserve read-only access to the user's existing local data. Block new
+   tracked writes, synchronization mutations and new iCoach generation. Do not
+   delete, hide, corrupt or silently stop syncing queued user data.
+
+7. **Offline rule.** RevenueCat's
+   documented offline entitlement stays active for up to three days, after
+   which it is no longer reported active without an online refresh. Use that
+   provider-controlled maximum; add no longer custom extension. It covers the
+   product's 48-hour offline requirement. Purchase, restore and first activation
+   still require network/store confirmation. After the window, the app enters
+   Decision 6's read-only state. Local writes made while the trusted entitlement
+   was active remain user-owned and visible, but server synchronization resumes
+   only when server-authoritative entitlement is active; they are never silently
+   discarded. Store billing-retry grace is a separate, console-configured state.
+
+8. **Lifecycle semantics.** Cancellation does not mean immediate expiry;
+   access follows the standing store/provider expiration. Refund/revocation can
+   remove future paid access but never user-owned data. Restore purchases is a
+   first-class action. Cross-device and cross-platform access is keyed to the
+   authenticated account. The system must prevent one store purchase from being
+   attached silently to the wrong AppFitness account.
+
+9. **Deletion.** Account deletion removes local/server entitlement mirrors,
+   provider identifiers and eligible provider customer data through a
+   server-only operation, while preserving only the legally approved anonymized
+   audit. It does not cancel an App Store/Play subscription on the user's behalf;
+   the UI and final Terms must explain how to manage/cancel it in the store.
+
+10. **Trial and pricing copy.** “One month free” is rendered only when the store
+    reports that the user/product is eligible. The paywall displays the
+    store-returned localized price/period and required auto-renewal disclosures.
+    A non-eligible user sees the normal paid offer, never a false trial promise.
+
+11. **No Expo Go release proof.** Real purchase verification requires signed
+    development/release builds plus Apple sandbox/TestFlight and Google Play
+    test tracks. Unit mocks and Expo Go preview mode are supplementary only.
+
+12. **Legal/store gate.** Before submission, qualified counsel must approve the
+    subscription, trial, renewal/cancellation/refund, minor/guardian-consent,
+    consumer-rights, provider/DPA, retention/deletion and EN/ES wording. Apple
+    App Privacy and Google Data Safety answers must be regenerated from the
+    exact release binary and provider agreements.
+
+### Options considered
+
+1. **RevenueCat + `react-native-purchases` (recommended).** Lowest engineering
+   and lifecycle risk; one entitlement model across both stores; added external
+   processor, contract, disclosure and eventual provider cost.
+2. **Direct stores through `expo-iap`.** Removes RevenueCat but leaves
+   AppFitness responsible for Apple and Google receipt validation, server
+   notifications, retries, reconciliation and lifecycle drift. Rejected as the
+   default recommendation because it is slower and concentrates payment risk in
+   new custom infrastructure.
+3. **Azul inside the native app.** Rejected for the selected digital
+   subscription in the Dominican Republic: it conflicts with the default store
+   billing path and creates review risk.
+4. **Free v1, payments later.** No longer matches the owner's commercial
+   decision.
+
+### Acceptance record
+
+Owner authorization on 2026-09-29 accepted all four gates:
+
+1. RevenueCat under option 1.
+2. Decision 6's post-trial read-only boundary.
+3. RevenueCat's documented maximum three-day offline entitlement window, with
+   no AppFitness extension.
+4. The one-month trial only when the store reports eligibility, and US$5 as a
+   base price target rather than a hardcoded worldwide price.
+
+Acceptance authorizes the architecture and separately reviewed implementation
+slices. It does not create a RevenueCat/store account, accept external terms on
+the owner's behalf, add secrets, configure products, install a dependency, or
+publish/deploy anything by itself.
+
+### Consequences
+
+- FEATURE-012 becomes a v1 blocker delivered in separately reviewed slices.
+- A native rebuild and paid-store sandbox configuration are required.
+- RevenueCat joins the external-provider/privacy inventory.
+- Legal/store work must be repeated after the actual data flow exists.
+- Web billing is not added. FEATURE-014 remains separate; an eventual Web
+  subscription must reconcile entitlements without assuming Azul is allowed or
+  that RevenueCat Billing/Stripe is selected.
+
+### External policy/technology evidence checked 2026-09-29
+
+- Expo IAP guide: <https://docs.expo.dev/guides/in-app-purchases/>
+- Google Play Payments policy:
+  <https://support.google.com/googleplay/android-developer/answer/9858738>
+- Google alternative-billing markets:
+  <https://support.google.com/googleplay/answer/11174377>
+- Apple App Review Guidelines §§3.1.1–3.1.2:
+  <https://developer.apple.com/app-store/review/guidelines/>
+- Apple In-App Purchase lifecycle:
+  <https://developer.apple.com/in-app-purchase/>
+- RevenueCat Expo integration:
+  <https://www.revenuecat.com/docs/getting-started/installation/expo>
+- RevenueCat pricing: <https://www.revenuecat.com/pricing>
+- RevenueCat cache/offline entitlement behavior:
+  <https://www.revenuecat.com/docs/test-and-launch/debugging/caching>
+
+Policies, programs and provider pricing can change. Recheck these sources before
+ADR acceptance and again before store submission.
+
+### Related documents
+
+- `.ai/11_BACKLOG.md` — FEATURE-012
+- `.ai/02_TECH_STACK.md` — no purchase dependency is approved yet
+- `.ai/05_SECURITY.md` — payments/identifiers are sensitive; secrets stay server-side
+- `.ai/06_MOBILE.md` — native rebuild and offline-first boundary
+- `docs/legal/LEGAL_APPROVAL_HANDOFF.md` — owner facts and counsel gates
+- `docs/RELEASE_READINESS.md` — publication blocker and delivery sequence
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
