@@ -1207,6 +1207,16 @@ that build would contradict the owner's clarified product intent.
 - [ ] A fresh production candidate passes bilingual E2E, physical-device
       validation, privacy/legal review, and store-readiness re-gating.
 
+> **Phase 21 legal-draft technical refresh (2026-09-29).** The five
+> `docs/legal/*` artifacts are reconciled to the implemented public-v1
+> wellness product at evidence commit `42f6fc9`: medical dormancy, the
+> Wellness Safety Profile and deterministic movement exclusions, conflict
+> resolution, transactional recovery/verification email, current monitoring,
+> deletion, and the interim Web boundary. This closes only the stale factual
+> baseline. Every artifact remains **DRAFT**; qualified legal review,
+> jurisdiction/controller/retention decisions, live store-form reconciliation,
+> privacy-mailbox receipt and publication approval remain open.
+
 ### Related Documents
 
 - `.ai/00_PROJECT.md`
@@ -2638,7 +2648,9 @@ account-notification feature**.
 - [ ] Owned sending subdomain with **SPF, DKIM and DMARC** verified before any
       Development-live send
 - [ ] Development provider-sandbox validation passes **before** Production
-- [ ] Privacy-contact placeholder resolved in `docs/legal/PRIVACY_POLICY.md`
+- [x] Privacy-contact placeholder replaced in
+      `docs/legal/PRIVACY_POLICY.md`; receipt by that mailbox remains an
+      owner release gate and is not claimed
 - [ ] EN/ES templates and UX states reviewed in both locales
 - [ ] Every frozen `input-*` / `field-*` hook and accessibility-label query path
       still resolves
@@ -7828,7 +7840,9 @@ gate and is not covered by this item.
 - [x] Compliance artifacts drafted for owner/legal review: privacy
       policy, terms of use, health-data disclaimer, Play data-safety
       matrix derived from actual data flows (Step 5, 2026-07-08 —
-      docs/legal/, still Draft / require legal review)
+      docs/legal/, still Draft / require legal review). **Since refreshed
+      technically for the Phase 21 product on 2026-09-29; external legal review
+      and every owner/legal placeholder remain open.**
 - [x] TECHDEBT-002 resolved (Step 6, 2026-07-08) + account-deletion
       surfaced in-app with typed confirmation and immediate-deletion
       retention decision (Step 6B). Remaining for a Data Safety "yes":

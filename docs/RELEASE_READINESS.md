@@ -146,7 +146,7 @@ Legend:
 | 10 | Monitoring enabled | **PASS (backend + mobile)** | Backend enabled and live-verified 2026-08-05 (Gate B2); mobile enabled and live-verified 2026-08-06 (Gate B2-mobile) with source-map upload succeeding, symbolicated frames, and synthetic `notes`/`token` values arriving redacted. The verified events contained **no PHI, no authentication token and no user-entered health data**. See `docs/SENTRY_ENABLEMENT.md`. **Caveat:** verified on the Phase 20 build, not on a `d498658` build. |
 | 11 | Logs reviewed | **PENDING-HUMAN** | Production has existed since 2026-08-05, so production logs now exist; **no production log / monitoring-error review has been performed**. |
 | 12 | Store metadata ready | **BLOCKED-OWNER** | `eas.json` `submit` profile present (Android internal/draft); **missing** store-listing assets (screenshots, descriptions, categories), Data Safety form, and a published privacy-policy URL |
-| 13 | Privacy requirements satisfied | **BLOCKED-EXTERNAL** | account deletion implemented and in-app surfaced (PASS); `docs/legal/{PRIVACY_POLICY,TERMS_OF_USE,HEALTH_DISCLAIMER,PLAY_DATA_SAFETY,DATA_INVENTORY}.md` refreshed 2026-08-05 and review-ready. **Still blocked pending legal sign-off**, and the legal set has **not** been refreshed for Phase 21 (wellness rebaseline, bilingual surface, conflict resolution) — see the route-to-publication queue, Stage 5 item 19. |
+| 13 | Privacy requirements satisfied | **BLOCKED-EXTERNAL** | Account deletion is implemented and in-app surfaced (PASS). The five `docs/legal/*` drafts were technically reconciled to the public-v1 Phase 21 product on 2026-09-29 at evidence commit `42f6fc9`, including medical dormancy, the Wellness Safety Profile, bilingual/conflict surfaces, transactional email, monitoring, and the Web boundary. They remain **DRAFT**, contain owner/legal placeholders, and still block submission pending qualified legal sign-off — see Stage 5 item 19. |
 | 14 | Smoke tests completed | **PASS-WITH-LIMITATION** (historical) | **Backend/API Production smoke — PASS (Gate B5, 2026-08-06):** 15/15 checks against the live Production API with synthetic data only, deleted and verified inaccessible. **Device-side — PASS-WITH-LIMITATION (Gate B6, 2026-08-10):** production-validation APK on an **emulator** (Android 15 / API 35), not a physical device and not a Play internal-track build; **biometric not applicable on an emulator**. **Both were run on the Phase 20 build, not on `d498658`** — they do not cover the wellness rebaseline, the bilingual surface or conflict resolution. |
 
 ## Additional `10_DEPLOYMENT.md` release gates
@@ -240,7 +240,7 @@ not outrank launch blockers.**
 
 | Item | Status | Impact |
 |---|---|---|
-| Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. Also **not yet refreshed for Phase 21** (wellness rebaseline, bilingual surface, conflict resolution). |
+| Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
 | Play Console listing, Data Safety, privacy URL | **BLOCKED-OWNER** | Blocks submission. |
 | Physical-device + biometric validation | **BLOCKED-OWNER** | Blocks publication; all evidence to date is emulator-only. |
 | Accessibility pass (UX-4C) | **PENDING-HUMAN** | Blocks a credible accessibility claim; no outcome is claimed today. |
@@ -563,8 +563,10 @@ angles — coverage, then quality.
 
 **Stage 5 — compliance and store (`external` + `owner`)**
 
-19. `external` — **Legal sign-off** on the `docs/legal/*` set, **refreshed
-    for Phase 21** rather than the Phase 20 product.
+19. `external` — **Legal sign-off** on the `docs/legal/*` set. The
+    engineering/factual Phase 21 refresh is complete as of 2026-09-29
+    (evidence `42f6fc9`); the documents remain DRAFT and still require
+    qualified legal review, placeholder resolution and publication approval.
 20. `owner` — **Privacy-contact mailbox receipt** verification.
 21. `owner` — **Play Console**: create the app, upload listing assets, complete
     Data Safety, publish the privacy-policy URL.
