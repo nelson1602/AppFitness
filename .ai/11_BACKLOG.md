@@ -1216,6 +1216,19 @@ that build would contradict the owner's clarified product intent.
 > baseline. Every artifact remains **DRAFT**; qualified legal review,
 > jurisdiction/controller/retention decisions, live store-form reconciliation,
 > privacy-mailbox receipt and publication approval remain open.
+>
+> **Legal-approval handoff (2026-09-29).**
+> `docs/legal/LEGAL_APPROVAL_HANDOFF.md` converts those placeholders into 12
+> owner facts, 15 counsel decisions, seven required deliverables and explicit
+> acceptance evidence. `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md` maps the
+> implemented data flows to provisional Apple/Google form families without
+> claiming final policy classifications. The review also records a previously
+> missing launch gate: Google requires an external Web resource where a user can
+> request account and associated-data deletion even when in-app deletion is
+> already complete. `https://account.appfitnessrd.com/delete-account` returned
+> HTTP 200 and rendered the deletion surface on 2026-09-29, so the resource is
+> not absent; its complete signed-out journey, discoverability and live-policy
+> compliance remain unverified. Legal approval and store readiness remain open.
 
 ### Related Documents
 

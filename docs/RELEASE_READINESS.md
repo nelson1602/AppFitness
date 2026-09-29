@@ -241,7 +241,8 @@ not outrank launch blockers.**
 | Item | Status | Impact |
 |---|---|---|
 | Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
-| Play Console listing, Data Safety, privacy URL | **BLOCKED-OWNER** | Blocks submission. |
+| App Store Connect / Play Console privacy forms, policy URLs, listing assets | **BLOCKED-OWNER** | Blocks submission. The provisional form mapping is in `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`; it is not approved for entry. |
+| External Web account-deletion request | **UNVERIFIED — V1 gate** | Google requires a functional external request resource in addition to in-app deletion. `https://account.appfitnessrd.com/delete-account` returned 200 and rendered the AppFitnessRD deletion surface on 2026-09-29; the signed-out end-to-end journey and live-policy compliance are not verified. |
 | Physical-device + biometric validation | **BLOCKED-OWNER** | Blocks publication; all evidence to date is emulator-only. |
 | Accessibility pass (UX-4C) | **PENDING-HUMAN** | Blocks a credible accessibility claim; no outcome is claimed today. |
 | Universal / App Links + native rebuild | **NOT STARTED** | Emailed links open the Web portal, not the app. |
@@ -567,21 +568,32 @@ angles — coverage, then quality.
     engineering/factual Phase 21 refresh is complete as of 2026-09-29
     (evidence `42f6fc9`); the documents remain DRAFT and still require
     qualified legal review, placeholder resolution and publication approval.
+    `docs/legal/LEGAL_APPROVAL_HANDOFF.md` now provides the closed owner-input,
+    counsel-decision and acceptance checklist; its open rows are the exact
+    remaining legal gate, not optional editorial work.
 20. `owner` — **Privacy-contact mailbox receipt** verification.
-21. `owner` — **Play Console**: create the app, upload listing assets, complete
-    Data Safety, publish the privacy-policy URL.
-22. `owner` — **Track progression** internal → closed → production.
-23. `owner` — **Explicit submission approval**, recorded.
+21. `in-repo` + `owner` — Publish the final legal pages and verify/harden the
+    **external account-deletion request resource**. Google requires this Web
+    path even though AppFitnessRD already deletes accounts in-app. The deployed
+    `/delete-account` route is the candidate, but its signed-out completion
+    journey and live-policy compliance remain unverified.
+22. `owner` — **App Store Connect + Play Console**: create both app records,
+    upload listing assets, complete Apple App Privacy, Google Data Safety and
+    Health apps declarations, and enter the public policy/deletion URLs. Use
+    `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md` only after counsel review.
+23. `owner` — **Track progression**: Play internal → closed → production and
+    the corresponding TestFlight/App Store review path.
+24. `owner` — **Explicit submission approval**, recorded.
 
 **Post-v1**
 
-24. `post-v1` — Phase 18 (Habit Tracking), Phase 19 (Notifications).
-25. `post-v1` — `FEATURE-012` Azul payments.
-26. `post-v1` — `FEATURE-013` W-5 supplement education (optional).
-27. `post-v1` — `FEATURE-014` post-mobile Web product parity. A recorded
+25. `post-v1` — Phase 18 (Habit Tracking), Phase 19 (Notifications).
+26. `post-v1` — `FEATURE-012` Azul payments.
+27. `post-v1` — `FEATURE-013` W-5 supplement education (optional).
+28. `post-v1` — `FEATURE-014` post-mobile Web product parity. A recorded
     direction only (ADR-P032 §Decision 7); it starts after the mobile product
     is complete and only with its own reviews and ADR.
-28. `post-v1` — `OBS-C7-1`, `OBS-C7-2`, `SECURITY-001`, `RESEARCH-001`,
+29. `post-v1` — `OBS-C7-1`, `OBS-C7-2`, `SECURITY-001`, `RESEARCH-001`,
     `BUG-006`, `TECHDEBT-004` unless a review promotes any of them.
 
 ## Verdicts (four distinct dimensions — do not conflate)
