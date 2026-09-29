@@ -24,9 +24,13 @@ builds; counsel/owner must decide the live form's linked-data answer.
 | Diagnostics — Crash Data / Performance Data / Other Diagnostic Data | Sentry events when configured                                             | App functionality; reliability/security   | OPEN — reverify candidate payload |
 | Other Data                                                          | Sync operations, versions, cursors, and conflict metadata                 | App functionality                         | OPEN — confirm live subtype       |
 
-Proposed exclusions requiring final binary verification: purchases/financial
-information, precise/coarse location, contacts, photos/videos, audio,
+Current-code exclusions requiring final binary verification: purchases and
+financial information, precise/coarse location, contacts, photos/videos, audio,
 browsing/search history, advertising data, and tracking across companies.
+**Purchases cannot remain excluded from the release answers** if the required
+v1 subscription ships. After implementation, record only the store purchase and
+entitlement data the release binary actually processes; AppFitnessRD should not
+receive full card/bank details.
 
 ## Google Play Data Safety — proposed technical mapping
 
@@ -55,7 +59,17 @@ service-provider exception or must be declared as sharing.
 | Terms of Use                 | Public final EN/ES terms                                                              | Not published                                                                     |
 | Health & Wellness Disclaimer | Public final EN/ES disclaimer and reachable in app                                    | Not published                                                                     |
 | Account-deletion request     | Must let a user initiate deletion outside the installed app and identify AppFitnessRD | Candidate route published; signed-out completion and Google compliance unverified |
-| Support                      | Stable support/contact destination                                                    | Owner input required                                                              |
+| Support                      | Stable support/contact destination                                                    | `support@appfitnessrd.com` confirmed by owner                                     |
+
+## Subscription disclosure gate
+
+The owner selected a one-month free trial followed by an auto-renewing monthly
+subscription with a target base price of US$5. The subscription is not yet
+implemented. Before console submission this matrix must be extended from the
+release binary and approved provider contract to cover purchase history,
+subscription/entitlement identifiers, trial/renewal state, the store/provider
+roles, data association with the AppFitnessRD account, retention, deletion, and
+any provider sharing/processing classification.
 
 ## Console completion evidence
 

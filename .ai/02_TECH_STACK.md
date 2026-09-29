@@ -1,8 +1,8 @@
 # AppFitness Technology Stack
 
-Version: 1.0
+Version: 1.1
 Status: Active
-Last Updated: 2026-07-03
+Last Updated: 2026-09-29
 
 ---
 
@@ -89,6 +89,16 @@ Secure Storage
 Biometrics
 
 - Expo Local Authentication
+
+Purchases and subscriptions (ADR-P034; approved, not yet installed)
+
+- Apple In-App Purchase / StoreKit
+- Google Play Billing
+- RevenueCat entitlement service
+- `react-native-purchases` native SDK
+- AppFitness-owned paywall UI; no remotely authored provider paywall
+- Real transactions require development/store builds; Expo Go is not release
+  evidence
 
 ---
 

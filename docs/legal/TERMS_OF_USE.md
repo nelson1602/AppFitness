@@ -9,8 +9,9 @@
 > state: public-v1 Phase 21 wellness product. External legal review remains
 > pending.
 
-Effective date: `[PLACEHOLDER — set on publication]`
-Provider: `[PLACEHOLDER — legal entity and jurisdiction]`
+Effective date: `[PLACEHOLDER — actual first-public-release date; owner target November 2026 or earlier]`
+Provider: Nelson Deschamps, an individual trading as HardTech Solutions, Calle
+La Guardia 41, Santo Domingo D.N., Dominican Republic
 
 ## 1. Acceptance
 
@@ -35,8 +36,9 @@ device and not a substitute for professional medical or dietary advice**. See
 
 ## 3. Eligibility
 
-You must be at least `[PLACEHOLDER — minimum age]` and able to form a binding
-contract.
+You must be at least 16 and able to form a binding contract. `[PLACEHOLDER —
+qualified legal review must decide whether a user aged 16–17 needs a
+parent/guardian's authorization and must approve the final eligibility text.]`
 
 ## 4. Accounts and transactional email
 
@@ -56,6 +58,22 @@ You retain ownership of the data you enter. You grant the provider the limited
 right to process it to operate the service, as described in the Privacy Policy.
 You are responsible for the accuracy and lawfulness of data you enter about
 yourself.
+
+## 5A. Subscription (implementation and legal-review gate)
+
+The owner-selected launch model is one auto-renewing monthly subscription with
+a one-month free trial and a target base price of US$5/month. The current app
+does not yet implement that purchase flow, so this section is not publication
+copy and creates no current offer.
+
+Before release, the final terms and paywall must use the price, currency, trial
+eligibility, renewal date, and billing period returned by Apple App Store or
+Google Play for that user. They must explain that the subscription renews
+automatically unless cancelled through the applicable store, that cancellation
+normally preserves access through the paid period, how to restore purchases,
+and which product capabilities remain available after entitlement expiry.
+`[PLACEHOLDER — counsel must approve renewal, cancellation, refund, price-change,
+tax, trial-conversion, billing-retry/grace-period, and consumer-rights wording.]`
 
 ## 6. Acceptable use
 
@@ -99,7 +117,10 @@ legal-hold obligations and confirm compatibility with immediate deletion.]`
 We may update these Terms; material changes will be communicated according to
 `[PLACEHOLDER — notice mechanism and timing]`.
 
-## 11. Governing law and contact
+## 11. Governing law, controlling language, and contact
 
-`[PLACEHOLDER — governing law, dispute resolution, provider details, and
-contact.]`
+Spanish is the controlling legal language; English is a translation. Contact
+`support@appfitnessrd.com` for product support and
+`privacy@appfitnessrd.com` for privacy requests. `[PLACEHOLDER — counsel must
+approve governing law, venue, dispute resolution, and any mandatory consumer
+rights for the Dominican Republic.]`

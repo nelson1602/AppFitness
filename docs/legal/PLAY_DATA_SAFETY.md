@@ -22,6 +22,11 @@ Last technically updated: 2026-09-29 · Status: Draft · Evidence commit
   receives scrubbed diagnostics from configured builds.
 - **Advertising/analytics:** no advertising SDK or third-party analytics SDK is
   integrated.
+- **Subscriptions:** none are implemented in the current repository. The owner
+  requires a one-month free trial followed by a monthly subscription for v1;
+  ADR-P034 accepts RevenueCat over Apple/Google store billing, but the SDK and
+  data flow do not exist yet. Final Data Safety answers must be re-derived after
+  implementation.
 - **Final “shared” answers:** `[PLACEHOLDER — qualified review must classify
 each service relationship under the live Play definitions. This engineering
 inventory does not decide that legal/policy classification.]`
@@ -59,7 +64,9 @@ storage, access control, or platform protections.
   iCoach does not read them. Account deletion removes them.
 - No precise location, contacts, photos, microphone/audio, advertising
   identifiers, payment data, habits, or notification preferences are collected
-  by the current public-v1 product.
+  by the current code. Purchase/entitlement identifiers will cease to be an
+  exclusion if the required v1 subscription is implemented; full card/bank
+  details must remain outside AppFitnessRD.
 - The current Web portals do not persist database-backed fitness/wellness data
   in browser storage and do not provide mobile feature parity.
 
@@ -75,8 +82,9 @@ storage, access control, or platform protections.
 4. **Diagnostics re-verification:** Sentry was configured and historically
    live-verified, but must be reverified on the release candidate and reflected
    in the live form.
-5. **Privacy-contact mailbox:** verify that `privacy@appfitnessrd.com` receives
-   mail before publishing it.
+5. **Privacy-contact mailbox:** **owner-confirmed 2026-09-29** —
+   `privacy@appfitnessrd.com` receives mail. Reconfirm on the release candidate
+   only if routing/configuration changes.
 6. **External account-deletion request resource:** Google requires a user who
    no longer has the app to be able to initiate account and associated-data
    deletion through a functional Web resource. The in-app deletion flow is
@@ -84,5 +92,8 @@ storage, access control, or platform protections.
    200 and rendered the deletion surface on 2026-09-29, but its complete
    signed-out journey and compliance with Google's discoverability/completion
    rules remain unverified.
-7. **Published privacy-policy URL and owner approval:** neither is supplied by
+7. **Subscription reconciliation:** once implemented, add the exact purchase,
+   entitlement, provider, deletion, and sharing/processing facts from the
+   release binary and provider agreement.
+8. **Published privacy-policy URL and owner approval:** neither is supplied by
    this draft.

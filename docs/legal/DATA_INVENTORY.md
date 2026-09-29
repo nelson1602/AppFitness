@@ -7,9 +7,10 @@
 > evidence; legal classifications and obligations remain external decisions.
 
 Last technically updated: 2026-09-29 · Status: Draft · Evidence commit
-`42f6fc9` · App state: public-v1 Phase 21 wellness product. Habits,
-notifications, payments/Azul, supplement education, and mobile/Web feature
-parity are not implemented.
+`7828d26` · App state: public-v1 Phase 21 wellness product. Habits,
+notifications, supplement education, and mobile/Web feature parity are not
+implemented. A store subscription is now required by the owner for v1 but has
+no runtime implementation; Azul is not selected for native checkout.
 
 ## Scope and evidence
 
@@ -137,7 +138,11 @@ implemented immediate irreversible deletion model.]`
   public product.
 - No precise location, contacts, photos, microphone/audio, advertising
   identifier, ad SDK, or analytics SDK.
-- No payment/card/bank data; Azul/payment integration is a post-v1 proposal.
+- No payment/card/bank or subscription data is collected by the current
+  repository. The owner has made a store subscription a v1 requirement, but it
+  is not implemented. The selected architecture must keep full card/bank data
+  outside AppFitnessRD and add only the minimum store/entitlement identifiers
+  required for access, reconciliation, refund/cancellation handling, and audit.
 - No habit-tracking or notification-preference data; those phases are post-v1.
 - No supplement recommendation, dosage, product/brand, or interaction data.
 - No browser-persistent fitness/wellness database and no current Web/mobile
