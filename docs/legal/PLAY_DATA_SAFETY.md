@@ -1,71 +1,81 @@
 # AppFitnessRD — Google Play Data Safety Matrix (DRAFT)
 
-> **DRAFT — NOT LEGAL ADVICE.** Engineering-produced mapping to Google
-> Play's Data Safety form, grounded in `DATA_INVENTORY.md`. MUST be
-> reviewed by a qualified human/legal reviewer and reconciled against the
-> live Play Console form (categories change) before submission. Answers
-> reflect the app **as currently built**; do not submit while blockers
-> below are open.
+> **DRAFT — NOT LEGAL ADVICE.** Engineering-produced mapping to Google Play's
+> Data Safety form, grounded in `DATA_INVENTORY.md`. It MUST be reviewed by a
+> qualified human/legal reviewer and reconciled against the live Play Console
+> form before submission. Category labels and policy questions can change.
+> Nothing in this draft authorizes a Console answer or store submission.
 
-Last updated: 2026-08-05 · Status: Draft · Evidence commit `5bc6683` ·
-App state: Phases 13–17 complete (incl. nutrition, workout, progress).
+Last technically updated: 2026-09-29 · Status: Draft · Evidence commit
+`42f6fc9` · App state: public-v1 Phase 21 wellness product.
 
-## Global answers
+## Global technical answers
 
-- **Is data encrypted in transit?** Yes — all production/preview traffic
-  is HTTPS/TLS; release builds block cleartext.
-- **Do you provide a way to request data deletion?** **Yes — implemented
-  and surfaced in-app (pending legal wording confirmation).** A guarded
-  `/delete-account` flow (typed-confirmation gate) calls
-  `DELETE /auth/account`, which permanently and irreversibly deletes the
-  account and all user-owned data (cascade — incl. nutrition, workout, and
-  progress entities), with the audit trail retained but anonymized
-  (ADR-P011; e2e-proven). The only open item before finalizing the form
-  answer is **legal confirmation of the deletion wording / that no
-  in-scope jurisdiction mandates a retention window** (a legal decision,
-  not an engineering gap).
-- **Do you share data with third parties?** No (no advertising/analytics
-  sharing). Error-monitoring (Sentry, when enabled) is a processor, not a
-  "share" for Play purposes — **confirm in review**.
+- **Encrypted in transit:** production API and portal traffic uses HTTPS/TLS;
+  release mobile builds block cleartext.
+- **Deletion mechanism:** a guarded in-app flow permanently deletes the account
+  and user-owned rows, while retaining only an anonymized security audit record.
+  The legal wording and any jurisdictional retention obligation remain subject
+  to review.
+- **External service paths:** Railway hosts the API/database; Postmark delivers
+  transactional email; Cloudflare serves the deployed account portals; Sentry
+  receives scrubbed diagnostics from configured builds.
+- **Advertising/analytics:** no advertising SDK or third-party analytics SDK is
+  integrated.
+- **Final “shared” answers:** `[PLACEHOLDER — qualified review must classify
+each service relationship under the live Play definitions. This engineering
+inventory does not decide that legal/policy classification.]`
 
 ## Matrix
 
-Columns: Collected · Shared · Purpose · Required/Optional · Encrypted in
-transit · Encrypted at rest · Deletion support · Notes/blockers
+The “Field encryption” column describes additional application-level
+field/payload encryption. “No” does not mean the data lacks HTTPS, app-private
+storage, access control, or platform protections.
 
-| Data type (Play category) | Collected | Shared | Purpose | Req/Opt | Enc. transit | Enc. at rest | Deletion | Notes |
-|---|---|---|---|---|---|---|---|---|
-| Name / username | Yes | No | Account management, app functionality | Required | Yes | No (hashed creds only) | Supported | username collected; no legal name required |
-| Email address | Yes | No | Account management | Required | Yes | No | Supported | login identifier |
-| Password / credentials | Yes | No | Account security | Required | Yes | Hashed (Argon2) | Supported | tokens stored hashed |
-| Health info — free-text (doctor notes, conditions, medications) | Yes | No | App functionality (coaching, safety constraints) | Optional | Yes | **Yes (AES-256-GCM)** | Supported | encrypted device + server |
-| Health & fitness — body metrics / vitals (evaluation) | Yes | No | App functionality (coaching) | Optional | Yes | No (structured) | Supported | user-entered |
-| **Health & fitness — progress body metrics** (weight, waist/hip/chest, body-fat %, weekly snapshots) | Yes | No | App functionality (progress monitoring) | Optional | Yes | **No — wellness plaintext (ADR-P016 D1)** | Supported | do NOT claim at-rest encryption |
-| **Health & fitness — nutrition/dietary intake** (food logs, calories, macros) | Yes | No | App functionality (nutrition tracking) | Optional | Yes | No (structured) | Supported | food + quantity = health data; sensitive sync-queue payload encrypted on device |
-| **Health & fitness — dietary preferences / allergies** | Yes | No | App functionality (safety warnings) | Optional | Yes | **Note field: Yes (AES-256-GCM)** | Supported | allergy data; free-text note encrypted |
-| **Health & fitness — workout/exercise activity** (logs, sets, routines) | Yes | No | App functionality (workout tracking) | Optional | Yes | No (structured) | Supported | fitness activity |
-| Fitness/profile (birth date, gender, activity, goals) | Yes | No | App functionality | Optional | Yes | No | Supported | birth date may map to "Personal info" — confirm category |
-| User-generated content (custom exercise name/instructions) | Yes | No | App functionality | Optional | Yes | No | Supported | user-created catalog entries |
-| App activity / sync metadata | Yes | No | App functionality (offline sync) | Required | Yes | Sensitive payloads encrypted in queue | Supported | operational |
-| Crash logs / diagnostics | Only if enabled | Processor (Sentry) | App stability | — | Yes | — | N/A | **no DSN configured yet → not collected currently**; scrubbed of PII/PHI when enabled |
-| Device identifiers (advertising) | No | No | — | — | — | — | — | not collected |
-| Precise/approximate location | No | No | — | — | — | — | — | not collected |
-| Contacts / photos / messages / audio | No | No | — | — | — | — | — | not collected |
+| Data type / likely Play category                                                             |                           Collected | Purpose                                                       | Req/Opt           | In transit | Field encryption at rest                        |        Deletion | Technical note                                                                      |
+| -------------------------------------------------------------------------------------------- | ----------------------------------: | ------------------------------------------------------------- | ----------------- | ---------: | ----------------------------------------------- | --------------: | ----------------------------------------------------------------------------------- |
+| Username                                                                                     |                                 Yes | Account management                                            | Required          |        Yes | No                                              |             Yes | no legal name required                                                              |
+| Email address                                                                                |                                 Yes | Account management, recovery, verification                    | Required          |        Yes | No                                              |             Yes | sent to Postmark for transactional delivery                                         |
+| Password / credentials                                                                       |                                 Yes | Account security                                              | Required          |        Yes | Argon2 hash; tokens hash-only server-side       |             Yes | raw reset/verification value delivered by emailed link and submitted for redemption |
+| Email-verification status                                                                    |                                 Yes | Account security/reminder                                     | Required          |        Yes | No                                              |             Yes | soft gate; core access remains available                                            |
+| Profile data (birth date, gender, height, activity/fitness level, schedule, equipment)       |                                 Yes | Personalization and app functionality                         | Mixed             |        Yes | No                                              |             Yes | map exact subcategories in Console review                                           |
+| Goals and targets                                                                            |                                 Yes | App functionality and deterministic coaching                  | Optional          |        Yes | No                                              |             Yes | user-entered                                                                        |
+| Wellness Safety Profile (evaluation-completed flag/date, affected areas, movements to avoid) |                                 Yes | Fitness safety constraints and app functionality              | Optional          |        Yes | No                                              |             Yes | no professional result, diagnosis, medication, treatment, or clearance              |
+| Progress/body metrics (weight, body measurements, weekly snapshots)                          |                                 Yes | Progress monitoring and coaching                              | Optional          |        Yes | No                                              |             Yes | structured wellness data                                                            |
+| Nutrition/food logs (food, quantity, calories, macros)                                       |                                 Yes | Nutrition tracking and coaching                               | Optional          |        Yes | No for structured rows                          |             Yes | flagged queue payloads encrypted on device                                          |
+| Dietary preferences/allergies                                                                |                                 Yes | Meal filtering and warnings                                   | Optional          |        Yes | Optional note: AES-256-GCM                      |             Yes | structured fields are not field-encrypted                                           |
+| Workout activity (logs, sets, routines)                                                      |                                 Yes | Workout tracking and planning                                 | Optional          |        Yes | No                                              |             Yes | structured fitness activity                                                         |
+| User-generated custom exercise text                                                          |                                 Yes | App functionality                                             | Optional          |        Yes | No                                              |             Yes | name/instructions                                                                   |
+| Sync metadata and conflict records                                                           |                                 Yes | Offline synchronization and user-directed conflict resolution | Required for sync |        Yes | Sensitive queued payloads only; not every field |             Yes | includes operation ids, versions, cursors, and snapshots                            |
+| Crash/error diagnostics                                                                      | Yes in configured production builds | Reliability and security monitoring                           | Operational       |        Yes | N/A                                             | Review required | Sentry; PII disabled, scrubbers applied, candidate re-verification pending          |
+
+## Public-v1 exclusions and retained legacy data
+
+- Public v1 does not collect or expose doctor notes, medications, medical
+  conditions, blood pressure, diagnoses, treatments, professional restrictions,
+  or professional evaluation results.
+- Dormant legacy medical tables and encrypted rows may remain from older builds,
+  but their module/routes/sync handlers are not registered in public v1 and
+  iCoach does not read them. Account deletion removes them.
+- No precise location, contacts, photos, microphone/audio, advertising
+  identifiers, payment data, habits, or notification preferences are collected
+  by the current public-v1 product.
+- The current Web portals do not persist database-backed fitness/wellness data
+  in browser storage and do not provide mobile feature parity.
 
 ## Blockers before submission
 
-1. **Deletion wording (legal only):** the engineering surface is DONE —
-   in-app `/delete-account` + `DELETE /auth/account`, immediate irreversible
-   cascade (ADR-P011), e2e-proven. Remaining: **legal confirmation of the
-   deletion wording and that no in-scope jurisdiction mandates a retention
-   window.** Not an engineering blocker.
-2. **Diagnostics decision:** confirm whether Sentry is enabled at launch;
-   set the crash-logs row accordingly. Currently inert (no DSN).
-3. **Health-data declarations:** Play's Health Connect / sensitive-data
-   policies and any health-app declarations must be reviewed for this
-   category set (now spanning medical, nutrition, workout, and progress
-   wellness data).
-4. **Sub-processor / region disclosures** must match the finalized Privacy
-   Policy.
-5. **Category reconciliation:** map each row above to the exact current Play
-   Console Data Safety category/subtype (labels drift) during form entry.
+1. **Qualified legal review:** finalize deletion/retention language, rights,
+   eligibility, jurisdiction, controller identity, service-provider
+   classification, and disclosures.
+2. **Live Play Console reconciliation:** map every row to the Console's current
+   categories/subtypes and answer its current collection/sharing questions.
+3. **Health-app policy review:** confirm the declarations required for fitness,
+   nutrition, body metrics, allergies/preferences, and wellness-safety data.
+4. **Diagnostics re-verification:** Sentry was configured and historically
+   live-verified, but must be reverified on the release candidate and reflected
+   in the live form.
+5. **Privacy-contact mailbox:** verify that `privacy@appfitnessrd.com` receives
+   mail before publishing it.
+6. **Published privacy-policy URL and owner approval:** neither is supplied by
+   this draft.

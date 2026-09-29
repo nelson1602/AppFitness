@@ -1,111 +1,145 @@
 # AppFitnessRD — Data Inventory
 
-> **DRAFT — NOT LEGAL ADVICE.** This document is an engineering-produced
-> inventory to ground the compliance drafts in this folder. It must be
-> reviewed by a qualified human/legal reviewer before any of the derived
-> artifacts are published or used for a store submission. It describes
-> the app **as currently built**; features not yet implemented are marked
-> as such and must not be represented as active.
+> **DRAFT — NOT LEGAL ADVICE.** This engineering inventory grounds the
+> compliance drafts in this folder. It MUST be reviewed by a qualified
+> human/legal reviewer before derived artifacts are published or used for a
+> store submission. It describes the current repository and verified deployment
+> evidence; legal classifications and obligations remain external decisions.
 
-Last updated: 2026-08-05 · Status: Draft · Evidence commit `5bc6683` ·
-App state: Phases 13–17 complete (profile/goal, medical/physical evaluation,
-**nutrition**, **workout**, **progress monitoring**); Phases 18 (Habit) & 19
-(Notifications) deferred post-v1.
+Last technically updated: 2026-09-29 · Status: Draft · Evidence commit
+`42f6fc9` · App state: public-v1 Phase 21 wellness product. Habits,
+notifications, payments/Azul, supplement education, and mobile/Web feature
+parity are not implemented.
 
-## Scope
+## Scope and evidence
 
-Grounds `PRIVACY_POLICY.md`, `TERMS_OF_USE.md`, `HEALTH_DISCLAIMER.md`,
-and `PLAY_DATA_SAFETY.md`. Sources: `.ai/05_SECURITY.md` (data
-classification, privacy, retention), the Prisma schema (`api/prisma/`),
-the mobile SQLite schema and repositories, and accepted ADRs (P001,
-P006, P010, P011, P012, P015, P016).
+Grounds `PRIVACY_POLICY.md`, `TERMS_OF_USE.md`,
+`HEALTH_DISCLAIMER.md`, and `PLAY_DATA_SAFETY.md`. Sources include:
 
-## Data categories collected/processed
+- `.ai/00_PROJECT.md`, `.ai/05_SECURITY.md`, and `.ai/07_ICOACH.md`;
+- accepted ADR-P011, P012, P017, P019, P026, P029, P030, and P031;
+- `api/prisma/schema.prisma` and forward migrations;
+- the mobile SQLite migrations, repositories, sync queue/conflict store, and
+  composition roots;
+- deployment/release evidence for Railway, Postmark, Cloudflare, and Sentry.
 
-| Category | Fields (representative) | Classification (05_SECURITY.md) | Source |
-|---|---|---|---|
-| Account / auth | email, username, password (Argon2 hash — never stored plaintext), JWT access token, opaque refresh token (stored hashed server-side), role | Critical (credentials/tokens) + Personal identifier | User-provided at register/login |
-| Profile | birth date, gender, height, fitness level, years training, activity level, occupation, sleep/stress baselines, equipment, training preferences | Highly Sensitive (health-adjacent) / Personal identifier | User-provided |
-| Health / medical evaluation | weight, body fat %, muscle mass, blood pressure, resting heart rate, sleep quality, stress level, activity level; **free-text: doctor notes, medical conditions, medications (encrypted)** | Highly Sensitive (medical) | User-provided |
-| Medical restrictions | type, body area, severity; **free-text notes (encrypted)** | Highly Sensitive (medical) | User-provided |
-| Goals | goal type, target weight, target date | Sensitive | User-provided |
-| **Nutrition — dietary preferences & allergies** (Phase 15 / ADR-P014) | avoid-tags, exclusion type/kind (allergy/preference), catalog key; **optional free-text note (encrypted)** | Highly Sensitive (health-adjacent; allergy data) | User-provided |
-| **Nutrition — food logs** (Phase 15 / ADR-P012) | logged foods (catalog key + snapshot: name, serving, calories, macros), serving counts, meal type, date (`meal_items`, with local `nutrition_logs`/`meals` parents) | Sensitive (health/fitness — food + quantity) | User-provided |
-| **Workout — logs & sets** (Phase 16 / ADR-P015) | workout logs (name, start), sets (reps, weight, completion), per-exercise references | Sensitive (fitness activity) | User-provided |
-| **Workout — routines & custom exercises** (Phase 16) | routine names + exercise ordering; user-created custom exercise name, muscle group, instructions | Sensitive (fitness) / user-generated content | User-provided |
-| **Progress — body metrics** (Phase 17 / ADR-P016) | body weights (weight, date, optional note), body measurements (waist, hip, chest, body-fat %, optional note) | Sensitive (**wellness** — see note) | User-provided |
-| **Progress — weekly snapshots** (Phase 17) | deterministic on-device weekly rollups: avg weight, total training volume, avg calories, workout count, deload flag, rule version | Sensitive (**wellness**, derived) | Computed on-device from the above |
-| Device / local storage | local SQLite operational DB; device field-encryption key (SecureStore) | Critical (key) / operational | Generated on-device |
-| Sync metadata | operation queue entries, base versions, conflict records, per-entity cursors | Sensitive (payloads for medical + flagged-sensitive entities are encrypted at rest in the queue) | Generated by the app |
-| Telemetry / crash (Sentry) | error type/message, stack trace, opaque user id, app/environment metadata | Sensitive — **scrubbed** of PII/PHI by policy (ADR-P010) | Generated at runtime **only when a DSN is configured** |
+## Data categories collected or processed by public v1
 
-## Storage locations
+| Category                        | Representative fields                                                                                                                            | Engineering classification                                   | Source                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------- |
+| Account/auth                    | email, username, Argon2 password hash, role, email-verification timestamp, hashed refresh/reset/verification tokens                              | Critical credentials/tokens + personal identifier            | registration/authentication     |
+| Profile                         | birth date, gender, height, fitness/activity level, training history, occupation, sleep/stress baselines, equipment, schedule, nutrition targets | Highly sensitive health-adjacent/profile                     | user                            |
+| Goals                           | goal type, target weight/date                                                                                                                    | Sensitive                                                    | user                            |
+| Wellness Safety Profile         | evaluation-completed flag, optional date, closed-list affected-area and movement-to-avoid tokens                                                 | Sensitive wellness                                           | user declaration                |
+| Nutrition preferences/allergies | catalog key, exclusion type/kind, optional encrypted note                                                                                        | Highly sensitive health-adjacent                             | user                            |
+| Nutrition logs                  | food catalog key/snapshot, serving quantity, calories, macros, meal/date structure                                                               | Sensitive health/fitness                                     | user                            |
+| Workout logs and sets           | workout name/start, exercise references, reps, weight, completion                                                                                | Sensitive fitness activity                                   | user                            |
+| Routines/custom exercises       | routine name/order; custom name, muscle group, instructions                                                                                      | Sensitive fitness + user-generated content                   | user                            |
+| Progress metrics                | weight, waist/hip/chest, body-fat percentage, muscle mass, optional note, date                                                                   | Sensitive wellness                                           | user                            |
+| Weekly progress snapshots       | deterministic averages/totals/counts/deload signal and rule version                                                                              | Sensitive derived wellness                                   | computed on device              |
+| Sync operations/conflicts       | operation id/type, entity identity, versions, retry/status/error metadata, cursors, client/server snapshots, standing resolution                 | Sensitive operational data; payload may contain feature data | generated by app/server         |
+| Device/local security           | local SQLite database, SecureStore session values, device field-encryption key                                                                   | Critical key + operational                                   | generated on device             |
+| Transactional email             | recipient address, language, recovery/verification message and bearer link                                                                       | Personal/account-security                                    | generated for Postmark delivery |
+| Diagnostics                     | error/message/stack, opaque user id, app/device/runtime/environment metadata after scrubbers                                                     | Sensitive operational                                        | configured runtime              |
+| Security audit                  | action, optional de-linked user/device/entity references, operational metadata, timestamp                                                        | Security operational                                         | API                             |
 
-| Location | What lives there | Protection |
-|---|---|---|
-| Mobile SecureStore | session tokens, device field-encryption key | OS hardware-backed keystore (ADR-P001); never SQLite |
-| Mobile SQLite | offline-first operational copy of profile / medical / goals / **nutrition (food logs, dietary preferences) / workout (logs, sets, routines, custom exercises) / progress (body weights, measurements, weekly snapshots)** / sync data | medical free-text, restriction notes, and dietary-preference notes stored as AES-256-GCM ciphertext (ADR-P001); other wellness/fitness entries (body metrics, workout activity, food-log rows) are stored in the app-private DB **without additional field-level encryption**; the DB is app-private storage |
-| Backend PostgreSQL | system of record: users, profiles, medical evaluations/restrictions, goals, **workout (`WorkoutLog`/`WorkoutSet`/`Routine`/`RoutineExercise`/`Exercise`), nutrition (`Food`/`NutritionLog`/`Meal`/`MealItem`/`DietaryPreference`), progress (`BodyWeight`/`BodyMeasurement`/`ProgressSnapshot`)**, sync ops/conflicts, audit logs | medical free-text + restriction notes + dietary-preference notes encrypted at rest (AES-256-GCM, ADR-P006); passwords Argon2-hashed; refresh tokens hashed; wellness/fitness fields stored without field-level encryption |
-| Sentry (when enabled) | scrubbed crash/error events | TLS in transit; `sendDefaultPii` off; `beforeSend`/`beforeBreadcrumb` scrubbers; **no DSN configured yet → currently inert** |
+## Public-v1 medical boundary and retained legacy data
 
-## Sensitive / health-data handling
+Public v1 does **not** collect, display, synchronize, or use doctor notes,
+medications, medical conditions, blood pressure, professional restrictions,
+diagnoses, treatments, rehabilitation instructions, medical clearance, or
+professional evaluation results. `MedicalModule` is absent from the API
+composition root, medical sync appliers are unregistered, no public mobile route
+renders the dormant feature, and public-v1 iCoach reads only wellness inputs.
 
-- **Field-level encrypted at rest (AES-256-GCM), device + server:** medical
-  evaluation free-text (doctor notes, medical conditions, medications),
-  medical restriction notes, and **dietary-preference free-text notes**
-  (encrypted before SQLite, ADR-P001; encrypted at rest server-side,
-  ADR-P006). Plaintext never rests in the sync queue for these — sensitive
-  payloads are stored encrypted (`__enc` envelope); flagged-`sensitive`
-  food-log (`meal_items`) queue payloads are likewise encrypted on device.
-- **Wellness / fitness health data stored WITHOUT field-level encryption
-  (plaintext at rest):** progress body metrics + weekly snapshots (ADR-P016
-  D1 — wellness: synced normally, not encrypted, not audited), workout
-  logs/sets/routines/custom exercises, and food-log operational rows. These
-  remain protected by app-private device storage, TLS in transit, and
-  server access controls, but are not field-encrypted. **Do not represent
-  wellness/fitness data as encrypted at rest.**
-- **Credentials/tokens:** passwords Argon2-hashed; refresh tokens stored
-  hashed; access/refresh tokens on device live only in SecureStore.
-- **Crash data:** cannot contain medical free-text by construction (it is
-  encrypted before any loggable layer); scrubbers additionally redact a
-  key-list covering tokens/PII/PHI.
+The schema and source retain dormant legacy `medical_evaluations` and
+`medical_restrictions` structures. Existing rows may therefore remain from
+older builds. Their encrypted free-text, access control, redaction, and deletion
+protections remain in force. Dormancy is not deletion or reclassification.
 
-## Transmission
+## Storage locations and protection
 
-- All production/preview traffic is HTTPS (Railway-managed TLS); cleartext
-  HTTP is blocked in release builds (only the `e2e` build variant enables
-  cleartext, for the local test API — never shipped).
+| Location           | Data                                                                                                                                                                      | Protection / boundary                                                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Native SecureStore | access/refresh tokens, session data, device field-encryption key                                                                                                          | OS secure keystore; never SQLite                                                                                                                                                             |
+| Native SQLite      | offline operational copy of profile, goals, wellness safety, nutrition, workout, progress, sync operations/conflicts, plus any retained legacy medical rows               | app-private DB; optional dietary note and retained legacy medical free-text use AES-256-GCM; other structured wellness/fitness data is not field-encrypted                                   |
+| Backend PostgreSQL | system of record for accounts, profiles, goals, wellness safety, nutrition, workout, progress, auth-token hashes, sync/conflicts, audit, plus dormant legacy medical rows | authorization/access controls; password Argon2 hashes; refresh/reset/verification token hashes; designated free-text ciphertext; most structured wellness/fitness fields not field-encrypted |
+| Web runtime        | memory-only authenticated session for current portals                                                                                                                     | no sensitive local/session storage; only non-sensitive language preference may persist; no browser database-backed fitness data                                                              |
+| Postmark           | transactional email recipient, locale-derived message, and recovery/verification link                                                                                     | HTTPS REST transport; open/link tracking recorded disabled in deployment evidence                                                                                                            |
+| Cloudflare portals | account/recovery/verification static Web surfaces and ordinary request metadata                                                                                           | hosted outside this repository; environment-specific API origin allow-lists                                                                                                                  |
+| Sentry             | scrubbed crash/error events from configured builds                                                                                                                        | TLS, `sendDefaultPii: false`, repository `beforeSend`/`beforeBreadcrumb` scrubbers; candidate re-verification pending                                                                        |
 
-## Data sharing
+## Field and payload encryption boundaries
 
-- **No third-party data sharing for advertising or analytics.** The only
-  external processor is Sentry (error monitoring, once enabled), acting
-  as a processor on scrubbed diagnostic data. No ad SDKs, no analytics
-  SDKs are integrated.
+- **AES-256-GCM field encryption on device and server:** optional
+  dietary-preference free-text note and retained legacy medical free-text.
+- **Encrypted local queue payloads:** operations flagged sensitive, including
+  dietary preferences and meal items, are stored as encrypted envelopes on
+  device. This does not make the underlying structured server rows or every
+  conflict snapshot field-encrypted.
+- **Not field-encrypted:** structured wellness-safety data, progress metrics and
+  snapshots, workout data, food-log rows, goals, and most profile fields.
+- **Credentials:** passwords are Argon2-hashed; refresh, password-reset, and
+  email-verification tokens are hash-only on the server. The raw reset or
+  verification value is delivered by transactional link and submitted by the
+  client for redemption; it is not persisted server-side.
+- **Diagnostics/logging:** raw authentication tokens, emailed bearer tokens,
+  message bodies, declared wellness tokens, personal identifiers, and health
+  values must not enter logs, audit metadata, or Sentry events. Scrubbers and
+  source-level guards support this boundary; manual candidate verification is a
+  separate release gate.
 
-## Deletion / retention status (ADR-P011)
+## Transmission and external service paths
 
-- Local (device): clearing the app / sign-out clears the SecureStore
-  session; local SQLite is app-private and removed on uninstall.
-- **Account/data deletion is implemented AND surfaced in-app.** A guarded
-  `/delete-account` screen (typed-confirmation gate) calls
-  `DELETE /auth/account`, which **permanently and irreversibly** deletes the
-  account and all user-owned data via `ON DELETE CASCADE` — including the
-  Phase 15–17 nutrition, workout, and progress entities. Catalog data
-  (public foods/exercises) stays; the immutable audit trail is retained but
-  anonymized (`user_id` severed). e2e-proven against real Postgres. Local
-  data is wiped on deletion. Retention decision: **immediate, irreversible**
-  (v1, ADR-P011).
-- `[LEGAL REVIEW REQUIRED — retention window / legal-hold obligations per
-  in-scope jurisdiction; confirm no mandated retention conflicts with
-  immediate deletion.]`
+- Production API and portal traffic uses HTTPS/TLS. Release mobile builds block
+  cleartext; only the local E2E variant permits a disposable HTTP test API.
+- Railway hosts the API and PostgreSQL environments.
+- Postmark provides transactional recovery and verification delivery.
+- Cloudflare serves the deployed Web portals.
+- Sentry provides error monitoring for configured environments.
+- No advertising or third-party analytics SDK is integrated.
 
-## NOT collected / NOT implemented (do not represent as active)
+`[PLACEHOLDER — qualified legal review must classify service-provider roles,
+subprocessors, regions, international transfers, agreements, and store-policy
+“sharing” answers.]`
 
-- No precise location, contacts, photos, microphone, or device
-  identifiers for tracking.
-- No advertising or third-party analytics.
-- **Data export UI/flow: not yet implemented** (a user-facing
-  access/export flow is architectural intent in `05_SECURITY.md`, not a
-  shipped feature). Account **deletion** IS implemented and surfaced (see
-  above) — this is no longer a gap.
+## Synchronization and conflict handling
+
+Native writes are local-first, queued, and synchronized with authenticated,
+owner-scoped operations. Operation ids provide server idempotency. Version
+differences can create conflict records. The native `/sync-conflicts` surface
+shows only allow-listed, localized fields and lets the user choose a supported
+resolution. Unsupported/redacted values fail closed. Conflict and queue rows are
+deleted with the account.
+
+## Deletion and retention (ADR-P011)
+
+- The in-app guarded flow calls the authenticated account-deletion endpoint.
+- The API records the deletion event, severs `user_id` from the immutable audit
+  rows, and physically deletes the user; database cascades remove user-owned
+  profile, wellness, nutrition, workout, progress, token, sync, conflict, and
+  dormant legacy medical rows.
+- Shared food/exercise catalog data remains because it is not user-owned.
+- Native local data is wiped after successful deletion. App-private data is also
+  removed on uninstall.
+- The only retained artifact is the anonymized security audit record.
+- No self-service export flow exists yet.
+
+`[PLACEHOLDER — qualified legal review must determine audit-record retention,
+legal-hold obligations, and whether an in-scope jurisdiction conflicts with the
+implemented immediate irreversible deletion model.]`
+
+## Not collected or not implemented in public v1
+
+- No doctor notes, medications, medical conditions, blood pressure,
+  professional restrictions, diagnoses, treatments, rehabilitation
+  instructions, clearance, or professional evaluation results through the
+  public product.
+- No precise location, contacts, photos, microphone/audio, advertising
+  identifier, ad SDK, or analytics SDK.
+- No payment/card/bank data; Azul/payment integration is a post-v1 proposal.
+- No habit-tracking or notification-preference data; those phases are post-v1.
+- No supplement recommendation, dosage, product/brand, or interaction data.
+- No browser-persistent fitness/wellness database and no current Web/mobile
+  feature parity.
+- No self-service data export flow. Account deletion is implemented.
