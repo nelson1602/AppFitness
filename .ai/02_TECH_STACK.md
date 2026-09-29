@@ -60,7 +60,17 @@ Animations
 UI Components
 
 - React Native Paper
-- Expo Vector Icons
+- ~~Expo Vector Icons~~ — **corrected 2026-09-22 (ADR-P033).** This entry was
+  wrong twice over: `@expo/vector-icons` is **not a dependency of this project**
+  (absent from `mobile/package.json` and from the installed tree), Expo's current
+  documentation states it "will be deprecated and is not recommended", and it
+  ships Ionicons / FontAwesome / Glyphicons rather than **Material Symbols**, the
+  approved family. ADR-P022 Decision 9 required this reconciliation in the
+  icon-delivery slice; it must not be treated as the selected mechanism.
+  **No icon runtime is accepted yet** — see ADR-P033 (Proposed) and §Design
+  System → Icons below. A feasibility pilot built on 2026-09-22 renders three
+  dashboard icons from two vendored Apache-2.0 Material Symbols faces, with **no
+  npm dependency added**; it does not settle the decision.
 
 Charts
 
@@ -429,7 +439,31 @@ Theme
 
 Icons
 
-- Material Symbols
+- Material Symbols — the approved **visual family** (ADR-P022 Decision 9).
+  Its **React Native delivery mechanism is not settled**: no *installed* package
+  renders Material Symbols on **iOS** (`expo-symbols` accepts only SF Symbols
+  there, and its Material image source is an explicit no-op on iOS), and the
+  shipped `@expo-google-fonts/material-symbols` faces are **static** (no
+  `fvar`), carry no `FILL` axis and include no filled face, so Decision 9's
+  "filled when selected" cannot be expressed from them at all.
+- **Vendored Material Symbols faces — feasibility pilot, 2026-09-22.** Two
+  Apache-2.0 static instances, `Material Symbols Outlined` (`FILL=0`) and
+  `Material Symbols Outlined Filled` (`FILL=1`), live in
+  `mobile/assets/fonts` and are linked into native builds by the **`expo-font`
+  config plugin** (already a dependency) and loaded from those same files on Web.
+  Icons render as **ligatures**, so no private glyph table is imported and **no
+  npm dependency was added**. Both files ship with the Apache-2.0 `LICENSE` and
+  a `NOTICE.md` recording provenance and SHA-256.
+- **Cost:** 2,409,920 B of unsubsetted font assets — the figure a Web client
+  fetches. A same-profile EAS comparison measured the Android APK impact at
+  **+988,820 B** (`117,304,493` B baseline → `118,293,313` B pilot), closely
+  matching the prior 996,237 B deflate estimate. Because the faces
+  arrive through a config plugin, adding or changing one needs a **native
+  rebuild** and cannot ship OTA. See **ADR-P033 (Proposed)** — **Web rendering is
+  verified in a real browser**, and the three default outlined dashboard icons
+  are visually verified from the EAS APK on Android 15. The Android filled/
+  selected state and **all iOS rendering remain unverified**, so this is not yet
+  the accepted icon system.
 
 Typography
 

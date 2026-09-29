@@ -35,7 +35,40 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-font",
+        {
+          "ios": {
+            "fonts": [
+              "./assets/fonts/MaterialSymbolsOutlined-Fill0.ttf",
+              "./assets/fonts/MaterialSymbolsOutlined-Fill1.ttf"
+            ]
+          },
+          "android": {
+            "fonts": [
+              {
+                "fontFamily": "Material Symbols Outlined",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/MaterialSymbolsOutlined-Fill0.ttf",
+                    "weight": 400
+                  }
+                ]
+              },
+              {
+                "fontFamily": "Material Symbols Outlined Filled",
+                "fontDefinitions": [
+                  {
+                    "path": "./assets/fonts/MaterialSymbolsOutlined-Fill1.ttf",
+                    "weight": 400
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

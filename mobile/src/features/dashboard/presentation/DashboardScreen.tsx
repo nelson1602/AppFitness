@@ -1,12 +1,12 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import { ProgressSummaryCard } from '@/features/progress';
 import { WellnessSafetyRecommendationCard } from '@/features/wellness';
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Screen } from '@/shared/presentation';
+import { AppButton, AppIcon, AppText, Banner, Screen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { DataRequirement } from '../domain/dashboard.types';
@@ -167,7 +167,8 @@ export function DashboardScreen() {
         onPress={() => router.push('/nutrition')}
         variant="secondary"
       >
-        {t('dashboard.nutrition')}
+        <AppIcon name="nutrition" testID="dashboard-icon-nutrition" />{' '}
+        <Text>{t('dashboard.nutrition')}</Text>
       </AppButton>
 
       {/* Direct daily food-log shortcut (ADR-P027 / UX-4A). The existing
@@ -205,7 +206,8 @@ export function DashboardScreen() {
         onPress={() => router.push('/routines')}
         variant="secondary"
       >
-        {t('dashboard.routines')}
+        <AppIcon name="workout" testID="dashboard-icon-workout" />{' '}
+        <Text>{t('dashboard.routines')}</Text>
       </AppButton>
       {/* Workout logging (ADR-P015 Phase 16 Slice 6). */}
       <AppButton
@@ -229,7 +231,8 @@ export function DashboardScreen() {
         onPress={() => router.push('/progress')}
         variant="secondary"
       >
-        {t('dashboard.progress')}
+        <AppIcon name="progress" testID="dashboard-icon-progress" />{' '}
+        <Text>{t('dashboard.progress')}</Text>
       </AppButton>
 
       {/* Sign-out clears the session; the dashboard route's session
