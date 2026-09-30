@@ -795,6 +795,8 @@ export const es = {
   'dashboard.signOut': 'Cerrar sesión',
   'dashboard.deleteAccountAccessibility': 'Eliminar tu cuenta',
   'dashboard.deleteAccount': 'Eliminar cuenta',
+  'dashboard.subscription': 'Suscripción',
+  'dashboard.subscriptionAccessibility': 'Ver tu suscripción a AppFitness Pro',
   'account.delete.screenTitle': 'Eliminar cuenta',
   'account.delete.title': 'Eliminar cuenta',
   'account.delete.description':
@@ -1224,4 +1226,94 @@ export const es = {
   'sync.conflicts.webUnavailableTitle': 'Revisar cambios no está disponible en la web',
   'sync.conflicts.webUnavailableBody':
     'Usa la app móvil de AppFitness para revisar estos cambios y elegir qué versión conservar.',
+  // Subscription paywall and account surface (ADR-P034 S-3). Prices, periods
+  // and trials are substituted from store evidence only; none is hardcoded.
+  'subscription.routeTitle': 'Suscripción',
+  'subscription.title': 'AppFitness Pro',
+  'subscription.subtitle':
+    'Entrena, come y sigue tu progreso con planes creados a partir de tus propios datos.',
+  'subscription.loadingAccessibility': 'Cargando suscripción',
+  'subscription.benefitsTitle': 'Qué incluye',
+  'subscription.benefitTracking': 'Registra entrenamientos, comidas y progreso corporal',
+  'subscription.benefitPlans':
+    'Recibe nuevas rutinas de entrenamiento y planes de comidas de iCoach',
+  'subscription.benefitSync':
+    'Mantén tus registros respaldados y sincronizados entre tus dispositivos',
+  'subscription.ownership':
+    'Tus registros siguen siendo tuyos. Sin una suscripción activa, puedes seguir viendo lo que ya está guardado en este dispositivo.',
+  'subscription.pricePerMonth': '{price} al mes',
+  'subscription.thenPricePerMonth': 'Después, {price} al mes',
+  'subscription.trialDaysOne': '{count} día gratis',
+  'subscription.trialDaysMany': '{count} días gratis',
+  'subscription.trialWeeksOne': '{count} semana gratis',
+  'subscription.trialWeeksMany': '{count} semanas gratis',
+  'subscription.trialMonthsOne': '{count} mes gratis',
+  'subscription.trialMonthsMany': '{count} meses gratis',
+  'subscription.trialYearsOne': '{count} año gratis',
+  'subscription.trialYearsMany': '{count} años gratis',
+  'subscription.subscribe': 'Suscribirme',
+  'subscription.subscribeAccessibility': 'Suscribirme a AppFitness Pro por {price} al mes',
+  'subscription.startTrial': 'Comenzar prueba gratis',
+  'subscription.startTrialAccessibility':
+    'Comenzar la prueba gratis de AppFitness Pro; después, {price} al mes',
+  'subscription.renewalTerms':
+    'Se renueva automáticamente cada mes por {price} hasta que la canceles. Cancela al menos 24 horas antes de la fecha de renovación para evitar el siguiente cargo.',
+  'subscription.trialRenewalTerms':
+    'Al terminar la prueba gratis, se renueva automáticamente cada mes por {price} hasta que la canceles. Cancela al menos 24 horas antes de que termine la prueba y no se te cobrará.',
+  'subscription.chargeTermsApple':
+    'El pago se carga a tu cuenta de Apple. Administra o cancela cuando quieras en la configuración de tu cuenta del App Store.',
+  'subscription.chargeTermsGoogle':
+    'El pago se carga a tu cuenta de Google Play. Administra o cancela cuando quieras en tus suscripciones de Google Play.',
+  'subscription.deletionTerms':
+    'Eliminar tu cuenta de AppFitness no cancela una suscripción de la tienda. Cancélala primero en la tienda.',
+  'subscription.restore': 'Restaurar compras',
+  'subscription.restoreAccessibility':
+    'Restaurar suscripciones compradas con esta cuenta de la tienda',
+  'subscription.manage': 'Administrar suscripción',
+  'subscription.manageAccessibility': 'Administrar o cancelar tu suscripción en la tienda',
+  'subscription.retry': 'Intentar de nuevo',
+  'subscription.retryAccessibility': 'Intentar cargar tu suscripción de nuevo',
+  'subscription.activeTitle': 'AppFitness Pro está activo',
+  'subscription.activeRenewsOn': 'Se renueva el {date}',
+  'subscription.activeEndsOn': 'El acceso continúa hasta el {date}. No se renovará.',
+  'subscription.activeNoDate': 'Tu suscripción está activa en esta cuenta.',
+  'subscription.purchasedTitle': 'Te damos la bienvenida a AppFitness Pro',
+  'subscription.purchasedBody': 'Gracias por suscribirte. Tu suscripción ya está activa.',
+  'subscription.pendingTitle': 'Compra pendiente',
+  'subscription.pendingBody':
+    'La tienda aún no ha confirmado esta compra. Tu suscripción se activará cuando lo haga.',
+  'subscription.restoredTitle': 'Compras restauradas',
+  'subscription.restoredBody': 'Tu suscripción a AppFitness Pro está activa en esta cuenta.',
+  'subscription.nothingToRestoreTitle': 'No se encontró una suscripción activa',
+  'subscription.nothingToRestoreBody':
+    'Esta cuenta de la tienda no tiene una suscripción activa a AppFitness Pro para restaurar.',
+  'subscription.webUnavailableTitle': 'Las suscripciones no están disponibles en la web',
+  'subscription.webUnavailableBody':
+    'Usa la app móvil de AppFitness para suscribirte, restaurar compras o administrar tu suscripción.',
+  'subscription.unavailableTitle': 'Las suscripciones no están disponibles en esta versión',
+  'subscription.unavailableBody': 'Puedes seguir usando AppFitness como siempre.',
+  'subscription.noOfferTitle': 'No hay una opción de suscripción disponible en este momento',
+  'subscription.noOfferBody':
+    'La tienda no devolvió una opción de suscripción. Inténtalo más tarde.',
+  'subscription.errorTitle': 'No pudimos cargar tu suscripción',
+  'subscription.errorBody': 'Algo salió mal. Inténtalo de nuevo en un momento.',
+  'subscription.offlineTitle': 'Estás sin conexión',
+  'subscription.offlineBody':
+    'Conéctate a internet para ver las opciones de suscripción. El resto de AppFitness sigue funcionando sin conexión.',
+  'subscription.networkTitle': 'Sin conexión',
+  'subscription.networkBody': 'Revisa tu conexión e inténtalo de nuevo.',
+  'subscription.purchaseFailedTitle': 'La compra no se completó',
+  'subscription.purchaseFailedBody':
+    'Inténtalo de nuevo. Si sigue ocurriendo, revisa tu cuenta de la tienda.',
+  'subscription.purchaseNotAllowedTitle': 'Las compras no están permitidas',
+  'subscription.purchaseNotAllowedBody':
+    'Este dispositivo o cuenta de la tienda restringe las compras. Revisa la configuración de la tienda.',
+  'subscription.restoreFailedTitle': 'No pudimos restaurar las compras',
+  'subscription.restoreFailedBody': 'Inténtalo de nuevo en un momento.',
+  'subscription.manageFailedTitle': 'No pudimos abrir la configuración de la suscripción',
+  'subscription.manageFailedBody':
+    'También puedes administrar tu suscripción en la configuración de tu cuenta de la tienda.',
+  'subscription.sessionChangedTitle': 'Inténtalo de nuevo',
+  'subscription.sessionChangedBody':
+    'Tu sesión cambió mientras esto estaba en curso. Si ya completaste una compra, Restaurar compras la recupera.',
 } as const satisfies Record<TranslationKey, string>;

@@ -1,7 +1,16 @@
 import type { Session, SessionStatus } from '@/features/authentication';
 
-import type { PurchaseAccessSnapshot, PurchasesPort } from '../domain/purchases.port';
-import { SUBSCRIPTION_ENTITLEMENT_ID } from '../infrastructure/revenuecat-config';
+import {
+  PurchaseProviderFailure,
+  type PurchaseAccessSnapshot,
+  type PurchasesPort,
+  type SubscriptionOffer,
+  type SubscriptionOfferHandle,
+} from '../domain/purchases.port';
+import {
+  SUBSCRIPTION_ENTITLEMENT_ID,
+  type SubscriptionProviderConfig,
+} from '../infrastructure/revenuecat-config';
 import {
   SubscriptionProviderError,
   SubscriptionPurchases,
@@ -84,9 +93,21 @@ function purchasePort(overrides: Partial<PurchasesPort> = {}) {
     configure: jest.fn().mockResolvedValue(undefined),
     logIn: jest.fn().mockResolvedValue(undefined),
     restorePurchases: jest.fn().mockResolvedValue(active),
+    getAccess: jest.fn().mockResolvedValue(active),
+    loadMonthlyOffer: jest.fn().mockResolvedValue(monthlyOffer),
+    purchase: jest.fn().mockResolvedValue({ kind: 'completed', access: active }),
+    openManagement: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   } as jest.Mocked<PurchasesPort>;
 }
+
+const monthlyOffer: SubscriptionOffer = {
+  handle: 'offer-1' as SubscriptionOfferHandle,
+  productId: 'store_product_monthly',
+  price: 'RD$ 295.00',
+  billingPeriod: { unit: 'month', count: 1 },
+  freeTrial: null,
+};
 
 const enabledConfig = {
   enabled: true,
@@ -331,5 +352,176 @@ describe('SubscriptionPurchases', () => {
         message: 'The authenticated account changed during the purchase operation',
       });
     });
+  });
+});
+
+describe('SubscriptionPurchases S-3 operations', () => {
+  async function started(
+    overrides: Partial<PurchasesPort> = {},
+    config: SubscriptionProviderConfig = enabledConfig,
+  ) {
+    const sessions = sessionSource();
+    const report = jest.fn();
+    const purchases = purchasePort(overrides);
+    const manager = new SubscriptionPurchases(purchases, config, sessions, report);
+    manager.start();
+    sessions.becomeUser('account-a');
+    await manager.waitForPendingWork();
+    return { sessions, report, purchases, manager };
+  }
+
+  it('reports availability only for an enabled build with a key', () => {
+    const sessions = sessionSource();
+    expect(
+      new SubscriptionPurchases(purchasePort(), enabledConfig, sessions, jest.fn()).isAvailable,
+    ).toBe(true);
+    expect(
+      new SubscriptionPurchases(
+        purchasePort(),
+        { enabled: false, apiKey: null, entitlementId: SUBSCRIPTION_ENTITLEMENT_ID },
+        sessions,
+        jest.fn(),
+      ).isAvailable,
+    ).toBe(false);
+  });
+
+  it('performs no provider operation in an unconfigured build', async () => {
+    const { purchases, manager } = await started(
+      {},
+      { enabled: false, apiKey: null, entitlementId: SUBSCRIPTION_ENTITLEMENT_ID },
+    );
+
+    await expect(manager.getAccess()).rejects.toBeInstanceOf(SubscriptionUnavailableError);
+    await expect(manager.loadOffer()).rejects.toBeInstanceOf(SubscriptionUnavailableError);
+    await expect(manager.purchase(monthlyOffer.handle)).rejects.toBeInstanceOf(
+      SubscriptionUnavailableError,
+    );
+    await expect(manager.openManagement()).rejects.toBeInstanceOf(SubscriptionUnavailableError);
+    for (const call of [
+      purchases.configure,
+      purchases.getAccess,
+      purchases.loadMonthlyOffer,
+      purchases.purchase,
+      purchases.openManagement,
+    ]) {
+      expect(call).not.toHaveBeenCalled();
+    }
+  });
+
+  it('loads access and the offer for the current account', async () => {
+    const { purchases, manager } = await started();
+
+    await expect(manager.getAccess()).resolves.toMatchObject({ isActive: true });
+    await expect(manager.loadOffer()).resolves.toEqual(monthlyOffer);
+    expect(purchases.getAccess).toHaveBeenCalledWith('appfitness_pro');
+  });
+
+  it('purchases only an offer this account loaded, with the entitlement id', async () => {
+    const { purchases, manager } = await started();
+    await manager.loadOffer();
+
+    await expect(manager.purchase(monthlyOffer.handle)).resolves.toMatchObject({
+      kind: 'completed',
+    });
+    expect(purchases.purchase).toHaveBeenCalledWith(monthlyOffer.handle, 'appfitness_pro');
+  });
+
+  it('refuses a purchase for an offer that was never loaded', async () => {
+    const { purchases, manager } = await started();
+
+    await expect(manager.purchase(monthlyOffer.handle)).rejects.toBeInstanceOf(
+      SubscriptionSessionChangedError,
+    );
+    expect(purchases.purchase).not.toHaveBeenCalled();
+  });
+
+  it("refuses account B's purchase of an offer account A loaded", async () => {
+    const { sessions, purchases, manager } = await started();
+    await manager.loadOffer();
+    sessions.becomeUser('account-b');
+    await manager.waitForPendingWork();
+
+    await expect(manager.purchase(monthlyOffer.handle)).rejects.toBeInstanceOf(
+      SubscriptionSessionChangedError,
+    );
+    expect(purchases.purchase).not.toHaveBeenCalled();
+  });
+
+  it('discards an offer that finishes loading after an account switch', async () => {
+    let finish!: (offer: SubscriptionOffer) => void;
+    const { sessions, purchases, manager } = await started({
+      loadMonthlyOffer: jest.fn(
+        () =>
+          new Promise<SubscriptionOffer>((resolve) => {
+            finish = resolve;
+          }),
+      ),
+    });
+
+    const loading = manager.loadOffer();
+    await Promise.resolve();
+    await Promise.resolve();
+    sessions.becomeUser('account-b');
+    finish(monthlyOffer);
+
+    await expect(loading).rejects.toBeInstanceOf(SubscriptionSessionChangedError);
+    await manager.waitForPendingWork();
+    await expect(manager.purchase(monthlyOffer.handle)).rejects.toBeInstanceOf(
+      SubscriptionSessionChangedError,
+    );
+    expect(purchases.purchase).not.toHaveBeenCalled();
+  });
+
+  it('discards a purchase result that crosses a session-generation change', async () => {
+    let finish!: () => void;
+    const { sessions, manager } = await started({
+      purchase: jest.fn(
+        () =>
+          new Promise((resolve) => {
+            finish = () =>
+              resolve({
+                kind: 'completed',
+                access: { isActive: true, expiresAt: null, productId: null, willRenew: true },
+              });
+          }),
+      ),
+    });
+    await manager.loadOffer();
+
+    const buying = manager.purchase(monthlyOffer.handle);
+    await Promise.resolve();
+    await Promise.resolve();
+    // Same account, new generation (a token refresh).
+    sessions.becomeUser('account-a');
+    finish();
+
+    await expect(buying).rejects.toBeInstanceOf(SubscriptionSessionChangedError);
+  });
+
+  it('carries the adapter classification and nothing else', async () => {
+    const { manager } = await started({
+      getAccess: jest.fn().mockRejectedValue(new PurchaseProviderFailure('network')),
+      openManagement: jest.fn().mockRejectedValue(rawProviderError()),
+    });
+
+    await expect(manager.getAccess()).rejects.toMatchObject({
+      name: 'SubscriptionProviderError',
+      operation: 'access',
+      reason: 'network',
+    });
+    const failure: unknown = await manager.openManagement().catch((error: unknown) => error);
+    expect(failure).toMatchObject({ operation: 'manage', reason: 'unknown' });
+    expect(exposedText(failure)).not.toContain('Leaked');
+  });
+
+  it('blocks every operation while signed out', async () => {
+    const { sessions, purchases, manager } = await started();
+    sessions.signOut();
+
+    await expect(manager.getAccess()).rejects.toBeInstanceOf(SubscriptionSessionChangedError);
+    await expect(manager.loadOffer()).rejects.toBeInstanceOf(SubscriptionSessionChangedError);
+    await expect(manager.openManagement()).rejects.toBeInstanceOf(SubscriptionSessionChangedError);
+    expect(purchases.getAccess).not.toHaveBeenCalled();
+    expect(purchases.openManagement).not.toHaveBeenCalled();
   });
 });

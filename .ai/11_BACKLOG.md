@@ -4443,7 +4443,7 @@ coverage than it has.
 
 ## [FEATURE-012] V1 Store Subscription and Entitlement
 
-Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3…S-6 unimplemented.**
+Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 in-repo candidate implemented 2026-09-30 and In Progress pending store/provider evidence; S-4…S-6 unimplemented.**
 Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
@@ -4461,9 +4461,11 @@ The repository now contains S-1's server-only, fail-closed entitlement mirror,
 minimal webhook ledger, signed/idempotent webhook ingestion, provider
 reconciliation, account-deletion hook and audit actions. S-2 adds the native
 SDK behind a provider-neutral port, session-scoped UUID identity, restore and
-account-switch handling. It still has no store product, provider account/key,
-paywall, entitlement enforcement or subscription copy. Consequently FEATURE-012
-remains a launch blocker and charging is not available.
+account-switch handling. S-3 adds the AppFitness-owned bilingual subscription
+screen: store-evidence offer, purchase, restore and management, all inert
+without keys. It still has no store product, provider account/key, entitlement
+enforcement or store-verified purchase. Consequently FEATURE-012 remains a
+launch blocker and charging is not available.
 
 ### Policy result and recommended architecture
 
@@ -4523,9 +4525,21 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
    identifier; direct UUID-to-UUID account switching without anonymous logout;
    restore/session-race and account-switch tests. No provider account/key was
    configured and no provider traffic was generated.
-3. **S-3 Paywall and account UX:** AppFitness design system, EN/ES, store price
-   and eligibility, subscribe/restore/manage/cancel states, accessibility,
-   light/dark and large-text verification. Acceptance note from S-2: any
+3. **S-3 Paywall and account UX — in-repo candidate implemented 2026-09-30;
+   In Progress until store evidence exists:** `/subscription` route and a
+   dashboard account entry; the current offering's monthly package normalized
+   to an opaque handle, the store-localized price string rendered verbatim and
+   a free trial shown only on store eligibility evidence (iOS eligibility API;
+   Google Play default-option free phase), otherwise ordinary paid terms;
+   purchase with cancelled (no error) and pending (never active) outcomes;
+   restore; iOS management sheet and Android https management URL; loading,
+   unavailable, Web-unavailable, offline, no-offer, error and neutral
+   session-changed retry states; 70 EN/ES keys. Remaining before S-3 can close:
+   Apple sandbox/TestFlight and Google Play test-track evidence that the offer,
+   trial eligibility, purchase, pending, restore and management behave as
+   rendered; UX-4C assistive-technology verification; counsel-approved
+   renewal/cancellation wording and store policy links (O-07, Decision 12).
+   Acceptance note from S-2: any
    session-generation change, including a same-account token refresh, cancels
    an in-flight restore with `SubscriptionSessionChangedError`; the UI must map
    it (and `SubscriptionProviderError`) to neutral retry copy and may retry

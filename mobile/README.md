@@ -23,6 +23,11 @@ the provider App User ID; it sends no email, username or health/fitness
 attributes. Real purchase validation requires a fresh native development/store
 build and store sandbox configuration—Expo Go is not evidence.
 
+The `/subscription` screen (S-3, dashboard entry "Subscription") renders the
+store offer, purchase, restore and management through that boundary. Without a
+matching key it shows that subscriptions are unavailable and never displays an
+offer; on Web it shows the ADR-P019 unavailable notice. It locks no feature.
+
 ---
 
 ## Stack (Phase 1 baseline)

@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.18
+Version: 1.19
 Status: Active
-Last Updated: 2026-09-28
+Last Updated: 2026-09-30
 
 ---
 
@@ -20,7 +20,8 @@ It covers, in order:
 3. the advisory first-run checklist approved by ADR-P027;
 4. the direct Food Log dashboard shortcut approved by ADR-P027; and
 5. the conflict-resolution family worded by ADR-P030 slice **C-5** and shipped
-   by slice **C-6**.
+   by slice **C-6**; and
+6. the subscription family worded and wired by ADR-P034 slice **S-3**.
 
 This document is a **specification**, not an implementation. A `PROPOSED` row
 authorizes copy for a later owning slice and does not make the key or behaviour
@@ -1510,6 +1511,180 @@ record labels and the 75 field labels.
   TalkBack, browser-AT, large-text and physical-device verification remain
   **UX-4C**, unrun. No live region and no announcement is prescribed
   (ADR-P024; `.ai/20_PROGRESS_NONVISUAL.md` R-13).
+
+---
+
+# Subscription — ADR-P034 slice S-3
+
+Worded and wired by the S-3 in-repo candidate on 2026-09-30 (base `356bebd`).
+The keys below exist in both catalogues and are rendered by `/subscription`
+and its dashboard entry; values are read from
+`mobile/src/shared/localization/resources/{en,es}.ts`. **SHIPPED here means
+present and wired in the candidate — not store-verified.** No purchase, trial,
+restore or management call has run against App Store, Google Play or
+RevenueCat, and the renewal, cancellation and charge wording remains a draft
+for Decision 12 counsel approval.
+
+## What this copy may and may not say
+
+- **Prices and trials come only from the store.** Every price is a
+  `{price}` substitution of the store-localized string, rendered verbatim;
+  no key contains a currency, an amount or a hardcoded `$5`. Trial wording
+  (`trial*`, `startTrial*`, `trialRenewalTerms`) is rendered only when the
+  normalized offer carries store trial-eligibility evidence; unknown
+  eligibility uses the ordinary paid keys. The trial length is one complete
+  phrase per unit and count form (`…One` / `…Many`), never a fragment.
+- **Honest renewal and cancellation.** Renewal is automatic until cancelled in
+  the store; the 24-hour cancellation lead time is stated; the charge names the
+  store account; account deletion does not cancel a store subscription
+  (Decision 9). No urgency, countdown, scarcity or discount framing.
+- **No outcome or medical claim.** Benefits describe product capabilities
+  only. The ownership line restates Decision 6: without an active entitlement
+  the user can still see what is already saved on the device.
+- **Outcomes are not states.** Purchased, restored and nothing-to-restore are
+  confirmations after an operation. Pending stays on screen for as long as the
+  store has not confirmed the purchase, never reads as active, and disables a
+  second purchase while Restore purchases stays available. A cancelled store
+  sheet renders nothing.
+- **Offline ≠ Error; session change ≠ failure.** A network failure loading the
+  offer is Offline (`warning`). A session-generation change is neutral retry
+  copy (`info`) that points to the one affordance present, Restore purchases.
+- **Web unavailable has no action** (ADR-P019 §5), and an unconfigured build
+  says plainly that subscriptions are unavailable, with no retry.
+
+## Dashboard entry — 2 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `dashboard.subscription` | Subscription | Suscripción | **SHIPPED** |
+| `dashboard.subscriptionAccessibility` | View your AppFitness Pro subscription | Ver tu suscripción a AppFitness Pro | **SHIPPED** |
+
+## Screen shell — 4 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.routeTitle` | Subscription | Suscripción | **SHIPPED** |
+| `subscription.title` | AppFitness Pro | AppFitness Pro | **SHIPPED** |
+| `subscription.subtitle` | Train, eat and track your progress with plans built from your own data. | Entrena, come y sigue tu progreso con planes creados a partir de tus propios datos. | **SHIPPED** |
+| `subscription.loadingAccessibility` | Loading subscription | Cargando suscripción | **SHIPPED** |
+
+## Benefits and ownership — 5 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.benefitsTitle` | What's included | Qué incluye | **SHIPPED** |
+| `subscription.benefitTracking` | Log workouts, meals and body progress | Registra entrenamientos, comidas y progreso corporal | **SHIPPED** |
+| `subscription.benefitPlans` | Get new workout routines and meal plans from iCoach | Recibe nuevas rutinas de entrenamiento y planes de comidas de iCoach | **SHIPPED** |
+| `subscription.benefitSync` | Keep your records backed up and in sync across your devices | Mantén tus registros respaldados y sincronizados entre tus dispositivos | **SHIPPED** |
+| `subscription.ownership` | Your records stay yours. Without an active subscription you can still see what's already saved on this device. | Tus registros siguen siendo tuyos. Sin una suscripción activa, puedes seguir viendo lo que ya está guardado en este dispositivo. | **SHIPPED** |
+
+## Offer — price and trial — 10 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.pricePerMonth` | {price} per month | {price} al mes | **SHIPPED** |
+| `subscription.thenPricePerMonth` | Then {price} per month | Después, {price} al mes | **SHIPPED** |
+| `subscription.trialDaysOne` | {count} day free | {count} día gratis | **SHIPPED** |
+| `subscription.trialDaysMany` | {count} days free | {count} días gratis | **SHIPPED** |
+| `subscription.trialWeeksOne` | {count} week free | {count} semana gratis | **SHIPPED** |
+| `subscription.trialWeeksMany` | {count} weeks free | {count} semanas gratis | **SHIPPED** |
+| `subscription.trialMonthsOne` | {count} month free | {count} mes gratis | **SHIPPED** |
+| `subscription.trialMonthsMany` | {count} months free | {count} meses gratis | **SHIPPED** |
+| `subscription.trialYearsOne` | {count} year free | {count} año gratis | **SHIPPED** |
+| `subscription.trialYearsMany` | {count} years free | {count} años gratis | **SHIPPED** |
+
+## Offer — actions — 4 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.subscribe` | Subscribe | Suscribirme | **SHIPPED** |
+| `subscription.subscribeAccessibility` | Subscribe to AppFitness Pro for {price} per month | Suscribirme a AppFitness Pro por {price} al mes | **SHIPPED** |
+| `subscription.startTrial` | Start free trial | Comenzar prueba gratis | **SHIPPED** |
+| `subscription.startTrialAccessibility` | Start the AppFitness Pro free trial, then {price} per month | Comenzar la prueba gratis de AppFitness Pro; después, {price} al mes | **SHIPPED** |
+
+## Disclosures — 5 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.renewalTerms` | Renews automatically each month at {price} until you cancel. Cancel at least 24 hours before the renewal date to avoid the next charge. | Se renueva automáticamente cada mes por {price} hasta que la canceles. Cancela al menos 24 horas antes de la fecha de renovación para evitar el siguiente cargo. | **SHIPPED** |
+| `subscription.trialRenewalTerms` | When the free trial ends, it renews automatically each month at {price} until you cancel. Cancel at least 24 hours before the trial ends and you won't be charged. | Al terminar la prueba gratis, se renueva automáticamente cada mes por {price} hasta que la canceles. Cancela al menos 24 horas antes de que termine la prueba y no se te cobrará. | **SHIPPED** |
+| `subscription.chargeTermsApple` | Payment is charged to your Apple Account. Manage or cancel anytime in your App Store account settings. | El pago se carga a tu cuenta de Apple. Administra o cancela cuando quieras en la configuración de tu cuenta del App Store. | **SHIPPED** |
+| `subscription.chargeTermsGoogle` | Payment is charged to your Google Play account. Manage or cancel anytime in your Google Play subscriptions. | El pago se carga a tu cuenta de Google Play. Administra o cancela cuando quieras en tus suscripciones de Google Play. | **SHIPPED** |
+| `subscription.deletionTerms` | Deleting your AppFitness account doesn't cancel a store subscription. Cancel it in the store first. | Eliminar tu cuenta de AppFitness no cancela una suscripción de la tienda. Cancélala primero en la tienda. | **SHIPPED** |
+
+## Account actions — 6 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.restore` | Restore purchases | Restaurar compras | **SHIPPED** |
+| `subscription.restoreAccessibility` | Restore subscriptions bought with this store account | Restaurar suscripciones compradas con esta cuenta de la tienda | **SHIPPED** |
+| `subscription.manage` | Manage subscription | Administrar suscripción | **SHIPPED** |
+| `subscription.manageAccessibility` | Manage or cancel your subscription in the store | Administrar o cancelar tu suscripción en la tienda | **SHIPPED** |
+| `subscription.retry` | Try again | Intentar de nuevo | **SHIPPED** |
+| `subscription.retryAccessibility` | Try loading your subscription again | Intentar cargar tu suscripción de nuevo | **SHIPPED** |
+
+## Active status — 4 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.activeTitle` | AppFitness Pro is active | AppFitness Pro está activo | **SHIPPED** |
+| `subscription.activeRenewsOn` | Renews on {date} | Se renueva el {date} | **SHIPPED** |
+| `subscription.activeEndsOn` | Access continues until {date}. It won't renew. | El acceso continúa hasta el {date}. No se renovará. | **SHIPPED** |
+| `subscription.activeNoDate` | Your subscription is active on this account. | Tu suscripción está activa en esta cuenta. | **SHIPPED** |
+
+## Outcomes (not canonical states) — 8 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.purchasedTitle` | Welcome to AppFitness Pro | Te damos la bienvenida a AppFitness Pro | **SHIPPED** |
+| `subscription.purchasedBody` | Thanks for subscribing. Your subscription is now active. | Gracias por suscribirte. Tu suscripción ya está activa. | **SHIPPED** |
+| `subscription.pendingTitle` | Purchase pending | Compra pendiente | **SHIPPED** |
+| `subscription.pendingBody` | The store hasn't confirmed this purchase yet. Your subscription activates once it does. | La tienda aún no ha confirmado esta compra. Tu suscripción se activará cuando lo haga. | **SHIPPED** |
+| `subscription.restoredTitle` | Purchases restored | Compras restauradas | **SHIPPED** |
+| `subscription.restoredBody` | Your AppFitness Pro subscription is active on this account. | Tu suscripción a AppFitness Pro está activa en esta cuenta. | **SHIPPED** |
+| `subscription.nothingToRestoreTitle` | No active subscription found | No se encontró una suscripción activa | **SHIPPED** |
+| `subscription.nothingToRestoreBody` | This store account has no active AppFitness Pro subscription to restore. | Esta cuenta de la tienda no tiene una suscripción activa a AppFitness Pro para restaurar. | **SHIPPED** |
+
+## Surface states — 10 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.webUnavailableTitle` | Subscriptions aren't available on the web | Las suscripciones no están disponibles en la web | **SHIPPED** |
+| `subscription.webUnavailableBody` | Use the AppFitness mobile app to subscribe, restore purchases or manage your subscription. | Usa la app móvil de AppFitness para suscribirte, restaurar compras o administrar tu suscripción. | **SHIPPED** |
+| `subscription.unavailableTitle` | Subscriptions aren't available in this version | Las suscripciones no están disponibles en esta versión | **SHIPPED** |
+| `subscription.unavailableBody` | You can keep using AppFitness as usual. | Puedes seguir usando AppFitness como siempre. | **SHIPPED** |
+| `subscription.noOfferTitle` | No subscription option is available right now | No hay una opción de suscripción disponible en este momento | **SHIPPED** |
+| `subscription.noOfferBody` | The store didn't return a subscription option. Try again later. | La tienda no devolvió una opción de suscripción. Inténtalo más tarde. | **SHIPPED** |
+| `subscription.errorTitle` | We couldn't load your subscription | No pudimos cargar tu suscripción | **SHIPPED** |
+| `subscription.errorBody` | Something went wrong. Try again in a moment. | Algo salió mal. Inténtalo de nuevo en un momento. | **SHIPPED** |
+| `subscription.offlineTitle` | You're offline | Estás sin conexión | **SHIPPED** |
+| `subscription.offlineBody` | Connect to the internet to see subscription options. The rest of AppFitness keeps working offline. | Conéctate a internet para ver las opciones de suscripción. El resto de AppFitness sigue funcionando sin conexión. | **SHIPPED** |
+
+## Operation failures and neutral retry — 12 keys
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.networkTitle` | No connection | Sin conexión | **SHIPPED** |
+| `subscription.networkBody` | Check your connection and try again. | Revisa tu conexión e inténtalo de nuevo. | **SHIPPED** |
+| `subscription.purchaseFailedTitle` | The purchase didn't go through | La compra no se completó | **SHIPPED** |
+| `subscription.purchaseFailedBody` | Try again. If it keeps happening, check your store account. | Inténtalo de nuevo. Si sigue ocurriendo, revisa tu cuenta de la tienda. | **SHIPPED** |
+| `subscription.purchaseNotAllowedTitle` | Purchases aren't allowed | Las compras no están permitidas | **SHIPPED** |
+| `subscription.purchaseNotAllowedBody` | This device or store account restricts purchases. Check your store settings. | Este dispositivo o cuenta de la tienda restringe las compras. Revisa la configuración de la tienda. | **SHIPPED** |
+| `subscription.restoreFailedTitle` | We couldn't restore purchases | No pudimos restaurar las compras | **SHIPPED** |
+| `subscription.restoreFailedBody` | Try again in a moment. | Inténtalo de nuevo en un momento. | **SHIPPED** |
+| `subscription.manageFailedTitle` | We couldn't open subscription settings | No pudimos abrir la configuración de la suscripción | **SHIPPED** |
+| `subscription.manageFailedBody` | You can also manage your subscription in your store account settings. | También puedes administrar tu suscripción en la configuración de tu cuenta de la tienda. | **SHIPPED** |
+| `subscription.sessionChangedTitle` | Please try again | Inténtalo de nuevo | **SHIPPED** |
+| `subscription.sessionChangedBody` | Your session changed while this was in progress. If you already completed a purchase, Restore purchases brings it back. | Tu sesión cambió mientras esto estaba en curso. Si ya completaste una compra, Restaurar compras la recupera. | **SHIPPED** |
+
+## Family total and catalogue arithmetic
+
+- `subscription.*`: **68** keys; dashboard entry: **2** keys;
+  **70** added in EN and ES with identical key sets.
+- The catalogues held **1068** keys each before S-3 and hold **1138** each
+  after it, asserted by `conflict-catalogue.spec.ts`.
+- Every substitution token appears on both sides of every key, and every key is
+  referenced literally by production source (`surface-coverage.spec.ts`).
 
 ---
 

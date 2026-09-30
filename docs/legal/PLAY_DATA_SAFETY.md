@@ -7,7 +7,7 @@
 > Nothing in this draft authorizes a Console answer or store submission.
 
 Last technically updated: 2026-09-30 · Status: Draft · Evidence baseline
-`f995dec` plus the FEATURE-012 S-2 candidate · App state: public-v1
+`356bebd` plus the FEATURE-012 S-3 candidate · App state: public-v1
 Phase 21 wellness product.
 
 ## Global technical answers
@@ -26,8 +26,10 @@ Phase 21 wellness product.
 - **Subscriptions:** S-1's disabled-by-default server entitlement mirror,
   signed webhook/reconciliation adapter and deletion hook are implemented. S-2
   installs a lazy native SDK boundary that uses only the authenticated account
-  UUID and remains inert without platform public keys. The purchase flow,
-  enforcement and external provider configuration do not exist yet. Final Data
+  UUID and remains inert without platform public keys. S-3 adds the in-app
+  subscription screen and store purchase, restore and management calls behind
+  the same boundary; it stores no new field in AppFitness. Enforcement,
+  store products and external provider configuration do not exist yet. Final Data
   Safety answers must be re-derived from the complete release binary and
   provider agreement.
 - **Final “shared” answers:** `[PLACEHOLDER — qualified review must classify

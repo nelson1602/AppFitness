@@ -240,7 +240,7 @@ not outrank launch blockers.**
 
 | Item | Status | Impact |
 |---|---|---|
-| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1/S-2 IMPLEMENTED** | ADR-P034's fail-closed server foundation and session-scoped native adapter now ship. The SDK stays inert without platform public keys; no account, product or provider traffic exists. S-3…S-6 remain: paywall, enforcement, store products/accounts, sandbox evidence and legal closure. Blocks the paid-v1 contract. |
+| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1/S-2 IMPLEMENTED; S-3 IN-REPO CANDIDATE** | ADR-P034's fail-closed server foundation, session-scoped native adapter and bilingual subscription screen exist. The SDK stays inert without platform public keys; no account, product, purchase or provider traffic exists, and the screen is not store-verified. Remaining: S-3 store/AT evidence, S-4 enforcement, store products/accounts, sandbox evidence and legal closure. Blocks the paid-v1 contract. |
 | Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
 | App Store Connect / Play Console privacy forms, policy URLs, listing assets | **BLOCKED-OWNER** | Blocks submission. The provisional form mapping is in `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`; it is not approved for entry. |
 | External Web account-deletion request | **UNVERIFIED — V1 gate** | Google requires a functional external request resource in addition to in-app deletion. `https://account.appfitnessrd.com/delete-account` returned 200 and rendered the AppFitnessRD deletion surface on 2026-09-29; the signed-out end-to-end journey and live-policy compliance are not verified. |
@@ -306,9 +306,11 @@ copy the deck does not contain.
   initial market. **ADR-P034 was Accepted 2026-09-29** with RevenueCat as the
   shared entitlement layer, a post-trial read-only boundary and a maximum
   three-day offline entitlement window. S-1's server code, schema and migration
-  are implemented but remain inert by default. Legal/DPA review and
-  external-account acceptance remain separate; no native dependency, store
-  product, provider account/secret, paywall or access enforcement exists yet.
+  are implemented but remain inert by default; S-2's native adapter and S-3's
+  subscription screen are likewise inert without platform public keys.
+  Legal/DPA review and external-account acceptance remain separate; no store
+  product, provider account/key/secret, live purchase or access enforcement
+  exists yet.
 - Azul is not selected for native mobile checkout. It remains only a future
   candidate for a policy-permitted Web or physical-service flow under a separate
   decision.
@@ -409,8 +411,10 @@ angles — coverage, then quality.
 4. `in-repo` — Deliver FEATURE-012 slices S-1…S-4. **S-1 and S-2 done
    2026-09-30:** S-1 delivered the fail-closed server mirror/webhook and S-2
    delivered the lazy, session-scoped native purchase adapter. No external
-   provider or store configuration is active. Continue with S-3 paywall/account
-   UX and S-4 server-enforced access boundary.
+   provider or store configuration is active. **S-3 in-repo candidate
+   2026-09-30:** the bilingual subscription screen; it stays In Progress until
+   store and assistive-technology evidence exist. Continue with S-4
+   server-enforced access boundary.
 5. `owner` + `external` — Configure Apple/Google products and the one-month
    introductory offer; run sandbox/TestFlight/Play-track lifecycle evidence;
    complete subscription-specific legal/provider/store review (S-5/S-6).
