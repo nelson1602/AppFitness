@@ -32,6 +32,7 @@
     "react-hook-form": "^7.81.0",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "~2.32.0",
+    "react-native-purchases": "10.10.2",
     "react-native-reanimated": "4.5.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
@@ -100,6 +101,9 @@
       "src/features/authentication/application/**/*.ts",
       "src/features/authentication/infrastructure/**/*.ts",
       "src/features/authentication/presentation/**/*.ts",
+      "src/features/subscriptions/application/**/*.ts",
+      "src/features/subscriptions/infrastructure/**/*.ts",
+      "src/features/subscriptions/subscription-runtime.ts",
       "src/features/profile/infrastructure/**/*.ts",
       "src/features/medical/infrastructure/**/*.ts",
       "src/features/medical/application/evaluation.store.ts",
@@ -212,6 +216,24 @@
         "branches": 70
       },
       "src/features/nutrition/domain/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 90
+      },
+      "src/features/subscriptions/application/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 90
+      },
+      "src/features/subscriptions/infrastructure/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 90
+      },
+      "src/features/subscriptions/subscription-runtime.ts": {
         "statements": 95,
         "lines": 95,
         "functions": 95,

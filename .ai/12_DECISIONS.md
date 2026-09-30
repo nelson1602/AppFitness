@@ -14093,8 +14093,17 @@ cannot execute real purchases.
 4. **Account identity and minimization.** The authenticated AppFitness user UUID
    is the RevenueCat App User ID. Never send email, username, health, wellness,
    nutrition, workout or progress attributes. Configure/login only after a
-   session is established; logout/reset on account switch. Public SDK keys may
-   be present in the client; secret keys live only in managed server secrets.
+   session is established. Provider identity is custom-ID-only: an
+   authenticated account switch A→B calls `logIn(B)` directly, which resets
+   provider ownership to B; SDK `logOut()` is prohibited because it creates an
+   anonymous RevenueCat identity. Sign-out immediately closes the AppFitness
+   purchase-operation boundary; the SDK may retain the last provider identity
+   and cache until another authenticated account is aligned or the process
+   ends, but no AppFitness purchase operation is reachable while signed out.
+   Public SDK keys may be present in the client; secret keys live only in
+   managed server secrets. *(Wording clarified 2026-09-30 at owner direction
+   during S-2 review, replacing "logout/reset on account switch"; the account
+   isolation intent is unchanged.)*
 
 5. **Server authorization remains mandatory.** A client entitlement is UX
    evidence, never authority for protected API mutations. RevenueCat webhooks
@@ -14237,10 +14246,46 @@ This record does not advance S-2…S-6: no mobile SDK, product/offering, paywall
 write enforcement, provider account, secret, external agreement, store-console
 configuration, sandbox purchase or legal approval exists yet.
 
+### Implementation record — S-2 native purchase adapter (2026-09-30)
+
+The second separately reviewed slice implements Decision 4's mobile boundary
+without activating a commercial or external-provider path:
+
+- `react-native-purchases` 10.10.2 is isolated behind an AppFitness port and is
+  loaded dynamically only after a native iOS/Android build has both a valid
+  platform public key and an authenticated session;
+- missing keys, Web and unsupported native platforms stay inert. A key with the
+  wrong store prefix fails closed. The stable entitlement remains
+  `appfitness_pro`; no price, trial, product or offering is hardcoded;
+- initial configuration receives only the authenticated AppFitness account UUID
+  as App User ID. The boundary exposes no email, username, profile, health,
+  wellness, nutrition, workout or progress attributes;
+- account A to account B uses RevenueCat `logIn(B)` directly. SDK `logOut()` is
+  deliberately not called because it creates an anonymous provider identity;
+  sign-out instead revokes the local operation boundary, and a later session is
+  aligned before any purchase operation;
+- restore is exposed for S-3 as an explicit user action. Identity transitions
+  and restores share one serialized boundary, and a result crossing sign-out or
+  account replacement is discarded;
+- configure, login and restore failures are replaced at the application
+  boundary by a provider-neutral `SubscriptionProviderError` carrying generic
+  wording and only an allow-listed operation (`configure`/`logIn`/`restore`);
+  the raw SDK error, message and payload are dropped before reaching the caller
+  or the dev-only logger, and a failure does not poison the identity queue.
+  Tests cover initial authentication, switching,
+  sign-out/re-entry, missing and malformed configuration, restore, session
+  races, entitlement normalization and the prohibited attribute/logout
+  surface.
+
+No RevenueCat account, public key, secret, product/offering, paywall, provider
+request, StoreKit/Play transaction or sandbox purchase was created. S-3…S-6
+remain unimplemented. The dependency requires a new native build; Expo Go and a
+JavaScript export are not purchase verification.
+
 ### Related documents
 
 - `.ai/11_BACKLOG.md` — FEATURE-012
-- `.ai/02_TECH_STACK.md` — no purchase dependency is approved yet
+- `.ai/02_TECH_STACK.md` — approved purchase dependency and activation boundary
 - `.ai/05_SECURITY.md` — payments/identifiers are sensitive; secrets stay server-side
 - `.ai/06_MOBILE.md` — native rebuild and offline-first boundary
 - `docs/legal/LEGAL_APPROVAL_HANDOFF.md` — owner facts and counsel gates
