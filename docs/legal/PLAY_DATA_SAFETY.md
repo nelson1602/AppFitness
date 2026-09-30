@@ -7,7 +7,7 @@
 > Nothing in this draft authorizes a Console answer or store submission.
 
 Last technically updated: 2026-09-30 · Status: Draft · Evidence baseline
-`0e3c4f6` plus the FEATURE-012 S-1 candidate · App state: public-v1
+`f995dec` plus the FEATURE-012 S-2 candidate · App state: public-v1
 Phase 21 wellness product.
 
 ## Global technical answers
@@ -24,10 +24,12 @@ Phase 21 wellness product.
 - **Advertising/analytics:** no advertising SDK or third-party analytics SDK is
   integrated.
 - **Subscriptions:** S-1's disabled-by-default server entitlement mirror,
-  signed webhook/reconciliation adapter and deletion hook are implemented. The
-  native SDK, purchase flow, enforcement and external provider configuration do
-  not exist yet. Final Data Safety answers must be re-derived from the complete
-  release binary and provider agreement.
+  signed webhook/reconciliation adapter and deletion hook are implemented. S-2
+  installs a lazy native SDK boundary that uses only the authenticated account
+  UUID and remains inert without platform public keys. The purchase flow,
+  enforcement and external provider configuration do not exist yet. Final Data
+  Safety answers must be re-derived from the complete release binary and
+  provider agreement.
 - **Final “shared” answers:** `[PLACEHOLDER — qualified review must classify
 each service relationship under the live Play definitions. This engineering
 inventory does not decide that legal/policy classification.]`
@@ -95,7 +97,8 @@ storage, access control, or platform protections.
    signed-out journey and compliance with Google's discoverability/completion
    rules remain unverified.
 7. **Subscription reconciliation:** S-1's entitlement, event-minimization and
-   provider-first deletion facts are recorded. Add S-2…S-5 purchase behavior
+   provider-first deletion facts plus S-2's inert UUID-only native adapter are
+   recorded. Add S-3…S-5 purchase behavior
    and the provider agreement's sharing/processing facts from the exact release
    binary before submission.
 8. **Published privacy-policy URL and owner approval:** neither is supplied by

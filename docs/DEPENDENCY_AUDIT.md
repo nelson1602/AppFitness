@@ -3,9 +3,10 @@
 Deterministic dependency-audit policy for CI (`10_DEPLOYMENT.md` CI
 pipeline / Release Checklist "Security audit reviewed").
 
-Last reviewed: **2026-09-21** (Phase 21 candidate — refreshed against
-`11f92d2`; **18 new HIGH advisories triaged, none remediated**, see below) ·
-Previous review: 2026-08-05 (Phase 20 Slice 3, against `9da7482`) · Owner: Eng
+Last reviewed: **2026-09-30** (FEATURE-012 S-2 candidate based on `f995dec`;
+**13 HIGH advisories triaged, none introduced by RevenueCat and none
+remediated**, see below) · Previous review: 2026-09-21 (Phase 21 candidate,
+against `11f92d2`) · Owner: Eng
 (rotate per release)
 
 ## Policy
@@ -143,6 +144,29 @@ evidence captured on the current SDK.
 The narrow, defensible action is the `qs` fix alone. Everything else is recorded
 here as an accepted, evidence-backed exception until an upgrade is separately
 authorized.
+
+## Refresh 2026-09-30 (FEATURE-012 S-2 candidate, base `f995dec`)
+
+S-2 adds `react-native-purchases` 10.10.2 and its three pinned RevenueCat
+packages. Both lockfiles were re-audited because the release register requires
+a refresh whenever a lockfile moves materially:
+
+| Package | critical | high | moderate | low | total | vs 2026-09-21 |
+|---|---|---|---|---|---|---|
+| **api** | 0 | **9** | 1 | 0 | **10** | was 0 / 11 / 1 / 0 |
+| **mobile** | 0 | **4** | 15 | 0 | **19** | was 0 / 7 / 15 / 0 |
+
+The deterministic critical-only CI gate remains green. No RevenueCat package
+appears in the affected-package set; the mobile findings remain the same Expo
+build/prebuild/tooling families already classified above (`@xmldom/xmldom`,
+`brace-expansion`, `image-size`, `js-yaml` and the Expo/config chains), plus the
+previous moderate transitive families. API findings remain in the already
+classified Nest/Prisma tooling chains plus the reachable moderate `qs` item.
+
+The lower HIGH counts reflect the current lockfiles and current npm advisory
+database; no `npm audit fix`, dependency override or unrelated package change
+was applied in S-2. The accepted dispositions and `RISK-002` recommendation
+remain unchanged. Re-run this evidence against the final native release lockfile.
 
 ## Review cadence
 

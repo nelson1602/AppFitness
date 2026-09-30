@@ -4443,7 +4443,7 @@ coverage than it has.
 
 ## [FEATURE-012] V1 Store Subscription and Entitlement
 
-Status: **In Progress — S-1 implemented 2026-09-30; S-2…S-6 unimplemented.**
+Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3…S-6 unimplemented.**
 Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
@@ -4459,10 +4459,11 @@ is the Dominican Republic.
 
 The repository now contains S-1's server-only, fail-closed entitlement mirror,
 minimal webhook ledger, signed/idempotent webhook ingestion, provider
-reconciliation, account-deletion hook and audit actions. It still has no native
-purchase dependency, store product, provider account/secret, paywall,
-entitlement enforcement or subscription copy. Consequently FEATURE-012 remains
-a launch blocker and charging is not available.
+reconciliation, account-deletion hook and audit actions. S-2 adds the native
+SDK behind a provider-neutral port, session-scoped UUID identity, restore and
+account-switch handling. It still has no store product, provider account/key,
+paywall, entitlement enforcement or subscription copy. Consequently FEATURE-012
+remains a launch blocker and charging is not available.
 
 ### Policy result and recommended architecture
 
@@ -4516,12 +4517,20 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
    ingestion, provider-authoritative reconciliation (including both sides of a
    transfer), deletion and audit. Provider mode defaults to `disabled`; no
    external account, secret or live webhook was configured.
-2. **S-2 Native purchase adapter:** minimal SDK integration behind a port;
-   authenticated account UUID as the app-user identifier; no email or health
-   attributes sent; restore and account-switch tests.
+2. **S-2 Native purchase adapter — implemented 2026-09-30:**
+   `react-native-purchases` 10.10.2 behind a port; lazy loading and an inert
+   missing-key default; authenticated account UUID as the only provider user
+   identifier; direct UUID-to-UUID account switching without anonymous logout;
+   restore/session-race and account-switch tests. No provider account/key was
+   configured and no provider traffic was generated.
 3. **S-3 Paywall and account UX:** AppFitness design system, EN/ES, store price
    and eligibility, subscribe/restore/manage/cancel states, accessibility,
-   light/dark and large-text verification.
+   light/dark and large-text verification. Acceptance note from S-2: any
+   session-generation change, including a same-account token refresh, cancels
+   an in-flight restore with `SubscriptionSessionChangedError`; the UI must map
+   it (and `SubscriptionProviderError`) to neutral retry copy and may retry
+   only after the session stabilizes. S-2's generation checks must not be
+   weakened to avoid this.
 4. **S-4 Entitlement enforcement:** server-side authorization plus the accepted
    offline/read-only boundary; a modified client cannot unlock paid writes.
 5. **S-5 Store sandbox and release evidence:** Apple/Google trial, renewal,

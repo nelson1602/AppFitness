@@ -240,7 +240,7 @@ not outrank launch blockers.**
 
 | Item | Status | Impact |
 |---|---|---|
-| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1 IMPLEMENTED** | ADR-P034's fail-closed server foundation now includes durable entitlement/webhook state, signed idempotent ingestion, reconciliation and provider-first deletion. S-2…S-6 remain: native SDK, paywall, enforcement, store products/accounts, sandbox evidence and legal closure. Blocks the paid-v1 contract. |
+| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1/S-2 IMPLEMENTED** | ADR-P034's fail-closed server foundation and session-scoped native adapter now ship. The SDK stays inert without platform public keys; no account, product or provider traffic exists. S-3…S-6 remain: paywall, enforcement, store products/accounts, sandbox evidence and legal closure. Blocks the paid-v1 contract. |
 | Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
 | App Store Connect / Play Console privacy forms, policy URLs, listing assets | **BLOCKED-OWNER** | Blocks submission. The provisional form mapping is in `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`; it is not approved for entry. |
 | External Web account-deletion request | **UNVERIFIED — V1 gate** | Google requires a functional external request resource in addition to in-app deletion. `https://account.appfitnessrd.com/delete-account` returned 200 and rendered the AppFitnessRD deletion surface on 2026-09-29; the signed-out end-to-end journey and live-policy compliance are not verified. |
@@ -249,7 +249,7 @@ not outrank launch blockers.**
 | Universal / App Links + native rebuild | **NOT STARTED** | Emailed links open the Web portal, not the app. |
 | Privacy-contact mailbox receipt | **PASS — OWNER CONFIRMED 2026-09-29** | `privacy@appfitnessrd.com` receives mail. Reconfirm only if routing changes before release. |
 | Production backups / PITR | **WAIVED** (owner-accepted) | Data-loss risk explicitly accepted for v1; no restore test exists. |
-| Dependency-audit triage currency | **STALE** | Triage predates several lockfile changes; must be refreshed. |
+| Dependency-audit triage currency | **PASS — REFRESHED 2026-09-30** | API: 0 critical / 9 high / 1 moderate; mobile after S-2: 0 critical / 4 high / 15 moderate. No RevenueCat package is affected; existing Expo/Nest/Prisma-tooling dispositions and reachable moderate `qs` risk remain recorded in `docs/DEPENDENCY_AUDIT.md`. Re-run on the final release lockfiles. |
 | Cloud E2E currency (E1) | **PASS** | Runs `35597775166` and `35600746413` (post-merge), 2026-09-21, all eleven flows green on the Phase 21 candidate. |
 | Rollback dry-run | **BLOCKED-OWNER** | Untested runbook is an unproven recovery path. |
 | Production log / monitoring review | **PENDING-HUMAN** | Required by the deployment checklist. |
@@ -406,10 +406,11 @@ angles — coverage, then quality.
 3. ~~`owner` — Accept/reject **ADR-P034 option 1 (RevenueCat)**, accept/replace
    the recommended post-trial read-only boundary, and approve bounded offline
    entitlement semantics.~~ **Done 2026-09-29 — accepted as drafted.**
-4. `in-repo` — Deliver FEATURE-012 slices S-1…S-4. **S-1 done 2026-09-30:**
-   durable entitlement state, signed/idempotent ingestion, reconciliation and
-   deletion. Remaining: minimal native adapter, AppFitness EN/ES
-   paywall/restore/manage UX, and server-side enforcement.
+4. `in-repo` — Deliver FEATURE-012 slices S-1…S-4. **S-1 and S-2 done
+   2026-09-30:** S-1 delivered the fail-closed server mirror/webhook and S-2
+   delivered the lazy, session-scoped native purchase adapter. No external
+   provider or store configuration is active. Continue with S-3 paywall/account
+   UX and S-4 server-enforced access boundary.
 5. `owner` + `external` — Configure Apple/Google products and the one-month
    introductory offer; run sandbox/TestFlight/Play-track lifecycle evidence;
    complete subscription-specific legal/provider/store review (S-5/S-6).

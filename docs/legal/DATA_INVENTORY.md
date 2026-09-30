@@ -7,11 +7,12 @@
 > evidence; legal classifications and obligations remain external decisions.
 
 Last technically updated: 2026-09-30 · Status: Draft · Evidence baseline
-`0e3c4f6` plus the FEATURE-012 S-1 candidate · App state: public-v1 Phase 21 wellness product. Habits,
+`f995dec` plus the FEATURE-012 S-2 candidate · App state: public-v1 Phase 21 wellness product. Habits,
 notifications, supplement education, and mobile/Web feature parity are not
 implemented. A store subscription is required for v1; its fail-closed server
-foundation is implemented, while native purchasing, enforcement and provider
-configuration are not. Azul is not selected for native checkout.
+foundation and an inert native adapter are implemented, while purchase UX,
+enforcement and provider configuration are not. Azul is not selected for native
+checkout.
 
 ## Scope and evidence
 
@@ -71,7 +72,7 @@ protections remain in force. Dormancy is not deletion or reclassification.
 | Postmark           | transactional email recipient, locale-derived message, and recovery/verification link                                                                                     | HTTPS REST transport; open/link tracking recorded disabled in deployment evidence                                                                                                            |
 | Cloudflare portals | account/recovery/verification static Web surfaces and ordinary request metadata                                                                                           | hosted outside this repository; environment-specific API origin allow-lists                                                                                                                  |
 | Sentry             | scrubbed crash/error events from configured builds                                                                                                                        | TLS, `sendDefaultPii: false`, repository `beforeSend`/`beforeBreadcrumb` scrubbers; candidate re-verification pending                                                                        |
-| RevenueCat         | AppFitness account UUID plus purchase/entitlement lifecycle needed for store billing reconciliation and customer deletion                                                | server adapter and signed webhook implemented but disabled; no account/secret/live traffic yet; no email, username or health profile attributes                                               |
+| RevenueCat         | AppFitness account UUID plus purchase/entitlement lifecycle needed for store billing reconciliation and customer deletion                                                | server adapter and native SDK boundary implemented but disabled; native module is lazy without public keys; no account/secret/live traffic yet; no email, username or health profile attributes |
 
 ## Field and payload encryption boundaries
 
@@ -103,8 +104,13 @@ protections remain in force. Dormancy is not deletion or reclassification.
 - Sentry provides error monitoring for configured environments.
 - RevenueCat is the accepted subscription processor. S-1 can query normalized
   entitlement state, receive authenticated/signed lifecycle events and request
-  provider-customer deletion, but provider mode remains disabled until the
-  external account, agreements and separate secrets are approved.
+  provider-customer deletion. S-2 adds a native adapter that supplies only the
+  authenticated account UUID and stays inert without its platform public key.
+  It never creates an anonymous provider identity. After sign-out the on-device
+  SDK may retain the last account UUID and entitlement cache until another
+  account signs in or the app process ends, but no purchase operation is
+  reachable while signed out. Both provider paths remain disabled until the external account, agreements
+  and separate configuration are approved.
 - No advertising or third-party analytics SDK is integrated.
 
 `[PLACEHOLDER — qualified legal review must classify service-provider roles,
@@ -148,8 +154,9 @@ implemented immediate irreversible deletion model.]`
   identifier, ad SDK, or analytics SDK.
 - No full card/bank data, raw store receipt or full RevenueCat webhook payload
   is collected or retained. S-1 stores only the minimum normalized
-  store/entitlement lifecycle fields and event-id/hash metadata. Native purchase
-  collection and provider traffic remain unimplemented/unconfigured.
+  store/entitlement lifecycle fields and event-id/hash metadata. The native
+  adapter is implemented but purchase collection and provider traffic remain
+  unconfigured and unverified.
 - No habit-tracking or notification-preference data; those phases are post-v1.
 - No supplement recommendation, dosage, product/brand, or interaction data.
 - No browser-persistent fitness/wellness database and no current Web/mobile

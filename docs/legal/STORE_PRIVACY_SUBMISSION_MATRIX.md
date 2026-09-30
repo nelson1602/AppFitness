@@ -6,7 +6,7 @@
 > product facts and proposed mappings, not final legal answers.
 
 Prepared: 2026-09-29 · Technically refreshed: 2026-09-30 · Repository baseline:
-`0e3c4f6` plus the FEATURE-012 S-1 candidate · Related inventory:
+`f995dec` plus the FEATURE-012 S-2 candidate · Related inventory:
 `DATA_INVENTORY.md`.
 
 ## Apple App Privacy — proposed technical mapping
@@ -29,7 +29,9 @@ Current-code exclusions requiring final binary verification: full card/bank
 information, precise/coarse location, contacts, photos/videos, audio,
 browsing/search history, advertising data, and tracking across companies.
 S-1 can process an AppFitness UUID and normalized entitlement/event metadata
-when enabled, but no native purchase SDK exists yet. The final purchase answers
+when enabled. S-2 installs a lazy native SDK boundary that is inert without a
+platform public key and is contractually limited to the account UUID; no live
+provider request has occurred. The final purchase answers
 must reflect only what the completed release binary and provider agreement
 actually process; AppFitnessRD should not receive full card/bank details.
 
@@ -65,8 +67,8 @@ service-provider exception or must be declared as sharing.
 ## Subscription disclosure gate
 
 The owner selected a one-month free trial followed by an auto-renewing monthly
-subscription with a target base price of US$5. Only S-1's inert server
-foundation is implemented. Before console submission this matrix must be
+subscription with a target base price of US$5. S-1's inert server foundation
+and S-2's inert native boundary are implemented. Before console submission this matrix must be
 extended from the completed release binary and approved provider contract to cover purchase history,
 subscription/entitlement identifiers, trial/renewal state, the store/provider
 roles, data association with the AppFitnessRD account, retention, deletion, and

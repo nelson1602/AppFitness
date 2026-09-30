@@ -8,6 +8,21 @@ ADR-0009) and built through the migration plan in
 Created in migration **Phase 1** (2026-07-03). Contains the foundation
 only — no business features yet.
 
+## Native subscription adapter (ADR-P034 S-2)
+
+The RevenueCat SDK is isolated behind `src/features/subscriptions/` and is
+disabled by default. Native builds may inject these **public** platform keys:
+
+- `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (`appl_...`)
+- `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` (`goog_...`)
+
+If the matching key is absent, the SDK module is not loaded and no provider
+request is made. Never place a RevenueCat secret key in the client. The adapter
+configures only after authentication and uses the AppFitness account UUID as
+the provider App User ID; it sends no email, username or health/fitness
+attributes. Real purchase validation requires a fresh native development/store
+build and store sandbox configuration—Expo Go is not evidence.
+
 ---
 
 ## Stack (Phase 1 baseline)

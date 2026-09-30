@@ -90,14 +90,15 @@ Biometrics
 
 - Expo Local Authentication
 
-Purchases and subscriptions (ADR-P034; server foundation implemented,
-native purchase client pending)
+Purchases and subscriptions (ADR-P034; server foundation and native adapter
+implemented; external configuration and purchase UX pending)
 
 - Apple In-App Purchase / StoreKit
 - Google Play Billing
 - RevenueCat entitlement service (server webhook/reconciliation adapter ships
   disabled until external configuration is approved)
-- `react-native-purchases` native SDK (S-2; not installed)
+- `react-native-purchases` 10.10.2 native SDK behind the AppFitness purchases
+  port (S-2; lazy and inert until a platform-specific public key is injected)
 - AppFitness-owned paywall UI; no remotely authored provider paywall
 - Real transactions require development/store builds; Expo Go is not release
   evidence
