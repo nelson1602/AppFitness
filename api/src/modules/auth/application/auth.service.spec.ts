@@ -8,6 +8,7 @@ import { RefreshToken, Role, User, UserStatus } from '@prisma/client';
 
 import { AuditService } from '../../audit/audit.service';
 import { PrismaService } from '../../database/prisma.service';
+import { SubscriptionService } from '../../subscriptions/application/subscription.service';
 import { PasswordService } from '../infrastructure/password.service';
 import { TokenService } from '../infrastructure/token.service';
 import { AuthService } from './auth.service';
@@ -73,6 +74,7 @@ describe('AuthService', () => {
   };
   let audit: { record: jest.Mock };
   let emailVerification: { issueOnRegistration: jest.Mock };
+  let subscriptions: { deleteProviderCustomer: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
@@ -115,6 +117,9 @@ describe('AuthService', () => {
     emailVerification = {
       issueOnRegistration: jest.fn().mockResolvedValue(undefined),
     };
+    subscriptions = {
+      deleteProviderCustomer: jest.fn().mockResolvedValue(undefined),
+    };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -124,6 +129,7 @@ describe('AuthService', () => {
         { provide: TokenService, useValue: tokens },
         { provide: AuditService, useValue: audit },
         { provide: EmailVerificationService, useValue: emailVerification },
+        { provide: SubscriptionService, useValue: subscriptions },
       ],
     }).compile();
 
@@ -244,6 +250,8 @@ describe('AuthService', () => {
 
     await service.deleteAccount(USER_ID);
 
+    expect(subscriptions.deleteProviderCustomer).toHaveBeenCalledWith(USER_ID);
+
     // Completed-deletion event recorded (before de-linking).
     expect(audit.record).toHaveBeenCalledWith({
       action: 'ACCOUNT_DELETE',
@@ -276,5 +284,22 @@ describe('AuthService', () => {
 
     expect(prisma.user.delete).not.toHaveBeenCalled();
     expect(prisma.auditLog.updateMany).not.toHaveBeenCalled();
+    expect(subscriptions.deleteProviderCustomer).not.toHaveBeenCalled();
+  });
+
+  it('deleteAccount preserves the local account when provider deletion fails', async () => {
+    subscriptions.deleteProviderCustomer.mockRejectedValue(
+      new Error('provider unavailable'),
+    );
+
+    await expect(service.deleteAccount(USER_ID)).rejects.toThrow(
+      'provider unavailable',
+    );
+
+    expect(audit.record).not.toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'ACCOUNT_DELETE' }),
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.user.delete).not.toHaveBeenCalled();
   });
 });

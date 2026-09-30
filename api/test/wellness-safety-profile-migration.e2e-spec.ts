@@ -109,9 +109,11 @@ describe('Wellness Safety Profile migration chain (e2e)', () => {
     url.pathname = `/${tempName}`;
     db = client(url.toString());
 
-    // 1. Every migration EXCEPT the new one: a populated "previous version".
+    // 1. Every migration before W-1: a populated historical previous version.
+    // Later migrations must not be replayed early merely because the repository
+    // has advanced since this regression suite was authored.
     for (const name of migrations) {
-      if (name === W1_MIGRATION) continue;
+      if (name >= W1_MIGRATION) break;
       await db.$executeRawUnsafe(sqlOf(name));
     }
 
@@ -156,9 +158,9 @@ describe('Wellness Safety Profile migration chain (e2e)', () => {
     }
   });
 
-  it('applies the whole chain, with W-1 as the newest migration on disk', () => {
+  it('applies the historical chain through W-1 even when newer migrations exist', () => {
     expect(migrations).toContain(W1_MIGRATION);
-    expect(migrations[migrations.length - 1]).toBe(W1_MIGRATION);
+    expect(migrations.indexOf(W1_MIGRATION)).toBeGreaterThan(0);
     // beforeAll would have thrown if any statement in the chain failed.
     expect(migrations.length).toBeGreaterThan(10);
   });

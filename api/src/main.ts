@@ -19,6 +19,10 @@ async function bootstrap(): Promise<void> {
   // application so Helmet + `useBodyParser` are available (ADR-P021 H-1A).
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
+    // RevenueCat HMAC covers the exact bytes received. Nest's explicit JSON
+    // parser keeps those bytes on `request.rawBody`; all ordinary DTO parsing
+    // and the existing 100kb limit remain unchanged.
+    rawBody: true,
   });
 
   // API HTTP hardening (ADR-P021 H-1A): Helmet security headers FIRST, then the

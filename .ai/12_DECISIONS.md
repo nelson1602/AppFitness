@@ -14212,6 +14212,31 @@ publish/deploy anything by itself.
 Policies, programs and provider pricing can change. Recheck these sources before
 ADR acceptance and again before store submission.
 
+### Implementation record — S-1 server foundation (2026-09-30)
+
+The first separately reviewed implementation slice now ships the server-side
+contract accepted by Decisions 4, 5 and 9:
+
+- one per-user `appfitness_pro` entitlement mirror and a minimal webhook ledger
+  containing only the event id, normalized routing/status metadata and a
+  SHA-256 payload digest — never a receipt or full provider payload;
+- an authenticated plus HMAC-verified RevenueCat webhook over the exact raw
+  request bytes, event-id idempotency, retryable failures, provider-authoritative
+  reconciliation and monotonic event watermarking;
+- fail-closed account identity: normal alias sets resolving to multiple owned
+  users are ignored, while a documented `TRANSFER` reconciles both explicit
+  source and destination accounts independently so stale source access is not
+  retained;
+- authenticated status/manual-reconciliation endpoints and provider customer
+  deletion before local account deletion, with local deletion aborted when the
+  enabled provider deletion fails;
+- `REVENUECAT_PROVIDER=disabled` as the default. No provider network call or
+  accepted webhook is possible until separately managed secrets enable it.
+
+This record does not advance S-2…S-6: no mobile SDK, product/offering, paywall,
+write enforcement, provider account, secret, external agreement, store-console
+configuration, sandbox purchase or legal approval exists yet.
+
 ### Related documents
 
 - `.ai/11_BACKLOG.md` — FEATURE-012

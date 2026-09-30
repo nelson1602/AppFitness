@@ -6,7 +6,8 @@
 > Bracketed `[PLACEHOLDER]` fields require business/legal input. Do not treat
 > this as a published policy or as evidence of legal compliance.
 
-> Draft technically refreshed 2026-09-29 · Evidence commit `42f6fc9` · App
+> Draft technically refreshed 2026-09-30 · Evidence baseline `0e3c4f6` plus
+> the FEATURE-012 S-1 candidate · App
 > state: public-v1 Phase 21 wellness product, including bilingual surfaces,
 > wellness-safety declarations, conflict resolution, password recovery, and
 > email verification. External legal review remains pending.
@@ -85,12 +86,14 @@ are not implemented in public v1.
 
 **Subscription implementation gate:** the owner has selected a one-month free
 trial followed by an auto-renewing monthly subscription with a target base price
-of US$5. The current repository does not yet implement purchases or process
-subscription identifiers. Before release, this policy must be reconciled to the
-implemented Apple/Google purchase path, the ADR-P034-approved RevenueCat
-entitlement service, retention/deletion behavior, and the exact store
-disclosures. AppFitnessRD must
-never receive or store full payment-card details for the mobile subscription.
+of US$5. The repository now implements a disabled-by-default server entitlement
+mirror, minimal event-id/hash ledger, RevenueCat reconciliation/webhook adapter
+and provider-first deletion. It does not yet implement the native purchase
+flow, paywall or access enforcement, and no provider account or secret is
+configured. Before release, this policy must be reconciled to the completed
+Apple/Google path, provider agreement, retention/deletion behavior, and exact
+store disclosures. AppFitnessRD must never receive or store full payment-card
+details for the mobile subscription.
 
 ## 3. How we use data
 
@@ -132,8 +135,10 @@ The engineering inventory identifies these external service paths:
 - Cloudflare serves the deployed account/recovery/verification Web portals.
 - Sentry receives scrubbed diagnostics from configured builds.
 
-ADR-P034 approves RevenueCat for the future store-subscription implementation.
-It is not integrated today and therefore is not yet an active service path.
+ADR-P034 approves RevenueCat for the store-subscription implementation. Its S-1
+server adapter is present but disabled and has no configured account, secret or
+live traffic; it becomes an active service path only after those external gates
+are approved and enabled.
 
 The app contains no advertising or third-party analytics SDK. `[PLACEHOLDER:
 qualified legal review must classify each service relationship, finalize the

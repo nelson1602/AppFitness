@@ -5,7 +5,8 @@
 > service-provider exceptions are policy classifications; this document records
 > product facts and proposed mappings, not final legal answers.
 
-Prepared: 2026-09-29 · Repository baseline: `6421013` · Related inventory:
+Prepared: 2026-09-29 · Technically refreshed: 2026-09-30 · Repository baseline:
+`0e3c4f6` plus the FEATURE-012 S-1 candidate · Related inventory:
 `DATA_INVENTORY.md`.
 
 ## Apple App Privacy — proposed technical mapping
@@ -24,13 +25,13 @@ builds; counsel/owner must decide the live form's linked-data answer.
 | Diagnostics — Crash Data / Performance Data / Other Diagnostic Data | Sentry events when configured                                             | App functionality; reliability/security   | OPEN — reverify candidate payload |
 | Other Data                                                          | Sync operations, versions, cursors, and conflict metadata                 | App functionality                         | OPEN — confirm live subtype       |
 
-Current-code exclusions requiring final binary verification: purchases and
-financial information, precise/coarse location, contacts, photos/videos, audio,
+Current-code exclusions requiring final binary verification: full card/bank
+information, precise/coarse location, contacts, photos/videos, audio,
 browsing/search history, advertising data, and tracking across companies.
-**Purchases cannot remain excluded from the release answers** if the required
-v1 subscription ships. After implementation, record only the store purchase and
-entitlement data the release binary actually processes; AppFitnessRD should not
-receive full card/bank details.
+S-1 can process an AppFitness UUID and normalized entitlement/event metadata
+when enabled, but no native purchase SDK exists yet. The final purchase answers
+must reflect only what the completed release binary and provider agreement
+actually process; AppFitnessRD should not receive full card/bank details.
 
 ## Google Play Data Safety — proposed technical mapping
 
@@ -64,9 +65,9 @@ service-provider exception or must be declared as sharing.
 ## Subscription disclosure gate
 
 The owner selected a one-month free trial followed by an auto-renewing monthly
-subscription with a target base price of US$5. The subscription is not yet
-implemented. Before console submission this matrix must be extended from the
-release binary and approved provider contract to cover purchase history,
+subscription with a target base price of US$5. Only S-1's inert server
+foundation is implemented. Before console submission this matrix must be
+extended from the completed release binary and approved provider contract to cover purchase history,
 subscription/entitlement identifiers, trial/renewal state, the store/provider
 roles, data association with the AppFitnessRD account, retention, deletion, and
 any provider sharing/processing classification.

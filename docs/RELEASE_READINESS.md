@@ -119,7 +119,7 @@ Legend:
   if a rendered number bypasses it again. **Wording is reviewed, not certified**:
   1063 key pairs were read in both languages, three values changed, and six
   decisions are recorded as `OBS-BQR-1 … OBS-BQR-6`.
-- **Migrations:** **16** Prisma migrations; **7** SQLite migrations (001–007).
+- **Migrations:** **17** Prisma migrations; **7** SQLite migrations (001–007).
 - **Conflict resolution (ADR-P030):** C-0 … C-7 implemented. C-7 drove **14
   Maestro journeys across two Android emulators** against a disposable local
   stack — 78 steps, 78 passes, no retries — covering ten authorized
@@ -240,7 +240,7 @@ not outrank launch blockers.**
 
 | Item | Status | Impact |
 |---|---|---|
-| `FEATURE-012` v1 store subscription | **ARCHITECTURE ACCEPTED / NOT IMPLEMENTED** | ADR-P034 accepts StoreKit/Play Billing through RevenueCat, a one-month eligible-user trial, US$5 base-price target, post-trial read-only access, and a maximum three-day offline entitlement window. Schema/runtime, paywall, store products, external account/terms and sandbox evidence remain outstanding. Blocks the paid-v1 contract. |
+| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1 IMPLEMENTED** | ADR-P034's fail-closed server foundation now includes durable entitlement/webhook state, signed idempotent ingestion, reconciliation and provider-first deletion. S-2…S-6 remain: native SDK, paywall, enforcement, store products/accounts, sandbox evidence and legal closure. Blocks the paid-v1 contract. |
 | Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
 | App Store Connect / Play Console privacy forms, policy URLs, listing assets | **BLOCKED-OWNER** | Blocks submission. The provisional form mapping is in `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`; it is not approved for entry. |
 | External Web account-deletion request | **UNVERIFIED — V1 gate** | Google requires a functional external request resource in addition to in-app deletion. `https://account.appfitnessrd.com/delete-account` returned 200 and rendered the AppFitnessRD deletion surface on 2026-09-29; the signed-out end-to-end journey and live-policy compliance are not verified. |
@@ -298,16 +298,17 @@ copy the deck does not contain.
 | `OBS-C7-1` "Try now" is a silent no-op inside the settlement backoff window | **Open, P3** | Retry policy is correct and **no data is at risk**; the gap is absent feedback for a deliberate user action. |
 | `OBS-C7-2` Dashboard read failed once after a force-stop during sync | **Open, P3** | Observed **once in five campaign runs**; not reproducible on relaunch with identical state; **no root cause claimed**. |
 
-## V1 subscription track (new owner requirement, unstarted)
+## V1 subscription track (new owner requirement, in progress)
 
 - **`FEATURE-012` store subscription** is now a **v1 publication blocker**, not
   a future Azul integration. Store policy requires the native digital
   subscription to use Apple In-App Purchase / Google Play Billing for this
   initial market. **ADR-P034 was Accepted 2026-09-29** with RevenueCat as the
   shared entitlement layer, a post-trial read-only boundary and a maximum
-  three-day offline entitlement window. Legal/DPA review and external-account
-  acceptance remain separate. No dependency, store product, provider account,
-  code, schema or secret exists yet.
+  three-day offline entitlement window. S-1's server code, schema and migration
+  are implemented but remain inert by default. Legal/DPA review and
+  external-account acceptance remain separate; no native dependency, store
+  product, provider account/secret, paywall or access enforcement exists yet.
 - Azul is not selected for native mobile checkout. It remains only a future
   candidate for a policy-permitted Web or physical-service flow under a separate
   decision.
@@ -405,8 +406,9 @@ angles — coverage, then quality.
 3. ~~`owner` — Accept/reject **ADR-P034 option 1 (RevenueCat)**, accept/replace
    the recommended post-trial read-only boundary, and approve bounded offline
    entitlement semantics.~~ **Done 2026-09-29 — accepted as drafted.**
-4. `in-repo` — Deliver FEATURE-012 slices S-1…S-4: durable entitlement state,
-   signed/idempotent reconciliation, minimal native adapter, AppFitness EN/ES
+4. `in-repo` — Deliver FEATURE-012 slices S-1…S-4. **S-1 done 2026-09-30:**
+   durable entitlement state, signed/idempotent ingestion, reconciliation and
+   deletion. Remaining: minimal native adapter, AppFitness EN/ES
    paywall/restore/manage UX, and server-side enforcement.
 5. `owner` + `external` — Configure Apple/Google products and the one-month
    introductory offer; run sandbox/TestFlight/Play-track lifecycle evidence;

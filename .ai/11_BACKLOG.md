@@ -4441,9 +4441,9 @@ coverage than it has.
 
 ---
 
-## [FEATURE-012] V1 Store Subscription and Entitlement (unstarted)
+## [FEATURE-012] V1 Store Subscription and Entitlement
 
-Status: **ADR-P034 Accepted 2026-09-29; implementation unstarted.**
+Status: **In Progress — S-1 implemented 2026-09-30; S-2…S-6 unimplemented.**
 Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
@@ -4457,10 +4457,12 @@ free product. It must offer one auto-renewing monthly subscription, a one-month
 free trial, and an owner target of US$5/month, with no ads. The initial market
 is the Dominican Republic.
 
-The current repository still has **no** payment code, dependency, endpoint,
-table, secret, provider account, store product, paywall, entitlement guard, or
-subscription copy. Consequently this is a launch blocker, not a declaration
-that charging is already available.
+The repository now contains S-1's server-only, fail-closed entitlement mirror,
+minimal webhook ledger, signed/idempotent webhook ingestion, provider
+reconciliation, account-deletion hook and audit actions. It still has no native
+purchase dependency, store product, provider account/secret, paywall,
+entitlement enforcement or subscription copy. Consequently FEATURE-012 remains
+a launch blocker and charging is not available.
 
 ### Policy result and recommended architecture
 
@@ -4509,8 +4511,11 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
 
 ### Delivery slices after ADR acceptance
 
-1. **S-1 Contract and infrastructure:** entitlement domain, database migration,
-   signed/idempotent webhook ingestion, reconciliation, deletion and audit.
+1. **S-1 Contract and infrastructure — implemented 2026-09-30:** entitlement
+   domain, database migration, authenticated/HMAC-signed and idempotent webhook
+   ingestion, provider-authoritative reconciliation (including both sides of a
+   transfer), deletion and audit. Provider mode defaults to `disabled`; no
+   external account, secret or live webhook was configured.
 2. **S-2 Native purchase adapter:** minimal SDK integration behind a port;
    authenticated account UUID as the app-user identifier; no email or health
    attributes sent; restore and account-switch tests.
