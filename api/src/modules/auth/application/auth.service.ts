@@ -9,6 +9,7 @@ import { AuditAction, UserStatus } from '@prisma/client';
 import { AuditService } from '../../audit/audit.service';
 import { PrismaService } from '../../database/prisma.service';
 import { resolveMailLocale } from '../../mail/domain/mail.types';
+import { SubscriptionService } from '../../subscriptions/application/subscription.service';
 import { SAFE_USER_SELECT, SafeUser, TokenPair } from '../domain/auth.types';
 import { PasswordService } from '../infrastructure/password.service';
 import { TokenService } from '../infrastructure/token.service';
@@ -39,6 +40,7 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
     private readonly emailVerification: EmailVerificationService,
+    private readonly subscriptions: SubscriptionService,
   ) {}
 
   async register(input: RegisterInput): Promise<AuthResult> {
@@ -213,6 +215,11 @@ export class AuthService {
     if (!user || user.deletedAt !== null) {
       throw new NotFoundException('User not found');
     }
+
+    // Provider deletion is intentionally first. If it fails, keep the local
+    // account/session reachable so the user can retry; deleting locally first
+    // would strand the external customer with no authenticated retry path.
+    await this.subscriptions.deleteProviderCustomer(userId);
 
     // Record the completed-deletion event while the user still exists; it
     // is de-linked below along with the user's other audit rows.

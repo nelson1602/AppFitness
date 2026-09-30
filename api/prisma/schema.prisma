@@ -154,6 +154,15 @@ enum AuditAction {
   ACCOUNT_DELETE
   ACCOUNT_DELETE_REQUEST
   DATA_EXPORT_REQUEST
+  SUBSCRIPTION_ENTITLEMENT_CHANGE
+  SUBSCRIPTION_PROVIDER_DELETE
+}
+
+enum SubscriptionWebhookStatus {
+  RECEIVED
+  PROCESSED
+  IGNORED
+  FAILED
 }
 
 // ─── Identity & Auth ─────────────────────────────────────────────────────────
@@ -179,37 +188,86 @@ model User {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   deletedBy String?   @map("deleted_by") @db.Uuid
 
-  profile                 UserProfile?
-  goals                   Goal[]
-  devices                 Device[]
-  refreshTokens           RefreshToken[]
-  passwordResetTokens     PasswordResetToken[]
-  emailVerificationTokens EmailVerificationToken[]
-  syncOperations          SyncOperation[]
-  syncConflicts           SyncConflict[]
-  auditLogs               AuditLog[]
-  medicalEvaluations      MedicalEvaluation[]
-  medicalRestrictions     MedicalRestriction[]
-  healthLogs              HealthLog[]
-  routines                Routine[]
-  routineExercises        RoutineExercise[]
-  workoutLogs             WorkoutLog[]
-  workoutSets             WorkoutSet[]
-  nutritionLogs           NutritionLog[]
-  meals                   Meal[]
-  mealItems               MealItem[]
-  dietaryPreferences      DietaryPreference[]
-  bodyWeights             BodyWeight[]
-  bodyMeasurements        BodyMeasurement[]
-  progressSnapshots       ProgressSnapshot[]
-  wellnessSafetyProfiles  WellnessSafetyProfile[]
-  recommendations         Recommendation[]
-  coachInsights           CoachInsight[]
-  notifications           Notification[]
-  userAchievements        UserAchievement[]
-  stats                   UserStats?
+  profile                   UserProfile?
+  goals                     Goal[]
+  devices                   Device[]
+  refreshTokens             RefreshToken[]
+  passwordResetTokens       PasswordResetToken[]
+  emailVerificationTokens   EmailVerificationToken[]
+  syncOperations            SyncOperation[]
+  syncConflicts             SyncConflict[]
+  auditLogs                 AuditLog[]
+  medicalEvaluations        MedicalEvaluation[]
+  medicalRestrictions       MedicalRestriction[]
+  healthLogs                HealthLog[]
+  routines                  Routine[]
+  routineExercises          RoutineExercise[]
+  workoutLogs               WorkoutLog[]
+  workoutSets               WorkoutSet[]
+  nutritionLogs             NutritionLog[]
+  meals                     Meal[]
+  mealItems                 MealItem[]
+  dietaryPreferences        DietaryPreference[]
+  bodyWeights               BodyWeight[]
+  bodyMeasurements          BodyMeasurement[]
+  progressSnapshots         ProgressSnapshot[]
+  wellnessSafetyProfiles    WellnessSafetyProfile[]
+  recommendations           Recommendation[]
+  coachInsights             CoachInsight[]
+  notifications             Notification[]
+  userAchievements          UserAchievement[]
+  stats                     UserStats?
+  subscriptionEntitlement   SubscriptionEntitlement?
+  subscriptionWebhookEvents SubscriptionWebhookEvent[]
 
   @@map("users")
+}
+
+// Server-authoritative mirror of the one paid-v1 entitlement (ADR-P034).
+// Purchase receipts and full provider payloads are deliberately not retained.
+model SubscriptionEntitlement {
+  id                  String    @id @default(uuid()) @db.Uuid
+  userId              String    @unique(map: "uq_subscription_entitlements_user") @map("user_id") @db.Uuid
+  entitlementId       String    @map("entitlement_id") @db.VarChar(255)
+  isActive            Boolean   @default(false) @map("is_active")
+  expiresAt           DateTime? @map("expires_at") @db.Timestamptz(6)
+  periodType          String?   @map("period_type") @db.VarChar(32)
+  productId           String?   @map("product_id") @db.VarChar(255)
+  store               String?   @db.VarChar(32)
+  environment         String?   @db.VarChar(32)
+  willRenew           Boolean?  @map("will_renew")
+  lastProviderEventAt DateTime? @map("last_provider_event_at") @db.Timestamptz(6)
+  lastReconciledAt    DateTime  @map("last_reconciled_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_subscription_entitlements_user")
+
+  @@index([isActive, expiresAt], map: "idx_subscription_entitlements_active_expires")
+  @@map("subscription_entitlements")
+}
+
+// Minimal idempotency ledger for RevenueCat deliveries. It stores operational
+// metadata and a SHA-256 digest only; never the receipt or webhook payload.
+model SubscriptionWebhookEvent {
+  id             String                    @id @db.VarChar(255)
+  userId         String?                   @map("user_id") @db.Uuid
+  eventType      String                    @map("event_type") @db.VarChar(80)
+  eventTimestamp DateTime                  @map("event_timestamp") @db.Timestamptz(6)
+  environment    String?                   @db.VarChar(32)
+  payloadHash    String                    @map("payload_hash") @db.Char(64)
+  status         SubscriptionWebhookStatus @default(RECEIVED)
+  attemptCount   Int                       @default(0) @map("attempt_count")
+  failureCode    String?                   @map("failure_code") @db.VarChar(64)
+  processedAt    DateTime?                 @map("processed_at") @db.Timestamptz(6)
+  createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_subscription_webhook_events_user")
+
+  @@index([status, createdAt], map: "idx_subscription_webhook_events_status_created")
+  @@index([userId, createdAt], map: "idx_subscription_webhook_events_user_created")
+  @@map("subscription_webhook_events")
 }
 
 model Device {

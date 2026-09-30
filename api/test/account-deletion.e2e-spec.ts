@@ -86,6 +86,24 @@ describe('Account deletion (e2e)', () => {
     await prisma.goal.create({
       data: { id: crypto.randomUUID(), userId, goalType: 'RECOMPOSITION' },
     });
+    await prisma.subscriptionEntitlement.create({
+      data: {
+        userId,
+        entitlementId: 'appfitness_pro',
+        isActive: true,
+        lastReconciledAt: new Date(),
+      },
+    });
+    await prisma.subscriptionWebhookEvent.create({
+      data: {
+        id: `account-delete-${crypto.randomUUID()}`,
+        userId,
+        eventType: 'TEST',
+        eventTimestamp: new Date(),
+        payloadHash: 'a'.repeat(64),
+        attemptCount: 1,
+      },
+    });
 
     // Pre-conditions: data present; capture this user's audit row ids.
     const auditIdsBefore = (
@@ -102,6 +120,12 @@ describe('Account deletion (e2e)', () => {
     expect(await prisma.medicalEvaluation.count({ where: { userId } })).toBe(1);
     expect(await prisma.goal.count({ where: { userId } })).toBe(1);
     expect(
+      await prisma.subscriptionEntitlement.count({ where: { userId } }),
+    ).toBe(1);
+    expect(
+      await prisma.subscriptionWebhookEvent.count({ where: { userId } }),
+    ).toBe(1);
+    expect(
       await prisma.refreshToken.count({ where: { userId } }),
     ).toBeGreaterThan(0);
 
@@ -116,6 +140,12 @@ describe('Account deletion (e2e)', () => {
     expect(await prisma.userProfile.count({ where: { userId } })).toBe(0);
     expect(await prisma.medicalEvaluation.count({ where: { userId } })).toBe(0);
     expect(await prisma.goal.count({ where: { userId } })).toBe(0);
+    expect(
+      await prisma.subscriptionEntitlement.count({ where: { userId } }),
+    ).toBe(0);
+    expect(
+      await prisma.subscriptionWebhookEvent.count({ where: { userId } }),
+    ).toBe(0);
     expect(await prisma.refreshToken.count({ where: { userId } })).toBe(0);
 
     // Audit trail retained but de-identified: the same rows still exist,

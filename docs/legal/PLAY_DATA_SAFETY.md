@@ -6,8 +6,9 @@
 > form before submission. Category labels and policy questions can change.
 > Nothing in this draft authorizes a Console answer or store submission.
 
-Last technically updated: 2026-09-29 · Status: Draft · Evidence commit
-`42f6fc9` · App state: public-v1 Phase 21 wellness product.
+Last technically updated: 2026-09-30 · Status: Draft · Evidence baseline
+`0e3c4f6` plus the FEATURE-012 S-1 candidate · App state: public-v1
+Phase 21 wellness product.
 
 ## Global technical answers
 
@@ -22,11 +23,11 @@ Last technically updated: 2026-09-29 · Status: Draft · Evidence commit
   receives scrubbed diagnostics from configured builds.
 - **Advertising/analytics:** no advertising SDK or third-party analytics SDK is
   integrated.
-- **Subscriptions:** none are implemented in the current repository. The owner
-  requires a one-month free trial followed by a monthly subscription for v1;
-  ADR-P034 accepts RevenueCat over Apple/Google store billing, but the SDK and
-  data flow do not exist yet. Final Data Safety answers must be re-derived after
-  implementation.
+- **Subscriptions:** S-1's disabled-by-default server entitlement mirror,
+  signed webhook/reconciliation adapter and deletion hook are implemented. The
+  native SDK, purchase flow, enforcement and external provider configuration do
+  not exist yet. Final Data Safety answers must be re-derived from the complete
+  release binary and provider agreement.
 - **Final “shared” answers:** `[PLACEHOLDER — qualified review must classify
 each service relationship under the live Play definitions. This engineering
 inventory does not decide that legal/policy classification.]`
@@ -53,6 +54,7 @@ storage, access control, or platform protections.
 | User-generated custom exercise text                                                          |                                 Yes | App functionality                                             | Optional          |        Yes | No                                              |             Yes | name/instructions                                                                   |
 | Sync metadata and conflict records                                                           |                                 Yes | Offline synchronization and user-directed conflict resolution | Required for sync |        Yes | Sensitive queued payloads only; not every field |             Yes | includes operation ids, versions, cursors, and snapshots                            |
 | Crash/error diagnostics                                                                      | Yes in configured production builds | Reliability and security monitoring                           | Operational       |        Yes | N/A                                             | Review required | Sentry; PII disabled, scrubbers applied, candidate re-verification pending          |
+| Subscription entitlement and lifecycle metadata                                              | Yes when RevenueCat is enabled       | Subscription access, reconciliation, security/audit            | Required for paid v1 |      Yes | No raw receipt or full webhook payload           |             Yes | AppFitness UUID plus normalized entitlement/event state; S-1 currently disabled     |
 
 ## Public-v1 exclusions and retained legacy data
 
@@ -63,10 +65,10 @@ storage, access control, or platform protections.
   but their module/routes/sync handlers are not registered in public v1 and
   iCoach does not read them. Account deletion removes them.
 - No precise location, contacts, photos, microphone/audio, advertising
-  identifiers, payment data, habits, or notification preferences are collected
-  by the current code. Purchase/entitlement identifiers will cease to be an
-  exclusion if the required v1 subscription is implemented; full card/bank
-  details must remain outside AppFitnessRD.
+  identifiers, full card/bank data, habits, or notification preferences are
+  collected by the current code. S-1 can process only AppFitness UUID and
+  normalized subscription entitlement/event metadata when enabled; it retains
+  no raw receipt or full webhook payload.
 - The current Web portals do not persist database-backed fitness/wellness data
   in browser storage and do not provide mobile feature parity.
 
@@ -92,8 +94,9 @@ storage, access control, or platform protections.
    200 and rendered the deletion surface on 2026-09-29, but its complete
    signed-out journey and compliance with Google's discoverability/completion
    rules remain unverified.
-7. **Subscription reconciliation:** once implemented, add the exact purchase,
-   entitlement, provider, deletion, and sharing/processing facts from the
-   release binary and provider agreement.
+7. **Subscription reconciliation:** S-1's entitlement, event-minimization and
+   provider-first deletion facts are recorded. Add S-2…S-5 purchase behavior
+   and the provider agreement's sharing/processing facts from the exact release
+   binary before submission.
 8. **Published privacy-policy URL and owner approval:** neither is supplied by
    this draft.

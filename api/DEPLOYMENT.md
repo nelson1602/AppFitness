@@ -31,10 +31,24 @@ injected via environment variables.
 | `MAIL_PUBLIC_BASE_URL` | Required when enabled. **HTTPS only** (plain HTTP is refused — a reset link is a bearer credential), no query string, no fragment, no embedded credentials. Reset links are built as `<base>/reset-password#token=…` — the token is in the **URL fragment**, which never reaches a server or proxy log. The path resolves to the Expo Web fallback route. A trailing slash is normalized away |
 | `MAIL_VERIFICATION_BASE_URL` | **Optional** (ADR-P026 Vertical 2, V2-C). Base for **email-verification** links, served from a neutral **account** host (`https://account.<domain>`) rather than the recovery host — verification is account hygiene, not a credential-reset event. Same rules as `MAIL_PUBLIC_BASE_URL`: **HTTPS only**, no query string, no fragment, no embedded credentials; links are built as `<base>/verify-email#token=…` with the token in the **fragment**. **Unset ⇒ verification mail is switched off**: registration issues no token, `POST /auth/resend-verification` answers a uniform `503`, and no link is ever built — while `POST /auth/verify-email` keeps working so an already-issued token stays redeemable. Deliberately optional so V2-C deploys safely **before** the account host exists (V2-E). Set-but-malformed still **throws at boot** |
 | `POSTMARK_MESSAGE_STREAM` | Optional; defaults to `outbound`. Must be a **transactional** stream — never a broadcast one |
+| `REVENUECAT_PROVIDER` | Optional (ADR-P034). `disabled` by default; use `revenuecat` only after the external provider gate is approved. Enabled mode fails boot unless every RevenueCat value below is present and valid |
+| `REVENUECAT_SECRET_API_KEY` | Required when enabled. RevenueCat **secret** API key used only by the server for subscriber reconciliation and provider-side account deletion. Never expose it to the mobile bundle or logs |
+| `REVENUECAT_WEBHOOK_AUTH_TOKEN` | Required when enabled; at least 32 characters. Configure the same opaque value as the RevenueCat webhook Authorization header. Use a different value per hosted environment |
+| `REVENUECAT_WEBHOOK_SIGNING_SECRET` | Required when enabled; at least 32 characters. Verifies `X-RevenueCat-Webhook-Signature` over the exact raw request body. Use a different value per hosted environment |
+| `REVENUECAT_ENTITLEMENT_ID` | Required when enabled; the single RevenueCat entitlement identifier. ADR-P034 fixes this to `appfitness_pro` |
 
 Rules: secrets exist ONLY in Railway's variable store. Never reuse
 local `.env` values, never commit values, never share keys between
 environments (05_SECURITY.md).
+
+Subscription support ships fail-closed. While `REVENUECAT_PROVIDER` is
+unset or `disabled`, the webhook endpoint returns unavailable and no provider
+request is possible. Activate Development first. RevenueCat must send both the
+configured Authorization value and its HMAC signature to
+`POST /subscriptions/webhooks/revenuecat`; Production receives independent
+secrets only after Development evidence is accepted. The server stores the
+provider event id, a SHA-256 payload hash and normalized entitlement state —
+never a receipt or full webhook payload.
 
 
 ## Transactional email activation (ADR-P026 Verticals 1 and 2)

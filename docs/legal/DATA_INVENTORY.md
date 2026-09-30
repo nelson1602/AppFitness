@@ -6,11 +6,12 @@
 > store submission. It describes the current repository and verified deployment
 > evidence; legal classifications and obligations remain external decisions.
 
-Last technically updated: 2026-09-29 · Status: Draft · Evidence commit
-`7828d26` · App state: public-v1 Phase 21 wellness product. Habits,
+Last technically updated: 2026-09-30 · Status: Draft · Evidence baseline
+`0e3c4f6` plus the FEATURE-012 S-1 candidate · App state: public-v1 Phase 21 wellness product. Habits,
 notifications, supplement education, and mobile/Web feature parity are not
-implemented. A store subscription is now required by the owner for v1 but has
-no runtime implementation; Azul is not selected for native checkout.
+implemented. A store subscription is required for v1; its fail-closed server
+foundation is implemented, while native purchasing, enforcement and provider
+configuration are not. Azul is not selected for native checkout.
 
 ## Scope and evidence
 
@@ -18,7 +19,7 @@ Grounds `PRIVACY_POLICY.md`, `TERMS_OF_USE.md`,
 `HEALTH_DISCLAIMER.md`, and `PLAY_DATA_SAFETY.md`. Sources include:
 
 - `.ai/00_PROJECT.md`, `.ai/05_SECURITY.md`, and `.ai/07_ICOACH.md`;
-- accepted ADR-P011, P012, P017, P019, P026, P029, P030, and P031;
+- accepted ADR-P011, P012, P017, P019, P026, P029, P030, P031, and P034;
 - `api/prisma/schema.prisma` and forward migrations;
 - the mobile SQLite migrations, repositories, sync queue/conflict store, and
   composition roots;
@@ -43,6 +44,7 @@ Grounds `PRIVACY_POLICY.md`, `TERMS_OF_USE.md`,
 | Transactional email             | recipient address, language, recovery/verification message and bearer link                                                                       | Personal/account-security                                    | generated for Postmark delivery |
 | Diagnostics                     | error/message/stack, opaque user id, app/device/runtime/environment metadata after scrubbers                                                     | Sensitive operational                                        | configured runtime              |
 | Security audit                  | action, optional de-linked user/device/entity references, operational metadata, timestamp                                                        | Security operational                                         | API                             |
+| Subscription entitlement       | AppFitness user UUID, entitlement/activity state, expiry, period/product/store/environment/renewal state; webhook event id/type/time/status, attempt count and payload digest | Sensitive purchase/access operational data; no receipt or full webhook payload | RevenueCat reconciliation/webhook |
 
 ## Public-v1 medical boundary and retained legacy data
 
@@ -64,11 +66,12 @@ protections remain in force. Dormancy is not deletion or reclassification.
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Native SecureStore | access/refresh tokens, session data, device field-encryption key                                                                                                          | OS secure keystore; never SQLite                                                                                                                                                             |
 | Native SQLite      | offline operational copy of profile, goals, wellness safety, nutrition, workout, progress, sync operations/conflicts, plus any retained legacy medical rows               | app-private DB; optional dietary note and retained legacy medical free-text use AES-256-GCM; other structured wellness/fitness data is not field-encrypted                                   |
-| Backend PostgreSQL | system of record for accounts, profiles, goals, wellness safety, nutrition, workout, progress, auth-token hashes, sync/conflicts, audit, plus dormant legacy medical rows | authorization/access controls; password Argon2 hashes; refresh/reset/verification token hashes; designated free-text ciphertext; most structured wellness/fitness fields not field-encrypted |
+| Backend PostgreSQL | system of record for accounts, profiles, goals, wellness safety, nutrition, workout, progress, auth-token hashes, sync/conflicts, audit, normalized subscription entitlement/webhook metadata, plus dormant legacy medical rows | authorization/access controls; password Argon2 hashes; refresh/reset/verification token hashes; designated free-text ciphertext; no raw purchase receipt or full provider webhook payload; most structured wellness/fitness fields not field-encrypted |
 | Web runtime        | memory-only authenticated session for current portals                                                                                                                     | no sensitive local/session storage; only non-sensitive language preference may persist; no browser database-backed fitness data                                                              |
 | Postmark           | transactional email recipient, locale-derived message, and recovery/verification link                                                                                     | HTTPS REST transport; open/link tracking recorded disabled in deployment evidence                                                                                                            |
 | Cloudflare portals | account/recovery/verification static Web surfaces and ordinary request metadata                                                                                           | hosted outside this repository; environment-specific API origin allow-lists                                                                                                                  |
 | Sentry             | scrubbed crash/error events from configured builds                                                                                                                        | TLS, `sendDefaultPii: false`, repository `beforeSend`/`beforeBreadcrumb` scrubbers; candidate re-verification pending                                                                        |
+| RevenueCat         | AppFitness account UUID plus purchase/entitlement lifecycle needed for store billing reconciliation and customer deletion                                                | server adapter and signed webhook implemented but disabled; no account/secret/live traffic yet; no email, username or health profile attributes                                               |
 
 ## Field and payload encryption boundaries
 
@@ -98,6 +101,10 @@ protections remain in force. Dormancy is not deletion or reclassification.
 - Postmark provides transactional recovery and verification delivery.
 - Cloudflare serves the deployed Web portals.
 - Sentry provides error monitoring for configured environments.
+- RevenueCat is the accepted subscription processor. S-1 can query normalized
+  entitlement state, receive authenticated/signed lifecycle events and request
+  provider-customer deletion, but provider mode remains disabled until the
+  external account, agreements and separate secrets are approved.
 - No advertising or third-party analytics SDK is integrated.
 
 `[PLACEHOLDER — qualified legal review must classify service-provider roles,
@@ -117,9 +124,10 @@ deleted with the account.
 
 - The in-app guarded flow calls the authenticated account-deletion endpoint.
 - The API records the deletion event, severs `user_id` from the immutable audit
-  rows, and physically deletes the user; database cascades remove user-owned
-  profile, wellness, nutrition, workout, progress, token, sync, conflict, and
-  dormant legacy medical rows.
+  rows, requests provider-customer deletion first when RevenueCat is enabled,
+  and physically deletes the user only after that succeeds; database cascades
+  remove user-owned profile, wellness, nutrition, workout, progress, token,
+  sync, conflict, and dormant legacy medical rows.
 - Shared food/exercise catalog data remains because it is not user-owned.
 - Native local data is wiped after successful deletion. App-private data is also
   removed on uninstall.
@@ -138,11 +146,10 @@ implemented immediate irreversible deletion model.]`
   public product.
 - No precise location, contacts, photos, microphone/audio, advertising
   identifier, ad SDK, or analytics SDK.
-- No payment/card/bank or subscription data is collected by the current
-  repository. The owner has made a store subscription a v1 requirement, but it
-  is not implemented. The selected architecture must keep full card/bank data
-  outside AppFitnessRD and add only the minimum store/entitlement identifiers
-  required for access, reconciliation, refund/cancellation handling, and audit.
+- No full card/bank data, raw store receipt or full RevenueCat webhook payload
+  is collected or retained. S-1 stores only the minimum normalized
+  store/entitlement lifecycle fields and event-id/hash metadata. Native purchase
+  collection and provider traffic remain unimplemented/unconfigured.
 - No habit-tracking or notification-preference data; those phases are post-v1.
 - No supplement recommendation, dosage, product/brand, or interaction data.
 - No browser-persistent fitness/wellness database and no current Web/mobile

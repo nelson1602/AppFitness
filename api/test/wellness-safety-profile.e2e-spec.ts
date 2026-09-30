@@ -215,7 +215,7 @@ describe('Wellness Safety Profile storage (e2e)', () => {
     await clearProfiles();
   });
 
-  it('records the whole migration chain as applied, with W-1 last and nothing rolled back', async () => {
+  it('records the whole migration chain as applied, including W-1, with nothing rolled back', async () => {
     const onDisk = readdirSync(MIGRATION_DIR, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name)
@@ -227,7 +227,7 @@ describe('Wellness Safety Profile storage (e2e)', () => {
         ORDER BY migration_name`,
     );
     expect(applied.map((row) => row.migration_name)).toEqual(onDisk);
-    expect(onDisk[onDisk.length - 1]).toBe(W1_MIGRATION);
+    expect(onDisk).toContain(W1_MIGRATION);
 
     const failed = await db.$queryRawUnsafe<{ n: bigint }[]>(
       `SELECT count(*) AS n FROM _prisma_migrations

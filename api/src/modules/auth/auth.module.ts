@@ -9,6 +9,7 @@ import {
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { MailModule } from '../mail/mail.module';
+import { SubscriptionModule } from '../subscriptions/subscription.module';
 
 import { AuthService } from './application/auth.service';
 import { EmailVerificationService } from './application/email-verification.service';
@@ -62,6 +63,7 @@ export function resolveJwtSecret(
     // module binds a real transport only when MAIL_PROVIDER is configured;
     // otherwise recovery reports unavailable and never pretends to send.
     MailModule,
+    SubscriptionModule,
     JwtModule.registerAsync({
       global: true,
       inject: [ConfigService],
