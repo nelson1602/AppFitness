@@ -7,11 +7,12 @@
 > evidence; legal classifications and obligations remain external decisions.
 
 Last technically updated: 2026-09-30 · Status: Draft · Evidence baseline
-`f995dec` plus the FEATURE-012 S-2 candidate · App state: public-v1 Phase 21 wellness product. Habits,
+`356bebd` plus the FEATURE-012 S-3 candidate · App state: public-v1 Phase 21 wellness product. Habits,
 notifications, supplement education, and mobile/Web feature parity are not
 implemented. A store subscription is required for v1; its fail-closed server
-foundation and an inert native adapter are implemented, while purchase UX,
-enforcement and provider configuration are not. Azul is not selected for native
+foundation, an inert native adapter and an inert subscription screen are
+implemented, while enforcement, store products and provider configuration are
+not. Azul is not selected for native
 checkout.
 
 ## Scope and evidence
@@ -109,7 +110,12 @@ protections remain in force. Dormancy is not deletion or reclassification.
   It never creates an anonymous provider identity. After sign-out the on-device
   SDK may retain the last account UUID and entitlement cache until another
   account signs in or the app process ends, but no purchase operation is
-  reachable while signed out. Both provider paths remain disabled until the external account, agreements
+  reachable while signed out. S-3 adds an in-app subscription screen that
+  reads the store offer (store-localized price, billing period and trial
+  eligibility), starts store purchases, restores and opens store management
+  through the same UUID-only boundary. It stores no new field in AppFitness
+  and holds the offer and status only in memory. Both provider paths remain
+  disabled until the external account, agreements
   and separate configuration are approved.
 - No advertising or third-party analytics SDK is integrated.
 

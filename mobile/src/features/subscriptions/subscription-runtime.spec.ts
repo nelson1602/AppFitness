@@ -16,8 +16,13 @@ interface Harness {
     readonly configure: jest.Mock;
     readonly logIn: jest.Mock;
     readonly restorePurchases: jest.Mock;
+    readonly getAccess: jest.Mock;
+    readonly loadMonthlyOffer: jest.Mock;
+    readonly purchase: jest.Mock;
+    readonly openManagement: jest.Mock;
   };
   readonly sdkLoaded: jest.Mock;
+  readonly openURL: jest.Mock;
 }
 
 /**
@@ -39,12 +44,22 @@ function loadRuntime(platform: TestPlatform, signedIn = true): Harness {
       productId: null,
       willRenew: false,
     }),
+    getAccess: jest.fn().mockResolvedValue({
+      isActive: false,
+      expiresAt: null,
+      productId: null,
+      willRenew: false,
+    }),
+    loadMonthlyOffer: jest.fn().mockResolvedValue(null),
+    purchase: jest.fn().mockResolvedValue({ kind: 'cancelled' }),
+    openManagement: jest.fn().mockResolvedValue(undefined),
   };
+  const openURL = jest.fn().mockResolvedValue(undefined);
   const snapshot = signedIn ? { userId: ACCOUNT_ID, generation: 1 } : null;
 
   let runtime!: SubscriptionRuntime;
   jest.isolateModules(() => {
-    jest.doMock('react-native', () => ({ Platform: { OS: platform } }));
+    jest.doMock('react-native', () => ({ Platform: { OS: platform }, Linking: { openURL } }));
     jest.doMock('@/features/authentication', () => ({
       getSessionSnapshot: () => snapshot,
       isSessionCurrent: () => signedIn,
@@ -57,18 +72,22 @@ function loadRuntime(platform: TestPlatform, signedIn = true): Harness {
     });
     jest.doMock('./infrastructure/revenuecat-purchases.adapter', () => ({
       RevenueCatPurchasesAdapter: class {
-        constructor() {
-          adapter.constructed();
+        constructor(...args: unknown[]) {
+          adapter.constructed(...args);
         }
         configure = adapter.configure;
         logIn = adapter.logIn;
         restorePurchases = adapter.restorePurchases;
+        getAccess = adapter.getAccess;
+        loadMonthlyOffer = adapter.loadMonthlyOffer;
+        purchase = adapter.purchase;
+        openManagement = adapter.openManagement;
       },
     }));
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     runtime = require('./subscription-runtime') as SubscriptionRuntime;
   });
-  return { runtime, logError, subscribe, adapter, sdkLoaded };
+  return { runtime, logError, subscribe, adapter, sdkLoaded, openURL };
 }
 
 function expectNoProviderCall(harness: Harness): void {
@@ -76,6 +95,10 @@ function expectNoProviderCall(harness: Harness): void {
   expect(harness.adapter.configure).not.toHaveBeenCalled();
   expect(harness.adapter.logIn).not.toHaveBeenCalled();
   expect(harness.adapter.restorePurchases).not.toHaveBeenCalled();
+  expect(harness.adapter.getAccess).not.toHaveBeenCalled();
+  expect(harness.adapter.loadMonthlyOffer).not.toHaveBeenCalled();
+  expect(harness.adapter.purchase).not.toHaveBeenCalled();
+  expect(harness.adapter.openManagement).not.toHaveBeenCalled();
 }
 
 describe('subscription runtime composition', () => {
@@ -171,6 +194,109 @@ describe('subscription runtime composition', () => {
       name: 'SubscriptionSessionChangedError',
     });
 
+    expectNoProviderCall(harness);
+  });
+});
+
+describe('subscription runtime S-3 entry points', () => {
+  const original = { ios: process.env[IOS_KEY], android: process.env[ANDROID_KEY] };
+
+  beforeEach(() => {
+    delete process.env[IOS_KEY];
+    delete process.env[ANDROID_KEY];
+  });
+
+  afterAll(() => {
+    if (original.ios === undefined) delete process.env[IOS_KEY];
+    else process.env[IOS_KEY] = original.ios;
+    if (original.android === undefined) delete process.env[ANDROID_KEY];
+    else process.env[ANDROID_KEY] = original.android;
+  });
+
+  it('reports the ADR-P019 Web boundary without initializing anything', () => {
+    process.env[IOS_KEY] = 'appl_public';
+    const harness = loadRuntime('web');
+
+    expect(harness.runtime.getSubscriptionAvailability()).toBe('web');
+    expect(harness.adapter.constructed).not.toHaveBeenCalled();
+  });
+
+  it('reports an unconfigured native build without loading the SDK', () => {
+    const harness = loadRuntime('ios');
+
+    expect(harness.runtime.getSubscriptionAvailability()).toBe('unconfigured');
+    expectNoProviderCall(harness);
+  });
+
+  it('reports a malformed key as unconfigured', () => {
+    process.env[ANDROID_KEY] = 'appl_wrong-store';
+    const harness = loadRuntime('android');
+
+    expect(harness.runtime.getSubscriptionAvailability()).toBe('unconfigured');
+    expect(harness.adapter.constructed).not.toHaveBeenCalled();
+  });
+
+  it('reports availability and delegates every operation for a configured build', async () => {
+    process.env[ANDROID_KEY] = 'goog_public';
+    const harness = loadRuntime('android');
+
+    expect(harness.runtime.getSubscriptionAvailability()).toBe('available');
+    await harness.runtime.loadSubscriptionAccess();
+    await harness.runtime.loadSubscriptionOffer();
+    await harness.runtime.openSubscriptionManagement();
+
+    expect(harness.adapter.getAccess).toHaveBeenCalledWith('appfitness_pro');
+    expect(harness.adapter.loadMonthlyOffer).toHaveBeenCalledTimes(1);
+    expect(harness.adapter.openManagement).toHaveBeenCalledTimes(1);
+  });
+
+  it('builds the adapter for the platform and routes Android management URLs to Linking', async () => {
+    process.env[ANDROID_KEY] = 'goog_public';
+    const harness = loadRuntime('android');
+    harness.runtime.initializeSubscriptionPurchases();
+
+    const [loader, platform, opener] = harness.adapter.constructed.mock.calls[0] as [
+      unknown,
+      string,
+      (url: string) => Promise<void>,
+    ];
+    expect(loader).toBeUndefined();
+    expect(platform).toBe('android');
+    await opener('https://play.google.com/store/account/subscriptions');
+    expect(harness.openURL).toHaveBeenCalledWith(
+      'https://play.google.com/store/account/subscriptions',
+    );
+  });
+
+  it('builds the iOS adapter on iOS', () => {
+    process.env[IOS_KEY] = 'appl_public';
+    const harness = loadRuntime('ios');
+    harness.runtime.initializeSubscriptionPurchases();
+
+    expect(harness.adapter.constructed.mock.calls[0]?.[1]).toBe('ios');
+  });
+
+  it('refuses a purchase of an offer this session never loaded', async () => {
+    process.env[ANDROID_KEY] = 'goog_public';
+    const harness = loadRuntime('android');
+
+    await expect(
+      harness.runtime.purchaseSubscriptionOffer(
+        'offer-1' as Parameters<SubscriptionRuntime['purchaseSubscriptionOffer']>[0],
+      ),
+    ).rejects.toMatchObject({ name: 'SubscriptionSessionChangedError' });
+    expect(harness.adapter.purchase).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    'loadSubscriptionAccess',
+    'loadSubscriptionOffer',
+    'openSubscriptionManagement',
+  ] as const)('fails %s safely without a usable runtime', async (entry) => {
+    process.env[IOS_KEY] = 'goog_WrongStoreKeyValue0123';
+    const harness = loadRuntime('ios');
+
+    await expect(harness.runtime[entry]()).rejects.toMatchObject(UNAVAILABLE);
     expectNoProviderCall(harness);
   });
 });

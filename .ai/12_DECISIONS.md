@@ -14282,6 +14282,50 @@ request, StoreKit/Play transaction or sandbox purchase was created. S-3…S-6
 remain unimplemented. The dependency requires a new native build; Expo Go and a
 JavaScript export are not purchase verification.
 
+### Implementation record — S-3 paywall and account UX (2026-09-30, in-repo candidate)
+
+The third slice implements Decisions 3, 6 (display only), 8 and 10 on the
+client, without enforcement and without activating any external path:
+
+- the S-2 port gains access, offer, purchase and management operations. The
+  adapter selects the **current offering's monthly package**, so no product or
+  offering identifier is frozen in code, and returns an AppFitness-owned offer:
+  an opaque handle to that exact package, the store product id, the
+  store-localized recurring price string, the billing period and a free trial
+  only when store evidence supports it. RevenueCat types stay in the adapter;
+- trial evidence is platform-specific. iOS uses the SDK eligibility check, and
+  unknown, ineligible, a failed check or a paid introductory price all fall
+  back to ordinary paid terms, as the SDK documents. Google Play uses the free
+  phase of the default subscription option, which is the option the purchase
+  uses; the SDK's eligibility call always reports unknown on Android. A
+  non-monthly or unpriceable package yields no offer rather than a guess;
+- purchase buys only the package the latest load returned, and only for the
+  account that loaded it. A cancelled store sheet is a neutral outcome, not an
+  error; a pending payment (or a completed call without an active entitlement)
+  is never presented as active. Management uses the iOS sheet and, on Android,
+  the provider management URL, opened only when it is `https://`;
+- a session-bound store orchestrates loading, unavailable, Web-unavailable,
+  offline, no-offer, error, purchasing, restoring and managing. It keeps S-2's
+  generation checks: a result for an earlier session never updates the current
+  account, an account switch resets the store synchronously, and a same-account
+  generation change produces neutral retry copy. Failures are closed
+  discriminants; no provider text, identifier or diagnostic is rendered or
+  logged;
+- `/subscription` and a dashboard account entry render the offer in the
+  AppFitness design system (EN/ES, light/dark, 48 dp actions, wrap-safe
+  layout) with store-price renewal, charge-account and deletion disclosures.
+  Web renders the ADR-P019 unavailable treatment and never enables checkout.
+  A build without keys says subscriptions are unavailable and the rest of the
+  app is unaffected. No feature is locked (S-4 is separate).
+
+Nothing was verified against App Store Connect, Google Play or RevenueCat: no
+account, key, product, offering, purchase, trial, restore or management call
+has occurred. S-3 therefore stays **In Progress** until store sandbox/test-track
+and UX-4C assistive-technology evidence exist, and the renewal and
+cancellation wording and store policy links remain subject to Decision 12
+counsel approval and O-07. The Google Play trial rule relies on Play returning
+only offers the user can redeem and must be confirmed on a test track.
+
 ### Related documents
 
 - `.ai/11_BACKLOG.md` — FEATURE-012

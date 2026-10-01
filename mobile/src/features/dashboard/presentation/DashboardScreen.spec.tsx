@@ -476,6 +476,24 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/progress');
   });
 
+  it('opens the subscription surface from an account-level entry in both languages (ADR-P034 S-3)', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    setStore({ status: 'ready', data: baseData });
+
+    await render(<DashboardScreen />);
+    const entry = screen.getByTestId('dashboard-subscription');
+    expect(entry.props.accessibilityLabel).toBe('View your AppFitness Pro subscription');
+    await fireEvent.press(entry);
+    expect(router.push).toHaveBeenCalledWith('/subscription');
+
+    mockLanguage = 'es';
+    await render(<DashboardScreen />);
+    expect(screen.getByTestId('dashboard-subscription').props.accessibilityLabel).toBe(
+      'Ver tu suscripción a AppFitness Pro',
+    );
+    expect(screen.getByText('Suscripción')).toBeTruthy();
+  });
+
   it('navigates to progress from the summary card', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     setStore({ status: 'ready', data: baseData });

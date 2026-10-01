@@ -1,6 +1,14 @@
 import type { Session, SessionStatus } from '@/features/authentication';
 
-import type { PurchaseAccessSnapshot, PurchasesPort } from '../domain/purchases.port';
+import {
+  PurchaseProviderFailure,
+  type PurchaseAccessSnapshot,
+  type PurchaseFailureReason,
+  type PurchaseOutcome,
+  type PurchasesPort,
+  type SubscriptionOffer,
+  type SubscriptionOfferHandle,
+} from '../domain/purchases.port';
 import type { SubscriptionProviderConfig } from '../infrastructure/revenuecat-config';
 
 export interface SubscriptionSessionSnapshot {
@@ -30,15 +38,20 @@ export class SubscriptionSessionChangedError extends Error {
 }
 
 /** Allow-listed, non-sensitive classification of the failed provider call. */
-export type SubscriptionProviderOperation = 'configure' | 'logIn' | 'restore';
+export type SubscriptionProviderOperation =
+  'configure' | 'logIn' | 'restore' | 'access' | 'offer' | 'purchase' | 'manage';
 
 /**
  * Provider-neutral failure. The raw SDK error is deliberately dropped (no
  * `cause`): its message or payload may carry keys, App User IDs or provider
- * detail that neither the UI nor logs may receive.
+ * detail that neither the UI nor logs may receive. `reason` is the adapter's
+ * closed classification and is `unknown` for anything else.
  */
 export class SubscriptionProviderError extends Error {
-  constructor(readonly operation: SubscriptionProviderOperation) {
+  constructor(
+    readonly operation: SubscriptionProviderOperation,
+    readonly reason: PurchaseFailureReason = 'unknown',
+  ) {
     super('The subscription provider could not complete the request');
     this.name = 'SubscriptionProviderError';
   }
@@ -50,8 +63,9 @@ async function callProvider<T>(
 ): Promise<T> {
   try {
     return await call();
-  } catch {
-    throw new SubscriptionProviderError(operation);
+  } catch (error) {
+    const reason = error instanceof PurchaseProviderFailure ? error.reason : 'unknown';
+    throw new SubscriptionProviderError(operation, reason);
   }
 }
 
@@ -60,6 +74,11 @@ async function callProvider<T>(
  * SDK `logOut()` is intentionally forbidden: it creates an anonymous provider
  * identity. A -> B switches use `logIn(B)` directly; signed-out state exposes
  * no purchase operation until another authenticated UUID becomes current.
+ *
+ * Every user-facing operation (S-3) runs through `runForCurrentSession`: it is
+ * queued behind identity alignment, re-checks the captured session after every
+ * await, and discards a result that crosses sign-out, an account switch or a
+ * session-generation change.
  */
 export class SubscriptionPurchases {
   private desiredUserId: string | null = null;
@@ -68,6 +87,8 @@ export class SubscriptionPurchases {
   private started = false;
   private unsubscribe: (() => void) | null = null;
   private tail: Promise<void> = Promise.resolve();
+  /** Which account loaded each offer handle, so no handle outlives its owner. */
+  private readonly offerOwners = new Map<SubscriptionOfferHandle, string>();
 
   constructor(
     private readonly purchases: PurchasesPort,
@@ -75,6 +96,11 @@ export class SubscriptionPurchases {
     private readonly sessions: SubscriptionSessionSource,
     private readonly reportFailure: SubscriptionFailureReporter,
   ) {}
+
+  /** True only for a native build with a valid platform public key. */
+  get isAvailable(): boolean {
+    return this.config.enabled && this.config.apiKey !== null;
+  }
 
   start(): void {
     if (this.started) return;
@@ -104,28 +130,75 @@ export class SubscriptionPurchases {
     this.desiredUserId = null;
   }
 
-  async restorePurchases(): Promise<PurchaseAccessSnapshot> {
-    if (!this.config.enabled || !this.config.apiKey) throw new SubscriptionUnavailableError();
+  restorePurchases(): Promise<PurchaseAccessSnapshot> {
+    return this.runForCurrentSession('restore', () =>
+      this.purchases.restorePurchases(this.config.entitlementId),
+    );
+  }
+
+  getAccess(): Promise<PurchaseAccessSnapshot> {
+    return this.runForCurrentSession('access', () =>
+      this.purchases.getAccess(this.config.entitlementId),
+    );
+  }
+
+  loadOffer(): Promise<SubscriptionOffer | null> {
+    return this.runForCurrentSession('offer', () => this.purchases.loadMonthlyOffer(), {
+      onResult: (offer, snapshot) => {
+        this.offerOwners.clear();
+        if (offer) this.offerOwners.set(offer.handle, snapshot.userId);
+      },
+    });
+  }
+
+  purchase(handle: SubscriptionOfferHandle): Promise<PurchaseOutcome> {
+    return this.runForCurrentSession(
+      'purchase',
+      () => this.purchases.purchase(handle, this.config.entitlementId),
+      {
+        before: (snapshot) => {
+          // An offer loaded by another account (or never loaded) is never bought.
+          if (this.offerOwners.get(handle) !== snapshot.userId) {
+            throw new SubscriptionSessionChangedError();
+          }
+        },
+      },
+    );
+  }
+
+  openManagement(): Promise<void> {
+    return this.runForCurrentSession('manage', () => this.purchases.openManagement());
+  }
+
+  /** Allows deterministic shutdown/tests without exposing the SDK itself. */
+  async waitForPendingWork(): Promise<void> {
+    await this.tail;
+  }
+
+  private runForCurrentSession<T>(
+    operation: SubscriptionProviderOperation,
+    call: () => Promise<T>,
+    hooks: {
+      before?: (snapshot: SubscriptionSessionSnapshot) => void;
+      onResult?: (result: T, snapshot: SubscriptionSessionSnapshot) => void;
+    } = {},
+  ): Promise<T> {
+    if (!this.isAvailable) return Promise.reject(new SubscriptionUnavailableError());
     const snapshot = this.sessions.getSessionSnapshot();
     if (!snapshot || this.desiredUserId !== snapshot.userId) {
-      throw new SubscriptionSessionChangedError();
+      return Promise.reject(new SubscriptionSessionChangedError());
     }
 
     return this.enqueue(async () => {
       this.assertCurrent(snapshot);
       await this.alignProvider(snapshot);
       this.assertCurrent(snapshot);
-      const access = await callProvider('restore', () =>
-        this.purchases.restorePurchases(this.config.entitlementId),
-      );
+      hooks.before?.(snapshot);
+      const result = await callProvider(operation, call);
       this.assertCurrent(snapshot);
-      return access;
+      hooks.onResult?.(result, snapshot);
+      return result;
     });
-  }
-
-  /** Allows deterministic shutdown/tests without exposing the SDK itself. */
-  async waitForPendingWork(): Promise<void> {
-    await this.tail;
   }
 
   private async alignProvider(snapshot: SubscriptionSessionSnapshot): Promise<void> {

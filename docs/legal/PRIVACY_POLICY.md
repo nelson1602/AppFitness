@@ -6,8 +6,8 @@
 > Bracketed `[PLACEHOLDER]` fields require business/legal input. Do not treat
 > this as a published policy or as evidence of legal compliance.
 
-> Draft technically refreshed 2026-09-30 · Evidence baseline `f995dec` plus
-> the FEATURE-012 S-2 candidate · App
+> Draft technically refreshed 2026-09-30 · Evidence baseline `356bebd` plus
+> the FEATURE-012 S-3 candidate · App
 > state: public-v1 Phase 21 wellness product, including bilingual surfaces,
 > wellness-safety declarations, conflict resolution, password recovery, and
 > email verification. External legal review remains pending.
@@ -90,8 +90,10 @@ of US$5. The repository now implements a disabled-by-default server entitlement
 mirror, minimal event-id/hash ledger, RevenueCat reconciliation/webhook adapter
 and provider-first deletion. A native adapter is present but stays inert without
 platform public keys and sends only the authenticated account UUID when later
-enabled. It does not yet implement the purchase flow, paywall or access
-enforcement, and no provider account, key or secret is configured. Before
+enabled. An in-app subscription screen and store purchase and restore flow
+are present behind the same inert boundary. Access enforcement is not
+implemented, and no provider account, key, secret, store product or live
+transaction exists. Before
 release, this policy must be reconciled to the completed
 Apple/Google path, provider agreement, retention/deletion behavior, and exact
 store disclosures. AppFitnessRD must never receive or store full payment-card

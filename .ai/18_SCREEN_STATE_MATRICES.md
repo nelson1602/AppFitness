@@ -1,8 +1,8 @@
 # AppFitness Screen State Matrices (V1)
 
-Version: 1.14
+Version: 1.15
 Status: Active
-Last Updated: 2026-09-09
+Last Updated: 2026-09-30
 
 ---
 
@@ -193,6 +193,11 @@ separately because each resolves its own source state; the route gate above is
 | 9 | Dietary Preferences | Feature screen | `useDietaryPreferenceStore` |
 | 10 | Progress | Feature screen | `useProgressStore` |
 | 11 | Evaluation and limitations (`/wellness-safety-profile`) | Feature screen | `useWellnessSafetyProfileStore` |
+| 13 | Subscription (`/subscription`, ADR-P034 S-3 candidate) | Feature screen | `subscriptionStore` (`useSubscriptionStore`) |
+
+**Surface 13 is recorded ahead of its merge.** It exists only in the unmerged
+FEATURE-012 S-3 candidate, so it is not yet counted in the eleven; §13 and the
+coverage grid mark every row **TARGET** (implemented, not on `origin/main`).
 
 **The W-3 dashboard recommendation card is not a twelfth surface.** It reads
 `useWellnessSafetyProfileStore` — its own source — but it renders **nothing at
@@ -640,6 +645,65 @@ set or calorie.
 
 ---
 
+# 13 — Subscription (`/subscription`, ADR-P034 S-3 candidate)
+
+**Files:** `mobile/src/app/subscription.tsx`,
+`mobile/src/features/subscriptions/presentation/SubscriptionScreen.tsx` (with
+`SubscriptionOfferCard.tsx` and `SubscriptionActiveCard.tsx`). **Store:**
+`subscriptionStore` from `createSubscriptionStore`, status union
+`'idle' | 'loading' | 'web-unavailable' | 'unavailable' | 'ready' | 'offline' | 'error'`,
+plus `operation`, `notice`, `issue` and `purchasePending`. The route is
+session-guarded like surface 11, and the store is reset synchronously on any
+account change (`bindStoreToSession`).
+
+**Status: TARGET, and S-3 remains In Progress.** Every treatment below exists
+in the unmerged S-3 candidate and is covered by `SubscriptionScreen.spec.tsx`
+and `subscription.store.spec.ts`; rows become SHIPPED only when it merges.
+Even then S-3 does not close: **no store or provider evidence** exists (no
+RevenueCat account, key, product, offering, purchase, trial, restore or
+management call has run against App Store, Google Play or RevenueCat),
+**no assistive-technology record** exists (UX-4C), and the renewal,
+cancellation and charge wording and store policy links still await
+**counsel approval** (ADR-P034 Decision 12, O-07). **S-4 enforcement is not
+implemented:** this surface locks nothing anywhere in the app.
+
+| State | Trigger — source state | Rendered treatment | Exit | Platform | Evidence | Status |
+|---|---|---|---|---|---|---|
+| **Loading** | `status === 'idle' \|\| 'loading'` | Header plus one busy `Card` (`accessibilityState.busy`, `subscription.loadingAccessibility`) and **no** offer, action or empty copy | `load()` resolves | Both | spec *"announces a busy, localized loading state and never an empty one"* | TARGET |
+| **Error** — store returned no offer (recoverable) | Access read succeeded and is inactive, but the provider returned no usable offer: `offer === null` (no current offering, no monthly package, or a package that is not monthly or has no price) | `<Banner tone="error">` `subscription.noOfferTitle/Body` — the error Banner's polite announcement request included — **one** retry, and Restore purchases. **Never a fabricated offer** | A retry that returns an offer | Native | specs *"records a missing store offer as no offer instead of fabricating one"*, *"renders the no-offer copy with error tone and the error announcement request"*, *"offers exactly one retry, which calls load once per press"*, *"is never rendered as Empty…"* | TARGET |
+| **Error** — load | `status === 'error' && issue === null` | Full-surface `<Banner tone="error">` `subscription.errorTitle/Body` and a retry. No raw provider text | A retry succeeding | Native | spec *"renders Error with a retry and no raw detail"* | TARGET |
+| **Error** — operation | `issue` ∈ `purchaseFailed`, `purchaseNotAllowed`, `restoreFailed`, `manageFailed` (and `network` during an operation, rendered `warning`) | Inline banner above the unchanged offer or active card; the action stays available for a retry | The next successful operation | Native | specs *"maps the %s issue to catalogue copy"*, *"uses the error tone only for real failures"* | TARGET |
+| **Offline** | `status === 'offline'`, set when the load fails with the adapter's closed `network` reason — an authoritative provider signal | `<Banner tone="warning">` `subscription.offlineTitle/Body` and a retry. The copy says the rest of the app keeps working offline and claims nothing about purchases | A retry succeeding | Native | spec *"renders Offline as a warning with a retry, not as an error"* | TARGET |
+| **Web unavailable** | `status === 'web-unavailable'`, from `getSubscriptionAvailability() === 'web'` before any provider call | `<Banner tone="info">` `subscription.webUnavailableTitle/Body`, **no action of any kind**, no checkout | **None** — terminal | **Web only** | spec *"renders web-unavailable with no action of any kind"* | TARGET |
+| **Empty** | — | — | — | — | Nothing on this surface is a user-created collection. A missing store offer is **not** Empty: the user cannot create it, it is missing or invalid provider output, and a retry can succeed — so it is the recoverable Error row above, per `.ai/08_UI_UX.md` §`ErrorState` (retry only where repeating could plausibly succeed) | **n/a** |
+| **Data-gap** | — | — | — | — | Nothing the user supplies is a prerequisite for a store offer | **n/a** |
+| **Pending sync** | — | — | — | — | No local write queue: the surface persists nothing, and a pending **purchase** is a store state, not a queued write (see below) | **n/a** |
+| **Conflict** | — | — | — | — | No synchronized record is edited here | **n/a** |
+
+**Non-canonical S-3 conditions.** None of these is a ninth state; each is
+classified the way §What is deliberately not a canonical state classifies
+runtime things.
+
+| Condition | Source | Treatment and rule | Evidence |
+|---|---|---|---|
+| Native build unconfigured | `status === 'unavailable'` (no or malformed platform key, or runtime missing) | A **declared build boundary**, like Web unavailable but native: `<Banner tone="info">` `subscription.unavailableTitle/Body`, no action, no provider call, the rest of the app unaffected. Not Error — retrying cannot help | spec *"renders unavailable with no action of any kind"*; runtime spec *"reports an unconfigured native build without loading the SDK"* |
+| Same-account session changed | `issue === 'sessionChanged'` (full-surface when it interrupts a load) | Neutral **info** retry copy pointing to Restore purchases; the stale result is discarded and never published. An account switch publishes nothing — the store is reset | specs *"renders a mid-load session change as a neutral retry"*, *"asks for a neutral retry when the purchase crosses a same-account refresh"* |
+| Inactive, eligible trial | `ready`, `offer.freeTrial !== null` | Ordinary content: trial headline, *Then {price} per month*, **Start free trial**, trial renewal terms. Trial wording exists only on this branch | specs *"presents the trial only when the offer carries a confirmed free trial"* |
+| Inactive, paid only | `ready`, `offer.freeTrial === null` (including unknown eligibility) | Ordinary content: *{price} per month*, **Subscribe**, ordinary renewal terms; no free or trial wording anywhere | spec *"shows ordinary paid terms with the store price verbatim when no trial is confirmed"* |
+| Purchasing / restoring / managing | `operation` set | A **transient operation sub-phase**, like `saving` elsewhere: the acting button is busy, the others are disabled | specs *"marks the purchase busy and blocks restore while purchasing"* and the store operation specs |
+| Purchase cancelled | Outcome `cancelled` | **No treatment** — a user choice, not an error; the offer stays and can be bought | specs *"treats cancellation as a choice: no error and no notice"*, *"shows nothing for a cancelled purchase"* |
+| **Purchase pending** | Outcome `pending`, or a completed call without an active entitlement → `purchasePending === true` | `<Banner tone="info">` `subscription.pendingTitle/Body` for as long as it stands, the offer stays visibly **non-active**, and **Subscribe / Start free trial is disabled**; `purchase()` performs no provider call. Restore stays available. Only a confirmed active entitlement (purchase, restore or load) or an account reset clears it; the SDK exposes no pending state, so nothing is persisted | specs *"performs no provider operation for a second purchase while pending"*, *"blocks a second purchase while pending but keeps restore available"*, *"clears the prior account pending state on reset"* |
+| Purchase failure / not allowed | `issue === 'purchaseFailed'` / `'purchaseNotAllowed'` | The operation **Error** row above; a retry is allowed | spec *"still allows a retry after a provider failure"* |
+| Restore succeeded / nothing / failed | `notice === 'restored'` / `'nothingToRestore'`, `issue === 'restoreFailed'` | Success banner then the active card / info banner with the offer kept / operation Error | specs *"restores an active entitlement"*, *"says plainly when nothing was restored and keeps the offer"* |
+| Active, renewing / not renewing | `access.isActive`, `willRenew` true / false | Active card: text status (never colour alone), *Renews on {date}* / *Access continues until {date}. It won't renew.* (no date → no guess), Manage subscription | specs *"shows status text, renewal date and management…"*, *"says access continues without renewal…"* |
+| Management in progress / failed | `operation === 'managing'` / `issue === 'manageFailed'` | Busy manage button; on failure the operation Error with store-settings guidance | store specs *"opens management and clears the operation"*, *"maps a management failure without raw text"* |
+
+**Pending never equals active, and it cannot start another purchase.** No
+store result, restore result, focus re-read or notice in this surface can
+present a pending purchase as an active subscription.
+
+---
+
 # Coverage summary
 
 Eleven state-bearing surfaces. Legend: **S** SHIPPED · **T** TARGET
@@ -660,6 +724,7 @@ owner · **—** genuinely not applicable, justified in the matrix.
 | 9 | Dietary Preferences | S | S | — | S | — | S | S | S |
 | 10 | Progress | S | S | — | S | — | S³ | S³ | S |
 | 11 | Evaluation and limitations | S | S | — | S⁴ | — | S | S | S |
+| 13 | Subscription (S-3 candidate) | T | — | — | T⁵ | T | — | — | T |
 
 ¹ load, write, sync and catalog-incompatibility errors are all SHIPPED. Write
 errors ship as three separate per-operation treatments (BUG-008), each distinct
@@ -670,6 +735,10 @@ dashboard composition — the same treatments counted once at surface 2 and once
 in the dashboard's seven-of-eight total.
 ⁴ four Error treatments, all distinct: the load failure (with the retry), the
 refused stored row, the save failure and the removal failure.
+⁵ three Error treatments: the load failure, the recoverable store-returned-no-offer
+Error (the user cannot create an offer; the one retry is meaningful), and the
+inline operation failures. Surface 13's TARGET rows are the only TARGET rows
+in this grid and do not change the Totals below, which describe `origin/main`.
 
 **Totals.** **PROPOSED: none. TARGET: none.** Every applicable state on every
 surface has an implemented, shipped treatment: surface 11 moved from TARGET to

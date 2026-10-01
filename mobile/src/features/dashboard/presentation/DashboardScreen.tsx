@@ -232,6 +232,18 @@ export function DashboardScreen() {
         {t('dashboard.progress')}
       </AppButton>
 
+      {/* Subscription status, offer, restore and management (ADR-P034 S-3).
+          An account-level entry beside the other account actions; it gates
+          nothing — no feature is locked by this slice (S-4 is separate). */}
+      <AppButton
+        accessibilityLabel={t('dashboard.subscriptionAccessibility')}
+        onPress={() => router.push('/subscription')}
+        testID="dashboard-subscription"
+        variant="secondary"
+      >
+        {t('dashboard.subscription')}
+      </AppButton>
+
       {/* Sign-out clears the session; the dashboard route's session
           guard then redirects to /sign-in — no manual navigation. */}
       <AppButton

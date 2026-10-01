@@ -104,6 +104,8 @@
       "src/features/subscriptions/application/**/*.ts",
       "src/features/subscriptions/infrastructure/**/*.ts",
       "src/features/subscriptions/subscription-runtime.ts",
+      "src/features/subscriptions/presentation/**/*.ts",
+      "src/features/subscriptions/presentation/**/*.tsx",
       "src/features/profile/infrastructure/**/*.ts",
       "src/features/medical/infrastructure/**/*.ts",
       "src/features/medical/application/evaluation.store.ts",
@@ -228,6 +230,12 @@
         "branches": 90
       },
       "src/features/subscriptions/infrastructure/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 90
+      },
+      "src/features/subscriptions/presentation/": {
         "statements": 95,
         "lines": 95,
         "functions": 95,

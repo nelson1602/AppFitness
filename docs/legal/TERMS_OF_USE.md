@@ -62,9 +62,10 @@ yourself.
 ## 5A. Subscription (implementation and legal-review gate)
 
 The owner-selected launch model is one auto-renewing monthly subscription with
-a one-month free trial and a target base price of US$5/month. The current app
-does not yet implement that purchase flow, so this section is not publication
-copy and creates no current offer.
+a one-month free trial and a target base price of US$5/month. The app now
+contains an inert in-app subscription screen (FEATURE-012 S-3), but no store
+product, provider account or live purchase exists, so this section is not
+publication copy and creates no current offer.
 
 Before release, the final terms and paywall must use the price, currency, trial
 eligibility, renewal date, and billing period returned by Apple App Store or

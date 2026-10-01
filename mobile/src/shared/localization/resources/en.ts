@@ -781,6 +781,8 @@ export const en = {
   'dashboard.signOut': 'Sign out',
   'dashboard.deleteAccountAccessibility': 'Delete your account',
   'dashboard.deleteAccount': 'Delete account',
+  'dashboard.subscription': 'Subscription',
+  'dashboard.subscriptionAccessibility': 'View your AppFitness Pro subscription',
   'account.delete.screenTitle': 'Delete account',
   'account.delete.title': 'Delete account',
   'account.delete.description':
@@ -1202,6 +1204,91 @@ export const en = {
   'sync.conflicts.webUnavailableTitle': "Reviewing changes isn't available on the web",
   'sync.conflicts.webUnavailableBody':
     'Use the AppFitness mobile app to review these changes and choose which version to keep.',
+  // Subscription paywall and account surface (ADR-P034 S-3). Prices, periods
+  // and trials are substituted from store evidence only; none is hardcoded.
+  'subscription.routeTitle': 'Subscription',
+  'subscription.title': 'AppFitness Pro',
+  'subscription.subtitle':
+    'Train, eat and track your progress with plans built from your own data.',
+  'subscription.loadingAccessibility': 'Loading subscription',
+  'subscription.benefitsTitle': "What's included",
+  'subscription.benefitTracking': 'Log workouts, meals and body progress',
+  'subscription.benefitPlans': 'Get new workout routines and meal plans from iCoach',
+  'subscription.benefitSync': 'Keep your records backed up and in sync across your devices',
+  'subscription.ownership':
+    "Your records stay yours. Without an active subscription you can still see what's already saved on this device.",
+  'subscription.pricePerMonth': '{price} per month',
+  'subscription.thenPricePerMonth': 'Then {price} per month',
+  'subscription.trialDaysOne': '{count} day free',
+  'subscription.trialDaysMany': '{count} days free',
+  'subscription.trialWeeksOne': '{count} week free',
+  'subscription.trialWeeksMany': '{count} weeks free',
+  'subscription.trialMonthsOne': '{count} month free',
+  'subscription.trialMonthsMany': '{count} months free',
+  'subscription.trialYearsOne': '{count} year free',
+  'subscription.trialYearsMany': '{count} years free',
+  'subscription.subscribe': 'Subscribe',
+  'subscription.subscribeAccessibility': 'Subscribe to AppFitness Pro for {price} per month',
+  'subscription.startTrial': 'Start free trial',
+  'subscription.startTrialAccessibility':
+    'Start the AppFitness Pro free trial, then {price} per month',
+  'subscription.renewalTerms':
+    'Renews automatically each month at {price} until you cancel. Cancel at least 24 hours before the renewal date to avoid the next charge.',
+  'subscription.trialRenewalTerms':
+    "When the free trial ends, it renews automatically each month at {price} until you cancel. Cancel at least 24 hours before the trial ends and you won't be charged.",
+  'subscription.chargeTermsApple':
+    'Payment is charged to your Apple Account. Manage or cancel anytime in your App Store account settings.',
+  'subscription.chargeTermsGoogle':
+    'Payment is charged to your Google Play account. Manage or cancel anytime in your Google Play subscriptions.',
+  'subscription.deletionTerms':
+    "Deleting your AppFitness account doesn't cancel a store subscription. Cancel it in the store first.",
+  'subscription.restore': 'Restore purchases',
+  'subscription.restoreAccessibility': 'Restore subscriptions bought with this store account',
+  'subscription.manage': 'Manage subscription',
+  'subscription.manageAccessibility': 'Manage or cancel your subscription in the store',
+  'subscription.retry': 'Try again',
+  'subscription.retryAccessibility': 'Try loading your subscription again',
+  'subscription.activeTitle': 'AppFitness Pro is active',
+  'subscription.activeRenewsOn': 'Renews on {date}',
+  'subscription.activeEndsOn': "Access continues until {date}. It won't renew.",
+  'subscription.activeNoDate': 'Your subscription is active on this account.',
+  'subscription.purchasedTitle': 'Welcome to AppFitness Pro',
+  'subscription.purchasedBody': 'Thanks for subscribing. Your subscription is now active.',
+  'subscription.pendingTitle': 'Purchase pending',
+  'subscription.pendingBody':
+    "The store hasn't confirmed this purchase yet. Your subscription activates once it does.",
+  'subscription.restoredTitle': 'Purchases restored',
+  'subscription.restoredBody': 'Your AppFitness Pro subscription is active on this account.',
+  'subscription.nothingToRestoreTitle': 'No active subscription found',
+  'subscription.nothingToRestoreBody':
+    'This store account has no active AppFitness Pro subscription to restore.',
+  'subscription.webUnavailableTitle': "Subscriptions aren't available on the web",
+  'subscription.webUnavailableBody':
+    'Use the AppFitness mobile app to subscribe, restore purchases or manage your subscription.',
+  'subscription.unavailableTitle': "Subscriptions aren't available in this version",
+  'subscription.unavailableBody': 'You can keep using AppFitness as usual.',
+  'subscription.noOfferTitle': 'No subscription option is available right now',
+  'subscription.noOfferBody': "The store didn't return a subscription option. Try again later.",
+  'subscription.errorTitle': "We couldn't load your subscription",
+  'subscription.errorBody': 'Something went wrong. Try again in a moment.',
+  'subscription.offlineTitle': "You're offline",
+  'subscription.offlineBody':
+    'Connect to the internet to see subscription options. The rest of AppFitness keeps working offline.',
+  'subscription.networkTitle': 'No connection',
+  'subscription.networkBody': 'Check your connection and try again.',
+  'subscription.purchaseFailedTitle': "The purchase didn't go through",
+  'subscription.purchaseFailedBody': 'Try again. If it keeps happening, check your store account.',
+  'subscription.purchaseNotAllowedTitle': "Purchases aren't allowed",
+  'subscription.purchaseNotAllowedBody':
+    'This device or store account restricts purchases. Check your store settings.',
+  'subscription.restoreFailedTitle': "We couldn't restore purchases",
+  'subscription.restoreFailedBody': 'Try again in a moment.',
+  'subscription.manageFailedTitle': "We couldn't open subscription settings",
+  'subscription.manageFailedBody':
+    'You can also manage your subscription in your store account settings.',
+  'subscription.sessionChangedTitle': 'Please try again',
+  'subscription.sessionChangedBody':
+    'Your session changed while this was in progress. If you already completed a purchase, Restore purchases brings it back.',
 } as const;
 
 export type TranslationKey = keyof typeof en;
