@@ -6,6 +6,12 @@ import {
   getSessionSnapshot,
   isSessionCurrent,
 } from '@/features/authentication';
+import {
+  beginEntitlementCheck,
+  configureEntitlementEnforcement,
+  resetEntitlementAccess,
+  setEntitlementAccess,
+} from '@/shared/application/entitlement-access';
 import { logError } from '@/shared/infrastructure/logging';
 
 import { createSubscriptionStore, type SubscriptionState } from './application/subscription.store';
@@ -15,6 +21,7 @@ import {
   loadSubscriptionOffer,
   openSubscriptionManagement,
   purchaseSubscriptionOffer,
+  reconcileServerSubscription,
   restoreSubscriptionPurchases,
 } from './subscription-runtime';
 
@@ -32,12 +39,37 @@ export const subscriptionStore = createSubscriptionStore(
     purchase: purchaseSubscriptionOffer,
     restore: restoreSubscriptionPurchases,
     manage: openSubscriptionManagement,
+    reconcileServer: reconcileServerSubscription,
   },
   { getSessionSnapshot, isSessionCurrent },
   logError,
+  {
+    configure: configureEntitlementEnforcement,
+    begin: beginEntitlementCheck,
+    set: setEntitlementAccess,
+    reset: resetEntitlementAccess,
+  },
 );
 
-bindStoreToSession(() => subscriptionStore.getState().reset());
+bindStoreToSession(() => {
+  subscriptionStore.getState().reset();
+  if (getSessionSnapshot()) void subscriptionStore.getState().load();
+});
+
+let accessEnforcementInitialized = false;
+
+/**
+ * Starts the session-wide entitlement read independently of visiting the
+ * subscription screen. A configured build fails closed during this first read;
+ * an unconfigured/Web build remains deliberately unregulated.
+ */
+export function initializeSubscriptionAccessEnforcement(): void {
+  if (accessEnforcementInitialized) return;
+  accessEnforcementInitialized = true;
+  const available = getSubscriptionAvailability() === 'available';
+  configureEntitlementEnforcement(available);
+  if (available && getSessionSnapshot()) void subscriptionStore.getState().load();
+}
 
 export function useSubscriptionStore<T>(selector: (state: SubscriptionState) => T): T {
   return useStore(subscriptionStore, selector);

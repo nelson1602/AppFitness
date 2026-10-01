@@ -3,7 +3,14 @@ import { Pressable, View } from 'react-native';
 
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import { formatNumber, useLocalization, type TranslationKey } from '@/shared/localization';
-import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Banner,
+  Card,
+  usePaidWriteDisabled,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { foodDisplayName, searchFoodsForDisplay } from '../../application/food-display.service';
@@ -12,6 +19,9 @@ import { matchFoodExclusion, type ExclusionMatch } from '../../domain/dietary-pr
 import type { AvoidTag, FoodItem, ServingUnit } from '../../domain/food-catalog';
 import { MEAL_SLOTS } from '../../domain/meal-plan';
 import { ServingStepper } from './ServingStepper';
+
+/** Same dimming as a disabled `AppButton` (S-4 read-only write controls). */
+const DISABLED_OPACITY = 0.56;
 
 const MAX_RESULTS = 8;
 
@@ -77,6 +87,7 @@ export function FoodLogAddForm({
   activePreferences?: readonly DietaryPreference[];
 }) {
   const theme = useTheme();
+  const paidWriteDisabled = usePaidWriteDisabled();
   const { language, t } = useLocalization();
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<FoodItem | null>(null);
@@ -118,11 +129,13 @@ export function FoodLogAddForm({
               <Pressable
                 key={slot}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: active }}
+                accessibilityState={{ selected: active, disabled: paidWriteDisabled }}
                 accessibilityLabel={`${t('nutrition.log.mealAccessibility')}: ${label}`}
+                disabled={paidWriteDisabled}
                 testID={`meal-type-${slot}`}
                 onPress={() => setMealType(slot)}
                 style={{
+                  opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
                   backgroundColor: active ? theme.colors.primary : theme.colors.surfaceVariant,
                   borderColor: active ? theme.colors.primary : theme.colors.outline,
                   borderRadius: theme.radius.medium,
@@ -159,9 +172,12 @@ export function FoodLogAddForm({
                   key={food.id}
                   accessibilityRole="button"
                   accessibilityLabel={`${t('nutrition.log.choose')} ${displayName}`}
+                  accessibilityState={{ disabled: paidWriteDisabled }}
+                  disabled={paidWriteDisabled}
                   testID={`food-option-${food.id}`}
                   onPress={() => setSelected(food)}
                   style={{
+                    opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
                     // `outline`, not `divider`: this border is the only thing
                     // bounding an interactive element, so WCAG 1.4.11's 3:1
                     // applies. `divider` is exempt only while it stays
@@ -209,6 +225,7 @@ export function FoodLogAddForm({
               <ExclusionWarning match={exclusion} foodName={selectedDisplayName} />
             ) : null}
             <ServingStepper
+              disabled={paidWriteDisabled}
               value={servingCount}
               onChange={setServingCount}
               testIDPrefix="add-serving"

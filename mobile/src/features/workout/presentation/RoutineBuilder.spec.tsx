@@ -8,6 +8,7 @@ import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
 import type { CustomExercise, Routine, RoutineExercise } from '../domain/workout';
 import type { WorkoutState } from '../application/workout.store';
 import { RoutineBuilder } from './RoutineBuilder';
+import { PaidWriteDisabledProvider } from '@/shared/presentation';
 
 let mockState: WorkoutState;
 let mockLanguage: 'en' | 'es' = 'en';
@@ -478,5 +479,40 @@ describe('RoutineBuilder routine-name input (UX-5)', () => {
 
     await fireEvent.changeText(screen.getByTestId('routine-name'), '   ');
     expect(screen.getByTestId('routine-create')).toBeDisabled();
+  });
+});
+
+describe('S-4 read-only write boundary', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('still opens a saved routine while every routine write stays disabled and inert', async () => {
+    setStore({ status: 'ready', routines: [routine()], routineExercises: [] });
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <RoutineBuilder />
+      </PaidWriteDisabledProvider>,
+    );
+
+    const open = screen.getByTestId('routine-select-r1');
+    expect(open.props.accessibilityState).toMatchObject({ disabled: false });
+    await fireEvent.press(open);
+    expect(loadRoutineExercises).toHaveBeenCalledWith('r1');
+
+    for (const testID of [
+      'routine-create',
+      'routine-remove-r1',
+      'add-exercise-exercise.back_squat',
+    ]) {
+      expect([testID, screen.getByTestId(testID).props.accessibilityState]).toEqual([
+        testID,
+        expect.objectContaining({ disabled: true }),
+      ]);
+    }
+    await fireEvent.press(screen.getByTestId('add-exercise-exercise.back_squat'));
+    await fireEvent.press(screen.getByTestId('routine-remove-r1'));
+    expect(addRoutineExercise).not.toHaveBeenCalled();
+    expect(deactivateRoutine).not.toHaveBeenCalled();
   });
 });

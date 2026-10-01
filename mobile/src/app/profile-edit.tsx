@@ -3,6 +3,8 @@ import { Redirect, Stack, router } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { ProfileForm } from '@/features/profile/presentation/ProfileForm';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
@@ -28,7 +30,9 @@ export default function ProfileEditRoute() {
     <>
       <Stack.Screen options={{ title: t('profile.routeTitle') }} />
       <Screen>
-        <ProfileForm onSaved={() => router.replace('/dashboard')} />
+        <SubscriptionWriteBoundary>
+          <ProfileForm onSaved={() => router.replace('/dashboard')} />
+        </SubscriptionWriteBoundary>
       </Screen>
     </>
   );

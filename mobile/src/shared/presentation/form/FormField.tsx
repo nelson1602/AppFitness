@@ -4,6 +4,7 @@ import { TextInput, View } from 'react-native';
 import { useTheme } from '@/shared/theme';
 
 import { AppText } from '../app-text';
+import { usePaidWriteDisabled } from '../paid-write-context';
 
 interface FormFieldProps<T extends FieldValues> {
   control: Control<T>;
@@ -37,6 +38,7 @@ export function FormField<T extends FieldValues>({
   selectTextOnFocus = false,
 }: FormFieldProps<T>) {
   const theme = useTheme();
+  const disabled = usePaidWriteDisabled();
   return (
     <Controller
       control={control}
@@ -49,9 +51,11 @@ export function FormField<T extends FieldValues>({
           </AppText>
           <TextInput
             accessibilityLabel={label}
+            accessibilityState={disabled ? { disabled: true } : undefined}
             testID={`field-${name}`}
             autoCapitalize="none"
             autoCorrect={false}
+            editable={disabled ? false : undefined}
             selectTextOnFocus={selectTextOnFocus}
             keyboardType={keyboardType}
             placeholder={placeholder}
@@ -65,6 +69,7 @@ export function FormField<T extends FieldValues>({
               borderRadius: theme.radius.medium,
               borderWidth: 1,
               color: theme.colors.onSurface,
+              opacity: disabled ? 0.56 : 1,
               minHeight: theme.spacing.x5l,
               paddingHorizontal: theme.spacing.md,
               ...theme.typography.body,

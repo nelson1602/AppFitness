@@ -25,6 +25,54 @@ interface Harness {
   readonly openURL: jest.Mock;
 }
 
+interface ReconciliationHarness {
+  readonly runtime: SubscriptionRuntime;
+  readonly fetch: jest.Mock;
+  readonly refreshTokens: jest.Mock;
+  readonly isSessionCurrent: jest.Mock;
+  setSnapshot(next: Record<string, unknown>): void;
+}
+
+function loadReconciliationRuntime(): ReconciliationHarness {
+  const user = { id: ACCOUNT_ID, email: 'owner@example.test', username: 'owner' };
+  let snapshot: Record<string, unknown> = {
+    generation: 1,
+    userId: ACCOUNT_ID,
+    accessToken: 'access-1',
+    refreshToken: 'refresh-1',
+    user,
+  };
+  const fetchMock = jest.fn();
+  const refreshTokens = jest.fn();
+  const isSessionCurrent = jest.fn(() => true);
+  let runtime!: SubscriptionRuntime;
+
+  jest.isolateModules(() => {
+    jest.doMock('react-native', () => ({ Platform: { OS: 'android' }, Linking: {} }));
+    jest.doMock('@/features/authentication', () => ({
+      getSessionSnapshot: () => snapshot,
+      isSessionCurrent,
+      refreshTokens,
+      requireSessionSnapshot: () => snapshot,
+      subscribe: jest.fn(() => () => undefined),
+    }));
+    jest.doMock('@/shared/infrastructure/logging', () => ({ logError: jest.fn() }));
+    globalThis.fetch = fetchMock as typeof fetch;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    runtime = require('./subscription-runtime') as SubscriptionRuntime;
+  });
+
+  return {
+    runtime,
+    fetch: fetchMock,
+    refreshTokens,
+    isSessionCurrent,
+    setSnapshot: (next) => {
+      snapshot = next;
+    },
+  };
+}
+
 /**
  * Loads a fresh copy of the runtime (own module-level state) against mocked
  * platform, session source, logger, adapter and SDK module. No public reset
@@ -298,5 +346,64 @@ describe('subscription runtime S-3 entry points', () => {
 
     await expect(harness.runtime[entry]()).rejects.toMatchObject(UNAVAILABLE);
     expectNoProviderCall(harness);
+  });
+});
+
+describe('subscription runtime S-4 server reconciliation', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('posts only the bearer token to the reconciliation endpoint', async () => {
+    const harness = loadReconciliationRuntime();
+    harness.fetch.mockResolvedValue({ ok: true, status: 204 });
+
+    await expect(harness.runtime.reconcileServerSubscription()).resolves.toBeUndefined();
+
+    expect(harness.fetch).toHaveBeenCalledWith('http://localhost:3001/subscriptions/reconcile', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer access-1' },
+    });
+  });
+
+  it('refreshes once after 401 and retries with the rotated token', async () => {
+    const harness = loadReconciliationRuntime();
+    const rotated = {
+      accessToken: 'access-2',
+      refreshToken: 'refresh-2',
+      user: { id: ACCOUNT_ID, email: 'owner@example.test', username: 'owner' },
+    };
+    harness.fetch
+      .mockResolvedValueOnce({ ok: false, status: 401 })
+      .mockResolvedValueOnce({ ok: true, status: 204 });
+    harness.refreshTokens.mockImplementation(async () => {
+      harness.setSnapshot({ ...rotated, generation: 2, userId: ACCOUNT_ID });
+      return rotated;
+    });
+
+    await expect(harness.runtime.reconcileServerSubscription()).resolves.toBeUndefined();
+
+    expect(harness.refreshTokens).toHaveBeenCalledTimes(1);
+    expect(harness.fetch).toHaveBeenNthCalledWith(
+      2,
+      'http://localhost:3001/subscriptions/reconcile',
+      expect.objectContaining({ headers: { Authorization: 'Bearer access-2' } }),
+    );
+  });
+
+  it('fails safely on refusal without exposing the response body', async () => {
+    const harness = loadReconciliationRuntime();
+    harness.fetch.mockResolvedValue({
+      ok: false,
+      status: 503,
+      text: () => Promise.resolve('provider secret and account details'),
+    });
+
+    await expect(harness.runtime.reconcileServerSubscription()).rejects.toMatchObject({
+      name: 'SubscriptionReconciliationError',
+      message: 'The server entitlement mirror could not be reconciled',
+    });
   });
 });

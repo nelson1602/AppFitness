@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet, type StyleProp, type TextStyle } from 'react-native';
 
 import { lightTheme } from '@/shared/theme';
@@ -9,6 +9,11 @@ import type { MealMacros, MealPlan, MealPlanDay, MealSlot } from '../domain/meal
 import type { MealPlanSelection } from '../application/meal-plan.service';
 import type { DietaryPreferenceState } from '../application/dietary-preference.store';
 import { NutritionPlanScreen } from './NutritionPlanScreen';
+import {
+  beginEntitlementCheck,
+  configureEntitlementEnforcement,
+  setEntitlementAccess,
+} from '@/shared/application/entitlement-access';
 
 const refresh = jest.fn();
 const loadPreferences = jest.fn();
@@ -439,5 +444,55 @@ describe('NutritionPlanScreen', () => {
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('open-food-log')).toBeNull();
     expect(screen.queryByText('Día 1')).toBeNull();
+  });
+});
+
+describe('S-4 read-only: no new iCoach meal-plan generation', () => {
+  beforeEach(() => {
+    // Same baseline as the main suite: a ready, native, English dashboard.
+    jest.clearAllMocks();
+    mockLanguage = 'en';
+    setDash({});
+    setPrefs({});
+  });
+
+  afterEach(async () => {
+    // Restore the default disabled projection through the production API,
+    // inside act: the still-mounted screen re-renders on the publication.
+    await act(async () => {
+      configureEntitlementEnforcement(false);
+    });
+  });
+
+  it.each([
+    ['read-only', false],
+    ['checking', null],
+  ] as const)(
+    'shows the access notice and never generates a plan while %s',
+    async (_mode, active) => {
+      configureEntitlementEnforcement(true);
+      beginEntitlementCheck('user-1');
+      if (active !== null) setEntitlementAccess('user-1', active);
+      mockSelection = { status: 'ready', plan: plan() };
+      lastSelectArgs = [];
+
+      await render(<NutritionPlanScreen />);
+
+      expect(screen.getByTestId('subscription-access-notice')).toBeOnTheScreen();
+      expect(lastSelectArgs).toEqual([]);
+    },
+  );
+
+  it('generates normally once the entitlement is active', async () => {
+    configureEntitlementEnforcement(true);
+    beginEntitlementCheck('user-1');
+    setEntitlementAccess('user-1', true);
+    mockSelection = { status: 'ready', plan: plan() };
+    lastSelectArgs = [];
+
+    await render(<NutritionPlanScreen />);
+
+    expect(screen.queryByTestId('subscription-access-notice')).toBeNull();
+    expect(lastSelectArgs.length).toBeGreaterThan(0);
   });
 });

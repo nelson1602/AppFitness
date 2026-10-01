@@ -6,7 +6,14 @@ import {
   type SupportedLanguage,
   type TranslationKey,
 } from '@/shared/localization';
-import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Banner,
+  Card,
+  usePaidWriteDisabled,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { SyncStatus } from '@/shared/infrastructure/database/types';
@@ -16,6 +23,9 @@ import { useDietaryPreferenceStore } from '../application/dietary-preference.sto
 import { foodDisplayName, searchFoodsForDisplay } from '../application/food-display.service';
 import type { DietaryPreference, DietaryPreferenceInput } from '../domain/dietary-preference';
 import { AVOID_TAGS, type AvoidTag } from '../domain/food-catalog';
+
+/** Same dimming as a disabled `AppButton` (S-4 read-only write controls). */
+const DISABLED_OPACITY = 0.56;
 
 type Translate = (key: TranslationKey) => string;
 
@@ -98,13 +108,16 @@ function Chip({
   testID: string;
 }) {
   const theme = useTheme();
+  const paidWriteDisabled = usePaidWriteDisabled();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected: active }}
+      accessibilityState={{ selected: active, disabled: paidWriteDisabled }}
+      disabled={paidWriteDisabled}
       testID={testID}
       onPress={onPress}
       style={{
+        opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
         backgroundColor: active ? theme.colors.primary : theme.colors.surfaceVariant,
         borderColor: active ? theme.colors.primary : theme.colors.outline,
         borderRadius: theme.radius.medium,
@@ -132,6 +145,7 @@ function Chip({
 /** Local-first dietary exclusions; presentation language never changes stored identity. */
 export function DietaryPreferences() {
   const theme = useTheme();
+  const paidWriteDisabled = usePaidWriteDisabled();
   const { language, t } = useLocalization();
   const { status, preferences, error, load, add, remove } = useDietaryPreferenceStore();
 
@@ -286,10 +300,16 @@ export function DietaryPreferences() {
                   <Pressable
                     key={result.id}
                     accessibilityRole="button"
+                    accessibilityState={{ disabled: paidWriteDisabled }}
+                    disabled={paidWriteDisabled}
                     testID={`dp-food-result-${result.id}`}
                     onPress={() => setFood({ catalogKey: result.id })}
                     // BUG-023: one unpadded text line was only 24 dp tall.
-                    style={{ justifyContent: 'center', minHeight: theme.spacing.x5l }}
+                    style={{
+                      justifyContent: 'center',
+                      minHeight: theme.spacing.x5l,
+                      opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
+                    }}
                   >
                     <AppText>{foodDisplayName(result, language)}</AppText>
                   </Pressable>

@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import { useTheme } from '@/shared/theme';
 
 import { AppText } from '../app-text';
+import { usePaidWriteDisabled } from '../paid-write-context';
 
 interface Option {
   label: string;
@@ -31,6 +32,7 @@ export function FormSelect<T extends FieldValues>({
   required = false,
 }: FormSelectProps<T>) {
   const theme = useTheme();
+  const disabled = usePaidWriteDisabled();
   return (
     <Controller
       control={control}
@@ -48,9 +50,10 @@ export function FormSelect<T extends FieldValues>({
                 <Pressable
                   key={opt.value}
                   accessibilityRole="radio"
-                  accessibilityState={{ selected }}
+                  accessibilityState={{ selected, disabled }}
                   accessibilityLabel={`${label}: ${opt.label}`}
                   testID={`option-${name}-${opt.value}`}
+                  disabled={disabled}
                   onPress={() => onChange(opt.value)}
                   style={{
                     backgroundColor: selected ? theme.colors.primary : theme.colors.surfaceVariant,
@@ -61,6 +64,7 @@ export function FormSelect<T extends FieldValues>({
                     // BUG-023: a short option label ("Sí") left the target
                     // 39.6 dp wide, under the 44×44 floor.
                     minWidth: theme.spacing.x5l,
+                    opacity: disabled ? 0.56 : 1,
                     justifyContent: 'center',
                     paddingHorizontal: theme.spacing.md,
                   }}

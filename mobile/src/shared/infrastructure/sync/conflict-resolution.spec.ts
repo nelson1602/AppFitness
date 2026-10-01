@@ -19,6 +19,11 @@ import {
   settlePendingResolutions,
   type ConflictResolutionDeps,
 } from './conflict-resolution';
+import {
+  beginEntitlementCheck,
+  configureEntitlementEnforcement,
+  setEntitlementAccess,
+} from '../../application/entitlement-access';
 import { listUnsettledConflicts } from './sync-conflicts';
 import { enqueue, markConflict } from './sync-queue';
 import {
@@ -790,6 +795,23 @@ describe('retry, backoff and restart', () => {
     expect(conflictRow().settlement_status).toBe('FAILED');
   });
 
+  it('a 402 preserves the chosen settlement without retry or backoff', async () => {
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({ resolveConflict: jest.fn().mockRejectedValue(new SyncHttpError(402)) }),
+    );
+
+    const before = conflictRow();
+    const report = await settlePendingResolutions(deps());
+    const after = conflictRow();
+
+    expect(report).toMatchObject({ outcome: 'subscription-required', failed: 0 });
+    expect(after.chosen_resolution).toBe(before.chosen_resolution);
+    expect(after.settlement_status).toBe('PENDING');
+    expect(after.settlement_attempts).toBe(before.settlement_attempts);
+    expect(after.next_attempt_at).toBeNull();
+    expect(after.last_error).toBeNull();
+  });
+
   it('abandons the pass without sending when the session changed', async () => {
     const resolveConflict = jest.fn();
     mockCreateTransport.mockReturnValue(fakeTransport({ resolveConflict }));
@@ -1432,5 +1454,46 @@ describe('isDeletedSnapshot', () => {
     expect(isDeletedSnapshot({ deleted_at: null })).toBe(false);
     expect(isDeletedSnapshot({})).toBe(false);
     expect(isDeletedSnapshot({ deleted_at: '2026-09-01T00:00:00.000Z' })).toBe(true);
+  });
+});
+
+describe('S-4 read-only: conflict choices and settlement', () => {
+  afterEach(() => {
+    // Restore the default disabled projection through the production API.
+    configureEntitlementEnforcement(false);
+  });
+
+  function readOnly(): void {
+    configureEntitlementEnforcement(true);
+    beginEntitlementCheck(A);
+    setEntitlementAccess(A, false);
+  }
+
+  it('refuses a new choice without writing the conflict row', async () => {
+    insertConflict();
+    await parkOperation();
+    readOnly();
+    const before = conflictRow();
+
+    const result = await chooseConflictResolution(deps(), CONFLICT, 'RESOLVED_LOCAL_WINS');
+
+    expect(result).toEqual({ status: 'SUBSCRIPTION_REQUIRED' });
+    expect(conflictRow()).toEqual(before);
+  });
+
+  it('settles nothing and contacts no server while read-only', async () => {
+    insertConflict();
+    await parkOperation();
+    await chooseConflictResolution(deps(), CONFLICT, 'RESOLVED_LOCAL_WINS');
+    const resolveConflict = jest.fn();
+    mockCreateTransport.mockReturnValue(fakeTransport({ resolveConflict }));
+    readOnly();
+    const before = conflictRow();
+
+    const report = await settlePendingResolutions(deps());
+
+    expect(report.outcome).toBe('subscription-required');
+    expect(resolveConflict).not.toHaveBeenCalled();
+    expect(conflictRow()).toEqual(before);
   });
 });

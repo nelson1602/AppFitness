@@ -7,11 +7,13 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
 import { CurrentUser } from '../../auth/presentation/decorators/current-user.decorator';
+import { ActiveEntitlementGuard } from '../../subscriptions/presentation/guards/active-entitlement.guard';
 import { MedicalService } from '../application/medical.service';
 import type {
   EvaluationRecord,
@@ -39,6 +41,7 @@ export class MedicalController {
   }
 
   @Post('evaluations')
+  @UseGuards(ActiveEntitlementGuard)
   @ApiOperation({
     summary: 'Record a new evaluation (append-only — no update exists)',
   })
@@ -50,6 +53,7 @@ export class MedicalController {
   }
 
   @Delete('evaluations/:id')
+  @UseGuards(ActiveEntitlementGuard)
   @HttpCode(204)
   @ApiOperation({ summary: 'Soft-delete an evaluation (history preserved)' })
   async deleteEvaluation(
@@ -68,6 +72,7 @@ export class MedicalController {
   }
 
   @Post('restrictions')
+  @UseGuards(ActiveEntitlementGuard)
   @ApiOperation({ summary: 'Record a medical restriction' })
   createRestriction(
     @CurrentUser() user: AuthenticatedUser,

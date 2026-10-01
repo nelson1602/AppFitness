@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.17
+Version: 1.18
 Status: Active
-Last Updated: 2026-09-28
+Last Updated: 2026-10-01
 
 ---
 
@@ -595,6 +595,56 @@ UX-4C stays open and unrun, and the hidden measurers' exclusion from assistive
 technology is asserted by props only. No dormant-medical change. No token,
 dependency, copy, schema, migration, sync, API, route or `AppTextInput`
 contract change. Catalogues stay at 1068 / 1068.
+
+---
+
+# Revision Scope (v1.18 — ADR-P034 S-4 paid-write context)
+
+**Owner decision, 2026-10-01 (approach A).** A bounded amendment to four
+frozen contracts — `AppButton`, `AppTextInput`, `FormField` and `FormSelect` —
+so the S-4 read-only boundary fails closed in the UI. Writes are refused at the
+API and in the transactional sync queue regardless; this amendment governs
+only what the user can press.
+
+**The context.** `PaidWriteDisabledProvider` / `usePaidWriteDisabled`
+(`shared/presentation/paid-write-context.tsx`). Its default is `false`, so
+every surface outside a boundary renders exactly as before.
+
+| Component | Behaviour while the context is `true` | Unchanged |
+|---|---|---|
+| `AppButton` | Disabled: no press, `accessibilityState.disabled`, the existing 0.56 disabled opacity. An explicit `disabled` or `loading` still applies, and `busy` still reflects `loading` only | Props, variants, tokens, 44 dp floor, derived accessible name |
+| `AppTextInput` | Not editable, with its existing disabled presentation and `accessibilityState.disabled` | API (no new prop), focus border, placeholder role |
+| `FormField` | `editable={false}`, `accessibilityState.disabled`, 0.56 opacity | Field, label and validation contract |
+| `FormSelect` | Every option disabled, `accessibilityState` `{ selected, disabled }`, 0.56 opacity | Selection semantics, BUG-023 48 dp floor; the AT/required/invalid blocker stays open |
+
+**Fail closed, re-enable by proof.** `SubscriptionWriteBoundary` sets the
+context for a whole write surface and shows the bilingual access notice
+above it; saved content stays rendered. Raw write-form `Pressable`s under a
+boundary honour the same context (dietary chips and food results, food-log
+meal and food options, serving and remove controls, wellness area/movement
+chips, workout set pickers, routine builder controls). An action is
+re-enabled only when it reads or navigates, with a nested
+`PaidWriteDisabledProvider disabled={false}`, and each one has a regression
+test pressing it inside a disabled boundary:
+
+| Re-enabled action | Why it is read-only | Regression |
+|---|---|---|
+| Open a saved routine (`routine-select-*`) | Loads its exercises for viewing | `RoutineBuilder.spec.tsx` |
+| Open a saved workout (`workout-select-*`) | Shows its logged sets | `WorkoutLogScreen.spec.tsx` |
+| Food Log *Sync now* | Pulls server data; the push half is refused by the queue | `FoodLogScreen.spec.tsx` |
+| Onboarding fix action (`gap-fix-*`) | Navigates to the owning screen | `onboarding-checklist-card.spec.tsx` |
+
+Outside every boundary by construction: the dashboard's account, subscription
+and navigation actions, and the sign-in, password recovery, verification,
+account deletion and subscription routes (`entitlement-enforcement.scope.spec.ts`).
+
+**Accessibility.** Each disabled control exposes `accessibilityState.disabled`,
+and state is never conveyed by opacity alone: the access notice explains it in
+text. WCAG 1.4.3 and 1.4.11 exempt inactive components, so the dimming adds no
+new contrast claim. No assistive-technology outcome is claimed (UX-4C).
+
+**Not changed:** colour or spacing tokens, any component's props, layout, or
+existing copy. The catalogues gain five access keys (1138 → 1143).
 
 ---
 
@@ -2613,6 +2663,9 @@ Stated precisely, because the shipped inventory is **not** uniform:
 
 ## 1. `AppTextInput`
 
+> **v1.18 (ADR-P034 S-4):** not editable while the paid-write context is set —
+> §Revision Scope (v1.18).
+
 | Aspect | Contract |
 |---|---|
 | **Responsibility** | A theme-aware React Native text-control primitive. It owns the input node, value entry, the visual input states, its semantic tokens, its accessible name, and native `TextInput` behaviour. |
@@ -2648,6 +2701,9 @@ those flows.
 
 ## 2. `FormField`
 
+> **v1.18 (ADR-P034 S-4):** not editable while the paid-write context is set —
+> §Revision Scope (v1.18).
+
 | Aspect | Contract |
 |---|---|
 | **Responsibility** | The React Hook Form adapter for a single text field: it owns `Controller`, the visible label, the required indication, and the **adjacent validation-error rendering**. It does **not** own localization — producing user-safe localized copy remains the responsibility of the feature schema and its call site for public-v1 surfaces (§Validation-copy boundary). |
@@ -2667,6 +2723,9 @@ those flows.
 ---
 
 ## 3. `FormSelect`
+
+> **v1.18 (ADR-P034 S-4):** options are disabled while the paid-write context is
+> set — §Revision Scope (v1.18).
 
 | Aspect | Contract |
 |---|---|
@@ -2888,6 +2947,9 @@ spec or Maestro flow depends on a primitive-internal id. What must survive is
 ---
 
 ## 4. `AppButton`
+
+> **v1.18 (ADR-P034 S-4):** disabled while the paid-write context is set —
+> §Revision Scope (v1.18).
 
 | Aspect | Contract |
 |---|---|
@@ -3524,6 +3586,17 @@ partial implementation. No copy, token, dependency, schema, migration, sync,
 API or route changes, and the catalogues stay at 1068 / 1068. The input
 frozen-hook register entries for the workout surfaces and the per-set reps
 editor hold unchanged.
+
+## What v1.18 (ADR-P034 S-4 paid-write context) authorizes
+
+**Owner decision, 2026-10-01 (approach A).** Exactly one behaviour in four
+frozen contracts: `AppButton`, `AppTextInput`, `FormField` and `FormSelect`
+honour the paid-write disabled context (§Revision Scope v1.18). It authorizes
+wrapping write surfaces in `SubscriptionWriteBoundary`, the same context on
+raw write-form `Pressable`s beneath it, and re-enabling an action only when it
+reads or navigates and has a regression test. It authorizes no new prop, token,
+variant, layout or existing-copy change, and no other component contract
+change. Five access keys are added (1138 → 1143).
 
 ## Owner-gated decisions still open after this revision
 

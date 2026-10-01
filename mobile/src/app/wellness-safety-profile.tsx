@@ -3,6 +3,8 @@ import { Redirect, Stack } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { WellnessSafetyProfileScreen } from '@/features/wellness';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
@@ -33,7 +35,9 @@ export default function WellnessSafetyProfileRoute() {
     <>
       <Stack.Screen options={{ title: t('wellness.safety.routeTitle') }} />
       <Screen>
-        <WellnessSafetyProfileScreen />
+        <SubscriptionWriteBoundary>
+          <WellnessSafetyProfileScreen />
+        </SubscriptionWriteBoundary>
       </Screen>
     </>
   );

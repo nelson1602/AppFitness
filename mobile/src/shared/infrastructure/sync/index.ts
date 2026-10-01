@@ -10,6 +10,7 @@ export {
   markConflict,
   markFailed,
   markInFlight,
+  returnInFlightToPending,
   peekReady,
   removeParkedOperation,
   removeRejected,

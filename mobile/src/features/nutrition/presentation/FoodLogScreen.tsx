@@ -9,7 +9,14 @@ import {
   type SupportedLanguage,
   type TranslationKey,
 } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  Banner,
+  Card,
+  PaidWriteDisabledProvider,
+  usePaidWriteDisabled,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
@@ -204,6 +211,7 @@ function ItemSyncChip({ item }: { item: LoggedMealItem }) {
 function LoggedItemRow({ item }: { item: LoggedMealItem }) {
   const theme = useTheme();
   const { language, t } = useLocalization();
+  const paidWriteDisabled = usePaidWriteDisabled();
   const editServing = useFoodLogStore((state) => state.editServing);
   const removeItem = useFoodLogStore((state) => state.removeItem);
   const canonical = item.catalogKey ? getById(item.catalogKey) : undefined;
@@ -232,6 +240,7 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
       </AppText>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <ServingStepper
+          disabled={paidWriteDisabled}
           value={item.servingCount}
           onChange={(next) => void editServing(item.id, next)}
           testIDPrefix={`edit-serving-${item.id}`}
@@ -240,6 +249,8 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
           accessibilityRole="button"
           accessibilityLabel={`${t('nutrition.log.removeAccessibility')} ${displayName}`}
           testID={`remove-item-${item.id}`}
+          accessibilityState={{ disabled: paidWriteDisabled }}
+          disabled={paidWriteDisabled}
           onPress={() => void removeItem(item.id)}
           // BUG-023: padding and one label line alone came to 36 dp tall.
           style={{
@@ -247,6 +258,7 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
             justifyContent: 'center',
             minHeight: theme.spacing.x5l,
             minWidth: theme.spacing.x5l,
+            opacity: paidWriteDisabled ? 0.5 : 1,
             padding: theme.spacing.sm,
           }}
         >
@@ -431,15 +443,17 @@ export function FoodLogScreen() {
             </>
           )}
 
-          <AppButton
-            accessibilityLabel={t('nutrition.log.syncNowAccessibility')}
-            testID="food-log-sync-now"
-            variant="secondary"
-            loading={sync.state === 'syncing'}
-            onPress={() => void syncNow()}
-          >
-            {t('nutrition.log.syncNow')}
-          </AppButton>
+          <PaidWriteDisabledProvider disabled={false}>
+            <AppButton
+              accessibilityLabel={t('nutrition.log.syncNowAccessibility')}
+              testID="food-log-sync-now"
+              variant="secondary"
+              loading={sync.state === 'syncing'}
+              onPress={() => void syncNow()}
+            >
+              {t('nutrition.log.syncNow')}
+            </AppButton>
+          </PaidWriteDisabledProvider>
         </>
       )}
 

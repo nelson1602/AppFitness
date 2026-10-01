@@ -1,6 +1,12 @@
 import { Linking, Platform } from 'react-native';
 
-import { getSessionSnapshot, isSessionCurrent, subscribe } from '@/features/authentication';
+import {
+  getSessionSnapshot,
+  isSessionCurrent,
+  refreshTokens,
+  requireSessionSnapshot,
+  subscribe,
+} from '@/features/authentication';
 import { logError } from '@/shared/infrastructure/logging';
 
 import {
@@ -18,6 +24,14 @@ import { RevenueCatPurchasesAdapter } from './infrastructure/revenuecat-purchase
 
 let runtime: SubscriptionPurchases | null = null;
 let initialized = false;
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+
+export class SubscriptionReconciliationError extends Error {
+  constructor() {
+    super('The server entitlement mirror could not be reconciled');
+    this.name = 'SubscriptionReconciliationError';
+  }
+}
 
 /**
  * Where purchasing stands on this build. `web` is the ADR-P019 declared
@@ -84,4 +98,32 @@ export async function purchaseSubscriptionOffer(
 
 export async function openSubscriptionManagement(): Promise<void> {
   return requireRuntime().openManagement();
+}
+
+/**
+ * Refreshes the server's independent entitlement mirror after native SDK
+ * evidence becomes active. It sends no receipt or provider payload.
+ */
+export async function reconcileServerSubscription(): Promise<void> {
+  let owner = requireSessionSnapshot();
+  let response: Response;
+  try {
+    response = await requestReconciliation(owner.accessToken);
+    if (response.status === 401 && isSessionCurrent(owner)) {
+      const rotated = await refreshTokens();
+      if (!rotated || rotated.user.id !== owner.userId) throw new SubscriptionReconciliationError();
+      owner = requireSessionSnapshot();
+      response = await requestReconciliation(rotated.accessToken);
+    }
+  } catch {
+    throw new SubscriptionReconciliationError();
+  }
+  if (!isSessionCurrent(owner) || !response.ok) throw new SubscriptionReconciliationError();
+}
+
+function requestReconciliation(accessToken: string): Promise<Response> {
+  return fetch(`${API_BASE_URL}/subscriptions/reconcile`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
 }

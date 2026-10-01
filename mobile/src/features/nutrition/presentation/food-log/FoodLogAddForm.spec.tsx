@@ -5,6 +5,7 @@ import { darkTheme, lightTheme } from '@/shared/theme';
 
 import type { DietaryPreference } from '../../domain/dietary-preference';
 import { FoodLogAddForm } from './FoodLogAddForm';
+import { PaidWriteDisabledProvider } from '@/shared/presentation';
 
 let mockLanguage: 'en' | 'es' = 'en';
 
@@ -214,5 +215,32 @@ describe('FoodLogAddForm — dietary-preference warnings (ADR-P014 Slice 4)', ()
     await selectAlmonds([]);
     expect(screen.queryByText('Heads up — this matches an allergy or sensitivity')).toBeNull();
     expect(screen.queryByText('This is on your avoid list')).toBeNull();
+  });
+});
+
+describe('S-4 read-only write boundary', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('keeps meal and search controls inert, so nothing can be submitted', async () => {
+    const onAdd = jest.fn();
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <FoodLogAddForm onAdd={onAdd} />
+      </PaidWriteDisabledProvider>,
+    );
+
+    const lunch = screen.getByTestId('meal-type-LUNCH');
+    expect(lunch.props.accessibilityState).toMatchObject({ disabled: true });
+    await fireEvent.press(lunch);
+    expect(screen.getByTestId('meal-type-LUNCH').props.accessibilityState).toMatchObject({
+      selected: false,
+    });
+
+    // Search is disabled, so no food can be chosen and nothing can be submitted.
+    expect(screen.getByTestId('food-search-input').props.editable).toBe(false);
+    expect(screen.queryByTestId('food-log-add-submit')).toBeNull();
+    expect(onAdd).not.toHaveBeenCalled();
   });
 });

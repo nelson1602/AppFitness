@@ -3,7 +3,10 @@ import { StatusBar } from 'expo-status-bar';
 
 import { registerNutritionSyncAppliers } from '@/features/nutrition';
 import { registerProgressSyncAppliers } from '@/features/progress';
-import { initializeSubscriptionPurchases } from '@/features/subscriptions';
+import {
+  initializeSubscriptionAccessEnforcement,
+  initializeSubscriptionPurchases,
+} from '@/features/subscriptions';
 import { registerWellnessSyncAppliers } from '@/features/wellness';
 import { registerProfileSyncAppliers } from '@/features/profile';
 import { registerWorkoutSyncAppliers } from '@/features/workout';
@@ -17,6 +20,7 @@ import { useTheme } from '@/shared/theme';
 // (ADR-P010) — dev, tests, and E2E builds run without it.
 initMonitoring();
 initializeSubscriptionPurchases();
+initializeSubscriptionAccessEnforcement();
 registerProfileSyncAppliers();
 registerNutritionSyncAppliers();
 registerWorkoutSyncAppliers();

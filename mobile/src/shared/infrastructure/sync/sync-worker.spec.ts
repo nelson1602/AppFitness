@@ -1,4 +1,9 @@
 import { encryptToBase64 } from '../crypto/field-cipher';
+import {
+  beginEntitlementCheck,
+  configureEntitlementEnforcement,
+  setEntitlementAccess,
+} from '../../application/entitlement-access';
 import type { SqlExecutor } from '../database';
 import type { SyncQueueRow } from '../database/types';
 import { allAppliers, getApplier, type EntityApplier } from './appliers';
@@ -13,6 +18,7 @@ import {
   peekReady,
   readQueuePayload,
   removeRejected,
+  returnInFlightToPending,
 } from './sync-queue';
 import { getCursor, setCursor } from './sync-state';
 import {
@@ -54,6 +60,7 @@ jest.mock('./sync-queue', () => ({
   // BUG-030: nothing is abandoned in these unit scenarios.
   recoverAbandonedInFlight: jest.fn(() => Promise.resolve(0)),
   removeRejected: jest.fn(),
+  returnInFlightToPending: jest.fn(),
 }));
 jest.mock('./sync-state', () => ({
   getCursor: jest.fn(),
@@ -72,6 +79,7 @@ const mockMarkFailed = jest.mocked(markFailed);
 const mockMarkConflict = jest.mocked(markConflict);
 const mockMarkActionRequired = jest.mocked(markActionRequired);
 const mockRemoveRejected = jest.mocked(removeRejected);
+const mockReturnInFlightToPending = jest.mocked(returnInFlightToPending);
 const mockHasPending = jest.mocked(hasPendingOpFor);
 const mockRecordConflict = jest.mocked(recordConflict);
 const mockGetCursor = jest.mocked(getCursor);
@@ -132,6 +140,8 @@ function pushResult(overrides: Partial<PushOperationResult> = {}): PushOperation
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Restore the default disabled projection through the production API.
+  configureEntitlementEnforcement(false);
   mockPeekReady.mockResolvedValue([]);
   mockReadPayload.mockResolvedValue({ payload: { id: 'goal-1' }, sensitive: false });
   mockAllAppliers.mockReturnValue([]);
@@ -152,6 +162,42 @@ describe('runSync — auth gate', () => {
 });
 
 describe('runSync — push loop', () => {
+  it('keeps the queue untouched but still pulls while the account is read-only', async () => {
+    configureEntitlementEnforcement(true);
+    beginEntitlementCheck(USER);
+    setEntitlementAccess(USER, false);
+    const push = jest.fn();
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+
+    const report = await runSync(deps);
+
+    expect(report.outcome).toBe('subscription-required');
+    expect(mockPeekReady).not.toHaveBeenCalled();
+    expect(mockMarkInFlight).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+    // Not even abandoned-in-flight recovery runs: the queue is left byte-for-byte.
+    expect(
+      jest.requireMock<typeof import('./sync-queue')>('./sync-queue').recoverAbandonedInFlight,
+    ).not.toHaveBeenCalled();
+    expect(mockAllAppliers).toHaveBeenCalled();
+  });
+
+  it('returns a server-refused batch to pending without retry inflation', async () => {
+    configureEntitlementEnforcement(true);
+    beginEntitlementCheck(USER);
+    setEntitlementAccess(USER, true);
+    mockPeekReady.mockResolvedValueOnce([queueRow()]);
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({ push: jest.fn().mockRejectedValue(new SyncHttpError(402)) }),
+    );
+
+    const report = await runSync(deps);
+
+    expect(report.outcome).toBe('subscription-required');
+    expect(mockReturnInFlightToPending).toHaveBeenCalledWith(USER, ['op-1'], NOW);
+    expect(mockMarkFailed).not.toHaveBeenCalled();
+  });
+
   it('drains the queue in batches until peekReady is empty', async () => {
     const transport = fakeTransport({
       push: jest

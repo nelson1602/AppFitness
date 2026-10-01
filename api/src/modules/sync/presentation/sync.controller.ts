@@ -7,12 +7,14 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { Throttle, seconds } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
 import { CurrentUser } from '../../auth/presentation/decorators/current-user.decorator';
+import { ActiveEntitlementGuard } from '../../subscriptions/presentation/guards/active-entitlement.guard';
 import { SyncConflictService } from '../application/sync-conflict.service';
 import {
   SyncService,
@@ -48,6 +50,7 @@ export class SyncController {
   // its offline queue (≤100 ops/req) fits with headroom for a few devices/IP.
   @Throttle({ default: { limit: 240, ttl: seconds(60) } })
   @Post('push')
+  @UseGuards(ActiveEntitlementGuard)
   @ApiOperation({
     summary: 'Push queued client operations (idempotent by opId)',
   })
@@ -91,6 +94,7 @@ export class SyncController {
 
   @Throttle({ default: { limit: 240, ttl: seconds(60) } })
   @Post('conflicts/:id/resolve')
+  @UseGuards(ActiveEntitlementGuard)
   @HttpCode(200)
   @ApiOperation({
     summary: 'Resolve one owned sync conflict with optimistic concurrency',

@@ -3,6 +3,8 @@ import { Redirect, Stack, router } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { GoalForm } from '@/features/profile/presentation/GoalForm';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
@@ -29,7 +31,9 @@ export default function GoalEditRoute() {
     <>
       <Stack.Screen options={{ title: t('goal.routeTitle') }} />
       <Screen>
-        <GoalForm onSaved={() => router.replace('/dashboard')} />
+        <SubscriptionWriteBoundary>
+          <GoalForm onSaved={() => router.replace('/dashboard')} />
+        </SubscriptionWriteBoundary>
       </Screen>
     </>
   );

@@ -1,8 +1,8 @@
 # AppFitness EN/ES State Copy Decks (V1)
 
-Version: 1.19
+Version: 1.20
 Status: Active
-Last Updated: 2026-09-30
+Last Updated: 2026-10-01
 
 ---
 
@@ -21,7 +21,8 @@ It covers, in order:
 4. the direct Food Log dashboard shortcut approved by ADR-P027; and
 5. the conflict-resolution family worded by ADR-P030 slice **C-5** and shipped
    by slice **C-6**; and
-6. the subscription family worded and wired by ADR-P034 slice **S-3**.
+6. the subscription family worded and wired by ADR-P034 slice **S-3**, and
+   the read-only access copy added by slice **S-4**.
 
 This document is a **specification**, not an implementation. A `PROPOSED` row
 authorizes copy for a later owning slice and does not make the key or behaviour
@@ -1685,6 +1686,33 @@ for Decision 12 counsel approval.
   after it, asserted by `conflict-catalogue.spec.ts`.
 - Every substitution token appears on both sides of every key, and every key is
   referenced literally by production source (`surface-coverage.spec.ts`).
+
+## S-4 read-only access — 5 keys
+
+Worded and wired by the ADR-P034 **S-4** in-repo candidate on 2026-10-01. These
+keys render only in a configured native build, while the entitlement is
+being checked or is inactive (`.ai/18_SCREEN_STATE_MATRICES.md` §14).
+**SHIPPED here means present and wired in the candidate.** Enforcement is
+dormant until provider activation.
+
+- **Calm and factual.** `checking` reassures that saved data stays available.
+  `read-only` states plainly what is paused (saving changes, syncing edits,
+  resolving conflicts, new iCoach plans) and that saved data is safe. There is
+  no urgency, no discount and no outcome claim.
+- **One affordance.** *View subscription* opens `/subscription`. No other
+  control is named.
+
+| Key | EN | ES | Status |
+|---|---|---|---|
+| `subscription.accessCheckingTitle` | Checking your access | Comprobando tu acceso | **SHIPPED** |
+| `subscription.accessCheckingBody` | Your saved data stays available while AppFitness confirms your subscription. | Tus datos guardados siguen disponibles mientras AppFitness confirma tu suscripción. | **SHIPPED** |
+| `subscription.readOnlyTitle` | AppFitness is in read-only mode | AppFitness está en modo de solo lectura | **SHIPPED** |
+| `subscription.readOnlyBody` | Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new iCoach plan. | Tus datos guardados están seguros y disponibles. Renueva o restaura tu suscripción para guardar cambios, sincronizar ediciones, resolver conflictos o generar un plan nuevo de iCoach. | **SHIPPED** |
+| `subscription.open` | View subscription | Ver suscripción | **SHIPPED** |
+
+The catalogues held **1138** keys each before S-4 and hold **1143** each
+after it (`conflict-catalogue.spec.ts`). The `subscription.*` family now
+holds 73 keys.
 
 ---
 

@@ -3,6 +3,7 @@ import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'reac
 
 import { darkColors, lightColors } from '../theme/colors';
 import { AppButton } from './app-button';
+import { PaidWriteDisabledProvider } from './paid-write-context';
 
 function labelColorOf(text: string): TextStyle['color'] {
   return StyleSheet.flatten(screen.getByText(text).props.style as StyleProp<TextStyle>)?.color;
@@ -140,6 +141,35 @@ describe('AppButton', () => {
     await fireEvent.press(screen.getByRole('button'));
 
     expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('blocks paid writes from the shared entitlement boundary', async () => {
+    const onPress = jest.fn();
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <AppButton onPress={onPress}>Save</AppButton>
+      </PaidWriteDisabledProvider>,
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(onPress).not.toHaveBeenCalled();
+    expect(screen.getByRole('button').props.accessibilityState?.disabled).toBe(true);
+  });
+
+  it('allows an explicit nested read-only navigation control', async () => {
+    const onPress = jest.fn();
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <PaidWriteDisabledProvider disabled={false}>
+          <AppButton onPress={onPress}>View saved data</AppButton>
+        </PaidWriteDisabledProvider>
+      </PaidWriteDisabledProvider>,
+    );
+
+    await fireEvent.press(screen.getByRole('button', { name: 'View saved data' }));
+
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   it('supports all variants without crashing', async () => {

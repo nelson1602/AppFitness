@@ -7,6 +7,7 @@ import { lightTheme } from '@/shared/theme';
 import type { DietaryPreference } from '../domain/dietary-preference';
 import type { DietaryPreferenceState } from '../application/dietary-preference.store';
 import { DietaryPreferences } from './DietaryPreferences';
+import { PaidWriteDisabledProvider } from '@/shared/presentation';
 
 const load = jest.fn();
 const add = jest.fn();
@@ -574,5 +575,29 @@ describe('DietaryPreferences inputs (UX-5, BUG-027)', () => {
     await fireEvent.press(screen.getByTestId('dp-add'));
 
     expect(add).toHaveBeenCalledWith(expect.objectContaining({ note: null }));
+  });
+});
+
+describe('S-4 read-only write boundary', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('keeps saved exclusions visible while chips and add stay inert', async () => {
+    setStore({ status: 'ready', preferences: [] });
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <DietaryPreferences />
+      </PaidWriteDisabledProvider>,
+    );
+
+    const chip = screen.getByTestId('dp-tag-gluten_sensitive');
+    expect(chip.props.accessibilityState).toMatchObject({ disabled: true });
+    await fireEvent.press(chip);
+    expect(screen.getByTestId('dp-tag-gluten_sensitive').props.accessibilityState).toMatchObject({
+      selected: false,
+    });
+    await fireEvent.press(screen.getByTestId('dp-add'));
+    expect(add).not.toHaveBeenCalled();
   });
 });

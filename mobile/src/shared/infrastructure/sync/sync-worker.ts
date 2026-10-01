@@ -1,3 +1,4 @@
+import { hasPaidMutationAccess } from '../../application/entitlement-access';
 import { encryptToBase64 } from '../crypto/field-cipher';
 import { rootExecutor } from '../database';
 import { logWarn } from '../logging';
@@ -14,6 +15,7 @@ import {
   readQueuePayload,
   recoverAbandonedInFlight,
   removeRejected,
+  returnInFlightToPending,
 } from './sync-queue';
 import { getCursor, setCursor } from './sync-state';
 import { createSyncTransport, SyncHttpError, type SyncTransport } from './sync-transport';
@@ -43,7 +45,7 @@ export const SYNC_ERROR_CODES = {
   CATALOG_REVISION_UNSUPPORTED: 'CATALOG_REVISION_UNSUPPORTED',
 } as const;
 
-export type SyncOutcome = 'success' | 'unauthenticated' | 'offline';
+export type SyncOutcome = 'success' | 'unauthenticated' | 'offline' | 'subscription-required';
 
 export interface SyncReport {
   outcome: SyncOutcome;
@@ -113,11 +115,28 @@ async function executeSync(deps: SyncDeps): Promise<SyncReport> {
   const transport = createSyncTransport(deps.getToken, deps.baseUrl);
   const now = deps.now ?? ((): string => new Date().toISOString());
 
+  // Read-only accounts still pull the owner's server data. Their existing
+  // queue is left byte-for-byte untouched until trusted access returns.
+  if (!hasPaidMutationAccess(deps.userId)) {
+    const pullOutcome = await pullLoop(deps.userId, transport, report);
+    return {
+      ...report,
+      outcome: pullOutcome === 'success' ? 'subscription-required' : pullOutcome,
+    };
+  }
+
   // This run holds the user's exclusive boundary, so any IN_FLIGHT row is
   // left over from an earlier run. Return it for replay under its own op id.
   report.recovered = await recoverAbandonedInFlight(deps.userId, now());
 
   const pushOutcome = await pushLoop(deps.userId, transport, now, report);
+  if (pushOutcome === 'subscription-required') {
+    const pullOutcome = await pullLoop(deps.userId, transport, report);
+    return {
+      ...report,
+      outcome: pullOutcome === 'success' ? 'subscription-required' : pullOutcome,
+    };
+  }
   if (pushOutcome !== 'success') return { ...report, outcome: pushOutcome };
 
   const pullOutcome = await pullLoop(deps.userId, transport, report);
@@ -159,6 +178,14 @@ async function pushLoop(
         })),
       );
     } catch (error) {
+      if (error instanceof SyncHttpError && error.status === 402) {
+        await returnInFlightToPending(
+          userId,
+          batch.map((row) => row.op_id),
+          now(),
+        );
+        return 'subscription-required';
+      }
       // Whole-batch failure (network/server/auth): schedule retries and stop.
       for (const row of batch) {
         await markFailed(userId, row.op_id, describeError(error), now());

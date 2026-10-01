@@ -136,11 +136,12 @@ describe('catalogue parity', () => {
   // not-found keys. It moved to 1068 on 2026-09-28, when BUG-027 added the
   // persistent dietary-note helper `nutrition.preferences.noteHelper`. It moved
   // to 1138 on 2026-09-30, when ADR-P034 S-3 added the 68-key `subscription.*`
-  // family and the 2-key dashboard subscription entry. None of these is in this
-  // family, so the 157-key conflict family below is unchanged.
-  it('reaches 1138 keys in each language — 981 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1138);
-    expect(Object.keys(es)).toHaveLength(1138);
+  // family and the 2-key dashboard subscription entry. It moved to 1143 on
+  // 2026-10-01, when ADR-P034 S-4 added five read-only access keys. None of
+  // these is in this family, so the 157-key conflict family below is unchanged.
+  it('reaches 1143 keys in each language — 986 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1143);
+    expect(Object.keys(es)).toHaveLength(1143);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 
