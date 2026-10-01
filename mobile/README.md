@@ -15,6 +15,11 @@ disabled by default. Native builds may inject these **public** platform keys:
 
 - `EXPO_PUBLIC_REVENUECAT_IOS_API_KEY` (`appl_...`)
 - `EXPO_PUBLIC_REVENUECAT_ANDROID_API_KEY` (`goog_...`)
+- `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY` (`test_...`) — RevenueCat Test
+  Store, **development builds only** (`__DEV__`). Configuration fails closed if
+  it is set in a release bundle, beside a platform key, with another prefix,
+  or on an unsupported platform. Keep it in an untracked `.env.local`; never
+  ship it (ADR-P034 S-5, decision D-2).
 
 If the matching key is absent, the SDK module is not loaded and no provider
 request is made. Never place a RevenueCat secret key in the client. The adapter

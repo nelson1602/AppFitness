@@ -198,6 +198,49 @@ describe('runSync — push loop', () => {
     expect(mockMarkFailed).not.toHaveBeenCalled();
   });
 
+  // ADR-P034 S-5 matrix row "queue preservation and later resumption": the
+  // round trip, not just each half. A write queued before access lapsed survives
+  // a read-only run and a late 402 untouched, then the SAME operation — with
+  // its original retry history — is pushed and applied once access returns.
+  it('resumes the preserved queue once trusted access returns, with nothing lost or retried', async () => {
+    const preserved = queueRow({ op_id: 'op-kept', retry_count: 1 });
+    configureEntitlementEnforcement(true);
+    beginEntitlementCheck(USER);
+
+    // 1. Read-only: nothing is read from or written to the queue.
+    setEntitlementAccess(USER, false);
+    const readOnlyPush = jest.fn();
+    mockCreateTransport.mockReturnValue(fakeTransport({ push: readOnlyPush }));
+    expect((await runSync(deps)).outcome).toBe('subscription-required');
+    expect(readOnlyPush).not.toHaveBeenCalled();
+    expect(mockPeekReady).not.toHaveBeenCalled();
+
+    // 2. Access returns, but the server still refuses (late 402): the claimed
+    //    operation goes back to PENDING with no failure recorded.
+    setEntitlementAccess(USER, true);
+    mockPeekReady.mockResolvedValueOnce([preserved]);
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({ push: jest.fn().mockRejectedValue(new SyncHttpError(402)) }),
+    );
+    expect((await runSync(deps)).outcome).toBe('subscription-required');
+    expect(mockReturnInFlightToPending).toHaveBeenCalledWith(USER, ['op-kept'], NOW);
+    expect(mockMarkFailed).not.toHaveBeenCalled();
+
+    // 3. The server mirror is now active: the same operation is pushed once and
+    //    applied, and the queue then reports empty.
+    mockPeekReady.mockResolvedValueOnce([preserved]).mockResolvedValueOnce([]);
+    const push = jest.fn().mockResolvedValue([pushResult({ opId: 'op-kept' })]);
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+    expect((await runSync(deps)).outcome).toBe('success');
+
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push.mock.calls[0]?.[0]).toEqual([
+      expect.objectContaining({ opId: 'op-kept', entityType: 'goals', entityId: 'goal-1' }),
+    ]);
+    expect(mockMarkApplied).toHaveBeenCalledWith(USER, 'op-kept');
+    expect(mockMarkFailed).not.toHaveBeenCalled();
+  });
+
   it('drains the queue in batches until peekReady is empty', async () => {
     const transport = fakeTransport({
       push: jest
