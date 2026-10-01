@@ -98,6 +98,7 @@
       "src/shared/infrastructure/crypto/**/*.ts",
       "src/shared/infrastructure/logging/**/*.ts",
       "src/shared/infrastructure/monitoring/**/*.ts",
+      "src/shared/application/**/*.ts",
       "src/features/authentication/application/**/*.ts",
       "src/features/authentication/infrastructure/**/*.ts",
       "src/features/authentication/presentation/**/*.ts",
@@ -218,6 +219,12 @@
         "branches": 70
       },
       "src/features/nutrition/domain/": {
+        "statements": 95,
+        "lines": 95,
+        "functions": 95,
+        "branches": 90
+      },
+      "src/shared/application/": {
         "statements": 95,
         "lines": 95,
         "functions": 95,

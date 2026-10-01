@@ -7,6 +7,7 @@ import { lightTheme } from '@/shared/theme';
 import type { WellnessSafetyProfile } from '../domain/wellness-safety-profile';
 import type { WellnessSafetyProfileState } from '../application/wellness-safety-profile.store';
 import { WellnessSafetyProfileScreen } from './WellnessSafetyProfileScreen';
+import { PaidWriteDisabledProvider } from '@/shared/presentation';
 
 /**
  * ADR-P017 **W-3** capture surface.
@@ -819,5 +820,27 @@ describe('accessibility of the token groups', () => {
     expect(
       screen.getByText('Pick from the list. You can change this whenever you want.'),
     ).toBeOnTheScreen();
+  });
+});
+
+describe('S-4 read-only write boundary', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('keeps area chips unchecked and never saves', async () => {
+    setStore({ status: 'ready', profile: null });
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <WellnessSafetyProfileScreen />
+      </PaidWriteDisabledProvider>,
+    );
+
+    const knee = screen.getByTestId('wellness-area-knee');
+    expect(knee.props.accessibilityState).toMatchObject({ disabled: true });
+    await fireEvent.press(knee);
+    expect(screen.getByTestId('wellness-area-knee').props.accessibilityState.checked).toBe(false);
+    await fireEvent.press(screen.getByTestId('wellness-save'));
+    expect(save).not.toHaveBeenCalled();
   });
 });

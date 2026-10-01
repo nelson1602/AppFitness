@@ -2,6 +2,7 @@ import { Module, OnModuleInit } from '@nestjs/common';
 
 import { SyncEntityRegistry } from '../sync/domain/sync-entity-registry';
 import { SyncModule } from '../sync/sync.module';
+import { SubscriptionModule } from '../subscriptions/subscription.module';
 import { ProfileService } from './application/profile.service';
 import { GoalRepositoryPort } from './domain/goal.repository';
 import { ProfileRepositoryPort } from './domain/profile.repository';
@@ -17,7 +18,7 @@ import { UsersController } from './presentation/users.controller';
  * carried by the offline-first sync pipeline.
  */
 @Module({
-  imports: [SyncModule],
+  imports: [SyncModule, SubscriptionModule],
   controllers: [UsersController],
   providers: [
     ProfileService,

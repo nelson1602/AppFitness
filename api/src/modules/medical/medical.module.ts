@@ -2,6 +2,7 @@ import { Module, OnModuleInit } from '@nestjs/common';
 
 import { SyncEntityRegistry } from '../sync/domain/sync-entity-registry';
 import { SyncModule } from '../sync/sync.module';
+import { SubscriptionModule } from '../subscriptions/subscription.module';
 import { MedicalService } from './application/medical.service';
 import {
   EvaluationRepositoryPort,
@@ -24,7 +25,7 @@ import { MedicalController } from './presentation/medical.controller';
  * append-only; conflict snapshots are redacted.
  */
 @Module({
-  imports: [SyncModule],
+  imports: [SyncModule, SubscriptionModule],
   controllers: [MedicalController],
   providers: [
     MedicalService,

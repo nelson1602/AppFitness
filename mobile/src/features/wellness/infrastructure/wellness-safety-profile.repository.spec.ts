@@ -5,6 +5,7 @@ import { inertExecutor } from '../../../shared/infrastructure/database/testing/f
 import { DatabaseSync } from 'node:sqlite';
 
 import { MIGRATIONS } from '@/shared/infrastructure/database/migrations';
+import { configureEntitlementEnforcement } from '@/shared/application/entitlement-access';
 
 import {
   applyServerWellnessSafetyProfile,
@@ -109,6 +110,8 @@ const INPUT = {
 };
 
 beforeEach(() => {
+  // Restore the default disabled projection through the production API.
+  configureEntitlementEnforcement(false);
   mockOpCounter = 0;
   mockDb = new DatabaseSync(':memory:');
   mockDb.exec('PRAGMA foreign_keys = ON');
@@ -124,6 +127,16 @@ afterEach(() => {
 });
 
 describe('local write + queue enqueue are one transaction', () => {
+  it('rolls the row back when paid access is unavailable', async () => {
+    configureEntitlementEnforcement(true);
+
+    await expect(saveWellnessSafetyProfile(A, INPUT, NOW, TODAY)).rejects.toMatchObject({
+      name: 'EntitlementRequiredError',
+    });
+    expect(profileRow(A)).toBeUndefined();
+    expect(queueRows()).toHaveLength(0);
+  });
+
   it('commits the row and its sync operation together', async () => {
     const saved = await saveWellnessSafetyProfile(A, INPUT, NOW, TODAY);
 

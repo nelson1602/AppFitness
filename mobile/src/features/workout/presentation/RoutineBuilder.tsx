@@ -6,7 +6,15 @@ import {
   type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
-import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Banner,
+  Card,
+  PaidWriteDisabledProvider,
+  usePaidWriteDisabled,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { exerciseDisplayName } from '../application/exercise-display.service';
@@ -49,6 +57,7 @@ const MUSCLE_GROUP_KEYS: Readonly<Record<string, TranslationKey>> = {
 export function RoutineBuilder() {
   const theme = useTheme();
   const { language, t } = useLocalization();
+  const paidWriteDisabled = usePaidWriteDisabled();
   const {
     status,
     routines,
@@ -95,7 +104,7 @@ export function RoutineBuilder() {
   };
 
   const onAddExerciseById = (exerciseId: string) => {
-    if (!selectedRoutineId) return;
+    if (!selectedRoutineId || paidWriteDisabled) return;
     void addRoutineExercise(selectedRoutineId, {
       exerciseId,
       order: routineExercises.length,
@@ -177,16 +186,18 @@ export function RoutineBuilder() {
                   </AppText>
                 ) : null}
                 <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                  <AppButton
-                    accessibilityLabel={`${t('workout.builder.viewExercisesAccessibility')} ${routine.name}`}
-                    testID={`routine-select-${routine.id}`}
-                    variant="secondary"
-                    onPress={() => void onSelect(routine)}
-                  >
-                    {selectedRoutineId === routine.id
-                      ? t('workout.builder.hideExercises')
-                      : t('workout.builder.viewExercises')}
-                  </AppButton>
+                  <PaidWriteDisabledProvider disabled={false}>
+                    <AppButton
+                      accessibilityLabel={`${t('workout.builder.viewExercisesAccessibility')} ${routine.name}`}
+                      testID={`routine-select-${routine.id}`}
+                      variant="secondary"
+                      onPress={() => void onSelect(routine)}
+                    >
+                      {selectedRoutineId === routine.id
+                        ? t('workout.builder.hideExercises')
+                        : t('workout.builder.viewExercises')}
+                    </AppButton>
+                  </PaidWriteDisabledProvider>
                   <AppButton
                     accessibilityLabel={`${t('workout.builder.removeRoutineAccessibility')} ${routine.name}`}
                     testID={`routine-remove-${routine.id}`}
@@ -246,11 +257,14 @@ export function RoutineBuilder() {
                             accessibilityRole="button"
                             accessibilityLabel={`${t('workout.builder.addAccessibility')} ${displayName}`}
                             testID={`add-exercise-${exercise.key}`}
+                            accessibilityState={{ disabled: paidWriteDisabled }}
+                            disabled={paidWriteDisabled}
                             onPress={() => onAddExerciseById(exercise.id)}
                             style={{
                               borderColor: theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
+                              opacity: paidWriteDisabled ? 0.5 : 1,
                               padding: theme.spacing.sm,
                             }}
                           >
@@ -280,11 +294,14 @@ export function RoutineBuilder() {
                             accessibilityRole="button"
                             accessibilityLabel={`${t('workout.builder.addAccessibility')} ${exercise.name}`}
                             testID={`add-custom-exercise-${exercise.id}`}
+                            accessibilityState={{ disabled: paidWriteDisabled }}
+                            disabled={paidWriteDisabled}
                             onPress={() => onAddExerciseById(exercise.id)}
                             style={{
                               borderColor: theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
+                              opacity: paidWriteDisabled ? 0.5 : 1,
                               padding: theme.spacing.sm,
                             }}
                           >

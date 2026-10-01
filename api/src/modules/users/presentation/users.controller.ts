@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Put } from '@nestjs/common';
+import { Body, Controller, Get, Put, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
 import { CurrentUser } from '../../auth/presentation/decorators/current-user.decorator';
+import { ActiveEntitlementGuard } from '../../subscriptions/presentation/guards/active-entitlement.guard';
 import { ProfileService } from '../application/profile.service';
 import type { ProfileRecord } from '../domain/profile.types';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -20,6 +21,7 @@ export class UsersController {
   }
 
   @Put('profile')
+  @UseGuards(ActiveEntitlementGuard)
   @ApiOperation({
     summary: 'Create or update the profile (version-bumping upsert)',
   })

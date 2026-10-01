@@ -1289,6 +1289,13 @@ export const en = {
   'subscription.sessionChangedTitle': 'Please try again',
   'subscription.sessionChangedBody':
     'Your session changed while this was in progress. If you already completed a purchase, Restore purchases brings it back.',
+  'subscription.accessCheckingTitle': 'Checking your access',
+  'subscription.accessCheckingBody':
+    'Your saved data stays available while AppFitness confirms your subscription.',
+  'subscription.readOnlyTitle': 'AppFitness is in read-only mode',
+  'subscription.readOnlyBody':
+    'Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new iCoach plan.',
+  'subscription.open': 'View subscription',
 } as const;
 
 export type TranslationKey = keyof typeof en;

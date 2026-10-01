@@ -1,9 +1,14 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet, type ViewStyle } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import type { DashboardData, DashboardState } from '../domain/dashboard.types';
 import { DashboardScreen } from './DashboardScreen';
+import {
+  beginEntitlementCheck,
+  configureEntitlementEnforcement,
+  setEntitlementAccess,
+} from '@/shared/application/entitlement-access';
 
 const refresh = jest.fn();
 const syncNow = jest.fn();
@@ -820,5 +825,44 @@ describe('DashboardScreen', () => {
 
       expect(screen.getByText('Revisar cambios')).toBeOnTheScreen();
     });
+  });
+});
+
+describe('S-4 read-only dashboard', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLanguage = 'en';
+    configureEntitlementEnforcement(true);
+    beginEntitlementCheck('user-1');
+    setEntitlementAccess('user-1', false);
+  });
+
+  afterEach(async () => {
+    // Restore the default disabled projection through the production API,
+    // inside act: the still-mounted screen re-renders on the publication.
+    await act(async () => {
+      configureEntitlementEnforcement(false);
+    });
+  });
+
+  it('explains read-only access and keeps account, subscription and navigation actions usable', async () => {
+    setStore({ status: 'ready', data: baseData });
+    await render(<DashboardScreen />);
+
+    expect(screen.getByTestId('subscription-access-notice')).toBeOnTheScreen();
+    for (const name of [
+      'Sign out of your account',
+      'Delete your account',
+      'View your AppFitness Pro subscription',
+      'Track your progress',
+    ]) {
+      const button = screen.getByRole('button', { name });
+      expect([name, button.props.accessibilityState]).toEqual([
+        name,
+        expect.objectContaining({ disabled: false }),
+      ]);
+    }
+    await fireEvent.press(screen.getByRole('button', { name: 'Sign out of your account' }));
+    expect(signOut).toHaveBeenCalledTimes(1);
   });
 });

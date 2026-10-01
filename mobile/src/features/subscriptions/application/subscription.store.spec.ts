@@ -12,6 +12,8 @@ import {
 } from './subscription-purchases';
 import {
   createSubscriptionStore,
+  MAX_SAME_ACCOUNT_RELOADS,
+  type EntitlementAccessPublisher,
   type SubscriptionAvailability,
   type SubscriptionGateway,
 } from './subscription.store';
@@ -74,12 +76,25 @@ function gatewayWith(overrides: Partial<SubscriptionGateway> = {}) {
   };
 }
 
-function setup(overrides: Partial<SubscriptionGateway> = {}, user: string | null = 'account-a') {
+function accessPublisher(): jest.Mocked<EntitlementAccessPublisher> {
+  return {
+    configure: jest.fn(),
+    begin: jest.fn(),
+    set: jest.fn(),
+    reset: jest.fn(),
+  };
+}
+
+function setup(
+  overrides: Partial<SubscriptionGateway> = {},
+  user: string | null = 'account-a',
+  entitlementAccess: EntitlementAccessPublisher = accessPublisher(),
+) {
   const gateway = gatewayWith(overrides);
   const sessions = sessionsFor(user);
   const report = jest.fn();
-  const store = createSubscriptionStore(gateway, sessions, report);
-  return { gateway, sessions, report, store };
+  const store = createSubscriptionStore(gateway, sessions, report, entitlementAccess);
+  return { gateway, sessions, report, store, entitlementAccess };
 }
 
 async function ready(overrides: Partial<SubscriptionGateway> = {}) {
@@ -89,6 +104,39 @@ async function ready(overrides: Partial<SubscriptionGateway> = {}) {
 }
 
 describe('subscription store — load', () => {
+  it('fails closed while loading and publishes the provider answer', async () => {
+    const pending = deferred<PurchaseAccessSnapshot>();
+    const { store, entitlementAccess } = setup({ loadAccess: jest.fn(() => pending.promise) });
+
+    const loading = store.getState().load();
+    expect(entitlementAccess.configure).toHaveBeenCalledWith(true);
+    expect(entitlementAccess.begin).toHaveBeenCalledWith('account-a');
+
+    pending.resolve(active);
+    await loading;
+    expect(entitlementAccess.set).toHaveBeenCalledWith('account-a', true);
+  });
+
+  it.each(['web', 'unconfigured'] as const)(
+    'keeps enforcement dormant for a %s build',
+    async (availability) => {
+      const { store, entitlementAccess } = setup({ availability: jest.fn(() => availability) });
+
+      await store.getState().load();
+      expect(entitlementAccess.configure).toHaveBeenCalledWith(false);
+      expect(entitlementAccess.begin).not.toHaveBeenCalled();
+    },
+  );
+
+  it('publishes read-only when access cannot be confirmed', async () => {
+    const { store, entitlementAccess } = setup({
+      loadAccess: jest.fn().mockRejectedValue(new SubscriptionProviderError('access', 'network')),
+    });
+
+    await store.getState().load();
+    expect(entitlementAccess.set).toHaveBeenCalledWith('account-a', false);
+  });
+
   it('starts idle, then shows the offer for an inactive account', async () => {
     const { store } = setup();
     expect(store.getState().status).toBe('idle');
@@ -190,19 +238,142 @@ describe('subscription store — load', () => {
     });
   });
 
-  it('asks for a neutral retry when the same account refreshed its session mid-load', async () => {
-    const accessLoad = deferred<PurchaseAccessSnapshot>();
-    const { store, sessions } = setup({ loadAccess: jest.fn(() => accessLoad.promise) });
+  describe('same-account session refresh during the entitlement read (S-4)', () => {
+    type AccessModule = typeof import('@/shared/application/entitlement-access');
 
-    const loading = store.getState().load();
-    sessions.become('account-a');
-    accessLoad.resolve(active);
-    await loading;
+    /** The real projection, isolated per test, so the final mode is observed. */
+    function realAccess(): { module: AccessModule; publisher: EntitlementAccessPublisher } {
+      let module!: AccessModule;
+      jest.isolateModules(() => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        module = require('@/shared/application/entitlement-access') as AccessModule;
+      });
+      return {
+        module,
+        publisher: {
+          configure: module.configureEntitlementEnforcement,
+          begin: module.beginEntitlementCheck,
+          set: module.setEntitlementAccess,
+          reset: module.resetEntitlementAccess,
+        },
+      };
+    }
 
-    expect(store.getState()).toMatchObject({
-      status: 'error',
-      issue: 'sessionChanged',
-      access: null,
+    it('re-reads for the current account and never stays checking', async () => {
+      const { module, publisher } = realAccess();
+      const first = deferred<PurchaseAccessSnapshot>();
+      const loadAccess = jest
+        .fn()
+        .mockImplementationOnce(() => first.promise)
+        .mockResolvedValueOnce(active);
+      const { store, sessions } = setup({ loadAccess }, 'account-a', publisher);
+
+      const loading = store.getState().load();
+      expect(module.getEntitlementAccess().mode).toBe('checking');
+      sessions.become('account-a');
+      first.resolve(inactive);
+      await loading;
+
+      expect(loadAccess).toHaveBeenCalledTimes(2);
+      expect(module.getEntitlementAccess()).toEqual({ mode: 'active', userId: 'account-a' });
+      expect(store.getState()).toMatchObject({ status: 'ready', access: active, issue: null });
+    });
+
+    it('never publishes the stale generation result', async () => {
+      const publisher = accessPublisher();
+      const first = deferred<PurchaseAccessSnapshot>();
+      const loadAccess = jest
+        .fn()
+        .mockImplementationOnce(() => first.promise)
+        .mockResolvedValueOnce(inactive);
+      const { store, sessions } = setup({ loadAccess }, 'account-a', publisher);
+
+      const loading = store.getState().load();
+      sessions.become('account-a');
+      first.resolve(active);
+      await loading;
+
+      // The stale read said active; only the fresh read's inactive is published.
+      expect(publisher.set).toHaveBeenCalledTimes(1);
+      expect(publisher.set).toHaveBeenCalledWith('account-a', false);
+      expect(publisher.set).not.toHaveBeenCalledWith('account-a', true);
+    });
+
+    it('re-reads when the refresh lands during server reconciliation', async () => {
+      const { module, publisher } = realAccess();
+      const reconcile = deferred<void>();
+      const reconcileServer = jest
+        .fn()
+        .mockImplementationOnce(() => reconcile.promise)
+        .mockResolvedValue(undefined);
+      const loadAccess = jest.fn().mockResolvedValue(active);
+      const { store, sessions } = setup({ loadAccess, reconcileServer }, 'account-a', publisher);
+
+      const loading = store.getState().load();
+      await Promise.resolve();
+      await Promise.resolve();
+      sessions.become('account-a');
+      reconcile.resolve();
+      await loading;
+
+      expect(loadAccess).toHaveBeenCalledTimes(2);
+      expect(module.getEntitlementAccess().mode).toBe('active');
+      expect(store.getState()).toMatchObject({ status: 'ready', issue: null });
+    });
+
+    it('is bounded: constant churn fails closed instead of looping or checking forever', async () => {
+      const { module, publisher } = realAccess();
+      let sessionsRef: ReturnType<typeof sessionsFor> | null = null;
+      const loadAccess = jest.fn(async () => {
+        sessionsRef?.become('account-a');
+        return active;
+      });
+      const { store, sessions } = setup({ loadAccess }, 'account-a', publisher);
+      sessionsRef = sessions;
+
+      await store.getState().load();
+
+      expect(loadAccess).toHaveBeenCalledTimes(1 + MAX_SAME_ACCOUNT_RELOADS);
+      expect(module.getEntitlementAccess()).toEqual({ mode: 'read-only', userId: 'account-a' });
+      expect(store.getState()).toMatchObject({ status: 'error', issue: 'sessionChanged' });
+    });
+
+    it('never publishes across accounts: an account switch mid-read publishes nothing for the old owner', async () => {
+      const publisher = accessPublisher();
+      const first = deferred<PurchaseAccessSnapshot>();
+      const loadAccess = jest.fn(() => first.promise);
+      const { store, sessions } = setup({ loadAccess }, 'account-a', publisher);
+
+      const loading = store.getState().load();
+      sessions.become('account-b');
+      store.getState().reset();
+      first.resolve(active);
+      await loading;
+
+      expect(loadAccess).toHaveBeenCalledTimes(1);
+      expect(publisher.set).not.toHaveBeenCalled();
+      expect(publisher.reset).toHaveBeenCalledTimes(1);
+      expect(store.getState()).toMatchObject({ status: 'idle', access: null });
+    });
+
+    it('re-reads after a session-changed rejection caused by a same-account refresh', async () => {
+      let sessionsRef: ReturnType<typeof sessionsFor> | null = null;
+      const loadAccess = jest
+        .fn()
+        .mockImplementationOnce(async () => {
+          sessionsRef?.become('account-a');
+          throw new SubscriptionSessionChangedError();
+        })
+        .mockResolvedValueOnce(active);
+      const { module, publisher } = realAccess();
+      const { store, sessions } = setup({ loadAccess }, 'account-a', publisher);
+      sessionsRef = sessions;
+
+      await store.getState().load();
+
+      expect(loadAccess).toHaveBeenCalledTimes(2);
+      expect(module.getEntitlementAccess().mode).toBe('active');
+      expect(store.getState()).toMatchObject({ status: 'ready', issue: null });
     });
   });
 
@@ -548,5 +719,41 @@ describe('subscription store — restore and manage', () => {
     store.getState().reset();
 
     expect(store.getState().storeKind).toBe('google');
+  });
+});
+
+describe('subscription store — S-4 access publication edges', () => {
+  it('works without an access publisher (the no-op default)', async () => {
+    const store = createSubscriptionStore(gatewayWith(), sessionsFor('account-a'), jest.fn());
+
+    await store.getState().load();
+    expect(store.getState()).toMatchObject({ status: 'ready', access: inactive });
+    store.getState().reset();
+    expect(store.getState().status).toBe('idle');
+  });
+
+  it('reports a failed server reconciliation but keeps the confirmed access', async () => {
+    const failure = new Error('reconcile unavailable');
+    const { store, report, entitlementAccess } = setup({
+      loadAccess: jest.fn().mockResolvedValue(active),
+      reconcileServer: jest.fn().mockRejectedValue(failure),
+    });
+
+    await store.getState().load();
+
+    expect(report).toHaveBeenCalledWith('subscriptions.reconcile', failure);
+    expect(entitlementAccess.set).toHaveBeenCalledWith('account-a', true);
+    expect(store.getState()).toMatchObject({ status: 'ready', access: active });
+  });
+
+  it('fails closed on a session-changed rejection while the session is still current', async () => {
+    const { store, entitlementAccess } = setup({
+      loadAccess: jest.fn().mockRejectedValue(new SubscriptionSessionChangedError()),
+    });
+
+    await store.getState().load();
+
+    expect(entitlementAccess.set).toHaveBeenCalledWith('account-a', false);
+    expect(store.getState()).toMatchObject({ status: 'error', issue: 'sessionChanged' });
   });
 });

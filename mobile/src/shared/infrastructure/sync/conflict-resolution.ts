@@ -1,3 +1,4 @@
+import { hasPaidMutationAccess } from '../../application/entitlement-access';
 import { decryptFromBase64 } from '../crypto/field-cipher';
 import { inTransaction } from '../database';
 import type { OfferedResolution, SettlementStatus, SyncConflictRow } from '../database/types';
@@ -121,7 +122,8 @@ export interface ConflictResolutionDeps {
   now?(): string;
 }
 
-export type SettlementOutcome = 'success' | 'unauthenticated' | 'offline' | 'session-changed';
+export type SettlementOutcome =
+  'success' | 'unauthenticated' | 'offline' | 'session-changed' | 'subscription-required';
 
 /**
  * What one pass did to one conflict.
@@ -189,7 +191,8 @@ export type ChoiceResult =
   /** A choice already stands, or the conflict is not in a choosable state. */
   | { status: 'ALREADY_CHOSEN' }
   | { status: 'NOT_RESOLVABLE'; reason: ConflictBlocker }
-  | { status: 'SESSION_CHANGED' };
+  | { status: 'SESSION_CHANGED' }
+  | { status: 'SUBSCRIPTION_REQUIRED' };
 
 // ── Vocabulary mapping (Decision 3: total, no third value either side) ───────
 
@@ -365,6 +368,7 @@ export async function chooseConflictResolution(
   conflictId: string,
   choice: OfferedResolution,
 ): Promise<ChoiceResult> {
+  if (!hasPaidMutationAccess(deps.userId)) return { status: 'SUBSCRIPTION_REQUIRED' };
   const now = deps.now ?? ((): string => new Date().toISOString());
 
   const row = await findOwnedConflict(deps.userId, conflictId);
@@ -401,6 +405,9 @@ export async function settlePendingResolutions(
     skipped: 0,
     events: [],
   };
+  if (!hasPaidMutationAccess(deps.userId)) {
+    return { ...report, outcome: 'subscription-required' };
+  }
   if (!deps.getToken()) return { ...report, outcome: 'unauthenticated' };
 
   const now = deps.now ?? ((): string => new Date().toISOString());
@@ -462,6 +469,13 @@ async function settleOne(
     answer = await transport.resolveConflict(row.id, request);
   } catch (error) {
     if (!deps.isCurrent()) return 'session-changed';
+    if (error instanceof SyncHttpError && error.status === 402) {
+      // The choice is still valid; access, not the operation, was refused.
+      // Return the claimed row to due-without-backoff and preserve its retry
+      // history exactly for the first run after entitlement is restored.
+      await armSettlementReplay(deps.userId, row.id);
+      return 'subscription-required';
+    }
     await markSettlementFailed(deps.userId, row.id, describeFailure(error), now());
     report.failed += 1;
     // The stable diagnostic code stays in the outbox; the event carries none.

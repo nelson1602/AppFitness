@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { buildDashboardAssessment } from '../../application/icoach-adapter';
 import type { DataRequirement } from '../../domain/dashboard.types';
 import { OnboardingChecklistCard } from './onboarding-checklist-card';
+import { PaidWriteDisabledProvider } from '@/shared/presentation';
 
 let mockLanguage: 'en' | 'es' = 'en';
 
@@ -81,7 +82,7 @@ describe('OnboardingChecklistCard', () => {
     );
 
     await render(<OnboardingChecklistCard gaps={[gap('weight')]} resolveFix={resolveFix} />);
-    fireEvent.press(screen.getByTestId('gap-fix-weight'));
+    await fireEvent.press(screen.getByTestId('gap-fix-weight'));
 
     expect(resolveFix).toHaveBeenCalledWith(expect.objectContaining({ id: 'weight' }));
     expect(fix).toHaveBeenCalledTimes(1);
@@ -167,7 +168,27 @@ describe('OnboardingChecklistCard', () => {
       const view = await render(<OnboardingChecklistCard gaps={[gap('weight')]} />);
       expect(view.getByTestId('onboarding-progress')).not.toHaveTextContent('{completed}');
       expect(view.getByTestId('onboarding-progress')).not.toHaveTextContent('{total}');
-      view.unmount();
+      await view.unmount();
     }
+  });
+});
+
+describe('S-4 read-only write boundary', () => {
+  beforeEach(() => {
+    mockLanguage = 'en';
+  });
+
+  it('keeps the navigation-only fix action usable inside a disabled boundary', async () => {
+    const fix = jest.fn();
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <OnboardingChecklistCard gaps={[gap('weight')]} resolveFix={() => fix} />
+      </PaidWriteDisabledProvider>,
+    );
+
+    const action = screen.getByTestId('gap-fix-weight');
+    expect(action.props.accessibilityState).toMatchObject({ disabled: false });
+    await fireEvent.press(action);
+    expect(fix).toHaveBeenCalledTimes(1);
   });
 });

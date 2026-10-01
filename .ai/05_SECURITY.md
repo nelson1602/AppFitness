@@ -1,8 +1,8 @@
 # AppFitness Security Architecture
 
-Version: 1.0
+Version: 1.1
 Status: Active
-Last Updated: 2026-07-03
+Last Updated: 2026-10-01
 
 ---
 
@@ -128,6 +128,25 @@ Policy-Based Authorization
 Every request must verify authorization.
 
 Never trust the client.
+
+## Subscription entitlement (ADR-P034 S-4)
+
+- **The server is the only authority for paid writes.** Once an environment
+  sets `REVENUECAT_PROVIDER=revenuecat`, `ActiveEntitlementGuard` refuses every
+  product mutation with HTTP 402 `SUBSCRIPTION_REQUIRED` unless the
+  authenticated user's own durable entitlement mirror is active and unexpired.
+  A client entitlement claim is never read. While the provider is `disabled`
+  (the default) the guard is dormant.
+- **Kept ungated:** authentication and recovery, email verification, account
+  deletion, subscription status/reconciliation, and the authenticated,
+  HMAC-signed provider webhook. A source test enumerates every controller
+  mutation, so a new product mutation cannot ship unguarded.
+- **Mobile checks are UX and integrity, not authority.** The local projection
+  blocks tracked writes inside their transaction and stops pushing, but a
+  modified client can still only write locally: the server refuses the sync.
+- **No new sensitive data.** The 402 body carries a stable code only.
+  Reconciliation sends no receipt or provider payload, and nothing about
+  entitlement state is logged beyond the existing sanitized reporters.
 
 ---
 

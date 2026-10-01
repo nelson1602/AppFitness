@@ -1316,4 +1316,11 @@ export const es = {
   'subscription.sessionChangedTitle': 'Inténtalo de nuevo',
   'subscription.sessionChangedBody':
     'Tu sesión cambió mientras esto estaba en curso. Si ya completaste una compra, Restaurar compras la recupera.',
+  'subscription.accessCheckingTitle': 'Comprobando tu acceso',
+  'subscription.accessCheckingBody':
+    'Tus datos guardados siguen disponibles mientras AppFitness confirma tu suscripción.',
+  'subscription.readOnlyTitle': 'AppFitness está en modo de solo lectura',
+  'subscription.readOnlyBody':
+    'Tus datos guardados están seguros y disponibles. Renueva o restaura tu suscripción para guardar cambios, sincronizar ediciones, resolver conflictos o generar un plan nuevo de iCoach.',
+  'subscription.open': 'Ver suscripción',
 } as const satisfies Record<TranslationKey, string>;

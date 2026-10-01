@@ -1,10 +1,13 @@
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
 
-import { AppText } from '@/shared/presentation';
+import { AppText, usePaidWriteDisabled } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { WellnessTokenOption } from './wellness-token-labels';
+
+/** Same dimming as a disabled `AppButton` (S-4 read-only write controls). */
+const DISABLED_OPACITY = 0.56;
 
 /**
  * Multi-select token group (ADR-P017 **W-3**).
@@ -74,6 +77,7 @@ export function WellnessTokenGroup<T extends FieldValues>({
   testIDPrefix,
 }: WellnessTokenGroupProps<T>) {
   const theme = useTheme();
+  const paidWriteDisabled = usePaidWriteDisabled();
 
   return (
     <Controller
@@ -101,11 +105,17 @@ export function WellnessTokenGroup<T extends FieldValues>({
                   <Pressable
                     key={option.value}
                     accessibilityRole="checkbox"
-                    accessibilityState={{ checked: isSelected, selected: isSelected }}
+                    accessibilityState={{
+                      checked: isSelected,
+                      selected: isSelected,
+                      disabled: paidWriteDisabled,
+                    }}
                     accessibilityLabel={`${legend}: ${option.label}`}
+                    disabled={paidWriteDisabled}
                     testID={`wellness-${testIDPrefix}-${option.value}`}
                     onPress={() => toggle(option.value)}
                     style={{
+                      opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
                       alignItems: 'center',
                       backgroundColor: isSelected
                         ? theme.colors.primaryContainer

@@ -6,7 +6,7 @@ import {
   type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
-import { AppButton, AppText, Card } from '@/shared/presentation';
+import { AppButton, AppText, Card, PaidWriteDisabledProvider } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { DataRequirement } from '../../domain/dashboard.types';
@@ -90,14 +90,16 @@ export function OnboardingChecklistCard({
                   {label}
                 </AppText>
                 {fix ? (
-                  <AppButton
-                    accessibilityLabel={`${t('dashboard.gap.fixAccessibility')}: ${label}`}
-                    testID={`gap-fix-${firstOutstanding.id}`}
-                    onPress={fix}
-                    variant="secondary"
-                  >
-                    {t('dashboard.gap.addNow')}
-                  </AppButton>
+                  <PaidWriteDisabledProvider disabled={false}>
+                    <AppButton
+                      accessibilityLabel={`${t('dashboard.gap.fixAccessibility')}: ${label}`}
+                      testID={`gap-fix-${firstOutstanding.id}`}
+                      onPress={fix}
+                      variant="secondary"
+                    >
+                      {t('dashboard.gap.addNow')}
+                    </AppButton>
+                  </PaidWriteDisabledProvider>
                 ) : null}
               </View>
             );

@@ -5,6 +5,7 @@ import { darkColors, lightColors } from '../theme/colors';
 import { radius } from '../theme/radius';
 import { spacing } from '../theme/spacing';
 import { AppTextInput, type AppTextInputProps } from './app-text-input';
+import { PaidWriteDisabledProvider } from './paid-write-context';
 
 /**
  * Type-level proof that the two control models are mutually exclusive. These
@@ -58,6 +59,18 @@ describe('AppTextInput', () => {
     expect(node).toHaveProp('testID', 'input-email');
     expect(node.props.value).toBe('user@appfitness.local');
     expect(screen.getByTestId('input-email').props.value).toBe('user@appfitness.local');
+  });
+
+  it('becomes non-editable under the shared paid-write boundary', async () => {
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <AppTextInput accessibilityLabel="Name" value="Saved" onChangeText={jest.fn()} />
+      </PaidWriteDisabledProvider>,
+    );
+
+    const input = screen.getByLabelText('Name');
+    expect(input).toHaveProp('editable', false);
+    expect(input.props.accessibilityState?.disabled).toBe(true);
   });
 
   describe('controlled model', () => {

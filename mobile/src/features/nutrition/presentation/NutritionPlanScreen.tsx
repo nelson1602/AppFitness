@@ -4,6 +4,9 @@ import { Pressable, View } from 'react-native';
 
 import { getSession } from '@/features/authentication';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
+import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import {
   formatNumber,
   formatQuantity,
@@ -222,6 +225,8 @@ export function NutritionPlanScreen() {
   const { status, data, error, refresh } = useDashboardStore();
   const { status: prefStatus, preferences, load: loadPreferences } = useDietaryPreferenceStore();
   const [selectedDay, setSelectedDay] = useState(1);
+  const entitlement = useEntitlementAccess();
+  const generationAllowed = entitlement.mode === 'unregulated' || entitlement.mode === 'active';
 
   useEffect(() => {
     void refresh();
@@ -233,8 +238,14 @@ export function NutritionPlanScreen() {
     () =>
       // Preferences are additive: only feed them in once the store is ready.
       // On an error/loading state the plan still builds with no exclusions.
-      selectMealPlan(data?.assessment ?? null, userId, prefStatus === 'ready' ? preferences : []),
-    [data?.assessment, userId, prefStatus, preferences],
+      generationAllowed
+        ? selectMealPlan(
+            data?.assessment ?? null,
+            userId,
+            prefStatus === 'ready' ? preferences : [],
+          )
+        : ({ status: 'gap' } as const),
+    [data?.assessment, generationAllowed, userId, prefStatus, preferences],
   );
 
   // Wait for both the assessment and the (additive) preference load to settle
@@ -275,7 +286,9 @@ export function NutritionPlanScreen() {
         {t('nutrition.plan.logToday')}
       </AppButton>
 
-      {status === 'loading' || status === 'idle' || preferencesLoading ? (
+      {!generationAllowed ? (
+        <SubscriptionAccessNotice />
+      ) : status === 'loading' || status === 'idle' || preferencesLoading ? (
         <AppText accessibilityLabel={t('nutrition.plan.loadingAccessibility')}>
           {t('nutrition.plan.loading')}
         </AppText>

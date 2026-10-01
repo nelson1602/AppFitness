@@ -14326,6 +14326,62 @@ cancellation wording and store policy links remain subject to Decision 12
 counsel approval and O-07. The Google Play trial rule relies on Play returning
 only offers the user can redeem and must be confirmed on a test track.
 
+### Implementation record — S-4 entitlement enforcement (2026-10-01, in-repo candidate)
+
+The fourth slice implements Decisions 5, 6 and 7 without activating any
+external path:
+
+- **Server authority.** `ActiveEntitlementGuard` refuses a paid product
+  mutation with HTTP 402 `SUBSCRIPTION_REQUIRED` unless the authenticated
+  user's own durable mirror is active and unexpired. A client claim is never
+  consulted. It guards sync push, conflict resolution,
+  `PUT /users/me/profile` and the dormant medical mutations. Authentication and recovery, account
+  deletion, subscription status/reconciliation and the signed webhook stay
+  ungated. A source test enumerates every controller mutation, so a new
+  unguarded one fails CI. **Enforcement is dormant while
+  `REVENUECAT_PROVIDER=disabled`**, so disabled environments keep today's
+  behaviour. An e2e test boots the real app with the provider enabled (dummy
+  local credentials, provider replaced, no network) and proves the 402, the
+  pass-through for an active mirror, and that reads, status and account
+  deletion stay available.
+- **Mobile boundary.** A process-local projection (`unregulated`, `checking`,
+  `active`, `read-only`) is published only from S-2/S-3 provider evidence that
+  passed session-generation checks. A build without keys, and Web, stay
+  `unregulated` and unchanged. A configured build fails closed while the first
+  read runs. Every tracked repository write asserts access inside its row's
+  transaction (all 41 `enqueue` sites pass `tx`, enforced by a source test),
+  so a refused write rolls back the row and never leaves an edit that only
+  looks saved.
+- **Offline and sync (Decision 7).** Access follows the SDK's reported
+  entitlement, so RevenueCat's provider-controlled offline window is used and
+  not extended. A read-only sync only pulls: the queue is left byte-for-byte
+  (no push, no in-flight recovery, no retry increment). A late 402 returns the
+  claimed operations to `PENDING` without retry or backoff, and a 402 during
+  conflict settlement preserves the choice the same way. Writes queued while
+  access was active stay user-owned and resume when access returns.
+- **Product boundary (Decision 6).** Saved data stays visible. New tracked
+  writes, new conflict choices and new iCoach routine and meal-plan generation
+  are blocked, with a bilingual explanation. After provider evidence turns
+  active, the app asks the server to reconcile its mirror. The request carries
+  no receipt or payload.
+- **Session safety.** A same-account generation change (for example a token
+  refresh) during the entitlement read discards that read and re-reads for the
+  current snapshot, at most twice, then fails closed. Access therefore never
+  stays `checking` indefinitely, a stale generation never publishes, and an
+  account switch publishes nothing for the previous owner.
+- **Design-system amendment (owner decision, approach A).** `AppButton`,
+  `AppTextInput`, `FormField` and `FormSelect` honour a paid-write disabled
+  context, so write surfaces fail closed. Read and navigation actions are
+  re-enabled only explicitly, each with a regression test (`.ai/08_UI_UX.md`
+  v1.18).
+
+This activates nothing. No RevenueCat account, key, secret, product,
+offering, purchase or provider traffic exists, and both environments keep
+`REVENUECAT_PROVIDER=disabled`. FEATURE-012 stays open: S-5 store
+sandbox/release evidence and S-6 legal/store closure remain, as do all external
+activation gates. A modified client could still write locally, but the server
+refuses to accept those writes, which is the Decision 5 guarantee.
+
 ### Related documents
 
 - `.ai/11_BACKLOG.md` — FEATURE-012

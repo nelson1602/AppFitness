@@ -3,6 +3,8 @@ import { Redirect, Stack } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { FoodLogScreen } from '@/features/nutrition/presentation/FoodLogScreen';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
@@ -27,7 +29,9 @@ export default function FoodLogRoute() {
     <>
       <Stack.Screen options={{ title: t('nutrition.log.routeTitle') }} />
       <Screen>
-        <FoodLogScreen />
+        <SubscriptionWriteBoundary>
+          <FoodLogScreen />
+        </SubscriptionWriteBoundary>
       </Screen>
     </>
   );

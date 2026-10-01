@@ -9,6 +9,9 @@ import type {
   WorkoutProgressionRule,
 } from '@/features/icoach';
 import { useProfileStore } from '@/features/profile/application/profile.store';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
+import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import {
   formatNumber,
   interpolate,
@@ -52,6 +55,8 @@ export function GeneratedWorkoutPlan() {
   const profile = useProfileStore((state) => state.profile);
   const loadProfile = useProfileStore((state) => state.load);
   const { t } = useLocalization();
+  const entitlement = useEntitlementAccess();
+  const generationAllowed = entitlement.mode === 'unregulated' || entitlement.mode === 'active';
 
   useEffect(() => {
     if (dashboardStatus === 'idle') void refreshDashboard();
@@ -64,17 +69,21 @@ export function GeneratedWorkoutPlan() {
   const selection = useMemo(
     () =>
       profile
-        ? selectWorkoutRoutine(assessment, {
-            equipment: profile.equipment,
-            sessionDurationMins: profile.sessionDurationMins,
-            // ADR-P031 W-4D: the assessment’s own exclusion set, not `[]`.
-            // Same list, same order, so the routine can never contain what
-            // the assessment says was excluded.
-            excludedMovements: assessment?.assessment.training.excludedMovements ?? [],
-          })
+        ? generationAllowed
+          ? selectWorkoutRoutine(assessment, {
+              equipment: profile.equipment,
+              sessionDurationMins: profile.sessionDurationMins,
+              // ADR-P031 W-4D: the assessment’s own exclusion set, not `[]`.
+              // Same list, same order, so the routine can never contain what
+              // the assessment says was excluded.
+              excludedMovements: assessment?.assessment.training.excludedMovements ?? [],
+            })
+          : ({ status: 'gap' } satisfies WorkoutRoutineSelection)
         : ({ status: 'gap' } satisfies WorkoutRoutineSelection),
-    [assessment, profile],
+    [assessment, generationAllowed, profile],
   );
+
+  if (!generationAllowed) return <SubscriptionAccessNotice />;
 
   if (
     dashboardStatus === 'idle' ||

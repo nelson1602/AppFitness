@@ -1,7 +1,12 @@
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { WorkoutRoutineSelection } from '../application/workout-routine.service';
 import { GeneratedWorkoutPlan, GeneratedWorkoutPlanView } from './GeneratedWorkoutPlan';
+import {
+  beginEntitlementCheck,
+  configureEntitlementEnforcement,
+  setEntitlementAccess,
+} from '@/shared/application/entitlement-access';
 
 let mockLanguage: 'en' | 'es' = 'en';
 let mockDashboardState: Record<string, unknown>;
@@ -302,4 +307,31 @@ describe('GeneratedWorkoutPlan', () => {
       expect(screen.getByText('Todavía no se pudo armar una semana completa')).toBeOnTheScreen();
     });
   });
+});
+
+describe('S-4 read-only: no new iCoach routine generation', () => {
+  afterEach(async () => {
+    // Restore the default disabled projection through the production API,
+    // inside act: the still-mounted screen re-renders on the publication.
+    await act(async () => {
+      configureEntitlementEnforcement(false);
+    });
+  });
+
+  it.each([
+    ['read-only', false],
+    ['checking', null],
+  ] as const)(
+    'shows the access notice instead of a generated routine while %s',
+    async (_mode, active) => {
+      configureEntitlementEnforcement(true);
+      beginEntitlementCheck('user-1');
+      if (active !== null) setEntitlementAccess('user-1', active);
+
+      await render(<GeneratedWorkoutPlan />);
+
+      expect(screen.getByTestId('subscription-access-notice')).toBeOnTheScreen();
+      expect(screen.queryByText('Building your workout plan…')).toBeNull();
+    },
+  );
 });

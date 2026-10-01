@@ -1,3 +1,4 @@
+import { assertPaidMutationAccess } from '../../application/entitlement-access';
 import { decryptFromBase64, encryptToBase64 } from '../crypto/field-cipher';
 import { queryAll, queryFirst, run, type SqlExecutor } from '../database';
 import type { SyncQueueRow } from '../database/types';
@@ -30,6 +31,11 @@ export async function enqueue(
   nowIso: string,
   tx?: SqlExecutor,
 ): Promise<void> {
+  // Every tracked repository write enqueues inside the same transaction. This
+  // synchronous check therefore aborts and rolls back the row write too; an
+  // inactive account can never accumulate edits that merely look saved.
+  assertPaidMutationAccess(input.userId);
+
   // Sensitive payloads (medical free-text) are encrypted at rest even in
   // the queue: stored as {"__enc": "<base64>"} (ADR-P001).
   const payloadText = input.sensitive
@@ -114,6 +120,26 @@ export async function markInFlight(userId: string, opIds: string[], nowIso: stri
   for (const opId of opIds) {
     await run(
       `UPDATE sync_queue SET status = 'IN_FLIGHT', updated_at = ? WHERE op_id = ? AND user_id = ?`,
+      [nowIso, opId, userId],
+    );
+  }
+}
+
+/**
+ * A server entitlement refusal is not a failed user operation. Put only this
+ * run's claimed rows back exactly where they were, without incrementing retry
+ * counters or inventing backoff; they resume after access is restored.
+ */
+export async function returnInFlightToPending(
+  userId: string,
+  opIds: string[],
+  nowIso: string,
+): Promise<void> {
+  for (const opId of opIds) {
+    await run(
+      `UPDATE sync_queue
+       SET status = 'PENDING', updated_at = ?
+       WHERE op_id = ? AND user_id = ? AND status = 'IN_FLIGHT'`,
       [nowIso, opId, userId],
     );
   }

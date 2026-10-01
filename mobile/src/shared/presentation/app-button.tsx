@@ -9,6 +9,7 @@ import {
 
 import { useTheme } from '../theme';
 import { AppText } from './app-text';
+import { usePaidWriteDisabled } from './paid-write-context';
 
 /**
  * Mandatory minimum touch target (.ai/08_UI_UX.md — "Minimum touch target:
@@ -39,7 +40,8 @@ export function AppButton({
   ...props
 }: AppButtonProps) {
   const theme = useTheme();
-  const isDisabled = disabled || loading;
+  const paidWriteDisabled = usePaidWriteDisabled();
+  const isDisabled = disabled || loading || paidWriteDisabled;
 
   /**
    * BUG-020. While `loading` the visible label is replaced by a spinner, so a

@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react';
 import { Pressable, View, type LayoutChangeEvent } from 'react-native';
 
 import { formatNumber, useLocalization } from '@/shared/localization';
-import { AppButton, AppText, AppTextInput, Banner, Card } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Banner,
+  Card,
+  PaidWriteDisabledProvider,
+  usePaidWriteDisabled,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { SyncStatus } from '@/shared/infrastructure/database/types';
@@ -16,6 +24,9 @@ import {
 } from '../infrastructure/exercise-catalog.data';
 import { CustomExerciseForm } from './CustomExerciseForm';
 import { CustomExerciseNote } from './CustomExerciseNote';
+
+/** Same dimming as a disabled `AppButton` (S-4 read-only write controls). */
+const DISABLED_OPACITY = 0.56;
 
 /**
  * Bilingual workout logging (ADR-P015 Phase 16 Slice 6). Start an ad-hoc
@@ -68,6 +79,7 @@ function ConflictHint({ syncStatus }: { syncStatus: SyncStatus }) {
 
 export function WorkoutLogScreen() {
   const theme = useTheme();
+  const paidWriteDisabled = usePaidWriteDisabled();
   const { language, t } = useLocalization();
   const {
     status,
@@ -234,16 +246,18 @@ export function WorkoutLogScreen() {
                 <ConflictHint syncStatus={log.syncStatus} />
                 {/* BUG-026: wraps so a large-text action is not pushed off the card. */}
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                  <AppButton
-                    accessibilityLabel={`${t('workout.log.logSetsAccessibility')} ${log.name}`}
-                    testID={`workout-select-${log.id}`}
-                    variant="secondary"
-                    onPress={() => void onSelectLog(log)}
-                  >
-                    {selectedLogId === log.id
-                      ? t('workout.log.hideSets')
-                      : t('workout.log.logSets')}
-                  </AppButton>
+                  <PaidWriteDisabledProvider disabled={false}>
+                    <AppButton
+                      accessibilityLabel={`${t('workout.log.logSetsAccessibility')} ${log.name}`}
+                      testID={`workout-select-${log.id}`}
+                      variant="secondary"
+                      onPress={() => void onSelectLog(log)}
+                    >
+                      {selectedLogId === log.id
+                        ? t('workout.log.hideSets')
+                        : t('workout.log.logSets')}
+                    </AppButton>
+                  </PaidWriteDisabledProvider>
                   <AppButton
                     accessibilityLabel={`${t('workout.log.finishAccessibility')} ${log.name}`}
                     testID={`workout-finish-${log.id}`}
@@ -310,10 +324,15 @@ export function WorkoutLogScreen() {
                             key={exercise.id}
                             accessibilityRole="button"
                             accessibilityLabel={`${t('workout.log.chooseAccessibility')} ${displayName}`}
-                            accessibilityState={{ selected: exerciseId === exercise.id }}
+                            accessibilityState={{
+                              selected: exerciseId === exercise.id,
+                              disabled: paidWriteDisabled,
+                            }}
+                            disabled={paidWriteDisabled}
                             testID={`set-exercise-${exercise.key}`}
                             onPress={() => setExerciseId(exercise.id)}
                             style={{
+                              opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
                               backgroundColor:
                                 exerciseId === exercise.id
                                   ? theme.colors.surfaceVariant
@@ -349,10 +368,15 @@ export function WorkoutLogScreen() {
                             key={exercise.id}
                             accessibilityRole="button"
                             accessibilityLabel={`${t('workout.log.chooseAccessibility')} ${exercise.name}`}
-                            accessibilityState={{ selected: exerciseId === exercise.id }}
+                            accessibilityState={{
+                              selected: exerciseId === exercise.id,
+                              disabled: paidWriteDisabled,
+                            }}
+                            disabled={paidWriteDisabled}
                             testID={`set-custom-exercise-${exercise.id}`}
                             onPress={() => setExerciseId(exercise.id)}
                             style={{
+                              opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
                               backgroundColor:
                                 exerciseId === exercise.id
                                   ? theme.colors.surfaceVariant

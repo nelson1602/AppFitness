@@ -1,4 +1,5 @@
 import { encryptToBase64 } from '../crypto/field-cipher';
+import { configureEntitlementEnforcement } from '../../application/entitlement-access';
 import { queryAll, queryFirst, run } from '../database';
 import type { SyncQueueRow } from '../database/types';
 import {
@@ -13,6 +14,7 @@ import {
   peekReady,
   readQueuePayload,
   removeRejected,
+  returnInFlightToPending,
 } from './sync-queue';
 
 jest.mock('../database', () => ({
@@ -55,6 +57,29 @@ function queueRow(overrides: Partial<SyncQueueRow> = {}): SyncQueueRow {
 describe('sync-queue', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // Restore the default disabled projection through the production API.
+    configureEntitlementEnforcement(false);
+  });
+
+  it('rejects before encryption or SQL when paid writes are unavailable', async () => {
+    configureEntitlementEnforcement(true);
+
+    await expect(
+      enqueue(
+        {
+          opId: 'op-blocked',
+          userId: USER,
+          entityType: 'goals',
+          entityId: 'goal-1',
+          operation: 'UPDATE',
+          payload: { goal_type: 'FAT_LOSS' },
+          baseVersion: 1,
+        },
+        NOW,
+      ),
+    ).rejects.toMatchObject({ name: 'EntitlementRequiredError' });
+    expect(mockEncrypt).not.toHaveBeenCalled();
+    expect(mockRun).not.toHaveBeenCalled();
   });
 
   it('enqueue inserts a PENDING op with plaintext payload by default', async () => {
@@ -150,6 +175,16 @@ describe('sync-queue', () => {
     expect(sql).toContain(`SET status = 'FAILED'`);
     // retry_count 1 → 2; backoff 30s * 2^2 = 120s from NOW
     expect(params).toEqual([2, '2026-07-06T12:02:00.000Z', 'http_500', NOW, 'op-1', USER]);
+  });
+
+  it('returns only the claimed in-flight operation to pending without changing retries', async () => {
+    await returnInFlightToPending(USER, ['op-1'], NOW);
+
+    const [sql, params] = mockRun.mock.calls[0];
+    expect(sql).toContain("SET status = 'PENDING', updated_at = ?");
+    expect(sql).toContain("status = 'IN_FLIGHT'");
+    expect(sql).not.toContain('retry_count');
+    expect(params).toEqual([NOW, 'op-1', USER]);
   });
 
   it('markFailed is a no-op when the op no longer exists (idempotent)', async () => {

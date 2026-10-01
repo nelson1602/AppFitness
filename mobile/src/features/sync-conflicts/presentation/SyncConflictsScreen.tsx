@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
@@ -92,16 +94,18 @@ export function SyncConflictsScreen() {
           {t('sync.conflicts.emptyBody')}
         </Banner>
       ) : (
-        conflicts.map((view, index) => (
-          <ConflictCard
-            busy={busyConflictId === view.id}
-            key={view.id}
-            onChoose={(conflictId, choice) => void choose(conflictId, choice)}
-            onRetry={(conflictId) => void settle(conflictId)}
-            position={index}
-            view={view}
-          />
-        ))
+        <SubscriptionWriteBoundary>
+          {conflicts.map((view, index) => (
+            <ConflictCard
+              busy={busyConflictId === view.id}
+              key={view.id}
+              onChoose={(conflictId, choice) => void choose(conflictId, choice)}
+              onRetry={(conflictId) => void settle(conflictId)}
+              position={index}
+              view={view}
+            />
+          ))}
+        </SubscriptionWriteBoundary>
       )}
     </View>
   );

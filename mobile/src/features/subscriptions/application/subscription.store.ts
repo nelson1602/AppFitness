@@ -27,6 +27,8 @@ export interface SubscriptionGateway {
   purchase(handle: SubscriptionOfferHandle): Promise<PurchaseOutcome>;
   restore(): Promise<PurchaseAccessSnapshot>;
   manage(): Promise<void>;
+  /** Best-effort refresh of the independent server-authoritative mirror. */
+  reconcileServer?(): Promise<void>;
 }
 
 export interface SubscriptionStoreSessions {
@@ -35,6 +37,20 @@ export interface SubscriptionStoreSessions {
 }
 
 export type SubscriptionReporter = (scope: string, error: unknown) => void;
+
+export interface EntitlementAccessPublisher {
+  configure(enabled: boolean): void;
+  begin(userId: string): void;
+  set(userId: string, active: boolean): void;
+  reset(): void;
+}
+
+const NOOP_ACCESS_PUBLISHER: EntitlementAccessPublisher = {
+  configure: () => undefined,
+  begin: () => undefined,
+  set: () => undefined,
+  reset: () => undefined,
+};
 
 /**
  * Surface status. `ready` with `offer === null` and an inactive `access` is the
@@ -101,6 +117,13 @@ function initialData(storeKind: SubscriptionStoreKind): Data {
   };
 }
 
+/**
+ * Automatic re-reads after a same-account session-generation change during an
+ * entitlement load. Two covers a refresh that lands mid-read plus one more;
+ * anything beyond that is not a refresh but churn, and fails closed.
+ */
+export const MAX_SAME_ACCOUNT_RELOADS = 2;
+
 function reasonOf(error: unknown): 'network' | 'notAllowed' | 'unknown' {
   return error instanceof SubscriptionProviderError ? error.reason : 'unknown';
 }
@@ -120,6 +143,7 @@ export function createSubscriptionStore(
   gateway: SubscriptionGateway,
   sessions: SubscriptionStoreSessions,
   report: SubscriptionReporter,
+  entitlementAccess: EntitlementAccessPublisher = NOOP_ACCESS_PUBLISHER,
 ): StoreApi<SubscriptionState> {
   return createStore<SubscriptionState>((set, get) => {
     let loadSequence = 0;
@@ -149,6 +173,15 @@ export function createSubscriptionStore(
       return owner;
     };
 
+    const reconcileActiveAccess = async (owner: SubscriptionSessionSnapshot): Promise<void> => {
+      if (!gateway.reconcileServer) return;
+      try {
+        await gateway.reconcileServer();
+      } catch (error) {
+        if (sessions.isSessionCurrent(owner)) report('subscriptions.reconcile', error);
+      }
+    };
+
     const failOperation = (
       owner: SubscriptionSessionSnapshot,
       error: unknown,
@@ -174,55 +207,97 @@ export function createSubscriptionStore(
       publish(owner, { operation: null, issue });
     };
 
+    /** The same account is still signed in, but its session generation moved. */
+    const sameAccountRefreshed = (owner: SubscriptionSessionSnapshot): boolean =>
+      !sessions.isSessionCurrent(owner) && sessions.getSessionSnapshot()?.userId === owner.userId;
+
+    /**
+     * A same-account generation change (for example a token refresh) while the
+     * entitlement read is in flight discards that read and re-reads for the
+     * current snapshot, so access never stays `checking` indefinitely. The
+     * budget bounds it; once spent, access fails closed to read-only with the
+     * neutral retry state. Another account is handled by the session binding,
+     * which resets this store (advancing the sequence) before loading anew.
+     */
+    const reloadOrSettle = (
+      owner: SubscriptionSessionSnapshot,
+      reloadsLeft: number,
+    ): Promise<void> | null => {
+      if (!sameAccountRefreshed(owner)) return null;
+      if (reloadsLeft > 0) return runLoad(reloadsLeft - 1);
+      const latest = sessions.getSessionSnapshot();
+      if (latest) entitlementAccess.set(latest.userId, false);
+      set({ status: 'error', operation: null, issue: 'sessionChanged' });
+      return Promise.resolve();
+    };
+
+    async function runLoad(reloadsLeft: number): Promise<void> {
+      const availability = gateway.availability();
+      if (availability === 'web') {
+        entitlementAccess.configure(false);
+        set({ ...initialData(get().storeKind), status: 'web-unavailable' });
+        return;
+      }
+      if (availability === 'unconfigured') {
+        entitlementAccess.configure(false);
+        set({ ...initialData(get().storeKind), status: 'unavailable' });
+        return;
+      }
+      entitlementAccess.configure(true);
+      const owner = sessions.getSessionSnapshot();
+      if (!owner) return;
+
+      loadSequence += 1;
+      const sequence = loadSequence;
+      const current = () => sequence === loadSequence;
+      entitlementAccess.begin(owner.userId);
+      set({ status: 'loading', operation: null, notice: null, issue: null });
+
+      try {
+        const access = await gateway.loadAccess();
+        if (!current()) return;
+        const reload = reloadOrSettle(owner, reloadsLeft);
+        if (reload) return reload;
+        entitlementAccess.set(owner.userId, access.isActive);
+        if (access.isActive) {
+          await reconcileActiveAccess(owner);
+          if (!current()) return;
+          const afterReconcile = reloadOrSettle(owner, reloadsLeft);
+          if (afterReconcile) return afterReconcile;
+          publish(owner, { status: 'ready', access, offer: null, purchasePending: false });
+          return;
+        }
+        const offer = await gateway.loadOffer();
+        if (!current()) return;
+        const afterOffer = reloadOrSettle(owner, reloadsLeft);
+        if (afterOffer) return afterOffer;
+        publish(owner, { status: 'ready', access, offer });
+      } catch (error) {
+        if (!current()) return;
+        const reload = reloadOrSettle(owner, reloadsLeft);
+        if (reload) return reload;
+        if (sessions.isSessionCurrent(owner)) entitlementAccess.set(owner.userId, false);
+        if (error instanceof SubscriptionSessionChangedError) {
+          publish(owner, { status: 'error', issue: 'sessionChanged' });
+          return;
+        }
+        if (error instanceof SubscriptionUnavailableError) {
+          publish(owner, { ...initialData(get().storeKind), status: 'unavailable' });
+          return;
+        }
+        if (reasonOf(error) === 'network') {
+          publish(owner, { status: 'offline', access: null, offer: null });
+          return;
+        }
+        report('subscriptions.load', error);
+        publish(owner, { status: 'error', access: null, offer: null, issue: null });
+      }
+    }
+
     return {
       ...initialData(gateway.storeKind()),
 
-      load: async () => {
-        const availability = gateway.availability();
-        if (availability === 'web') {
-          set({ ...initialData(get().storeKind), status: 'web-unavailable' });
-          return;
-        }
-        if (availability === 'unconfigured') {
-          set({ ...initialData(get().storeKind), status: 'unavailable' });
-          return;
-        }
-        const owner = sessions.getSessionSnapshot();
-        if (!owner) return;
-
-        loadSequence += 1;
-        const sequence = loadSequence;
-        const current = () => sequence === loadSequence;
-        set({ status: 'loading', operation: null, notice: null, issue: null });
-
-        try {
-          const access = await gateway.loadAccess();
-          if (!current()) return;
-          if (access.isActive) {
-            publish(owner, { status: 'ready', access, offer: null, purchasePending: false });
-            return;
-          }
-          const offer = await gateway.loadOffer();
-          if (!current()) return;
-          publish(owner, { status: 'ready', access, offer });
-        } catch (error) {
-          if (!current()) return;
-          if (error instanceof SubscriptionSessionChangedError) {
-            publish(owner, { status: 'error', issue: 'sessionChanged' });
-            return;
-          }
-          if (error instanceof SubscriptionUnavailableError) {
-            publish(owner, { ...initialData(get().storeKind), status: 'unavailable' });
-            return;
-          }
-          if (reasonOf(error) === 'network') {
-            publish(owner, { status: 'offline', access: null, offer: null });
-            return;
-          }
-          report('subscriptions.load', error);
-          publish(owner, { status: 'error', access: null, offer: null, issue: null });
-        }
-      },
+      load: () => runLoad(MAX_SAME_ACCOUNT_RELOADS),
 
       purchase: async () => {
         const offer = get().offer;
@@ -235,6 +310,10 @@ export function createSubscriptionStore(
           if (outcome.kind === 'cancelled') {
             publish(owner, { operation: null });
           } else if (outcome.kind === 'completed' && outcome.access.isActive) {
+            if (sessions.isSessionCurrent(owner)) {
+              entitlementAccess.set(owner.userId, true);
+              await reconcileActiveAccess(owner);
+            }
             publish(owner, {
               operation: null,
               access: outcome.access,
@@ -243,6 +322,7 @@ export function createSubscriptionStore(
               purchasePending: false,
             });
           } else {
+            if (sessions.isSessionCurrent(owner)) entitlementAccess.set(owner.userId, false);
             // A pending purchase — or a completed one whose entitlement the
             // provider does not yet report — is never presented as active.
             publish(owner, { operation: null, purchasePending: true });
@@ -257,6 +337,11 @@ export function createSubscriptionStore(
         if (!owner) return;
         try {
           const access = await gateway.restore();
+          if (sessions.isSessionCurrent(owner))
+            entitlementAccess.set(owner.userId, access.isActive);
+          if (access.isActive && sessions.isSessionCurrent(owner)) {
+            await reconcileActiveAccess(owner);
+          }
           publish(
             owner,
             access.isActive
@@ -281,6 +366,7 @@ export function createSubscriptionStore(
 
       reset: () => {
         loadSequence += 1;
+        entitlementAccess.reset();
         set(initialData(get().storeKind));
       },
     };

@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 
 import { useTheme } from '../theme';
+import { usePaidWriteDisabled } from './paid-write-context';
 
 /**
  * Border widths are local, non-exported implementation constants. The accepted
@@ -104,6 +105,7 @@ export type AppTextInputProps = AppTextInputBaseProps &
  */
 export function AppTextInput(props: AppTextInputProps) {
   const theme = useTheme();
+  const paidWriteDisabled = usePaidWriteDisabled();
   const [focused, setFocused] = useState(false);
   const {
     accessibilityLabel,
@@ -115,8 +117,9 @@ export function AppTextInput(props: AppTextInputProps) {
     autoCorrect,
     selectTextOnFocus,
     onBlur,
-    disabled = false,
+    disabled: explicitlyDisabled = false,
   } = props;
+  const disabled = explicitlyDisabled || paidWriteDisabled;
 
   // Neither native event shape reaches the caller: the commit callback
   // receives the committed string, and blur is a plain notification.

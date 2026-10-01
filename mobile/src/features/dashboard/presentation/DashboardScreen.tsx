@@ -4,9 +4,18 @@ import { View } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import { ProgressSummaryCard } from '@/features/progress';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
 import { WellnessSafetyRecommendationCard } from '@/features/wellness';
+import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Screen } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  Banner,
+  PaidWriteDisabledProvider,
+  Screen,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { DataRequirement } from '../domain/dashboard.types';
@@ -38,6 +47,8 @@ function resolveGapFix(gap: DataRequirement): (() => void) | undefined {
 export function DashboardScreen() {
   const theme = useTheme();
   const { t } = useLocalization();
+  const { mode: entitlementMode } = useEntitlementAccess();
+  const paidWriteDisabled = entitlementMode === 'checking' || entitlementMode === 'read-only';
   const { status, data, error, refresh, syncNow, loadSampleData } = useDashboardStore();
 
   // BUG-019: `back` from Progress reveals this screen's existing instance
@@ -62,6 +73,8 @@ export function DashboardScreen() {
           states and independently of them. Blocks nothing — the soft gate
           leaves an unverified user with full core access. */}
       <VerificationReminderCard />
+
+      {paidWriteDisabled ? <SubscriptionAccessNotice /> : null}
 
       {/* Recommends a professional physical evaluation (ADR-P017 W-3).
           Recommends, never requires: it gates nothing, and it is deliberately
@@ -133,14 +146,16 @@ export function DashboardScreen() {
           checklist (ADR-P027 Decision 1) is the Data-gap treatment here. It is
           non-blocking and adds no route — every other surface stays usable. */}
       {status === 'empty' && data ? (
-        <OnboardingChecklistCard
-          gaps={data.missing}
-          loading={false}
-          onLoadSampleData={() => {
-            void loadSampleData();
-          }}
-          resolveFix={resolveGapFix}
-        />
+        <PaidWriteDisabledProvider disabled={paidWriteDisabled}>
+          <OnboardingChecklistCard
+            gaps={data.missing}
+            loading={false}
+            onLoadSampleData={() => {
+              void loadSampleData();
+            }}
+            resolveFix={resolveGapFix}
+          />
+        </PaidWriteDisabledProvider>
       ) : null}
 
       {status === 'ready' && data?.assessment ? (

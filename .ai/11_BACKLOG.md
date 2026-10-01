@@ -4443,7 +4443,7 @@ coverage than it has.
 
 ## [FEATURE-012] V1 Store Subscription and Entitlement
 
-Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 in-repo candidate implemented 2026-09-30 and In Progress pending store/provider evidence; S-4…S-6 unimplemented.**
+Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 merged 2026-10-01 (PR #204) and In Progress pending store/provider evidence; S-4 in-repo candidate implemented 2026-10-01 (dormant until provider activation); S-5…S-6 unimplemented.**
 Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
@@ -4463,9 +4463,11 @@ reconciliation, account-deletion hook and audit actions. S-2 adds the native
 SDK behind a provider-neutral port, session-scoped UUID identity, restore and
 account-switch handling. S-3 adds the AppFitness-owned bilingual subscription
 screen: store-evidence offer, purchase, restore and management, all inert
-without keys. It still has no store product, provider account/key, entitlement
-enforcement or store-verified purchase. Consequently FEATURE-012 remains a
-launch blocker and charging is not available.
+without keys. S-4 adds the server-authoritative paid-write guard and the
+mobile read-only boundary, both dormant while the provider is disabled. It
+still has no store product, provider account/key, active enforcement or
+store-verified purchase. Consequently FEATURE-012 remains a launch blocker and
+charging is not available.
 
 ### Policy result and recommended architecture
 
@@ -4545,8 +4547,25 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
    it (and `SubscriptionProviderError`) to neutral retry copy and may retry
    only after the session stabilizes. S-2's generation checks must not be
    weakened to avoid this.
-4. **S-4 Entitlement enforcement:** server-side authorization plus the accepted
-   offline/read-only boundary; a modified client cannot unlock paid writes.
+4. **S-4 Entitlement enforcement — in-repo candidate implemented 2026-10-01:**
+   server-side authorization plus the accepted offline/read-only boundary; a
+   modified client cannot unlock paid writes. Delivered:
+   - an HTTP 402 `SUBSCRIPTION_REQUIRED` guard on every product mutation, from
+     the user's own durable mirror, with a total controller-scope test;
+   - a transactional queue assertion at every tracked repository write (41
+     sites, total scope test), so a refused write rolls back its row;
+   - read-only sync that only pulls, leaves the queue byte-for-byte and burns
+     no retries on a 402;
+   - conflict choices and new iCoach plans blocked;
+   - a bilingual read-only notice, with write surfaces failing closed through
+     the owner-approved `.ai/08_UI_UX.md` v1.18 paid-write context;
+   - a bounded same-account re-read after a session-generation change.
+
+   Dormant while `REVENUECAT_PROVIDER=disabled` and in keyless builds.
+   Remaining before it can be exercised: provider activation, the S-5
+   sandbox/test-track lifecycle evidence (including expiry, the three-day
+   offline window and restore-after-expiry), and UX-4C assistive-technology
+   verification.
 5. **S-5 Store sandbox and release evidence:** Apple/Google trial, renewal,
    cancellation, billing retry, grace, refund/revocation, restore, cross-device,
    account deletion and webhook replay/out-of-order journeys.

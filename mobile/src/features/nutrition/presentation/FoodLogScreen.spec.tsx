@@ -8,6 +8,7 @@ import type { DietaryPreferenceState } from '../application/dietary-preference.s
 import type { DietaryPreference } from '../domain/dietary-preference';
 import type { LoggedMealItem } from '../domain/food-log';
 import { FoodLogScreen } from './FoodLogScreen';
+import { PaidWriteDisabledProvider } from '@/shared/presentation';
 
 let mockState: FoodLogState;
 let mockPrefs: DietaryPreferenceState;
@@ -464,5 +465,34 @@ describe('FoodLogScreen (Slice 4C)', () => {
     expect(screen.queryByText("Couldn't add food")).toBeNull();
     expect(screen.queryByText("Couldn't update servings")).toBeNull();
     expect(screen.queryByText("Couldn't remove food")).toBeNull();
+  });
+});
+
+describe('S-4 read-only write boundary', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('keeps the log visible and Sync now usable while serving and remove stay disabled', async () => {
+    setState({
+      items: [item()],
+      sync: { state: 'pending', pending: 1, actionRequired: 0, conflicts: 0 },
+    });
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <FoodLogScreen />
+      </PaidWriteDisabledProvider>,
+    );
+
+    expect(screen.getByTestId('logged-item-i1')).toBeOnTheScreen();
+    const sync = screen.getByTestId('food-log-sync-now');
+    expect(sync.props.accessibilityState).toMatchObject({ disabled: false });
+    await fireEvent.press(sync);
+    expect(mockState.syncNow).toHaveBeenCalledTimes(1);
+
+    const remove = screen.getByTestId('remove-item-i1');
+    expect(remove.props.accessibilityState).toMatchObject({ disabled: true });
+    await fireEvent.press(remove);
+    expect(mockState.removeItem).not.toHaveBeenCalled();
   });
 });

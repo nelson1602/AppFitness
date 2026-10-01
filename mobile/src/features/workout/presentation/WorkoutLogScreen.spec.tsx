@@ -7,6 +7,7 @@ import { lightTheme } from '@/shared/theme';
 import type { CustomExercise, Routine, WorkoutLog, WorkoutSet } from '../domain/workout';
 import type { WorkoutState } from '../application/workout.store';
 import { WorkoutLogScreen } from './WorkoutLogScreen';
+import { PaidWriteDisabledProvider } from '@/shared/presentation';
 
 let mockState: WorkoutState;
 let mockLanguage: 'en' | 'es' = 'en';
@@ -990,5 +991,39 @@ describe('WorkoutLogScreen inputs (UX-5)', () => {
       nativeEvent: { text: 'abc' },
     });
     expect(updateWorkoutSet).not.toHaveBeenCalled();
+  });
+});
+
+describe('S-4 read-only write boundary', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('still opens a saved workout while its set and workout writes stay disabled and inert', async () => {
+    setStore({ status: 'ready', workoutLogs: [log()], workoutSets: [] });
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <WorkoutLogScreen />
+      </PaidWriteDisabledProvider>,
+    );
+
+    const open = screen.getByTestId('workout-select-l1');
+    expect(open.props.accessibilityState).toMatchObject({ disabled: false });
+    await fireEvent.press(open);
+
+    for (const testID of ['workout-start', 'set-add', 'set-exercise-exercise.back_squat']) {
+      expect([testID, screen.getByTestId(testID).props.accessibilityState]).toEqual([
+        testID,
+        expect.objectContaining({ disabled: true }),
+      ]);
+    }
+    await fireEvent.press(screen.getByTestId('workout-start'));
+    expect(startWorkout).not.toHaveBeenCalled();
+
+    // A disabled picker must not change the set being composed either.
+    await fireEvent.press(screen.getByTestId('set-exercise-exercise.back_squat'));
+    expect(
+      screen.getByTestId('set-exercise-exercise.back_squat').props.accessibilityState,
+    ).toMatchObject({ selected: false });
   });
 });

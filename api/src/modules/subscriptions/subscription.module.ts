@@ -8,6 +8,7 @@ import {
 import { AuditModule } from '../audit/audit.module';
 import { DatabaseModule } from '../database/database.module';
 import { SubscriptionService } from './application/subscription.service';
+import { EntitlementAuthorizationService } from './application/entitlement-authorization.service';
 import { ENTITLEMENT_PROVIDER } from './domain/subscription.types';
 import { DisabledEntitlementProvider } from './infrastructure/disabled-entitlement.provider';
 import {
@@ -16,6 +17,7 @@ import {
   type RevenueCatFetch,
 } from './infrastructure/revenuecat-entitlement.provider';
 import { SubscriptionController } from './presentation/subscription.controller';
+import { ActiveEntitlementGuard } from './presentation/guards/active-entitlement.guard';
 
 @Module({
   imports: [DatabaseModule, AuditModule],
@@ -38,7 +40,15 @@ import { SubscriptionController } from './presentation/subscription.controller';
           : new DisabledEntitlementProvider(),
     },
     SubscriptionService,
+    EntitlementAuthorizationService,
+    ActiveEntitlementGuard,
   ],
-  exports: [SubscriptionService],
+  // A `@UseGuards` guard is instantiated in the consuming controller's module,
+  // so its dependency must be exported alongside it (otherwise boot fails).
+  exports: [
+    SubscriptionService,
+    EntitlementAuthorizationService,
+    ActiveEntitlementGuard,
+  ],
 })
 export class SubscriptionModule {}
