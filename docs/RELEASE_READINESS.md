@@ -240,7 +240,7 @@ not outrank launch blockers.**
 
 | Item | Status | Impact |
 |---|---|---|
-| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1/S-2 IMPLEMENTED; S-3 MERGED; S-4 IN-REPO CANDIDATE** | ADR-P034's fail-closed server foundation, session-scoped native adapter, bilingual subscription screen and server-authoritative paid-write enforcement exist. Enforcement is dormant while `REVENUECAT_PROVIDER=disabled` and in keyless builds; no account, product, purchase or provider traffic exists, and nothing is store-verified. Remaining: provider activation, S-3/S-4 store and AT evidence, store products/accounts, S-5 sandbox evidence and S-6 legal closure. Blocks the paid-v1 contract. |
+| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1/S-2 IMPLEMENTED; S-3 MERGED; S-4 MERGED (PR #205); S-5 IN PROGRESS** | ADR-P034's fail-closed server foundation, session-scoped native adapter, bilingual subscription screen and server-authoritative paid-write enforcement exist. Enforcement is dormant while `REVENUECAT_PROVIDER=disabled` and in keyless builds; no account, product, purchase or provider traffic exists, and nothing is store-verified. Remaining: provider activation, S-3/S-4 store and AT evidence, store products/accounts, S-5 sandbox evidence and S-6 legal closure. Blocks the paid-v1 contract. |
 | Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
 | App Store Connect / Play Console privacy forms, policy URLs, listing assets | **BLOCKED-OWNER** | Blocks submission. The provisional form mapping is in `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`; it is not approved for entry. |
 | External Web account-deletion request | **UNVERIFIED — V1 gate** | Google requires a functional external request resource in addition to in-app deletion. `https://account.appfitnessrd.com/delete-account` returned 200 and rendered the AppFitnessRD deletion surface on 2026-09-29; the signed-out end-to-end journey and live-policy compliance are not verified. |
@@ -308,7 +308,8 @@ copy the deck does not contain.
   three-day offline entitlement window. S-1's server code, schema and migration
   are implemented but remain inert by default; S-2's native adapter and S-3's
   subscription screen are likewise inert without platform public keys, and the
-  S-4 enforcement candidate is dormant while the provider is disabled.
+  S-4 enforcement, merged through PR #205 (`d8a076e`), is dormant while the
+  provider is disabled.
   Legal/DPA review and external-account acceptance remain separate; no store
   product, provider account/key/secret, live purchase or active enforcement
   exists yet.
@@ -414,12 +415,16 @@ angles — coverage, then quality.
    delivered the lazy, session-scoped native purchase adapter. No external
    provider or store configuration is active. **S-3 merged 2026-10-01
    (PR #204):** the bilingual subscription screen; it stays In Progress until
-   store and assistive-technology evidence exist. **S-4 in-repo candidate
-   2026-10-01:** server-authoritative paid-write guard and mobile read-only
-   boundary, dormant until provider activation.
+   store and assistive-technology evidence exist. **S-4 merged 2026-10-01
+   (PR #205, `d8a076e`):** server-authoritative paid-write guard and mobile
+   read-only boundary, dormant until provider activation.
 5. `owner` + `external` — Configure Apple/Google products and the one-month
    introductory offer; run sandbox/TestFlight/Play-track lifecycle evidence;
-   complete subscription-specific legal/provider/store review (S-5/S-6).
+   complete subscription-specific legal/provider/store review (S-5/S-6). The
+   S-5 matrix, prerequisites and capture protocol are in
+   `docs/SUBSCRIPTION_S5_EVIDENCE.md`; no external cell has been run. The
+   RevenueCat Test Store path (T1) is accepted only in `__DEV__` development
+   builds (owner decision D-2) and has not been run.
 
 **Stage 2 — design and experience gates (`in-repo`, evidence-based)**
 

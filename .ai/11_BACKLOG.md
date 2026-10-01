@@ -4443,7 +4443,7 @@ coverage than it has.
 
 ## [FEATURE-012] V1 Store Subscription and Entitlement
 
-Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 merged 2026-10-01 (PR #204) and In Progress pending store/provider evidence; S-4 in-repo candidate implemented 2026-10-01 (dormant until provider activation); S-5…S-6 unimplemented.**
+Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 merged 2026-10-01 (PR #204) and In Progress pending store/provider evidence; S-4 merged 2026-10-01 (PR #205), dormant until provider activation; S-5 In Progress — in-repo evidence matrix prepared 2026-10-01, no external evidence yet; S-6 unimplemented.**
 Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
@@ -4566,9 +4566,24 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
    sandbox/test-track lifecycle evidence (including expiry, the three-day
    offline window and restore-after-expiry), and UX-4C assistive-technology
    verification.
-5. **S-5 Store sandbox and release evidence:** Apple/Google trial, renewal,
-   cancellation, billing retry, grace, refund/revocation, restore, cross-device,
-   account deletion and webhook replay/out-of-order journeys.
+5. **S-5 Store sandbox and release evidence — In Progress (in-repo part
+   2026-10-01):** Apple/Google trial, renewal, cancellation, billing retry,
+   grace, refund/revocation, restore, cross-device, account deletion and
+   webhook replay/out-of-order journeys. `docs/SUBSCRIPTION_S5_EVIDENCE.md`
+   holds the 14-row matrix across tiers T0 (in-repo), T1 (RevenueCat Test
+   Store), T2 (Apple sandbox/TestFlight), T3 (Play test track) and T4
+   (physical device). 13 rows are proven in-repo, and the offline three-day
+   row is partial by design. **No external cell has been run** (all NOT RUN,
+   BLOCKED or N/A) on prerequisites P-1…P-13. The store publication identity
+   is ADR-P028's `com.appfitnessrd.mobile`; its blocker is UX-4B-1 (not
+   implemented, separately authorized) and unverified live store
+   availability. It is not an open decision, so the earlier "D-1" is
+   withdrawn. **Owner decision D-2 (2026-10-01):** RevenueCat Test Store keys
+   are allowed only in development builds. `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`
+   (`test_`) is accepted only when `__DEV__` is true, on iOS or Android, with no
+   platform-store key beside it, and fails closed otherwise; implemented
+   in-repo. T1 is NOT RUN, blocked on the RevenueCat account (P-1, P-2). S-5
+   closes only with recorded external evidence.
 6. **S-6 Legal/store closure:** final data inventory and EN/ES legal copy,
    provider disclosures, console answers, published URLs and counsel approval.
 

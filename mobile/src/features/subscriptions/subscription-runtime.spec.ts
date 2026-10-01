@@ -407,3 +407,137 @@ describe('subscription runtime S-4 server reconciliation', () => {
     });
   });
 });
+
+describe('subscription runtime RevenueCat Test Store boundary (S-5, D-2)', () => {
+  const TEST_STORE_KEY = 'EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY';
+  // Synthetic placeholder: never a real key.
+  const SYNTHETIC_TEST_KEY = 'test_SyntheticRuntimePlaceholder9';
+  const globals = globalThis as { __DEV__?: boolean };
+  const original = {
+    ios: process.env[IOS_KEY],
+    android: process.env[ANDROID_KEY],
+    testStore: process.env[TEST_STORE_KEY],
+    dev: globals.__DEV__,
+  };
+  let consoleSpies: jest.SpyInstance[] = [];
+
+  beforeEach(() => {
+    delete process.env[IOS_KEY];
+    delete process.env[ANDROID_KEY];
+    delete process.env[TEST_STORE_KEY];
+    consoleSpies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((method) =>
+      jest.spyOn(console, method).mockImplementation(() => undefined),
+    );
+  });
+
+  afterEach(() => {
+    globals.__DEV__ = original.dev;
+    for (const spy of consoleSpies) spy.mockRestore();
+  });
+
+  afterAll(() => {
+    for (const [name, value] of [
+      [IOS_KEY, original.ios],
+      [ANDROID_KEY, original.android],
+      [TEST_STORE_KEY, original.testStore],
+    ] as const) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  });
+
+  function expectNoKeyMaterialAnywhere(harness: Harness): void {
+    const logged = JSON.stringify(
+      harness.logError.mock.calls.map(([scope, error]: [string, Error]) => [scope, error.message]),
+    );
+    expect(logged).not.toContain('SyntheticRuntimePlaceholder9');
+    expect(logged).not.toContain('PlatformRuntimePlaceholder');
+    for (const spy of consoleSpies) {
+      expect(JSON.stringify(spy.mock.calls)).not.toContain('SyntheticRuntimePlaceholder9');
+    }
+  }
+
+  it.each(['ios', 'android'] as const)(
+    'configures the SDK with the Test Store key in a development build on %s',
+    async (platform) => {
+      globals.__DEV__ = true;
+      process.env[TEST_STORE_KEY] = SYNTHETIC_TEST_KEY;
+      const harness = loadRuntime(platform);
+
+      expect(harness.runtime.getSubscriptionAvailability()).toBe('available');
+      await harness.runtime.restoreSubscriptionPurchases();
+
+      expect(harness.adapter.configure).toHaveBeenCalledWith(
+        expect.objectContaining({ apiKey: SYNTHETIC_TEST_KEY, appUserId: ACCOUNT_ID }),
+      );
+      expect(harness.logError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['ios', 'android'] as const)(
+    'stays unconfigured and logs one safe failure for a Test Store key in a release build on %s',
+    async (platform) => {
+      globals.__DEV__ = false;
+      process.env[TEST_STORE_KEY] = SYNTHETIC_TEST_KEY;
+      const harness = loadRuntime(platform);
+
+      expect(harness.runtime.getSubscriptionAvailability()).toBe('unconfigured');
+      await expect(harness.runtime.restoreSubscriptionPurchases()).rejects.toMatchObject(
+        UNAVAILABLE,
+      );
+
+      expect(harness.logError).toHaveBeenCalledTimes(1);
+      const [scope, error] = harness.logError.mock.calls[0] as [string, Error];
+      expect(scope).toBe('subscriptions.configuration');
+      expect(error.message).toBe(
+        'RevenueCat Test Store key is not allowed outside a development build',
+      );
+      expect(harness.adapter.constructed).not.toHaveBeenCalled();
+      expectNoProviderCall(harness);
+      expectNoKeyMaterialAnywhere(harness);
+    },
+  );
+
+  it.each([
+    ['beside a platform-store key', 'ios', { [IOS_KEY]: 'appl_PlatformRuntimePlaceholder' }],
+    ['with an invalid format', 'android', { [TEST_STORE_KEY]: 'rcb_SyntheticRuntimePlaceholder9' }],
+  ] as const)(
+    'stays unconfigured for a Test Store key %s, even in development',
+    async (_case, platform, extra) => {
+      globals.__DEV__ = true;
+      process.env[TEST_STORE_KEY] = SYNTHETIC_TEST_KEY;
+      for (const [name, value] of Object.entries(extra)) process.env[name] = value;
+      const harness = loadRuntime(platform);
+
+      expect(harness.runtime.getSubscriptionAvailability()).toBe('unconfigured');
+
+      expect(harness.logError).toHaveBeenCalledTimes(1);
+      expect(harness.adapter.constructed).not.toHaveBeenCalled();
+      expectNoProviderCall(harness);
+      expectNoKeyMaterialAnywhere(harness);
+    },
+  );
+
+  it('keeps Web on its declared boundary even with a Test Store key', () => {
+    globals.__DEV__ = true;
+    process.env[TEST_STORE_KEY] = SYNTHETIC_TEST_KEY;
+    const harness = loadRuntime('web');
+
+    expect(harness.runtime.getSubscriptionAvailability()).toBe('web');
+    expectNoProviderCall(harness);
+  });
+
+  it('keeps the production platform key path unchanged in a release build', async () => {
+    globals.__DEV__ = false;
+    process.env[ANDROID_KEY] = 'goog_public';
+    const harness = loadRuntime('android');
+
+    expect(harness.runtime.getSubscriptionAvailability()).toBe('available');
+    await harness.runtime.restoreSubscriptionPurchases();
+
+    expect(harness.adapter.configure).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: 'goog_public' }),
+    );
+    expect(harness.logError).not.toHaveBeenCalled();
+  });
+});
