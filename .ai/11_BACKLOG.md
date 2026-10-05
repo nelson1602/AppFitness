@@ -2930,6 +2930,93 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-031] An Active Subscriber Is Shown as Read-Only After Sign-In or Cold Launch
+
+Status: **Done — root cause reproduced by a failing regression test, fixed by
+listener order, device-verified on the Test Store (2026-10-05).**
+Priority: **P1** (failed closed, but blocked a paying user's writes)
+Type: Bug (subscriptions — entitlement-access projection)
+Owner: Mobile Architecture / Subscriptions
+Created: 2026-10-05
+Updated: 2026-10-05
+
+**Observed** on a local Android debug build against the RevenueCat Test Store
+(`docs/SUBSCRIPTION_S5_EVIDENCE.md`, T1 run record):
+- **Sign-in:** an account with an active entitlement signed in again. The
+  dashboard kept *AppFitness is in read-only mode* for at least 82 seconds.
+- **Cold launch:** after a force-stop and relaunch, the same account showed
+  read-only within about 26 seconds, and it stayed there for at least the
+  73 seconds observed.
+- **Contradiction:** in both cases, opening the Subscription screen showed
+  *AppFitness Pro is active*, and the banner cleared on returning to the
+  dashboard.
+- **No log line:** nothing was logged during the stale state.
+- **Contrast:** a purchase or restore inside the session publishes the active
+  state at once.
+
+**Root cause (reproduced before the fix).** Session listeners run in
+registration order, because `session-manager.ts` keeps them in a `Set`.
+1. `subscription-store.ts` called `bindStoreToSession(reset + load)` when the
+   module was evaluated. The root layout imports the feature barrel, so this
+   ran *before* `initializeSubscriptionPurchases()` started
+   `SubscriptionPurchases` and registered its own session listener.
+2. On a sign-in or restored session, the store's listener therefore called
+   `load()` while the runtime still held the previous `desiredUserId`.
+3. `runForCurrentSession` rejected synchronously with
+   `SubscriptionSessionChangedError`, and `runLoad` settled the projection
+   `read-only` without logging.
+4. Opening `/subscription` loaded again after the identity had aligned, which
+   cleared the state.
+
+`subscription-store.spec.ts` reproduced it against the unchanged code: the
+store settled as `status: 'error'` with `issue: 'sessionChanged'`, made
+**0 provider reads**, and left access `read-only`.
+
+**Fix (lifecycle order only).**
+- The store's synchronous `reset()` stays bound at module scope, so A → B
+  isolation is unchanged.
+- The per-session `load()` is now bound inside
+  `initializeSubscriptionAccessEnforcement()`. That runs after the
+  availability read has started the purchase runtime, so it always runs after
+  the runtime's identity listener.
+- No timer, polling, screen reload, public reset, UI copy, API, dependency or
+  native change.
+
+**Regression tests** (`mobile/src/features/subscriptions/subscription-store.spec.ts`)
+load the real store, purchase runtime and entitlement projection in their
+production import order. They prove that:
+- an active subscriber becomes writable after sign-in, and after a cold-start
+  session restoration, passing through `checking` first;
+- a session that already exists at start-up is read;
+- an account without an entitlement stays read-only;
+- account A's held result is never published after a switch to B;
+- initialization is idempotent, with one adapter and one access read per
+  session change.
+
+Three of these failed before the fix, and all pass after it.
+
+**Device verification (2026-10-05).** The existing debug APK was used, with
+Metro serving the fixed JS (confirmed in the served bundle);
+`REVENUECAT_PROVIDER=disabled`. Account R was given an active Test Store
+trial.
+- **Sign-in:** after signing out and back in, R's dashboard was writable from
+  +3 s to +55 s, with no read-only or checking notice, without opening
+  Subscription.
+- **Cold launch:** after a force-stop and relaunch, it showed *Checking your
+  access* at +18 s, then was writable from +26 s to +76 s, with the Progress
+  inputs enabled.
+- **Subscription:** still reported *AppFitness Pro is active*.
+- **Inactive accounts stayed read-only:** the expired account P (cold launch,
+  +16 s to +81 s) and account Q, which never purchased (+11 s to +31 s).
+- **Account switch:** switching back from Q, R was writable again without
+  opening Subscription.
+
+**Safety.** Before the fix, access never widened; the error was always in the
+fail-closed direction. Queued writes were preserved, and server state was
+untouched.
+
+---
+
 ## [BUG-030] An Abandoned IN_FLIGHT Sync Operation Is Never Retried
 
 Status: **Done — per-user sync boundary plus abandoned-`IN_FLIGHT` recovery;
@@ -4443,7 +4530,7 @@ coverage than it has.
 
 ## [FEATURE-012] V1 Store Subscription and Entitlement
 
-Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 merged 2026-10-01 (PR #204) and In Progress pending store/provider evidence; S-4 merged 2026-10-01 (PR #205), dormant until provider activation; S-5 In Progress — in-repo evidence matrix prepared 2026-10-01, no external evidence yet; S-6 unimplemented.**
+Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 merged 2026-10-01 (PR #204) and In Progress pending store/provider evidence; S-4 merged 2026-10-01 (PR #205), dormant until provider activation; S-5 In Progress — in-repo evidence matrix prepared 2026-10-01; T1 RevenueCat Test Store run 2026-10-05 (BUG-031 found and fixed); no Apple/Google/device evidence yet; S-6 unimplemented.**
 Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
@@ -4582,8 +4669,12 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
    are allowed only in development builds. `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`
    (`test_`) is accepted only when `__DEV__` is true, on iOS or Android, with no
    platform-store key beside it, and fails closed otherwise; implemented
-   in-repo. T1 is NOT RUN, blocked on the RevenueCat account (P-1, P-2). S-5
-   closes only with recorded external evidence.
+   in-repo. **T1 run 2026-10-05** on a local Android debug build against the
+   owner-verified Test Store catalogue. A first attempt on 2026-10-02 stopped
+   on a 14-day trial that did not match ADR-P034. Results: rows 1–4, 6, 7 and
+   11–13 PROVEN; row 5 NOT OBSERVABLE; row 14 NOT RUN (provider disabled).
+   BUG-031, found by that run, is fixed and device-verified. T2–T4 remain blocked. S-5 closes only with recorded external
+   evidence.
 6. **S-6 Legal/store closure:** final data inventory and EN/ES legal copy,
    provider disclosures, console answers, published URLs and counsel approval.
 

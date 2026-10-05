@@ -424,7 +424,10 @@ angles — coverage, then quality.
    S-5 matrix, prerequisites and capture protocol are in
    `docs/SUBSCRIPTION_S5_EVIDENCE.md`; no external cell has been run. The
    RevenueCat Test Store path (T1) is accepted only in `__DEV__` development
-   builds (owner decision D-2) and has not been run.
+   builds (owner decision D-2). T1 ran on 2026-10-05: nine rows proven with
+   simulated purchases only, and BUG-031 found (an active subscriber appeared
+   read-only after sign-in or cold launch), since fixed and device-verified.
+   Apple, Google and physical-device evidence has not been run.
 
 **Stage 2 — design and experience gates (`in-repo`, evidence-based)**
 
