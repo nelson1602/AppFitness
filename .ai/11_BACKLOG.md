@@ -2930,6 +2930,32 @@ harder of the two to read. No new measurement; no change of severity.
 
 ---
 
+## [BUG-032] Restore Reports "No Active Subscription" While the Screen Still Says Active
+
+Status: **Open — found by S-5 row 14 (2026-10-05); not fixed.**
+Priority: **P3** (contradictory copy on one screen; access stays fail-closed)
+Type: Bug (subscriptions — Subscription screen state after restore)
+Owner: Mobile / Subscriptions
+Created: 2026-10-05
+
+**Observed** on Railway Development with the Test Store, account A, after its
+second Test Store cycle had expired:
+- **Before restore:** the device still reported *AppFitness Pro is active*,
+  from a stale SDK state.
+- **After *Restore purchases*:** the screen showed *No active subscription
+  found* together with *AppFitness Pro is active*.
+- **Other surfaces were correct:** the dashboard switched to read-only at once,
+  and reopening the Subscription screen showed the ordinary offer.
+- **No access impact:** the server mirror was already inactive and rejected
+  paid writes with 402.
+
+**Not established.** Whether the store keeps the previously published access
+after a "nothing restored" result by design (*keeps the offer*) or by
+omission. A regression test should pin which state the screen shows after an
+inactive restore.
+
+---
+
 ## [BUG-031] An Active Subscriber Is Shown as Read-Only After Sign-In or Cold Launch
 
 Status: **Done — root cause reproduced by a failing regression test, fixed by
@@ -4530,7 +4556,7 @@ coverage than it has.
 
 ## [FEATURE-012] V1 Store Subscription and Entitlement
 
-Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 merged 2026-10-01 (PR #204) and In Progress pending store/provider evidence; S-4 merged 2026-10-01 (PR #205), dormant until provider activation; S-5 In Progress — in-repo evidence matrix prepared 2026-10-01; T1 RevenueCat Test Store run 2026-10-05 (BUG-031 found and fixed); no Apple/Google/device evidence yet; S-6 unimplemented.**
+Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 merged 2026-10-01 (PR #204) and In Progress pending store/provider evidence; S-4 merged 2026-10-01 (PR #205), enabled in Railway Development since 2026-10-05 and not activated in Production; S-5 In Progress — in-repo evidence matrix prepared 2026-10-01; T1 RevenueCat Test Store run 2026-10-05 (BUG-031 found and fixed); row 14 proven against Railway Development 2026-10-05 (BUG-032 opened); no Apple/Google/device evidence yet; S-6 unimplemented.**
 Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
@@ -4551,10 +4577,22 @@ SDK behind a provider-neutral port, session-scoped UUID identity, restore and
 account-switch handling. S-3 adds the AppFitness-owned bilingual subscription
 screen: store-evidence offer, purchase, restore and management, all inert
 without keys. S-4 adds the server-authoritative paid-write guard and the
-mobile read-only boundary, both dormant while the provider is disabled. It
-still has no store product, provider account/key, active enforcement or
-store-verified purchase. Consequently FEATURE-012 remains a launch blocker and
-charging is not available.
+mobile read-only boundary.
+
+**Current state (2026-10-05):**
+- S-4 enforcement is enabled **only in Railway Development**, for RevenueCat
+  Test Store/Sandbox evidence (S-5 row 14).
+- Production activation has not been performed, and Production's provider
+  configuration was not re-verified during that run.
+- FEATURE-012 now has a RevenueCat project, a Test Store product
+  (`appfitness_pro_monthly` under entitlement `appfitness_pro`), Development
+  provider configuration and simulated-purchase evidence (T1 and row 14).
+- It still has **no** Apple or Google store product, no platform-store (T2–T4)
+  evidence, no Production provider activation and no real store-verified
+  purchase.
+
+Consequently FEATURE-012 remains a launch blocker and charging is not
+available.
 
 ### Policy result and recommended architecture
 
@@ -4672,9 +4710,20 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
    in-repo. **T1 run 2026-10-05** on a local Android debug build against the
    owner-verified Test Store catalogue. A first attempt on 2026-10-02 stopped
    on a 14-day trial that did not match ADR-P034. Results: rows 1–4, 6, 7 and
-   11–13 PROVEN; row 5 NOT OBSERVABLE; row 14 NOT RUN (provider disabled).
-   BUG-031, found by that run, is fixed and device-verified. T2–T4 remain blocked. S-5 closes only with recorded external
-   evidence.
+   11–13 PROVEN; row 5 NOT OBSERVABLE. BUG-031, found by that run, is fixed
+   and device-verified. **Row 14 run 2026-10-05 against Railway Development**
+   (owner-configured; Sandbox/Test Store only; Production not changed,
+   redeployed or activated, and its variables not re-verified):
+   - reconcile, active status and a protected write while active are proven;
+   - 13 real HMAC-verified Sandbox webhooks drove renewal and two expiry
+     transitions;
+   - a real write after expiry got 402;
+   - account B stayed isolated;
+   - queue preservation and resumption are proven against the server's 402.
+   Out-of-order handling is PARTIAL. A first attempt stopped on a webhook 401
+   until the owner corrected the configuration. Development now runs with the
+   provider enabled. BUG-032 was opened. T2–T4 remain blocked. S-5 closes only
+   with recorded external evidence.
 6. **S-6 Legal/store closure:** final data inventory and EN/ES legal copy,
    provider disclosures, console answers, published URLs and counsel approval.
 

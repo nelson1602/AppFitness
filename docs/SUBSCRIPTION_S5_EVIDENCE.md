@@ -1,10 +1,11 @@
 # FEATURE-012 S-5 — Subscription Sandbox and Lifecycle Evidence
 
-Status: **OPEN — in-repo proof recorded; T1 (RevenueCat Test Store) run 2026-10-05; no Apple, Google or physical-device evidence yet**
+Status: **OPEN — in-repo proof recorded; T1 (RevenueCat Test Store) run 2026-10-05; row 14 proven against Railway Development 2026-10-05; no Apple, Google or physical-device evidence yet**
 Owner: Product / Architecture / QA
 Created: 2026-10-01 (base `d8a076e`)
 Revised: 2026-10-01 — audit correction (ADR-P028 identity) and owner decision D-2
 Revised: 2026-10-05 — T1 Test Store run recorded; BUG-031 found, fixed and device-verified
+Revised: 2026-10-05 — row 14 run against Railway Development (Sandbox/Test Store only); BUG-032 opened
 
 This is the S-5 evidence matrix for ADR-P034. It separates what the repository
 proves today from what only RevenueCat, Apple, Google and physical devices can
@@ -48,11 +49,12 @@ T0 cells cite the exact spec and test title. Mobile paths are under
 | 11 | Read-only after trusted access expires | **PROVEN** — `entitlement-access.spec.ts`: *fails closed while checking and when the provider reports inactive*; `DashboardScreen.spec.tsx`: *explains read-only access and keeps account, subscription and navigation actions usable* | **PROVEN 2026-10-05** — after the lapse the dashboard showed *AppFitness is in read-only mode* and the Progress form inputs were disabled. BUG-031 (an active subscriber shown read-only after sign-in or cold launch) is fixed and device-verified | BLOCKED P-3…P-6, P-11 | BLOCKED P-4, P-7…P-11 | BLOCKED P-11 |
 | 12 | Queue preservation and later resumption | **PROVEN** — `sync-worker.spec.ts`: *resumes the preserved queue once trusted access returns, with nothing lost or retried*, *keeps the queue untouched but still pulls while the account is read-only*; `wellness-safety-profile.repository.spec.ts`: *rolls the row back when paid access is unavailable* | **PROVEN 2026-10-05** — a weight saved while active and offline stayed `PENDING` (retry 0) through expiry, an app restart and a read-only sync (*Sync needs attention*, server 0 rows); after resubscription one sync applied both operations (queue 0, server 1 row, 2 `APPLIED`) | BLOCKED P-3…P-6, P-11, P-12 | BLOCKED P-4, P-7…P-12 | BLOCKED P-11, P-12 |
 | 13 | Account-switch isolation | **PROVEN** — store: *never publishes across accounts: an account switch mid-read publishes nothing for the old owner*; `subscription-purchases.spec.ts`: *configures with the authenticated UUID and switches A -> B directly*, *refuses account B's purchase of an offer account A loaded* | **PROVEN 2026-10-05** — right after P purchased, account Q on the same device saw read-only mode and the eligible trial offer, not P's entitlement; switching back, P's subscription screen showed *is active*. After the BUG-031 fix, switching between R (active) and Q (none) published only the current account's access | BLOCKED P-3…P-6, P-11 | BLOCKED P-4, P-7…P-11 | BLOCKED P-11 |
-| 14 | Server mirror reconciliation | **PROVEN** — `subscription.service.spec.ts`: *reconciles from provider, persists the mirror and audits only a change*, *does not move lastProviderEventAt backwards for an out-of-order event*; `test/subscription-webhook.e2e-spec.ts`; store: *reports a failed server reconciliation but keeps the confirmed access* | **NOT RUN** — out of T1 scope: `REVENUECAT_PROVIDER=disabled` throughout, so every app reconcile call failed as designed (*SubscriptionReconciliationError*) | BLOCKED P-3…P-6, P-11, P-12 | BLOCKED P-4, P-7…P-12 | BLOCKED P-11, P-12 |
+| 14 | Server mirror reconciliation | **PROVEN** — `subscription.service.spec.ts`: *reconciles from provider, persists the mirror and audits only a change*, *does not move lastProviderEventAt backwards for an out-of-order event*; `test/subscription-webhook.e2e-spec.ts`; store: *reports a failed server reconciliation but keeps the confirmed access* | **PROVEN 2026-10-05 on Railway Development** (Test Store purchases, provider enabled in Development only): reconcile returned 200 and the mirror went `ACTIVE`; 13 real Sandbox webhooks were authorized, HMAC-verified and ultimately PROCESSED (two of them only after redelivery); renewals and two expiries moved the mirror; after expiry a real write got 402; account B stayed isolated. Out-of-order handling is **PARTIAL**. See [Row 14 run record](#row-14-run-record-development) | BLOCKED P-3…P-6, P-11, P-12 | BLOCKED P-4, P-7…P-12 | BLOCKED P-11, P-12 |
 
 **T0 totals:** 13 rows PROVEN in-repo and row 10 PARTIAL by design. Every
 T2, T3 and T4 cell is NOT RUN, BLOCKED or N/A. **T1 totals:** rows 1–4, 6, 7
-and 11–13 PROVEN; row 5 NOT OBSERVABLE; rows 8–10 N/A; row 14 NOT RUN.
+and 11–13 PROVEN; row 5 NOT OBSERVABLE; rows 8–10 N/A; row 14 PROVEN against
+Railway Development (out-of-order handling PARTIAL).
 T1 is simulated purchasing only: it proves the app's behaviour against
 RevenueCat's Test Store, never Apple or Google billing.
 
@@ -71,7 +73,7 @@ RevenueCat's Test Store, never Apple or Google billing.
 | P-9 | An internal-track build of `com.appfitnessrd.mobile` containing the billing library | **MISSING** | Depends on P-4 (the first upload fixes the package permanently). No internal-track build exists; `mobile/credentials/play-service-account.json` (the `eas submit` key) is not present |
 | P-10 | RevenueCat Google Play configuration (service-account credential) | **MISSING** | Depends on P-1, P-7 |
 | P-11 | Public platform SDK keys (`appl_`, `goog_`) in EAS for a preview profile (T2/T3; never the Test Store key) | **MISSING** | `eas.json` defines no `EXPO_PUBLIC_REVENUECAT_*`; EAS environment variables could not be listed because the EAS CLI is not logged in on this machine (P-13) |
-| P-12 | Development API provider enabled and webhook registered | **MISSING** | Railway Development and Production both have **no** `REVENUECAT_*` variable, so the provider is disabled and no webhook is configured |
+| P-12 | Development API provider enabled and webhook registered | **VERIFIED for Development (2026-10-05)** | Owner-configured; checked by variable name only. Railway Development (`lucid-flexibility`, service AppFitness) has all five `REVENUECAT_*` variables with `REVENUECAT_PROVIDER=revenuecat`, and a RevenueCat Sandbox/Test Store webhook points at its `/subscriptions/webhooks/revenuecat`. Production was not changed or redeployed, and Production activation was not performed. Its variables were last checked on 2026-10-01 (no `REVENUECAT_*` names) and were not re-verified in this run |
 | P-13 | EAS CLI login on the operator machine | **MISSING** | `eas whoami` reports not logged in |
 
 | Id | Decision | Why it is needed |
@@ -152,6 +154,77 @@ still dirty*, and a drive-letter `subst` does not help. Run
 `package.json` it rewrites. Build with a dedicated `GRADLE_USER_HOME`,
 `SENTRY_DISABLE_AUTO_UPLOAD=true`, `--no-daemon --max-workers=1` and
 `-Pkotlin.compiler.execution.strategy=in-process`, with nothing else running.
+
+## Row 14 run record (Development)
+
+Run on 2026-10-05 against Railway **Development** with Test Store purchases.
+Setup:
+- the debug APK from the T1 run, with Metro serving `main` JS and
+  `EXPO_PUBLIC_API_URL` pointed at the Development host;
+- the owner configured RevenueCat and Railway Development; Production was
+  not changed or redeployed, Production activation was not performed, and its
+  variables were not re-verified in this run;
+- two disposable Development accounts, labelled A and B. Their verification
+  emails went to Postmark's test sink and a support alias.
+
+Sources:
+- **Server mirror and webhook ledger:** read-only SQL on the Development
+  database, returning labels, event types, timestamps and statuses only;
+- **request outcomes:** Railway HTTP logs, path and status only;
+- **status:** the authenticated `/subscriptions/status` view.
+
+No key, token, signature, receipt, event id, email or UUID was recorded.
+
+**Attempt 1 — stopped.** After the five variables were deployed, A's first
+purchase webhook (18:14:49Z) was rejected with **401**: the configured
+Authorization or signing value did not match. The run stopped. The owner
+corrected the configuration, and Development redeployed at 18:27:36Z
+(SUCCESS, `/health` 200).
+
+**Attempt 2 — evidence.**
+
+| Sub-check | Result | Observation |
+|---|---|---|
+| Purchase `appfitness_pro_monthly` (A) | **PROVEN** | The Test Store sheet showed the product with *$0.00 for P1M, then $5.00 for P1M*; the app showed *AppFitness Pro is active* |
+| Authenticated reconcile | **PROVEN** | `POST /subscriptions/reconcile` → 200, three seconds after purchase; again on each re-purchase |
+| `/subscriptions/status` shows active access | **PROVEN** | `ACTIVE`, `store: test_store`, `periodType: trial`, then `normal`, `willRenew: true`, with about 5-minute `expiresAt` periods |
+| Protected write while active | **PROVEN** | A real `body_weights` CREATE through `POST /sync/push` → **201** with result *APPLIED* |
+| Signed webhook updates the mirror | **PROVEN** | 13 real webhooks (3 INITIAL_PURCHASE, 8 RENEWAL, 2 EXPIRATION), all `SANDBOX` and all ultimately `PROCESSED` with no failure code. **Two were recovered retries:** the INITIAL_PURCHASE timed 18:14:49, whose first delivery was observed rejected with 401, and the RENEWAL timed 18:20:59, first accepted at 18:33:38. That renewal's earlier delivery fell inside the misconfigured window; its 401 was owner-reported and is not in the HTTP log extract kept here. For the other 11, no rejected delivery appears in the HTTP log extracts read during this run. The ledger's attempt count (1 for every event) cannot prove first-attempt acceptance, because a rejected request never reaches the ledger. RENEWAL events extended `expiresAt`, and each EXPIRATION set `is_active = false` |
+| Out-of-order delivery | **PARTIAL** | Two real late deliveries were processed. A RENEWAL timed 18:20:59 arrived after the 18:29:10 one, and the original INITIAL_PURCHASE (18:14:49) arrived after the watermark was 18:33:38. In both cases the mirror stayed `periodType: normal` and `lastProviderEventAt` only advanced. Each late event landed in the same second as a newer one, so the state between them was **not observed on its own**. The non-regression rule is the PostgreSQL predicate covered by `subscription.service.spec.ts` |
+| Renewal and expiry transitions | **PROVEN** | Two full Test Store cycles. Purchase at 18:14:47 → EXPIRATION at 18:42:41. Re-purchase at 18:45:10 → EXPIRATION at 19:10:23. Each cycle took about 25–28 minutes, and RevenueCat delivered webhooks up to 4 minutes after the event time |
+| 402 after real expiry | **PROVEN** | With the mirror inactive after EXPIRATION, a real `body_weights` CREATE → **402 SUBSCRIPTION_REQUIRED** |
+| Account-B isolation | **PROVEN** | While A was `ACTIVE`, B's status was `UNKNOWN` and B's real write got **402**. After B's own reconcile, B was `INACTIVE` with no expiry or store, and still got **402** |
+| Queue preservation and resumption | **PROVEN** | See the steps below |
+
+**Queue preservation and resumption, step by step:**
+1. While A was active, the emulator went into airplane mode and A saved a
+   weight. Two operations queued as `PENDING`.
+2. The second cycle expired on the server while the device stayed offline.
+3. On reconnect, the first push got **401** because the 15-minute access token
+   had expired. The token refreshed, and the operations became `FAILED` with
+   retry count 1 (the designed backoff).
+4. The retry got **402**. The app showed *Sync needs attention*, and both
+   operations returned to `PENDING` without consuming another retry.
+5. While the app was read-only, the queue stayed `PENDING`.
+6. A renewed access with a new Test Store purchase. One sync then showed
+   *Local data ready*: the local queue was 0, and the server held the queued
+   weight and its progress snapshot.
+
+**Observations, not row claims:**
+- **Stale client entitlement after expiry.** After RevenueCat's EXPIRATION, the
+  device kept reporting *AppFitness Pro is active* for about 7 minutes while
+  online. That held through a reload of the Subscription screen, until a
+  same-account *Restore purchases* fetched fresh state. The server stayed
+  authoritative and returned 402, so no paid write landed.
+- **BUG-032.** The restore result read *No active subscription found* while the
+  same screen still said *AppFitness Pro is active*. Reloading the screen
+  showed the correct offer.
+- **`willRenew` after expiry.** The mirror kept `willRenew: true` after an
+  EXPIRATION, as RevenueCat reported it.
+- **Duplicate timestamps.** Two distinct RENEWAL events carried the same event
+  time (19:02:22), and both were processed.
+- **Development is now enforced.** It still runs with `REVENUECAT_PROVIDER=revenuecat`,
+  so every Development account without an entitlement gets 402 on paid writes.
 
 ## Evidence capture protocol
 

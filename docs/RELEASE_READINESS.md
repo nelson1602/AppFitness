@@ -240,7 +240,7 @@ not outrank launch blockers.**
 
 | Item | Status | Impact |
 |---|---|---|
-| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1/S-2 IMPLEMENTED; S-3 MERGED; S-4 MERGED (PR #205); S-5 IN PROGRESS** | ADR-P034's fail-closed server foundation, session-scoped native adapter, bilingual subscription screen and server-authoritative paid-write enforcement exist. Enforcement is dormant while `REVENUECAT_PROVIDER=disabled` and in keyless builds; no account, product, purchase or provider traffic exists, and nothing is store-verified. Remaining: provider activation, S-3/S-4 store and AT evidence, store products/accounts, S-5 sandbox evidence and S-6 legal closure. Blocks the paid-v1 contract. |
+| `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1/S-2 IMPLEMENTED; S-3 MERGED; S-4 MERGED (PR #205); S-5 IN PROGRESS** | ADR-P034's fail-closed server foundation, session-scoped native adapter, bilingual subscription screen and server-authoritative paid-write enforcement exist. Railway **Development** has run with the provider enabled since 2026-10-05, for RevenueCat Test Store/Sandbox evidence only. Production was not changed or redeployed by that work and was not activated; its variables were not re-verified in that run. No real store product or live purchase exists, and nothing is store-verified. Remaining: Production provider activation after T2/T3 store evidence, S-3/S-4 store and AT evidence, store products/accounts, S-5 store-sandbox and device (T2–T4) evidence and S-6 legal closure. Blocks the paid-v1 contract. |
 | Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
 | App Store Connect / Play Console privacy forms, policy URLs, listing assets | **BLOCKED-OWNER** | Blocks submission. The provisional form mapping is in `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`; it is not approved for entry. |
 | External Web account-deletion request | **UNVERIFIED — V1 gate** | Google requires a functional external request resource in addition to in-app deletion. `https://account.appfitnessrd.com/delete-account` returned 200 and rendered the AppFitnessRD deletion surface on 2026-09-29; the signed-out end-to-end journey and live-policy compliance are not verified. |
@@ -308,11 +308,12 @@ copy the deck does not contain.
   three-day offline entitlement window. S-1's server code, schema and migration
   are implemented but remain inert by default; S-2's native adapter and S-3's
   subscription screen are likewise inert without platform public keys, and the
-  S-4 enforcement, merged through PR #205 (`d8a076e`), is dormant while the
-  provider is disabled.
-  Legal/DPA review and external-account acceptance remain separate; no store
-  product, provider account/key/secret, live purchase or active enforcement
-  exists yet.
+  S-4 enforcement, merged through PR #205 (`d8a076e`), has not been activated
+  in Production. Its Production variable state was not re-verified during S-5
+  row 14. Since 2026-10-05, Railway Development runs with the provider enabled
+  against a RevenueCat Test Store/Sandbox project (S-5 row 14). Legal/DPA
+  review and external-account acceptance remain separate; no real store
+  product, live purchase or Production activation exists yet.
 - Azul is not selected for native mobile checkout. It remains only a future
   candidate for a policy-permitted Web or physical-service flow under a separate
   decision.
@@ -427,6 +428,9 @@ angles — coverage, then quality.
    builds (owner decision D-2). T1 ran on 2026-10-05: nine rows proven with
    simulated purchases only, and BUG-031 found (an active subscriber appeared
    read-only after sign-in or cold launch), since fixed and device-verified.
+   Row 14 (server mirror reconciliation) was then proven against Railway
+   Development with Test Store purchases and real HMAC-signed Sandbox
+   webhooks. Its out-of-order handling is partial, and BUG-032 was opened.
    Apple, Google and physical-device evidence has not been run.
 
 **Stage 2 — design and experience gates (`in-repo`, evidence-based)**
