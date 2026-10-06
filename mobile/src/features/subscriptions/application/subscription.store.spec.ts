@@ -650,6 +650,108 @@ describe('subscription store — restore and manage', () => {
     expect(store.getState()).toMatchObject({ notice: 'nothingToRestore', offer, access: inactive });
   });
 
+  // BUG-032: after an expiry the screen still held the earlier active
+  // snapshot, so "nothing to restore" rendered next to the active card.
+  it('replaces a stale active snapshot when an expired restore finds nothing', async () => {
+    const { store, gateway, entitlementAccess } = await ready({
+      loadAccess: jest.fn().mockResolvedValue(active),
+      restore: jest.fn().mockResolvedValue(inactive),
+    });
+    expect(store.getState()).toMatchObject({ access: active, offer: null });
+
+    await store.getState().restore();
+
+    expect(store.getState()).toMatchObject({
+      operation: null,
+      access: inactive,
+      offer,
+      notice: 'nothingToRestore',
+      issue: null,
+    });
+    expect(store.getState().access?.isActive).toBe(false);
+    expect(gateway.loadOffer).toHaveBeenCalledTimes(1);
+    expect(entitlementAccess.set).toHaveBeenLastCalledWith('account-a', false);
+  });
+
+  it('never keeps the active card when the offer cannot load after an empty restore', async () => {
+    const { store, report } = await ready({
+      loadAccess: jest.fn().mockResolvedValue(active),
+      restore: jest.fn().mockResolvedValue(inactive),
+      loadOffer: jest.fn().mockRejectedValue(new SubscriptionProviderError('offer')),
+    });
+
+    await store.getState().restore();
+
+    expect(store.getState()).toMatchObject({
+      operation: null,
+      access: inactive,
+      offer: null,
+      notice: 'nothingToRestore',
+    });
+    expect(report).toHaveBeenCalledWith('subscriptions.restore', expect.any(Error));
+  });
+
+  it('does not reload an offer it already holds after an empty restore', async () => {
+    const { store, gateway } = await ready({ restore: jest.fn().mockResolvedValue(inactive) });
+    expect(gateway.loadOffer).toHaveBeenCalledTimes(1);
+
+    await store.getState().restore();
+
+    expect(gateway.loadOffer).toHaveBeenCalledTimes(1);
+    expect(store.getState()).toMatchObject({ access: inactive, offer, notice: 'nothingToRestore' });
+  });
+
+  it('restores over a stale active snapshot without touching the offer', async () => {
+    const { store, gateway } = await ready({ loadAccess: jest.fn().mockResolvedValue(active) });
+
+    await store.getState().restore();
+
+    expect(store.getState()).toMatchObject({ access: active, offer: null, notice: 'restored' });
+    expect(gateway.loadOffer).not.toHaveBeenCalled();
+  });
+
+  it('makes no offer request for an empty restore that resolves after an account switch', async () => {
+    const pending = deferred<PurchaseAccessSnapshot>();
+    const { store, sessions, gateway } = await ready({
+      loadAccess: jest.fn().mockResolvedValue(active),
+      restore: jest.fn(() => pending.promise),
+    });
+
+    const restoring = store.getState().restore();
+    sessions.become('account-b');
+    store.getState().reset();
+    pending.resolve(inactive);
+    await restoring;
+
+    expect(gateway.loadOffer).not.toHaveBeenCalled();
+    expect(store.getState()).toMatchObject({ status: 'idle', access: null, notice: null });
+  });
+
+  it('drops the offer reload of an empty restore after an account switch', async () => {
+    const pendingOffer = deferred<SubscriptionOffer | null>();
+    const { store, sessions, entitlementAccess } = await ready({
+      loadAccess: jest.fn().mockResolvedValue(active),
+      restore: jest.fn().mockResolvedValue(inactive),
+      loadOffer: jest.fn(() => pendingOffer.promise),
+    });
+
+    const restoring = store.getState().restore();
+    await Promise.resolve();
+    await Promise.resolve();
+    sessions.become('account-b');
+    store.getState().reset();
+    pendingOffer.resolve(offer);
+    await restoring;
+
+    expect(store.getState()).toMatchObject({
+      status: 'idle',
+      access: null,
+      offer: null,
+      notice: null,
+    });
+    expect(entitlementAccess.set).not.toHaveBeenCalledWith('account-b', expect.anything());
+  });
+
   it('maps a restore failure and a restore network failure', async () => {
     const failing = await ready({
       restore: jest.fn().mockRejectedValue(new SubscriptionProviderError('restore')),

@@ -271,8 +271,14 @@ not outrank launch blockers.**
 |---|---|---|
 | `RISK-001` Cross-package test fixtures were excluded by CI path filters | **Done** (2026-09-15) | Three tests read a fixture from outside their own package, and each direction was unprotected: `.ai/19_COPY_DECKS.md` to mobile `conflict-catalogue.spec.ts`; `api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration.sql` to mobile `wellness-safety-profile.spec.ts`; and — the mirror image of the originally reported edge — `mobile/src/features/workout/infrastructure/exercise-catalog.data.ts` to API `exercise-identity.spec.ts`. Both detectors gained the exact missing paths and nothing else. Required contexts, fail-safe-on-unavailable-base, unrelated-documentation no-op, and every audit job and threshold are preserved and verified unchanged. Proven by extracting the shipped patterns and the shipped detector scripts and exercising them, including empty and bogus base SHAs. |
 
-**Open functional defects:** none. **`BUG-016`** (P2) was the last one and is
-**Done (2026-09-16)**, closed by **ADR-P032**. Recorded 2026-09-15 by the
+**Open functional defects:** none. **`BUG-032`** is **Done (2026-10-06)**: an
+inactive restore now replaces any stale active subscription snapshot and
+restores the ordinary offer. The exact stale-active branch is covered by
+deterministic store and screen regressions; the device re-check proved the
+inactive journey but did not recreate that already-refreshed precondition.
+
+**`BUG-016`** (P2) is also **Done (2026-09-16)**, closed by **ADR-P032**.
+Recorded 2026-09-15 by the
 bilingual surface audit, it held that the Web document shell was English-only
 (`lang="en"`, empty `<title>`, English-only static prerender) and that an
 unmatched URL landed on Expo Router's framework-English not-found screen. The
@@ -285,7 +291,7 @@ alongside it — `OBS-BSA-1` (the account-deletion confirmation phrase is the
 English word `DELETE` in both languages) and `OBS-BSA-2` (`/delete-account`
 renders no Web-unavailable state).
 
-`BUG-011` was the previous one and is **Done (2026-09-15)**. All four applicable
+`BUG-011` is **Done (2026-09-15)**. All four applicable
 row-level treatments are shipped; its residual was an **absent surface** —
 Progress never lists an individual body-measurement row — and was closed by
 correcting the acceptance criterion rather than adding a measurement list and
@@ -430,7 +436,10 @@ angles — coverage, then quality.
    read-only after sign-in or cold launch), since fixed and device-verified.
    Row 14 (server mirror reconciliation) was then proven against Railway
    Development with Test Store purchases and real HMAC-signed Sandbox
-   webhooks. Its out-of-order handling is partial, and BUG-032 was opened.
+   webhooks. Its out-of-order handling is partial. BUG-032, found during that
+   run, is fixed with deterministic regression coverage and an inactive-restore
+   device re-check; the exact stale-active precondition did not recur on that
+   later device run.
    Apple, Google and physical-device evidence has not been run.
 
 **Stage 2 — design and experience gates (`in-repo`, evidence-based)**

@@ -3,7 +3,7 @@ import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'reac
 
 import { darkTheme, lightTheme } from '@/shared/theme';
 
-import type { SubscriptionState } from '../application/subscription.store';
+import { createSubscriptionStore, type SubscriptionState } from '../application/subscription.store';
 import type {
   PurchaseAccessSnapshot,
   SubscriptionOffer,
@@ -362,6 +362,32 @@ describe('SubscriptionScreen', () => {
       await render(<SubscriptionScreen />);
 
       expect(screen.getByText(title)).toBeTruthy();
+    });
+
+    it('shows only the ordinary offer after an empty restore over a stale active state (BUG-032)', async () => {
+      const store = createSubscriptionStore(
+        {
+          availability: () => 'available',
+          storeKind: () => 'apple',
+          loadAccess: jest.fn().mockResolvedValue(active),
+          loadOffer: jest.fn().mockResolvedValue(paidOffer),
+          purchase: jest.fn(),
+          restore: jest.fn().mockResolvedValue(inactive),
+          manage: jest.fn(),
+        },
+        { getSessionSnapshot: () => ({ userId: 'account-a' }), isSessionCurrent: () => true },
+        jest.fn(),
+      );
+      await store.getState().load();
+      expect(store.getState().access?.isActive).toBe(true);
+      await store.getState().restore();
+      mockState = store.getState();
+      await render(<SubscriptionScreen />);
+
+      expect(screen.getByText('No active subscription found')).toBeTruthy();
+      expect(screen.queryByText('AppFitness Pro is active')).toBeNull();
+      expect(screen.queryByTestId('subscription-active')).toBeNull();
+      expect(screen.getByTestId('subscription-offer')).toBeTruthy();
     });
 
     it('keeps a pending purchase visibly not active', async () => {
