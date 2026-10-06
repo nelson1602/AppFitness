@@ -13,7 +13,7 @@
 # by a preceding assertion on content that must already be on screen, so a
 # blank or errored dashboard still fails fast instead of scrolling into a
 # timeout.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

@@ -3,7 +3,7 @@
 # This device is signed into account A. Account B has an outstanding conflict
 # of its own, created through the public contract. §Decision 8 scopes every
 # read to the owner, so A's surface must show nothing at all.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 - openLink: appfitness://dashboard

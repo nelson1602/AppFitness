@@ -340,7 +340,7 @@ describe('ExerciseLibrary', () => {
 
     expect(screen.getByText("The exercise library isn't available on the web")).toBeOnTheScreen();
     expect(
-      screen.getByText('Use the AppFitness mobile app to create and manage your exercises.'),
+      screen.getByText('Use the AppFitnessRD mobile app to create and manage your exercises.'),
     ).toBeOnTheScreen();
     // Header preserved.
     expect(screen.getByText('Exercise library')).toBeOnTheScreen();
@@ -360,7 +360,7 @@ describe('ExerciseLibrary', () => {
       screen.getByText('La biblioteca de ejercicios no está disponible en la web'),
     ).toBeOnTheScreen();
     expect(
-      screen.getByText('Usa la app móvil de AppFitness para crear y gestionar tus ejercicios.'),
+      screen.getByText('Usa la app móvil de AppFitnessRD para crear y gestionar tus ejercicios.'),
     ).toBeOnTheScreen();
     expect(screen.queryByText('Add a custom exercise')).toBeNull();
   });

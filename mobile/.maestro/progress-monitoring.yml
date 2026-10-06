@@ -31,7 +31,7 @@
 # Progress UI will fail at the Progress entry point (no dashboard-progress-card).
 # Dynamic device dates are matched with substrings/regex; the flow never edits
 # the prefilled date field (whose testID is shared across both entry forms).
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

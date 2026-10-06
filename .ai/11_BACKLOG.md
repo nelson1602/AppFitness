@@ -1902,7 +1902,7 @@ Excluded:
        need 2 new keys and is a UX-3C decision, not a UX-4B one.
      - The 7 `dashboard.onboarding.*` keys move **PROPOSED → SHIPPED**;
        catalogues go 698 → **705 / 705**, parity preserved.
-   - **UX-4B-1 — Native and mobile identity. Not implemented. BLOCKS UX-4C.**
+   - **UX-4B-1 — Native and mobile identity. Done (2026-10-06).**
      Implements **ADR-P028** (Accepted 2026-08-31) slice **5a**: display name →
      `AppFitnessRD`, `expo.android.package` → and a new
      `expo.ios.bundleIdentifier` → `com.appfitnessrd.mobile`. Preserves the
@@ -1919,20 +1919,23 @@ Excluded:
        Expo-config read; **do not run a build to reconfirm documented prompt
        behaviour.** Credential, app-registration and build creation remain
        separately authorized and are out of this slice.
-     - Scope: `mobile/app.json`; the **38** mobile production-copy sites (18 EN +
-       18 ES values and 2 headline literals at `sign-in.tsx:61` and
-       `DashboardScreen.tsx:48`) with exact EN/ES parity; and the **32 dependent
-       spec assertions across 15 spec files plus 2 Maestro flows**
-       (`registration.yml`, `smoke-auth-surface.yml`, both asserting
-       `visible: 'AppFitness'`) **in the same commit**, so CI never observes a
-       mismatched state. No infrastructure rename, no historical rewrite.
+     - **Implementation inventory correction (2026-10-06):** the accepted
+       38/32/2 inventory described the 2026-08-31 tree. At implementation the
+       same surface class had grown to **56 production-copy sites** (27 EN +
+       27 ES values and 2 headline literals), **30 directly dependent assertion
+       literals across 14 spec files**, and **27 Maestro flows** carrying the
+       Android app id, 5 of which also asserted the old visible brand. All moved
+       together. `theme-capture.mjs` moved to the new app id too. A new source
+       guard pins the name, both native ids, the preserved slug/scheme/owner/EAS
+       project, both catalogues, the two direct headings and every Maestro app
+       id. No infrastructure rename or historical rewrite was made.
      - **Existing internal Android installs must be uninstalled and reinstalled**;
        device-local SQLite and SecureStore data will not migrate. Acceptable
        pre-publication only.
      - **External gates, not assumed:** identifier availability on Google Play and
        Apple, developer-account enrolment, and trademark clearance for
        `AppFitnessRD` must each be checked by a human against the live consoles
-       before implementation.
+       before the first store registration or upload.
    - **UX-4B-2 — Legal draft branding. Implemented 2026-09-04.** ADR-P028 slice
      **5b**: updated **every current product-name reference** in the five
      `docs/legal/` drafts (Privacy Policy, Terms of Use,
@@ -1993,9 +1996,9 @@ Excluded:
    - **UX-4C — Manual AT verification pass.** VoiceOver, TalkBack and browser-AT,
      recorded per surface. **Until this runs, no accessibility outcome anywhere
      in the UX stream may be reported as satisfied** (ADR-P023 / ADR-P024).
-     **Blocked on UX-4B-1** for the iOS/VoiceOver column; the Android/TalkBack
-     and browser-AT columns are not blocked by identity, but running them before
-     the rename would verify an artifact that is about to be replaced.
+     **The repository identity blocker UX-4B-1 is closed.** UX-4C still needs a
+     build carrying that identity and the manual iOS/VoiceOver, Android/TalkBack
+     and browser-AT passes; no accessibility outcome is claimed by the rename.
 7. **UX-5 — Progressive feature migration. Status: Done (7 of 7 REDUCED
    inputs, 2026-09-28).** One feature per slice, behaviour preserved, with
    bilingual, dark-theme and large-text device verification per slice. No

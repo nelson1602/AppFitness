@@ -10,13 +10,13 @@
 #                -e E2E_USERNAME=demo -e E2E_PASSWORD=password12345 \
 #                .maestro/registration.yml
 # Fake, synthetic identities only; fresh disposable DB per run.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp:
     clearState: true
 
 - extendedWaitUntil:
-    visible: 'AppFitness'
+    visible: 'AppFitnessRD'
     timeout: 30000
 
 # Switch to register mode and enter the disposable identity.

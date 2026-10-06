@@ -4,7 +4,7 @@
 # out, a direct deep link must land on the auth surface — never on another
 # account's decisions, and never on an empty review screen that implies there
 # is nothing to decide.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 - openLink: appfitness://dashboard

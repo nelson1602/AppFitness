@@ -34,7 +34,7 @@ const args = Object.fromEntries(
   }),
 );
 
-const APP_ID = 'com.appfitness.mobile';
+const APP_ID = 'com.appfitnessrd.mobile';
 const OUT = path.resolve(args.out ?? '../.artifacts/theme');
 const SETTLE = Number(args.settle ?? 2500);
 const SERIAL = args.serial ?? null;

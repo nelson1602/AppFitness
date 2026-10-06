@@ -9,7 +9,7 @@
 #
 # Prereqs: api/ running, `adb reverse tcp:3001 tcp:3001`. No seed. Fake,
 # synthetic data only.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

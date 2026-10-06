@@ -213,7 +213,7 @@ describe('GoalForm', () => {
     expect(screen.getByText('Goal')).toBeOnTheScreen();
     expect(screen.getByText("Goal editing isn't available on the web")).toBeOnTheScreen();
     expect(
-      screen.getByText('Use the AppFitness mobile app to set and update your goal.'),
+      screen.getByText('Use the AppFitnessRD mobile app to set and update your goal.'),
     ).toBeOnTheScreen();
     // No form fields, save control, generic error, create copy, or sync hints.
     expect(screen.queryByTestId('field-targetWeightKg')).toBeNull();
@@ -234,7 +234,7 @@ describe('GoalForm', () => {
       screen.getByText('La edición del objetivo no está disponible en la web'),
     ).toBeOnTheScreen();
     expect(
-      screen.getByText('Usa la app móvil de AppFitness para definir y actualizar tu objetivo.'),
+      screen.getByText('Usa la app móvil de AppFitnessRD para definir y actualizar tu objetivo.'),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('field-targetWeightKg')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Guardar objetivo' })).toBeNull();

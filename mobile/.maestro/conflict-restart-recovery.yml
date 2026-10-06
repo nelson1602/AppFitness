@@ -14,7 +14,7 @@
 # the choice still stands, and the user is not asked to decide again. A
 # re-offer here would mean the choice had been lost; an "All set" here would
 # mean it had been reported complete without ever reaching the account.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - stopApp
 - launchApp

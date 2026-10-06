@@ -23,7 +23,7 @@
 #
 # What it proves (§Decision 7): the choice taken with no connectivity is not
 # re-entered. It stands, and one retry finishes the round trip.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - openLink: appfitness://sync-conflicts
 - extendedWaitUntil:

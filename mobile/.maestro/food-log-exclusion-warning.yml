@@ -10,7 +10,7 @@
 # session established by onboarding-loop.yml (no -e vars needed). Requires an
 # EAS `e2e` APK built from the Slice 4 commit (878af06) or later; an older APK
 # predating the warning UI will fail the warning assertions.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

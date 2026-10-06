@@ -161,7 +161,7 @@ Legend:
 | **Deep-link completion for emailed links (ADR-P026)** | **NOT STARTED — V1 gate (native rebuild)** | `mobile/app.json` declares `scheme: appfitness` but **no `intentFilters` and no `associatedDomains`**, and `expo-linking` is unused in `mobile/src`. An emailed link opens the **Web portal, not the app**. Target is HTTPS links with a Web fallback; Universal / App Links require domain ownership **and a native rebuild (not OTA-eligible)**. |
 | **Privacy contact mailbox** | **BLOCKED-OWNER — V1 gate** | `docs/legal/PRIVACY_POLICY.md` carries a real contact address on the owned domain (the placeholder was replaced by PR #102). It is a *domain* address, and **whether that mailbox actually receives mail is still unverified** — an owner check, not claimed here. |
 | **Physical-device validation** | **BLOCKED-OWNER — V1 gate** | All device-side evidence to date is from an **emulator**. Physical-device validation — including **biometric**, which is not applicable on an emulator — remains outstanding before publication. |
-| **Accessibility validation (UX-4C)** | **PENDING-HUMAN — V1 gate** | No manual screen-reader (VoiceOver / TalkBack), keyboard, or large-text pass has been performed, on any build. Component-level accessibility requirements are asserted in unit tests; **outcomes are not claimed**. |
+| **Accessibility validation (UX-4C)** | **PENDING-HUMAN — V1 gate** | UX-4B-1 now declares the accepted `AppFitnessRD` / `com.appfitnessrd.mobile` native identity in-repo, so the repository identity blocker is closed. No manual screen-reader (VoiceOver / TalkBack), keyboard, or large-text pass has been performed on a build carrying it; **outcomes are not claimed**. |
 | **Rollback dry-run** | **BLOCKED-OWNER** | Runbooks exist; never exercised on a live track. |
 | **Production log / monitoring review** | **PENDING-HUMAN** | See item 11. |
 | **Performance evidence** | **NOT STARTED** | `PERF-001` (mobile startup performance baseline) is **Proposed** and unstarted. There is **no** startup, memory, bundle-size or interaction-latency measurement recorded anywhere in the repository for any build. |
@@ -507,8 +507,10 @@ angles — coverage, then quality.
    the shared dark `Card` mapping and is fully unit/contrast gated, but the
    existing native captures predate it. Final-candidate native visual review
    must confirm that nested `surfaceVariant` content remains distinguishable.
-7. `in-repo` — **Accessibility (UX-4C)**: manual screen-reader, keyboard and
-   large-text passes. No outcome may be claimed until run. **Unchanged by
+7. `in-repo` — **Accessibility (UX-4C)**: UX-4B-1's accepted native identity
+   is implemented in-repo; produce the correctly identified artifacts, then run
+   the manual screen-reader, keyboard and large-text passes. No outcome may be
+   claimed until run. **Unchanged by
    ADR-P022 Addendum A** — contrast arithmetic is not an assistive-technology
    outcome, and all five V1 accessibility release-review gates (ADR-P023 /
    ADR-P024 / ADR-P025) remain open at the same severity.

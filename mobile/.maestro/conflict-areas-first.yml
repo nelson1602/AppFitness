@@ -7,7 +7,7 @@
 # which exercises C-6's vocabulary as well as its comparison.
 #
 #   maestro --device <serial> test -e C7_AREA=knee .maestro/conflict-areas-first.yml
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 - openLink: appfitness://dashboard

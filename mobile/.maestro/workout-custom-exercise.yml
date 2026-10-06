@@ -14,7 +14,7 @@
 # Custom exercises intentionally remain iCoach-neutral: no deterministic
 # excluded-movement matcher is applied to them, and the UI surfaces a
 # non-medical caution instead.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

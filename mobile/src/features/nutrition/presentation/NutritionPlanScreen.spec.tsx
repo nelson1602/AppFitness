@@ -407,7 +407,7 @@ describe('NutritionPlanScreen', () => {
 
     expect(screen.getByText("Your meal plan isn't available on the web")).toBeOnTheScreen();
     expect(
-      screen.getByText('Use the AppFitness mobile app to view and follow your 15-day meal plan.'),
+      screen.getByText('Use the AppFitnessRD mobile app to view and follow your 15-day meal plan.'),
     ).toBeOnTheScreen();
     // Header preserved.
     expect(screen.getByText('15-day meal plan')).toBeOnTheScreen();
@@ -439,7 +439,7 @@ describe('NutritionPlanScreen', () => {
     expect(screen.getByText('Tu plan alimentario no está disponible en la web')).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Usa la app móvil de AppFitness para ver y seguir tu plan alimentario de 15 días.',
+        'Usa la app móvil de AppFitnessRD para ver y seguir tu plan alimentario de 15 días.',
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('open-food-log')).toBeNull();

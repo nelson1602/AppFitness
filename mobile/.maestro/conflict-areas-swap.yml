@@ -6,7 +6,7 @@
 #
 #   maestro --device <serial> test -e C7_FROM=knee -e C7_TO=wrist \
 #     .maestro/conflict-areas-swap.yml
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 - openLink: appfitness://dashboard

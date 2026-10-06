@@ -64,7 +64,7 @@ export function DashboardScreen() {
   return (
     <Screen>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">AppFitness</AppText>
+        <AppText variant="headline">AppFitnessRD</AppText>
         <AppText tone="muted">{t('dashboard.subtitle')}</AppText>
       </View>
 

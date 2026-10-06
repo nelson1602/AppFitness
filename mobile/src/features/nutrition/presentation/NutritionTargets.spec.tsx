@@ -205,7 +205,7 @@ describe('NutritionTargets', () => {
     expect(screen.getByText("Nutrition targets aren't available on the web")).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Use the AppFitness mobile app to view your personalized calorie and macro targets.',
+        'Use the AppFitnessRD mobile app to view your personalized calorie and macro targets.',
       ),
     ).toBeOnTheScreen();
     // Header preserved.
@@ -227,7 +227,7 @@ describe('NutritionTargets', () => {
     ).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Usa la app móvil de AppFitness para ver tus objetivos personalizados de calorías y macronutrientes.',
+        'Usa la app móvil de AppFitnessRD para ver tus objetivos personalizados de calorías y macronutrientes.',
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByRole('button', { name: 'Ver tu plan alimentario de 15 días' })).toBeNull();

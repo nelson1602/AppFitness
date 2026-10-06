@@ -210,7 +210,7 @@ describe('ProfileForm', () => {
     expect(screen.getByText('Profile')).toBeOnTheScreen();
     expect(screen.getByText("Profile editing isn't available on the web")).toBeOnTheScreen();
     expect(
-      screen.getByText('Use the AppFitness mobile app to create and update your profile.'),
+      screen.getByText('Use the AppFitnessRD mobile app to create and update your profile.'),
     ).toBeOnTheScreen();
     // No form fields, save control, generic error, or create/edit copy.
     expect(screen.queryByTestId('field-birthDate')).toBeNull();
@@ -245,7 +245,7 @@ describe('ProfileForm', () => {
       screen.getByText('La edición del perfil no está disponible en la web'),
     ).toBeOnTheScreen();
     expect(
-      screen.getByText('Usa la app móvil de AppFitness para crear y actualizar tu perfil.'),
+      screen.getByText('Usa la app móvil de AppFitnessRD para crear y actualizar tu perfil.'),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('field-birthDate')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Guardar perfil' })).toBeNull();

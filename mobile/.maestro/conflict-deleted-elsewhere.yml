@@ -14,7 +14,7 @@
 #
 # The restore therefore SUCCEEDS, and this flow fails if it does not. Accepting
 # either outcome would let a silently broken restore pass.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 - openLink: appfitness://dashboard

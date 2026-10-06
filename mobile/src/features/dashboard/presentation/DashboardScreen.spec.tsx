@@ -242,7 +242,7 @@ describe('DashboardScreen', () => {
     await render(<DashboardScreen />);
     fireEvent.press(screen.getByRole('button', { name: 'Load fake sample dashboard data' }));
 
-    expect(screen.getByText('Finish setting up AppFitness')).toBeOnTheScreen();
+    expect(screen.getByText('Finish setting up AppFitnessRD')).toBeOnTheScreen();
     expect(screen.getByTestId('onboarding-step-weight')).toBeOnTheScreen();
     expect(loadSampleData).toHaveBeenCalledTimes(1);
   });
@@ -306,7 +306,7 @@ describe('DashboardScreen', () => {
 
     await render(<DashboardScreen />);
 
-    expect(screen.getByText('Termina de configurar AppFitness')).toBeOnTheScreen();
+    expect(screen.getByText('Termina de configurar AppFitnessRD')).toBeOnTheScreen();
     expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('2 de 3 completados');
     expect(screen.getByTestId('onboarding-step-goal')).toHaveTextContent('Elige tu objetivo');
   });
@@ -547,7 +547,7 @@ describe('DashboardScreen', () => {
     expect(screen.getByText("Dashboard isn't available on the web")).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Your dashboard data lives on your device. Use the AppFitness mobile app for the full offline experience.',
+        'Your dashboard data lives on your device. Use the AppFitnessRD mobile app for the full offline experience.',
       ),
     ).toBeOnTheScreen();
     // Not treated as a generic error, and offers no retry / sync control.
@@ -570,7 +570,7 @@ describe('DashboardScreen', () => {
     expect(screen.getByText('El panel no está disponible en la web')).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Los datos de tu panel se guardan en tu dispositivo. Usa la app móvil de AppFitness para la experiencia completa sin conexión.',
+        'Los datos de tu panel se guardan en tu dispositivo. Usa la app móvil de AppFitnessRD para la experiencia completa sin conexión.',
       ),
     ).toBeOnTheScreen();
   });

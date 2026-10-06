@@ -8945,6 +8945,29 @@ partial implementation. The five gates in Decision 7 stay open.
 **Neutral.** No shipped behaviour changes on acceptance; this ADR is
 documentation only.
 
+### Implementation record — UX-4B-1 (2026-10-06)
+
+Slice 5a is implemented in the repository. `mobile/app.json` now declares
+`AppFitnessRD` and `com.appfitnessrd.mobile` for both native platforms while the
+slug, scheme, owner and EAS project id remain unchanged. The live copy, directly
+dependent assertions, Maestro app ids and the theme-capture helper moved in the
+same change; a source guard prevents the config, catalogues and device tooling
+from drifting apart.
+
+The accepted **38 production-copy / 32 assertion / 2 Maestro** inventory was a
+correct snapshot of the 2026-08-31 tree, not a permanent cap. By implementation
+time the same authorized surface class contained **56 production-copy sites**,
+**30 directly dependent assertion literals** and **27 Maestro flows** carrying
+the Android id (5 also carried the visible brand assertion). The larger current
+inventory is therefore synchronization of the accepted identity, not a new
+product decision.
+
+No build, credential, store record, upload, EAS mutation or external-service
+change is part of this implementation. Live Apple/Google identifier
+availability, developer enrolment and trademark clearance remain external
+gates before the first registration or upload. Existing pre-rename Android test
+installs still require uninstall/reinstall as Decision 3 states.
+
 ### Supersedes / Preserves
 
 - **Applies and preserves ADR-P023** in full. Decision 5's no-partial-invalid-API
