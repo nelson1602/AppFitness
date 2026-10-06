@@ -6,6 +6,7 @@ Created: 2026-10-01 (base `d8a076e`)
 Revised: 2026-10-01 — audit correction (ADR-P028 identity) and owner decision D-2
 Revised: 2026-10-05 — T1 Test Store run recorded; BUG-031 found, fixed and device-verified
 Revised: 2026-10-05 — row 14 run against Railway Development (Sandbox/Test Store only); BUG-032 opened
+Revised: 2026-10-06 — BUG-032 fixed; inactive restore device-rechecked
 
 This is the S-5 evidence matrix for ADR-P034. It separates what the repository
 proves today from what only RevenueCat, Apple, Google and physical devices can
@@ -41,7 +42,7 @@ T0 cells cite the exact spec and test title. Mobile paths are under
 | 3 | Purchase success | **PROVEN** — adapter: *buys the exact package the offer load returned*; `subscription.store.spec.ts`: *shows success only when the provider reports the entitlement active* | **PROVEN 2026-10-05** — *TEST VALID PURCHASE* → *Welcome to AppFitness Pro … Your subscription is now active* and *AppFitness Pro is active*; *TEST FAILED PURCHASE* → *The purchase didn't go through*, offer kept | BLOCKED P-3…P-6, P-11 | BLOCKED P-4, P-7…P-11 | BLOCKED P-11 |
 | 4 | Cancellation (store sheet dismissed) | **PROVEN** — adapter: *reports %s as cancelled, not as an error*; store: *treats cancellation as a choice: no error and no notice* | **PROVEN 2026-10-05** — *CANCEL* returned to the unchanged offer with no error and no notice | BLOCKED P-3…P-6, P-11 | BLOCKED P-4, P-7…P-11 | BLOCKED P-11 |
 | 5 | Pending purchase | **PROVEN** — adapter: *reports a pending payment as pending, never as active*; store: *never reports a %s purchase as active*, *performs no provider operation for a second purchase while pending* | **NOT OBSERVABLE** — the Test Store sheet offers only valid, failed and cancel; it cannot produce a pending payment | BLOCKED P-3…P-6, P-11 (Ask to Buy) | BLOCKED P-4, P-7…P-11 (slow test card) | BLOCKED P-11 |
-| 6 | Restore | **PROVEN** — store: *restores an active entitlement*, *says plainly when nothing was restored and keeps the offer* | **PROVEN 2026-10-05 (same account, same device, while active)** — *Purchases restored. Your AppFitness Pro subscription is active on this account.* Restore after reinstall or into another account was **not run** (see T1 run record) | BLOCKED P-3…P-6, P-11 | BLOCKED P-4, P-7…P-11 | BLOCKED P-11 |
+| 6 | Restore | **PROVEN** — store: *restores an active entitlement*, *says plainly when nothing was restored and keeps the offer*, and BUG-032 regressions replace a stale active snapshot with inactive access and the ordinary offer without publishing across accounts | **PROVEN 2026-10-05/06 (same account, same device)** — active restore showed *Purchases restored. Your AppFitness Pro subscription is active on this account.* After real expiry, inactive restore showed *No active subscription found* plus the ordinary offer, with no active card, and stayed correct after reopening and A→B→A switches. The exact stale-active precondition from BUG-032 had already refreshed before the device re-check and is therefore T0 regression proof, not device proof. Restore after reinstall or into another account was **not run** (see T1 run record) | BLOCKED P-3…P-6, P-11 | BLOCKED P-4, P-7…P-11 | BLOCKED P-11 |
 | 7 | Expiry | **PROVEN** — `entitlement-authorization.service.spec.ts`: *fails closed for an enabled provider with a %s mirror*; `test/entitlement-enforcement.e2e-spec.ts`: *refuses an inactive and an expired mirror*; `revenuecat-entitlement.provider.spec.ts`: *treats a refund or elapsed expiry as inactive* | **PROVEN 2026-10-05** — the purchase at 08:17:09 lapsed between 08:45:42 (*is active*) and 08:47:44 (offer shown again), about 30 minutes, matching the accelerated Test Store cycle | BLOCKED P-3…P-6, P-11, P-12 (accelerated sandbox renewals) | BLOCKED P-4, P-7…P-12 (accelerated test renewals) | BLOCKED P-11, P-12 |
 | 8 | Refund or revocation | **PROVEN** — provider: *treats a refund or elapsed expiry as inactive*; `subscription.service.spec.ts`: *reconciles from provider, persists the mirror and audits only a change* | N/A (no refund in Test Store) | BLOCKED P-3…P-6, P-12 | BLOCKED P-4, P-7…P-10, P-12 | BLOCKED P-12 |
 | 9 | Billing retry and grace period | **PROVEN (server rule)** — provider: *uses a later grace expiry and preserves cancellation until expiry*. Whether grace is on is a store-console setting (P-5, P-8) | N/A | BLOCKED P-5, P-12 | BLOCKED P-4, P-8, P-12 | BLOCKED P-12 |
@@ -216,9 +217,14 @@ corrected the configuration, and Development redeployed at 18:27:36Z
   online. That held through a reload of the Subscription screen, until a
   same-account *Restore purchases* fetched fresh state. The server stayed
   authoritative and returned 402, so no paid write landed.
-- **BUG-032.** The restore result read *No active subscription found* while the
-  same screen still said *AppFitness Pro is active*. Reloading the screen
-  showed the correct offer.
+- **BUG-032 (fixed 2026-10-06).** The row-14 restore result read *No active
+  subscription found* while the same screen still said *AppFitness Pro is
+  active*. The inactive branch had left the earlier access snapshot in the
+  store. It now replaces that snapshot and restores the ordinary offer. The
+  exact stale-active combination is covered by deterministic store and screen
+  regressions. During the device re-check the SDK cache had already refreshed,
+  so the device proved the resulting inactive-restore journey, persistence and
+  account isolation, not that exact precondition.
 - **`willRenew` after expiry.** The mirror kept `willRenew: true` after an
   EXPIRATION, as RevenueCat reported it.
 - **Duplicate timestamps.** Two distinct RENEWAL events carried the same event

@@ -182,6 +182,23 @@ export function createSubscriptionStore(
       }
     };
 
+    /**
+     * The offer for an account that just restored nothing. A failure is
+     * reported and yields no offer, so the screen shows its retry state rather
+     * than a stale active card; the result is published only by the caller's
+     * owner-checked `publish`.
+     */
+    const loadOfferAfterEmptyRestore = async (
+      owner: SubscriptionSessionSnapshot,
+    ): Promise<SubscriptionOffer | null> => {
+      try {
+        return await gateway.loadOffer();
+      } catch (error) {
+        if (sessions.isSessionCurrent(owner)) report('subscriptions.restore', error);
+        return null;
+      }
+    };
+
     const failOperation = (
       owner: SubscriptionSessionSnapshot,
       error: unknown,
@@ -339,15 +356,28 @@ export function createSubscriptionStore(
           const access = await gateway.restore();
           if (sessions.isSessionCurrent(owner))
             entitlementAccess.set(owner.userId, access.isActive);
-          if (access.isActive && sessions.isSessionCurrent(owner)) {
-            await reconcileActiveAccess(owner);
+          if (access.isActive) {
+            if (sessions.isSessionCurrent(owner)) await reconcileActiveAccess(owner);
+            publish(owner, {
+              operation: null,
+              access,
+              offer: null,
+              notice: 'restored',
+              purchasePending: false,
+            });
+            return;
           }
-          publish(
-            owner,
-            access.isActive
-              ? { operation: null, access, offer: null, notice: 'restored', purchasePending: false }
-              : { operation: null, notice: 'nothingToRestore' },
-          );
+          // Nothing restored replaces any earlier active snapshot (BUG-032), so
+          // an expired account sees the ordinary offer, never the active card.
+          const shownOffer =
+            get().offer ??
+            (sessions.isSessionCurrent(owner) ? await loadOfferAfterEmptyRestore(owner) : null);
+          publish(owner, {
+            operation: null,
+            access,
+            offer: shownOffer,
+            notice: 'nothingToRestore',
+          });
         } catch (error) {
           failOperation(owner, error, 'subscriptions.restore', 'restoreFailed');
         }

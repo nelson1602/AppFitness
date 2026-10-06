@@ -2932,11 +2932,13 @@ harder of the two to read. No new measurement; no change of severity.
 
 ## [BUG-032] Restore Reports "No Active Subscription" While the Screen Still Says Active
 
-Status: **Open — found by S-5 row 14 (2026-10-05); not fixed.**
+Status: **Done — inactive restore replaces stale access and restores the
+ordinary offer; regression-tested and device-rechecked (2026-10-06).**
 Priority: **P3** (contradictory copy on one screen; access stays fail-closed)
 Type: Bug (subscriptions — Subscription screen state after restore)
 Owner: Mobile / Subscriptions
 Created: 2026-10-05
+Updated: 2026-10-06
 
 **Observed** on Railway Development with the Test Store, account A, after its
 second Test Store cycle had expired:
@@ -2949,10 +2951,41 @@ second Test Store cycle had expired:
 - **No access impact:** the server mirror was already inactive and rejected
   paid writes with 402.
 
-**Not established.** Whether the store keeps the previously published access
-after a "nothing restored" result by design (*keeps the offer*) or by
-omission. A regression test should pin which state the screen shows after an
-inactive restore.
+**Root cause.** The inactive branch of `subscription.store.ts::restore()`
+published only `operation: null` and the `nothingToRestore` notice. It did not
+replace the earlier access snapshot. When that snapshot was active, the screen
+therefore rendered a truthful inactive-restore notice beside a stale active
+card.
+
+**Fix.** An inactive restore now publishes the returned inactive access,
+retains an offer already loaded for the current session or loads the current
+offer, and leaves the one-off `nothingToRestore` notice. The active-restore
+path is unchanged. Offer-load failure never revives the active card, and both
+the restore result and any later offer result remain guarded by the captured
+session owner. No copy, route, dependency, API, schema, native configuration or
+provider configuration changed.
+
+**Regression evidence.** Six store cases cover the stale-active branch,
+offer-load success/failure, no duplicate offer read, active restore, account
+switch before the offer read and account switch while it is in flight. The
+screen-level test drives the real store and proves that the inactive notice and
+ordinary offer render while the active copy and card do not. Reverting the
+state replacement makes the regression fail.
+
+**Device re-check (2026-10-06).** The Test Store account was already about
+70 minutes past expiry, so the SDK had refreshed before the run and the exact
+stale-active precondition did not reproduce. The reachable inactive-restore
+journey nevertheless passed: immediately after *Restore purchases* the screen
+showed *No active subscription found* and the ordinary offer, rendered no
+active card or active wording, stayed correct after reopening, and account
+switches remained isolated. The Development mirror was inactive and real paid
+writes returned 402. Thus the exact stale-state branch is regression proof,
+not claimed device proof.
+
+**Separate observation.** Immediately after one cold launch, RevenueCat's
+cached access briefly projected active before the fresh read settled. The
+server remained authoritative and rejected paid writes with 402. This is not
+claimed fixed by BUG-032 and remains part of S-5's provider-cache evidence.
 
 ---
 
