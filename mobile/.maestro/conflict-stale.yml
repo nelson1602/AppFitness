@@ -4,7 +4,7 @@
 # choice. §Decision 10: the server refuses the stale comparison, C-4 refreshes
 # it and returns the conflict to undecided, and the user must look again. The
 # refused choice must NOT be applied and must NOT survive as a standing one.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 # Self-contained: this flow opens the review surface itself rather than
 # relying on a previous one having left it there. Both screens read from the

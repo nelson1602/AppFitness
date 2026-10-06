@@ -51,7 +51,7 @@ describe('SignInScreen', () => {
   it('renders the development sign-in form', async () => {
     await render(<SignInScreen />);
 
-    expect(screen.getByText('AppFitness')).toBeOnTheScreen();
+    expect(screen.getByText('AppFitnessRD')).toBeOnTheScreen();
     expect(screen.getByLabelText('Email')).toBeOnTheScreen();
     expect(screen.getByLabelText('Password')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
@@ -116,7 +116,7 @@ describe('SignInScreen', () => {
     expect(await screen.findByText('No connection')).toBeOnTheScreen();
     expect(
       screen.getByText(
-        "We couldn't reach AppFitness. Check your internet connection and try again.",
+        "We couldn't reach AppFitnessRD. Check your internet connection and try again.",
       ),
     ).toBeOnTheScreen();
   });
@@ -129,7 +129,7 @@ describe('SignInScreen', () => {
 
     expect(await screen.findByText('Something went wrong')).toBeOnTheScreen();
     expect(
-      screen.getByText('AppFitness is having trouble right now. Please try again in a moment.'),
+      screen.getByText('AppFitnessRD is having trouble right now. Please try again in a moment.'),
     ).toBeOnTheScreen();
   });
 

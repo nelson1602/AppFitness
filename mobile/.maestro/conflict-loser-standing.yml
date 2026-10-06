@@ -17,7 +17,7 @@
 # §Decision 4: the first decision is not overturned. This device converges to
 # it through T3 and says so, naming the side that stands in the same words the
 # cards use — here "Saved in your account".
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 # Self-contained: this flow opens the review surface itself rather than
 # relying on a previous one having left it there. Both screens read from the

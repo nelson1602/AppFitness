@@ -82,7 +82,7 @@ export default function SignInScreen() {
       <Stack.Screen options={{ title: t('auth.screenTitle') }} />
       <View style={{ gap: theme.spacing.lg }}>
         <View>
-          <AppText variant="headline">AppFitness</AppText>
+          <AppText variant="headline">AppFitnessRD</AppText>
           <AppText tone="muted">{t('auth.subtitle')}</AppText>
         </View>
 

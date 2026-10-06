@@ -13,7 +13,7 @@ jest.mock('./use-localization', () => ({
     t: (key: string) =>
       ({
         'language.title': 'Language',
-        'language.description': 'Choose the language used by AppFitness.',
+        'language.description': 'Choose the language used by AppFitnessRD.',
         'language.system': 'Device language',
         'language.spanish': 'Spanish',
         'language.english': 'English',

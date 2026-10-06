@@ -1,4 +1,4 @@
-# AppFitness EN/ES State Copy Decks (V1)
+# AppFitnessRD EN/ES State Copy Decks (V1)
 
 Version: 1.20
 Status: Active
@@ -155,7 +155,7 @@ above, it carries no visible sentence.
 | `dashboard.unavailable` | Dashboard unavailable | Panel no disponible | **SHIPPED** |
 | `dashboard.errorMessage` | Your dashboard could not be loaded right now. Please try again. | No se pudo cargar tu panel en este momento. Inténtalo de nuevo. | **SHIPPED** |
 | `dashboard.webUnavailableTitle` | Dashboard isn't available on the web | El panel no está disponible en la web | **SHIPPED** |
-| `dashboard.webUnavailableBody` | Your dashboard data lives on your device. Use the AppFitness mobile app for the full offline experience. | Los datos de tu panel se guardan en tu dispositivo. Usa la app móvil de AppFitness para la experiencia completa sin conexión. | **SHIPPED** |
+| `dashboard.webUnavailableBody` | Your dashboard data lives on your device. Use the AppFitnessRD mobile app for the full offline experience. | Los datos de tu panel se guardan en tu dispositivo. Usa la app móvil de AppFitnessRD para la experiencia completa sin conexión. | **SHIPPED** |
 
 The Web-unavailable treatment remains terminal and therefore gets no retry copy.
 
@@ -254,7 +254,7 @@ section-local; Error does not erase the working surface.
 | Conflict row — `workout.log.syncConflict` | Conflict | Conflicto | **SHIPPED** |
 | Conflict row label — `workout.log.syncConflictAccessibility` | Workout sync conflict | Conflicto de sincronización del entrenamiento | **SHIPPED** |
 | Web unavailable title — `workout.log.webUnavailableTitle` | Workout logging isn't available on the web | El registro de entrenamientos no está disponible en la web | **SHIPPED** |
-| Web unavailable body — `workout.log.webUnavailableBody` | Use the AppFitness mobile app for the complete workout-logging experience. | Usa la app móvil de AppFitness para la experiencia completa de registro de entrenamientos. | **SHIPPED** |
+| Web unavailable body — `workout.log.webUnavailableBody` | Use the AppFitnessRD mobile app for the complete workout-logging experience. | Usa la app móvil de AppFitnessRD para la experiencia completa de registro de entrenamientos. | **SHIPPED** |
 
 **Shipped** by the first BUG-011 feature slice. The Conflict hint reports the row
 state only: it adds no choose action, and it uses `warning`, never `error`. One
@@ -280,9 +280,9 @@ claim exclusions were applied.
 | `nutrition.plan.unavailable` | Meal plan unavailable | Plan alimentario no disponible | **SHIPPED** |
 | `nutrition.plan.errorMessage` | Your meal plan could not be built right now. Try again later. | No se pudo crear tu plan alimentario en este momento. Inténtalo más tarde. | **SHIPPED** |
 | `nutrition.targets.webUnavailableTitle` | Nutrition targets aren't available on the web | Los objetivos nutricionales no están disponibles en la web | **SHIPPED** |
-| `nutrition.targets.webUnavailableBody` | Use the AppFitness mobile app to view your personalized calorie and macro targets. | Usa la app móvil de AppFitness para ver tus objetivos personalizados de calorías y macronutrientes. | **SHIPPED** |
+| `nutrition.targets.webUnavailableBody` | Use the AppFitnessRD mobile app to view your personalized calorie and macro targets. | Usa la app móvil de AppFitnessRD para ver tus objetivos personalizados de calorías y macronutrientes. | **SHIPPED** |
 | `nutrition.plan.webUnavailableTitle` | Your meal plan isn't available on the web | Tu plan alimentario no está disponible en la web | **SHIPPED** |
-| `nutrition.plan.webUnavailableBody` | Use the AppFitness mobile app to view and follow your 15-day meal plan. | Usa la app móvil de AppFitness para ver y seguir tu plan alimentario de 15 días. | **SHIPPED** |
+| `nutrition.plan.webUnavailableBody` | Use the AppFitnessRD mobile app to view and follow your 15-day meal plan. | Usa la app móvil de AppFitnessRD para ver y seguir tu plan alimentario de 15 días. | **SHIPPED** |
 
 Shared Data-gap deck:
 
@@ -305,7 +305,7 @@ Shared Data-gap deck:
 | `nutrition.gap.weightAccessibility` | Record your body weight | Registrar tu peso corporal | **SHIPPED** |
 | `nutrition.gap.dashboardButton` | Go to dashboard | Ir al panel | **SHIPPED** |
 | `nutrition.gap.dashboardAccessibility` | Go to the dashboard to finish your baseline | Ir al panel para completar tus datos básicos | **SHIPPED** |
-| `nutrition.gap.wellnessNotice` | AppFitness uses self-entered wellness data for these suggestions. It does not request diagnoses, prescriptions, doctor notes, or professional medical restrictions. | AppFitness usa datos de bienestar ingresados por ti para estas sugerencias. No solicita diagnósticos, recetas, notas médicas ni restricciones médicas profesionales. | **SHIPPED** |
+| `nutrition.gap.wellnessNotice` | AppFitnessRD uses self-entered wellness data for these suggestions. It does not request diagnoses, prescriptions, doctor notes, or professional medical restrictions. | AppFitnessRD usa datos de bienestar ingresados por ti para estas sugerencias. No solicita diagnósticos, recetas, notas médicas ni restricciones médicas profesionales. | **SHIPPED** |
 
 ## Food Log
 
@@ -332,7 +332,7 @@ Shared Data-gap deck:
 | `nutrition.log.syncedTitle` | Log up to date | Registro actualizado | **SHIPPED** — success confirmation |
 | `nutrition.log.syncedMessage` | Your food log is saved and synced. | Tu registro de alimentos está guardado y sincronizado. | **SHIPPED** |
 | `nutrition.log.webUnavailableTitle` | Food logging isn't available on the web | El registro de alimentos no está disponible en la web | **SHIPPED** |
-| `nutrition.log.webUnavailableBody` | Use the AppFitness mobile app to log meals and track your daily nutrition. | Usa la app móvil de AppFitness para registrar tus comidas y seguir tu nutrición diaria. | **SHIPPED** |
+| `nutrition.log.webUnavailableBody` | Use the AppFitnessRD mobile app to log meals and track your daily nutrition. | Usa la app móvil de AppFitnessRD para registrar tus comidas y seguir tu nutrición diaria. | **SHIPPED** |
 
 ### Catalog incompatibility versus Conflict
 
@@ -387,7 +387,7 @@ copy promise *"Your selections are still here."*
 | `nutrition.preferences.errorTitle` | Something went wrong | Algo salió mal | **SHIPPED** |
 | `nutrition.preferences.errorMessage` | Your dietary preferences could not be loaded right now. | No se pudieron cargar tus preferencias alimentarias. | **SHIPPED** |
 | `nutrition.preferences.webUnavailableTitle` | Dietary preferences aren't available on the web | Las preferencias alimentarias no están disponibles en la web | **SHIPPED** |
-| `nutrition.preferences.webUnavailableBody` | Use the AppFitness mobile app to manage your allergies and food preferences. | Usa la app móvil de AppFitness para gestionar tus alergias y preferencias de alimentos. | **SHIPPED** |
+| `nutrition.preferences.webUnavailableBody` | Use the AppFitnessRD mobile app to manage your allergies and food preferences. | Usa la app móvil de AppFitnessRD para gestionar tus alergias y preferencias de alimentos. | **SHIPPED** |
 | `nutrition.preferences.syncPending` | Saved on this device | Guardado en este dispositivo | **SHIPPED** |
 | `nutrition.preferences.syncPendingAccessibility` | Preference saved on this device; sync pending | Preferencia guardada en este dispositivo; sincronización pendiente | **SHIPPED** |
 | `nutrition.preferences.syncConflict` | Conflict | Conflicto | **SHIPPED** |
@@ -423,7 +423,7 @@ change without praise, diagnosis or instruction.
 | `progress.screen.saveErrorBody` | We could not save your changes. Please try again. | No se pudieron guardar tus cambios. Inténtalo de nuevo. | **SHIPPED** |
 | `progress.screen.noWeight` | No weight recorded yet. | Aún no has registrado tu peso. | **SHIPPED** |
 | `progress.webUnavailableTitle` | Progress isn't available on the web | El progreso no está disponible en la web | **SHIPPED** |
-| `progress.webUnavailableBody` | Use the AppFitness mobile app to record and track your progress. | Usa la app móvil de AppFitness para registrar y seguir tu progreso. | **SHIPPED** |
+| `progress.webUnavailableBody` | Use the AppFitnessRD mobile app to record and track your progress. | Usa la app móvil de AppFitnessRD para registrar y seguir tu progreso. | **SHIPPED** |
 | `progress.syncPending` | Saved on this device | Guardado en este dispositivo | **SHIPPED** |
 | `progress.syncPendingAccessibility` | Progress entry saved on this device; sync pending | Registro de progreso guardado en este dispositivo; sincronización pendiente | **SHIPPED** |
 | `progress.syncConflict` | Conflict | Conflicto | **SHIPPED** |
@@ -496,7 +496,7 @@ gap ids without changing their routing:
 | Key | EN | ES | Status |
 |---|---|---|---|
 | `dashboard.onboarding.accessibility` | Getting started checklist | Lista de primeros pasos | **SHIPPED** |
-| `dashboard.onboarding.title` | Finish setting up AppFitness | Termina de configurar AppFitness | **SHIPPED** |
+| `dashboard.onboarding.title` | Finish setting up AppFitnessRD | Termina de configurar AppFitnessRD | **SHIPPED** |
 | `dashboard.onboarding.description` | Complete these steps at your pace. You can use the rest of the app now. | Completa estos pasos a tu ritmo. Ya puedes usar el resto de la app. | **SHIPPED** |
 | `dashboard.onboarding.progress` | {completed} of {total} complete | {completed} de {total} completados | **SHIPPED** |
 | `dashboard.onboarding.profile` | Add your profile basics | Agrega los datos básicos de tu perfil | **SHIPPED** |
@@ -696,8 +696,8 @@ the shipped catalogues byte-for-byte in both languages, which is what promotes
 them from TARGET to SHIPPED under §AI Instructions rule 2.
 
 **The product is named AppFitnessRD** in this family, per ADR-P028 §Decision.
-Older copy elsewhere in this deck still reads "AppFitness"; that is historical
-evidence and is deliberately left alone.
+UX-4B-1 synchronized every current SHIPPED product-name row in this deck with
+`AppFitnessRD`; dated historical implementation records remain unchanged.
 
 ## What this copy family may and may not say
 
@@ -1235,11 +1235,11 @@ Each pair is listed with the record's kind and dates and offers **no** choice
 | Key | EN | ES | Model source | Status |
 |---|---|---|---|---|
 | `sync.conflicts.blocked.remoteTitle` | Changed on another device | Se cambió en otro dispositivo | `REMOTE_ORIGIN` | **SHIPPED** |
-| `sync.conflicts.blocked.remoteBody` | The edit behind this is on the device where you made it. Open AppFitness there to choose. Nothing here was changed or lost. | La edición que causó esto está en el dispositivo donde la hiciste. Abre AppFitness ahí para elegir. Aquí no se cambió ni se perdió nada. | `REMOTE_ORIGIN` | **SHIPPED** |
+| `sync.conflicts.blocked.remoteBody` | The edit behind this is on the device where you made it. Open AppFitnessRD there to choose. Nothing here was changed or lost. | La edición que causó esto está en el dispositivo donde la hiciste. Abre AppFitnessRD ahí para elegir. Aquí no se cambió ni se perdió nada. | `REMOTE_ORIGIN` | **SHIPPED** |
 | `sync.conflicts.blocked.unsupportedTitle` | Not reviewable here | No se puede revisar aquí | `UNSUPPORTED_ENTITY` · `UNKNOWN_ENTITY` | **SHIPPED** |
 | `sync.conflicts.blocked.unsupportedBody` | This kind of record can't be reviewed in this version. Both versions are still saved, and nothing was changed or lost. | Este tipo de registro no se puede revisar en esta versión. Ambas versiones siguen guardadas y no se cambió ni se perdió nada. | `UNSUPPORTED_ENTITY` · `UNKNOWN_ENTITY` | **SHIPPED** |
 | `sync.conflicts.blocked.updateAppTitle` | Update to review this | Actualiza para revisar esto | `UNKNOWN_FIELD` | **SHIPPED** |
-| `sync.conflicts.blocked.updateAppBody` | This record includes something this version doesn't recognize yet. Update AppFitness to review it. Nothing was changed or lost. | Este registro incluye algo que esta versión aún no reconoce. Actualiza AppFitness para revisarlo. No se cambió ni se perdió nada. | `UNKNOWN_FIELD` | **SHIPPED** |
+| `sync.conflicts.blocked.updateAppBody` | This record includes something this version doesn't recognize yet. Update AppFitnessRD to review it. Nothing was changed or lost. | Este registro incluye algo que esta versión aún no reconoce. Actualiza AppFitnessRD para revisarlo. No se cambió ni se perdió nada. | `UNKNOWN_FIELD` | **SHIPPED** |
 | `sync.conflicts.blocked.unreadableTitle` | We can't open this one | No podemos abrir este registro | `ENCRYPTED_PAYLOAD` · `MALFORMED_PAYLOAD` | **SHIPPED** |
 | `sync.conflicts.blocked.unreadableBody` | We couldn't read the details saved for this record on this device, so it can't be reviewed here. Nothing was changed or lost. | No pudimos leer los detalles guardados de este registro en este dispositivo, así que no se puede revisar aquí. No se cambió ni se perdió nada. | `ENCRYPTED_PAYLOAD` · `MALFORMED_PAYLOAD` | **SHIPPED** |
 
@@ -1427,7 +1427,7 @@ surface shipped. They take the catalogue to **1058/1058**, not 1056/1056.
 | Key | EN | ES | Status |
 |---|---|---|---|
 | `sync.conflicts.webUnavailableTitle` | Reviewing changes isn't available on the web | Revisar cambios no está disponible en la web | **SHIPPED** |
-| `sync.conflicts.webUnavailableBody` | Use the AppFitness mobile app to review these changes and choose which version to keep. | Usa la app móvil de AppFitness para revisar estos cambios y elegir qué versión conservar. | **SHIPPED** |
+| `sync.conflicts.webUnavailableBody` | Use the AppFitnessRD mobile app to review these changes and choose which version to keep. | Usa la app móvil de AppFitnessRD para revisar estos cambios y elegir qué versión conservar. | **SHIPPED** |
 
 ---
 
@@ -1611,7 +1611,7 @@ for Decision 12 counsel approval.
 | `subscription.trialRenewalTerms` | When the free trial ends, it renews automatically each month at {price} until you cancel. Cancel at least 24 hours before the trial ends and you won't be charged. | Al terminar la prueba gratis, se renueva automáticamente cada mes por {price} hasta que la canceles. Cancela al menos 24 horas antes de que termine la prueba y no se te cobrará. | **SHIPPED** |
 | `subscription.chargeTermsApple` | Payment is charged to your Apple Account. Manage or cancel anytime in your App Store account settings. | El pago se carga a tu cuenta de Apple. Administra o cancela cuando quieras en la configuración de tu cuenta del App Store. | **SHIPPED** |
 | `subscription.chargeTermsGoogle` | Payment is charged to your Google Play account. Manage or cancel anytime in your Google Play subscriptions. | El pago se carga a tu cuenta de Google Play. Administra o cancela cuando quieras en tus suscripciones de Google Play. | **SHIPPED** |
-| `subscription.deletionTerms` | Deleting your AppFitness account doesn't cancel a store subscription. Cancel it in the store first. | Eliminar tu cuenta de AppFitness no cancela una suscripción de la tienda. Cancélala primero en la tienda. | **SHIPPED** |
+| `subscription.deletionTerms` | Deleting your AppFitnessRD account doesn't cancel a store subscription. Cancel it in the store first. | Eliminar tu cuenta de AppFitnessRD no cancela una suscripción de la tienda. Cancélala primero en la tienda. | **SHIPPED** |
 
 ## Account actions — 6 keys
 
@@ -1651,15 +1651,15 @@ for Decision 12 counsel approval.
 | Key | EN | ES | Status |
 |---|---|---|---|
 | `subscription.webUnavailableTitle` | Subscriptions aren't available on the web | Las suscripciones no están disponibles en la web | **SHIPPED** |
-| `subscription.webUnavailableBody` | Use the AppFitness mobile app to subscribe, restore purchases or manage your subscription. | Usa la app móvil de AppFitness para suscribirte, restaurar compras o administrar tu suscripción. | **SHIPPED** |
+| `subscription.webUnavailableBody` | Use the AppFitnessRD mobile app to subscribe, restore purchases or manage your subscription. | Usa la app móvil de AppFitnessRD para suscribirte, restaurar compras o administrar tu suscripción. | **SHIPPED** |
 | `subscription.unavailableTitle` | Subscriptions aren't available in this version | Las suscripciones no están disponibles en esta versión | **SHIPPED** |
-| `subscription.unavailableBody` | You can keep using AppFitness as usual. | Puedes seguir usando AppFitness como siempre. | **SHIPPED** |
+| `subscription.unavailableBody` | You can keep using AppFitnessRD as usual. | Puedes seguir usando AppFitnessRD como siempre. | **SHIPPED** |
 | `subscription.noOfferTitle` | No subscription option is available right now | No hay una opción de suscripción disponible en este momento | **SHIPPED** |
 | `subscription.noOfferBody` | The store didn't return a subscription option. Try again later. | La tienda no devolvió una opción de suscripción. Inténtalo más tarde. | **SHIPPED** |
 | `subscription.errorTitle` | We couldn't load your subscription | No pudimos cargar tu suscripción | **SHIPPED** |
 | `subscription.errorBody` | Something went wrong. Try again in a moment. | Algo salió mal. Inténtalo de nuevo en un momento. | **SHIPPED** |
 | `subscription.offlineTitle` | You're offline | Estás sin conexión | **SHIPPED** |
-| `subscription.offlineBody` | Connect to the internet to see subscription options. The rest of AppFitness keeps working offline. | Conéctate a internet para ver las opciones de suscripción. El resto de AppFitness sigue funcionando sin conexión. | **SHIPPED** |
+| `subscription.offlineBody` | Connect to the internet to see subscription options. The rest of AppFitnessRD keeps working offline. | Conéctate a internet para ver las opciones de suscripción. El resto de AppFitnessRD sigue funcionando sin conexión. | **SHIPPED** |
 
 ## Operation failures and neutral retry — 12 keys
 
@@ -1705,8 +1705,8 @@ dormant until provider activation.
 | Key | EN | ES | Status |
 |---|---|---|---|
 | `subscription.accessCheckingTitle` | Checking your access | Comprobando tu acceso | **SHIPPED** |
-| `subscription.accessCheckingBody` | Your saved data stays available while AppFitness confirms your subscription. | Tus datos guardados siguen disponibles mientras AppFitness confirma tu suscripción. | **SHIPPED** |
-| `subscription.readOnlyTitle` | AppFitness is in read-only mode | AppFitness está en modo de solo lectura | **SHIPPED** |
+| `subscription.accessCheckingBody` | Your saved data stays available while AppFitnessRD confirms your subscription. | Tus datos guardados siguen disponibles mientras AppFitnessRD confirma tu suscripción. | **SHIPPED** |
+| `subscription.readOnlyTitle` | AppFitnessRD is in read-only mode | AppFitnessRD está en modo de solo lectura | **SHIPPED** |
 | `subscription.readOnlyBody` | Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new iCoach plan. | Tus datos guardados están seguros y disponibles. Renueva o restaura tu suscripción para guardar cambios, sincronizar ediciones, resolver conflictos o generar un plan nuevo de iCoach. | **SHIPPED** |
 | `subscription.open` | View subscription | Ver suscripción | **SHIPPED** |
 

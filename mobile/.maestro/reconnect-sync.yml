@@ -6,7 +6,7 @@
 #
 # Prereqs: run after offline-entry.yml with the loopback restored. Fake
 # synthetic data only.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

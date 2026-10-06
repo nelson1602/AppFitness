@@ -7,14 +7,14 @@
 # is tracked separately (TEST-002 / roadmap Phase 11).
 #
 # appId must match `android.package` in app.json.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp:
     clearState: true
 
 # Fresh install: session restore finds nothing → sign-in route.
 - extendedWaitUntil:
-    visible: 'AppFitness'
+    visible: 'AppFitnessRD'
     timeout: 30000
 - assertVisible: 'Sign in to continue.'
 - assertVisible: 'Email'

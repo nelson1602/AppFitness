@@ -10,7 +10,7 @@
 # "Your choice is saved" exists only in the instant between those two steps,
 # which is not a state a device test can honestly wait for. Both wordings say
 # the same reassuring thing — the choice is safe and still counts.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 # Self-contained: it opens the review surface itself rather than relying on a
 # previous flow having left it there. The dashboard and the surface both read

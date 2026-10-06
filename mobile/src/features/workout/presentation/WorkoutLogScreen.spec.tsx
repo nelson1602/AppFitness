@@ -571,7 +571,7 @@ describe('WorkoutLogScreen', () => {
     expect(screen.getByText("Workout logging isn't available on the web")).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Use the AppFitness mobile app for the complete workout-logging experience.',
+        'Use the AppFitnessRD mobile app for the complete workout-logging experience.',
       ),
     ).toBeOnTheScreen();
     // Not treated as a generic error.
@@ -593,7 +593,7 @@ describe('WorkoutLogScreen', () => {
     ).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Usa la app móvil de AppFitness para la experiencia completa de registro de entrenamientos.',
+        'Usa la app móvil de AppFitnessRD para la experiencia completa de registro de entrenamientos.',
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('workout-start')).toBeNull();

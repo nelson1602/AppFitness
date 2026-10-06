@@ -19,7 +19,7 @@
 # Requires an EAS `e2e` APK built from the Phase 16 Slice 5–7 commits (the
 # workout routes/screens) or later; an older APK predating the workout UI will
 # fail immediately (no "Workout routines" entry point).
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

@@ -266,7 +266,7 @@ describe('ProgressScreen (Slice 5a)', () => {
     expect(screen.getByText('Progress')).toBeOnTheScreen();
     expect(screen.getByText("Progress isn't available on the web")).toBeOnTheScreen();
     expect(
-      screen.getByText('Use the AppFitness mobile app to record and track your progress.'),
+      screen.getByText('Use the AppFitnessRD mobile app to record and track your progress.'),
     ).toBeOnTheScreen();
     // Not the generic error; no latest metric, forms, trends, snapshots, retry, or recompute.
     expect(screen.queryByText('Progress unavailable')).toBeNull();
@@ -284,7 +284,7 @@ describe('ProgressScreen (Slice 5a)', () => {
 
     expect(screen.getByText('El progreso no está disponible en la web')).toBeOnTheScreen();
     expect(
-      screen.getByText('Usa la app móvil de AppFitness para registrar y seguir tu progreso.'),
+      screen.getByText('Usa la app móvil de AppFitnessRD para registrar y seguir tu progreso.'),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('progress-recompute')).toBeNull();
   });

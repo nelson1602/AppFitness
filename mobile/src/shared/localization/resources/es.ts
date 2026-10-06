@@ -10,7 +10,7 @@ export const es = {
     'Es posible que el enlace esté incompleto, mal escrito o que ya no sea válido. Los enlaces para restablecer la contraseña y para verificar el correo caducan y solo pueden usarse una vez.',
   'notFound.action': 'Volver a AppFitnessRD',
   'language.title': 'Idioma',
-  'language.description': 'Elige el idioma que usa AppFitness.',
+  'language.description': 'Elige el idioma que usa AppFitnessRD.',
   'language.system': 'Idioma del dispositivo',
   'language.english': 'Inglés',
   'language.spanish': 'Español',
@@ -30,10 +30,10 @@ export const es = {
     'El correo o la contraseña no son correctos. Inténtalo de nuevo.',
   'auth.error.connectivityTitle': 'Sin conexión',
   'auth.error.connectivityBody':
-    'No pudimos conectar con AppFitness. Revisa tu conexión a internet e inténtalo de nuevo.',
+    'No pudimos conectar con AppFitnessRD. Revisa tu conexión a internet e inténtalo de nuevo.',
   'auth.error.serverTitle': 'Algo salió mal',
   'auth.error.serverBody':
-    'AppFitness tiene problemas en este momento. Inténtalo de nuevo en un momento.',
+    'AppFitnessRD tiene problemas en este momento. Inténtalo de nuevo en un momento.',
   'auth.error.registrationTitle': 'No se pudo crear la cuenta',
   'auth.error.registrationBody': 'No pudimos crear tu cuenta con esos datos. Prueba con otros.',
   'auth.error.unexpectedTitle': 'Algo salió mal',
@@ -114,7 +114,8 @@ export const es = {
   'profile.errorTitle': 'No se pudo guardar',
   'profile.errorMessage': 'Tu perfil no se pudo guardar en este momento. Inténtalo de nuevo.',
   'profile.webUnavailableTitle': 'La edición del perfil no está disponible en la web',
-  'profile.webUnavailableBody': 'Usa la app móvil de AppFitness para crear y actualizar tu perfil.',
+  'profile.webUnavailableBody':
+    'Usa la app móvil de AppFitnessRD para crear y actualizar tu perfil.',
   'profile.birthDate': 'Fecha de nacimiento',
   'profile.birthDatePlaceholder': 'AAAA-MM-DD',
   'profile.heightCm': 'Estatura (cm)',
@@ -159,7 +160,7 @@ export const es = {
   'goal.errorMessage': 'Tu objetivo no se pudo guardar en este momento. Inténtalo de nuevo.',
   'goal.webUnavailableTitle': 'La edición del objetivo no está disponible en la web',
   'goal.webUnavailableBody':
-    'Usa la app móvil de AppFitness para definir y actualizar tu objetivo.',
+    'Usa la app móvil de AppFitnessRD para definir y actualizar tu objetivo.',
   'goal.conflictTitle': 'Conflicto de sincronización',
   'goal.conflictMessage':
     'Este objetivo tiene un conflicto de sincronización. Al guardar se registra un objetivo nuevo en este dispositivo y se vuelve a poner en cola.',
@@ -234,7 +235,7 @@ export const es = {
   'progress.weekly.deloadTag': 'descarga',
   'progress.webUnavailableTitle': 'El progreso no está disponible en la web',
   'progress.webUnavailableBody':
-    'Usa la app móvil de AppFitness para registrar y seguir tu progreso.',
+    'Usa la app móvil de AppFitnessRD para registrar y seguir tu progreso.',
   'progress.webUnavailableCard': 'No disponible en la web',
   'progress.routeTitle': 'Progreso',
   'progress.screen.title': 'Progreso',
@@ -361,7 +362,7 @@ export const es = {
     'No se pudieron cargar tus rutinas en este momento. Inténtalo de nuevo.',
   'workout.builder.webUnavailableTitle': 'Las rutinas de ejercicios no están disponibles en la web',
   'workout.builder.webUnavailableBody':
-    'Usa la app móvil de AppFitness para crear y gestionar tus rutinas.',
+    'Usa la app móvil de AppFitnessRD para crear y gestionar tus rutinas.',
   'workout.builder.createAccessibility': 'Crear una rutina',
   'workout.builder.createTitle': 'Crear una rutina',
   'workout.builder.name': 'Nombre de la rutina',
@@ -440,7 +441,7 @@ export const es = {
     'No se pudo cargar tu biblioteca de ejercicios en este momento. Inténtalo de nuevo.',
   'workout.library.webUnavailableTitle': 'La biblioteca de ejercicios no está disponible en la web',
   'workout.library.webUnavailableBody':
-    'Usa la app móvil de AppFitness para crear y gestionar tus ejercicios.',
+    'Usa la app móvil de AppFitnessRD para crear y gestionar tus ejercicios.',
   'workout.library.addAccessibility': 'Agregar un ejercicio personalizado',
   'workout.library.addTitle': 'Agregar un ejercicio personalizado',
   'workout.library.yourExercises': 'Tus ejercicios personalizados',
@@ -470,7 +471,7 @@ export const es = {
   'workout.library.syncPending': 'Pendiente de sincronización',
   'workout.library.builtInTitle': 'Ejercicios integrados',
   'workout.library.builtInDescription':
-    'Proporcionados por AppFitness. Estos ejercicios de solo lectura usan identidades estables del catálogo y nombres localizados.',
+    'Proporcionados por AppFitnessRD. Estos ejercicios de solo lectura usan identidades estables del catálogo y nombres localizados.',
   'workout.library.builtInAccessibility': 'Ejercicio integrado',
   'workout.muscle.back': 'Espalda',
   'workout.muscle.chest': 'Pecho',
@@ -490,7 +491,7 @@ export const es = {
     'Tus entrenamientos no se pudieron cargar en este momento. Inténtalo de nuevo.',
   'workout.log.webUnavailableTitle': 'El registro de entrenamientos no está disponible en la web',
   'workout.log.webUnavailableBody':
-    'Usa la app móvil de AppFitness para la experiencia completa de registro de entrenamientos.',
+    'Usa la app móvil de AppFitnessRD para la experiencia completa de registro de entrenamientos.',
   'workout.log.defaultName': 'Entrenamiento',
   'workout.log.startAccessibility': 'Iniciar un entrenamiento',
   'workout.log.startTitle': 'Iniciar un entrenamiento',
@@ -552,7 +553,7 @@ export const es = {
     'No se pudo crear tu plan alimentario en este momento. Inténtalo más tarde.',
   'nutrition.plan.webUnavailableTitle': 'Tu plan alimentario no está disponible en la web',
   'nutrition.plan.webUnavailableBody':
-    'Usa la app móvil de AppFitness para ver y seguir tu plan alimentario de 15 días.',
+    'Usa la app móvil de AppFitnessRD para ver y seguir tu plan alimentario de 15 días.',
   'nutrition.plan.day': 'Día',
   'nutrition.plan.showDay': 'Mostrar día',
   'nutrition.plan.breakfast': 'Desayuno',
@@ -570,7 +571,7 @@ export const es = {
   'nutrition.plan.targetSummary': 'objetivo',
   'nutrition.plan.safeMinimumTitle': 'Mínimo seguro aplicado',
   'nutrition.plan.safeMinimumMessage':
-    'El objetivo de calorías se elevó al mínimo seguro utilizado por AppFitness.',
+    'El objetivo de calorías se elevó al mínimo seguro utilizado por AppFitnessRD.',
   'nutrition.plan.disclaimer':
     'Estas sugerencias son una guía general de bienestar físico basada en tu perfil y objetivo; no constituyen asesoramiento médico ni dietético. Consulta a un profesional calificado antes de realizar cambios importantes.',
   'nutrition.plan.preferencesAccessibility': 'Preferencias alimentarias aplicadas',
@@ -588,7 +589,7 @@ export const es = {
   'nutrition.targets.webUnavailableTitle':
     'Los objetivos nutricionales no están disponibles en la web',
   'nutrition.targets.webUnavailableBody':
-    'Usa la app móvil de AppFitness para ver tus objetivos personalizados de calorías y macronutrientes.',
+    'Usa la app móvil de AppFitnessRD para ver tus objetivos personalizados de calorías y macronutrientes.',
   'nutrition.targets.calorieAccessibility': 'Objetivo diario de calorías',
   'nutrition.targets.dailyCalories': 'Calorías diarias',
   'nutrition.targets.macrosAccessibility': 'Distribución de macronutrientes',
@@ -618,7 +619,7 @@ export const es = {
   'nutrition.preferences.webUnavailableTitle':
     'Las preferencias alimentarias no están disponibles en la web',
   'nutrition.preferences.webUnavailableBody':
-    'Usa la app móvil de AppFitness para gestionar tus alergias y preferencias de alimentos.',
+    'Usa la app móvil de AppFitnessRD para gestionar tus alergias y preferencias de alimentos.',
   'nutrition.preferences.addAccessibility': 'Agregar una exclusión',
   'nutrition.preferences.addTitle': 'Agregar una exclusión',
   'nutrition.preferences.what': '¿Qué deseas excluir?',
@@ -704,7 +705,7 @@ export const es = {
   'nutrition.log.writeError.removeBody': 'El alimento sigue en tu registro. Inténtalo de nuevo.',
   'nutrition.log.webUnavailableTitle': 'El registro de alimentos no está disponible en la web',
   'nutrition.log.webUnavailableBody':
-    'Usa la app móvil de AppFitness para registrar tus comidas y seguir tu nutrición diaria.',
+    'Usa la app móvil de AppFitnessRD para registrar tus comidas y seguir tu nutrición diaria.',
   'nutrition.log.emptyAccessibility': 'Todavía no hay alimentos registrados',
   'nutrition.log.emptyTitle': 'Todavía no has registrado alimentos',
   'nutrition.log.emptyMessage':
@@ -764,14 +765,14 @@ export const es = {
   'nutrition.gap.heightDetail': 'Se requiere tu estatura.',
   'nutrition.gap.weightDetail': 'Se requiere un peso reciente.',
   'nutrition.gap.wellnessNotice':
-    'AppFitness usa datos de bienestar ingresados por ti para estas sugerencias. No solicita diagnósticos, recetas, notas médicas ni restricciones médicas profesionales.',
+    'AppFitnessRD usa datos de bienestar ingresados por ti para estas sugerencias. No solicita diagnósticos, recetas, notas médicas ni restricciones médicas profesionales.',
   'dashboard.routeTitle': 'Panel',
   'dashboard.subtitle': 'Tu evaluación local de iCoach',
   'dashboard.unavailable': 'Panel no disponible',
   'dashboard.errorMessage': 'No se pudo cargar tu panel en este momento. Inténtalo de nuevo.',
   'dashboard.webUnavailableTitle': 'El panel no está disponible en la web',
   'dashboard.webUnavailableBody':
-    'Los datos de tu panel se guardan en tu dispositivo. Usa la app móvil de AppFitness para la experiencia completa sin conexión.',
+    'Los datos de tu panel se guardan en tu dispositivo. Usa la app móvil de AppFitnessRD para la experiencia completa sin conexión.',
   'dashboard.syncAccessibility': 'Sincronizar cambios locales',
   'dashboard.syncNow': 'Sincronizar ahora',
   'dashboard.recommendations': 'Recomendaciones de iCoach',
@@ -818,7 +819,7 @@ export const es = {
   'dashboard.gap.sampleAccessibility': 'Cargar datos de muestra ficticios en el panel',
   'dashboard.gap.sampleButton': 'Cargar datos de muestra',
   'dashboard.onboarding.accessibility': 'Lista de primeros pasos',
-  'dashboard.onboarding.title': 'Termina de configurar AppFitness',
+  'dashboard.onboarding.title': 'Termina de configurar AppFitnessRD',
   'dashboard.onboarding.description':
     'Completa estos pasos a tu ritmo. Ya puedes usar el resto de la app.',
   'dashboard.onboarding.progress': '{completed} de {total} completados',
@@ -1120,13 +1121,13 @@ export const es = {
   'sync.conflicts.compare.unknown': 'No se puede comparar',
   'sync.conflicts.blocked.remoteTitle': 'Se cambió en otro dispositivo',
   'sync.conflicts.blocked.remoteBody':
-    'La edición que causó esto está en el dispositivo donde la hiciste. Abre AppFitness ahí para elegir. Aquí no se cambió ni se perdió nada.',
+    'La edición que causó esto está en el dispositivo donde la hiciste. Abre AppFitnessRD ahí para elegir. Aquí no se cambió ni se perdió nada.',
   'sync.conflicts.blocked.unsupportedTitle': 'No se puede revisar aquí',
   'sync.conflicts.blocked.unsupportedBody':
     'Este tipo de registro no se puede revisar en esta versión. Ambas versiones siguen guardadas y no se cambió ni se perdió nada.',
   'sync.conflicts.blocked.updateAppTitle': 'Actualiza para revisar esto',
   'sync.conflicts.blocked.updateAppBody':
-    'Este registro incluye algo que esta versión aún no reconoce. Actualiza AppFitness para revisarlo. No se cambió ni se perdió nada.',
+    'Este registro incluye algo que esta versión aún no reconoce. Actualiza AppFitnessRD para revisarlo. No se cambió ni se perdió nada.',
   'sync.conflicts.blocked.unreadableTitle': 'No podemos abrir este registro',
   'sync.conflicts.blocked.unreadableBody':
     'No pudimos leer los detalles guardados de este registro en este dispositivo, así que no se puede revisar aquí. No se cambió ni se perdió nada.',
@@ -1225,7 +1226,7 @@ export const es = {
   'sync.conflicts.field.years_training': 'Años entrenando',
   'sync.conflicts.webUnavailableTitle': 'Revisar cambios no está disponible en la web',
   'sync.conflicts.webUnavailableBody':
-    'Usa la app móvil de AppFitness para revisar estos cambios y elegir qué versión conservar.',
+    'Usa la app móvil de AppFitnessRD para revisar estos cambios y elegir qué versión conservar.',
   // Subscription paywall and account surface (ADR-P034 S-3). Prices, periods
   // and trials are substituted from store evidence only; none is hardcoded.
   'subscription.routeTitle': 'Suscripción',
@@ -1265,7 +1266,7 @@ export const es = {
   'subscription.chargeTermsGoogle':
     'El pago se carga a tu cuenta de Google Play. Administra o cancela cuando quieras en tus suscripciones de Google Play.',
   'subscription.deletionTerms':
-    'Eliminar tu cuenta de AppFitness no cancela una suscripción de la tienda. Cancélala primero en la tienda.',
+    'Eliminar tu cuenta de AppFitnessRD no cancela una suscripción de la tienda. Cancélala primero en la tienda.',
   'subscription.restore': 'Restaurar compras',
   'subscription.restoreAccessibility':
     'Restaurar suscripciones compradas con esta cuenta de la tienda',
@@ -1289,9 +1290,9 @@ export const es = {
     'Esta cuenta de la tienda no tiene una suscripción activa a AppFitness Pro para restaurar.',
   'subscription.webUnavailableTitle': 'Las suscripciones no están disponibles en la web',
   'subscription.webUnavailableBody':
-    'Usa la app móvil de AppFitness para suscribirte, restaurar compras o administrar tu suscripción.',
+    'Usa la app móvil de AppFitnessRD para suscribirte, restaurar compras o administrar tu suscripción.',
   'subscription.unavailableTitle': 'Las suscripciones no están disponibles en esta versión',
-  'subscription.unavailableBody': 'Puedes seguir usando AppFitness como siempre.',
+  'subscription.unavailableBody': 'Puedes seguir usando AppFitnessRD como siempre.',
   'subscription.noOfferTitle': 'No hay una opción de suscripción disponible en este momento',
   'subscription.noOfferBody':
     'La tienda no devolvió una opción de suscripción. Inténtalo más tarde.',
@@ -1299,7 +1300,7 @@ export const es = {
   'subscription.errorBody': 'Algo salió mal. Inténtalo de nuevo en un momento.',
   'subscription.offlineTitle': 'Estás sin conexión',
   'subscription.offlineBody':
-    'Conéctate a internet para ver las opciones de suscripción. El resto de AppFitness sigue funcionando sin conexión.',
+    'Conéctate a internet para ver las opciones de suscripción. El resto de AppFitnessRD sigue funcionando sin conexión.',
   'subscription.networkTitle': 'Sin conexión',
   'subscription.networkBody': 'Revisa tu conexión e inténtalo de nuevo.',
   'subscription.purchaseFailedTitle': 'La compra no se completó',
@@ -1318,8 +1319,8 @@ export const es = {
     'Tu sesión cambió mientras esto estaba en curso. Si ya completaste una compra, Restaurar compras la recupera.',
   'subscription.accessCheckingTitle': 'Comprobando tu acceso',
   'subscription.accessCheckingBody':
-    'Tus datos guardados siguen disponibles mientras AppFitness confirma tu suscripción.',
-  'subscription.readOnlyTitle': 'AppFitness está en modo de solo lectura',
+    'Tus datos guardados siguen disponibles mientras AppFitnessRD confirma tu suscripción.',
+  'subscription.readOnlyTitle': 'AppFitnessRD está en modo de solo lectura',
   'subscription.readOnlyBody':
     'Tus datos guardados están seguros y disponibles. Renueva o restaura tu suscripción para guardar cambios, sincronizar ediciones, resolver conflictos o generar un plan nuevo de iCoach.',
   'subscription.open': 'Ver suscripción',

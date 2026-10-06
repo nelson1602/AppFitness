@@ -4,7 +4,7 @@
 #   maestro --device <serial> test -e C7_SIDE=account .maestro/conflict-choose.yml
 #
 # The surface is already open on the review screen.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 # Self-contained: this flow opens the review surface itself rather than
 # relying on a previous one having left it there. Both screens read from the

@@ -38,7 +38,7 @@ describe('OnboardingChecklistCard', () => {
   it('lists every outstanding step on a first run with nothing recorded', async () => {
     await render(<OnboardingChecklistCard gaps={ALL_GAPS} />);
 
-    expect(screen.getByText('Finish setting up AppFitness')).toBeOnTheScreen();
+    expect(screen.getByText('Finish setting up AppFitnessRD')).toBeOnTheScreen();
     expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('0 of 3 complete');
     expect(screen.getAllByTestId(/^onboarding-step-/)).toHaveLength(3);
     expect(screen.getByTestId('onboarding-step-profile')).toHaveTextContent(
@@ -151,7 +151,7 @@ describe('OnboardingChecklistCard', () => {
 
     await render(<OnboardingChecklistCard gaps={[gap('default-goal'), gap('weight')]} />);
 
-    expect(screen.getByText('Termina de configurar AppFitness')).toBeOnTheScreen();
+    expect(screen.getByText('Termina de configurar AppFitnessRD')).toBeOnTheScreen();
     expect(
       screen.getByText('Completa estos pasos a tu ritmo. Ya puedes usar el resto de la app.'),
     ).toBeOnTheScreen();

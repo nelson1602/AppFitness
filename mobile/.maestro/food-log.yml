@@ -17,7 +17,7 @@
 # NOT driven here — it requires the server to reject a catalog revision, which
 # can only be forced with a backend hack. That state is covered by the
 # FoodLogScreen component test instead (see FoodLogScreen.spec.tsx).
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

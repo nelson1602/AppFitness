@@ -376,7 +376,7 @@ describe('FoodLogScreen (Slice 4C)', () => {
     expect(screen.getByText("Food logging isn't available on the web")).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Use the AppFitness mobile app to log meals and track your daily nutrition.',
+        'Use the AppFitnessRD mobile app to log meals and track your daily nutrition.',
       ),
     ).toBeOnTheScreen();
     // Header preserved.
@@ -410,7 +410,7 @@ describe('FoodLogScreen (Slice 4C)', () => {
     ).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Usa la app móvil de AppFitness para registrar tus comidas y seguir tu nutrición diaria.',
+        'Usa la app móvil de AppFitnessRD para registrar tus comidas y seguir tu nutrición diaria.',
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('food-log-sync-now')).toBeNull();

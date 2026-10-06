@@ -12,7 +12,7 @@
 #
 # Prereqs: run AFTER registration.yml (online) for the SAME account, THEN
 # `adb reverse --remove tcp:3001`. Fake synthetic data only.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 

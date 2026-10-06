@@ -3,7 +3,7 @@
 # The product ships no background scheduler, so "Sync now" is how a device
 # pushes and pulls. Every journey uses this rather than reaching into the
 # worker, so what runs is the shipped path.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 - openLink: appfitness://dashboard

@@ -6,13 +6,13 @@
 #
 #   maestro --device <serial> test -e E2E_EMAIL=... -e E2E_PASSWORD=... \
 #     .maestro/conflict-signin.yml
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp:
     clearState: true
 
 - extendedWaitUntil:
-    visible: 'AppFitness'
+    visible: 'AppFitnessRD'
     timeout: 90000
 - assertVisible: 'Sign in to continue.'
 

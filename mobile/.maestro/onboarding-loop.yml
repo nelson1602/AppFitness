@@ -17,7 +17,7 @@
 #   maestro test -e E2E_EMAIL=<addr> -e E2E_PASSWORD=<pw> .maestro/onboarding-loop.yml
 #
 # Fake, synthetic identities only; fresh disposable DB per run.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 
@@ -251,7 +251,7 @@ appId: com.appfitness.mobile
 - extendedWaitUntil:
     visible: 'Your local iCoach assessment'
     timeout: 45000
-- assertNotVisible: 'Finish setting up AppFitness'
+- assertNotVisible: 'Finish setting up AppFitnessRD'
 - assertNotVisible: 'Load sample data'
 # The sync banner sits below the two advisory cards that open the dashboard, so
 # it is off-screen from the top on a short viewport — scrolled to, not asserted.

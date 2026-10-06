@@ -20,14 +20,14 @@
 #
 # Prereqs: the account is signed in with a complete baseline (see
 # `e2e/theme-seed.mjs`), so the food-log route is reachable.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 # Wait for the session-restored dashboard before deep-linking: a link fired
 # while the app is still booting is swallowed, and the flow then fails on a
 # route it never left.
 - extendedWaitUntil:
-    visible: 'AppFitness'
+    visible: 'AppFitnessRD'
     timeout: 45000
 - openLink: appfitness:///food-log
 - extendedWaitUntil:

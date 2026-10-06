@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "AppFitness",
+    "name": "AppFitnessRD",
     "slug": "appfitness",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,10 +8,11 @@
     "scheme": "appfitness",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.appfitnessrd.mobile",
       "icon": "./assets/expo.icon"
     },
     "android": {
-      "package": "com.appfitness.mobile",
+      "package": "com.appfitnessrd.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

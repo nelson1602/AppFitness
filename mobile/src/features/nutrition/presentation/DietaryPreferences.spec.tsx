@@ -294,7 +294,7 @@ describe('DietaryPreferences', () => {
     expect(screen.getByText("Dietary preferences aren't available on the web")).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Use the AppFitness mobile app to manage your allergies and food preferences.',
+        'Use the AppFitnessRD mobile app to manage your allergies and food preferences.',
       ),
     ).toBeOnTheScreen();
     // Header preserved.
@@ -316,7 +316,7 @@ describe('DietaryPreferences', () => {
     ).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Usa la app móvil de AppFitness para gestionar tus alergias y preferencias de alimentos.',
+        'Usa la app móvil de AppFitnessRD para gestionar tus alergias y preferencias de alimentos.',
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('dp-add')).toBeNull();

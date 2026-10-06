@@ -361,7 +361,7 @@ describe('RoutineBuilder', () => {
 
     expect(screen.getByText("Workout routines aren't available on the web")).toBeOnTheScreen();
     expect(
-      screen.getByText('Use the AppFitness mobile app to build and manage your routines.'),
+      screen.getByText('Use the AppFitnessRD mobile app to build and manage your routines.'),
     ).toBeOnTheScreen();
     // Header preserved.
     expect(screen.getByText('Workout routines')).toBeOnTheScreen();
@@ -381,7 +381,7 @@ describe('RoutineBuilder', () => {
       screen.getByText('Las rutinas de ejercicios no están disponibles en la web'),
     ).toBeOnTheScreen();
     expect(
-      screen.getByText('Usa la app móvil de AppFitness para crear y gestionar tus rutinas.'),
+      screen.getByText('Usa la app móvil de AppFitnessRD para crear y gestionar tus rutinas.'),
     ).toBeOnTheScreen();
     expect(screen.queryByText('Create a routine')).toBeNull();
   });

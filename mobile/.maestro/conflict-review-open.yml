@@ -4,7 +4,7 @@
 # the dashboard entry (§Decision 1) and the review surface (§Decision 2): the
 # record is named by kind, the field by its label, both sides in text, and the
 # stored token values read as localized words rather than storage identifiers.
-appId: com.appfitness.mobile
+appId: com.appfitnessrd.mobile
 ---
 - launchApp
 - openLink: appfitness://dashboard
