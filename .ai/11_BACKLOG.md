@@ -4592,12 +4592,15 @@ coverage than it has.
 
 ## [FEATURE-012] V1 Store Subscription and Entitlement
 
-Status: **In Progress — S-1 and S-2 implemented 2026-09-30; S-3 merged 2026-10-01 (PR #204) and In Progress pending store/provider evidence; S-4 merged 2026-10-01 (PR #205), enabled in Railway Development since 2026-10-05 and not activated in Production; S-5 In Progress — in-repo evidence matrix prepared 2026-10-01; T1 RevenueCat Test Store run 2026-10-05 (BUG-031 found and fixed); row 14 proven against Railway Development 2026-10-05 (BUG-032 opened); no Apple/Google/device evidence yet; S-6 unimplemented.**
+Status: **In Progress — S-1…S-4 implemented; Railway Development enabled since
+2026-10-05 and Production not activated; S-5 T1 and row 14 proven with the
+RevenueCat Test Store/Sandbox (BUG-031 and BUG-032 found and fixed); no
+Apple/Google/physical-device evidence yet; S-6 unimplemented.**
 Priority: P0 (v1 publication blocker)
 Type: Feature
 Owner: Product / Architecture / Security
 Created: 2026-09-15
-Updated: 2026-09-29
+Updated: 2026-10-06
 
 ### Why this entry exists
 
@@ -4758,8 +4761,10 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
    - queue preservation and resumption are proven against the server's 402.
    Out-of-order handling is PARTIAL. A first attempt stopped on a webhook 401
    until the owner corrected the configuration. Development now runs with the
-   provider enabled. BUG-032 was opened. T2–T4 remain blocked. S-5 closes only
-   with recorded external evidence.
+   provider enabled. BUG-032 was subsequently fixed with deterministic
+   regression coverage and an inactive-restore device re-check; its exact
+   stale-active precondition did not recur on that later run. T2–T4 remain
+   blocked. S-5 closes only with recorded external evidence.
 6. **S-6 Legal/store closure:** final data inventory and EN/ES legal copy,
    provider disclosures, console answers, published URLs and counsel approval.
 
