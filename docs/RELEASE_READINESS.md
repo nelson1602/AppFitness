@@ -5,8 +5,14 @@
 > submission approval.** Legal / owner / store-console gates are called out
 > explicitly and remain the owner's to close.
 
-Last reconciled: **2026-09-15** · Current `main` baseline **`d498658`** ·
+Last reconciled: **2026-10-07** · Current `main` baseline **`0b59d35`** ·
 App version `1.0.0` · Publication date: **not set**.
+
+> **Bounded current-state reconciliation, 2026-10-07 (`0b59d35`).** No gate
+> was re-run. This pass only corrects rows that later merged evidence already
+> made false: the privacy-mailbox receipt, startup-performance baseline,
+> Phase-21 release-note rewrite, `BUG-006`, FEATURE-012 S-1…S-4 delivery and
+> provider state, and the already accepted mobile-V1 / post-mobile-Web scope.
 
 > **Partial reconciliation, 2026-09-15 (`051aecd`).** Stage 1 item 1, the
 > localization evidence line, the open-defect list and verdict 2 were updated by
@@ -159,13 +165,13 @@ Legend:
 | **Transactional email infrastructure (Postmark)** | **PASS** | Owned domain and sending subdomain in place, evidenced by authenticated delivery in both environments. Postmark account, plan and transactional stream exist with **open/link tracking disabled**. The API key was provided as a Development secret first and never committed. **No email is ever sent from CI** — `FakeMailTransport` is the only transport bound in tests, by construction. |
 | **Browser portals + CORS isolation** | **PASS** (as deployed) | Each environment ends on its **own** portal served by its own Cloudflare Worker version: **Production** `account.appfitnessrd.com`, **Development** `account-dev.appfitnessrd.com`, plus the recovery portal `recovery.appfitnessrd.com`. Both `/health` endpoints returned 200 at the gate. Allow-lists are **disjoint and verified in both directions** — Production rejects the Development Account origin and Development rejects the Production Account origin, so neither browser portal can call the other environment's API. **In-repo caveat:** no Cloudflare Worker or hosting configuration exists in this repository; the portal deployment is owner-managed and outside version control. |
 | **Deep-link completion for emailed links (ADR-P026)** | **NOT STARTED — V1 gate (native rebuild)** | `mobile/app.json` declares `scheme: appfitness` but **no `intentFilters` and no `associatedDomains`**, and `expo-linking` is unused in `mobile/src`. An emailed link opens the **Web portal, not the app**. Target is HTTPS links with a Web fallback; Universal / App Links require domain ownership **and a native rebuild (not OTA-eligible)**. |
-| **Privacy contact mailbox** | **BLOCKED-OWNER — V1 gate** | `docs/legal/PRIVACY_POLICY.md` carries a real contact address on the owned domain (the placeholder was replaced by PR #102). It is a *domain* address, and **whether that mailbox actually receives mail is still unverified** — an owner check, not claimed here. |
+| **Privacy contact mailbox** | **PASS — OWNER CONFIRMED 2026-09-29** | `privacy@appfitnessrd.com` receives mail. Reconfirm only if routing changes before release. |
 | **Physical-device validation** | **BLOCKED-OWNER — V1 gate** | All device-side evidence to date is from an **emulator**. Physical-device validation — including **biometric**, which is not applicable on an emulator — remains outstanding before publication. |
 | **Accessibility validation (UX-4C)** | **PENDING-HUMAN — V1 gate** | UX-4B-1 now declares the accepted `AppFitnessRD` / `com.appfitnessrd.mobile` native identity in-repo, so the repository identity blocker is closed. No manual screen-reader (VoiceOver / TalkBack), keyboard, or large-text pass has been performed on a build carrying it; **outcomes are not claimed**. |
 | **Rollback dry-run** | **BLOCKED-OWNER** | Runbooks exist; never exercised on a live track. |
 | **Production log / monitoring review** | **PENDING-HUMAN** | See item 11. |
-| **Performance evidence** | **NOT STARTED** | `PERF-001` (mobile startup performance baseline) is **Proposed** and unstarted. There is **no** startup, memory, bundle-size or interaction-latency measurement recorded anywhere in the repository for any build. |
-| **Release notes + submission approval** | **PASS** (template + draft) / **PENDING-HUMAN** | `docs/RELEASE_NOTES_TEMPLATE.md` and the drafted `docs/releases/v1.0.0.md` cover Phases 13–17 and **predate Phase 21**; they must be rewritten for the actual candidate. Explicit owner submission approval is unrecorded. |
+| **Performance evidence** | **PARTIAL — STARTUP BASELINE RECORDED 2026-09-21** | `docs/PERFORMANCE_BASELINE.md` records steady-state cold start, first run and first launch after install on an Android emulator. Dashboard render time, direct SQLite initialization timing and physical-device measurement remain open under `PERF-001`. |
+| **Release notes + submission approval** | **PASS** (template + Phase-21 draft) / **PENDING-HUMAN** | `docs/releases/v1.0.0.md` was rewritten for the actual Phase-21 product on 2026-09-21 and remains explicitly DRAFT while gates 5–7 are open. Explicit owner submission approval is unrecorded. |
 
 ## Web boundary — what actually works on Web today
 
@@ -253,7 +259,7 @@ not outrank launch blockers.**
 | Cloud E2E currency (E1) | **PASS** | Runs `35597775166` and `35600746413` (post-merge), 2026-09-21, all eleven flows green on the Phase 21 candidate. |
 | Rollback dry-run | **BLOCKED-OWNER** | Untested runbook is an unproven recovery path. |
 | Production log / monitoring review | **PENDING-HUMAN** | Required by the deployment checklist. |
-| Performance evidence (`PERF-001`) | **NOT STARTED** | No baseline of any kind exists. |
+| Performance evidence (`PERF-001`) | **PARTIAL — STARTUP BASELINE RECORDED 2026-09-21** | `docs/PERFORMANCE_BASELINE.md` records the Android-emulator startup baseline; dashboard render, direct SQLite initialization and physical-device measurements remain open. |
 | `BUG-017` Web portals do not render dark mode | **Implemented in repository (2026-09-21); publication pending** | ADR-P032 Addendum A records a Web-only browser-theme subscription: the static snapshot stays deterministic, then the whole tree re-renders from `prefers-color-scheme`. A fresh local export passed 24/24 captures across three portals, four widths and two themes. Hosted Workers were not contacted or published, so their artifact remains unverified. |
 
 **Security / privacy items carried in the backlog:**
@@ -262,7 +268,7 @@ not outrank launch blockers.**
 |---|---|---|
 | `SECURITY-001` Local sensitive data protection | **Proposed** | Unstarted. |
 | `RESEARCH-001` SQLite encryption strategy | **Proposed** | Unstarted; related to SECURITY-001. |
-| `BUG-006` Dormant `EvaluationHistory` is unrouted and pushes | **Open** | Dormant-domain defect; medical is decoupled from the public API (`MedicalModule` unmounted), which limits exposure, but the entry remains open. |
+| `BUG-006` Dormant `EvaluationHistory` pushed to a missing route | **Done 2026-09-28** | The dangling `/evaluation-edit` action was removed, a source guard now checks literal router targets, and the medical domain remains dormant and unreachable. |
 | `TECHDEBT-004` Dormant nutrition schema latent integrity issues | **Open** | Dormant-schema debt. |
 
 **Coverage risk:**
@@ -417,23 +423,23 @@ angles — coverage, then quality.
 3. ~~`owner` — Accept/reject **ADR-P034 option 1 (RevenueCat)**, accept/replace
    the recommended post-trial read-only boundary, and approve bounded offline
    entitlement semantics.~~ **Done 2026-09-29 — accepted as drafted.**
-4. `in-repo` — Deliver FEATURE-012 slices S-1…S-4. **S-1 and S-2 done
-   2026-09-30:** S-1 delivered the fail-closed server mirror/webhook and S-2
-   delivered the lazy, session-scoped native purchase adapter. No external
-   provider or store configuration is active. **S-3 merged 2026-10-01
-   (PR #204):** the bilingual subscription screen; it stays In Progress until
-   store and assistive-technology evidence exist. **S-4 merged 2026-10-01
-   (PR #205, `d8a076e`):** server-authoritative paid-write guard and mobile
-   read-only boundary, dormant until provider activation.
+4. ~~`in-repo` — Deliver FEATURE-012 slices S-1…S-4.~~ **Done 2026-10-01.**
+   S-1 delivered the fail-closed server mirror/webhook, S-2 the lazy,
+   session-scoped native purchase adapter, S-3 the bilingual subscription
+   screen (PR #204), and S-4 the server-authoritative paid-write guard and
+   mobile read-only boundary (PR #205, `d8a076e`). Railway Development has run
+   with RevenueCat enabled since 2026-10-05 for Test Store/Sandbox evidence;
+   Production has not been activated. Store and assistive-technology evidence
+   belongs to item 5, not to these completed repository slices.
 5. `owner` + `external` — Configure Apple/Google products and the one-month
    introductory offer; run sandbox/TestFlight/Play-track lifecycle evidence;
    complete subscription-specific legal/provider/store review (S-5/S-6). The
    S-5 matrix, prerequisites and capture protocol are in
-   `docs/SUBSCRIPTION_S5_EVIDENCE.md`; no external cell has been run. The
-   RevenueCat Test Store path (T1) is accepted only in `__DEV__` development
-   builds (owner decision D-2). T1 ran on 2026-10-05: nine rows proven with
-   simulated purchases only, and BUG-031 found (an active subscriber appeared
-   read-only after sign-in or cold launch), since fixed and device-verified.
+   `docs/SUBSCRIPTION_S5_EVIDENCE.md`. The RevenueCat Test Store path (T1) is
+   accepted only in `__DEV__` development builds (owner decision D-2). T1 ran
+   on 2026-10-05: nine rows proven with simulated purchases only, and BUG-031
+   found (an active subscriber appeared read-only after sign-in or cold launch),
+   since fixed and device-verified.
    Row 14 (server mirror reconciliation) was then proven against Railway
    Development with Test Store purchases and real HMAC-signed Sandbox
    webhooks. Its out-of-order handling is partial. BUG-032, found during that
@@ -514,10 +520,12 @@ angles — coverage, then quality.
    ADR-P022 Addendum A** — contrast arithmetic is not an assistive-technology
    outcome, and all five V1 accessibility release-review gates (ADR-P023 /
    ADR-P024 / ADR-P025) remain open at the same severity.
-8. `in-repo` — **Responsive-Web scope decision**: today Web is account/recovery
-   portals only, with every DB-backed feature on the Web-unavailable path.
-   Either accept that boundary for v1 **or** open a separate track. Do not claim
-   parity without evidence.
+8. ~~`in-repo` — **Responsive-Web scope decision**.~~ **Done 2026-09-16.**
+   ADR-P022 Decision 3 and ADR-P032 Decisions 1 and 7 accept mobile-first V1:
+   Web remains the responsive account/recovery/verification and legal portal,
+   while every database-backed feature keeps the ADR-P019 Web-unavailable
+   treatment. Functional parity is the separate, post-mobile `FEATURE-014`
+   track; it is unstarted, unauthorized and not release-blocking for mobile V1.
 
 **Stage 3 — refresh engineering evidence on a real candidate (`in-repo`)**
 
@@ -650,8 +658,8 @@ angles — coverage, then quality.
 28. `post-v1` — `FEATURE-014` post-mobile Web product parity. A recorded
     direction only (ADR-P032 §Decision 7); it starts after the mobile product
     is complete and only with its own reviews and ADR.
-29. `post-v1` — `OBS-C7-1`, `OBS-C7-2`, `SECURITY-001`, `RESEARCH-001`,
-    `BUG-006`, `TECHDEBT-004` unless a review promotes any of them.
+29. `post-v1` — `OBS-C7-1`, `OBS-C7-2`, `SECURITY-001`, `RESEARCH-001` and
+    `TECHDEBT-004` unless a review promotes any of them.
 
 ## Verdicts (four distinct dimensions — do not conflate)
 
