@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.19
+Version: 1.20
 Status: Active
-Last Updated: 2026-10-08
+Last Updated: 2026-10-09
 
 ---
 
@@ -666,6 +666,33 @@ label, and an empty field's placeholder is still read in TalkBack's text slot.
 No VoiceOver, browser-AT, programmatic invalid, programmatic required or
 field-to-error outcome is claimed. **UX-4C stays PARTIAL.** See ADR-P024
 *Correction (2026-10-08)* and `.ai/11_BACKLOG.md` §BUG-033, §BUG-034, §BUG-036.
+
+---
+
+# Revision Scope (v1.20 — BUG-033 Option B)
+
+**Owner decision, 2026-10-09** (ADR-P023 *Amendment (2026-10-09)*).
+
+| Component | Android | Web and iOS (unchanged) |
+|---|---|---|
+| `FormField` | Named by its linked visible label; the native node gets no `accessibilityLabel` | `accessibilityLabel` on the native node |
+| `AppTextInput` | Named by a zero-size, absolutely positioned text equal to `accessibilityLabel`, linked via `accessibilityLabelledBy`; the native node gets no `accessibilityLabel` | `accessibilityLabel` on the native node; no helper |
+
+**Unchanged:**
+- the public API (`accessibilityLabel` stays required) and the frozen
+  exact-label queries;
+- `testID`s, both control models, commit-on-end, focus styling and
+  paid-write disabling;
+- layout, copy, and the required-marker presentation.
+
+**Accessibility.** The shared mechanism applies to every `FormField` and
+direct `AppTextInput`. Representative TalkBack paths (EN/ES) speak the label
+exactly once in empty and filled states, with and without placeholders; the
+remaining callers are covered structurally by the shared primitive and its
+regressions, not claimed as individually walked device paths. This corrects
+the empty-field duplicate introduced in v1.19. No VoiceOver, browser-AT,
+programmatic invalid, programmatic required or field-to-error outcome is
+claimed. **UX-4C stays PARTIAL.**
 
 ---
 

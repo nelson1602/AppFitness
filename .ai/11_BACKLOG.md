@@ -2059,7 +2059,8 @@ Setup:
   - **BUG-034 Done:** Android announces inline field errors and error
     Banners.
   - **BUG-033 partially fixed:** `FormField` only; `AppTextInput` sites stay
-    open.
+    open. **Completed 2026-10-09** (owner Option B): Done for Android input
+    naming across `FormField` and every direct `AppTextInput`.
   - **BUG-036 Done:** the toggle is now named by its visible text.
   - **BUG-037 recorded:** the sign-in focus jump.
   - **BUG-035 stays open.**
@@ -3172,10 +3173,12 @@ announced on Android. On device, an error that **appears** is not announced.
 
 ## [BUG-033] TalkBack Reads a Field's Value or Placeholder Instead of Its Label
 
-Status: **Partially fixed (2026-10-08) — `FormField` inputs are
-named by their visible label on Android (TalkBack-verified EN/ES). Inputs
-rendered through `AppTextInput` directly, including `AuthTextField` and the
-sign-in fields, remain open.**
+Status: **Done for Android input naming (2026-10-09, owner Option B) — the
+shared `FormField` and `AppTextInput` implementations name every production
+caller by its label exactly once. Representative paths are TalkBack-verified
+in EN/ES; callers not individually walked are covered by the shared primitive
+and regressions. No VoiceOver, browser-AT, required/invalid or field-to-error
+outcome is claimed.**
 Priority: **P2** (fields lose their accessible name)
 Type: Bug (accessibility — Android input naming)
 Owner: Mobile
@@ -3225,9 +3228,81 @@ of the label.
 
 These fail against the old code.
 
-**Remaining:** `AppTextInput` used directly (workout, exercises, routines,
-dietary preferences, food log, `AuthTextField`, sign-in) still names the
-field by its placeholder or value. That is not covered by this authorization.
+**Remaining (as of 2026-10-08, closed 2026-10-09 below):** `AppTextInput`
+used directly (workout, exercises, routines, dietary preferences, food log,
+`AuthTextField`, sign-in) still named the field by its placeholder or value.
+
+**Regression found in the 2026-10-08 fix (2026-10-09).** On an empty field with
+**no placeholder**, TalkBack reads `accessibilityLabel` as the field's text and
+then appends the linked label, so the label was spoken **twice**: *"Editing.
+Height (cm). Edit box for Height (cm) \*"*. It affected live empty
+no-placeholder `FormField`s (Goal target weight and eight Profile fields); the
+medical forms are dormant. The 2026-10-08 device pass had covered only
+placeholder and filled fields. A first `AppTextInput` candidate that kept
+`accessibilityLabel` showed the same duplicate (*"Editing. Email. Edit box for
+Email"*), so it was reverted.
+
+**Owner decision (2026-10-09, Option B).** No new public prop, copy, key or
+layout:
+- **`FormField`:** on Android the input links its visible label and does
+  **not** pass `accessibilityLabel`.
+- **`AppTextInput`:** on Android it renders a zero-size, absolutely
+  positioned text whose content **exactly equals** `accessibilityLabel`
+  (`useId` `nativeID`). The input links it and does **not** pass
+  `accessibilityLabel`.
+- **Web and iOS are unchanged:** `accessibilityLabel` on the native node, and
+  no link or helper.
+- **Preserved:** the public `accessibilityLabel` prop (required), frozen
+  exact-label queries, `testID`s, both control models, commit-on-end, focus
+  styling and paid-write disabling. The Maestro flows select inputs by `id`,
+  not by label.
+- **Structural coverage through the shared primitive:**
+  - all eleven direct `AppTextInput` call sites: sign-in, `AuthTextField`,
+    account deletion, dietary search and note, food-log search, routine name,
+    workout name, new-set reps/weight, and the per-set reps editor;
+  - every `FormField`.
+
+  Each name is the caller's existing `accessibilityLabel`, never a
+  placeholder, value or card title.
+
+**Representative TalkBack evidence** (Android 15, label spoken once in every
+tested state; not every caller below was individually walked):
+
+| State | EN | ES |
+|---|---|---|
+| `FormField` empty, no placeholder | *"Editing. Edit box for Height (cm) \*"* | *"Editing. Edit box for Estatura (cm) \*"* |
+| `FormField` empty, placeholder | *"Editing. YYYY-MM-DD. Edit box for Birth date \*"* | *"Editing. AAAA-MM-DD. Edit box for Fecha de nacimiento \*"* |
+| `FormField` filled | *"Editing. 5. Edit box for Target weight (kg)"* | *"Editing. 5. Edit box for Peso objetivo (kg)"* |
+| `AppTextInput` empty, placeholder | *"Editing. Search foods (e.g. chicken, oats). Edit box for Search foods"* | *"Editing. Buscar alimentos (p. ej., pollo, avena). Edit box for Buscar alimentos"* |
+| `AppTextInput` filled, placeholder | *"Editing. Legs. Edit box. e.g. Push day for Routine name"* | *"Editing. Piernas. Edit box. p. ej., Día de empuje for Nombre de la rutina"* |
+| `AppTextInput` empty, no placeholder | *"Editing. Edit box for Email"* (sign-in and `AuthTextField`) | *"Editing. Edit box for Correo electrónico"* |
+| `AppTextInput` filled, no placeholder | *"Editing. <address>. Edit box for Email"* | *"Editing. <address>. Edit box for Correo electrónico"* |
+
+- **Focus and layout:** keyboard stops are unchanged (sign-in still has 8,
+  in the same order), and input bounds are unchanged against `main`.
+- **The hidden helper never appears** in the accessibility tree that TalkBack
+  navigates.
+- **Remaining TalkBack wording:**
+  - An empty password field adds TalkBack's own word *"password"*.
+  - An empty field's placeholder is still read in the text slot.
+  - The visible required marker is read as part of the label.
+
+**Tests:**
+- **`app-text-input.spec.tsx`:**
+  - four Android states for the controlled model, plus the commit-on-end
+    model;
+  - no `accessibilityLabel` on the Android node;
+  - an exact-text, zero-size helper;
+  - distinct ids;
+  - iOS/Web negative controls.
+- **`FormField.spec.tsx`:**
+  - empty with and without a placeholder, and filled;
+  - required marker unchanged;
+  - placeholder and value are never names;
+  - distinct ids;
+  - iOS/Web controls.
+- **Mutation proofs:** restoring `accessibilityLabel` on the Android node
+  fails 9 tests, and removing the link fails 10.
 
 ---
 

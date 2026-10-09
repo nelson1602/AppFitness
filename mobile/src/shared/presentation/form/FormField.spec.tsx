@@ -166,24 +166,56 @@ describe('FormField', () => {
       );
     }
 
-    it('links each Android input to its own visible label, not the placeholder', async () => {
+    // Owner Option B: on Android the visible label is the only name. The native
+    // node carries no `accessibilityLabel`, which TalkBack read as text on an
+    // empty field without a placeholder, speaking the label twice (TalkBack-
+    // verified in EN/ES after the change: once in every state).
+    function States() {
+      const { control } = useForm<{ weight: string; height: string; target: string }>({
+        defaultValues: { weight: '', height: '', target: '72' },
+      });
+      return (
+        <>
+          <FormField
+            control={control}
+            name="weight"
+            label="Weight (kg)"
+            placeholder="e.g. 80.5"
+            required
+          />
+          <FormField control={control} name="height" label="Height (cm)" required />
+          <FormField control={control} name="target" label="Target weight (kg)" />
+        </>
+      );
+    }
+
+    it.each([
+      ['empty with a placeholder', 'field-weight', 'Weight (kg) *'],
+      ['empty without a placeholder', 'field-height', 'Height (cm) *'],
+      ['filled', 'field-target', 'Target weight (kg)'],
+    ])('names an Android field %s by its visible label only', async (_state, testID, visible) => {
       jest.replaceProperty(Platform, 'OS', 'android');
-      await render(<TwoFields />);
+      await render(<States />);
 
-      const weight = screen.getByTestId('field-weight');
-      const notes = screen.getByTestId('field-notes');
-      const weightLabel = screen.getByText('Weight (kg) *');
+      const input = screen.getByTestId(testID);
+      expect(input.props.accessibilityLabelledBy).toEqual(expect.any(String));
+      expect(input.props.accessibilityLabel).toBeUndefined();
+      // The visible label, required marker unchanged, is the linked node.
+      expect(screen.getByText(visible)).toHaveProp('nativeID', input.props.accessibilityLabelledBy);
+      expect(screen.getByLabelText(visible)).toBe(input);
+    });
 
-      expect(weight.props.accessibilityLabelledBy).toEqual(expect.any(String));
-      expect(weightLabel).toHaveProp('nativeID', weight.props.accessibilityLabelledBy);
-      expect(screen.getByText('Notes')).toHaveProp('nativeID', notes.props.accessibilityLabelledBy);
-      expect(notes.props.accessibilityLabelledBy).not.toBe(weight.props.accessibilityLabelledBy);
-      // The name is the visible label verbatim, required marker included; the
-      // placeholder and the fallback accessibilityLabel are unchanged.
-      expect(screen.getByLabelText('Weight (kg) *')).toBe(weight);
+    it('never names an Android field by its placeholder or value, and links distinct labels', async () => {
+      jest.replaceProperty(Platform, 'OS', 'android');
+      await render(<States />);
+
       expect(screen.queryByLabelText('e.g. 80.5')).toBeNull();
-      expect(weight).toHaveProp('placeholder', 'e.g. 80.5');
-      expect(weight).toHaveProp('accessibilityLabel', 'Weight (kg)');
+      expect(screen.queryByLabelText('72')).toBeNull();
+      expect(screen.getByTestId('field-target').props.value).toBe('72');
+      const ids = ['field-weight', 'field-height', 'field-target'].map(
+        (id) => screen.getByTestId(id).props.accessibilityLabelledBy,
+      );
+      expect(new Set(ids).size).toBe(3);
     });
 
     it.each(['ios', 'web'] as const)(

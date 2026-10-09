@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import type { TextStyle } from 'react-native';
+import { Platform, type TextStyle } from 'react-native';
 
 import { darkColors, lightColors } from '../theme/colors';
 import { radius } from '../theme/radius';
@@ -428,5 +428,119 @@ describe('AppTextInput', () => {
         bothModelsAccepted,
       ]).toEqual([true, true, true, true, true]);
     });
+  });
+});
+
+// BUG-033 (owner Option B). TalkBack names an Android EditText by its
+// placeholder or value, and reads `accessibilityLabel` as text when the field is
+// empty with no placeholder. On Android the exact label is therefore a hidden,
+// zero-size text linked through `accessibilityLabelledBy`, and the native node
+// carries no `accessibilityLabel`. Device-verified with TalkBack (EN/ES): the
+// label is spoken once in every state. Prop evidence only here.
+describe('AppTextInput programmatic name on Android (BUG-033)', () => {
+  beforeEach(() => {
+    jest.replaceProperty(Platform, 'OS', 'android');
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const linkedText = (input: { props: { accessibilityLabelledBy?: unknown } }) =>
+    screen.container.queryAll(
+      (node) =>
+        typeof node.type === 'string' &&
+        node.props?.nativeID !== undefined &&
+        node.props.nativeID === input.props.accessibilityLabelledBy,
+    );
+
+  const expectNamedOnce = (label: string, testID: string) => {
+    const input = screen.getByTestId(testID);
+    // Linked by an exact-text node, and no second name on the native node.
+    expect(input.props.accessibilityLabelledBy).toEqual(expect.any(String));
+    expect(input.props.accessibilityLabel).toBeUndefined();
+    const linked = linkedText(input);
+    expect(linked).toHaveLength(1);
+    expect(linked[0]).toHaveTextContent(label, { exact: true });
+    expect(linked[0]).toHaveStyle({ position: 'absolute', width: 0, height: 0 });
+    // The frozen exact-label query still resolves to the native node.
+    expect(screen.getByLabelText(label)).toBe(input);
+  };
+
+  it.each([
+    ['empty with a placeholder', '', 'e.g. Push day'],
+    ['filled with a placeholder', 'Legs', 'e.g. Push day'],
+    ['empty without a placeholder', '', undefined],
+    ['filled without a placeholder', 'Legs', undefined],
+  ])('names a controlled field %s by its label only', async (_state, value, placeholder) => {
+    await render(
+      <AppTextInput
+        accessibilityLabel="Routine name"
+        onChangeText={() => {}}
+        placeholder={placeholder}
+        testID="routine-name"
+        value={value}
+      />,
+    );
+
+    expectNamedOnce('Routine name', 'routine-name');
+    if (placeholder) expect(screen.queryByLabelText(placeholder)).toBeNull();
+    if (value) expect(screen.queryByLabelText(value)).toBeNull();
+    expect(screen.getByTestId('routine-name').props.value).toBe(value);
+  });
+
+  it('names the uncontrolled commit-on-end field by its label only', async () => {
+    await render(
+      <AppTextInput
+        accessibilityLabel="Reps for set 1"
+        defaultValue="8"
+        onCommitEnd={() => {}}
+        testID="set-reps"
+      />,
+    );
+
+    expectNamedOnce('Reps for set 1', 'set-reps');
+    expect(screen.queryByLabelText('8')).toBeNull();
+  });
+
+  it('gives every input its own linked label', async () => {
+    await render(
+      <>
+        <AppTextInput accessibilityLabel="Email" onChangeText={() => {}} testID="a" value="" />
+        <AppTextInput accessibilityLabel="Password" onChangeText={() => {}} testID="b" value="" />
+      </>,
+    );
+
+    const a = screen.getByTestId('a').props.accessibilityLabelledBy;
+    const b = screen.getByTestId('b').props.accessibilityLabelledBy;
+    expect(a).not.toBe(b);
+    expectNamedOnce('Email', 'a');
+    expectNamedOnce('Password', 'b');
+  });
+});
+
+describe.each(['ios', 'web'] as const)('AppTextInput programmatic name on %s', (os) => {
+  beforeEach(() => {
+    jest.replaceProperty(Platform, 'OS', os);
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('keeps accessibilityLabel on the native node and renders no linked helper', async () => {
+    await render(
+      <AppTextInput
+        accessibilityLabel="Routine name"
+        onChangeText={() => {}}
+        placeholder="e.g. Push day"
+        testID="routine-name"
+        value=""
+      />,
+    );
+
+    const input = screen.getByTestId('routine-name');
+    expect(input).toHaveProp('accessibilityLabel', 'Routine name');
+    expect(input.props.accessibilityLabelledBy).toBeUndefined();
+    expect(screen.container.queryAll((node) => node.props?.nativeID !== undefined)).toHaveLength(0);
+    expect(screen.queryByText('Routine name')).toBeNull();
   });
 });

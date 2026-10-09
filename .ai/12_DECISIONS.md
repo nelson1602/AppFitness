@@ -8794,6 +8794,32 @@ documentation only.
 - `mobile/package.json`, `mobile/package-lock.json` — the resolved versions the
   capability matrix was verified against
 
+### Amendment (2026-10-09, BUG-033 Option B) — Android input naming
+
+**Owner-authorized.** TalkBack names an Android `EditText` by its placeholder or
+value, so the 2026-10-08 `FormField` fix linked the visible label
+(`accessibilityLabelledBy`). On an empty field with no placeholder, TalkBack
+also read `accessibilityLabel` as text, so the label was spoken twice.
+
+**Decision** (Android only; Web and iOS unchanged):
+1. When `accessibilityLabelledBy` supplies the programmatic name, the native
+   `TextInput` does **not** also receive `accessibilityLabel`.
+2. **`FormField`** links its existing visible label.
+3. **`AppTextInput`** renders a zero-size, absolutely positioned text whose
+   content exactly equals `accessibilityLabel` and links it.
+4. **The public `accessibilityLabel` prop stays required and unchanged.**
+   - Web and iOS pass it to the native node exactly as before.
+   - Frozen exact-label queries still resolve, through the linked text on
+     Android.
+5. **Unchanged:** Decision 5 (no required/invalid props) and ADR-P025, and no
+   new prop, copy, key or layout is introduced.
+
+**Evidence.** Representative real-TalkBack paths (EN/ES) speak the label
+exactly once for empty and filled fields, with and without placeholders. The
+shared primitive and regressions cover the remaining callers; they are not
+claimed as individually walked device paths. The tested paths add no focus
+stop and cause no layout change. Details are in `.ai/11_BACKLOG.md` §BUG-033.
+
 ---
 
 ## ADR-P024 — Validation Error Announcement Staging
