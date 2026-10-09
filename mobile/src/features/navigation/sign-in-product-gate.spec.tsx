@@ -29,7 +29,7 @@ describe('SignInScreen release product gate', () => {
   it('register mode also starts with an empty username', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Switch authentication mode' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
 
     expect(screen.getByTestId('input-username').props.value).toBe('');
     expect(screen.getByTestId('input-email').props.value).toBe('');

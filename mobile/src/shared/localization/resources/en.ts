@@ -23,7 +23,6 @@ export const en = {
   'auth.register': 'Register',
   'auth.useExistingAccount': 'Use existing account',
   'auth.createAccount': 'Create a local account',
-  'auth.switchMode': 'Switch authentication mode',
   'auth.error.invalidCredentialsTitle': 'Sign-in failed',
   'auth.error.invalidCredentialsBody': 'That email or password is incorrect. Please try again.',
   'auth.error.connectivityTitle': 'No connection',

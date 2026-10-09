@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { AppText, AppTextInput } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
@@ -33,25 +33,42 @@ export function AuthTextField({
 }: AuthTextFieldProps) {
   const theme = useTheme();
   return (
-    <View style={{ gap: theme.spacing.xs }}>
-      <AppText variant="label">{label}</AppText>
-      <AppTextInput
-        accessibilityLabel={label}
-        testID={testID}
-        autoCapitalize="none"
-        autoCorrect={false}
-        keyboardType={keyboardType}
-        onChangeText={onChangeText}
-        secureTextEntry={secureTextEntry}
-        value={value}
-      />
-      {error ? (
-        // Matches the FormField pattern (ADR-P024 Decision 3): request a polite
-        // announcement of the already-rendered message. Android and Web only.
-        <AppText aria-live="polite" testID={`${testID}-error`} variant="caption" tone="error">
-          {error}
-        </AppText>
-      ) : null}
+    <View>
+      <View style={{ gap: theme.spacing.xs }}>
+        <AppText variant="label">{label}</AppText>
+        <AppTextInput
+          accessibilityLabel={label}
+          testID={testID}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType={keyboardType}
+          onChangeText={onChangeText}
+          secureTextEntry={secureTextEntry}
+          value={value}
+        />
+      </View>
+      {/*
+       * Matches the FormField pattern (BUG-034): on Android an always-mounted,
+       * initially empty text with a native live region, kept at zero height
+       * while empty; on Web `aria-live` on the message (ADR-P024 Decision 3).
+       */}
+      <View style={error ? { marginTop: theme.spacing.xs } : undefined}>
+        {Platform.OS === 'android' ? (
+          <AppText
+            accessibilityLiveRegion="polite"
+            style={error ? undefined : { height: 0 }}
+            testID={error ? `${testID}-error` : undefined}
+            variant="caption"
+            tone="error"
+          >
+            {error ?? ''}
+          </AppText>
+        ) : error ? (
+          <AppText aria-live="polite" testID={`${testID}-error`} variant="caption" tone="error">
+            {error}
+          </AppText>
+        ) : null}
+      </View>
     </View>
   );
 }

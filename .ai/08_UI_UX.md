@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.18
+Version: 1.19
 Status: Active
-Last Updated: 2026-10-01
+Last Updated: 2026-10-08
 
 ---
 
@@ -645,6 +645,27 @@ new contrast claim. No assistive-technology outcome is claimed (UX-4C).
 
 **Not changed:** colour or spacing tokens, any component's props, layout, or
 existing copy. The catalogues gain five access keys (1138 → 1143).
+
+---
+
+# Revision Scope (v1.19 — BUG-033, BUG-034, BUG-036)
+
+**Owner decisions, 2026-10-08.** Three accessibility corrections from the UX-4C
+TalkBack pass. No public prop, dependency or token changed.
+
+| Component | Change | Unchanged |
+|---|---|---|
+| `FormField` | **Android:** the input is named by its visible label (`nativeID` + `accessibilityLabelledBy`). The error is an always-mounted, initially empty, zero-height text with `accessibilityLiveRegion="polite"` | API, `accessibilityLabel` (Web/iOS name), required/invalid decisions, layout, validation, Web `aria-live` |
+| `AuthTextField` | **Android:** same error mechanism; the error `testID` exists only while an error is shown | Name, layout, Web `aria-live` |
+| `Banner` | **Android:** one persistent, zero-size, absolutely positioned announcement text (`accessibilityLiveRegion="polite"`), empty until the root's first `onLayout`, holding the error only while the tone is `error`. The root `aria-live` is Web-only | API, visible title/body (synchronous, not live), layout, `summary` role, focus order, Web `aria-live` |
+| Sign-in mode toggle | Named by its visible text through `AppButton`'s derived label; `auth.switchMode` removed (1143 → 1142 keys) | Copy, behaviour |
+
+**Accessibility.** TalkBack (Android 15, EN/ES) now speaks the field label and
+announces new errors once. The required marker is read as part of the visible
+label, and an empty field's placeholder is still read in TalkBack's text slot.
+No VoiceOver, browser-AT, programmatic invalid, programmatic required or
+field-to-error outcome is claimed. **UX-4C stays PARTIAL.** See ADR-P024
+*Correction (2026-10-08)* and `.ai/11_BACKLOG.md` §BUG-033, §BUG-034, §BUG-036.
 
 ---
 

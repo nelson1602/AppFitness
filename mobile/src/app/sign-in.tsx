@@ -120,7 +120,6 @@ export default function SignInScreen() {
               {mode === 'register' ? t('auth.register') : t('auth.signIn')}
             </AppButton>
             <AppButton
-              accessibilityLabel={t('auth.switchMode')}
               onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
               variant="text"
             >

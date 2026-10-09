@@ -1,5 +1,6 @@
+import { useId } from 'react';
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
-import { TextInput, View } from 'react-native';
+import { Platform, TextInput, View } from 'react-native';
 
 import { useTheme } from '@/shared/theme';
 
@@ -39,53 +40,76 @@ export function FormField<T extends FieldValues>({
 }: FormFieldProps<T>) {
   const theme = useTheme();
   const disabled = usePaidWriteDisabled();
+  // BUG-033: TalkBack names an Android EditText by its placeholder or value and
+  // ignores `accessibilityLabel`, so the visible label is linked as the name.
+  // Android only: Web already names the input through `aria-label`, and
+  // `aria-labelledby` would override it there.
+  const labelId = useId();
+  const labelledBy = Platform.OS === 'android' ? labelId : undefined;
   return (
     <Controller
       control={control}
       name={name}
       render={({ field: { onChange, onBlur, value }, fieldState: { error } }) => (
-        <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="label">
-            {label}
-            {required ? ' *' : ''}
-          </AppText>
-          <TextInput
-            accessibilityLabel={label}
-            accessibilityState={disabled ? { disabled: true } : undefined}
-            testID={`field-${name}`}
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={disabled ? false : undefined}
-            selectTextOnFocus={selectTextOnFocus}
-            keyboardType={keyboardType}
-            placeholder={placeholder}
-            placeholderTextColor={theme.colors.onSurfaceVariant}
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value == null ? '' : String(value)}
-            style={{
-              backgroundColor: theme.colors.surfaceVariant,
-              borderColor: error ? theme.colors.error : theme.colors.outline,
-              borderRadius: theme.radius.medium,
-              borderWidth: 1,
-              color: theme.colors.onSurface,
-              opacity: disabled ? 0.56 : 1,
-              minHeight: theme.spacing.x5l,
-              paddingHorizontal: theme.spacing.md,
-              ...theme.typography.body,
-            }}
-          />
-          {error ? (
-            // UX-1C-2B-a (ADR-P024 Decision 3): request a polite announcement of
-            // the already-rendered message. Typed prop, Android and Web only —
-            // React Native declares `aria-live` `@platform android` and
-            // react-native-web maps it to the DOM attribute. iOS is unaffected,
-            // and no announcement is proven until manual TalkBack / browser-AT
-            // verification is performed.
-            <AppText aria-live="polite" variant="caption" tone="error">
-              {error.message}
+        <View>
+          <View style={{ gap: theme.spacing.xs }}>
+            <AppText nativeID={labelledBy} variant="label">
+              {label}
+              {required ? ' *' : ''}
             </AppText>
-          ) : null}
+            <TextInput
+              accessibilityLabel={label}
+              accessibilityLabelledBy={labelledBy}
+              accessibilityState={disabled ? { disabled: true } : undefined}
+              testID={`field-${name}`}
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={disabled ? false : undefined}
+              selectTextOnFocus={selectTextOnFocus}
+              keyboardType={keyboardType}
+              placeholder={placeholder}
+              placeholderTextColor={theme.colors.onSurfaceVariant}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value == null ? '' : String(value)}
+              style={{
+                backgroundColor: theme.colors.surfaceVariant,
+                borderColor: error ? theme.colors.error : theme.colors.outline,
+                borderRadius: theme.radius.medium,
+                borderWidth: 1,
+                color: theme.colors.onSurface,
+                opacity: disabled ? 0.56 : 1,
+                minHeight: theme.spacing.x5l,
+                paddingHorizontal: theme.spacing.md,
+                ...theme.typography.body,
+              }}
+            />
+          </View>
+          {/*
+           * BUG-034: Android announces a live region when its text changes,
+           * never when it mounts, and `Text` does not map `aria-live`. On
+           * Android the message is therefore an always-mounted, initially empty
+           * text with a native live region, kept at zero height while empty.
+           * Spacing matches the former `gap` only while a message is shown.
+           */}
+          <View style={error ? { marginTop: theme.spacing.xs } : undefined}>
+            {Platform.OS === 'android' ? (
+              <AppText
+                accessibilityLiveRegion="polite"
+                style={error ? undefined : { height: 0 }}
+                variant="caption"
+                tone="error"
+              >
+                {error?.message ?? ''}
+              </AppText>
+            ) : error ? (
+              // UX-1C-2B-a (ADR-P024 Decision 3): react-native-web maps
+              // `aria-live` to the DOM attribute. iOS is unaffected.
+              <AppText aria-live="polite" variant="caption" tone="error">
+                {error.message}
+              </AppText>
+            ) : null}
+          </View>
         </View>
       )}
     />

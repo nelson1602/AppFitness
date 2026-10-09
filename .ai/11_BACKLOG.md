@@ -1999,6 +1999,78 @@ Excluded:
      **The repository identity blocker UX-4B-1 is closed.** UX-4C still needs a
      build carrying that identity and the manual iOS/VoiceOver, Android/TalkBack
      and browser-AT passes; no accessibility outcome is claimed by the rename.
+     **Status: PARTIAL (2026-10-08).** The non-Apple half ran; see
+     *UX-4C non-Apple campaign (2026-10-08)* below. **VoiceOver/iOS and
+     browser-AT are NOT RUN**, so UX-4C stays open and no gate closes.
+
+**UX-4C non-Apple campaign (2026-10-08) — PARTIAL.**
+Setup:
+- Android 15 emulator (`google_apis`, x86_64) with the locally built debug APK
+  and a disposable local API and database. No external service was used.
+- Real TalkBack, its speech read from TalkBack's own verbose log, and keyboard
+  focus read from the accessibility tree.
+- JS from the ADR-P033 icon candidate (`main` `5fe1d15` + the AppIcon pilot).
+  Every defect below was reproduced against an unchanged `5fe1d15` bundle.
+- Web: the static Web export in headless Chrome, keys sent through Chrome's own
+  input pipeline.
+
+**Run:**
+- **TalkBack (EN, plus an ES subset):**
+  - sign-in and the create-account toggle; dashboard and onboarding checklist;
+  - nutrition, nutrition plan, food log and dietary preferences;
+  - routines, workout log and exercises; progress;
+  - sync conflicts (empty state) and subscription (provider disabled);
+  - profile, goal, and evaluation and limitations;
+  - account deletion, without typing the phrase.
+- **Keyboard:** Tab and Shift+Tab order, Enter activation, and the system Back
+  shortcut on the same screens.
+- **Large text:** 1.5x and 2.0x for the dashboard, goal and account deletion,
+  light and dark, EN and ES.
+- **Web:** Tab and Shift+Tab, focus visibility, Enter and Space activation, and
+  error states on `/forgot-password`, `/reset-password` (with and without a
+  token) and `/verify-email` (with and without a token).
+
+**Observed, not a claim of conformance:**
+- **Names, roles and states.** TalkBack announces explicit labels with their
+  roles and states:
+  - *Button*, *Radio button* with *selected*, *Check box* with *checked*/*not
+    checked*, and *Edit box*;
+  - Spanish labels are localized (TalkBack's role words stay in its own system
+    language);
+  - no icon ligature word is spoken.
+- **Keyboard order** is logical on every screen tested. Controls below the fold
+  are reached by scrolling into view. A disabled button is skipped.
+- **Back.** The native header back button is **not** in the Tab order. The
+  system keyboard Back shortcut (Meta+Backspace) navigates back.
+- **Large text.** No clipping, overlap, unreachable control or lost content at
+  1.5x or 2.0x on the screens captured. The native header title does not grow
+  with the font scale.
+- **Destructive confirmation.** *Delete my account* stays disabled until the
+  phrase is typed. *Cancel* and the confirmation field are labelled.
+- **Web focus.** Every focus stop on the three portals shows a visible focus
+  indicator and matches `:focus-visible`. Tab order is logical and there is no
+  keyboard trap. Enter and Space activate buttons. An empty submit keeps focus
+  on the button and writes the error into a polite live region.
+- **Defects:** BUG-033, BUG-034, BUG-035 (all **pre-existing**). One minor
+  naming observation: the *Create a local account* / *Use existing account*
+  toggle is named *Switch authentication mode*, which does not contain its
+  visible text.
+- **Follow-up, same day (owner-authorized):**
+  - **BUG-034 Done:** Android announces inline field errors and error
+    Banners.
+  - **BUG-033 partially fixed:** `FormField` only; `AppTextInput` sites stay
+    open.
+  - **BUG-036 Done:** the toggle is now named by its visible text.
+  - **BUG-037 recorded:** the sign-in focus jump.
+  - **BUG-035 stays open.**
+
+**Not run, and not claimed:**
+- VoiceOver and every iOS announcement.
+- A browser screen reader: NVDA is not installed, and Windows Narrator's speech
+  could not be captured.
+- Programmatic invalid, programmatic required and field-to-error association.
+  The Web DOM confirms that none is exposed today (ADR-P023).
+- **All five accessibility release-review gates stay open.**
 7. **UX-5 — Progressive feature migration. Status: Done (7 of 7 REDUCED
    inputs, 2026-09-28).** One feature per slice, behaviour preserved, with
    bilingual, dark-theme and large-text device verification per slice. No
@@ -2930,6 +3002,232 @@ decision, not a defect fix.
 **Reconfirmed 2026-09-17** by the gate 6 pass-2 captures (`routines-rows`,
 `dietary-preferences-rows`), including the direction: the light capture is the
 harder of the two to read. No new measurement; no change of severity.
+
+---
+
+## [BUG-037] Sign-In Submit Moves Focus to the Email Field
+
+Status: **Open.**
+Priority: **P3**
+Type: Bug (accessibility — focus management)
+Owner: Mobile
+Created: 2026-10-08
+
+**Observed** on Android with keyboard focus and real TalkBack, on unchanged
+`main` `5fe1d15` and after the BUG-034 fix. Submitting sign-in moves
+keyboard and TalkBack focus from *Sign in* to the Email field, and TalkBack
+speaks *"Editing. <address>. Edit box"* before the error. Since BUG-034 the
+error message is still announced, queued politely after that speech.
+**Likely cause** (not verified): the busy button gives up focus.
+
+---
+
+## [BUG-036] Authentication-Mode Button Is Named "Switch Authentication Mode"
+
+Status: **Done — named by its visible text; regression-tested and
+TalkBack-verified in EN and ES (2026-10-08).**
+Priority: **P3** (WCAG 2.5.3 label in name)
+Type: Bug (accessibility — accessible name)
+Owner: Mobile
+Created: 2026-10-08
+
+**Observed** (UX-4C): the sign-in toggle showed *Create a local account* /
+*Use existing account* but was named *Switch authentication mode*
+(*Cambiar modo de autenticación*). That name does not contain the visible
+text.
+
+**Fix.** `app/sign-in.tsx` no longer passes an explicit
+`accessibilityLabel`. `AppButton`'s existing derived-label contract names
+the button from its string child. The now-unused `auth.switchMode` key is
+removed from EN and ES, so the catalogues hold **1142** keys each.
+
+**Evidence:**
+- **TalkBack:** *"Create a local account. Button"* / *"Use existing account.
+  Button"* (EN), and *Crear una cuenta local* / *Usar una cuenta existente*
+  (ES).
+- **Tests:** `sign-in-route.spec.tsx` (both modes, plus a negative control
+  for the old name) and `sign-in-localization.spec.tsx` (ES). Against the
+  old code, these fail.
+
+---
+
+## [BUG-035] Web Portals Drop Keyboard Focus to the Page After Enter or a Failed Submit
+
+Status: **Open — needs an owner decision (no Enter-submit or focus-return
+contract exists).**
+Priority: **P3**
+Type: Bug (Web — keyboard focus management)
+Owner: Mobile / Web
+Created: 2026-10-08
+
+**Observed** (UX-4C Web campaign, headless Chrome on the static Web export;
+identical on unchanged `main` `5fe1d15`):
+- On `/reset-password` with a token, pressing **Enter** in a password field
+  submits nothing and shows no message, and focus moves to the page body.
+- On `/forgot-password`, submitting a request that fails moves focus to the
+  page body. The error itself is written to a polite live region.
+- An empty submit is fine: focus stays on the button.
+
+A keyboard user loses their place and must Tab from the start of the page.
+**Likely cause** (not verified): React Native Web blurs a single-line input on
+Enter when it has no submit handler, and a button disabled while busy gives up
+focus. **Fixing it needs a decision** on Enter-to-submit and focus return,
+which the shared input contract does not define.
+
+---
+
+## [BUG-034] TalkBack Does Not Announce Error Banners or Field Errors (ADR-P024 Premise Unmet on Device)
+
+Status: **Done on Android — inline field errors and error Banners are
+announced once, politely, without moving focus; TalkBack-verified and
+regression-tested (2026-10-08). iOS is unchanged.**
+Priority: **P2** (errors are silent for TalkBack users)
+Type: Bug (accessibility — Android announcements)
+Owner: Mobile
+Created: 2026-10-08
+
+**Observed** (UX-4C, real TalkBack on Android 15, speech read from TalkBack's
+verbose log; identical on unchanged `main` `5fe1d15`):
+- **Sign-in with a wrong password:** the error `Banner` (*Sign-in failed*)
+  appears, but TalkBack speaks nothing for it. Every content-change event it
+  receives reports `nodeLiveRegion=0`.
+- **Goal form, target weight 0:** the `FormField` error *Must be greater
+  than 0* appears and is not spoken.
+- **Sign-in also moves focus:** keyboard focus jumps to the Email field on
+  submit, so the error is not where the user is. This is now tracked as
+  **BUG-037** and is not part of this fix.
+
+ADR-P024 and its BUG-025 extension rely on `aria-live="polite"` being
+announced on Android. On device, an error that **appears** is not announced.
+
+**Root cause** (verified in React Native 0.86.3 and on device):
+1. `View` normalizes `aria-live` to `accessibilityLiveRegion`, but `Text`
+   does not. The `aria-live` on the `FormField` and `AuthTextField` message
+   text is therefore inert on Android.
+2. `BaseViewManager` consumes `accessibilityLiveRegion`, but Android
+   announces only when an **attached** live region's content changes. A view
+   that mounts already holding its text (the error `Banner`) is silent.
+3. A live region on an RN `ViewGroup` composed **no speech** in TalkBack
+   (`ttsOutput={}`), even with its message in a child text.
+4. Fabric flattens an unstyled `View` whose only prop is a live region, so
+   no native view exists to announce.
+
+**Fix** (ADR-P024 *Correction (2026-10-08)*, declarative only):
+- **Inline field errors** (`FormField`, `AuthTextField`): on Android, an
+  always-mounted, initially empty, zero-height error text with
+  `accessibilityLiveRegion="polite"`; the message is written into it.
+- **Error `Banner`:** on Android every `Banner` carries one persistent,
+  zero-size, absolutely positioned announcement text with
+  `accessibilityLiveRegion="polite"`.
+  - It stays empty until the root's first `onLayout`. After that it holds
+    *"title. body"* (or the title alone) while the tone is `error`, and is
+    empty otherwise.
+  - The visible title and body render synchronously and are not live
+    regions.
+  - The node is outside layout and `gap`, and is not visible to the user.
+- **Web:** keeps `aria-live` exactly as before.
+- No imperative or global announcer was added.
+
+**Evidence** (real TalkBack, Android 15, EN; speech from TalkBack's log):
+- **Goal form:** target weight 0 → *"Must be greater than 0"* once. Typing
+  0 → once; typing 700 → *"Too large"* once.
+- **Silences:** clearing an error, a clean form render, and the dashboard's
+  info and warning Banners say nothing.
+- **Wrong password:** *"That email or password is incorrect. Please try
+  again."* once, queued after the pre-existing focus speech (BUG-037).
+- **Forgot password, empty submit:** *"Enter the email address for your
+  account."* once.
+- **Banner rerenders without remounting** (a temporary on-device harness,
+  deleted before review), each announced exactly once:
+  - info → warning → success: silent;
+  - success → error: *"Sign-in failed. Error A body."*;
+  - error → info: silent; info → error: announced again;
+  - error A → error B: *"Something went wrong. Error B body."*;
+  - an ES text change while the error stays active: *"Algo salió mal.
+    Cuerpo del error B."*;
+  - a same-props rerender and unmounting: silent.
+- **Layout and focus:**
+  - **No layout change.** The announcement node has no layout effect: the
+    card heights match `main`'s markup except for a 1 px pixel-rounding
+    difference that follows card position, not the node.
+  - **No first-frame flicker**, because the visible text is synchronous.
+  - **No extra focus stop.** The node never appears in the accessibility
+    tree that TalkBack navigates, and `Text` is not keyboard-focusable.
+- **Spanish:**
+  - *"Introduce el correo de tu cuenta."* once (inline error).
+  - *"Error de inicio de sesión. El correo o la contraseña no son correctos.
+    Inténtalo de nuevo."* once (a Banner mounted with its message).
+- **Web DOM** is unchanged against `main`.
+- **Tests:**
+  - `FormField.spec.tsx`, `auth-text-field.spec.tsx`: both commits, a single
+    live node, and Web/iOS negative controls.
+  - `banner.spec.tsx`: synchronous visible text, every rerender transition
+    on the same node, and Web/iOS negative controls.
+
+  They fail against the old code.
+
+**Not claimed:** iOS announcement, browser-AT, and the other gates.
+
+---
+
+## [BUG-033] TalkBack Reads a Field's Value or Placeholder Instead of Its Label
+
+Status: **Partially fixed (2026-10-08) — `FormField` inputs are
+named by their visible label on Android (TalkBack-verified EN/ES). Inputs
+rendered through `AppTextInput` directly, including `AuthTextField` and the
+sign-in fields, remain open.**
+Priority: **P2** (fields lose their accessible name)
+Type: Bug (accessibility — Android input naming)
+Owner: Mobile
+Created: 2026-10-08
+
+**Observed** (UX-4C, real TalkBack on Android 15; identical on unchanged
+`main` `5fe1d15`). The accessibility tree carries the correct
+`accessibilityLabel` (for example *Weight (kg)*), but TalkBack speaks:
+- **the placeholder when the field is empty and has one:** *"e.g. 80.5. Edit
+  box"* (progress weight), *"YYYY-MM-DD. Edit box"* (goal target date), *"e.g.
+  Morning session"*, *"e.g. legs"*, *"p. ej., 80.5"* (ES);
+- **the value when the field is filled:** *"Editing. 5. Edit box"* for *Target
+  weight (kg)*;
+- **the label only when the field is empty and has no placeholder:** *"Editing.
+  Height (cm). Edit box"*.
+
+It affects `FormField` and `AppTextInput` alike. A TalkBack user hears the
+example or the value, not what the field is for. **Changing how the name is
+exposed would touch the frozen `FormField`/`AppTextInput` contract**
+(ADR-P023/ADR-P025: frozen label queries, no name suffixes), so **no fix was
+made**.
+
+**Owner decision and fix (2026-10-08).** A bounded `FormField` amendment with
+no new public prop:
+- **On Android**, the visible label text gets a `nativeID` (from `useId`), and
+  the input points at it with `accessibilityLabelledBy`.
+- **Kept as the Web/iOS fallback:** `accessibilityLabel`.
+- **Web and iOS are unchanged.** On Web, `aria-labelledby` would override the
+  working `aria-label`.
+- **Unchanged:** required and invalid semantics, layout, and validation.
+
+**TalkBack evidence** (Android 15):
+- *"Editing. e.g. 80.5. Edit box for Weight (kg) \*"*
+- *"Editing. 5. Edit box for Target weight (kg)"*
+- *"Editing. 5. Edit box for Peso objetivo (kg)"* (ES)
+
+The label, value and role are announced, and the label is the programmatic
+name. **TalkBack still reads an empty field's placeholder in its text slot**
+(Android's hint behaviour), and the visible required marker is read as part
+of the label.
+
+**Tests:** `FormField.spec.tsx`:
+- Android linkage, with a distinct id per field;
+- the name equals the visible label;
+- the placeholder is not a name;
+- iOS/Web negative controls.
+
+These fail against the old code.
+
+**Remaining:** `AppTextInput` used directly (workout, exercises, routines,
+dietary preferences, food log, `AuthTextField`, sign-in) still names the
+field by its placeholder or value. That is not covered by this authorization.
 
 ---
 
