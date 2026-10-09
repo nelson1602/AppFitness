@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import {
+  Platform,
+  Text,
   TextInput,
   type NativeSyntheticEvent,
   type TextInputEndEditingEventData,
@@ -30,10 +32,11 @@ type AppTextInputKeyboardType = 'default' | 'numeric' | 'decimal-pad' | 'email-a
 
 interface AppTextInputBaseProps {
   /**
-   * The control's accessible name. Required: it lands on the native
-   * `TextInput` node alongside `testID` and the value, because shipped specs
-   * resolve inputs by label and then assert `testID` / `.props.value` on the
-   * same node (`.ai/08_UI_UX.md` §Input frozen-hook register).
+   * The control's accessible name. Required: shipped specs resolve inputs by
+   * label and then assert `testID` / `.props.value` on the same native
+   * `TextInput` node (`.ai/08_UI_UX.md` §Input frozen-hook register). On Web
+   * and iOS it lands on that node as `accessibilityLabel`; on Android it is
+   * linked as an exact-text label instead (BUG-033, see below).
    */
   accessibilityLabel: string;
   testID?: string;
@@ -120,6 +123,15 @@ export function AppTextInput(props: AppTextInputProps) {
     disabled: explicitlyDisabled = false,
   } = props;
   const disabled = explicitlyDisabled || paidWriteDisabled;
+  // BUG-033 (owner Option B): TalkBack names an Android EditText by its
+  // placeholder or value, and reads `accessibilityLabel` as text only when the
+  // field is empty with no placeholder, so linking a label as well spoke it
+  // twice. On Android only, the exact label is a zero-size, absolutely
+  // positioned text (outside layout, never visible, so no focus stop), the
+  // input is linked to it, and `accessibilityLabel` is not passed. Web and iOS
+  // keep `accessibilityLabel` alone; on Web `aria-labelledby` would override it.
+  const labelId = useId();
+  const linkLabel = Platform.OS === 'android';
 
   // Neither native event shape reaches the caller: the commit callback
   // receives the committed string, and blur is a plain notification.
@@ -132,9 +144,10 @@ export function AppTextInput(props: AppTextInputProps) {
         }
       : { value: props.value, onChangeText: props.onChangeText };
 
-  return (
+  const input = (
     <TextInput
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={linkLabel ? undefined : accessibilityLabel}
+      accessibilityLabelledBy={linkLabel ? labelId : undefined}
       accessibilityState={disabled ? { disabled: true } : undefined}
       allowFontScaling
       autoCapitalize={autoCapitalize}
@@ -167,5 +180,17 @@ export function AppTextInput(props: AppTextInputProps) {
       }}
       {...model}
     />
+  );
+  if (!linkLabel) return input;
+  return (
+    <>
+      <Text
+        nativeID={labelId}
+        style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
+      >
+        {accessibilityLabel}
+      </Text>
+      {input}
+    </>
   );
 }

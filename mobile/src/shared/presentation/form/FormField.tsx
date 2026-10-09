@@ -40,10 +40,11 @@ export function FormField<T extends FieldValues>({
 }: FormFieldProps<T>) {
   const theme = useTheme();
   const disabled = usePaidWriteDisabled();
-  // BUG-033: TalkBack names an Android EditText by its placeholder or value and
-  // ignores `accessibilityLabel`, so the visible label is linked as the name.
-  // Android only: Web already names the input through `aria-label`, and
-  // `aria-labelledby` would override it there.
+  // BUG-033: TalkBack names an Android EditText by its placeholder or value, so
+  // the visible label is linked as the name. `accessibilityLabel` is then not
+  // passed on Android (owner Option B): TalkBack reads it as text on an empty
+  // field with no placeholder, which spoke the label twice. Web and iOS keep
+  // `accessibilityLabel` alone; on Web `aria-labelledby` would override it.
   const labelId = useId();
   const labelledBy = Platform.OS === 'android' ? labelId : undefined;
   return (
@@ -58,7 +59,7 @@ export function FormField<T extends FieldValues>({
               {required ? ' *' : ''}
             </AppText>
             <TextInput
-              accessibilityLabel={label}
+              accessibilityLabel={labelledBy ? undefined : label}
               accessibilityLabelledBy={labelledBy}
               accessibilityState={disabled ? { disabled: true } : undefined}
               testID={`field-${name}`}
