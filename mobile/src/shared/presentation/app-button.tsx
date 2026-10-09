@@ -1,9 +1,11 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   type PressableProps,
+  type View,
   type ViewStyle,
 } from 'react-native';
 
@@ -26,6 +28,8 @@ interface AppButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   variant?: ButtonVariant;
   loading?: boolean;
   style?: ViewStyle;
+  /** The underlying `Pressable` host view (React 19 ref-as-prop). */
+  ref?: Ref<View>;
 }
 
 export function AppButton({
@@ -37,11 +41,28 @@ export function AppButton({
   accessibilityLabel,
   accessibilityState,
   style,
+  ref,
+  onPress,
+  onLongPress,
+  onPressIn,
+  onPressOut,
   ...props
 }: AppButtonProps) {
   const theme = useTheme();
   const paidWriteDisabled = usePaidWriteDisabled();
-  const isDisabled = disabled || loading || paidWriteDisabled;
+  const genuinelyDisabled = Boolean(disabled) || paidWriteDisabled;
+  const isDisabled = genuinelyDisabled || loading;
+  /**
+   * BUG-035 (Web only, owner Option 1). react-native-web renders this as a
+   * `<button>` and adds the native `disabled` attribute whenever it is disabled,
+   * which drops keyboard focus to the page mid-request. While it is only
+   * *loading*, the Web button therefore stays enabled and focused but inert:
+   * every press handler is withheld, so click, Enter and Space do nothing, and
+   * `aria-busy` is exposed instead of `disabled`/`aria-disabled`. Explicit and
+   * paid-write disabling stay genuinely disabled; native is unchanged.
+   */
+  const isWeb = Platform.OS === 'web';
+  const webLoading = isWeb && loading && !genuinelyDisabled;
 
   /**
    * BUG-020. While `loading` the visible label is replaced by a spinner, so a
@@ -66,7 +87,7 @@ export function AppButton({
    */
   const mergedAccessibilityState = {
     ...accessibilityState,
-    disabled: isDisabled,
+    disabled: webLoading ? false : isDisabled,
     busy: loading,
   };
 
@@ -118,7 +139,13 @@ export function AppButton({
       accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel ?? derivedLabel}
       accessibilityState={mergedAccessibilityState}
-      disabled={isDisabled}
+      aria-busy={isWeb && loading ? true : undefined}
+      disabled={webLoading ? false : isDisabled}
+      onLongPress={webLoading ? undefined : onLongPress}
+      onPress={webLoading ? undefined : onPress}
+      onPressIn={webLoading ? undefined : onPressIn}
+      onPressOut={webLoading ? undefined : onPressOut}
+      ref={ref}
       style={({ pressed }) => [
         styles.base,
         {

@@ -1,5 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { createRef } from 'react';
+import {
+  Platform,
+  StyleSheet,
+  type StyleProp,
+  type TextStyle,
+  type View,
+  type ViewStyle,
+} from 'react-native';
 
 import { darkColors, lightColors } from '../theme/colors';
 import { AppButton } from './app-button';
@@ -246,4 +254,150 @@ describe('AppButton', () => {
       expect(flat.minWidth).toBeGreaterThanOrEqual(44);
     },
   );
+});
+
+// BUG-035 (owner Option 1). On Web a disabled button becomes a native
+// `<button disabled>`, which drops keyboard focus mid-request. A Web button that
+// is only loading therefore stays enabled but withholds every press handler and
+// exposes busy; explicit and paid-write disabling, and native, are unchanged.
+// The DOM result (`aria-busy="true"`, no `disabled`/`aria-disabled`, focus kept)
+// was verified in headless Chrome. Prop evidence only here.
+describe('AppButton loading contract (BUG-035)', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  const host = () => screen.getByTestId('btn');
+
+  // Fires the host's real Pressability click handler (what a DOM click, Enter or
+  // Space reaches on Web). `fireEvent.press` is not used here: with no handler
+  // on the Pressable it walks up to AppButton's own props and calls the caller's
+  // callback directly, which no runtime path does.
+  const clickHost = () =>
+    host().props.onClick?.({
+      nativeEvent: {},
+      persist() {},
+      preventDefault() {},
+      stopPropagation() {},
+    });
+
+  it('keeps a loading Web button enabled and busy, and its activation inert', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const onPress = jest.fn();
+    const view = await render(
+      <AppButton onPress={onPress} testID="btn">
+        Send reset link
+      </AppButton>,
+    );
+    clickHost();
+    expect(onPress).toHaveBeenCalledTimes(1); // the path is live when not loading
+
+    await view.rerender(
+      <AppButton loading onPress={onPress} testID="btn">
+        Send reset link
+      </AppButton>,
+    );
+    expect(host()).not.toBeDisabled();
+    expect(host().props.accessibilityState).toEqual(
+      expect.objectContaining({ busy: true, disabled: false }),
+    );
+    clickHost();
+    clickHost();
+    expect(onPress).toHaveBeenCalledTimes(1);
+    // The name survives the spinner (BUG-020).
+    expect(screen.getByRole('button', { name: 'Send reset link' })).toBe(host());
+  });
+
+  it('restores the press handler on Web once loading ends', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const onPress = jest.fn();
+    const view = await render(
+      <AppButton loading onPress={onPress} testID="btn">
+        Send
+      </AppButton>,
+    );
+    await view.rerender(
+      <AppButton onPress={onPress} testID="btn">
+        Send
+      </AppButton>,
+    );
+
+    clickHost();
+    expect(onPress).toHaveBeenCalledTimes(1);
+    expect(host().props.accessibilityState).toEqual(
+      expect.objectContaining({ busy: false, disabled: false }),
+    );
+  });
+
+  it.each(['web', 'ios', 'android'] as const)(
+    'keeps an explicitly disabled loading button genuinely disabled on %s',
+    async (os) => {
+      jest.replaceProperty(Platform, 'OS', os);
+      const onPress = jest.fn();
+      await render(
+        <AppButton disabled loading onPress={onPress} testID="btn">
+          Save
+        </AppButton>,
+      );
+
+      expect(host()).toBeDisabled();
+      expect(host().props.accessibilityState).toEqual(
+        expect.objectContaining({ busy: true, disabled: true }),
+      );
+      await fireEvent.press(host());
+      expect(onPress).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps a paid-write-disabled loading button genuinely disabled on Web', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const onPress = jest.fn();
+    await render(
+      <PaidWriteDisabledProvider disabled>
+        <AppButton loading onPress={onPress} testID="btn">
+          Save
+        </AppButton>
+      </PaidWriteDisabledProvider>,
+    );
+
+    expect(host()).toBeDisabled();
+    await fireEvent.press(host());
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it.each(['ios', 'android'] as const)('keeps native loading truly disabled on %s', async (os) => {
+    jest.replaceProperty(Platform, 'OS', os);
+    const onPress = jest.fn();
+    await render(
+      <AppButton loading onPress={onPress} testID="btn">
+        Save
+      </AppButton>,
+    );
+
+    expect(host()).toBeDisabled();
+    expect(host().props.accessibilityState).toEqual(
+      expect.objectContaining({ busy: true, disabled: true }),
+    );
+    await fireEvent.press(host());
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
+  it('forwards its ref to the underlying Pressable host', async () => {
+    const ref = createRef<View>();
+    await render(
+      <AppButton onPress={() => {}} ref={ref} testID="btn">
+        Go
+      </AppButton>,
+    );
+
+    // The ref is the Pressable's host view: it carries the button's own testID
+    // and role, and exposes `focus` (used for success focus on Web).
+    const target = ref.current as unknown as {
+      props: { testID?: string; accessibilityRole?: string };
+      focus?: unknown;
+    };
+    expect(target.props.testID).toBe('btn');
+    expect(target.props.accessibilityRole).toBe('button');
+    expect(typeof target.focus).toBe('function');
+  });
 });

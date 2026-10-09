@@ -544,3 +544,87 @@ describe.each(['ios', 'web'] as const)('AppTextInput programmatic name on %s', (
     expect(screen.queryByText('Routine name')).toBeNull();
   });
 });
+
+// BUG-035: on Web, Enter in a single-line field calls `onWebSubmit` and keeps
+// focus (react-native-web otherwise blurs on submit). Native ignores the prop.
+// Browser-verified in headless Chrome; prop evidence only here.
+describe('AppTextInput Web submit (BUG-035)', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('submits on Enter without requesting a blur on Web (controlled)', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const onWebSubmit = jest.fn();
+    const onChangeText = jest.fn();
+    await render(
+      <AppTextInput
+        accessibilityLabel="Email"
+        onChangeText={onChangeText}
+        onWebSubmit={onWebSubmit}
+        testID="field"
+        value="a@b.test"
+      />,
+    );
+
+    const input = screen.getByTestId('field');
+    expect(input.props.blurOnSubmit).toBe(false);
+    await fireEvent(input, 'submitEditing', { nativeEvent: { text: 'a@b.test' } });
+    expect(onWebSubmit).toHaveBeenCalledTimes(1);
+    await fireEvent.changeText(input, 'x');
+    expect(onChangeText).toHaveBeenCalledWith('x');
+    expect(input.props.value).toBe('a@b.test');
+  });
+
+  it('keeps commit-on-end intact alongside Web submit', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const onWebSubmit = jest.fn();
+    const onCommitEnd = jest.fn();
+    await render(
+      <AppTextInput
+        accessibilityLabel="Reps"
+        defaultValue="8"
+        onCommitEnd={onCommitEnd}
+        onWebSubmit={onWebSubmit}
+        testID="field"
+      />,
+    );
+
+    const input = screen.getByTestId('field');
+    await fireEvent(input, 'submitEditing', { nativeEvent: { text: '9' } });
+    await fireEvent(input, 'endEditing', { nativeEvent: { text: '9' } });
+    expect(onWebSubmit).toHaveBeenCalledTimes(1);
+    expect(onCommitEnd).toHaveBeenCalledWith('9');
+  });
+
+  it('leaves Web submit behaviour untouched without the callback', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    await render(
+      <AppTextInput accessibilityLabel="Email" onChangeText={() => {}} testID="field" value="" />,
+    );
+
+    const input = screen.getByTestId('field');
+    expect(input.props.blurOnSubmit).toBeUndefined();
+    expect(input.props.onSubmitEditing).toBeUndefined();
+  });
+
+  it.each(['ios', 'android'] as const)('ignores onWebSubmit on %s', async (os) => {
+    jest.replaceProperty(Platform, 'OS', os);
+    const onWebSubmit = jest.fn();
+    await render(
+      <AppTextInput
+        accessibilityLabel="Email"
+        onChangeText={() => {}}
+        onWebSubmit={onWebSubmit}
+        testID="field"
+        value=""
+      />,
+    );
+
+    const input = screen.getByTestId('field');
+    expect(input.props.blurOnSubmit).toBeUndefined();
+    expect(input.props.onSubmitEditing).toBeUndefined();
+    await fireEvent(input, 'submitEditing', { nativeEvent: { text: '' } });
+    expect(onWebSubmit).not.toHaveBeenCalled();
+  });
+});

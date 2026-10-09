@@ -48,6 +48,12 @@ interface AppTextInputBaseProps {
   selectTextOnFocus?: boolean;
   onBlur?: () => void;
   /**
+   * Web only (BUG-035): called when Enter is pressed in the field, which then
+   * keeps focus instead of blurring to the page. Native keyboards are
+   * unaffected: the prop is ignored on iOS and Android.
+   */
+  onWebSubmit?: () => void;
+  /**
    * Prevents interaction (`editable={false}`), exposes the condition
    * programmatically, and de-emphasises the control without relying on colour
    * alone. Supported on iOS, Android and Web.
@@ -120,6 +126,7 @@ export function AppTextInput(props: AppTextInputProps) {
     autoCorrect,
     selectTextOnFocus,
     onBlur,
+    onWebSubmit,
     disabled: explicitlyDisabled = false,
   } = props;
   const disabled = explicitlyDisabled || paidWriteDisabled;
@@ -179,6 +186,9 @@ export function AppTextInput(props: AppTextInputProps) {
         ...theme.typography.body,
       }}
       {...model}
+      {...(Platform.OS === 'web' && onWebSubmit
+        ? { blurOnSubmit: false, onSubmitEditing: () => onWebSubmit() }
+        : undefined)}
     />
   );
   if (!linkLabel) return input;

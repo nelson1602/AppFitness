@@ -1,6 +1,6 @@
 import { Stack, router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
 import { LanguageSelector, type TranslationKey, useLocalization } from '@/shared/localization';
@@ -45,8 +45,17 @@ export default function SignInScreen() {
    * `loading`, whatever the outcome, and an older one may never touch it.
    */
   const submissionRef = useRef(0);
+  // BUG-035 (Web only): Enter can submit too, and two quick presses both run
+  // before React re-renders with `loading`, so on Web a ref keeps a second
+  // request from starting. Native keeps the ADR-P030 ownership model above
+  // unchanged, where a double tap within one frame is two owned submissions.
+  const inFlight = useRef(false);
 
   const submit = async () => {
+    if (Platform.OS === 'web') {
+      if (inFlight.current) return;
+      inFlight.current = true;
+    }
     const submission = submissionRef.current + 1;
     submissionRef.current = submission;
     const ownsScreen = () => submissionRef.current === submission;
@@ -73,6 +82,7 @@ export default function SignInScreen() {
       // Cleared for every outcome — including `superseded`, so an external
       // sign-out cannot strand the spinner — but only by the submission that
       // still owns the screen.
+      inFlight.current = false;
       if (ownsScreen()) setLoading(false);
     }
   };
@@ -99,6 +109,7 @@ export default function SignInScreen() {
               testID="input-email"
               value={email}
               onChangeText={setEmail}
+              onWebSubmit={() => void submit()}
               keyboardType="email-address"
             />
             {mode === 'register' ? (
@@ -107,6 +118,7 @@ export default function SignInScreen() {
                 testID="input-username"
                 value={username}
                 onChangeText={setUsername}
+                onWebSubmit={() => void submit()}
               />
             ) : null}
             <Input
@@ -114,6 +126,7 @@ export default function SignInScreen() {
               testID="input-password"
               value={password}
               onChangeText={setPassword}
+              onWebSubmit={() => void submit()}
               secureTextEntry
             />
             <AppButton loading={loading} onPress={() => void submit()}>
@@ -152,6 +165,8 @@ interface InputProps {
   onChangeText: (value: string) => void;
   keyboardType?: 'default' | 'email-address';
   secureTextEntry?: boolean;
+  /** Web only: Enter submits and keeps focus in the field (BUG-035). */
+  onWebSubmit?: () => void;
 }
 
 function Input({
@@ -161,6 +176,7 @@ function Input({
   onChangeText,
   keyboardType = 'default',
   secureTextEntry = false,
+  onWebSubmit,
 }: InputProps) {
   const theme = useTheme();
   return (
@@ -172,6 +188,7 @@ function Input({
         autoCapitalize="none"
         keyboardType={keyboardType}
         onChangeText={onChangeText}
+        onWebSubmit={onWebSubmit}
         secureTextEntry={secureTextEntry}
         value={value}
       />
