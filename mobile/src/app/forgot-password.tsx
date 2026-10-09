@@ -1,6 +1,6 @@
 import { Stack, router } from 'expo-router';
-import { useState } from 'react';
-import { View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Platform, View } from 'react-native';
 
 import {
   PasswordRecoveryError,
@@ -29,8 +29,19 @@ export default function ForgotPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [errorReason, setErrorReason] = useState<PasswordRecoveryErrorReason | null>(null);
+  // A ref, not `loading`: two quick Enter presses both run before React
+  // re-renders with `loading`, so state alone cannot stop a second request.
+  const inFlight = useRef(false);
+  const backRef = useRef<View>(null);
+
+  // BUG-035 (Web): on success the form, and the focused control with it,
+  // unmounts. Focus moves to the next action instead of falling to the page.
+  useEffect(() => {
+    if (sent && Platform.OS === 'web') backRef.current?.focus();
+  }, [sent]);
 
   const submit = async () => {
+    if (inFlight.current) return;
     const trimmed = email.trim();
     if (trimmed === '') {
       setFieldError(t('auth.forgot.emailRequired'));
@@ -39,6 +50,7 @@ export default function ForgotPasswordScreen() {
 
     setFieldError(null);
     setErrorReason(null);
+    inFlight.current = true;
     setLoading(true);
     try {
       await requestPasswordReset({ email: trimmed, locale: language });
@@ -47,6 +59,7 @@ export default function ForgotPasswordScreen() {
       // Only the typed, safe reason is used — never the raw error/message.
       setErrorReason(error instanceof PasswordRecoveryError ? error.reason : 'unexpected');
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
@@ -80,6 +93,7 @@ export default function ForgotPasswordScreen() {
                 onChangeText={setEmail}
                 keyboardType="email-address"
                 error={fieldError ?? undefined}
+                onWebSubmit={() => void submit()}
               />
               <AppButton
                 loading={loading}
@@ -95,6 +109,7 @@ export default function ForgotPasswordScreen() {
         <AppButton
           accessibilityLabel={t('auth.forgot.backToSignIn')}
           onPress={() => router.replace('/sign-in')}
+          ref={backRef}
           testID="button-forgot-back"
           variant="text"
         >

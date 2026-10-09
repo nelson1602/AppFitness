@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Platform, type TextStyle } from 'react-native';
 
 import { AuthTextField } from './auth-text-field';
@@ -77,5 +77,42 @@ describe('AuthTextField inline error on Web', () => {
     expect(
       screen.getByTestId('input-forgot-email-error').props.accessibilityLiveRegion,
     ).toBeUndefined();
+  });
+});
+
+describe('AuthTextField Web submit (BUG-035)', () => {
+  it('forwards onWebSubmit to the input on Web', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    const onWebSubmit = jest.fn();
+    await render(
+      <AuthTextField
+        label="Email"
+        testID="input-forgot-email"
+        value="a@b.test"
+        onChangeText={() => {}}
+        onWebSubmit={onWebSubmit}
+      />,
+    );
+
+    const input = screen.getByTestId('input-forgot-email');
+    expect(input.props.blurOnSubmit).toBe(false);
+    await fireEvent(input, 'submitEditing', { nativeEvent: { text: 'a@b.test' } });
+    expect(onWebSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not wire submission on native', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    const onWebSubmit = jest.fn();
+    await render(
+      <AuthTextField
+        label="Email"
+        testID="input-forgot-email"
+        value=""
+        onChangeText={() => {}}
+        onWebSubmit={onWebSubmit}
+      />,
+    );
+
+    expect(screen.getByTestId('input-forgot-email').props.onSubmitEditing).toBeUndefined();
   });
 });

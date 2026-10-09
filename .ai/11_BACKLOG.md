@@ -2063,7 +2063,7 @@ Setup:
     naming across `FormField` and every direct `AppTextInput`.
   - **BUG-036 Done:** the toggle is now named by its visible text.
   - **BUG-037 recorded:** the sign-in focus jump.
-  - **BUG-035 stays open.**
+  - **BUG-035 Done on Web on 2026-10-09 (owner Option 1); see §BUG-035.**
 
 **Not run, and not claimed:**
 - VoiceOver and every iOS announcement.
@@ -3054,8 +3054,9 @@ removed from EN and ES, so the catalogues hold **1142** keys each.
 
 ## [BUG-035] Web Portals Drop Keyboard Focus to the Page After Enter or a Failed Submit
 
-Status: **Open — needs an owner decision (no Enter-submit or focus-return
-contract exists).**
+Status: **Done on Web (2026-10-09, owner Option 1) — keyboard focus no longer
+falls to the page on the sign-in and recovery screens; real-browser verified in
+EN and ES. Browser screen-reader speech is not tested.**
 Priority: **P3**
 Type: Bug (Web — keyboard focus management)
 Owner: Mobile / Web
@@ -3074,6 +3075,105 @@ A keyboard user loses their place and must Tab from the start of the page.
 Enter when it has no submit handler, and a button disabled while busy gives up
 focus. **Fixing it needs a decision** on Enter-to-submit and focus return,
 which the shared input contract does not define.
+
+**Root cause (verified 2026-10-09)** in react-native-web 0.21:
+- **Enter blurs the field.** A single-line `TextInput` blurs on Enter
+  (`blurOnSubmit` defaults to true) and submits only when `onSubmitEditing`
+  is set.
+- **A busy button loses focus.** A button-role `Pressable` renders as a
+  `<button>`. Any disabled state adds the native `disabled` attribute, which
+  removes it from focus, so a busy `AppButton` dropped focus to the page.
+- **No way to stay focusable and disabled.** `aria-disabled` cannot be set
+  without that attribute, and `accessibilityState` is not mapped to the DOM.
+
+**A first candidate was reverted.** It kept the busy button disabled and added
+`tabIndex`, but focus still reached the page body.
+
+**Owner decision (2026-10-09, Option 1):**
+- While loading, a Web `AppButton` keeps focus and is inert: its press
+  handlers are withheld.
+- It exposes `aria-busy="true"`, **not** `disabled`/`aria-disabled`.
+- Explicit and paid-write disabling stay genuinely disabled.
+- Native and the visual loading treatment are unchanged.
+
+**Fix:**
+- **`AppButton`:** the Web loading behaviour above, plus a typed `ref` prop
+  (React 19 ref-as-prop) on the underlying `Pressable`.
+- **`AppTextInput`:** Web-only `onWebSubmit`, wired to `onSubmitEditing`
+  with `blurOnSubmit={false}`. It is ignored on iOS and Android.
+- **`AuthTextField`:** forwards `onWebSubmit`.
+- **Recovery screens** (`forgot-password`, `reset-password`):
+  - Enter submits from every field;
+  - an in-flight ref prevents a second request;
+  - on success, a Web-only effect focuses the next action through a ref:
+    *Back to sign in* / *Go to sign in*.
+- **`sign-in`:**
+  - Enter submits from every field;
+  - a Web-only in-flight ref prevents a second request;
+  - native keeps the ADR-P030 double-tap model unchanged.
+- **Not used:** DOM queries, timers, private APIs, global focus management,
+  new copy, keys or dependencies. Banner focus is unchanged.
+
+**Real-browser evidence** (headless Chrome on the static Web export, focus read
+from `document.activeElement`):
+- **Setup:** a local mock recovery API with an 1.8 s delay and a request
+  counter.
+- **Languages:** identical in EN and ES.
+
+| Journey | Result |
+|---|---|
+| Sign-in Tab/Shift+Tab | Email → Password → Sign in → Create a local account → *Forgot your password?* → language options; visible focus throughout |
+| Sign-in Enter (twice), failure | Focus stays in the field; **1 request** |
+| Sign-in button (Enter, then Enter/Space/click while loading), failure | Button keeps focus with `aria-busy="true"`, no `disabled`/`aria-disabled`; **1 request**; focus stays on the button after failure |
+| Forgot Tab/Shift+Tab | Logical and symmetric; no trap |
+| Forgot empty Enter | Focus stays in the field; no request |
+| Forgot Enter (twice), failure | Focus stays in the field; **1 request** |
+| Forgot button (Enter or Space), failure | Button keeps focus through loading and after; retries inert; **1 request** |
+| Forgot success (Enter or button) | Focus moves to *Back to sign in* |
+| Reset Tab/Shift+Tab | Logical and symmetric |
+| Reset validation (too short, mismatch) via Enter | Focus stays in the originating field; no request |
+| Reset Enter failure from either field | That field keeps focus; one request per attempt |
+| Reset button (Space, then Enter/click while loading), failure | Button keeps focus; **1 request** |
+| Reset success via Enter | Focus moves to *Go to sign in* |
+
+The page body is reached only by tabbing past the last control to the browser,
+as before.
+
+**Tests:**
+- **`app-button.spec.tsx`:**
+  - Web loading is enabled, busy and inert, through the real Pressability
+    click path;
+  - explicit, paid-write and native loading stay disabled;
+  - the ref reaches the `Pressable` host.
+- **`app-text-input.spec.tsx`, `auth-text-field.spec.tsx`:**
+  - Web Enter submits without blurring;
+  - controlled and commit-on-end models are intact;
+  - native ignores the prop.
+- **New `forgot-password-web-focus`, `reset-password-web-focus` and
+  `sign-in-web-submit` specs:**
+  - Enter validation;
+  - one request for repeated Enter or presses;
+  - failure without a focus move;
+  - success focus target in EN and ES;
+  - native negative controls.
+
+**Mutation proofs** (each caught by the new tests):
+
+| Mutation | Tests failing |
+|---|---|
+| Loading press handler not withheld | 1 |
+| Web loading disabled again | 4 |
+| Enter blurs again | 5 |
+| In-flight guards removed | 4 |
+| Success focus removed | 4 |
+| Success focus not Web-gated | 7 |
+
+**Not claimed:**
+- what a browser screen reader says for `aria-busy` (NOT RUN);
+- VoiceOver, programmatic invalid/required, or field-to-error association;
+- focus after a successful *sign-in*, which navigates to another route.
+
+**BUG-037 stays separate and open.**
 
 ---
 

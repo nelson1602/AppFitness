@@ -1,6 +1,6 @@
 # AppFitness Design System Specification
 
-Version: 1.20
+Version: 1.21
 Status: Active
 Last Updated: 2026-10-09
 
@@ -693,6 +693,30 @@ regressions, not claimed as individually walked device paths. This corrects
 the empty-field duplicate introduced in v1.19. No VoiceOver, browser-AT,
 programmatic invalid, programmatic required or field-to-error outcome is
 claimed. **UX-4C stays PARTIAL.**
+
+---
+
+# Revision Scope (v1.21 — BUG-035 Web keyboard focus)
+
+**Owner decision, 2026-10-09 (Option 1).** An amended loading-state contract
+for Web only. Native, visuals, copy and tokens are unchanged.
+
+| Component | Web change | Unchanged |
+|---|---|---|
+| `AppButton` | While `loading` and not otherwise disabled: stays enabled and focused, withholds its press handlers (inert), and exposes `aria-busy="true"` instead of `disabled`/`aria-disabled`. New typed `ref` prop on the `Pressable` host | Explicit and paid-write disabling (genuinely disabled), native loading (disabled), 0.56 loading opacity, derived name (BUG-020), `accessibilityState.busy` |
+| `AppTextInput` | Optional `onWebSubmit`: Enter calls it and the field keeps focus (`blurOnSubmit={false}`) | Ignored on iOS/Android; control models, commit-on-end, BUG-033 naming |
+| `AuthTextField` | Forwards `onWebSubmit` | Validation and error announcement |
+
+**Screens:**
+- **Sign-in and recovery:** submit on Enter, with one request per attempt.
+- **Recovery success:** focus moves to the next action (*Back to sign in*,
+  *Go to sign in*).
+- **Banner focus:** unchanged.
+
+**Accessibility.** Real-browser keyboard focus is verified in EN and ES
+(`.ai/11_BACKLOG.md` §BUG-035). Browser screen-reader speech for `aria-busy` is
+**not tested**. No VoiceOver, programmatic invalid/required or field-to-error
+outcome is claimed. **UX-4C stays PARTIAL.**
 
 ---
 

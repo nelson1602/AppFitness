@@ -12,6 +12,8 @@ interface AuthTextFieldProps {
   secureTextEntry?: boolean;
   /** Inline validation message; rendered below the input when present. */
   error?: string;
+  /** Web only: Enter submits the form and keeps focus in the field (BUG-035). */
+  onWebSubmit?: () => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export function AuthTextField({
   keyboardType = 'default',
   secureTextEntry = false,
   error,
+  onWebSubmit,
 }: AuthTextFieldProps) {
   const theme = useTheme();
   return (
@@ -43,6 +46,7 @@ export function AuthTextField({
           autoCorrect={false}
           keyboardType={keyboardType}
           onChangeText={onChangeText}
+          onWebSubmit={onWebSubmit}
           secureTextEntry={secureTextEntry}
           value={value}
         />

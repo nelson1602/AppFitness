@@ -1,6 +1,6 @@
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import {
   PasswordRecoveryError,
@@ -127,8 +127,19 @@ export default function ResetPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [errorReason, setErrorReason] = useState<PasswordRecoveryErrorReason | null>(null);
+  // A ref, not `loading`: two quick Enter presses both run before React
+  // re-renders with `loading`, so state alone cannot stop a second request.
+  const inFlight = useRef(false);
+  const signInRef = useRef<View>(null);
+
+  // BUG-035 (Web): on success the form, and the focused control with it,
+  // unmounts. Focus moves to the next action instead of falling to the page.
+  useEffect(() => {
+    if (done && Platform.OS === 'web') signInRef.current?.focus();
+  }, [done]);
 
   const submit = async () => {
+    if (inFlight.current) return;
     // Covers the pre-capture (`undefined`) state as well as a missing token.
     if (token == null) return;
 
@@ -139,6 +150,7 @@ export default function ResetPasswordScreen() {
     if (tooShort || mismatched) return;
 
     setErrorReason(null);
+    inFlight.current = true;
     setLoading(true);
     try {
       await resetPassword({ token, password });
@@ -150,6 +162,7 @@ export default function ResetPasswordScreen() {
       // Only the typed, safe reason is used — never the raw error/message.
       setErrorReason(error instanceof PasswordRecoveryError ? error.reason : 'unexpected');
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
@@ -192,7 +205,11 @@ export default function ResetPasswordScreen() {
             <Banner title={t('auth.reset.successTitle')} tone="success">
               {t('auth.reset.successBody')}
             </Banner>
-            <AppButton onPress={() => router.replace('/sign-in')} testID="button-reset-sign-in">
+            <AppButton
+              onPress={() => router.replace('/sign-in')}
+              ref={signInRef}
+              testID="button-reset-sign-in"
+            >
               {t('auth.reset.goToSignIn')}
             </AppButton>
           </>
@@ -206,6 +223,7 @@ export default function ResetPasswordScreen() {
                 onChangeText={setPassword}
                 secureTextEntry
                 error={passwordError ?? undefined}
+                onWebSubmit={() => void submit()}
               />
               <AuthTextField
                 label={t('auth.reset.confirmPassword')}
@@ -214,6 +232,7 @@ export default function ResetPasswordScreen() {
                 onChangeText={setConfirmation}
                 secureTextEntry
                 error={confirmationError ?? undefined}
+                onWebSubmit={() => void submit()}
               />
               <AppButton
                 loading={loading}
