@@ -24,7 +24,6 @@ export const es = {
   'auth.register': 'Registrarse',
   'auth.useExistingAccount': 'Usar una cuenta existente',
   'auth.createAccount': 'Crear una cuenta local',
-  'auth.switchMode': 'Cambiar modo de autenticación',
   'auth.error.invalidCredentialsTitle': 'Error de inicio de sesión',
   'auth.error.invalidCredentialsBody':
     'El correo o la contraseña no son correctos. Inténtalo de nuevo.',

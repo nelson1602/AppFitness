@@ -9050,6 +9050,53 @@ container is still **not** a live region.
 **Related.** `.ai/11_BACKLOG.md` §BUG-025; `.ai/08_UI_UX.md` v1.15;
 `mobile/src/shared/presentation/banner.tsx`, `banner.spec.tsx`.
 
+### Correction (2026-10-08, BUG-034) — the Android mechanism
+
+**Owner-authorized, evidence-first.** UX-4C's TalkBack pass showed that no
+error covered by this ADR was announced on Android.
+
+**Actual mapping** (React Native 0.86.3):
+- **`View`** normalizes `aria-live` to `accessibilityLiveRegion` (`'off'` →
+  `'none'`).
+- **`Text`** does **not**: Decision 3's `aria-live` on the message text never
+  reached Android.
+- **`BaseViewManager`** consumes `accessibilityLiveRegion` via
+  `ViewCompat.setAccessibilityLiveRegion`.
+- **Fabric** flattens an unstyled `View` whose only prop is a live region.
+- **Device behaviour** (TalkBack, Android 15):
+  - a live region is announced when an **attached** view's content changes,
+    not when it mounts with content;
+  - a live region on an RN `ViewGroup` composed no speech.
+
+**Decision (Android only; Web and iOS unchanged).**
+1. **Inline field errors** (`FormField`, `AuthTextField`) render an
+   always-mounted, initially empty, zero-height error text with
+   `accessibilityLiveRegion="polite"`. The message is written into it, so
+   each new message is a content change. Layout matches the former `gap`.
+2. **Banners** carry one persistent, zero-size, absolutely positioned
+   announcement text with `accessibilityLiveRegion="polite"`, on every tone.
+   - It is empty until the root's first `onLayout`. Then it holds the error
+     (*"title. body"*, or the title alone) while the tone is `error`, and is
+     empty otherwise.
+   - Every rerender transition is therefore a text change on the same
+     attached node: non-error → error, error → error with new text, or a
+     locale change.
+   - The visible title and body render synchronously and are not live
+     regions.
+   - The root's `aria-live` is kept for react-native-web only.
+3. **Web keeps `aria-live` exactly as before** on the same nodes. No
+   imperative `announceForAccessibility` and no global announcer are used;
+   either would need a further owner decision.
+
+**Evidence.** Real TalkBack announced each new error once and politely, with
+no focus change caused by the mechanism. It stayed silent on a clean render,
+on a cleared error and on non-error Banners. Web DOM output is unchanged.
+Details are in `.ai/11_BACKLOG.md` §BUG-034.
+
+**Unchanged.** Decision 6 still holds: prop presence is not an announcement.
+iOS announcement stays unmet, and all five V1 accessibility release-review
+gates stay open. UX-4C remains **PARTIAL**.
+
 ---
 
 ## ADR-P025 — FormField Primitive Migration Deferred from V1
