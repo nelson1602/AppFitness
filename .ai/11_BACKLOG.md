@@ -2062,7 +2062,8 @@ Setup:
     open. **Completed 2026-10-09** (owner Option B): Done for Android input
     naming across `FormField` and every direct `AppTextInput`.
   - **BUG-036 Done:** the toggle is now named by its visible text.
-  - **BUG-037 recorded:** the sign-in focus jump.
+  - **BUG-037 recorded:** the sign-in focus jump. **Done on Android on
+    2026-10-12 (owner Option A); see §BUG-037.**
   - **BUG-035 Done on Web on 2026-10-09 (owner Option 1); see §BUG-035.**
 
 **Not run, and not claimed:**
@@ -3008,7 +3009,9 @@ harder of the two to read. No new measurement; no change of severity.
 
 ## [BUG-037] Sign-In Submit Moves Focus to the Email Field
 
-Status: **Open.**
+Status: **Done on Android (2026-10-12, owner Option A) — a loading Android
+`AppButton` keeps keyboard and TalkBack focus; TalkBack-verified in EN and ES.
+iOS and VoiceOver are unchanged and not tested.**
 Priority: **P3**
 Type: Bug (accessibility — focus management)
 Owner: Mobile
@@ -3020,6 +3023,120 @@ keyboard and TalkBack focus from *Sign in* to the Email field, and TalkBack
 speaks *"Editing. <address>. Edit box"* before the error. Since BUG-034 the
 error message is still announced, queued politely after that speech.
 **Likely cause** (not verified): the busy button gives up focus.
+
+**Root cause (verified 2026-10-12 on `c4d9544`):**
+- React Native 0.86.3 maps `accessibilityState.disabled` to
+  `View.setEnabled(false)` (`BaseViewManager.setViewState`).
+- Android moves focus off a focused view that becomes disabled, to the first
+  focusable view — the Email field.
+- The jump happens when loading **starts**, not on failure.
+- A temporary control that kept the button enabled kept focus. One that kept
+  it disabled but left its label in place (no spinner) still jumped.
+
+**Two candidates were reverted:**
+- **Android joins Web Option 1** (enabled, handlers withheld). A touch that
+  began while loading and lifted after loading ended completed with the restored
+  `onPress`: a **second request**. Pressability completes a press with the
+  handlers current at release.
+- **The same plus `pointerEvents="none"` while loading.** The straddle sent one
+  request, but TalkBack **touch exploration could not find the busy button**.
+  A control without the touch gate found *"Iniciar sesión, busy. Button"*.
+
+**Owner decision (2026-10-12, Option A):** keep the Android button enabled,
+focused and busy while loading, and refuse any press sequence that **began**
+while loading — with an internal ref, no `pointerEvents`, timers, microtasks,
+focus restoration or dependency.
+
+**Fix (`AppButton` only):**
+- **Android, loading and not otherwise disabled:** `disabled` and
+  `accessibilityState.disabled` are `false`, and `busy` is `true`. The caller's
+  callbacks pass through guards:
+  - `onPressIn` records whether the touch began while loading;
+  - a sequence that began while loading calls no caller callback, even when the
+    finger lifts after loading ends;
+  - any activation while loading is refused.
+- **The marker** is recomputed at every touch's `onPressIn`, and is not cleared
+  in `onPressOut`. React Native 0.86.3 calls `onPressOut` after `onPress` for a
+  press shorter than 130 ms, and before it otherwise.
+- **Keyboard and TalkBack activation** reach `onPress` through a click with no
+  `onPressIn` and no touches. The marker is consulted only for a touch release,
+  so a cancelled blocked touch cannot block them.
+- **`onLongPress`, `onPress` and `onPressOut`** are passed only when the caller
+  has them, because Pressability cancels the press after a long press whenever
+  `onLongPress` is set.
+- **Unchanged:** Web (BUG-035 Option 1), iOS loading (genuinely disabled),
+  explicit and paid-write disabling (genuinely disabled on every platform), the
+  spinner, the 0.56 opacity, the derived name and every caller's code.
+
+**Device evidence** (`appfitness-c7-b`, Android 15, real TalkBack; a fresh
+debug build of `c4d9544` native config, JavaScript served from the candidate;
+a local API behind a proxy that delays POSTs by 4–6 s and counts requests):
+
+| Check | EN | ES |
+|---|---|---|
+| Idle TalkBack double-tap submits | 1 request | 1 request |
+| Busy button found by touch exploration | *"Sign in, busy. Button"* (×2) | *"Iniciar sesión, busy. Button"* (×2, two runs) |
+| Double-tap ×2 on the busy button | Clicks on "…, busy"; no request | Same |
+| Enter ×3 (TalkBack on) | Clicks 2–3 on "…, busy"; **1 request**; error spoken once; no field announced | Same |
+| Keyboard focus before / during / after (TalkBack off) | *Sign in* → *Sign in, busy* → *Sign in* | *Iniciar sesión* → *Iniciar sesión, busy* → *Iniciar sesión* |
+| Touch begun during loading, lifted after it cleared | **1 request**; fields, focus, route and scroll unchanged | Same |
+| Next fresh idle tap | 1 request | 1 request |
+| Recovery (*Send reset link* / *Enviar enlace*): straddle and Enter ×3 | 1 request each; busy clicks inert; error once | Same |
+| Verification (*Send verification email* / *Enviar correo de verificación*): straddle and Enter ×3 | 1 request each; no scroll; reminder kept; error once | Same |
+| Explicitly disabled (*Eliminar cuenta permanentemente*, unconfirmed) | — | *"… Button. disabled"*; double-tap: no click, no request |
+| Paid-write disabled (*Guardar perfil*, read-only access) | — | *"… Button. disabled"*; double-tap: no click, no request |
+| BUG-033 names (sign-in fields, `FormField` birth date and height) | Each label once | Each label once |
+
+- **The state word is English in both languages:** TalkBack's state word comes
+  from the device language (English), so it reads *busy* and *disabled* in the
+  Spanish UI as well.
+- **When the error is spoken:** during the touch-exploration runs, the polite
+  error was sometimes cut off by the tester's own explore taps. Without
+  touches it was spoken once in every run.
+
+**Web (headless Chrome, candidate static export; EN and ES):**
+- Enter twice: focus stays on the button with `aria-busy="true"`; 1 request.
+- A second click while loading: 1 request.
+- Mouse down on the busy button and up after loading clears: no extra request.
+  A fresh click afterwards is the control, and it sends one.
+- The same straddle on unchanged `main` also sent no extra request, so Web
+  needed no change.
+
+**Tests (`app-button.spec.tsx`, 42):**
+- **Android:** enabled, focusable, accessible, busy, named, no `pointerEvents`,
+  0.56 opacity.
+- **Android:** every caller callback inert while loading, through the host's
+  real Pressability click and responder paths.
+- **Straddles:** a quick tap, a 200 ms press, a long hold with and without
+  `onLongPress`; each is followed by a working idle press.
+- **Cancelled blocked touch:** does not block the next click or touch.
+- **Idle callback order:** identical to iOS for four press shapes.
+- **Genuinely disabled:** explicit and paid-write disabling on Web, iOS and
+  Android.
+- **Unchanged platforms:** iOS loading genuinely disabled; Web unchanged.
+
+**Mutation proofs** (each caught):
+
+| Mutation | Tests failing |
+|---|---|
+| `onPress` ignores the marker | 3 |
+| Marker never set | 6 |
+| Marker cleared in `onPressOut` | 2 |
+| Activation allowed while loading | 1 |
+| Marker consulted for clicks too | 2 |
+| Long-press guard always passed | 1 |
+| Android loading disabled again | 7 |
+| Guard applied to iOS | 4 |
+| `onPressIn` unguarded | 6 |
+| `onPressOut` unguarded | 6 |
+| Long-press guard ignores the marker | 1 |
+
+**Not claimed:**
+- VoiceOver or any iOS outcome;
+- browser screen-reader speech for `aria-busy`;
+- programmatic invalid/required or field-to-error association;
+- the remaining loading-button call sites as individually walked device
+  paths (they share the primitive and its regressions).
 
 ---
 
