@@ -1,9 +1,10 @@
-import type { ReactNode, Ref } from 'react';
+import { useRef, type ReactNode, type Ref } from 'react';
 import {
   ActivityIndicator,
   Platform,
   Pressable,
   StyleSheet,
+  type GestureResponderEvent,
   type PressableProps,
   type View,
   type ViewStyle,
@@ -59,10 +60,45 @@ export function AppButton({
    * *loading*, the Web button therefore stays enabled and focused but inert:
    * every press handler is withheld, so click, Enter and Space do nothing, and
    * `aria-busy` is exposed instead of `disabled`/`aria-disabled`. Explicit and
-   * paid-write disabling stay genuinely disabled; native is unchanged.
+   * paid-write disabling stay genuinely disabled.
    */
   const isWeb = Platform.OS === 'web';
   const webLoading = isWeb && loading && !genuinelyDisabled;
+  /**
+   * BUG-037 (Android, owner Option A). React Native maps a disabled state to
+   * `View.setEnabled(false)`, and Android then moves focus off the focused button
+   * to the first focusable view. While it is only *loading*, the Android button
+   * therefore stays enabled, focused and busy, and every caller callback is
+   * guarded instead of withheld: a touch that began while loading must not
+   * become a press when the finger lifts after loading ends, because Pressability
+   * completes a press with the handlers current at release.
+   *
+   * `pressBeganWhileLoading` is recomputed at every touch's `onPressIn`, which
+   * Pressable always calls first. It is not cleared in `onPressOut`, which can run
+   * before or after `onPress`. It is consulted only for a touch release; keyboard
+   * and TalkBack activation reach `onPress` through a click with no touches and
+   * no `onPressIn`, so a cancelled touch cannot block them. Any activation while
+   * loading is refused. Explicit and paid-write disabling stay genuinely
+   * disabled; iOS loading is unchanged.
+   */
+  const isAndroid = Platform.OS === 'android';
+  const androidLoading = isAndroid && loading && !genuinelyDisabled;
+  const pressBeganWhileLoading = useRef(false);
+  const guardedPressIn = (event: GestureResponderEvent) => {
+    pressBeganWhileLoading.current = androidLoading;
+    if (!androidLoading) onPressIn?.(event);
+  };
+  const guardedPressOut = (event: GestureResponderEvent) => {
+    if (!pressBeganWhileLoading.current) onPressOut?.(event);
+  };
+  const guardedLongPress = (event: GestureResponderEvent) => {
+    if (!androidLoading && !pressBeganWhileLoading.current) onLongPress?.(event);
+  };
+  const guardedPress = (event: GestureResponderEvent) => {
+    if (androidLoading) return;
+    if (isTouchRelease(event) && pressBeganWhileLoading.current) return;
+    onPress?.(event);
+  };
 
   /**
    * BUG-020. While `loading` the visible label is replaced by a spinner, so a
@@ -87,7 +123,7 @@ export function AppButton({
    */
   const mergedAccessibilityState = {
     ...accessibilityState,
-    disabled: webLoading ? false : isDisabled,
+    disabled: webLoading || androidLoading ? false : isDisabled,
     busy: loading,
   };
 
@@ -140,11 +176,17 @@ export function AppButton({
       accessibilityLabel={accessibilityLabel ?? derivedLabel}
       accessibilityState={mergedAccessibilityState}
       aria-busy={isWeb && loading ? true : undefined}
-      disabled={webLoading ? false : isDisabled}
-      onLongPress={webLoading ? undefined : onLongPress}
-      onPress={webLoading ? undefined : onPress}
-      onPressIn={webLoading ? undefined : onPressIn}
-      onPressOut={webLoading ? undefined : onPressOut}
+      disabled={webLoading || androidLoading ? false : isDisabled}
+      // Android guards every callback (BUG-037). Pressability cancels the press
+      // after a long press whenever `onLongPress` is set, so that one (like
+      // `onPress` and `onPressOut`) is passed only when the caller has it.
+      // Web withholds them while loading (BUG-035).
+      onLongPress={
+        isAndroid ? onLongPress && guardedLongPress : webLoading ? undefined : onLongPress
+      }
+      onPress={isAndroid ? onPress && guardedPress : webLoading ? undefined : onPress}
+      onPressIn={isAndroid ? guardedPressIn : webLoading ? undefined : onPressIn}
+      onPressOut={isAndroid ? onPressOut && guardedPressOut : webLoading ? undefined : onPressOut}
       ref={ref}
       style={({ pressed }) => [
         styles.base,
@@ -173,6 +215,11 @@ export function AppButton({
       )}
     </Pressable>
   );
+}
+
+/** A touch release carries its touches; a keyboard or accessibility click does not. */
+function isTouchRelease(event: GestureResponderEvent): boolean {
+  return Array.isArray(event?.nativeEvent?.changedTouches);
 }
 
 const styles = StyleSheet.create({

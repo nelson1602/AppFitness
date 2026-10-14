@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.21
+Version: 1.22
 Status: Active
-Last Updated: 2026-10-09
+Last Updated: 2026-10-12
 
 ---
 
@@ -717,6 +717,39 @@ for Web only. Native, visuals, copy and tokens are unchanged.
 (`.ai/11_BACKLOG.md` §BUG-035). Browser screen-reader speech for `aria-busy` is
 **not tested**. No VoiceOver, programmatic invalid/required or field-to-error
 outcome is claimed. **UX-4C stays PARTIAL.**
+
+---
+
+# Revision Scope (v1.22 — BUG-037 Android loading focus)
+
+**Owner decision, 2026-10-12 (Option A).** A bounded amendment to the frozen
+`AppButton` loading contract, for Android only. It supersedes v1.21's "native
+loading (disabled)" for Android; iOS keeps it. Web, visuals, copy, tokens and
+props are unchanged.
+
+| Platform | While `loading` and not otherwise disabled | Unchanged |
+|---|---|---|
+| **Android** | Enabled and focusable; `accessibilityState` is `{ busy: true, disabled: false }`. Every caller callback is guarded: any activation while loading is refused, and a touch sequence that **began** while loading calls no caller callback even if the finger lifts after loading ends (an internal ref recomputed at each touch's press-in). Keyboard and TalkBack activation, which reach `onPress` with no press-in, are refused only while loading | Spinner, 0.56 opacity, derived name (BUG-020), idle callback order and long-press behaviour, no `pointerEvents` change |
+| **iOS** | Genuinely disabled (as before) | — |
+| **Web** | BUG-035 Option 1 (as before) | — |
+| **All** | Explicit and paid-write disabling stay genuinely disabled | — |
+
+**Why not simpler.** Two candidates were reverted:
+- **Withholding the handlers alone** let a touch that straddled the end of
+  loading submit again.
+- **Adding `pointerEvents="none"`** hid the busy button from TalkBack touch
+  exploration.
+
+**Accessibility.** On Android 15 with real TalkBack, in EN and ES:
+- Focus stays on the busy button.
+- Touch exploration finds and names it (*"Sign in, busy. Button"*).
+- Double-tap and Enter while busy do nothing; one request per attempt.
+- A straddling touch sends no second request.
+- Explicit and paid-write disabled buttons are announced *disabled*.
+
+See `.ai/11_BACKLOG.md` §BUG-037. No VoiceOver, browser screen-reader,
+programmatic invalid/required or field-to-error outcome is claimed. **UX-4C
+stays PARTIAL.**
 
 ---
 
@@ -3022,6 +3055,10 @@ spec or Maestro flow depends on a primitive-internal id. What must survive is
 
 > **v1.18 (ADR-P034 S-4):** disabled while the paid-write context is set —
 > §Revision Scope (v1.18).
+>
+> **v1.21 / v1.22 (BUG-035, BUG-037):** while only loading, the button stays
+> enabled, focused and busy on Web and Android (iOS stays disabled) —
+> §Revision Scope (v1.21), §Revision Scope (v1.22).
 
 | Aspect | Contract |
 |---|---|
