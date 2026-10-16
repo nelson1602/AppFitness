@@ -115,7 +115,21 @@ describe('ForgotPasswordScreen Web focus contract (BUG-035)', () => {
     });
 
     expect(field()).toBeOnTheScreen();
-    expect(screen.getByText('Password reset is unavailable')).toBeOnTheScreen();
+    // BUG-038: on Web an error Banner's visible text is hidden from assistive
+    // technology, and its announcement text carries the error once the root is
+    // first laid out, which a browser always fires and the test renderer does not.
+    expect(
+      screen.getByText('Password reset is unavailable', { includeHiddenElements: true }),
+    ).toBeOnTheScreen();
+    const [banner] = screen.container.queryAll(
+      (node) => node.props?.accessibilityRole === 'summary',
+    );
+    await fireEvent(banner, 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 320, height: 80 } },
+    });
+    expect(screen.getByTestId('banner-announcement')).toHaveTextContent(
+      /^Password reset is unavailable\. /,
+    );
     expect(focus).not.toHaveBeenCalled();
   });
 

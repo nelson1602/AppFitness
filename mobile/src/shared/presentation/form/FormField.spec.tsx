@@ -132,19 +132,48 @@ describe('FormField', () => {
     });
   });
 
-  it('keeps the Web announcement on the message alone, only while invalid', async () => {
-    jest.replaceProperty(Platform, 'OS', 'web');
-    await render(<Harness />);
+  // BUG-038: a browser screen reader does not announce a live region inserted
+  // already holding text, so on Web the message is an always-mounted, initially
+  // empty `aria-live` text. Verified with NVDA + Chrome (EN/ES): announced once,
+  // not repeated for the same message. Prop evidence only here.
+  describe('Web error announcement (BUG-038)', () => {
+    beforeEach(() => {
+      jest.replaceProperty(Platform, 'OS', 'web');
+    });
 
-    expect(
-      screen.container.queryAll((node) => node.props?.accessibilityLiveRegion !== undefined),
-    ).toHaveLength(0);
-    expect(screen.container.queryAll((node) => node.props?.['aria-live'] !== undefined)).toEqual(
-      [],
-    );
+    const liveNodes = () =>
+      screen.container.queryAll(
+        (node) =>
+          typeof node.type === 'string' &&
+          (node.props?.['aria-live'] !== undefined ||
+            node.props?.accessibilityLiveRegion !== undefined),
+      );
 
-    await submit();
-    await waitFor(() => expect(screen.getByText(ERROR_MESSAGE)).toHaveProp('aria-live', 'polite'));
+    it('keeps one empty, zero-height aria-live text mounted while the field is valid', async () => {
+      await render(<Harness />);
+
+      const live = liveNodes();
+      expect(live).toHaveLength(1);
+      expect(live[0]).toHaveProp('aria-live', 'polite');
+      expect(live[0].props.accessibilityLiveRegion).toBeUndefined();
+      expect(live[0]).toHaveTextContent('');
+      expect(flattenStyle(live[0]).height).toBe(0);
+    });
+
+    it('writes the message into that same live text, once, when the field becomes invalid', async () => {
+      await render(<Harness />);
+      const before = liveNodes()[0];
+
+      await submit();
+      await waitFor(() => expect(screen.getByText(ERROR_MESSAGE)).toBeOnTheScreen());
+
+      const after = liveNodes();
+      expect(after).toHaveLength(1);
+      expect(after[0]).toBe(before);
+      expect(after[0]).toHaveTextContent(ERROR_MESSAGE);
+      expect(flattenStyle(after[0]).height).toBeUndefined();
+      expect(screen.getAllByText(ERROR_MESSAGE)).toHaveLength(1);
+    });
   });
 
   describe('programmatic name (BUG-033)', () => {

@@ -2073,6 +2073,44 @@ Setup:
 - Programmatic invalid, programmatic required and field-to-error association.
   The Web DOM confirms that none is exposed today (ADR-P023).
 - **All five accessibility release-review gates stay open.**
+
+**UX-4C browser-AT campaign (2026-10-14 / 2026-10-15) — PARTIAL.**
+Setup:
+- NVDA 2026.2 (portable) with Chrome Incognito, using an isolated profile.
+  Speech was read from NVDA's Speech Viewer, and keys were real Windows input.
+- `main` `527c302`, served on Web by Metro. A local mock auth API was used
+  (Railway Development does not allow the `localhost:8083` origin). Synthetic
+  data only.
+- English and Spanish, covering sign-in and password recovery.
+
+**Run 1 (2026-10-14, `527c302`), observed:**
+- Field and button names and roles are correct, and the auth-mode toggle is
+  named by its text.
+- The busy Sign-in button is announced *"busy"*, keeps focus, and sends one
+  request.
+- On recovery success, focus moves to *Back to sign in*. Non-error Banners are
+  not announced.
+- **Defects:**
+  - **BUG-038:** no Web error was announced, neither the sign-in error
+    Banner nor the recovery inline error.
+  - **Recorded for BUG-039 (not started):** the language radios are always
+    read *"not checked"*.
+
+**Run 2 (2026-10-15, BUG-038 Option 2):** all six owner checks passed in EN
+and ES, but the mounted-Banner transition gate then **failed** in EN (a Banner
+mounted as a non-error never announced a later error). Option 2 was rejected.
+
+**Run 3 (2026-10-16, owner-authorized BUG-038 design):** all six owner checks
+and the mounted-Banner transition gate pass in EN and ES. See §BUG-038.
+
+**Observed, not fixed:** the recovery screen's header back link is read
+*"Iniciar sesión, back"* in Spanish, which mixes in an English *"back"*.
+
+**Not run, and not claimed:** VoiceOver/iOS, any other browser or screen reader,
+error paths other than sign-in and recovery, and programmatic invalid, required
+or field-to-error association. **All five accessibility release-review gates
+stay open.**
+
 7. **UX-5 — Progressive feature migration. Status: Done (7 of 7 REDUCED
    inputs, 2026-09-28).** One feature per slice, behaviour preserved, with
    bilingual, dark-theme and large-text device verification per slice. No
@@ -3004,6 +3042,90 @@ decision, not a defect fix.
 **Reconfirmed 2026-09-17** by the gate 6 pass-2 captures (`routines-rows`,
 `dietary-preferences-rows`), including the direction: the light capture is the
 harder of the two to read. No new measurement; no change of severity.
+
+---
+
+## [BUG-038] Web Error Messages Are Not Announced by a Browser Screen Reader
+
+Status: **Fix candidate validated, unstaged (2026-10-16, owner-authorized
+Banner design after Option 2 was rejected) — NVDA + Chrome verified in EN and
+ES, including mounted-Banner transitions. Android and iOS unchanged. Not
+delivered.**
+Priority: **P2**
+Type: Bug (accessibility — announcements)
+Owner: Mobile
+Created: 2026-10-14
+
+**Observed** with NVDA 2026.2 + Chrome on `main` `527c302`. The sign-in 401
+error Banner and the recovery inline error were never announced. They were
+visible, and could be read in browse mode.
+
+**Cause.** `react-native-web` maps `aria-live`, but each node was inserted
+already holding its text, and NVDA does not announce such an insertion. A
+harness control on the same page proved that an existing region whose content
+changes is announced. This is the Web twin of BUG-034.
+
+**Fix (Web only):**
+- **`FormField` and `AuthTextField`:** an always-mounted, initially empty,
+  zero-height `aria-live="polite"` error text.
+- **`Banner`:** every Web Banner, whatever its tone, mounts one empty,
+  zero-size `aria-live="polite"` announcement text and records the root's
+  first `onLayout`. After it, `tone="error"` writes the complete plain-text
+  *"title. body"* into that existing node, and the visible title and body
+  carry `aria-hidden`, so browse mode meets the error once. Other tones clear
+  the node and expose their visible content. The Web root is not a live region.
+  A body of several text pieces (for example `{name} {t('…')}`) is flattened
+  whole; a body holding an element is never hidden, and only the title is
+  announced.
+- **Rejected (2026-10-14):** the same node with the visible text left exposed.
+  It was announced once, but browse mode then read the error twice.
+- **Rejected (2026-10-15, Option 2):** the title and body `aria-hidden` until
+  the root's first `onLayout`, inside a root `aria-live`. react-native-web never
+  fires a newly attached `onLayout` on a mounted Banner whose size is unchanged,
+  so an error that followed a non-error tone stayed hidden and silent.
+
+**Evidence** (Speech Viewer, real NVDA + Chrome, EN and ES, synthetic data):
+1. **Invalid-credentials Banner:** announced once (*"Sign-in failed That email
+   or password is incorrect. Please try again."* / *"Error de inicio de sesión
+   El correo o la contraseña no son correctos. Inténtalo de nuevo."*). Five
+   more seconds with no keys: silent.
+2. **Browse-mode Up arrow:** reads the Banner's title and body once each.
+3. **Loading:** *"busy"*, then *"Sign in button focused busy"*. Enter and Space
+   while busy add no request: the mock logged exactly one `POST /auth/login`
+   per language. After the failure, focus stays on Sign in.
+4. **Recovery empty submit:** *"Enter the email address for your account."* /
+   *"Introduce el correo de tu cuenta."* is announced once. A second empty
+   submit is silent.
+5. **Success Banner:** not announced automatically (only the focus move to
+   *Back to sign in* is spoken). Browse mode reads it once.
+6. **Initial state:** nothing is announced on the initial sign-in or recovery
+   state, and nothing repeats while the message is unchanged.
+
+**Transition evidence** (2026-10-16, one mounted harness Banner whose DOM node
+was marked and confirmed unchanged at every step; state changed by script, reads
+with real keys; EN and ES):
+- **Non-error → error:** the error is announced once as *"title. body"*;
+  nothing more with no keys; browse mode reads it once.
+- **Error → non-error → error again:** the non-error is silent and readable
+  once in browse mode; the returning error is announced once and read once.
+- **Error A → error B:** B is announced once and read once.
+- **Identical error re-render:** silent.
+- **Error → success:** silent, and readable once in browse mode.
+- The root never carried `aria-live`. While an error showed, the visible title
+  and body were `aria-hidden`; while a non-error showed, nothing was.
+
+Regression tests in `banner.spec.tsx`, `FormField.spec.tsx` and
+`auth-text-field.spec.tsx` fail against `527c302` and pass with the fix.
+`banner.spec.tsx` also covers mounted-Banner transitions and compound bodies;
+its transition test fails when the first layout is recorded only for errors
+(the Option 2 flaw).
+Decision record: ADR-P024 *Correction (2026-10-16, BUG-038)*. UI/UX:
+`.ai/08_UI_UX.md` v1.23.
+
+**Not claimed:** error Banners on other screens (they share the component, but
+were not heard individually), other browsers or screen readers, VoiceOver/iOS,
+and compound or element bodies heard through a screen reader (covered by tests
+only). UX-4C stays **PARTIAL**.
 
 ---
 

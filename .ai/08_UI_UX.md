@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.22
+Version: 1.23
 Status: Active
-Last Updated: 2026-10-12
+Last Updated: 2026-10-16
 
 ---
 
@@ -750,6 +750,36 @@ props are unchanged.
 See `.ai/11_BACKLOG.md` §BUG-037. No VoiceOver, browser screen-reader,
 programmatic invalid/required or field-to-error outcome is claimed. **UX-4C
 stays PARTIAL.**
+
+---
+
+# Revision Scope (v1.23 — BUG-038 Web error announcements)
+
+**Owner decision (after Banner Option 2 failed its 2026-10-15 transition
+gate).** A Web-only correction. A browser screen reader does not announce a
+live region that is inserted already holding text, so no Web error was
+announced. Android, iOS, visuals, focus, copy, tokens and props are unchanged.
+
+| Component | Web change | Unchanged |
+|---|---|---|
+| `FormField` | The error is an always-mounted, initially empty, zero-height text with `aria-live="polite"` (the BUG-034 pattern) | API, name, layout, validation, Android and iOS |
+| `AuthTextField` | Same error mechanism; the error `testID` exists only while an error is shown | Name, layout, Android and iOS |
+| `Banner` | Every tone mounts one empty, zero-size `aria-live="polite"` announcement text (the BUG-034 node) and records the root's first `onLayout`. After it, `tone="error"` writes the plain-text *"title. body"* into that node, and the visible title and body carry `aria-hidden`; other tones clear the node and stay exposed. The root is not a live region on Web. A body of several text pieces is flattened whole; a body holding an element is never hidden (only the title is announced) | Visible title/body (rendered synchronously), anatomy, `summary` role, Android and iOS |
+
+**Accessibility.** NVDA 2026.2 + Chrome, in EN and ES (2026-10-16):
+- the sign-in error Banner is announced once;
+- browse mode reads it once;
+- the recovery inline error is announced once and not repeated;
+- the success Banner is silent and readable once;
+- loading focus and the single request are kept;
+- on one mounted Banner, non-error → error, error → non-error → error again
+  and error A → error B are each announced once and read once in browse mode;
+  an identical re-render is silent; non-error tones are silent and readable once.
+
+Only the sign-in and recovery paths and a harness Banner were heard. No
+VoiceOver, programmatic invalid/required or field-to-error outcome is claimed.
+**UX-4C stays PARTIAL.** See ADR-P024 *Correction (2026-10-16, BUG-038)* and
+`.ai/11_BACKLOG.md` §BUG-038.
 
 ---
 
@@ -3094,7 +3124,7 @@ spec or Maestro flow depends on a primitive-internal id. What must survive is
 | **Body slot — accurate** | `children?: ReactNode` is **rendered inside an `AppText`**. The body is therefore **textual content, not an arbitrary layout or action slot**; passing a pressable or a layout tree would nest it inside a `Text`. |
 | **State behavior** | Stateless and passive. It is the **atom**; `SyncStatusBanner`, `WebUnavailableNotice`, `ErrorState`, and the other UX-1B2A components are **compositions above it** and remain distinct — `Banner` must not absorb their status logic, copy, or structural guarantees. |
 | **Semantic token roles** | `surfaceVariant` ground · tone role on the left border · title in the tone role (`primary` for `info`) · body in `onSurfaceVariant`. |
-| **Accessibility — platform outcome** | The `summary` role and the resulting query path are **preserved**. This contract does **not** claim that `summary` creates a **live announcement**: `accessibilityLiveRegion` and `announceForAccessibility` have **zero** occurrences in `mobile/src`. Where a notice must be *announced* on appearance, that is an outcome to be **verified per platform** and belongs to the composing state component (for example `ErrorState`), not to this atom. **Amended 2026-09-25 (v1.15, BUG-025, ADR-P024 bounded extension):** for `tone="error"` only, the root also carries `aria-live="polite"`. This is Android and Web only; iOS is still unmet. Other tones carry no live-region prop. The spec proves the prop is present, not that anything is announced. |
+| **Accessibility — platform outcome** | The `summary` role and the resulting query path are **preserved**. This contract does **not** claim that `summary` creates a **live announcement**: `accessibilityLiveRegion` and `announceForAccessibility` have **zero** occurrences in `mobile/src`. Where a notice must be *announced* on appearance, that is an outcome to be **verified per platform** and belongs to the composing state component (for example `ErrorState`), not to this atom. **Amended 2026-09-25 (v1.15, BUG-025, ADR-P024 bounded extension):** for `tone="error"` only, the root also carries `aria-live="polite"`. This is Android and Web only; iOS is still unmet. Other tones carry no live-region prop. The spec proves the prop is present, not that anything is announced. **Amended 2026-10-16 (v1.23, BUG-038):** on Web the root carries no live-region prop. Every Banner instead carries one empty, zero-size announcement text with `aria-live="polite"`; after the root's first layout, `tone="error"` writes the plain-text title and body into it, and the visible title and body carry `aria-hidden` so browse mode meets the error once. A body that holds an element is never hidden. They stay visible throughout, and no visible copy is added. |
 | **EN/ES + dynamic type** | Title and body both wrap; the block grows with the text scale. Measured Web-unavailable titles run up to +38% longer in ES. |
 | **Responsive / Web** | Identical on all platforms. |
 | **Test hooks** | None of its own. Its spec asserts title-only renders without an empty body node and that all four tones render. |

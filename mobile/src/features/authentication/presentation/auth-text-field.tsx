@@ -52,14 +52,16 @@ export function AuthTextField({
         />
       </View>
       {/*
-       * Matches the FormField pattern (BUG-034): on Android an always-mounted,
-       * initially empty text with a native live region, kept at zero height
-       * while empty; on Web `aria-live` on the message (ADR-P024 Decision 3).
+       * Matches the FormField pattern (BUG-034, BUG-038): on Android and Web an
+       * always-mounted, initially empty live region, kept at zero height while
+       * empty, so each new message is a text change that is announced. Android
+       * uses the native live region, Web `aria-live`. iOS is unchanged.
        */}
       <View style={error ? { marginTop: theme.spacing.xs } : undefined}>
-        {Platform.OS === 'android' ? (
+        {Platform.OS !== 'ios' ? (
           <AppText
-            accessibilityLiveRegion="polite"
+            accessibilityLiveRegion={Platform.OS === 'android' ? 'polite' : undefined}
+            aria-live={Platform.OS === 'web' ? 'polite' : undefined}
             style={error ? undefined : { height: 0 }}
             testID={error ? `${testID}-error` : undefined}
             variant="caption"

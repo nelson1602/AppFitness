@@ -61,12 +61,43 @@ describe('AuthTextField inline error on Android', () => {
   });
 });
 
+// BUG-038: a browser screen reader does not announce a live region inserted
+// already holding text. Prop evidence only; the announcement itself was verified
+// with NVDA + Chrome in English and Spanish.
 describe('AuthTextField inline error on Web', () => {
   beforeEach(() => {
     jest.replaceProperty(Platform, 'OS', 'web');
   });
 
-  it('renders no live node without an error, and aria-live on the message with one', async () => {
+  it('keeps one empty, zero-height aria-live text mounted while there is no error', async () => {
+    await render(field());
+
+    expect(liveNodes()).toHaveLength(1);
+    expect(liveNodes()[0]).toHaveProp('aria-live', 'polite');
+    expect(liveNodes()[0].props.accessibilityLiveRegion).toBeUndefined();
+    expect(liveNodes()[0]).toHaveTextContent('');
+    expect(flattenStyle(liveNodes()[0]).height).toBe(0);
+    expect(screen.queryByTestId('input-forgot-email-error')).toBeNull();
+  });
+
+  it('writes the error into that same live text', async () => {
+    const view = await render(field());
+    const before = liveNodes()[0];
+
+    await view.rerender(field('Enter the email address for your account.'));
+
+    expect(liveNodes()).toHaveLength(1);
+    expect(liveNodes()[0]).toBe(before);
+    expect(screen.getByTestId('input-forgot-email-error')).toHaveTextContent(
+      'Enter the email address for your account.',
+    );
+    expect(flattenStyle(before).height).toBeUndefined();
+  });
+});
+
+describe('AuthTextField inline error on iOS', () => {
+  it('renders no message node without an error, and aria-live on the message with one', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
     const view = await render(field());
     expect(liveNodes()).toHaveLength(0);
 
@@ -74,9 +105,6 @@ describe('AuthTextField inline error on Web', () => {
 
     expect(liveNodes()).toHaveLength(1);
     expect(screen.getByTestId('input-forgot-email-error')).toHaveProp('aria-live', 'polite');
-    expect(
-      screen.getByTestId('input-forgot-email-error').props.accessibilityLiveRegion,
-    ).toBeUndefined();
   });
 });
 

@@ -87,16 +87,19 @@ export function FormField<T extends FieldValues>({
             />
           </View>
           {/*
-           * BUG-034: Android announces a live region when its text changes,
-           * never when it mounts, and `Text` does not map `aria-live`. On
-           * Android the message is therefore an always-mounted, initially empty
-           * text with a native live region, kept at zero height while empty.
+           * BUG-034 (Android) and BUG-038 (Web): a live region is announced
+           * when its text changes, never when it is inserted already holding
+           * text. On Android and Web the message is therefore an always-mounted,
+           * initially empty live region, kept at zero height while empty.
+           * Android uses the native live region (`Text` does not map
+           * `aria-live` there); react-native-web maps `aria-live` to the DOM.
            * Spacing matches the former `gap` only while a message is shown.
            */}
           <View style={error ? { marginTop: theme.spacing.xs } : undefined}>
-            {Platform.OS === 'android' ? (
+            {Platform.OS !== 'ios' ? (
               <AppText
-                accessibilityLiveRegion="polite"
+                accessibilityLiveRegion={Platform.OS === 'android' ? 'polite' : undefined}
+                aria-live={Platform.OS === 'web' ? 'polite' : undefined}
                 style={error ? undefined : { height: 0 }}
                 variant="caption"
                 tone="error"
@@ -104,8 +107,7 @@ export function FormField<T extends FieldValues>({
                 {error?.message ?? ''}
               </AppText>
             ) : error ? (
-              // UX-1C-2B-a (ADR-P024 Decision 3): react-native-web maps
-              // `aria-live` to the DOM attribute. iOS is unaffected.
+              // iOS: UX-1C-2B-a's request is kept unchanged (not announced on iOS).
               <AppText aria-live="polite" variant="caption" tone="error">
                 {error.message}
               </AppText>

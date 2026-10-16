@@ -22,25 +22,38 @@ export function Banner({ title, children, tone = 'info' }: BannerProps) {
   };
   const titleTone = tone === 'info' ? 'primary' : tone;
   const isAndroid = Platform.OS === 'android';
-  // BUG-034: Android announces a live region only when an attached view's text
-  // changes. So on Android every Banner carries one persistent, zero-size
-  // announcement text: empty until the root is first laid out, then the error
-  // while the tone is `error`, and empty again otherwise. The visible title and
-  // body render synchronously and are not live regions.
+  const isWeb = Platform.OS === 'web';
+  // BUG-034 (Android) and BUG-038 (Web): a live region is announced only when
+  // an existing region's text changes, never when it is inserted already
+  // holding text. So on Android and Web every Banner carries one persistent,
+  // zero-size announcement text: empty until the root is first laid out, then
+  // the error while the tone is `error`, and empty again otherwise. The visible
+  // title and body render synchronously and are not live regions. On Web, while
+  // the tone is `error`, whatever the announcement text carries is hidden from
+  // assistive technology, so browse mode meets the error once. A body made of
+  // several text pieces is carried whole there; a body holding elements is not
+  // carried, and so stays exposed.
+  const announces = isAndroid || isWeb;
   const [laidOut, setLaidOut] = useState(false);
-  const body = typeof children === 'string' || typeof children === 'number' ? String(children) : '';
+  const body = isWeb
+    ? plainText(children)
+    : typeof children === 'string' || typeof children === 'number'
+      ? String(children)
+      : '';
   const announcement = laidOut && tone === 'error' ? (body ? `${title}. ${body}` : title) : '';
+  const hideTitle = isWeb && tone === 'error' ? true : undefined;
+  const hideBody = hideTitle && body !== null ? true : undefined;
 
   return (
     <View
       accessibilityRole="summary"
       // BUG-025 / ADR-P024 bounded extension: only the error tone requests a
-      // polite announcement, on this existing root, for react-native-web. On
-      // Android a live region on this root composes no speech (BUG-034), so the
-      // announcement text below carries it instead. iOS is not covered. Other
-      // tones stay passive and carry no live-region prop.
-      aria-live={tone === 'error' && !isAndroid ? 'polite' : undefined}
-      onLayout={isAndroid && !laidOut ? () => setLaidOut(true) : undefined}
+      // polite announcement. On Android and Web the announcement text below
+      // carries it (BUG-034, BUG-038), so this root is not a live region there. iOS
+      // keeps the root request unchanged; it is not covered. Other tones carry
+      // no live-region prop.
+      aria-live={tone === 'error' && !announces ? 'polite' : undefined}
+      onLayout={announces && !laidOut ? () => setLaidOut(true) : undefined}
       style={{
         backgroundColor: theme.colors.surfaceVariant,
         borderColor: toneColor[tone],
@@ -50,19 +63,22 @@ export function Banner({ title, children, tone = 'info' }: BannerProps) {
         padding: theme.spacing.md,
       }}
     >
-      <AppText variant="label" tone={titleTone}>
+      <AppText aria-hidden={hideTitle} variant="label" tone={titleTone}>
         {title}
       </AppText>
       {children ? (
-        <AppText variant="caption" tone="muted">
+        <AppText aria-hidden={hideBody} variant="caption" tone="muted">
           {children}
         </AppText>
       ) : null}
-      {isAndroid ? (
+      {announces ? (
         // Absolutely positioned and zero-size: outside layout and `gap`, and not
         // visible to the user, so it adds no TalkBack or keyboard stop.
+        // react-native-web maps `aria-live` to the DOM; Android uses the native
+        // live region, since `Text` does not map `aria-live` there.
         <Text
-          accessibilityLiveRegion="polite"
+          accessibilityLiveRegion={isAndroid ? 'polite' : undefined}
+          aria-live={isWeb ? 'polite' : undefined}
           style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
           testID="banner-announcement"
         >
@@ -71,4 +87,19 @@ export function Banner({ title, children, tone = 'info' }: BannerProps) {
       ) : null}
     </View>
   );
+}
+
+// The text of a body made only of strings and numbers (for example
+// `{name} {t('…')}`), or null when it holds an element.
+function plainText(node: ReactNode): string | null {
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (node === null || node === undefined || typeof node === 'boolean') return '';
+  if (!Array.isArray(node)) return null;
+  let text = '';
+  for (const part of node as ReactNode[]) {
+    const piece = plainText(part);
+    if (piece === null) return null;
+    text += piece;
+  }
+  return text;
 }
