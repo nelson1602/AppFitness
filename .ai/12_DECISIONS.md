@@ -9123,6 +9123,83 @@ Details are in `.ai/11_BACKLOG.md` §BUG-034.
 iOS announcement stays unmet, and all five V1 accessibility release-review
 gates stay open. UX-4C remains **PARTIAL**.
 
+### Correction (2026-10-16, BUG-038) — the Web mechanism
+
+**Owner-authorized, evidence-first.** UX-4C's browser pass (NVDA 2026.2 +
+Chrome Incognito) showed that no error covered by this ADR was announced on
+Web. That corrects Correction (BUG-034) Decision 3, *"Web keeps `aria-live`
+exactly as before"*.
+
+**Cause.** `react-native-web@0.21.2` maps `aria-live` to the DOM, but each
+covered node was **inserted already holding its text**: the inline message
+mounted only with an error, and the error Banner mounted with its content. NVDA
+with Chrome does not announce a live region inserted that way. A harness control
+on the same page confirmed that an **existing** region whose content changes
+**is** announced.
+
+**Decision (Web only; Android and iOS unchanged).**
+1. **Inline field errors** (`FormField`, `AuthTextField`) use the BUG-034
+   pattern on Web: an always-mounted, initially empty, zero-height error text
+   with `aria-live="polite"`. Each new message is written into it.
+2. **Banners** use the BUG-034 node on Web. The Web root is **not** a live
+   region (the BUG-025 root request is withdrawn on Web; iOS keeps it).
+   - Every Web Banner, whatever its tone, mounts one empty, zero-size text with
+     `aria-live="polite"` and records the root's first `onLayout`.
+   - After it, `tone="error"` writes the complete plain-text *"title. body"*
+     into that existing node. A body of several text pieces is flattened
+     whole; a title-only Banner, or one whose body holds an element, writes
+     the title alone.
+   - While the tone is `error`, the visible title and body carry
+     `aria-hidden`, so browse mode meets the error once, in the node. A body
+     that holds an element is **never** hidden, so no non-text content is
+     removed from assistive technology.
+   - `info`, `success`, `warning` and the default tone clear the node and
+     expose their visible content.
+   - No timer, no imperative announcement. Visuals, focus, copy and the public
+     API are unchanged.
+   - **Rejected (2026-10-14):** the node with the visible text left exposed
+     (browse mode met the error twice).
+   - **Rejected (2026-10-15, Option 2):** the title and body `aria-hidden`
+     until the root's first `onLayout`, inside a root `aria-live`. On a mounted
+     Banner whose tone became `error`, react-native-web never fired the newly
+     attached `onLayout` (the size was unchanged), so the error stayed hidden
+     and silent. Recording the first layout for **every** tone removes that
+     dependency.
+3. Decision 5's prohibitions still hold. There is no imperative announcement,
+   no `assertive` policy, no new dependency and no new visible copy.
+
+This narrows the BUG-025 extension's clause 2 (*"no duplicate or hidden copy"*)
+for Web error Banners: the error's plain text is carried once in a zero-size
+announcement text, and the **original** title and body are hidden from
+assistive technology while the tone is `error`. Assistive technology meets the
+error once; no visible copy is added.
+
+**Evidence (2026-10-16).** Speech Viewer output from real NVDA 2026.2 +
+Chrome, in English and Spanish, with synthetic data against a local mock API:
+- the sign-in 401 error Banner was announced once and not repeated;
+- browse-mode reading met the error once;
+- on one mounted Banner (same DOM node throughout), non-error → error,
+  error → non-error → error again, and error A → error B were each announced
+  once and met once in browse mode; an identical re-render was silent; the
+  non-error tones were silent and readable once;
+- the loading button stayed focused and *"busy"*, and a repeated Enter or
+  Space sent no second request;
+- the recovery inline error was announced once, and the same message was not
+  re-announced;
+- the success Banner was not announced automatically, and was read once in
+  browse mode;
+- nothing was announced on the initial empty sign-in or recovery state.
+
+Details are in `.ai/11_BACKLOG.md` §BUG-038. Prop evidence is in
+`banner.spec.tsx`, `FormField.spec.tsx` and `auth-text-field.spec.tsx`.
+
+**Unchanged.** Decision 6 still holds: prop presence is not an announcement.
+Only the sign-in and recovery paths and a harness Banner were heard; other
+error Banners share the component but were not individually verified, and
+compound or element bodies are covered by tests only. iOS announcement stays unmet,
+VoiceOver is unrun, and all five V1 accessibility release-review gates stay
+open. UX-4C remains **PARTIAL**.
+
 ---
 
 ## ADR-P025 — FormField Primitive Migration Deferred from V1

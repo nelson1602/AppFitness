@@ -219,8 +219,209 @@ describe('Banner', () => {
     });
   });
 
-  it.each(['ios', 'web'] as const)('renders no announcement text on %s', async (os) => {
-    jest.replaceProperty(Platform, 'OS', os);
+  // BUG-038: a browser screen reader does not announce a live region inserted
+  // already holding text. Every Web Banner, whatever its tone, carries one
+  // persistent, empty announcement text and records its first layout; an error
+  // then writes the plain-text "title. body" into that existing node. While the
+  // tone is `error` the visible title and body are hidden from assistive
+  // technology, so browse mode meets the error once; other tones clear the node
+  // and expose their visible content. The root is not a live region on Web.
+  // Verified with NVDA + Chrome in English and Spanish, on one mounted Banner
+  // through the transitions below. Prop evidence only here.
+  describe('Web error announcement (BUG-038)', () => {
+    beforeEach(() => {
+      jest.replaceProperty(Platform, 'OS', 'web');
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    const liveNodes = () =>
+      screen.container.queryAll(
+        (node) =>
+          typeof node.type === 'string' &&
+          (node.props?.['aria-live'] !== undefined ||
+            node.props?.accessibilityLiveRegion !== undefined),
+      );
+    const announcement = () => screen.getByTestId('banner-announcement');
+    // The visible text with this content, never the announcement text (which
+    // equals the title for a title-only error).
+    const text = (value: string) => {
+      const matches = screen
+        .getAllByText(value, { includeHiddenElements: true })
+        .filter((node) => node.props.testID !== 'banner-announcement');
+      expect(matches).toHaveLength(1);
+      return matches[0];
+    };
+    const layOut = async () => {
+      await fireEvent(summaryRoot(), 'layout', {
+        nativeEvent: { layout: { x: 0, y: 0, width: 320, height: 80 } },
+      });
+    };
+    const banner = (
+      tone: 'info' | 'success' | 'warning' | 'error',
+      title: string,
+      body?: string,
+    ) => (
+      <Banner title={title} tone={tone}>
+        {body}
+      </Banner>
+    );
+
+    it.each(['info', 'success', 'warning', 'error'] as const)(
+      'mounts a %s Banner with one empty announcement text and records its first layout',
+      async (tone) => {
+        await render(banner(tone, `tone-${tone}`, 'Body'));
+
+        expect(announcement()).toHaveTextContent('');
+        expect(summaryRoot().props.onLayout).toEqual(expect.any(Function));
+
+        await layOut();
+
+        expect(summaryRoot().props.onLayout).toBeUndefined();
+      },
+    );
+
+    it('keeps exactly one live node: the zero-size announcement text, never the root or the visible text', async () => {
+      await render(banner('error', 'Sign-in failed', 'Try again.'));
+      await layOut();
+
+      expect(liveNodes()).toHaveLength(1);
+      expect(liveNodes()[0]).toBe(announcement());
+      expect(announcement()).toHaveProp('aria-live', 'polite');
+      expect(announcement().props.accessibilityLiveRegion).toBeUndefined();
+      expect(announcement()).toHaveStyle({ position: 'absolute', width: 0, height: 0 });
+      expect(summaryRoot().props['aria-live']).toBeUndefined();
+    });
+
+    it('writes a mounted error into the existing node after layout and hides the visible text from assistive technology', async () => {
+      await render(banner('error', 'Sign-in failed', 'That email or password is incorrect.'));
+
+      // Rendered synchronously, but hidden from assistive technology.
+      expect(text('Sign-in failed')).toHaveProp('aria-hidden', true);
+      expect(text('That email or password is incorrect.')).toHaveProp('aria-hidden', true);
+      expect(screen.queryByText('Sign-in failed')).toBeNull();
+      expect(announcement()).toHaveTextContent('');
+
+      await layOut();
+
+      expect(announcement()).toHaveTextContent(
+        'Sign-in failed. That email or password is incorrect.',
+      );
+      expect(text('Sign-in failed')).toHaveProp('aria-hidden', true);
+      expect(text('That email or password is incorrect.')).toHaveProp('aria-hidden', true);
+    });
+
+    it.each(['info', 'success', 'warning'] as const)(
+      'keeps a %s Banner silent and its visible content exposed',
+      async (tone) => {
+        await render(banner(tone, `tone-${tone}`, 'Body'));
+        await layOut();
+
+        expect(announcement()).toHaveTextContent('');
+        expect(screen.getByText(`tone-${tone}`).props['aria-hidden']).toBeUndefined();
+        expect(screen.getByText('Body').props['aria-hidden']).toBeUndefined();
+      },
+    );
+
+    // Regression for the rejected Option 2: a Banner mounted as a non-error
+    // never received a later layout, so its first error stayed hidden and silent.
+    it('follows every rerender transition on the same announcement node', async () => {
+      const view = await render(banner('info', 'Purchase pending', 'Waiting for the store.'));
+      await layOut();
+      const node = announcement();
+      const expectError = (title: string, body: string) => {
+        expect(announcement()).toBe(node);
+        expect(announcement()).toHaveTextContent(`${title}. ${body}`);
+        expect(text(title)).toHaveProp('aria-hidden', true);
+        expect(text(body)).toHaveProp('aria-hidden', true);
+      };
+      const expectQuiet = (title: string, body: string) => {
+        expect(announcement()).toBe(node);
+        expect(announcement()).toHaveTextContent('');
+        expect(screen.getByText(title).props['aria-hidden']).toBeUndefined();
+        expect(screen.getByText(body).props['aria-hidden']).toBeUndefined();
+      };
+
+      // Non-error → error.
+      await view.rerender(banner('error', "The purchase didn't go through", 'Try again.'));
+      expectError("The purchase didn't go through", 'Try again.');
+
+      // Error → non-error → error again.
+      await view.rerender(banner('info', 'Purchase pending', 'Waiting for the store.'));
+      expectQuiet('Purchase pending', 'Waiting for the store.');
+      await view.rerender(banner('error', "The purchase didn't go through", 'Try again.'));
+      expectError("The purchase didn't go through", 'Try again.');
+
+      // Error A → error B.
+      await view.rerender(banner('error', "We couldn't restore purchases", 'Try again later.'));
+      expectError("We couldn't restore purchases", 'Try again later.');
+
+      // An identical re-render changes nothing, so nothing is re-announced.
+      await view.rerender(banner('error', "We couldn't restore purchases", 'Try again later.'));
+      expectError("We couldn't restore purchases", 'Try again later.');
+
+      // Error → success.
+      await view.rerender(banner('success', 'Purchases restored', 'Pro is active.'));
+      expectQuiet('Purchases restored', 'Pro is active.');
+      expect(summaryRoot().props['aria-live']).toBeUndefined();
+    });
+
+    it('flattens a multi-part textual body completely and hides it', async () => {
+      const name = 'Ana';
+      const count = 3;
+      await render(
+        <Banner title="Couldn't sync" tone="error">
+          {name} has {count} changes waiting.
+        </Banner>,
+      );
+      await layOut();
+
+      expect(announcement()).toHaveTextContent("Couldn't sync. Ana has 3 changes waiting.");
+      expect(text('Ana has 3 changes waiting.')).toHaveProp('aria-hidden', true);
+    });
+
+    it.each([
+      ['an element', <AppText key="d">details</AppText>],
+      ['text mixed with an element', ['See ', <AppText key="d">details</AppText>]],
+    ])('never hides a body holding %s, and announces the title alone', async (_label, body) => {
+      await render(
+        <Banner title="Couldn't sync" tone="error">
+          {body}
+        </Banner>,
+      );
+      await layOut();
+
+      expect(announcement()).toHaveTextContent("Couldn't sync");
+      expect(text("Couldn't sync")).toHaveProp('aria-hidden', true);
+      // Found without `includeHiddenElements`: the body stays exposed.
+      expect(screen.getByText('details')).toBeOnTheScreen();
+    });
+
+    it('announces the title alone for a title-only error Banner', async () => {
+      await render(<Banner title="Couldn't save" tone="error" />);
+      await layOut();
+
+      expect(announcement()).toHaveTextContent("Couldn't save");
+      expect(text("Couldn't save")).toHaveProp('aria-hidden', true);
+    });
+  });
+
+  it('keeps an iOS error Banner exposed with no layout wait', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    await render(
+      <Banner title="Sign-in failed" tone="error">
+        Try again.
+      </Banner>,
+    );
+
+    expect(screen.getByText('Sign-in failed').props['aria-hidden']).toBeUndefined();
+    expect(screen.getByText('Try again.').props['aria-hidden']).toBeUndefined();
+    expect(summaryRoot().props.onLayout).toBeUndefined();
+  });
+
+  it('renders no announcement text on iOS and keeps the root request', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
     await render(
       <Banner title="Sign-in failed" tone="error">
         Try again.
