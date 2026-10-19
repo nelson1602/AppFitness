@@ -3265,6 +3265,88 @@ remain an unaudited follow-up risk.
 
 ---
 
+## [BUG-041] Web Header Back Link Has an English "back" in Its Accessible Name
+
+Status: **Open — Deferred pending a supported navigation API or an approved
+app-owned Web-header design.**
+Priority: **P3**
+Type: Bug (accessibility — localized accessible name)
+Owner: Mobile
+Created: 2026-10-19
+
+**Observed.** UX-4C Run 1 (NVDA 2026.2 + Chrome, 2026-10-14) read the header
+back link on `/forgot-password`, reached from `/sign-in`, as *"Iniciar sesión,
+back"* in Spanish. On 2026-10-19, unchanged `main` `10d6a60` reproduced it in
+headless Chrome after the app's own navigation from `/sign-in`:
+- **EN:** an icon-only `<a role="link" href="/sign-in" aria-label="Sign in,
+  back">`.
+- **ES:** the same element with `aria-label="Iniciar sesión, back"`.
+- Chrome's accessibility tree takes the link's name from that `aria-label`.
+
+**Root cause.**
+- `expo-router@57.0.13` vendors React Navigation. Its Web stack header renders
+  the vendored `HeaderBackButton` with `label` set to the previous screen's
+  title.
+- `HeaderBackButton` then builds its default accessible name in English:
+  `` `${label}, back` ``, or `"Go back"` when there is no label.
+- The localized part (*"Iniciar sesión"*) is the app's own screen title. The
+  English *"back"* comes from the framework.
+- Chrome and NVDA only consume this application-provided label; they are not
+  its source.
+- The native stack that Expo Router's default `Stack` uses exposes no option
+  to override this label, and `HeaderBackButton` is not a public export of
+  `expo-router`.
+
+**Upstream status (2026-10-19).** React Navigation's JavaScript `stack`
+navigator has had a `headerBackAccessibilityLabel` option since 2020:
+- added for
+  [react-navigation/react-navigation#9016](https://github.com/react-navigation/react-navigation/issues/9016)
+  (closed as completed);
+- related issue
+  [#7050](https://github.com/react-navigation/react-navigation/issues/7050) was
+  closed when `HeaderBackButton` gained an `accessibilityLabel` prop.
+
+Expo's documentation offers that JavaScript stack as the `expo-router/js-stack`
+entry point, which can be swapped in for the native stack, at the cost of the
+native iOS navigation views' performance. No upstream issue or fix was found
+during this audit that adds an equivalent option to the native stack this app
+uses.
+
+**Scope.**
+- **Verified:** only `/sign-in` → `/forgot-password`, in EN and ES.
+- **Inferred, not verified:** other Web stack headers reached by in-app
+  navigation probably carry the same English suffix (or *"Go back"*), because
+  they use the same header.
+- **Unaffected:** the localized in-page control on the recovery screen, *"Back
+  to sign in"* / *"Volver a iniciar sesión"*, has a correct name and remains
+  available.
+
+**Not done.** No NVDA correction run was made, and no code changed.
+
+**Rejected for now:**
+- a private deep import of the vendored `HeaderBackButton`;
+- adding a navigation dependency without an ADR;
+- duplicating or re-implementing the framework header.
+
+**Reopen when** either:
+- Expo Router or React Navigation exposes a supported option for the
+  native-stack back-button label; or
+- the owner authorizes an app-owned Web navigation-header contract and its
+  localized copy (for example, through an ADR adopting `expo-router/js-stack`
+  on Web, or an app-owned header).
+
+**Acceptance criteria for the future fix** (NVDA + Chrome, EN and ES):
+- the header back link's accessible name is fully localized, with no English
+  *"back"* or *"Go back"* in Spanish;
+- Enter on it navigates back to the previous screen;
+- going back sends no request;
+- focus behaves as before the change;
+- no duplicate name is announced.
+
+UX-4C stays **PARTIAL**.
+
+---
+
 ## [BUG-037] Sign-In Submit Moves Focus to the Email Field
 
 Status: **Done on Android (2026-10-12, owner Option A) — a loading Android
