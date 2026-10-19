@@ -142,11 +142,11 @@ jobs:
 
       - name: Expo doctor
         if: needs.changes.outputs.mobile == 'true'
-        # Pinned: expo-doctor 1.21.4 rejects valid ios.icon `.icon` directories
-        # (https://github.com/expo/expo/issues/51629; pending fix
-        # https://github.com/expo/expo/pull/51635). Deliberately update this pin
-        # once Expo publishes the fix.
-        run: npx --yes expo-doctor@1.20.4
+        # Pinned for deterministic CI; update deliberately. 1.21.5 carries the
+        # ios.icon `.icon` directory fix (https://github.com/expo/expo/pull/51635,
+        # merged) for the regression in 1.21.4
+        # (https://github.com/expo/expo/issues/51629, closed).
+        run: npx --yes expo-doctor@1.21.5
 
       - name: Export iOS and Android bundles (build verification)
         if: needs.changes.outputs.mobile == 'true'
