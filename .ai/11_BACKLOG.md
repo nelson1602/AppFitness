@@ -2093,8 +2093,7 @@ Setup:
 - **Defects:**
   - **BUG-038:** no Web error was announced, neither the sign-in error
     Banner nor the recovery inline error.
-  - **Recorded for BUG-039 (not started):** the language radios are always
-    read *"not checked"*.
+  - **BUG-039:** the language radios are always read *"not checked"*.
 
 **Run 2 (2026-10-15, BUG-038 Option 2):** all six owner checks passed in EN
 and ES, but the mounted-Banner transition gate then **failed** in EN (a Banner
@@ -2102,6 +2101,10 @@ mounted as a non-error never announced a later error). Option 2 was rejected.
 
 **Run 3 (2026-10-16, owner-authorized BUG-038 design):** all six owner checks
 and the mounted-Banner transition gate pass in EN and ES. See §BUG-038.
+
+**Run 4 (2026-10-19, BUG-039 candidate, `/sign-in` language radios):** checked
+state, Space and Enter activation, focus and single announcements pass in EN
+and ES. See §BUG-039.
 
 **Observed, not fixed:** the recovery screen's header back link is read
 *"Iniciar sesión, back"* in Spanish, which mixes in an English *"back"*.
@@ -3047,10 +3050,10 @@ harder of the two to read. No new measurement; no change of severity.
 
 ## [BUG-038] Web Error Messages Are Not Announced by a Browser Screen Reader
 
-Status: **Fix candidate validated, unstaged (2026-10-16, owner-authorized
-Banner design after Option 2 was rejected) — NVDA + Chrome verified in EN and
-ES, including mounted-Banner transitions. Android and iOS unchanged. Not
-delivered.**
+Status: **Done on Web — merged 2026-10-16 as PR #218 (merge `397136a`;
+owner-authorized Banner design after Option 2 was rejected). NVDA + Chrome
+verified in EN and ES, including mounted-Banner transitions. Android and iOS
+unchanged.**
 Priority: **P2**
 Type: Bug (accessibility — announcements)
 Owner: Mobile
@@ -3126,6 +3129,74 @@ Decision record: ADR-P024 *Correction (2026-10-16, BUG-038)*. UI/UX:
 were not heard individually), other browsers or screen readers, VoiceOver/iOS,
 and compound or element bodies heard through a screen reader (covered by tests
 only). UX-4C stays **PARTIAL**.
+
+---
+
+## [BUG-039] Web Language Radios Are Read "Not Checked" and Ignore Space
+
+Status: **In Progress — fix validated, delivery pending (2026-10-19). NVDA +
+Chrome verified in EN and ES on `/sign-in`. Android and iOS unchanged.**
+Priority: **P2**
+Type: Bug (accessibility — state and keyboard)
+Owner: Mobile
+Created: 2026-10-14
+
+**Observed** with NVDA 2026.2 + Chrome on `main` `527c302` (UX-4C Run 1):
+every `LanguageSelector` radio was read *"not checked"*, including the
+selected one. On 2026-10-16, on the fix candidate's first NVDA run, Space on an
+unselected radio selected nothing.
+
+**Cause.**
+- `react-native-web@0.21.2` does not read `accessibilityState`, so
+  `selected` never reached the DOM, and no `aria-checked` was emitted.
+- Its `PressResponder` activates a Pressable with Space only for the `button`
+  role. Enter activates any role. A headless Chrome probe of unchanged `main`
+  `397136a`, with real CDP key events, confirmed it: Space on an unselected
+  radio changed nothing, and Enter selected it with focus kept.
+
+**Fix (Web only; `language-selector.tsx`):**
+- Each radio also carries `aria-checked={selected}` on Web. Android and iOS keep
+  `accessibilityState.selected` alone, because React Native would merge
+  `aria-checked` into its native state.
+- A Web-only `onKeyDown` handles Space (and the legacy `Spacebar`) only. It
+  prevents the default, ignores key repeat and a selection still saving, and
+  calls the existing selection handler. Enter keeps its existing activation.
+  react-native-web's own key handler ignores Space on a radio, so a selection
+  is not triggered twice.
+- Roles, labels, styling, copy, selection behaviour and the component API are
+  unchanged. No dependency was added.
+
+**Evidence** (2026-10-19, Speech Viewer, real NVDA 2026.2 + Chrome Incognito
+with an isolated profile, `/sign-in`, no account data, EN and ES):
+1. **Checked state:** on entry, *"Language: Device language radio button
+   focused checked 1 of 3"* / *"Idioma: Idioma del dispositivo radio button
+   focused checked 1 of 3"*. The other two were read *"not checked"*, for
+   example *"Language: Spanish radio button not checked 2 of 3"*.
+2. **Space** on each unselected radio (Spanish, English, Device language)
+   selected it. NVDA announced the change once (*"checked"*, preceded by the
+   radio's new name when the selection switched the UI language), and NVDA+Tab
+   then read it *"focused checked"*.
+3. **Enter** on an unselected radio (Device language, then Spanish) selected
+   it, with the same single announcement.
+4. **State moved correctly:** after each selection exactly one radio had
+   `aria-checked="true"`, and the previously selected one was read *"not
+   checked"*.
+5. **Focus** stayed on the activated radio after every Space and Enter.
+6. **No duplicates:** each control was read with one name, one role, one state
+   and its position.
+
+Regression tests in `language-selector.spec.tsx` cover the checked state in EN
+and ES, Space, Enter, key repeat, a selection still saving, and unchanged
+Android and iOS behaviour. Removing `aria-checked`, the Space handler, its
+default prevention, its repeat or saving guard, or its Web gate each makes at
+least one test fail.
+
+**Not claimed:** TalkBack/Android and VoiceOver/iOS (native behaviour is not
+inferred from this Web evidence), and other browsers or screen readers. The
+other Web radio groups, `FormSelect` and `FoodLogAddForm`, were neither
+changed nor heard. They use the same `accessibilityRole="radio"` pattern, so
+they probably share both causes; this needs its own follow-up. UX-4C stays
+**PARTIAL**.
 
 ---
 
