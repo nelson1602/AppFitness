@@ -3134,8 +3134,9 @@ only). UX-4C stays **PARTIAL**.
 
 ## [BUG-039] Web Language Radios Are Read "Not Checked" and Ignore Space
 
-Status: **In Progress — fix validated, delivery pending (2026-10-19). NVDA +
-Chrome verified in EN and ES on `/sign-in`. Android and iOS unchanged.**
+Status: **Done on Web — delivered by PR #220. NVDA + Chrome verified in EN and
+ES on `/sign-in` (2026-10-19). Android and iOS unchanged. The `FormSelect` and
+`FoodLogAddForm` radio groups remain an open follow-up (see *Not claimed*).**
 Priority: **P2**
 Type: Bug (accessibility — state and keyboard)
 Owner: Mobile
