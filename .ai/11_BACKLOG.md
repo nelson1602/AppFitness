@@ -1999,9 +1999,13 @@ Excluded:
      **The repository identity blocker UX-4B-1 is closed.** UX-4C still needs a
      build carrying that identity and the manual iOS/VoiceOver, Android/TalkBack
      and browser-AT passes; no accessibility outcome is claimed by the rename.
-     **Status: PARTIAL (2026-10-08).** The non-Apple half ran; see
-     *UX-4C non-Apple campaign (2026-10-08)* below. **VoiceOver/iOS and
-     browser-AT are NOT RUN**, so UX-4C stays open and no gate closes.
+     **Status: PARTIAL.** The non-Apple half ran on 2026-10-08; see
+     *UX-4C non-Apple campaign (2026-10-08)* below. A browser screen-reader
+     pass (NVDA 2026.2 + Chrome, EN/ES, sign-in and password recovery only)
+     ran on 2026-10-14, 10-15, 10-16 and 10-19; see *UX-4C browser-AT campaign*
+     below. **VoiceOver/iOS is NOT RUN**, and no other browser or screen reader
+     has run, so UX-4C stays open and no gate closes. *(Status audited against
+     `main` `27e3157` on 2026-10-19.)*
 
 **UX-4C non-Apple campaign (2026-10-08) — PARTIAL.**
 Setup:
@@ -2074,13 +2078,14 @@ Setup:
   The Web DOM confirms that none is exposed today (ADR-P023).
 - **All five accessibility release-review gates stay open.**
 
-**UX-4C browser-AT campaign (2026-10-14 / 2026-10-15) — PARTIAL.**
+**UX-4C browser-AT campaign (2026-10-14 to 2026-10-19, Runs 1–4) — PARTIAL.**
 Setup:
 - NVDA 2026.2 (portable) with Chrome Incognito, using an isolated profile.
   Speech was read from NVDA's Speech Viewer, and keys were real Windows input.
-- `main` `527c302`, served on Web by Metro. A local mock auth API was used
-  (Railway Development does not allow the `localhost:8083` origin). Synthetic
-  data only.
+- Run 1 on `main` `527c302`; Runs 2–4 exercised the BUG-038 and BUG-039 fix
+  candidates (see §BUG-038 and §BUG-039). Served on Web by Metro. A local
+  mock auth API was used (Railway Development does not allow the
+  `localhost:8083` origin). Synthetic data only.
 - English and Spanish, covering sign-in and password recovery.
 
 **Run 1 (2026-10-14, `527c302`), observed:**
@@ -3630,7 +3635,9 @@ as before.
 - VoiceOver, programmatic invalid/required, or field-to-error association;
 - focus after a successful *sign-in*, which navigates to another route.
 
-**BUG-037 stays separate and open.**
+**BUG-037 stays separate and open.** *(Current state, audited 2026-10-19:
+BUG-037 has since been closed on Android by PR #217, merged 2026-10-14; see
+§BUG-037.)*
 
 ---
 
@@ -5608,6 +5615,15 @@ EN/ES paywall/copy review; billing retry/grace, cancellation,
 refund/revocation and deletion tests; qualified legal review; provider
 agreement/DPA review; and final Apple/Google privacy/billing declarations.
 
+**Legal-handoff gap (audited against `main` `27e3157`, 2026-10-19).**
+RevenueCat is named in `docs/legal/DATA_INVENTORY.md`,
+`docs/legal/PRIVACY_POLICY.md` and `docs/legal/PLAY_DATA_SAFETY.md`, but not in
+`docs/legal/LEGAL_APPROVAL_HANDOFF.md` or
+`docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`. The handoff's counsel item
+L-09 covers only Railway, Postmark, Cloudflare and Sentry. RevenueCat must be
+added to the counsel package and the store-form mapping before legal review or
+console entry. No legal draft was changed, and no legal approval is implied.
+
 ### Delivery slices after ADR acceptance
 
 1. **S-1 Contract and infrastructure — implemented 2026-09-30:** entitlement
@@ -5667,11 +5683,13 @@ agreement/DPA review; and final Apple/Google privacy/billing declarations.
    holds the 14-row matrix across tiers T0 (in-repo), T1 (RevenueCat Test
    Store), T2 (Apple sandbox/TestFlight), T3 (Play test track) and T4
    (physical device). 13 rows are proven in-repo, and the offline three-day
-   row is partial by design. **No external cell has been run** (all NOT RUN,
-   BLOCKED or N/A) on prerequisites P-1…P-13. The store publication identity
-   is ADR-P028's `com.appfitnessrd.mobile`; its blocker is UX-4B-1 (not
-   implemented, separately authorized) and unverified live store
-   availability. It is not an open decision, so the earlier "D-1" is
+   row is partial by design. When the in-repo part landed (2026-10-01) no
+   external cell had run. T1 and row 14 have since run (recorded below and in
+   `docs/SUBSCRIPTION_S5_EVIDENCE.md`); the T2–T4 cells remain NOT RUN or
+   BLOCKED on prerequisites P-1…P-13. The store publication identity is
+   ADR-P028's `com.appfitnessrd.mobile`, applied in-repo by UX-4B-1 (PR #210,
+   merged 2026-10-06); its live store availability remains unverified. It is
+   not an open decision, so the earlier "D-1" is
    withdrawn. **Owner decision D-2 (2026-10-01):** RevenueCat Test Store keys
    are allowed only in development builds. `EXPO_PUBLIC_REVENUECAT_TEST_STORE_API_KEY`
    (`test_`) is accepted only when `__DEV__` is true, on iOS or Android, with no

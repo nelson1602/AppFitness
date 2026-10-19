@@ -5,8 +5,16 @@
 > submission approval.** Legal / owner / store-console gates are called out
 > explicitly and remain the owner's to close.
 
-Last reconciled: **2026-10-07** · Current `main` baseline **`0b59d35`** ·
+Last reconciled: **2026-10-19**, audited against `main` **`27e3157`** ·
 App version `1.0.0` · Publication date: **not set**.
+
+> **Bounded current-state reconciliation, 2026-10-19 (audited against `main`
+> `27e3157`).** Documentation only; no gate was re-run. This pass corrects
+> the current engineering evidence (latest code-bearing CI and current
+> counts), Stage 2 item 7 and the verdict 1 baseline. It updates both UX-4C
+> rows and adds `BUG-040` and `BUG-041` to the open-defect view as deferred P3
+> items. It also records the `expo-doctor` upstream fix and the RevenueCat
+> legal-handoff gap. Rows not named here were not re-verified.
 
 > **Bounded current-state reconciliation, 2026-10-07 (`0b59d35`).** No gate
 > was re-run. This pass only corrects rows that later merged evidence already
@@ -103,18 +111,33 @@ Legend:
 - **PENDING-HUMAN** — needs a human review/authoring step not yet done.
 - **WAIVED** — explicitly out of scope (documented).
 
-## Current engineering evidence (on `d498658`)
+## Current engineering evidence (latest code-bearing CI, audited 2026-10-19)
 
-- **CI:** `api-ci` (Prisma, type-check, lint, format, unit tests, build;
-  migrations + e2e against disposable Postgres; dependency audit) and
-  `mobile-ci` (type-check, lint, format, tests; Expo doctor + bundle export;
-  dependency audit) are **green on `d498658`**, verified post-merge.
-- **Mobile tests:** **194 suites / 2598 tests**.
-- **API tests:** **43 suites / 606 unit tests**, plus the e2e suite in the
-  `api-ci` "Migrations + e2e against disposable Postgres" job.
-- **Localization:** **1063 EN / 1063 ES keys at exact parity** (0 keys on either
-  side only), verified against the shipped catalogues. Parity is no longer the
-  only evidence: `.ai/21_BILINGUAL_SURFACE_AUDIT.md` (2026-09-15) traces every
+- **CI:** the latest code-bearing merge is **`8fb854c`** (PR #220,
+  2026-10-19). Its post-merge `mobile-ci` run **`39264244983`** is green on
+  every job: type-check, lint, format, tests; Expo doctor + bundle export;
+  dependency audit. The later merges up to `27e3157` (PR #221, PR #222) are
+  documentation-only. The latest merge touching `api/` is **`d8a076e`**
+  (PR #205, 2026-10-01). Its post-merge `api-ci` run **`36883185579`** is green
+  on every job: Prisma, type-check, lint, format, unit tests, build;
+  migrations + e2e against disposable Postgres; dependency audit.
+- **Mobile tests:** **230 suites / 3454 tests** (`mobile-ci` run `39264244983`).
+- **API tests:** **50 suites / 668 unit tests**, plus **16 suites / 235 tests**
+  in the "Migrations + e2e against disposable Postgres" job (`api-ci` run
+  `36883185579`).
+- **Expo doctor pin:** CI pins `expo-doctor@1.20.4` because 1.21.4 rejected the
+  valid `ios.icon` `.icon` directory
+  ([expo/expo#51629](https://github.com/expo/expo/issues/51629)). As of
+  2026-10-19:
+  - #51629 is closed;
+  - the fix [expo/expo#51635](https://github.com/expo/expo/pull/51635) merged
+    on 2026-10-16;
+  - `expo-doctor@1.21.5` passed **21/21** locally against `27e3157`.
+
+  The CI pin is unchanged.
+- **Localization:** **1142 EN / 1142 ES keys at exact parity** (0 keys on either
+  side only), counted on `27e3157` against the shipped catalogues. Parity is
+  no longer the only evidence: `.ai/21_BILINGUAL_SURFACE_AUDIT.md` (2026-09-15) traces every
   key to a surface and every public-v1 surface back to the catalogue, and
   `mobile/src/shared/localization/surface-coverage.spec.ts` keeps that proof
   from regressing. **Locale formatting is now evidenced too**
@@ -140,8 +163,8 @@ Legend:
 
 | # | Item | Status | Evidence / gap |
 |---|---|---|---|
-| 1 | CI passes | **PASS** | all required checks green on `d498658`; branch protection enforces the gate checks |
-| 2 | Tests pass | **PASS** | mobile 194 suites / 2598 tests; api 43 suites / 606 unit tests + e2e green in `api-ci` |
+| 1 | CI passes | **PASS** | all required checks green on the latest code-bearing merge `8fb854c` (`mobile-ci` run `39264244983`) and, for `api/`, on `d8a076e` (`api-ci` run `36883185579`); branch protection enforces the gate checks (audited 2026-10-19) |
+| 2 | Tests pass | **PASS** | mobile 230 suites / 3454 tests (run `39264244983`); api 50 suites / 668 unit tests and 16 suites / 235 e2e tests (run `36883185579`) |
 | 3 | TypeScript passes | **PASS** | `tsc --noEmit` both packages (CI) |
 | 4 | Lint passes | **PASS** | expo lint / eslint `--max-warnings 0` (CI) |
 | 5 | Formatting passes | **PASS** | prettier `--check` both packages (CI) |
@@ -167,7 +190,7 @@ Legend:
 | **Deep-link completion for emailed links (ADR-P026)** | **NOT STARTED — V1 gate (native rebuild)** | `mobile/app.json` declares `scheme: appfitness` but **no `intentFilters` and no `associatedDomains`**, and `expo-linking` is unused in `mobile/src`. An emailed link opens the **Web portal, not the app**. Target is HTTPS links with a Web fallback; Universal / App Links require domain ownership **and a native rebuild (not OTA-eligible)**. |
 | **Privacy contact mailbox** | **PASS — OWNER CONFIRMED 2026-09-29** | `privacy@appfitnessrd.com` receives mail. Reconfirm only if routing changes before release. |
 | **Physical-device validation** | **BLOCKED-OWNER — V1 gate** | All device-side evidence to date is from an **emulator**. Physical-device validation — including **biometric**, which is not applicable on an emulator — remains outstanding before publication. |
-| **Accessibility validation (UX-4C)** | **PENDING-HUMAN — V1 gate** | UX-4B-1 now declares the accepted `AppFitnessRD` / `com.appfitnessrd.mobile` native identity in-repo, so the repository identity blocker is closed. A **partial** UX-4C pass ran on **2026-10-08**: Android TalkBack, Android keyboard and large text, and the Web portal keyboard pass, on a local build. It found three pre-existing defects (BUG-033 field names, BUG-034 silent error announcements, BUG-035 Web focus loss). Follow-up fixes the same day: BUG-034 Done on Android; BUG-033 fixed for `FormField` only (direct `AppTextInput` inputs open), then completed on 2026-10-09 (owner Option B): every `FormField` and direct `AppTextInput` is named by its label once on Android, which also corrects an empty-field duplicate introduced on 2026-10-08; BUG-036 auth-mode button name Done; BUG-037 sign-in focus jump recorded, then closed on Android on 2026-10-12 (owner Option A: a loading Android `AppButton` keeps focus and refuses presses that began while loading; real TalkBack verified EN/ES; iOS unchanged); BUG-035 closed on Web on 2026-10-09 (owner Option 1; real-browser keyboard focus verified EN/ES; browser screen reader not run then). A **partial browser screen-reader pass** (NVDA 2026.2 + Chrome, EN/ES, sign-in and recovery only) ran on 2026-10-14 and found BUG-038 (Web errors not announced) and the language-radio state defect recorded for BUG-039; BUG-038 Option 2 failed its mounted-Banner transition gate on 2026-10-15 and was rejected; the owner-authorized BUG-038 design passed all six owner checks and the transition gate in EN/ES on 2026-10-16 and merged as PR #218 (merge `397136a`); BUG-039 (Web language radios: checked state and Space activation) is fixed on Web, delivered by PR #220, after passing NVDA + Chrome in EN/ES on 2026-10-19 (`/sign-in` only; other Web radio groups not verified). **VoiceOver/iOS is NOT RUN**; all five release-review gates stay open; **outcomes are not claimed**. |
+| **Accessibility validation (UX-4C)** | **PENDING-HUMAN — V1 gate** | UX-4B-1 now declares the accepted `AppFitnessRD` / `com.appfitnessrd.mobile` native identity in-repo, so the repository identity blocker is closed. A **partial** UX-4C pass ran on **2026-10-08**: Android TalkBack, Android keyboard and large text, and the Web portal keyboard pass, on a local build. It found three pre-existing defects (BUG-033 field names, BUG-034 silent error announcements, BUG-035 Web focus loss). Follow-up fixes the same day: BUG-034 Done on Android; BUG-033 fixed for `FormField` only (direct `AppTextInput` inputs open), then completed on 2026-10-09 (owner Option B): every `FormField` and direct `AppTextInput` is named by its label once on Android, which also corrects an empty-field duplicate introduced on 2026-10-08; BUG-036 auth-mode button name Done; BUG-037 sign-in focus jump recorded, then closed on Android on 2026-10-12 (owner Option A: a loading Android `AppButton` keeps focus and refuses presses that began while loading; real TalkBack verified EN/ES; iOS unchanged); BUG-035 closed on Web on 2026-10-09 (owner Option 1; real-browser keyboard focus verified EN/ES; browser screen reader not run then). A **partial browser screen-reader pass** (NVDA 2026.2 + Chrome, EN/ES, sign-in and recovery only) ran on 2026-10-14 and found BUG-038 (Web errors not announced) and the language-radio state defect recorded for BUG-039; BUG-038 Option 2 failed its mounted-Banner transition gate on 2026-10-15 and was rejected; the owner-authorized BUG-038 design passed all six owner checks and the transition gate in EN/ES on 2026-10-16 and merged as PR #218 (merge `397136a`); BUG-039 (Web language radios: checked state and Space activation) is fixed on Web, delivered by PR #220, after passing NVDA + Chrome in EN/ES on 2026-10-19 (`/sign-in` only; other Web radio groups not verified). The remaining Web radio groups are recorded as `BUG-040` (P3, deferred behind ADR-P019; latent, with no reachable production Web journey), and the English *"back"* in the Web header back link's accessible name as `BUG-041` (P3, deferred; verified on `/sign-in` → `/forgot-password` only). **VoiceOver/iOS is NOT RUN**; all five release-review gates stay open; **outcomes are not claimed**. |
 | **Rollback dry-run** | **BLOCKED-OWNER** | Runbooks exist; never exercised on a live track. |
 | **Production log / monitoring review** | **PENDING-HUMAN** | See item 11. |
 | **Performance evidence** | **PARTIAL — STARTUP BASELINE RECORDED 2026-09-21** | `docs/PERFORMANCE_BASELINE.md` records steady-state cold start, first run and first launch after install on an Android emulator. Dashboard render time, direct SQLite initialization timing and physical-device measurement remain open under `PERF-001`. |
@@ -247,11 +270,11 @@ not outrank launch blockers.**
 | Item | Status | Impact |
 |---|---|---|
 | `FEATURE-012` v1 store subscription | **IN PROGRESS — S-1/S-2 IMPLEMENTED; S-3 MERGED; S-4 MERGED (PR #205); S-5 IN PROGRESS** | ADR-P034's fail-closed server foundation, session-scoped native adapter, bilingual subscription screen and server-authoritative paid-write enforcement exist. Railway **Development** has run with the provider enabled since 2026-10-05, for RevenueCat Test Store/Sandbox evidence only. Production was not changed or redeployed by that work and was not activated; its variables were not re-verified in that run. No real store product or live purchase exists, and nothing is store-verified. Remaining: Production provider activation after T2/T3 store evidence, S-3/S-4 store and AT evidence, store products/accounts, S-5 store-sandbox and device (T2–T4) evidence and S-6 legal closure. Blocks the paid-v1 contract. |
-| Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. |
+| Legal sign-off (`docs/legal/*`) | **BLOCKED-EXTERNAL** | Blocks submission. The engineering/factual Phase 21 refresh is complete (2026-09-29, evidence `42f6fc9`); qualified legal review, placeholder resolution, and publication approval are not. **Handoff gap (audited 2026-10-19 against `27e3157`):** RevenueCat appears in `DATA_INVENTORY.md`, `PRIVACY_POLICY.md` and `PLAY_DATA_SAFETY.md`, but not in `LEGAL_APPROVAL_HANDOFF.md` (counsel item L-09 lists only Railway, Postmark, Cloudflare and Sentry) or `STORE_PRIVACY_SUBMISSION_MATRIX.md`. It must be added before counsel review or console entry. No legal draft was changed and no approval is implied. |
 | App Store Connect / Play Console privacy forms, policy URLs, listing assets | **BLOCKED-OWNER** | Blocks submission. The provisional form mapping is in `docs/legal/STORE_PRIVACY_SUBMISSION_MATRIX.md`; it is not approved for entry. |
 | External Web account-deletion request | **UNVERIFIED — V1 gate** | Google requires a functional external request resource in addition to in-app deletion. `https://account.appfitnessrd.com/delete-account` returned 200 and rendered the AppFitnessRD deletion surface on 2026-09-29; the signed-out end-to-end journey and live-policy compliance are not verified. |
 | Physical-device + biometric validation | **BLOCKED-OWNER** | Blocks publication; all evidence to date is emulator-only. |
-| Accessibility pass (UX-4C) | **PENDING-HUMAN — PARTIAL** | Android/TalkBack and Web keyboard ran 2026-10-08 (BUG-034/036 fixed on Android; BUG-033 Done for Android input naming; BUG-035 Done on Web; BUG-037 Done on Android 2026-10-12); partial NVDA + Chrome pass 2026-10-14/19 (BUG-038 merged as PR #218 / `397136a`, verified incl. mounted-Banner transitions; BUG-039 delivered by PR #220, verified on `/sign-in` only; other Web radio groups open); VoiceOver/iOS not run. Blocks a credible accessibility claim; no outcome is claimed today. |
+| Accessibility pass (UX-4C) | **PENDING-HUMAN — PARTIAL** | Android/TalkBack and Web keyboard ran 2026-10-08 (BUG-034/036 fixed on Android; BUG-033 Done for Android input naming; BUG-035 Done on Web; BUG-037 Done on Android 2026-10-12); partial NVDA + Chrome pass 2026-10-14/19 (BUG-038 merged as PR #218 / `397136a`, verified incl. mounted-Banner transitions; BUG-039 delivered by PR #220, verified on `/sign-in` only; other Web radio groups deferred as `BUG-040`, Web header back-link wording deferred as `BUG-041`); VoiceOver/iOS not run. Blocks a credible accessibility claim; no outcome is claimed today. |
 | Universal / App Links + native rebuild | **NOT STARTED** | Emailed links open the Web portal, not the app. |
 | Privacy-contact mailbox receipt | **PASS — OWNER CONFIRMED 2026-09-29** | `privacy@appfitnessrd.com` receives mail. Reconfirm only if routing changes before release. |
 | Production backups / PITR | **WAIVED** (owner-accepted) | Data-loss risk explicitly accepted for v1; no restore test exists. |
@@ -282,6 +305,24 @@ inactive restore now replaces any stale active subscription snapshot and
 restores the ordinary offer. The exact stale-active branch is covered by
 deterministic store and screen regressions; the device re-check proved the
 inactive journey but did not recreate that already-refreshed precondition.
+
+**Open deferred accessibility defects (P3, recorded 2026-10-19):**
+- **`BUG-040`** — the Web `FormSelect` and `FoodLogAddForm` radios expose no
+  checked state, and Space does not select them (Enter and focus work).
+  - It is **latent**: every production host is unavailable on Web under
+    ADR-P019, so no production Web journey reaches them.
+  - It is deferred until ADR-P019 is lifted or either component gains a
+    reachable Web host.
+  - No NVDA evidence was collected and no code was delivered.
+- **`BUG-041`** — the Web header back link's accessible name carries an
+  English *"back"* (*"Iniciar sesión, back"*). React Navigation's
+  `HeaderBackButton`, vendored in `expo-router`, builds that name.
+  - It is verified only on `/sign-in` → `/forgot-password` in EN and ES; other
+    Web stack headers are inferred, not verified.
+  - It is deferred pending a supported native-stack label option or an
+    approved app-owned Web header.
+
+Both are tracked in `.ai/11_BACKLOG.md`.
 
 **`BUG-016`** (P2) is also **Done (2026-09-16)**, closed by **ADR-P032**.
 Recorded 2026-09-15 by the
@@ -513,10 +554,15 @@ angles — coverage, then quality.
    the shared dark `Card` mapping and is fully unit/contrast gated, but the
    existing native captures predate it. Final-candidate native visual review
    must confirm that nested `surfaceVariant` content remains distinguishable.
-7. `in-repo` — **Accessibility (UX-4C)**: UX-4B-1's accepted native identity
-   is implemented in-repo; produce the correctly identified artifacts, then run
-   the manual screen-reader, keyboard and large-text passes. No outcome may be
-   claimed until run. **Unchanged by
+7. `in-repo` — **Accessibility (UX-4C)** — **PARTIAL**: UX-4B-1's accepted
+   native identity is implemented in-repo. The manual passes have partly run:
+   - Android TalkBack, Android keyboard and large text, and the Web keyboard
+     pass ran on 2026-10-08;
+   - NVDA + Chrome ran between 2026-10-14 and 2026-10-19 (sign-in and
+     password recovery only).
+
+   See the UX-4C rows above. VoiceOver/iOS has not run, and no outcome may be
+   claimed beyond the passes recorded. **Unchanged by
    ADR-P022 Addendum A** — contrast arithmetic is not an assistive-technology
    outcome, and all five V1 accessibility release-review gates (ADR-P023 /
    ADR-P024 / ADR-P025) remain open at the same severity.
@@ -663,7 +709,9 @@ angles — coverage, then quality.
 
 ## Verdicts (four distinct dimensions — do not conflate)
 
-**1. In-repo release engineering: green on `d498658`.** CI, migrations, the
+**1. In-repo release engineering: green on the latest code-bearing merge
+`8fb854c`** (`mobile-ci` run `39264244983`; `api-ci` last ran its full suites
+on `d8a076e`, run `36883185579`). CI, migrations, the
 account-deletion path and the release scaffolding are done and CI-green, and
 conflict resolution is now verified end to end. **But** two evidence gates are
 **stale** — the cloud E2E run and the dependency triage — so "green CI" is not
