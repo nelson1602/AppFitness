@@ -3201,6 +3201,70 @@ they probably share both causes; this needs its own follow-up. UX-4C stays
 
 ---
 
+## [BUG-040] Web `FormSelect` and `FoodLogAddForm` Radios Lack Checked State and Space Activation
+
+Status: **Open — Deferred behind ADR-P019 (latent; no reachable production Web
+journey).**
+Priority: **P3** (latent)
+Type: Bug (accessibility — state and keyboard)
+Owner: Mobile
+Created: 2026-10-19
+
+**Scope.** The two remaining production `accessibilityRole="radio"` groups:
+the shared `FormSelect` option chips, and the `FoodLogAddForm` meal-type chips.
+An inventory of `main` `8fb854c` found exactly three production radio sites;
+the third, `LanguageSelector`, was fixed by BUG-039.
+
+**Observed on unchanged `main` `8fb854c`.** Both components were mounted in a
+temporary local route (removed afterwards) and probed in headless Chrome with
+real keyboard events, outside the production routes:
+- **No Web checked state:** neither `aria-checked` nor `aria-selected`
+  reached the DOM for any option, so `accessibilityState.selected` is not
+  exposed on Web.
+- **Space does not select:** Space on an unselected option left the value
+  unchanged in both groups.
+- **Enter works:** Enter on an unselected option selected it.
+- **Focus works:** focus stayed on the activated option.
+
+**Cause.** The same as BUG-039. `react-native-web@0.21.2` does not read
+`accessibilityState`. Its `PressResponder` activates a Pressable with Space
+only for the `button` role, and Enter for any role.
+
+**Why it is latent.** Every production host of these components is
+unavailable on Web under ADR-P019, because the Web database adapter always
+rejects:
+- `ProfileForm`, `GoalForm`, `WellnessSafetyProfileScreen` and
+  `ExerciseLibrary` (which hosts `CustomExerciseForm`) render their "unavailable
+  on Web" state instead of the form.
+- `FoodLogScreen` does the same for `FoodLogAddForm`.
+- `EvaluationForm` and `RestrictionForm` belong to the dormant medical domain
+  and have no route.
+
+No production Web user can reach either radio group today.
+
+**Not collected.** No NVDA or other screen-reader evidence was collected; no
+assistive-technology outcome is claimed.
+
+**Deferred.**
+- The implementation, and the required amendment to the frozen `FormSelect`
+  contract (`.ai/08_UI_UX.md` §3, which currently specifies no Web-specific
+  variant), are deferred.
+- They resume when ADR-P019 is lifted, or when either component gains a
+  reachable Web host. At that point the fix, its tests and real-route NVDA
+  verification in EN and ES are required.
+- A development candidate following the BUG-039 approach was written and
+  unit-tested, then preserved as a patch outside the repository and reverted.
+  That patch is development evidence only; it is **not** delivered code and
+  is not part of the codebase.
+
+**Related, not audited.** `accessibilityRole="button"` toggles carrying
+`selected` (`DietaryPreferences`, `NutritionPlanScreen`, `WorkoutLogScreen`)
+and the `accessibilityRole="checkbox"` chips in
+`wellness-token-group` may share the same `accessibilityState` gap on Web. They
+remain an unaudited follow-up risk.
+
+---
+
 ## [BUG-037] Sign-In Submit Moves Focus to the Email Field
 
 Status: **Done on Android (2026-10-12, owner Option A) — a loading Android
