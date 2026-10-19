@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 
 import { logError } from '@/shared/infrastructure/logging/logger';
 import { AppText, Banner } from '@/shared/presentation';
@@ -8,6 +8,13 @@ import { useTheme } from '@/shared/theme';
 import type { LanguagePreference } from './language';
 import type { TranslationKey } from './resources/en';
 import { useLocalization } from './use-localization';
+
+// The part of a react-native-web keydown event the Space handler reads.
+type WebKeyEvent = {
+  key: string;
+  nativeEvent?: { repeat?: boolean };
+  preventDefault: () => void;
+};
 
 const OPTIONS: readonly { preference: LanguagePreference; labelKey: TranslationKey }[] = [
   { preference: 'system', labelKey: 'language.system' },
@@ -20,6 +27,19 @@ export function LanguageSelector() {
   const { preference, setLanguagePreference, t } = useLocalization();
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
+  // BUG-039: react-native-web does not read `accessibilityState`, so on Web the
+  // radios carry `aria-checked` as well. Native keeps `selected` alone, since
+  // React Native would merge `aria-checked` into its state there.
+  // react-native-web also activates a Pressable with Space only for the button
+  // role, so on Web Space on a radio selects it here; Enter keeps its existing
+  // activation.
+  const isWeb = Platform.OS === 'web';
+  const onSpace = (option: LanguagePreference) => (event: WebKeyEvent) => {
+    if (event.key !== ' ' && event.key !== 'Spacebar') return;
+    event.preventDefault();
+    if (saving || event.nativeEvent?.repeat) return;
+    void select(option);
+  };
 
   const select = async (next: LanguagePreference) => {
     setSaving(true);
@@ -50,8 +70,10 @@ export function LanguageSelector() {
               accessibilityLabel={`${t('language.title')}: ${label}`}
               accessibilityRole="radio"
               accessibilityState={{ disabled: saving, selected }}
+              aria-checked={isWeb ? selected : undefined}
               disabled={saving}
               onPress={() => void select(option)}
+              {...(isWeb ? { onKeyDown: onSpace(option) } : null)}
               style={{
                 backgroundColor: selected ? theme.colors.primary : theme.colors.surfaceVariant,
                 borderColor: selected ? theme.colors.primary : theme.colors.outline,
