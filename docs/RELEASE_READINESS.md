@@ -125,16 +125,19 @@ Legend:
 - **API tests:** **50 suites / 668 unit tests**, plus **16 suites / 235 tests**
   in the "Migrations + e2e against disposable Postgres" job (`api-ci` run
   `36883185579`).
-- **Expo doctor pin:** CI pins `expo-doctor@1.20.4` because 1.21.4 rejected the
-  valid `ios.icon` `.icon` directory
-  ([expo/expo#51629](https://github.com/expo/expo/issues/51629)). As of
-  2026-10-19:
-  - #51629 is closed;
-  - the fix [expo/expo#51635](https://github.com/expo/expo/pull/51635) merged
-    on 2026-10-16;
-  - `expo-doctor@1.21.5` passed **21/21** locally against `27e3157`.
-
-  The CI pin is unchanged.
+- **Expo doctor pin:** CI pins `expo-doctor@1.21.5`. PR #224 (merge
+  `94cc141`, 2026-10-19) moved it from `1.20.4`, which had been held because
+  1.21.4 rejected the valid `ios.icon` `.icon` directory
+  ([expo/expo#51629](https://github.com/expo/expo/issues/51629), now closed).
+  - 1.21.5 contains the fix
+    ([expo/expo#51635](https://github.com/expo/expo/pull/51635), merged
+    2026-10-16). Expo's `expo-doctor` changelog lists it under 1.21.5.
+  - CI ran `npx --yes expo-doctor@1.21.5` and reported **21/21** before the
+    bundle export, both on the PR (`mobile-ci` run `39321868554`) and on
+    `main` (`mobile-ci` run `39322275926`).
+  - The version stays explicitly pinned for deterministic CI and is updated
+    deliberately. Newer `expo-doctor` checks are not picked up until the pin
+    is bumped.
 - **Localization:** **1142 EN / 1142 ES keys at exact parity** (0 keys on either
   side only), counted on `27e3157` against the shipped catalogues. Parity is
   no longer the only evidence: `.ai/21_BILINGUAL_SURFACE_AUDIT.md` (2026-09-15) traces every
