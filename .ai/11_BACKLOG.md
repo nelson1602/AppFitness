@@ -2858,6 +2858,17 @@ protection added in Phase 21. It is not an active incident. It is recorded at P2
 because it is the only reachable one, and because leaving it unfixed is now a
 recorded decision rather than an oversight.
 
+**Current state (2026-10-20, base `main` `948d123`).** A separate **critical**
+advisory was found in the same chain: `proxy-addr` 2.0.7 via
+`@nestjs/platform-express` 11.1.28 → `express` 5.2.1 (GHSA-jqcg-44mw-7w3h,
+published 2026-10-05, patched in 2.0.8). It made the critical-only gate exit 1.
+It is remediated by a lockfile-only update to `proxy-addr` 2.0.8, with no
+`package.json` or other package change; the API is back to 0 critical and the
+gate exits 0. Its reachability is low but not zero (the API sets no
+`trust proxy`). See `docs/DEPENDENCY_AUDIT.md` *Refresh 2026-10-20*. The `qs`
+assessment above is unchanged, and remediating `qs` still awaits owner
+authorization.
+
 ### Why it is not already fixed
 
 `docs/DEPENDENCY_AUDIT.md` states that the register records findings and **does
