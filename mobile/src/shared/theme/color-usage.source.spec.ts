@@ -207,3 +207,33 @@ describe('no raw colour enters a component', () => {
     expect(themeConsumers.length).toBeGreaterThanOrEqual(20);
   });
 });
+
+/**
+ * ADR-P022 Addendum C: the five brand roles belong to the identity surface
+ * alone. A CTA, card, state or navigation element that reached for one would
+ * bypass Decision 5a (primary/onPrimary is the only filled-CTA pair) and the
+ * accent matrix, so any consumer outside the identity files fails here.
+ */
+describe('brand identity roles stay on the identity surface', () => {
+  const IDENTITY_FILES = [
+    'src/shared/presentation/brand-hero.tsx',
+    'src/shared/presentation/brand-gradient.ts',
+    'src/shared/presentation/brand-gradient.web.ts',
+    'src/shared/presentation/app-text.tsx',
+  ];
+  const brandRole =
+    /colors\.(brand|brandEnd|onBrand|onBrandVariant|brandGlow)\b|tone="onBrand(Variant)?"/;
+
+  it('uses no brand role outside the identity files', () => {
+    const offenders = sources
+      .filter(({ path }) => !IDENTITY_FILES.includes(path))
+      .filter(({ text }) => brandRole.test(text))
+      .map(({ path }) => path);
+    expect(offenders).toEqual([]);
+  });
+
+  it('still renders the identity surface from brand roles, so the guard is not vacuous', () => {
+    const hero = sources.find(({ path }) => path === 'src/shared/presentation/brand-hero.tsx')!;
+    expect(hero.text).toMatch(brandRole);
+  });
+});

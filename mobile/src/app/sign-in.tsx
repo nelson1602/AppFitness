@@ -137,12 +137,6 @@ export default function SignInScreen() {
             <AppButton loading={loading} onPress={() => void submit()}>
               {mode === 'register' ? t('auth.register') : t('auth.signIn')}
             </AppButton>
-            <AppButton
-              onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
-              variant="text"
-            >
-              {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
-            </AppButton>
             {mode === 'sign-in' ? (
               // Recovery entry point (ADR-P026 Vertical 1). Sign-in only: there
               // is nothing to recover while creating an account.
@@ -157,7 +151,18 @@ export default function SignInScreen() {
             ) : null}
           </View>
         </Card>
-        <LanguageSelector />
+        {/* Account-creation entry point, set apart from the sign-in form so it
+            reads as its own choice. Mode switch only — same handler as before. */}
+        <AppButton
+          onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
+          testID="button-toggle-mode"
+          variant="secondary"
+        >
+          {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
+        </AppButton>
+        <Card>
+          <LanguageSelector />
+        </Card>
       </View>
     </Screen>
   );

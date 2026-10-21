@@ -12,8 +12,21 @@ type TextVariant = 'display' | 'headline' | 'title' | 'body' | 'label' | 'captio
  * token, and naming it here is what stopped four selected-chip call sites from
  * reaching for the default tone and rendering `onSurface` on `primary`
  * (1.42:1 in the dark theme — ADR-P022 Addendum A, `.ai/08_UI_UX.md` Finding 1).
+ *
+ * `onBrand` / `onBrandVariant` are likewise only correct on the identity
+ * surface (`BrandHero`, ADR-P022 Addendum C), and are policed to it by
+ * `color-usage.source.spec.ts`.
  */
-type TextTone = 'default' | 'muted' | 'primary' | 'onPrimary' | 'success' | 'warning' | 'error';
+type TextTone =
+  | 'default'
+  | 'muted'
+  | 'primary'
+  | 'onPrimary'
+  | 'onBrand'
+  | 'onBrandVariant'
+  | 'success'
+  | 'warning'
+  | 'error';
 
 interface AppTextProps extends TextProps {
   children: ReactNode;
@@ -36,6 +49,8 @@ export function AppText({
     muted: theme.colors.onSurfaceVariant,
     primary: theme.colors.primary,
     onPrimary: theme.colors.onPrimary,
+    onBrand: theme.colors.onBrand,
+    onBrandVariant: theme.colors.onBrandVariant,
     success: theme.colors.success,
     warning: theme.colors.warning,
     error: theme.colors.error,

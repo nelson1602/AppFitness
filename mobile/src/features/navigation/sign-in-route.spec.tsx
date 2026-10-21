@@ -57,6 +57,38 @@ describe('SignInScreen', () => {
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
   });
 
+  // ADR-P022 Addendum C layout: identity header first, then the form, then the
+  // separate account-creation entry, then the two-language choice.
+  it('orders the identity header, form, account-creation entry and language choice', async () => {
+    await render(<SignInScreen />);
+
+    const header = screen.getByRole('header', { name: 'AppFitnessRD' });
+    expect(screen.getAllByText('AppFitnessRD')).toHaveLength(1);
+    expect(screen.queryByTestId('brand-mark')).toBeNull();
+
+    const order = [
+      header,
+      screen.getByLabelText('Email'),
+      screen.getByRole('button', { name: 'Sign in' }),
+      screen.getByTestId('button-forgot-password'),
+      screen.getByTestId('button-toggle-mode'),
+      screen.getByRole('radio', { name: 'Language: Spanish' }),
+    ];
+    // Pre-order walk of the host tree: document order, as a screen reader reads it.
+    const hosts: unknown[] = [];
+    const walk = (node: { children: unknown[] }) => {
+      hosts.push(node);
+      for (const child of node.children) if (typeof child === 'object') walk(child as never);
+    };
+    walk(screen.root as never);
+    const positions = order.map((node) => hosts.indexOf(node));
+    expect(positions.every((p) => p >= 0)).toBe(true);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+
+    expect(screen.getByTestId('button-toggle-mode')).toHaveTextContent('Create Account');
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
+  });
+
   it('names the authentication-mode button by its visible text in both modes', async () => {
     await render(<SignInScreen />);
 

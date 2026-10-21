@@ -14,6 +14,7 @@ import {
   AppText,
   Banner,
   BrandHero,
+  Card,
   PaidWriteDisabledProvider,
   Screen,
 } from '@/shared/presentation';
@@ -299,10 +300,14 @@ function DashboardActionGroup(props: { children: ReactNode; title: string }) {
   const theme = useTheme();
 
   return (
-    <View style={{ gap: theme.spacing.md }}>
-      <AppText variant="title">{props.title}</AppText>
+    // A titled card per group (ADR-P022 Addendum C slice): the title is a
+    // header so screen-reader users can move between groups.
+    <Card style={{ gap: theme.spacing.md }}>
+      <AppText accessibilityRole="header" variant="title">
+        {props.title}
+      </AppText>
       <View style={[styles.actionGrid, { gap: theme.spacing.sm }]}>{props.children}</View>
-    </View>
+    </Card>
   );
 }
 
