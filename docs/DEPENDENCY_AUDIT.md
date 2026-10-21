@@ -168,6 +168,76 @@ database; no `npm audit fix`, dependency override or unrelated package change
 was applied in S-2. The accepted dispositions and `RISK-002` recommendation
 remain unchanged. Re-run this evidence against the final native release lockfile.
 
+## Refresh 2026-10-20 — critical `proxy-addr` found and remediated (base `948d123`)
+
+**Discovery.** A clean `npm ci` of `main` `948d123` (Node 24.22.0 / npm
+11.19.1) was audited with the CI commands `npm audit --omit=dev` and
+`npm audit --omit=dev --audit-level=critical`. The API reported one
+**critical** production advisory, and the critical gate exited **1**. The
+`api-ci` audit job had last run on 2026-10-01, before the advisory was
+published. On PR #226 (`api-ci` run `39592023213`, job `119195138897`,
+2026-10-21) it ran again on the candidate: production audit 0 critical / 9
+high / 1 moderate, and the `--audit-level=critical` step passed.
+
+| Field | Value |
+|---|---|
+| Advisory | [GHSA-jqcg-44mw-7w3h](https://github.com/advisories/GHSA-jqcg-44mw-7w3h) — *proxy-addr vulnerable to IP spoofing via IPv4-mapped IPv6 trust subnet* |
+| Severity | **critical**, CVSS 9.1 (CWE-290, CWE-348, CWE-697); published 2026-10-05 |
+| Affected / patched | `>=1.1.0 <2.0.8` / **2.0.8** |
+| Installed | `proxy-addr` **2.0.7**, transitive only (no direct dependency) |
+| Path | `@nestjs/platform-express` 11.1.28 → `express` 5.2.1 (`proxy-addr: ^2.0.7`) → `proxy-addr` |
+
+**Reachability, kept separate from severity: low but not zero.** The API never
+sets Express `trust proxy`, so Express keeps its default "trust none" and the
+advisory's subnet-trust comparison is not exercised. Express still computes
+`req.ip` through `proxy-addr`, and the throttler reads `req.ip` off Railway, so
+the module is on the request path. Remediated regardless of reachability.
+
+**Remediation.** `npm update proxy-addr --package-lock-only --no-fund
+--no-audit` in `api/`. It changed exactly one lockfile entry,
+`node_modules/proxy-addr`:
+- `version` 2.0.7 → 2.0.8, plus its `resolved` URL and `integrity`;
+- the `funding` block that 2.0.8 itself publishes.
+
+Its `license`, `dependencies` (`forwarded` 0.2.0, `ipaddr.js` 1.9.1) and
+`engines` are unchanged, as are every other entry and `api/package.json`. No
+override, `npm audit fix`, `--force` or other package update was used. After
+`npm ci`, `npm ls` / `npm explain` show a single `proxy-addr@2.0.8` on the
+original chain.
+
+| Package | critical | high | moderate | low | total | critical gate |
+|---|---|---|---|---|---|---|
+| **api** before (`948d123`) | **1** | 9 | 1 | 0 | 11 | exit 1 |
+| **api** after (this change) | **0** | 9 | 1 | 0 | 10 | **exit 0** |
+| **mobile** (`948d123`, unchanged) | 0 | **56** | 13 | 0 | 69 | exit 0 |
+
+The remaining API highs and the moderate `qs` item (`RISK-002`) are unchanged.
+The **56 mobile highs** (up from 4 on 2026-09-30) remain **untriaged**; they
+were neither remediated nor dismissed.
+
+**Local API validation of the candidate** (CI commands, throwaway CI values,
+no Railway, Development or Production data):
+- Prisma generate and validate, TypeScript, lint and build all pass.
+- Unit tests: **50 suites / 668 tests**.
+- Format check: it fails only on CRLF line endings in the Windows
+  `core.autocrlf` checkout, and passes with end-of-line normalisation. CI
+  checks an LF checkout.
+- E2E ran on fresh disposable local **PostgreSQL 18.4** databases; CI uses
+  `postgres:16-alpine`.
+  - All 17 migrations applied.
+  - A default-parallelism full run hit 41 Jest hook timeouts (5000 ms) in two
+    suites. The **identical** result reproduced on unchanged `948d123` with
+    `proxy-addr` 2.0.7, and those two suites passed alone. This is a local
+    parallelism artifact, not a product failure.
+  - A single full run with `npm run test:e2e -- --maxWorkers=3` passed **16
+    suites / 235 tests** (exit 0, 81.5 s).
+
+  This is corroborating local evidence only. The authoritative single-run
+  PostgreSQL 16 gate passed on PR #226: `api-ci` run `39592023213`, job
+  `119195138855` (`postgres:16-alpine`, 2026-10-21) applied all 17 migrations
+  and passed **16 e2e suites / 235 tests**. The candidate is validated; the
+  critical remains on `main` until PR #226 merges.
+
 ## Review cadence
 
 Re-run and reconcile this register at each release checkpoint and whenever
