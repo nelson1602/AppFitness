@@ -139,12 +139,13 @@ describe('catalogue parity', () => {
   // family and the 2-key dashboard subscription entry. It moved to 1143 on
   // 2026-10-01, when ADR-P034 S-4 added five read-only access keys. It moved
   // to 1142 on 2026-10-08, when BUG-033 removed `auth.switchMode`: the sign-in
-  // mode button now takes its name from its visible text. It moved to 1145 on
-  // 2026-10-21, when the visual pilot added three dashboard group headings.
+  // mode button now takes its name from its visible text. It moved to 1144 on
+  // 2026-10-21, when the visual pilot removed the device-language label and
+  // added three dashboard group headings.
   // None of these is in this family, so the 157-key conflict family below is unchanged.
-  it('reaches 1145 keys in each language — 988 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1145);
-    expect(Object.keys(es)).toHaveLength(1145);
+  it('reaches 1144 keys in each language — 987 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1144);
+    expect(Object.keys(es)).toHaveLength(1144);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 
