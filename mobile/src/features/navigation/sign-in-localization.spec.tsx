@@ -11,7 +11,7 @@ const spanish = {
   'auth.signIn': 'Iniciar sesión',
   'auth.register': 'Registrarse',
   'auth.useExistingAccount': 'Usar una cuenta existente',
-  'auth.createAccount': 'Crear una cuenta local',
+  'auth.createAccount': 'Crear cuenta',
   'auth.errorTitle': 'Error de inicio de sesión',
   'auth.errorMessage': 'No se pudo autenticar. Revisa tus credenciales y conexión.',
 } as const;
@@ -36,6 +36,6 @@ describe('SignInScreen localization proof surface', () => {
     expect(screen.getByLabelText('Correo electrónico')).toHaveProp('testID', 'input-email');
     expect(screen.getByLabelText('Contraseña')).toHaveProp('testID', 'input-password');
     expect(screen.getByRole('button', { name: 'Iniciar sesión' })).toBeOnTheScreen();
-    expect(screen.getByRole('button', { name: 'Crear una cuenta local' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeOnTheScreen();
   });
 });

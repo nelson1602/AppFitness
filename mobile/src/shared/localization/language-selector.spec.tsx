@@ -37,17 +37,42 @@ describe('LanguageSelector', () => {
     jest.restoreAllMocks();
   });
 
-  it('exposes accessible system, Spanish, and English radio options', async () => {
+  it('exposes exactly two radio options, Spanish and English, with no device-language choice', async () => {
     await render(<LanguageSelector />);
 
-    expect(screen.getByRole('radio', { name: 'Language: Device language' })).toBeOnTheScreen();
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
     expect(screen.getByRole('radio', { name: 'Language: Spanish' })).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Language: English' })).toBeOnTheScreen();
-    expect(screen.getByTestId('language-option-system')).toHaveProp('accessibilityState', {
+    expect(screen.queryByTestId('language-option-system')).toBeNull();
+    expect(screen.queryByText('Device language')).toBeNull();
+    expect(screen.getByTestId('language-option-en')).toHaveProp('accessibilityState', {
       disabled: false,
       selected: true,
     });
   });
+
+  // Backward compatibility: a stored 'system' preference (the earlier
+  // three-option model, or no explicit choice) shows the radio that matches the
+  // resolved language, so exactly one of the two is selected.
+  it.each([
+    ['system', 'es', 'es'],
+    ['system', 'en', 'en'],
+    ['es', 'es', 'es'],
+    ['en', 'en', 'en'],
+  ] as const)(
+    'with a stored %s preference resolved to %s, selects exactly %s',
+    async (preference, language, expected) => {
+      mockState.preference = preference;
+      mockState.language = language;
+      await render(<LanguageSelector />);
+
+      for (const option of ['es', 'en'] as const) {
+        expect(
+          screen.getByTestId(`language-option-${option}`).props.accessibilityState.selected,
+        ).toBe(option === expected);
+      }
+    },
+  );
 
   it('requests and persists the selected language', async () => {
     await render(<LanguageSelector />);
@@ -84,14 +109,14 @@ describe('LanguageSelector', () => {
       jest.replaceProperty(Platform, 'OS', 'web');
     });
 
-    const options = ['system', 'es', 'en'] as const;
+    const options = ['es', 'en'] as const;
     const state = (option: (typeof options)[number]) =>
       screen.getByTestId(`language-option-${option}`).props.accessibilityState;
     const checkedOptions = () => options.filter((option) => state(option).checked === true);
 
     it.each([
-      ['en', ['Language: Device language', 'Language: Spanish', 'Language: English']],
-      ['es', ['Idioma: Idioma del dispositivo', 'Idioma: Español', 'Idioma: Inglés']],
+      ['en', ['Language: Spanish', 'Language: English']],
+      ['es', ['Idioma: Español', 'Idioma: Inglés']],
     ] as const)(
       'checks exactly the selected option in %s, with unchanged labels',
       async (language, names) => {
@@ -101,16 +126,17 @@ describe('LanguageSelector', () => {
         for (const name of names) {
           expect(screen.getAllByRole('radio', { name })).toHaveLength(1);
         }
-        expect(checkedOptions()).toEqual(['system']);
+        expect(screen.getAllByRole('radio')).toHaveLength(2);
+        expect(checkedOptions()).toEqual([language]);
         for (const option of options) {
-          expect(state(option).checked).toBe(option === 'system');
+          expect(state(option).checked).toBe(option === language);
         }
       },
     );
 
     it('moves the checked state when the selected option changes', async () => {
       const view = await render(<LanguageSelector />);
-      expect(checkedOptions()).toEqual(['system']);
+      expect(checkedOptions()).toEqual(['en']);
 
       mockState.preference = 'es';
       mockState.language = 'es';
@@ -163,10 +189,9 @@ describe('LanguageSelector', () => {
 
     it.each([
       ['es', ' '],
-      ['en', ' '],
-      ['system', 'Spacebar'],
+      ['en', 'Spacebar'],
     ] as const)('selects %s once on Space and prevents its default', async (option, key) => {
-      mockState.preference = option === 'system' ? 'en' : 'system';
+      mockState.language = option === 'en' ? 'es' : 'en';
       await render(<LanguageSelector />);
 
       const event = await keyDown(option, key);
@@ -230,9 +255,10 @@ describe('LanguageSelector', () => {
     async (os) => {
       jest.replaceProperty(Platform, 'OS', os);
       mockState.preference = 'es';
+      mockState.language = 'es';
       await render(<LanguageSelector />);
 
-      for (const option of ['system', 'es', 'en'] as const) {
+      for (const option of ['es', 'en'] as const) {
         const node = screen.getByTestId(`language-option-${option}`);
         expect(node.props.accessibilityState.checked).toBeUndefined();
         expect(node).toHaveProp('accessibilityState', {
@@ -249,7 +275,7 @@ describe('LanguageSelector', () => {
       jest.replaceProperty(Platform, 'OS', os);
       await render(<LanguageSelector />);
 
-      for (const option of ['system', 'es', 'en'] as const) {
+      for (const option of ['es', 'en'] as const) {
         expect(screen.getByTestId(`language-option-${option}`).props.onKeyDown).toBeUndefined();
       }
       await act(async () => {

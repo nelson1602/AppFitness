@@ -1,10 +1,18 @@
 import { Stack, router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
 import { LanguageSelector, type TranslationKey, useLocalization } from '@/shared/localization';
-import { AppButton, AppText, AppTextInput, Banner, Card, Screen } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Banner,
+  BrandHero,
+  Card,
+  Screen,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 // Reason → localized banner copy (Slice 2B4). Distinct, honest, non-enumerating
@@ -88,13 +96,10 @@ export default function SignInScreen() {
   };
 
   return (
-    <Screen>
-      <Stack.Screen options={{ title: t('auth.screenTitle') }} />
+    <Screen style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false, title: t('auth.screenTitle') }} />
       <View style={{ gap: theme.spacing.lg }}>
-        <View>
-          <AppText variant="headline">AppFitnessRD</AppText>
-          <AppText tone="muted">{t('auth.subtitle')}</AppText>
-        </View>
+        <BrandHero subtitle={t('auth.subtitle')} />
 
         {errorReason ? (
           <Banner title={t(ERROR_COPY[errorReason].title)} tone="error">
@@ -157,6 +162,14 @@ export default function SignInScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    alignSelf: 'center',
+    maxWidth: 560,
+    width: '100%',
+  },
+});
 
 interface InputProps {
   label: string;

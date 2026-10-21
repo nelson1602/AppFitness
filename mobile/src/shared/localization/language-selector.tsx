@@ -5,7 +5,7 @@ import { logError } from '@/shared/infrastructure/logging/logger';
 import { AppText, Banner } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { LanguagePreference } from './language';
+import type { SupportedLanguage } from './language';
 import type { TranslationKey } from './resources/en';
 import { useLocalization } from './use-localization';
 
@@ -16,15 +16,17 @@ type WebKeyEvent = {
   preventDefault: () => void;
 };
 
-const OPTIONS: readonly { preference: LanguagePreference; labelKey: TranslationKey }[] = [
-  { preference: 'system', labelKey: 'language.system' },
+// Exactly two visible choices (owner decision). A stored `'system'` or missing
+// preference stays valid: the radio that matches the resolved language is the
+// one shown as selected, and choosing either stores an explicit preference.
+const OPTIONS: readonly { preference: SupportedLanguage; labelKey: TranslationKey }[] = [
   { preference: 'es', labelKey: 'language.spanish' },
   { preference: 'en', labelKey: 'language.english' },
 ];
 
 export function LanguageSelector() {
   const theme = useTheme();
-  const { preference, setLanguagePreference, t } = useLocalization();
+  const { language, setLanguagePreference, t } = useLocalization();
   const [saving, setSaving] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
   // BUG-039: react-native-web does not read `accessibilityState`, so on Web the
@@ -34,14 +36,14 @@ export function LanguageSelector() {
   // role, so on Web Space on a radio selects it here; Enter keeps its existing
   // activation.
   const isWeb = Platform.OS === 'web';
-  const onSpace = (option: LanguagePreference) => (event: WebKeyEvent) => {
+  const onSpace = (option: SupportedLanguage) => (event: WebKeyEvent) => {
     if (event.key !== ' ' && event.key !== 'Spacebar') return;
     event.preventDefault();
     if (saving || event.nativeEvent?.repeat) return;
     void select(option);
   };
 
-  const select = async (next: LanguagePreference) => {
+  const select = async (next: SupportedLanguage) => {
     setSaving(true);
     setSaveFailed(false);
     try {
@@ -62,7 +64,7 @@ export function LanguageSelector() {
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
         {OPTIONS.map(({ preference: option, labelKey }) => {
-          const selected = preference === option;
+          const selected = language === option;
           const label = t(labelKey);
           return (
             <Pressable

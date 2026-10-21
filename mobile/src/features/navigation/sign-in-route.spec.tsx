@@ -60,13 +60,13 @@ describe('SignInScreen', () => {
   it('names the authentication-mode button by its visible text in both modes', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
     expect(screen.getByRole('button', { name: 'Use existing account' })).toBeOnTheScreen();
     // Negative control: the generic name that hid the visible text is gone.
     expect(screen.queryByLabelText('Switch authentication mode')).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Use existing account' }));
-    expect(screen.getByRole('button', { name: 'Create a local account' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Create Account' })).toBeOnTheScreen();
   });
 
   it('signs in and redirects to the dashboard', async () => {
@@ -88,7 +88,7 @@ describe('SignInScreen', () => {
   it('switches to registration and submits username', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
     expect(screen.getByLabelText('Username')).toBeOnTheScreen();
 
     await fireEvent.changeText(screen.getByLabelText('Email'), 'new@appfitness.local');
@@ -167,7 +167,7 @@ describe('SignInScreen', () => {
     mockSignUp.mockRejectedValue(new AuthError('registration-unavailable'));
 
     await render(<SignInScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
     await fireEvent.changeText(screen.getByLabelText('Email'), 'taken@appfitness.local');
     await fireEvent.changeText(screen.getByLabelText('Username'), 'taken-user');
     await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
@@ -197,7 +197,7 @@ describe('SignInScreen', () => {
   it('hides the recovery entry point while creating an account', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
 
     // Nothing to recover before the account exists.
     expect(screen.queryByLabelText('Forgot your password?')).toBeNull();

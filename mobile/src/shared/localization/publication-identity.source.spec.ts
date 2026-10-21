@@ -57,11 +57,10 @@ describe('ADR-P028 publication identity', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('pins the two intentionally direct-rendered product headings', () => {
-    expect(read('src/app/sign-in.tsx')).toContain(`>${PRODUCT_NAME}</AppText>`);
-    expect(read('src/features/dashboard/presentation/DashboardScreen.tsx')).toContain(
-      `>${PRODUCT_NAME}</AppText>`,
-    );
+  it('pins the shared product heading on both orientation surfaces', () => {
+    expect(read('src/shared/presentation/brand-hero.tsx')).toContain(`title = '${PRODUCT_NAME}'`);
+    expect(read('src/app/sign-in.tsx')).toContain('<BrandHero');
+    expect(read('src/features/dashboard/presentation/DashboardScreen.tsx')).toContain('<BrandHero');
   });
 
   it('points every Maestro flow and the theme-capture helper at the new Android app id', () => {

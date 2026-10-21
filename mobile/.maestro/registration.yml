@@ -20,7 +20,7 @@ appId: com.appfitnessrd.mobile
     timeout: 30000
 
 # Switch to register mode and enter the disposable identity.
-- tapOn: 'Create a local account'
+- tapOn: 'Create Account'
 - assertVisible: 'Register'
 - tapOn:
     id: 'input-email'
