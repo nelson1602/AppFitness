@@ -175,7 +175,9 @@ remain unchanged. Re-run this evidence against the final native release lockfile
 `npm audit --omit=dev --audit-level=critical`. The API reported one
 **critical** production advisory, and the critical gate exited **1**. The
 `api-ci` audit job had last run on 2026-10-01, before the advisory was
-published.
+published. On PR #226 (`api-ci` run `39592023213`, job `119195138897`,
+2026-10-21) it ran again on the candidate: production audit 0 critical / 9
+high / 1 moderate, and the `--audit-level=critical` step passed.
 
 | Field | Value |
 |---|---|
@@ -230,8 +232,11 @@ no Railway, Development or Production data):
   - A single full run with `npm run test:e2e -- --maxWorkers=3` passed **16
     suites / 235 tests** (exit 0, 81.5 s).
 
-  This is corroborating local evidence only; the authoritative single-run
-  PostgreSQL 16 e2e gate is the PR's `api-ci` job.
+  This is corroborating local evidence only. The authoritative single-run
+  PostgreSQL 16 gate passed on PR #226: `api-ci` run `39592023213`, job
+  `119195138855` (`postgres:16-alpine`, 2026-10-21) applied all 17 migrations
+  and passed **16 e2e suites / 235 tests**. The candidate is validated; the
+  critical remains on `main` until PR #226 merges.
 
 ## Review cadence
 
