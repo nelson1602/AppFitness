@@ -57,16 +57,48 @@ describe('SignInScreen', () => {
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
   });
 
+  // ADR-P022 Addendum C layout: identity header first, then the form, then the
+  // separate account-creation entry, then the two-language choice.
+  it('orders the identity header, form, account-creation entry and language choice', async () => {
+    await render(<SignInScreen />);
+
+    const header = screen.getByRole('header', { name: 'AppFitnessRD' });
+    expect(screen.getAllByText('AppFitnessRD')).toHaveLength(1);
+    expect(screen.queryByTestId('brand-mark')).toBeNull();
+
+    const order = [
+      header,
+      screen.getByLabelText('Email'),
+      screen.getByRole('button', { name: 'Sign in' }),
+      screen.getByTestId('button-forgot-password'),
+      screen.getByTestId('button-toggle-mode'),
+      screen.getByRole('radio', { name: 'Language: Spanish' }),
+    ];
+    // Pre-order walk of the host tree: document order, as a screen reader reads it.
+    const hosts: unknown[] = [];
+    const walk = (node: { children: unknown[] }) => {
+      hosts.push(node);
+      for (const child of node.children) if (typeof child === 'object') walk(child as never);
+    };
+    walk(screen.root as never);
+    const positions = order.map((node) => hosts.indexOf(node));
+    expect(positions.every((p) => p >= 0)).toBe(true);
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+
+    expect(screen.getByTestId('button-toggle-mode')).toHaveTextContent('Create Account');
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
+  });
+
   it('names the authentication-mode button by its visible text in both modes', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
     expect(screen.getByRole('button', { name: 'Use existing account' })).toBeOnTheScreen();
     // Negative control: the generic name that hid the visible text is gone.
     expect(screen.queryByLabelText('Switch authentication mode')).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Use existing account' }));
-    expect(screen.getByRole('button', { name: 'Create a local account' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Create Account' })).toBeOnTheScreen();
   });
 
   it('signs in and redirects to the dashboard', async () => {
@@ -88,7 +120,7 @@ describe('SignInScreen', () => {
   it('switches to registration and submits username', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
     expect(screen.getByLabelText('Username')).toBeOnTheScreen();
 
     await fireEvent.changeText(screen.getByLabelText('Email'), 'new@appfitness.local');
@@ -167,7 +199,7 @@ describe('SignInScreen', () => {
     mockSignUp.mockRejectedValue(new AuthError('registration-unavailable'));
 
     await render(<SignInScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
     await fireEvent.changeText(screen.getByLabelText('Email'), 'taken@appfitness.local');
     await fireEvent.changeText(screen.getByLabelText('Username'), 'taken-user');
     await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
@@ -197,7 +229,7 @@ describe('SignInScreen', () => {
   it('hides the recovery entry point while creating an account', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create a local account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
 
     // Nothing to recover before the account exists.
     expect(screen.queryByLabelText('Forgot your password?')).toBeNull();

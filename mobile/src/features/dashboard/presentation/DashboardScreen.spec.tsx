@@ -193,6 +193,28 @@ describe('DashboardScreen', () => {
     expect(screen.getAllByLabelText('Loading content')).toHaveLength(3);
   });
 
+  // ADR-P022 Addendum C slice: a compact identity header announced once, then
+  // titled action cards whose titles are headers in both languages.
+  it.each([
+    ['en', ['Nutrition and meals', 'Training and progress', 'Account']],
+    ['es', ['Nutrición y comidas', 'Entrenamiento y progreso', 'Cuenta']],
+  ] as const)(
+    'structures the %s dashboard as identity header plus titled groups',
+    async (language, groups) => {
+      mockLanguage = language;
+      setStore({ status: 'loading' });
+
+      await render(<DashboardScreen />);
+
+      expect(screen.getByRole('header', { name: 'AppFitnessRD' })).toBeOnTheScreen();
+      expect(screen.getAllByText('AppFitnessRD')).toHaveLength(1);
+      expect(screen.queryByTestId('brand-mark')).toBeNull();
+      for (const name of groups) {
+        expect(screen.getByRole('header', { name })).toBeOnTheScreen();
+      }
+    },
+  );
+
   // ── BUG-019 ──────────────────────────────────────────────────────────────
 
   it('refreshes again when the screen regains focus (e.g. returning from Progress via back)', async () => {

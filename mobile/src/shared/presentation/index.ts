@@ -2,6 +2,7 @@ export { AppButton } from './app-button';
 export { AppText } from './app-text';
 export { AppTextInput, type AppTextInputProps } from './app-text-input';
 export { Banner } from './banner';
+export { BrandHero } from './brand-hero';
 export { Card } from './card';
 export { Screen } from './screen';
 export { PaidWriteDisabledProvider, usePaidWriteDisabled } from './paid-write-context';

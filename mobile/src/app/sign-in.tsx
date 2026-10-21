@@ -1,10 +1,18 @@
 import { Stack, router } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
 import { LanguageSelector, type TranslationKey, useLocalization } from '@/shared/localization';
-import { AppButton, AppText, AppTextInput, Banner, Card, Screen } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  AppTextInput,
+  Banner,
+  BrandHero,
+  Card,
+  Screen,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 // Reason → localized banner copy (Slice 2B4). Distinct, honest, non-enumerating
@@ -88,13 +96,10 @@ export default function SignInScreen() {
   };
 
   return (
-    <Screen>
-      <Stack.Screen options={{ title: t('auth.screenTitle') }} />
+    <Screen style={styles.screen}>
+      <Stack.Screen options={{ headerShown: false, title: t('auth.screenTitle') }} />
       <View style={{ gap: theme.spacing.lg }}>
-        <View>
-          <AppText variant="headline">AppFitnessRD</AppText>
-          <AppText tone="muted">{t('auth.subtitle')}</AppText>
-        </View>
+        <BrandHero subtitle={t('auth.subtitle')} />
 
         {errorReason ? (
           <Banner title={t(ERROR_COPY[errorReason].title)} tone="error">
@@ -132,12 +137,6 @@ export default function SignInScreen() {
             <AppButton loading={loading} onPress={() => void submit()}>
               {mode === 'register' ? t('auth.register') : t('auth.signIn')}
             </AppButton>
-            <AppButton
-              onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
-              variant="text"
-            >
-              {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
-            </AppButton>
             {mode === 'sign-in' ? (
               // Recovery entry point (ADR-P026 Vertical 1). Sign-in only: there
               // is nothing to recover while creating an account.
@@ -152,11 +151,30 @@ export default function SignInScreen() {
             ) : null}
           </View>
         </Card>
-        <LanguageSelector />
+        {/* Account-creation entry point, set apart from the sign-in form so it
+            reads as its own choice. Mode switch only — same handler as before. */}
+        <AppButton
+          onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
+          testID="button-toggle-mode"
+          variant="secondary"
+        >
+          {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
+        </AppButton>
+        <Card>
+          <LanguageSelector />
+        </Card>
       </View>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    alignSelf: 'center',
+    maxWidth: 560,
+    width: '100%',
+  },
+});
 
 interface InputProps {
   label: string;

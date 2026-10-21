@@ -109,6 +109,10 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
   // like the slots above it owns no copy and no numeric value of its own.
   'src/features/subscriptions/presentation/SubscriptionWriteBoundary.tsx#SubscriptionWriteBoundary: children':
     'the wrapped route content — a composition slot, not a value',
+  // The dashboard's visual action group owns only layout and a translated
+  // title; its children are complete AppButton nodes supplied by the caller.
+  'src/features/dashboard/presentation/DashboardScreen.tsx#DashboardActionGroup: props.children':
+    'the grouped dashboard actions — a composition slot, not a value',
 };
 
 interface Finding {

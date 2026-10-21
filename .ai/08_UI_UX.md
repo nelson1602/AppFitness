@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.23
+Version: 1.24
 Status: Active
-Last Updated: 2026-10-16
+Last Updated: 2026-10-21
 
 ---
 
@@ -780,6 +780,25 @@ Only the sign-in and recovery paths and a harness Banner were heard. No
 VoiceOver, programmatic invalid/required or field-to-error outcome is claimed.
 **UX-4C stays PARTIAL.** See ADR-P024 *Correction (2026-10-16, BUG-038)* and
 `.ai/11_BACKLOG.md` §BUG-038.
+
+---
+
+# Revision Scope (v1.24 — ADR-P022 Addendum C brand identity surface)
+
+- **Five colour roles added** (`brand`, `brandEnd`, `onBrand`, `onBrandVariant`,
+  `brandGlow`), so each theme now declares **32** roles. Statements elsewhere in
+  this document that count **27** roles describe the palette before Addendum C;
+  the 27 Material roles and their values are unchanged.
+- **Identity header** (`BrandHero`): compact brand mark in a cyan halo over the
+  `brand` → `brandEnd` gradient, Sign-in and Dashboard only; the product name is
+  the header, the mark is hidden from assistive technology, nothing animates.
+- **Renderer split:** native `experimental_backgroundImage`, Web CSS
+  `backgroundImage`; the solid `brand` fill is the fallback.
+- **Sign-in layout:** identity header, form card (fields, primary CTA, recovery
+  link), separate secondary "Create Account" / "Crear cuenta" entry, then the
+  two-option language card. **Dashboard:** action groups are titled cards whose
+  titles are headers.
+- §Imagery policy records the Addendum C allowance.
 
 ---
 
@@ -3414,6 +3433,13 @@ There is no licensing path, no asset budget, and no bundle allowance for one.
 - **Allowed:** the existing application icon, adaptive icon, splash, and favicon
   assets already present under `mobile/assets/` — these are platform identity, not
   product imagery.
+- **Allowed by ADR-P022 Addendum C (2026-10-21):** the runner/heartbeat brand
+  mark in the compact `BrandHero` identity header on Sign-in and Dashboard only,
+  with one `brand` → `brandEnd` gradient and a `brandGlow` halo around the mark.
+  The mark is hidden from assistive technology; the product name is the header.
+  The solid `brand` fill is the fallback wherever the gradient does not render.
+  Brand roles are never used on CTAs, cards, states or navigation, and the
+  identity surface never animates.
 - **Separately evaluated, not approved:** small empty-state illustrations. If they
   are ever adopted they need their own decision covering source, licence, bundle
   budget, dark-theme variants, localization neutrality, and an accessible text

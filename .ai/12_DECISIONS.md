@@ -8583,6 +8583,72 @@ This addendum claims a repository implementation only. It does not claim a
 manual iOS/Android visual outcome, close UX-4C, select Material Symbols or
 Inter, adopt motion, or complete FEATURE-010.
 
+### Addendum C — AppFitnessRD brand identity surface
+
+Status: Accepted (owner authorization, 2026-10-21, Draft PR #227)
+Date: 2026-10-21
+Owner: Product / Design / Architecture
+Amends: Decision 12 and `.ai/08_UI_UX.md` §Imagery policy (for the identity
+header only), Decision 13 (identity may contribute alongside typography and
+numerics), and Decision 14 (five new colour roles). Nothing else.
+
+#### Context
+
+The owner approved the AppFitnessRD Claude Artifact in `docs/design/` and the
+brand artwork in `mobile/assets/brand/` as the visual direction. The Artifact
+uses runner/heartbeat brand art, blue/cyan gradients and glow. Read literally,
+Decision 12 and the Imagery policy forbid "decorative hero images" and
+"gradient 'energy' fills used as decoration", so the direction could not ship
+without this amendment. The Artifact is a **visual** reference only: its
+prototype state, data, calculations and features are not adopted
+(`docs/design/README.md`).
+
+#### Decision
+
+1. **Identity header.** The runner/heartbeat brand mark may appear in one
+   compact identity header (`BrandHero`) on **Sign-in and Dashboard only**. It
+   is platform identity, not product imagery. The mark is decorative for
+   assistive technology; the product name beside it is the header and is
+   announced once. The full square application icon is never used as a page
+   banner.
+2. **One identity gradient.** A single restrained blue gradient
+   (`brand` → `brandEnd`, 135°) is permitted on the identity header only — not
+   on CTAs, cards, states, navigation or any other container.
+3. **Glow.** A subtle cyan glow (`brandGlow`) is permitted around the brand mark
+   only, as a soft shadow on a halo ring. The mark must remain clear without it.
+4. **Five new colour roles**, light and dark: `brand` (navy/blue, gradient start
+   and solid fallback), `brandEnd` (blue gradient end), `onBrand` (text),
+   `onBrandVariant` (ice secondary text), `brandGlow` (cyan halo/glow).
+   Every foreground is gated by `contrast.spec.ts` against **both** gradient
+   endpoints (text 4.5:1, halo ring 3:1); the Artifact's lighter sky end
+   `#38B6F5` is retained there as a failing negative control (white text
+   2.29:1). `color-usage.source.spec.ts` confines the roles to the identity
+   files. The existing teal `accent` and its Decision 5a block are unchanged.
+5. **Renderer split, solid fallback.** Native uses React Native's
+   `experimental_backgroundImage`; react-native-web 0.21 does not implement it,
+   so Web uses CSS `backgroundImage` (`brand-gradient.web.ts`). Both keep a
+   solid `brand` background underneath, which is the accessible fallback when a
+   renderer ignores the gradient. No dependency is added.
+
+#### Unchanged
+
+Primary CTAs stay solid `primary`/`onPrimary` (Decision 5a). No decorative
+animation or heartbeat motion (Decision 11). No font asset or dependency
+(Decision 8). No icon dependency (Decision 9). No bottom navigation (ADR-P027).
+No broad navigation or architecture change. No medical, biometric, wearable or
+notification feature; health inputs remain self-declared allergies, injuries
+and functional limitations (ADR-P017, ADR-P031); iCoach does not diagnose,
+evaluate medically or prescribe.
+
+#### Evidence boundary
+
+Implemented in `mobile/src/shared/theme/colors.ts`,
+`mobile/src/shared/presentation/brand-hero.tsx`, `brand-gradient(.web).ts` and
+`app-text.tsx` (`onBrand` / `onBrandVariant` tones), consumed by
+`mobile/src/app/sign-in.tsx` and `DashboardScreen.tsx`. Visual evidence was
+captured on the Android emulator (Expo Go, New Architecture) and in headless
+Chrome; owner visual approval is separate. No iOS native evidence is claimed.
+
 ## ADR-P023 — Platform-Honest Input Accessibility Staging
 
 Status: Accepted

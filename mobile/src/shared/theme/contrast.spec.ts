@@ -287,6 +287,33 @@ const PAIRINGS: readonly Pairing[] = [
     status: 'approved',
     where: 'accent mark on a recessed ground',
   },
+
+  // ── Brand identity surface (ADR-P022 Addendum C) ──────────────────────────
+  // Text and the halo ring may sit anywhere over the gradient, so each is gated
+  // against BOTH endpoints; `brand` alone is also the solid fallback.
+  ...(['brand', 'brandEnd'] as const).flatMap((background): Pairing[] => [
+    {
+      foreground: 'onBrand',
+      background,
+      requirement: 'text',
+      status: 'rendered',
+      where: 'BrandHero product name over the identity gradient',
+    },
+    {
+      foreground: 'onBrandVariant',
+      background,
+      requirement: 'text',
+      status: 'rendered',
+      where: 'BrandHero subtitle over the identity gradient',
+    },
+    {
+      foreground: 'brandGlow',
+      background,
+      requirement: 'nonText',
+      status: 'rendered',
+      where: 'BrandHero halo ring around the mark (the glow itself is decorative)',
+    },
+  ]),
 ];
 
 /**
@@ -503,5 +530,17 @@ describe('negative control — the pre-addendum palette fails this gate', () => 
     // `#FFFFFF` only, which is exactly the mistake this gate is here to catch.
     const rejected: ColorTokens = { ...lightColors, warning: '#A05F00' };
     expect(failures(rejected)).toEqual(['warning on surfaceVariant']);
+  });
+
+  it('rejects the Artifact sky endpoint as a text ground for the identity gradient', () => {
+    // ADR-P022 Addendum C: the prototype hero ends at `#38B6F5`, where white
+    // text measures 2.29:1. The shipped gradient therefore ends at a deeper
+    // blue, and the gate measures text at both endpoints to keep it there.
+    const rejected: ColorTokens = { ...lightColors, brandEnd: '#38B6F5' };
+    expect(failures(rejected)).toEqual([
+      'brandGlow on brandEnd',
+      'onBrand on brandEnd',
+      'onBrandVariant on brandEnd',
+    ]);
   });
 });

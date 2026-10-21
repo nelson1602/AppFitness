@@ -8,6 +8,13 @@
  * `contrast.spec.ts`; editing a value here without re-reading that gate will
  * fail the build rather than ship a regression. Semantic roles, role count, and
  * every dark value are unchanged.
+ *
+ * **ADR-P022 Addendum C** (2026-10-21) adds five brand-identity roles —
+ * `brand`, `brandEnd`, `onBrand`, `onBrandVariant`, `brandGlow`. They are for
+ * the AppFitnessRD identity surface (`BrandHero`) only: never a CTA, container,
+ * state or navigation colour. Their pairings are gated by `contrast.spec.ts`
+ * at both gradient endpoints, and `color-usage.source.spec.ts` keeps them out
+ * of every other component.
  */
 export interface ColorTokens {
   primary: string;
@@ -37,6 +44,16 @@ export interface ColorTokens {
   outline: string;
   divider: string;
   accent: string;
+  /** Identity surface: gradient start and the solid fallback (Addendum C). */
+  brand: string;
+  /** Identity surface: gradient end (Addendum C). */
+  brandEnd: string;
+  /** Text on the identity surface, legible at either gradient endpoint. */
+  onBrand: string;
+  /** Secondary ("ice") text on the identity surface. */
+  onBrandVariant: string;
+  /** Cyan halo ring and glow around the brand mark only. */
+  brandGlow: string;
 }
 
 export const lightColors: ColorTokens = {
@@ -67,6 +84,11 @@ export const lightColors: ColorTokens = {
   outline: '#74777D',
   divider: '#E1E4E9',
   accent: '#007A79',
+  brand: '#0A3FA8',
+  brandEnd: '#0B6BC4',
+  onBrand: '#FFFFFF',
+  onBrandVariant: '#DCF5FF',
+  brandGlow: '#7FD6FF',
 };
 
 export const darkColors: ColorTokens = {
@@ -97,4 +119,9 @@ export const darkColors: ColorTokens = {
   outline: '#8E9195',
   divider: '#2C3034',
   accent: '#4DD0D0',
+  brand: '#0D2156',
+  brandEnd: '#0A4C94',
+  onBrand: '#FFFFFF',
+  onBrandVariant: '#BDEBFF',
+  brandGlow: '#38B6F5',
 };

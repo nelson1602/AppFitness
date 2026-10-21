@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
-import { View } from 'react-native';
+import { type ReactNode, useCallback } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import { ProgressSummaryCard } from '@/features/progress';
@@ -13,6 +13,8 @@ import {
   AppButton,
   AppText,
   Banner,
+  BrandHero,
+  Card,
   PaidWriteDisabledProvider,
   Screen,
 } from '@/shared/presentation';
@@ -62,11 +64,8 @@ export function DashboardScreen() {
   );
 
   return (
-    <Screen>
-      <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">AppFitnessRD</AppText>
-        <AppText tone="muted">{t('dashboard.subtitle')}</AppText>
-      </View>
+    <Screen style={styles.screen}>
+      <BrandHero compact subtitle={t('dashboard.subtitle')} />
 
       {/* Advisory account affordance (ADR-P026 V2-D): reports an account
           attribute, not a read outcome, so it renders above the read-driven
@@ -176,88 +175,104 @@ export function DashboardScreen() {
       {/* Progress summary preview (ADR-P016 Phase 17 Slice 5b). */}
       <ProgressSummaryCard onPress={() => router.push('/progress')} />
 
-      {/* Nutrition targets (Phase 15 Slice 1). */}
-      <AppButton
-        accessibilityLabel={t('dashboard.nutritionAccessibility')}
-        onPress={() => router.push('/nutrition')}
-        variant="secondary"
-      >
-        {t('dashboard.nutrition')}
-      </AppButton>
+      <DashboardActionGroup title={t('dashboard.nutritionAndMeals')}>
+        {/* Nutrition targets (Phase 15 Slice 1). */}
+        <AppButton
+          accessibilityLabel={t('dashboard.nutritionAccessibility')}
+          onPress={() => router.push('/nutrition')}
+          style={styles.actionButton}
+          variant="secondary"
+        >
+          {t('dashboard.nutrition')}
+        </AppButton>
 
-      {/* Direct daily food-log shortcut (ADR-P027 / UX-4A). The existing
+        {/* Direct daily food-log shortcut (ADR-P027 / UX-4A). The existing
           nutrition targets → plan → food-log path remains available. */}
-      <AppButton
-        accessibilityLabel={t('dashboard.foodLogAccessibility')}
-        onPress={() => router.push('/food-log')}
-        variant="secondary"
-      >
-        {t('dashboard.foodLog')}
-      </AppButton>
+        <AppButton
+          accessibilityLabel={t('dashboard.foodLogAccessibility')}
+          onPress={() => router.push('/food-log')}
+          style={styles.actionButton}
+          variant="secondary"
+        >
+          {t('dashboard.foodLog')}
+        </AppButton>
 
-      {/* Dietary preferences & allergies (ADR-P014 Slice 2B). */}
-      <AppButton
-        accessibilityLabel={t('dashboard.preferencesAccessibility')}
-        onPress={() => router.push('/dietary-preferences')}
-        variant="secondary"
-      >
-        {t('dashboard.preferences')}
-      </AppButton>
-      {/* Evaluation and self-declared limitations (ADR-P017 W-3). Always
+        {/* Dietary preferences & allergies (ADR-P014 Slice 2B). */}
+        <AppButton
+          accessibilityLabel={t('dashboard.preferencesAccessibility')}
+          onPress={() => router.push('/dietary-preferences')}
+          style={styles.actionButton}
+          variant="secondary"
+        >
+          {t('dashboard.preferences')}
+        </AppButton>
+      </DashboardActionGroup>
+
+      <DashboardActionGroup title={t('dashboard.trainingAndProgress')}>
+        {/* Evaluation and self-declared limitations (ADR-P017 W-3). Always
           present — the first-run recommendation card is a prompt, not the
           only door — and it blocks nothing whether answered or not. */}
-      <AppButton
-        accessibilityLabel={t('dashboard.wellnessSafetyAccessibility')}
-        onPress={() => router.push('/wellness-safety-profile')}
-        testID="dashboard-wellness-safety"
-        variant="secondary"
-      >
-        {t('dashboard.wellnessSafety')}
-      </AppButton>
-      {/* Workout routines (ADR-P015 Phase 16 Slice 5). */}
-      <AppButton
-        accessibilityLabel={t('dashboard.routinesAccessibility')}
-        onPress={() => router.push('/routines')}
-        variant="secondary"
-      >
-        {t('dashboard.routines')}
-      </AppButton>
-      {/* Workout logging (ADR-P015 Phase 16 Slice 6). */}
-      <AppButton
-        accessibilityLabel={t('dashboard.workoutLogAccessibility')}
-        onPress={() => router.push('/workout-log')}
-        variant="secondary"
-      >
-        {t('dashboard.workoutLog')}
-      </AppButton>
-      {/* Exercise library — custom exercises (ADR-P015 Phase 16 Slice 9). */}
-      <AppButton
-        accessibilityLabel={t('dashboard.exercisesAccessibility')}
-        onPress={() => router.push('/exercises')}
-        variant="secondary"
-      >
-        {t('dashboard.exercises')}
-      </AppButton>
-      {/* Progress monitoring — body metrics + weekly insights (ADR-P016 Phase 17 Slice 5a). */}
-      <AppButton
-        accessibilityLabel={t('dashboard.progressAccessibility')}
-        onPress={() => router.push('/progress')}
-        variant="secondary"
-      >
-        {t('dashboard.progress')}
-      </AppButton>
+        <AppButton
+          accessibilityLabel={t('dashboard.wellnessSafetyAccessibility')}
+          onPress={() => router.push('/wellness-safety-profile')}
+          style={styles.actionButton}
+          testID="dashboard-wellness-safety"
+          variant="secondary"
+        >
+          {t('dashboard.wellnessSafety')}
+        </AppButton>
+        {/* Workout routines (ADR-P015 Phase 16 Slice 5). */}
+        <AppButton
+          accessibilityLabel={t('dashboard.routinesAccessibility')}
+          onPress={() => router.push('/routines')}
+          style={styles.actionButton}
+          variant="secondary"
+        >
+          {t('dashboard.routines')}
+        </AppButton>
+        {/* Workout logging (ADR-P015 Phase 16 Slice 6). */}
+        <AppButton
+          accessibilityLabel={t('dashboard.workoutLogAccessibility')}
+          onPress={() => router.push('/workout-log')}
+          style={styles.actionButton}
+          variant="secondary"
+        >
+          {t('dashboard.workoutLog')}
+        </AppButton>
+        {/* Exercise library — custom exercises (ADR-P015 Phase 16 Slice 9). */}
+        <AppButton
+          accessibilityLabel={t('dashboard.exercisesAccessibility')}
+          onPress={() => router.push('/exercises')}
+          style={styles.actionButton}
+          variant="secondary"
+        >
+          {t('dashboard.exercises')}
+        </AppButton>
+        {/* Progress monitoring — body metrics + weekly insights (ADR-P016 Phase 17 Slice 5a). */}
+        <AppButton
+          accessibilityLabel={t('dashboard.progressAccessibility')}
+          onPress={() => router.push('/progress')}
+          style={styles.actionButton}
+          variant="secondary"
+        >
+          {t('dashboard.progress')}
+        </AppButton>
+      </DashboardActionGroup>
 
-      {/* Subscription status, offer, restore and management (ADR-P034 S-3).
+      <DashboardActionGroup title={t('dashboard.account')}>
+        {/* Subscription status, offer, restore and management (ADR-P034 S-3).
           An account-level entry beside the other account actions; it gates
           nothing — no feature is locked by this slice (S-4 is separate). */}
-      <AppButton
-        accessibilityLabel={t('dashboard.subscriptionAccessibility')}
-        onPress={() => router.push('/subscription')}
-        testID="dashboard-subscription"
-        variant="secondary"
-      >
-        {t('dashboard.subscription')}
-      </AppButton>
+        <AppButton
+          accessibilityLabel={t('dashboard.subscriptionAccessibility')}
+          onPress={() => router.push('/subscription')}
+          style={styles.actionButton}
+          testID="dashboard-subscription"
+          variant="secondary"
+        >
+          {t('dashboard.subscription')}
+        </AppButton>
+      </DashboardActionGroup>
 
       {/* Sign-out clears the session; the dashboard route's session
           guard then redirects to /sign-in — no manual navigation. */}
@@ -280,3 +295,34 @@ export function DashboardScreen() {
     </Screen>
   );
 }
+
+function DashboardActionGroup(props: { children: ReactNode; title: string }) {
+  const theme = useTheme();
+
+  return (
+    // A titled card per group (ADR-P022 Addendum C slice): the title is a
+    // header so screen-reader users can move between groups.
+    <Card style={{ gap: theme.spacing.md }}>
+      <AppText accessibilityRole="header" variant="title">
+        {props.title}
+      </AppText>
+      <View style={[styles.actionGrid, { gap: theme.spacing.sm }]}>{props.children}</View>
+    </Card>
+  );
+}
+
+const styles = StyleSheet.create({
+  actionButton: {
+    flexBasis: '47%',
+    flexGrow: 1,
+  },
+  actionGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  screen: {
+    alignSelf: 'center',
+    maxWidth: 880,
+    width: '100%',
+  },
+});
