@@ -239,7 +239,8 @@ describe('SubscriptionScreen', () => {
 
       const buttons = screen.getAllByRole('button');
       const filled = buttons.filter(
-        (button) => flat(button).backgroundColor === lightTheme.colors.primary,
+        // ADR-P035 D3: the filled primary is the CTA gradient over ctaStart.
+        (button) => flat(button).backgroundColor === lightTheme.colors.ctaStart,
       );
       expect(filled).toHaveLength(1);
       expect(buttons.map((button) => button.props.testID)).toEqual([
@@ -537,7 +538,7 @@ describe('SubscriptionScreen', () => {
       await render(<SubscriptionScreen />);
 
       expect(flat(screen.getByTestId('subscription-purchase')).backgroundColor).toBe(
-        darkTheme.colors.primary,
+        darkTheme.colors.ctaStart,
       );
     });
 

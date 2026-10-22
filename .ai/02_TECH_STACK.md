@@ -66,9 +66,17 @@ Charts
 
 - Victory Native XL
 
+Vector Graphics (ADR-P037)
+
+- react-native-svg — icons from the design's own path set, the heartbeat Pulse, Ring; charts stay in-house (ADR-P016 D3)
+
 Images
 
 - Expo Image
+
+Masked Gradient Text (ADR-P037 amendment)
+
+- @react-native-masked-view/masked-view — native only; Web renders solid cyan
 
 Localization
 
@@ -448,7 +456,7 @@ Icons
 
 Typography
 
-- Inter
+- Sora (display, headline, title) and Inter (body, label, caption) — ADR-P035 / ADR-P037, bundled through `@expo-google-fonts/sora` and `@expo-google-fonts/inter` (SIL OFL 1.1), six weights imported by subpath
 
 Spacing
 

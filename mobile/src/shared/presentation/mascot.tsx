@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Image, View } from 'react-native';
 
 import { useTheme } from '../theme';
-import { backgroundImageStyle, withAlpha } from './gradient-style';
+import { HeroFade } from './hero-fade';
 
 const artFull = require('../../../assets/images/muneco.webp');
 const artSolo = require('../../../assets/images/muneco-solo.webp');
@@ -21,9 +22,9 @@ interface MascotProps {
 
 /**
  * The AppFitnessRD mascot (ADR-P035 D6). Decorative unless labelled: the heading
- * beside it carries the identity. The hero melts into the stage through overlay
- * gradients in the stage colours — React Native has no CSS mask, and this needs
- * no extra asset — so there is no dividing line under the art.
+ * beside it carries the identity. The hero melts into the stage through an alpha
+ * mask (`HeroFade`), so there is no dividing line under the art and no extra
+ * asset is needed.
  */
 export function Mascot({
   variant,
@@ -32,6 +33,9 @@ export function Mascot({
   testID = 'mascot',
 }: MascotProps) {
   const { colors } = useTheme();
+  // The hero is sized from its measured width: an aspect-ratio Image inside an
+  // aspect-ratio box did not size reliably on Android, which zoomed the art.
+  const [width, setWidth] = useState(0);
   const decorative = accessibilityLabel === undefined;
   const a11y = decorative
     ? ({
@@ -57,37 +61,21 @@ export function Mascot({
   return (
     <View
       {...a11y}
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
       style={{ aspectRatio: FULL.width / HERO_CROP_HEIGHT, overflow: 'hidden', width: '100%' }}
       testID={testID}
     >
-      <Image
-        resizeMode="cover"
-        source={artFull}
-        style={{ aspectRatio: FULL.width / FULL.height, width: '100%' }}
-        testID={`${testID}-art`}
-      />
-      {/* Bottom fade into the stage, then soft side edges. */}
-      <View
-        pointerEvents="none"
-        style={[
-          { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
-          backgroundImageStyle(
-            `linear-gradient(180deg, ${withAlpha(colors.stageTop, 0)} 42%, ${withAlpha(colors.stageMid, 0.55)} 70%, ${colors.stageMid} 97%)`,
-            'transparent',
-          ),
-        ]}
-        testID={`${testID}-fade`}
-      />
-      <View
-        pointerEvents="none"
-        style={[
-          { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
-          backgroundImageStyle(
-            `linear-gradient(90deg, ${colors.stageTop} 0%, ${withAlpha(colors.stageTop, 0)} 10%, ${withAlpha(colors.stageTop, 0)} 90%, ${colors.stageTop} 100%)`,
-            'transparent',
-          ),
-        ]}
-      />
+      {/* A true alpha fade, so the art melts into the stage with no edge. */}
+      <HeroFade maskColor={colors.stage}>
+        {width > 0 ? (
+          <Image
+            resizeMode="stretch"
+            source={artFull}
+            style={{ height: (width * FULL.height) / FULL.width, width }}
+            testID={`${testID}-art`}
+          />
+        ) : null}
+      </HeroFade>
     </View>
   );
 }

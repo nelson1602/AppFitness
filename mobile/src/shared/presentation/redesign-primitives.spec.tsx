@@ -16,6 +16,10 @@ import { GradientText as WebGradientText } from './gradient-text.web';
 import { backgroundImageStyle, withAlpha } from './gradient-style';
 // eslint-disable-next-line import/no-duplicates
 import { backgroundImageStyle as webBackgroundImageStyle } from './gradient-style.web';
+// eslint-disable-next-line import/no-duplicates
+import { HeroFade } from './hero-fade';
+// eslint-disable-next-line import/no-duplicates
+import { HeroFade as WebHeroFade } from './hero-fade.web';
 import { Icon } from './icon';
 import { Mascot } from './mascot';
 import { ProgressBar } from './progress-bar';
@@ -292,6 +296,28 @@ describe('ADR-P035 redesign primitives', () => {
         color: '#22D3EE',
       });
     });
+  });
+
+  it('fades the hero by alpha natively and with an intersecting CSS mask on Web', async () => {
+    const view = await render(
+      <HeroFade maskColor="#060A14">
+        <AppText>art</AppText>
+      </HeroFade>,
+    );
+    // Native: the mask is an alpha ramp drawn as a gradient, ending transparent.
+    const nativeTree = JSON.stringify(screen.toJSON());
+    expect(nativeTree).toContain('linear-gradient(180deg');
+    expect(nativeTree).toContain('#060A1400');
+
+    await view.rerender(
+      <WebHeroFade maskColor="#060A14">
+        <AppText>art</AppText>
+      </WebHeroFade>,
+    );
+    const style = flat('hero-fade') as unknown as { maskImage: string; maskComposite: string };
+    expect(style.maskComposite).toBe('intersect');
+    expect(style.maskImage.split('linear-gradient(')).toHaveLength(3);
+    expect(style.maskImage).toContain('#060A1400');
   });
 
   it('keeps an Icon hidden from assistive technology', async () => {

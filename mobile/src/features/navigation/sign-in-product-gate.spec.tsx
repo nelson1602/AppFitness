@@ -23,13 +23,13 @@ describe('SignInScreen release product gate', () => {
     expect(screen.queryByText(/demo@appfitness\.local/)).toBeNull();
     expect(screen.queryByText(/password12345/)).toBeNull();
     expect(screen.queryByText(/Minimal development sign-in/)).toBeNull();
-    expect(screen.getByText('Sign in to continue.')).toBeOnTheScreen();
+    expect(screen.getByText('Sign in and keep moving toward your goal.')).toBeOnTheScreen();
   });
 
   it('register mode also starts with an empty username', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
 
     expect(screen.getByTestId('input-username').props.value).toBe('');
     expect(screen.getByTestId('input-email').props.value).toBe('');

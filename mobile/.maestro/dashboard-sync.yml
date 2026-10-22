@@ -57,5 +57,5 @@ appId: com.appfitnessrd.mobile
     timeout: 60000
 - tapOn: 'Sign out'
 - extendedWaitUntil:
-    visible: 'Sign in to continue.'
+    visible: 'Sign in and keep moving toward your goal.'
     timeout: 30000

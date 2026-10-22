@@ -14,14 +14,25 @@ export const en = {
   'language.spanish': 'Spanish',
   'language.saveError': 'Language preference could not be saved. Try again.',
   'auth.screenTitle': 'Sign in',
-  'auth.subtitle': 'Sign in to continue.',
+  // Sign-in hero (ADR-P035 redesign). The headline is split so its last word can
+  // carry the gradient; `auth.headline` is the whole sentence screen readers hear.
+  // The product name, identical in every language (ADR-P028). Used where the
+  // name must be announced, e.g. the wordmark inside the sign-in mascot art.
+  'brand.name': 'AppFitnessRD',
+  'auth.headline': 'Every beat counts.',
+  'auth.headlineLead': 'Every beat',
+  'auth.headlineAccent': 'counts.',
+  'auth.subtitle': 'Sign in and keep moving toward your goal.',
   'auth.email': 'Email',
   'auth.username': 'Username',
   'auth.password': 'Password',
   'auth.signIn': 'Sign in',
   'auth.register': 'Register',
   'auth.useExistingAccount': 'Use existing account',
-  'auth.createAccount': 'Create Account',
+  'auth.createAccount': 'Create an account',
+  'auth.newHere': 'New here?',
+  'auth.showPassword': 'Show password',
+  'auth.hidePassword': 'Hide password',
   'auth.error.invalidCredentialsTitle': 'Sign-in failed',
   'auth.error.invalidCredentialsBody': 'That email or password is incorrect. Please try again.',
   'auth.error.connectivityTitle': 'No connection',
@@ -39,6 +50,8 @@ export const en = {
   // Password recovery (ADR-P026 Vertical 1). The "sent" copy is deliberately
   // non-committal: it must read the same whether or not the account exists.
   'auth.forgotPassword': 'Forgot your password?',
+  // Visible short link; `auth.forgotPassword` stays its accessible name.
+  'auth.forgotPasswordShort': 'Forgot it?',
   'auth.forgot.screenTitle': 'Reset password',
   'auth.forgot.title': 'Reset your password',
   'auth.forgot.subtitle':

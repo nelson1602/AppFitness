@@ -5856,6 +5856,47 @@ or approved for implementation.
 
 ---
 
+## [FEATURE-015] AppFitnessRD Redesign — Phased Delivery (ADR-P035 … ADR-P040)
+
+Status: In Progress (Phase 1 in review)
+Priority: P1
+Type: Feature
+Owner: Project owner (decisions) · Engineering (delivery)
+Created: 2026-10-22
+Updated: 2026-10-22
+
+### Description
+
+Deliver the approved design in `docs/design/` phase by phase: one branch and
+one PR per phase, following `docs/design/GAP_ANALYSIS.md`. The owner fixed the
+order on 2026-10-22:
+
+1. Phase 1 — theme, components and login (ADR-P035, ADR-P037)
+2. Biometrics (ADR-P036)
+3. Shell and navigation (ADR-P039)
+4. Non-medical iCoach rules (ADR-P040)
+5. Medical evaluation (ADR-P038), last and only after SECURITY-002 is Done
+
+Food sources are USDA FDC, a Dominican foods seed and user-created foods.
+Open Food Facts is dropped.
+
+### Acceptance Criteria
+
+* [ ] Phase 1: stage tokens, Sora/Inter, primitives, redesigned sign-in — automated checks pass; Android emulator and Web verified; owner visual approval
+* [ ] Biometric sign-in (ADR-P036 accepted first), including the deferred login hint "Podrás activar Face ID o Huella al iniciar sesión."
+* [ ] Tab shell, header, in-app notifications and welcome screen (ADR-P039 accepted first)
+* [ ] Recipes, substitution, injury mapping, off-plan adjustment, user foods and Dominican seed (ADR-P040 accepted first)
+* [ ] Medical evaluation (ADR-P038, gated by SECURITY-002)
+* [ ] Remaining screens migrated from `Card`/`BrandHero` to the stage family
+
+### Related Documents
+
+* docs/design/README.md, docs/design/GAP_ANALYSIS.md
+* .ai/12_DECISIONS.md (ADR-P035 … ADR-P040)
+* .ai/08_UI_UX.md (v1.25)
+
+---
+
 # Bug Backlog
 
 All four bugs below were found during Phase 10 human simulator validation

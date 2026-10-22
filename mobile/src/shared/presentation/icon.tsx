@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import { View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 /**
@@ -51,23 +52,28 @@ interface IconProps {
  * control names itself on the control, not on the glyph.
  */
 export function Icon({ name, color, size = 20, strokeWidth = 2, testID }: IconProps) {
+  // Hidden through a View: react-native-svg forwards unknown props to the DOM
+  // <svg> on Web, where React Native accessibility props are not attributes.
   return (
-    <Svg
+    <View
       accessibilityElementsHidden
       accessible={false}
       aria-hidden
-      fill="none"
-      height={size}
       importantForAccessibility="no-hide-descendants"
-      stroke={color}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={strokeWidth}
       testID={testID}
-      viewBox="0 0 24 24"
-      width={size}
     >
-      {PATHS[name]}
-    </Svg>
+      <Svg
+        fill="none"
+        height={size}
+        stroke={color}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={strokeWidth}
+        viewBox="0 0 24 24"
+        width={size}
+      >
+        {PATHS[name]}
+      </Svg>
+    </View>
   );
 }
