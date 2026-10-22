@@ -57,6 +57,17 @@ Always use the most relevant prompt file for the current task.
 
 ---
 
+# Design Source of Truth
+
+The approved UI/UX and screen behavior for the AppFitnessRD redesign live in `docs/design/`:
+
+* `docs/design/README.md` — product decisions and screen-by-screen spec
+* `docs/design/appfitnessrd-prototipo.html` — interactive prototype (open it in a browser)
+
+The code adapts to this design, not the other way around. When the code, the data model, or the `.ai` documents disagree with it, report the gap and propose the change (with an ADR when the architecture rules require one) instead of changing the design to fit the code.
+
+---
+
 # Mandatory Reading Order
 
 For every new task, follow this reading order:
