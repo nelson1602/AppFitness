@@ -28,7 +28,15 @@ jest.mock('expo-router', () => ({
   Stack: { Screen: () => null },
   router: { replace: jest.fn() },
 }));
-jest.mock('@/features/authentication', () => ({ signIn: jest.fn(), signUp: jest.fn() }));
+jest.mock('@/features/authentication', () => ({
+  signIn: jest.fn(),
+  signUp: jest.fn(),
+  // ADR-P036: signed out, no biometrics on this test device.
+  useSession: () => ({ status: 'unauthenticated', session: null }),
+  useBiometricCapability: () => null,
+  BiometricLinkSheet: () => null,
+  unlockWithBiometrics: jest.fn(),
+}));
 jest.mock('@/shared/localization', () => ({
   LanguageSelector: () => null,
   useLocalization: () => ({

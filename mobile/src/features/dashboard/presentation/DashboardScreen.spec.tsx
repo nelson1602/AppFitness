@@ -22,6 +22,8 @@ jest.mock('../application/dashboard.store', () => ({
 }));
 jest.mock('@/features/authentication', () => ({
   signOut: jest.fn(),
+  // ADR-P036's temporary switch is covered by its own spec.
+  BiometricSwitch: () => null,
   // The dashboard now renders the advisory verification reminder (ADR-P026
   // V2-D). These tests assert the dashboard shell, so the reminder is held in
   // its hidden arm — no session means it returns null and every existing

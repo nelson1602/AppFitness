@@ -33,6 +33,11 @@ jest.mock('@/features/authentication', () => {
     AuthError: MockAuthError,
     signIn: (...args: unknown[]) => mockSignIn(...args),
     signUp: (...args: unknown[]) => mockSignUp(...args),
+    // ADR-P036: signed out, no biometrics on this test device.
+    useSession: () => ({ status: 'unauthenticated', session: null }),
+    useBiometricCapability: () => null,
+    BiometricLinkSheet: () => null,
+    unlockWithBiometrics: jest.fn(),
   };
 });
 

@@ -2,7 +2,16 @@ import { Stack, router } from 'expo-router';
 import { type ReactNode, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
+import {
+  AuthError,
+  type AuthErrorReason,
+  BiometricLinkSheet,
+  signIn,
+  signUp,
+  unlockWithBiometrics,
+  useBiometricCapability,
+  useSession,
+} from '@/features/authentication';
 import { LanguageSelector, type TranslationKey, useLocalization } from '@/shared/localization';
 import {
   AppButton,
@@ -46,6 +55,14 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorReason, setErrorReason] = useState<AuthErrorReason | null>(null);
+  // ADR-P036. `locked`: a biometric-linked session waits to be unlocked here.
+  const { status } = useSession();
+  const capability = useBiometricCapability();
+  const biometricsAvailable = capability?.available === true;
+  const locked = status === 'locked';
+  const [offerLink, setOfferLink] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
+  const [biometricReset, setBiometricReset] = useState(false);
   /**
    * Which submission this screen currently owns (ADR-P030 C-1).
    *
@@ -83,6 +100,12 @@ export default function SignInScreen() {
       // an error for it — a superseded attempt acted for an account the user no
       // longer asked for.
       if (outcome.status === 'superseded') return;
+      // A password sign-in offers biometric linking first (ADR-P036 A1); the
+      // dashboard follows once the person is done with the offer.
+      if (biometricsAvailable && ownsScreen()) {
+        setOfferLink(true);
+        return;
+      }
       router.replace('/dashboard');
     } catch (error) {
       // Only the typed, safe reason is used — never the raw error/message. A
@@ -96,6 +119,18 @@ export default function SignInScreen() {
       // still owns the screen.
       inFlight.current = false;
       if (ownsScreen()) setLoading(false);
+    }
+  };
+
+  const unlock = async () => {
+    setUnlocking(true);
+    setBiometricReset(false);
+    try {
+      const outcome = await unlockWithBiometrics(t('auth.biometric.unlockPrompt'));
+      if (outcome === 'unlocked') router.replace('/dashboard');
+      else if (outcome === 'reset') setBiometricReset(true);
+    } finally {
+      setUnlocking(false);
     }
   };
 
@@ -145,6 +180,11 @@ export default function SignInScreen() {
       {errorReason ? (
         <Banner title={t(ERROR_COPY[errorReason].title)} tone="error">
           {t(ERROR_COPY[errorReason].body)}
+        </Banner>
+      ) : null}
+      {biometricReset ? (
+        <Banner title={t('auth.biometric.resetTitle')} tone="info">
+          {t('auth.biometric.resetBody')}
         </Banner>
       ) : null}
 
@@ -199,6 +239,46 @@ export default function SignInScreen() {
         >
           {mode === 'register' ? t('auth.register') : t('auth.signIn')}
         </AppButton>
+        {locked && biometricsAvailable && mode === 'sign-in' ? (
+          // ADR-P036 A2: one prompt opens the sealed session.
+          <AppButton
+            loading={unlocking}
+            onPress={() => void unlock()}
+            style={{ borderRadius: theme.radius.large }}
+            testID="button-biometric-unlock"
+            variant="stage-secondary"
+          >
+            {t(
+              capability?.kind === 'face'
+                ? 'auth.biometric.signInFace'
+                : 'auth.biometric.signInFingerprint',
+            )}
+          </AppButton>
+        ) : null}
+        {!locked && biometricsAvailable && mode === 'sign-in' ? (
+          // The design's hint, until biometrics are linked.
+          <View
+            style={[
+              styles.hint,
+              {
+                backgroundColor: theme.colors.glassFill,
+                borderRadius: theme.radius.field,
+                gap: theme.spacing.sm,
+                padding: theme.spacing.md,
+              },
+            ]}
+            testID="biometric-hint"
+          >
+            <Icon
+              color={theme.colors.linkOnStage}
+              name={capability?.kind === 'face' ? 'face' : 'finger'}
+              size={18}
+            />
+            <AppText style={styles.hintText} tone="onStageVariant" variant="caption">
+              {t('auth.biometric.hint')}
+            </AppText>
+          </View>
+        ) : null}
 
         {mode === 'sign-in' ? (
           <View style={[styles.divider, { gap: theme.spacing.md }]}>
@@ -221,6 +301,15 @@ export default function SignInScreen() {
       </GlassCard>
 
       <LanguageSelector appearance="stage" />
+      {offerLink && capability ? (
+        <BiometricLinkSheet
+          kind={capability.kind}
+          onDone={() => {
+            setOfferLink(false);
+            router.replace('/dashboard');
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -235,6 +324,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     top: 0,
+  },
+  hint: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  hintText: {
+    flex: 1,
   },
   headline: {
     alignItems: 'baseline',

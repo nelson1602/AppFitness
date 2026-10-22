@@ -12,6 +12,11 @@ jest.mock('expo-router', () => ({
 jest.mock('@/features/authentication', () => ({
   signIn: jest.fn(),
   signUp: jest.fn(),
+  // ADR-P036: signed out, no biometrics on this test device.
+  useSession: () => ({ status: 'unauthenticated', session: null }),
+  useBiometricCapability: () => null,
+  BiometricLinkSheet: () => null,
+  unlockWithBiometrics: jest.fn(),
 }));
 
 describe('SignInScreen release product gate', () => {

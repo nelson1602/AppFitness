@@ -30,6 +30,33 @@ export const en = {
   'auth.register': 'Register',
   'auth.useExistingAccount': 'Use existing account',
   'auth.createAccount': 'Create an account',
+  // Biometric sign-in (ADR-P036). Face ID wording only on iPhones with Face ID;
+  // everywhere else the fingerprint wording. The hint is the owner's sentence.
+  'auth.biometric.hint': 'You can turn on Face ID or fingerprint when you sign in.',
+  'auth.biometric.signInFace': 'Sign in with Face ID',
+  'auth.biometric.signInFingerprint': 'Sign in with fingerprint',
+  'auth.biometric.unlockPrompt': 'Unlock AppFitnessRD',
+  'auth.biometric.linkPrompt': "Confirm it's you",
+  'auth.biometric.linkTitle': 'Sign in faster next time?',
+  'auth.biometric.linkBodyFace':
+    'Link your account to Face ID and sign in in a second, without typing your password.',
+  'auth.biometric.linkBodyFingerprint':
+    'Link your account to your fingerprint and sign in in a second, without typing your password.',
+  'auth.biometric.privacy':
+    "Your biometric data stays on your phone. AppFitnessRD only receives confirmation that it's you.",
+  'auth.biometric.activateFace': 'Turn on Face ID',
+  'auth.biometric.activateFingerprint': 'Turn on fingerprint',
+  'auth.biometric.notNow': 'Not now',
+  'auth.biometric.linkedFace': 'Face ID turned on',
+  'auth.biometric.linkedFingerprint': 'Fingerprint turned on',
+  'auth.biometric.linkedBody': "Next time you'll sign in with one touch.",
+  'auth.biometric.continue': 'Go to my dashboard',
+  'auth.biometric.linkFailed':
+    "We couldn't turn it on right now. You can try again from your dashboard.",
+  'auth.biometric.resetTitle': 'Sign in with your password',
+  'auth.biometric.resetBody':
+    'For your security, biometric sign-in was turned off. You can turn it on again after you sign in.',
+  'auth.biometric.switch': 'Sign in with Face ID or fingerprint',
   'auth.newHere': 'New here?',
   'auth.showPassword': 'Show password',
   'auth.hidePassword': 'Hide password',

@@ -2,7 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { type ReactNode, useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { signOut } from '@/features/authentication';
+import { BiometricSwitch, signOut } from '@/features/authentication';
 import { ProgressSummaryCard } from '@/features/progress';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
@@ -272,6 +272,9 @@ export function DashboardScreen() {
         >
           {t('dashboard.subscription')}
         </AppButton>
+        {/* Biometric sign-in on/off (ADR-P036 A7) — temporary home until the
+            Profile tab (ADR-P039). Renders nothing where biometrics are unavailable. */}
+        <BiometricSwitch />
       </DashboardActionGroup>
 
       {/* Sign-out clears the session; the dashboard route's session

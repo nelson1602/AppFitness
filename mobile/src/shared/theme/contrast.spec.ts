@@ -576,6 +576,15 @@ const PAIRINGS: readonly Pairing[] = [
       where: 'Chip tone label on a GlassCard',
     })),
   ),
+  // ADR-P036: the biometric link sheet is an opaque stageDeep surface; its
+  // "Not now" link sits on it directly, not on glass.
+  ...(['stage', 'stageDeep', 'stageMid'] as const).map((background): Pairing => ({
+    foreground: 'linkOnStage',
+    background,
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage text link on an opaque stage surface (biometric link sheet)',
+  })),
   ...(['stage', 'stageDeep', 'stageMid'] as const).map((background): Pairing => ({
     foreground: 'success',
     background,

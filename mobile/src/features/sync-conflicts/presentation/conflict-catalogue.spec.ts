@@ -145,9 +145,11 @@ describe('catalogue parity', () => {
   // the ADR-P035 sign-in added the brand name, the split headline, the short
   // forgot link, "New here?" and the show/hide password names.
   // None of these is in this family, so the 157-key conflict family below is unchanged.
-  it('reaches 1152 keys in each language — 995 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1152);
-    expect(Object.keys(es)).toHaveLength(1152);
+  // It moved to 1172 later on 2026-10-22, when ADR-P036 added the 20-key
+  // `auth.biometric.*` family (hint, unlock, link sheet, reset notice, switch).
+  it('reaches 1172 keys in each language — 1015 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1172);
+    expect(Object.keys(es)).toHaveLength(1172);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 
