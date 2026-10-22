@@ -861,6 +861,32 @@ VoiceOver, programmatic invalid/required or field-to-error outcome is claimed.
 
 ---
 
+# Revision Scope (v1.26 — ADR-P036 biometric sign-in)
+
+- **Sign-in.** While biometrics can be used and are not linked, the design's
+  hint "Podrás activar Face ID o Huella al iniciar sesión." / "You can turn on
+  Face ID or fingerprint when you sign in." sits under the CTA (glass row,
+  face or fingerprint icon). On a `locked` device a secondary button "Entrar con
+  Face ID / con tu huella" opens the session. The password form always stays
+  available, and a fail-safe reset shows an info Banner.
+- **Link sheet.** The design's "¿Entrar más rápido la próxima vez?" sheet
+  follows a password sign-in or registration:
+  - it is an opaque `stageDeep` surface;
+  - it carries the privacy note on glass;
+  - it offers "Activar …" and "Ahora no";
+  - it confirms "… activado" with a "Go to my dashboard" button. There is no
+    auto-advance (WCAG 2.2.1), and the slide animation runs only when motion is
+    allowed.
+- **Dashboard switch.** A temporary Account-group row with `switch`
+  semantics, a 48 dp floor, and the thumb position as the non-colour state
+  signal. It moves to the Profile tab with ADR-P039.
+- **Web.** Nothing biometric renders (ADR-P018).
+- **Deviation from the prototype.** The prototype pairs a square icon button
+  with a separate text link for the same action. The app uses one labelled
+  button, so assistive technology meets one control, not two.
+
+---
+
 # Revision Scope (v1.25 — ADR-P035 / ADR-P037 redesign Phase 1)
 
 Owner-accepted 2026-10-22 (ADR-P035 dark-first brand theme, ADR-P037 redesign
