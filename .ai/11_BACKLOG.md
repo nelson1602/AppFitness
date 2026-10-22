@@ -3363,6 +3363,36 @@ UX-4C stays **PARTIAL**.
 
 ---
 
+## [BUG-042] Android Sign-in Shows "Unexpected" Instead of "No Connection" When the API Is Unreachable
+
+Status: Needs Triage
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-10-22
+Updated: 2026-10-22
+
+### Description
+
+Observed during redesign Phase 1 visual validation (PR #231), with no API listening on `EXPO_PUBLIC_API_URL`:
+
+- **Android emulator (Expo Go):** a sign-in attempt showed the `unexpected` banner ("Something went wrong — We couldn't finish signing you in on this device").
+- **Web:** the same attempt showed the correct `connectivity` banner ("No connection").
+
+The sign-in error mapping and the session code are unchanged in PR #231. That makes this most likely pre-existing or environmental, but it is not proven. A possible cause is local state in Expo Go, since the device log earlier showed `auth.loadSession.legacyRejected`.
+
+### Acceptance Criteria
+
+* [ ] Reproduced, or ruled out, on a release build with the API unreachable
+* [ ] If real: the failing layer is identified and a regression test asserts the `connectivity` reason on Android
+
+### Related Documents
+
+* mobile/src/app/sign-in.tsx (ERROR_COPY)
+* mobile/src/features/authentication/
+
+---
+
 ## [BUG-037] Sign-In Submit Moves Focus to the Email Field
 
 Status: **Done on Android (2026-10-12, owner Option A) — a loading Android
