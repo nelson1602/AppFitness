@@ -24,7 +24,8 @@ export default function DeleteAccountScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (status === 'unauthenticated') return <Redirect href="/sign-in" />;
+  // A biometric-locked session (ADR-P036) is not authenticated either.
+  if (status === 'unauthenticated' || status === 'locked') return <Redirect href="/sign-in" />;
 
   const confirmed = phrase.trim() === CONFIRM_PHRASE;
 
