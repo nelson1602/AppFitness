@@ -35,6 +35,31 @@ function relativeLuminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+/**
+ * Alpha-composites an 8-digit `#RRGGBBAA` colour over an opaque ground, giving
+ * the colour actually seen. Only translucent roles (`glassFill`) use this.
+ */
+function composite(translucent: string, ground: string): string {
+  if (!/^#[0-9A-Fa-f]{8}$/.test(translucent)) {
+    throw new Error(`Not an eight-digit translucent colour: ${translucent}`);
+  }
+  const alpha = parseInt(translucent.slice(7, 9), 16) / 255;
+  return `#${[1, 3, 5]
+    .map((i) => {
+      const top = parseInt(translucent.slice(i, i + 2), 16);
+      const below = parseInt(ground.slice(i, i + 2), 16);
+      return Math.round(top * alpha + below * (1 - alpha))
+        .toString(16)
+        .padStart(2, '0');
+    })
+    .join('')}`;
+}
+
+/** The ground a pairing is really drawn on — composited when it is glass. */
+function groundOf(colors: ColorTokens, p: Pairing): string {
+  return p.over ? composite(colors[p.background], colors[p.over]) : colors[p.background];
+}
+
 function contrastRatio(foreground: string, background: string): number {
   const a = relativeLuminance(foreground);
   const b = relativeLuminance(background);
@@ -68,6 +93,11 @@ type Status = 'rendered' | 'approved';
 interface Pairing {
   readonly foreground: keyof ColorTokens;
   readonly background: keyof ColorTokens;
+  /**
+   * ADR-P035: a translucent background (`glassFill`) is composited over this
+   * ground before measuring, so glass is judged by the colour actually seen.
+   */
+  readonly over?: keyof ColorTokens;
   readonly requirement: Requirement;
   readonly status: Status;
   readonly where: string;
@@ -314,6 +344,271 @@ const PAIRINGS: readonly Pairing[] = [
       where: 'BrandHero halo ring around the mark (the glow itself is decorative)',
     },
   ]),
+
+  // ── Stage family (ADR-P035) ───────────────────────────────────────────────
+  // Text on the stage is gated on every ground it can sit over below the art;
+  // glass is composited over each of those grounds before it is measured.
+  {
+    foreground: 'onStage',
+    background: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage headline and labels',
+  },
+  {
+    foreground: 'onStage',
+    background: 'stageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage headline and labels',
+  },
+  {
+    foreground: 'onStage',
+    background: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage headline and labels',
+  },
+  {
+    foreground: 'onStage',
+    background: 'stageTop',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage headline and labels',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage subtitle',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'stageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage subtitle',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage subtitle',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'stageTop',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage subtitle',
+  },
+  {
+    foreground: 'accentCyan',
+    background: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Headline gradient-text start; solid Web fallback',
+  },
+  {
+    foreground: 'accentCyan',
+    background: 'stageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Headline gradient-text start; solid Web fallback',
+  },
+  {
+    foreground: 'accentCyan',
+    background: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Headline gradient-text start; solid Web fallback',
+  },
+  {
+    foreground: 'accentEnergy',
+    background: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Headline gradient-text end',
+  },
+  {
+    foreground: 'accentEnergy',
+    background: 'stageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Headline gradient-text end',
+  },
+  {
+    foreground: 'accentEnergy',
+    background: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Headline gradient-text end',
+  },
+  {
+    foreground: 'onStage',
+    background: 'glassFill',
+    over: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Text inside a GlassCard',
+  },
+  {
+    foreground: 'onStage',
+    background: 'glassFill',
+    over: 'stageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Text inside a GlassCard',
+  },
+  {
+    foreground: 'onStage',
+    background: 'glassFill',
+    over: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Text inside a GlassCard',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'glassFill',
+    over: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Muted text inside a GlassCard',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'glassFill',
+    over: 'stageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Muted text inside a GlassCard',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'glassFill',
+    over: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Muted text inside a GlassCard',
+  },
+  {
+    foreground: 'linkOnStage',
+    background: 'glassFill',
+    over: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Text links inside a GlassCard',
+  },
+  {
+    foreground: 'linkOnStage',
+    background: 'glassFill',
+    over: 'stageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Text links inside a GlassCard',
+  },
+  {
+    foreground: 'linkOnStage',
+    background: 'glassFill',
+    over: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Text links inside a GlassCard',
+  },
+  {
+    foreground: 'errorOnStage',
+    background: 'glassFill',
+    over: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Inline error text inside a GlassCard',
+  },
+  {
+    foreground: 'errorOnStage',
+    background: 'glassFill',
+    over: 'stageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Inline error text inside a GlassCard',
+  },
+  {
+    foreground: 'errorOnStage',
+    background: 'glassFill',
+    over: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Inline error text inside a GlassCard',
+  },
+  {
+    foreground: 'onField',
+    background: 'fieldFill',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Stage text-field value',
+  },
+  {
+    foreground: 'fieldIcon',
+    background: 'fieldFill',
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Field leading icon and password toggle glyph',
+  },
+  ...(['stage', 'stageDeep', 'stageMid'] as const).map((over): Pairing => ({
+    foreground: 'fieldIcon',
+    background: 'glassFill',
+    over,
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Stage field border (fieldIcon) against the glass around it',
+  })),
+  {
+    foreground: 'ctaStart',
+    background: 'fieldFill',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Selected stage pill label (language choice)',
+  },
+  {
+    foreground: 'fieldFocus',
+    background: 'glassFill',
+    over: 'stage',
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Focused stage field border against the glass around it',
+  },
+  {
+    foreground: 'fieldFocus',
+    background: 'glassFill',
+    over: 'stageDeep',
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Focused stage field border against the glass around it',
+  },
+  {
+    foreground: 'fieldFocus',
+    background: 'glassFill',
+    over: 'stageMid',
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Focused stage field border against the glass around it',
+  },
+  {
+    foreground: 'onCta',
+    background: 'ctaStart',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Gradient primary CTA label at either endpoint',
+  },
+  {
+    foreground: 'onCta',
+    background: 'ctaEnd',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Gradient primary CTA label at either endpoint',
+  },
 ];
 
 /**
@@ -337,11 +632,29 @@ const UNCONSUMED_ROLES: readonly (keyof ColorTokens)[] = [
 ];
 
 /**
+ * ADR-P035 roles that are rendered but never carry or bound information:
+ * `stageGlow` is a radial light behind the mascot art and `glassBorder` is a
+ * grouping hairline whose glass fill and contents are gated above. Each has an
+ * `EXEMPT` entry below; listing them here keeps the coverage test honest.
+ */
+const DECORATIVE_ROLES: readonly (keyof ColorTokens)[] = ['stageGlow', 'glassBorder'];
+
+/**
  * Pairings that are real but carry no contrast requirement, with the exemption
  * cited. Recorded rather than silently omitted, and asserted below to be
  * non-text — an exemption may never be claimed for text.
  */
 const EXEMPT: readonly { readonly pairing: string; readonly exemption: string }[] = [
+  {
+    pairing: 'stageGlow radial light at the top of the stage (ADR-P035)',
+    exemption:
+      'WCAG 1.4.11 — decorative light behind the mascot art; no text, control or state is drawn on it.',
+  },
+  {
+    pairing: 'glassBorder hairline around a GlassCard (ADR-P035)',
+    exemption:
+      'WCAG 1.4.11 — a passive grouping boundary; GlassCard has no interaction, and its fill and every foreground on it are measured composited over each stage ground.',
+  },
   {
     pairing: 'divider border on the Card ground — light surface, dark surfaceVariant',
     exemption:
@@ -375,7 +688,9 @@ const THEMES: readonly (readonly [string, ColorTokens])[] = [
 ];
 
 function label(p: Pairing): string {
-  return `${p.foreground} on ${p.background}`;
+  return p.over
+    ? `${p.foreground} on ${p.background} over ${p.over}`
+    : `${p.foreground} on ${p.background}`;
 }
 
 describe('WCAG 2.2 relative-luminance implementation', () => {
@@ -405,7 +720,7 @@ describe('WCAG 2.2 relative-luminance implementation', () => {
 describe.each(THEMES)('%s theme palette meets WCAG 2.2 AA', (themeName, colors) => {
   it.each(PAIRINGS.map((p) => [label(p), p] as const))('%s', (_name, pairing) => {
     const required = THRESHOLD[pairing.requirement];
-    const ratio = contrastRatio(colors[pairing.foreground], colors[pairing.background]);
+    const ratio = contrastRatio(colors[pairing.foreground], groundOf(colors, pairing));
 
     // The failure diff names the pairing, the theme, the measured ratio and the
     // threshold it missed — enough to act on without opening this file.
@@ -429,10 +744,12 @@ describe('the gate covers the palette it claims to cover', () => {
     for (const p of PAIRINGS) {
       measured.add(p.foreground);
       measured.add(p.background);
+      if (p.over) measured.add(p.over);
     }
     const unmeasured = (Object.keys(lightColors) as (keyof ColorTokens)[])
       .filter((role) => !measured.has(role))
       .filter((role) => !UNCONSUMED_ROLES.includes(role))
+      .filter((role) => !DECORATIVE_ROLES.includes(role))
       .sort();
 
     expect(unmeasured).toEqual([]);
@@ -478,7 +795,7 @@ describe('negative control — the pre-addendum palette fails this gate', () => 
 
   function failures(colors: ColorTokens): string[] {
     return PAIRINGS.filter(
-      (p) => contrastRatio(colors[p.foreground], colors[p.background]) < THRESHOLD[p.requirement],
+      (p) => contrastRatio(colors[p.foreground], groundOf(colors, p)) < THRESHOLD[p.requirement],
     )
       .map(label)
       .sort();
@@ -542,5 +859,25 @@ describe('negative control — the pre-addendum palette fails this gate', () => 
       'onBrand on brandEnd',
       'onBrandVariant on brandEnd',
     ]);
+  });
+
+  it('rejects the prototype CTA endpoint for the gradient button label', () => {
+    // ADR-P035 D3: the prototype button ends at `#0C8DDB`, where white text
+    // measures 3.59:1, so the shipped `ctaEnd` is the deeper `#0A76C8`.
+    const rejected: ColorTokens = { ...darkColors, ctaEnd: '#0C8DDB' };
+    expect(failures(rejected)).toEqual(['onCta on ctaEnd']);
+  });
+
+  it('composites glass before measuring, so translucency cannot hide a failure', () => {
+    // 7% white over the dark stage is #181B25, a known anchor for the helper.
+    expect(composite(darkColors.glassFill, darkColors.stage)).toBe('#181b25');
+    // An opaque near-white glass would leave light-on-glass text unreadable.
+    const rejected: ColorTokens = { ...darkColors, glassFill: '#F3F8FEFF' };
+    expect(failures(rejected)).toEqual(
+      expect.arrayContaining([
+        'onStage on glassFill over stage',
+        'linkOnStage on glassFill over stage',
+      ]),
+    );
   });
 });

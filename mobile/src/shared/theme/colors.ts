@@ -15,6 +15,14 @@
  * state or navigation colour. Their pairings are gated by `contrast.spec.ts`
  * at both gradient endpoints, and `color-usage.source.spec.ts` keeps them out
  * of every other component.
+ *
+ * **ADR-P035** (2026-10-22) adds the stage family for the redesign's dark-first
+ * surfaces: the layered stage background, glass cards, white fields, the
+ * gradient CTA and the cyan/energy accents. Dark matches the approved design;
+ * light is derived from the same hues. `glassFill` and `glassBorder` carry an
+ * alpha channel and are measured composited over the stage grounds they sit on.
+ * `ctaEnd` is deepened from the prototype's `#0C8DDB` (white text 3.59:1) to
+ * keep the CTA label at AA.
  */
 export interface ColorTokens {
   primary: string;
@@ -54,6 +62,33 @@ export interface ColorTokens {
   onBrandVariant: string;
   /** Cyan halo ring and glow around the brand mark only. */
   brandGlow: string;
+  /** Stage (ADR-P035): the deepest background and the bottom of the stage gradient. */
+  stage: string;
+  stageDeep: string;
+  stageMid: string;
+  /** Top of the stage gradient, behind the mascot art. */
+  stageTop: string;
+  /** Decorative radial glow at the top of the stage. Never a text ground. */
+  stageGlow: string;
+  onStage: string;
+  onStageVariant: string;
+  /** Translucent glass card fill and border (8-digit hex, composited in tests). */
+  glassFill: string;
+  glassBorder: string;
+  /** Text fields on the stage. */
+  fieldFill: string;
+  onField: string;
+  fieldIcon: string;
+  fieldFocus: string;
+  /** Gradient primary CTA (replaces the solid primary fill, ADR-P035 D3). */
+  ctaStart: string;
+  ctaEnd: string;
+  onCta: string;
+  linkOnStage: string;
+  /** Cyan and energy accents; also the headline gradient-text endpoints. */
+  accentCyan: string;
+  accentEnergy: string;
+  errorOnStage: string;
 }
 
 export const lightColors: ColorTokens = {
@@ -89,6 +124,26 @@ export const lightColors: ColorTokens = {
   onBrand: '#FFFFFF',
   onBrandVariant: '#DCF5FF',
   brandGlow: '#7FD6FF',
+  stage: '#F8FAFC',
+  stageDeep: '#F3F8FE',
+  stageMid: '#E3EFFC',
+  stageTop: '#CFE4FA',
+  stageGlow: '#9CC8F5',
+  onStage: '#0F1B2D',
+  onStageVariant: '#46566E',
+  glassFill: '#FFFFFFB8',
+  glassBorder: '#0A3FA826',
+  fieldFill: '#FFFFFF',
+  onField: '#0F1B2D',
+  fieldIcon: '#5B6B82',
+  fieldFocus: '#0A57C2',
+  ctaStart: '#0A57C2',
+  ctaEnd: '#0A76C8',
+  onCta: '#FFFFFF',
+  linkOnStage: '#0A57C2',
+  accentCyan: '#0E7490',
+  accentEnergy: '#B03A0B',
+  errorOnStage: '#B91C1C',
 };
 
 export const darkColors: ColorTokens = {
@@ -124,4 +179,24 @@ export const darkColors: ColorTokens = {
   onBrand: '#FFFFFF',
   onBrandVariant: '#BDEBFF',
   brandGlow: '#38B6F5',
+  stage: '#060A14',
+  stageDeep: '#08142E',
+  stageMid: '#0A2A6E',
+  stageTop: '#0A3FA8',
+  stageGlow: '#1F8BF0',
+  onStage: '#E6EDF7',
+  onStageVariant: '#C7D7F0',
+  glassFill: '#FFFFFF12',
+  glassBorder: '#FFFFFF29',
+  fieldFill: '#FFFFFF',
+  onField: '#0F1B2D',
+  fieldIcon: '#808EA3',
+  fieldFocus: '#22D3EE',
+  ctaStart: '#0A57C2',
+  ctaEnd: '#0A76C8',
+  onCta: '#FFFFFF',
+  linkOnStage: '#67E8F9',
+  accentCyan: '#22D3EE',
+  accentEnergy: '#FF7A45',
+  errorOnStage: '#FCA5A5',
 };
