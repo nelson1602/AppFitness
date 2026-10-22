@@ -12,7 +12,7 @@ import { registerProfileSyncAppliers } from '@/features/profile';
 import { registerWorkoutSyncAppliers } from '@/features/workout';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
 import { DocumentHead, useLocalization } from '@/shared/localization';
-import { useTheme } from '@/shared/theme';
+import { holdSplashForBrandFonts, useBrandFonts, useTheme } from '@/shared/theme';
 
 // Composition root: features register their sync appliers once at app
 // load. The sync worker itself runs on demand (no scheduling yet).
@@ -26,10 +26,13 @@ registerNutritionSyncAppliers();
 registerWorkoutSyncAppliers();
 registerProgressSyncAppliers();
 registerWellnessSyncAppliers();
+// Native: no screen paints before the brand faces are ready (ADR-P037).
+holdSplashForBrandFonts();
 
 export default function RootLayout() {
   const theme = useTheme();
   useLocalization();
+  const fontsReady = useBrandFonts();
 
   // Bridge our design tokens into the navigation container so native
   // navigation surfaces (headers, backgrounds) match the app theme.
@@ -44,6 +47,9 @@ export default function RootLayout() {
       border: theme.colors.divider,
     },
   };
+
+  // The splash is still up on native until the faces settle (see useBrandFonts).
+  if (!fontsReady) return null;
 
   return (
     <ThemeProvider value={navigationTheme}>

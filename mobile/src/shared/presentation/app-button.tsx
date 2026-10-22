@@ -12,6 +12,8 @@ import {
 
 import { useTheme } from '../theme';
 import { AppText } from './app-text';
+import { backgroundImageStyle } from './gradient-style';
+import { ctaBackgroundImage } from './stage-style';
 import { usePaidWriteDisabled } from './paid-write-context';
 
 /**
@@ -22,7 +24,13 @@ import { usePaidWriteDisabled } from './paid-write-context';
  */
 const MIN_TOUCH_TARGET = 44;
 
-type ButtonVariant = 'primary' | 'secondary' | 'text' | 'destructive';
+/**
+ * `stage-secondary` and `stage-link` are the ADR-P035 variants for controls on
+ * the stage and its glass: an outlined glass button and a text link. They keep
+ * every behaviour below; only their colours differ.
+ */
+type ButtonVariant =
+  'primary' | 'secondary' | 'text' | 'destructive' | 'stage-secondary' | 'stage-link';
 
 interface AppButtonProps extends Omit<PressableProps, 'children' | 'style'> {
   children: ReactNode;
@@ -128,9 +136,12 @@ export function AppButton({
   };
 
   const variantStyle: Record<ButtonVariant, ViewStyle> = {
+    // ADR-P035 D3: the filled primary CTA is the ctaStart → ctaEnd gradient,
+    // over a solid ctaStart wherever gradients do not render. Its label is
+    // onCta, measured at both endpoints.
     primary: {
-      backgroundColor: theme.colors.primary,
-      borderColor: theme.colors.primary,
+      ...backgroundImageStyle(ctaBackgroundImage(theme.colors), theme.colors.ctaStart),
+      borderColor: theme.colors.ctaStart,
     },
     secondary: {
       backgroundColor: theme.colors.surfaceVariant,
@@ -143,6 +154,14 @@ export function AppButton({
     destructive: {
       backgroundColor: theme.colors.error,
       borderColor: theme.colors.error,
+    },
+    'stage-secondary': {
+      backgroundColor: theme.colors.glassFill,
+      borderColor: theme.colors.glassBorder,
+    },
+    'stage-link': {
+      backgroundColor: 'transparent',
+      borderColor: 'transparent',
     },
   };
 
@@ -163,12 +182,21 @@ export function AppButton({
    * in the app. Passing `undefined` for the whole style leaves the tone intact.
    */
   const labelColor: Record<ButtonVariant, string | undefined> = {
-    primary: theme.colors.onPrimary,
+    primary: theme.colors.onCta,
     destructive: theme.colors.onError,
     secondary: undefined,
     text: undefined,
+    'stage-secondary': undefined,
+    'stage-link': undefined,
   };
-  const textTone = variant === 'primary' || variant === 'destructive' ? 'default' : 'primary';
+  const textTone =
+    variant === 'primary' || variant === 'destructive'
+      ? 'default'
+      : variant === 'stage-secondary'
+        ? 'onStage'
+        : variant === 'stage-link'
+          ? 'linkOnStage'
+          : 'primary';
 
   return (
     <Pressable

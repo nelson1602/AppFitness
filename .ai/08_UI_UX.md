@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.24
+Version: 1.25
 Status: Active
-Last Updated: 2026-10-21
+Last Updated: 2026-10-22
 
 ---
 
@@ -780,6 +780,63 @@ Only the sign-in and recovery paths and a harness Banner were heard. No
 VoiceOver, programmatic invalid/required or field-to-error outcome is claimed.
 **UX-4C stays PARTIAL.** See ADR-P024 *Correction (2026-10-16, BUG-038)* and
 `.ai/11_BACKLOG.md` §BUG-038.
+
+---
+
+# Revision Scope (v1.25 — ADR-P035 / ADR-P037 redesign Phase 1)
+
+Owner-accepted 2026-10-22 (ADR-P035 dark-first brand theme, ADR-P037 redesign
+dependencies, plus its masked-view amendment). The approved design in
+`docs/design/` is the visual source of truth.
+
+- **Stage colour family (20 roles, light and dark).** `stage`, `stageDeep`,
+  `stageMid`, `stageTop`, `stageGlow`, `onStage`, `onStageVariant`, `glassFill`,
+  `glassBorder`, `fieldFill`, `onField`, `fieldIcon`, `fieldFocus`, `ctaStart`,
+  `ctaEnd`, `onCta`, `linkOnStage`, `accentCyan`, `accentEnergy`, `errorOnStage`.
+  Dark matches the design; light is derived from the same hues. Each theme now
+  declares **52** roles; earlier counts in this document describe older palettes.
+- **Contrast.** Every new pairing is gated in `contrast.spec.ts` in both themes.
+  Translucent glass is composited over each stage ground before measuring.
+  Three design colours were adjusted to pass:
+  - `ctaEnd` `#0C8DDB` → `#0A76C8` (white label 3.59:1 → 4.73:1);
+  - dark `accentEnergy` `#FF7A45` → `#FF8A5B` (on glass over `stageMid`);
+  - dark `fieldIcon` `#808EA3`, chosen to clear 3:1 against both the white field
+    and the glass, so the icon colour can also be the field border.
+- **Primary CTA.** It is the `ctaStart` → `ctaEnd` gradient over a solid `ctaStart`
+  fallback, labelled `onCta` (supersedes ADR-P022 D5a for the filled CTA). The
+  accent colours still never become a CTA label.
+- **Typography.** Sora for display, headline and title; Inter for body, label and
+  caption. Sizes and line heights are unchanged. On native the splash is held
+  until the fonts settle; on Web a system font stack covers loading.
+- **Components.**
+  - `GlassCard`: no blur.
+  - `Chip`.
+  - `Ring` and `ProgressBar`: `progressbar` role with a value and a text name.
+  - `Pulse`: hidden from assistive technology; **still until the reduce-motion
+    preference is known, and still under reduced motion**.
+  - `Mascot`: decorative unless named. The hero crop fades into the stage with
+    gradient overlays.
+  - `GradientText`: hidden from assistive technology; the caller names the sentence.
+  - `Icon`: the design's path set, hidden from assistive technology.
+  - `Screen stage`, `AppTextInput appearance="stage"`, `LanguageSelector
+    appearance="stage"`.
+  - `AppButton` `stage-secondary` / `stage-link` variants.
+- **Sign-in.**
+  - Layout, top to bottom:
+    - the mascot hero, named "AppFitnessRD" because the art carries the wordmark;
+    - the heartbeat;
+    - one heading, "Cada latido cuenta." / "Every beat counts.", with the last
+      word in gradient text (solid cyan on Web);
+    - the subtitle;
+    - the glass form: email and password fields with icons, a show/hide toggle,
+      "¿La olvidaste?" / "Forgot it?" (whose accessible name stays the full
+      sentence), the gradient CTA, "¿Nuevo aquí?", and "Crea una cuenta" /
+      "Create an account";
+    - the two-language row (same radio semantics).
+  - The biometric hint is deferred to the ADR-P036 phase.
+- **Motion rule.** Motion is allowed only for the brand heartbeat (ADR-P035 D5),
+  never as the only signal of a state, and always fully still under reduced
+  motion.
 
 ---
 

@@ -16,6 +16,9 @@ type TextVariant = 'display' | 'headline' | 'title' | 'body' | 'label' | 'captio
  * `onBrand` / `onBrandVariant` are likewise only correct on the identity
  * surface (`BrandHero`, ADR-P022 Addendum C), and are policed to it by
  * `color-usage.source.spec.ts`.
+ *
+ * `onStage`, `onStageVariant` and `linkOnStage` are the ADR-P035 foregrounds
+ * for the stage and for glass on it; they are measured on every stage ground.
  */
 type TextTone =
   | 'default'
@@ -24,6 +27,9 @@ type TextTone =
   | 'onPrimary'
   | 'onBrand'
   | 'onBrandVariant'
+  | 'onStage'
+  | 'onStageVariant'
+  | 'linkOnStage'
   | 'success'
   | 'warning'
   | 'error';
@@ -51,6 +57,9 @@ export function AppText({
     onPrimary: theme.colors.onPrimary,
     onBrand: theme.colors.onBrand,
     onBrandVariant: theme.colors.onBrandVariant,
+    onStage: theme.colors.onStage,
+    onStageVariant: theme.colors.onStageVariant,
+    linkOnStage: theme.colors.linkOnStage,
     success: theme.colors.success,
     warning: theme.colors.warning,
     error: theme.colors.error,

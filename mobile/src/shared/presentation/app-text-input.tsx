@@ -59,6 +59,16 @@ interface AppTextInputBaseProps {
    * alone. Supported on iOS, Android and Web.
    */
   disabled?: boolean;
+  /**
+   * ADR-P035. `stage` is the white field of the redesign's glass forms:
+   * `fieldFill` with an `onField` value, a `fieldIcon` border that clears 3:1
+   * against the glass around it, and a `fieldFocus` border when focused. The
+   * default appearance is unchanged.
+   */
+  appearance?: 'default' | 'stage';
+  /** Extra start/end padding that leaves room for an icon or an inline button. */
+  insetStart?: number;
+  insetEnd?: number;
 }
 
 /** Controlled: the caller owns the value and receives every change. */
@@ -128,7 +138,11 @@ export function AppTextInput(props: AppTextInputProps) {
     onBlur,
     onWebSubmit,
     disabled: explicitlyDisabled = false,
+    appearance = 'default',
+    insetStart = 0,
+    insetEnd = 0,
   } = props;
+  const stage = appearance === 'stage';
   const disabled = explicitlyDisabled || paidWriteDisabled;
   // BUG-033 (owner Option B): TalkBack names an Android EditText by its
   // placeholder or value, and reads `accessibilityLabel` as text only when the
@@ -169,20 +183,26 @@ export function AppTextInput(props: AppTextInputProps) {
       placeholder={placeholder}
       // `outline` must never carry placeholder text — that pairing is a
       // measured light-theme contrast failure.
-      placeholderTextColor={theme.colors.onSurfaceVariant}
+      placeholderTextColor={stage ? theme.colors.fieldIcon : theme.colors.onSurfaceVariant}
       secureTextEntry={secureTextEntry}
       selectTextOnFocus={selectTextOnFocus}
       testID={testID}
       style={{
-        backgroundColor: theme.colors.surfaceVariant,
-        borderColor: theme.colors.outline,
-        borderRadius: theme.radius.medium,
+        backgroundColor: stage ? theme.colors.fieldFill : theme.colors.surfaceVariant,
+        borderColor: stage
+          ? focused
+            ? theme.colors.fieldFocus
+            : theme.colors.fieldIcon
+          : theme.colors.outline,
+        borderRadius: stage ? theme.radius.field : theme.radius.medium,
         borderWidth: focused ? FOCUSED_BORDER_WIDTH : BORDER_WIDTH,
-        color: theme.colors.onSurface,
+        color: stage ? theme.colors.onField : theme.colors.onSurface,
         // A floor that grows with the OS text scale, never a ceiling.
-        minHeight: theme.spacing.x5l,
+        minHeight: stage ? theme.spacing.x6l - theme.spacing.xs : theme.spacing.x5l,
         opacity: disabled ? DISABLED_OPACITY : 1,
         paddingHorizontal: theme.spacing.md,
+        ...(insetStart > 0 ? { paddingLeft: theme.spacing.md + insetStart } : undefined),
+        ...(insetEnd > 0 ? { paddingRight: theme.spacing.md + insetEnd } : undefined),
         ...theme.typography.body,
       }}
       {...model}

@@ -14,7 +14,7 @@ appId: com.appfitnessrd.mobile
 - extendedWaitUntil:
     visible: 'AppFitnessRD'
     timeout: 90000
-- assertVisible: 'Sign in to continue.'
+- assertVisible: 'Sign in and keep moving toward your goal.'
 
 - tapOn:
     id: 'input-email'

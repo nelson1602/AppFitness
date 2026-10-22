@@ -113,6 +113,9 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
   // title; its children are complete AppButton nodes supplied by the caller.
   'src/features/dashboard/presentation/DashboardScreen.tsx#DashboardActionGroup: props.children':
     'the grouped dashboard actions — a composition slot, not a value',
+  // The sign-in field's label-row slot holds a complete AppButton (the
+  // forgot-password link) supplied by the caller; it renders no value.
+  'src/app/sign-in.tsx#StageField: accessory': 'a label-row control slot, not a value',
 };
 
 interface Finding {

@@ -140,8 +140,13 @@ describe('a filled variant uses the `on*` foreground of its own role', () => {
     expect(appButton.text).toContain('destructive: theme.colors.onError');
   });
 
-  it('still maps the primary variant to onPrimary', () => {
-    expect(appButton.text).toContain('primary: theme.colors.onPrimary');
+  // ADR-P035 D3: the filled primary CTA is the ctaStart → ctaEnd gradient, so
+  // its label is the gradient's own foreground, onCta — never onPrimary, and
+  // never an accent colour.
+  it('maps the gradient primary variant to onCta', () => {
+    expect(appButton.text).toContain('primary: theme.colors.onCta');
+    expect(appButton.text).toContain('ctaBackgroundImage(theme.colors)');
+    expect(appButton.text).not.toMatch(/primary: theme.colors.(accent|accentCyan|accentEnergy)/);
   });
 });
 

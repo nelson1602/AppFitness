@@ -51,26 +51,33 @@ describe('SignInScreen', () => {
   it('renders the development sign-in form', async () => {
     await render(<SignInScreen />);
 
-    expect(screen.getByText('AppFitnessRD')).toBeOnTheScreen();
+    expect(screen.getByRole('image', { name: 'AppFitnessRD' })).toBeOnTheScreen();
+    expect(screen.getByRole('header', { name: 'Every beat counts.' })).toBeOnTheScreen();
     expect(screen.getByLabelText('Email')).toBeOnTheScreen();
     expect(screen.getByLabelText('Password')).toBeOnTheScreen();
     expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
   });
 
-  // ADR-P022 Addendum C layout: identity header first, then the form, then the
-  // separate account-creation entry, then the two-language choice.
-  it('orders the identity header, form, account-creation entry and language choice', async () => {
+  // ADR-P035 layout (approved design): the named mascot art, one heading, the
+  // glass form, the account-creation entry inside it, then the language row.
+  it('orders the identity, heading, form, account-creation entry and language choice', async () => {
     await render(<SignInScreen />);
 
-    const header = screen.getByRole('header', { name: 'AppFitnessRD' });
-    expect(screen.getAllByText('AppFitnessRD')).toHaveLength(1);
-    expect(screen.queryByTestId('brand-mark')).toBeNull();
+    const identity = screen.getByRole('image', { name: 'AppFitnessRD' });
+    const header = screen.getByRole('header', { name: 'Every beat counts.' });
+    // One heading, announced once: its split words are hidden from AT.
+    expect(screen.getAllByRole('header')).toHaveLength(1);
+    expect(screen.queryByText('counts.')).toBeNull();
+    // The heartbeat is decoration only.
+    expect(screen.queryByTestId('sign-in-pulse')).toBeNull();
 
     const order = [
+      identity,
       header,
       screen.getByLabelText('Email'),
-      screen.getByRole('button', { name: 'Sign in' }),
+      // The design puts the short recovery link on the password label row.
       screen.getByTestId('button-forgot-password'),
+      screen.getByRole('button', { name: 'Sign in' }),
       screen.getByTestId('button-toggle-mode'),
       screen.getByRole('radio', { name: 'Language: Spanish' }),
     ];
@@ -85,20 +92,41 @@ describe('SignInScreen', () => {
     expect(positions.every((p) => p >= 0)).toBe(true);
     expect([...positions].sort((a, b) => a - b)).toEqual(positions);
 
-    expect(screen.getByTestId('button-toggle-mode')).toHaveTextContent('Create Account');
+    expect(screen.getByTestId('button-toggle-mode')).toHaveTextContent('Create an account');
     expect(screen.getAllByRole('radio')).toHaveLength(2);
+  });
+
+  it('shows the short forgot link but keeps the full sentence as its name', async () => {
+    await render(<SignInScreen />);
+
+    const link = screen.getByTestId('button-forgot-password');
+    expect(link).toHaveTextContent('Forgot it?');
+    expect(screen.getByRole('button', { name: 'Forgot your password?' })).toBe(link);
+  });
+
+  it('reveals and hides the password with a named 48 px toggle', async () => {
+    await render(<SignInScreen />);
+    expect(screen.getByTestId('input-password')).toHaveProp('secureTextEntry', true);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Show password' }));
+    expect(screen.getByTestId('input-password')).toHaveProp('secureTextEntry', false);
+
+    const toggle = screen.getByRole('button', { name: 'Hide password' });
+    expect(toggle).toHaveStyle({ minHeight: 48, minWidth: 48 });
+    await fireEvent.press(toggle);
+    expect(screen.getByTestId('input-password')).toHaveProp('secureTextEntry', true);
   });
 
   it('names the authentication-mode button by its visible text in both modes', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
     expect(screen.getByRole('button', { name: 'Use existing account' })).toBeOnTheScreen();
     // Negative control: the generic name that hid the visible text is gone.
     expect(screen.queryByLabelText('Switch authentication mode')).toBeNull();
 
     await fireEvent.press(screen.getByRole('button', { name: 'Use existing account' }));
-    expect(screen.getByRole('button', { name: 'Create Account' })).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Create an account' })).toBeOnTheScreen();
   });
 
   it('signs in and redirects to the dashboard', async () => {
@@ -120,7 +148,7 @@ describe('SignInScreen', () => {
   it('switches to registration and submits username', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
     expect(screen.getByLabelText('Username')).toBeOnTheScreen();
 
     await fireEvent.changeText(screen.getByLabelText('Email'), 'new@appfitness.local');
@@ -199,7 +227,7 @@ describe('SignInScreen', () => {
     mockSignUp.mockRejectedValue(new AuthError('registration-unavailable'));
 
     await render(<SignInScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
     await fireEvent.changeText(screen.getByLabelText('Email'), 'taken@appfitness.local');
     await fireEvent.changeText(screen.getByLabelText('Username'), 'taken-user');
     await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
@@ -229,7 +257,7 @@ describe('SignInScreen', () => {
   it('hides the recovery entry point while creating an account', async () => {
     await render(<SignInScreen />);
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Create Account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
 
     // Nothing to recover before the account exists.
     expect(screen.queryByLabelText('Forgot your password?')).toBeNull();

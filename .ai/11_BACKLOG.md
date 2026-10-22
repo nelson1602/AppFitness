@@ -3363,6 +3363,36 @@ UX-4C stays **PARTIAL**.
 
 ---
 
+## [BUG-042] Android Sign-in Shows "Unexpected" Instead of "No Connection" When the API Is Unreachable
+
+Status: Needs Triage
+Priority: P3
+Type: Bug
+Owner: Unassigned
+Created: 2026-10-22
+Updated: 2026-10-22
+
+### Description
+
+Observed during redesign Phase 1 visual validation (PR #231), with no API listening on `EXPO_PUBLIC_API_URL`:
+
+- **Android emulator (Expo Go):** a sign-in attempt showed the `unexpected` banner ("Something went wrong — We couldn't finish signing you in on this device").
+- **Web:** the same attempt showed the correct `connectivity` banner ("No connection").
+
+The sign-in error mapping and the session code are unchanged in PR #231. That makes this most likely pre-existing or environmental, but it is not proven. A possible cause is local state in Expo Go, since the device log earlier showed `auth.loadSession.legacyRejected`.
+
+### Acceptance Criteria
+
+* [ ] Reproduced, or ruled out, on a release build with the API unreachable
+* [ ] If real: the failing layer is identified and a regression test asserts the `connectivity` reason on Android
+
+### Related Documents
+
+* mobile/src/app/sign-in.tsx (ERROR_COPY)
+* mobile/src/features/authentication/
+
+---
+
 ## [BUG-037] Sign-In Submit Moves Focus to the Email Field
 
 Status: **Done on Android (2026-10-12, owner Option A) — a loading Android
@@ -5853,6 +5883,47 @@ or approved for implementation.
   ADR-P019 (§Implementation Sequence item 5)
 - `docs/RELEASE_READINESS.md` — §Web boundary, §Future tracks
 - `.ai/11_BACKLOG.md` — `BUG-016` (Done)
+
+---
+
+## [FEATURE-015] AppFitnessRD Redesign — Phased Delivery (ADR-P035 … ADR-P040)
+
+Status: In Progress (Phase 1 in review)
+Priority: P1
+Type: Feature
+Owner: Project owner (decisions) · Engineering (delivery)
+Created: 2026-10-22
+Updated: 2026-10-22
+
+### Description
+
+Deliver the approved design in `docs/design/` phase by phase: one branch and
+one PR per phase, following `docs/design/GAP_ANALYSIS.md`. The owner fixed the
+order on 2026-10-22:
+
+1. Phase 1 — theme, components and login (ADR-P035, ADR-P037)
+2. Biometrics (ADR-P036)
+3. Shell and navigation (ADR-P039)
+4. Non-medical iCoach rules (ADR-P040)
+5. Medical evaluation (ADR-P038), last and only after SECURITY-002 is Done
+
+Food sources are USDA FDC, a Dominican foods seed and user-created foods.
+Open Food Facts is dropped.
+
+### Acceptance Criteria
+
+* [ ] Phase 1: stage tokens, Sora/Inter, primitives, redesigned sign-in — automated checks pass; Android emulator and Web verified; owner visual approval
+* [ ] Biometric sign-in (ADR-P036 accepted first), including the deferred login hint "Podrás activar Face ID o Huella al iniciar sesión."
+* [ ] Tab shell, header, in-app notifications and welcome screen (ADR-P039 accepted first)
+* [ ] Recipes, substitution, injury mapping, off-plan adjustment, user foods and Dominican seed (ADR-P040 accepted first)
+* [ ] Medical evaluation (ADR-P038, gated by SECURITY-002)
+* [ ] Remaining screens migrated from `Card`/`BrandHero` to the stage family
+
+### Related Documents
+
+* docs/design/README.md, docs/design/GAP_ANALYSIS.md
+* .ai/12_DECISIONS.md (ADR-P035 … ADR-P040)
+* .ai/08_UI_UX.md (v1.25)
 
 ---
 

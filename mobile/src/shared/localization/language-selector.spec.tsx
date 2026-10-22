@@ -1,5 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import * as ReactNative from 'react-native';
 import { Platform } from 'react-native';
+
+import { darkColors } from '@/shared/theme';
 
 import { LanguageSelector } from './language-selector';
 
@@ -248,6 +251,32 @@ describe('LanguageSelector', () => {
         finish();
       });
     });
+  });
+
+  // ADR-P035: the stage appearance changes only the look — the same two radios,
+  // names and selected state, plus a non-colour selected signal (border width).
+  it('keeps the radio semantics in the stage appearance', async () => {
+    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
+    mockState.language = 'es';
+    await render(<LanguageSelector appearance="stage" />);
+
+    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.getByRole('radio', { name: 'Idioma: Español' })).toHaveProp(
+      'accessibilityState',
+      {
+        disabled: false,
+        selected: true,
+      },
+    );
+    const flat = (option: string) =>
+      ReactNative.StyleSheet.flatten(screen.getByTestId(`language-option-${option}`).props.style);
+    expect(flat('es')).toEqual(
+      expect.objectContaining({ backgroundColor: darkColors.fieldFill, borderWidth: 2 }),
+    );
+    expect(flat('en')).toEqual(
+      expect.objectContaining({ backgroundColor: darkColors.glassFill, borderWidth: 1 }),
+    );
+    expect(screen.queryByText('Elige el idioma que usa AppFitnessRD.')).toBeNull();
   });
 
   it.each(['android', 'ios'] as const)(

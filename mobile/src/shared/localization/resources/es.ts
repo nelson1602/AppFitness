@@ -15,14 +15,21 @@ export const es = {
   'language.spanish': 'Español',
   'language.saveError': 'No se pudo guardar el idioma. Inténtalo de nuevo.',
   'auth.screenTitle': 'Iniciar sesión',
-  'auth.subtitle': 'Inicia sesión para continuar.',
+  'brand.name': 'AppFitnessRD',
+  'auth.headline': 'Cada latido cuenta.',
+  'auth.headlineLead': 'Cada latido',
+  'auth.headlineAccent': 'cuenta.',
+  'auth.subtitle': 'Inicia sesión y sigue hacia tu meta.',
   'auth.email': 'Correo electrónico',
   'auth.username': 'Nombre de usuario',
   'auth.password': 'Contraseña',
   'auth.signIn': 'Iniciar sesión',
   'auth.register': 'Registrarse',
   'auth.useExistingAccount': 'Usar una cuenta existente',
-  'auth.createAccount': 'Crear cuenta',
+  'auth.createAccount': 'Crea una cuenta',
+  'auth.newHere': '¿Nuevo aquí?',
+  'auth.showPassword': 'Mostrar contraseña',
+  'auth.hidePassword': 'Ocultar contraseña',
   'auth.error.invalidCredentialsTitle': 'Error de inicio de sesión',
   'auth.error.invalidCredentialsBody':
     'El correo o la contraseña no son correctos. Inténtalo de nuevo.',
@@ -40,6 +47,7 @@ export const es = {
   // Recuperación de contraseña (ADR-P026 Vertical 1). El texto de "enviado"
   // es deliberadamente ambiguo: debe leerse igual exista o no la cuenta.
   'auth.forgotPassword': '¿Olvidaste tu contraseña?',
+  'auth.forgotPasswordShort': '¿La olvidaste?',
   'auth.forgot.screenTitle': 'Restablecer contraseña',
   'auth.forgot.title': 'Restablece tu contraseña',
   'auth.forgot.subtitle':

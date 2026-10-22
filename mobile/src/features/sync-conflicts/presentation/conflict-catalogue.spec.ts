@@ -141,11 +141,13 @@ describe('catalogue parity', () => {
   // to 1142 on 2026-10-08, when BUG-033 removed `auth.switchMode`: the sign-in
   // mode button now takes its name from its visible text. It moved to 1144 on
   // 2026-10-21, when the visual pilot removed the device-language label and
-  // added three dashboard group headings.
+  // added three dashboard group headings. It moved to 1152 on 2026-10-22, when
+  // the ADR-P035 sign-in added the brand name, the split headline, the short
+  // forgot link, "New here?" and the show/hide password names.
   // None of these is in this family, so the 157-key conflict family below is unchanged.
-  it('reaches 1144 keys in each language — 987 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1144);
-    expect(Object.keys(es)).toHaveLength(1144);
+  it('reaches 1152 keys in each language — 995 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1152);
+    expect(Object.keys(es)).toHaveLength(1152);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 
