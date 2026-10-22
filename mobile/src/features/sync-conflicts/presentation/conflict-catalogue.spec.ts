@@ -206,9 +206,10 @@ describe('catalogue parity', () => {
   // v10 Block C item 9: Unidades (title, two options, save error, inches, example) (+6), and the
   // imperial labels, errors and examples of each weight / length field (+16) (+22, 1880).
   // v10 Block C review: the singular "1 porción" / "1 serving" (+1, 1881).
-  it('reaches 1881 keys in each language — 1694 shipped plus a 187-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1881);
-    expect(Object.keys(es)).toHaveLength(1881);
+  // ADR-P036 biometric sign-in (rebased for v10): the 20-key `auth.biometric.*` family (+20, 1901).
+  it('reaches 1901 keys in each language — 1714 shipped plus a 187-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1901);
+    expect(Object.keys(es)).toHaveLength(1901);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

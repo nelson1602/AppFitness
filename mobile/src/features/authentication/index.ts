@@ -8,7 +8,9 @@ export {
   getSession,
   getSessionSnapshot,
   getStatus,
+  isBiometricLinked,
   isSessionCurrent,
+  linkBiometrics,
   requireSessionSnapshot,
   deleteAccount,
   refreshTokens,
@@ -21,9 +23,22 @@ export {
   signOut,
   signUp,
   subscribe,
+  unlinkBiometrics,
+  unlockWithBiometrics,
   verifyEmail,
 } from './application/session-manager';
-export type { AuthAttemptOutcome, SessionSnapshot } from './application/session-manager';
+export type {
+  AuthAttemptOutcome,
+  BiometricLinkOutcome,
+  BiometricUnlinkOutcome,
+  BiometricUnlockOutcome,
+  SessionSnapshot,
+} from './application/session-manager';
+export {
+  getBiometricCapability,
+  type BiometricCapability,
+  type BiometricKind,
+} from './infrastructure/biometric-capability';
 export type {
   AuthErrorReason,
   EmailVerificationErrorReason,
@@ -38,3 +53,6 @@ export {
 } from './application/verification-reminder';
 export { bindStoreToSession } from './application/session-scope';
 export { useSession } from './presentation/use-session';
+export { BiometricLinkSheet } from './presentation/biometric-link-sheet';
+export { BiometricSwitch } from './presentation/biometric-switch';
+export { useBiometricCapability } from './presentation/use-biometric-capability';
