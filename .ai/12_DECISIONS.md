@@ -14734,6 +14734,7 @@ Each package is installed with `npx expo install` at the SDK 57-compatible versi
 | Icons, Ring, Pulse path, weight chart | `react-native-svg` | not installed | Draws icons from the design's own path set, so no icon font is needed. This resolves the ADR-P033 delivery question in favour of in-repo SVG paths, and `02_TECH_STACK` is reconciled. No charting library (ADR-P016 D3 stands). |
 | Mascot exercise clips | `expo-video` | not installed | Clips are bundled from `assets/exercises/<slug>.mp4`. No autoplay under reduced motion; muted; a pause control; clips are hidden from assistive technology, and the three text cues carry the meaning. |
 | Animation | `react-native-reanimated` | installed, unused, approved | ADR-P035 D5 |
+| Gradient text ("cuenta." in the login headline) | `@react-native-masked-view/masked-view` | not installed | **Amendment 2026-10-22 (owner):** masks a gradient fill to text shapes on native. On Web, where masked text may not render, the text falls back to solid `cyan`. Masked text keeps a plain `Text` accessibility name, and its colours are contrast-gated at both gradient endpoints. |
 
 **Explicitly not added:** `expo-linear-gradient` (the platform gradient split stays), `expo-blur`, chart libraries, push notifications (`expo-notifications`; ADR-P039 is in-app only) and any AI SDK.
 
