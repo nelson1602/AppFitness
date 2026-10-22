@@ -1,21 +1,88 @@
-# AppFitnessRD visual prototype
+# Rediseño AppFitnessRD
 
-`appfitnessrd-prototipo.html` and `muneco.webp` preserve the owner-provided
-Claude Artifact as a visual and interaction reference for the AppFitnessRD
-redesign.
+Este diseño es la referencia del rediseño de la app móvil: el código se adapta a él. Está hecho como página web (React + Tailwind) para revisarlo; en la app se implementa con React Native.
 
-They are not production application code, an approved data model, or a source
-of business rules. The implementation must continue to follow the accepted
-ADRs, the React Native/Expo design system, localization, accessibility, and the
-public-v1 product scope.
+- `appfitnessrd-prototipo.html`: prototipo interactivo. Ábrelo en el navegador junto a las imágenes de esta carpeta.
+- `muneco.webp`: arte original del muñeco con el logo (fondo azul). También en `mobile/assets/images/muneco.webp`.
+- `muneco-solo.webp`: el muñeco recortado, sin fondo. También en `mobile/assets/images/muneco-solo.webp`.
+- Prototipo publicado (cuenta de Claude): https://claude.ai/artifact/Vv5K9nEJhyz5ur2Bc9sveN
 
-In particular, the prototype's diagnosed conditions, medications, blood
-pressure, heart-rate, biometric-login, notification, wearable, and simulated
-plan content are not approved public-v1 features. Public v1 is limited to
-self-declared food allergies, injuries, and functional or movement limitations
-used as deterministic safety constraints.
+## Flujo
 
-The versioned HTML differs from the exported Artifact only by removing its
-pre-filled demonstration email and password. It intentionally retains external
-CDN references so the source remains reviewable, but production code must not
-copy those dependencies or the prototype's state and calculation logic.
+Login → (vincular biometría) → Evaluación física → el iCoach crea el plan → "Tu meta te espera" → Panel con pestañas.
+
+## Reglas generales
+
+- **El muñeco de la marca** se usa en todo lo relacionado con AppFitnessRD. No se inventan otras mascotas.
+- **Textos:** "Entrenamientos", nunca "Entrenos". "Tu meta te espera" sustituye el concepto de racha.
+- **Idiomas:** Español e English.
+- **Estilo:** fondo azul marino oscuro con el resplandor azul del arte original, tarjetas de cristal translúcido, botones en degradado azul a celeste, acentos cian y naranja, pulso cardíaco animado. Tipografías: Sora (títulos) e Inter (texto).
+- **Agua y ritmo cardíaco:** actualización futura con reloj inteligente. Hoy aparecen como "Próximamente".
+
+## Pantallas
+
+### Login (aprobado)
+- El arte del muñeco se desvanece sin línea divisoria hacia el fondo oscuro, con el pulso animado debajo y "Cada latido cuenta."
+- Formulario en tarjeta de cristal: correo, contraseña con botón de mostrar, "¿La olvidaste?", "Crea una cuenta".
+- Texto de biometría: "Podrás activar Face ID o Huella al iniciar sesión."
+- Después de entrar con contraseña se ofrece vincular Face ID o Huella según el hardware. Ya vinculada, aparece el botón para entrar con biometría.
+
+### Evaluación física (6 pasos)
+El usuario registra los resultados de su evaluación con el médico.
+1. **Medidas:** peso, estatura, edad, sexo y fecha de la evaluación. IMC calculado al momento.
+2. **Salud:**
+   - Condiciones: Hipertensión, Diabetes, Asma, Condición cardíaca, Otros (abre un cuadro de texto).
+   - Botón **Lesiones** que despliega: Hombro, Rodilla, Espalda baja, Muñeca, Codo, Tobillo, Cadera o pelvis, Cuello, Desgarre muscular, Periostitis tibial, Fascitis plantar, Otra lesión (abre un cuadro de texto).
+   - Presión sistólica y diastólica, pulso en reposo, medicamentos.
+3. **Alimentación:** grupos desplegables con los alimentos a excluir:
+   - Frutas: guineo, manzana, fresas, arándanos, piña, lechosa, mango, naranja, sandía, kiwi, uvas, chinola.
+   - Verduras y vegetales: brócoli, espinaca, lechuga, tomate, ajíes, zanahoria, pepino, coliflor, berenjena, cebolla, auyama.
+   - Carnes, huevo y pescado: pollo, pavo, res, cerdo, pescado, atún, salmón, huevo.
+   - Mariscos: camarones, langosta, cangrejo, pulpo, lambí, almejas y mejillones.
+   - Lácteos: leche, yogur, queso, proteína whey, mantequilla.
+   - Granos y cereales: trigo y pan, pasta, avena, cebada, centeno, arroz, quinoa, maíz.
+   - Legumbres: habichuelas, lentejas, garbanzos, guandules, soya, maní.
+   - Frutos secos y semillas: almendras, nueces, cajuil, pistachos, ajonjolí, chía, linaza.
+   - Víveres: plátano, yuca, batata, papa, ñame, yautía.
+   - Restricciones médicas: alto en sodio, alto en purinas, azúcares añadidos, alcohol, cafeína, frituras.
+4. **Estilo de vida:** nivel de actividad (5), estrés (5), horas de sueño, días para entrenar (2 a 6), equipo disponible.
+5. **Meta:** tipo de meta (7), peso meta y fecha meta.
+6. **Revisión:** resumen editable por sección y vista previa del iCoach (calorías, macros, ajustes por salud).
+
+### iCoach
+- Calcula calorías y macros (Mifflin-St Jeor × actividad ± ajuste por meta) y arma la semana de entrenamientos según los días disponibles.
+- **Lesiones:** rodilla quita saltos y sentadilla profunda; espalda baja quita cargas pesadas sobre la espalda; hombro cambia el press militar por rotación externa con banda; tobillo, periostitis y fascitis cambian el trote por bicicleta; las demás bajan las cargas.
+- **Otras reglas:** hipertensión o condición cardíaca → intensidad moderada; diabetes → carbohidratos repartidos; estrés alto → respiración al final; sueño corto → descansos más largos.
+- **Alimentos excluidos:** solo se quita el alimento marcado, nunca el plato completo ni el grupo. El iCoach lo cambia por otro del mismo tipo (proteína por proteína, víveres por víveres, fruta por fruta…) y si no hay sustituto lo quita. El plato muestra "Ajustado por iCoach: huevo → pechuga de pollo".
+- **Restricciones médicas** (sodio, purinas, azúcares, alcohol, cafeína, frituras) sí excluyen los productos que las tienen.
+- **Comida fuera del plan:** recalcula. Si se pasó de calorías añade cardio al próximo entrenamiento y baja la meta del día siguiente; si fue alcohol, recomienda evitar el entrenamiento intenso.
+
+### Panel (pestañas Inicio, Entrenamientos, Nutrición, Progreso, Perfil)
+La pestaña activa muestra su nombre; las demás, solo el ícono.
+- **Encabezado:** fecha, saludo y campanita con el número de notificaciones sin leer. Al tocarla se abre la lista; cada notificación lleva a su pantalla y hay "Marcar todo como leído".
+- **Inicio:**
+  - Tarjeta "Tu meta te espera" con anillo de entrenamientos de la semana (naranja; **verde al completar la semana**) y avance de peso hacia la meta.
+  - iCoach: recomendación del día con los ajustes por salud. Botón "Empezar"; al terminar el de hoy, "Entrenamiento de hoy completado"; al completar la semana, **"Entrenamientos de esta semana completados"**.
+  - Resumen de entrenamiento y calorías, evaluación del día (IMC, presión, macros), accesos rápidos y "Próximamente".
+- **Entrenamientos:** semana del iCoach, series que se marcan una por una con descanso de 90 s, y al tocar un ejercicio se despliega la demostración del muñeco con 3 pasos de técnica.
+- **Nutrición:**
+  - Calorías y macros del día, plan de 15 días con barra deslizable y flechas (también fila de días con barra visible).
+  - Cada plato muestra sus ingredientes sueltos con cantidad y calorías.
+  - **Registrar comida:** botones de comida centrados; categorías Frecuentes, Todos, Bebidas, Dulces, Comida rápida, Frituras, Básicos, Platos y Mis alimentos con barra deslizable visible; búsqueda; porciones; favoritos con estrella; veces registrado; **"¿No lo encuentras? Crear alimento"** (nombre, porción, calorías) que se guarda en la base del usuario.
+  - La base de alimentos debe crecer: base pública (USDA FoodData Central, Open Food Facts) + alimentos dominicanos + los creados por el usuario + lo que más registra.
+- **Progreso:** gráfica de peso con línea de meta, registrar peso, medidas y resumen semanal.
+- **Perfil:** resumen de la evaluación con "Actualizar evaluación", meta, interruptor de Face ID o Huella, "Próximamente" y cerrar sesión.
+
+## Animaciones del muñeco por ejercicio
+
+Formato: video MP4 (o Lottie/GIF) cuadrado de 768 × 768, fondo negro liso (en la app se funde con "screen"), vista de lado, cuerpo completo, cámara fija, una repetición completa que empieza y termina en la misma postura, 3 a 6 s. Cada clip se revisa antes de conectarlo: si no muestra exactamente el movimiento, no se usa. Mientras no exista el clip, se muestra la figura dibujada.
+
+Nombre del archivo = nombre del ejercicio (ej. `sentadilla-goblet.mp4`). ★ = los que la app usa hoy.
+
+- **Piernas y glúteos:** ★Sentadilla goblet, Sentadilla con barra, Prensa de piernas, ★Zancadas, Sentadilla búlgara, ★Peso muerto rumano, ★Puente de glúteo, Hip thrust, Extensión de cuádriceps, Curl femoral, ★Abducción con banda, ★Elevación de talones, Subida al cajón.
+- **Pecho:** ★Press de pecho con mancuernas, Press de banca con barra, Press inclinado, Aperturas con mancuernas, Flexiones, ★Flexiones inclinadas.
+- **Espalda:** ★Remo con mancuerna, Remo con barra, Jalón al pecho en polea, ★Jalón con banda, Dominadas asistidas, Remo en polea baja.
+- **Hombros:** ★Press militar sentado, Elevaciones laterales, Face pull, ★Rotación externa con banda.
+- **Brazos:** Curl de bíceps, Curl martillo, Extensión de tríceps en polea, Fondos en banco.
+- **Abdomen:** ★Plancha, ★Plancha lateral, ★Bird dog, ★Dead bug, Crunch abdominal, Elevación de piernas.
+- **Cardio y recuperación:** ★Trote suave y caminata, ★Bicicleta estática, Elíptica, Saltar cuerda, Estiramiento de isquiotibiales, Respiración guiada.
