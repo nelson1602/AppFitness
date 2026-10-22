@@ -7935,7 +7935,7 @@ Negative / accepted:
 
 ## ADR-P022 — AppFitness V1 Visual Direction and Design-System Evolution
 
-Status: Accepted
+Status: Accepted — **partially superseded 2026-10-22** by ADR-P035 (Decisions 1, 5a for the filled CTA, 10, 11, 12 and Addendum C Decisions 1–3) and ADR-P037 (Decisions 8, 9 and 12 as to dependencies). Every other decision stands.
 Date: 2026-08-24
 Owner: Product / Design / Architecture
 
@@ -14631,6 +14631,306 @@ refuses to accept those writes, which is the Decision 5 guarantee.
 - `docs/RELEASE_READINESS.md` — publication blocker and delivery sequence
 
 ---
+
+## ADR-P035 — AppFitnessRD Dark-First Brand Theme with a Derived Light Theme
+
+Status: Accepted
+Date: 2026-10-22
+Accepted: 2026-10-22 by the project owner, as written (Phase 0 review of `docs/design/GAP_ANALYSIS.md`)
+Owner: Product / Design / Architecture
+Would supersede: ADR-P022 Decisions 1, 5a (filled CTA only), 10, 11 and 12 and Addendum C Decisions 1–3; it **extends** ADR-0010 (MD3 role model kept)
+Evidence: `docs/design/GAP_ANALYSIS.md` §Phase 1, §Phase 6
+
+### Context
+
+The owner approved the redesign in `docs/design/` as the source of truth. That design is dark-first: a navy stage, a blue glow, translucent glass cards, a blue → cyan gradient on buttons, cyan and orange accents, an animated heartbeat line and the mascot art. ADR-P022 chose the opposite direction, `Confident Clarity`. ADR-P022 Addendum C, accepted 2026-10-21, allowed only a single identity gradient and listed gradient CTAs, motion and fonts as unchanged. CLAUDE.md requires light and dark modes.
+
+### Decision (proposed)
+
+1. **Dark is the design reference; light is derived.** One brand token set (navy, deep, brand, sky, ice, cyan, energy-orange, surface, glass and line roles) produces a dark theme that matches the prototype and a light theme from the same hues with re-tuned lightness. `useColorScheme` still selects the theme; no forced dark mode.
+2. **Semantic roles, still gated.** New roles are added to `ColorTokens` (for example `stage`, `glassFill`, `glassBorder`, `ctaStart`, `ctaEnd`, `onCta`, `energy`, `cyan`, `macroProtein`, `macroCarb`, `macroFat`, `chartLine`, `chartTarget`). Every foreground/background pairing a component can render is measured in `contrast.spec.ts` in both themes, including text on each gradient endpoint and on glass over its worst-case ground. Raw hex in components stays forbidden.
+3. **Gradient CTA replaces D5a for the filled primary button.** The fill is `ctaStart` → `ctaEnd`, and the label `onCta` is gated against both endpoints. A solid `ctaStart` fill is the fallback where gradients do not render. The accent and energy colours remain forbidden as the CTA label colour. Disabled and pressed states keep non-colour signals (ADR-P022 D7 stands).
+4. **Glass without blur by default.** A glass card is a translucent fill plus a 1 px border. A blur via `expo-glass-effect` (already installed) is optional and must not be required for legibility.
+5. **Functional motion, plus one brand motif.** The heartbeat Pulse and the subtle mascot idle motion are allowed on the Login, Welcome and iCoach-building screens only. They use Reanimated (installed and approved), run at most about 2.4 s per loop, and are **fully static under reduced motion**. No motion may delay input or be the only signal of a state. Auto-advancing screens must be pausable and skippable.
+6. **Mascot imagery.** `muneco.webp` and `muneco-solo.webp` become approved brand imagery for Login, Welcome, the Inicio hero, completion states and exercise-demo placeholders. The mascot is decorative for assistive technology unless it carries meaning. The login fade is a pre-composited asset, because React Native has no CSS masks.
+7. **Wellness posture stands (ADR-P022 D4).** No clinical or diagnostic aesthetics. The heartbeat motif is brand energy, not a vital sign: it is never driven by data and never labelled as heart rate.
+
+### Options Considered
+
+1. Keep ADR-P022 and Addendum C (rejected by the owner's redesign).
+2. Dark-only theme (violates the CLAUDE.md light/dark rule).
+3. Dark-first with a derived light theme (proposed).
+
+### Consequences
+
+- **Positive:** matches the approved design; one token source; contrast stays test-enforced.
+- **Negative:**
+  - large visual churn across every screen;
+  - glass contrast needs worst-case testing;
+  - the light theme is a new design task with no prototype to match.
+
+### Related Documents
+
+ADR-0010, ADR-P022 (+ Addenda A–C), ADR-P037, `.ai/08_UI_UX.md`, `docs/design/README.md`
+
+---
+
+## ADR-P036 — Biometric Sign-In (Face ID / Fingerprint) on Native
+
+Status: Proposed
+Date: 2026-10-22
+Owner: Security / Mobile Architecture
+Depends on: ADR-P037 (dependency `expo-local-authentication`)
+
+### Context
+
+The design asks to offer linking Face ID or a fingerprint after a password sign-in, and once linked to show a biometric sign-in button. `expo-local-authentication` is in the approved stack (`02_TECH_STACK.md:89`) but is not installed. Sessions are stored in the SecureStore envelope `auth.session.v1` (ADR-P018 for Web).
+
+### Decision (proposed)
+
+1. **Native only.** On Web, and on devices without enrolled biometrics, the hint and button are not shown.
+2. **Linking happens only after a successful password sign-in.** Linking stores the existing refresh token in a SecureStore item that requires user authentication (`requireAuthentication`) and records a non-secret "linked" flag. Biometric sign-in unlocks that item, then performs the normal refresh-token rotation against the API. The server never receives biometric data, and no new server secret is introduced.
+3. **Fail closed.**
+   - After repeated failures, a biometric enrolment change, a server-side revocation or a refresh-token reuse, the link is cleared and a password sign-in is required.
+   - Sign-out, password reset and account deletion clear the link.
+   - Biometrics never bypass email-verification, entitlement or session-supersession rules (ADR-P026, ADR-P030 C-1, ADR-P034 D4).
+4. **The Profile switch** turns the link on (with a biometric prompt) or off (which deletes the protected item). It is not a plain flag.
+5. **Configuration.** The iOS `NSFaceIDUsageDescription` text is added in ES and EN. That is an app-config change, made in its own slice under ADR-P028's identity freeze rules.
+
+### Consequences
+
+- **Positive:** faster sign-in; secrets stay in the OS keystore.
+- **Negative:**
+  - a native rebuild is needed;
+  - tests must mock the platform API;
+  - the security review is mandatory.
+
+### Related Documents
+
+`.ai/05_SECURITY.md` (Secure Storage, Device Security), ADR-P018, ADR-P026, ADR-P034
+
+---
+
+## ADR-P037 — Redesign Dependencies: Fonts, Biometrics, Vector Graphics, Exercise Video
+
+Status: Accepted
+Date: 2026-10-22
+Accepted: 2026-10-22 by the project owner, as written. Each package is still added only in the phase that first uses it, with `expo install --check` and the pinned `expo-doctor` passing.
+Owner: Architecture
+Amends: ADR-P022 Decisions 8, 9 and 12; ADR-P016 D3 (charts are still in-house, but may draw with SVG)
+
+### Context
+
+The design needs custom typefaces, an icon set, rings and a line chart, an animated heartbeat line, biometric authentication and mascot exercise clips. ADR maintenance rules (`:4848`) require an ADR for every new dependency with architectural impact.
+
+### Decision (proposed)
+
+Each package is installed with `npx expo install` at the SDK 57-compatible version, verified by `expo install --check` and the CI-pinned `expo-doctor`:
+
+| Need | Package | Status today | Notes |
+|---|---|---|---|
+| Sora (display) and Inter (body) | `@expo-google-fonts/sora`, `@expo-google-fonts/inter`, or bundled OFL `.ttf` files loaded with `expo-font` | `expo-font` installed, unused | SIL OFL 1.1 licences recorded; a bundle budget is set; the splash screen is held until the fonts load; dynamic type is preserved |
+| Biometrics | `expo-local-authentication` | approved in `02_TECH_STACK`, not installed | ADR-P036 |
+| Icons, Ring, Pulse path, weight chart | `react-native-svg` | not installed | Draws icons from the design's own path set, so no icon font is needed. This resolves the ADR-P033 delivery question in favour of in-repo SVG paths, and `02_TECH_STACK` is reconciled. No charting library (ADR-P016 D3 stands). |
+| Mascot exercise clips | `expo-video` | not installed | Clips are bundled from `assets/exercises/<slug>.mp4`. No autoplay under reduced motion; muted; a pause control; clips are hidden from assistive technology, and the three text cues carry the meaning. |
+| Animation | `react-native-reanimated` | installed, unused, approved | ADR-P035 D5 |
+| Gradient text ("cuenta." in the login headline) | `@react-native-masked-view/masked-view` | not installed | **Amendment 2026-10-22 (owner):** masks a gradient fill to text shapes on native. On Web, where masked text may not render, the text falls back to solid `cyan`. Masked text keeps a plain `Text` accessibility name, and its colours are contrast-gated at both gradient endpoints. |
+
+**Explicitly not added:** `expo-linear-gradient` (the platform gradient split stays), `expo-blur`, chart libraries, push notifications (`expo-notifications`; ADR-P039 is in-app only) and any AI SDK.
+
+### Consequences
+
+- **Positive:** a complete visual toolkit with a small dependency set.
+- **Negative:**
+  - bundle growth from fonts and video;
+  - native rebuilds;
+  - three new packages to keep current.
+
+---
+
+## ADR-P038 — Reactivation of Self-Recorded Medical Evaluation Data
+
+Status: Proposed — **blocked until the ADR-P017 Decision 9 gate is satisfied**
+Tracked as: `.ai/11_BACKLOG.md` §SECURITY-002 (gate opened 2026-10-22 on owner instruction). Until it passes, the medical fields stay out of the build; their design is kept in `docs/design/`.
+Date: 2026-10-22
+Owner: Product / Legal / Security
+Would supersede: ADR-P017 Decision 3 and its owner clarifications (`:6561`–`:6577`); ADR-P031 D1, D5 and D13 (as revised by ADR-P040)
+
+### Context
+
+The design's evaluation step 2 records what the user's doctor reported:
+
+- conditions (Hipertensión, Diabetes, Asma, Condición cardíaca, Otros + free text);
+- systolic/diastolic blood pressure and resting pulse;
+- medications;
+- "Otra lesión" free text;
+- food restrictions framed as "lo que indicó tu médico".
+
+ADR-P017 excludes all of these from public v1 "without exception". The medical domain is retained but dormant on both sides:
+
+- `MedicalModule` is not imported, which `app.module.spec.ts` and `medical-dormancy.e2e-spec.ts` enforce.
+- The mobile `features/medical` code is unregistered.
+- The tables, the AES-256-GCM field ciphers and the append-only evaluation rules already exist (ADR-P001, ADR-P006, ADR-0011).
+
+### Decision (proposed, conditional)
+
+The medical evaluation may be re-enabled **only** when all of the P017 D9 items are complete:
+
+- this ADR accepted;
+- explicit owner authorization;
+- product justification;
+- legal review;
+- a consent screen and model;
+- privacy-policy and Data Safety/health-declaration updates;
+- a security review;
+- a migration and data plan;
+- dedicated validation and release gates.
+
+If enabled:
+
+1. **Self-recorded, not clinical.**
+   - The user copies values they choose to share.
+   - The app makes no diagnosis, classifies no blood pressure, gives no medication advice and requests no clearance.
+   - Every screen carries the health disclaimer.
+   - Condition-driven iCoach changes are conservative wellness adjustments only (ADR-P040).
+2. **Storage.**
+   - Conditions, medications and free text stay encrypted (`*_enc`).
+   - Blood pressure and resting pulse move to encrypted columns through **new** migrations; historical migrations are never edited.
+   - Evaluations stay append-only.
+   - Medical rows keep no conflict resolution and are never silently overwritten (ADR-P030 D12).
+   - Writes are audited without values.
+3. **Reactivation mechanics.**
+   - `MedicalModule` is re-imported, and the dormancy specs are inverted into reactivation specs.
+   - The mobile `features/medical` code is registered.
+   - Medical writes remain behind `ActiveEntitlementGuard`.
+   - Medical data is native-only: there are no ephemeral Web keys (ADR-P018 D4).
+4. **Until this gate passes,** Phase 3 ships only the wellness subset: measurements, injuries as closed tokens, food exclusions, lifestyle and goal.
+
+### Consequences
+
+- **Positive:** matches the owner's product vision.
+- **Negative:**
+  - The app becomes a processor of health data. The legal classification (`LEGAL_APPROVAL_HANDOFF.md` L-04, L-11), store health declarations and potential regulatory exposure must be resolved before release.
+  - The documents in `docs/legal/` must all be rewritten.
+
+---
+
+## ADR-P039 — Tab Shell, Header, In-App Notifications and Welcome Flow
+
+Status: Proposed
+Date: 2026-10-22
+Owner: Product / Mobile Architecture
+Would supersede: ADR-P027 Decision 3 (bottom tabs deferred) and its advisory-onboarding rule as far as the evaluation-first flow is concerned
+
+### Context
+
+The design has:
+
+- five bottom tabs (Inicio, Entrenamientos, Nutrición, Progreso, Perfil), where only the active tab shows its label;
+- a header with the date, a greeting and a notification bell with an unread count;
+- an in-app notification list;
+- a "Tu meta te espera" welcome screen.
+
+ADR-P027 deferred tabs behind three revisit triggers and made onboarding advisory.
+
+### Decision (proposed)
+
+1. **Tabs.**
+   - An expo-router `(tabs)` group; no new dependency.
+   - The existing spokes stay Stack routes above the tabs.
+   - Selected-tab styling uses the ADR-P035 roles, with redundant non-colour signals: label, filled icon and `accessibilityState.selected`.
+   - Inactive icon-only tabs carry accessibility labels.
+2. **Web (trigger 2).** On Web the tabs render, and the database-backed tabs show the bilingual unavailable state (ADR-P019/P032). Alternatively, Web keeps the hub. One must be chosen before implementation.
+3. **Migration cost (trigger 3).** The approximately 20 files and 16 specs are costed in the Phase 2 plan.
+4. **In-app notifications only.** They are derived deterministically from local state: plan created, today's training, weigh-in reminder, evaluation update and plan adjusted. Read state is stored locally in the existing `notifications` table through a repository. There is **no push**; ADR-P004 stays pending. Privacy and Data Safety text is updated if notification state is synced.
+5. **Flow.**
+   - Sign-in → (biometric offer) → evaluation if none exists → plan build → Welcome → tabs.
+   - The evaluation may be skipped ("Ahora no"), so the app stays usable.
+   - The Welcome auto-continue is pausable and is disabled under reduced motion.
+
+---
+
+## ADR-P040 — iCoach Redesign Rules: Recipes, Ingredient Substitution, Injury Mapping, Off-Plan Adjustment, User Foods
+
+Status: Proposed
+Date: 2026-10-22
+Owner: iCoach / Nutrition / Architecture
+Would revise: ADR-P031 D4 (injury-area mapping), D5 (workload signals) and D13 (nutrition restriction input), conditional on ADR-P038 for condition rules; ADR-P012 D3/D5 (custom foods); ADR-P013 acceptance (food sources); ADR-P014 (new avoid tags)
+
+### Context
+
+The design specifies these behaviours:
+
+- calories and macros (Mifflin-St Jeor);
+- a weekly plan by available days;
+- injury and condition adaptations;
+- stress and sleep notes;
+- substituting only the excluded ingredient with one of the same role ("Ajustado por iCoach: X → Y");
+- medical tags that exclude whole products;
+- off-plan recalculation (extra cardio, a lower next-day target, alcohol advice);
+- favorites and user-created foods;
+- a growing food database.
+
+The prototype's implementation has known defects: substring matching, notes that change nothing, and a "next-day target" that is display text only. The engine already exists (`icoach-rules@1.2.0`, `meal-rules@1.0.0`, `icoach-workout-rules@1.1.0`).
+
+### Decision (proposed)
+
+1. **The deterministic engine decides everything.**
+   - Every new rule is a pure, versioned domain function with golden tests.
+   - AI may only explain text the engine produced, and only within the reason codes the engine emits.
+   - AI never alters plans, restrictions or targets (ADR-0007). No AI provider is introduced (ADR-P002 stays pending).
+2. **Recipes.**
+   - A dish is a bundled, versioned recipe: a list of catalog food lines (`catalogKey`, servings, `role` ∈ protein | carb | fruit | dairy | fat | vegetable).
+   - Its calories and macros are derived from the catalog, not authored.
+   - Recipes are plan groupings, not catalog foods, so the ADR-P013 A1 "no synthesized foods" rule stands.
+3. **Substitution.**
+   - An excluded **ingredient** (by `catalogKey` or `avoid_tag`) is replaced by the first non-excluded same-role food in a versioned pool that is not already in the dish. If there is none, it is dropped.
+   - Matching is by key and tag, never by substring.
+   - Each substitution emits a reason code rendered as "Ajustado por iCoach: X → Y" in ES and EN.
+4. **Product-level tags.**
+   - The vocabulary extends ADR-P014 with `added_sugar`, `alcohol`, `caffeine` and `fried`, alongside the existing high sodium and high purine.
+   - A product carrying an excluded tag is excluded from plans.
+   - In logging, the owner must choose between the design's hard block and ADR-P014's warn-and-allow.
+   - Adding the tags bumps `CATALOG_VERSION` and tags the foods.
+5. **Injury mapping.** A versioned map from area tokens to movement exclusions and substitutions:
+   - knee → no jumping or deep squat;
+   - lower back → no heavy spinal load;
+   - shoulder → overhead press becomes band external rotation;
+   - ankle, shin or plantar fascia → running becomes cycling;
+   - others → a conservative load note.
+
+   This requires the qualified exercise-domain review that ADR-P031 D4 demands. New area tokens (muscle tear, tibial periostitis, plantar fasciitis) come through a wellness vocabulary migration.
+6. **Condition rules** (hypertension or cardiac → moderate intensity; diabetes → carbohydrates spread across meals) exist **only if ADR-P038 is accepted**. They are conservative, explained, and never presented as treatment.
+7. **Off-plan adjustment layer.**
+   - A versioned overlay computed from logged intake. It is not a mutation of the generated plan, so the ADR-P012 "no recomputation" rule holds for the base plan.
+   - Extra cardio is clamped to 10–30 min and added to the next scheduled workout.
+   - The next-day target is reduced by at most 300 kcal and never below the engine's calorie safety floor.
+   - A food tagged as alcohol triggers a recovery note to avoid intense training that day.
+   - All of it is deterministic and tested.
+8. **Stress and sleep.** These become real, versioned prescription changes (an added breathing cooldown; longer rests when sleep is under 7 h), or are kept as notes. The owner chooses.
+9. **User foods and favorites.**
+   - User-created foods are a new user-scoped, synced entity, separate from the catalog: name, portion, kcal and optional macros, labelled "creado por ti".
+   - The server trusts them only as the user's own data.
+   - Favorites and log counts are local entities.
+10. **Food sources.**
+    - USDA FDC remains the only accepted public source, imported at **build time** and pinned (ADR-P013).
+    - **Open Food Facts is dropped** (owner decision 2026-10-22); it is not a planned source.
+    - The accepted sources are exactly three: USDA FDC (ADR-P013), a Dominican foods seed (each item with a documented source and ES/EN labels), and user-created foods.
+
+### Consequences
+
+- **Positive:** the design's coaching promises become real, tested behaviour.
+- **Negative:**
+  - substantial engine work and new rule versions;
+  - an exercise-domain review is required;
+  - catalog growth is slower than the design implies, because each source needs licensing.
+
+### Related Documents
+
+ADR-0007, ADR-P012, ADR-P013, ADR-P014, ADR-P015, ADR-P031, ADR-P038, `.ai/07_ICOACH.md`, `docs/design/GAP_ANALYSIS.md`
+
+---
+
 
 # AI Instructions
 

@@ -69,7 +69,7 @@ La pestaña activa muestra su nombre; las demás, solo el ícono.
   - Calorías y macros del día, plan de 15 días con barra deslizable y flechas (también fila de días con barra visible).
   - Cada plato muestra sus ingredientes sueltos con cantidad y calorías.
   - **Registrar comida:** botones de comida centrados; categorías Frecuentes, Todos, Bebidas, Dulces, Comida rápida, Frituras, Básicos, Platos y Mis alimentos con barra deslizable visible; búsqueda; porciones; favoritos con estrella; veces registrado; **"¿No lo encuentras? Crear alimento"** (nombre, porción, calorías) que se guarda en la base del usuario.
-  - La base de alimentos debe crecer: base pública (USDA FoodData Central, Open Food Facts) + alimentos dominicanos + los creados por el usuario + lo que más registra.
+  - La base de alimentos debe crecer con tres fuentes: USDA FoodData Central (importación fijada según ADR-P013), una base de alimentos dominicanos (cada uno con su fuente documentada y nombre en español e inglés) y los alimentos creados por el usuario. Lo que más registra el usuario aparece primero. Open Food Facts no se usa.
 - **Progreso:** gráfica de peso con línea de meta, registrar peso, medidas y resumen semanal.
 - **Perfil:** resumen de la evaluación con "Actualizar evaluación", meta, interruptor de Face ID o Huella, "Próximamente" y cerrar sesión.
 

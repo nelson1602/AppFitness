@@ -8084,6 +8084,59 @@ Define and implement secure storage rules for sensitive local data.
 
 ---
 
+## [SECURITY-002] ADR-P038 / ADR-P017 D9 Gate — Medical Evaluation Reactivation
+
+Status: In Progress (gate opened 2026-10-22 on owner instruction)
+Priority: P1
+Type: Security / Legal / Compliance
+Owner: Project owner (decisions) · Engineering (evidence)
+Created: 2026-10-22
+Updated: 2026-10-22
+
+### Description
+
+The redesign's physical evaluation (`docs/design/README.md` step 2) records what the user's doctor reported:
+
+- conditions (Hipertensión, Diabetes, Asma, Condición cardíaca, Otros + free text);
+- systolic/diastolic blood pressure and resting pulse;
+- medications;
+- free-text injuries;
+- food restrictions framed as "lo que indicó tu médico".
+
+ADR-P017 D3 excludes all of these from public v1. ADR-P038 (Proposed) re-enables them **only** when every ADR-P017 D9 item below is evidenced.
+
+**Until this item is Done:**
+- the medical fields stay **out of the build** (`MedicalModule` stays un-imported, the mobile `features/medical` code stays unregistered, and the dormancy specs stay green);
+- their design is kept unchanged in `docs/design/`;
+- Phase 3 ships only measurements, injuries as fixed choices (closed wellness tokens), food exclusions, lifestyle and goal.
+
+### Acceptance Criteria
+
+* [ ] Owner authorization and written product justification recorded in ADR-P038
+* [ ] Qualified legal review: health-data classification and jurisdiction (`docs/legal/LEGAL_APPROVAL_HANDOFF.md` L-04, L-11), non-medical-device position, retention
+* [ ] Consent model and consent screen (ES/EN): explicit opt-in before any medical field, withdrawable, recorded without values in the audit log
+* [ ] `docs/legal/PRIVACY_POLICY.md`, `HEALTH_DISCLAIMER.md`, `DATA_INVENTORY.md`, `PLAY_DATA_SAFETY.md` and `STORE_PRIVACY_SUBMISSION_MATRIX.md` rewritten for the new data, with counsel sign-off
+* [ ] Google Play health-apps declaration and Data Safety answers updated (and App Store equivalents when iOS resumes)
+* [ ] Security review covering:
+  * encryption at rest of blood pressure and resting pulse (today plaintext ints);
+  * encrypted free text (ADR-P001/P006);
+  * key provisioning (`MEDICAL_ENC_KEY`);
+  * append-only evaluations;
+  * no conflict resolution for medical rows (ADR-P030 D12);
+  * native-only storage (ADR-P018 D4)
+* [ ] Migration and data plan: new migrations only; reactivation specs replace the dormancy specs
+* [ ] Dedicated validation and release gate: unit, e2e and accessibility checks, manual device pass, release checklist
+* [ ] ADR-P038 moved to Accepted, and ADR-P017 D3, ADR-P031 D1/D5/D13 marked superseded where applicable
+
+### Related Documents
+
+* .ai/12_DECISIONS.md (ADR-P017, ADR-P038, ADR-P040, ADR-P006, ADR-P030)
+* .ai/05_SECURITY.md
+* docs/legal/
+* docs/design/GAP_ANALYSIS.md
+
+---
+
 # Technical Debt Backlog
 
 ## [TECHDEBT-001] MVP Email Domain Validation Is Resolution-Only, Not Deliverability-Aware
