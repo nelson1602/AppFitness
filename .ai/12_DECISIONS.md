@@ -14677,8 +14677,9 @@ ADR-0010, ADR-P022 (+ Addenda A–C), ADR-P037, `.ai/08_UI_UX.md`, `docs/design/
 
 ## ADR-P036 — Biometric Sign-In (Face ID / Fingerprint) on Native
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-22
+Accepted: 2026-10-22 by the project owner, as written, after the Phase 1 visual review (PR #231). Implemented on `codex/redesign-p036-biometrics`; the design's hint "Podrás activar Face ID o Huella al iniciar sesión." returns in this phase.
 Owner: Security / Mobile Architecture
 Depends on: ADR-P037 (dependency `expo-local-authentication`)
 
