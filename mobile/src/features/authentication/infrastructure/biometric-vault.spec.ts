@@ -7,6 +7,7 @@ import { getBiometricCapability } from './biometric-capability';
 import {
   createUnlockKey,
   deleteLink,
+  deleteUnlockKey,
   readLinkedUserId,
   readUnlockKey,
   writeLink,
@@ -200,5 +201,47 @@ describe('biometric vault and sealed session (ADR-P036 Amendment A)', () => {
         kind: 'fingerprint',
       });
     });
+  });
+});
+
+describe('biometric vault failure paths (ADR-P036 A4)', () => {
+  beforeEach(() => {
+    mockStore.clear();
+    mockProtectedKeys.clear();
+    mockReleaseProtected = 'yes';
+    jest.clearAllMocks();
+  });
+
+  it('returns no key and leaves nothing behind when the protected write fails', async () => {
+    jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(new Error('cancelled'));
+    await expect(createUnlockKey(PROMPT)).resolves.toBeNull();
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith('auth.biometric.key.v1');
+  });
+
+  it('treats a stored value that is not a 256-bit key as invalidated', async () => {
+    mockStore.set('auth.biometric.key.v1', 'AAAA');
+    await expect(readUnlockKey(PROMPT)).resolves.toEqual({ status: 'invalidated' });
+    mockStore.set('auth.biometric.key.v1', '***not base64***');
+    await expect(readUnlockKey(PROMPT)).resolves.toEqual({ status: 'invalidated' });
+  });
+
+  it('logs, rather than throws, when removing the key or link fails', async () => {
+    const { logError } = jest.requireMock('../../../shared/infrastructure/logging');
+    jest.mocked(SecureStore.deleteItemAsync).mockRejectedValueOnce(new Error('io'));
+    await expect(deleteUnlockKey()).resolves.toBeUndefined();
+    jest.mocked(SecureStore.deleteItemAsync).mockRejectedValueOnce(new Error('io'));
+    await expect(deleteLink()).resolves.toBeUndefined();
+    expect(logError).toHaveBeenCalledWith('auth.biometric.deleteKey', expect.any(Error));
+    expect(logError).toHaveBeenCalledWith('auth.biometric.deleteLink', expect.any(Error));
+  });
+
+  it('reports no sealed session when storage cannot be read', async () => {
+    jest.mocked(SecureStore.getItemAsync).mockRejectedValueOnce(new Error('io'));
+    await expect(hasSealedSession()).resolves.toBe(false);
+  });
+
+  it('opens nothing from a sealed value too short to hold a nonce', async () => {
+    mockStore.set('auth.session.sealed.v1', 'AAAA');
+    await expect(loadSealedSession(new Uint8Array(32))).resolves.toBeNull();
   });
 });

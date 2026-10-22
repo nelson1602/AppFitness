@@ -5913,7 +5913,10 @@ Open Food Facts is dropped.
 ### Acceptance Criteria
 
 * [ ] Phase 1: stage tokens, Sora/Inter, primitives, redesigned sign-in — automated checks pass; Android emulator and Web verified; owner visual approval
-* [ ] Biometric sign-in (ADR-P036 accepted first), including the deferred login hint "Podrás activar Face ID o Huella al iniciar sesión."
+* [ ] Biometric sign-in (ADR-P036, accepted and amended 2026-10-22), including the deferred login hint "Podrás activar Face ID o Huella al iniciar sesión." — **implemented** on `codex/redesign-p036-biometrics`. Still open:
+  * security review before merge
+  * device proof of the locked relaunch, unlock and sign-out (the Android emulator process kept segfaulting at app launch; Expo Go 57.0.9 needs an Expo login)
+  * iOS Face ID (TEST-006)
 * [ ] Tab shell, header, in-app notifications and welcome screen (ADR-P039 accepted first)
 * [ ] Recipes, substitution, injury mapping, off-plan adjustment, user foods and Dominican seed (ADR-P040 accepted first)
 * [ ] Medical evaluation (ADR-P038, gated by SECURITY-002)
