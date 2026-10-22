@@ -3,11 +3,19 @@ import { Keyboard, Platform, ScrollView, View, type ViewStyle } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '../theme';
+import { backgroundImageStyle } from './gradient-style';
+import { stageBackgroundImage } from './stage-style';
 
 interface ScreenProps {
   children: ReactNode;
   scroll?: boolean;
   style?: ViewStyle;
+  /**
+   * ADR-P035: paint the redesign's stage (layered navy gradient) behind the
+   * whole screen instead of the plain `background`. Scrolling, safe areas and
+   * the Android keyboard clearance (BUG-022) are unchanged.
+   */
+  stage?: boolean;
 }
 
 /**
@@ -60,8 +68,12 @@ function useAndroidKeyboardClearance(enabled: boolean): number {
   return clearance;
 }
 
-export function Screen({ children, scroll = true, style }: ScreenProps) {
+export function Screen({ children, scroll = true, style, stage = false }: ScreenProps) {
   const theme = useTheme();
+  const ground = stage
+    ? backgroundImageStyle(stageBackgroundImage(theme.colors), theme.colors.stage)
+    : { backgroundColor: theme.colors.background };
+  const innerBackground = stage ? 'transparent' : theme.colors.background;
   const keyboardClearance = useAndroidKeyboardClearance(scroll);
   const contentStyle: ViewStyle = {
     gap: theme.spacing.lg,
@@ -69,7 +81,7 @@ export function Screen({ children, scroll = true, style }: ScreenProps) {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <SafeAreaView style={[{ flex: 1 }, ground]} testID={stage ? 'screen-stage' : undefined}>
       {scroll ? (
         <ScrollView
           contentContainerStyle={[contentStyle, style]}
@@ -83,7 +95,7 @@ export function Screen({ children, scroll = true, style }: ScreenProps) {
            * tap on empty space still dismisses as before.
            */
           keyboardShouldPersistTaps="handled"
-          style={{ backgroundColor: theme.colors.background }}
+          style={{ backgroundColor: innerBackground }}
         >
           {children}
           {keyboardClearance > 0 ? (
@@ -99,7 +111,7 @@ export function Screen({ children, scroll = true, style }: ScreenProps) {
           ) : null}
         </ScrollView>
       ) : (
-        <View style={[{ flex: 1, backgroundColor: theme.colors.background }, contentStyle, style]}>
+        <View style={[{ flex: 1, backgroundColor: innerBackground }, contentStyle, style]}>
           {children}
         </View>
       )}

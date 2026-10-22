@@ -197,6 +197,7 @@ export const darkColors: ColorTokens = {
   onCta: '#FFFFFF',
   linkOnStage: '#67E8F9',
   accentCyan: '#22D3EE',
-  accentEnergy: '#FF7A45',
+  // Lightened from the prototype's #FF7A45 (4.27:1 on glass over stageMid).
+  accentEnergy: '#FF8A5B',
   errorOnStage: '#FCA5A5',
 };

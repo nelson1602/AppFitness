@@ -564,6 +564,25 @@ const PAIRINGS: readonly Pairing[] = [
     status: 'rendered',
     where: 'Stage field border (fieldIcon) against the glass around it',
   })),
+  // Chip, Ring and ProgressBar (ADR-P035): tone text on glass, arcs and bars
+  // as graphical marks on the bare stage.
+  ...(['accentCyan', 'accentEnergy'] as const).flatMap((foreground) =>
+    (['stage', 'stageDeep', 'stageMid'] as const).map((over): Pairing => ({
+      foreground,
+      background: 'glassFill',
+      over,
+      requirement: 'text',
+      status: 'rendered',
+      where: 'Chip tone label on a GlassCard',
+    })),
+  ),
+  ...(['stage', 'stageDeep', 'stageMid'] as const).map((background): Pairing => ({
+    foreground: 'success',
+    background,
+    requirement: 'nonText',
+    status: 'approved',
+    where: 'Ring / ProgressBar success arc on the stage (completed week)',
+  })),
   {
     foreground: 'ctaStart',
     background: 'fieldFill',

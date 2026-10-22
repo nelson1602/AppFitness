@@ -24,7 +24,17 @@ const OPTIONS: readonly { preference: SupportedLanguage; labelKey: TranslationKe
   { preference: 'en', labelKey: 'language.english' },
 ];
 
-export function LanguageSelector() {
+interface LanguageSelectorProps {
+  /**
+   * ADR-P035 `stage`: the redesign's compact row — the label beside two pills
+   * on the stage. The radio semantics, Web `aria-checked` and Space handling
+   * (BUG-039) are identical in both appearances.
+   */
+  appearance?: 'default' | 'stage';
+}
+
+export function LanguageSelector({ appearance = 'default' }: LanguageSelectorProps = {}) {
+  const stage = appearance === 'stage';
   const theme = useTheme();
   const { language, setLanguagePreference, t } = useLocalization();
   const [saving, setSaving] = useState(false);
@@ -58,44 +68,86 @@ export function LanguageSelector() {
 
   return (
     <View accessibilityRole="radiogroup" style={{ gap: theme.spacing.sm }}>
-      <View>
-        <AppText variant="title">{t('language.title')}</AppText>
-        <AppText tone="muted">{t('language.description')}</AppText>
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-        {OPTIONS.map(({ preference: option, labelKey }) => {
-          const selected = language === option;
-          const label = t(labelKey);
-          return (
-            <Pressable
-              key={option}
-              accessibilityLabel={`${t('language.title')}: ${label}`}
-              accessibilityRole="radio"
-              accessibilityState={{ disabled: saving, selected }}
-              aria-checked={isWeb ? selected : undefined}
-              disabled={saving}
-              onPress={() => void select(option)}
-              {...(isWeb ? { onKeyDown: onSpace(option) } : null)}
-              style={{
-                backgroundColor: selected ? theme.colors.primary : theme.colors.surfaceVariant,
-                borderColor: selected ? theme.colors.primary : theme.colors.outline,
-                borderRadius: theme.radius.medium,
-                borderWidth: 1,
-                justifyContent: 'center',
-                minHeight: theme.spacing.x5l,
-                paddingHorizontal: theme.spacing.md,
-              }}
-              testID={`language-option-${option}`}
-            >
-              <AppText
-                style={{ color: selected ? theme.colors.onPrimary : theme.colors.onSurface }}
-                variant="label"
+      <View
+        style={
+          stage
+            ? {
+                alignItems: 'center',
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: theme.spacing.md,
+                justifyContent: 'space-between',
+              }
+            : undefined
+        }
+      >
+        {stage ? (
+          <AppText tone="onStageVariant" variant="label">
+            {t('language.title')}
+          </AppText>
+        ) : (
+          <View>
+            <AppText variant="title">{t('language.title')}</AppText>
+            <AppText tone="muted">{t('language.description')}</AppText>
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+          {OPTIONS.map(({ preference: option, labelKey }) => {
+            const selected = language === option;
+            const label = t(labelKey);
+            return (
+              <Pressable
+                key={option}
+                accessibilityLabel={`${t('language.title')}: ${label}`}
+                accessibilityRole="radio"
+                accessibilityState={{ disabled: saving, selected }}
+                aria-checked={isWeb ? selected : undefined}
+                disabled={saving}
+                onPress={() => void select(option)}
+                {...(isWeb ? { onKeyDown: onSpace(option) } : null)}
+                style={{
+                  // Stage: a selected pill is filled white with a heavier border, an
+                  // unselected one is glass — fill and border width, not colour alone.
+                  backgroundColor: stage
+                    ? selected
+                      ? theme.colors.fieldFill
+                      : theme.colors.glassFill
+                    : selected
+                      ? theme.colors.primary
+                      : theme.colors.surfaceVariant,
+                  borderColor: stage
+                    ? selected
+                      ? theme.colors.fieldFill
+                      : theme.colors.glassBorder
+                    : selected
+                      ? theme.colors.primary
+                      : theme.colors.outline,
+                  borderRadius: stage ? theme.radius.field : theme.radius.medium,
+                  borderWidth: stage && selected ? 2 : 1,
+                  justifyContent: 'center',
+                  minHeight: theme.spacing.x5l,
+                  paddingHorizontal: theme.spacing.md,
+                }}
+                testID={`language-option-${option}`}
               >
-                {label}
-              </AppText>
-            </Pressable>
-          );
-        })}
+                <AppText
+                  style={{
+                    color: stage
+                      ? selected
+                        ? theme.colors.ctaStart
+                        : theme.colors.onStage
+                      : selected
+                        ? theme.colors.onPrimary
+                        : theme.colors.onSurface,
+                  }}
+                  variant="label"
+                >
+                  {label}
+                </AppText>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
       {saveFailed ? (
         <Banner title={t('language.title')} tone="error">
