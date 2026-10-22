@@ -1,5 +1,9 @@
+import { gcm } from '@noble/ciphers/aes.js';
+import { bytesToUtf8, utf8ToBytes } from '@noble/ciphers/utils.js';
+import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 
+import { fromBase64, toBase64 } from '../../../shared/infrastructure/crypto/field-cipher';
 import { logError } from '../../../shared/infrastructure/logging';
 import type { AuthUser, Session } from '../domain/session.types';
 
@@ -42,6 +46,15 @@ import type { AuthUser, Session } from '../domain/session.types';
 /** Single source of truth. Bump the suffix only alongside a migration below. */
 const SESSION_KEY = 'auth.session.v1';
 const ENVELOPE_VERSION = 1;
+
+/**
+ * ADR-P036 Amendment A: when biometrics are linked the same envelope is stored
+ * **sealed** here (AES-256-GCM under the biometric unlock key; nonce(12) ‖
+ * ciphertext ‖ tag(16)), and the plaintext key above is deleted. Only one of
+ * the two ever holds the session.
+ */
+const SEALED_KEY = 'auth.session.sealed.v1';
+const NONCE_LENGTH = 12;
 
 /**
  * Pre-C-1 layout. Read once, migrated to `SESSION_KEY`, then deleted — and
@@ -122,16 +135,67 @@ function toSession(value: unknown): Session | null {
   };
 }
 
-export async function saveSession(session: Session): Promise<void> {
-  const envelope: SessionEnvelope = {
+function envelopeOf(session: Session): SessionEnvelope {
+  return {
     v: ENVELOPE_VERSION,
     accessToken: session.accessToken,
     refreshToken: session.refreshToken,
     user: session.user,
   };
+}
+
+export async function saveSession(session: Session): Promise<void> {
   // One key: the identity and the tokens it belongs to are written together,
   // or not at all.
-  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(envelope));
+  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(envelopeOf(session)));
+}
+
+/**
+ * Seals the session under the biometric unlock key, then deletes the plaintext
+ * envelope. The sealed write lands first, so a crash between the two leaves a
+ * recoverable session, never none; `clearSession` removes both.
+ */
+export async function saveSealedSession(session: Session, key: Uint8Array): Promise<void> {
+  const nonce = await Crypto.getRandomBytesAsync(NONCE_LENGTH);
+  const ciphertext = gcm(key, nonce).encrypt(utf8ToBytes(JSON.stringify(envelopeOf(session))));
+  const sealed = new Uint8Array(NONCE_LENGTH + ciphertext.length);
+  sealed.set(nonce, 0);
+  sealed.set(ciphertext, NONCE_LENGTH);
+  await SecureStore.setItemAsync(SEALED_KEY, toBase64(sealed));
+  await SecureStore.deleteItemAsync(SESSION_KEY);
+}
+
+/**
+ * Opens the sealed session with the released key, or `null`. Fails closed
+ * exactly like `loadSession`: a missing, undecryptable (wrong key, tampered —
+ * GCM authenticates) or structurally invalid envelope is never reconstructed.
+ */
+export async function loadSealedSession(key: Uint8Array): Promise<Session | null> {
+  try {
+    const raw = await SecureStore.getItemAsync(SEALED_KEY);
+    if (raw === null) return null;
+    const data = fromBase64(raw);
+    if (data.length <= NONCE_LENGTH) return null;
+    const plaintext = gcm(key, data.slice(0, NONCE_LENGTH)).decrypt(data.slice(NONCE_LENGTH));
+    return toSession(JSON.parse(bytesToUtf8(plaintext)));
+  } catch (error) {
+    logError('auth.loadSession.sealed', error);
+    return null;
+  }
+}
+
+/** Whether a sealed session is stored. Reading it never prompts. */
+export async function hasSealedSession(): Promise<boolean> {
+  try {
+    return (await SecureStore.getItemAsync(SEALED_KEY)) !== null;
+  } catch (error) {
+    logError('auth.loadSession.sealedPresence', error);
+    return false;
+  }
+}
+
+export async function deleteSealedSession(): Promise<void> {
+  await SecureStore.deleteItemAsync(SEALED_KEY);
 }
 
 /**
@@ -227,10 +291,14 @@ async function purgeLegacyKeys(): Promise<void> {
   }
 }
 
-/** Removes the envelope AND any legacy remnant, so no token survives sign-out. */
+/**
+ * Removes the envelope, its sealed form (ADR-P036) AND any legacy remnant, so
+ * no token survives sign-out.
+ */
 export async function clearSession(): Promise<void> {
   await Promise.all([
     SecureStore.deleteItemAsync(SESSION_KEY),
+    SecureStore.deleteItemAsync(SEALED_KEY),
     SecureStore.deleteItemAsync(LEGACY_KEYS.accessToken),
     SecureStore.deleteItemAsync(LEGACY_KEYS.refreshToken),
     SecureStore.deleteItemAsync(LEGACY_KEYS.user),
