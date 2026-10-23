@@ -3,7 +3,24 @@ import { logError } from '../../../shared/infrastructure/logging';
 import * as authApi from '../infrastructure/auth-api';
 import { AuthApiError } from '../infrastructure/auth-api';
 import { ensureLocalUser } from '../infrastructure/local-user.repository';
-import { clearSession, loadSession, saveSession } from '../infrastructure/session-storage';
+import {
+  createUnlockKey,
+  deleteLink,
+  deleteUnlockKey,
+  readLinkedUserId,
+  readUnlockKey,
+  writeLink,
+} from '../infrastructure/biometric-vault';
+import {
+  clearSession,
+  deletePlaintextSession,
+  deleteSealedSession,
+  hasSealedSession,
+  loadSealedSession,
+  loadSession,
+  saveSealedSession,
+  saveSession,
+} from '../infrastructure/session-storage';
 import type { AuthUser, Session, SessionStatus } from '../domain/session.types';
 import { resetDismissal } from './verification-reminder';
 
@@ -44,6 +61,34 @@ let currentSession: Session | null = null;
 let currentStatus: SessionStatus = 'unknown';
 let generation = 0;
 const listeners = new Set<Listener>();
+
+/**
+ * Biometric unlock (ADR-P036 Amendment A). While biometrics are linked and the
+ * app is open, the released unlock key is held here — **in memory only** — so
+ * token rotation can re-seal the stored session without prompting. It is never
+ * persisted, logged or exposed, and it is dropped on sign-out, unlink and every
+ * fail-safe reset.
+ */
+let unlockKey: Uint8Array | null = null;
+/** Consecutive failed or cancelled unlocks in this launch (ADR-P036 A4). */
+let unlockFailures = 0;
+const MAX_UNLOCK_FAILURES = 5;
+
+/** Persists a session in whichever form is current: sealed while linked, else plaintext. */
+function persistSession(session: Session): Promise<void> {
+  return unlockKey ? saveSealedSession(session, unlockKey) : saveSession(session);
+}
+
+/**
+ * Removes every biometric artefact: the in-memory key, the protected key, the
+ * link marker and the sealed session. Idempotent. Callers that also need the
+ * plaintext session gone call `clearSession` too.
+ */
+async function forgetBiometrics(): Promise<void> {
+  unlockKey = null;
+  unlockFailures = 0;
+  await Promise.all([deleteUnlockKey(), deleteLink(), deleteSealedSession()]);
+}
 
 /**
  * An immutable capture of "who this work belongs to". The id and both tokens
@@ -272,6 +317,9 @@ async function establishSession(
     if (!isAuthIntentCurrent(intent)) return { status: 'superseded' };
 
     try {
+      // A fresh password authentication replaces any biometric link, whoever it
+      // belonged to (ADR-P036 A5); the user is offered linking again.
+      await forgetBiometrics();
       await saveSession(session);
       await ensureLocalUser(session.user);
     } catch {
@@ -342,6 +390,28 @@ export async function restoreSession(): Promise<Session | null> {
   // yet, so generation alone would let the restore publish the old account.
   const stillRestoring = () => generation === startedAt && authIntent === intentAtStart;
 
+  // ADR-P036 A2: a linked device never restores silently. A consistent pair —
+  // link marker plus sealed session — means "locked": the sign-in screen offers
+  // biometrics and nothing is read until the OS releases the key. A half state
+  // (one without the other) is unverifiable and fails closed.
+  const [linkedUserId, sealed] = await Promise.all([readLinkedUserId(), hasSealedSession()]);
+  if (linkedUserId && sealed) {
+    // A crash between the sealed write and the plaintext delete can leave the
+    // plaintext copy behind; it must not stay on disk while the app is locked.
+    await deletePlaintextSession();
+    return withSessionLock(() => {
+      if (stillRestoring()) setState('locked', null);
+      return Promise.resolve(null);
+    });
+  }
+  if (linkedUserId || sealed) {
+    try {
+      await forgetBiometrics();
+    } catch (error) {
+      logError('auth.restoreSession.biometricHalfState', error);
+    }
+  }
+
   let stored: Session | null;
   try {
     stored = await loadSession();
@@ -362,8 +432,21 @@ export async function restoreSession(): Promise<Session | null> {
       return Promise.resolve(null);
     });
   }
-  const restoring = stored;
+  return finishRestore(stored, stillRestoring);
+}
 
+/**
+ * The network half of a restore, shared by the silent restore and the
+ * biometric unlock: rotate when reachable, stay signed in offline (48 h,
+ * .ai/06_MOBILE.md), clear only on an explicit 401. `releasedKey` is adopted
+ * inside the lock, and only if this restore still owns the screen, so a
+ * password sign-in racing an unlock can never be sealed under a stale key.
+ */
+async function finishRestore(
+  restoring: Session,
+  stillRestoring: () => boolean,
+  releasedKey: Uint8Array | null = null,
+): Promise<Session | null> {
   let rotated: Awaited<ReturnType<typeof authApi.refresh>> | null = null;
   let unauthorized = false;
   try {
@@ -375,12 +458,16 @@ export async function restoreSession(): Promise<Session | null> {
   return withSessionLock(async () => {
     // Someone authenticated while we were on the network. Drop everything.
     if (!stillRestoring()) return null;
+    if (releasedKey) {
+      unlockKey = releasedKey;
+      unlockFailures = 0;
+    }
 
     if (rotated) {
       // Tokens from this rotation, user from the session we loaded — one
       // identity throughout, written as a single complete session.
       const session: Session = { ...rotated, user: restoring.user };
-      await saveSession(session);
+      await persistSession(session);
       await ensureLocalUser(session.user);
       if (!stillRestoring()) return null;
       setState('authenticated', session);
@@ -389,6 +476,7 @@ export async function restoreSession(): Promise<Session | null> {
 
     if (unauthorized) {
       await clearSession();
+      await forgetBiometrics();
       if (!stillRestoring()) return null;
       setState('unauthenticated', null);
       return null;
@@ -437,6 +525,7 @@ export async function refreshTokens(): Promise<Session | null> {
     return withSessionLock(async () => {
       if (!isSessionCurrent(refreshing)) return null;
       await clearSession();
+      await forgetBiometrics();
       if (isSessionCurrent(refreshing)) setState('unauthenticated', null);
       return null;
     });
@@ -448,7 +537,7 @@ export async function refreshTokens(): Promise<Session | null> {
     if (!isSessionCurrent(refreshing)) return null;
 
     const session: Session = { ...rotated, user: refreshing.user };
-    await saveSession(session);
+    await persistSession(session);
     setState('authenticated', session);
     return session;
   });
@@ -481,6 +570,7 @@ export async function deleteAccount(): Promise<void> {
       return;
     }
     await clearSession();
+    await forgetBiometrics();
     await wipeDatabase();
     setState('unauthenticated', null);
   });
@@ -515,12 +605,135 @@ export async function signOut(): Promise<void> {
       return;
     }
     await clearSession();
+    // Sign-out revokes and forgets biometrics too (ADR-P036 Decision 3, owner
+    // Option A): after an explicit sign-out the next sign-in uses the password.
+    await forgetBiometrics();
     // Per-user SQLite data is deliberately preserved (ADR-P030 Decision 8), but
     // the transition immediately invalidates every captured snapshot and resets
     // the session-bound stores, so nothing of this account stays on screen for
     // the next one.
     setState('unauthenticated', null);
   });
+}
+
+// ─── Biometric sign-in (ADR-P036, Amendment A) ──────────────────────────────
+
+/** `reset`: biometrics were removed and the password is now required. */
+export type BiometricUnlockOutcome = 'unlocked' | 'cancelled' | 'reset' | 'superseded';
+export type BiometricLinkOutcome = 'linked' | 'cancelled' | 'failed' | 'superseded';
+export type BiometricUnlinkOutcome = 'unlinked' | 'cancelled' | 'superseded';
+
+/**
+ * Fail safe to password (ADR-P036 A4): erase the sealed session, the key and
+ * the link, and require a password sign-in — unless something newer already
+ * owns the session.
+ */
+function resetToPassword(stillCurrent: () => boolean): Promise<BiometricUnlockOutcome> {
+  return withSessionLock(async () => {
+    if (!stillCurrent()) return 'superseded';
+    await clearSession();
+    await forgetBiometrics();
+    setState('unauthenticated', null);
+    return 'reset';
+  });
+}
+
+/**
+ * Opens a `locked` session (ADR-P036 A2). The OS biometric prompt shows while
+ * the key is read; the app never sees biometric data. Implicit like a restore,
+ * so a password sign-in started meanwhile always wins.
+ */
+export async function unlockWithBiometrics(prompt: string): Promise<BiometricUnlockOutcome> {
+  if (currentStatus !== 'locked') return 'superseded';
+  const startedAt = generation;
+  const intentAtStart = authIntent;
+  const stillCurrent = () => generation === startedAt && authIntent === intentAtStart;
+
+  const read = await readUnlockKey(prompt);
+  if (!stillCurrent()) return 'superseded';
+  if (read.status === 'failed') {
+    unlockFailures += 1;
+    return unlockFailures < MAX_UNLOCK_FAILURES ? 'cancelled' : resetToPassword(stillCurrent);
+  }
+  if (read.status === 'invalidated') return resetToPassword(stillCurrent);
+
+  // The sealed session must belong to the linked account: it is opened with
+  // the link's account id as associated data, and its user is checked again.
+  const linkedUserId = await readLinkedUserId();
+  if (!stillCurrent()) return 'superseded';
+  if (!linkedUserId) return resetToPassword(stillCurrent);
+  const sealed = await loadSealedSession(read.key, linkedUserId);
+  if (!stillCurrent()) return 'superseded';
+  if (!sealed || sealed.user.id !== linkedUserId) return resetToPassword(stillCurrent);
+
+  const restored = await finishRestore(sealed, stillCurrent, read.key);
+  if (restored) return 'unlocked';
+  return getStatus() === 'unauthenticated' ? 'reset' : 'superseded';
+}
+
+/**
+ * Links biometrics to the signed-in account (ADR-P036 A1). The OS prompt shows
+ * while the protected key is created (Android) or confirmed (iOS). On success
+ * the session is re-stored sealed; on any storage failure it is restored in
+ * plaintext and every biometric artefact is removed, so linking can never
+ * strand the account.
+ */
+export async function linkBiometrics(prompt: string): Promise<BiometricLinkOutcome> {
+  const linking = getSessionSnapshot();
+  if (!linking || currentStatus !== 'authenticated') return 'superseded';
+
+  const key = await createUnlockKey(prompt);
+  if (!key) return 'cancelled';
+
+  return withSessionLock(async () => {
+    const session = currentSession;
+    if (!isSessionCurrent(linking) || !session) {
+      await deleteUnlockKey();
+      return 'superseded';
+    }
+    try {
+      await writeLink(linking.userId);
+      unlockKey = key;
+      unlockFailures = 0;
+      await saveSealedSession(session, key);
+      return 'linked';
+    } catch (error) {
+      logError('auth.biometric.link', error);
+      unlockKey = null;
+      await saveSession(session);
+      await forgetBiometrics();
+      return 'failed';
+    }
+  });
+}
+
+/**
+ * Turns biometrics off (ADR-P036 A7). Asks for biometrics first, so the
+ * person holding the phone confirms it; a key the OS already invalidated is
+ * still removed. The session goes back to plaintext storage.
+ */
+export async function unlinkBiometrics(prompt: string): Promise<BiometricUnlinkOutcome> {
+  const unlinking = getSessionSnapshot();
+  if (!unlinking) return 'superseded';
+
+  const read = await readUnlockKey(prompt);
+  if (read.status === 'failed') return 'cancelled';
+
+  return withSessionLock(async () => {
+    const session = currentSession;
+    if (!isSessionCurrent(unlinking) || !session) return 'superseded';
+    unlockKey = null;
+    await saveSession(session);
+    await forgetBiometrics();
+    return 'unlinked';
+  });
+}
+
+/** Whether biometrics are linked to the signed-in account. Never prompts. */
+export async function isBiometricLinked(): Promise<boolean> {
+  const signedIn = currentSession?.user.id;
+  if (!signedIn) return false;
+  return (await readLinkedUserId()) === signedIn;
 }
 
 /**
@@ -781,6 +994,8 @@ export async function resetPassword(input: { token: string; password: string }):
     }
     try {
       await clearSession();
+      // A locked device's sealed session is equally dead (ADR-P036 A5).
+      await forgetBiometrics();
     } catch (error) {
       // The password DID change; a local storage failure must not report the
       // reset as failed. Surfaced through the sanitized logging boundary only.

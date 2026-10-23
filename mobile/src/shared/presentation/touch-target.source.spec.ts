@@ -100,6 +100,8 @@ type Rule = 'floor' | 'floor-both' | 'content' | 'primitive';
 const REGISTRY: Record<string, readonly Rule[]> = {
   // ADR-P035 sign-in: the show/hide password glyph button.
   'src/app/sign-in.tsx': ['floor-both'],
+  // ADR-P036: the temporary biometric switch is a full-width row.
+  'src/features/authentication/presentation/biometric-switch.tsx': ['floor'],
   'src/features/nutrition/presentation/DietaryPreferences.tsx': ['floor-both', 'floor'],
   'src/features/nutrition/presentation/food-log/FoodLogAddForm.tsx': ['floor', 'content'],
   'src/features/nutrition/presentation/food-log/ServingStepper.tsx': ['floor-both'],
@@ -137,8 +139,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 17 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(17);
+it('counts exactly 18 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(18);
 });
 
 describe.each(

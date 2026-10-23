@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.appfitnessrd.mobile",
-      "icon": "./assets/brand/appfitnessrd-icon-v2.png"
+      "icon": "./assets/brand/appfitnessrd-icon-v2.png",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      }
     },
     "android": {
       "package": "com.appfitnessrd.mobile",
@@ -35,7 +38,18 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "AppFitnessRD uses Face ID so you can sign in without typing your password. Your face data never leaves your iPhone."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "AppFitnessRD uses Face ID so you can sign in without typing your password. Your face data never leaves your iPhone."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -47,6 +61,10 @@
         "projectId": "edf05078-6821-4bcc-b501-1d737badd36a"
       }
     },
-    "owner": "nelson1602"
+    "owner": "nelson1602",
+    "locales": {
+      "en": "./locales/en.json",
+      "es": "./locales/es.json"
+    }
   }
 }

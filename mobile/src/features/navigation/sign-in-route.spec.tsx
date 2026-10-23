@@ -32,8 +32,24 @@ jest.mock('@/features/authentication', () => {
     AuthError: MockAuthError,
     signIn: (...args: unknown[]) => mockSignIn(...args),
     signUp: (...args: unknown[]) => mockSignUp(...args),
+    // ADR-P036, controllable per test.
+    useSession: () => ({ status: mockSessionStatus, session: null }),
+    useBiometricCapability: () => mockCapability,
+    unlockWithBiometrics: (...args: unknown[]) => mockUnlock(...args),
+    BiometricLinkSheet: ({ onDone }: { onDone: () => void }) => {
+      const { Pressable, Text } = jest.requireActual('react-native');
+      return (
+        <Pressable accessibilityRole="button" onPress={onDone} testID="mock-link-sheet">
+          <Text>link sheet</Text>
+        </Pressable>
+      );
+    },
   };
 });
+
+let mockSessionStatus: 'unauthenticated' | 'locked' = 'unauthenticated';
+let mockCapability: { available: boolean; kind: 'face' | 'fingerprint' } | null = null;
+const mockUnlock = jest.fn();
 
 const { AuthError } = jest.requireMock<{
   AuthError: new (reason: string) => Error & { reason: string };

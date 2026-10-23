@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSFaceIDUsageDescription": "AppFitnessRD uses Face ID so you can sign in without typing your password. Your face data never leaves your iPhone."
+  }
+}

@@ -19,9 +19,22 @@ jest.mock('../infrastructure/auth-api', () => ({
   logout: jest.fn(() => Promise.resolve()),
 }));
 jest.mock('../infrastructure/session-storage', () => ({
+  // ADR-P036: no sealed (biometric) session unless a test says otherwise.
+  hasSealedSession: jest.fn().mockResolvedValue(false),
+  loadSealedSession: jest.fn().mockResolvedValue(null),
+  saveSealedSession: jest.fn().mockResolvedValue(undefined),
+  deleteSealedSession: jest.fn().mockResolvedValue(undefined),
   saveSession: jest.fn(() => Promise.resolve()),
   loadSession: jest.fn(() => Promise.resolve(null)),
   clearSession: jest.fn(() => Promise.resolve()),
+}));
+jest.mock('../infrastructure/biometric-vault', () => ({
+  createUnlockKey: jest.fn().mockResolvedValue(null),
+  readUnlockKey: jest.fn().mockResolvedValue({ status: 'invalidated' }),
+  deleteUnlockKey: jest.fn().mockResolvedValue(undefined),
+  readLinkedUserId: jest.fn().mockResolvedValue(null),
+  writeLink: jest.fn().mockResolvedValue(undefined),
+  deleteLink: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('../infrastructure/local-user.repository', () => ({
   ensureLocalUser: jest.fn(() => Promise.resolve()),
