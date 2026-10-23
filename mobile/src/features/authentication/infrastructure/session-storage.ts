@@ -52,6 +52,10 @@ const ENVELOPE_VERSION = 1;
  * **sealed** here (AES-256-GCM under the biometric unlock key; nonce(12) ‖
  * ciphertext ‖ tag(16)), and the plaintext key above is deleted. Only one of
  * the two ever holds the session.
+ *
+ * The account id is the GCM associated data, so a sealed session opens only
+ * for the account it was sealed for: a sealed blob that does not belong to the
+ * linked account fails authentication instead of restoring another identity.
  */
 const SEALED_KEY = 'auth.session.sealed.v1';
 const NONCE_LENGTH = 12;
@@ -157,7 +161,9 @@ export async function saveSession(session: Session): Promise<void> {
  */
 export async function saveSealedSession(session: Session, key: Uint8Array): Promise<void> {
   const nonce = await Crypto.getRandomBytesAsync(NONCE_LENGTH);
-  const ciphertext = gcm(key, nonce).encrypt(utf8ToBytes(JSON.stringify(envelopeOf(session))));
+  const ciphertext = gcm(key, nonce, utf8ToBytes(session.user.id)).encrypt(
+    utf8ToBytes(JSON.stringify(envelopeOf(session))),
+  );
   const sealed = new Uint8Array(NONCE_LENGTH + ciphertext.length);
   sealed.set(nonce, 0);
   sealed.set(ciphertext, NONCE_LENGTH);
@@ -166,18 +172,23 @@ export async function saveSealedSession(session: Session, key: Uint8Array): Prom
 }
 
 /**
- * Opens the sealed session with the released key, or `null`. Fails closed
- * exactly like `loadSession`: a missing, undecryptable (wrong key, tampered —
- * GCM authenticates) or structurally invalid envelope is never reconstructed.
+ * Opens the sealed session for `userId` with the released key, or `null`.
+ * Fails closed exactly like `loadSession`: a missing, undecryptable (wrong
+ * key, wrong account, tampered — GCM authenticates the account id too) or
+ * structurally invalid envelope is never reconstructed, and neither is one
+ * whose user is not `userId`.
  */
-export async function loadSealedSession(key: Uint8Array): Promise<Session | null> {
+export async function loadSealedSession(key: Uint8Array, userId: string): Promise<Session | null> {
   try {
     const raw = await SecureStore.getItemAsync(SEALED_KEY);
     if (raw === null) return null;
     const data = fromBase64(raw);
     if (data.length <= NONCE_LENGTH) return null;
-    const plaintext = gcm(key, data.slice(0, NONCE_LENGTH)).decrypt(data.slice(NONCE_LENGTH));
-    return toSession(JSON.parse(bytesToUtf8(plaintext)));
+    const plaintext = gcm(key, data.slice(0, NONCE_LENGTH), utf8ToBytes(userId)).decrypt(
+      data.slice(NONCE_LENGTH),
+    );
+    const session = toSession(JSON.parse(bytesToUtf8(plaintext)));
+    return session?.user.id === userId ? session : null;
   } catch (error) {
     logError('auth.loadSession.sealed', error);
     return null;
@@ -196,6 +207,20 @@ export async function hasSealedSession(): Promise<boolean> {
 
 export async function deleteSealedSession(): Promise<void> {
   await SecureStore.deleteItemAsync(SEALED_KEY);
+}
+
+/**
+ * Best-effort removal of the plaintext envelope while the session is sealed.
+ * `saveSealedSession` writes the sealed copy before deleting this one, so an
+ * app killed between the two leaves a plaintext session on disk beside the
+ * sealed one; a locked launch calls this so it does not stay there.
+ */
+export async function deletePlaintextSession(): Promise<void> {
+  try {
+    await SecureStore.deleteItemAsync(SESSION_KEY);
+  } catch (error) {
+    logError('auth.loadSession.plaintextCleanup', error);
+  }
 }
 
 /**

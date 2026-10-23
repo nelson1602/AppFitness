@@ -26,6 +26,21 @@ export type KeyRead =
   /** Cancelled, failed, locked out or otherwise not released this time. */
   | { status: 'failed' };
 
+/**
+ * iOS reports most keychain failures only as text. `errSecAuthFailed` means
+ * the item could not be authenticated at all — the enrolled biometrics changed
+ * (the key uses `.biometryCurrentSet`) or biometrics are locked out. Either
+ * way this key will not be released again, so it is treated as invalidated and
+ * the person goes straight to password sign-in, instead of the error counting
+ * as one of the five failed attempts. A cancel stays a failure.
+ * TEST-006: confirm on a real iPhone which status an enrolment change returns.
+ */
+const IOS_AUTH_FAILED = 'Authentication failed. Provided passphrase/PIN is incorrect';
+
+function isKeyUnusable(error: unknown): boolean {
+  return Platform.OS === 'ios' && error instanceof Error && error.message.includes(IOS_AUTH_FAILED);
+}
+
 function protectedOptions(prompt: string): SecureStore.SecureStoreOptions {
   return { requireAuthentication: true, authenticationPrompt: prompt };
 }
@@ -62,7 +77,7 @@ export async function readUnlockKey(prompt: string): Promise<KeyRead> {
     stored = await SecureStore.getItemAsync(UNLOCK_KEY, protectedOptions(prompt));
   } catch (error) {
     logError('auth.biometric.readKey', error);
-    return { status: 'failed' };
+    return isKeyUnusable(error) ? { status: 'invalidated' } : { status: 'failed' };
   }
   if (stored === null) return { status: 'invalidated' };
   try {

@@ -370,12 +370,15 @@ Implemented by ADR-P036 (Amendment A), native only:
 
 * A random 256-bit unlock key lives in SecureStore with `requireAuthentication`. Only the device's biometric hardware can release it; Android requires a strong (Class 3) biometric through `canUseBiometricAuthentication`.
 * While linked, the session envelope is stored sealed with AES-256-GCM under that key (`auth.session.sealed.v1`), and the plaintext envelope is deleted.
+* The account id is the GCM associated data, and the opened session must belong to the linked account; otherwise the unlock fails safe to password.
+* A locked launch deletes any plaintext envelope left behind by a crash between the sealed write and the plaintext delete (best effort).
 * The released key is held in memory only while the app is open. It is never persisted, logged or sent.
 * A linked device launches `locked`: no session is read and no network call is made until the OS releases the key.
-* Fail safe to password: an invalidated key (enrolment change), an undecryptable sealed session, five failed unlocks in a launch, or a 401 erase the key, the link and the sealed session.
+* Fail safe to password: an invalidated key (enrolment change; on iOS a keychain `errSecAuthFailed` also counts, pending the TEST-006 device check), an undecryptable sealed session, five failed unlocks in a launch, or a 401 erase the key, the link and the sealed session.
 * Sign-out, account deletion, a password reset and any password sign-in also forget biometrics.
 * Biometric data never reaches the app or the API; there is no server change.
 * iOS declares `NSFaceIDUsageDescription` in ES and EN.
+* Residual risk: the sealed refresh token cannot be revoked from another device while the phone is offline; it is bounded by the 7-day refresh-token expiry, and a password sign-in or sign-out on the device erases it.
 
 PIN Protection (Future)
 

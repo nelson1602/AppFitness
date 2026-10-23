@@ -54,3 +54,7 @@ export function hasSealedSession(): Promise<boolean> {
 export function deleteSealedSession(): Promise<void> {
   return Promise.resolve();
 }
+
+export function deletePlaintextSession(): Promise<void> {
+  return Promise.resolve();
+}
