@@ -7,10 +7,11 @@ import {
   type PasswordRecoveryErrorReason,
   requestPasswordReset,
 } from '@/features/authentication';
+import { AuthScreen } from '@/features/authentication/presentation/auth-screen';
 import { AuthTextField } from '@/features/authentication/presentation/auth-text-field';
 import { RECOVERY_ERROR_COPY } from '@/features/authentication/presentation/recovery-error-copy';
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card, Screen } from '@/shared/presentation';
+import { AppButton, AppText, Banner, GlassCard } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 /**
@@ -65,12 +66,21 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <Screen>
-      <Stack.Screen options={{ title: t('auth.forgot.screenTitle') }} />
+    <AuthScreen>
+      <Stack.Screen
+        options={{
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: theme.colors.stageTop },
+          headerTintColor: theme.colors.onStage,
+          title: t('auth.forgot.screenTitle'),
+        }}
+      />
       <View style={{ gap: theme.spacing.lg }}>
         <View>
-          <AppText variant="headline">{t('auth.forgot.title')}</AppText>
-          <AppText tone="muted">{t('auth.forgot.subtitle')}</AppText>
+          <AppText tone="onStage" variant="headline">
+            {t('auth.forgot.title')}
+          </AppText>
+          <AppText tone="onStageVariant">{t('auth.forgot.subtitle')}</AppText>
         </View>
 
         {errorReason ? (
@@ -84,7 +94,7 @@ export default function ForgotPasswordScreen() {
             {t('auth.forgot.sentBody')}
           </Banner>
         ) : (
-          <Card>
+          <GlassCard testID="forgot-form">
             <View style={{ gap: theme.spacing.md }}>
               <AuthTextField
                 label={t('auth.email')}
@@ -103,7 +113,7 @@ export default function ForgotPasswordScreen() {
                 {t('auth.forgot.submit')}
               </AppButton>
             </View>
-          </Card>
+          </GlassCard>
         )}
 
         <AppButton
@@ -111,11 +121,11 @@ export default function ForgotPasswordScreen() {
           onPress={() => router.replace('/sign-in')}
           ref={backRef}
           testID="button-forgot-back"
-          variant="text"
+          variant="stage-link"
         >
           {t('auth.forgot.backToSignIn')}
         </AppButton>
       </View>
-    </Screen>
+    </AuthScreen>
   );
 }

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { View } from 'react-native';
 
 import { EmailVerificationError, useSession, verifyEmail } from '@/features/authentication';
+import { AuthScreen } from '@/features/authentication/presentation/auth-screen';
 import {
   parseTokenFromFragment,
   readTokenParam,
@@ -13,7 +14,7 @@ import {
   scrubbedUrl,
 } from '@/features/authentication/presentation/reset-link.web-location';
 import { useLocalization } from '@/shared/localization';
-import { AppButton, Banner, Screen } from '@/shared/presentation';
+import { AppButton, Banner } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 /**
@@ -248,8 +249,15 @@ export default function VerifyEmailScreen() {
   const onwardLabel = authenticated ? t('auth.verify.continue') : t('auth.verify.goToSignIn');
 
   return (
-    <Screen>
-      <Stack.Screen options={{ title: t('auth.verify.screenTitle') }} />
+    <AuthScreen>
+      <Stack.Screen
+        options={{
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: theme.colors.stageTop },
+          headerTintColor: theme.colors.onStage,
+          title: t('auth.verify.screenTitle'),
+        }}
+      />
       <View style={{ gap: theme.spacing.lg }} testID="verify-email-screen">
         {state === 'checking' ? (
           <View testID="verify-checking">
@@ -316,6 +324,6 @@ export default function VerifyEmailScreen() {
           </AppButton>
         ) : null}
       </View>
-    </Screen>
+    </AuthScreen>
   );
 }

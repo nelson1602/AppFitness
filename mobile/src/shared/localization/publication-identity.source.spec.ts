@@ -61,7 +61,9 @@ describe('ADR-P028 publication identity', () => {
     expect(read('src/shared/presentation/brand-hero.tsx')).toContain(`title = '${PRODUCT_NAME}'`);
     // ADR-P035: on Sign-in the identity is the mascot hero, whose art carries
     // the wordmark, so the image is named with the product name.
-    expect(read('src/app/sign-in.tsx')).toContain("<Mascot accessibilityLabel={t('brand.name')}");
+    expect(read('src/app/sign-in.tsx')).toMatch(
+      /<Mascot\s+accessibilityLabel=\{t\('brand\.name'\)\}/,
+    );
     expect(read('src/shared/localization/resources/en.ts')).toContain(
       `'brand.name': '${PRODUCT_NAME}'`,
     );
