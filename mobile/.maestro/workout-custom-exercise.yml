@@ -47,8 +47,10 @@ appId: com.appfitnessrd.mobile
 - assertVisible: 'Add a custom exercise'
 
 # --- 2. Create a custom exercise. Category defaults to Strength; keep it. ---
+# The visible label is 'Name *' (required). Maestro matches the whole text as a
+# regex, so an exact 'Name' never matches it.
 - scrollUntilVisible:
-    element: 'Name'
+    element: 'Name.*'
     timeout: 60000
 # Scroll to the field itself, not to the heading above it: the scroll stops
 # with its target at the bottom edge, so a field rendered below the heading is
