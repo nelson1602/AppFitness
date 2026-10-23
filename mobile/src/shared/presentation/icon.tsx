@@ -34,6 +34,27 @@ const PATHS = {
     </>
   ),
   arrow: <Path d="M5 12h14M13 6l6 6-6 6" />,
+  bell: (
+    <>
+      <Path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4l2-2z" />
+      <Path d="M10 20a2 2 0 0 0 4 0" />
+    </>
+  ),
+  chart: <Path d="M4 20V10M10 20V4M16 20v-7M21 20H3" />,
+  dumbbell: <Path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12" />,
+  food: (
+    <>
+      <Path d="M12 7c-1-3-4-3-5-2-3 2-2 9 1 12 1 1 2 1 4 0 2 1 3 1 4 0 3-3 4-10 1-12-1-1-4-1-5 2z" />
+      <Path d="M12 7c0-2 1-4 3-4" />
+    </>
+  ),
+  home: <Path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z" />,
+  user: (
+    <>
+      <Circle cx={12} cy={8} r={4} />
+      <Path d="M4 21a8 8 0 0 1 16 0" />
+    </>
+  ),
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof PATHS;

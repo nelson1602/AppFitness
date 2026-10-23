@@ -106,6 +106,10 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   'src/features/nutrition/presentation/FoodLogScreen.tsx': ['floor-both'],
   'src/features/nutrition/presentation/NutritionPlanScreen.tsx': ['floor-both'],
   'src/features/progress/presentation/ProgressSummaryCard.tsx': ['content'],
+  // ADR-P039 shell: the bell, each tab, and each notification row.
+  'src/features/shell/presentation/app-header.tsx': ['floor-both'],
+  'src/features/shell/presentation/app-tab-bar.tsx': ['floor-both'],
+  'src/features/shell/presentation/notification-list.tsx': ['floor'],
   'src/features/wellness/presentation/wellness-token-group.tsx': ['floor'],
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
@@ -137,8 +141,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 17 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(17);
+it('counts exactly 20 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(20);
 });
 
 describe.each(

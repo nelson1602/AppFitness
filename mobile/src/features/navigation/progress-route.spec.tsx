@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react-native';
 
-import ProgressRoute from '../../app/progress';
+import ProgressRoute from '../../app/(tabs)/progress';
 
 let mockSessionStatus: 'authenticated' | 'unauthenticated' | 'unknown' = 'authenticated';
 let mockLanguage: 'en' | 'es' = 'en';

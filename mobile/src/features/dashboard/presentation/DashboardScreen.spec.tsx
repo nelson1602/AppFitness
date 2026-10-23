@@ -1,8 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet, type ViewStyle } from 'react-native';
 
-import { signOut } from '@/features/authentication';
 import type { DashboardData, DashboardState } from '../domain/dashboard.types';
+import type { HomeSummary } from '../domain/home-summary';
 import { DashboardScreen } from './DashboardScreen';
 import {
   beginEntitlementCheck,
@@ -20,8 +20,24 @@ let mockLanguage: 'en' | 'es' = 'en';
 jest.mock('../application/dashboard.store', () => ({
   useDashboardStore: () => mockStoreState,
 }));
+
+// Inicio's summary is a pure domain projection with its own spec
+// (home-summary.spec.ts); here it is supplied directly so each card state can
+// be rendered without loading seven stores.
+const EMPTY_SUMMARY: HomeSummary = {
+  week: { done: 0, goal: null, complete: false },
+  weight: null,
+  today: { kind: 'unknown' },
+  coach: 'no-plan',
+  calories: { consumed: null, target: null, share: null },
+};
+let mockHomeSummary: HomeSummary = EMPTY_SUMMARY;
+const mockLoadHomeData = jest.fn();
+jest.mock('../application/use-home-data', () => ({
+  loadHomeData: () => mockLoadHomeData(),
+  useHomeData: () => ({ summary: mockHomeSummary, notifications: [] }),
+}));
 jest.mock('@/features/authentication', () => ({
-  signOut: jest.fn(),
   // The dashboard now renders the advisory verification reminder (ADR-P026
   // V2-D). These tests assert the dashboard shell, so the reminder is held in
   // its hidden arm — no session means it returns null and every existing
@@ -53,7 +69,7 @@ let latestFocusEffect: (() => void | (() => void)) | undefined;
 jest.mock('expo-router', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   return {
-    router: { push: jest.fn() },
+    router: { push: jest.fn(), navigate: jest.fn() },
     useFocusEffect: (effect: () => void | (() => void)) => {
       latestFocusEffect = effect;
       React.useEffect(() => effect(), [effect]);
@@ -182,6 +198,7 @@ describe('DashboardScreen', () => {
     jest.clearAllMocks();
     mockLanguage = 'en';
     latestFocusEffect = undefined;
+    mockHomeSummary = EMPTY_SUMMARY;
   });
 
   it('refreshes on mount and renders the loading skeleton', async () => {
@@ -193,27 +210,25 @@ describe('DashboardScreen', () => {
     expect(screen.getAllByLabelText('Loading content')).toHaveLength(3);
   });
 
-  // ADR-P022 Addendum C slice: a compact identity header announced once, then
-  // titled action cards whose titles are headers in both languages.
+  // ADR-P039: Inicio opens with the design's cards, each section a header in
+  // both languages; the identity header and the action groups are gone (the
+  // spokes live in their tabs).
   it.each([
-    ['en', ['Nutrition and meals', 'Training and progress', 'Account']],
-    ['es', ['Nutrición y comidas', 'Entrenamiento y progreso', 'Cuenta']],
-  ] as const)(
-    'structures the %s dashboard as identity header plus titled groups',
-    async (language, groups) => {
-      mockLanguage = language;
-      setStore({ status: 'loading' });
+    ['en', ['Your goal awaits', 'iCoach', 'Quick actions', 'Coming soon']],
+    ['es', ['Tu meta te espera', 'iCoach', 'Accesos rápidos', 'Próximamente']],
+  ] as const)('structures the %s Inicio as the design cards', async (language, headers) => {
+    mockLanguage = language;
+    setStore({ status: 'loading' });
 
-      await render(<DashboardScreen />);
+    await render(<DashboardScreen />);
 
-      expect(screen.getByRole('header', { name: 'AppFitnessRD' })).toBeOnTheScreen();
-      expect(screen.getAllByText('AppFitnessRD')).toHaveLength(1);
-      expect(screen.queryByTestId('brand-mark')).toBeNull();
-      for (const name of groups) {
-        expect(screen.getByRole('header', { name })).toBeOnTheScreen();
-      }
-    },
-  );
+    for (const name of headers) {
+      expect(screen.getByRole('header', { name })).toBeOnTheScreen();
+    }
+    expect(screen.queryByText('AppFitnessRD')).toBeNull();
+    expect(screen.queryByRole('header', { name: 'Nutrition and meals' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Sign out of your account' })).toBeNull();
+  });
 
   // ── BUG-019 ──────────────────────────────────────────────────────────────
 
@@ -413,15 +428,6 @@ describe('DashboardScreen', () => {
     expect(syncNow).toHaveBeenCalledTimes(1);
   });
 
-  it('offers sign-out that clears the session (route guard handles redirect)', async () => {
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    fireEvent.press(screen.getByRole('button', { name: 'Sign out of your account' }));
-
-    expect(jest.mocked(signOut)).toHaveBeenCalledTimes(1);
-  });
-
   it('does not expose dormant medical management actions', async () => {
     setStore({ status: 'ready', data: baseData });
 
@@ -429,96 +435,6 @@ describe('DashboardScreen', () => {
     expect(screen.queryByText('Record evaluation')).toBeNull();
     expect(screen.queryByText('Evaluation history')).toBeNull();
     expect(screen.queryByText('Restrictions & injuries')).toBeNull();
-  });
-
-  it('navigates to the nutrition targets surface', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'View nutrition targets' }));
-
-    expect(router.push).toHaveBeenCalledWith('/nutrition');
-  });
-
-  it("navigates directly to today's food log", async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: "Open today's food log" }));
-
-    expect(router.push).toHaveBeenCalledWith('/food-log');
-  });
-
-  it('navigates to the dietary preferences surface', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    await fireEvent.press(
-      screen.getByRole('button', { name: 'Manage dietary preferences and allergies' }),
-    );
-
-    expect(router.push).toHaveBeenCalledWith('/dietary-preferences');
-  });
-
-  it('navigates to the workout routines surface', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'Manage workout routines' }));
-
-    expect(router.push).toHaveBeenCalledWith('/routines');
-  });
-
-  it('navigates to the workout logging surface', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'Log a workout' }));
-
-    expect(router.push).toHaveBeenCalledWith('/workout-log');
-  });
-
-  it('navigates to the exercise library surface', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'Manage your exercise library' }));
-
-    expect(router.push).toHaveBeenCalledWith('/exercises');
-  });
-
-  it('navigates to the progress monitoring surface', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: 'Track your progress' }));
-
-    expect(router.push).toHaveBeenCalledWith('/progress');
-  });
-
-  it('opens the subscription surface from an account-level entry in both languages (ADR-P034 S-3)', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    const entry = screen.getByTestId('dashboard-subscription');
-    expect(entry.props.accessibilityLabel).toBe('View your AppFitness Pro subscription');
-    await fireEvent.press(entry);
-    expect(router.push).toHaveBeenCalledWith('/subscription');
-
-    mockLanguage = 'es';
-    await render(<DashboardScreen />);
-    expect(screen.getByTestId('dashboard-subscription').props.accessibilityLabel).toBe(
-      'Ver tu suscripción a AppFitness Pro',
-    );
-    expect(screen.getByText('Suscripción')).toBeTruthy();
   });
 
   it('navigates to progress from the summary card', async () => {
@@ -531,34 +447,18 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/progress');
   });
 
-  it('routes to the delete-account surface (never deletes directly)', async () => {
-    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-    fireEvent.press(screen.getByRole('button', { name: 'Delete your account' }));
-
-    expect(router.push).toHaveBeenCalledWith('/delete-account');
-  });
-
-  it('renders Spanish shell copy while preserving navigation routes', async () => {
+  it('renders Spanish Inicio copy while preserving navigation routes', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     mockLanguage = 'es';
     setStore({ status: 'ready', data: baseData });
 
     await render(<DashboardScreen />);
-    fireEvent.press(screen.getByRole('button', { name: 'Ver objetivos de nutrición' }));
+    fireEvent.press(screen.getByText('Registrar comida'));
 
-    expect(screen.getByText('Tu evaluación local de iCoach')).toBeOnTheScreen();
     expect(screen.getByText('Recomendaciones de iCoach')).toBeOnTheScreen();
-    expect(
-      screen.getByRole('button', { name: 'Abrir el registro de alimentos de hoy' }),
-    ).toBeOnTheScreen();
-    expect(screen.getByText('Registrar alimentos')).toBeOnTheScreen();
-    expect(screen.getByText('Preferencias alimentarias')).toBeOnTheScreen();
-    expect(screen.getByText('Rutinas de ejercicios')).toBeOnTheScreen();
-    expect(screen.getByText('Cerrar sesión')).toBeOnTheScreen();
-    expect(router.push).toHaveBeenCalledWith('/nutrition');
+    expect(screen.getByText('Registrar entrenamiento')).toBeOnTheScreen();
+    expect(screen.getByText('Registrar peso')).toBeOnTheScreen();
+    expect(router.push).toHaveBeenCalledWith('/food-log');
   });
 
   it('renders a distinct web-unavailable state in English with no retry or fabricated data (ADR-P019)', async () => {
@@ -581,6 +481,9 @@ describe('DashboardScreen', () => {
     expect(screen.queryByText('2,500 kcal')).toBeNull();
     // Loading skeleton is not shown in this state.
     expect(screen.queryByLabelText('Loading content')).toBeNull();
+    // Inicio reads device data only, so none of its cards render (ADR-P039 D2).
+    expect(screen.queryByTestId('home-goal-card')).toBeNull();
+    expect(screen.queryByTestId('home-coach-card')).toBeNull();
   });
 
   it('renders the web-unavailable state in Spanish', async () => {
@@ -653,41 +556,6 @@ describe('DashboardScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/wellness-safety-profile');
   });
 
-  it.each(['ready', 'empty', 'error'] as const)(
-    'keeps the evaluation and limitations entry reachable in the %s state',
-    async (status) => {
-      const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-      setStore({
-        status,
-        data: status === 'ready' ? baseData : { ...baseData, assessment: null },
-        error: status === 'error' ? 'boom' : null,
-      });
-
-      await render(<DashboardScreen />);
-      fireEvent.press(
-        screen.getByRole('button', { name: 'View or edit your evaluation and limitations' }),
-      );
-
-      expect(screen.getByTestId('dashboard-wellness-safety')).toBeOnTheScreen();
-      expect(router.push).toHaveBeenCalledWith('/wellness-safety-profile');
-    },
-  );
-
-  it('labels the evaluation and limitations entry in Spanish', async () => {
-    mockLanguage = 'es';
-    setStore({ status: 'ready', data: baseData });
-
-    await render(<DashboardScreen />);
-
-    expect(
-      screen.getByRole('button', { name: 'Ver o editar tu evaluación y limitaciones' }),
-    ).toBeOnTheScreen();
-    expect(screen.getByTestId('dashboard-wellness-safety')).toHaveTextContent(
-      'Evaluación y limitaciones',
-    );
-  });
-  // ── ADR-P031 W-4C/W-4D (test D15) ────────────────────────────────────────
-
   describe('an unreadable wellness declaration', () => {
     const unreadable = (): DashboardState => ({
       status: 'error',
@@ -725,8 +593,9 @@ describe('DashboardScreen', () => {
 
       // The recovery is the entry that is always there, not a new control:
       // the copy points at it, and this Error state adds no affordance of
-      // its own.
-      expect(screen.getByTestId('dashboard-wellness-safety')).toBeOnTheScreen();
+      // its own. Since ADR-P039 that entry is on the Perfil tab, one tap away
+      // in the tab bar (ProfileTab.spec.tsx).
+      expect(screen.queryByTestId('dashboard-wellness-safety')).toBeNull();
       expect(screen.getByText(/Open your evaluation and limitations/)).toBeOnTheScreen();
     });
 
@@ -867,24 +736,17 @@ describe('S-4 read-only dashboard', () => {
     });
   });
 
-  it('explains read-only access and keeps account, subscription and navigation actions usable', async () => {
+  it('explains read-only access and keeps the Inicio navigation usable', async () => {
     setStore({ status: 'ready', data: baseData });
     await render(<DashboardScreen />);
 
     expect(screen.getByTestId('subscription-access-notice')).toBeOnTheScreen();
-    for (const name of [
-      'Sign out of your account',
-      'Delete your account',
-      'View your AppFitness Pro subscription',
-      'Track your progress',
-    ]) {
-      const button = screen.getByRole('button', { name });
-      expect([name, button.props.accessibilityState]).toEqual([
-        name,
+    for (const id of ['home-quick-food', 'home-quick-workout', 'home-quick-weight']) {
+      expect([id, screen.getByTestId(id).props.accessibilityState]).toEqual([
+        id,
         expect.objectContaining({ disabled: false }),
       ]);
     }
-    await fireEvent.press(screen.getByRole('button', { name: 'Sign out of your account' }));
-    expect(signOut).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'View your progress' })).toBeOnTheScreen();
   });
 });
