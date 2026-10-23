@@ -9,9 +9,13 @@ appId: com.appfitnessrd.mobile
 - launchApp
 - openLink: appfitness://dashboard
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 90000
 
+# Sign out lives on the Perfil tab (ADR-P039 D1).
+- tapOn:
+    id: 'tab-profile'
 - scrollUntilVisible:
     element: 'Sign out'
 - tapOn: 'Sign out'

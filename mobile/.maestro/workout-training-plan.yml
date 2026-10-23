@@ -30,13 +30,16 @@ appId: com.appfitnessrd.mobile
 # at the top, then scroll to the assessment: the anchor keeps a blank or
 # errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
 - scrollUntilVisible:
     element: "Today's assessment"
     timeout: 45000
 
-# --- 1. Navigate: dashboard → Workout routines ---
+# --- 1. Navigate: Entrenamientos tab → Workout routines (ADR-P039 D1) ---
+- tapOn:
+    id: 'tab-workouts'
 - scrollUntilVisible:
     element: 'Workout routines'
     timeout: 60000
@@ -92,10 +95,9 @@ appId: com.appfitnessrd.mobile
     element: 'Back squat'
     timeout: 60000
 
-# --- 4. Navigate: dashboard → Log a workout ---
-# `back` restores the dashboard's scrolled position (near "Workout routines"),
-# so scroll straight to the next entry point rather than asserting the
-# above-the-fold assessment header.
+# --- 4. Navigate: Entrenamientos tab → Log a workout ---
+# `back` returns to the Entrenamientos tab, so scroll straight to the next
+# entry point.
 - back
 - scrollUntilVisible:
     element: 'Log a workout'

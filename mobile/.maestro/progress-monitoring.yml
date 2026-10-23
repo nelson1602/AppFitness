@@ -39,7 +39,8 @@ appId: com.appfitnessrd.mobile
 # header is the stable landing signal (the assessment may not be "ready" this
 # late in the sequence).
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
 
 # --- 1. Dashboard → Progress via the summary card entry point (Slice 5b). ---

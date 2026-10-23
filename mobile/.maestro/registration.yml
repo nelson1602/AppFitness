@@ -35,6 +35,15 @@ appId: com.appfitnessrd.mobile
 - inputText: ${E2E_PASSWORD}
 - hideKeyboard
 - tapOn: 'Register'
+# ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
+# off under reduced motion (an emulator with animations off reports it), so
+# the flow continues explicitly.
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-continue'
+    timeout: 90000
+- tapOn:
+    id: 'welcome-continue'
 
 # Registration hits the local API, then routes to the dashboard. A brand-new
 # account has no assessment, so the dashboard resolves to its `empty` state and
@@ -46,7 +55,8 @@ appId: com.appfitnessrd.mobile
 # recommendation card, so on a phone viewport it is below the fold and must be
 # scrolled to rather than merely waited for.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
 - scrollUntilVisible:
     element:

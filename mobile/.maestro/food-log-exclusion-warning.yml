@@ -21,13 +21,17 @@ appId: com.appfitnessrd.mobile
 # at the top, then scroll to the assessment: the anchor keeps a blank or
 # errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
 - scrollUntilVisible:
     element: "Today's assessment"
     timeout: 45000
 
 # --- Add a "Nuts" allergy via the dietary-preferences surface (Slice 2B) ---
+# Its entry sits on the Nutrición tab (ADR-P039 D1).
+- tapOn:
+    id: 'tab-nutrition'
 - scrollUntilVisible:
     element: 'Dietary preferences'
     timeout: 60000
@@ -56,12 +60,9 @@ appId: com.appfitnessrd.mobile
     element: 'Nuts · category'
     timeout: 60000
 
-# --- Navigate to the food log via dashboard → Nutrition → meal plan ---
+# --- Navigate to the food log via the Nutrición tab → meal plan ---
+# `back` returns to the Nutrición tab the preferences were opened from.
 - back
-- scrollUntilVisible:
-    element: 'Nutrition'
-    timeout: 60000
-- tapOn: 'Nutrition'
 - scrollUntilVisible:
     element: '15-day meal plan'
     timeout: 60000
