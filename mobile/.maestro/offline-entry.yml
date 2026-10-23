@@ -19,7 +19,8 @@ appId: com.appfitnessrd.mobile
 # Session restores offline (stored session is kept when the server is
 # unreachable — 48h offline operation), landing on the empty dashboard.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
 # First run renders the ADR-P027 checklist, whose profile step reads "Add your
 # profile basics"; DataGapCard's "Create your profile" now appears only in the
@@ -64,7 +65,8 @@ appId: com.appfitnessrd.mobile
 # immediate reconnect retry flaky. The PENDING banner already proves the
 # offline local write + unsynced state; reconnect-sync.yml then pushes it.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
 # The profile step leaves the checklist entirely — asserted by its own testID,
 # because the old "Create your profile" copy no longer renders in this state

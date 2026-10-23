@@ -19,7 +19,8 @@ appId: com.appfitnessrd.mobile
 - launchApp
 - openLink: appfitness://dashboard
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 90000
 
 # Gate on the dashboard data load. The entry button exists only once the

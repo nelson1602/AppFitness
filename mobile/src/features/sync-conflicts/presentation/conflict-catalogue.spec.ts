@@ -143,11 +143,15 @@ describe('catalogue parity', () => {
   // 2026-10-21, when the visual pilot removed the device-language label and
   // added three dashboard group headings. It moved to 1152 on 2026-10-22, when
   // the ADR-P035 sign-in added the brand name, the split headline, the short
-  // forgot link, "New here?" and the show/hide password names.
+  // forgot link, "New here?" and the show/hide password names. It moved to
+  // 1214 on 2026-10-23, when ADR-P039 added 69 keys (tabs, header,
+  // notifications, Inicio, welcome and the Workouts Web state) and removed
+  // seven dashboard keys the tab shell left unreachable (the hero subtitle, two
+  // group headings and the Nutrition and Progress shortcuts).
   // None of these is in this family, so the 157-key conflict family below is unchanged.
-  it('reaches 1152 keys in each language — 995 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1152);
-    expect(Object.keys(es)).toHaveLength(1152);
+  it('reaches 1214 keys in each language — 1057 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1214);
+    expect(Object.keys(es)).toHaveLength(1214);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 

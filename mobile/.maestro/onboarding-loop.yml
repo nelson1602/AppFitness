@@ -28,7 +28,8 @@ appId: com.appfitnessrd.mobile
 # The checklist is below the verification reminder and the wellness
 # recommendation card, so every interaction with it scrolls first.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
 - scrollUntilVisible:
     element:
@@ -74,7 +75,8 @@ appId: com.appfitnessrd.mobile
 # the weight step is "Record your first weight"; "Record a weight measurement"
 # is the `DataGapCard` wording and appears only once the assessment is `ready`.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
 - assertNotVisible: 'Create your profile'
 - assertNotVisible: 'Add your birth date'
@@ -153,7 +155,8 @@ appId: com.appfitnessrd.mobile
 # the assessment stays. The assessment is below the reminder and wellness
 # cards, so scroll to it rather than asserting it from the top.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
 - scrollUntilVisible:
     element: "Today's assessment"
@@ -179,11 +182,9 @@ appId: com.appfitnessrd.mobile
     element: 'iCoach recommendations'
     timeout: 60000
 
-# --- 4b. Nutrition targets surface (Phase 15 Slice 1) ---
-- scrollUntilVisible:
-    element: 'Nutrition'
-    timeout: 60000
-- tapOn: 'Nutrition'
+# --- 4b. Nutrition targets surface (Phase 15 Slice 1), the Nutrición tab ---
+- tapOn:
+    id: 'tab-nutrition'
 - extendedWaitUntil:
     visible: 'Nutrition targets'
     timeout: 15000
@@ -214,11 +215,13 @@ appId: com.appfitnessrd.mobile
     element: '.*kcal.*'
     timeout: 20000
 - assertNotVisible: 'Load sample data'
-# Back to /nutrition, then back to the dashboard.
-- back
+# Back to the Nutrición tab.
 - back
 
 # --- 5. Sign out, then sign back in as the SAME existing account ---
+# Sign out lives on the Perfil tab (ADR-P039 D1).
+- tapOn:
+    id: 'tab-profile'
 - scrollUntilVisible:
     element: 'Sign out'
     timeout: 60000
@@ -241,15 +244,29 @@ appId: com.appfitnessrd.mobile
     text: 'Sign in'
     below:
       id: 'input-password'
+# ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
+# off under reduced motion (an emulator with animations off reports it), so
+# the flow continues explicitly.
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-continue'
+    timeout: 90000
+- tapOn:
+    id: 'welcome-continue'
 
 # Existing account restores straight to the populated, already-synced
 # dashboard — local data survived sign-out.
 #
-# The checklist must be gone: the baseline is complete. Both absence checks are
-# made while the top of the dashboard is in view, where the checklist would
-# render, and before any scrolling.
+# The checklist must be gone: the baseline is complete. Inicio's own cards
+# (ADR-P039) now open the screen, so scroll to the assessment first — the
+# checklist and the assessment never render together, and the absence check is
+# made where the checklist would sit.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
+    timeout: 45000
+- scrollUntilVisible:
+    element: "Today's assessment"
     timeout: 45000
 - assertNotVisible: 'Finish setting up AppFitnessRD'
 - assertNotVisible: 'Load sample data'

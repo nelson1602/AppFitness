@@ -24,13 +24,23 @@ appId: com.appfitnessrd.mobile
     id: 'input-password'
 - inputText: ${E2E_PASSWORD}
 - hideKeyboard
-# The route header and the submit control share the label "Sign in"; the
-# header is index 0. Targeting the control by index keeps the tap on the
-# button rather than on the title.
+# The redesigned sign-in (ADR-P035) has no route header, so there is one
+# "Sign in" control: target it below the password field, as onboarding-loop does.
 - tapOn:
     text: 'Sign in'
-    index: 1
+    below:
+      id: 'input-password'
 
+# ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
+# off under reduced motion (an emulator with animations off reports it), so
+# the flow continues explicitly.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'welcome-continue'
+    timeout: 90000
+- tapOn:
+    id: 'welcome-continue'
+- extendedWaitUntil:
+    visible:
+      id: 'tab-dashboard'
     timeout: 90000

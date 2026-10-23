@@ -11,14 +11,18 @@ appId: com.appfitnessrd.mobile
 - launchApp
 - openLink: appfitness://dashboard
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 90000
 
+# The evaluation entry lives on the Perfil tab (ADR-P039 D1).
+- tapOn:
+    id: 'tab-profile'
 - scrollUntilVisible:
     element:
-      id: 'dashboard-wellness-safety'
+      id: 'profile-wellness-safety'
 - tapOn:
-    id: 'dashboard-wellness-safety'
+    id: 'profile-wellness-safety'
 - extendedWaitUntil:
     visible: 'Evaluation and limitations'
     timeout: 60000

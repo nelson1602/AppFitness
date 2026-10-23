@@ -75,6 +75,25 @@ Not reproduced: the prototype pre-fills demo credentials (forbidden by `10_DEPLO
 | Welcome "Tu meta te espera" after sign-in: weekly ring, 5 s auto-continue | — | **N** Screen built from real weekly data, not the prototype's hard-coded "Hoy: Fuerza…". The auto-continue must be pausable and skippable (WCAG 2.2.1) and must not auto-advance under reduced motion. | ADR-P039 |
 | Flow: Login → link biometrics → Evaluation → iCoach builds plan → Welcome → Panel | Login → Dashboard, with an advisory onboarding checklist (ADR-P027 D1/D2) | **C** ADR-P027 made onboarding advisory and non-blocking. The design gates the panel behind the evaluation, so P027's advisory rule has to be revisited. | ADR-P039 |
 
+### Phase 2 delivered (2026-10-23) and the data gaps it exposed
+
+The shell, the header with the bell, the in-app notifications, the Inicio layout
+and the welcome screen are built (ADR-P039, `codex/redesign-p039-shell`). Inicio
+uses only data the app already has. Where the data is missing, the card shows
+its empty state:
+
+| Inicio element | Data today | Gap | Shown as |
+|---|---|---|---|
+| "Entrenamiento de hoy completado" | A workout log has no link to the plan session it followed | Any finished workout today counts as today's session, whatever it was | Correct for one session a day; no log-to-plan link |
+| Weekly ring goal | Training days of the generated plan (never persisted) | No stored weekly plan, so the goal follows today's generated plan | Empty ring and "Completa tu perfil…" without a plan |
+| Weight toward goal | Up to the newest 365 body-weight entries | The start weight is the oldest of those, not a recorded "start" | "Fija un peso meta…" without a target weight |
+| Today's calories | The food log's local day | The food log day boundary is UTC-based, while Inicio's day is device-local | Target only, until the food log has loaded |
+| iCoach "ajustes por salud" | The generated plan's exclusions | No per-day health-adjustment text yet (ADR-P040) | The plan line only |
+| "Evaluación del día" (IMC, presión, macros) | BMI and macros exist in the assessment card below | Blood pressure is a medical field, gated by ADR-P038 / SECURITY-002 | Not shown in the new cards |
+| Water, heart rate | None (needs a smartwatch integration) | New integration and permissions | "Próximamente" |
+| Notifications "plan creado", "plan ajustado" | The plan is generated on the fly and never persisted | No plan events to derive them from | Not emitted |
+| Perfil evaluation summary, biometric switch | Wellness profile screen; biometrics in PR #233 | Summary card is Phase 3; switch joins when #233 merges | An entry button |
+
 ## Phase 3 — Physical evaluation (6 steps)
 
 | Step / field | Today | Gap | Needs |

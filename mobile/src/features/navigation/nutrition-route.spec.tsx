@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import NutritionRoute from '@/app/nutrition';
+import NutritionRoute from '@/app/(tabs)/nutrition';
 
 let mockSessionStatus: 'unknown' | 'authenticated' | 'anonymous';
 let mockLanguage: 'en' | 'es' = 'en';

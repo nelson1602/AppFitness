@@ -9,7 +9,8 @@ appId: com.appfitnessrd.mobile
 - launchApp
 - openLink: appfitness://dashboard
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 90000
 
 # The banner reports; the button navigates. Both must be present, and the

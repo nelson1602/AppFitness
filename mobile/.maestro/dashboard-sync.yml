@@ -19,7 +19,8 @@ appId: com.appfitnessrd.mobile
 
 # Session restore → dashboard.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
 
 # Pull the seeded server data through the real sync path.
@@ -51,7 +52,9 @@ appId: com.appfitnessrd.mobile
     timeout: 30000
 
 # Sign out clears the session; the route guard returns to the auth
-# surface (TEST-004 logout flow).
+# surface (TEST-004 logout flow). It lives on the Perfil tab (ADR-P039 D1).
+- tapOn:
+    id: 'tab-profile'
 - scrollUntilVisible:
     element: 'Sign out'
     timeout: 60000

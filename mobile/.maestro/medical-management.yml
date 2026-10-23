@@ -14,7 +14,8 @@ appId: com.appfitnessrd.mobile
 - launchApp
 
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
 
 # --- Restrictions: add → list → end ---

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import DashboardRoute from '@/app/dashboard';
+import DashboardRoute from '@/app/(tabs)/dashboard';
 
 let mockSessionStatus: 'unknown' | 'authenticated' | 'anonymous';
 let mockLanguage: 'en' | 'es' = 'en';
@@ -45,10 +45,16 @@ jest.mock('@/features/dashboard', () => ({
   },
 }));
 
+let mockWelcomePending = false;
+jest.mock('@/features/shell/application/welcome-gate', () => ({
+  useWelcomePending: () => mockWelcomePending,
+}));
+
 describe('DashboardRoute', () => {
   beforeEach(() => {
     mockLanguage = 'en';
     mockStackTitle = undefined;
+    mockWelcomePending = false;
   });
 
   it('shows a skeleton while session restoration is pending', async () => {
@@ -74,6 +80,38 @@ describe('DashboardRoute', () => {
 
     expect(screen.getByText('Dashboard content')).toBeOnTheScreen();
     expect(mockStackTitle).toBe('Dashboard');
+  });
+
+  // ADR-P039 D5: the welcome screen is owed once after a sign-in.
+  it('sends a just-signed-in user to the welcome screen first', async () => {
+    mockSessionStatus = 'authenticated';
+    mockWelcomePending = true;
+
+    await render(<DashboardRoute />);
+
+    expect(screen.getByText('Redirect: /welcome')).toBeOnTheScreen();
+    expect(screen.queryByText('Dashboard content')).toBeNull();
+  });
+
+  it('never sends an anonymous user to the welcome screen', async () => {
+    mockSessionStatus = 'anonymous';
+    mockWelcomePending = true;
+
+    await render(<DashboardRoute />);
+
+    expect(screen.getByText('Redirect: /sign-in')).toBeOnTheScreen();
+  });
+
+  it('skips the welcome screen on Web, where there is no device data (D2)', async () => {
+    mockSessionStatus = 'authenticated';
+    mockWelcomePending = true;
+    const { Platform } = jest.requireActual<typeof import('react-native')>('react-native');
+    const os = jest.replaceProperty(Platform, 'OS', 'web');
+
+    await render(<DashboardRoute />);
+
+    expect(screen.getByText('Dashboard content')).toBeOnTheScreen();
+    os.restore();
   });
 
   it('localizes the native route title in Spanish', async () => {

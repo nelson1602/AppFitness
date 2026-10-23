@@ -27,13 +27,16 @@ appId: com.appfitnessrd.mobile
 # at the top, then scroll to the assessment: the anchor keeps a blank or
 # errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
 - scrollUntilVisible:
     element: "Today's assessment"
     timeout: 45000
 
-# --- 1. Dashboard → Exercise library ---
+# --- 1. Entrenamientos tab → Exercise library (ADR-P039 D1) ---
+- tapOn:
+    id: 'tab-workouts'
 - scrollUntilVisible:
     element: 'Exercise library'
     timeout: 60000
@@ -44,8 +47,10 @@ appId: com.appfitnessrd.mobile
 - assertVisible: 'Add a custom exercise'
 
 # --- 2. Create a custom exercise. Category defaults to Strength; keep it. ---
+# The visible label is 'Name *' (required). Maestro matches the whole text as a
+# regex, so an exact 'Name' never matches it.
 - scrollUntilVisible:
-    element: 'Name'
+    element: 'Name.*'
     timeout: 60000
 # Scroll to the field itself, not to the heading above it: the scroll stops
 # with its target at the bottom edge, so a field rendered below the heading is

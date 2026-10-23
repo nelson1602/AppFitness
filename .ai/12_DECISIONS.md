@@ -9765,7 +9765,7 @@ in `forgot-password` / `reset-password` is affected.
 ---
 ## ADR-P027 — V1 Advisory Onboarding and Hub-and-Spoke Navigation; Bottom Tabs Deferred
 
-Status: Accepted
+Status: Accepted — **Decision 3 (bottom tabs deferred) superseded 2026-10-23 by ADR-P039**; advisory onboarding stands until the Phase 3 evaluation flow exists.
 Date: 2026-08-28
 Owner: Product / UX / Architecture
 
@@ -14817,8 +14817,9 @@ If enabled:
 
 ## ADR-P039 — Tab Shell, Header, In-App Notifications and Welcome Flow
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-22
+Accepted: 2026-10-23 by the project owner. Implemented on `codex/redesign-p039-shell`, independent of the biometrics PR #233 so either can merge first.
 Owner: Product / Mobile Architecture
 Would supersede: ADR-P027 Decision 3 (bottom tabs deferred) and its advisory-onboarding rule as far as the evaluation-first flow is concerned
 
@@ -14847,6 +14848,47 @@ ADR-P027 deferred tabs behind three revisit triggers and made onboarding advisor
    - Sign-in → (biometric offer) → evaluation if none exists → plan build → Welcome → tabs.
    - The evaluation may be skipped ("Ahora no"), so the app stays usable.
    - The Welcome auto-continue is pausable and is disabled under reduced motion.
+
+### Owner decisions and implementation (2026-10-23)
+
+- **D2 — Web: Option A.** Web renders the same five tabs. The tabs backed by the
+  device database show their existing bilingual "not available on Web" state.
+  Web has no bell and no welcome screen, because both read device data.
+- **Inicio is the design's layout**, built from data the app already has:
+  - the "Tu meta te espera" goal card: the weekly ring (energy, then success
+    once the week is complete) and weight toward the target;
+  - the iCoach card: "Empezar" opens Entrenamientos; it then reads
+    "Entrenamiento de hoy completado", and "Entrenamientos de esta semana
+    completados" once the week is done;
+  - today's training and calories;
+  - the quick actions (food, workout, weight);
+  - "Próximamente" for water and heart rate.
+
+  The existing cards (verification reminder, checklist, recommendations, sync)
+  stay below. The projection is the pure, versioned `home-summary@1.0.0`. The
+  design header replaces the `BrandHero` identity header on Inicio; ADR-P022
+  Addendum C permits the identity header there but does not require it.
+- **D4 — notifications.** `notifications@1.0.0` derives four kinds:
+  - today's training or rest day;
+  - the weigh-in reminder (no weight in 7 days);
+  - the evaluation review (none, or older than 90 days).
+
+  "Plan created" and "plan adjusted" are not built: the generated plan is never
+  persisted, so there is no event to derive them from. Read state is stored
+  locally only, in the existing `notifications` table, through a repository. It
+  is never queued for sync, so the privacy and Data Safety text is unchanged.
+- **D5 — welcome.**
+  - It is owed once after a sign-in: a move from signed-out to signed-in. It is
+    not owed for a session restored at launch.
+  - The gate is held in memory for that one account. A restart, a sign-out or a
+    different account clears it.
+  - The 5 s auto-continue is pausable. It never runs under reduced motion or
+    while a screen reader is on.
+  - The evaluation-first part of the flow waits for Phase 3 (ADR-P038 and its
+    SECURITY-002 gate), so onboarding stays advisory until then.
+- **Account actions** (sign-out, delete account, subscription, language) move to
+  Perfil. The biometric switch from PR #233 joins them when the second of the
+  two PRs merges.
 
 ---
 

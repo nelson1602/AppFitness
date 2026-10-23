@@ -27,7 +27,8 @@ appId: com.appfitnessrd.mobile
 # while the app is still booting is swallowed, and the flow then fails on a
 # route it never left.
 - extendedWaitUntil:
-    visible: 'AppFitnessRD'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
 - openLink: appfitness:///food-log
 - extendedWaitUntil:

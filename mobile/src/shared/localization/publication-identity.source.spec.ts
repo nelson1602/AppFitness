@@ -68,7 +68,11 @@ describe('ADR-P028 publication identity', () => {
     expect(read('src/shared/localization/resources/es.ts')).toContain(
       `'brand.name': '${PRODUCT_NAME}'`,
     );
-    expect(read('src/features/dashboard/presentation/DashboardScreen.tsx')).toContain('<BrandHero');
+    // ADR-P039: Inicio opens with the design's date-and-greeting header instead
+    // of the identity header, so the product heading is pinned on Sign-in only.
+    expect(read('src/features/dashboard/presentation/DashboardScreen.tsx')).not.toContain(
+      '<BrandHero',
+    );
   });
 
   it('points every Maestro flow and the theme-capture helper at the new Android app id', () => {
