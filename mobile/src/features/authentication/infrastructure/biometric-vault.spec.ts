@@ -14,6 +14,7 @@ import {
 } from './biometric-vault';
 import {
   clearSession,
+  deletePlaintextSession,
   hasSealedSession,
   loadSealedSession,
   saveSealedSession,
@@ -144,17 +145,38 @@ describe('biometric vault and sealed session (ADR-P036 Amendment A)', () => {
       expect(sealed).not.toContain('refresh');
       expect(sealed).not.toContain(user.email);
       await expect(hasSealedSession()).resolves.toBe(true);
-      await expect(loadSealedSession(key)).resolves.toEqual(session);
+      await expect(loadSealedSession(key, user.id)).resolves.toEqual(session);
     });
 
     it('opens nothing with the wrong key or after tampering', async () => {
       await saveSealedSession(session, key);
-      await expect(loadSealedSession(new Uint8Array(32).fill(1))).resolves.toBeNull();
+      await expect(loadSealedSession(new Uint8Array(32).fill(1), user.id)).resolves.toBeNull();
 
       const sealed = mockStore.get('auth.session.sealed.v1')!;
       const flipped = (sealed[20] === 'A' ? 'B' : 'A') + '';
       mockStore.set('auth.session.sealed.v1', sealed.slice(0, 20) + flipped + sealed.slice(21));
-      await expect(loadSealedSession(key)).resolves.toBeNull();
+      await expect(loadSealedSession(key, user.id)).resolves.toBeNull();
+    });
+
+    // Review of PR #233: the sealed session is bound to the linked account.
+    it('opens only for the account it was sealed for (the account id is GCM associated data)', async () => {
+      const other: Session = { ...session, user: { ...user, id: 'user-2' } };
+      await saveSealedSession(other, key);
+
+      // Same key, but sealed for another account: authentication fails.
+      await expect(loadSealedSession(key, user.id)).resolves.toBeNull();
+      await expect(loadSealedSession(key, 'user-2')).resolves.toEqual(other);
+    });
+
+    it('removes a plaintext copy left beside the sealed one, and only that', async () => {
+      await saveSealedSession(session, key);
+      // As if the app died between the sealed write and the plaintext delete.
+      await saveSession(session);
+
+      await deletePlaintextSession();
+
+      expect(mockStore.has('auth.session.v1')).toBe(false);
+      await expect(loadSealedSession(key, user.id)).resolves.toEqual(session);
     });
 
     it('is erased by clearSession, like every other session copy', async () => {
@@ -212,6 +234,10 @@ describe('biometric vault failure paths (ADR-P036 A4)', () => {
     jest.clearAllMocks();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('returns no key and leaves nothing behind when the protected write fails', async () => {
     jest.mocked(SecureStore.setItemAsync).mockRejectedValueOnce(new Error('cancelled'));
     await expect(createUnlockKey(PROMPT)).resolves.toBeNull();
@@ -242,6 +268,38 @@ describe('biometric vault failure paths (ADR-P036 A4)', () => {
 
   it('opens nothing from a sealed value too short to hold a nonce', async () => {
     mockStore.set('auth.session.sealed.v1', 'AAAA');
-    await expect(loadSealedSession(new Uint8Array(32))).resolves.toBeNull();
+    await expect(loadSealedSession(new Uint8Array(32), user.id)).resolves.toBeNull();
+  });
+
+  it('logs, rather than throws, when the plaintext cleanup fails', async () => {
+    const { logError } = jest.requireMock('../../../shared/infrastructure/logging');
+    jest.mocked(SecureStore.deleteItemAsync).mockRejectedValueOnce(new Error('io'));
+    await expect(deletePlaintextSession()).resolves.toBeUndefined();
+    expect(logError).toHaveBeenCalledWith('auth.loadSession.plaintextCleanup', expect.any(Error));
+  });
+
+  // Review of PR #233: an enrolment change must go straight to password
+  // sign-in, not count as failed attempts. TEST-006 confirms the iOS status.
+  const IOS_AUTH_FAILED = new Error(
+    "Calling the 'getValueWithKeyAsync' function has failed\n→ Caused by: Authentication failed. Provided passphrase/PIN is incorrect or there is no user authentication method configured for this device.",
+  );
+
+  it('treats an iOS keychain authentication failure as an invalidated key', async () => {
+    jest.replaceProperty(Platform, 'OS', 'ios');
+    mockStore.set('auth.biometric.key.v1', 'x');
+    mockProtectedKeys.add('auth.biometric.key.v1');
+    jest.mocked(SecureStore.getItemAsync).mockRejectedValueOnce(IOS_AUTH_FAILED);
+
+    await expect(readUnlockKey(PROMPT)).resolves.toEqual({ status: 'invalidated' });
+  });
+
+  it.each([
+    ['an iOS cancel', 'ios', new Error('User canceled the operation.')],
+    ['the same text on Android', 'android', IOS_AUTH_FAILED],
+  ] as const)('keeps %s a plain failure', async (_case, os, error) => {
+    jest.replaceProperty(Platform, 'OS', os);
+    jest.mocked(SecureStore.getItemAsync).mockRejectedValueOnce(error);
+
+    await expect(readUnlockKey(PROMPT)).resolves.toEqual({ status: 'failed' });
   });
 });

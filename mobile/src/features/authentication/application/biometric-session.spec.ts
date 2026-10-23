@@ -25,6 +25,7 @@ jest.mock('../infrastructure/session-storage', () => ({
   loadSealedSession: jest.fn().mockResolvedValue(null),
   saveSealedSession: jest.fn().mockResolvedValue(undefined),
   deleteSealedSession: jest.fn().mockResolvedValue(undefined),
+  deletePlaintextSession: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('../infrastructure/biometric-vault', () => ({
   createUnlockKey: jest.fn().mockResolvedValue(null),
@@ -118,6 +119,15 @@ describe('biometric session (ADR-P036 Amendment A)', () => {
       expect(env.vault.readUnlockKey).not.toHaveBeenCalled();
     });
 
+    // Review of PR #233: a crash between the sealed write and the plaintext
+    // delete must not leave the plaintext session on disk while locked.
+    it('removes any plaintext session left beside the sealed one, before locking', async () => {
+      const env = await lockedLaunch();
+
+      expect(env.storage.deletePlaintextSession).toHaveBeenCalledTimes(1);
+      expect(env.manager.getStatus()).toBe('locked');
+    });
+
     it.each([
       ['a link marker without a sealed session', true, false],
       ['a sealed session without a link marker', false, true],
@@ -143,7 +153,7 @@ describe('biometric session (ADR-P036 Amendment A)', () => {
       await expect(env.manager.unlockWithBiometrics(PROMPT)).resolves.toBe('unlocked');
 
       expect(env.vault.readUnlockKey).toHaveBeenCalledWith(PROMPT);
-      expect(env.storage.loadSealedSession).toHaveBeenCalledWith(KEY);
+      expect(env.storage.loadSealedSession).toHaveBeenCalledWith(KEY, user.id);
       expect(env.storage.saveSealedSession).toHaveBeenCalledWith({ ...rotated, user }, KEY);
       expect(env.storage.saveSession).not.toHaveBeenCalled();
       expect(env.manager.getStatus()).toBe('authenticated');
@@ -204,6 +214,32 @@ describe('biometric session (ADR-P036 Amendment A)', () => {
       expectBiometricsForgotten(env);
       expect(env.manager.getStatus()).toBe('unauthenticated');
       expect(env.api.refresh).not.toHaveBeenCalled();
+    });
+
+    // Review of PR #233: the sealed session is bound to the link.
+    it('fails safe to password when the sealed session belongs to another account', async () => {
+      const env = await lockedLaunch();
+      env.vault.readUnlockKey.mockResolvedValue({ status: 'released', key: KEY });
+      env.storage.loadSealedSession.mockResolvedValue({
+        ...stored,
+        user: { ...user, id: 'user-2' },
+      });
+
+      await expect(env.manager.unlockWithBiometrics(PROMPT)).resolves.toBe('reset');
+      expect(env.storage.loadSealedSession).toHaveBeenCalledWith(KEY, user.id);
+      expectBiometricsForgotten(env);
+      expect(env.manager.getSession()).toBeNull();
+      expect(env.api.refresh).not.toHaveBeenCalled();
+    });
+
+    it('fails safe to password when the link is gone by the time the key is released', async () => {
+      const env = await lockedLaunch();
+      env.vault.readUnlockKey.mockResolvedValue({ status: 'released', key: KEY });
+      env.vault.readLinkedUserId.mockResolvedValue(null);
+
+      await expect(env.manager.unlockWithBiometrics(PROMPT)).resolves.toBe('reset');
+      expect(env.storage.loadSealedSession).not.toHaveBeenCalled();
+      expect(env.manager.getStatus()).toBe('unauthenticated');
     });
 
     it('stays locked after a cancel, and resets on the fifth failure in a launch', async () => {

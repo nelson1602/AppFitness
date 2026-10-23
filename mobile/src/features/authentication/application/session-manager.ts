@@ -13,6 +13,7 @@ import {
 } from '../infrastructure/biometric-vault';
 import {
   clearSession,
+  deletePlaintextSession,
   deleteSealedSession,
   hasSealedSession,
   loadSealedSession,
@@ -413,6 +414,9 @@ async function restoreOnce(): Promise<Session | null> {
   // (one without the other) is unverifiable and fails closed.
   const [linkedUserId, sealed] = await Promise.all([readLinkedUserId(), hasSealedSession()]);
   if (linkedUserId && sealed) {
+    // A crash between the sealed write and the plaintext delete can leave the
+    // plaintext copy behind; it must not stay on disk while the app is locked.
+    await deletePlaintextSession();
     return withSessionLock(() => {
       if (stillRestoring()) setState('locked', null);
       return Promise.resolve(null);
@@ -687,9 +691,14 @@ export async function unlockWithBiometrics(prompt: string): Promise<BiometricUnl
   }
   if (read.status === 'invalidated') return resetToPassword(stillCurrent);
 
-  const sealed = await loadSealedSession(read.key);
+  // The sealed session must belong to the linked account: it is opened with
+  // the link's account id as associated data, and its user is checked again.
+  const linkedUserId = await readLinkedUserId();
   if (!stillCurrent()) return 'superseded';
-  if (!sealed) return resetToPassword(stillCurrent);
+  if (!linkedUserId) return resetToPassword(stillCurrent);
+  const sealed = await loadSealedSession(read.key, linkedUserId);
+  if (!stillCurrent()) return 'superseded';
+  if (!sealed || sealed.user.id !== linkedUserId) return resetToPassword(stillCurrent);
 
   const restored = await finishRestore(sealed, stillCurrent, read.key);
   if (restored) return 'unlocked';
