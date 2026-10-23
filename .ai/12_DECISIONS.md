@@ -9765,7 +9765,7 @@ in `forgot-password` / `reset-password` is affected.
 ---
 ## ADR-P027 — V1 Advisory Onboarding and Hub-and-Spoke Navigation; Bottom Tabs Deferred
 
-Status: Accepted
+Status: Accepted — **Decision 3 (bottom tabs deferred) superseded 2026-10-23 by ADR-P039**; advisory onboarding stands until the Phase 3 evaluation flow exists.
 Date: 2026-08-28
 Owner: Product / UX / Architecture
 
@@ -14817,8 +14817,9 @@ If enabled:
 
 ## ADR-P039 — Tab Shell, Header, In-App Notifications and Welcome Flow
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-22
+Accepted: 2026-10-23 by the project owner. Implemented on `codex/redesign-p039-shell`, independent of the biometrics PR #233 so either can merge first.
 Owner: Product / Mobile Architecture
 Would supersede: ADR-P027 Decision 3 (bottom tabs deferred) and its advisory-onboarding rule as far as the evaluation-first flow is concerned
 
