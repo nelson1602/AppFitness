@@ -17,7 +17,8 @@ interface AuthTextFieldProps {
 }
 
 /**
- * Label + input + inline error for the password-recovery screens.
+ * Label + input + inline error for the password-recovery screens, in the
+ * redesign's glass form (stage label, white field, stage error tone).
  *
  * Deliberately not react-hook-form: the recovery screens have one or two
  * fields and no schema, and the sign-in surface they sit alongside uses the
@@ -38,9 +39,12 @@ export function AuthTextField({
   return (
     <View>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="label">{label}</AppText>
+        <AppText tone="onStage" variant="label">
+          {label}
+        </AppText>
         <AppTextInput
           accessibilityLabel={label}
+          appearance="stage"
           testID={testID}
           autoCapitalize="none"
           autoCorrect={false}
@@ -65,12 +69,17 @@ export function AuthTextField({
             style={error ? undefined : { height: 0 }}
             testID={error ? `${testID}-error` : undefined}
             variant="caption"
-            tone="error"
+            tone="errorOnStage"
           >
             {error ?? ''}
           </AppText>
         ) : error ? (
-          <AppText aria-live="polite" testID={`${testID}-error`} variant="caption" tone="error">
+          <AppText
+            aria-live="polite"
+            testID={`${testID}-error`}
+            variant="caption"
+            tone="errorOnStage"
+          >
             {error}
           </AppText>
         ) : null}

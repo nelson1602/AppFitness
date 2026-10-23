@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { type PasswordRecoveryErrorReason, requestPasswordReset } from '@/features/authentication';
 import ForgotPasswordScreen from '../../app/forgot-password';
@@ -53,6 +54,21 @@ describe('ForgotPasswordScreen', () => {
   });
 
   const submit = () => fireEvent.press(screen.getByTestId('button-forgot-submit'));
+
+  // Web layout fix: the same centred 480 px column, stage and glass form as
+  // sign-in, so the field and button no longer stretch across a desktop window.
+  it('renders in the auth column on the stage, with the form in a glass card', async () => {
+    await render(<ForgotPasswordScreen />);
+
+    const scrollView = screen.root?.queryAll((node) => node.type === 'RCTScrollView')[0];
+    expect(StyleSheet.flatten(scrollView?.props.contentContainerStyle)).toMatchObject({
+      alignSelf: 'center',
+      maxWidth: 480,
+      width: '100%',
+    });
+    expect(screen.getByTestId('screen-stage')).toBeOnTheScreen();
+    expect(screen.getByTestId('forgot-form')).toBeOnTheScreen();
+  });
 
   it('sends the trimmed address with the active locale', async () => {
     mockLanguage = 'es';
