@@ -67,11 +67,13 @@ appId: com.appfitnessrd.mobile
 # the op into a 60s retry backoff (backoff.ts), which would make the
 # immediate reconnect retry flaky. The PENDING banner already proves the
 # offline local write + unsynced state; reconnect-sync.yml then pushes it.
-# Saving returns to Perfil, where the checklist lives.
+# Saving returns to Inicio; the checklist lives in Perfil (ADR-P039).
 - extendedWaitUntil:
     visible:
-      id: 'tab-profile'
+      id: 'home-goal-card'
     timeout: 30000
+- tapOn:
+    id: 'tab-profile'
 # The profile step leaves the checklist entirely — asserted by its own testID,
 # because the old "Create your profile" copy no longer renders in this state
 # and would have passed vacuously.

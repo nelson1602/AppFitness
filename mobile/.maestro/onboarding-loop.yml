@@ -77,11 +77,13 @@ appId: com.appfitnessrd.mobile
 # is still `empty` — the ADR-P027 checklist, not `DataGapCard`. Its label for
 # the weight step is "Record your first weight"; "Record a weight measurement"
 # is the `DataGapCard` wording and appears only once the assessment is `ready`.
-# Saving returns to Perfil, where the checklist lives.
+# Saving returns to Inicio; the checklist lives in Perfil (ADR-P039).
 - extendedWaitUntil:
     visible:
-      id: 'tab-profile'
+      id: 'home-goal-card'
     timeout: 30000
+- tapOn:
+    id: 'tab-profile'
 - assertNotVisible: 'Create your profile'
 - assertNotVisible: 'Add your birth date'
 - assertNotVisible: 'Add your height'
@@ -159,12 +161,25 @@ appId: com.appfitnessrd.mobile
 # and, with sex + goal both set, the setup card disappears entirely while
 # the assessment stays. The assessment is below the reminder and wellness
 # cards, so scroll to it rather than asserting it from the top.
-# Back in Perfil, the assessment stays expanded and the maintenance note is
-# gone (iCoach recalculated with the chosen goal).
+# Saving the goal returns to Inicio; back in Perfil, open the assessment
+# again: the maintenance note is gone (iCoach recalculated with the goal).
 - extendedWaitUntil:
     visible:
-      id: 'tab-profile'
+      id: 'home-goal-card'
     timeout: 30000
+- tapOn:
+    id: 'tab-profile'
+- scrollUntilVisible:
+    element:
+      id: 'profile-recommendations'
+    timeout: 30000
+# Returning through Inicio may have collapsed the row; open it only if closed.
+- runFlow:
+    when:
+      notVisible: "Today's assessment"
+    commands:
+      - tapOn:
+          id: 'profile-recommendations'
 - scrollUntilVisible:
     element: "Today's assessment"
     timeout: 30000

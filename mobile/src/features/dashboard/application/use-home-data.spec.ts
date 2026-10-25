@@ -197,6 +197,7 @@ describe('useHomeData', () => {
       ],
     });
     expect(result.current.routine).not.toBeNull();
+    expect(result.current.currentWeightKg).toBe(80);
     expect(result.current.weekdayIndex).toBe(4);
   });
 

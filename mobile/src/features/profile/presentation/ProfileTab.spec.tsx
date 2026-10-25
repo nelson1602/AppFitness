@@ -68,6 +68,7 @@ beforeEach(() => {
   mockLanguage = 'en';
   mockHome = {
     summary: SUMMARY,
+    currentWeightKg: 81.7,
     evaluation: { bmi: 25.8, bmiCategory: 'OVERWEIGHT', macros: [] },
     evaluationDate: '2026-09-01',
     goalType: 'RECOMPOSITION',
@@ -119,6 +120,7 @@ describe('ProfileTab (ADR-P039)', () => {
   it('shows the empty states before there is a weight, a goal or an assessment', async () => {
     mockHome = {
       summary: { ...SUMMARY, weight: null },
+      currentWeightKg: null,
       evaluation: null,
       evaluationDate: null,
       goalType: null,

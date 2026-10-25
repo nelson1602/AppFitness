@@ -89,7 +89,8 @@ export function ProfileTab() {
   const { language, t } = useLocalization();
   const refresh = useDashboardStore((s) => s.refresh);
   const profile = useProfileStore((s) => s.profile);
-  const { summary, evaluation, evaluationDate, goalType, goalTargetDate } = useHomeData();
+  const { summary, currentWeightKg, evaluation, evaluationDate, goalType, goalTargetDate } =
+    useHomeData();
 
   useFocusEffect(
     useCallback(() => {
@@ -137,7 +138,7 @@ export function ProfileTab() {
         <View style={[styles.row, styles.stretch, { gap: spacing.sm }]}>
           <Stat
             label={t('profile.tab.weight')}
-            value={summary.weight ? kg(summary.weight.current) : '–'}
+            value={currentWeightKg !== null ? kg(currentWeightKg) : '–'}
           />
           <Stat
             label={t('profile.tab.height')}

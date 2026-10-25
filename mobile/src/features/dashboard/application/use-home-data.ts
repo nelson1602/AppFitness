@@ -60,6 +60,8 @@ export interface HomeData {
   routine: GeneratedWorkoutRoutine | null;
   /** Monday = 0 … Sunday = 6, today's index into `routine.schedule`. */
   weekdayIndex: number;
+  /** The latest body weight, with or without a target weight. */
+  currentWeightKg: number | null;
   goalType: GoalType | null;
   goalTargetDate: string | null;
   evaluationDate: string | null;
@@ -157,6 +159,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
       notifications,
       routine,
       weekdayIndex,
+      currentWeightKg: bodyWeights[0]?.weightKg ?? null,
       goalType: goal?.goalType ?? null,
       goalTargetDate: goal?.targetDate ?? null,
       evaluationDate,

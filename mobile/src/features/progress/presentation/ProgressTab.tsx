@@ -20,7 +20,7 @@ export function ProgressTab() {
   const { colors, spacing } = useTheme();
   const { language, t } = useLocalization();
   const status = useProgressStore((s) => s.status);
-  const { summary } = useHomeData();
+  const { summary, currentWeightKg } = useHomeData();
 
   useFocusEffect(
     useCallback(() => {
@@ -49,9 +49,9 @@ export function ProgressTab() {
           <AppText accessibilityRole="header" style={styles.grow} tone="onStage" variant="title">
             {t('progress.tab.weightTitle')}
           </AppText>
-          {weight ? (
-            <AppText tone="onStage" variant="title">
-              {kg(weight.current)}
+          {currentWeightKg !== null ? (
+            <AppText tone="onStage" testID="progress-current-weight" variant="title">
+              {kg(currentWeightKg)}
             </AppText>
           ) : null}
         </View>
@@ -67,7 +67,10 @@ export function ProgressTab() {
             </AppText>
           </>
         ) : (
-          <AppText tone="onStageVariant">{t('progress.tab.noWeight')}</AppText>
+          // A weight without a target has no bar to fill: ask for the target.
+          <AppText tone="onStageVariant">
+            {t(currentWeightKg !== null ? 'home.weight.empty' : 'progress.tab.noWeight')}
+          </AppText>
         )}
         <GlassRow
           detail={t('progress.tab.logRowDetail')}
