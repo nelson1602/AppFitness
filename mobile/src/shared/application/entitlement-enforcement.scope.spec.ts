@@ -93,8 +93,9 @@ describe('ADR-P034 paid-write enforcement scope', () => {
     'app/wellness-safety-profile.tsx',
     'app/dietary-preferences.tsx',
     'app/food-log.tsx',
-    'app/(tabs)/progress.tsx',
-    'app/(tabs)/workouts.tsx',
+    // ADR-P039: the Progreso and Entrenamientos tabs only navigate; the full
+    // progress screen and the workout spokes below keep the boundary.
+    'app/progress-log.tsx',
     'app/exercises.tsx',
     'app/routines.tsx',
     'app/workout-log.tsx',

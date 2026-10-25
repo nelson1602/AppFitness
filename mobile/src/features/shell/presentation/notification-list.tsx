@@ -6,8 +6,23 @@ import type {
   NotificationKind,
   NotificationTarget,
 } from '@/features/notifications';
-import { type TranslationKey, useLocalization } from '@/shared/localization';
-import { AppButton, AppText, useReducedMotion, withAlpha } from '@/shared/presentation';
+import {
+  formatNumber,
+  interpolate,
+  type SupportedLanguage,
+  type TranslationKey,
+  useLocalization,
+} from '@/shared/localization';
+import {
+  AppButton,
+  AppText,
+  backgroundImageStyle,
+  ctaBackgroundImage,
+  Icon,
+  type IconName,
+  useReducedMotion,
+  withAlpha,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 const COPY: Record<NotificationKind, { title: TranslationKey; body: TranslationKey }> = {
@@ -22,6 +37,26 @@ const COPY: Record<NotificationKind, { title: TranslationKey; body: TranslationK
     body: 'notifications.evaluationReview.body',
   },
 };
+
+/** The design's icon for each kind (dumbbell, scale, clipboard). */
+const ICON: Record<NotificationKind, IconName> = {
+  'today-training': 'dumbbell',
+  'today-rest': 'dumbbell',
+  'weigh-in': 'scale',
+  'evaluation-review': 'clipboard',
+};
+
+/** "Hoy", "Ayer", "Hace 3 días" — or nothing when there was no such event. */
+export function notificationTime(
+  ageDays: number | null,
+  t: (key: TranslationKey) => string,
+  language: SupportedLanguage,
+): string | null {
+  if (ageDays === null) return null;
+  if (ageDays <= 0) return t('notifications.time.today');
+  if (ageDays === 1) return t('notifications.time.yesterday');
+  return interpolate(t('notifications.time.daysAgo'), { count: formatNumber(ageDays, language) });
+}
 
 const ROUTE: Record<NotificationTarget, '/workouts' | '/progress' | '/profile'> = {
   workouts: '/workouts',
@@ -44,7 +79,7 @@ interface NotificationListProps {
 export function NotificationList({ items, readIds, onClose, onMarkRead }: NotificationListProps) {
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
   const reduceMotion = useReducedMotion();
   const unread = items.filter((item) => !readIds.includes(item.id));
 
@@ -83,9 +118,23 @@ export function NotificationList({ items, readIds, onClose, onMarkRead }: Notifi
             <AppText accessibilityRole="header" style={styles.grow} tone="onStage" variant="title">
               {t('notifications.title')}
             </AppText>
-            <AppButton onPress={onClose} testID="notifications-close" variant="stage-link">
-              {t('notifications.close')}
-            </AppButton>
+            <Pressable
+              accessibilityLabel={t('notifications.close')}
+              accessibilityRole="button"
+              onPress={onClose}
+              style={[
+                styles.center,
+                {
+                  backgroundColor: colors.glassFill,
+                  borderRadius: radius.full,
+                  minHeight: theme.spacing.x5l,
+                  minWidth: theme.spacing.x5l,
+                },
+              ]}
+              testID="notifications-close"
+            >
+              <Icon color={colors.onStage} name="x" size={20} />
+            </Pressable>
           </View>
           {unread.length > 0 ? (
             <AppButton
@@ -102,17 +151,20 @@ export function NotificationList({ items, readIds, onClose, onMarkRead }: Notifi
             items.map((item) => {
               const isUnread = !readIds.includes(item.id);
               const copy = COPY[item.kind];
+              const time = notificationTime(item.ageDays, t, language);
               return (
                 <Pressable
                   accessibilityHint={isUnread ? t('notifications.unread') : undefined}
-                  accessibilityLabel={`${t(copy.title)}. ${t(copy.body)}`}
+                  accessibilityLabel={[t(copy.title), time, t(copy.body)]
+                    .filter(Boolean)
+                    .join('. ')}
                   accessibilityRole="button"
                   key={item.id}
                   onPress={() => open(item)}
                   style={[
-                    styles.row,
+                    styles.top,
                     {
-                      backgroundColor: colors.glassFill,
+                      backgroundColor: isUnread ? colors.glassFill : 'transparent',
                       borderRadius: radius.field,
                       gap: spacing.md,
                       minHeight: theme.spacing.x5l,
@@ -121,10 +173,40 @@ export function NotificationList({ items, readIds, onClose, onMarkRead }: Notifi
                   ]}
                   testID={`notification-${item.kind}`}
                 >
+                  <View
+                    style={[
+                      styles.center,
+                      isUnread
+                        ? backgroundImageStyle(ctaBackgroundImage(colors), colors.ctaStart)
+                        : { backgroundColor: colors.glassFill },
+                      { borderRadius: radius.full, height: spacing.x4l, width: spacing.x4l },
+                    ]}
+                  >
+                    <Icon
+                      color={isUnread ? colors.onCta : colors.onStage}
+                      name={ICON[item.kind]}
+                      size={18}
+                    />
+                  </View>
                   <View style={[styles.grow, { gap: spacing.xs }]}>
-                    <AppText tone="onStage" variant={isUnread ? 'label' : 'body'}>
-                      {t(copy.title)}
-                    </AppText>
+                    <View style={[styles.row, { gap: spacing.sm }]}>
+                      <AppText
+                        style={styles.grow}
+                        tone={isUnread ? 'onStage' : 'onStageVariant'}
+                        variant="label"
+                      >
+                        {t(copy.title)}
+                      </AppText>
+                      {time ? (
+                        <AppText
+                          testID={`notification-${item.kind}-time`}
+                          tone="onStageVariant"
+                          variant="caption"
+                        >
+                          {time}
+                        </AppText>
+                      ) : null}
+                    </View>
                     <AppText tone="onStageVariant" variant="caption">
                       {t(copy.body)}
                     </AppText>
@@ -153,6 +235,10 @@ export function NotificationList({ items, readIds, onClose, onMarkRead }: Notifi
 }
 
 const styles = StyleSheet.create({
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   grow: {
     flex: 1,
   },
@@ -162,5 +248,9 @@ const styles = StyleSheet.create({
   },
   scrim: {
     flex: 1,
+  },
+  top: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
   },
 });

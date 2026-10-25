@@ -143,7 +143,9 @@ describe('the existing report-only surfaces are untouched', () => {
       .filter((file) => file.text.includes("'/sync-conflicts'"))
       .map((file) => file.path.replace(REPO_SRC, '').replace(/\\/g, '/'));
 
-    expect(navigating).toEqual(['/features/dashboard/presentation/DashboardScreen.tsx']);
+    // ADR-P039: the one entry moved with the sync state to Perfil → "Cuenta y
+    // ajustes"; it is still the only one.
+    expect(navigating).toEqual(['/features/dashboard/presentation/AccountSettingsSection.tsx']);
   });
 
   it('leaves the sync banner with no press handler at all', () => {

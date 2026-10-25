@@ -100,22 +100,28 @@ type Rule = 'floor' | 'floor-both' | 'content' | 'primitive';
 const REGISTRY: Record<string, readonly Rule[]> = {
   // ADR-P035 sign-in: the show/hide password glyph button.
   'src/app/sign-in.tsx': ['floor-both'],
+  // ADR-P039 Inicio: the coach card's "Empezar" and each quick action.
+  'src/features/dashboard/presentation/components/home-cards.tsx': ['floor', 'floor'],
   'src/features/nutrition/presentation/DietaryPreferences.tsx': ['floor-both', 'floor'],
   'src/features/nutrition/presentation/food-log/FoodLogAddForm.tsx': ['floor', 'content'],
   'src/features/nutrition/presentation/food-log/ServingStepper.tsx': ['floor-both'],
   'src/features/nutrition/presentation/FoodLogScreen.tsx': ['floor-both'],
   'src/features/nutrition/presentation/NutritionPlanScreen.tsx': ['floor-both'],
+  'src/features/profile/presentation/ProfileTab.tsx': ['floor'],
   'src/features/progress/presentation/ProgressSummaryCard.tsx': ['content'],
   // ADR-P039 shell: the bell, each tab, and each notification row.
   'src/features/shell/presentation/app-header.tsx': ['floor-both'],
   'src/features/shell/presentation/app-tab-bar.tsx': ['floor-both'],
-  'src/features/shell/presentation/notification-list.tsx': ['floor'],
+  // The list's round close button, then each notification row.
+  'src/features/shell/presentation/notification-list.tsx': ['floor-both', 'floor'],
   'src/features/wellness/presentation/wellness-token-group.tsx': ['floor'],
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
   'src/shared/presentation/app-button.tsx': ['primitive'],
   'src/shared/presentation/form/FormSelect.tsx': ['floor-both'],
+  // ADR-P039: the tabs' navigation rows.
+  'src/shared/presentation/glass-row.tsx': ['floor'],
 };
 
 const FLOOR_HEIGHT = /minHeight:\s*theme\.spacing\.x5l\b/;
@@ -141,8 +147,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 20 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(20);
+it('counts exactly 25 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(25);
 });
 
 describe.each(

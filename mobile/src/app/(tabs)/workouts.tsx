@@ -2,8 +2,6 @@ import { Redirect, Stack } from 'expo-router';
 
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
-// Direct import: the barrel would also load the subscription store composition.
-import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { WorkoutsTab } from '@/features/workout/presentation/WorkoutsTab';
 import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
@@ -25,11 +23,9 @@ export default function WorkoutsRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('tabs.workouts') }} />
-      <Screen>
-        <SubscriptionWriteBoundary>
-          <WorkoutsTab />
-        </SubscriptionWriteBoundary>
-      </Screen>
+      {/* No write boundary here: the tab only navigates; the spokes that write
+          (log, routines, exercises) keep their own. */}
+      <WorkoutsTab />
     </>
   );
 }

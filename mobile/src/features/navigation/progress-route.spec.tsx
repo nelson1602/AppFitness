@@ -18,7 +18,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@/features/authentication', () => ({
   useSession: () => ({ status: mockSessionStatus, session: null }),
 }));
-jest.mock('@/features/progress', () => ({ ProgressScreen: () => null }));
+jest.mock('@/features/progress/presentation/ProgressTab', () => ({ ProgressTab: () => null }));
 jest.mock('@/features/dashboard/presentation/components/dashboard-skeleton', () => ({
   DashboardSkeleton: () => null,
 }));

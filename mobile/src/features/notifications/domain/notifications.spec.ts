@@ -18,7 +18,20 @@ describe('buildNotifications (ADR-P039 D4)', () => {
     ['rest', 'today-rest', 'today-rest:2026-10-21'],
   ] as const)('announces a %s day once per day, opening Entrenamientos', (plan, kind, id) => {
     expect(buildNotifications({ ...base, todayPlan: plan })).toEqual([
-      { id, kind, target: 'workouts' },
+      { id, kind, target: 'workouts', ageDays: 0 },
+    ]);
+  });
+
+  // 1.1.0: each item carries how long ago its event was, for "Hoy" / "Hace N días".
+  it('dates the reminders by their own event, or not at all when there was none', () => {
+    const items = buildNotifications({
+      ...base,
+      lastWeightDate: '2026-10-11',
+      evaluationDate: null,
+    });
+    expect(items.map((item) => [item.kind, item.ageDays])).toEqual([
+      ['weigh-in', 10],
+      ['evaluation-review', null],
     ]);
   });
 

@@ -55,6 +55,59 @@ const PATHS = {
       <Path d="M4 21a8 8 0 0 1 16 0" />
     </>
   ),
+  check: <Path d="M5 12l5 5 9-10" />,
+  chevron: <Path d="M9 6l6 6-6 6" />,
+  clipboard: (
+    <>
+      <Rect x={5} y={4} width={14} height={17} rx={2} />
+      <Path d="M9 4h6v3H9zM9 12h6M9 16h4" />
+    </>
+  ),
+  drop: <Path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z" />,
+  flame: <Path d="M12 3s5 4.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-4 2.5-5 0 2 1 3 2 3 0-3 .5-5.5.5-8z" />,
+  heart: <Path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z" />,
+  logout: (
+    <>
+      <Path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+      <Path d="M10 8l-4 4 4 4M6 12h10" />
+    </>
+  ),
+  plus: <Path d="M12 5v14M5 12h14" />,
+  refresh: (
+    <Path d="M20 11a8 8 0 0 0-14.6-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5L20 16M20 20v-4h-4" />
+  ),
+  scale: (
+    <>
+      <Path d="M5 20h14a1 1 0 0 0 1-1L18 7H6L4 19a1 1 0 0 0 1 1z" />
+      <Path d="M9 11a3 3 0 0 1 6 0" />
+    </>
+  ),
+  shield: (
+    <>
+      <Path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z" />
+      <Path d="m9 12 2 2 4-4" />
+    </>
+  ),
+  sparkle: (
+    <>
+      <Path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z" />
+      <Path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" />
+    </>
+  ),
+  target: (
+    <>
+      <Circle cx={12} cy={12} r={9} />
+      <Circle cx={12} cy={12} r={5} />
+      <Circle cx={12} cy={12} r={1} />
+    </>
+  ),
+  watch: (
+    <>
+      <Rect x={6} y={6} width={12} height={12} rx={3} />
+      <Path d="M9 6l1-3h4l1 3M9 18l1 3h4l1-3M12 10v2l1.5 1" />
+    </>
+  ),
+  x: <Path d="M6 6l12 12M18 6 6 18" />,
 } satisfies Record<string, ReactElement>;
 
 export type IconName = keyof typeof PATHS;

@@ -5,6 +5,7 @@ import { Platform } from 'react-native';
 import type { AppNotification } from '@/features/notifications';
 
 import { AppHeader } from './app-header';
+import { notificationTime } from './notification-list';
 
 let mockLanguage: 'en' | 'es' = 'en';
 let mockNotifications: AppNotification[] = [];
@@ -46,8 +47,14 @@ const TODAY: AppNotification = {
   id: 'today-training:2026-10-23',
   kind: 'today-training',
   target: 'workouts',
+  ageDays: 0,
 };
-const WEIGH: AppNotification = { id: 'weigh-in:2026-10-19', kind: 'weigh-in', target: 'progress' };
+const WEIGH: AppNotification = {
+  id: 'weigh-in:2026-10-19',
+  kind: 'weigh-in',
+  target: 'progress',
+  ageDays: 9,
+};
 
 function header(name: string) {
   return { route: { key: `${name}-key`, name } } as unknown as BottomTabHeaderProps;
@@ -155,12 +162,37 @@ describe('NotificationList (ADR-P039 D4)', () => {
     expect(screen.queryByTestId('notifications-list')).toBeNull();
   });
 
+  it('dates each notification like the design (Hoy, Hace N días), in Spanish', async () => {
+    mockLanguage = 'es';
+    await open();
+
+    expect(screen.getByTestId('notification-today-training-time')).toHaveTextContent('Hoy');
+    expect(screen.getByTestId('notification-weigh-in-time')).toHaveTextContent('Hace 9 días');
+    expect(screen.getByTestId('notification-weigh-in').props.accessibilityLabel).toBe(
+      'Registra tu peso. Hace 9 días. Pésate en ayunas para ver tu progreso de la semana.',
+    );
+  });
+
   it('says so when there is nothing, in Spanish', async () => {
     mockLanguage = 'es';
     mockNotifications = [];
     await open();
 
     expect(screen.getByText('No tienes notificaciones.')).toBeOnTheScreen();
-    expect(screen.getByText('Cerrar')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Cerrar' })).toBeOnTheScreen();
+  });
+});
+
+describe('notificationTime', () => {
+  const { es } = jest.requireActual('@/shared/localization/resources/es');
+  const t = (key: keyof typeof es) => es[key];
+
+  it.each([
+    [0, 'Hoy'],
+    [1, 'Ayer'],
+    [12, 'Hace 12 días'],
+    [null, null],
+  ] as const)('words %s days as %s', (ageDays, expected) => {
+    expect(notificationTime(ageDays, t, 'es')).toBe(expected);
   });
 });

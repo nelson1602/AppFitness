@@ -6,7 +6,7 @@
  * "read" survives app restarts and a new period brings the reminder back. The
  * "iCoach adjusted your plan" item waits for ADR-P040.
  */
-export const NOTIFICATION_RULE_VERSION = 'notifications@1.0.0';
+export const NOTIFICATION_RULE_VERSION = 'notifications@1.1.0';
 
 export type NotificationKind = 'today-training' | 'today-rest' | 'weigh-in' | 'evaluation-review';
 /** The tab each notification opens. */
@@ -16,6 +16,12 @@ export interface AppNotification {
   readonly id: string;
   readonly kind: NotificationKind;
   readonly target: NotificationTarget;
+  /**
+   * Whole days since the event the item is about (1.1.0): 0 for today's plan,
+   * the days since the last weight or the evaluation, or `null` when there was
+   * none. The list words it ("Hoy", "Ayer", "Hace 3 días").
+   */
+  readonly ageDays: number | null;
 }
 
 export interface NotificationInputs {
@@ -48,24 +54,34 @@ export function buildNotifications(inputs: NotificationInputs): AppNotification[
       id: `today-training:${inputs.today}`,
       kind: 'today-training',
       target: 'workouts',
+      ageDays: 0,
     });
   } else if (inputs.todayPlan === 'rest') {
-    items.push({ id: `today-rest:${inputs.today}`, kind: 'today-rest', target: 'workouts' });
+    items.push({
+      id: `today-rest:${inputs.today}`,
+      kind: 'today-rest',
+      target: 'workouts',
+      ageDays: 0,
+    });
   }
-  if (
-    inputs.lastWeightDate === null ||
-    daysBetween(inputs.lastWeightDate, inputs.today) >= WEIGH_IN_DAYS
-  ) {
-    items.push({ id: `weigh-in:${inputs.weekStart}`, kind: 'weigh-in', target: 'progress' });
+  const weightAge =
+    inputs.lastWeightDate === null ? null : daysBetween(inputs.lastWeightDate, inputs.today);
+  if (weightAge === null || weightAge >= WEIGH_IN_DAYS) {
+    items.push({
+      id: `weigh-in:${inputs.weekStart}`,
+      kind: 'weigh-in',
+      target: 'progress',
+      ageDays: weightAge,
+    });
   }
-  if (
-    inputs.evaluationDate === null ||
-    daysBetween(inputs.evaluationDate, inputs.today) >= EVALUATION_REVIEW_DAYS
-  ) {
+  const evaluationAge =
+    inputs.evaluationDate === null ? null : daysBetween(inputs.evaluationDate, inputs.today);
+  if (evaluationAge === null || evaluationAge >= EVALUATION_REVIEW_DAYS) {
     items.push({
       id: `evaluation-review:${inputs.today.slice(0, 7)}`,
       kind: 'evaluation-review',
       target: 'profile',
+      ageDays: evaluationAge,
     });
   }
   return items;

@@ -38,8 +38,8 @@ jest.mock('@/shared/localization', () => {
   };
 });
 
-jest.mock('@/features/nutrition/presentation/NutritionTargets', () => ({
-  NutritionTargets: () => {
+jest.mock('@/features/nutrition/presentation/NutritionTab', () => ({
+  NutritionTab: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return <Text>Nutrition targets content</Text>;
   },

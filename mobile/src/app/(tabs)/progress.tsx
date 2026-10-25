@@ -2,17 +2,11 @@ import { Redirect, Stack } from 'expo-router';
 
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
-import { ProgressScreen } from '@/features/progress';
-// Direct import: the barrel would also load the subscription store composition.
-import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
+import { ProgressTab } from '@/features/progress/presentation/ProgressTab';
 import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
-/**
- * Progress Monitoring route (ADR-P016 Phase 17 Slice 5a). Session-guarded like
- * the other feature routes. Local-first entry surface for body weight and
- * measurements.
- */
+/** Progreso tab (ADR-P039 D1). Session-guarded like the other tabs. */
 export default function ProgressRoute() {
   const { status } = useSession();
   const { t } = useLocalization();
@@ -29,11 +23,7 @@ export default function ProgressRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('progress.routeTitle') }} />
-      <Screen>
-        <SubscriptionWriteBoundary>
-          <ProgressScreen />
-        </SubscriptionWriteBoundary>
-      </Screen>
+      <ProgressTab />
     </>
   );
 }

@@ -8,7 +8,7 @@ import { useHomeData } from '@/features/dashboard/application/use-home-data';
 import { unreadOf } from '@/features/notifications';
 import { useNotificationsStore } from '@/features/notifications/application/notifications.store';
 import { formatDate, formatNumber, interpolate, useLocalization } from '@/shared/localization';
-import { AppText, Icon } from '@/shared/presentation';
+import { AppText, backgroundImageStyle, ctaBackgroundImage, Icon } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { NotificationList } from './notification-list';
@@ -48,11 +48,34 @@ export function AppHeader({ route }: BottomTabHeaderProps) {
       ]}
       testID="app-header"
     >
+      {session ? (
+        // The design's avatar: the account's initials, decorative (the
+        // greeting beside it names the person).
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={[
+            styles.avatar,
+            backgroundImageStyle(ctaBackgroundImage(colors), colors.ctaStart),
+            {
+              borderColor: colors.glassBorder,
+              borderRadius: radius.full,
+              height: spacing.x5l - spacing.xs,
+              width: spacing.x5l - spacing.xs,
+            },
+          ]}
+          testID="header-avatar"
+        >
+          <AppText style={{ color: colors.onCta }} variant="label">
+            {session.user.username.slice(0, 2).toUpperCase()}
+          </AppText>
+        </View>
+      ) : null}
       <View style={[styles.grow, { gap: spacing.xs }]}>
         <AppText tone="onStageVariant" variant="caption">
           {date}
         </AppText>
-        <AppText accessibilityRole="header" tone="onStage" variant="headline">
+        <AppText accessibilityRole="header" numberOfLines={2} tone="onStage" variant="title">
           {title}
         </AppText>
       </View>
@@ -128,6 +151,11 @@ function NotificationBell({ radius }: { radius: number }) {
 }
 
 const styles = StyleSheet.create({
+  avatar: {
+    alignItems: 'center',
+    borderWidth: 2,
+    justifyContent: 'center',
+  },
   badge: {
     alignItems: 'center',
     position: 'absolute',

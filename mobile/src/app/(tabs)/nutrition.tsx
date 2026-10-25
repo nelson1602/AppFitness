@@ -26,9 +26,7 @@ export default function NutritionRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('nutrition.routeTitle') }} />
-      <Screen>
-        <NutritionTab />
-      </Screen>
+      <NutritionTab />
     </>
   );
 }

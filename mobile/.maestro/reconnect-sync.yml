@@ -14,6 +14,9 @@ appId: com.appfitnessrd.mobile
     visible:
       id: 'tab-dashboard'
     timeout: 30000
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
 
 # The offline-queued profile now pushes; the pending state clears. The sync
 # control sits below the dashboard's two advisory cards, so scroll to it; the

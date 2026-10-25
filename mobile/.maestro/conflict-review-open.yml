@@ -12,6 +12,9 @@ appId: com.appfitnessrd.mobile
     visible:
       id: 'tab-dashboard'
     timeout: 90000
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
 
 # The banner reports; the button navigates. Both must be present, and the
 # banner must not be the thing that moves you.

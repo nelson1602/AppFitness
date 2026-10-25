@@ -15,6 +15,9 @@ appId: com.appfitnessrd.mobile
     visible:
       id: 'tab-dashboard'
     timeout: 90000
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
 # Gate on the dashboard data load. The entry button exists only once the
 # dashboard's own read resolves; the subtitle asserted above is header
 # chrome and is on screen while the skeleton still is. The sync banner

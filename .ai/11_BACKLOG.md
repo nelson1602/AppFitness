@@ -5918,6 +5918,9 @@ Open Food Facts is dropped.
   * ADR-P039 accepted 2026-10-23. The tab shell, header, bell, in-app
     notifications, the Inicio layout and the welcome screen are on
     `codex/redesign-p039-shell` (draft PR). They are independent of PR #233.
+  * 2026-10-25, prototype-fidelity pass: Inicio shows only the prototype's
+    blocks; the rest moved to Perfil → "Cuenta y ajustes"; every tab is a stage
+    screen. Per-tab pending work is in `docs/design/GAP_ANALYSIS.md` §Phase 2.
   * Still open: the Maestro flows were updated for the tabs but not run on a
     device; emulator and Web checks; owner visual approval.
   * The data gaps Inicio shows as empty states are listed in

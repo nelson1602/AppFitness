@@ -90,7 +90,11 @@ beforeEach(() => {
   mockStores.dashboard = {
     data: {
       assessment: {
-        assessment: { training: { excludedMovements: EXCLUDED }, nutrition: { calories: 2400 } },
+        assessment: {
+          training: { excludedMovements: EXCLUDED },
+          nutrition: { calories: 2400, proteinG: 150, carbsG: 250, fatG: 70 },
+          bodyComposition: { bmi: 25.8, bmiCategory: 'OVERWEIGHT' },
+        },
       },
     },
   };
@@ -109,7 +113,10 @@ beforeEach(() => {
       { startedAt: localIso(21), finishedAt: null },
     ],
   };
-  mockStores.foodLog = { status: 'ready', totals: { calories: 1200 } };
+  mockStores.foodLog = {
+    status: 'ready',
+    totals: { calories: 1200, proteinG: 60, carbsG: 125, fatG: 35 },
+  };
   mockStores.wellness = { profile: { evaluationDate: '2026-09-01' } };
   mockStores.notifications = {};
 });
@@ -176,6 +183,29 @@ describe('useHomeData', () => {
       expect(result.current.summary.coach).toBe('no-plan');
     },
   );
+
+  it("passes today's evaluation: BMI and macros eaten against the iCoach targets", async () => {
+    const { result } = await renderHook(() => useHomeData(NOW));
+
+    expect(result.current.evaluation).toEqual({
+      bmi: 25.8,
+      bmiCategory: 'OVERWEIGHT',
+      macros: [
+        { kind: 'protein', target: 150, consumed: 60 },
+        { kind: 'carbs', target: 250, consumed: 125 },
+        { kind: 'fat', target: 70, consumed: 35 },
+      ],
+    });
+    expect(result.current.routine).not.toBeNull();
+    expect(result.current.weekdayIndex).toBe(4);
+  });
+
+  it('has no evaluation before the assessment can compute', async () => {
+    mockStores.dashboard = { data: null };
+    const { result } = await renderHook(() => useHomeData(NOW));
+
+    expect(result.current.evaluation).toBeNull();
+  });
 
   it('reports no calories eaten until the food log is ready', async () => {
     mockStores.foodLog = { status: 'loading', totals: { calories: 0 } };

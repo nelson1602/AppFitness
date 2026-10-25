@@ -105,6 +105,18 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
   'src/app/+html.tsx#Root: children': 'the rendered app tree — a framework slot, not a value',
   'src/app/+html.tsx#Root: headNodes': 'renderer-supplied <head> nodes — a framework slot',
   'src/app/+html.tsx#Root: bodyNodes': 'renderer-supplied <body> nodes — a framework slot',
+  // ADR-P039 layout slots: each renders caller-supplied nodes (a chip, a bar,
+  // a card's content, a tab's content) and owns no value of its own.
+  'src/features/dashboard/presentation/components/home-cards.tsx#PanelTitle: right':
+    'a caller-supplied chip — a composition slot, not a value',
+  'src/features/dashboard/presentation/components/home-cards.tsx#Tile: bar':
+    'a caller-supplied progress bar — a composition slot, not a value',
+  'src/features/profile/presentation/ProfileTab.tsx#Panel: children':
+    "the panel's content — a composition slot, not a value",
+  'src/features/profile/presentation/ProfileTab.tsx#Panel: right':
+    'a caller-supplied date or chip — a composition slot, not a value',
+  'src/features/shell/presentation/tab-screen.tsx#TabScreen: children':
+    "the tab's content — a composition slot, not a value",
   // ADR-P034 S-4: the write boundary wraps a whole route and renders it as-is;
   // like the slots above it owns no copy and no numeric value of its own.
   'src/features/subscriptions/presentation/SubscriptionWriteBoundary.tsx#SubscriptionWriteBoundary: children':

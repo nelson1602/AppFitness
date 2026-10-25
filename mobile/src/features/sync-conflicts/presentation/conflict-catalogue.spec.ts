@@ -147,11 +147,14 @@ describe('catalogue parity', () => {
   // 1214 on 2026-10-23, when ADR-P039 added 69 keys (tabs, header,
   // notifications, Inicio, welcome and the Workouts Web state) and removed
   // seven dashboard keys the tab shell left unreachable (the hero subtitle, two
-  // group headings and the Nutrition and Progress shortcuts).
+  // group headings and the Nutrition and Progress shortcuts). It moved to 1258
+  // on 2026-10-25 with the prototype-fidelity pass: 51 keys for Inicio's
+  // evaluation card, notification times and the four tabs, minus 7 that the
+  // pass left unreachable.
   // None of these is in this family, so the 157-key conflict family below is unchanged.
-  it('reaches 1214 keys in each language — 1057 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1214);
-    expect(Object.keys(es)).toHaveLength(1214);
+  it('reaches 1258 keys in each language — 1101 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1258);
+    expect(Object.keys(es)).toHaveLength(1258);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 

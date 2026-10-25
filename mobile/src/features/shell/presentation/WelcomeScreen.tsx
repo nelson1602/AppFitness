@@ -34,7 +34,7 @@ export function WelcomeScreen() {
   const { spacing } = useTheme();
   const { language, t } = useLocalization();
   const { session } = useSession();
-  const { summary } = useHomeData();
+  const { summary, goalType } = useHomeData();
   const reduceMotion = useReducedMotion();
   const screenReader = useScreenReader();
   const [paused, setPaused] = useState(false);
@@ -70,7 +70,7 @@ export function WelcomeScreen() {
           {interpolate(t('welcome.greeting'), { name: session?.user.username ?? '' })}
         </AppText>
       </View>
-      <GoalCard summary={summary} />
+      <GoalCard goalType={goalType} summary={summary} />
       {today ? (
         <AppText testID="welcome-today" tone="onStage">
           {today}

@@ -21,6 +21,37 @@ Every UI implementation must comply with this specification.
 Owner-accepted 2026-10-23. The approved design in `docs/design/` is the source
 of truth.
 
+**Owner correction (2026-10-25): each screen shows only what the prototype
+shows.** This supersedes the Inicio and tab notes below where they differ.
+
+- **Inicio** is exactly the prototype's six blocks, in order:
+  1. "Tu meta te espera": the CTA-blue card with the mascot, the weekly ring,
+     the goal and weight bar, and the heartbeat.
+  2. iCoach: today's recommendation and "Según tu evaluación del …".
+  3. Aligned training and calories tiles, with icons.
+  4. "Tu evaluación de hoy": BMI with its category, and protein, carbohydrates
+     and fat eaten against target. Blood pressure stays out (ADR-P038).
+  5. Quick actions with gradient icons.
+  6. "Próximamente" with dashed water and heart-rate tiles.
+- **Moved to Perfil → "Cuenta y ajustes"**, nothing removed:
+  - the setup checklist;
+  - the email reminder (one "Pendiente" row that opens it);
+  - the evaluation recommendation;
+  - read-only access;
+  - sync (one row with the state, tap to sync, plus conflict review);
+  - load errors;
+  - the full assessment and recommendations (one collapsed row).
+- **Other tabs:** every tab is `TabScreen` (stage, side safe areas only, no
+  empty band under the header) with glass cards and `GlassRow` navigation
+  rows, not button groups.
+  - Inside a tab, `StageSurfaceProvider` renders `Card` as glass, the
+    neutral `AppText` tones as stage tones, and secondary and text buttons as
+    their stage variants.
+- **Header:** the initials avatar, the date, and "Hola, {name}" or the tab
+  name at title size. There is no "Panel" title and no gear.
+- **Notifications:** an icon per kind (gradient while unread), the time as
+  "Hoy", "Ayer" or "Hace N días", and a round × close button.
+
 - **Tab bar.**
   - Five tabs, in this order: Inicio, Entrenamientos, Nutrición, Progreso, Perfil.
   - It is a `tablist` of `tab`s on `stageDeep`, with a `glassBorder` top edge.

@@ -33,8 +33,10 @@ appId: com.appfitnessrd.mobile
     visible:
       id: 'tab-dashboard'
     timeout: 45000
+# Inicio's evaluation card renders once the iCoach assessment is ready.
 - scrollUntilVisible:
-    element: "Today's assessment"
+    element:
+      id: 'home-eval-bmi'
     timeout: 45000
 
 # --- 1. Navigate: Entrenamientos tab → Workout routines (ADR-P039 D1) ---

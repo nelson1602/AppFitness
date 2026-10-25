@@ -15,6 +15,7 @@ import { AppText } from './app-text';
 import { backgroundImageStyle } from './gradient-style';
 import { ctaBackgroundImage } from './stage-style';
 import { usePaidWriteDisabled } from './paid-write-context';
+import { useStageSurface } from './stage-surface';
 
 /**
  * Mandatory minimum touch target (.ai/08_UI_UX.md — "Minimum touch target:
@@ -43,7 +44,7 @@ interface AppButtonProps extends Omit<PressableProps, 'children' | 'style'> {
 
 export function AppButton({
   children,
-  variant = 'primary',
+  variant: requestedVariant = 'primary',
   loading = false,
   disabled,
   accessibilityRole = 'button',
@@ -58,6 +59,16 @@ export function AppButton({
   ...props
 }: AppButtonProps) {
   const theme = useTheme();
+  // On the stage (StageSurfaceProvider) the light-surface variants become
+  // their stage forms, so older feature components match the redesign.
+  const stage = useStageSurface();
+  const variant: ButtonVariant = !stage
+    ? requestedVariant
+    : requestedVariant === 'secondary'
+      ? 'stage-secondary'
+      : requestedVariant === 'text'
+        ? 'stage-link'
+        : requestedVariant;
   const paidWriteDisabled = usePaidWriteDisabled();
   const genuinelyDisabled = Boolean(disabled) || paidWriteDisabled;
   const isDisabled = genuinelyDisabled || loading;

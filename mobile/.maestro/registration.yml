@@ -58,6 +58,9 @@ appId: com.appfitnessrd.mobile
     visible:
       id: 'tab-dashboard'
     timeout: 45000
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
 - scrollUntilVisible:
     element:
       id: 'onboarding-step-profile'

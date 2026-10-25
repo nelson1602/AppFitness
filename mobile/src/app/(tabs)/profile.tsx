@@ -23,9 +23,7 @@ export default function ProfileRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('tabs.profile') }} />
-      <Screen>
-        <ProfileTab />
-      </Screen>
+      <ProfileTab />
     </>
   );
 }

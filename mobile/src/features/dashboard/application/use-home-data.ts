@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 
+import type { GeneratedWorkoutRoutine } from '@/features/icoach';
+import type { BmiCategory } from '@/features/icoach/domain/types';
 import { isoWeekStart } from '@/features/icoach/domain/progress-analysis';
 import { useFoodLogStore } from '@/features/nutrition/application/food-log.store';
 import { buildNotifications, type AppNotification } from '@/features/notifications';
@@ -12,6 +14,7 @@ import { useWellnessSafetyProfileStore } from '@/features/wellness/application/w
 import { selectWorkoutRoutine } from '@/features/workout/application/workout-routine.service';
 import { useWorkoutStore } from '@/features/workout/application/workout.store';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
+import type { GoalType } from '@/shared/infrastructure/database/types';
 
 import { buildHomeSummary, type HomeSummary } from '../domain/home-summary';
 import { useDashboardStore } from './dashboard.store';
@@ -36,9 +39,32 @@ export function loadHomeData(): void {
   void useNotificationsStore.getState().load();
 }
 
+/** One macro of "Tu evaluación de hoy": grams eaten today against the target. */
+export interface HomeMacro {
+  kind: 'protein' | 'carbs' | 'fat';
+  /** Null until the food log has loaded. */
+  consumed: number | null;
+  target: number;
+}
+
+export interface HomeEvaluation {
+  bmi: number;
+  bmiCategory: BmiCategory;
+  macros: HomeMacro[];
+}
+
 export interface HomeData {
   summary: HomeSummary;
   notifications: AppNotification[];
+  /** The generated weekly plan, or null without one (gap, blocked, no access). */
+  routine: GeneratedWorkoutRoutine | null;
+  /** Monday = 0 … Sunday = 6, today's index into `routine.schedule`. */
+  weekdayIndex: number;
+  goalType: GoalType | null;
+  goalTargetDate: string | null;
+  evaluationDate: string | null;
+  /** The iCoach assessment's BMI and macro targets, or null before it can compute. */
+  evaluation: HomeEvaluation | null;
 }
 
 /** "Today" from the device clock, resolved once per render. */
@@ -101,7 +127,41 @@ export function useHomeData(now: Date = new Date()): HomeData {
       evaluationDate,
     });
 
-    return { summary, notifications };
+    const result = assessment?.assessment ?? null;
+    const evaluation: HomeEvaluation | null = result
+      ? {
+          bmi: result.bodyComposition.bmi,
+          bmiCategory: result.bodyComposition.bmiCategory,
+          macros: [
+            {
+              kind: 'protein',
+              target: result.nutrition.proteinG,
+              consumed: foodLogReady ? totals.proteinG : null,
+            },
+            {
+              kind: 'carbs',
+              target: result.nutrition.carbsG,
+              consumed: foodLogReady ? totals.carbsG : null,
+            },
+            {
+              kind: 'fat',
+              target: result.nutrition.fatG,
+              consumed: foodLogReady ? totals.fatG : null,
+            },
+          ],
+        }
+      : null;
+
+    return {
+      summary,
+      notifications,
+      routine,
+      weekdayIndex,
+      goalType: goal?.goalType ?? null,
+      goalTargetDate: goal?.targetDate ?? null,
+      evaluationDate,
+      evaluation,
+    };
   }, [
     assessment,
     bodyWeights,
@@ -111,7 +171,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
     mode,
     profile,
     today,
-    totals.calories,
+    totals,
     weekStart,
     weekdayIndex,
     workoutLogs,

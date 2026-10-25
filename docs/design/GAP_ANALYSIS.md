@@ -77,6 +77,18 @@ Not reproduced: the prototype pre-fills demo credentials (forbidden by `10_DEPLO
 
 ### Phase 2 delivered (2026-10-23) and the data gaps it exposed
 
+**Prototype fidelity pass (2026-10-25).** Inicio now carries only the
+prototype's blocks; everything else moved to Perfil → "Cuenta y ajustes". The
+other tabs are clean stage screens until their phases. Still pending per tab:
+
+| Tab | Shown now | Pending (its own phase) |
+|---|---|---|
+| Inicio | All six prototype blocks | Blood pressure in "Tu evaluación de hoy" (ADR-P038); the iCoach health notes and the off-plan adjustment box (ADR-P040); training as series done/total (needs set tracking) |
+| Entrenamientos | Week strip from the iCoach plan, today's session with "Empezar", rows to the full plan, log, routines and library | Selectable days, set-by-set tracking with the 90 s rest, the exercise demonstrations with 3 technique steps |
+| Nutrición | Today's calories and macros, rows to the food log, the 15-day plan, the targets in detail and preferences | Day carousel, meals with ingredients, the redesigned food logger (categories, favourites, user foods), the off-plan recalculation |
+| Progreso | Weight toward the goal, this week's workouts, a row to the full progress screen | Weight chart with the goal line, the measurements grid, the weekly volume and calorie averages |
+| Perfil | Physical evaluation (weight, height, BMI) with "Actualizar evaluación", goal, "Próximamente", "Cuenta y ajustes", sign-out | Pressure, pulse, sleep and conditions (ADR-P038); the Face ID / fingerprint switch (PR #233); the lifestyle chips |
+
 The shell, the header with the bell, the in-app notifications, the Inicio layout
 and the welcome screen are built (ADR-P039, `codex/redesign-p039-shell`). Inicio
 uses only data the app already has. Where the data is missing, the card shows
