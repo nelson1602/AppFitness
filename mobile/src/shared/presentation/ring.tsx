@@ -65,8 +65,9 @@ export function Ring({
           cy={size / 2}
           fill="none"
           r={radius}
-          rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
+          // A plain SVG transform: `rotation`/`origin` became an invalid
+          // `transform-origin` DOM attribute on Web (React dev warning).
+          transform={`rotate(-90 ${size / 2} ${size / 2})`}
           stroke={color}
           strokeDasharray={`${circumference} ${circumference}`}
           strokeDashoffset={circumference * (1 - clamped)}
