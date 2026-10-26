@@ -53,7 +53,9 @@ describe('RecommendationCard', () => {
       ),
     ).toBeOnTheScreen();
     expect(
-      screen.getByText('Evidence: ISSN guidance on protein and macronutrient distribution.'),
+      screen.getByText(
+        'Evidence: International Society of Sports Nutrition guidance on protein and macronutrient distribution.',
+      ),
     ).toBeOnTheScreen();
   });
 
@@ -68,7 +70,7 @@ describe('RecommendationCard', () => {
     ).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'Fundamento: Guía de la ISSN sobre proteína y distribución de macronutrientes.',
+        'Fundamento: Guías de la Sociedad Internacional de Nutrición Deportiva (ISSN) sobre proteína y distribución de macronutrientes.',
       ),
     ).toBeOnTheScreen();
   });

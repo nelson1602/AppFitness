@@ -77,7 +77,7 @@ describe('AssessmentSummaryCard', () => {
   it('renders nutrition and training summary from the iCoach assessment', async () => {
     await render(<AssessmentSummaryCard assessment={assessment} />);
 
-    expect(screen.getByLabelText("Today's assessment summary")).toBeOnTheScreen();
+    expect(screen.getByLabelText("Today's evaluation summary")).toBeOnTheScreen();
     expect(screen.getByText('2,500 kcal')).toBeOnTheScreen();
     expect(screen.getByText('BMI 25.9 / overweight')).toBeOnTheScreen();
     expect(screen.getByText('164 g')).toBeOnTheScreen();

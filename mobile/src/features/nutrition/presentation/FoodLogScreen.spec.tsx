@@ -278,7 +278,7 @@ describe('FoodLogScreen (Slice 4C)', () => {
     });
     await render(<FoodLogScreen />);
     expect(screen.getByText('Changes pending')).toBeOnTheScreen();
-    expect(screen.getByLabelText('Sync pending')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Pending sync')).toBeOnTheScreen();
   });
 
   it('shows an action-required (failed) banner when a food is unsupported server-side', async () => {

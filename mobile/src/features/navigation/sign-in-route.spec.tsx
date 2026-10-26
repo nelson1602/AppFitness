@@ -79,7 +79,7 @@ describe('SignInScreen', () => {
       screen.getByTestId('button-forgot-password'),
       screen.getByRole('button', { name: 'Sign in' }),
       screen.getByTestId('button-toggle-mode'),
-      screen.getByRole('radio', { name: 'Language: Spanish' }),
+      screen.getByRole('radio', { name: 'Language: Español' }),
     ];
     // Pre-order walk of the host tree: document order, as a screen reader reads it.
     const hosts: unknown[] = [];
@@ -154,7 +154,7 @@ describe('SignInScreen', () => {
     await fireEvent.changeText(screen.getByLabelText('Email'), 'new@appfitness.local');
     await fireEvent.changeText(screen.getByLabelText('Username'), 'new-user');
     await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
-    await fireEvent.press(screen.getByText('Register'));
+    await fireEvent.press(screen.getByText('Create account'));
 
     await waitFor(() =>
       expect(mockSignUp).toHaveBeenCalledWith({
@@ -231,7 +231,7 @@ describe('SignInScreen', () => {
     await fireEvent.changeText(screen.getByLabelText('Email'), 'taken@appfitness.local');
     await fireEvent.changeText(screen.getByLabelText('Username'), 'taken-user');
     await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
-    await fireEvent.press(screen.getByText('Register'));
+    await fireEvent.press(screen.getByText('Create account'));
 
     expect(await screen.findByText("Couldn't create account")).toBeOnTheScreen();
     expect(

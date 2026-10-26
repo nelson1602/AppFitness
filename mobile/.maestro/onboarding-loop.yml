@@ -22,7 +22,7 @@ appId: com.appfitnessrd.mobile
 - launchApp
 
 # Session restore → the dashboard's `empty` state for the new account, which
-# renders the ADR-P027 onboarding checklist. "Finish your baseline" belongs to
+# renders the ADR-P027 onboarding checklist. "Complete your basic info" belongs to
 # `DataGapCard` and appears only once the assessment is `ready`.
 #
 # The checklist is below the verification reminder and the wellness
@@ -131,7 +131,7 @@ appId: com.appfitnessrd.mobile
 - tapOn:
     id: 'profile-recommendations'
 - scrollUntilVisible:
-    element: "Today's assessment"
+    element: "Today's evaluation"
     timeout: 30000
 - scrollUntilVisible:
     element: 'Using maintenance goal'
@@ -176,15 +176,15 @@ appId: com.appfitnessrd.mobile
 # Returning through Inicio may have collapsed the row; open it only if closed.
 - runFlow:
     when:
-      notVisible: "Today's assessment"
+      notVisible: "Today's evaluation"
     commands:
       - tapOn:
           id: 'profile-recommendations'
 - scrollUntilVisible:
-    element: "Today's assessment"
+    element: "Today's evaluation"
     timeout: 30000
 - assertNotVisible: 'Using maintenance goal'
-- assertNotVisible: 'Finish your baseline'
+- assertNotVisible: 'Complete your basic info'
 
 # --- 4. Sync the local profile + goal; the pending state clears ---
 - scrollUntilVisible:

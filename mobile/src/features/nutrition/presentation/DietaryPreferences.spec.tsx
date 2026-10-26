@@ -298,7 +298,7 @@ describe('DietaryPreferences', () => {
       ),
     ).toBeOnTheScreen();
     // Header preserved.
-    expect(screen.getByText('Dietary preferences & allergies')).toBeOnTheScreen();
+    expect(screen.getByText('Dietary preferences and allergies')).toBeOnTheScreen();
     // Not a generic error; no add form, no exclusions list, no remove controls.
     expect(screen.queryByText('Something went wrong')).toBeNull();
     expect(screen.queryByTestId('dp-add')).toBeNull();
@@ -365,7 +365,9 @@ describe('DietaryPreferences', () => {
     await render(<DietaryPreferences />);
 
     // Report-only: the hint is the bare localized word, with no choose action.
-    expect(screen.getByLabelText('Dietary preference sync conflict')).toHaveTextContent('Conflict');
+    expect(screen.getByLabelText('Dietary preference sync conflict')).toHaveTextContent(
+      'Sync conflict',
+    );
   });
 
   it('localizes the conflict hint in Spanish (BUG-011)', async () => {
@@ -375,7 +377,7 @@ describe('DietaryPreferences', () => {
 
     expect(
       screen.getByLabelText('Conflicto de sincronización de la preferencia alimentaria'),
-    ).toHaveTextContent('Conflicto');
+    ).toHaveTextContent('Conflicto de sincronización');
   });
 
   it('localizes the pending hint in Spanish (BUG-011)', async () => {
@@ -385,7 +387,7 @@ describe('DietaryPreferences', () => {
 
     expect(
       screen.getByLabelText('Preferencia guardada en este dispositivo; sincronización pendiente'),
-    ).toHaveTextContent('Guardado en este dispositivo');
+    ).toHaveTextContent('Pendiente de sincronizar');
   });
   /**
    * ADR-P022 Addendum A. The active chip fills with `primary` and previously

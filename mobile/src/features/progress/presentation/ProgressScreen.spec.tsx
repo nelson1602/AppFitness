@@ -143,7 +143,7 @@ describe('ProgressScreen (Slice 5a)', () => {
     setState({ status: 'ready', error: 'SQLITE_RAW_SAVE_ERROR_do_not_show' });
     await render(<ProgressScreen />);
     // Distinct localized save-error copy shown…
-    expect(screen.getByText('Couldn’t save your changes')).toBeOnTheScreen();
+    expect(screen.getByText("Couldn't save your changes")).toBeOnTheScreen();
     expect(screen.getByText('We could not save your changes. Please try again.')).toBeOnTheScreen();
     // …raw store string never rendered; load-error state NOT used; forms stay usable.
     expect(screen.queryByText('SQLITE_RAW_SAVE_ERROR_do_not_show')).toBeNull();
@@ -331,7 +331,9 @@ describe('ProgressScreen (Slice 5a)', () => {
     await render(<ProgressScreen />);
 
     // Report-only: the hint is the bare localized word, with no choose action.
-    expect(screen.getByLabelText('Progress entry sync conflict')).toHaveTextContent('Conflict');
+    expect(screen.getByLabelText('Progress entry sync conflict')).toHaveTextContent(
+      'Sync conflict',
+    );
   });
 
   it('localizes the conflict hint in Spanish (BUG-011)', async () => {
@@ -341,7 +343,7 @@ describe('ProgressScreen (Slice 5a)', () => {
 
     expect(
       screen.getByLabelText('Conflicto de sincronización del registro de progreso'),
-    ).toHaveTextContent('Conflicto');
+    ).toHaveTextContent('Conflicto de sincronización');
   });
 
   /**
@@ -626,7 +628,7 @@ describe('ProgressScreen (Slice 5a)', () => {
       // The charts and the weekly summary sit inside Cards, which is where a
       // wrapper would realistically creep in and make the leaves unreachable.
       const bars = screen.getAllByLabelText(/: [0-9]/);
-      const rows = screen.getAllByLabelText(/^(Avg weight|Total volume|Workouts), /);
+      const rows = screen.getAllByLabelText(/^(Avg weight|Total weight lifted|Workouts), /);
       expect(bars).toHaveLength(6);
       expect(rows).toHaveLength(3);
 

@@ -90,7 +90,7 @@ describe('GoalEditRoute', () => {
 
     await render(<GoalEditRoute />);
 
-    expect(mockStackTitle).toBe('Objetivo');
+    expect(mockStackTitle).toBe('Meta');
   });
 
   it('returns to the dashboard after a successful save', async () => {

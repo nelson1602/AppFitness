@@ -133,16 +133,16 @@ describe('BodyMeasurementForm', () => {
       'Ingresa una masa muscular mayor que 0 y de hasta 300 kg',
     );
     // Newly localized messages:
-    expect(messagesFor({ waistCm: '0' })).toContain('Introduce una medida de cintura mayor que 0');
-    expect(messagesFor({ hipCm: '0' })).toContain('Introduce una medida de cadera mayor que 0');
-    expect(messagesFor({ chestCm: '0' })).toContain('Introduce una medida de pecho mayor que 0');
+    expect(messagesFor({ waistCm: '0' })).toContain('Ingresa una medida de cintura mayor que 0');
+    expect(messagesFor({ hipCm: '0' })).toContain('Ingresa una medida de cadera mayor que 0');
+    expect(messagesFor({ chestCm: '0' })).toContain('Ingresa una medida de pecho mayor que 0');
     expect(messagesFor({ bodyFatPct: '-5' })).toContain(
-      'Introduce un % de grasa corporal mayor que 0',
+      'Ingresa un % de grasa corporal mayor que 0',
     );
     expect(messagesFor({ bodyFatPct: '150' })).toContain(
-      'Introduce un % de grasa corporal entre 0 y 100',
+      'Ingresa un % de grasa corporal entre 0 y 100',
     );
-    expect(messagesFor({ waistCm: '600' })).toContain('Valor demasiado alto');
+    expect(messagesFor({ waistCm: '600' })).toContain('El valor es demasiado alto');
     // Localized date-format message (rule unchanged).
     expect(messagesFor({ ...{}, waistCm: '82' })).not.toContain(
       'Usa el formato de fecha AAAA-MM-DD',

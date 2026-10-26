@@ -137,10 +137,10 @@ describe('WeeklySnapshotSummary', () => {
     // Month abbreviation varies by ICU; assert "Semana del" + day 3 + 2026 (no UTC shift).
     expect(screen.getByText(/^Semana del 3\b.*2026$/)).toBeOnTheScreen();
     expect(screen.getByText('Peso promedio')).toBeOnTheScreen();
-    expect(screen.getByText('Volumen total')).toBeOnTheScreen();
+    expect(screen.getByText('Volumen total (kg levantados)')).toBeOnTheScreen();
     expect(screen.getByText('Calorías promedio')).toBeOnTheScreen();
     expect(screen.getByText('Entrenamientos')).toBeOnTheScreen();
-    expect(screen.getByText('Semana de descarga')).toBeOnTheScreen();
+    expect(screen.getByText('Semana ligera')).toBeOnTheScreen();
     // Deload true → "Sí". Spanish decimal comma; thousands dot only for 5+ digits
     // (12.000), while 4-digit values are ungrouped (2100) per the es locale.
     expect(screen.getByText('Sí')).toBeOnTheScreen();
@@ -177,7 +177,7 @@ describe('WeeklySnapshotSummary', () => {
     // day 27 + 2026 (no UTC shift); 9000 is 4-digit → ungrouped in es; singular
     // "entrenamiento"; deload tag "descarga".
     expect(
-      screen.getByText(/27\b.*2026: 9000 kg de volumen · 1 entrenamiento · descarga/),
+      screen.getByText(/27\b.*2026: 9000 kg de volumen · 1 entrenamiento · semana ligera/),
     ).toBeOnTheScreen();
   });
 
@@ -239,11 +239,11 @@ describe('WeeklySnapshotSummary', () => {
       await render(<WeeklySnapshotSummary snapshots={[snap({ isDeloadWeek: true })]} />);
 
       expect(screen.getByLabelText('Avg weight, 80.4 kg')).toBeOnTheScreen();
-      expect(screen.getByLabelText('Total volume, 12,000 kg')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Total weight lifted, 12,000 kg')).toBeOnTheScreen();
       expect(screen.getByLabelText('Avg calories, 2,100 kcal')).toBeOnTheScreen();
       expect(screen.getByLabelText('Workouts, 3')).toBeOnTheScreen();
       // The deload flag stays informational text, never colour (Flow 7).
-      expect(screen.getByLabelText('Deload week, Yes')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Lighter (deload) week, Yes')).toBeOnTheScreen();
     });
 
     it('shows "—" but announces "Not recorded" for a null metric (R-10)', async () => {
@@ -257,7 +257,7 @@ describe('WeeklySnapshotSummary', () => {
       // "none" or "unknown" would each be an invention.
       expect(screen.getAllByText('—')).toHaveLength(3);
       expect(screen.getByLabelText('Avg weight, Not recorded')).toBeOnTheScreen();
-      expect(screen.getByLabelText('Total volume, Not recorded')).toBeOnTheScreen();
+      expect(screen.getByLabelText('Total weight lifted, Not recorded')).toBeOnTheScreen();
       expect(screen.getByLabelText('Avg calories, Not recorded')).toBeOnTheScreen();
       // No row announces the visual convention itself.
       expect(screen.queryAllByLabelText(/—/)).toHaveLength(0);

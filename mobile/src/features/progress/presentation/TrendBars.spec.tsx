@@ -130,7 +130,7 @@ describe('TrendBars', () => {
   it('summarizes latest/range with a downward "baja" direction in Spanish', async () => {
     mockLanguage = 'es';
     await render(<TrendBars title="Peso" data={points([80, 82, 79])} unit=" kg" testID="t" />);
-    expect(screen.getByText('Último 79 kg · rango 79–82 kg · baja 1 kg')).toBeOnTheScreen();
+    expect(screen.getByText('Última 79 kg · rango 79–82 kg · baja 1 kg')).toBeOnTheScreen();
   });
 
   it('localizes the up ("sube") and flat ("estable") direction labels in Spanish', async () => {
@@ -139,10 +139,10 @@ describe('TrendBars', () => {
       <TrendBars title="V" data={points([80, 79, 82])} unit=" kg" testID="t" />,
     );
     // first 80 → latest 82 → +2 → "sube"
-    expect(screen.getByText('Último 82 kg · rango 79–82 kg · sube 2 kg')).toBeOnTheScreen();
+    expect(screen.getByText('Última 82 kg · rango 79–82 kg · sube 2 kg')).toBeOnTheScreen();
 
     await rerender(<TrendBars title="V" data={points([80, 85, 80])} unit=" kg" testID="t" />);
-    expect(screen.getByText('Último 80 kg · rango 80–85 kg · estable 0 kg')).toBeOnTheScreen();
+    expect(screen.getByText('Última 80 kg · rango 80–85 kg · estable 0 kg')).toBeOnTheScreen();
   });
 
   it('formats thousands with the Spanish separator in the summary', async () => {
@@ -153,7 +153,7 @@ describe('TrendBars', () => {
     // first 10000 → latest 11000 → +1000 → "sube"; 5-digit values grouped
     // (11.000 / 10.000 / 12.000), but the 4-digit delta 1000 is ungrouped in es.
     expect(
-      screen.getByText('Último 11.000 kg · rango 10.000–12.000 kg · sube 1000 kg'),
+      screen.getByText('Última 11.000 kg · rango 10.000–12.000 kg · sube 1000 kg'),
     ).toBeOnTheScreen();
   });
 

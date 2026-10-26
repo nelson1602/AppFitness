@@ -105,9 +105,7 @@ describe('BodyWeightForm', () => {
     // Same rule (non-positive rejected), now surfaced with Spanish copy.
     await fireEvent.changeText(screen.getByTestId('field-weightKg'), '0');
     await fireEvent.press(screen.getByRole('button', { name: 'Guardar peso corporal' }));
-    await waitFor(() =>
-      expect(screen.getByText('Introduce un peso mayor que 0')).toBeOnTheScreen(),
-    );
+    await waitFor(() => expect(screen.getByText('Ingresa un peso mayor que 0')).toBeOnTheScreen());
     expect(onSubmit).not.toHaveBeenCalled();
   });
 });

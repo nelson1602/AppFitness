@@ -39,7 +39,7 @@ appId: com.appfitnessrd.mobile
     timeout: 60000
 - tapOn: 'Dietary preferences'
 - extendedWaitUntil:
-    visible: 'Dietary preferences & allergies'
+    visible: 'Dietary preferences and allergies'
     timeout: 15000
 # Category exclusion + allergy kind are the defaults; pick the "Nuts" tag.
 # The tag chips sit below the intro copy + mode/kind rows — scroll the chip

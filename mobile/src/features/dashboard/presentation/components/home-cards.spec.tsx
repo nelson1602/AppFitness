@@ -85,7 +85,9 @@ describe('GoalCard', () => {
     );
 
     expect(screen.getByRole('header', { name: 'Week complete!' })).toBeOnTheScreen();
-    expect(screen.getByTestId('home-goal-status')).toHaveTextContent('You did every workout');
+    expect(screen.getByTestId('home-goal-status')).toHaveTextContent(
+      'You completed every workout this week',
+    );
     expect(screen.getByTestId('home-week-ring-arc').props.stroke).toEqual(
       svgColor(lightColors.success),
     );
@@ -248,7 +250,7 @@ describe('GoalCard design details', () => {
     mockLanguage = 'es';
     await render(<GoalCard goalType="RECOMPOSITION" summary={TRAINING} />);
 
-    expect(screen.getByText('Recomposición corporal')).toBeOnTheScreen();
+    expect(screen.getByText('Recomposición (perder grasa y ganar músculo)')).toBeOnTheScreen();
     expect(screen.getByTestId('home-goal-mascot', { includeHiddenElements: true })).toBeTruthy();
     expect(screen.getByTestId('home-goal-pulse', { includeHiddenElements: true })).toBeTruthy();
   });

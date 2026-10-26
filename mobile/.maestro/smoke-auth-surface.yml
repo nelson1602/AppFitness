@@ -26,7 +26,7 @@ appId: com.appfitnessrd.mobile
 # Routing/interaction: switch to register mode and back.
 - tapOn: 'Create an account'
 - assertVisible: 'Username'
-- assertVisible: 'Register'
+- assertVisible: 'Create account'
 - tapOn: 'Use existing account'
 - assertVisible: 'Sign in'
 

@@ -215,7 +215,7 @@ describe('canonical states', () => {
     await render(<WellnessSafetyProfileScreen />);
 
     const hint = screen.getByTestId('wellness-sync-pending');
-    expect(hint).toHaveTextContent('Saved on this device');
+    expect(hint).toHaveTextContent('Pending sync');
     expect(hint.props.accessibilityLabel).toBe('Saved on this device; sync pending');
     // Pending is not a failure.
     expect(colorOf(hint)).toBe(lightTheme.colors.onSurfaceVariant);
@@ -254,14 +254,14 @@ describe('write confirmations', () => {
       'saved',
       'pending',
       'Saved on this device',
-      'Your answers are stored on this device and are waiting to synchronize.',
+      'Your answers are stored on this device and are waiting to sync.',
       'info',
     ],
     [
       'saved',
       'conflict',
-      'Saved here; a synchronization difference remains',
-      'Your change is stored on this device. This record still differs from the synchronized copy, and saving does not change that difference.',
+      "Saved here, but it doesn't match your account yet",
+      'Your change is stored on this device. This record still differs from the synced copy, and saving does not change that difference.',
       'warning',
     ],
     [
@@ -275,14 +275,14 @@ describe('write confirmations', () => {
       'removed',
       'pending',
       'Removed on this device',
-      'These details are no longer part of your active profile here. The removal is stored on this device and is waiting to synchronize.',
+      'These details are no longer part of your active profile here. The removal is stored on this device and is waiting to sync.',
       'info',
     ],
     [
       'removed',
       'conflict',
-      'Removed here; a synchronization difference remains',
-      'These details are no longer part of your active profile on this device. This record still differs from the synchronized copy, and removing does not change that difference.',
+      "Removed here, but it doesn't match your account yet",
+      'These details are no longer part of your active profile on this device. This record still differs from the synced copy, and removing does not change that difference.',
       'warning',
     ],
   ];
@@ -339,7 +339,7 @@ describe('write confirmations', () => {
       const confirmation = screen.getByTestId(`wellness-${outcome}`);
       expect(confirmation).not.toHaveTextContent(/up to date|complete|resolved|everywhere/i);
       // It acknowledges the local action and names the remaining difference…
-      expect(confirmation).toHaveTextContent(/difference remains/);
+      expect(confirmation).toHaveTextContent(/doesn't match your account yet/);
       // …and the report-only conflict banner still renders beneath it.
       expect(screen.getByTestId('wellness-conflict')).toBeOnTheScreen();
       expect(screen.getByText('These details need review')).toBeOnTheScreen();
@@ -646,7 +646,7 @@ describe('removal is confirmed, never silent', () => {
     // erasure — it must not promise that the values stop being kept.
     expect(
       screen.getByText(
-        'They stop being part of your active profile and the app no longer shows or uses them. A record of the removal stays on this device and synchronizes to your other devices. Deleting your account permanently removes the account and its data, keeping only an anonymized security audit record.',
+        'They stop being part of your active profile and the app no longer shows or uses them. A record of the removal stays on this device and syncs to your other devices. Deleting your account permanently removes the account and its data, keeping only an anonymized security audit record.',
       ),
     ).toBeOnTheScreen();
     expect(remove).not.toHaveBeenCalled();

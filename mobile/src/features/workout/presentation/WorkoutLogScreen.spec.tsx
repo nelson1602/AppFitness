@@ -297,7 +297,7 @@ describe('WorkoutLogScreen', () => {
       reps: 6,
       weightKg: null,
     });
-    expect(screen.getByText(/Custom exercises aren’t checked/)).toBeOnTheScreen();
+    expect(screen.getByText(/Custom exercises aren't checked/)).toBeOnTheScreen();
   });
 
   it('quick-creates a custom exercise from the workout set picker', async () => {
@@ -488,7 +488,7 @@ describe('WorkoutLogScreen', () => {
     await render(<WorkoutLogScreen />);
 
     await fireEvent.press(screen.getByTestId('workout-select-l1'));
-    expect(screen.getByLabelText('Sync pending')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Pending sync')).toBeOnTheScreen();
   });
 
   // BUG-011: these rows carry `syncStatus` and the appliers set it, but a
@@ -534,7 +534,7 @@ describe('WorkoutLogScreen', () => {
     await render(<WorkoutLogScreen />);
 
     // Report-only: the hint is the bare localized word, with no choose action.
-    expect(screen.getByLabelText('Workout sync conflict')).toHaveTextContent('Conflict');
+    expect(screen.getByLabelText('Workout sync conflict')).toHaveTextContent('Sync conflict');
   });
 
   it('localizes the conflict hint in Spanish (BUG-011)', async () => {
@@ -544,7 +544,7 @@ describe('WorkoutLogScreen', () => {
 
     expect(
       screen.getByLabelText('Conflicto de sincronización del entrenamiento'),
-    ).toHaveTextContent('Conflicto');
+    ).toHaveTextContent('Conflicto de sincronización');
   });
 
   it('surfaces a safe error banner', async () => {
