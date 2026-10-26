@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { goalTypeLabelKey } from '@/features/profile/presentation/goal-type-label';
+import { goalTypeShortLabelKey } from '@/features/profile/presentation/goal-type-label';
 import type { GoalType } from '@/shared/infrastructure/database/types';
 import {
   formatDate,
@@ -34,14 +34,24 @@ import type { HomeSummary } from '../../domain/home-summary';
 /** The session length the design shows when the profile has none. */
 const DEFAULT_MINUTES = 45;
 
-/** The design's panel title row: an icon, the title (a header) and an optional chip. */
+/**
+ * The design's panel title row: an icon, the title (a header) and an optional
+ * chip. The title never shrinks below its natural width (only the row's own
+ * width caps it), so when title and chip do not fit side by side (narrow
+ * phone, large text) the chip wraps below the title instead of squeezing it
+ * until a word breaks. A shrinkable title is measured narrow on Android and
+ * never lets the row wrap.
+ */
 function PanelTitle({ icon, title, right }: { icon: IconName; title: string; right?: ReactNode }) {
   const { colors, spacing } = useTheme();
   return (
-    <View style={[styles.row, styles.wrap, { gap: spacing.sm }]}>
-      <View style={[styles.row, styles.grow, { gap: spacing.sm }]}>
+    <View
+      style={[styles.row, styles.spread, styles.wrap, { gap: spacing.sm }]}
+      testID="panel-title-row"
+    >
+      <View style={[styles.row, styles.natural, { gap: spacing.sm }]} testID="panel-title-main">
         <Icon color={colors.accentCyan} name={icon} size={18} />
-        <AppText accessibilityRole="header" tone="onStage" variant="title">
+        <AppText accessibilityRole="header" style={styles.shrink} tone="onStage" variant="title">
           {title}
         </AppText>
       </View>
@@ -82,7 +92,7 @@ export function GoalCard({
         : left === 1
           ? t('home.goal.leftOne')
           : interpolate(t('home.goal.leftMany'), { count: n(left) });
-  const goalKey = goalType ? goalTypeLabelKey(goalType) : null;
+  const goalKey = goalType ? goalTypeShortLabelKey(goalType) : null;
   const kg = (value: number) => formatQuantity(value, 'kg', language, { maximumFractionDigits: 1 });
 
   return (
@@ -123,12 +133,14 @@ export function GoalCard({
         </View>
       </View>
       <View style={{ gap: spacing.xs }}>
-        <View style={[styles.row, styles.spread, { gap: spacing.sm }]}>
-          <AppText style={onCta} variant="label">
+        {/* Neither the goal name nor the weight shrinks: when both do not fit on
+            one line, the weight wraps below the name, always whole. */}
+        <View style={[styles.row, styles.spread, styles.wrap, { gap: spacing.sm }]}>
+          <AppText style={[onCta, styles.natural]} testID="home-goal-type" variant="label">
             {goalKey ? t(goalKey) : t('home.weight.label')}
           </AppText>
           {summary.weight ? (
-            <AppText style={onCta} variant="label">
+            <AppText style={[onCta, styles.fixed]} testID="home-goal-weight" variant="label">
               {`${kg(summary.weight.current)} → ${kg(summary.weight.target)}`}
             </AppText>
           ) : null}
@@ -545,11 +557,18 @@ export function ComingSoonCard() {
 }
 
 const styles = StyleSheet.create({
+  fixed: {
+    flexShrink: 0,
+  },
   grow: {
     flex: 1,
   },
   mascot: {
     position: 'absolute',
+  },
+  natural: {
+    flexShrink: 0,
+    maxWidth: '100%',
   },
   quick: {
     alignItems: 'center',

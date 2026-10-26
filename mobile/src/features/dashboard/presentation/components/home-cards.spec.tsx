@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 
 import { lightColors } from '@/shared/theme';
 
@@ -250,10 +251,83 @@ describe('GoalCard design details', () => {
     mockLanguage = 'es';
     await render(<GoalCard goalType="RECOMPOSITION" summary={TRAINING} />);
 
-    expect(screen.getByText('Recomposición (perder grasa y ganar músculo)')).toBeOnTheScreen();
+    expect(screen.getByTestId('home-goal-type')).toHaveTextContent('Recomposición corporal');
+    expect(screen.queryByText(/perder grasa y ganar músculo/)).toBeNull();
     expect(screen.getByTestId('home-goal-mascot', { includeHiddenElements: true })).toBeTruthy();
     expect(screen.getByTestId('home-goal-pulse', { includeHiddenElements: true })).toBeTruthy();
   });
+});
+
+/**
+ * Store review, 2026-10-26: on a 360 px phone the long goal name pushed the
+ * weight off the card, and "Próximamente" broke mid-word beside its chip.
+ * Jest has no layout engine, so these pin the flex contract that keeps both
+ * rows whole on a 360 px window at 200 % text; the emulator re-shoot is the
+ * visual check.
+ */
+describe('narrow window and large text (360 px, 200 %)', () => {
+  const flat = (testID: string, options?: { includeHiddenElements: boolean }) =>
+    StyleSheet.flatten(screen.getByTestId(testID, options).props.style) ?? {};
+
+  beforeEach(() => {
+    jest
+      .spyOn(Dimensions, 'get')
+      .mockImplementation(() => ({ width: 360, height: 780, scale: 3, fontScale: 2 }) as never);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it.each([
+    ['es', 'Recomposición corporal', /^74\skg → 68\skg$/],
+    ['en', 'Body recomposition', /^74\skg → 68\skg$/],
+  ] as const)(
+    '%s: the goal card names the goal briefly and keeps the weight whole',
+    async (language, goal, weight) => {
+      mockLanguage = language;
+      await render(
+        <GoalCard
+          goalType="RECOMPOSITION"
+          summary={{
+            ...TRAINING,
+            weight: { current: 74, start: 77.6, target: 68, progress: 0.375 },
+          }}
+        />,
+      );
+
+      expect(screen.getByTestId('home-goal-type')).toHaveTextContent(goal);
+      expect(screen.getByTestId('home-goal-weight')).toHaveTextContent(weight);
+      // Neither side shrinks (a squeezed name breaks mid-word, a squeezed
+      // weight is cut); the row wraps the weight below the name instead.
+      const row = StyleSheet.flatten(screen.getByTestId('home-goal-type').parent?.props.style);
+      expect(row).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+      expect(flat('home-goal-type')).toMatchObject({ flexShrink: 0, maxWidth: '100%' });
+      expect(flat('home-goal-weight')).toMatchObject({ flexShrink: 0 });
+    },
+  );
+
+  it.each([
+    ['es', 'Próximamente', 'Actualización'],
+    ['en', 'Coming soon', 'Future update'],
+  ] as const)(
+    '%s: "%s" keeps its natural width and lets the short chip wrap below it',
+    async (language, title, chip) => {
+      mockLanguage = language;
+      await render(<ComingSoonCard />);
+
+      expect(screen.getByRole('header', { name: title })).toBeOnTheScreen();
+      expect(screen.getByTestId('home-soon-chip')).toHaveTextContent(chip);
+      expect(flat('panel-title-row')).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+      // A title that can shrink (`flex: 1`, or `flexShrink: 1`) is squeezed
+      // beside the chip until a word breaks; the emulator showed both. Only
+      // the row's own width may cap it, so the chip wraps instead.
+      const main = flat('panel-title-main');
+      expect(main).toMatchObject({ flexShrink: 0, maxWidth: '100%' });
+      expect(main).not.toHaveProperty('flex');
+      expect(main).not.toHaveProperty('flexBasis');
+    },
+  );
 });
 
 describe('CoachCard evaluation footer', () => {

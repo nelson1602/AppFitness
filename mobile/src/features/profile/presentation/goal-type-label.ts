@@ -16,6 +16,25 @@ const GOAL_TYPE_KEY: Readonly<Record<GoalType, TranslationKey | null>> = {
   REHABILITATION: null,
 };
 
+/**
+ * A short name per goal type for tight spots such as Inicio's goal card, where
+ * the editor's longer wording would push the weight off the row.
+ */
+const GOAL_TYPE_SHORT_KEY: Readonly<Record<GoalType, TranslationKey | null>> = {
+  FAT_LOSS: 'goal.typeShort.fatLoss',
+  MUSCLE_GAIN: 'goal.typeShort.muscleGain',
+  RECOMPOSITION: 'goal.typeShort.recomposition',
+  STRENGTH: 'goal.typeShort.strength',
+  ENDURANCE: 'goal.typeShort.endurance',
+  GENERAL_HEALTH: 'goal.typeShort.generalHealth',
+  MAINTENANCE: 'goal.typeShort.maintenance',
+  REHABILITATION: null,
+};
+
 export function goalTypeLabelKey(goalType: GoalType): TranslationKey | null {
   return GOAL_TYPE_KEY[goalType];
+}
+
+export function goalTypeShortLabelKey(goalType: GoalType): TranslationKey | null {
+  return GOAL_TYPE_SHORT_KEY[goalType];
 }

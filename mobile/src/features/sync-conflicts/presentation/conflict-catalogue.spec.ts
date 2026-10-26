@@ -150,11 +150,13 @@ describe('catalogue parity', () => {
   // group headings and the Nutrition and Progress shortcuts). It moved to 1258
   // on 2026-10-25 with the prototype-fidelity pass: 51 keys for Inicio's
   // evaluation card, notification times and the four tabs, minus 7 that the
-  // pass left unreachable.
+  // pass left unreachable. It moved to 1265 on 2026-10-26, when the store
+  // screenshot review added a short goal name per goal type (goal.typeShort.*)
+  // so Inicio's goal card keeps the weight whole.
   // None of these is in this family, so the 157-key conflict family below is unchanged.
-  it('reaches 1258 keys in each language — 1101 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1258);
-    expect(Object.keys(es)).toHaveLength(1258);
+  it('reaches 1265 keys in each language — 1108 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1265);
+    expect(Object.keys(es)).toHaveLength(1265);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 
