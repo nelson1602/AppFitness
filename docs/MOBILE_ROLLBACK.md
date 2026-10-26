@@ -44,6 +44,9 @@ live Play track (see "Validation status").
 3. `eas build --platform android --profile production`.
 4. `eas submit --platform android --profile production` (draft/internal
    first; see `eas.json` submit profile) — **owner-approved store action**.
+   The Google Play service-account key is stored on EAS
+   (`eas-submit@appfitnessrd.iam.gserviceaccount.com`); the submit profile
+   names no local key file, and none belongs in the repository.
 5. Promote through tracks once validated.
 
 ## Backend coupling
