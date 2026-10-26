@@ -45,7 +45,10 @@ const DEFAULT_MINUTES = 45;
 function PanelTitle({ icon, title, right }: { icon: IconName; title: string; right?: ReactNode }) {
   const { colors, spacing } = useTheme();
   return (
-    <View style={[styles.row, styles.wrap, { gap: spacing.sm }]} testID="panel-title-row">
+    <View
+      style={[styles.row, styles.spread, styles.wrap, { gap: spacing.sm }]}
+      testID="panel-title-row"
+    >
       <View style={[styles.row, styles.natural, { gap: spacing.sm }]} testID="panel-title-main">
         <Icon color={colors.accentCyan} name={icon} size={18} />
         <AppText accessibilityRole="header" style={styles.shrink} tone="onStage" variant="title">
