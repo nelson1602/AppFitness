@@ -36,15 +36,17 @@ const DEFAULT_MINUTES = 45;
 
 /**
  * The design's panel title row: an icon, the title (a header) and an optional
- * chip. The title keeps its natural width, so when title and chip do not fit
- * side by side (narrow phone, large text) the chip wraps below the title
- * instead of squeezing it until a word breaks.
+ * chip. The title never shrinks below its natural width (only the row's own
+ * width caps it), so when title and chip do not fit side by side (narrow
+ * phone, large text) the chip wraps below the title instead of squeezing it
+ * until a word breaks. A shrinkable title is measured narrow on Android and
+ * never lets the row wrap.
  */
 function PanelTitle({ icon, title, right }: { icon: IconName; title: string; right?: ReactNode }) {
   const { colors, spacing } = useTheme();
   return (
     <View style={[styles.row, styles.wrap, { gap: spacing.sm }]} testID="panel-title-row">
-      <View style={[styles.row, styles.fill, { gap: spacing.sm }]} testID="panel-title-main">
+      <View style={[styles.row, styles.natural, { gap: spacing.sm }]} testID="panel-title-main">
         <Icon color={colors.accentCyan} name={icon} size={18} />
         <AppText accessibilityRole="header" style={styles.shrink} tone="onStage" variant="title">
           {title}
@@ -128,9 +130,10 @@ export function GoalCard({
         </View>
       </View>
       <View style={{ gap: spacing.xs }}>
-        {/* The goal name wraps; the weight never shrinks, so it is always whole. */}
-        <View style={[styles.row, styles.spread, { gap: spacing.sm }]}>
-          <AppText style={[onCta, styles.shrink]} testID="home-goal-type" variant="label">
+        {/* Neither the goal name nor the weight shrinks: when both do not fit on
+            one line, the weight wraps below the name, always whole. */}
+        <View style={[styles.row, styles.spread, styles.wrap, { gap: spacing.sm }]}>
+          <AppText style={[onCta, styles.natural]} testID="home-goal-type" variant="label">
             {goalKey ? t(goalKey) : t('home.weight.label')}
           </AppText>
           {summary.weight ? (
@@ -551,10 +554,6 @@ export function ComingSoonCard() {
 }
 
 const styles = StyleSheet.create({
-  fill: {
-    flexGrow: 1,
-    flexShrink: 1,
-  },
   fixed: {
     flexShrink: 0,
   },
@@ -563,6 +562,10 @@ const styles = StyleSheet.create({
   },
   mascot: {
     position: 'absolute',
+  },
+  natural: {
+    flexShrink: 0,
+    maxWidth: '100%',
   },
   quick: {
     alignItems: 'center',

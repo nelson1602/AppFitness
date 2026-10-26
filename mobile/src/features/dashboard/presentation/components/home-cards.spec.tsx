@@ -298,8 +298,11 @@ describe('narrow window and large text (360 px, 200 %)', () => {
 
       expect(screen.getByTestId('home-goal-type')).toHaveTextContent(goal);
       expect(screen.getByTestId('home-goal-weight')).toHaveTextContent(weight);
-      // The name may wrap onto a second line; the weight may never shrink.
-      expect(flat('home-goal-type')).toMatchObject({ flexShrink: 1 });
+      // Neither side shrinks (a squeezed name breaks mid-word, a squeezed
+      // weight is cut); the row wraps the weight below the name instead.
+      const row = StyleSheet.flatten(screen.getByTestId('home-goal-type').parent?.props.style);
+      expect(row).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+      expect(flat('home-goal-type')).toMatchObject({ flexShrink: 0, maxWidth: '100%' });
       expect(flat('home-goal-weight')).toMatchObject({ flexShrink: 0 });
     },
   );
@@ -316,10 +319,11 @@ describe('narrow window and large text (360 px, 200 %)', () => {
       expect(screen.getByRole('header', { name: title })).toBeOnTheScreen();
       expect(screen.getByTestId('home-soon-chip')).toHaveTextContent(chip);
       expect(flat('panel-title-row')).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
-      // `flex: 1` would zero the title's basis, so the row never wraps and the
-      // title is squeezed until a word breaks. A content basis wraps the chip.
+      // A title that can shrink (`flex: 1`, or `flexShrink: 1`) is squeezed
+      // beside the chip until a word breaks; the emulator showed both. Only
+      // the row's own width may cap it, so the chip wraps instead.
       const main = flat('panel-title-main');
-      expect(main).toMatchObject({ flexGrow: 1, flexShrink: 1 });
+      expect(main).toMatchObject({ flexShrink: 0, maxWidth: '100%' });
       expect(main).not.toHaveProperty('flex');
       expect(main).not.toHaveProperty('flexBasis');
     },
