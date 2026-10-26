@@ -116,11 +116,11 @@ describe('GoalForm', () => {
 
     await render(<GoalForm onSaved={jest.fn()} />);
 
-    expect(screen.getByText('Define tu objetivo')).toBeOnTheScreen();
-    expect(screen.getByText('Recomposición corporal')).toBeOnTheScreen();
+    expect(screen.getByText('Define tu meta')).toBeOnTheScreen();
+    expect(screen.getByText('Recomposición (perder grasa y ganar músculo)')).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('option-goalType-RECOMPOSITION'));
     await fireEvent.changeText(screen.getByTestId('field-targetWeightKg'), '75');
-    await fireEvent.press(screen.getByRole('button', { name: 'Guardar objetivo' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Guardar meta' }));
 
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith({
@@ -137,7 +137,7 @@ describe('GoalForm', () => {
 
     await render(<GoalForm onSaved={jest.fn()} />);
     await fireEvent.changeText(screen.getByTestId('field-targetDate'), '31-12-2026');
-    await fireEvent.press(screen.getByRole('button', { name: 'Guardar objetivo' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Guardar meta' }));
 
     await waitFor(() => expect(screen.getByText('Usa AAAA-MM-DD')).toBeOnTheScreen());
     expect(save).not.toHaveBeenCalled();
@@ -195,7 +195,7 @@ describe('GoalForm', () => {
 
     await render(<GoalForm onSaved={jest.fn()} />);
 
-    expect(screen.getByText('Couldn’t save')).toBeOnTheScreen();
+    expect(screen.getByText("Couldn't save")).toBeOnTheScreen();
     expect(
       screen.getByText('Your goal could not be saved right now. Try again.'),
     ).toBeOnTheScreen();
@@ -229,14 +229,14 @@ describe('GoalForm', () => {
 
     await render(<GoalForm onSaved={jest.fn()} />);
 
-    expect(screen.getByText('Objetivo')).toBeOnTheScreen();
+    expect(screen.getByText('Meta')).toBeOnTheScreen();
     expect(
-      screen.getByText('La edición del objetivo no está disponible en la web'),
+      screen.getByText('La edición de la meta no está disponible en la web'),
     ).toBeOnTheScreen();
     expect(
-      screen.getByText('Usa la app móvil de AppFitnessRD para definir y actualizar tu objetivo.'),
+      screen.getByText('Usa la app móvil de AppFitnessRD para definir y actualizar tu meta.'),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('field-targetWeightKg')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Guardar objetivo' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Guardar meta' })).toBeNull();
   });
 });

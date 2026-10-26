@@ -108,7 +108,9 @@ describe('what the copy must say', () => {
     expect(en['workout.plan.coverageBody']).toMatch(/all being respected/i);
     expect(en['workout.plan.coverageBody']).toMatch(/nothing has been added back/i);
     expect(es['workout.plan.coverageBody']).toMatch(/se respetan todas las limitaciones/i);
-    expect(es['workout.plan.coverageBody']).toMatch(/no se volvió a agregar nada/i);
+    expect(es['workout.plan.coverageBody']).toMatch(
+      /no agregamos ejercicios que vayan contra tus limitaciones/i,
+    );
   });
 
   it('offers a review without pressuring the user to remove anything', () => {
@@ -178,7 +180,7 @@ describe('what the copy must say', () => {
     expect(en['wellness.plan.limitationsAppliedBasis']).toMatch(/movement choices you entered/i);
     expect(en['wellness.plan.limitationsAppliedBasis']).toMatch(/assumed or inferred/i);
     expect(es['wellness.plan.limitationsAppliedBasis']).toMatch(
-      /opciones de movimiento que escribiste/i,
+      /movimientos que elegiste de la lista/i,
     );
     expect(es['wellness.plan.limitationsAppliedBasis']).toMatch(/no se supone ni se deduce/i);
   });

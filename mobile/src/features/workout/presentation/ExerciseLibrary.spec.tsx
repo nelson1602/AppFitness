@@ -136,7 +136,7 @@ describe('ExerciseLibrary', () => {
     expect(screen.getByText('Tus ejercicios personalizados')).toBeOnTheScreen();
     expect(screen.getByText('Zercher Squat')).toBeOnTheScreen();
     expect(screen.getByText('mis piernas · Fuerza')).toBeOnTheScreen();
-    expect(screen.getByText('Pendiente de sincronización')).toBeOnTheScreen();
+    expect(screen.getByText('Pendiente de sincronizar')).toBeOnTheScreen();
     expect(screen.getByText('Ejercicios integrados')).toBeOnTheScreen();
     expect(screen.getByText('Sentadilla trasera')).toBeOnTheScreen();
     expect(screen.getAllByText('Cuádriceps · Fuerza').length).toBeGreaterThan(0);
@@ -308,8 +308,8 @@ describe('ExerciseLibrary', () => {
     setStore({ customExercises: [customExercise({ syncStatus: 'pending' })] });
     await render(<ExerciseLibrary />);
 
-    expect(screen.getByLabelText('Sync pending')).toBeOnTheScreen();
-    expect(screen.getAllByText(/Custom exercises aren’t checked/).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Pending sync')).toBeOnTheScreen();
+    expect(screen.getAllByText(/Custom exercises aren't checked/).length).toBeGreaterThan(0);
   });
 
   it('shows a localized stable error instead of the raw store error', async () => {

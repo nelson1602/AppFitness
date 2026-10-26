@@ -182,7 +182,7 @@ describe('ForgotPasswordScreen Web focus contract (BUG-035)', () => {
     await render(<ForgotPasswordScreen />);
 
     await enter();
-    expect(screen.getByText('Introduce el correo de tu cuenta.')).toBeOnTheScreen();
+    expect(screen.getByText('Ingresa el correo de tu cuenta.')).toBeOnTheScreen();
     await fireEvent.changeText(field(), 'persona@example.test');
     await enter();
 

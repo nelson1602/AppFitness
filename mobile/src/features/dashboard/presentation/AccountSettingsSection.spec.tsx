@@ -215,7 +215,7 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
     });
 
     await render(<AccountSettingsSection />);
-    fireEvent.press(screen.getByRole('button', { name: 'Load fake sample dashboard data' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Load sample data' }));
 
     expect(screen.getByText('Finish setting up AppFitnessRD')).toBeOnTheScreen();
     expect(screen.getByTestId('onboarding-step-weight')).toBeOnTheScreen();
@@ -283,7 +283,7 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
 
     expect(screen.getByText('Termina de configurar AppFitnessRD')).toBeOnTheScreen();
     expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('2 de 3 completados');
-    expect(screen.getByTestId('onboarding-step-goal')).toHaveTextContent('Elige tu objetivo');
+    expect(screen.getByTestId('onboarding-step-goal')).toHaveTextContent('Elige tu meta');
   });
 
   it('deep-links a profile data gap to the profile edit screen', async () => {
@@ -367,7 +367,7 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
     // Sync is one compact row now: its name says the action and the state.
     fireEvent.press(screen.getByTestId('dashboard-sync-now'));
     expect(screen.getByTestId('dashboard-sync-now').props.accessibilityLabel).toBe(
-      'Synchronize local changes. Local data ready. Dashboard is available offline.',
+      'Sync local changes. Local data ready. Dashboard is available offline.',
     );
 
     expect(screen.getByText('2,500 kcal')).toBeOnTheScreen();

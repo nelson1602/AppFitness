@@ -128,7 +128,9 @@ describe('GeneratedWorkoutPlan', () => {
     expect(screen.getByText('Your weekly iCoach plan')).toBeOnTheScreen();
     expect(screen.getByText(/Monday: Training/)).toBeOnTheScreen();
     expect(screen.getAllByText('Back squat')).toHaveLength(2);
-    expect(screen.getByText(/3 sets.*8–12 reps.*90 seconds rest.*target RPE 7/)).toBeOnTheScreen();
+    expect(
+      screen.getByText(/3 sets.*8–12 reps.*90 seconds rest.*target effort \(RPE 1–10\) 7/),
+    ).toBeOnTheScreen();
     expect(screen.getByText(/Substitutions: Goblet squat/)).toBeOnTheScreen();
     expect(
       screen.getByText(/After 2 successful sessions: increase load by 2.5%/),
@@ -154,7 +156,7 @@ describe('GeneratedWorkoutPlan', () => {
   });
 
   it.each([
-    ['gap', 'Complete your baseline first'],
+    ['gap', 'Complete your basic info first'],
     ['blocked', 'Workout plan unavailable'],
     // ADR-P031 §Decision 15: insufficient coverage keeps the Error tone but
     // gets its own calm, non-blaming copy — it is a catalogue limitation.

@@ -1151,8 +1151,8 @@ card, which is a design decision this deck does not make.
 |---|---|---|---|---|
 | `sync.conflicts.meta.record` | Record | Registro | `entityKind` | **CATALOGUED, NOT RENDERED** — see the correction above |
 | `sync.conflicts.meta.entryDate` | Entry date | Fecha del registro | `comparisonDate` | **SHIPPED** |
-| `sync.conflicts.meta.startingVersion` | You started from version | Partiste de la versión | `baseVersion` | **SHIPPED** |
-| `sync.conflicts.meta.accountVersion` | Your account is on version | Tu cuenta va en la versión | `currentServerVersion` | **SHIPPED** |
+| `sync.conflicts.meta.startingVersion` | You started from version | Versión de este dispositivo | `baseVersion` | **SHIPPED** |
+| `sync.conflicts.meta.accountVersion` | Your account is on version | Versión de tu cuenta | `currentServerVersion` | **SHIPPED** |
 | `sync.conflicts.meta.noticed` | Noticed | Detectado | `detectedAt` | **SHIPPED** |
 | `sync.conflicts.meta.status` | Status | Estado | `settlement` | **SHIPPED** |
 
@@ -1285,7 +1285,7 @@ registered, so they can never reach this surface (ADR-P017).
 | Key | EN | ES | Status |
 |---|---|---|---|
 | `sync.conflicts.record.user_profiles` | Profile | Perfil | **SHIPPED** |
-| `sync.conflicts.record.goals` | Goal | Objetivo | **SHIPPED** |
+| `sync.conflicts.record.goals` | Goal | Meta | **SHIPPED** |
 | `sync.conflicts.record.body_weights` | Weight entry | Registro de peso | **SHIPPED** |
 | `sync.conflicts.record.body_measurements` | Body measurements | Medidas corporales | **SHIPPED** |
 | `sync.conflicts.record.progress_snapshots` | Weekly summary | Resumen semanal | **SHIPPED** |
@@ -1329,20 +1329,20 @@ meaning is shared, so the set is deduplicated.
 | `sync.conflicts.field.evaluation_completed` | Professional evaluation completed | Evaluación profesional completada | **SHIPPED** |
 | `sync.conflicts.field.evaluation_date` | Date of the evaluation | Fecha de la evaluación | **SHIPPED** |
 | `sync.conflicts.field.exclusion_type` | Kind of exclusion | Tipo de exclusión | **SHIPPED** |
-| `sync.conflicts.field.fat_per_serving_snapshot` | Fat per serving | Grasas por porción | **SHIPPED** |
+| `sync.conflicts.field.fat_per_serving_snapshot` | Fat per serving | Grasa por porción | **SHIPPED** |
 | `sync.conflicts.field.fiber_per_serving_snapshot` | Fiber per serving | Fibra por porción | **SHIPPED** |
 | `sync.conflicts.field.finished_at` | Finished | Terminado | **SHIPPED** |
-| `sync.conflicts.field.fitness_level` | Fitness level | Nivel de acondicionamiento | **SHIPPED** |
+| `sync.conflicts.field.fitness_level` | Fitness level | Nivel de condición física | **SHIPPED** |
 | `sync.conflicts.field.food_name_snapshot` | Food name | Nombre del alimento | **SHIPPED** |
 | `sync.conflicts.field.food_revision_snapshot` | Food version | Versión del alimento | **SHIPPED** |
-| `sync.conflicts.field.gender` | Gender | Género | **SHIPPED** |
-| `sync.conflicts.field.goal_type` | Goal type | Tipo de objetivo | **SHIPPED** |
+| `sync.conflicts.field.gender` | Sex | Sexo | **SHIPPED** |
+| `sync.conflicts.field.goal_type` | Goal type | Tipo de meta | **SHIPPED** |
 | `sync.conflicts.field.grams_per_serving_snapshot` | Grams per serving | Gramos por porción | **SHIPPED** |
 | `sync.conflicts.field.height_cm` | Height | Estatura | **SHIPPED** |
 | `sync.conflicts.field.hip_cm` | Hips | Cadera | **SHIPPED** |
 | `sync.conflicts.field.instructions` | Instructions | Instrucciones | **SHIPPED** |
 | `sync.conflicts.field.is_active` | Active | Activo | **SHIPPED** |
-| `sync.conflicts.field.is_deload_week` | Lighter week | Semana más ligera | **SHIPPED** |
+| `sync.conflicts.field.is_deload_week` | Lighter (deload) week | Semana ligera | **SHIPPED** |
 | `sync.conflicts.field.kind` | Kind | Tipo | **SHIPPED** |
 | `sync.conflicts.field.left_arm_cm` | Left arm | Brazo izquierdo | **SHIPPED** |
 | `sync.conflicts.field.movements_to_avoid` | Movements to avoid | Movimientos a evitar | **SHIPPED** |
@@ -1369,12 +1369,12 @@ meaning is shared, so the set is deduplicated.
 | `sync.conflicts.field.stress_level_baseline` | Usual stress | Estrés habitual | **SHIPPED** |
 | `sync.conflicts.field.target_calories` | Calorie target | Meta de calorías | **SHIPPED** |
 | `sync.conflicts.field.target_carbs_g` | Carb target | Meta de carbohidratos | **SHIPPED** |
-| `sync.conflicts.field.target_date` | Target date | Fecha objetivo | **SHIPPED** |
-| `sync.conflicts.field.target_fat_g` | Fat target | Meta de grasas | **SHIPPED** |
+| `sync.conflicts.field.target_date` | Target date | Fecha meta | **SHIPPED** |
+| `sync.conflicts.field.target_fat_g` | Fat target | Meta de grasa | **SHIPPED** |
 | `sync.conflicts.field.target_protein_g` | Protein target | Meta de proteína | **SHIPPED** |
 | `sync.conflicts.field.target_reps` | Target reps | Repeticiones objetivo | **SHIPPED** |
 | `sync.conflicts.field.target_sets` | Target sets | Series objetivo | **SHIPPED** |
-| `sync.conflicts.field.target_weight_kg` | Target weight | Peso objetivo | **SHIPPED** |
+| `sync.conflicts.field.target_weight_kg` | Target weight | Peso meta | **SHIPPED** |
 | `sync.conflicts.field.total_volume_kg` | Total volume | Volumen total | **SHIPPED** |
 | `sync.conflicts.field.training_days_per_week` | Training days per week | Días de entrenamiento por semana | **SHIPPED** |
 | `sync.conflicts.field.waist_cm` | Waist | Cintura | **SHIPPED** |
@@ -1426,7 +1426,7 @@ surface shipped. They take the catalogue to **1058/1058**, not 1056/1056.
 
 | Key | EN | ES | Status |
 |---|---|---|---|
-| `sync.conflicts.webUnavailableTitle` | Reviewing changes isn't available on the web | Revisar cambios no está disponible en la web | **SHIPPED** |
+| `sync.conflicts.webUnavailableTitle` | Reviewing changes isn't available on the web | La revisión de cambios no está disponible en la web | **SHIPPED** |
 | `sync.conflicts.webUnavailableBody` | Use the AppFitnessRD mobile app to review these changes and choose which version to keep. | Usa la app móvil de AppFitnessRD para revisar estos cambios y elegir qué versión conservar. | **SHIPPED** |
 
 ---

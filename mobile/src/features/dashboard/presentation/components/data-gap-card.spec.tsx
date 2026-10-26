@@ -39,7 +39,7 @@ describe('DataGapCard', () => {
     await render(<DataGapCard gaps={gaps} />);
 
     expect(screen.getByLabelText('Dashboard setup requirements')).toBeOnTheScreen();
-    expect(screen.getByText('Finish your baseline')).toBeOnTheScreen();
+    expect(screen.getByText('Complete your basic info')).toBeOnTheScreen();
     expect(screen.getByText('Create your profile')).toBeOnTheScreen();
     expect(screen.getByText('Record a weight measurement')).toBeOnTheScreen();
   });
@@ -48,7 +48,7 @@ describe('DataGapCard', () => {
     const onLoadSampleData = jest.fn();
     await render(<DataGapCard gaps={gaps} onLoadSampleData={onLoadSampleData} />);
 
-    fireEvent.press(screen.getByRole('button', { name: 'Load fake sample dashboard data' }));
+    fireEvent.press(screen.getByRole('button', { name: 'Load sample data' }));
 
     expect(onLoadSampleData).toHaveBeenCalledTimes(1);
   });
@@ -95,7 +95,7 @@ describe('DataGapCard', () => {
     );
     fireEvent.press(screen.getByRole('button', { name: 'Corregir: Crea tu perfil' }));
 
-    expect(screen.getByText('Completa tus datos iniciales')).toBeOnTheScreen();
+    expect(screen.getByText('Completa tu información básica')).toBeOnTheScreen();
     expect(screen.getByText('Registra una medición de peso')).toBeOnTheScreen();
     expect(fixProfile).toHaveBeenCalledTimes(1);
   });

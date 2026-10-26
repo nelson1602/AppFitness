@@ -229,7 +229,7 @@ describe('RoutineBuilder', () => {
     expect(screen.getByText('Tus rutinas')).toBeOnTheScreen();
     await fireEvent.press(screen.getByText('Ver ejercicios'));
 
-    expect(screen.getByText('Integrados')).toBeOnTheScreen();
+    expect(screen.getByText('Del catálogo')).toBeOnTheScreen();
     expect(screen.getByText('Sentadilla trasera')).toBeOnTheScreen();
     expect(screen.getAllByText('Cuádriceps').length).toBeGreaterThan(0);
     await fireEvent.press(screen.getByLabelText('Agregar Sentadilla trasera'));
@@ -278,7 +278,7 @@ describe('RoutineBuilder', () => {
       exerciseId: 'ce1',
       order: 0,
     });
-    expect(screen.getByText(/Custom exercises aren’t checked/)).toBeOnTheScreen();
+    expect(screen.getByText(/Custom exercises aren't checked/)).toBeOnTheScreen();
   });
 
   it('quick-creates a custom exercise from the routine picker', async () => {
@@ -402,7 +402,7 @@ describe('RoutineBuilder routine-name input (UX-5)', () => {
 
   it.each([
     ['en', 'Routine name', 'e.g. Push day'],
-    ['es', 'Nombre de la rutina', 'p. ej., Día de empuje'],
+    ['es', 'Nombre de la rutina', 'p. ej., Día de pecho y hombros'],
   ] as const)(
     'keeps the frozen test ID, accessible name and placeholder on one node (%s)',
     async (language, name, placeholder) => {

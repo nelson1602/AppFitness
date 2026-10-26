@@ -44,7 +44,7 @@ describe('LanguageSelector', () => {
     await render(<LanguageSelector />);
 
     expect(screen.getAllByRole('radio')).toHaveLength(2);
-    expect(screen.getByRole('radio', { name: 'Language: Spanish' })).toBeOnTheScreen();
+    expect(screen.getByRole('radio', { name: 'Language: Español' })).toBeOnTheScreen();
     expect(screen.getByRole('radio', { name: 'Language: English' })).toBeOnTheScreen();
     expect(screen.queryByTestId('language-option-system')).toBeNull();
     expect(screen.queryByText('Device language')).toBeNull();
@@ -81,7 +81,7 @@ describe('LanguageSelector', () => {
     await render(<LanguageSelector />);
 
     await act(async () => {
-      fireEvent.press(screen.getByRole('radio', { name: 'Language: Spanish' }));
+      fireEvent.press(screen.getByRole('radio', { name: 'Language: Español' }));
     });
 
     await waitFor(() => expect(mockSetLanguagePreference).toHaveBeenCalledWith('es'));
@@ -118,8 +118,8 @@ describe('LanguageSelector', () => {
     const checkedOptions = () => options.filter((option) => state(option).checked === true);
 
     it.each([
-      ['en', ['Language: Spanish', 'Language: English']],
-      ['es', ['Idioma: Español', 'Idioma: Inglés']],
+      ['en', ['Language: Español', 'Language: English']],
+      ['es', ['Idioma: Español', 'Idioma: English']],
     ] as const)(
       'checks exactly the selected option in %s, with unchanged labels',
       async (language, names) => {
@@ -149,7 +149,7 @@ describe('LanguageSelector', () => {
         screen.getByRole('radio', { name: 'Idioma: Español' }).props.accessibilityState.checked,
       ).toBe(true);
       expect(
-        screen.getByRole('radio', { name: 'Idioma: Inglés' }).props.accessibilityState.checked,
+        screen.getByRole('radio', { name: 'Idioma: English' }).props.accessibilityState.checked,
       ).toBe(false);
 
       mockState.preference = 'en';

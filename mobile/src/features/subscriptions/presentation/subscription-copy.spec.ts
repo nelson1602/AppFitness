@@ -35,14 +35,14 @@ const FREE_WORDS = /free|trial|gratis|prueba/i;
 
 describe('subscription copy', () => {
   it.each([
-    [{ unit: 'day', count: 1 }, '1 day free', '1 día gratis'],
-    [{ unit: 'day', count: 7 }, '7 days free', '7 días gratis'],
-    [{ unit: 'week', count: 1 }, '1 week free', '1 semana gratis'],
-    [{ unit: 'week', count: 2 }, '2 weeks free', '2 semanas gratis'],
-    [{ unit: 'month', count: 1 }, '1 month free', '1 mes gratis'],
-    [{ unit: 'month', count: 3 }, '3 months free', '3 meses gratis'],
-    [{ unit: 'year', count: 1 }, '1 year free', '1 año gratis'],
-    [{ unit: 'year', count: 2 }, '2 years free', '2 años gratis'],
+    [{ unit: 'day', count: 1 }, '1-day free trial', 'Prueba gratis de 1 día'],
+    [{ unit: 'day', count: 7 }, '7-day free trial', 'Prueba gratis de 7 días'],
+    [{ unit: 'week', count: 1 }, '1-week free trial', 'Prueba gratis de 1 semana'],
+    [{ unit: 'week', count: 2 }, '2-week free trial', 'Prueba gratis de 2 semanas'],
+    [{ unit: 'month', count: 1 }, '1-month free trial', 'Prueba gratis de 1 mes'],
+    [{ unit: 'month', count: 3 }, '3-month free trial', 'Prueba gratis de 3 meses'],
+    [{ unit: 'year', count: 1 }, '1-year free trial', 'Prueba gratis de 1 año'],
+    [{ unit: 'year', count: 2 }, '2-year free trial', 'Prueba gratis de 2 años'],
   ] as const)('words a %j trial as one complete phrase', (trial, english, spanish) => {
     expect(trialLabel(trial, tEn, 'en')).toBe(english);
     expect(trialLabel(trial, tEs, 'es')).toBe(spanish);
@@ -78,7 +78,7 @@ describe('subscription copy', () => {
     const trial = offerCopy(offer({ unit: 'month', count: 1 }), tEn, 'en');
 
     expect(trial).toMatchObject({
-      headline: '1 month free',
+      headline: '1-month free trial',
       priceLine: 'Then RD$ 295.00 per month',
       actionLabel: 'Start free trial',
     });

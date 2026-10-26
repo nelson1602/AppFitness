@@ -89,7 +89,7 @@ describe('ProfileTab (ADR-P039)', () => {
       /Peso81,7\skg.*Estatura178\scm.*IMC25,8/,
     );
     expect(screen.getByRole('header', { name: 'Meta' })).toBeOnTheScreen();
-    expect(screen.getByText('Recomposición corporal')).toBeOnTheScreen();
+    expect(screen.getByText('Recomposición (perder grasa y ganar músculo)')).toBeOnTheScreen();
     expect(screen.getByText('78 kg para el 31 de diciembre de 2026')).toBeOnTheScreen();
     expect(screen.getByRole('header', { name: 'Próximamente' })).toBeOnTheScreen();
     expect(screen.getByRole('header', { name: 'Cuenta y ajustes' })).toBeOnTheScreen();

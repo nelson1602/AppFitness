@@ -136,10 +136,8 @@ describe('NutritionTargets', () => {
 
     await render(<NutritionTargets />);
 
-    expect(screen.getByText('Finish your baseline first')).toBeOnTheScreen();
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Go to the dashboard to finish your baseline' }),
-    );
+    expect(screen.getByText('Complete your basic info first')).toBeOnTheScreen();
+    fireEvent.press(screen.getByRole('button', { name: 'Go to Home to complete your basic info' }));
     expect(router.push).toHaveBeenCalledWith('/dashboard');
   });
 
@@ -212,7 +210,7 @@ describe('NutritionTargets', () => {
     expect(screen.getByText('Nutrition targets')).toBeOnTheScreen();
     // Not a generic error, no data-gap, no plan navigation, no disclaimer/content.
     expect(screen.queryByText('Nutrition unavailable')).toBeNull();
-    expect(screen.queryByText('Finish your baseline first')).toBeNull();
+    expect(screen.queryByText('Complete your basic info first')).toBeNull();
     expect(screen.queryByRole('button', { name: 'View your 15-day meal plan' })).toBeNull();
     expect(screen.queryByText(/not medical or dietary advice/)).toBeNull();
   });

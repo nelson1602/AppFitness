@@ -179,7 +179,9 @@ describe('SubscriptionScreen', () => {
         `${PRICE} per month`,
       );
       expect(
-        screen.getByRole('button', { name: `Subscribe to AppFitness Pro for ${PRICE} per month` }),
+        screen.getByRole('button', {
+          name: `Subscribe to AppFitnessRD Pro for ${PRICE} per month`,
+        }),
       ).toBeTruthy();
       expect(screen.getByText('Subscribe')).toBeTruthy();
       expect(screen.getByTestId('subscription-renewal-terms')).toHaveTextContent(
@@ -193,14 +195,16 @@ describe('SubscriptionScreen', () => {
       setStore({ offer: trialOffer });
       await render(<SubscriptionScreen />);
 
-      expect(screen.getByTestId('subscription-offer-headline')).toHaveTextContent('1 month free');
+      expect(screen.getByTestId('subscription-offer-headline')).toHaveTextContent(
+        '1-month free trial',
+      );
       expect(screen.getByTestId('subscription-offer-price')).toHaveTextContent(
         `Then ${PRICE} per month`,
       );
       expect(screen.getByText('Start free trial')).toBeTruthy();
       expect(
         screen.getByRole('button', {
-          name: `Start the AppFitness Pro free trial, then ${PRICE} per month`,
+          name: `Start the AppFitnessRD Pro free trial, then ${PRICE} per month`,
         }),
       ).toBeTruthy();
       expect(screen.getByTestId('subscription-renewal-terms')).toHaveTextContent(
@@ -212,7 +216,9 @@ describe('SubscriptionScreen', () => {
       setStore({ offer: { ...paidOffer, freeTrial: { unit: 'week', count: 2 } } });
       await render(<SubscriptionScreen />);
 
-      expect(screen.getByTestId('subscription-offer-headline')).toHaveTextContent('2 weeks free');
+      expect(screen.getByTestId('subscription-offer-headline')).toHaveTextContent(
+        '2-week free trial',
+      );
     });
 
     it('renders an unusual store price string exactly as given', async () => {
@@ -325,7 +331,7 @@ describe('SubscriptionScreen', () => {
       setStore({ access: active, offer: null });
       await render(<SubscriptionScreen />);
 
-      expect(screen.getByText('AppFitness Pro is active')).toBeTruthy();
+      expect(screen.getByText('AppFitnessRD Pro is active')).toBeTruthy();
       expect(screen.getByText('Renews on November 30, 2026')).toBeTruthy();
       expect(screen.queryByTestId('subscription-purchase')).toBeNull();
       expect(screen.queryByText(/per month/)).toBeNull();
@@ -352,7 +358,7 @@ describe('SubscriptionScreen', () => {
 
   describe('outcomes', () => {
     it.each([
-      ['purchased', 'Welcome to AppFitness Pro'],
+      ['purchased', 'Welcome to AppFitnessRD Pro'],
       ['restored', 'Purchases restored'],
       ['nothingToRestore', 'No active subscription found'],
     ] as const)('renders the %s notice', async (notice, title) => {
@@ -386,7 +392,7 @@ describe('SubscriptionScreen', () => {
       await render(<SubscriptionScreen />);
 
       expect(screen.getByText('No active subscription found')).toBeTruthy();
-      expect(screen.queryByText('AppFitness Pro is active')).toBeNull();
+      expect(screen.queryByText('AppFitnessRD Pro is active')).toBeNull();
       expect(screen.queryByTestId('subscription-active')).toBeNull();
       expect(screen.getByTestId('subscription-offer')).toBeTruthy();
     });
@@ -514,7 +520,9 @@ describe('SubscriptionScreen', () => {
       setStore({ offer: trialOffer });
       await render(<SubscriptionScreen />);
 
-      expect(screen.getByTestId('subscription-offer-headline')).toHaveTextContent('1 mes gratis');
+      expect(screen.getByTestId('subscription-offer-headline')).toHaveTextContent(
+        'Prueba gratis de 1 mes',
+      );
       expect(screen.getByTestId('subscription-offer-price')).toHaveTextContent(
         `Después, ${PRICE} al mes`,
       );
@@ -528,7 +536,7 @@ describe('SubscriptionScreen', () => {
       setStore({ access: active, offer: null });
       await render(<SubscriptionScreen />);
 
-      expect(screen.getByText('AppFitness Pro está activo')).toBeTruthy();
+      expect(screen.getByText('AppFitnessRD Pro está activo')).toBeTruthy();
       expect(screen.getByText('Se renueva el 30 de noviembre de 2026')).toBeTruthy();
       expect(screen.getByText('Administrar suscripción')).toBeTruthy();
     });

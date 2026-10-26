@@ -192,7 +192,7 @@ describe('ProfileForm', () => {
 
     await render(<ProfileForm onSaved={jest.fn()} />);
 
-    expect(screen.getByText('Couldn’t save')).toBeOnTheScreen();
+    expect(screen.getByText("Couldn't save")).toBeOnTheScreen();
     expect(
       screen.getByText('Your profile could not be saved right now. Try again.'),
     ).toBeOnTheScreen();

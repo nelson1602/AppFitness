@@ -21,7 +21,7 @@ appId: com.appfitnessrd.mobile
 
 # Switch to register mode and enter the disposable identity.
 - tapOn: 'Create an account'
-- assertVisible: 'Register'
+- assertVisible: 'Create account'
 - tapOn:
     id: 'input-email'
 - inputText: ${E2E_EMAIL}
@@ -34,7 +34,7 @@ appId: com.appfitnessrd.mobile
     id: 'input-password'
 - inputText: ${E2E_PASSWORD}
 - hideKeyboard
-- tapOn: 'Register'
+- tapOn: 'Create account'
 # ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
 # off under reduced motion (an emulator with animations off reports it), so
 # the flow continues explicitly.
@@ -47,7 +47,7 @@ appId: com.appfitnessrd.mobile
 
 # Registration hits the local API, then routes to the dashboard. A brand-new
 # account has no assessment, so the dashboard resolves to its `empty` state and
-# renders the ADR-P027 onboarding checklist. "Finish your baseline" belongs to
+# renders the ADR-P027 onboarding checklist. "Complete your basic info" belongs to
 # `DataGapCard`, which renders only once the assessment is `ready` — asserting
 # it here is what made this flow stale.
 #

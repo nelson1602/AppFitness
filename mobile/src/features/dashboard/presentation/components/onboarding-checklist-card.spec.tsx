@@ -156,7 +156,7 @@ describe('OnboardingChecklistCard', () => {
       screen.getByText('Completa estos pasos a tu ritmo. Ya puedes usar el resto de la app.'),
     ).toBeOnTheScreen();
     expect(screen.getByTestId('onboarding-progress')).toHaveTextContent('1 de 3 completados');
-    expect(screen.getByTestId('onboarding-step-goal')).toHaveTextContent('Elige tu objetivo');
+    expect(screen.getByTestId('onboarding-step-goal')).toHaveTextContent('Elige tu meta');
     expect(screen.getByTestId('onboarding-step-weight')).toHaveTextContent(
       'Registra tu primer peso',
     );

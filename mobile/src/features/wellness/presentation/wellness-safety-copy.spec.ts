@@ -57,7 +57,7 @@ describe('the safety statements the slice must make', () => {
     expect(body).toMatch(/no diagnostica/i);
     expect(body).toMatch(/no trata/i);
     expect(body).toMatch(/nunca dice que estés autorizado/i);
-    expect(body).toMatch(/profesional cualificado/i);
+    expect(body).toMatch(/profesional calificado/i);
   });
 
   it('recommends rather than requires', () => {
@@ -91,7 +91,7 @@ describe('the safety statements the slice must make', () => {
     // device and really is waiting, but nothing here can promise it survives
     // the loss of the device.
     expect(en['wellness.safety.savedPendingBody']).toMatch(/stored on this device/i);
-    expect(en['wellness.safety.savedPendingBody']).toMatch(/waiting to synchronize/i);
+    expect(en['wellness.safety.savedPendingBody']).toMatch(/waiting to sync/i);
     expect(es['wellness.safety.savedPendingBody']).toMatch(/guardadas en este dispositivo/i);
     expect(es['wellness.safety.savedPendingBody']).toMatch(/esperan sincronizarse/i);
   });
@@ -123,7 +123,7 @@ describe('the safety statements the slice must make', () => {
     );
     expect(es['wellness.safety.removeConfirmBody']).toMatch(/perfil activo/i);
     expect(es['wellness.safety.removeConfirmBody']).toMatch(
-      /eliminar tu cuenta quita de forma permanente la cuenta y sus datos, y conserva solo un registro de seguridad anonimizado/i,
+      /eliminar tu cuenta quita de forma permanente la cuenta y sus datos, y conserva solo un registro anónimo de seguridad/i,
     );
     expect(en['wellness.safety.remove']).toMatch(/from my profile/i);
     expect(en['wellness.safety.removedTitle']).toMatch(/from your profile/i);
@@ -152,8 +152,8 @@ describe('the safety statements the slice must make', () => {
       'wellness.safety.removedConflictTitle',
       'wellness.safety.removedConflictBody',
     ] as const) {
-      expect(en[key]).toMatch(/this device|difference remains/i);
-      expect(es[key]).toMatch(/este dispositivo|diferencia de sincronización/i);
+      expect(en[key]).toMatch(/this device|doesn't match your account yet/i);
+      expect(es[key]).toMatch(/este dispositivo|aún no coincide con tu cuenta/i);
     }
     expect(en['wellness.safety.savedConflictBody']).toMatch(/still differs/i);
     expect(en['wellness.safety.removedConflictBody']).toMatch(/still differs/i);

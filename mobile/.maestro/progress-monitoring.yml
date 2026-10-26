@@ -120,8 +120,8 @@ appId: com.appfitnessrd.mobile
 # --- 6. Weekly snapshot summary: assert the summary rendered after recompute
 #     and carries real metric content. The summary block sits ABOVE the just-
 #     tapped "Update weekly insights" button, so the viewport is now BELOW it;
-#     assert the metric rows by scrolling UP, bottom-to-top (Deload week →
-#     Workouts → Total volume) so each step moves toward the target and never
+#     assert the metric rows by scrolling UP, bottom-to-top (Lighter (deload) week →
+#     Workouts → Total weight lifted) so each step moves toward the target and never
 #     overshoots. `scrollUntilVisible` also asserts visibility, so this is the
 #     metric coverage. The "Week of {date}" header is intentionally NOT asserted
 #     on its own: it is the topmost line and sits at/under the card/Stack-header
@@ -135,7 +135,8 @@ appId: com.appfitnessrd.mobile
     timeout: 15000
 - scrollUntilVisible:
     direction: UP
-    element: 'Deload week'
+    # Maestro matches text as a regex, so the parentheses are escaped.
+    element: 'Lighter \(deload\) week'
     timeout: 60000
 - scrollUntilVisible:
     direction: UP
@@ -143,7 +144,7 @@ appId: com.appfitnessrd.mobile
     timeout: 60000
 - scrollUntilVisible:
     direction: UP
-    element: 'Total volume'
+    element: 'Total weight lifted'
     timeout: 60000
 
 # --- 7. Back on the Progreso tab, the weight card reflects the new weight

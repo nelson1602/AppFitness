@@ -115,7 +115,9 @@ describe('WorkoutsTab (ADR-P039)', () => {
     mockLanguage = 'es';
     await render(<WorkoutsTab />);
 
-    expect(screen.getByText('Entrenamientos no está disponible en la web')).toBeOnTheScreen();
+    expect(
+      screen.getByText('La sección Entrenamientos no está disponible en la web'),
+    ).toBeOnTheScreen();
     expect(screen.queryByTestId('workouts-week-card')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
   });

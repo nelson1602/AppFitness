@@ -312,10 +312,8 @@ describe('NutritionPlanScreen', () => {
     mockSelection = { status: 'gap' };
 
     await render(<NutritionPlanScreen />);
-    expect(screen.getByText('Finish your baseline first')).toBeOnTheScreen();
-    fireEvent.press(
-      screen.getByRole('button', { name: 'Go to the dashboard to finish your baseline' }),
-    );
+    expect(screen.getByText('Complete your basic info first')).toBeOnTheScreen();
+    fireEvent.press(screen.getByRole('button', { name: 'Go to Home to complete your basic info' }));
     expect(router.push).toHaveBeenCalledWith('/dashboard');
   });
 
@@ -415,7 +413,7 @@ describe('NutritionPlanScreen', () => {
     expect(screen.queryByTestId('open-food-log')).toBeNull();
     expect(screen.queryByText('Day 1')).toBeNull();
     expect(screen.queryByText('Meal plan unavailable')).toBeNull();
-    expect(screen.queryByText('Finish your baseline first')).toBeNull();
+    expect(screen.queryByText('Complete your basic info first')).toBeNull();
     expect(screen.queryByText(/not medical or dietary advice/)).toBeNull();
   });
 
