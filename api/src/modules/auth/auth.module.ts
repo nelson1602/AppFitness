@@ -18,6 +18,7 @@ import { CLOCK, SystemClock } from './infrastructure/clock.service';
 import { PasswordService } from './infrastructure/password.service';
 import { TokenService } from './infrastructure/token.service';
 import { AuthController } from './presentation/auth.controller';
+import { EmailVerifiedGuard } from './presentation/guards/email-verified.guard';
 import { JwtAuthGuard } from './presentation/guards/jwt-auth.guard';
 import { RolesGuard } from './presentation/guards/roles.guard';
 
@@ -98,6 +99,9 @@ export function resolveJwtSecret(
     // BEFORE the JWT/Roles guards and before any Argon2/DB work (ADR-P020).
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    // Mandatory email verification (ADR-P041). After JWT so the caller is
+    // known; before Roles so an unverified account learns nothing more.
+    { provide: APP_GUARD, useClass: EmailVerifiedGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
   exports: [TokenService],

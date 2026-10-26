@@ -1,5 +1,7 @@
 import { IsString, MaxLength, MinLength } from 'class-validator';
 
+import { IsAccountPassword } from './password-policy.validator';
+
 export class ResetPasswordDto {
   /**
    * The raw token from the emailed link. A 32-byte base64url value is 43
@@ -13,7 +15,6 @@ export class ResetPasswordDto {
 
   /** Same policy as registration — recovery must not become a weaker path in. */
   @IsString()
-  @MinLength(8)
-  @MaxLength(128)
+  @IsAccountPassword()
   password!: string;
 }

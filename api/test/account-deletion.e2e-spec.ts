@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/modules/database/prisma.service';
+import { markEmailVerified } from './support/mark-email-verified';
 
 /**
  * ADR-P011 end-to-end proof against a real PostgreSQL database:
@@ -50,11 +51,12 @@ describe('Account deletion (e2e)', () => {
       .send({
         email,
         username: `e2edel${suffix}`,
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     const accessToken = (reg.body as { accessToken: string }).accessToken;
     const userId = (reg.body as { user: { id: string } }).user.id;
+    await markEmailVerified(prisma, userId);
 
     // Seed user-owned data across cascade paths.
     await request(http)

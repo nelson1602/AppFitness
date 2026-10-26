@@ -3,6 +3,9 @@ import { type ReactNode, useRef, useState } from 'react';
 import { type LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
+import { landingRouteFor } from '@/features/authentication/application/access-gate';
+import { meetsPasswordPolicy } from '@/features/authentication/domain/password-policy';
+import { PasswordChecklist } from '@/features/authentication/presentation/password-checklist';
 import {
   AuthScreen,
   HERO_MIN_HEIGHT,
@@ -42,7 +45,7 @@ const ERROR_COPY: Record<AuthErrorReason, { title: TranslationKey; body: Transla
 
 export default function SignInScreen() {
   const theme = useTheme();
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
   // Web fits the whole screen in a desktop window: the hero gives up height
   // to the rest of the screen (measured), and the sections sit a little closer.
   const web = Platform.OS === 'web';
@@ -68,6 +71,7 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [errorReason, setErrorReason] = useState<AuthErrorReason | null>(null);
+  const [policyError, setPolicyError] = useState(false);
   /**
    * Which submission this screen currently owns (ADR-P030 C-1).
    *
@@ -94,18 +98,34 @@ export default function SignInScreen() {
     submissionRef.current = submission;
     const ownsScreen = () => submissionRef.current === submission;
 
+    // ADR-P041 D1: a password the live checklist rejects never leaves the device.
+    if (mode === 'register' && !meetsPasswordPolicy(password)) {
+      inFlight.current = false;
+      setErrorReason(null);
+      setPolicyError(true);
+      return;
+    }
+
     setLoading(true);
     setErrorReason(null);
+    setPolicyError(false);
     try {
       const outcome =
         mode === 'register'
-          ? await signUp({ email, username, password })
+          ? await signUp({ email, username, password, locale: language })
           : await signIn({ email, password });
       // The session layer replaced this attempt. Never navigate and never show
       // an error for it — a superseded attempt acted for an account the user no
       // longer asked for.
       if (outcome.status === 'superseded') return;
-      router.replace('/dashboard');
+      // ADR-P041 D2: an unverified account lands on "Verifica tu correo".
+      // After sign-up the first email is already on its way, so resend waits.
+      const landing = landingRouteFor(outcome.session.user);
+      router.replace(
+        landing === '/verify-pending' && mode === 'register'
+          ? { pathname: landing, params: { sent: '1' } }
+          : landing,
+      );
     } catch (error) {
       // Only the typed, safe reason is used — never the raw error/message. A
       // superseded attempt never throws, so no stale banner can appear here;
@@ -177,6 +197,9 @@ export default function SignInScreen() {
             {t(ERROR_COPY[errorReason].body)}
           </Banner>
         ) : null}
+        {policyError && mode === 'register' && !meetsPasswordPolicy(password) ? (
+          <Banner title={t('auth.passwordRules.incomplete')} tone="error" />
+        ) : null}
 
         <GlassCard style={web ? { padding: theme.spacing.lg } : undefined} testID="sign-in-form">
           <StageField
@@ -222,6 +245,7 @@ export default function SignInScreen() {
             testID="input-password"
             value={password}
           />
+          {mode === 'register' ? <PasswordChecklist password={password} /> : null}
           <AppButton
             loading={loading}
             onPress={() => void submit()}
@@ -241,7 +265,10 @@ export default function SignInScreen() {
           ) : null}
           {/* Account-creation entry point. Mode switch only — same handler as before. */}
           <AppButton
-            onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
+            onPress={() => {
+              setPolicyError(false);
+              setMode(mode === 'register' ? 'sign-in' : 'register');
+            }}
             style={{ borderRadius: theme.radius.large }}
             testID="button-toggle-mode"
             variant="stage-secondary"

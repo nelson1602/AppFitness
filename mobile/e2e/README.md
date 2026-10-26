@@ -14,17 +14,18 @@ other variants never load the plugin and keep cleartext blocked.
 
 ## Flows (`mobile/.maestro/`)
 
-| Flow | Needs API? | What it proves |
-|---|---|---|
-| `smoke-auth-surface.yml` | no | launch, routing, auth surface, `__DEV__` gate |
-| `registration.yml` | yes | register → empty dashboard (data-gap state) |
-| `dashboard-sync.yml` | yes (after full seed) | session restore → Sync now → populated dashboard via real pull |
-| `onboarding-loop.yml` | yes (no seed) | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → nutrition targets + 15-day meal plan render → sync clears pending → sign out & back in |
-| `food-log.yml` | yes (no seed) | open the food log from the meal-plan entry point, log a catalog food, see daily totals update, confirm a sync attempt keeps the (pending) entry, soft-delete it (runs after onboarding-loop, same session) |
-| `food-log-exclusion-warning.yml` | yes (no seed) | add a "Nuts" allergy via the dietary-preferences surface, then confirm selecting a nut food on the food log shows the non-blocking allergy/sensitivity warning and can still be logged (ADR-P014 Slice 4). Wired into `mobile-e2e.yml` after `food-log.yml` (same onboard session). **PENDING a first green run**: it needs an EAS `e2e` APK built from the Slice 4 commit (878af06) or later — an older APK predating the warning UI fails the assertions. Until that run, Slice 4 is verified by unit/component tests. |
-| `medical-management.yml` | retained, **not run** | historical medical-management flow; excluded from public-v1 journeys by ADR-P017 |
-| `offline-entry.yml` | API unreachable | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync shows "Local changes pending" |
-| `reconnect-sync.yml` | yes | with the loopback restored: the offline-queued change syncs to "Local data ready" |
+| Flow                             | Needs API?                                      | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `smoke-auth-surface.yml`         | no                                              | launch, routing, auth surface, `__DEV__` gate                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `registration.yml`               | yes                                             | register (policy-compliant password) → "Verify your email" (ADR-P041)                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `registration-verified.yml`      | yes (after `node e2e/verify-email.mjs <email>`) | "I've verified it" → welcome → empty dashboard (data-gap state)                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `dashboard-sync.yml`             | yes (after full seed)                           | session restore → Sync now → populated dashboard via real pull                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `onboarding-loop.yml`            | yes (no seed)                                   | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → nutrition targets + 15-day meal plan render → sync clears pending → sign out & back in                                                                                                                                                                                                                                                                                                                        |
+| `food-log.yml`                   | yes (no seed)                                   | open the food log from the meal-plan entry point, log a catalog food, see daily totals update, confirm a sync attempt keeps the (pending) entry, soft-delete it (runs after onboarding-loop, same session)                                                                                                                                                                                                                                                                                                               |
+| `food-log-exclusion-warning.yml` | yes (no seed)                                   | add a "Nuts" allergy via the dietary-preferences surface, then confirm selecting a nut food on the food log shows the non-blocking allergy/sensitivity warning and can still be logged (ADR-P014 Slice 4). Wired into `mobile-e2e.yml` after `food-log.yml` (same onboard session). **PENDING a first green run**: it needs an EAS `e2e` APK built from the Slice 4 commit (878af06) or later — an older APK predating the warning UI fails the assertions. Until that run, Slice 4 is verified by unit/component tests. |
+| `medical-management.yml`         | retained, **not run**                           | historical medical-management flow; excluded from public-v1 journeys by ADR-P017                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `offline-entry.yml`              | API unreachable                                 | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync shows "Local changes pending"                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `reconnect-sync.yml`             | yes                                             | with the loopback restored: the offline-queued change syncs to "Local data ready"                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 Two journeys run against the same disposable DB with distinct synthetic
 users:
@@ -90,15 +91,19 @@ adb reverse tcp:3001 tcp:3001
 
 # 4. Flows — Journey A (seeded pull)
 maestro test -e E2E_EMAIL=demo@appfitness.local -e E2E_USERNAME=demo \
-  -e E2E_PASSWORD=password12345 .maestro/registration.yml
+  -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
+DATABASE_URL=<local disposable DB> node e2e/verify-email.mjs demo@appfitness.local
+maestro test .maestro/registration-verified.yml
 node e2e/seed.mjs
 maestro test .maestro/dashboard-sync.yml
 
 # 5. Flows — Journey B (full device onboarding loop; no seed)
 maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard \
-  -e E2E_PASSWORD=password12345 .maestro/registration.yml
+  -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
+DATABASE_URL=<local disposable DB> node e2e/verify-email.mjs onboard@appfitness.local
+maestro test .maestro/registration-verified.yml
 maestro test -e E2E_EMAIL=onboard@appfitness.local \
-  -e E2E_PASSWORD=password12345 .maestro/onboarding-loop.yml
+  -e E2E_PASSWORD=Password-12345 .maestro/onboarding-loop.yml
 maestro test .maestro/food-log.yml
 ```
 
@@ -133,22 +138,22 @@ Both emulators need `adb reverse tcp:3001 tcp:3001`, and it must be
 it drives, and a device that silently loses the loopback simply queues its
 writes instead of failing, which looks like a product bug and is not one.
 
-| Flow | What it proves |
-|---|---|
-| `conflict-signin` | Signs a disposable account in on one device, from a cleared state |
-| `conflict-areas-first` | Creates the account's wellness safety profile on a device |
-| `conflict-areas-swap` | Moves one allow-listed **tokens** value, so a divergence renders as localized labels |
-| `conflict-sync-now` | Drains the queue through the shipped "Sync now" control |
-| `conflict-review-open` | Dashboard entry + the review surface: record kind, field label, both sides in text, no identifiers |
-| `conflict-choose` | Records either resolution and settles it |
-| `conflict-offline-choice` | A choice with no connectivity: stored here, finished later |
-| `conflict-reconnect-settle` | The stored choice settles on reconnect without being re-entered |
-| `conflict-restart-recovery` | A settlement outstanding across a process force-stop |
-| `conflict-stale` | The account moved after the review: refused, refreshed, re-reviewed |
-| `conflict-loser-standing` | First choice wins through the public-client race above, and the losing device is told which side stands |
-| `conflict-deleted-elsewhere` | The deletion disclosure, and the **one** restore outcome this entity actually produces |
-| `conflict-isolation-device` | One account's surface shows nothing of another's |
-| `conflict-route-guard` | `/sync-conflicts` redirects a signed-out visitor |
+| Flow                         | What it proves                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `conflict-signin`            | Signs a disposable account in on one device, from a cleared state                                       |
+| `conflict-areas-first`       | Creates the account's wellness safety profile on a device                                               |
+| `conflict-areas-swap`        | Moves one allow-listed **tokens** value, so a divergence renders as localized labels                    |
+| `conflict-sync-now`          | Drains the queue through the shipped "Sync now" control                                                 |
+| `conflict-review-open`       | Dashboard entry + the review surface: record kind, field label, both sides in text, no identifiers      |
+| `conflict-choose`            | Records either resolution and settles it                                                                |
+| `conflict-offline-choice`    | A choice with no connectivity: stored here, finished later                                              |
+| `conflict-reconnect-settle`  | The stored choice settles on reconnect without being re-entered                                         |
+| `conflict-restart-recovery`  | A settlement outstanding across a process force-stop                                                    |
+| `conflict-stale`             | The account moved after the review: refused, refreshed, re-reviewed                                     |
+| `conflict-loser-standing`    | First choice wins through the public-client race above, and the losing device is told which side stands |
+| `conflict-deleted-elsewhere` | The deletion disclosure, and the **one** restore outcome this entity actually produces                  |
+| `conflict-isolation-device`  | One account's surface shows nothing of another's                                                        |
+| `conflict-route-guard`       | `/sync-conflicts` redirects a signed-out visitor                                                        |
 
 ### Ordering: the offline, restart and reconnect triple
 
@@ -194,7 +199,7 @@ is already present — no insert — so the unique-constraint path that raises
 
 ### The harness
 
-`e2e/c7-conflicts.mjs` sits *around* the journeys, never inside them. It uses
+`e2e/c7-conflicts.mjs` sits _around_ the journeys, never inside them. It uses
 the same public contracts the app does — register, login, `/sync/push`,
 `/sync/pull`, `/sync/conflicts` — to create disposable accounts, act as a
 legitimate **third client** where a journey needs the account to move at a
@@ -274,5 +279,5 @@ after the backoff for **settled**.
 
 - Public API/sync contracts only — no test-only backend endpoints.
 - No production services or data; CI credentials are throwaway values.
-- EAS *cloud* Maestro runs stay blocked on billing (ADR-P007/P008); when
+- EAS _cloud_ Maestro runs stay blocked on billing (ADR-P007/P008); when
   Phase 12 provides a hosted test API, only the e2e profile URL changes.

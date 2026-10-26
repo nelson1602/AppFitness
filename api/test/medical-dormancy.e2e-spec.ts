@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/modules/database/prisma.service';
+import { markEmailVerified } from './support/mark-email-verified';
 
 /**
  * ADR-P017 Decision 4 end-to-end proof, against the assembled public
@@ -50,11 +51,12 @@ describe('Medical-domain dormancy (e2e)', () => {
       .send({
         email: `e2e-dormant-${suffix}@appfitness.local`,
         username: `e2edorm${suffix}`,
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     accessToken = (reg.body as { accessToken: string }).accessToken;
     userId = (reg.body as { user: { id: string } }).user.id;
+    await markEmailVerified(prisma, userId);
   });
 
   afterAll(async () => {

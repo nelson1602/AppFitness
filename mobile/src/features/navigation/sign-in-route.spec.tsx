@@ -39,13 +39,17 @@ const { AuthError } = jest.requireMock<{
   AuthError: new (reason: string) => Error & { reason: string };
 }>('@/features/authentication');
 
+const VERIFIED = { session: { user: { emailVerifiedAt: '2026-10-01T00:00:00.000Z' } } };
+const UNVERIFIED = { session: { user: { emailVerifiedAt: null } } };
+
 describe('SignInScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     // signIn/signUp resolve to a typed outcome (ADR-P030 C-1): 'authenticated'
     // for the attempt that still reflects the user's latest intent.
-    mockSignIn.mockResolvedValue({ status: 'authenticated', session: {} });
-    mockSignUp.mockResolvedValue({ status: 'authenticated', session: {} });
+    mockSignIn.mockResolvedValue({ status: 'authenticated', ...VERIFIED });
+    // A new account is unverified until the emailed link is opened (ADR-P041).
+    mockSignUp.mockResolvedValue({ status: 'authenticated', ...UNVERIFIED });
   });
 
   it('renders the development sign-in form', async () => {
@@ -133,13 +137,13 @@ describe('SignInScreen', () => {
     await render(<SignInScreen />);
 
     await fireEvent.changeText(screen.getByLabelText('Email'), 'user@appfitness.local');
-    await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'Password-12345');
     await fireEvent.press(screen.getByText('Sign in'));
 
     await waitFor(() =>
       expect(mockSignIn).toHaveBeenCalledWith({
         email: 'user@appfitness.local',
-        password: 'password12345',
+        password: 'Password-12345',
       }),
     );
     expect(mockReplace).toHaveBeenCalledWith('/dashboard');
@@ -153,17 +157,89 @@ describe('SignInScreen', () => {
 
     await fireEvent.changeText(screen.getByLabelText('Email'), 'new@appfitness.local');
     await fireEvent.changeText(screen.getByLabelText('Username'), 'new-user');
-    await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'Password-12345');
     await fireEvent.press(screen.getByText('Create account'));
 
     await waitFor(() =>
       expect(mockSignUp).toHaveBeenCalledWith({
         email: 'new@appfitness.local',
         username: 'new-user',
-        password: 'password12345',
+        password: 'Password-12345',
+        locale: 'en',
       }),
     );
-    expect(mockReplace).toHaveBeenCalledWith('/dashboard');
+    // ADR-P041 D2: straight to "Verify your email", resend held back.
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/verify-pending',
+      params: { sent: '1' },
+    });
+  });
+
+  it('sends an unverified account to the verification step on sign-in', async () => {
+    mockSignIn.mockResolvedValue({ status: 'authenticated', ...UNVERIFIED });
+    await render(<SignInScreen />);
+
+    await fireEvent.changeText(screen.getByLabelText('Email'), 'user@appfitness.local');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'old-password');
+    await fireEvent.press(screen.getByText('Sign in'));
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify-pending'));
+  });
+
+  it('keeps sign-in open to existing passwords that predate the policy', async () => {
+    await render(<SignInScreen />);
+
+    await fireEvent.changeText(screen.getByLabelText('Email'), 'user@appfitness.local');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'short');
+    await fireEvent.press(screen.getByText('Sign in'));
+
+    await waitFor(() =>
+      expect(mockSignIn).toHaveBeenCalledWith({
+        email: 'user@appfitness.local',
+        password: 'short',
+      }),
+    );
+    expect(screen.queryByTestId('password-checklist')).toBeNull();
+  });
+
+  it('ticks the password checklist live while registering', async () => {
+    await render(<SignInScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
+
+    expect(screen.getByTestId('password-checklist-length-unmet')).toBeOnTheScreen();
+    expect(screen.getByLabelText('At least 8 characters: not met yet')).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'abcdefgh');
+    expect(screen.getByTestId('password-checklist-length-met')).toBeOnTheScreen();
+    expect(screen.getByTestId('password-checklist-lowercase-met')).toBeOnTheScreen();
+    expect(screen.getByTestId('password-checklist-uppercase-unmet')).toBeOnTheScreen();
+    expect(screen.getByTestId('password-checklist-digit-unmet')).toBeOnTheScreen();
+    expect(screen.getByTestId('password-checklist-symbol-unmet')).toBeOnTheScreen();
+
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'Abcdefg1!');
+    for (const rule of ['length', 'uppercase', 'lowercase', 'digit', 'symbol']) {
+      expect(screen.getByTestId(`password-checklist-${rule}-met`)).toBeOnTheScreen();
+    }
+    expect(screen.getByLabelText('A symbol, for example ! # $ -: met')).toBeOnTheScreen();
+  });
+
+  it('never sends a registration whose password fails the policy', async () => {
+    await render(<SignInScreen />);
+    await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
+
+    await fireEvent.changeText(screen.getByLabelText('Email'), 'new@appfitness.local');
+    await fireEvent.changeText(screen.getByLabelText('Username'), 'new-user');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
+    await fireEvent.press(screen.getByText('Create account'));
+
+    expect(
+      await screen.findByText("Your password doesn't meet every requirement yet."),
+    ).toBeOnTheScreen();
+    expect(mockSignUp).not.toHaveBeenCalled();
+
+    // The banner goes away as soon as the password meets every rule.
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'Password-12345');
+    expect(screen.queryByText("Your password doesn't meet every requirement yet.")).toBeNull();
   });
 
   it('shows a distinct invalid-credentials error on sign-in 401', async () => {
@@ -230,7 +306,7 @@ describe('SignInScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
     await fireEvent.changeText(screen.getByLabelText('Email'), 'taken@appfitness.local');
     await fireEvent.changeText(screen.getByLabelText('Username'), 'taken-user');
-    await fireEvent.changeText(screen.getByLabelText('Password'), 'password12345');
+    await fireEvent.changeText(screen.getByLabelText('Password'), 'Password-12345');
     await fireEvent.press(screen.getByText('Create account'));
 
     expect(await screen.findByText("Couldn't create account")).toBeOnTheScreen();
@@ -348,7 +424,7 @@ describe('SignInScreen', () => {
 
       // The newer submission then succeeds and owns the outcome.
       await act(async () => {
-        second.resolve({ status: 'authenticated', session: {} });
+        second.resolve({ status: 'authenticated', ...VERIFIED });
       });
       await Promise.all(presses);
       expect(mockReplace).toHaveBeenCalledWith('/dashboard');

@@ -11,6 +11,7 @@ import type {
   SafeUser,
   TokenPair,
 } from '../domain/auth.types';
+import { AllowUnverifiedEmail } from './decorators/allow-unverified-email.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -73,6 +74,7 @@ export class AuthController {
   }
 
   @Get('me')
+  @AllowUnverifiedEmail()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Current authenticated user' })
   me(@CurrentUser() user: AuthenticatedUser): Promise<SafeUser> {
@@ -80,6 +82,7 @@ export class AuthController {
   }
 
   @Delete('account')
+  @AllowUnverifiedEmail()
   @HttpCode(204)
   @ApiBearerAuth()
   @ApiOperation({
@@ -177,6 +180,7 @@ export class AuthController {
    */
   @Throttle({ default: { limit: 5, ttl: seconds(3600) } })
   @Post('resend-verification')
+  @AllowUnverifiedEmail()
   @HttpCode(202)
   @ApiBearerAuth()
   @ApiOperation({

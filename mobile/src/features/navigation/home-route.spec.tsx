@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react-native';
 import HomeRoute from '@/app';
 
 let mockSessionStatus: 'unknown' | 'authenticated' | 'anonymous';
+let mockEmailVerifiedAt: string | null = '2026-10-01T00:00:00.000Z';
 
 jest.mock('expo-router', () => ({
   Redirect: ({ href }: { href: string }) => {
@@ -12,7 +13,13 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('@/features/authentication', () => ({
-  useSession: () => ({ status: mockSessionStatus }),
+  useSession: () => ({
+    status: mockSessionStatus,
+    session:
+      mockSessionStatus === 'authenticated'
+        ? { user: { emailVerifiedAt: mockEmailVerifiedAt } }
+        : null,
+  }),
 }));
 
 describe('HomeRoute', () => {
@@ -30,6 +37,16 @@ describe('HomeRoute', () => {
     await render(<HomeRoute />);
 
     expect(screen.getByText('Redirect: /dashboard')).toBeOnTheScreen();
+  });
+
+  it('sends an unverified account to the verification step (ADR-P041)', async () => {
+    mockSessionStatus = 'authenticated';
+    mockEmailVerifiedAt = null;
+
+    await render(<HomeRoute />);
+
+    expect(screen.getByText('Redirect: /verify-pending')).toBeOnTheScreen();
+    mockEmailVerifiedAt = '2026-10-01T00:00:00.000Z';
   });
 
   it('redirects anonymous users to sign in', async () => {

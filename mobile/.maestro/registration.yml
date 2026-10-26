@@ -7,8 +7,9 @@
 # credentials are typed via testIDs and MUST be passed per run (no flow
 # env defaults: they would shadow -e overrides):
 #   maestro test -e E2E_EMAIL=demo@appfitness.local \
-#                -e E2E_USERNAME=demo -e E2E_PASSWORD=password12345 \
+#                -e E2E_USERNAME=demo -e E2E_PASSWORD=Password-12345 \
 #                .maestro/registration.yml
+# The password must meet the ADR-P041 policy (upper, lower, digit, symbol).
 # Fake, synthetic identities only; fresh disposable DB per run.
 appId: com.appfitnessrd.mobile
 ---
@@ -35,38 +36,13 @@ appId: com.appfitnessrd.mobile
 - inputText: ${E2E_PASSWORD}
 - hideKeyboard
 - tapOn: 'Create account'
-# ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
-# off under reduced motion (an emulator with animations off reports it), so
-# the flow continues explicitly.
+
+# ADR-P041 D2: a new account lands on "Verify your email" and can go no
+# further until the address is verified. The harness sends no real email, so
+# the run continues with registration-verified.yml after
+#   node e2e/verify-email.mjs <the same E2E_EMAIL>
 - extendedWaitUntil:
     visible:
-      id: 'welcome-continue'
+      id: 'verify-pending'
     timeout: 90000
-- tapOn:
-    id: 'welcome-continue'
-
-# Registration hits the local API, then routes to the dashboard. A brand-new
-# account has no assessment, so the dashboard resolves to its `empty` state and
-# renders the ADR-P027 onboarding checklist. "Complete your basic info" belongs to
-# `DataGapCard`, which renders only once the assessment is `ready` — asserting
-# it here is what made this flow stale.
-#
-# The checklist also sits below the verification reminder and the wellness
-# recommendation card, so on a phone viewport it is below the fold and must be
-# scrolled to rather than merely waited for.
-- extendedWaitUntil:
-    visible:
-      id: 'tab-dashboard'
-    timeout: 45000
-# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
-- tapOn:
-    id: 'tab-profile'
-- scrollUntilVisible:
-    element:
-      id: 'onboarding-step-profile'
-    timeout: 30000
-- assertVisible:
-    id: 'onboarding-step-profile'
-
-# Dev-only seed action must not exist in release builds.
-- assertNotVisible: 'Load sample data'
+- assertVisible: 'Verify your email'

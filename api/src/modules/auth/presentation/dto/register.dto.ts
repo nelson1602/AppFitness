@@ -10,6 +10,8 @@ import {
 
 import { MAIL_LOCALES } from '../../../mail/domain/mail.types';
 
+import { IsAccountPassword } from './password-policy.validator';
+
 export class RegisterDto {
   @IsEmail()
   email!: string;
@@ -22,9 +24,9 @@ export class RegisterDto {
   })
   username!: string;
 
+  /** ADR-P041 Decision 1: 8-128 characters, upper, lower, digit and symbol. */
   @IsString()
-  @MinLength(8)
-  @MaxLength(128)
+  @IsAccountPassword()
   password!: string;
 
   /**

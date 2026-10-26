@@ -113,7 +113,10 @@ jobs:
             adb reverse tcp:3001 tcp:3001
             maestro test .maestro/smoke-auth-surface.yml
             # Journey A — seeded server → device pull (existing coverage).
-            maestro test -e E2E_EMAIL=demo@appfitness.local -e E2E_USERNAME=demo -e E2E_PASSWORD=password12345 .maestro/registration.yml
+            maestro test -e E2E_EMAIL=demo@appfitness.local -e E2E_USERNAME=demo -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
+            # ADR-P041: verify on the local disposable DB, then continue into the app.
+            node e2e/verify-email.mjs demo@appfitness.local
+            maestro test .maestro/registration-verified.yml
             node e2e/seed.mjs
             maestro test .maestro/dashboard-sync.yml
             # Journey B — full device-side onboarding loop (Phase 14). A
@@ -121,8 +124,11 @@ jobs:
             # from Journey A's server-seeded dataset. Every data point
             # (profile, physical evaluation/weight, goal) is entered on the
             # device — no server seed step.
-            maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard -e E2E_PASSWORD=password12345 .maestro/registration.yml
-            maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_PASSWORD=password12345 .maestro/onboarding-loop.yml
+            maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
+            # ADR-P041: verify on the local disposable DB, then continue into the app.
+            node e2e/verify-email.mjs onboard@appfitness.local
+            maestro test .maestro/registration-verified.yml
+            maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_PASSWORD=Password-12345 .maestro/onboarding-loop.yml
             # Phase 15 Slice 4D — device-side food logging on top of the merged
             # Slice 4C write path. Reuses the onboard session: open the food log
             # from the meal-plan entry point, log a catalog food, see totals
@@ -152,7 +158,10 @@ jobs:
             # adb-reverse loopback to simulate offline (airplane mode does not
             # sever it): a profile saves locally + sync goes "Offline".
             # Restore the loopback and confirm the queued change syncs.
-            maestro test -e E2E_EMAIL=offline@appfitness.local -e E2E_USERNAME=offline -e E2E_PASSWORD=password12345 .maestro/registration.yml
+            maestro test -e E2E_EMAIL=offline@appfitness.local -e E2E_USERNAME=offline -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
+            # ADR-P041: verify on the local disposable DB, then continue into the app.
+            node e2e/verify-email.mjs offline@appfitness.local
+            maestro test .maestro/registration-verified.yml
             adb reverse --remove tcp:3001
             maestro test .maestro/offline-entry.yml
             adb reverse tcp:3001 tcp:3001

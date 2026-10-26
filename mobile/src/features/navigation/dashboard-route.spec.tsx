@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react-native';
 import DashboardRoute from '@/app/(tabs)/dashboard';
 
 let mockSessionStatus: 'unknown' | 'authenticated' | 'anonymous';
+let mockEmailVerifiedAt: string | null = '2026-10-01T00:00:00.000Z';
 let mockLanguage: 'en' | 'es' = 'en';
 let mockStackTitle: string | undefined;
 
@@ -20,7 +21,13 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('@/features/authentication', () => ({
-  useSession: () => ({ status: mockSessionStatus }),
+  useSession: () => ({
+    status: mockSessionStatus,
+    session:
+      mockSessionStatus === 'authenticated'
+        ? { user: { emailVerifiedAt: mockEmailVerifiedAt } }
+        : null,
+  }),
 }));
 jest.mock('@/shared/localization', () => {
   const { en } = jest.requireActual<typeof import('@/shared/localization/resources/en')>(
@@ -83,6 +90,16 @@ describe('DashboardRoute', () => {
   });
 
   // ADR-P039 D5: the welcome screen is owed once after a sign-in.
+  it('sends an unverified account to the verification step before loading anything', async () => {
+    mockSessionStatus = 'authenticated';
+    mockEmailVerifiedAt = null;
+
+    await render(<DashboardRoute />);
+
+    expect(screen.getByText('Redirect: /verify-pending')).toBeOnTheScreen();
+    mockEmailVerifiedAt = '2026-10-01T00:00:00.000Z';
+  });
+
   it('sends a just-signed-in user to the welcome screen first', async () => {
     mockSessionStatus = 'authenticated';
     mockWelcomePending = true;

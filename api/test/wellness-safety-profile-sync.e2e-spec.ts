@@ -7,6 +7,7 @@ import { App } from 'supertest/types';
 
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/modules/database/prisma.service';
+import { markEmailVerified } from './support/mark-email-verified';
 
 /**
  * ADR-P017 **W-2** end-to-end, through the assembled application and a real
@@ -60,10 +61,11 @@ describe('Wellness Safety Profile sync (e2e)', () => {
       .send({
         email: `e2e-w2-${tag}-${suffix}@appfitness.local`,
         username: `e2ew2${tag}${suffix}`.slice(0, 28),
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     const body = res.body as { accessToken: string; user: { id: string } };
+    await markEmailVerified(prisma, body.user.id);
     return { id: body.user.id, token: body.accessToken };
   }
 

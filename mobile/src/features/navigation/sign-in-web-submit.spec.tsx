@@ -90,7 +90,10 @@ describe('SignInScreen Web submit (BUG-035)', () => {
 
   it('allows a new attempt after the first one settles', async () => {
     mockSignIn.mockRejectedValueOnce(new AuthError('server'));
-    mockSignIn.mockResolvedValueOnce({ status: 'authenticated', session: {} });
+    mockSignIn.mockResolvedValueOnce({
+      status: 'authenticated',
+      session: { user: { emailVerifiedAt: '2026-10-01T00:00:00.000Z' } },
+    });
     await render(<SignInScreen />);
     await fireEvent.changeText(screen.getByTestId('input-email'), 'person@example.test');
     await fireEvent.changeText(screen.getByTestId('input-password'), 'password12345');

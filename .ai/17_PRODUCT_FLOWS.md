@@ -485,6 +485,8 @@ Loading treatment, and must not promote it into the state model.
 
 ## 2.4 Email verification — SHIPPED (ADR-P026 Vertical 2), UX frozen by V2-B
 
+> **2026-10-26 — ADR-P041 makes verification mandatory.** Sign-up and any sign-in of an unverified account go to **"Verifica tu correo"** (`/verify-pending`): the address, **Ya lo verifiqué** (re-reads `/auth/me`), **Reenviar correo** (60 s cooldown) and **Usar otra cuenta**. A silent re-check runs whenever the app returns to the foreground. Every other route redirects there, and the API answers 403 `EMAIL_NOT_VERIFIED` for data calls. The advisory reminder described below no longer renders. The rest of this section is the historical V2-B specification.
+
 **Implemented end to end and delivering in every environment.**
 **V2-A** added the
 schema, **V2-C** the backend (issuance at registration, the authenticated

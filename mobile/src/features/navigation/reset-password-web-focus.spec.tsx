@@ -97,8 +97,8 @@ describe('ResetPasswordScreen Web focus contract (BUG-035)', () => {
     focus = jest.spyOn(View.prototype as unknown as { focus: () => void }, 'focus');
     mockReset.mockResolvedValue(undefined);
     await render(<ResetPasswordScreen />);
-    await fireEvent.changeText(newPassword(), 'Abcdefgh12');
-    await fireEvent.changeText(confirm(), 'Abcdefgh12');
+    await fireEvent.changeText(newPassword(), 'Abcdefgh12!');
+    await fireEvent.changeText(confirm(), 'Abcdefgh12!');
 
     expect(confirm().props.onSubmitEditing).toBeUndefined();
     await fireEvent.press(screen.getByTestId('button-reset-submit'));
@@ -114,10 +114,10 @@ describe('ResetPasswordScreen Web focus contract (BUG-035)', () => {
 
     await fireEvent.changeText(newPassword(), 'short');
     await enterIn(newPassword());
-    expect(screen.getByText('Use at least 8 characters.')).toBeOnTheScreen();
+    expect(screen.getByText("Your password doesn't meet every requirement yet.")).toBeOnTheScreen();
 
-    await fireEvent.changeText(newPassword(), 'Abcdefgh12');
-    await fireEvent.changeText(confirm(), 'Different12');
+    await fireEvent.changeText(newPassword(), 'Abcdefgh12!');
+    await fireEvent.changeText(confirm(), 'Different12!');
     await enterIn(confirm());
     expect(screen.getByText('Both passwords must match.')).toBeOnTheScreen();
 
@@ -129,8 +129,8 @@ describe('ResetPasswordScreen Web focus contract (BUG-035)', () => {
     let reject: (error: Error) => void = () => {};
     mockReset.mockReturnValue(new Promise<void>((_resolve, r) => (reject = r)));
     await render(<ResetPasswordScreen />);
-    await fireEvent.changeText(newPassword(), 'Abcdefgh12');
-    await fireEvent.changeText(confirm(), 'Abcdefgh12');
+    await fireEvent.changeText(newPassword(), 'Abcdefgh12!');
+    await fireEvent.changeText(confirm(), 'Abcdefgh12!');
 
     await enterIn(confirm());
     await enterIn(newPassword());
@@ -147,8 +147,8 @@ describe('ResetPasswordScreen Web focus contract (BUG-035)', () => {
   it('focuses Go to sign in after a successful reset', async () => {
     mockReset.mockResolvedValue(undefined);
     await render(<ResetPasswordScreen />);
-    await fireEvent.changeText(newPassword(), 'Abcdefgh12');
-    await fireEvent.changeText(confirm(), 'Abcdefgh12');
+    await fireEvent.changeText(newPassword(), 'Abcdefgh12!');
+    await fireEvent.changeText(confirm(), 'Abcdefgh12!');
 
     await enterIn(confirm());
 
@@ -162,8 +162,8 @@ describe('ResetPasswordScreen Web focus contract (BUG-035)', () => {
     mockLanguage = 'es';
     mockReset.mockResolvedValue(undefined);
     await render(<ResetPasswordScreen />);
-    await fireEvent.changeText(newPassword(), 'Abcdefgh12');
-    await fireEvent.changeText(confirm(), 'Abcdefgh12');
+    await fireEvent.changeText(newPassword(), 'Abcdefgh12!');
+    await fireEvent.changeText(confirm(), 'Abcdefgh12!');
 
     await enterIn(newPassword());
 

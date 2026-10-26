@@ -7,6 +7,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureHttpHardening } from '../src/config/http-hardening.config';
 import { PrismaService } from '../src/modules/database/prisma.service';
+import { markEmailVerified } from './support/mark-email-verified';
 import {
   ENTITLEMENT_PROVIDER,
   type EntitlementProvider,
@@ -52,10 +53,11 @@ describe('Entitlement enforcement (e2e, provider enabled)', () => {
       .send({
         email: `${label}-${suffix}@appfitness.local`,
         username: `${label}${suffix}`,
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     const body = response.body as { user: { id: string }; accessToken: string };
+    await markEmailVerified(prisma, body.user.id);
     return { id: body.user.id, token: body.accessToken };
   }
 

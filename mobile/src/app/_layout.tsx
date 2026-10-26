@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
+import { AccessGateRedirect } from '@/features/authentication/presentation/access-gate-redirect';
 import { registerNutritionSyncAppliers } from '@/features/nutrition';
 import { registerProgressSyncAppliers } from '@/features/progress';
 import {
@@ -70,7 +71,11 @@ export default function RootLayout() {
         {/* The tab shell and the welcome screen draw their own headers (ADR-P039). */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
+        <Stack.Screen name="verify-pending" options={{ headerShown: false }} />
       </Stack>
+      {/* Mandatory email verification (ADR-P041): no data route stays open
+          for an account that still owes a step. */}
+      <AccessGateRedirect />
     </ThemeProvider>
   );
 }

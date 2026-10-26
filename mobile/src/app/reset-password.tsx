@@ -8,7 +8,9 @@ import {
   resetPassword,
 } from '@/features/authentication';
 import { AuthScreen } from '@/features/authentication/presentation/auth-screen';
+import { meetsPasswordPolicy } from '@/features/authentication/domain/password-policy';
 import { AuthTextField } from '@/features/authentication/presentation/auth-text-field';
+import { PasswordChecklist } from '@/features/authentication/presentation/password-checklist';
 import { RECOVERY_ERROR_COPY } from '@/features/authentication/presentation/recovery-error-copy';
 import {
   parseTokenFromFragment,
@@ -22,9 +24,6 @@ import {
 import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, GlassCard } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
-
-/** Mirrors the API DTO so an obviously-too-short password never leaves the device. */
-const MIN_PASSWORD_LENGTH = 8;
 
 /**
  * How long to keep re-asserting the scrubbed URL after mount.
@@ -144,11 +143,12 @@ export default function ResetPasswordScreen() {
     // Covers the pre-capture (`undefined`) state as well as a missing token.
     if (token == null) return;
 
-    const tooShort = password.length < MIN_PASSWORD_LENGTH;
+    // Same policy as the API (ADR-P041 D1); the checklist shows what is missing.
+    const weak = !meetsPasswordPolicy(password);
     const mismatched = password !== confirmation;
-    setPasswordError(tooShort ? t('auth.reset.passwordTooShort') : null);
-    setConfirmationError(!tooShort && mismatched ? t('auth.reset.passwordMismatch') : null);
-    if (tooShort || mismatched) return;
+    setPasswordError(weak ? t('auth.passwordRules.incomplete') : null);
+    setConfirmationError(!weak && mismatched ? t('auth.reset.passwordMismatch') : null);
+    if (weak || mismatched) return;
 
     setErrorReason(null);
     inFlight.current = true;
@@ -235,6 +235,7 @@ export default function ResetPasswordScreen() {
                 error={passwordError ?? undefined}
                 onWebSubmit={() => void submit()}
               />
+              <PasswordChecklist password={password} />
               <AuthTextField
                 label={t('auth.reset.confirmPassword')}
                 testID="input-confirm-password"

@@ -21,6 +21,7 @@
 
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
+import { markEmailVerified } from './verify-email.mjs';
 
 // `deviceId` is deliberately omitted from every push below: it is optional in
 // the contract and foreign-keyed to a registered device, so a harness that
@@ -115,6 +116,8 @@ async function login(email, password) {
 async function ensureAccount(email, password) {
   try {
     await request('POST', '/auth/register', { email, username: usernameFor(email), password });
+    // ADR-P041: data routes need a verified address (local disposable DB only).
+    markEmailVerified(email);
   } catch (error) {
     // 409 means a previous step already created it; anything else is real.
     if (error.status !== 409) throw error;
@@ -203,7 +206,7 @@ const args = Object.fromEntries(
   }),
 );
 
-const PASSWORD = args.password ?? 'c7password12345';
+const PASSWORD = args.password ?? 'C7-password-12345';
 const ENTITY = args.entity ?? 'wellness_safety_profiles';
 
 async function main() {
@@ -300,7 +303,7 @@ async function main() {
       return;
     }
 
-/**
+    /**
      * Waits for the account to reach a value, rather than sampling it once.
      *
      * A device's "Sync now" returns as soon as the control settles, which is
