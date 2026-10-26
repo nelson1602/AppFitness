@@ -211,6 +211,17 @@ describe('ADR-P035 redesign primitives', () => {
   });
 
   describe('Ring and ProgressBar', () => {
+    // Web dev warning (2026-10-25): `rotation`/`origin` rendered an invalid
+    // `transform-origin` DOM attribute. The arc starts at 12 o'clock through
+    // a plain SVG transform, valid on native and Web.
+    it('starts the arc at the top with a plain SVG transform', async () => {
+      await render(<Ring accessibilityLabel="2 of 4" size={88} testID="r" value={0.5} />);
+      const arc = screen.getByTestId('r-arc', { includeHiddenElements: true });
+      expect(arc.props.transform ?? arc.props.matrix).toBeDefined();
+      expect(arc.props.origin).toBeUndefined();
+      expect(arc.props.rotation).toBeUndefined();
+    });
+
     it('expose progress with a value and a text name, clamped to 0–100', async () => {
       await render(
         <>

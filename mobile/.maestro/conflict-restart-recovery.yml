@@ -20,8 +20,12 @@ appId: com.appfitnessrd.mobile
 - launchApp
 - openLink: appfitness://dashboard
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 90000
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
 
 # Still counted: the dashboard entry is driven by the unsettled set, and a
 # recorded-but-unsettled choice does not drop out of it before T3 commits.

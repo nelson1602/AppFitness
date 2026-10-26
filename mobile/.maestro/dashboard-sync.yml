@@ -19,9 +19,13 @@ appId: com.appfitnessrd.mobile
 
 # Session restore → dashboard.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
 
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
 # Pull the seeded server data through the real sync path.
 - scrollUntilVisible:
     element: 'Sync now'
@@ -33,25 +37,33 @@ appId: com.appfitnessrd.mobile
 # before the assessment can render, so this scroll is also the wait for sync
 # to settle — nothing else reports completion this precisely.
 - scrollUntilVisible:
-    element: "Today's assessment"
-    timeout: 60000
-- scrollUntilVisible:
-    element: '.*kcal.*'
-    timeout: 30000
-- scrollUntilVisible:
     element: 'iCoach recommendations'
-    timeout: 30000
+    timeout: 60000
 
-# The sync banner sits above the sync control, so scroll back UP for it. It
-# must read ready rather than syncing, pending or error: a settled pull is
+# The sync row sits above the recommendations row, so scroll back UP for it.
+# It must read ready rather than syncing, pending or error: a settled pull is
 # what this flow proves, not merely that an assessment appeared.
 - scrollUntilVisible:
     element: 'Local data ready'
     direction: UP
     timeout: 30000
 
+# Inicio shows the pulled data: the evaluation card and today's calories.
+- tapOn:
+    id: 'tab-dashboard'
+- scrollUntilVisible:
+    element:
+      id: 'home-eval-bmi'
+    timeout: 30000
+- scrollUntilVisible:
+    element: '.*kcal.*'
+    direction: UP
+    timeout: 30000
+
 # Sign out clears the session; the route guard returns to the auth
-# surface (TEST-004 logout flow).
+# surface (TEST-004 logout flow). It lives on the Perfil tab (ADR-P039 D1).
+- tapOn:
+    id: 'tab-profile'
 - scrollUntilVisible:
     element: 'Sign out'
     timeout: 60000

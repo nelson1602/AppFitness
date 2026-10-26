@@ -9,6 +9,7 @@ import {
 } from '@/features/subscriptions';
 import { registerWellnessSyncAppliers } from '@/features/wellness';
 import { registerProfileSyncAppliers } from '@/features/profile';
+import { initializeWelcomeGate } from '@/features/shell/application/welcome-gate';
 import { registerWorkoutSyncAppliers } from '@/features/workout';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
 import { DocumentHead, useLocalization } from '@/shared/localization';
@@ -26,6 +27,8 @@ registerNutritionSyncAppliers();
 registerWorkoutSyncAppliers();
 registerProgressSyncAppliers();
 registerWellnessSyncAppliers();
+// The welcome screen is owed once after each sign-in (ADR-P039 D5).
+initializeWelcomeGate();
 // Native: no screen paints before the brand faces are ready (ADR-P037).
 holdSplashForBrandFonts();
 
@@ -63,7 +66,11 @@ export default function RootLayout() {
           headerTintColor: theme.colors.onSurface,
           contentStyle: { backgroundColor: theme.colors.background },
         }}
-      />
+      >
+        {/* The tab shell and the welcome screen draw their own headers (ADR-P039). */}
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
+      </Stack>
     </ThemeProvider>
   );
 }

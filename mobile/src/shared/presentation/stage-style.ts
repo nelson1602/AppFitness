@@ -32,3 +32,11 @@ export function stageBackgroundImage(c: StageColors): string {
 export function ctaBackgroundImage(c: StageColors): string {
   return `linear-gradient(90deg, ${c.ctaStart}, ${c.ctaEnd})`;
 }
+
+/**
+ * The Inicio goal card's fill (design `HERO_BG`, ADR-P039): the CTA blues at
+ * 160°, so its `onCta` text keeps the contrast measured for the CTA pair.
+ */
+export function goalCardBackgroundImage(c: StageColors): string {
+  return `linear-gradient(160deg, ${c.ctaStart} 0%, ${c.ctaEnd} 100%)`;
+}

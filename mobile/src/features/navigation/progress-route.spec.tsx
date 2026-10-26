@@ -1,6 +1,6 @@
 import { render } from '@testing-library/react-native';
 
-import ProgressRoute from '../../app/progress';
+import ProgressRoute from '../../app/(tabs)/progress';
 
 let mockSessionStatus: 'authenticated' | 'unauthenticated' | 'unknown' = 'authenticated';
 let mockLanguage: 'en' | 'es' = 'en';
@@ -18,7 +18,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@/features/authentication', () => ({
   useSession: () => ({ status: mockSessionStatus, session: null }),
 }));
-jest.mock('@/features/progress', () => ({ ProgressScreen: () => null }));
+jest.mock('@/features/progress/presentation/ProgressTab', () => ({ ProgressTab: () => null }));
 jest.mock('@/features/dashboard/presentation/components/dashboard-skeleton', () => ({
   DashboardSkeleton: () => null,
 }));

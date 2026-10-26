@@ -28,8 +28,12 @@ appId: com.appfitnessrd.mobile
 # The checklist is below the verification reminder and the wellness
 # recommendation card, so every interaction with it scrolls first.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 30000
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
 - scrollUntilVisible:
     element:
       id: 'onboarding-step-profile'
@@ -73,9 +77,13 @@ appId: com.appfitnessrd.mobile
 # is still `empty` — the ADR-P027 checklist, not `DataGapCard`. Its label for
 # the weight step is "Record your first weight"; "Record a weight measurement"
 # is the `DataGapCard` wording and appears only once the assessment is `ready`.
+# Saving returns to Inicio; the checklist lives in Perfil (ADR-P039).
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'home-goal-card'
     timeout: 30000
+- tapOn:
+    id: 'tab-profile'
 - assertNotVisible: 'Create your profile'
 - assertNotVisible: 'Add your birth date'
 - assertNotVisible: 'Add your height'
@@ -114,15 +122,16 @@ appId: com.appfitnessrd.mobile
 # BUG-019's fix made it refresh on route focus. The assessment card sits below
 # the reminder and wellness cards, so it is scrolled to rather than asserted
 # from the top — the dashboard has grown since this journey was written.
+# In Perfil the assessment and its notes sit behind the recommendations row
+# (ADR-P039); the row appears once the assessment is ready.
+- scrollUntilVisible:
+    element:
+      id: 'profile-recommendations'
+    timeout: 30000
+- tapOn:
+    id: 'profile-recommendations'
 - scrollUntilVisible:
     element: "Today's assessment"
-    timeout: 30000
-# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
-# the bottom edge, so anything rendered below it is off-screen. The CI emulator
-# is considerably shorter than a local one, which is why this passed locally
-# and failed in the cloud with the assessment title only 5px tall at the fold.
-- scrollUntilVisible:
-    element: '.*kcal.*'
     timeout: 30000
 - scrollUntilVisible:
     element: 'Using maintenance goal'
@@ -152,23 +161,36 @@ appId: com.appfitnessrd.mobile
 # and, with sex + goal both set, the setup card disappears entirely while
 # the assessment stays. The assessment is below the reminder and wellness
 # cards, so scroll to it rather than asserting it from the top.
+# Saving the goal returns to Inicio; back in Perfil, open the assessment
+# again: the maintenance note is gone (iCoach recalculated with the goal).
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'home-goal-card'
     timeout: 30000
+- tapOn:
+    id: 'tab-profile'
+- scrollUntilVisible:
+    element:
+      id: 'profile-recommendations'
+    timeout: 30000
+# Returning through Inicio may have collapsed the row; open it only if closed.
+- runFlow:
+    when:
+      notVisible: "Today's assessment"
+    commands:
+      - tapOn:
+          id: 'profile-recommendations'
 - scrollUntilVisible:
     element: "Today's assessment"
     timeout: 30000
 - assertNotVisible: 'Using maintenance goal'
 - assertNotVisible: 'Finish your baseline'
-# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
-# the bottom edge, so anything rendered below it is off-screen. The CI emulator
-# is considerably shorter than a local one, which is why this passed locally
-# and failed in the cloud with the assessment title only 5px tall at the fold.
-- scrollUntilVisible:
-    element: '.*kcal.*'
-    timeout: 30000
 
 # --- 4. Sync the local profile + goal; the pending state clears ---
+- scrollUntilVisible:
+    element: 'Sync now'
+    direction: UP
+    timeout: 30000
 - tapOn: 'Sync now'
 - extendedWaitUntil:
     visible: 'Local data ready'
@@ -179,22 +201,15 @@ appId: com.appfitnessrd.mobile
     element: 'iCoach recommendations'
     timeout: 60000
 
-# --- 4b. Nutrition targets surface (Phase 15 Slice 1) ---
-- scrollUntilVisible:
-    element: 'Nutrition'
-    timeout: 60000
-- tapOn: 'Nutrition'
+# --- 4b. The Nutrición tab: today's calories and macros (ADR-P039) ---
+- tapOn:
+    id: 'tab-nutrition'
 - extendedWaitUntil:
-    visible: 'Nutrition targets'
+    visible:
+      id: 'nutrition-today-card'
     timeout: 15000
-# Calorie target + macro breakdown render from the deterministic engine. Both
-# sit below the screen heading on a short viewport, so scroll to each.
-- scrollUntilVisible:
-    element: '.*kcal.*'
-    timeout: 20000
-- scrollUntilVisible:
-    element: 'Protein'
-    timeout: 20000
+- assertVisible: '.*kcal.*'
+- assertVisible: 'Protein'
 # No dev-only sample-data path on this surface.
 - assertNotVisible: 'Load sample data'
 
@@ -214,11 +229,13 @@ appId: com.appfitnessrd.mobile
     element: '.*kcal.*'
     timeout: 20000
 - assertNotVisible: 'Load sample data'
-# Back to /nutrition, then back to the dashboard.
-- back
+# Back to the Nutrición tab.
 - back
 
 # --- 5. Sign out, then sign back in as the SAME existing account ---
+# Sign out lives on the Perfil tab (ADR-P039 D1).
+- tapOn:
+    id: 'tab-profile'
 - scrollUntilVisible:
     element: 'Sign out'
     timeout: 60000
@@ -241,24 +258,38 @@ appId: com.appfitnessrd.mobile
     text: 'Sign in'
     below:
       id: 'input-password'
+# ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
+# off under reduced motion (an emulator with animations off reports it), so
+# the flow continues explicitly.
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-continue'
+    timeout: 90000
+- tapOn:
+    id: 'welcome-continue'
 
 # Existing account restores straight to the populated, already-synced
 # dashboard — local data survived sign-out.
 #
-# The checklist must be gone: the baseline is complete. Both absence checks are
-# made while the top of the dashboard is in view, where the checklist would
-# render, and before any scrolling.
+# The checklist must be gone: the baseline is complete. Inicio's own cards
+# (ADR-P039) now open the screen, so scroll to the assessment first — the
+# checklist and the assessment never render together, and the absence check is
+# made where the checklist would sit.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
+# Inicio's evaluation card proves the assessment survived sign-out.
+- scrollUntilVisible:
+    element:
+      id: 'home-eval-bmi'
+    timeout: 45000
+- tapOn:
+    id: 'tab-profile'
 - assertNotVisible: 'Finish setting up AppFitnessRD'
 - assertNotVisible: 'Load sample data'
-# The sync banner sits below the two advisory cards that open the dashboard, so
-# it is off-screen from the top on a short viewport — scrolled to, not asserted.
 - scrollUntilVisible:
     element: 'Local data ready'
     timeout: 45000
-- scrollUntilVisible:
-    element: "Today's assessment"
-    timeout: 45000
-- assertNotVisible: 'Finish your baseline'
+- assertVisible:
+    id: 'profile-recommendations'

@@ -28,19 +28,22 @@ appId: com.appfitnessrd.mobile
 # at the top, then scroll to the assessment: the anchor keeps a blank or
 # errored dashboard failing fast instead of scrolling into a timeout.
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
+# Inicio's evaluation card renders once the iCoach assessment is ready.
 - scrollUntilVisible:
-    element: "Today's assessment"
+    element:
+      id: 'home-eval-bmi'
     timeout: 45000
 
-# --- Navigate: dashboard → Nutrition → 15-day meal plan → Food log ---
-- scrollUntilVisible:
-    element: 'Nutrition'
-    timeout: 60000
-- tapOn: 'Nutrition'
+# --- Navigate: Nutrición tab → 15-day meal plan → Food log (ADR-P039 D1) ---
+- tapOn:
+    id: 'tab-nutrition'
+# The tab opens on today's summary; the detailed targets are a spoke now.
 - extendedWaitUntil:
-    visible: 'Nutrition targets'
+    visible:
+      id: 'nutrition-today-card'
     timeout: 15000
 - scrollUntilVisible:
     element: '15-day meal plan'

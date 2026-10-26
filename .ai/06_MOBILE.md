@@ -190,6 +190,19 @@ Deep Link ready
 
 Avoid nested navigation complexity.
 
+**Tab shell (ADR-P039).**
+
+- `src/app/(tabs)/` holds the five tabs: `dashboard` (Inicio), `workouts`,
+  `nutrition`, `progress` and `profile`. Expo Router's stable JS `Tabs` render
+  them with the custom `AppTabBar` and `AppHeader`
+  (`features/shell/presentation`). No new dependency.
+- URLs are unchanged (`/dashboard`, `/nutrition`, `/progress`). Every other
+  screen stays a Stack route above the tabs.
+- Each tab route keeps its own session guard.
+- `/welcome` is a Stack route reached only by redirect from Inicio, while the
+  in-memory welcome gate (`features/shell/application/welcome-gate.ts`) says it
+  is owed.
+
 ---
 
 # Screen Principles
@@ -595,6 +608,14 @@ Workout reminders
 Nutrition reminders
 
 Notifications must respect user preferences.
+
+**Current scope (ADR-P039 D4): in-app only.**
+
+- The list is derived on screen by the pure `buildNotifications`
+  (`features/notifications/domain`).
+- Read state lives in the local `notifications` table, behind
+  `notification-read.repository.ts`. It is never synced.
+- There are no push or scheduled notifications; ADR-P004 is still pending.
 
 ---
 

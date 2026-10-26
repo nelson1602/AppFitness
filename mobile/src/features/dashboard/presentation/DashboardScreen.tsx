@@ -1,328 +1,67 @@
-import { router, useFocusEffect } from 'expo-router';
-import { type ReactNode, useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
-import { signOut } from '@/features/authentication';
-import { ProgressSummaryCard } from '@/features/progress';
-// Direct import: the barrel would also load the subscription store composition.
-import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
-import { WellnessSafetyRecommendationCard } from '@/features/wellness';
-import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
+import { TabScreen } from '@/features/shell/presentation/tab-screen';
 import { useLocalization } from '@/shared/localization';
-import {
-  AppButton,
-  AppText,
-  Banner,
-  BrandHero,
-  Card,
-  PaidWriteDisabledProvider,
-  Screen,
-} from '@/shared/presentation';
-import { useTheme } from '@/shared/theme';
+import { Banner } from '@/shared/presentation';
 
-import type { DataRequirement } from '../domain/dashboard.types';
 import { useDashboardStore } from '../application/dashboard.store';
-import { AssessmentSummaryCard } from './components/assessment-summary-card';
-import { DashboardSkeleton } from './components/dashboard-skeleton';
-import { DataGapCard } from './components/data-gap-card';
-import { OnboardingChecklistCard } from './components/onboarding-checklist-card';
-import { RecommendationCard } from './components/recommendation-card';
-import { SyncStatusBanner } from './components/sync-status-banner';
-import { VerificationReminderCard } from './components/verification-reminder-card';
+import { loadHomeData, useHomeData } from '../application/use-home-data';
+import {
+  CoachCard,
+  ComingSoonCard,
+  EvaluationCard,
+  GoalCard,
+  QuickActions,
+  TodayTiles,
+} from './components/home-cards';
 
 /**
- * Maps a data gap / assessment note to the edit screen that resolves it.
- * Routing knowledge stays in the screen — the card never hard-codes which
- * gaps are addressable.
+ * Inicio (ADR-P039, docs/design): exactly the prototype's six blocks, in its
+ * order — the weekly goal, today's iCoach recommendation, today's training and
+ * calories, today's evaluation, the quick actions and "Próximamente". Each
+ * shows its empty state when its data does not exist yet.
+ *
+ * Everything the old dashboard also carried (setup checklist, sync, the email
+ * reminder, the full recommendation list, subscription) lives in Perfil →
+ * "Cuenta y ajustes" now; nothing was removed.
  */
-const PROFILE_EDIT_GAPS = new Set(['profile', 'birth-date', 'height']);
-const GOAL_EDIT_GAPS = new Set(['default-goal']);
-const PROGRESS_EDIT_GAPS = new Set(['weight']);
-
-function resolveGapFix(gap: DataRequirement): (() => void) | undefined {
-  if (PROFILE_EDIT_GAPS.has(gap.id)) return () => router.push('/profile-edit');
-  if (GOAL_EDIT_GAPS.has(gap.id)) return () => router.push('/goal-edit');
-  if (PROGRESS_EDIT_GAPS.has(gap.id)) return () => router.push('/progress');
-  return undefined;
-}
-
 export function DashboardScreen() {
-  const theme = useTheme();
   const { t } = useLocalization();
-  const { mode: entitlementMode } = useEntitlementAccess();
-  const paidWriteDisabled = entitlementMode === 'checking' || entitlementMode === 'read-only';
-  const { status, data, error, refresh, syncNow, loadSampleData } = useDashboardStore();
+  const status = useDashboardStore((s) => s.status);
+  const refresh = useDashboardStore((s) => s.refresh);
+  const { summary, goalType, evaluationDate, evaluation } = useHomeData();
 
-  // BUG-019: `back` from Progress reveals this screen's existing instance
-  // instead of remounting it, so a mount-only effect never re-reads. Focus
-  // fires on that reveal (and on initial mount, which is also a focus), so a
-  // single effect covers both without a second, duplicate load path.
+  // BUG-019: `back` reveals this screen's existing instance instead of
+  // remounting it, so a mount-only effect never re-reads. Focus fires on that
+  // reveal (and on the first mount), so one effect covers both.
   useFocusEffect(
     useCallback(() => {
       void refresh();
+      loadHomeData();
     }, [refresh]),
   );
 
-  return (
-    <Screen style={styles.screen}>
-      <BrandHero compact subtitle={t('dashboard.subtitle')} />
-
-      {/* Advisory account affordance (ADR-P026 V2-D): reports an account
-          attribute, not a read outcome, so it renders above the read-driven
-          states and independently of them. Blocks nothing — the soft gate
-          leaves an unverified user with full core access. */}
-      <VerificationReminderCard />
-
-      {paidWriteDisabled ? <SubscriptionAccessNotice /> : null}
-
-      {/* Recommends a professional physical evaluation (ADR-P017 W-3).
-          Recommends, never requires: it gates nothing, and it is deliberately
-          NOT a fourth onboarding step — the checklist's three steps are
-          prerequisites the assessment cannot compute without, and its
-          "n of 3 complete" count is unchanged. Hides itself once answered;
-          the navigation entry below is the persistent way back. */}
-      <WellnessSafetyRecommendationCard onOpen={() => router.push('/wellness-safety-profile')} />
-
-      {status === 'loading' || status === 'idle' ? <DashboardSkeleton /> : null}
-
-      {error ? (
-        <Banner title={t('dashboard.unavailable')} tone="error">
-          {t('dashboard.errorMessage')}
-        </Banner>
-      ) : null}
-
-      {/* ADR-P031 §Decision 8: the declared limitations could not be read, so
-          the assessment is withheld rather than shown without them. The
-          canonical Error treatment — not Empty and not Data-gap, because no
-          read succeeded and nothing is a prerequisite the user supplies
-          elsewhere. Offers the same recovery W-3 does: re-check the answers. */}
-      {data?.wellness === 'unavailable' ? (
-        <Banner title={t('workout.plan.wellnessUnavailableTitle')} tone="error">
-          {t('workout.plan.wellnessUnavailableBody')}
-        </Banner>
-      ) : null}
-
-      {/* Local database is dormant on Web (ADR-P019): a distinct, non-error
-          informational state — no retry control and no fabricated data. */}
-      {status === 'web-unavailable' ? (
+  // Local database is dormant on Web (ADR-P019): a distinct, non-error
+  // informational state — no retry and no fabricated data (ADR-P039 D2).
+  if (status === 'web-unavailable') {
+    return (
+      <TabScreen>
         <Banner title={t('dashboard.webUnavailableTitle')} tone="info">
           {t('dashboard.webUnavailableBody')}
         </Banner>
-      ) : null}
-
-      {data ? (
-        <>
-          <SyncStatusBanner sync={data.sync} />
-          {/* Conflict review entry (ADR-P030 §Decision 1). An explicit,
-              labelled button with its own accessible name and a 44×44 target —
-              the banner above stays report-only and is deliberately NOT
-              tappable. Shown only while unsettled conflicts exist, so it is
-              also the one primary action the dashboard ever offers. */}
-          {data.sync.conflicts > 0 ? (
-            <AppButton
-              accessibilityLabel={t('sync.conflicts.dashboardButtonAccessibility')}
-              onPress={() => router.push('/sync-conflicts')}
-              testID="dashboard-sync-conflicts"
-              variant="primary"
-            >
-              {t('sync.conflicts.dashboardButton')}
-            </AppButton>
-          ) : null}
-          <AppButton
-            accessibilityLabel={t('dashboard.syncAccessibility')}
-            loading={data.sync.status === 'syncing'}
-            onPress={() => {
-              void syncNow();
-            }}
-            variant="secondary"
-          >
-            {t('dashboard.syncNow')}
-          </AppButton>
-        </>
-      ) : null}
-
-      {/* First run: the assessment cannot compute yet, so the advisory
-          checklist (ADR-P027 Decision 1) is the Data-gap treatment here. It is
-          non-blocking and adds no route — every other surface stays usable. */}
-      {status === 'empty' && data ? (
-        <PaidWriteDisabledProvider disabled={paidWriteDisabled}>
-          <OnboardingChecklistCard
-            gaps={data.missing}
-            loading={false}
-            onLoadSampleData={() => {
-              void loadSampleData();
-            }}
-            resolveFix={resolveGapFix}
-          />
-        </PaidWriteDisabledProvider>
-      ) : null}
-
-      {status === 'ready' && data?.assessment ? (
-        <>
-          <AssessmentSummaryCard assessment={data.assessment} />
-          {data.missing.length > 0 ? (
-            <DataGapCard gaps={data.missing} resolveFix={resolveGapFix} />
-          ) : null}
-          <View style={{ gap: theme.spacing.md }}>
-            <AppText variant="title">{t('dashboard.recommendations')}</AppText>
-            {data.assessment.assessment.recommendations.map((recommendation) => (
-              <RecommendationCard key={recommendation.id} recommendation={recommendation} />
-            ))}
-          </View>
-        </>
-      ) : null}
-
-      {/* Progress summary preview (ADR-P016 Phase 17 Slice 5b). */}
-      <ProgressSummaryCard onPress={() => router.push('/progress')} />
-
-      <DashboardActionGroup title={t('dashboard.nutritionAndMeals')}>
-        {/* Nutrition targets (Phase 15 Slice 1). */}
-        <AppButton
-          accessibilityLabel={t('dashboard.nutritionAccessibility')}
-          onPress={() => router.push('/nutrition')}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          {t('dashboard.nutrition')}
-        </AppButton>
-
-        {/* Direct daily food-log shortcut (ADR-P027 / UX-4A). The existing
-          nutrition targets → plan → food-log path remains available. */}
-        <AppButton
-          accessibilityLabel={t('dashboard.foodLogAccessibility')}
-          onPress={() => router.push('/food-log')}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          {t('dashboard.foodLog')}
-        </AppButton>
-
-        {/* Dietary preferences & allergies (ADR-P014 Slice 2B). */}
-        <AppButton
-          accessibilityLabel={t('dashboard.preferencesAccessibility')}
-          onPress={() => router.push('/dietary-preferences')}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          {t('dashboard.preferences')}
-        </AppButton>
-      </DashboardActionGroup>
-
-      <DashboardActionGroup title={t('dashboard.trainingAndProgress')}>
-        {/* Evaluation and self-declared limitations (ADR-P017 W-3). Always
-          present — the first-run recommendation card is a prompt, not the
-          only door — and it blocks nothing whether answered or not. */}
-        <AppButton
-          accessibilityLabel={t('dashboard.wellnessSafetyAccessibility')}
-          onPress={() => router.push('/wellness-safety-profile')}
-          style={styles.actionButton}
-          testID="dashboard-wellness-safety"
-          variant="secondary"
-        >
-          {t('dashboard.wellnessSafety')}
-        </AppButton>
-        {/* Workout routines (ADR-P015 Phase 16 Slice 5). */}
-        <AppButton
-          accessibilityLabel={t('dashboard.routinesAccessibility')}
-          onPress={() => router.push('/routines')}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          {t('dashboard.routines')}
-        </AppButton>
-        {/* Workout logging (ADR-P015 Phase 16 Slice 6). */}
-        <AppButton
-          accessibilityLabel={t('dashboard.workoutLogAccessibility')}
-          onPress={() => router.push('/workout-log')}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          {t('dashboard.workoutLog')}
-        </AppButton>
-        {/* Exercise library — custom exercises (ADR-P015 Phase 16 Slice 9). */}
-        <AppButton
-          accessibilityLabel={t('dashboard.exercisesAccessibility')}
-          onPress={() => router.push('/exercises')}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          {t('dashboard.exercises')}
-        </AppButton>
-        {/* Progress monitoring — body metrics + weekly insights (ADR-P016 Phase 17 Slice 5a). */}
-        <AppButton
-          accessibilityLabel={t('dashboard.progressAccessibility')}
-          onPress={() => router.push('/progress')}
-          style={styles.actionButton}
-          variant="secondary"
-        >
-          {t('dashboard.progress')}
-        </AppButton>
-      </DashboardActionGroup>
-
-      <DashboardActionGroup title={t('dashboard.account')}>
-        {/* Subscription status, offer, restore and management (ADR-P034 S-3).
-          An account-level entry beside the other account actions; it gates
-          nothing — no feature is locked by this slice (S-4 is separate). */}
-        <AppButton
-          accessibilityLabel={t('dashboard.subscriptionAccessibility')}
-          onPress={() => router.push('/subscription')}
-          style={styles.actionButton}
-          testID="dashboard-subscription"
-          variant="secondary"
-        >
-          {t('dashboard.subscription')}
-        </AppButton>
-      </DashboardActionGroup>
-
-      {/* Sign-out clears the session; the dashboard route's session
-          guard then redirects to /sign-in — no manual navigation. */}
-      <AppButton
-        accessibilityLabel={t('dashboard.signOutAccessibility')}
-        onPress={() => {
-          void signOut();
-        }}
-        variant="text"
-      >
-        {t('dashboard.signOut')}
-      </AppButton>
-      <AppButton
-        accessibilityLabel={t('dashboard.deleteAccountAccessibility')}
-        onPress={() => router.push('/delete-account')}
-        variant="text"
-      >
-        {t('dashboard.deleteAccount')}
-      </AppButton>
-    </Screen>
-  );
-}
-
-function DashboardActionGroup(props: { children: ReactNode; title: string }) {
-  const theme = useTheme();
+      </TabScreen>
+    );
+  }
 
   return (
-    // A titled card per group (ADR-P022 Addendum C slice): the title is a
-    // header so screen-reader users can move between groups.
-    <Card style={{ gap: theme.spacing.md }}>
-      <AppText accessibilityRole="header" variant="title">
-        {props.title}
-      </AppText>
-      <View style={[styles.actionGrid, { gap: theme.spacing.sm }]}>{props.children}</View>
-    </Card>
+    <TabScreen>
+      <GoalCard goalType={goalType} summary={summary} />
+      <CoachCard evaluationDate={evaluationDate} summary={summary} />
+      <TodayTiles summary={summary} />
+      <EvaluationCard evaluation={evaluation} />
+      <QuickActions />
+      <ComingSoonCard />
+    </TabScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  actionButton: {
-    flexBasis: '47%',
-    flexGrow: 1,
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  screen: {
-    alignSelf: 'center',
-    maxWidth: 880,
-    width: '100%',
-  },
-});

@@ -43,10 +43,13 @@ const SQL_WRITE = /INSERT INTO|UPDATE [a-z_]+\s+SET|DELETE FROM/;
  * Repositories that write SQL without a tracked, synchronized entity: the
  * local account cache backs authentication itself, which Decision 6 keeps
  * available. Server-pull appliers live outside repositories and must keep
- * working in read-only mode, so they are not repositories at all.
+ * working in read-only mode, so they are not repositories at all. Notification
+ * read state (ADR-P039 D4) is local-only and never synced, so there is no paid
+ * write to guard: reading a notification works in read-only mode.
  */
 const UNTRACKED_REPOSITORIES = new Set([
   'features/authentication/infrastructure/local-user.repository.ts',
+  'features/notifications/infrastructure/notification-read.repository.ts',
 ]);
 
 describe('ADR-P034 paid-write enforcement scope', () => {
@@ -90,7 +93,9 @@ describe('ADR-P034 paid-write enforcement scope', () => {
     'app/wellness-safety-profile.tsx',
     'app/dietary-preferences.tsx',
     'app/food-log.tsx',
-    'app/progress.tsx',
+    // ADR-P039: the Progreso and Entrenamientos tabs only navigate; the full
+    // progress screen and the workout spokes below keep the boundary.
+    'app/progress-log.tsx',
     'app/exercises.tsx',
     'app/routines.tsx',
     'app/workout-log.tsx',

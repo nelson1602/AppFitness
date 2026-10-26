@@ -39,23 +39,19 @@ appId: com.appfitnessrd.mobile
 # header is the stable landing signal (the assessment may not be "ready" this
 # late in the sequence).
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 45000
 
-# --- 1. Dashboard → Progress via the summary card entry point (Slice 5b). ---
-- scrollUntilVisible:
-    element:
-      id: 'dashboard-progress-card'
-    timeout: 60000
-# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
-# the bottom edge, so anything rendered below it is off-screen. The CI emulator
-# is considerably shorter than a local one, which is why this passed locally
-# and failed in the cloud with the assessment title only 5px tall at the fold.
-- scrollUntilVisible:
-    element: 'View your progress'
-    timeout: 20000
+# --- 1. Progreso tab → the full progress screen (ADR-P039). ---
 - tapOn:
-    id: 'dashboard-progress-card'
+    id: 'tab-progress'
+- extendedWaitUntil:
+    visible:
+      id: 'progress-open-log'
+    timeout: 30000
+- tapOn:
+    id: 'progress-open-log'
 - extendedWaitUntil:
     visible: 'Record weight'
     timeout: 15000
@@ -150,18 +146,12 @@ appId: com.appfitnessrd.mobile
     element: 'Total volume'
     timeout: 60000
 
-# --- 7. Back on the dashboard, the summary card reflects the new weight (the
-#     card and screen share the same Zustand store, so it updates without a
-#     remount). ---
+# --- 7. Back on the Progreso tab, the weight card reflects the new weight
+#     (the tab and the screen share the same store, so it updates without a
+#     remount). The unit is joined by a no-break space, hence `.`. ---
 - back
-- scrollUntilVisible:
-    element:
-      id: 'dashboard-progress-card'
-    timeout: 60000
-# Scrolled to, not asserted: `scrollUntilVisible` leaves its target flush with
-# the bottom edge, so anything rendered below it is off-screen. The CI emulator
-# is considerably shorter than a local one, which is why this passed locally
-# and failed in the cloud with the assessment title only 5px tall at the fold.
-- scrollUntilVisible:
-    element: '.*83 kg.*'
-    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: 'progress-weight-card'
+    timeout: 30000
+- assertVisible: '.*83.kg.*'

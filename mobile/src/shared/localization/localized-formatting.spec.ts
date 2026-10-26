@@ -105,6 +105,18 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
   'src/app/+html.tsx#Root: children': 'the rendered app tree — a framework slot, not a value',
   'src/app/+html.tsx#Root: headNodes': 'renderer-supplied <head> nodes — a framework slot',
   'src/app/+html.tsx#Root: bodyNodes': 'renderer-supplied <body> nodes — a framework slot',
+  // ADR-P039 layout slots: each renders caller-supplied nodes (a chip, a bar,
+  // a card's content, a tab's content) and owns no value of its own.
+  'src/features/dashboard/presentation/components/home-cards.tsx#PanelTitle: right':
+    'a caller-supplied chip — a composition slot, not a value',
+  'src/features/dashboard/presentation/components/home-cards.tsx#Tile: bar':
+    'a caller-supplied progress bar — a composition slot, not a value',
+  'src/features/profile/presentation/ProfileTab.tsx#Panel: children':
+    "the panel's content — a composition slot, not a value",
+  'src/features/profile/presentation/ProfileTab.tsx#Panel: right':
+    'a caller-supplied date or chip — a composition slot, not a value',
+  'src/features/shell/presentation/tab-screen.tsx#TabScreen: children':
+    "the tab's content — a composition slot, not a value",
   // The auth screens' shared frame (stage + centred column) renders the route's
   // content as-is; it owns no copy and no numeric value of its own.
   'src/features/authentication/presentation/auth-screen.tsx#AuthScreen: children':
@@ -113,10 +125,6 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
   // like the slots above it owns no copy and no numeric value of its own.
   'src/features/subscriptions/presentation/SubscriptionWriteBoundary.tsx#SubscriptionWriteBoundary: children':
     'the wrapped route content — a composition slot, not a value',
-  // The dashboard's visual action group owns only layout and a translated
-  // title; its children are complete AppButton nodes supplied by the caller.
-  'src/features/dashboard/presentation/DashboardScreen.tsx#DashboardActionGroup: props.children':
-    'the grouped dashboard actions — a composition slot, not a value',
   // The sign-in field's label-row slot holds a complete AppButton (the
   // forgot-password link) supplied by the caller; it renders no value.
   'src/app/sign-in.tsx#StageField: accessory': 'a label-row control slot, not a value',

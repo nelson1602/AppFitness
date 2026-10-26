@@ -16,6 +16,12 @@ interface ScreenProps {
    * the Android keyboard clearance (BUG-022) are unchanged.
    */
   stage?: boolean;
+  /**
+   * `sides`: only the left/right safe areas. For a screen inside the tab
+   * shell (ADR-P039), whose header already clears the top inset and whose tab
+   * bar clears the bottom one — applying them again left an empty band.
+   */
+  safeArea?: 'all' | 'sides';
 }
 
 /**
@@ -68,7 +74,15 @@ function useAndroidKeyboardClearance(enabled: boolean): number {
   return clearance;
 }
 
-export function Screen({ children, scroll = true, style, stage = false }: ScreenProps) {
+const SIDE_EDGES = ['left', 'right'] as const;
+
+export function Screen({
+  children,
+  scroll = true,
+  style,
+  stage = false,
+  safeArea = 'all',
+}: ScreenProps) {
   const theme = useTheme();
   const ground = stage
     ? backgroundImageStyle(stageBackgroundImage(theme.colors), theme.colors.stage)
@@ -81,7 +95,11 @@ export function Screen({ children, scroll = true, style, stage = false }: Screen
   };
 
   return (
-    <SafeAreaView style={[{ flex: 1 }, ground]} testID={stage ? 'screen-stage' : undefined}>
+    <SafeAreaView
+      edges={safeArea === 'sides' ? SIDE_EDGES : undefined}
+      style={[{ flex: 1 }, ground]}
+      testID={stage ? 'screen-stage' : undefined}
+    >
       {scroll ? (
         <ScrollView
           contentContainerStyle={[contentStyle, style]}

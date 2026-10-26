@@ -5888,12 +5888,12 @@ or approved for implementation.
 
 ## [FEATURE-015] AppFitnessRD Redesign — Phased Delivery (ADR-P035 … ADR-P040)
 
-Status: In Progress (Phase 1 in review)
+Status: In Progress (biometrics PR #233 and the tab shell in review)
 Priority: P1
 Type: Feature
 Owner: Project owner (decisions) · Engineering (delivery)
 Created: 2026-10-22
-Updated: 2026-10-22
+Updated: 2026-10-23
 
 ### Description
 
@@ -5915,6 +5915,16 @@ Open Food Facts is dropped.
 * [ ] Phase 1: stage tokens, Sora/Inter, primitives, redesigned sign-in — automated checks pass; Android emulator and Web verified; owner visual approval
 * [ ] Biometric sign-in (ADR-P036 accepted first), including the deferred login hint "Podrás activar Face ID o Huella al iniciar sesión."
 * [ ] Tab shell, header, in-app notifications and welcome screen (ADR-P039 accepted first)
+  * ADR-P039 accepted 2026-10-23. The tab shell, header, bell, in-app
+    notifications, the Inicio layout and the welcome screen are on
+    `codex/redesign-p039-shell` (draft PR). They are independent of PR #233.
+  * 2026-10-25, prototype-fidelity pass: Inicio shows only the prototype's
+    blocks; the rest moved to Perfil → "Cuenta y ajustes"; every tab is a stage
+    screen. Per-tab pending work is in `docs/design/GAP_ANALYSIS.md` §Phase 2.
+  * Still open: the Maestro flows were updated for the tabs but not run on a
+    device; emulator and Web checks; owner visual approval.
+  * The data gaps Inicio shows as empty states are listed in
+    `docs/design/GAP_ANALYSIS.md` §Phase 2.
 * [ ] Recipes, substitution, injury mapping, off-plan adjustment, user foods and Dominican seed (ADR-P040 accepted first)
 * [ ] Medical evaluation (ADR-P038, gated by SECURITY-002)
 * [ ] Remaining screens migrated from `Card`/`BrandHero` to the stage family

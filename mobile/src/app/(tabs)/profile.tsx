@@ -2,15 +2,12 @@ import { Redirect, Stack } from 'expo-router';
 
 import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
-import { NutritionTargets } from '@/features/nutrition/presentation/NutritionTargets';
+import { ProfileTab } from '@/features/profile/presentation/ProfileTab';
 import { useLocalization } from '@/shared/localization';
 import { Screen } from '@/shared/presentation';
 
-/**
- * Nutrition targets route (Phase 15 Slice 1). Session-guarded like the
- * dashboard / entry routes. Read-only surface — no post-action navigation.
- */
-export default function NutritionRoute() {
+/** Perfil tab (ADR-P039 D1). Session-guarded like the other tabs. */
+export default function ProfileRoute() {
   const { status } = useSession();
   const { t } = useLocalization();
 
@@ -25,10 +22,8 @@ export default function NutritionRoute() {
 
   return (
     <>
-      <Stack.Screen options={{ title: t('nutrition.routeTitle') }} />
-      <Screen>
-        <NutritionTargets />
-      </Screen>
+      <Stack.Screen options={{ title: t('tabs.profile') }} />
+      <ProfileTab />
     </>
   );
 }

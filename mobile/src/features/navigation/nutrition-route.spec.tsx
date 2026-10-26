@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
-import NutritionRoute from '@/app/nutrition';
+import NutritionRoute from '@/app/(tabs)/nutrition';
 
 let mockSessionStatus: 'unknown' | 'authenticated' | 'anonymous';
 let mockLanguage: 'en' | 'es' = 'en';
@@ -38,8 +38,8 @@ jest.mock('@/shared/localization', () => {
   };
 });
 
-jest.mock('@/features/nutrition/presentation/NutritionTargets', () => ({
-  NutritionTargets: () => {
+jest.mock('@/features/nutrition/presentation/NutritionTab', () => ({
+  NutritionTab: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return <Text>Nutrition targets content</Text>;
   },

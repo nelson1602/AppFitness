@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Text, type TextProps, type TextStyle } from 'react-native';
 
 import { useTheme } from '../theme';
+import { useStageSurface } from './stage-surface';
 
 type TextVariant = 'display' | 'headline' | 'title' | 'body' | 'label' | 'caption';
 /**
@@ -52,6 +53,19 @@ export function AppText({
   ...props
 }: AppTextProps) {
   const theme = useTheme();
+  // On the stage the neutral tones resolve to their stage forms.
+  const stage = useStageSurface();
+  const resolvedTone: TextTone = stage
+    ? tone === 'default'
+      ? 'onStage'
+      : tone === 'muted'
+        ? 'onStageVariant'
+        : tone === 'primary'
+          ? 'linkOnStage'
+          : tone === 'error'
+            ? 'errorOnStage'
+            : tone
+    : tone;
   const colorByTone: Record<TextTone, string> = {
     default: theme.colors.onSurface,
     muted: theme.colors.onSurfaceVariant,
@@ -74,7 +88,7 @@ export function AppText({
       style={[
         theme.typography[variant],
         {
-          color: colorByTone[tone],
+          color: colorByTone[resolvedTone],
           textAlign: align,
         },
         style,

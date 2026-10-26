@@ -8,8 +8,12 @@ appId: com.appfitnessrd.mobile
 - launchApp
 - openLink: appfitness://dashboard
 - extendedWaitUntil:
-    visible: 'Your local iCoach assessment'
+    visible:
+      id: 'tab-dashboard'
     timeout: 90000
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
 # Gate on the dashboard data load: "Sync now" lives inside the same
 # `{data ? ... }` block as the sync banner, so scrolling for it before that
 # read resolves would run to the bottom and stop. The skeleton is the
