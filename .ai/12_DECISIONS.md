@@ -14894,7 +14894,14 @@ ADR-P027 deferred tabs behind three revisit triggers and made onboarding advisor
 
 ## ADR-P040 — iCoach Redesign Rules: Recipes, Ingredient Substitution, Injury Mapping, Off-Plan Adjustment, User Foods
 
-Status: Proposed
+Status: Accepted
+Accepted: 2026-10-26 by the project owner (v8 Block 2). Owner decisions recorded at acceptance:
+- **D4:** a marked food is either **Alergia** (blocked when logging) or **Prefiero evitar** (warning only).
+- **D5:** the injury map lives in `docs/design/INJURY_EXERCISE_MAP.md`, applied in its most conservative form and marked pending the qualified review ADR-P031 D4 requires. New area values: `muscle_tear`, `shin_splints`, `plantar_fasciitis`. A new equipment value `band` arrives with band exercises.
+- **D6** stays conditional on ADR-P038.
+- **D7** is built in v8 as specified in ADR-P042 D8.
+- **D8:** stress and sleep stay explained notes.
+- **D10:** the Dominican foods seed starts with the foods from the evaluation's 10 lists that the catalog lacked, each sourced from the pinned USDA SR Legacy archive with Spanish and English names.
 Date: 2026-10-22
 Owner: iCoach / Nutrition / Architecture
 Would revise: ADR-P031 D4 (injury-area mapping), D5 (workload signals) and D13 (nutrition restriction input), conditional on ADR-P038 for condition rules; ADR-P012 D3/D5 (custom foods); ADR-P013 acceptance (food sources); ADR-P014 (new avoid tags)
@@ -15034,6 +15041,87 @@ ADR-P026, ADR-P029, ADR-P030 C-1, `.ai/05_SECURITY.md`, `.ai/17_PRODUCT_FLOWS.md
 
 ---
 
+
+## ADR-P042 — Saved Weekly Plan, Plan Revisions and Adherence ("Semanas anteriores")
+
+Status: Accepted
+Date: 2026-10-26
+Accepted: 2026-10-26 by the project owner (v8 Block 2 scope, design PR #238).
+Owner: iCoach / Mobile Architecture / Data
+Refines: ADR-P012 (no recomputation of the deterministic plan), ADR-P015, ADR-P016, ADR-P040 D7
+
+### Context
+
+The engine recomputed the weekly workout routine and the 15-day meal plan on every render. Weight is part of the meal-plan seed, so logging a weight changed the plan. The design (`docs/design/README.md` §Plan semanal guardado) asks for:
+
+- a plan saved per week and synced to the account;
+- regeneration on Monday, or earlier only after a confirmed important change;
+- logging that updates adherence and never changes the plan;
+- workouts linked to the session they fulfil;
+- a "Semanas anteriores" history kept until the account is deleted.
+
+### Decision
+
+1. **Entity `weekly_plans`.** Synced, UUID, soft delete, with `version`/`sync_seq` like every synced entity. It needs a SQLite migration and a Prisma migration. Each row is one plan revision:
+   - `week_start` (the device-local Monday, `YYYY-MM-DD`), `revision` (1…), `effective_from` (`YYYY-MM-DD`), `trigger` (`FIRST_RUN` | `WEEKLY` | `CHANGE`);
+   - `load_step` (0…4), `inputs_fingerprint`, `rule_versions` (engine, workout, meal, food catalog, exercise catalog, injury map, plan contract);
+   - `plan` (JSON): the 7 days of sessions with their full prescriptions, the 7 days of meals (slots, dishes, ingredient lines), and the calorie and macro targets;
+   - `notes` (JSON): reason codes only — progression, the calorie-days hint, injury adjustments and ingredient substitutions.
+   - Unique `(user_id, week_start, revision)`. The plan is wellness data and syncs as `sensitive`.
+2. **Never mid-week.** The plan for a week is created on the first app open of that week, offline included, from the data at that moment. It is then read, never recomputed. Logging food, workouts or weight never writes `weekly_plans`.
+3. **Earlier regeneration only after a confirmed change.** A saved change to goal, training days, equipment, injuries or excluded foods asks "¿Actualizar tu plan de esta semana?". On "Sí", a new revision is saved with `effective_from` = today. Days before it keep the previous revision, so history stays true. On "Ahora no", the change applies from next Monday.
+4. **Progression (load step).** The next week's `load_step` is the previous step + 1 (capped at 4) when every planned session of the previous week was fulfilled; otherwise it stays the same. A confirmed change to injuries resets it to 0.
+   - Each step adds +1 repetition to repetition targets, keeping the range width, and +10 s to timed targets. Sets, rest and RPE caps are untouched.
+   - The iCoach note for the week is generated from this rule, plus the calorie hint when fewer than 5 of 7 days were within the calorie target.
+5. **Session linking.** `workout_logs` gains `weekly_plan_id`, `plan_session_key` and `plan_date` (nullable, migrations on both sides).
+   - A workout started from the plan carries its session.
+   - A workout logged on a training day without a link fulfils that day's session if it is still open.
+   - Anything else is an extra workout outside adherence.
+6. **"Lo comí".** Each planned meal can be marked eaten. That logs the dish's ingredient lines into the food log, with `meal_items.plan_id`, `plan_date` and `plan_slot` (nullable, migrations on both sides). Deleting those items undoes it.
+   - Meal adherence = planned meal slots with at least one linked item ÷ planned meal slots in the week.
+7. **Adherence** = 50 % × (fulfilled sessions ÷ planned sessions) + 50 % × meal adherence, rounded to a whole percent. The ring is green at ≥ 85, cyan at ≥ 65 and orange below.
+   - The week detail shows: each planned session as Cumplido / No realizado; meal %; days within the calorie target (logged kcal within ±10 % of target, of 7); average daily kcal against the target; the weight change (last weigh-in of the week minus the last one before it); and the iCoach note of the **following** week's plan.
+   - All of it is computed by pure functions from the logs and the saved plan.
+8. **Off-plan adjustment (ADR-P040 D7) is an overlay, never a write.**
+   - When yesterday's logged kcal exceeded the target by more than 10 %, today's target is lowered by min(excess, 300) kcal. It is never lowered below the engine's calorie floor.
+   - The next scheduled session gets clamp(excess ÷ 10, 10, 30) minutes of extra cardio.
+   - A food tagged `alcohol` logged yesterday or today adds the note "evita el entrenamiento intenso hoy".
+   - The overlay is recomputed from the logs and is deterministic. The saved plan never changes.
+9. **Meal-plan view.** The 15-day slider stays. Days 1–7 are the saved current week. Days 8–15 are an unsaved preview generated from the current data, labelled "Puede ajustarse el lunes" / "May change on Monday".
+10. **Retention.** Plans and links are kept until account deletion. They are user-owned rows: the server removes them through the user's cascading foreign key, and the device database file is deleted. `docs/legal/DATA_INVENTORY.md` lists them.
+
+### Consequences
+
+- **Positive:** the plan the person sees is the plan they are measured against, and Semanas anteriores is honest.
+- **Negative:** two devices opening a new week offline can each create revision 1. The sync conflict review resolves it. Because generation is deterministic, identical inputs produce identical plans.
+
+### Related Documents
+
+ADR-P012, ADR-P015, ADR-P016, ADR-P030, ADR-P040, `docs/design/README.md`, `docs/legal/DATA_INVENTORY.md`
+
+---
+
+## ADR-P043 — Native Date Picker Dependency
+
+Status: Accepted
+Date: 2026-10-26
+Accepted: 2026-10-26 by the project owner (v8 scope: "approve @react-native-community/datetimepicker via npx expo install").
+Owner: Mobile Architecture
+Amends: ADR-P037 (redesign dependencies)
+
+### Decision
+
+- `@react-native-community/datetimepicker` is installed with `npx expo install`, so the version is the one Expo SDK 57 pins. `expo install --check` and the pinned `expo-doctor` must pass.
+- A shared `DateField` primitive shows the date as DD/MM/AAAA (ES) or MM/DD/YYYY (EN) and opens the native picker.
+- Values are still stored as `YYYY-MM-DD`.
+- On Web, where the module has no implementation, `DateField` renders a native `<input type="date">`.
+- Every text field that asks for AAAA-MM-DD migrates to `DateField`: the first-run wizard in Block 2, the remaining forms in Block 3.
+
+### Consequences
+
+- This is a native module, so it needs a new native build. That is already planned for versionCode 8.
+
+---
 
 # AI Instructions
 
