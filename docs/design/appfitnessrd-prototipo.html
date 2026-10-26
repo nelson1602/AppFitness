@@ -139,7 +139,8 @@ const ICONS = {
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
   x: '<path d="M6 6l12 12M18 6 6 18"/>',
   pencil: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
-  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  calendar: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>'
 };
 function Icon({ n, s = 20, w = 2, className = '' }) {
   return <svg aria-hidden="true" width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={w}
@@ -1131,6 +1132,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
   const [openMeal, setOpenMeal] = useState(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const [readIds, setReadIds] = useState([]);
+  const [weekOpen, setWeekOpen] = useState(null);
   const dayRow = useRef(null);
   const [newW, setNewW] = useState('');
   const [toast, setToast] = useState('');
@@ -1194,6 +1196,21 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
     { id: 'eval', icon: 'clipboard', title: 'Tu evaluación física', body: 'Actualízala con tu médico cada 3 meses para que el iCoach siga acertando.', time: 'Hace 3 días', tab: 'perfil' }
   ];
   const unread = notifs.filter((n) => !readIds.includes(n.id)).length;
+
+  /* Saved weekly plans (sample history): what the iCoach planned each past week vs what was done */
+  const monday = new Date(); monday.setHours(12, 0, 0, 0); monday.setDate(monday.getDate() - TODAY);
+  const SAMPLE_DONE = [[true, true, false, true, true, true], [true, true, true, true, true, true], [true, false, true, false, true, true], [true, true, true, false, true, true]];
+  const SAMPLE_MEALS = [86, 92, 64, 78], SAMPLE_KCAL = [-80, 40, 260, 110], SAMPLE_INTARGET = [5, 6, 3, 4], SAMPLE_WEIGHT = [-0.4, -0.3, 0.2, -0.4];
+  const pastWeeks = [1, 2, 3, 4].map((w, idx) => {
+    const start = new Date(monday); start.setDate(monday.getDate() - 7 * w);
+    const end = new Date(start); end.setDate(start.getDate() + 6);
+    const label = `${start.getDate()} ${start.toLocaleDateString('es-DO', { month: 'short' }).replace('.', '')} – ${end.getDate()} ${end.toLocaleDateString('es-DO', { month: 'short' }).replace('.', '')}`;
+    const sessions = base.pattern.map((d, k) => ({ day: d, name: base.week[d].name, done: SAMPLE_DONE[idx][k] }));
+    const trained = sessions.filter((s) => s.done).length;
+    const score = Math.round((trained / sessions.length) * 50 + SAMPLE_MEALS[idx] / 2);
+    return { id: w, label, sessions, trained, meals: SAMPLE_MEALS[idx], avgKcal: base.kcal + SAMPLE_KCAL[idx], inTarget: SAMPLE_INTARGET[idx], weight: SAMPLE_WEIGHT[idx], score };
+  });
+  const openWeek = pastWeeks.find((w) => w.id === weekOpen);
   const openNotif = (n) => { setReadIds([...readIds, n.id]); setNotifOpen(false); setTab(n.tab); };
 
   return (
@@ -1358,7 +1375,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
                 <p className="text-[14px] leading-relaxed text-[#C7D7F0]">El iCoach dejó este día libre para que te recuperes. Si quieres moverte: caminata suave de 20 minutos y 10 minutos de estiramientos.</p>
               </Panel>
             )}
-            <Panel title="Plan de la semana" icon="dumbbell">
+            <Panel title="Plan de la semana" icon="dumbbell" right={<Chip tone="gray">Se renueva el lunes</Chip>}>
               <ul className="flex flex-col divide-y divide-white/10">
                 {plan.pattern.map((i) => (
                   <li key={i}><button type="button" onClick={() => setSelDay(i)} className="flex w-full items-center justify-between gap-3 py-2.5 text-left">
@@ -1475,6 +1492,24 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
                 ))}
               </div>
             </Panel>
+            <Panel title="Semanas anteriores" icon="calendar" right={<span className="text-[12px] text-[#9FB0C8]">Plan vs. lo cumplido</span>}>
+              <ul className="flex flex-col gap-2">
+                {pastWeeks.map((w) => (
+                  <li key={w.id}>
+                    <button type="button" onClick={() => setWeekOpen(w.id)} className="flex w-full items-center gap-3 rounded-2xl bg-white/[.05] p-3 text-left hover:bg-white/[.09]">
+                      <Ring value={w.score} max={100} size={52} sw={6} color={w.score >= 85 ? '#22C55E' : w.score >= 65 ? '#22D3EE' : '#FF7A45'} track="rgba(255,255,255,.12)">
+                        <span className="font-display text-[13px] font-bold tnum">{w.score}%</span>
+                      </Ring>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] font-bold capitalize">{w.label}</span>
+                        <span className="block text-[12.5px] text-[#9FB0C8] tnum">{w.trained} de {w.sessions.length} entrenamientos · {w.meals}% de las comidas</span>
+                      </span>
+                      <Icon n="back" s={18} className="rotate-180 text-[#9FB0C8]" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
           </>}
 
           {tab === 'perfil' && <>
@@ -1529,6 +1564,59 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
         onCreate={(f) => setSt({ ...st, custom: [...st.custom, f] })}
         onFav={(n) => setSt({ ...st, favs: st.favs.includes(n) ? st.favs.filter((x) => x !== n) : [...st.favs, n] })}
         onAdd={addFood} onClose={() => setFoodOpen(false)} />}
+
+      {openWeek && (
+        <div className="fade-in absolute inset-0 z-40 flex items-end bg-[#060A14]/70">
+          <div role="dialog" aria-modal="true" aria-labelledby="wk-title" className="sheet-up max-h-[90%] w-full overflow-y-auto rounded-t-[30px] border-t border-white/10 bg-[#0D1628] px-5 pb-6 pt-3 text-white">
+            <div className="mx-auto mb-3 h-1.5 w-11 rounded-full bg-white/20" />
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[11px] font-bold tracking-[1.5px] text-[#67E8F9]">SEMANA</div>
+                <h2 id="wk-title" className="font-display text-[20px] font-bold capitalize">{openWeek.label}</h2>
+              </div>
+              <button type="button" aria-label="Cerrar" onClick={() => setWeekOpen(null)} className="flex h-11 w-11 items-center justify-center rounded-full bg-white/10 hover:bg-white/20"><Icon n="x" /></button>
+            </div>
+            <div className="flex items-center gap-4 rounded-2xl bg-white/[.05] p-3.5">
+              <Ring value={openWeek.score} max={100} size={84} sw={9} color={openWeek.score >= 85 ? '#22C55E' : openWeek.score >= 65 ? '#22D3EE' : '#FF7A45'} track="rgba(255,255,255,.12)">
+                <span className="font-display text-[20px] font-extrabold tnum">{openWeek.score}%</span>
+              </Ring>
+              <div className="min-w-0 text-[13px] leading-snug text-[#C7D7F0]">
+                <div className="font-display text-[16px] font-bold text-white">{openWeek.score >= 85 ? '¡Gran semana!' : openWeek.score >= 65 ? 'Buena semana' : 'Semana para retomar'}</div>
+                Cumplimiento del plan: entrenamientos y comidas.
+              </div>
+            </div>
+
+            <h3 className="mt-4 mb-2 flex items-center gap-2 text-[14px] font-bold"><Icon n="dumbbell" s={16} className="text-[#67E8F9]" />Entrenamientos · {openWeek.trained} de {openWeek.sessions.length}</h3>
+            <ul className="flex flex-col gap-1.5">
+              {openWeek.sessions.map((s) => (
+                <li key={s.day} className="flex items-center justify-between gap-3 rounded-xl bg-white/[.04] px-3 py-2.5">
+                  <span className="min-w-0"><span className="block text-[12px] font-bold text-[#67E8F9]">{DAY_NAMES[s.day]}</span><span className="block text-[13.5px] font-semibold">{s.name}</span></span>
+                  {s.done ? <Chip tone="green"><Icon n="check" s={12} w={3} />Cumplido</Chip> : <Chip tone="orange"><Icon n="x" s={12} w={3} />No realizado</Chip>}
+                </li>
+              ))}
+            </ul>
+
+            <h3 className="mt-4 mb-2 flex items-center gap-2 text-[14px] font-bold"><Icon n="food" s={16} className="text-[#67E8F9]" />Alimentación</h3>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {[['Comidas del plan', `${openWeek.meals}%`], ['Días en tu meta', `${openWeek.inTarget} de 7`], ['Promedio diario', `${fmt(openWeek.avgKcal)} kcal`]].map(([l, v]) => (
+                <div key={l} className="rounded-2xl bg-white/[.05] px-2 py-3"><div className="font-display text-[16px] font-bold tnum">{v}</div><div className="text-[11.5px] text-[#9FB0C8]">{l}</div></div>
+              ))}
+            </div>
+            <div className="mt-2 text-[12.5px] text-[#9FB0C8] tnum">Tu meta era {fmt(base.kcal)} kcal al día.</div>
+
+            <h3 className="mt-4 mb-2 flex items-center gap-2 text-[14px] font-bold"><Icon n="scale" s={16} className="text-[#67E8F9]" />Peso</h3>
+            <div className="rounded-2xl bg-white/[.05] p-3 text-[14px] font-semibold tnum">{openWeek.weight > 0 ? '+' : ''}{openWeek.weight.toFixed(1)} kg en la semana</div>
+
+            <div className="mt-4 rounded-2xl p-3.5 text-[13px] leading-snug" style={{ background: HERO_BG }}>
+              <div className="mb-1 flex items-center gap-2 text-[12px] font-bold tracking-[1.2px] text-[#CFF4FF]"><Icon n="sparkle" s={14} />ICOACH</div>
+              {openWeek.trained < openWeek.sessions.length
+                ? `Te ${openWeek.sessions.length - openWeek.trained === 1 ? 'faltó 1 entrenamiento' : `faltaron ${openWeek.sessions.length - openWeek.trained} entrenamientos`}. La semana siguiente mantuve la misma carga para que la completes sin forzarte.`
+                : '¡Cumpliste todos tus entrenamientos! La semana siguiente subí un poco la carga.'}
+              {openWeek.inTarget < 5 ? ' En la alimentación, intenta acercarte a tu meta de calorías más días.' : ''}
+            </div>
+          </div>
+        </div>
+      )}
 
       {notifOpen && (
         <div className="fade-in absolute inset-0 z-40 flex flex-col bg-[#060A14]/75">
