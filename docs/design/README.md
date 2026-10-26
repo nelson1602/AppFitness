@@ -71,6 +71,19 @@ La pestaña activa muestra su nombre; las demás, solo el ícono.
   - **Registrar comida:** botones de comida centrados; categorías Frecuentes, Todos, Bebidas, Dulces, Comida rápida, Frituras, Básicos, Platos y Mis alimentos con barra deslizable visible; búsqueda; porciones; favoritos con estrella; veces registrado; **"¿No lo encuentras? Crear alimento"** (nombre, porción, calorías) que se guarda en la base del usuario.
   - La base de alimentos debe crecer con tres fuentes: USDA FoodData Central (importación fijada según ADR-P013), una base de alimentos dominicanos (cada uno con su fuente documentada y nombre en español e inglés) y los alimentos creados por el usuario. Lo que más registra el usuario aparece primero. Open Food Facts no se usa.
 - **Progreso:** gráfica de peso con línea de meta, registrar peso, medidas y resumen semanal.
+  - **Semanas anteriores (plan vs. lo cumplido):** lista de las semanas pasadas, cada una con un anillo de cumplimiento (verde ≥ 85 %, cian ≥ 65 %, naranja menos), "X de Y entrenamientos · N % de las comidas". Al tocar una semana se abre el detalle:
+    - **Entrenamientos:** cada sesión que el iCoach planificó (día y nombre) con "Cumplido" o "No realizado".
+    - **Alimentación:** % de comidas del plan cumplidas, días dentro de la meta de calorías (de 7), promedio diario contra la meta.
+    - **Peso:** cambio en la semana.
+    - **iCoach:** una frase con lo que ajustó para la semana siguiente (mantener la carga si faltaron entrenamientos, subirla si se cumplió todo; recordar la meta de calorías si hubo pocos días dentro).
+    - Cumplimiento = 50 % entrenamientos realizados / planificados + 50 % comidas del plan cumplidas.
+
+### Plan semanal guardado
+- El iCoach **guarda el plan de cada semana** (entrenamientos por día y plan de comidas) en el teléfono y lo sincroniza con la cuenta. Se muestra "Se renueva el lunes" en "Plan de la semana".
+- El plan **no cambia a mitad de semana**. Se genera de nuevo el lunes con los datos de ese momento, o antes solo si el usuario cambia algo importante (meta, días para entrenar, equipo, lesiones o alimentos excluidos); en ese caso se le avisa y confirma.
+- Registrar comidas, entrenamientos o peso no cambia el plan; solo actualiza el cumplimiento. La excepción es la comida fuera del plan, que puede ajustar el entrenamiento siguiente y la meta del día siguiente, como se describe en iCoach.
+- Cada entrenamiento registrado queda ligado a la sesión del plan que cumple, para poder decir qué se cumplió.
+- El historial (lo planificado y lo cumplido) se conserva para "Semanas anteriores" y se borra solo al eliminar la cuenta.
 - **Perfil:** resumen de la evaluación con "Actualizar evaluación", meta, interruptor de Face ID o Huella, "Próximamente" y cerrar sesión.
 
 ## Animaciones del muñeco por ejercicio
