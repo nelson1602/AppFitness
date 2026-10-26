@@ -105,6 +105,10 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
   'src/app/+html.tsx#Root: children': 'the rendered app tree — a framework slot, not a value',
   'src/app/+html.tsx#Root: headNodes': 'renderer-supplied <head> nodes — a framework slot',
   'src/app/+html.tsx#Root: bodyNodes': 'renderer-supplied <body> nodes — a framework slot',
+  // The auth screens' shared frame (stage + centred column) renders the route's
+  // content as-is; it owns no copy and no numeric value of its own.
+  'src/features/authentication/presentation/auth-screen.tsx#AuthScreen: children':
+    'the wrapped auth screen content — a composition slot, not a value',
   // ADR-P034 S-4: the write boundary wraps a whole route and renders it as-is;
   // like the slots above it owns no copy and no numeric value of its own.
   'src/features/subscriptions/presentation/SubscriptionWriteBoundary.tsx#SubscriptionWriteBoundary: children':

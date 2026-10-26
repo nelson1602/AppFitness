@@ -32,7 +32,9 @@ type TextTone =
   | 'linkOnStage'
   | 'success'
   | 'warning'
-  | 'error';
+  | 'error'
+  /** Inline errors on glass over the stage (ADR-P035, contrast-gated). */
+  | 'errorOnStage';
 
 interface AppTextProps extends TextProps {
   children: ReactNode;
@@ -63,6 +65,7 @@ export function AppText({
     success: theme.colors.success,
     warning: theme.colors.warning,
     error: theme.colors.error,
+    errorOnStage: theme.colors.errorOnStage,
   };
 
   return (

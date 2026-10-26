@@ -10,12 +10,19 @@ const artSolo = require('../../../assets/images/muneco-solo.webp');
 /** `muneco.webp` is 941×1672; the hero is its top 941×515 band (approved crop). */
 const FULL = { width: 941, height: 1672 };
 const HERO_CROP_HEIGHT = 515;
+const HERO_RATIO = FULL.width / HERO_CROP_HEIGHT;
 
 interface MascotProps {
   /** `hero`: the runner and wordmark band fading into the stage; `solo`: the cut-out figure. */
   variant: 'hero' | 'solo';
   /** Set only when the mascot carries meaning; otherwise it is decorative. */
   accessibilityLabel?: string;
+  /**
+   * `hero` only: the tallest the band may be. It then stops growing with the
+   * width and is centred; the Web mask also fades its sides, so a narrower band
+   * still has no edge.
+   */
+  maxHeight?: number;
   size?: number;
   testID?: string;
 }
@@ -29,6 +36,7 @@ interface MascotProps {
 export function Mascot({
   variant,
   accessibilityLabel,
+  maxHeight,
   size = 120,
   testID = 'mascot',
 }: MascotProps) {
@@ -62,7 +70,13 @@ export function Mascot({
     <View
       {...a11y}
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
-      style={{ aspectRatio: FULL.width / HERO_CROP_HEIGHT, overflow: 'hidden', width: '100%' }}
+      style={{
+        alignSelf: 'center',
+        aspectRatio: HERO_RATIO,
+        maxWidth: maxHeight === undefined ? undefined : maxHeight * HERO_RATIO,
+        overflow: 'hidden',
+        width: '100%',
+      }}
       testID={testID}
     >
       {/* A true alpha fade, so the art melts into the stage with no edge. */}

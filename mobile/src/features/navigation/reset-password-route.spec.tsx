@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { type PasswordRecoveryErrorReason, resetPassword } from '@/features/authentication';
 import ResetPasswordScreen, {
@@ -161,6 +162,19 @@ describe('ResetPasswordScreen', () => {
     await fireEvent.changeText(screen.getByTestId('input-confirm-password'), confirmation);
   };
   const submit = () => fireEvent.press(screen.getByTestId('button-reset-submit'));
+
+  it('renders in the auth column on the stage, with the form in a glass card', async () => {
+    await render(<ResetPasswordScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('reset-form')).toBeOnTheScreen());
+    const scrollView = screen.root?.queryAll((node) => node.type === 'RCTScrollView')[0];
+    expect(StyleSheet.flatten(scrollView?.props.contentContainerStyle)).toMatchObject({
+      alignSelf: 'center',
+      maxWidth: 480,
+      width: '100%',
+    });
+    expect(screen.getByTestId('screen-stage')).toBeOnTheScreen();
+  });
 
   // The end-to-end shape of the emailed Web link: token in the fragment, no
   // router parameter at all, and the address bar cleaned on mount.
