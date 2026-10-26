@@ -7,6 +7,7 @@ import {
   type PasswordRecoveryErrorReason,
   resetPassword,
 } from '@/features/authentication';
+import { AuthScreen } from '@/features/authentication/presentation/auth-screen';
 import { AuthTextField } from '@/features/authentication/presentation/auth-text-field';
 import { RECOVERY_ERROR_COPY } from '@/features/authentication/presentation/recovery-error-copy';
 import {
@@ -19,7 +20,7 @@ import {
   scrubbedUrl,
 } from '@/features/authentication/presentation/reset-link.web-location';
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card, Screen } from '@/shared/presentation';
+import { AppButton, AppText, Banner, GlassCard } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 /** Mirrors the API DTO so an obviously-too-short password never leaves the device. */
@@ -168,12 +169,21 @@ export default function ResetPasswordScreen() {
   };
 
   return (
-    <Screen>
-      <Stack.Screen options={{ title: t('auth.reset.screenTitle') }} />
+    <AuthScreen>
+      <Stack.Screen
+        options={{
+          headerShadowVisible: false,
+          headerStyle: { backgroundColor: theme.colors.stageTop },
+          headerTintColor: theme.colors.onStage,
+          title: t('auth.reset.screenTitle'),
+        }}
+      />
       <View style={{ gap: theme.spacing.lg }}>
         <View>
-          <AppText variant="headline">{t('auth.reset.title')}</AppText>
-          <AppText tone="muted">{t('auth.reset.subtitle')}</AppText>
+          <AppText tone="onStage" variant="headline">
+            {t('auth.reset.title')}
+          </AppText>
+          <AppText tone="onStageVariant">{t('auth.reset.subtitle')}</AppText>
         </View>
 
         {errorReason ? (
@@ -214,7 +224,7 @@ export default function ResetPasswordScreen() {
             </AppButton>
           </>
         ) : (
-          <Card>
+          <GlassCard testID="reset-form">
             <View style={{ gap: theme.spacing.md }}>
               <AuthTextField
                 label={t('auth.reset.newPassword')}
@@ -242,9 +252,9 @@ export default function ResetPasswordScreen() {
                 {t('auth.reset.submit')}
               </AppButton>
             </View>
-          </Card>
+          </GlassCard>
         )}
       </View>
-    </Screen>
+    </AuthScreen>
   );
 }

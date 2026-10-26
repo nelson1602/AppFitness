@@ -912,6 +912,9 @@ dependencies, plus its masked-view amendment). The approved design in
       "Create an account";
     - the two-language row (same radio semantics).
   - The biometric hint is deferred to the ADR-P036 phase.
+- **Auth screens on Web (layout fix, 2026-10-23).**
+  - Sign-in, forgot password, reset password and verify email share `AuthScreen`: the stage, with the content in one centred column at most 480 px wide (the glass form's width). The recovery screens use the same glass form, white stage fields and a `stageTop` header.
+  - On Web the sign-in art band is at least 160 px tall and at most about 28% of the window height. It also gives up height to the rest of the screen, so the whole sign-in fits 1280×720 and 1440×900 without scrolling. Shorter windows and phones scroll as before; native keeps the full-width art.
 - **Motion rule.** Motion is allowed only for the brand heartbeat (ADR-P035 D5),
   never as the only signal of a state, and always fully still under reduced
   motion.

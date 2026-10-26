@@ -1,8 +1,14 @@
 import { Stack, router } from 'expo-router';
 import { type ReactNode, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { type LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
+import {
+  AuthScreen,
+  HERO_MIN_HEIGHT,
+  useWebWindowHeight,
+  webHeroMaxHeight,
+} from '@/features/authentication/presentation/auth-screen';
 import { LanguageSelector, type TranslationKey, useLocalization } from '@/shared/localization';
 import {
   AppButton,
@@ -15,7 +21,6 @@ import {
   type IconName,
   Mascot,
   Pulse,
-  Screen,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -38,6 +43,23 @@ const ERROR_COPY: Record<AuthErrorReason, { title: TranslationKey; body: Transla
 export default function SignInScreen() {
   const theme = useTheme();
   const { t } = useLocalization();
+  // Web fits the whole screen in a desktop window: the hero gives up height
+  // to the rest of the screen (measured), and the sections sit a little closer.
+  const web = Platform.OS === 'web';
+  const windowHeight = useWebWindowHeight();
+  const [measured, setMeasured] = useState({ content: 0, hero: 0 });
+  const measure = (key: 'content' | 'hero') => (event: LayoutChangeEvent) => {
+    const value = Math.round(event.nativeEvent.layout.height);
+    setMeasured((current) => (current[key] === value ? current : { ...current, [key]: value }));
+  };
+  const otherContent =
+    measured.content > 0 ? measured.content - measured.hero + 2 * theme.spacing.lg : 0;
+  const heroMaxHeight = !web
+    ? undefined
+    : windowHeight === null
+      ? HERO_MIN_HEIGHT
+      : webHeroMaxHeight(windowHeight, otherContent);
+  const sectionGap = web ? theme.spacing.md : theme.spacing.lg;
   const [mode, setMode] = useState<'sign-in' | 'register'>('sign-in');
   // Release-visible surface: fields start empty — never prefilled
   // credentials (10_DEPLOYMENT.md: "No test credentials included").
@@ -105,123 +127,132 @@ export default function SignInScreen() {
   };
 
   return (
-    <Screen stage style={styles.screen}>
+    <AuthScreen>
       <Stack.Screen options={{ headerShown: false, title: t('auth.screenTitle') }} />
-      {/* Brand art melting into the stage, with the heartbeat under it
+      <View onLayout={measure('content')} style={{ gap: sectionGap }} testID="sign-in-content">
+        {/* Brand art melting into the stage, with the heartbeat under it
           (ADR-P035). Full-bleed: it cancels the screen padding. */}
-      <View style={{ marginHorizontal: -theme.spacing.lg, marginTop: -theme.spacing.lg }}>
-        {/* The art carries the AppFitnessRD wordmark, so it is the product's name
+        <View style={{ marginHorizontal: -theme.spacing.lg, marginTop: -theme.spacing.lg }}>
+          {/* The art carries the AppFitnessRD wordmark, so it is the product's name
             here (ADR-P028), not decoration. */}
-        <Mascot accessibilityLabel={t('brand.name')} testID="sign-in-mascot" variant="hero" />
-        <View style={{ marginTop: -theme.spacing.lg }}>
-          <Pulse gradientId="pulse-sign-in" testID="sign-in-pulse" />
-        </View>
-      </View>
-
-      <View style={{ gap: theme.spacing.xs }}>
-        {/* One heading, one name: the split words (the last one in the brand
-            gradient) are hidden and the sentence is announced once. */}
-        <View
-          accessibilityLabel={t('auth.headline')}
-          accessibilityRole="header"
-          accessible
-          style={styles.headline}
-          testID="sign-in-headline"
-        >
-          <Text allowFontScaling style={[headline, { color: theme.colors.onStage }]}>
-            {`${t('auth.headlineLead')} `}
-          </Text>
-          <GradientText
-            end={theme.colors.accentEnergy}
-            start={theme.colors.accentCyan}
-            textStyle={headline}
-          >
-            {t('auth.headlineAccent')}
-          </GradientText>
-        </View>
-        <AppText tone="onStageVariant">{t('auth.subtitle')}</AppText>
-      </View>
-
-      {errorReason ? (
-        <Banner title={t(ERROR_COPY[errorReason].title)} tone="error">
-          {t(ERROR_COPY[errorReason].body)}
-        </Banner>
-      ) : null}
-
-      <GlassCard testID="sign-in-form">
-        <StageField
-          icon="mail"
-          keyboardType="email-address"
-          label={t('auth.email')}
-          onChangeText={setEmail}
-          onWebSubmit={() => void submit()}
-          testID="input-email"
-          value={email}
-        />
-        {mode === 'register' ? (
-          <StageField
-            label={t('auth.username')}
-            onChangeText={setUsername}
-            onWebSubmit={() => void submit()}
-            testID="input-username"
-            value={username}
-          />
-        ) : null}
-        <StageField
-          accessory={
-            mode === 'sign-in' ? (
-              // Recovery entry point (ADR-P026 Vertical 1). Sign-in only: there
-              // is nothing to recover while creating an account. The visible
-              // link is the design's short copy; the full sentence is its name.
-              <AppButton
-                accessibilityLabel={t('auth.forgotPassword')}
-                onPress={() => router.push('/forgot-password')}
-                style={styles.inlineLink}
-                testID="button-forgot-password"
-                variant="stage-link"
-              >
-                {t('auth.forgotPasswordShort')}
-              </AppButton>
-            ) : null
-          }
-          icon="lock"
-          label={t('auth.password')}
-          onChangeText={setPassword}
-          onWebSubmit={() => void submit()}
-          secureTextEntry
-          testID="input-password"
-          value={password}
-        />
-        <AppButton
-          loading={loading}
-          onPress={() => void submit()}
-          style={{ borderRadius: theme.radius.large, minHeight: theme.spacing.x6l }}
-        >
-          {mode === 'register' ? t('auth.register') : t('auth.signIn')}
-        </AppButton>
-
-        {mode === 'sign-in' ? (
-          <View style={[styles.divider, { gap: theme.spacing.md }]}>
-            <View style={[styles.rule, { backgroundColor: theme.colors.glassBorder }]} />
-            <AppText tone="onStageVariant" variant="label">
-              {t('auth.newHere')}
-            </AppText>
-            <View style={[styles.rule, { backgroundColor: theme.colors.glassBorder }]} />
+          <View onLayout={measure('hero')} testID="sign-in-hero">
+            <Mascot
+              accessibilityLabel={t('brand.name')}
+              maxHeight={heroMaxHeight}
+              testID="sign-in-mascot"
+              variant="hero"
+            />
           </View>
-        ) : null}
-        {/* Account-creation entry point. Mode switch only — same handler as before. */}
-        <AppButton
-          onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
-          style={{ borderRadius: theme.radius.large }}
-          testID="button-toggle-mode"
-          variant="stage-secondary"
-        >
-          {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
-        </AppButton>
-      </GlassCard>
+          <View style={{ marginTop: -theme.spacing.lg }}>
+            <Pulse gradientId="pulse-sign-in" testID="sign-in-pulse" />
+          </View>
+        </View>
 
-      <LanguageSelector appearance="stage" />
-    </Screen>
+        <View style={{ gap: theme.spacing.xs }}>
+          {/* One heading, one name: the split words (the last one in the brand
+            gradient) are hidden and the sentence is announced once. */}
+          <View
+            accessibilityLabel={t('auth.headline')}
+            accessibilityRole="header"
+            accessible
+            style={styles.headline}
+            testID="sign-in-headline"
+          >
+            <Text allowFontScaling style={[headline, { color: theme.colors.onStage }]}>
+              {`${t('auth.headlineLead')} `}
+            </Text>
+            <GradientText
+              end={theme.colors.accentEnergy}
+              start={theme.colors.accentCyan}
+              textStyle={headline}
+            >
+              {t('auth.headlineAccent')}
+            </GradientText>
+          </View>
+          <AppText tone="onStageVariant">{t('auth.subtitle')}</AppText>
+        </View>
+
+        {errorReason ? (
+          <Banner title={t(ERROR_COPY[errorReason].title)} tone="error">
+            {t(ERROR_COPY[errorReason].body)}
+          </Banner>
+        ) : null}
+
+        <GlassCard style={web ? { padding: theme.spacing.lg } : undefined} testID="sign-in-form">
+          <StageField
+            icon="mail"
+            keyboardType="email-address"
+            label={t('auth.email')}
+            onChangeText={setEmail}
+            onWebSubmit={() => void submit()}
+            testID="input-email"
+            value={email}
+          />
+          {mode === 'register' ? (
+            <StageField
+              label={t('auth.username')}
+              onChangeText={setUsername}
+              onWebSubmit={() => void submit()}
+              testID="input-username"
+              value={username}
+            />
+          ) : null}
+          <StageField
+            accessory={
+              mode === 'sign-in' ? (
+                // Recovery entry point (ADR-P026 Vertical 1). Sign-in only: there
+                // is nothing to recover while creating an account. The visible
+                // link is the design's short copy; the full sentence is its name.
+                <AppButton
+                  accessibilityLabel={t('auth.forgotPassword')}
+                  onPress={() => router.push('/forgot-password')}
+                  style={styles.inlineLink}
+                  testID="button-forgot-password"
+                  variant="stage-link"
+                >
+                  {t('auth.forgotPasswordShort')}
+                </AppButton>
+              ) : null
+            }
+            icon="lock"
+            label={t('auth.password')}
+            onChangeText={setPassword}
+            onWebSubmit={() => void submit()}
+            secureTextEntry
+            testID="input-password"
+            value={password}
+          />
+          <AppButton
+            loading={loading}
+            onPress={() => void submit()}
+            style={{ borderRadius: theme.radius.large, minHeight: theme.spacing.x6l }}
+          >
+            {mode === 'register' ? t('auth.register') : t('auth.signIn')}
+          </AppButton>
+
+          {mode === 'sign-in' ? (
+            <View style={[styles.divider, { gap: theme.spacing.md }]}>
+              <View style={[styles.rule, { backgroundColor: theme.colors.glassBorder }]} />
+              <AppText tone="onStageVariant" variant="label">
+                {t('auth.newHere')}
+              </AppText>
+              <View style={[styles.rule, { backgroundColor: theme.colors.glassBorder }]} />
+            </View>
+          ) : null}
+          {/* Account-creation entry point. Mode switch only — same handler as before. */}
+          <AppButton
+            onPress={() => setMode(mode === 'register' ? 'sign-in' : 'register')}
+            style={{ borderRadius: theme.radius.large }}
+            testID="button-toggle-mode"
+            variant="stage-secondary"
+          >
+            {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
+          </AppButton>
+        </GlassCard>
+
+        <LanguageSelector appearance="stage" />
+      </View>
+    </AuthScreen>
   );
 }
 
@@ -253,11 +284,6 @@ const styles = StyleSheet.create({
   rule: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-  },
-  screen: {
-    alignSelf: 'center',
-    maxWidth: 560,
-    width: '100%',
   },
 });
 

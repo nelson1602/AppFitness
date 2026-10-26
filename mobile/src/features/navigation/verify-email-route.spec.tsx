@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import VerifyEmailScreen, {
   captureVerificationToken,
@@ -95,6 +96,19 @@ describe('VerifyEmailScreen', () => {
     mockLocation = null;
     // Each test is a fresh page load; the memo is scoped to one page lifecycle.
     resetRedemptionMemo();
+  });
+
+  it('renders in the auth column on the stage', async () => {
+    await render(<VerifyEmailScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('verify-email-screen')).toBeOnTheScreen());
+    const scrollView = screen.root?.queryAll((node) => node.type === 'RCTScrollView')[0];
+    expect(StyleSheet.flatten(scrollView?.props.contentContainerStyle)).toMatchObject({
+      alignSelf: 'center',
+      maxWidth: 480,
+      width: '100%',
+    });
+    expect(screen.getByTestId('screen-stage')).toBeOnTheScreen();
   });
 
   describe('state derivation', () => {

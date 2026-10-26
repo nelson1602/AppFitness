@@ -38,6 +38,19 @@ describe('AppText', () => {
     expect([lightColors.onSurface, darkColors.onSurface]).not.toContain(flattened.color);
   });
 
+  // Inline errors in the glass forms use the stage error role, the pairing
+  // contrast.spec.ts gates for "Inline error text inside a GlassCard".
+  it('resolves the errorOnStage tone to the stage error token', async () => {
+    await render(<AppText tone="errorOnStage">Required</AppText>);
+
+    const flattened = Object.assign(
+      {},
+      ...[screen.getByText('Required').props.style].flat(Infinity),
+    ) as { color?: string };
+
+    expect([lightColors.errorOnStage, darkColors.errorOnStage]).toContain(flattened.color);
+  });
+
   it('keeps font scaling enabled for accessibility', async () => {
     await render(<AppText>Scales</AppText>);
 
