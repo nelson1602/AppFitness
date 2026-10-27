@@ -14,7 +14,7 @@ describe('BodyMeasurementForm', () => {
 
   it('prefills the date field with the provided default date', async () => {
     await render(<BodyMeasurementForm defaultDate={DATE} saving={false} onSubmit={jest.fn()} />);
-    expect(screen.getByTestId('field-date').props.value).toBe(DATE);
+    expect(screen.getByLabelText('Date *, 08/04/2026')).toBeOnTheScreen();
   });
 
   it('blocks submission when the required waist is missing', async () => {

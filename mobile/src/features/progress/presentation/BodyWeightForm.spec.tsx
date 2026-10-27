@@ -1,5 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { localDayOf } from '@/shared/application/local-day';
+import { localDateToIso } from '@/shared/presentation/date-field.format';
+import { pickDate } from '@/shared/presentation/date-field.testkit';
+
 import { BodyWeightForm } from './BodyWeightForm';
 
 const DATE = '2026-08-04';
@@ -25,9 +29,16 @@ describe('BodyWeightForm', () => {
     mockLanguage = 'en';
   });
 
+  it('picks the date in the calendar, never a future one (ADR-P043)', async () => {
+    await render(<BodyWeightForm defaultDate={DATE} saving={false} onSubmit={jest.fn()} />);
+    const options = await pickDate('field-date', '2026-08-01');
+    expect(localDateToIso(options.maximumDate as Date)).toBe(localDayOf(new Date()));
+    expect(screen.getByLabelText('Date *, 08/01/2026')).toBeOnTheScreen();
+  });
+
   it('prefills the date field with the provided default date', async () => {
     await render(<BodyWeightForm defaultDate={DATE} saving={false} onSubmit={jest.fn()} />);
-    expect(screen.getByTestId('field-date').props.value).toBe(DATE);
+    expect(screen.getByLabelText('Date *, 08/04/2026')).toBeOnTheScreen();
   });
 
   it('blocks submission when the required weight is missing', async () => {
@@ -72,7 +83,7 @@ describe('BodyWeightForm', () => {
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByTestId('field-weightKg').props.value).toBe(''));
-    expect(screen.getByTestId('field-date').props.value).toBe(DATE);
+    expect(screen.getByLabelText('Date *, 08/04/2026')).toBeOnTheScreen();
   });
 
   it('does not reset when the save fails', async () => {

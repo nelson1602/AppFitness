@@ -32,8 +32,6 @@ export const SLOT_KEY: Record<MealSlot, TranslationKey> = {
   SNACK: 'nutrition.plan.snack',
 };
 
-/** The 44 dp floor for every target on this screen (BUG-023). */
-const TARGET = 44;
 const CHIP_WIDTH = 52;
 
 export interface PlanMeal {
@@ -66,7 +64,8 @@ export function PlanDayStrip({
   selected: number;
   onSelect: (day: number) => void;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const theme = useTheme();
+  const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
   const strip = useRef<ScrollView>(null);
 
@@ -91,10 +90,15 @@ export function PlanDayStrip({
         disabled={disabled}
         hitSlop={4}
         onPress={() => onSelect(target)}
-        style={[
-          styles.round,
-          { backgroundColor: withAlpha(colors.onStage, 0.1), opacity: disabled ? 0.3 : 1 },
-        ]}
+        style={{
+          alignItems: 'center',
+          backgroundColor: withAlpha(colors.onStage, 0.1),
+          borderRadius: theme.spacing.x5l / 2,
+          justifyContent: 'center',
+          minHeight: theme.spacing.x5l,
+          minWidth: theme.spacing.x5l,
+          opacity: disabled ? 0.3 : 1,
+        }}
         testID={direction < 0 ? 'plan-day-previous' : 'plan-day-next'}
       >
         <View style={direction > 0 ? { transform: [{ rotate: '180deg' }] } : undefined}>
@@ -144,7 +148,9 @@ export function PlanDayStrip({
                 borderRadius: radius.large,
                 borderWidth: 1,
                 justifyContent: 'center',
-                minHeight: 56,
+                minHeight: theme.spacing.x5l,
+                minWidth: theme.spacing.x5l,
+                paddingVertical: spacing.xs,
                 width: CHIP_WIDTH,
               }}
             >
@@ -199,7 +205,8 @@ function MealRow({
   done: boolean;
   onEaten: (() => void) | null;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const theme = useTheme();
+  const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
   const [open, setOpen] = useState(false);
   const slotLabel = t(SLOT_KEY[meal.slot]);
@@ -222,7 +229,7 @@ function MealRow({
           accessibilityRole="button"
           accessibilityState={{ expanded: open }}
           onPress={() => setOpen((value) => !value)}
-          style={[styles.grow, { gap: 2, minHeight: TARGET }]}
+          style={[styles.grow, { gap: 2, minHeight: theme.spacing.x5l }]}
           testID={`plan-meal-toggle-${dayIndex}-${meal.slot}`}
         >
           <AppText style={{ color: colors.linkOnStage }} variant="caption">
@@ -242,7 +249,14 @@ function MealRow({
           <View
             accessibilityLabel={t('nutrition.plan.eaten')}
             accessible
-            style={[styles.round, { backgroundColor: colors.success }]}
+            style={{
+              alignItems: 'center',
+              backgroundColor: colors.success,
+              borderRadius: theme.spacing.x5l / 2,
+              height: theme.spacing.x5l,
+              justifyContent: 'center',
+              width: theme.spacing.x5l,
+            }}
             testID={`plan-eaten-${dayIndex}-${meal.slot}`}
           >
             <Icon color={colors.stageDeep} name="check" size={18} strokeWidth={3} />
@@ -254,7 +268,15 @@ function MealRow({
             })}
             accessibilityRole="button"
             onPress={onEaten}
-            style={[styles.round, { borderColor: withAlpha(colors.onStage, 0.35), borderWidth: 2 }]}
+            style={{
+              alignItems: 'center',
+              borderColor: withAlpha(colors.onStage, 0.35),
+              borderRadius: theme.spacing.x5l / 2,
+              borderWidth: 2,
+              justifyContent: 'center',
+              minHeight: theme.spacing.x5l,
+              minWidth: theme.spacing.x5l,
+            }}
             testID={`plan-ate-${dayIndex}-${meal.slot}`}
           >
             <Icon color={withAlpha(colors.onStage, 0.6)} name="check" size={18} strokeWidth={3} />
@@ -363,12 +385,5 @@ export function MealPlanPanel({
 
 const styles = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
-  round: {
-    alignItems: 'center',
-    borderRadius: TARGET / 2,
-    height: TARGET,
-    justifyContent: 'center',
-    width: TARGET,
-  },
   row: { alignItems: 'center', flexDirection: 'row' },
 });

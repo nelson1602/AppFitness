@@ -1,5 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { localDayOf } from '@/shared/application/local-day';
+import { localDateToIso } from '@/shared/presentation/date-field.format';
+import { pickDate } from '@/shared/presentation/date-field.testkit';
+
 import type { Goal } from '../domain/goal.types';
 import type { GoalFormState } from '../application/goal.store';
 import { GoalForm } from './GoalForm';
@@ -87,7 +91,7 @@ describe('GoalForm', () => {
     await render(<GoalForm onSaved={jest.fn()} />);
 
     await waitFor(() => expect(screen.getByTestId('field-targetWeightKg').props.value).toBe('82'));
-    expect(screen.getByTestId('field-targetDate').props.value).toBe('2027-01-15');
+    expect(screen.getByLabelText('Target date, 01/15/2027')).toBeOnTheScreen();
     expect(screen.getByText('Edit goal')).toBeOnTheScreen();
   });
 
@@ -131,28 +135,35 @@ describe('GoalForm', () => {
     );
   });
 
-  it('renders localized Spanish validation messages', async () => {
+  it('picks the target date in the native calendar, from today on (ADR-P043)', async () => {
     mockLanguage = 'es';
+    save.mockResolvedValue(true);
     setStore({ status: 'ready', goal: null });
 
     await render(<GoalForm onSaved={jest.fn()} />);
-    await fireEvent.changeText(screen.getByTestId('field-targetDate'), '31-12-2026');
+    await fireEvent.press(screen.getByTestId('option-goalType-FAT_LOSS'));
+    const options = await pickDate('field-targetDate', '2027-03-01');
+    expect(localDateToIso(options.minimumDate as Date)).toBe(localDayOf(new Date()));
     await fireEvent.press(screen.getByRole('button', { name: 'Guardar meta' }));
 
-    await waitFor(() => expect(screen.getByText('Usa AAAA-MM-DD')).toBeOnTheScreen());
-    expect(save).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({ targetDate: '2027-03-01' })),
+    );
   });
 
-  it('blocks submission and shows a validation error for a bad target date', async () => {
-    setStore({ status: 'ready', goal: null });
+  it('clears an optional target date, which a calendar alone cannot do', async () => {
+    save.mockResolvedValue(true);
+    setStore({ status: 'ready', goal: activeGoal });
 
     await render(<GoalForm onSaved={jest.fn()} />);
-
-    await fireEvent.changeText(screen.getByTestId('field-targetDate'), '31-12-2026');
+    await waitFor(() => expect(screen.getByTestId('field-targetDate-clear')).toBeOnTheScreen());
+    await fireEvent.press(screen.getByTestId('field-targetDate-clear'));
+    expect(screen.queryByTestId('field-targetDate-clear')).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: 'Save goal' }));
 
-    await waitFor(() => expect(screen.getByText('Use YYYY-MM-DD')).toBeOnTheScreen());
-    expect(save).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({ targetDate: null })),
+    );
   });
 
   it('does not navigate away when the save fails', async () => {

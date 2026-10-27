@@ -3,6 +3,7 @@ export const en = {
   'form.date.openHint': 'Opens the calendar',
   'form.date.empty': 'no date',
   'form.date.done': 'Done',
+  'form.date.clear': 'Clear date',
   // Web document shell and the product not-found surface (BUG-016, ADR-P032).
   // 'web.document.title' is the product title every exported Web document
   // carries; the three shipped portals reuse their own screen-title keys.
@@ -550,7 +551,6 @@ export const en = {
   'profile.webUnavailableBody':
     'Use the AppFitnessRD mobile app to create and update your profile.',
   'profile.birthDate': 'Birth date',
-  'profile.birthDatePlaceholder': 'YYYY-MM-DD',
   'profile.heightCm': 'Height (cm)',
   'profile.gender': 'Sex',
   'profile.gender.male': 'Male',
@@ -615,7 +615,6 @@ export const en = {
   'goal.typeShort.maintenance': 'Maintenance',
   'goal.targetWeightKg': 'Target weight (kg)',
   'goal.targetDate': 'Target date',
-  'goal.targetDatePlaceholder': 'YYYY-MM-DD',
   'goal.save': 'Save goal',
   'goal.validation.greaterThanZero': 'Must be greater than 0',
   'goal.validation.tooLarge': 'That value is too high',
@@ -624,7 +623,6 @@ export const en = {
   'progress.measurements.accessibility': 'Record body measurements',
   'progress.measurements.title': 'Record measurements',
   'progress.measurements.date': 'Date',
-  'progress.measurements.datePlaceholder': 'YYYY-MM-DD',
   'progress.measurements.waist': 'Waist (cm, optional)',
   'progress.measurements.waistPlaceholder': 'e.g. 82',
   'progress.measurements.hip': 'Hip (cm, optional)',
@@ -717,7 +715,6 @@ export const en = {
   'progress.weight.accessibility': 'Record body weight',
   'progress.weight.title': 'Record weight',
   'progress.weight.date': 'Date',
-  'progress.weight.datePlaceholder': 'YYYY-MM-DD',
   'progress.weight.weightKg': 'Weight (kg)',
   'progress.weight.weightPlaceholder': 'e.g. 80.5',
   'progress.weight.notes': 'Notes (optional)',
@@ -1404,7 +1401,6 @@ export const en = {
   'wellness.safety.evaluation.hint':
     'Either answer is fine. Nothing in the app is locked or unlocked by it.',
   'wellness.safety.evaluation.dateLabel': 'Date of the evaluation',
-  'wellness.safety.evaluation.datePlaceholder': 'YYYY-MM-DD',
   'wellness.safety.evaluation.dateHint':
     'Just the date. We do not ask who performed it or what it found.',
   'wellness.safety.validation.dateRequired': 'Add the date of the evaluation',

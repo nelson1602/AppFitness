@@ -116,7 +116,14 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   'src/features/nutrition/presentation/food-log/FoodLogAddForm.tsx': ['floor', 'content'],
   'src/features/nutrition/presentation/food-log/ServingStepper.tsx': ['floor-both'],
   'src/features/nutrition/presentation/FoodLogScreen.tsx': ['floor-both'],
-  'src/features/nutrition/presentation/NutritionPlanScreen.tsx': ['floor-both'],
+  // v8 Block 3 Plan alimentario: the day arrows, each day chip, a meal's
+  // ingredients toggle (a full-width row), and its round 'Lo comí' check.
+  'src/features/nutrition/presentation/meal-plan-day.tsx': [
+    'floor-both',
+    'floor-both',
+    'floor',
+    'floor-both',
+  ],
   'src/features/profile/presentation/ProfileTab.tsx': ['floor'],
   'src/features/progress/presentation/ProgressSummaryCard.tsx': ['content'],
   // ADR-P039 shell: the bell, each tab, and each notification row.
@@ -127,6 +134,9 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   'src/features/wellness/presentation/wellness-token-group.tsx': ['floor'],
   // ADR-P042 Semanas anteriores: each week row, then the sheet's close button.
   'src/features/weekly-plan/presentation/PastWeeksPanel.tsx': ['floor', 'floor-both'],
+  // v8 Block 3 Plan completo: each row of the week's sessions (full width),
+  // then each day of the week strip (it scrolls on a narrow phone).
+  'src/features/workout/presentation/GeneratedWorkoutPlan.tsx': ['floor', 'floor-both'],
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
@@ -161,8 +171,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 34 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(34);
+it('counts exactly 39 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(39);
 });
 
 describe.each(

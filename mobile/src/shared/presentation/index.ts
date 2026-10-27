@@ -23,4 +23,5 @@ export { StageScreen } from './stage-screen';
 export { StageSurfaceProvider, useStageSurface } from './stage-surface';
 export { PaidWriteDisabledProvider, usePaidWriteDisabled } from './paid-write-context';
 export { FormField } from './form/FormField';
+export { FormDateField } from './form/FormDateField';
 export { FormSelect } from './form/FormSelect';

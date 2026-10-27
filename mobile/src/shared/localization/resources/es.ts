@@ -5,6 +5,7 @@ export const es = {
   'form.date.openHint': 'Abre el calendario',
   'form.date.empty': 'sin fecha',
   'form.date.done': 'Listo',
+  'form.date.clear': 'Quitar fecha',
   // Shell del documento web y superficie de producto para páginas no
   // encontradas (BUG-016, ADR-P032).
   'web.document.title': 'AppFitnessRD',
@@ -548,7 +549,6 @@ export const es = {
   'profile.webUnavailableBody':
     'Usa la app móvil de AppFitnessRD para crear y actualizar tu perfil.',
   'profile.birthDate': 'Fecha de nacimiento',
-  'profile.birthDatePlaceholder': 'AAAA-MM-DD',
   'profile.heightCm': 'Estatura (cm)',
   'profile.gender': 'Sexo',
   'profile.gender.male': 'Masculino',
@@ -613,7 +613,6 @@ export const es = {
   'goal.typeShort.maintenance': 'Mantenimiento',
   'goal.targetWeightKg': 'Peso meta (kg)',
   'goal.targetDate': 'Fecha meta',
-  'goal.targetDatePlaceholder': 'AAAA-MM-DD',
   'goal.save': 'Guardar meta',
   'goal.validation.greaterThanZero': 'Debe ser mayor que 0',
   'goal.validation.tooLarge': 'El valor es demasiado alto',
@@ -622,7 +621,6 @@ export const es = {
   'progress.measurements.accessibility': 'Registrar medidas corporales',
   'progress.measurements.title': 'Registrar medidas',
   'progress.measurements.date': 'Fecha',
-  'progress.measurements.datePlaceholder': 'AAAA-MM-DD',
   'progress.measurements.waist': 'Cintura (cm, opcional)',
   'progress.measurements.waistPlaceholder': 'p. ej., 82',
   'progress.measurements.hip': 'Cadera (cm, opcional)',
@@ -718,7 +716,6 @@ export const es = {
   'progress.weight.accessibility': 'Registrar peso corporal',
   'progress.weight.title': 'Registrar peso',
   'progress.weight.date': 'Fecha',
-  'progress.weight.datePlaceholder': 'AAAA-MM-DD',
   'progress.weight.weightKg': 'Peso (kg)',
   'progress.weight.weightPlaceholder': 'p. ej., 80.5',
   'progress.weight.notes': 'Notas (opcional)',
@@ -1420,7 +1417,6 @@ export const es = {
   'wellness.safety.evaluation.hint':
     'Cualquier respuesta está bien. Nada en la app se bloquea ni se desbloquea por ella.',
   'wellness.safety.evaluation.dateLabel': 'Fecha de la evaluación',
-  'wellness.safety.evaluation.datePlaceholder': 'AAAA-MM-DD',
   'wellness.safety.evaluation.dateHint':
     'Solo la fecha. No preguntamos quién la realizó ni qué encontró.',
   'wellness.safety.validation.dateRequired': 'Agrega la fecha de la evaluación',

@@ -4,7 +4,15 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, FormField, FormSelect } from '@/shared/presentation';
+import { useLocalDay } from '@/shared/application/local-day';
+import {
+  AppButton,
+  AppText,
+  Banner,
+  FormDateField,
+  FormField,
+  FormSelect,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useGoalStore } from '../application/goal.store';
@@ -30,6 +38,7 @@ interface GoalFormProps {
 export function GoalForm({ onSaved }: GoalFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
+  const today = useLocalDay((s) => s.today);
   const { status, goal, error, load, save } = useGoalStore();
   const schema = createGoalFormSchema({
     greaterThanZero: t('goal.validation.greaterThanZero'),
@@ -129,11 +138,12 @@ export function GoalForm({ onSaved }: GoalFormProps) {
         label={t('goal.targetWeightKg')}
         keyboardType="decimal-pad"
       />
-      <FormField
+      {/* v8 Block 3 (ADR-P043): the native picker, from today on. */}
+      <FormDateField
         control={control}
         name="targetDate"
         label={t('goal.targetDate')}
-        placeholder={t('goal.targetDatePlaceholder')}
+        minimumDate={today}
       />
 
       <AppButton

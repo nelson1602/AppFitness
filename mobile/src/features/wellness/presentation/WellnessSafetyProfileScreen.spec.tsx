@@ -2,6 +2,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { StyleSheet, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { queryAll, queryFirst, run } from '@/shared/infrastructure/database';
+import { localDayOf } from '@/shared/application/local-day';
+import { localDateToIso } from '@/shared/presentation/date-field.format';
+import { pickDate } from '@/shared/presentation/date-field.testkit';
 import { lightTheme } from '@/shared/theme';
 
 import type { WellnessSafetyProfile } from '../domain/wellness-safety-profile';
@@ -427,8 +430,9 @@ describe('the evaluation question and its conditional date', () => {
     expect(section.props.accessibilityLiveRegion).toBeUndefined();
     const input = screen.getByTestId('field-evaluationDate');
     expect(input).toBeOnTheScreen();
-    // A real text field, so it is reachable and editable from a keyboard.
-    expect(input.props.editable).not.toBe(false);
+    // v8 Block 3 (ADR-P043): a button that opens the calendar, so it is
+    // reachable from a keyboard and a screen reader.
+    expect(input.props.accessibilityRole).toBe('button');
     expect(
       screen.getByText('Just the date. We do not ask who performed it or what it found.'),
     ).toBeOnTheScreen();
@@ -456,16 +460,17 @@ describe('the evaluation question and its conditional date', () => {
     expect(save).not.toHaveBeenCalled();
   });
 
-  it('rejects a date that is not a real calendar date', async () => {
+  it('offers only real calendar dates up to today (ADR-P043)', async () => {
+    // A calendar cannot produce "2026-02-31"; the schema's own check for it is
+    // covered by the form-schema and rules specs. What the screen guarantees is
+    // the bound.
     setStore({ status: 'ready', profile: null });
 
     await render(<WellnessSafetyProfileScreen />);
     await fireEvent.press(screen.getByTestId('option-evaluationCompleted-yes'));
-    await fireEvent.changeText(screen.getByTestId('field-evaluationDate'), '2026-02-31');
-    await fireEvent.press(screen.getByTestId('wellness-save'));
+    const options = await pickDate('field-evaluationDate', '2020-05-06');
 
-    expect(await screen.findByText('Enter a real calendar date')).toBeOnTheScreen();
-    expect(save).not.toHaveBeenCalled();
+    expect(localDateToIso(options.maximumDate as Date)).toBe(localDayOf(new Date()));
   });
 
   it('rejects a device-local future date', async () => {
@@ -473,7 +478,8 @@ describe('the evaluation question and its conditional date', () => {
 
     await render(<WellnessSafetyProfileScreen />);
     await fireEvent.press(screen.getByTestId('option-evaluationCompleted-yes'));
-    await fireEvent.changeText(screen.getByTestId('field-evaluationDate'), tomorrow());
+    // Past the calendar's bound (a clock that moved): the schema still refuses it.
+    await pickDate('field-evaluationDate', tomorrow());
     await fireEvent.press(screen.getByTestId('wellness-save'));
 
     expect(await screen.findByText('The date cannot be in the future')).toBeOnTheScreen();
@@ -485,7 +491,7 @@ describe('the evaluation question and its conditional date', () => {
 
     await render(<WellnessSafetyProfileScreen />);
     await fireEvent.press(screen.getByTestId('option-evaluationCompleted-yes'));
-    await fireEvent.changeText(screen.getByTestId('field-evaluationDate'), '2020-05-06');
+    await pickDate('field-evaluationDate', '2020-05-06');
     await fireEvent.press(screen.getByTestId('wellness-save'));
 
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
@@ -594,7 +600,7 @@ describe('editing what is stored', () => {
     expect(
       screen.getByTestId('option-evaluationCompleted-yes').props.accessibilityState.selected,
     ).toBe(true);
-    expect(screen.getByTestId('field-evaluationDate').props.value).toBe('2026-01-02');
+    expect(screen.getByLabelText('Date of the evaluation *, 01/02/2026')).toBeOnTheScreen();
     expect(screen.getByTestId('wellness-area-knee').props.accessibilityState.checked).toBe(true);
     expect(screen.getByTestId('wellness-area-lower_back').props.accessibilityState.checked).toBe(
       true,
@@ -690,14 +696,14 @@ describe('removal is confirmed, never silent', () => {
 });
 
 describe('what the surface must never collect or claim', () => {
-  it('has exactly one text input — the date — and no free-text field', async () => {
+  it('has no text input at all — the date is picked from a calendar', async () => {
     setStore({ status: 'ready', profile: profile() });
 
     await render(<WellnessSafetyProfileScreen />);
 
-    const inputs = textInputs();
-    expect(inputs).toHaveLength(1);
-    expect(inputs[0].props.testID).toBe('field-evaluationDate');
+    // v8 Block 3 (ADR-P043): the one field it had, the date, is now a picker.
+    expect(textInputs()).toHaveLength(0);
+    expect(screen.getByTestId('field-evaluationDate')).toBeOnTheScreen();
   });
 
   it('has no text input at all when no evaluation is reported', async () => {

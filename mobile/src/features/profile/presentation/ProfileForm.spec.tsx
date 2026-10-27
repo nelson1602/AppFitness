@@ -1,5 +1,9 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { localDayOf } from '@/shared/application/local-day';
+import { localDateToIso } from '@/shared/presentation/date-field.format';
+import { pickDate } from '@/shared/presentation/date-field.testkit';
+
 import type { Profile } from '../domain/profile.types';
 import type { ProfileFormState } from '../application/profile.store';
 import { ProfileForm } from './ProfileForm';
@@ -90,7 +94,7 @@ describe('ProfileForm', () => {
     await render(<ProfileForm onSaved={jest.fn()} />);
 
     await waitFor(() =>
-      expect(screen.getByTestId('field-birthDate').props.value).toBe('1988-01-02'),
+      expect(screen.getByLabelText('Birth date *, 01/02/1988')).toBeOnTheScreen(),
     );
     expect(screen.getByTestId('field-heightCm').props.value).toBe('165');
     expect(screen.getByText('Edit profile')).toBeOnTheScreen();
@@ -113,7 +117,7 @@ describe('ProfileForm', () => {
 
     await render(<ProfileForm onSaved={onSaved} />);
 
-    await fireEvent.changeText(screen.getByTestId('field-birthDate'), '1990-05-14');
+    await pickDate('field-birthDate', '1990-05-14');
     await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
     await fireEvent.press(screen.getByTestId('option-fitnessLevel-INTERMEDIATE'));
     await fireEvent.press(screen.getByTestId('option-activityLevel-MODERATE'));
@@ -141,7 +145,7 @@ describe('ProfileForm', () => {
     expect(screen.getByText('Crea tu perfil')).toBeOnTheScreen();
     expect(screen.getByText('Nivel de condición física *')).toBeOnTheScreen();
     expect(screen.getByText('Intermedio')).toBeOnTheScreen();
-    await fireEvent.changeText(screen.getByTestId('field-birthDate'), '1990-05-14');
+    await pickDate('field-birthDate', '1990-05-14');
     await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
     await fireEvent.press(screen.getByTestId('option-fitnessLevel-ADVANCED'));
     await fireEvent.press(screen.getByTestId('option-activityLevel-ACTIVE'));
@@ -175,7 +179,7 @@ describe('ProfileForm', () => {
 
     await render(<ProfileForm onSaved={onSaved} />);
 
-    await fireEvent.changeText(screen.getByTestId('field-birthDate'), '1990-05-14');
+    await pickDate('field-birthDate', '1990-05-14');
     await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
     await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
 
@@ -219,19 +223,20 @@ describe('ProfileForm', () => {
     expect(screen.queryByText('Create your profile')).toBeNull();
   });
 
-  it('resolves the birth-date format placeholder from the catalogue', async () => {
-    // The Spanish validation message already says AAAA-MM-DD, so an English
-    // literal in the field itself contradicted the error it produces.
+  it('shows the date pattern on an empty birth date instead of a typed-format hint', async () => {
     setStore({ status: 'ready', profile: null });
     await render(<ProfileForm onSaved={jest.fn()} />);
-    expect(screen.getByTestId('field-birthDate').props.placeholder).toBe('YYYY-MM-DD');
+    expect(screen.getByLabelText('Birth date *, no date')).toBeOnTheScreen();
+    expect(screen.getByText('MM/DD/YYYY')).toBeOnTheScreen();
   });
 
-  it('localizes the birth-date format placeholder in Spanish', async () => {
+  it('never offers a future birth date in the calendar (ADR-P043)', async () => {
     mockLanguage = 'es';
     setStore({ status: 'ready', profile: null });
     await render(<ProfileForm onSaved={jest.fn()} />);
-    expect(screen.getByTestId('field-birthDate').props.placeholder).toBe('AAAA-MM-DD');
+    const options = await pickDate('field-birthDate', '1990-05-14');
+    expect(localDateToIso(options.maximumDate as Date)).toBe(localDayOf(new Date()));
+    expect(localDateToIso(options.minimumDate as Date)).toBe('1900-01-01');
   });
 
   it('renders the web-unavailable state in Spanish', async () => {

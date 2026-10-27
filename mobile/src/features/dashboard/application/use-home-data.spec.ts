@@ -38,7 +38,10 @@ function mockStore(name: string) {
 }
 
 let mockSession: object | null = { user: { id: 'u1' } };
-jest.mock('@/features/authentication', () => ({ getSession: () => mockSession }));
+jest.mock('@/features/authentication', () => ({
+  getSession: () => mockSession,
+  bindStoreToSession: jest.fn(),
+}));
 
 jest.mock('./dashboard.store', () => ({ useDashboardStore: mockStore('dashboard') }));
 jest.mock('@/features/profile/application/profile.store', () => ({

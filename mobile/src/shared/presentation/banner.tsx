@@ -59,8 +59,9 @@ export function Banner({ title, children, tone = 'info' }: BannerProps) {
       style={{
         // v8 Block 3: on the stage the banner is glass and keeps its tone edge.
         backgroundColor: stage ? theme.colors.glassFill : theme.colors.surfaceVariant,
-        ...(stage ? { borderColor: theme.colors.glassBorder, borderWidth: 1 } : undefined),
-        borderLeftColor: toneColor[tone],
+        // Off the stage the tone colours the whole (left-only) border as before.
+        borderColor: stage ? theme.colors.glassBorder : toneColor[tone],
+        ...(stage ? { borderLeftColor: toneColor[tone], borderWidth: 1 } : undefined),
         borderLeftWidth: theme.spacing.xs,
         borderRadius: theme.radius.medium,
         gap: theme.spacing.xs,

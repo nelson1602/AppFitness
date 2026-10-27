@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import type {
@@ -163,9 +163,6 @@ const WEEKDAY_SHORT_KEYS: Readonly<Record<Weekday, TranslationKey>> = {
   SUNDAY: 'workouts.dayShort.sunday',
 };
 
-/** The 44 dp floor for every target on this screen (BUG-023). */
-const TARGET = 44;
-
 /**
  * "Plan completo" in the prototype's language (v8 Block 3,
  * docs/design/appfitnessrd-prototipo.html, Entrenamientos): the week as a day
@@ -291,7 +288,7 @@ export function GeneratedWorkoutPlanView({
                       borderTopColor: theme.colors.glassBorder,
                       borderTopWidth: index > 0 ? StyleSheet.hairlineWidth : 0,
                       gap: theme.spacing.md,
-                      minHeight: TARGET,
+                      minHeight: theme.spacing.x5l,
                       paddingVertical: theme.spacing.sm,
                     },
                   ]}
@@ -330,13 +327,16 @@ function WeekStrip({
   selected: Weekday;
   onSelect: (weekday: Weekday) => void;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const theme = useTheme();
+  const { colors, radius, spacing } = theme;
   const { t } = useLocalization();
   return (
-    <View
+    <ScrollView
       accessibilityLabel={t('workout.plan.weekStrip')}
       accessibilityRole="tablist"
-      style={[styles.row, { gap: spacing.xs }]}
+      contentContainerStyle={[styles.row, { flexGrow: 1, gap: spacing.xs }]}
+      horizontal
+      showsHorizontalScrollIndicator={false}
     >
       {WEEKDAYS.map((weekday) => {
         const active = weekday === selected;
@@ -363,7 +363,9 @@ function WeekStrip({
               flex: 1,
               gap: spacing.xs,
               justifyContent: 'center',
-              minHeight: 60,
+              minHeight: theme.spacing.x5l,
+              minWidth: theme.spacing.x5l,
+              paddingVertical: spacing.sm,
             }}
             testID={`plan-week-day-${weekday}`}
           >
@@ -385,7 +387,7 @@ function WeekStrip({
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 

@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, FormField, FormSelect } from '@/shared/presentation';
+import { AppButton, AppText, Banner, FormDateField, FormSelect } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { WellnessSafetyProfile } from '../domain/wellness-safety-profile';
@@ -125,13 +125,13 @@ export function WellnessSafetyProfileForm({
         // `FormField`'s shipped validation-error behaviour is untouched. (The
         // ADR-P024 BUG-025 extension adds only the error-tone `Banner` root.)
         <View style={{ gap: theme.spacing.xs }} testID="wellness-date-section">
-          <FormField
+          {/* v8 Block 3 (ADR-P043): the native picker, never a future date. */}
+          <FormDateField
             control={control}
             name="evaluationDate"
             label={t('wellness.safety.evaluation.dateLabel')}
-            placeholder={t('wellness.safety.evaluation.datePlaceholder')}
+            maximumDate={today}
             required
-            selectTextOnFocus
           />
           <AppText variant="caption" tone="muted">
             {t('wellness.safety.evaluation.dateHint')}

@@ -129,13 +129,15 @@ describe('catalogue parity', () => {
     expect(blank).toEqual([]);
   });
 
-  it('uses the Spanish date format wherever the English one is a date placeholder', () => {
-    // Five form fields hint the accepted date shape. The Spanish validation
-    // messages say AAAA-MM-DD, so a placeholder that still said YYYY-MM-DD
-    // contradicted the error the same field produces.
-    const dateKeys = KEYS.filter((key) => english[key] === 'YYYY-MM-DD');
-    expect(dateKeys.length).toBeGreaterThanOrEqual(5);
-    expect(dateKeys.filter((key) => spanish[key] !== 'AAAA-MM-DD')).toEqual([]);
+  it('asks for no typed date: every date is picked (v8 Block 3, ADR-P043)', () => {
+    // The five form fields that hinted a typed YYYY-MM-DD / AAAA-MM-DD shape
+    // now open the native picker, which shows the localized DD/MM/AAAA or
+    // MM/DD/YYYY pattern itself (date-field.spec.tsx). A typed-date hint
+    // coming back would mean a field went back to free text.
+    const hints = KEYS.filter(
+      (key) => english[key] === 'YYYY-MM-DD' || spanish[key] === 'AAAA-MM-DD',
+    );
+    expect(hints).toEqual([]);
   });
 
   it('carries the same substitution tokens on both sides of every key', () => {
