@@ -758,12 +758,7 @@ export const es = {
   'workout.plan.unsupportedTitle': 'Equipo no reconocido',
   'workout.plan.unsupportedMessage':
     'Estos valores del perfil no se utilizaron. Cámbialos por una opción de equipo compatible:',
-  'workout.plan.schedule': 'Horario semanal',
-  'workout.plan.sessions': 'Sesiones de entrenamiento',
   'workout.plan.progression': 'Cómo progresar',
-  'workout.plan.training': 'Entrenamiento',
-  'workout.plan.activeRecovery': 'Recuperación activa',
-  'workout.plan.fullRest': 'Descanso completo',
   'workout.plan.session': 'Sesión',
   'workout.plan.fullBody': 'Cuerpo completo',
   'workout.plan.sets': 'series',
@@ -778,6 +773,13 @@ export const es = {
   'workout.plan.addDuration': 'agrega segundos',
   'workout.plan.wellnessNotice':
     'Solo orientación general de bienestar físico. Detente si un ejercicio causa dolor y adapta el plan a tus limitaciones físicas declaradas.',
+  'workout.plan.weekPlan': 'Plan de la semana',
+  'workout.plan.weekStrip': 'Días de la semana',
+  'workout.plan.restDay': 'Día de descanso',
+  'workout.plan.restDayFull': 'El iCoach dejó este día libre para que te recuperes.',
+  'workout.plan.restDayActive':
+    'Recuperación activa: una caminata suave de 20 minutos y 10 minutos de estiramientos.',
+  'workout.plan.byICoach': '{day} · creado por iCoach',
   'wellness.plan.limitationsAppliedTitle': 'Tu plan sigue las limitaciones que declaraste',
   'wellness.plan.limitationsAppliedBody':
     'Los movimientos que dijiste que preferías evitar quedaron fuera de tu plan. Las zonas del cuerpo que marcaste se guardan como referencia para ti y por sí solas no cambian ningún ejercicio, serie ni caloría.',

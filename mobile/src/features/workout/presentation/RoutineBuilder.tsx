@@ -129,8 +129,12 @@ export function RoutineBuilder() {
 
   return (
     <View style={{ gap: theme.spacing.lg }}>
+      {/* v8 Block 3: "Ver plan completo" opens on the week the iCoach built;
+          the person's own routines follow it. */}
+      <GeneratedWorkoutPlan />
+
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('workout.builder.title')}</AppText>
+        <AppText variant="title">{t('workout.builder.title')}</AppText>
         <AppText tone="muted">{t('workout.builder.subtitle')}</AppText>
       </View>
 
@@ -139,8 +143,6 @@ export function RoutineBuilder() {
           {t('workout.builder.errorMessage')}
         </Banner>
       ) : null}
-
-      <GeneratedWorkoutPlan />
 
       <Card accessibilityLabel={t('workout.builder.createAccessibility')}>
         <View style={{ gap: theme.spacing.md }}>

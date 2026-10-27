@@ -761,12 +761,7 @@ export const en = {
   'workout.plan.unsupportedTitle': 'Equipment not recognized',
   'workout.plan.unsupportedMessage':
     'These profile values were not used. Update them to a supported equipment option:',
-  'workout.plan.schedule': 'Weekly schedule',
-  'workout.plan.sessions': 'Training sessions',
   'workout.plan.progression': 'How to progress',
-  'workout.plan.training': 'Training',
-  'workout.plan.activeRecovery': 'Active recovery',
-  'workout.plan.fullRest': 'Full rest',
   'workout.plan.session': 'Session',
   'workout.plan.fullBody': 'Full body',
   'workout.plan.sets': 'sets',
@@ -781,6 +776,13 @@ export const en = {
   'workout.plan.addDuration': 'add seconds',
   'workout.plan.wellnessNotice':
     'General fitness guidance only. Stop if an exercise causes pain and adapt the plan to your self-declared physical limitations.',
+  'workout.plan.weekPlan': "This week's plan",
+  'workout.plan.weekStrip': 'Days of the week',
+  'workout.plan.restDay': 'Rest day',
+  'workout.plan.restDayFull': 'iCoach left this day free so you can recover.',
+  'workout.plan.restDayActive':
+    'Active recovery: an easy 20-minute walk and 10 minutes of stretching.',
+  'workout.plan.byICoach': '{day} · built by iCoach',
   // ADR-P031 §Decision 10: the assessment recommendation. Localization keys
   // only — the validated movements stay inside the rule inputs and never
   // appear here, and neither does a count, a date or an area.

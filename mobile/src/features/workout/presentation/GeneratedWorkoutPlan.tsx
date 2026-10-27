@@ -1,5 +1,6 @@
-import { useEffect, useMemo } from 'react';
-import { View } from 'react-native';
+import { router } from 'expo-router';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import type {
@@ -9,6 +10,8 @@ import type {
   WorkoutProgressionRule,
 } from '@/features/icoach';
 import { useProfileStore } from '@/features/profile/application/profile.store';
+import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
+import { planAsRoutine } from '@/features/weekly-plan/domain/plan-routine';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
@@ -19,7 +22,16 @@ import {
   type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
-import { AppText, Banner, Card } from '@/shared/presentation';
+import {
+  AppButton,
+  AppText,
+  Banner,
+  Card,
+  Chip,
+  GlassCard,
+  Icon,
+  withAlpha,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { exerciseDisplayName } from '../application/exercise-display.service';
@@ -66,7 +78,9 @@ export function GeneratedWorkoutPlan() {
     if (profileStatus === 'idle') void loadProfile();
   }, [loadProfile, profileStatus]);
 
-  const selection = useMemo(
+  const planRevisions = useWeeklyPlanStore((state) => state.revisions);
+
+  const live = useMemo(
     () =>
       profile
         ? generationAllowed
@@ -82,6 +96,15 @@ export function GeneratedWorkoutPlan() {
         : ({ status: 'gap' } satisfies WorkoutRoutineSelection),
     [assessment, generationAllowed, profile],
   );
+  // v8 Block 3 (ADR-P042): "Ver plan completo" shows the saved week the
+  // Entrenamientos tab shows — with the days earned through ADR-P040 D11 —
+  // and keeps the live routine's progression rules and equipment notes. The
+  // live routine stays the fallback until the week's plan exists.
+  const selection = useMemo<WorkoutRoutineSelection>(() => {
+    const saved = generationAllowed ? planAsRoutine(planRevisions) : null;
+    if (!saved || live.status !== 'ready') return live;
+    return { ...live, routine: { ...saved, progression: live.routine.progression } };
+  }, [generationAllowed, live, planRevisions]);
 
   if (!generationAllowed) return <SubscriptionAccessNotice />;
 
@@ -120,9 +143,47 @@ export function GeneratedWorkoutPlan() {
   return <GeneratedWorkoutPlanView selection={selection} />;
 }
 
-export function GeneratedWorkoutPlanView({ selection }: { selection: WorkoutRoutineSelection }) {
+const WEEKDAYS: readonly Weekday[] = [
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
+  'SUNDAY',
+];
+
+const WEEKDAY_SHORT_KEYS: Readonly<Record<Weekday, TranslationKey>> = {
+  MONDAY: 'workouts.dayShort.monday',
+  TUESDAY: 'workouts.dayShort.tuesday',
+  WEDNESDAY: 'workouts.dayShort.wednesday',
+  THURSDAY: 'workouts.dayShort.thursday',
+  FRIDAY: 'workouts.dayShort.friday',
+  SATURDAY: 'workouts.dayShort.saturday',
+  SUNDAY: 'workouts.dayShort.sunday',
+};
+
+/** The 44 dp floor for every target on this screen (BUG-023). */
+const TARGET = 44;
+
+/**
+ * "Plan completo" in the prototype's language (v8 Block 3,
+ * docs/design/appfitnessrd-prototipo.html, Entrenamientos): the week as a day
+ * strip, the chosen day's session (or rest) in a glass panel, the week's
+ * sessions as a list, then how to progress. It opens on today.
+ */
+export function GeneratedWorkoutPlanView({
+  selection,
+  today = new Date(),
+}: {
+  selection: WorkoutRoutineSelection;
+  /** Injected by tests; the screen uses the device clock. */
+  today?: Date;
+}) {
   const theme = useTheme();
   const { language, t } = useLocalization();
+  const todayWeekday = WEEKDAYS[(today.getDay() + 6) % 7];
+  const [selected, setSelected] = useState<Weekday>(todayWeekday);
 
   if (selection.status === 'gap') {
     return (
@@ -154,92 +215,220 @@ export function GeneratedWorkoutPlanView({ selection }: { selection: WorkoutRout
     );
   }
 
+  const { routine } = selection;
+  // Localized where the number is produced, so the strip, the panel and the
+  // list always read the same session the same way.
+  const sessionName = (sessionKey: string) => {
+    const index = routine.sessions.findIndex((session) => session.key === sessionKey);
+    return `${t('workout.plan.session')} ${formatNumber(index + 1, language)} · ${t('workout.plan.fullBody')}`;
+  };
+  const selectedDay = routine.schedule.find((day) => day.weekday === selected);
+
   return (
-    <Card accessibilityLabel={t('workout.plan.accessibility')}>
-      <View style={{ gap: theme.spacing.lg }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('workout.plan.title')}</AppText>
-          <AppText tone="muted">{t('workout.plan.subtitle')}</AppText>
-        </View>
-
-        {selection.unsupportedEquipment.length > 0 ? (
-          <Banner title={t('workout.plan.unsupportedTitle')} tone="warning">
-            {`${t('workout.plan.unsupportedMessage')} ${selection.unsupportedEquipment.join(', ')}`}
-          </Banner>
-        ) : null}
-
-        <Schedule routine={selection.routine} language={language} />
-        <Sessions routine={selection.routine} language={language} />
-        <Progression routine={selection.routine} language={language} />
-
-        <AppText variant="caption" tone="muted">
-          {t('workout.plan.wellnessNotice')}
-        </AppText>
+    <View accessibilityLabel={t('workout.plan.accessibility')} style={{ gap: theme.spacing.lg }}>
+      <View style={{ gap: theme.spacing.xs }}>
+        <AppText variant="title">{t('workout.plan.title')}</AppText>
+        <AppText tone="muted">{t('workout.plan.subtitle')}</AppText>
       </View>
-    </Card>
+
+      {selection.unsupportedEquipment.length > 0 ? (
+        <Banner title={t('workout.plan.unsupportedTitle')} tone="warning">
+          {`${t('workout.plan.unsupportedMessage')} ${selection.unsupportedEquipment.join(', ')}`}
+        </Banner>
+      ) : null}
+
+      <WeekStrip routine={routine} selected={selected} onSelect={setSelected} />
+
+      {selectedDay?.kind === 'TRAINING' ? (
+        <SessionPanel
+          isToday={selected === todayWeekday}
+          routine={routine}
+          sessionKey={selectedDay.sessionKey}
+          title={sessionName(selectedDay.sessionKey)}
+          weekday={selected}
+        />
+      ) : (
+        <GlassCard testID="plan-rest-day">
+          <View style={[styles.row, { gap: theme.spacing.sm }]}>
+            <Icon color={theme.colors.linkOnStage} name="heart" size={17} />
+            <AppText accessibilityRole="header" style={styles.grow} variant="title">
+              {t('workout.plan.restDay')}
+            </AppText>
+          </View>
+          <AppText tone="muted">
+            {t(
+              selectedDay?.kind === 'RECOVERY' && selectedDay.recovery === 'ACTIVE_RECOVERY'
+                ? 'workout.plan.restDayActive'
+                : 'workout.plan.restDayFull',
+            )}
+          </AppText>
+        </GlassCard>
+      )}
+
+      <GlassCard>
+        <View style={[styles.row, { gap: theme.spacing.sm }]}>
+          <Icon color={theme.colors.linkOnStage} name="dumbbell" size={17} />
+          <AppText accessibilityRole="header" style={styles.grow} variant="title">
+            {t('workout.plan.weekPlan')}
+          </AppText>
+          <Chip label={t('workouts.week.renews')} testID="plan-week-renews" />
+        </View>
+        <View>
+          {routine.schedule
+            .filter((day) => day.kind === 'TRAINING')
+            .map((day, index) => {
+              if (day.kind !== 'TRAINING') return null;
+              const dayName = t(WEEKDAY_KEYS[day.weekday]);
+              return (
+                <Pressable
+                  key={day.weekday}
+                  accessibilityLabel={`${dayName}: ${sessionName(day.sessionKey)}`}
+                  accessibilityRole="button"
+                  onPress={() => setSelected(day.weekday)}
+                  style={[
+                    styles.row,
+                    {
+                      borderTopColor: theme.colors.glassBorder,
+                      borderTopWidth: index > 0 ? StyleSheet.hairlineWidth : 0,
+                      gap: theme.spacing.md,
+                      minHeight: TARGET,
+                      paddingVertical: theme.spacing.sm,
+                    },
+                  ]}
+                  testID={`plan-week-row-${day.weekday}`}
+                >
+                  <View style={styles.grow}>
+                    <AppText style={{ color: theme.colors.linkOnStage }} variant="caption">
+                      {dayName}
+                    </AppText>
+                    <AppText variant="label">{sessionName(day.sessionKey)}</AppText>
+                  </View>
+                  {day.weekday === todayWeekday ? (
+                    <Chip label={t('workouts.week.today')} testID="plan-week-today" tone="energy" />
+                  ) : null}
+                </Pressable>
+              );
+            })}
+        </View>
+      </GlassCard>
+
+      <Progression routine={routine} language={language} />
+
+      <AppText variant="caption" tone="muted">
+        {t('workout.plan.wellnessNotice')}
+      </AppText>
+    </View>
   );
 }
 
-function Schedule({
+function WeekStrip({
   routine,
-  language,
+  selected,
+  onSelect,
 }: {
   routine: GeneratedWorkoutRoutine;
-  language: SupportedLanguage;
+  selected: Weekday;
+  onSelect: (weekday: Weekday) => void;
 }) {
-  const theme = useTheme();
+  const { colors, radius, spacing } = useTheme();
   const { t } = useLocalization();
-  // Localized at the point the number is produced, so the schedule line and the
-  // session heading below it always read the same way.
-  const sessionNumbers = new Map(
-    routine.sessions.map((session, index) => [session.key, formatNumber(index + 1, language)]),
-  );
-
   return (
-    <View accessibilityLabel={t('workout.plan.schedule')} style={{ gap: theme.spacing.xs }}>
-      <AppText variant="title">{t('workout.plan.schedule')}</AppText>
-      {routine.schedule.map((day) => {
-        const activity =
-          day.kind === 'TRAINING'
-            ? `${t('workout.plan.training')} · ${t('workout.plan.session')} ${sessionNumbers.get(day.sessionKey) ?? ''}`
-            : day.recovery === 'ACTIVE_RECOVERY'
-              ? t('workout.plan.activeRecovery')
-              : t('workout.plan.fullRest');
+    <View
+      accessibilityLabel={t('workout.plan.weekStrip')}
+      accessibilityRole="tablist"
+      style={[styles.row, { gap: spacing.xs }]}
+    >
+      {WEEKDAYS.map((weekday) => {
+        const active = weekday === selected;
+        const training = routine.schedule.some(
+          (day) => day.weekday === weekday && day.kind === 'TRAINING',
+        );
+        const dayName = t(WEEKDAY_KEYS[weekday]);
         return (
-          <AppText key={day.weekday}>
-            {t(WEEKDAY_KEYS[day.weekday])}: {activity}
-          </AppText>
+          <Pressable
+            key={weekday}
+            accessibilityLabel={interpolate(
+              t(training ? 'workouts.week.training' : 'workouts.week.rest'),
+              { day: dayName },
+            )}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            onPress={() => onSelect(weekday)}
+            style={{
+              alignItems: 'center',
+              backgroundColor: active ? colors.accentCyan : colors.glassFill,
+              borderColor: active ? colors.linkOnStage : colors.glassBorder,
+              borderRadius: radius.large,
+              borderWidth: 1,
+              flex: 1,
+              gap: spacing.xs,
+              justifyContent: 'center',
+              minHeight: 60,
+            }}
+            testID={`plan-week-day-${weekday}`}
+          >
+            <AppText style={{ color: active ? colors.stageDeep : colors.onStage }} variant="label">
+              {t(WEEKDAY_SHORT_KEYS[weekday])}
+            </AppText>
+            <View
+              style={{
+                backgroundColor: training
+                  ? active
+                    ? colors.stageDeep
+                    : colors.accentEnergy
+                  : 'transparent',
+                borderRadius: 3,
+                height: 6,
+                width: 6,
+              }}
+            />
+          </Pressable>
         );
       })}
     </View>
   );
 }
 
-function Sessions({
+function SessionPanel({
   routine,
-  language,
+  sessionKey,
+  title,
+  weekday,
+  isToday,
 }: {
   routine: GeneratedWorkoutRoutine;
-  language: SupportedLanguage;
+  sessionKey: string;
+  title: string;
+  weekday: Weekday;
+  isToday: boolean;
 }) {
   const theme = useTheme();
-  const { t } = useLocalization();
-
+  const { language, t } = useLocalization();
+  const session = routine.sessions.find((candidate) => candidate.key === sessionKey);
   return (
-    <View accessibilityLabel={t('workout.plan.sessions')} style={{ gap: theme.spacing.md }}>
-      <AppText variant="title">{t('workout.plan.sessions')}</AppText>
-      {routine.sessions.map((session, index) => (
-        <View key={session.key} style={{ gap: theme.spacing.sm }}>
-          <AppText variant="label">
-            {t('workout.plan.session')} {formatNumber(index + 1, language)} ·{' '}
-            {t('workout.plan.fullBody')}
+    <GlassCard testID="plan-session-panel">
+      <View style={{ gap: theme.spacing.xs }}>
+        <View style={[styles.row, { gap: theme.spacing.sm }]}>
+          <Icon color={theme.colors.linkOnStage} name="sparkle" size={17} />
+          <AppText accessibilityRole="header" style={styles.grow} variant="title">
+            {title}
           </AppText>
-          {session.exercises.map((exercise) => (
-            <Exercise key={exercise.exerciseKey} exercise={exercise} language={language} />
-          ))}
         </View>
-      ))}
-    </View>
+        <AppText tone="muted" variant="caption">
+          {interpolate(t('workout.plan.byICoach'), { day: t(WEEKDAY_KEYS[weekday]) })}
+        </AppText>
+      </View>
+      <View style={{ gap: theme.spacing.sm }}>
+        {(session?.exercises ?? []).map((exercise) => (
+          <Exercise key={exercise.exerciseKey} exercise={exercise} language={language} />
+        ))}
+      </View>
+      {isToday ? (
+        <AppButton onPress={() => router.push('/workout-log')} testID="plan-session-start">
+          {t('home.coach.start')}
+        </AppButton>
+      ) : null}
+    </GlassCard>
   );
 }
 
@@ -258,7 +447,14 @@ function Exercise({
       : `${formatNumber(exercise.target.seconds, language)} ${t('workout.plan.seconds')}`;
 
   return (
-    <View style={{ gap: theme.spacing.xs, paddingLeft: theme.spacing.sm }}>
+    <View
+      style={{
+        backgroundColor: theme.colors.glassFill,
+        borderRadius: theme.radius.large,
+        gap: theme.spacing.xs,
+        padding: theme.spacing.md,
+      }}
+    >
       <AppText variant="label">{exerciseDisplayName(exercise.exerciseKey, language)}</AppText>
       <AppText variant="caption" tone="muted">
         {formatNumber(exercise.sets, language)} {t('workout.plan.sets')} · {target} ·{' '}
@@ -266,6 +462,24 @@ function Exercise({
         {t('workout.plan.rest')} · {t('workout.plan.targetRpe')}{' '}
         {formatNumber(exercise.targetRpe, language)}
       </AppText>
+      {/* One mark per set, as in the prototype; decorative (the count is read above). */}
+      <View
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={[styles.row, { gap: theme.spacing.xs }]}
+      >
+        {Array.from({ length: exercise.sets }, (_, set) => (
+          <View
+            key={set}
+            style={{
+              backgroundColor: withAlpha(theme.colors.onStage, 0.15),
+              borderRadius: 3,
+              height: 6,
+              width: 20,
+            }}
+          />
+        ))}
+      </View>
       {exercise.substitutions.length > 0 ? (
         <AppText variant="caption" tone="muted">
           {t('workout.plan.substitutions')}:{' '}
@@ -294,8 +508,13 @@ function Progression({
   };
 
   return (
-    <View accessibilityLabel={t('workout.plan.progression')} style={{ gap: theme.spacing.sm }}>
-      <AppText variant="title">{t('workout.plan.progression')}</AppText>
+    <GlassCard accessibilityLabel={t('workout.plan.progression')}>
+      <View style={[styles.row, { gap: theme.spacing.sm }]}>
+        <Icon color={theme.colors.linkOnStage} name="chart" size={17} />
+        <AppText accessibilityRole="header" style={styles.grow} variant="title">
+          {t('workout.plan.progression')}
+        </AppText>
+      </View>
       {routine.progression.map((rule) => (
         <View key={rule.id} style={{ gap: theme.spacing.xs }}>
           {/* The count is substituted into the sentence instead of appended after
@@ -314,9 +533,14 @@ function Progression({
           </AppText>
         </View>
       ))}
-    </View>
+    </GlassCard>
   );
 }
+
+const styles = StyleSheet.create({
+  grow: { flex: 1, minWidth: 0 },
+  row: { alignItems: 'center', flexDirection: 'row' },
+});
 
 function progressionInstruction(
   rule: WorkoutProgressionRule,
