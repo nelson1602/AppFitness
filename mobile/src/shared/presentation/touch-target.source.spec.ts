@@ -119,6 +119,8 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
   'src/shared/presentation/app-button.tsx': ['primitive'],
+  // ADR-P043: the date field opens the native picker.
+  'src/shared/presentation/date-field.tsx': ['floor'],
   'src/shared/presentation/form/FormSelect.tsx': ['floor-both'],
   // ADR-P039: the tabs' navigation rows.
   'src/shared/presentation/glass-row.tsx': ['floor'],
@@ -147,8 +149,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 25 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(25);
+it('counts exactly 26 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(26);
 });
 
 describe.each(

@@ -5,6 +5,7 @@ export { Banner } from './banner';
 export { BrandHero } from './brand-hero';
 export { Card } from './card';
 export { Chip } from './chip';
+export { DateField, type DateFieldProps } from './date-field';
 export { GlassCard } from './glass-card';
 export { GlassRow } from './glass-row';
 export { GradientText } from './gradient-text';

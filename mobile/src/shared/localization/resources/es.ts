@@ -2,6 +2,9 @@ import type { TranslationKey } from './en';
 
 export const es = {
   'common.loadingContentAccessibility': 'Cargando contenido',
+  'form.date.openHint': 'Abre el calendario',
+  'form.date.empty': 'sin fecha',
+  'form.date.done': 'Listo',
   // Shell del documento web y superficie de producto para páginas no
   // encontradas (BUG-016, ADR-P032).
   'web.document.title': 'AppFitnessRD',

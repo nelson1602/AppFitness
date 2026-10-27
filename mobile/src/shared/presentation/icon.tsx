@@ -94,6 +94,13 @@ const PATHS = {
       <Path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" />
     </>
   ),
+  // From the prototype (PR #238): the past-weeks panel and the date fields.
+  calendar: (
+    <>
+      <Rect x={3} y={5} width={18} height={16} rx={2} />
+      <Path d="M3 10h18M8 3v4M16 3v4" />
+    </>
+  ),
   target: (
     <>
       <Circle cx={12} cy={12} r={9} />

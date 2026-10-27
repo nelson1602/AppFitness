@@ -1,5 +1,8 @@
 export const en = {
   'common.loadingContentAccessibility': 'Loading content',
+  'form.date.openHint': 'Opens the calendar',
+  'form.date.empty': 'no date',
+  'form.date.done': 'Done',
   // Web document shell and the product not-found surface (BUG-016, ADR-P032).
   // 'web.document.title' is the product title every exported Web document
   // carries; the three shipped portals reuse their own screen-title keys.
