@@ -129,13 +129,15 @@ describe('catalogue parity', () => {
     expect(blank).toEqual([]);
   });
 
-  it('uses the Spanish date format wherever the English one is a date placeholder', () => {
-    // Five form fields hint the accepted date shape. The Spanish validation
-    // messages say AAAA-MM-DD, so a placeholder that still said YYYY-MM-DD
-    // contradicted the error the same field produces.
-    const dateKeys = KEYS.filter((key) => english[key] === 'YYYY-MM-DD');
-    expect(dateKeys.length).toBeGreaterThanOrEqual(5);
-    expect(dateKeys.filter((key) => spanish[key] !== 'AAAA-MM-DD')).toEqual([]);
+  it('asks for no typed date: every date is picked (v8 Block 3, ADR-P043)', () => {
+    // The five form fields that hinted a typed YYYY-MM-DD / AAAA-MM-DD shape
+    // now open the native picker, which shows the localized DD/MM/AAAA or
+    // MM/DD/YYYY pattern itself (date-field.spec.tsx). A typed-date hint
+    // coming back would mean a field went back to free text.
+    const hints = KEYS.filter(
+      (key) => english[key] === 'YYYY-MM-DD' || spanish[key] === 'AAAA-MM-DD',
+    );
+    expect(hints).toEqual([]);
   });
 
   it('carries the same substitution tokens on both sides of every key', () => {
@@ -235,9 +237,15 @@ describe('no public-v1 surface renders an unlocalized string', () => {
   it('resolves the logged serving unit through the catalogue, never the stored token', () => {
     const screen = [...SOURCE].find(([file]) => file.endsWith('presentation/FoodLogScreen.tsx'));
     expect(screen).toBeDefined();
-    const text = screen![1];
-    expect(text).toContain('const unitKey = UNIT_LABEL[item.serving.unit];');
-    expect(text).toContain('unitKey ? t(unitKey) : item.serving.unit');
+    expect(screen![1]).toContain('formatServingAmount(');
+    // v8 Block 3: the lookup (with plurals) lives in the shared formatter; the
+    // stored token is shown only for a unit the catalogue does not know.
+    const formatter = [...SOURCE].find(([file]) =>
+      file.endsWith('nutrition/presentation/serving-amount.ts'),
+    );
+    expect(formatter).toBeDefined();
+    expect(formatter![1]).toContain('const UNIT_LABEL: Readonly<Record<ServingUnit,');
+    expect(formatter![1]).toContain('label ? t(shown > 1 ? label.many : label.one) : unit');
   });
 });
 

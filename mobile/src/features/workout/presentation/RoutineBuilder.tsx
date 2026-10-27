@@ -14,6 +14,7 @@ import {
   Card,
   PaidWriteDisabledProvider,
   usePaidWriteDisabled,
+  useStageSurface,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -56,6 +57,7 @@ const MUSCLE_GROUP_KEYS: Readonly<Record<string, TranslationKey>> = {
 
 export function RoutineBuilder() {
   const theme = useTheme();
+  const stage = useStageSurface();
   const { language, t } = useLocalization();
   const paidWriteDisabled = usePaidWriteDisabled();
   const {
@@ -129,8 +131,12 @@ export function RoutineBuilder() {
 
   return (
     <View style={{ gap: theme.spacing.lg }}>
+      {/* v8 Block 3: "Ver plan completo" opens on the week the iCoach built;
+          the person's own routines follow it. */}
+      <GeneratedWorkoutPlan />
+
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('workout.builder.title')}</AppText>
+        <AppText variant="title">{t('workout.builder.title')}</AppText>
         <AppText tone="muted">{t('workout.builder.subtitle')}</AppText>
       </View>
 
@@ -139,8 +145,6 @@ export function RoutineBuilder() {
           {t('workout.builder.errorMessage')}
         </Banner>
       ) : null}
-
-      <GeneratedWorkoutPlan />
 
       <Card accessibilityLabel={t('workout.builder.createAccessibility')}>
         <View style={{ gap: theme.spacing.md }}>
@@ -261,7 +265,7 @@ export function RoutineBuilder() {
                             disabled={paidWriteDisabled}
                             onPress={() => onAddExerciseById(exercise.id)}
                             style={{
-                              borderColor: theme.colors.outline,
+                              borderColor: stage ? theme.colors.glassBorder : theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
                               opacity: paidWriteDisabled ? 0.5 : 1,
@@ -298,7 +302,7 @@ export function RoutineBuilder() {
                             disabled={paidWriteDisabled}
                             onPress={() => onAddExerciseById(exercise.id)}
                             style={{
-                              borderColor: theme.colors.outline,
+                              borderColor: stage ? theme.colors.glassBorder : theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
                               opacity: paidWriteDisabled ? 0.5 : 1,

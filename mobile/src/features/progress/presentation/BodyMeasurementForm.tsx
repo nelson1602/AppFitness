@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, FormField } from '@/shared/presentation';
+import { useLocalDay } from '@/shared/application/local-day';
+import { AppButton, AppText, FormDateField, FormField } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { BodyMeasurementInput } from '../domain/progress';
@@ -34,6 +35,7 @@ interface BodyMeasurementFormProps {
 export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasurementFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
+  const today = useLocalDay((s) => s.today);
   const schema = createBodyMeasurementFormSchema({
     dateFormat: t('progress.validation.dateFormat'),
     validDate: t('progress.validation.validDate'),
@@ -67,11 +69,12 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
       accessibilityLabel={t('progress.measurements.accessibility')}
     >
       <AppText variant="title">{t('progress.measurements.title')}</AppText>
-      <FormField
+      {/* v8 Block 3 (ADR-P043): the native picker, never a future date. */}
+      <FormDateField
         control={control}
         name="date"
         label={t('progress.measurements.date')}
-        placeholder={t('progress.measurements.datePlaceholder')}
+        maximumDate={today}
         required
       />
       <FormField

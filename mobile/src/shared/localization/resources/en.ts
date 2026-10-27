@@ -3,6 +3,7 @@ export const en = {
   'form.date.openHint': 'Opens the calendar',
   'form.date.empty': 'no date',
   'form.date.done': 'Done',
+  'form.date.clear': 'Clear date',
   // Web document shell and the product not-found surface (BUG-016, ADR-P032).
   // 'web.document.title' is the product title every exported Web document
   // carries; the three shipped portals reuse their own screen-title keys.
@@ -550,7 +551,6 @@ export const en = {
   'profile.webUnavailableBody':
     'Use the AppFitnessRD mobile app to create and update your profile.',
   'profile.birthDate': 'Birth date',
-  'profile.birthDatePlaceholder': 'YYYY-MM-DD',
   'profile.heightCm': 'Height (cm)',
   'profile.gender': 'Sex',
   'profile.gender.male': 'Male',
@@ -615,7 +615,6 @@ export const en = {
   'goal.typeShort.maintenance': 'Maintenance',
   'goal.targetWeightKg': 'Target weight (kg)',
   'goal.targetDate': 'Target date',
-  'goal.targetDatePlaceholder': 'YYYY-MM-DD',
   'goal.save': 'Save goal',
   'goal.validation.greaterThanZero': 'Must be greater than 0',
   'goal.validation.tooLarge': 'That value is too high',
@@ -624,7 +623,6 @@ export const en = {
   'progress.measurements.accessibility': 'Record body measurements',
   'progress.measurements.title': 'Record measurements',
   'progress.measurements.date': 'Date',
-  'progress.measurements.datePlaceholder': 'YYYY-MM-DD',
   'progress.measurements.waist': 'Waist (cm, optional)',
   'progress.measurements.waistPlaceholder': 'e.g. 82',
   'progress.measurements.hip': 'Hip (cm, optional)',
@@ -675,7 +673,6 @@ export const en = {
     'Use the AppFitnessRD mobile app to record and track your progress.',
   'progress.webUnavailableCard': 'Not available on the web',
   'progress.routeTitle': 'Progress',
-  'progress.screen.title': 'Progress',
   'progress.screen.subtitle':
     'Record your weight and measurements. Saved on your device first, synced when online.',
   'progress.screen.loading': 'Loading…',
@@ -717,7 +714,6 @@ export const en = {
   'progress.weight.accessibility': 'Record body weight',
   'progress.weight.title': 'Record weight',
   'progress.weight.date': 'Date',
-  'progress.weight.datePlaceholder': 'YYYY-MM-DD',
   'progress.weight.weightKg': 'Weight (kg)',
   'progress.weight.weightPlaceholder': 'e.g. 80.5',
   'progress.weight.notes': 'Notes (optional)',
@@ -761,12 +757,7 @@ export const en = {
   'workout.plan.unsupportedTitle': 'Equipment not recognized',
   'workout.plan.unsupportedMessage':
     'These profile values were not used. Update them to a supported equipment option:',
-  'workout.plan.schedule': 'Weekly schedule',
-  'workout.plan.sessions': 'Training sessions',
   'workout.plan.progression': 'How to progress',
-  'workout.plan.training': 'Training',
-  'workout.plan.activeRecovery': 'Active recovery',
-  'workout.plan.fullRest': 'Full rest',
   'workout.plan.session': 'Session',
   'workout.plan.fullBody': 'Full body',
   'workout.plan.sets': 'sets',
@@ -781,6 +772,13 @@ export const en = {
   'workout.plan.addDuration': 'add seconds',
   'workout.plan.wellnessNotice':
     'General fitness guidance only. Stop if an exercise causes pain and adapt the plan to your self-declared physical limitations.',
+  'workout.plan.weekPlan': "This week's plan",
+  'workout.plan.weekStrip': 'Days of the week',
+  'workout.plan.restDay': 'Rest day',
+  'workout.plan.restDayFull': 'iCoach left this day free so you can recover.',
+  'workout.plan.restDayActive':
+    'Active recovery: an easy 20-minute walk and 10 minutes of stretching.',
+  'workout.plan.byICoach': '{day} · built by iCoach',
   // ADR-P031 §Decision 10: the assessment recommendation. Localization keys
   // only — the validated movements stay inside the rule inputs and never
   // appear here, and neither does a count, a date or an area.
@@ -874,7 +872,6 @@ export const en = {
   'workout.movement.maxEffortLifts': 'maximum-effort lifts',
   'workout.movement.valsalvaHeavyLifts': 'heavy lifts while holding your breath',
   'workout.library.routeTitle': 'Exercise library',
-  'workout.library.title': 'Exercise library',
   'workout.library.subtitle':
     'Create your own exercises to use in routines and workouts. They are saved on your device first and synced to your account later.',
   'workout.library.errorTitle': 'Something went wrong',
@@ -923,7 +920,6 @@ export const en = {
   'workout.muscle.shoulders': 'Shoulders',
   'workout.muscle.triceps': 'Triceps',
   'workout.log.routeTitle': 'Log a workout',
-  'workout.log.title': 'Log a workout',
   'workout.log.subtitle':
     'Track your sets as you train. Everything is saved on your device first and syncs to your account later.',
   'workout.log.errorTitle': 'Something went wrong',
@@ -980,7 +976,6 @@ export const en = {
   'workout.log.removeSetAccessibility': 'Remove set',
   'nutrition.routeTitle': 'Nutrition',
   'nutrition.plan.routeTitle': 'Meal plan',
-  'nutrition.plan.title': '15-day meal plan',
   'nutrition.plan.subtitle': 'A meal plan built from your iCoach targets and our food list.',
   'nutrition.plan.logToday': "Log today's food",
   'nutrition.plan.logTodayAccessibility': 'Log the food you ate today',
@@ -993,15 +988,21 @@ export const en = {
     'Use the AppFitnessRD mobile app to view and follow your 15-day meal plan.',
   'nutrition.plan.day': 'Day',
   'nutrition.plan.showDay': 'Show day',
+  'nutrition.plan.stripLabel': '15-day plan',
+  'nutrition.plan.dayOf': 'Day {day} of {count}',
+  'nutrition.plan.previousDay': 'Previous day',
+  'nutrition.plan.nextDay': 'Next day',
+  'nutrition.plan.mealsOfDay': 'Meal plan · day {day}',
+  'nutrition.plan.ingredients': '{count} ingredients',
+  'nutrition.plan.ingredientsOne': '1 ingredient',
+  'nutrition.plan.hideIngredients': 'Hide ingredients',
   'nutrition.plan.breakfast': 'Breakfast',
   'nutrition.plan.lunch': 'Lunch',
   'nutrition.plan.dinner': 'Dinner',
   'nutrition.plan.snack': 'Snack',
   'nutrition.plan.meal': 'meal',
-  'nutrition.plan.mealTotal': 'Meal total',
   'nutrition.plan.savedWeek': "This week's plan. It renews on Monday.",
   'nutrition.plan.previewBadge': 'May change on Monday',
-  'nutrition.plan.ate': 'I ate it',
   'nutrition.plan.ateAccessibility': "I ate it: log the plan's {meal}",
   'nutrition.plan.eaten': 'Eaten ✓',
   'nutrition.plan.adjusted': 'Adjusted by iCoach: {from} → {to}',
@@ -1097,7 +1098,6 @@ export const en = {
   'nutrition.preferences.remove': 'Remove',
   'nutrition.preferences.removeAccessibility': 'Remove exclusion',
   'nutrition.log.routeTitle': 'Food log',
-  'nutrition.log.title': 'Food log',
   'nutrition.log.subtitle':
     'Log what you eat today. Saved on your device first, synced when online.',
   'nutrition.log.syncingTitle': 'Syncing',
@@ -1189,10 +1189,13 @@ export const en = {
   'nutrition.unit.g': 'g',
   'nutrition.unit.ml': 'ml',
   'nutrition.unit.piece': 'piece',
+  'nutrition.unit.pieces': 'pieces',
   'nutrition.unit.cup': 'cup',
+  'nutrition.unit.cups': 'cups',
   'nutrition.unit.tbsp': 'tbsp',
   'nutrition.unit.tsp': 'tsp',
   'nutrition.unit.slice': 'slice',
+  'nutrition.unit.slices': 'slices',
   'nutrition.gap.planAccessibility': 'Meal plan needs more data',
   'nutrition.gap.targetsAccessibility': 'Nutrition needs more data',
   'nutrition.gap.title': 'Complete your basic info first',
@@ -1240,7 +1243,6 @@ export const en = {
   'dashboard.subscription': 'Subscription',
   'dashboard.subscriptionAccessibility': 'View your AppFitnessRD Pro subscription',
   'account.delete.screenTitle': 'Delete account',
-  'account.delete.title': 'Delete account',
   'account.delete.description':
     'This permanently deletes your account and all your data. This cannot be undone.',
   'account.delete.errorTitle': 'Deletion failed',
@@ -1359,7 +1361,6 @@ export const en = {
   // a dosage or free text. Token labels are presentation only — the stored
   // value is always the language-neutral token.
   'wellness.safety.routeTitle': 'Evaluation and limitations',
-  'wellness.safety.title': 'Evaluation and limitations',
   'wellness.safety.subtitle': 'Optional details that help us keep your training conservative.',
   'wellness.safety.disclaimerTitle': 'This is fitness software, not a medical opinion',
   'wellness.safety.disclaimerBody':
@@ -1394,7 +1395,6 @@ export const en = {
   'wellness.safety.evaluation.hint':
     'Either answer is fine. Nothing in the app is locked or unlocked by it.',
   'wellness.safety.evaluation.dateLabel': 'Date of the evaluation',
-  'wellness.safety.evaluation.datePlaceholder': 'YYYY-MM-DD',
   'wellness.safety.evaluation.dateHint':
     'Just the date. We do not ask who performed it or what it found.',
   'wellness.safety.validation.dateRequired': 'Add the date of the evaluation',

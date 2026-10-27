@@ -5,6 +5,7 @@ import { useTheme } from '@/shared/theme';
 
 import { AppText } from '../app-text';
 import { usePaidWriteDisabled } from '../paid-write-context';
+import { useStageSurface } from '../stage-surface';
 
 interface Option {
   label: string;
@@ -32,6 +33,7 @@ export function FormSelect<T extends FieldValues>({
   required = false,
 }: FormSelectProps<T>) {
   const theme = useTheme();
+  const stage = useStageSurface();
   const disabled = usePaidWriteDisabled();
   return (
     <Controller
@@ -55,9 +57,22 @@ export function FormSelect<T extends FieldValues>({
                   testID={`option-${name}-${opt.value}`}
                   disabled={disabled}
                   onPress={() => onChange(opt.value)}
+                  // v8 Block 3: on the stage, the evaluation's chip (cyan when chosen).
                   style={{
-                    backgroundColor: selected ? theme.colors.primary : theme.colors.surfaceVariant,
-                    borderColor: selected ? theme.colors.primary : theme.colors.outline,
+                    backgroundColor: stage
+                      ? selected
+                        ? theme.colors.accentCyan
+                        : theme.colors.glassFill
+                      : selected
+                        ? theme.colors.primary
+                        : theme.colors.surfaceVariant,
+                    borderColor: stage
+                      ? selected
+                        ? theme.colors.onStage
+                        : theme.colors.glassBorder
+                      : selected
+                        ? theme.colors.primary
+                        : theme.colors.outline,
                     borderRadius: theme.radius.medium,
                     borderWidth: 1,
                     minHeight: theme.spacing.x5l,
@@ -69,7 +84,18 @@ export function FormSelect<T extends FieldValues>({
                     paddingHorizontal: theme.spacing.md,
                   }}
                 >
-                  <AppText tone={selected ? 'onPrimary' : 'muted'}>{opt.label}</AppText>
+                  {stage ? (
+                    // The evaluation chip's label: dark on cyan, light on glass.
+                    <AppText
+                      style={{
+                        color: selected ? theme.colors.stageDeep : theme.colors.onStageVariant,
+                      }}
+                    >
+                      {opt.label}
+                    </AppText>
+                  ) : (
+                    <AppText tone={selected ? 'onPrimary' : 'muted'}>{opt.label}</AppText>
+                  )}
                 </Pressable>
               );
             })}

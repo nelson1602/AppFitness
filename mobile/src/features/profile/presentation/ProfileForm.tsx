@@ -4,7 +4,15 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, FormField, FormSelect } from '@/shared/presentation';
+import { useLocalDay } from '@/shared/application/local-day';
+import {
+  AppButton,
+  AppText,
+  Banner,
+  FormDateField,
+  FormField,
+  FormSelect,
+} from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useProfileStore } from '../application/profile.store';
@@ -29,6 +37,7 @@ interface ProfileFormProps {
 export function ProfileForm({ onSaved }: ProfileFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
+  const today = useLocalDay((s) => s.today);
   const { status, profile, error, load, save } = useProfileStore();
   const schema = createProfileFormSchema({
     dateFormat: t('profile.validation.dateFormat'),
@@ -83,9 +92,6 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
   if (status === 'web-unavailable') {
     return (
       <View style={{ gap: theme.spacing.lg }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('profile.routeTitle')}</AppText>
-        </View>
         <Banner title={t('profile.webUnavailableTitle')} tone="info">
           {t('profile.webUnavailableBody')}
         </Banner>
@@ -118,11 +124,14 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
         </Banner>
       ) : null}
 
-      <FormField
+      {/* v8 Block 3 (ADR-P043): the native picker, never a future date. */}
+      <FormDateField
         control={control}
         name="birthDate"
         label={t('profile.birthDate')}
-        placeholder={t('profile.birthDatePlaceholder')}
+        initialDate="1990-01-01"
+        maximumDate={today}
+        minimumDate="1900-01-01"
         required
       />
       <FormField

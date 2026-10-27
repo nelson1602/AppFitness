@@ -6,7 +6,7 @@ import { DashboardSkeleton } from '@/features/dashboard/presentation/components/
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { ExerciseLibrary } from '@/features/workout';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Exercise library route (ADR-P015 Phase 16 Slice 9). Session-guarded like the
@@ -20,9 +20,9 @@ export default function ExercisesRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -30,11 +30,11 @@ export default function ExercisesRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('workout.library.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionWriteBoundary>
           <ExerciseLibrary />
         </SubscriptionWriteBoundary>
-      </Screen>
+      </StageScreen>
     </>
   );
 }

@@ -3,7 +3,8 @@ import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, FormField } from '@/shared/presentation';
+import { useLocalDay } from '@/shared/application/local-day';
+import { AppButton, AppText, FormDateField, FormField } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { BodyWeightInput } from '../domain/progress';
@@ -33,6 +34,7 @@ interface BodyWeightFormProps {
 export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
+  const today = useLocalDay((s) => s.today);
   const schema = createBodyWeightFormSchema({
     dateFormat: t('progress.validation.dateFormat'),
     validDate: t('progress.validation.validDate'),
@@ -57,11 +59,12 @@ export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightForm
   return (
     <View style={{ gap: theme.spacing.md }} accessibilityLabel={t('progress.weight.accessibility')}>
       <AppText variant="title">{t('progress.weight.title')}</AppText>
-      <FormField
+      {/* v8 Block 3 (ADR-P043): the native picker, never a future date. */}
+      <FormDateField
         control={control}
         name="date"
         label={t('progress.weight.date')}
-        placeholder={t('progress.weight.datePlaceholder')}
+        maximumDate={today}
         required
       />
       <FormField

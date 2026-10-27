@@ -107,7 +107,9 @@ export function ProgressTab() {
       </GlassCard>
 
       <PastWeeksPanel
-        onSeed={canSeedDevHistory() ? () => void seedHistory() : undefined}
+        onSeed={
+          canSeedDevHistory() ? () => void seedHistory(t('workout.log.defaultName')) : undefined
+        }
         weeks={pastWeeks}
       />
     </TabScreen>

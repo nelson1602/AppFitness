@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 
 import { useLocalization } from '@/shared/localization';
-import { Card } from '@/shared/presentation';
+import { Card, useStageSurface } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 /**
@@ -19,13 +19,15 @@ import { useTheme } from '@/shared/theme';
 export function DashboardSkeleton() {
   const theme = useTheme();
   const { t } = useLocalization();
+  // v8 Block 3: on the stage the placeholder bars are faint glass.
+  const bar = useStageSurface() ? theme.colors.glassBorder : theme.colors.surfaceVariant;
   return (
     <>
       {[0, 1, 2].map((item) => (
         <Card key={item} accessibilityLabel={t('common.loadingContentAccessibility')}>
           <View
             style={{
-              backgroundColor: theme.colors.surfaceVariant,
+              backgroundColor: bar,
               borderRadius: theme.radius.medium,
               height: theme.spacing.xxl,
               marginBottom: theme.spacing.md,
@@ -34,7 +36,7 @@ export function DashboardSkeleton() {
           />
           <View
             style={{
-              backgroundColor: theme.colors.surfaceVariant,
+              backgroundColor: bar,
               borderRadius: theme.radius.medium,
               height: theme.spacing.lg,
               width: '86%',

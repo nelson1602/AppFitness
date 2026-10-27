@@ -6,7 +6,7 @@ import { WellnessSafetyProfileScreen } from '@/features/wellness';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Evaluation-and-limitations route (ADR-P017 **W-3**). Session-guarded exactly
@@ -24,9 +24,9 @@ export default function WellnessSafetyProfileRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -34,11 +34,11 @@ export default function WellnessSafetyProfileRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('wellness.safety.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionWriteBoundary>
           <WellnessSafetyProfileScreen />
         </SubscriptionWriteBoundary>
-      </Screen>
+      </StageScreen>
     </>
   );
 }

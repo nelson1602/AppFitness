@@ -5,7 +5,6 @@ import { useDashboardStore } from '@/features/dashboard/application/dashboard.st
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import {
   formatNumber,
-  formatQuantity,
   useLocalization,
   type SupportedLanguage,
   type TranslationKey,
@@ -28,11 +27,11 @@ import {
   type FoodLogSyncSummary,
   type FoodLogWriteOperation,
 } from '../application/food-log.store';
-import type { ServingUnit } from '../domain/food-catalog';
 import type { ConsumedMacros, LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS } from '../domain/meal-plan';
 import { FoodLogAddForm } from './food-log/FoodLogAddForm';
 import { formatServingCount, ServingStepper } from './food-log/ServingStepper';
+import { formatServingAmount } from './serving-amount';
 
 const MEAL_KEY: Record<MealTypeName, TranslationKey> = {
   BREAKFAST: 'nutrition.plan.breakfast',
@@ -40,31 +39,6 @@ const MEAL_KEY: Record<MealTypeName, TranslationKey> = {
   DINNER: 'nutrition.plan.dinner',
   SNACK: 'nutrition.plan.snack',
 };
-
-/**
- * Serving units are stored as identifiers, so the logged row resolves them
- * through the shipped vocabulary exactly as `FoodLogAddForm` and
- * `NutritionPlanScreen` already do. Rendering the stored token instead left
- * `piece`, `cup`, `tbsp`, `tsp` and `slice` in English inside a Spanish log.
- */
-const UNIT_KEY: Record<ServingUnit, TranslationKey> = {
-  g: 'nutrition.unit.g',
-  ml: 'nutrition.unit.ml',
-  piece: 'nutrition.unit.piece',
-  cup: 'nutrition.unit.cup',
-  tbsp: 'nutrition.unit.tbsp',
-  tsp: 'nutrition.unit.tsp',
-  slice: 'nutrition.unit.slice',
-};
-
-/**
- * A logged row stores its unit as a plain string, so the lookup is by string
- * and an unrecognised unit keeps its stored form rather than vanishing — the
- * same fail-safe shape as `DataGapCard`'s unknown-id fallback.
- * `surface-coverage.spec.ts` keeps `UNIT_KEY` total over `ServingUnit`, which
- * is what makes that fallback unreachable.
- */
-const UNIT_LABEL: Readonly<Partial<Record<string, TranslationKey>>> = UNIT_KEY;
 
 function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
   const { language, t } = useLocalization();
@@ -221,8 +195,6 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
   const removeItem = useFoodLogStore((state) => state.removeItem);
   const canonical = item.catalogKey ? getById(item.catalogKey) : undefined;
   const displayName = canonical ? foodDisplayName(canonical, language) : item.name;
-  const unitKey = UNIT_LABEL[item.serving.unit];
-
   return (
     <View
       accessibilityLabel={`${displayName}, ${formatServingCount(item.servingCount, language)} ${t('nutrition.log.servings')}`}
@@ -236,11 +208,13 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
         <ItemSyncChip item={item} />
       </View>
       <AppText variant="caption" tone="muted">
-        {/* v8: the amount eaten, not a serving multiplier. */}
-        {formatQuantity(
-          Math.round(item.serving.amount * item.servingCount * 10) / 10,
-          unitKey ? t(unitKey) : item.serving.unit,
+        {/* v8: the amount eaten, not a serving multiplier. The stored unit
+            token is translated through the catalogue (serving-amount.ts). */}
+        {formatServingAmount(
+          item.serving.amount * item.servingCount,
+          item.serving.unit,
           language,
+          t,
         )}{' '}
         · {formatNumber(item.consumed.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
         {formatNumber(item.consumed.proteinG, language)}g · {t('nutrition.plan.carbs')}{' '}
@@ -399,7 +373,6 @@ export function FoodLogScreen() {
     return (
       <View style={{ gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('nutrition.log.title')}</AppText>
           <AppText tone="muted">{t('nutrition.log.subtitle')}</AppText>
         </View>
         <Banner title={t('nutrition.log.webUnavailableTitle')} tone="info">
@@ -412,7 +385,6 @@ export function FoodLogScreen() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('nutrition.log.title')}</AppText>
         <AppText tone="muted">{t('nutrition.log.subtitle')}</AppText>
       </View>
 

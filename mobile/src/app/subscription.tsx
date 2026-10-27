@@ -4,7 +4,7 @@ import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { SubscriptionScreen } from '@/features/subscriptions';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Subscription route (ADR-P034 **S-3**). Session-guarded like every other
@@ -22,9 +22,9 @@ export default function SubscriptionRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -32,9 +32,9 @@ export default function SubscriptionRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('subscription.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionScreen />
-      </Screen>
+      </StageScreen>
     </>
   );
 }

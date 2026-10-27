@@ -21,12 +21,16 @@ import { ensureCurrentWeekPlan } from './weekly-plan.service';
  * local API, or for an account that already has past weeks.
  */
 
-/** Sessions skipped and the share of planned meals eaten, oldest week first. */
+/**
+ * Sessions skipped and the share of planned meals eaten, oldest week first.
+ * The two most recent weeks complete every session, so the "one more day"
+ * proposal (ADR-P040 D11) can be reviewed at the next Monday plan.
+ */
 const PATTERN = [
-  { skipped: 0, mealTenths: 9 },
-  { skipped: 1, mealTenths: 7 },
-  { skipped: 0, mealTenths: 8 },
   { skipped: 2, mealTenths: 5 },
+  { skipped: 1, mealTenths: 7 },
+  { skipped: 0, mealTenths: 9 },
+  { skipped: 0, mealTenths: 8 },
 ] as const;
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '10.0.2.2']);
@@ -44,7 +48,11 @@ export function canSeedDevHistory(): boolean {
 /** Local noon of a calendar date. */
 const noon = (date: string) => new Date(`${date}T12:00:00`);
 
-export async function seedDevHistory(now: Date = new Date()): Promise<number> {
+/**
+ * `workoutName` is the localized default a workout started from the app gets
+ * ("Entrenamiento"), so seeded workouts read like real ones.
+ */
+export async function seedDevHistory(workoutName: string, now: Date = new Date()): Promise<number> {
   if (!canSeedDevHistory()) throw new Error('dev history seed: development build + local API only');
   const session = getSession();
   if (!session) throw new Error('Not authenticated');
@@ -69,7 +77,7 @@ export async function seedDevHistory(now: Date = new Date()): Promise<number> {
       if (day.workout.kind !== 'TRAINING') continue;
       const startedAt = new Date(`${day.date}T18:00:00`).toISOString();
       const log = await createWorkoutLog(userId, {
-        name: day.workout.sessionKey,
+        name: workoutName,
         startedAt,
         planLink: {
           weeklyPlanId: plan.id,

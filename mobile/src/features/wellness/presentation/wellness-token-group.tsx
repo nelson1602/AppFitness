@@ -1,7 +1,7 @@
 import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
 import { Pressable, View } from 'react-native';
 
-import { AppText, usePaidWriteDisabled } from '@/shared/presentation';
+import { AppText, usePaidWriteDisabled, useStageSurface, withAlpha } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { WellnessTokenOption } from './wellness-token-labels';
@@ -77,6 +77,7 @@ export function WellnessTokenGroup<T extends FieldValues>({
   testIDPrefix,
 }: WellnessTokenGroupProps<T>) {
   const theme = useTheme();
+  const stage = useStageSurface();
   const paidWriteDisabled = usePaidWriteDisabled();
 
   return (
@@ -117,10 +118,21 @@ export function WellnessTokenGroup<T extends FieldValues>({
                     style={{
                       opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
                       alignItems: 'center',
-                      backgroundColor: isSelected
-                        ? theme.colors.primaryContainer
-                        : theme.colors.surfaceVariant,
-                      borderColor: isSelected ? theme.colors.primary : theme.colors.outline,
+                      // v8 Block 3: on the stage, the evaluation's option row.
+                      backgroundColor: stage
+                        ? isSelected
+                          ? withAlpha(theme.colors.accentCyan, 0.16)
+                          : theme.colors.glassFill
+                        : isSelected
+                          ? theme.colors.primaryContainer
+                          : theme.colors.surfaceVariant,
+                      borderColor: stage
+                        ? isSelected
+                          ? theme.colors.accentCyan
+                          : theme.colors.glassBorder
+                        : isSelected
+                          ? theme.colors.primary
+                          : theme.colors.outline,
                       borderRadius: theme.radius.medium,
                       borderWidth: isSelected ? SELECTED_BORDER : UNSELECTED_BORDER,
                       flexDirection: 'row',

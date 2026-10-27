@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 
 import { formatNumber, type TranslationKey, useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
+import { AppButton, AppText, Banner, Card, useStageSurface } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { exerciseDisplayName } from '../application/exercise-display.service';
@@ -67,6 +67,7 @@ function SyncBadge({ syncStatus }: { syncStatus: CustomExercise['syncStatus'] })
 
 export function ExerciseLibrary() {
   const theme = useTheme();
+  const stage = useStageSurface();
   const { language, t } = useLocalization();
   const {
     status,
@@ -115,7 +116,6 @@ export function ExerciseLibrary() {
     return (
       <View style={{ gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('workout.library.title')}</AppText>
           <AppText tone="muted">{t('workout.library.subtitle')}</AppText>
         </View>
         <Banner title={t('workout.library.webUnavailableTitle')} tone="info">
@@ -128,7 +128,6 @@ export function ExerciseLibrary() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('workout.library.title')}</AppText>
         <AppText tone="muted">{t('workout.library.subtitle')}</AppText>
       </View>
 
@@ -207,7 +206,7 @@ export function ExerciseLibrary() {
                       style={{
                         gap: theme.spacing.sm,
                         marginTop: theme.spacing.xs,
-                        borderColor: theme.colors.outline,
+                        borderColor: stage ? theme.colors.glassBorder : theme.colors.outline,
                         borderRadius: theme.radius.medium,
                         borderWidth: 1,
                         padding: theme.spacing.sm,

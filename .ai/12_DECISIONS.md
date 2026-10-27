@@ -14928,6 +14928,18 @@ Accepted: 2026-10-26 by the project owner (v8 Block 2). Owner decisions recorded
 - **D10:** the Dominican foods seed starts with the foods from the evaluation's 10 lists that the catalog lacked, each sourced from the pinned USDA SR Legacy archive with Spanish and English names.
 - **D11** (2026-10-27): the Principiante cap of 3 training days stays; after 2 consecutive weeks at ≥ 80 % workout compliance, the Monday plan proposes +1 day (never above the days chosen), confirmed through the existing prompt.
 - **Portions** (2026-10-27, `meal-rules@1.2.0`): oils, nuts, seeds and nut butters stay at one catalog serving (for example 2 tbsp of chia); the single-food snack at two servings; in breakfast, lunch and dinner no food carries more than ~40 % of the meal's kcal, and lunch and dinner have four foods. The day still never falls below the engine target. Fat, as the calorie remainder, lands further from its target than protein and carbohydrate. Plan and log screens show amounts, never a serving multiplier.
+- **Snack minimum** (2026-10-27, v8 Block 3, `meal-rules@1.3.0`):
+  - A snack is at least 100 kcal (`SNACK_MIN_KCAL`).
+  - A smaller snack is raised to the smallest serving that reaches 100 kcal, and the main meals are trimmed back toward the target around it.
+  - If the day then still ends above 1.05× its target, or the snack food cannot reach 100 kcal within its two-serving cap, the earlier portions are restored, the snack is dropped and the main meals take its calories. Their per-meal targets are rescaled to cover the whole day.
+  - The day still never falls below the engine target.
+  - Across the reference profiles, about 9 % of days drop the snack, all of them unsweetened plant milks (26–35 kcal a serving).
+- **Vegetable cap** (2026-10-27, v8 Block 3, `meal-rules@1.4.0`): a vegetable never goes above three servings (`VEGETABLE_MAX_SERVINGS`, about three cups), in every pass including the last-resort top-up, so a day is never filled with vegetables ("6 taza" of bok choy in the Block 3 review).
+- **Display rounding** (2026-10-27, v8 Block 3):
+  - Grams and millilitres show as whole numbers ("271 g").
+  - Spoons, cups, pieces and slices show to the nearest half ("2 cda.", "½ unidad", "1½ tazas"), never as zero.
+  - The unit name agrees with the amount shown ("1 taza" / "2 tazas", "1 cup" / "2 cups"); abbreviations (g, ml, cda., tbsp) do not change.
+  - Only planned and logged amounts are rounded. A catalog serving definition (the "1 porción = …" line when adding a food) keeps its exact value, and stored amounts and macro totals stay exact.
 Date: 2026-10-22
 Owner: iCoach / Nutrition / Architecture
 Would revise: ADR-P031 D4 (injury-area mapping), D5 (workload signals) and D13 (nutrition restriction input), conditional on ADR-P038 for condition rules; ADR-P012 D3/D5 (custom foods); ADR-P013 acceptance (food sources); ADR-P014 (new avoid tags)
@@ -15158,6 +15170,18 @@ Amends: ADR-P037 (redesign dependencies)
 ### Consequences
 
 - This is a native module, so it needs a new native build. That is already planned for versionCode 8.
+
+### Block 3 (2026-10-27)
+
+- The remaining forms now pick their date: goal target date, profile birth date, weight and measurement dates, and the wellness evaluation date. They use `FormDateField` (React Hook Form + `DateField`), so the form value and each feature's Zod schema are unchanged.
+- Bounds:
+  - target date: from today on;
+  - birth date: 1900-01-01 up to today;
+  - weight, measurement and evaluation dates: up to today.
+  The schemas still reject an out-of-range date if the device clock moves.
+- An optional date (the goal's target date) gets a "Quitar fecha" link, since a picker alone cannot empty it.
+- The five typed-date placeholders left the catalogue. A guard now fails if a YYYY-MM-DD / AAAA-MM-DD hint comes back.
+- The dormant medical forms (`features/medical`, no route) keep their text fields.
 
 ---
 

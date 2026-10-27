@@ -9,6 +9,7 @@ import {
 
 import { useTheme } from '../theme';
 import { usePaidWriteDisabled } from './paid-write-context';
+import { useStageSurface } from './stage-surface';
 
 /**
  * Border widths are local, non-exported implementation constants. The accepted
@@ -142,7 +143,9 @@ export function AppTextInput(props: AppTextInputProps) {
     insetStart = 0,
     insetEnd = 0,
   } = props;
-  const stage = appearance === 'stage';
+  // Inside a stage surface the default appearance is the stage one (v8 Block 3).
+  const onStageSurface = useStageSurface();
+  const stage = appearance === 'stage' || onStageSurface;
   const disabled = explicitlyDisabled || paidWriteDisabled;
   // BUG-033 (owner Option B): TalkBack names an Android EditText by its
   // placeholder or value, and reads `accessibilityLabel` as text only when the

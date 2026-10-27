@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 
+import { getSession } from '@/features/authentication';
 import type { GeneratedWorkoutRoutine } from '@/features/icoach';
 import type { BmiCategory } from '@/features/icoach/domain/types';
 import { isoWeekStart } from '@/features/icoach/domain/progress-analysis';
@@ -15,6 +16,7 @@ import { selectWorkoutRoutine } from '@/features/workout/application/workout-rou
 import { useWorkoutStore } from '@/features/workout/application/workout.store';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { planAsRoutine } from '@/features/weekly-plan/domain/plan-routine';
+import { onLocalDayChange, useLocalDay } from '@/shared/application/local-day';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import type { GoalType } from '@/shared/infrastructure/database/types';
 
@@ -44,6 +46,20 @@ export function loadHomeData(): void {
     .getState()
     .load()
     .then(() => useWeeklyPlanStore.getState().checkForChanges());
+}
+
+/**
+ * BUG-045: a new local day (the app left open past midnight, or resumed on a
+ * later day) reloads everything day-bound. The food log is told the new date
+ * first, since a load without one keeps the date it already has.
+ */
+export function registerDayRollover(): () => void {
+  return onLocalDayChange((today) => {
+    if (!getSession()) return;
+    void useFoodLogStore.getState().load(today);
+    loadHomeData();
+    void useDashboardStore.getState().refresh();
+  });
 }
 
 /** One macro of "Tu evaluación de hoy": grams eaten today against the target. */
@@ -93,6 +109,8 @@ export function useHomeData(now: Date = new Date()): HomeData {
   const evaluationDate = useWellnessSafetyProfileStore((s) => s.profile?.evaluationDate ?? null);
   const { mode } = useEntitlementAccess();
   const planRevisions = useWeeklyPlanStore((s) => s.revisions);
+  // Re-render when the local day changes (BUG-045); `now` is read afresh.
+  useLocalDay((s) => s.today);
   const { today, weekStart, weekdayIndex } = todayParts(now);
 
   return useMemo(() => {

@@ -7,6 +7,7 @@ import { useSession } from '@/features/authentication';
 import { useHomeData } from '@/features/dashboard/application/use-home-data';
 import { unreadOf } from '@/features/notifications';
 import { useNotificationsStore } from '@/features/notifications/application/notifications.store';
+import { useLocalDay } from '@/shared/application/local-day';
 import { formatDate, formatNumber, interpolate, useLocalization } from '@/shared/localization';
 import { AppText, backgroundImageStyle, ctaBackgroundImage, Icon } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
@@ -32,7 +33,13 @@ export function AppHeader({ route }: BottomTabHeaderProps) {
       : tab
         ? t(tab.labelKey)
         : '';
-  const date = formatDate(new Date(), language, { weekday: 'long', day: 'numeric', month: 'long' });
+  // BUG-045: follows the local day while the app stays open.
+  const today = useLocalDay((s) => s.today);
+  const date = formatDate(new Date(`${today}T12:00:00`), language, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 
   return (
     <View

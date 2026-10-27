@@ -148,7 +148,6 @@ export function WellnessSafetyProfileScreen() {
 
   const header = (
     <View style={{ gap: theme.spacing.xs }}>
-      <AppText variant="headline">{t('wellness.safety.title')}</AppText>
       <AppText tone="muted">{t('wellness.safety.subtitle')}</AppText>
     </View>
   );

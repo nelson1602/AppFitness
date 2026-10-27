@@ -6,7 +6,7 @@ import { FoodLogScreen } from '@/features/nutrition/presentation/FoodLogScreen';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Food logging route (Phase 15 Slice 4C). Session-guarded like the other
@@ -18,9 +18,9 @@ export default function FoodLogRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -28,11 +28,11 @@ export default function FoodLogRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('nutrition.log.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionWriteBoundary>
           <FoodLogScreen />
         </SubscriptionWriteBoundary>
-      </Screen>
+      </StageScreen>
     </>
   );
 }

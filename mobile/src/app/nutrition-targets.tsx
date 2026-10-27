@@ -4,7 +4,7 @@ import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { NutritionTargets } from '@/features/nutrition/presentation/NutritionTargets';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Nutrition targets in detail (Phase 15 Slice 1): calories, the goal
@@ -17,9 +17,9 @@ export default function NutritionTargetsRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -27,9 +27,9 @@ export default function NutritionTargetsRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('nutrition.targets.title') }} />
-      <Screen>
+      <StageScreen>
         <NutritionTargets />
-      </Screen>
+      </StageScreen>
     </>
   );
 }

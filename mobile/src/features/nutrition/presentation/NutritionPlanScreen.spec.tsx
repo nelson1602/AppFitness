@@ -67,6 +67,13 @@ jest.mock('@/shared/localization', () => {
 
 let lastSelectArgs: unknown[] = [];
 
+/** v8 Block 3: a meal's ingredients show once it is opened. */
+async function openAllMeals(day: number) {
+  for (const slot of ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']) {
+    await fireEvent.press(screen.getByTestId(`plan-meal-toggle-${day}-${slot}`));
+  }
+}
+
 function setPrefs(partial: Partial<DietaryPreferenceState> = {}) {
   mockPrefs = {
     status: 'ready',
@@ -181,7 +188,7 @@ describe('NutritionPlanScreen', () => {
     setPrefs({ status: 'error', preferences: [], error: 'nope' });
     await render(<NutritionPlanScreen />);
     // Plan renders; preferences omitted (empty) → no exclusions card.
-    expect(screen.getByText('Day 1')).toBeOnTheScreen();
+    expect(screen.getByText('Meal plan · day 1')).toBeOnTheScreen();
     expect(lastSelectArgs[2]).toEqual([]);
     expect(screen.queryByLabelText('Applied dietary preferences')).toBeNull();
   });
@@ -199,23 +206,38 @@ describe('NutritionPlanScreen', () => {
 
   it('renders no exclusions card when the plan excluded nothing (unchanged ready state)', async () => {
     await render(<NutritionPlanScreen />);
-    expect(screen.getByText('Day 1')).toBeOnTheScreen();
+    expect(screen.getByText('Meal plan · day 1')).toBeOnTheScreen();
     expect(screen.queryByLabelText('Applied dietary preferences')).toBeNull();
   });
 
   it('renders day 1 with all four meal slots, foods, portions, calories and macros', async () => {
     await render(<NutritionPlanScreen />);
 
-    expect(screen.getByText('Day 1')).toBeOnTheScreen();
+    expect(screen.getByText('Meal plan · day 1')).toBeOnTheScreen();
     for (const label of ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
       expect(screen.getByText(label)).toBeOnTheScreen();
     }
+    // v8 Block 3: each meal names its foods and opens to its ingredients.
     expect(screen.getByText('BREAKFAST food 1')).toBeOnTheScreen();
-    // portion + calories + macros line (one per meal → 4); v8: no "1.5×" multiplier
-    expect(
-      screen.getAllByText(/^150 g · 300 kcal · Protein 20 g \/ Carbs 30 g \/ Fat 8 g$/),
-    ).toHaveLength(4);
+    expect(screen.getAllByText('590 kcal · 1 ingredient')).toHaveLength(4);
+    await openAllMeals(1);
+    expect(screen.getAllByText(/^[A-Z]+ food 1 · 150 g$/)).toHaveLength(4);
+    expect(screen.getAllByText('300 kcal')).toHaveLength(4);
+    expect(screen.getAllByText('Protein 33 g · Carbs 66 g · Fat 19 g')).toHaveLength(4);
+    // v8: no "1.5×" multiplier.
     expect(screen.queryByText(/×/)).toBeNull();
+  });
+
+  it("opens and closes a meal's ingredients", async () => {
+    await render(<NutritionPlanScreen />);
+    expect(screen.queryByTestId('plan-ingredients-1-LUNCH')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('plan-meal-toggle-1-LUNCH'));
+    expect(screen.getByTestId('plan-ingredients-1-LUNCH')).toBeOnTheScreen();
+    expect(screen.getByText('590 kcal · Hide ingredients')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId('plan-meal-toggle-1-LUNCH'));
+    expect(screen.queryByTestId('plan-ingredients-1-LUNCH')).toBeNull();
   });
 
   it('renders day totals versus targets', async () => {
@@ -240,16 +262,14 @@ describe('NutritionPlanScreen', () => {
     it.each([
       [
         'en',
-        new RegExp(`150${N}g · 300${N}kcal · Protein 20${N}g / Carbs 30${N}g / Fat 8${N}g`),
+        new RegExp(`^Protein 33${N}g · Carbs 66${N}g · Fat 19${N}g$`),
         `Calories: 2,312 / 2,300${N}kcal`,
         `Protein 128 / 130${N}g · Carbs 262 / 260${N}g · Fat 74 / 76${N}g`,
         `Day 1 target: 2,300${N}kcal · Protein 130${N}g · Carbs 260${N}g · Fat 76${N}g.`,
       ],
       [
         'es',
-        new RegExp(
-          `150${N}g · 300${N}kcal · Proteína 20${N}g / Carbohidratos 30${N}g / Grasa 8${N}g`,
-        ),
+        new RegExp(`^Proteína 33${N}g · Carbohidratos 66${N}g · Grasa 19${N}g$`),
         `Calorías: 2312 / 2300${N}kcal`,
         `Proteína 128 / 130${N}g · Carbohidratos 262 / 260${N}g · Grasa 74 / 76${N}g`,
         `Día 1 objetivo: 2300${N}kcal · Proteína 130${N}g · Carbohidratos 260${N}g · Grasa 76${N}g.`,
@@ -260,8 +280,9 @@ describe('NutritionPlanScreen', () => {
         mockLanguage = language;
         await render(<NutritionPlanScreen />);
 
+        await openAllMeals(1);
         expect(screen.getAllByText(foodLine, raw)).toHaveLength(4);
-        expect(screen.getAllByText(new RegExp(`: [\\d.,]+${N}kcal$`), raw)).toHaveLength(4);
+        expect(screen.getAllByText(new RegExp(`^590${N}kcal · `), raw)).toHaveLength(4);
         expect(screen.getByText(calories, raw)).toBeOnTheScreen();
         expect(screen.getByText(macros, raw)).toBeOnTheScreen();
         expect(screen.getByText(summary, raw)).toBeOnTheScreen();
@@ -289,35 +310,40 @@ describe('NutritionPlanScreen', () => {
 
   it('switches days when a day chip is tapped', async () => {
     await render(<NutritionPlanScreen />);
-    expect(screen.getByText('Day 1')).toBeOnTheScreen();
+    expect(screen.getByText('Meal plan · day 1')).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByTestId('plan-day-3'));
-    expect(screen.getByText('Day 3')).toBeOnTheScreen();
-    expect(screen.queryByText('Day 1')).toBeNull();
+    expect(screen.getByText('Meal plan · day 3')).toBeOnTheScreen();
+    expect(screen.queryByText('Meal plan · day 1')).toBeNull();
+  });
+
+  it('moves between days with the arrows and says which day of how many', async () => {
+    await render(<NutritionPlanScreen />);
+    expect(screen.getByText('Day 1 of 3')).toBeOnTheScreen();
+    expect(screen.getByTestId('plan-day-previous')).toBeDisabled();
+
+    await fireEvent.press(screen.getByTestId('plan-day-next'));
+    expect(screen.getByText('Meal plan · day 2')).toBeOnTheScreen();
+    expect(screen.getByText('Day 2 of 3')).toBeOnTheScreen();
   });
 
   /**
-   * ADR-P022 Addendum A. The selected day chip fills with `primary` and
-   * previously labelled itself through the default tone, resolving to
-   * `onSurface` — 1.42:1 in the dark theme. The canonical filled pair is
-   * `primary` / `onPrimary` (ADR-P022 Decision 5a). Asserted on the resolved
-   * colour and on the selection moving, so neither a tone rename nor a
-   * hard-coded first chip can hide a regression.
+   * ADR-P022 Addendum A carried into the redesign: the selected chip is the
+   * prototype's cyan, labelled with the dark stage ink, never a light tone.
    */
-  it('labels the selected day chip with onPrimary, never onSurface (ADR-P022 Addendum A)', async () => {
+  it('labels the selected day chip dark on cyan, the others light on glass', async () => {
     await render(<NutritionPlanScreen />);
 
     const colorOf = (text: string) =>
       StyleSheet.flatten(screen.getByText(text).props.style as StyleProp<TextStyle>)?.color;
 
-    expect(colorOf('1')).toBe(lightTheme.colors.onPrimary);
-    expect(colorOf('1')).not.toBe(lightTheme.colors.onSurface);
-    expect(colorOf('3')).toBe(lightTheme.colors.onSurfaceVariant);
+    expect(colorOf('1')).toBe(lightTheme.colors.stageDeep);
+    expect(colorOf('3')).toBe(lightTheme.colors.onStage);
 
     await fireEvent.press(screen.getByTestId('plan-day-3'));
 
-    expect(colorOf('3')).toBe(lightTheme.colors.onPrimary);
-    expect(colorOf('1')).toBe(lightTheme.colors.onSurfaceVariant);
+    expect(colorOf('3')).toBe(lightTheme.colors.stageDeep);
+    expect(colorOf('1')).toBe(lightTheme.colors.onStage);
   });
 
   it('shows a data-gap state and falls back to the dashboard when no specific gaps are known', async () => {
@@ -386,8 +412,8 @@ describe('NutritionPlanScreen', () => {
     mockSelection = { status: 'ready', plan: localizedPlan };
     await render(<NutritionPlanScreen />);
 
-    expect(screen.getByText('Plan alimentario de 15 días')).toBeOnTheScreen();
-    expect(screen.getByText('Día 1')).toBeOnTheScreen();
+    expect(screen.getByText('Plan de 15 días')).toBeOnTheScreen();
+    expect(screen.getByText('Plan de comidas · día 1')).toBeOnTheScreen();
     for (const label of ['Desayuno', 'Almuerzo', 'Cena', 'Merienda']) {
       expect(screen.getByText(label)).toBeOnTheScreen();
     }
@@ -421,11 +447,11 @@ describe('NutritionPlanScreen', () => {
     expect(
       screen.getByText('Use the AppFitnessRD mobile app to view and follow your 15-day meal plan.'),
     ).toBeOnTheScreen();
-    // Header preserved.
-    expect(screen.getByText('15-day meal plan')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the intro stays.
+    expect(screen.getByText(/meal plan built from your iCoach targets/i)).toBeOnTheScreen();
     // No food-log link, no plan/day content, no gap, no error, no disclaimer.
     expect(screen.queryByTestId('open-food-log')).toBeNull();
-    expect(screen.queryByText('Day 1')).toBeNull();
+    expect(screen.queryByText('Meal plan · day 1')).toBeNull();
     expect(screen.queryByText('Meal plan unavailable')).toBeNull();
     expect(screen.queryByText('Complete your basic info first')).toBeNull();
     expect(screen.queryByText(/not medical or dietary advice/)).toBeNull();
@@ -439,7 +465,7 @@ describe('NutritionPlanScreen', () => {
     await render(<NutritionPlanScreen />);
 
     expect(screen.getByText("Your meal plan isn't available on the web")).toBeOnTheScreen();
-    expect(screen.queryByText('Day 1')).toBeNull();
+    expect(screen.queryByText('Meal plan · day 1')).toBeNull();
     expect(screen.queryByTestId('open-food-log')).toBeNull();
   });
 
@@ -455,7 +481,7 @@ describe('NutritionPlanScreen', () => {
       ),
     ).toBeOnTheScreen();
     expect(screen.queryByTestId('open-food-log')).toBeNull();
-    expect(screen.queryByText('Día 1')).toBeNull();
+    expect(screen.queryByText('Plan de comidas · día 1')).toBeNull();
   });
 });
 

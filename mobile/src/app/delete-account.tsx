@@ -4,7 +4,7 @@ import { View } from 'react-native';
 
 import { deleteAccount, useSession } from '@/features/authentication';
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, AppTextInput, Banner, Card, Screen } from '@/shared/presentation';
+import { AppButton, AppText, AppTextInput, Banner, Card, StageScreen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 const CONFIRM_PHRASE = 'DELETE';
@@ -46,11 +46,10 @@ export default function DeleteAccountScreen() {
     // cancel actions: `Screen` adds keyboard clearance only to its scroll form.
     // `flexGrow` (not `flex: 1`) lets the column fill the viewport and stay
     // centred without ever shrinking below its content.
-    <Screen style={{ flexGrow: 1 }}>
+    <StageScreen style={{ flexGrow: 1 }}>
       <Stack.Screen options={{ title: t('account.delete.screenTitle') }} />
       <View style={{ flexGrow: 1, justifyContent: 'center', gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('account.delete.title')}</AppText>
           <AppText tone="muted">{t('account.delete.description')}</AppText>
         </View>
 
@@ -92,6 +91,6 @@ export default function DeleteAccountScreen() {
           </View>
         </Card>
       </View>
-    </Screen>
+    </StageScreen>
   );
 }

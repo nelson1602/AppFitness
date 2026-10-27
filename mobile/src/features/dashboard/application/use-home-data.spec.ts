@@ -8,7 +8,10 @@ import { useProgressStore } from '@/features/progress/application/progress.store
 import { useWellnessSafetyProfileStore } from '@/features/wellness/application/wellness-safety-profile.store';
 import { useWorkoutStore } from '@/features/workout/application/workout.store';
 
-import { loadHomeData, useHomeData } from './use-home-data';
+import { checkLocalDay } from '@/shared/application/local-day';
+
+import { useDashboardStore } from './dashboard.store';
+import { loadHomeData, registerDayRollover, useHomeData } from './use-home-data';
 
 /**
  * `useHomeData` only wires existing stores into the pure projections
@@ -28,10 +31,17 @@ const mockSelect = jest.fn();
  */
 function mockStore(name: string) {
   const load = jest.fn();
+  const refresh = jest.fn();
   return Object.assign((select: (state: Store) => unknown) => select(mockStores[name]), {
-    getState: () => ({ load }),
+    getState: () => ({ load, refresh }),
   });
 }
+
+let mockSession: object | null = { user: { id: 'u1' } };
+jest.mock('@/features/authentication', () => ({
+  getSession: () => mockSession,
+  bindStoreToSession: jest.fn(),
+}));
 
 jest.mock('./dashboard.store', () => ({ useDashboardStore: mockStore('dashboard') }));
 jest.mock('@/features/profile/application/profile.store', () => ({
@@ -136,6 +146,32 @@ describe('loadHomeData', () => {
     ]) {
       expect(store.getState().load).toHaveBeenCalledTimes(1);
     }
+  });
+});
+
+describe('registerDayRollover (BUG-045)', () => {
+  it('reloads the day-bound data on a new local day, the food log on the new date', () => {
+    const off = registerDayRollover();
+    jest.mocked(useFoodLogStore.getState().load).mockClear();
+
+    checkLocalDay(new Date(2099, 0, 2, 9, 0));
+
+    expect(useFoodLogStore.getState().load).toHaveBeenCalledWith('2099-01-02');
+    expect(useWorkoutStore.getState().load).toHaveBeenCalled();
+    expect(useDashboardStore.getState().refresh).toHaveBeenCalled();
+    off();
+  });
+
+  it('loads nothing while signed out', () => {
+    mockSession = null;
+    const off = registerDayRollover();
+    jest.mocked(useFoodLogStore.getState().load).mockClear();
+
+    checkLocalDay(new Date(2099, 0, 3, 9, 0));
+
+    expect(useFoodLogStore.getState().load).not.toHaveBeenCalled();
+    off();
+    mockSession = { user: { id: 'u1' } };
   });
 });
 

@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
 import { getSession } from '@/features/authentication';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
@@ -10,9 +10,7 @@ import { useEntitlementAccess } from '@/shared/application/use-entitlement-acces
 import { localDateOf, weekDates } from '@/features/weekly-plan/domain/week';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { effectivePlanDay } from '@/features/weekly-plan/domain/adherence';
-import type { IngredientSubstitution } from '@/features/weekly-plan/domain/weekly-plan';
 import {
-  formatDate,
   formatNumber,
   formatQuantity,
   interpolate,
@@ -22,30 +20,26 @@ import {
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { AvoidTag, ServingUnit } from '../domain/food-catalog';
-import type { MealMacros, MealPlan, MealPlanFood, MealSlot } from '../domain/meal-plan';
+import type { AvoidTag } from '../domain/food-catalog';
+import type { MealMacros, MealPlan } from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
 import { selectMealPlan } from '../application/meal-plan.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
+import { MealPlanPanel, PlanDayStrip, type ViewDay } from './meal-plan-day';
 import { NutritionDataGap } from './NutritionDataGap';
 
-const SLOT_KEY: Record<MealSlot, TranslationKey> = {
-  BREAKFAST: 'nutrition.plan.breakfast',
-  LUNCH: 'nutrition.plan.lunch',
-  DINNER: 'nutrition.plan.dinner',
-  SNACK: 'nutrition.plan.snack',
-};
-
-const UNIT_KEY: Record<ServingUnit, TranslationKey> = {
-  g: 'nutrition.unit.g',
-  ml: 'nutrition.unit.ml',
-  piece: 'nutrition.unit.piece',
-  cup: 'nutrition.unit.cup',
-  tbsp: 'nutrition.unit.tbsp',
-  tsp: 'nutrition.unit.tsp',
-  slice: 'nutrition.unit.slice',
-};
+function sumMacros(meals: ViewDay['meals']): MealMacros {
+  return meals.reduce(
+    (sum, meal) => ({
+      calories: sum.calories + meal.totals.calories,
+      proteinG: sum.proteinG + meal.totals.proteinG,
+      carbsG: sum.carbsG + meal.totals.carbsG,
+      fatG: sum.fatG + meal.totals.fatG,
+    }),
+    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+  );
+}
 
 const AVOID_TAG_KEY: Record<AvoidTag, TranslationKey> = {
   nut_allergy: 'nutrition.avoid.nuts',
@@ -60,203 +54,12 @@ const AVOID_TAG_KEY: Record<AvoidTag, TranslationKey> = {
   fried: 'nutrition.avoid.fried',
 };
 
-function DaySelector({
-  count,
-  selected,
-  onSelect,
-}: {
-  count: number;
-  selected: number;
-  onSelect: (day: number) => void;
-}) {
-  const theme = useTheme();
-  const { language, t } = useLocalization();
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-      {Array.from({ length: count }, (_, i) => i + 1).map((day) => {
-        const active = day === selected;
-        return (
-          <Pressable
-            key={day}
-            accessibilityRole="button"
-            accessibilityLabel={`${t('nutrition.plan.showDay')} ${formatNumber(day, language)}`}
-            accessibilityState={{ selected: active }}
-            testID={`plan-day-${day}`}
-            onPress={() => onSelect(day)}
-            style={{
-              backgroundColor: active ? theme.colors.primary : theme.colors.surfaceVariant,
-              borderColor: active ? theme.colors.primary : theme.colors.outline,
-              borderRadius: theme.radius.medium,
-              borderWidth: 1,
-              minWidth: theme.spacing.x5l,
-              minHeight: theme.spacing.x5l,
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingHorizontal: theme.spacing.sm,
-            }}
-          >
-            {/* The chip's visible label and the announced label above it are the
-                same number, so both resolve through the same formatter. */}
-            <AppText tone={active ? 'onPrimary' : 'muted'} variant="label">
-              {formatNumber(day, language)}
-            </AppText>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
-
-/** One day as the screen shows it: saved (days 1–7) or preview (days 8–15). */
-interface ViewDay {
-  index: number;
-  /** YYYY-MM-DD for saved days; null for preview days. */
-  date: string | null;
-  preview: boolean;
-  isToday: boolean;
-  isFuture: boolean;
-  meals: readonly {
-    slot: MealSlot;
-    foods: readonly MealPlanFood[];
-    totals: MealMacros;
-    substitutions?: readonly IngredientSubstitution[];
-  }[];
-  targets: MealMacros;
-  totals: MealMacros;
-  safetyFloorApplied: boolean;
-}
-
-function sumMacros(meals: ViewDay['meals']): MealMacros {
-  return meals.reduce(
-    (sum, meal) => ({
-      calories: sum.calories + meal.totals.calories,
-      proteinG: sum.proteinG + meal.totals.proteinG,
-      carbsG: sum.carbsG + meal.totals.carbsG,
-      fatG: sum.fatG + meal.totals.fatG,
-    }),
-    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
-  );
-}
-
-function SubstitutionLine({ substitution }: { substitution: IngredientSubstitution }) {
-  const { language, t } = useLocalization();
-  const name = (id: string) => {
-    const food = getById(id);
-    return food ? foodDisplayName(food, language) : id;
-  };
-  return (
-    <AppText tone="primary" variant="caption">
-      {substitution.to
-        ? interpolate(t('nutrition.plan.adjusted'), {
-            from: name(substitution.from),
-            to: name(substitution.to),
-          })
-        : interpolate(t('nutrition.plan.adjustedRemoved'), { from: name(substitution.from) })}
-    </AppText>
-  );
-}
-
-function MealCard({
-  meal,
-  day,
-  done,
-  onEaten,
-}: {
-  meal: ViewDay['meals'][number];
-  day: ViewDay;
-  done: boolean;
-  onEaten: (() => void) | null;
-}) {
-  const theme = useTheme();
-  const { language, t } = useLocalization();
-  const slotLabel = t(SLOT_KEY[meal.slot]);
-  return (
-    <Card accessibilityLabel={`${slotLabel} ${t('nutrition.plan.meal')}`}>
-      <View style={{ gap: theme.spacing.sm }}>
-        <AppText variant="label">{slotLabel}</AppText>
-        {meal.foods.map((f, idx) => (
-          <View key={`${f.foodId}-${idx}`} style={{ gap: 2 }}>
-            <AppText>{foodDisplayName({ id: f.foodId, name: f.name }, language)}</AppText>
-            {/* BUG-028: formatQuantity keeps each value and its unit on one line. */}
-            <AppText variant="caption" tone="muted">
-              {formatQuantity(f.serving.amount, t(UNIT_KEY[f.serving.unit]), language)} ·{' '}
-              {formatQuantity(f.macros.calories, 'kcal', language)} · {t('nutrition.plan.protein')}{' '}
-              {formatQuantity(f.macros.proteinG, 'g', language)} / {t('nutrition.plan.carbs')}{' '}
-              {formatQuantity(f.macros.carbsG, 'g', language)} / {t('nutrition.plan.fat')}{' '}
-              {formatQuantity(f.macros.fatG, 'g', language)}
-            </AppText>
-          </View>
-        ))}
-        {(meal.substitutions ?? []).map((substitution, index) => (
-          <SubstitutionLine key={`${substitution.from}-${index}`} substitution={substitution} />
-        ))}
-        <AppText variant="caption" tone="muted">
-          {t('nutrition.plan.mealTotal')}: {formatQuantity(meal.totals.calories, 'kcal', language)}
-        </AppText>
-        {done ? (
-          <AppText testID={`plan-eaten-${day.index}-${meal.slot}`} tone="success" variant="label">
-            {t('nutrition.plan.eaten')}
-          </AppText>
-        ) : onEaten ? (
-          <AppButton
-            accessibilityLabel={interpolate(t('nutrition.plan.ateAccessibility'), {
-              meal: slotLabel,
-            })}
-            onPress={onEaten}
-            testID={`plan-ate-${day.index}-${meal.slot}`}
-            variant="secondary"
-          >
-            {t('nutrition.plan.ate')}
-          </AppButton>
-        ) : null}
-      </View>
-    </Card>
-  );
-}
-
-function DayView({
-  day,
-  isDone,
-  onEaten,
-}: {
-  day: ViewDay;
-  isDone: (slot: MealSlot) => boolean;
-  onEaten: ((slot: MealSlot) => void) | null;
-}) {
+/** Day totals against the targets, under the meal panel. */
+function DayTotals({ day }: { day: ViewDay }) {
   const theme = useTheme();
   const { language, t } = useLocalization();
   return (
     <View style={{ gap: theme.spacing.lg }}>
-      <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="title">
-          {t('nutrition.plan.day')} {formatNumber(day.index, language)}
-        </AppText>
-        {day.date ? (
-          <AppText tone="muted" variant="caption">
-            {formatDate(new Date(`${day.date}T12:00:00`), language, {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            })}
-          </AppText>
-        ) : null}
-        {day.preview ? (
-          <AppText testID="plan-preview-badge" tone="warning" variant="label">
-            {t('nutrition.plan.previewBadge')}
-          </AppText>
-        ) : null}
-      </View>
-
-      {day.meals.map((meal) => (
-        <MealCard
-          key={meal.slot}
-          day={day}
-          done={isDone(meal.slot)}
-          meal={meal}
-          onEaten={onEaten && !day.preview && !day.isFuture ? () => onEaten(meal.slot) : null}
-        />
-      ))}
-
       <Card accessibilityLabel={t('nutrition.plan.dayTotalsAccessibility')}>
         <View style={{ gap: theme.spacing.xs }}>
           <AppText variant="label">{t('nutrition.plan.dayTotalTarget')}</AppText>
@@ -429,10 +232,7 @@ export function NutritionPlanScreen() {
   if (status === 'web-unavailable' || prefStatus === 'web-unavailable') {
     return (
       <View style={{ gap: theme.spacing.lg }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('nutrition.plan.title')}</AppText>
-          <AppText tone="muted">{t('nutrition.plan.subtitle')}</AppText>
-        </View>
+        <AppText tone="muted">{t('nutrition.plan.subtitle')}</AppText>
         <Banner title={t('nutrition.plan.webUnavailableTitle')} tone="info">
           {t('nutrition.plan.webUnavailableBody')}
         </Banner>
@@ -440,21 +240,21 @@ export function NutritionPlanScreen() {
     );
   }
 
+  // v8 Block 3: the stack header names the screen; the prototype's order
+  // follows — day strip, the day's meals, "Registrar comida", then totals.
+  const logFood = (
+    <AppButton
+      accessibilityLabel={t('nutrition.plan.logTodayAccessibility')}
+      testID="open-food-log"
+      onPress={() => router.push('/food-log')}
+    >
+      {t('nutrition.plan.logToday')}
+    </AppButton>
+  );
+
   return (
     <View style={{ gap: theme.spacing.lg }}>
-      <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('nutrition.plan.title')}</AppText>
-        <AppText tone="muted">{t('nutrition.plan.subtitle')}</AppText>
-      </View>
-
-      <AppButton
-        accessibilityLabel={t('nutrition.plan.logTodayAccessibility')}
-        testID="open-food-log"
-        variant="secondary"
-        onPress={() => router.push('/food-log')}
-      >
-        {t('nutrition.plan.logToday')}
-      </AppButton>
+      <AppText tone="muted">{t('nutrition.plan.subtitle')}</AppText>
 
       {!generationAllowed ? (
         <SubscriptionAccessNotice />
@@ -471,15 +271,12 @@ export function NutritionPlanScreen() {
           {t('nutrition.plan.errorMessage')}
         </Banner>
       ) : selection.status === 'gap' ? (
-        <NutritionDataGap missing={data?.missing ?? []} context="plan" />
+        <>
+          <NutritionDataGap missing={data?.missing ?? []} context="plan" />
+          {logFood}
+        </>
       ) : (
         <>
-          <ExclusionsCard plan={selection.plan} />
-          {plan.current ? (
-            <AppText testID="plan-saved-week" tone="muted" variant="caption">
-              {t('nutrition.plan.savedWeek')}
-            </AppText>
-          ) : null}
           {overlay && (overlay.reducedBy > 0 || overlay.avoidIntenseTraining) ? (
             <View testID="plan-overlay">
               <Banner title={t('nutrition.plan.overlayTitle')} tone="info">
@@ -502,13 +299,13 @@ export function NutritionPlanScreen() {
               </Banner>
             </View>
           ) : null}
-          <DaySelector
+          <PlanDayStrip
             count={days.length}
             selected={selectedDay ?? todayIndex}
             onSelect={setSelectedDay}
           />
           {shownDay ? (
-            <DayView
+            <MealPlanPanel
               day={shownDay}
               isDone={(slot) => (shownDay.date ? done.has(`${shownDay.date}|${slot}`) : false)}
               onEaten={
@@ -519,6 +316,14 @@ export function NutritionPlanScreen() {
                   : null
               }
             />
+          ) : null}
+          {logFood}
+          {shownDay ? <DayTotals day={shownDay} /> : null}
+          <ExclusionsCard plan={selection.plan} />
+          {plan.current ? (
+            <AppText testID="plan-saved-week" tone="muted" variant="caption">
+              {t('nutrition.plan.savedWeek')}
+            </AppText>
           ) : null}
         </>
       )}

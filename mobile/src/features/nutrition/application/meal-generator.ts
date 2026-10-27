@@ -270,8 +270,7 @@ const ROLE = {
   SNACK: 149,
 } as const;
 
-function slotTarget(daily: MealMacros, slot: MealSlot): MealMacros {
-  const s = SLOT_SPLIT[slot];
+function slotTarget(daily: MealMacros, s: number): MealMacros {
   return {
     calories: Math.round(daily.calories * s),
     proteinG: r1(daily.proteinG * s),
@@ -307,12 +306,26 @@ export const ENERGY_DENSE_MAX_SERVINGS = 1;
 export const SNACK_MAX_SERVINGS = 2;
 /** In breakfast, lunch and dinner no single food carries more than this share of the meal's kcal. */
 export const MEAL_SHARE_CAP = 0.4;
+/** meal-rules@1.3.0: a snack smaller than this is raised to it, or dropped when the day has no room. */
+export const SNACK_MIN_KCAL = 100;
+/** The day's ceiling, as a multiple of its calorie target, when making room for the snack. */
+export const DAY_KCAL_CEILING = 1.05;
+/**
+ * meal-rules@1.4.0: a vegetable never goes above three servings (about three
+ * cups), in any pass — vegetables are never the day's filler.
+ */
+export const VEGETABLE_MAX_SERVINGS = 3;
 const SHARED_SLOTS: readonly MealSlot[] = ['BREAKFAST', 'LUNCH', 'DINNER'];
+
+/** The most servings any pass may give a food, whatever its meal. */
+function foodCeiling(entry: ScaledEntry): number {
+  return entry.food.category === 'vegetable' ? VEGETABLE_MAX_SERVINGS : MAX_SERVINGS;
+}
 
 function capOf(entry: ScaledEntry): number {
   const food = ENERGY_DENSE_CATEGORIES.has(entry.food.category)
     ? ENERGY_DENSE_MAX_SERVINGS
-    : MAX_SERVINGS;
+    : foodCeiling(entry);
   return entry.slot === 'SNACK' ? Math.min(food, SNACK_MAX_SERVINGS) : food;
 }
 
@@ -427,66 +440,110 @@ function realisticPortions(scaled: ScaledEntry[], daily: MealMacros): void {
   }
 
   // Overshoot: trim back toward the target (never below it), from the meal
-  // furthest above its part of the day.
+  // furthest above its part of the day. A held food (the snack once its
+  // minimum is set) is never trimmed.
   const surplus = (slot: MealSlot) => {
     const goal = target * SLOT_SPLIT[slot];
     return (kcalOf(meal(slot)) - goal) / Math.max(1, goal);
   };
-  for (let guard = 0; guard < 2000 && kcalOf(scaled) > target * 1.03; guard += 1) {
-    const day = kcalOf(scaled);
-    const candidates = scaled.filter(
-      (entry) =>
-        canTrim(entry) &&
-        day - entry.mpf.macros.calories + Math.round(entry.food.calories * trimTo(entry)) >= target,
-    );
-    if (candidates.length === 0) break;
-    const next = candidates.reduce((a, b) => {
-      const bySlot = surplus(b.slot) - surplus(a.slot);
-      if (Math.abs(bySlot) > 1e-9) return bySlot > 0 ? b : a;
-      return share(b) > share(a) ? b : a;
-    });
-    set(next, trimTo(next));
-  }
-
-  const passes: { ceiling: (entry: ScaledEntry) => number; keepShare: boolean }[] = [
-    { ceiling: capOf, keepShare: true },
-    { ceiling: capOf, keepShare: false },
-    { ceiling: () => MAX_SERVINGS, keepShare: false },
-  ];
-  for (const pass of passes) {
-    for (let guard = 0; guard < 2000 && kcalOf(scaled) < target; guard += 1) {
+  const trimOvershoot = (held: ScaledEntry | null) => {
+    for (let guard = 0; guard < 2000 && kcalOf(scaled) > target * 1.03; guard += 1) {
+      const day = kcalOf(scaled);
       const candidates = scaled.filter(
         (entry) =>
-          entry.mpf.servings < pass.ceiling(entry) &&
-          (!pass.keepShare || entry.slot === 'SNACK' || shareAfterBump(entry) <= MEAL_SHARE_CAP),
+          entry !== held &&
+          canTrim(entry) &&
+          day - entry.mpf.macros.calories + Math.round(entry.food.calories * trimTo(entry)) >=
+            target,
       );
       if (candidates.length === 0) break;
-      // 1. the meal furthest below its part of the day; 2. the macro furthest
-      // below its target, so trimming never leaves the day short of protein;
-      // 3. the food with the smallest share of its meal; 4. the pick order.
-      const totals = sumMacros(scaled.map((entry) => entry.mpf));
-      const deficit: Record<MacroGroup, number> = {
-        protein: (daily.proteinG - totals.proteinG) / Math.max(1, daily.proteinG),
-        carb: (daily.carbsG - totals.carbsG) / Math.max(1, daily.carbsG),
-        fat: (daily.fatG - totals.fatG) / Math.max(1, daily.fatG),
-      };
-      const shortfall = (slot: MealSlot) => {
-        const goal = target * SLOT_SPLIT[slot];
-        return (goal - kcalOf(meal(slot))) / Math.max(1, goal);
-      };
-      // A macro clearly short of its target leads; otherwise the meal sizes do.
-      const macroFirst = Math.max(deficit.protein, deficit.carb, deficit.fat) > MACRO_BAND;
       const next = candidates.reduce((a, b) => {
-        const bySlot = shortfall(b.slot) - shortfall(a.slot);
-        const byDeficit = deficit[groupOf(b.food)] - deficit[groupOf(a.food)];
-        for (const difference of macroFirst ? [byDeficit, bySlot] : [bySlot, byDeficit]) {
-          if (Math.abs(difference) > 1e-9) return difference > 0 ? b : a;
-        }
-        return share(b) < share(a) ? b : a;
+        const bySlot = surplus(b.slot) - surplus(a.slot);
+        if (Math.abs(bySlot) > 1e-9) return bySlot > 0 ? b : a;
+        return share(b) > share(a) ? b : a;
       });
-      set(next, bumpTo(next, pass.ceiling(next)));
+      set(next, trimTo(next));
+    }
+  };
+  const topUp = () => {
+    const passes: { ceiling: (entry: ScaledEntry) => number; keepShare: boolean }[] = [
+      { ceiling: capOf, keepShare: true },
+      { ceiling: capOf, keepShare: false },
+      { ceiling: foodCeiling, keepShare: false },
+    ];
+    for (const pass of passes) {
+      for (let guard = 0; guard < 2000 && kcalOf(scaled) < target; guard += 1) {
+        const candidates = scaled.filter(
+          (entry) =>
+            entry.mpf.servings < pass.ceiling(entry) &&
+            (!pass.keepShare || entry.slot === 'SNACK' || shareAfterBump(entry) <= MEAL_SHARE_CAP),
+        );
+        if (candidates.length === 0) break;
+        // 1. the meal furthest below its part of the day; 2. the macro furthest
+        // below its target, so trimming never leaves the day short of protein;
+        // 3. the food with the smallest share of its meal; 4. the pick order.
+        const totals = sumMacros(scaled.map((entry) => entry.mpf));
+        const deficit: Record<MacroGroup, number> = {
+          protein: (daily.proteinG - totals.proteinG) / Math.max(1, daily.proteinG),
+          carb: (daily.carbsG - totals.carbsG) / Math.max(1, daily.carbsG),
+          fat: (daily.fatG - totals.fatG) / Math.max(1, daily.fatG),
+        };
+        const shortfall = (slot: MealSlot) => {
+          const goal = target * SLOT_SPLIT[slot];
+          return (goal - kcalOf(meal(slot))) / Math.max(1, goal);
+        };
+        // A macro clearly short of its target leads; otherwise the meal sizes do.
+        const macroFirst = Math.max(deficit.protein, deficit.carb, deficit.fat) > MACRO_BAND;
+        const next = candidates.reduce((a, b) => {
+          const bySlot = shortfall(b.slot) - shortfall(a.slot);
+          const byDeficit = deficit[groupOf(b.food)] - deficit[groupOf(a.food)];
+          for (const difference of macroFirst ? [byDeficit, bySlot] : [bySlot, byDeficit]) {
+            if (Math.abs(difference) > 1e-9) return difference > 0 ? b : a;
+          }
+          return share(b) < share(a) ? b : a;
+        });
+        set(next, bumpTo(next, pass.ceiling(next)));
+      }
+    }
+  };
+
+  trimOvershoot(null);
+  topUp();
+
+  // meal-rules@1.3.0: a snack is at least SNACK_MIN_KCAL. The snack is raised
+  // to the smallest serving that reaches it and the main meals are trimmed
+  // back toward the target around it. If the day still ends above its
+  // ceiling (or the snack's cap cannot reach the minimum), the portions go
+  // back to what they were, the snack is dropped and the main meals take its
+  // calories.
+  const snack = scaled.find((entry) => entry.slot === 'SNACK');
+  if (snack && snack.mpf.macros.calories < SNACK_MIN_KCAL) {
+    const servings = snackServingsFor(snack);
+    const before = scaled.map((entry) => entry.mpf);
+    if (servings !== null) {
+      set(snack, servings);
+      trimOvershoot(snack);
+    }
+    if (servings === null || kcalOf(scaled) > target * DAY_KCAL_CEILING) {
+      scaled.forEach((entry, index) => {
+        entry.mpf = before[index];
+      });
+      scaled.splice(scaled.indexOf(snack), 1);
+      topUp();
     }
   }
+}
+
+/** The smallest serving (in steps, within the snack's cap) that reaches the snack minimum. */
+function snackServingsFor(snack: ScaledEntry): number | null {
+  const cap = capOf(snack);
+  const reaches = (servings: number) =>
+    Math.round(snack.food.calories * servings) >= SNACK_MIN_KCAL;
+  // Same steps as every other bump (0.25, one decimal), then the cap itself.
+  for (let servings = MIN_SERVINGS; servings < cap; servings = r1(servings + STEP)) {
+    if (reaches(servings)) return servings;
+  }
+  return reaches(cap) ? cap : null;
 }
 
 function buildDay(dayIndex: number, pools: Pools, daily: MealMacros, hash: number): MealPlanDay {
@@ -518,23 +575,27 @@ function buildDay(dayIndex: number, pools: Pools, daily: MealMacros, hash: numbe
 
   realisticPortions(scaled, daily);
 
-  const meals: MealPlanMeal[] = (['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'] as MealSlot[]).map(
-    (slot) => {
-      const foods = scaled.filter((e) => e.slot === slot).map((e) => e.mpf);
-      const target = slotTarget(daily, slot);
-      const totals = sumMacros(foods);
-      const names = foods.map((f) => f.name).join(', ');
-      return {
-        slot,
-        foods,
-        targets: target,
-        totals,
-        rationale: `${slot[0]}${slot.slice(1).toLowerCase()} targets ~${Math.round(
-          SLOT_SPLIT[slot] * 100,
-        )}% of the day (~${target.calories} kcal, ~${target.proteinG}g protein): ${names}.`,
-      };
-    },
+  // A dropped snack's share of the day goes to the main meals, in proportion.
+  const slots = (['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'] as MealSlot[]).filter((slot) =>
+    scaled.some((e) => e.slot === slot),
   );
+  const planned = slots.reduce((sum, slot) => sum + SLOT_SPLIT[slot], 0);
+  const meals: MealPlanMeal[] = slots.map((slot) => {
+    const foods = scaled.filter((e) => e.slot === slot).map((e) => e.mpf);
+    const split = SLOT_SPLIT[slot] / planned;
+    const target = slotTarget(daily, split);
+    const totals = sumMacros(foods);
+    const names = foods.map((f) => f.name).join(', ');
+    return {
+      slot,
+      foods,
+      targets: target,
+      totals,
+      rationale: `${slot[0]}${slot.slice(1).toLowerCase()} targets ~${Math.round(
+        split * 100,
+      )}% of the day (~${target.calories} kcal, ~${target.proteinG}g protein): ${names}.`,
+    };
+  });
 
   const totals = sumMacros(scaled.map((e) => e.mpf));
 

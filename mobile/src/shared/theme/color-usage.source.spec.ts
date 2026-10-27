@@ -111,7 +111,9 @@ describe('a `primary` fill carries the `onPrimary` foreground', () => {
   const filled = sources.filter(({ text }) => fillsWith(text, 'primary'));
 
   it('finds the filled surfaces it is meant to police', () => {
-    expect(filled.length).toBeGreaterThanOrEqual(6);
+    // v8 Block 3: the meal plan's day chip moved to the stage's cyan, so
+    // five primary fills remain (FormSelect still fills with primary off-stage).
+    expect(filled.length).toBeGreaterThanOrEqual(5);
   });
 
   it.each(filled.map(({ path }) => path))('%s pairs its fill with onPrimary', (path) => {

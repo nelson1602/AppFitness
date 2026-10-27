@@ -6,7 +6,7 @@ import { ProfileForm } from '@/features/profile/presentation/ProfileForm';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Profile create/edit route (Phase 13 Slice 1). Session-guarded like the
@@ -19,9 +19,9 @@ export default function ProfileEditRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -29,11 +29,11 @@ export default function ProfileEditRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('profile.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionWriteBoundary>
           <ProfileForm onSaved={() => router.replace('/dashboard')} />
         </SubscriptionWriteBoundary>
-      </Screen>
+      </StageScreen>
     </>
   );
 }

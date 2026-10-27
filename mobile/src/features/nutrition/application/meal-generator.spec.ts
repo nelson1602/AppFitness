@@ -8,8 +8,11 @@ import { restrictionsToAvoidTags } from '../domain/restriction-map';
 import {
   ENERGY_DENSE_MAX_SERVINGS,
   generateMealPlan,
+  DAY_KCAL_CEILING,
   MEAL_SHARE_CAP,
+  SNACK_MIN_KCAL,
   SNACK_MAX_SERVINGS,
+  VEGETABLE_MAX_SERVINGS,
 } from './meal-generator';
 
 const catalogIds = new Set(FOOD_CATALOG.map((f) => f.id));
@@ -395,5 +398,82 @@ describe('generateMealPlan — realistic portions (meal-rules@1.2.0)', () => {
         for (const m of d.meals)
           for (const f of m.foods)
             if (f.foodId === 'food.chia_seeds') expect(f.servings).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('generateMealPlan — snack minimum (meal-rules@1.3.0)', () => {
+  const PROFILES = [
+    { goalType: 'FAT_LOSS', calories: 1500, proteinG: 130, carbsG: 140, fatG: 45 },
+    { goalType: 'MAINTENANCE', calories: 2100, proteinG: 150, carbsG: 230, fatG: 65 },
+    { goalType: 'MUSCLE_GAIN', calories: 3200, proteinG: 200, carbsG: 380, fatG: 95 },
+    { goalType: 'ENDURANCE', calories: 2600, proteinG: 130, carbsG: 360, fatG: 70 },
+    { goalType: 'GENERAL_HEALTH', calories: 1734, proteinG: 165, carbsG: 161, fatG: 48 },
+    { goalType: 'FAT_LOSS', calories: 1730, proteinG: 164, carbsG: 161, fatG: 48 },
+  ] as const;
+  const SEEDS = ['a', 'b', 'c', 'user-1|x', 'zz'];
+  const plans = PROFILES.flatMap(({ goalType, ...macros }) =>
+    SEEDS.map((seed) => ({
+      macros,
+      plan: generateMealPlan(input({ goalType, seed, nutritionPlan: np(macros) })),
+    })),
+  );
+  const days = plans.flatMap(({ plan, macros }) => plan.days.map((day) => ({ day, macros })));
+  const withoutSnack = days.filter(({ day }) => !day.meals.some((m) => m.slot === 'SNACK'));
+
+  it('never proposes a snack under 100 kcal (regression: "0,4 unidad" of apple, 42 kcal)', () => {
+    for (const { day } of days) {
+      const snack = day.meals.find((m) => m.slot === 'SNACK');
+      if (snack) expect(snack.totals.calories).toBeGreaterThanOrEqual(SNACK_MIN_KCAL);
+    }
+  });
+
+  it('keeps the day between its target and its ceiling with the snack in it', () => {
+    for (const { day, macros } of days) {
+      expect(day.totals.calories).toBeGreaterThanOrEqual(macros.calories);
+      expect(day.totals.calories).toBeLessThanOrEqual(
+        Math.round(macros.calories * DAY_KCAL_CEILING),
+      );
+    }
+  });
+
+  it('drops a snack that cannot reach the minimum within its two servings', () => {
+    // Unsweetened plant milks (26–35 kcal a serving) are the only such snacks.
+    expect(withoutSnack.length).toBeGreaterThan(0);
+    for (const { day } of withoutSnack) {
+      expect(day.meals.map((m) => m.slot)).toEqual(['BREAKFAST', 'LUNCH', 'DINNER']);
+    }
+    for (const { day } of days) {
+      const snack = day.meals.find((m) => m.slot === 'SNACK');
+      for (const f of snack?.foods ?? []) {
+        const perServing = FOOD_CATALOG.find((c) => c.id === f.foodId)?.calories ?? 0;
+        expect(perServing * SNACK_MAX_SERVINGS).toBeGreaterThanOrEqual(SNACK_MIN_KCAL - 1);
+      }
+    }
+  });
+
+  it("gives a dropped snack's calories to the main meals", () => {
+    for (const { day, macros } of withoutSnack) {
+      const planned = day.meals.reduce((sum, m) => sum + m.targets.calories, 0);
+      expect(Math.abs(planned - macros.calories)).toBeLessThanOrEqual(2);
+      expect(day.totals.calories).toBeGreaterThanOrEqual(macros.calories);
+      const lunch = day.meals.find((m) => m.slot === 'LUNCH');
+      expect(lunch?.rationale).toContain('~34% of the day');
+    }
+  });
+
+  it('never gives a vegetable more than three servings (regression: "6 taza" of bok choy)', () => {
+    for (const { day } of days)
+      for (const m of day.meals)
+        for (const f of m.foods)
+          if (FOOD_CATALOG.find((c) => c.id === f.foodId)?.category === 'vegetable') {
+            expect(f.servings).toBeLessThanOrEqual(VEGETABLE_MAX_SERVINGS);
+          }
+  });
+
+  it('is deterministic: the same inputs give the same plan', () => {
+    const again = PROFILES.flatMap(({ goalType, ...macros }) =>
+      SEEDS.map((seed) => generateMealPlan(input({ goalType, seed, nutritionPlan: np(macros) }))),
+    );
+    expect(again).toEqual(plans.map(({ plan }) => plan));
   });
 });

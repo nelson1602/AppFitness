@@ -6,7 +6,7 @@ import {
   useLocalization,
   type SupportedLanguage,
 } from '@/shared/localization';
-import { AppText } from '@/shared/presentation';
+import { AppText, useStageSurface } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 const STEP = 0.25;
@@ -40,6 +40,7 @@ export function ServingStepper({
   disabled?: boolean;
 }) {
   const theme = useTheme();
+  const stage = useStageSurface();
   const { language, t } = useLocalization();
 
   const button = (sign: -1 | 1, label: string, testID: string): React.ReactElement => {
@@ -60,8 +61,9 @@ export function ServingStepper({
           minHeight: theme.spacing.x5l,
           borderRadius: theme.radius.medium,
           borderWidth: 1,
-          borderColor: theme.colors.outline,
-          backgroundColor: theme.colors.surfaceVariant,
+          // v8 Block 3: glass on the stage.
+          borderColor: stage ? theme.colors.glassBorder : theme.colors.outline,
+          backgroundColor: stage ? theme.colors.glassFill : theme.colors.surfaceVariant,
           opacity: isDisabled ? 0.5 : 1,
         }}
       >

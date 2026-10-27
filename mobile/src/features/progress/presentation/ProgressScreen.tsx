@@ -103,9 +103,6 @@ export function ProgressScreen() {
   if (status === 'web-unavailable') {
     return (
       <View style={{ gap: theme.spacing.lg }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('progress.screen.title')}</AppText>
-        </View>
         <Banner title={t('progress.webUnavailableTitle')} tone="info">
           {t('progress.webUnavailableBody')}
         </Banner>
@@ -153,7 +150,6 @@ export function ProgressScreen() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('progress.screen.title')}</AppText>
         <AppText tone="muted">{t('progress.screen.subtitle')}</AppText>
       </View>
 

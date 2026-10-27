@@ -6,6 +6,7 @@ import { useTheme } from '@/shared/theme';
 
 import { AppText } from '../app-text';
 import { usePaidWriteDisabled } from '../paid-write-context';
+import { useStageSurface } from '../stage-surface';
 
 interface FormFieldProps<T extends FieldValues> {
   control: Control<T>;
@@ -39,6 +40,7 @@ export function FormField<T extends FieldValues>({
   selectTextOnFocus = false,
 }: FormFieldProps<T>) {
   const theme = useTheme();
+  const stage = useStageSurface();
   const disabled = usePaidWriteDisabled();
   // BUG-033: TalkBack names an Android EditText by its placeholder or value, so
   // the visible label is linked as the name. `accessibilityLabel` is then not
@@ -69,16 +71,23 @@ export function FormField<T extends FieldValues>({
               selectTextOnFocus={selectTextOnFocus}
               keyboardType={keyboardType}
               placeholder={placeholder}
-              placeholderTextColor={theme.colors.onSurfaceVariant}
+              placeholderTextColor={stage ? theme.colors.fieldIcon : theme.colors.onSurfaceVariant}
               onBlur={onBlur}
               onChangeText={onChange}
               value={value == null ? '' : String(value)}
+              // v8 Block 3: on the stage, the same field as AppTextInput's stage form.
               style={{
-                backgroundColor: theme.colors.surfaceVariant,
-                borderColor: error ? theme.colors.error : theme.colors.outline,
-                borderRadius: theme.radius.medium,
+                backgroundColor: stage ? theme.colors.fieldFill : theme.colors.surfaceVariant,
+                borderColor: error
+                  ? stage
+                    ? theme.colors.errorOnStage
+                    : theme.colors.error
+                  : stage
+                    ? theme.colors.fieldIcon
+                    : theme.colors.outline,
+                borderRadius: stage ? theme.radius.field : theme.radius.medium,
                 borderWidth: 1,
-                color: theme.colors.onSurface,
+                color: stage ? theme.colors.onField : theme.colors.onSurface,
                 opacity: disabled ? 0.56 : 1,
                 minHeight: theme.spacing.x5l,
                 paddingHorizontal: theme.spacing.md,

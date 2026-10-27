@@ -6,7 +6,7 @@ import { ProgressScreen } from '@/features/progress';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Progress Monitoring (ADR-P016 Phase 17 Slice 5a): weight and measurement
@@ -21,9 +21,9 @@ export default function ProgressLogRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -31,11 +31,11 @@ export default function ProgressLogRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('progress.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionWriteBoundary>
           <ProgressScreen />
         </SubscriptionWriteBoundary>
-      </Screen>
+      </StageScreen>
     </>
   );
 }
