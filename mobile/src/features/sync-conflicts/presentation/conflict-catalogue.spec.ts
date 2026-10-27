@@ -175,10 +175,11 @@ describe('catalogue parity', () => {
   // the weekly plan's screens — saved week and preview (+11), the "renews on
   // Monday" chip (+1), the change prompt (+9) and "Semanas anteriores" (+32),
   // reaching 1359; then the Evaluación física wizard and "Creando tu plan
-  // personal" (+221, 1580).
-  it('reaches 1580 keys in each language — 1415 shipped plus a 165-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1580);
-    expect(Object.keys(es)).toHaveLength(1580);
+  // personal" (+221, 1580); and the development-only sample-weeks button
+  // (+1, 1581).
+  it('reaches 1581 keys in each language — 1416 shipped plus a 165-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1581);
+    expect(Object.keys(es)).toHaveLength(1581);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(165);
   });
 

@@ -11,6 +11,7 @@ import {
 } from '@/shared/localization';
 import { interpolate } from '@/shared/localization/format';
 import {
+  AppButton,
   AppText,
   Chip,
   GlassCard,
@@ -89,7 +90,14 @@ export function noteText(
  * Progreso → "Semanas anteriores" (ADR-P042 D7): one row per past week with
  * its adherence ring, and a detail sheet with plan vs. done.
  */
-export function PastWeeksPanel({ weeks }: { weeks: readonly PastWeek[] }) {
+export function PastWeeksPanel({
+  weeks,
+  onSeed,
+}: {
+  weeks: readonly PastWeek[];
+  /** DEV ONLY: offered on an empty history in a development build on a local API. */
+  onSeed?: () => void;
+}) {
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
@@ -107,9 +115,16 @@ export function PastWeeksPanel({ weeks }: { weeks: readonly PastWeek[] }) {
         </AppText>
       </View>
       {weeks.length === 0 ? (
-        <AppText tone="onStageVariant" testID="past-weeks-empty">
-          {t('plan.history.empty')}
-        </AppText>
+        <View style={{ gap: spacing.sm }}>
+          <AppText tone="onStageVariant" testID="past-weeks-empty">
+            {t('plan.history.empty')}
+          </AppText>
+          {onSeed ? (
+            <AppButton onPress={onSeed} testID="past-weeks-dev-seed" variant="stage-secondary">
+              {t('plan.history.devSeed')}
+            </AppButton>
+          ) : null}
+        </View>
       ) : (
         weeks.map((week) => {
           const a = week.adherence;

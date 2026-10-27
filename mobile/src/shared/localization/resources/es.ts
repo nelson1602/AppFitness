@@ -117,6 +117,7 @@ export const es = {
   'plan.history.title': 'Semanas anteriores',
   'plan.history.subtitle': 'Plan vs. lo cumplido',
   'plan.history.empty': 'Tus semanas aparecerán aquí cuando termine la primera.',
+  'plan.history.devSeed': 'Cargar 4 semanas de ejemplo (desarrollo)',
   'plan.history.row': '{done} de {planned} entrenamientos · {meals} % de las comidas',
   'plan.history.scoreLabel': 'Cumplimiento {score} %',
   'plan.history.openHint': 'Abre el detalle de la semana',

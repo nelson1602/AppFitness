@@ -120,6 +120,7 @@ export const en = {
   'plan.history.title': 'Past weeks',
   'plan.history.subtitle': 'Plan vs. done',
   'plan.history.empty': 'Your weeks will appear here once the first one ends.',
+  'plan.history.devSeed': 'Load 4 sample weeks (development)',
   'plan.history.row': '{done} of {planned} workouts · {meals}% of meals',
   'plan.history.scoreLabel': 'Adherence {score}%',
   'plan.history.openHint': "Opens the week's detail",

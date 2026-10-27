@@ -25,6 +25,7 @@ import {
   regenerateCurrentWeek,
   type PastWeek,
 } from './weekly-plan.service';
+import { seedDevHistory } from './dev-history-seed';
 
 export type WeeklyPlanStatus = 'idle' | 'loading' | 'ready' | 'gap' | 'error' | 'web-unavailable';
 
@@ -50,6 +51,8 @@ export interface WeeklyPlanState {
   /** "Ahora no": the change applies from next Monday. */
   dismissChanges: () => void;
   loadHistory: (now?: Date) => Promise<void>;
+  /** DEV ONLY: four sample past weeks (local API only). */
+  seedHistory: () => Promise<void>;
   /** "Lo comí": log the planned dish's lines, linked to the slot (ADR-P042 D6). */
   markMealEaten: (date: string, slot: MealSlot) => Promise<boolean>;
 }
@@ -168,6 +171,15 @@ export const useWeeklyPlanStore = create<WeeklyPlanState>((set, get) => ({
       logError('weeklyPlan.markMealEaten', error);
       return false;
     }
+  },
+
+  seedHistory: async () => {
+    try {
+      await seedDevHistory();
+    } catch (error) {
+      logError('weeklyPlan.seedHistory', error);
+    }
+    await get().loadHistory();
   },
 
   loadHistory: async (now = new Date()) => {

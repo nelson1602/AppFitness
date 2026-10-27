@@ -8,6 +8,7 @@ import { formatNumber, formatQuantity, interpolate, useLocalization } from '@/sh
 import { AppText, Banner, GlassCard, GlassRow, Icon, ProgressBar } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
+import { canSeedDevHistory } from '@/features/weekly-plan/application/dev-history-seed';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { PastWeeksPanel } from '@/features/weekly-plan/presentation/PastWeeksPanel';
 
@@ -25,6 +26,7 @@ export function ProgressTab() {
   const status = useProgressStore((s) => s.status);
   const { summary, currentWeightKg } = useHomeData();
   const pastWeeks = useWeeklyPlanStore((s) => s.pastWeeks);
+  const seedHistory = useWeeklyPlanStore((s) => s.seedHistory);
 
   useFocusEffect(
     useCallback(() => {
@@ -104,7 +106,10 @@ export function ProgressTab() {
         </View>
       </GlassCard>
 
-      <PastWeeksPanel weeks={pastWeeks} />
+      <PastWeeksPanel
+        onSeed={canSeedDevHistory() ? () => void seedHistory() : undefined}
+        weeks={pastWeeks}
+      />
     </TabScreen>
   );
 }
