@@ -211,10 +211,11 @@ describe('NutritionPlanScreen', () => {
       expect(screen.getByText(label)).toBeOnTheScreen();
     }
     expect(screen.getByText('BREAKFAST food 1')).toBeOnTheScreen();
-    // portion + servings + calories + macros line (one per meal → 4)
+    // portion + calories + macros line (one per meal → 4); v8: no "1.5×" multiplier
     expect(
-      screen.getAllByText(/150 g · 1\.5× · 300 kcal · Protein 20 g \/ Carbs 30 g \/ Fat 8 g/),
+      screen.getAllByText(/^150 g · 300 kcal · Protein 20 g \/ Carbs 30 g \/ Fat 8 g$/),
     ).toHaveLength(4);
+    expect(screen.queryByText(/×/)).toBeNull();
   });
 
   it('renders day totals versus targets', async () => {
@@ -239,9 +240,7 @@ describe('NutritionPlanScreen', () => {
     it.each([
       [
         'en',
-        new RegExp(
-          `150${N}g · 1\\.5× · 300${N}kcal · Protein 20${N}g / Carbs 30${N}g / Fat 8${N}g`,
-        ),
+        new RegExp(`150${N}g · 300${N}kcal · Protein 20${N}g / Carbs 30${N}g / Fat 8${N}g`),
         `Calories: 2,312 / 2,300${N}kcal`,
         `Protein 128 / 130${N}g · Carbs 262 / 260${N}g · Fat 74 / 76${N}g`,
         `Day 1 target: 2,300${N}kcal · Protein 130${N}g · Carbs 260${N}g · Fat 76${N}g.`,
@@ -249,7 +248,7 @@ describe('NutritionPlanScreen', () => {
       [
         'es',
         new RegExp(
-          `150${N}g · 1,5× · 300${N}kcal · Proteína 20${N}g / Carbohidratos 30${N}g / Grasa 8${N}g`,
+          `150${N}g · 300${N}kcal · Proteína 20${N}g / Carbohidratos 30${N}g / Grasa 8${N}g`,
         ),
         `Calorías: 2312 / 2300${N}kcal`,
         `Proteína 128 / 130${N}g · Carbohidratos 262 / 260${N}g · Grasa 74 / 76${N}g`,

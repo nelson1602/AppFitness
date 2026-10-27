@@ -1,6 +1,11 @@
 import { Pressable, View } from 'react-native';
 
-import { formatNumber, useLocalization, type SupportedLanguage } from '@/shared/localization';
+import {
+  formatNumber,
+  formatQuantity,
+  useLocalization,
+  type SupportedLanguage,
+} from '@/shared/localization';
 import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -76,7 +81,9 @@ export function ServingStepper({
         accessibilityLabel={`${formatServingCount(value, language)} ${t('nutrition.log.servings')}`}
         style={{ minWidth: theme.spacing.x3l, textAlign: 'center' }}
       >
-        {formatServingCount(value, language)}×
+        {formatQuantity(value, t('nutrition.log.servings'), language, {
+          maximumFractionDigits: 2,
+        })}
       </AppText>
       {button(1, t('nutrition.log.increaseServings'), `${testIDPrefix}-inc`)}
     </View>

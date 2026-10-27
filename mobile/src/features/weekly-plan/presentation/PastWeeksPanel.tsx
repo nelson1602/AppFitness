@@ -107,11 +107,15 @@ export function PastWeeksPanel({
 
   return (
     <GlassCard style={{ gap: spacing.md, padding: spacing.lg }} testID="past-weeks">
-      <View style={[styles.row, styles.wrap, { gap: spacing.sm }]}>
-        <Icon color={colors.accentCyan} name="calendar" size={18} />
-        <AppText accessibilityRole="header" style={styles.grow} tone="onStage" variant="title">
-          {t('plan.history.title')}
-        </AppText>
+      {/* The title keeps the whole row so it stays on one line; the subtitle
+          sits below it (owner review 2026-10-27). */}
+      <View style={{ gap: 2 }} testID="past-weeks-header">
+        <View style={[styles.row, { gap: spacing.sm }]}>
+          <Icon color={colors.accentCyan} name="calendar" size={18} />
+          <AppText accessibilityRole="header" style={styles.grow} tone="onStage" variant="title">
+            {t('plan.history.title')}
+          </AppText>
+        </View>
         <AppText tone="onStageVariant" variant="caption">
           {t('plan.history.subtitle')}
         </AppText>

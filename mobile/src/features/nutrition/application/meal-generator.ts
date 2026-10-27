@@ -263,6 +263,10 @@ const ROLE = {
   DI_PROTEIN: 131,
   DI_CARB: 139,
   DI_FAT: 151,
+  // meal-rules@1.2.0: a fourth food in lunch and dinner, so no single food
+  // has to carry more than 40 % of the meal.
+  LU_FAT: 157,
+  DI_VEG: 163,
   SNACK: 149,
 } as const;
 
@@ -281,6 +285,210 @@ interface Pick {
   food: FoodItem;
 }
 
+interface ScaledEntry {
+  slot: MealSlot;
+  food: FoodItem;
+  mpf: MealPlanFood;
+}
+
+// ── realistic portions (meal-rules@1.2.0) ───────────────────────────────
+
+/**
+ * Energy-dense foods (oils, nuts, seeds, nut butters) never go above one
+ * catalog serving — a standard portion such as 1 tbsp of oil, 28 g of nuts or
+ * 2 tbsp of chia.
+ */
+export const ENERGY_DENSE_CATEGORIES: ReadonlySet<FoodItem['category']> = new Set([
+  'fat_oil',
+  'nuts_seeds',
+]);
+export const ENERGY_DENSE_MAX_SERVINGS = 1;
+/** The snack is one food: at most two servings of it. */
+export const SNACK_MAX_SERVINGS = 2;
+/** In breakfast, lunch and dinner no single food carries more than this share of the meal's kcal. */
+export const MEAL_SHARE_CAP = 0.4;
+const SHARED_SLOTS: readonly MealSlot[] = ['BREAKFAST', 'LUNCH', 'DINNER'];
+
+function capOf(entry: ScaledEntry): number {
+  const food = ENERGY_DENSE_CATEGORIES.has(entry.food.category)
+    ? ENERGY_DENSE_MAX_SERVINGS
+    : MAX_SERVINGS;
+  return entry.slot === 'SNACK' ? Math.min(food, SNACK_MAX_SERVINGS) : food;
+}
+
+const kcalOf = (entries: readonly ScaledEntry[]): number =>
+  entries.reduce((sum, entry) => sum + entry.mpf.macros.calories, 0);
+
+/**
+ * Turns the day's scaled foods into realistic portions without ever leaving
+ * the day below the engine's (safety-floored) calorie target:
+ * 1. cap energy-dense foods and the snack;
+ * 2. trim the food that carries more than 40 % of a main meal;
+ * 3. top the day back up, first keeping every cap and share, then keeping
+ *    only the caps, and as a last resort (a day that cannot reach its floor
+ *    otherwise) the generic six-serving ceiling.
+ * Every loop is bounded and every choice is by a fixed order: deterministic.
+ */
+function realisticPortions(scaled: ScaledEntry[], daily: MealMacros): void {
+  const target = daily.calories;
+  const set = (entry: ScaledEntry, servings: number) => {
+    entry.mpf = scaleFood(entry.food, servings);
+  };
+  const meal = (slot: MealSlot) => scaled.filter((entry) => entry.slot === slot);
+
+  for (const entry of scaled) if (entry.mpf.servings > capOf(entry)) set(entry, capOf(entry));
+
+  const bumpTo = (entry: ScaledEntry, ceiling: number) =>
+    Math.min(ceiling, r1(entry.mpf.servings + STEP));
+  const shareAfterBump = (entry: ScaledEntry): number => {
+    const bumped = Math.round(entry.food.calories * bumpTo(entry, capOf(entry)));
+    const total = kcalOf(meal(entry.slot)) - entry.mpf.macros.calories + bumped;
+    return total > 0 ? bumped / total : 1;
+  };
+  const share = (entry: ScaledEntry) =>
+    entry.mpf.macros.calories / Math.max(1, kcalOf(meal(entry.slot)));
+
+  // Rebalance each main meal at about its size: one step off the food over
+  // 40 %, one step onto the smallest food that can take it, never below the
+  // minimum serving.
+  for (const slot of SHARED_SLOTS) {
+    for (let guard = 0; guard < 400; guard += 1) {
+      const entries = meal(slot);
+      const dominant = entries.reduce((a, b) =>
+        b.mpf.macros.calories > a.mpf.macros.calories ? b : a,
+      );
+      if (share(dominant) <= MEAL_SHARE_CAP) break;
+      const grow = entries
+        .filter(
+          (entry) =>
+            entry !== dominant &&
+            entry.mpf.servings < capOf(entry) &&
+            shareAfterBump(entry) <= MEAL_SHARE_CAP,
+        )
+        .reduce<ScaledEntry | null>((a, b) => (a === null || share(b) < share(a) ? b : a), null);
+      const trimmed = r1(dominant.mpf.servings - STEP);
+      const canTrim = trimmed >= MIN_SERVINGS;
+      if (!grow && !canTrim) break;
+      if (canTrim) set(dominant, trimmed);
+      if (grow) set(grow, bumpTo(grow, capOf(grow)));
+    }
+  }
+
+  // Every later step keeps the caps and the 40 % rule.
+  const canBump = (entry: ScaledEntry) =>
+    entry.mpf.servings < capOf(entry) &&
+    (entry.slot === 'SNACK' || shareAfterBump(entry) <= MEAL_SHARE_CAP);
+  const trimTo = (entry: ScaledEntry) => r1(entry.mpf.servings - STEP);
+  const canTrim = (entry: ScaledEntry) => {
+    const servings = trimTo(entry);
+    if (servings < MIN_SERVINGS) return false;
+    if (entry.slot === 'SNACK') return true;
+    const trimmed = Math.round(entry.food.calories * servings);
+    const entries = meal(entry.slot);
+    const total = kcalOf(entries) - entry.mpf.macros.calories + trimmed;
+    if (total <= 0) return false;
+    return entries.every(
+      (other) => (other === entry ? trimmed : other.mpf.macros.calories) / total <= MEAL_SHARE_CAP,
+    );
+  };
+  const macroDeviation = (): Record<MacroGroup, number> => {
+    const totals = sumMacros(scaled.map((entry) => entry.mpf));
+    return {
+      protein: (totals.proteinG - daily.proteinG) / Math.max(1, daily.proteinG),
+      carb: (totals.carbsG - daily.carbsG) / Math.max(1, daily.carbsG),
+      fat: (totals.fatG - daily.fatG) / Math.max(1, daily.fatG),
+    };
+  };
+  const GROUPS: readonly MacroGroup[] = ['protein', 'carb', 'fat'];
+  const MACRO_BAND = 0.05;
+
+  // Macro balance: one step up on the macro furthest below its target, one
+  // step down on the one furthest above, so the trims above do not leave the
+  // day short of protein or long on carbohydrate.
+  for (let guard = 0; guard < 400; guard += 1) {
+    const deviation = macroDeviation();
+    const low = GROUPS.reduce((a, b) => (deviation[b] < deviation[a] ? b : a));
+    const high = GROUPS.reduce((a, b) => (deviation[b] > deviation[a] ? b : a));
+    const raise =
+      deviation[low] < -MACRO_BAND
+        ? scaled
+            .filter((entry) => groupOf(entry.food) === low && canBump(entry))
+            .reduce<ScaledEntry | null>((a, b) => (a === null || share(b) < share(a) ? b : a), null)
+        : null;
+    const lower =
+      deviation[high] > MACRO_BAND
+        ? scaled
+            .filter((entry) => groupOf(entry.food) === high && canTrim(entry))
+            .reduce<ScaledEntry | null>((a, b) => (a === null || share(b) > share(a) ? b : a), null)
+        : null;
+    if (!raise && !lower) break;
+    if (raise) set(raise, bumpTo(raise, capOf(raise)));
+    if (lower) set(lower, trimTo(lower));
+  }
+
+  // Overshoot: trim back toward the target (never below it), from the meal
+  // furthest above its part of the day.
+  const surplus = (slot: MealSlot) => {
+    const goal = target * SLOT_SPLIT[slot];
+    return (kcalOf(meal(slot)) - goal) / Math.max(1, goal);
+  };
+  for (let guard = 0; guard < 2000 && kcalOf(scaled) > target * 1.03; guard += 1) {
+    const day = kcalOf(scaled);
+    const candidates = scaled.filter(
+      (entry) =>
+        canTrim(entry) &&
+        day - entry.mpf.macros.calories + Math.round(entry.food.calories * trimTo(entry)) >= target,
+    );
+    if (candidates.length === 0) break;
+    const next = candidates.reduce((a, b) => {
+      const bySlot = surplus(b.slot) - surplus(a.slot);
+      if (Math.abs(bySlot) > 1e-9) return bySlot > 0 ? b : a;
+      return share(b) > share(a) ? b : a;
+    });
+    set(next, trimTo(next));
+  }
+
+  const passes: { ceiling: (entry: ScaledEntry) => number; keepShare: boolean }[] = [
+    { ceiling: capOf, keepShare: true },
+    { ceiling: capOf, keepShare: false },
+    { ceiling: () => MAX_SERVINGS, keepShare: false },
+  ];
+  for (const pass of passes) {
+    for (let guard = 0; guard < 2000 && kcalOf(scaled) < target; guard += 1) {
+      const candidates = scaled.filter(
+        (entry) =>
+          entry.mpf.servings < pass.ceiling(entry) &&
+          (!pass.keepShare || entry.slot === 'SNACK' || shareAfterBump(entry) <= MEAL_SHARE_CAP),
+      );
+      if (candidates.length === 0) break;
+      // 1. the meal furthest below its part of the day; 2. the macro furthest
+      // below its target, so trimming never leaves the day short of protein;
+      // 3. the food with the smallest share of its meal; 4. the pick order.
+      const totals = sumMacros(scaled.map((entry) => entry.mpf));
+      const deficit: Record<MacroGroup, number> = {
+        protein: (daily.proteinG - totals.proteinG) / Math.max(1, daily.proteinG),
+        carb: (daily.carbsG - totals.carbsG) / Math.max(1, daily.carbsG),
+        fat: (daily.fatG - totals.fatG) / Math.max(1, daily.fatG),
+      };
+      const shortfall = (slot: MealSlot) => {
+        const goal = target * SLOT_SPLIT[slot];
+        return (goal - kcalOf(meal(slot))) / Math.max(1, goal);
+      };
+      // A macro clearly short of its target leads; otherwise the meal sizes do.
+      const macroFirst = Math.max(deficit.protein, deficit.carb, deficit.fat) > MACRO_BAND;
+      const next = candidates.reduce((a, b) => {
+        const bySlot = shortfall(b.slot) - shortfall(a.slot);
+        const byDeficit = deficit[groupOf(b.food)] - deficit[groupOf(a.food)];
+        for (const difference of macroFirst ? [byDeficit, bySlot] : [bySlot, byDeficit]) {
+          if (Math.abs(difference) > 1e-9) return difference > 0 ? b : a;
+        }
+        return share(b) < share(a) ? b : a;
+      });
+      set(next, bumpTo(next, pass.ceiling(next)));
+    }
+  }
+}
+
 function buildDay(dayIndex: number, pools: Pools, daily: MealMacros, hash: number): MealPlanDay {
   const picks: Pick[] = [
     { slot: 'BREAKFAST', food: pick(pools.breakfastProtein, hash, ROLE.BF_PROTEIN, dayIndex) },
@@ -289,8 +497,10 @@ function buildDay(dayIndex: number, pools: Pools, daily: MealMacros, hash: numbe
     { slot: 'LUNCH', food: pick(pools.proteinMain, hash, ROLE.LU_PROTEIN, dayIndex) },
     { slot: 'LUNCH', food: pick(pools.carbSide, hash, ROLE.LU_CARB, dayIndex) },
     { slot: 'LUNCH', food: pick(pools.veg, hash, ROLE.LU_VEG, dayIndex) },
+    { slot: 'LUNCH', food: pick(pools.healthyFat, hash, ROLE.LU_FAT, dayIndex) },
     { slot: 'DINNER', food: pick(pools.proteinMain, hash, ROLE.DI_PROTEIN, dayIndex) },
     { slot: 'DINNER', food: pick(pools.carbSide, hash, ROLE.DI_CARB, dayIndex) },
+    { slot: 'DINNER', food: pick(pools.veg, hash, ROLE.DI_VEG, dayIndex) },
     { slot: 'DINNER', food: pick(pools.healthyFat, hash, ROLE.DI_FAT, dayIndex) },
     { slot: 'SNACK', food: pick(pools.snack, hash, ROLE.SNACK, dayIndex) },
   ];
@@ -300,32 +510,13 @@ function buildDay(dayIndex: number, pools: Pools, daily: MealMacros, hash: numbe
     daily,
   );
 
-  const scaled: { slot: MealSlot; food: FoodItem; mpf: MealPlanFood }[] = picks.map((p) => ({
+  const scaled: ScaledEntry[] = picks.map((p) => ({
     slot: p.slot,
     food: p.food,
     mpf: scaleFood(p.food, scales[groupOf(p.food)]),
   }));
 
-  // Rounding-safe floor guarantee. Prefer balancing via the snack; if that
-  // hits its cap and the day is still short, deterministically bump the most
-  // calorie-dense non-maxed food until the day reaches the target. Both loops
-  // are bounded, so no day ever falls below the engine's floored target.
-  const caloriesOf = (): number => scaled.reduce((s, e) => s + e.mpf.macros.calories, 0);
-  const snackEntry = scaled[scaled.length - 1];
-  let snackServings = snackEntry.mpf.servings;
-  while (caloriesOf() < daily.calories && snackServings < MAX_SERVINGS) {
-    snackServings = r1(snackServings + STEP);
-    snackEntry.mpf = scaleFood(snackEntry.food, snackServings);
-  }
-  let guard = 0;
-  while (caloriesOf() < daily.calories && guard < 500) {
-    guard += 1;
-    const bumpable = scaled.filter((e) => e.mpf.servings < MAX_SERVINGS);
-    if (bumpable.length === 0) break;
-    let best = bumpable[0];
-    for (const e of bumpable) if (e.food.calories > best.food.calories) best = e;
-    best.mpf = scaleFood(best.food, r1(best.mpf.servings + STEP));
-  }
+  realisticPortions(scaled, daily);
 
   const meals: MealPlanMeal[] = (['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'] as MealSlot[]).map(
     (slot) => {

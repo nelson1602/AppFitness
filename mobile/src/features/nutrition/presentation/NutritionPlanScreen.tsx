@@ -180,7 +180,6 @@ function MealCard({
             {/* BUG-028: formatQuantity keeps each value and its unit on one line. */}
             <AppText variant="caption" tone="muted">
               {formatQuantity(f.serving.amount, t(UNIT_KEY[f.serving.unit]), language)} ·{' '}
-              {formatNumber(f.servings, language)}× ·{' '}
               {formatQuantity(f.macros.calories, 'kcal', language)} · {t('nutrition.plan.protein')}{' '}
               {formatQuantity(f.macros.proteinG, 'g', language)} / {t('nutrition.plan.carbs')}{' '}
               {formatQuantity(f.macros.carbsG, 'g', language)} / {t('nutrition.plan.fat')}{' '}

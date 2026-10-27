@@ -5,7 +5,12 @@ import { FOOD_CATALOG } from '../infrastructure/food-catalog.data';
 import { CATALOG_VERSION } from '../domain/food-catalog';
 import { MEAL_RULE_VERSION, type MealPlanInput } from '../domain/meal-plan';
 import { restrictionsToAvoidTags } from '../domain/restriction-map';
-import { generateMealPlan } from './meal-generator';
+import {
+  ENERGY_DENSE_MAX_SERVINGS,
+  generateMealPlan,
+  MEAL_SHARE_CAP,
+  SNACK_MAX_SERVINGS,
+} from './meal-generator';
 
 const catalogIds = new Set(FOOD_CATALOG.map((f) => f.id));
 
@@ -137,7 +142,9 @@ describe('generateMealPlan — targets, safety & priority', () => {
     for (const d of plan.days) {
       expect(Math.abs(d.totals.proteinG - 170) / 170).toBeLessThanOrEqual(0.2);
       expect(Math.abs(d.totals.carbsG - 340) / 340).toBeLessThanOrEqual(0.2);
-      expect(Math.abs(d.totals.fatG - 78) / 78).toBeLessThanOrEqual(0.25);
+      // meal-rules@1.2.0 caps oils, nuts and seeds at one serving, so fat (the
+      // calorie remainder) gets a wider band than protein and carbohydrate.
+      expect(Math.abs(d.totals.fatG - 78) / 78).toBeLessThanOrEqual(0.35);
     }
   });
 
@@ -316,5 +323,77 @@ describe('generateMealPlan — never-planned foods (meal-rules@1.1.0, ADR-P040 D
       }
       expect(plan.excludedAvoidTags).toEqual([]);
     }
+  });
+});
+
+describe('generateMealPlan — realistic portions (meal-rules@1.2.0)', () => {
+  const PROFILES = [
+    { goalType: 'FAT_LOSS', calories: 1500, proteinG: 130, carbsG: 140, fatG: 45 },
+    { goalType: 'MAINTENANCE', calories: 2100, proteinG: 150, carbsG: 230, fatG: 65 },
+    { goalType: 'MUSCLE_GAIN', calories: 3200, proteinG: 200, carbsG: 380, fatG: 95 },
+    { goalType: 'ENDURANCE', calories: 2600, proteinG: 130, carbsG: 360, fatG: 70 },
+    { goalType: 'GENERAL_HEALTH', calories: 1734, proteinG: 165, carbsG: 161, fatG: 48 },
+  ] as const;
+  const SEEDS = ['a', 'b', 'c', 'user-1|x', 'zz'];
+  const plans = PROFILES.flatMap(({ goalType, ...macros }) =>
+    SEEDS.map((seed) => ({
+      macros,
+      plan: generateMealPlan(input({ goalType, seed, nutritionPlan: np(macros) })),
+    })),
+  );
+  const category = (foodId: string) => FOOD_CATALOG.find((f) => f.id === foodId)?.category;
+
+  it('keeps oils, nuts, seeds and nut butters at one serving or less', () => {
+    for (const { plan } of plans)
+      for (const d of plan.days)
+        for (const m of d.meals)
+          for (const f of m.foods) {
+            if (category(f.foodId) === 'fat_oil' || category(f.foodId) === 'nuts_seeds') {
+              expect(f.servings).toBeLessThanOrEqual(ENERGY_DENSE_MAX_SERVINGS);
+            }
+          }
+  });
+
+  it('keeps the snack at two servings or less', () => {
+    for (const { plan } of plans)
+      for (const d of plan.days) {
+        const snack = d.meals.find((m) => m.slot === 'SNACK');
+        for (const f of snack?.foods ?? []) {
+          expect(f.servings).toBeLessThanOrEqual(SNACK_MAX_SERVINGS);
+        }
+      }
+  });
+
+  it('lets no food carry more than ~40 % of breakfast, lunch or dinner', () => {
+    for (const { plan } of plans)
+      for (const d of plan.days)
+        for (const m of d.meals) {
+          if (m.slot === 'SNACK') continue;
+          const largest = Math.max(...m.foods.map((f) => f.macros.calories));
+          expect(largest / m.totals.calories).toBeLessThanOrEqual(MEAL_SHARE_CAP + 0.02);
+        }
+  });
+
+  it('gives lunch and dinner four foods', () => {
+    for (const d of plans[0].plan.days) {
+      expect(d.meals.find((m) => m.slot === 'LUNCH')?.foods).toHaveLength(4);
+      expect(d.meals.find((m) => m.slot === 'DINNER')?.foods).toHaveLength(4);
+    }
+  });
+
+  it('still never leaves a day below the target, and lands within 5 % above it', () => {
+    for (const { plan, macros } of plans)
+      for (const d of plan.days) {
+        expect(d.totals.calories).toBeGreaterThanOrEqual(macros.calories);
+        expect(d.totals.calories).toBeLessThanOrEqual(Math.round(macros.calories * 1.05));
+      }
+  });
+
+  it('no longer proposes ten spoonfuls of chia (regression, v8 review)', () => {
+    for (const { plan } of plans)
+      for (const d of plan.days)
+        for (const m of d.meals)
+          for (const f of m.foods)
+            if (f.foodId === 'food.chia_seeds') expect(f.servings).toBeLessThanOrEqual(1);
   });
 });

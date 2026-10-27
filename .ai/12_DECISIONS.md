@@ -14903,6 +14903,7 @@ Accepted: 2026-10-26 by the project owner (v8 Block 2). Owner decisions recorded
 - **D8:** stress and sleep stay explained notes.
 - **D10:** the Dominican foods seed starts with the foods from the evaluation's 10 lists that the catalog lacked, each sourced from the pinned USDA SR Legacy archive with Spanish and English names.
 - **D11** (2026-10-27): the Principiante cap of 3 training days stays; after 2 consecutive weeks at ≥ 80 % workout compliance, the Monday plan proposes +1 day (never above the days chosen), confirmed through the existing prompt.
+- **Portions** (2026-10-27, `meal-rules@1.2.0`): oils, nuts, seeds and nut butters stay at one catalog serving (for example 2 tbsp of chia); the single-food snack at two servings; in breakfast, lunch and dinner no food carries more than ~40 % of the meal's kcal, and lunch and dinner have four foods. The day still never falls below the engine target. Fat, as the calorie remainder, lands further from its target than protein and carbohydrate. Plan and log screens show amounts, never a serving multiplier.
 Date: 2026-10-22
 Owner: iCoach / Nutrition / Architecture
 Would revise: ADR-P031 D4 (injury-area mapping), D5 (workload signals) and D13 (nutrition restriction input), conditional on ADR-P038 for condition rules; ADR-P012 D3/D5 (custom foods); ADR-P013 acceptance (food sources); ADR-P014 (new avoid tags)

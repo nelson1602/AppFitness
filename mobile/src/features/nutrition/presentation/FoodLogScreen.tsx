@@ -5,6 +5,7 @@ import { useDashboardStore } from '@/features/dashboard/application/dashboard.st
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import {
   formatNumber,
+  formatQuantity,
   useLocalization,
   type SupportedLanguage,
   type TranslationKey,
@@ -235,9 +236,13 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
         <ItemSyncChip item={item} />
       </View>
       <AppText variant="caption" tone="muted">
-        {formatServingCount(item.servingCount, language)}×{' '}
-        {formatNumber(item.serving.amount, language)} {unitKey ? t(unitKey) : item.serving.unit} ·{' '}
-        {formatNumber(item.consumed.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
+        {/* v8: the amount eaten, not a serving multiplier. */}
+        {formatQuantity(
+          Math.round(item.serving.amount * item.servingCount * 10) / 10,
+          unitKey ? t(unitKey) : item.serving.unit,
+          language,
+        )}{' '}
+        · {formatNumber(item.consumed.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
         {formatNumber(item.consumed.proteinG, language)}g · {t('nutrition.plan.carbs')}{' '}
         {formatNumber(item.consumed.carbsG, language)}g · {t('nutrition.plan.fat')}{' '}
         {formatNumber(item.consumed.fatG, language)}g

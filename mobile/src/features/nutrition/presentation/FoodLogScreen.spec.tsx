@@ -225,7 +225,8 @@ describe('FoodLogScreen (Slice 4C)', () => {
     setState({ items: [item({ servingCount: 0.25 })] });
     await render(<FoodLogScreen />);
 
-    expect(screen.getByTestId('edit-serving-i1-value')).toHaveTextContent('0,25×');
+    // v8: the stepper says "porciones", never a "×" multiplier.
+    expect(screen.getByTestId('edit-serving-i1-value')).toHaveTextContent(/^0,25\sporciones$/);
     expect(screen.queryByText(/0\.25/)).toBeNull();
   });
 
@@ -237,7 +238,7 @@ describe('FoodLogScreen (Slice 4C)', () => {
     await render(<FoodLogScreen />);
 
     const value = screen.getByTestId('edit-serving-i1-value');
-    expect(value).toHaveTextContent('1,5×');
+    expect(value).toHaveTextContent(/^1,5\sporciones$/);
     expect(value.props.accessibilityLabel).toBe('1,5 porciones');
     expect(screen.getByTestId('logged-item-i1').props.accessibilityLabel).toContain(
       '1,5 porciones',
