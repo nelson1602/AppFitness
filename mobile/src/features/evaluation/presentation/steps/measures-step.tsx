@@ -17,8 +17,8 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
   const theme = useTheme();
   const { colors, spacing } = theme;
   const { language, t } = useLocalization();
-  const [weight, setWeight] = useState(decimalText(draft.weightKg));
-  const [height, setHeight] = useState(decimalText(draft.heightCm));
+  const [weight, setWeight] = useState(decimalText(draft.weightKg, language));
+  const [height, setHeight] = useState(decimalText(draft.heightCm, language));
   const bmi = draftBmi(draft);
   const category = bmi === null ? null : classifyBmi(bmi);
 

@@ -8,6 +8,7 @@ import { WELLNESS_AFFECTED_AREAS } from '@/features/wellness/domain/wellness-saf
 
 import {
   ageOn,
+  decimalText,
   draftBmi,
   draftFromSources,
   equipmentToStore,
@@ -358,5 +359,13 @@ describe('isEvaluationOwed', () => {
     expect(owedWith({ ...full, weightKg: null })).toBe(true);
     expect(owedWith({ ...full, goal: null })).toBe(true);
     expect(owedWith({ ...full, wellness: null })).toBe(true);
+  });
+});
+
+describe('decimalText', () => {
+  it('shows a decimal comma in Spanish and a point in English', () => {
+    expect(decimalText(82.5, 'es')).toBe('82,5');
+    expect(decimalText(82.5, 'en')).toBe('82.5');
+    expect(decimalText(null, 'es')).toBe('');
   });
 });

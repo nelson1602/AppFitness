@@ -16,7 +16,7 @@ export function GoalStep({ draft, update, issues, today }: StepProps) {
   const theme = useTheme();
   const { spacing } = theme;
   const { language, t } = useLocalization();
-  const [target, setTarget] = useState(decimalText(draft.targetWeightKg));
+  const [target, setTarget] = useState(decimalText(draft.targetWeightKg, language));
   const kg = (value: number) =>
     formatQuantity(value, t('evaluation.unit.kg'), language, { maximumFractionDigits: 1 });
 

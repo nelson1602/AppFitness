@@ -388,7 +388,9 @@ export function parseDecimal(text: string): number | null {
   return Number.isFinite(value) ? value : null;
 }
 
-/** The draft value as a field shows it. */
-export function decimalText(value: number | null): string {
-  return value === null ? '' : String(value);
+/** The draft value as a field shows it: "82,5" in Spanish, "82.5" in English. */
+export function decimalText(value: number | null, language: 'es' | 'en'): string {
+  if (value === null) return '';
+  const text = String(value);
+  return language === 'es' ? text.replace('.', ',') : text;
 }
