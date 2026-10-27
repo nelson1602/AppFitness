@@ -337,6 +337,35 @@ is not a complete public-v1 workout plan.
 
 ---
 
+# Saved Weekly Plan (ADR-P042, v8)
+
+The engine's routine and meal plan are frozen into one saved plan per week
+(`weekly_plans`), built on the device by `buildWeeklyPlanContent` and never
+recomputed mid-week. Logging never changes it; it only feeds adherence.
+
+- **Rule versions**, recorded on every revision:
+  - `weekly-plan@1`: the contract.
+  - `plan-progression@1.0.0`: the load step goes up by one when every session
+    was fulfilled, otherwise it stays; an injury change resets it.
+  - `plan-adherence@1.0.0`: 50 % workouts + 50 % planned meals; green ≥ 85,
+    cyan ≥ 65, orange below.
+  - `off-plan@1.0.0`: an overlay that adds 10–30 min of extra cardio, lowers
+    the next-day target by at most 300 kcal (never below the floor), and
+    shows an alcohol recovery note.
+  - `injury-map@1.0.0-pending-review`: conservative, pending the ADR-P031 D4
+    review.
+- **Inputs**: goal, training days, equipment, injury and movement tokens, and
+  excluded food keys/tags. A confirmed change to one of them saves a new
+  revision effective that day. Otherwise the change waits for Monday.
+- **First run**:
+  - The Evaluación física writes the profile, a weigh-in, the goal, the
+    wellness profile and the food exclusions.
+  - Its Revisión step runs this engine on the unsaved draft.
+  - "Creando tu plan personal" saves the first week.
+- Identical inputs give identical plans; each rule has deterministic tests.
+
+---
+
 # Recovery Engine
 
 Evaluates

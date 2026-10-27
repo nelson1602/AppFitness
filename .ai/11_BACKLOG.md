@@ -5939,7 +5939,7 @@ Open Food Facts is dropped.
 
 ## [FEATURE-016] versionCode 8 Release — Prototype Parity (owner scope 2026-10-26)
 
-Status: In Progress (Block 1 implemented, in review)
+Status: In Progress (Block 1 in review; Block 2 implemented, in review)
 Priority: P1
 Type: Feature
 Owner: Project owner (decisions, merges) · Engineering (delivery)
@@ -5960,7 +5960,7 @@ The versionCode 6 Android test did not match `docs/design/appfitnessrd-prototipo
 
 * [ ] Block 1 — ADR-P041: the API password policy and `EMAIL_NOT_VERIFIED` guard; the app's live checklist, "Verifica tu correo" screen and access gate; tests; Spanish screenshots in `dist/v8-review/block-1/`
 * [ ] Before merging Block 1, the owner verifies the Google Play reviewer account and updates its credentials in Play Console
-* [ ] Block 2 — first-run wizard and engine mapping, with migrations
+* [ ] Block 2 — first-run wizard and engine mapping, with migrations: the Evaluación física (6 steps) and its first-run gate; the saved weekly plan (ADR-P042) with session/meal links, "Lo comí", the change prompt, the off-plan overlay and "Semanas anteriores"; injury map (ADR-P040 D5), band equipment, avoid tags and the Dominican foods seed; date picker (ADR-P043); a development-only sample of four past weeks
 * [ ] Block 3 — every screen on the stage design, plus native date pickers
 * [ ] Block 4 — visual fixes
 * [ ] Block 5 — privacy links, icon, policy sync
@@ -5971,6 +5971,9 @@ The versionCode 6 Android test did not match `docs/design/appfitnessrd-prototipo
 
 * Verification mail is now on the sign-up critical path (ADR-P041 Consequences).
 * The ADR-P026 Perfil reminder card is unreachable and is removed in a cleanup.
+* Block 2: the injury→exercise map is applied conservatively and still needs the qualified review ADR-P031 D4 requires (`docs/design/INJURY_EXERCISE_MAP.md`).
+* Block 2: a returning account on a fresh install that is offline at first launch sees the evaluation again (the gate pulls once first); saving it would create local rows that can collide with the server copies on the next sync. How that collision resolves has not been tested yet.
+* Block 2: `.maestro/onboarding-loop.yml` still drives the pre-v8 dashboard gap actions; a new account now completes the evaluation in `registration-verified.yml`, so the loop needs rewriting to the wizard before it is run again.
 
 ### Related Documents
 
