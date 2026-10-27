@@ -115,6 +115,8 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   // The list's round close button, then each notification row.
   'src/features/shell/presentation/notification-list.tsx': ['floor-both', 'floor'],
   'src/features/wellness/presentation/wellness-token-group.tsx': ['floor'],
+  // ADR-P042 Semanas anteriores: each week row, then the sheet's close button.
+  'src/features/weekly-plan/presentation/PastWeeksPanel.tsx': ['floor', 'floor-both'],
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
@@ -149,8 +151,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 26 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(26);
+it('counts exactly 28 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(28);
 });
 
 describe.each(

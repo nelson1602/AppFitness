@@ -27,6 +27,7 @@ jest.mock('@/features/dashboard/application/dashboard.store', () => ({
 }));
 jest.mock('@/features/authentication', () => ({
   getSession: () => ({ user: { id: 'user-1' } }),
+  bindStoreToSession: jest.fn(),
 }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('../application/meal-plan.service', () => ({
@@ -34,6 +35,11 @@ jest.mock('../application/meal-plan.service', () => ({
     lastSelectArgs = args;
     return mockSelection;
   },
+}));
+const mockMarkMealEaten = jest.fn();
+let mockPlanState: Record<string, unknown> = {};
+jest.mock('@/features/weekly-plan/application/weekly-plan.store', () => ({
+  useWeeklyPlanStore: Object.assign(() => mockPlanState, { getState: () => ({ load: jest.fn() }) }),
 }));
 jest.mock('../application/dietary-preference.store', () => ({
   useDietaryPreferenceStore: () => mockPrefs,
@@ -50,6 +56,8 @@ jest.mock('@/shared/localization', () => {
       new Intl.NumberFormat(language === 'es' ? 'es' : 'en-US').format(value),
     // The real joiner, so the value–unit separator under test is the shipped one.
     formatQuantity: jest.requireActual('@/shared/localization/format').formatQuantity,
+    formatDate: jest.requireActual('@/shared/localization/format').formatDate,
+    interpolate: jest.requireActual('@/shared/localization/format').interpolate,
     useLocalization: () => ({
       language: mockLanguage,
       t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
@@ -138,6 +146,13 @@ describe('NutritionPlanScreen', () => {
     setPrefs({});
     lastSelectArgs = [];
     mockSelection = { status: 'ready', plan: plan() };
+    mockPlanState = {
+      current: null,
+      revisions: [],
+      mealSlotsDone: [],
+      overlay: null,
+      markMealEaten: mockMarkMealEaten,
+    };
   });
 
   it('refreshes the assessment on mount', async () => {
@@ -492,5 +507,111 @@ describe('S-4 read-only: no new iCoach meal-plan generation', () => {
 
     expect(screen.queryByTestId('subscription-access-notice')).toBeNull();
     expect(lastSelectArgs.length).toBeGreaterThan(0);
+  });
+});
+
+describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
+  const today = new Date();
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const weekStart = iso(monday);
+  const dates = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return iso(d);
+  });
+
+  function savedPlan() {
+    const days = dates.map((date, i) => ({
+      date,
+      workout: { kind: 'RECOVERY', recovery: 'FULL_REST' },
+      meals: day(i + 1).meals.map((meal) => ({
+        slot: meal.slot,
+        foods: meal.foods,
+        totals: meal.totals,
+      })),
+    }));
+    days[0].meals[0] = {
+      ...days[0].meals[0],
+      substitutions: [{ from: 'food.egg_whole', to: 'food.chicken_breast' }],
+    } as never;
+    return {
+      id: 'p1',
+      userId: 'user-1',
+      weekStart,
+      revision: 1,
+      effectiveFrom: weekStart,
+      trigger: 'WEEKLY',
+      loadStep: 0,
+      inputsFingerprint: 'x',
+      ruleVersions: {},
+      plan: {
+        contractVersion: 'weekly-plan@1',
+        targets: { calories: 2300, proteinG: 130, carbsG: 260, fatG: 76, floorCalories: 1500 },
+        inputs: {},
+        days,
+      },
+      notes: [],
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLanguage = 'en';
+    setDash({});
+    setPrefs({});
+    const fifteen = { ...plan(), days: Array.from({ length: 15 }, (_, i) => day(i + 1)) };
+    mockSelection = { status: 'ready', plan: fifteen };
+    const saved = savedPlan();
+    mockPlanState = {
+      current: saved,
+      revisions: [saved],
+      mealSlotsDone: [`${dates[0]}|LUNCH`],
+      overlay: null,
+      markMealEaten: mockMarkMealEaten,
+    };
+  });
+
+  it('opens on today, labels the saved week and offers "I ate it" up to today', async () => {
+    await render(<NutritionPlanScreen />);
+    expect(screen.getByTestId('plan-saved-week')).toHaveTextContent(
+      "This week's plan. It renews on Monday.",
+    );
+    const todayIndex = ((today.getDay() + 6) % 7) + 1;
+    await fireEvent.press(screen.getByTestId(`plan-ate-${todayIndex}-BREAKFAST`));
+    expect(mockMarkMealEaten).toHaveBeenCalledWith(dates[todayIndex - 1], 'BREAKFAST');
+  });
+
+  it('shows eaten slots and the iCoach substitution on Monday', async () => {
+    await render(<NutritionPlanScreen />);
+    await fireEvent.press(screen.getByTestId('plan-day-1'));
+    expect(screen.getByTestId('plan-eaten-1-LUNCH')).toBeOnTheScreen();
+    expect(screen.queryByTestId('plan-ate-1-LUNCH')).toBeNull();
+    expect(screen.getByText(/Adjusted by iCoach:/)).toBeOnTheScreen();
+  });
+
+  it('labels days 8–15 as a preview that may change on Monday, without "I ate it"', async () => {
+    await render(<NutritionPlanScreen />);
+    await fireEvent.press(screen.getByTestId('plan-day-8'));
+    expect(screen.getByTestId('plan-preview-badge')).toHaveTextContent('May change on Monday');
+    expect(screen.queryByTestId('plan-ate-8-BREAKFAST')).toBeNull();
+  });
+
+  it("explains today's off-plan adjustment", async () => {
+    mockPlanState = {
+      ...mockPlanState,
+      overlay: {
+        todayCalories: 2050,
+        reducedBy: 250,
+        extraCardioMinutes: 25,
+        avoidIntenseTraining: true,
+      },
+    };
+    await render(<NutritionPlanScreen />);
+    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/2,050 kcal \(250 less\)/);
+    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/25 min of cardio/);
+    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/avoid intense training/);
   });
 });

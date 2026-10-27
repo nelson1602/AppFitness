@@ -102,9 +102,11 @@ describe('atomic activation: the assessment and the routine agree', () => {
       code(read(file)).includes('selectWorkoutRoutine('),
     );
     // The service that defines it, the plan surface, and Inicio's summary
-    // (ADR-P039), which reads today's plan day from the same selection.
+    // (ADR-P039), which reads today's plan day from the same selection, and
+    // the saved weekly plan's context (ADR-P042), which freezes that selection.
     expect(callers.map((file) => file.split('/').pop()).sort()).toEqual([
       'GeneratedWorkoutPlan.tsx',
+      'plan-context.ts',
       'use-home-data.ts',
       'workout-routine.service.ts',
     ]);

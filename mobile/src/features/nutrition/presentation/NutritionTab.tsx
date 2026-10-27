@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-home-data';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
+import { PlanChangePrompt } from '@/features/weekly-plan/presentation/PlanChangePrompt';
 import {
   formatNumber,
   formatQuantity,
@@ -62,6 +63,7 @@ export function NutritionTab() {
 
   return (
     <TabScreen>
+      <PlanChangePrompt />
       <GlassCard style={{ gap: spacing.md, padding: spacing.lg }} testID="nutrition-today-card">
         <View style={[styles.row, { gap: spacing.sm }]}>
           <Icon color={colors.accentEnergy} name="flame" size={18} />

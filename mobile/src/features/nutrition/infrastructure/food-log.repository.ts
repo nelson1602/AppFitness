@@ -112,7 +112,10 @@ export async function logPlannedMeal(
 }
 
 /** Planned slots ("Lo comí") already marked for a plan, as `date|slot` keys. */
-export async function listPlannedSlotsDone(userId: string, planIds: readonly string[]): Promise<string[]> {
+export async function listPlannedSlotsDone(
+  userId: string,
+  planIds: readonly string[],
+): Promise<string[]> {
   if (planIds.length === 0) return [];
   const rows = await queryAll<{ plan_date: string; plan_slot: string }>(
     `SELECT DISTINCT plan_date, plan_slot FROM meal_items

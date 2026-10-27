@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
+import { PlanChangePrompt } from '@/features/weekly-plan/presentation/PlanChangePrompt';
 import { useLocalization } from '@/shared/localization';
 import { Banner } from '@/shared/presentation';
 
@@ -56,6 +57,7 @@ export function DashboardScreen() {
 
   return (
     <TabScreen>
+      <PlanChangePrompt />
       <GoalCard goalType={goalType} summary={summary} />
       <CoachCard evaluationDate={evaluationDate} summary={summary} />
       <TodayTiles summary={summary} />

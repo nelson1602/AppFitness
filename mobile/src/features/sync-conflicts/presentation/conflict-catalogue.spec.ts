@@ -171,10 +171,13 @@ describe('catalogue parity', () => {
   // ADR-P041's password checklist and "Verify your email" step (+21 net, 1286);
   // labels for the three new injury values (+3, 1289); four avoid-tag labels
   // and the allergy-block write error (+6, 1295); the DateField copy (+3,
-  // 1298); and the weekly-plan conflict labels (+8, 1306, in the family below).
-  it('reaches 1306 keys in each language — 1141 shipped plus a 165-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1306);
-    expect(Object.keys(es)).toHaveLength(1306);
+  // 1298); the weekly-plan conflict labels (+8, 1306, in the family below); and
+  // the weekly plan's screens — saved week and preview (+11), the "renews on
+  // Monday" chip (+1), the change prompt (+9) and "Semanas anteriores" (+32),
+  // reaching 1359.
+  it('reaches 1359 keys in each language — 1194 shipped plus a 165-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1359);
+    expect(Object.keys(es)).toHaveLength(1359);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(165);
   });
 
