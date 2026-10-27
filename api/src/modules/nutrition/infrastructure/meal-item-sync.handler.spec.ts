@@ -34,6 +34,9 @@ const FOOD: FoodRevisionSnapshotSource = {
 };
 
 const record = (overrides: Partial<MealItemRecord> = {}): MealItemRecord => ({
+  planId: null,
+  planDate: null,
+  planSlot: null,
   id: ITEM_ID,
   userId: USER,
   mealId: MEAL_ID,

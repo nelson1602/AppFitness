@@ -200,6 +200,10 @@ export interface WorkoutLogRow extends SyncedRow {
   notes: string | null;
   started_at: string;
   finished_at: string | null;
+  /** ADR-P042 D5: the planned session this workout fulfils (nullable). */
+  weekly_plan_id: string | null;
+  plan_session_key: string | null;
+  plan_date: string | null;
 }
 
 export interface WorkoutSetRow extends SyncedRow {
@@ -264,6 +268,23 @@ export interface MealItemRow extends SyncedRow {
   carbs_per_serving_snapshot: number;
   fat_per_serving_snapshot: number;
   fiber_per_serving_snapshot: number | null;
+  /** ADR-P042 D6: the planned slot a "Lo comí" item fulfils (nullable). */
+  plan_id: string | null;
+  plan_date: string | null;
+  plan_slot: MealTypeName | null;
+}
+
+/** ADR-P042 — one saved weekly plan revision; JSON columns are TEXT. */
+export interface WeeklyPlanRow extends SyncedRow {
+  week_start: string;
+  revision: number;
+  effective_from: string;
+  generation_trigger: 'FIRST_RUN' | 'WEEKLY' | 'CHANGE';
+  load_step: number;
+  inputs_fingerprint: string;
+  rule_versions: string;
+  plan: string;
+  notes: string;
 }
 
 // ─── Progress ────────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import {
   initializeSubscriptionAccessEnforcement,
   initializeSubscriptionPurchases,
 } from '@/features/subscriptions';
+import { registerWeeklyPlanSyncAppliers } from '@/features/weekly-plan/infrastructure/sync-appliers';
 import { registerWellnessSyncAppliers } from '@/features/wellness';
 import { registerProfileSyncAppliers } from '@/features/profile';
 import { initializeWelcomeGate } from '@/features/shell/application/welcome-gate';
@@ -28,6 +29,7 @@ registerNutritionSyncAppliers();
 registerWorkoutSyncAppliers();
 registerProgressSyncAppliers();
 registerWellnessSyncAppliers();
+registerWeeklyPlanSyncAppliers();
 // The welcome screen is owed once after each sign-in (ADR-P039 D5).
 initializeWelcomeGate();
 // Native: no screen paints before the brand faces are ready (ADR-P037).

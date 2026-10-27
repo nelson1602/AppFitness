@@ -45,6 +45,9 @@ const mockTx = inertExecutor();
 
 function mealItemRow(overrides: Partial<MealItemRow> = {}): MealItemRow {
   return {
+    plan_id: null,
+    plan_date: null,
+    plan_slot: null,
     id: 'uuid-3',
     user_id: USER,
     created_at: NOW,

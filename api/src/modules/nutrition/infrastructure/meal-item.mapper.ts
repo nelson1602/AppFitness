@@ -28,6 +28,9 @@ export function mealItemRowToRecord(row: MealItem): MealItemRecord {
     carbsPerServingSnapshot: row.carbsPerServingSnapshot,
     fatPerServingSnapshot: row.fatPerServingSnapshot,
     fiberPerServingSnapshot: row.fiberPerServingSnapshot,
+    planId: row.planId,
+    planDate: row.planDate,
+    planSlot: row.planSlot,
     version: row.version,
     syncSeq: Number(row.syncSeq),
     createdAt: row.createdAt,
@@ -58,6 +61,11 @@ export function mealItemToWire(
     carbs_per_serving_snapshot: record.carbsPerServingSnapshot,
     fat_per_serving_snapshot: record.fatPerServingSnapshot,
     fiber_per_serving_snapshot: record.fiberPerServingSnapshot,
+    plan_id: record.planId,
+    plan_date: record.planDate
+      ? record.planDate.toISOString().slice(0, 10)
+      : null,
+    plan_slot: record.planSlot,
     version: record.version,
     created_at: record.createdAt.toISOString(),
     updated_at: record.updatedAt.toISOString(),

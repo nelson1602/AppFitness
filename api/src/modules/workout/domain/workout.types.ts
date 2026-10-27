@@ -69,6 +69,9 @@ export interface WorkoutLogRecord {
   id: string;
   userId: string;
   routineId: string | null;
+  weeklyPlanId: string | null;
+  planSessionKey: string | null;
+  planDate: Date | null;
   name: string;
   notes: string | null;
   startedAt: Date;

@@ -262,6 +262,9 @@ describe('ADR-P030 C-2 — raw CREATE vs Prisma create field equivalence', () =>
         notes: null,
         startedAt: new Date('2026-04-02T10:00:00.000Z'),
         finishedAt: new Date('2026-04-02T11:00:00.000Z'),
+        weeklyPlanId: null,
+        planSessionKey: null,
+        planDate: null,
       };
       expect(
         await prisma.$transaction((tx) =>

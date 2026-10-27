@@ -79,16 +79,31 @@ const ADDED_BY_C6 = [
  * owns its shipped actionable treatment — so C-6 removed the two keys rather
  * than broadening the surface or bypassing the service to reach the queue.
  */
+/** The weekly-plan conflict labels (v8 Block 2, ADR-P042), tabulated in the deck. */
+const ADDED_BY_V8 = [
+  'sync.conflicts.record.weekly_plans',
+  'sync.conflicts.field.effective_from',
+  'sync.conflicts.field.generation_trigger',
+  'sync.conflicts.field.load_step',
+  'sync.conflicts.field.revision',
+  'sync.conflicts.value.planTrigger.firstRun',
+  'sync.conflicts.value.planTrigger.weekly',
+  'sync.conflicts.value.planTrigger.change',
+];
+
 const REMOVED_BY_C6 = ['sync.conflicts.actionNeededTitle', 'sync.conflicts.actionNeededBody'];
 
 describe('the approved C-5 deck reaches both catalogues unchanged', () => {
   const tabulated = approvedRows();
-  const rows = tabulated.filter((row) => !ADDED_BY_C6.includes(row.key));
+  const rows = tabulated.filter(
+    (row) => !ADDED_BY_C6.includes(row.key) && !ADDED_BY_V8.includes(row.key),
+  );
 
-  it('tabulates 157 rows — 150 surviving C-5 rows plus the 7 C-6 added', () => {
-    expect(tabulated).toHaveLength(157);
+  it('tabulates 165 rows — 150 surviving C-5 rows, the 7 C-6 added and 8 for v8', () => {
+    expect(tabulated).toHaveLength(165);
     expect(rows).toHaveLength(150);
-    expect(new Set(tabulated.map((row) => row.key)).size).toBe(157);
+    expect(new Set(tabulated.map((row) => row.key)).size).toBe(165);
+    expect(tabulated.map((row) => row.key)).toEqual(expect.arrayContaining(ADDED_BY_V8));
   });
 
   it('tabulates every key C-6 added, separately from the C-5 family', () => {
@@ -113,7 +128,7 @@ describe('the approved C-5 deck reaches both catalogues unchanged', () => {
     const approved = new Set(tabulated.map((row) => row.key));
     const shipped = Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'));
     expect(shipped.filter((key) => !approved.has(key))).toEqual([]);
-    expect(shipped).toHaveLength(157);
+    expect(shipped).toHaveLength(165);
   });
 
   it('ships neither action-needed key in either catalogue', () => {
@@ -152,17 +167,15 @@ describe('catalogue parity', () => {
   // evaluation card, notification times and the four tabs, minus 7 that the
   // pass left unreachable. It moved to 1265 on 2026-10-26, when the store
   // screenshot review added a short goal name per goal type (goal.typeShort.*)
-  // so Inicio's goal card keeps the weight whole. It moved to 1298 on
-  // 2026-10-26 with ADR-P041: 22 keys for the live password checklist and the
-  // "Verify your email" step, minus the retired 8-character message. It moved
-  // to 1298 with v8 Block 2: labels for the three new injury values, then
-  // to 1298: four avoid-tag labels and the allergy-block write error, then
-  // to 1298: the DateField copy (ADR-P043).
-  // None of these is in this family, so the 157-key conflict family below is unchanged.
-  it('reaches 1298 keys in each language — 1141 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1298);
-    expect(Object.keys(es)).toHaveLength(1298);
-    expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
+  // so Inicio's goal card keeps the weight whole. v8 then added, in order:
+  // ADR-P041's password checklist and "Verify your email" step (+21 net, 1286);
+  // labels for the three new injury values (+3, 1289); four avoid-tag labels
+  // and the allergy-block write error (+6, 1295); the DateField copy (+3,
+  // 1298); and the weekly-plan conflict labels (+8, 1306, in the family below).
+  it('reaches 1306 keys in each language — 1141 shipped plus a 165-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1306);
+    expect(Object.keys(es)).toHaveLength(1306);
+    expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(165);
   });
 
   it('translates every added key, bar the words that are the same in both', () => {

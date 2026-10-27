@@ -12,6 +12,10 @@ export interface MealItemCreateData {
   foodId: string;
   servingCount: number;
   snapshot: ServingSnapshot;
+  /** "Lo comí" link (ADR-P042 D6), optional for callers that log freely. */
+  planId?: string | null;
+  planDate?: Date | null;
+  planSlot?: string | null;
 }
 
 /**

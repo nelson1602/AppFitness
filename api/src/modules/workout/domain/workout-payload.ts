@@ -179,8 +179,55 @@ export function parseRoutineExerciseUpdate(
   };
 }
 
+// ── ADR-P042 plan links (nullable) ────────────────────────────────────────────
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function optionalUuid(value: unknown, field: string): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string' || !UUID.test(value))
+    throw new Error(`${field} must be a UUID`);
+  return value;
+}
+function optionalPlanDate(value: unknown, field: string): Date | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`${field} must be a YYYY-MM-DD calendar date`);
+  }
+  const d = new Date(`${value}T00:00:00.000Z`);
+  if (Number.isNaN(d.getTime()))
+    throw new Error(`${field} must be a valid calendar date`);
+  return d;
+}
+
+/** The planned session a workout fulfils (ADR-P042 D5); all three or none. */
+export interface WorkoutPlanLink {
+  weeklyPlanId: string | null;
+  planSessionKey: string | null;
+  planDate: Date | null;
+}
+function parsePlanLink(p: Record<string, unknown>): WorkoutPlanLink {
+  const weeklyPlanId = optionalUuid(p.weekly_plan_id, 'weekly_plan_id');
+  const key = p.plan_session_key;
+  if (
+    key !== null &&
+    key !== undefined &&
+    (typeof key !== 'string' || !/^[a-z0-9_.]{1,64}$/.test(key))
+  ) {
+    throw new Error('plan_session_key must be a session key');
+  }
+  const planDate = optionalPlanDate(p.plan_date, 'plan_date');
+  const planSessionKey = typeof key === 'string' ? key : null;
+  const set = [weeklyPlanId, planSessionKey, planDate].filter(
+    (v) => v !== null,
+  ).length;
+  if (set !== 0 && set !== 3)
+    throw new Error(
+      'a plan link needs weekly_plan_id, plan_session_key and plan_date',
+    );
+  return { weeklyPlanId, planSessionKey, planDate };
+}
+
 // ── workout_logs ──────────────────────────────────────────────────────────────
-export interface WorkoutLogCreateInput {
+export interface WorkoutLogCreateInput extends WorkoutPlanLink {
   routineId: string | null;
   name: string;
   notes: string | null;
@@ -197,9 +244,10 @@ export function parseWorkoutLogCreate(
     notes: optionalString(p.notes),
     startedAt: requireDate(p.started_at, 'started_at'),
     finishedAt: optionalDate(p.finished_at, 'finished_at'),
+    ...parsePlanLink(p),
   };
 }
-export interface WorkoutLogUpdateInput {
+export interface WorkoutLogUpdateInput extends WorkoutPlanLink {
   name: string;
   notes: string | null;
   startedAt: Date;
@@ -213,6 +261,7 @@ export function parseWorkoutLogUpdate(
     notes: optionalString(p.notes),
     startedAt: requireDate(p.started_at, 'started_at'),
     finishedAt: optionalDate(p.finished_at, 'finished_at'),
+    ...parsePlanLink(p),
   };
 }
 

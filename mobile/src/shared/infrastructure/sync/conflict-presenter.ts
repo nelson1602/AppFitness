@@ -199,6 +199,19 @@ const PRESENTERS: Readonly<Record<string, EntityPresenter>> = {
     hidden: [],
     dateBasis: 'week_start',
   },
+  // ADR-P042: a saved plan revision. Its content is engine output, reviewed
+  // by week and revision, never field by field.
+  weekly_plans: {
+    fields: [
+      { field: 'week_start', kind: 'date' },
+      { field: 'revision', kind: 'number' },
+      { field: 'effective_from', kind: 'date' },
+      { field: 'generation_trigger', kind: 'enum' },
+      { field: 'load_step', kind: 'number' },
+    ],
+    hidden: [],
+    dateBasis: 'week_start',
+  },
   dietary_preferences: {
     fields: [
       { field: 'exclusion_type', kind: 'enum' },
@@ -287,8 +300,9 @@ const PRESENTERS: Readonly<Record<string, EntityPresenter>> = {
 const ENTITY_STRUCTURAL_KEYS: Readonly<Record<string, readonly string[]>> = {
   routine_exercises: ['routine_id', 'exercise_id'],
   workout_sets: ['workout_log_id', 'exercise_id'],
-  workout_logs: ['routine_id'],
-  meal_items: ['meal_id', 'food_id'],
+  workout_logs: ['routine_id', 'weekly_plan_id', 'plan_session_key', 'plan_date'],
+  meal_items: ['meal_id', 'food_id', 'plan_id', 'plan_date', 'plan_slot'],
+  weekly_plans: ['inputs_fingerprint', 'rule_versions', 'plan', 'notes'],
 };
 
 /** Exported for the scope spec, which checks the list against the registry. */

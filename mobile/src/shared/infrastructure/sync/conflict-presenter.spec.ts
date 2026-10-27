@@ -85,6 +85,7 @@ describe('the allow-list covers exactly the registered entity types', () => {
     'body_measurements',
     'progress_snapshots',
     'wellness_safety_profiles',
+    'weekly_plans',
   ];
 
   it('presents every registered entity type and nothing more', () => {
