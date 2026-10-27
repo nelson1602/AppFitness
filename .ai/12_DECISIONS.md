@@ -9580,7 +9580,7 @@ treated as legacy-unverified. **No account is locked out**, and **no
 `PENDING_VERIFICATION` value is added to `UserStatus`** — a nullable timestamp is
 sufficient and avoids changing a shipped enum consumed across sync.
 
-**11. Unverified-user policy — soft gate.** New and unverified users keep **core
+**11. Unverified-user policy — soft gate.** *(Superseded 2026-10-26 by **ADR-P041 Decision 2**: verification is now mandatory and enforced by the server.)* New and unverified users keep **core
 app access** and receive a **persistent reminder**. Verification becomes
 **mandatory before any future email report or account-notification feature**, not
 before ordinary use.
@@ -14970,6 +14970,67 @@ The prototype's implementation has known defects: substring matching, notes that
 ### Related Documents
 
 ADR-0007, ADR-P012, ADR-P013, ADR-P014, ADR-P015, ADR-P031, ADR-P038, `.ai/07_ICOACH.md`, `docs/design/GAP_ANALYSIS.md`
+
+---
+
+
+## ADR-P041 — Mandatory Email Verification and Account Password Policy
+
+Status: Accepted
+Date: 2026-10-26
+Accepted: 2026-10-26 by the project owner (v8 release scope, Block 1).
+Owner: Security / Authentication / Mobile
+Supersedes: ADR-P026 Decision 11 (soft gate). Refines ADR-P026 Decision 10 (legacy accounts) and the register/reset DTO password rule (8–128 characters).
+
+### Context
+
+The versionCode 6 Android test showed that a new account can use the whole app without ever proving it owns its email address, and that any 8-character password is accepted. For v8 the owner decided on 2026-10-26:
+
+- a password needs at least 8 characters with an uppercase letter, a lowercase letter, a number and a symbol, in the API and in the app, with a live checklist under the field;
+- email verification becomes mandatory: after sign-up nobody enters the app until the address is verified, and existing unverified accounts get the same screen at their next sign-in;
+- the server enforces it now, because v6 is an internal test build only.
+
+ADR-P026 Decision 11 had made verification a soft gate, with a persistent reminder. Verification delivery has been live in both environments since V2-E (2026-09-04), so the prerequisite for a hard gate exists.
+
+### Decision
+
+1. **Password policy.**
+   - A new password is 8–128 characters and contains at least one uppercase letter, one lowercase letter, one digit and one symbol.
+   - Letters are detected by case mapping, so "Ñ" and "á" are letters. A symbol is any character that is not a letter, digit or whitespace.
+   - The API is authoritative: `api/src/modules/auth/domain/password-policy.ts`, applied by `@IsAccountPassword()` on `RegisterDto` and `ResetPasswordDto`. The 400 message names the policy, never the value.
+   - The app mirrors it exactly in `mobile/src/features/authentication/domain/password-policy.ts`. Both specs assert the same vectors.
+   - Sign-in is unchanged. Accounts created before the policy keep signing in with their existing password; the policy applies at the next reset.
+2. **Mandatory verification, enforced by the server.**
+   - A global `EmailVerifiedGuard` runs after `JwtAuthGuard`. An authenticated account with `emailVerifiedAt = NULL` is refused with `403 {"code":"EMAIL_NOT_VERIFIED"}`.
+   - Exempt: `@Public()` routes and the routes marked `@AllowUnverifiedEmail()`, which are `GET /auth/me`, `POST /auth/resend-verification` and `DELETE /auth/account`. Refresh, logout, verify-email, forgot/reset password and the provider webhook are already public.
+   - The state is read from the database on each request, not from a token claim, so opening the link on any device unlocks the account at once, with the same access token.
+   - Fail closed: a token whose account no longer exists gets 401.
+3. **The app's single access gate.**
+   - `requiredAccessStep(user)` returns `verify-email` or `app`. A user saved by an older build without the field counts as unverified.
+   - Sign-up, sign-in and the launch redirect go straight to `/verify-pending` when a step is owed. `AccessGateRedirect` in the root layout moves the account off any other route (a deep link, a restored stack, a typed Web URL).
+   - The v8 first-run evaluation (Block 2) is added to this same gate as its next step.
+4. **"Verifica tu correo" (`/verify-pending`).**
+   - A stage screen that names the address and offers:
+     - **Ya lo verifiqué**: re-reads `/auth/me`, rotating an expired access token once. The answer is "continue", "not verified yet", or "couldn't check" on a connectivity failure, which is never reported as "not verified".
+     - **Reenviar correo**: in the app's language, with a 60-second cooldown. The cooldown starts right after sign-up, because registration has just sent the first email.
+     - **Usar otra cuenta**: signs out.
+   - On mount, and whenever the app returns to the foreground, it re-checks silently, so opening the link in the mail app is normally enough.
+   - Registration now sends the app's language, so the first email matches it.
+5. **Existing accounts (Decision 10 refined).** Legacy-unverified accounts are gated, not locked out. They see the same screen at their next sign-in and can resend. No migration and no new `UserStatus` value.
+6. **The ADR-P026 reminder card** in Perfil stays in the code but can no longer render, because no unverified account reaches Perfil. It is removed in a follow-up cleanup.
+7. **Test harness.** API e2e specs that are not about verification mark their disposable accounts verified through Prisma (`api/test/support/mark-email-verified.ts`). The mobile E2E harness uses `mobile/e2e/verify-email.mjs`, which refuses any non-local database host, followed by the new `registration-verified.yml` flow. The verification flow itself stays covered end to end through the emailed token.
+
+### Consequences
+
+- **Positive:** every account that uses the app has a reachable, owned address for recovery, and weak new passwords are refused on both sides.
+- **Negative / risks:**
+  - When verification mail is unavailable (`MAIL_VERIFICATION_BASE_URL` unset, or a Postmark outage), new accounts cannot get in. Both environments deliver today. Delivery is now on the critical path and has to be monitored.
+  - Merging deploys to Railway Development and Production together. Unverified v6 test accounts start getting 403 on sync and profile calls. The Google Play reviewer account must be verified before the merge, using an inbox the owner controls.
+  - An account verified on another device while this phone is offline stays on the verification screen until the phone is back online, because the server is the only authority.
+
+### Related Documents
+
+ADR-P026, ADR-P029, ADR-P030 C-1, `.ai/05_SECURITY.md`, `.ai/17_PRODUCT_FLOWS.md` §2.4, `.ai/11_BACKLOG.md` FEATURE-016
 
 ---
 

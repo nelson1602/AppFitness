@@ -1,0 +1,48 @@
+# ADR-P041 — the second half of registration.yml, run after the harness has
+# marked the disposable account verified on the LOCAL database:
+#   node e2e/verify-email.mjs <email>
+#   maestro test .maestro/registration-verified.yml
+# "I've verified it" re-reads the account and continues into the app.
+appId: com.appfitnessrd.mobile
+---
+- extendedWaitUntil:
+    visible:
+      id: 'button-verify-confirm'
+    timeout: 30000
+- tapOn:
+    id: 'button-verify-confirm'
+# ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
+# off under reduced motion (an emulator with animations off reports it), so
+# the flow continues explicitly.
+- extendedWaitUntil:
+    visible:
+      id: 'welcome-continue'
+    timeout: 90000
+- tapOn:
+    id: 'welcome-continue'
+
+# Registration hits the local API, then routes to the dashboard. A brand-new
+# account has no assessment, so the dashboard resolves to its `empty` state and
+# renders the ADR-P027 onboarding checklist. "Complete your basic info" belongs to
+# `DataGapCard`, which renders only once the assessment is `ready` — asserting
+# it here is what made this flow stale.
+#
+# The checklist also sits below the verification reminder and the wellness
+# recommendation card, so on a phone viewport it is below the fold and must be
+# scrolled to rather than merely waited for.
+- extendedWaitUntil:
+    visible:
+      id: 'tab-dashboard'
+    timeout: 45000
+# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+- tapOn:
+    id: 'tab-profile'
+- scrollUntilVisible:
+    element:
+      id: 'onboarding-step-profile'
+    timeout: 30000
+- assertVisible:
+    id: 'onboarding-step-profile'
+
+# Dev-only seed action must not exist in release builds.
+- assertNotVisible: 'Load sample data'

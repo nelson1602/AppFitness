@@ -48,6 +48,7 @@ export function register(input: {
   email: string;
   username: string;
   password: string;
+  locale?: string;
 }): Promise<AuthResponse> {
   return post<AuthResponse>('/auth/register', input);
 }

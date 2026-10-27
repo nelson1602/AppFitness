@@ -8,6 +8,7 @@ import { App } from 'supertest/types';
 
 import { AppModule } from './../src/app.module';
 import { PrismaService } from './../src/modules/database/prisma.service';
+import { markEmailVerified } from './support/mark-email-verified';
 
 jest.setTimeout(45_000);
 
@@ -39,13 +40,14 @@ describe('ADR-P030 C-3 conflict resolution (e2e)', () => {
       .send({
         email: `c3-${tag}-${suffix}@appfitness.local`,
         username: `c3${tag}${suffix}`.slice(0, 28),
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     const body = response.body as {
       accessToken: string;
       user: { id: string };
     };
+    await markEmailVerified(prisma, body.user.id);
     return { id: body.user.id, token: body.accessToken };
   }
 

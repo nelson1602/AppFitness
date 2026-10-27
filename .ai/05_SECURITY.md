@@ -100,6 +100,14 @@ Passwords must be hashed using:
 
 - Argon2
 
+New passwords (registration and reset) must be 8–128 characters and contain an uppercase letter, a lowercase letter, a number and a symbol. The API is authoritative and the app mirrors the rule for its live checklist (ADR-P041 D1). Sign-in does not re-validate existing passwords.
+
+## Email verification (ADR-P041 D2)
+
+- Verification is mandatory. A global guard after the JWT guard refuses every authenticated route with 403 `EMAIL_NOT_VERIFIED` while `emailVerifiedAt` is null. The only exceptions are `GET /auth/me`, resend-verification and account deletion (`@AllowUnverifiedEmail()`), plus the public routes.
+- The state is read from the database per request, never from a token claim.
+- The app's access gate is UX only; the server is the authority.
+
 ---
 
 # Session Management

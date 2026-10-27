@@ -122,7 +122,7 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
   async function registerUser(): Promise<Registered> {
     const suffix = `${Date.now()}${Math.floor(Math.random() * 1e6)}`;
     const email = `e2e-recovery-${suffix}@appfitness.local`;
-    const password = 'disposable-pw-12345';
+    const password = 'Disposable-pw-12345';
     const res = await http()
       .post('/auth/register')
       .set('X-Forwarded-For', nextClient())
@@ -275,13 +275,13 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
       await forgot(user.email).expect(202);
       const raw = await emailedToken();
 
-      await reset(raw, 'brand-new-password-1').expect(204);
+      await reset(raw, 'Brand-new-password-1').expect(204);
 
       // The new password works.
       await http()
         .post('/auth/login')
         .set('X-Forwarded-For', nextClient())
-        .send({ email: user.email, password: 'brand-new-password-1' })
+        .send({ email: user.email, password: 'Brand-new-password-1' })
         .expect(200);
 
       // The old one does not.
@@ -314,8 +314,8 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
       await forgot(user.email).expect(202);
       const raw = await emailedToken();
 
-      await reset(raw, 'brand-new-password-1').expect(204);
-      const replay = await reset(raw, 'another-password-2');
+      await reset(raw, 'Brand-new-password-1').expect(204);
+      const replay = await reset(raw, 'Another-password-2');
 
       expect(replay.status).toBe(400);
       expect((replay.body as { message: string }).message).toBe(
@@ -326,7 +326,7 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
       await http()
         .post('/auth/login')
         .set('X-Forwarded-For', nextClient())
-        .send({ email: user.email, password: 'brand-new-password-1' })
+        .send({ email: user.email, password: 'Brand-new-password-1' })
         .expect(200);
     });
 
@@ -340,7 +340,7 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
         data: { expiresAt: new Date(Date.now() - 1_000) },
       });
 
-      await reset(raw, 'brand-new-password-1').expect(400);
+      await reset(raw, 'Brand-new-password-1').expect(400);
       await http()
         .post('/auth/login')
         .set('X-Forwarded-For', nextClient())
@@ -360,17 +360,17 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
       expect(second).not.toBe(first);
 
       await reset(first, 'should-not-apply-1').expect(400);
-      await reset(second, 'brand-new-password-2').expect(204);
+      await reset(second, 'Brand-new-password-2').expect(204);
 
       await http()
         .post('/auth/login')
         .set('X-Forwarded-For', nextClient())
-        .send({ email: user.email, password: 'brand-new-password-2' })
+        .send({ email: user.email, password: 'Brand-new-password-2' })
         .expect(200);
     });
 
     it('answers the same generic 400 for an unknown token', async () => {
-      const unknown = await reset('a'.repeat(43), 'brand-new-password-1');
+      const unknown = await reset('a'.repeat(43), 'Brand-new-password-1');
       expect(unknown.status).toBe(400);
       expect((unknown.body as { message: string }).message).toBe(
         'Invalid or expired reset token',
@@ -452,11 +452,11 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
         await reset(dead, 'should-not-apply-9').expect(400);
       }
 
-      await reset(survivor as string, 'brand-new-password-9').expect(204);
+      await reset(survivor as string, 'Brand-new-password-9').expect(204);
       await http()
         .post('/auth/login')
         .set('X-Forwarded-For', nextClient())
-        .send({ email: user.email, password: 'brand-new-password-9' })
+        .send({ email: user.email, password: 'Brand-new-password-9' })
         .expect(200);
     });
 
@@ -506,7 +506,7 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
       const user = await registerUser();
       await forgot(user.email).expect(202);
       const raw = await emailedToken();
-      await reset(raw, 'brand-new-password-3').expect(204);
+      await reset(raw, 'Brand-new-password-3').expect(204);
 
       // The index constrains only simultaneously-active rows, so recovery can
       // be used again later.
@@ -600,7 +600,7 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
       const user = await registerUser();
       await forgot(user.email).expect(202);
       const raw = await emailedToken();
-      await reset(raw, 'brand-new-password-1').expect(204);
+      await reset(raw, 'Brand-new-password-1').expect(204);
 
       const rows = await prisma.auditLog.findMany({
         where: { userId: user.userId },
@@ -614,7 +614,7 @@ describe('Password recovery (e2e, ADR-P026 Vertical 1)', () => {
       const serialized = JSON.stringify(rows);
       expect(serialized).not.toContain(raw);
       expect(serialized).not.toContain(user.email);
-      expect(serialized).not.toContain('brand-new-password-1');
+      expect(serialized).not.toContain('Brand-new-password-1');
       const hashes = await prisma.passwordResetToken.findMany({
         where: { userId: user.userId },
         select: { tokenHash: true },
@@ -691,7 +691,7 @@ describe('Password recovery with mail disabled (e2e, ADR-P026)', () => {
       .send({
         email,
         username: `e2edis${suffix}`.slice(0, 30),
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     createdUserIds.push((registered.body as { user: { id: string } }).user.id);
@@ -718,7 +718,7 @@ describe('Password recovery with mail disabled (e2e, ADR-P026)', () => {
       .send({
         email,
         username: `e2edis2${suffix}`.slice(0, 30),
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     const userId = (registered.body as { user: { id: string } }).user.id;

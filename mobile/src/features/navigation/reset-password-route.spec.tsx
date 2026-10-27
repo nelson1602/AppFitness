@@ -211,12 +211,12 @@ describe('ResetPasswordScreen', () => {
       }
 
       // The in-memory copy still works after the URL was rewritten.
-      await fill('brand-new-password');
+      await fill('Brand-new-pass-1!');
       await submit();
       await waitFor(() =>
         expect(mockReset).toHaveBeenCalledWith({
           token: 'token-from-email',
-          password: 'brand-new-password',
+          password: 'Brand-new-pass-1!',
         }),
       );
       expect(await screen.findByText(success)).toBeTruthy();
@@ -236,13 +236,13 @@ describe('ResetPasswordScreen', () => {
   it('submits the token from the link with the new password', async () => {
     await render(<ResetPasswordScreen />);
 
-    await fill('brand-new-password');
+    await fill('Brand-new-pass-1!');
     await submit();
 
     await waitFor(() =>
       expect(mockReset).toHaveBeenCalledWith({
         token: 'raw-token-from-link',
-        password: 'brand-new-password',
+        password: 'Brand-new-pass-1!',
       }),
     );
   });
@@ -251,7 +251,7 @@ describe('ResetPasswordScreen', () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     await render(<ResetPasswordScreen />);
 
-    await fill('brand-new-password');
+    await fill('Brand-new-pass-1!');
     await submit();
 
     expect(await screen.findByText('Password changed')).toBeTruthy();
@@ -265,14 +265,16 @@ describe('ResetPasswordScreen', () => {
     await fill('short');
     await submit();
 
-    expect(await screen.findByText('Use at least 8 characters.')).toBeTruthy();
+    expect(
+      await screen.findByText("Your password doesn't meet every requirement yet."),
+    ).toBeTruthy();
     expect(mockReset).not.toHaveBeenCalled();
   });
 
   it('requires both entries to match', async () => {
     await render(<ResetPasswordScreen />);
 
-    await fill('brand-new-password', 'brand-new-passwerd');
+    await fill('Brand-new-pass-1!', 'Brand-new-pass-2!');
     await submit();
 
     expect(await screen.findByText('Both passwords must match.')).toBeTruthy();
@@ -300,7 +302,7 @@ describe('ResetPasswordScreen', () => {
     mockReset.mockRejectedValue(new PasswordRecoveryError(reason));
     await render(<ResetPasswordScreen />);
 
-    await fill('brand-new-password');
+    await fill('Brand-new-pass-1!');
     await submit();
 
     expect(await screen.findByText(title)).toBeTruthy();
@@ -313,7 +315,7 @@ describe('ResetPasswordScreen', () => {
     mockReset.mockRejectedValue(new Error('token raw-token-from-link rejected'));
     await render(<ResetPasswordScreen />);
 
-    await fill('brand-new-password');
+    await fill('Brand-new-pass-1!');
     await submit();
 
     expect(await screen.findByText('Something went wrong')).toBeTruthy();
@@ -323,7 +325,7 @@ describe('ResetPasswordScreen', () => {
   it('clears both password fields after a successful reset', async () => {
     await render(<ResetPasswordScreen />);
 
-    await fill('brand-new-password');
+    await fill('Brand-new-pass-1!');
     await submit();
     await screen.findByText('Password changed');
 
@@ -338,7 +340,7 @@ describe('ResetPasswordScreen', () => {
     await render(<ResetPasswordScreen />);
 
     expect(screen.getByText('Elige una nueva contraseña')).toBeTruthy();
-    await fill('brand-new-password');
+    await fill('Brand-new-pass-1!');
     await submit();
     expect(await screen.findByText('Contraseña cambiada')).toBeTruthy();
   });

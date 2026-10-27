@@ -826,6 +826,94 @@ describe('Email verification (e2e, ADR-P026 Vertical 2)', () => {
     });
   });
 
+  describe('mandatory verification gate (ADR-P041 Decision 2)', () => {
+    const get = (path: string, token: string) =>
+      request(app.getHttpServer())
+        .get(path)
+        .set('Authorization', `Bearer ${token}`)
+        .set('X-Forwarded-For', nextClient());
+
+    it('refuses data routes with 403 EMAIL_NOT_VERIFIED until verified', async () => {
+      const user = await register(nextClient());
+
+      for (const path of [
+        '/users/me/profile',
+        '/sync/pull',
+        '/subscriptions/status',
+      ]) {
+        const refused = await get(path, user.accessToken).expect(403);
+        expect(refused.body).toEqual({
+          statusCode: 403,
+          code: 'EMAIL_NOT_VERIFIED',
+          message: 'Verify your email address to continue',
+        });
+      }
+    });
+
+    it('keeps the verification flow and account exit reachable while unverified', async () => {
+      const user = await register(nextClient());
+
+      await get('/auth/me', user.accessToken).expect(200);
+      await request(app.getHttpServer())
+        .post('/auth/resend-verification')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .set('X-Forwarded-For', nextClient())
+        .send({})
+        .expect(202);
+      await request(app.getHttpServer())
+        .delete('/auth/account')
+        .set('Authorization', `Bearer ${user.accessToken}`)
+        .set('X-Forwarded-For', nextClient())
+        .expect(204);
+    });
+
+    it('unlocks immediately after verification, with the same access token', async () => {
+      const user = await register(nextClient());
+      await get('/sync/pull', user.accessToken).expect(403);
+
+      await request(app.getHttpServer())
+        .post('/auth/verify-email')
+        .set('X-Forwarded-For', nextClient())
+        .send({ token: tokenFromLastMail() })
+        .expect(204);
+
+      const pulled = await get('/sync/pull', user.accessToken);
+      expect(pulled.status).not.toBe(403);
+    });
+
+    it('gates a legacy-unverified account the same way', async () => {
+      const user = await register(nextClient());
+      // A pre-ADR-P041 account: verified flag never set, no open token.
+      await prisma.emailVerificationToken.deleteMany({
+        where: { userId: user.id },
+      });
+      await get('/users/me/profile', user.accessToken).expect(403);
+    });
+  });
+
+  describe('password policy (ADR-P041 Decision 1)', () => {
+    it.each([
+      ['too short', 'Ab1!xyz'],
+      ['no uppercase', 'abcdef1!'],
+      ['no lowercase', 'ABCDEF1!'],
+      ['no digit', 'Abcdefg!'],
+      ['no symbol', 'Abcdefg1'],
+      ['too long', `Ab1!${'x'.repeat(125)}`],
+    ])('rejects a registration password with %s', async (_label, weak) => {
+      const unique = `${Date.now()}${Math.floor(Math.random() * 100000)}`;
+      const response = await request(app.getHttpServer())
+        .post('/auth/register')
+        .set('X-Forwarded-For', nextClient())
+        .send({
+          email: `weak.${unique}@example.test`,
+          username: `weak${unique}`.slice(0, 30),
+          password: weak,
+        })
+        .expect(400);
+      expect(JSON.stringify(response.body)).not.toContain(weak);
+    });
+  });
+
   describe('no leakage', () => {
     it('keeps the raw token out of every audit row for the account', async () => {
       const user = await register(nextClient());

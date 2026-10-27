@@ -8,7 +8,7 @@
 // Env:
 //   E2E_API_URL   (default http://127.0.0.1:3001)
 //   E2E_EMAIL     (default demo@appfitness.local — must match the flow)
-//   E2E_PASSWORD  (default password12345 — the dev prefill)
+//   E2E_PASSWORD  (default Password-12345 — meets the ADR-P041 policy)
 //
 // Seeds profile + wellness progress + goal for the seeded-pull flow
 // (dashboard-sync.yml). The device-side onboarding-loop flow needs no seed
@@ -19,7 +19,7 @@ import { randomUUID } from 'node:crypto';
 
 const API = process.env.E2E_API_URL ?? 'http://127.0.0.1:3001';
 const EMAIL = process.env.E2E_EMAIL ?? 'demo@appfitness.local';
-const PASSWORD = process.env.E2E_PASSWORD ?? 'password12345';
+const PASSWORD = process.env.E2E_PASSWORD ?? 'Password-12345';
 
 async function request(method, path, body, token) {
   const response = await fetch(`${API}${path}`, {

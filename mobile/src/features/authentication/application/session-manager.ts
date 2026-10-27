@@ -316,6 +316,8 @@ export function signUp(input: {
   email: string;
   username: string;
   password: string;
+  /** Language of the verification email sent at registration (ADR-P026). */
+  locale?: string;
 }): Promise<AuthAttemptOutcome> {
   return attemptAuth('register', () => authApi.register(input));
 }

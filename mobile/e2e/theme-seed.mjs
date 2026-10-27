@@ -33,14 +33,15 @@
 // Env / flags:
 //   THEME_API_URL   (default http://127.0.0.1:3001)
 //   THEME_EMAIL     (default theme@appfitness.local)
-//   THEME_PASSWORD  (default password12345)
+//   THEME_PASSWORD  (default Password-12345 — meets the ADR-P041 policy)
 //   --anchor=YYYY-MM-DD
 
 import { randomUUID } from 'node:crypto';
+import { markEmailVerified } from './verify-email.mjs';
 
 const API = process.env.THEME_API_URL ?? 'http://127.0.0.1:3001';
 const EMAIL = process.env.THEME_EMAIL ?? 'theme@appfitness.local';
-const PASSWORD = process.env.THEME_PASSWORD ?? 'password12345';
+const PASSWORD = process.env.THEME_PASSWORD ?? 'Password-12345';
 
 const args = Object.fromEntries(
   process.argv.slice(2).map((pair) => {
@@ -135,6 +136,9 @@ async function createAccount() {
       password: PASSWORD,
     });
     say('register', { account: 'created' });
+    // ADR-P041: data routes need a verified address (local disposable DB only).
+    markEmailVerified(EMAIL);
+    say('verify-email', { account: 'verified' });
   } catch (error) {
     if (error.status === 409) {
       // No address, id or token in the message — only what to do about it.

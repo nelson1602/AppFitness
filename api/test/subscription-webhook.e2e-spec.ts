@@ -8,6 +8,7 @@ import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureHttpHardening } from '../src/config/http-hardening.config';
 import { PrismaService } from '../src/modules/database/prisma.service';
+import { markEmailVerified } from './support/mark-email-verified';
 import {
   ENTITLEMENT_PROVIDER,
   type EntitlementProvider,
@@ -95,18 +96,19 @@ describe('RevenueCat webhook (e2e)', () => {
       .send({
         email: `subscription-${suffix}@appfitness.local`,
         username: `subscription${suffix}`,
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     userId = (registration.body as { user: { id: string } }).user.id;
     accessToken = (registration.body as { accessToken: string }).accessToken;
+    await markEmailVerified(prisma, userId);
 
     const transferRegistration = await request(app.getHttpServer())
       .post('/auth/register')
       .send({
         email: `subscription-transfer-${suffix}@appfitness.local`,
         username: `subx${suffix}`,
-        password: 'disposable-pw-12345',
+        password: 'Disposable-pw-12345',
       })
       .expect(201);
     transferUserId = (transferRegistration.body as { user: { id: string } })
