@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { AccessGateRedirect } from '@/features/authentication/presentation/access-gate-redirect';
+import { registerDayRollover } from '@/features/dashboard/application/use-home-data';
 import { EvaluationGateRedirect } from '@/features/evaluation/presentation/evaluation-gate-redirect';
 import { registerNutritionSyncAppliers } from '@/features/nutrition';
 import { registerProgressSyncAppliers } from '@/features/progress';
@@ -14,6 +15,7 @@ import { registerWellnessSyncAppliers } from '@/features/wellness';
 import { registerProfileSyncAppliers } from '@/features/profile';
 import { initializeWelcomeGate } from '@/features/shell/application/welcome-gate';
 import { registerWorkoutSyncAppliers } from '@/features/workout';
+import { startLocalDayWatch } from '@/shared/application/local-day';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
 import { DocumentHead, useLocalization } from '@/shared/localization';
 import { holdSplashForBrandFonts, useBrandFonts, useTheme } from '@/shared/theme';
@@ -33,6 +35,9 @@ registerWellnessSyncAppliers();
 registerWeeklyPlanSyncAppliers();
 // The welcome screen is owed once after each sign-in (ADR-P039 D5).
 initializeWelcomeGate();
+// BUG-045: "today" follows the local day while the app stays open.
+registerDayRollover();
+startLocalDayWatch();
 // Native: no screen paints before the brand faces are ready (ADR-P037).
 holdSplashForBrandFonts();
 

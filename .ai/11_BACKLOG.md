@@ -3400,7 +3400,7 @@ The server still accepts the same refresh token concurrently and issues siblings
 
 ## [BUG-045] "Today" Does Not Roll Over While the App Stays Open
 
-Status: Open (found in v8 Block 3 review, not fixed)
+Status: Fixed in v8 Block 3 (PR #242)
 Priority: P2
 Type: Bug
 Owner: Engineering
@@ -3415,8 +3415,12 @@ A person who keeps the app open past midnight sees yesterday's date and plan unt
 
 ### Acceptance Criteria
 
-- [ ] Returning to the foreground on a new local day reloads the day-bound data (header date, today's session and meals, the week when Monday passes)
-- [ ] A regression test covers the day change while the app stays mounted
+### Fix
+
+`shared/application/local-day.ts` keeps the local day in a small store, checked when the app returns to the foreground and by a timer set for just past the next local midnight. A new day re-renders the header and `useHomeData`, and `registerDayRollover` reloads the food log on the new date, the stores behind `loadHomeData` (the weekly plan included) and the dashboard. The food log also used the UTC date as "today" (it turned at 20:00 in the Dominican Republic); it now uses the local day.
+
+- [x] Returning to the foreground on a new local day reloads the day-bound data (header date, today's session and meals, the week when Monday passes)
+- [x] A regression test covers the day change while the app stays mounted
 
 ---
 

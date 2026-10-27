@@ -7,6 +7,7 @@ import {
   requireSessionSnapshot,
   type SessionSnapshot,
 } from '@/features/authentication';
+import { localDayOf } from '@/shared/application/local-day';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
@@ -73,8 +74,9 @@ const EMPTY_TOTALS: ConsumedMacros = {
   fiberG: null,
 };
 
+/** The device's local calendar day (BUG-045: the UTC date turned at 20:00 in the DR). */
 function today(): string {
-  return new Date().toISOString().slice(0, 10);
+  return localDayOf(new Date());
 }
 
 /** Derive the pending/conflict/action-required summary from the loaded items. */
