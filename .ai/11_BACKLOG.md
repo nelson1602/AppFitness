@@ -3398,6 +3398,38 @@ The server still accepts the same refresh token concurrently and issues siblings
 
 ---
 
+## [BUG-044] Logged Foods Never Reach the Server (Parent Meals Are Never Synced)
+
+Status: Open — found 2026-10-27 in the v8 Block 2 emulator review; predates v8
+Priority: P1
+Type: Bug
+Owner: Engineering (fix); Project owner (scheduling)
+Created: 2026-10-27
+Updated: 2026-10-27
+
+### Description
+
+ADR-P012 specifies three nutrition sync entities: `nutrition_logs`, `meals` and `meal_items`. Only the `meal_items` handler exists on the server, and the app never enqueues its `nutrition_logs` or `meals` rows. `ensureNutritionLog`/`ensureMeal` insert them locally as `pending` with no queue entry.
+
+The server's `meal_items` CREATE requires the parent meal, so every logged food fails with the retryable `DEPENDENCY_NOT_READY` and retries forever. Food logs are therefore device-only. On the local review database, `meal_items` and `meals` are empty for every account; `main` has the same code.
+
+Consequences:
+- A reinstall or a second device loses every food log.
+- v8's "Lo comí" links and the meal half of weekly adherence (ADR-P042) are device-only for the same reason. The weekly plans themselves, workout links, profile, goal, wellness and preferences do sync (verified 2026-10-27).
+
+### Expected Outcome
+
+Logged foods, with their plan links, sync like every other user-owned row.
+
+### Acceptance Criteria
+
+- [ ] Server `EntitySyncHandler`s for `nutrition_logs` and `meals` (ownership, version/conflict, pull by `sync_seq`)
+- [ ] The app enqueues the parent CREATEs in the same transaction as the first item, in causal order
+- [ ] Mobile appliers for both parents; existing local rows are backfilled into the queue by a forward migration
+- [ ] e2e: log a food, sync, reinstall, pull → the item and its plan link come back
+
+---
+
 ## [BUG-042] Android Sign-in Shows "Unexpected" Instead of "No Connection" When the API Is Unreachable
 
 Status: Needs Triage
@@ -6008,6 +6040,7 @@ The versionCode 6 Android test did not match `docs/design/appfitnessrd-prototipo
 * The ADR-P026 Perfil reminder card is unreachable and is removed in a cleanup.
 * Block 2: the injury→exercise map is applied conservatively and still needs the qualified review ADR-P031 D4 requires (`docs/design/INJURY_EXERCISE_MAP.md`).
 * Block 2: a returning account on a fresh install that is offline at first launch sees the evaluation again (the gate pulls once first); saving it would create local rows that can collide with the server copies on the next sync. How that collision resolves has not been tested yet.
+* Block 2: logged foods never sync (BUG-044, predates v8), so "Lo comí" links and the meal half of weekly adherence stay on the device until it is fixed.
 * Block 2: `.maestro/onboarding-loop.yml` still drives the pre-v8 dashboard gap actions; a new account now completes the evaluation in `registration-verified.yml`, so the loop needs rewriting to the wizard before it is run again.
 
 ### Related Documents
