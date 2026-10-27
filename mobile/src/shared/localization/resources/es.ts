@@ -977,7 +977,6 @@ export const es = {
   'workout.log.removeSetAccessibility': 'Eliminar serie',
   'nutrition.routeTitle': 'Nutrición',
   'nutrition.plan.routeTitle': 'Plan alimentario',
-  'nutrition.plan.title': 'Plan alimentario de 15 días',
   'nutrition.plan.subtitle':
     'Un plan de comidas creado con tus metas de iCoach y nuestra lista de alimentos.',
   'nutrition.plan.logToday': 'Registrar comida de hoy',
@@ -1005,10 +1004,8 @@ export const es = {
   'nutrition.plan.dinner': 'Cena',
   'nutrition.plan.snack': 'Merienda',
   'nutrition.plan.meal': 'comida',
-  'nutrition.plan.mealTotal': 'Total de la comida',
   'nutrition.plan.savedWeek': 'Plan de esta semana. Se renueva el lunes.',
   'nutrition.plan.previewBadge': 'Puede ajustarse el lunes',
-  'nutrition.plan.ate': 'Lo comí',
   'nutrition.plan.ateAccessibility': 'Lo comí: registrar {meal} del plan',
   'nutrition.plan.eaten': 'Comido ✓',
   'nutrition.plan.adjusted': 'Ajustado por iCoach: {from} → {to}',
