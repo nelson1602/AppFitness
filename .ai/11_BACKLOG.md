@@ -9234,6 +9234,63 @@ renderHook wave.
 
 ---
 
+## [TEST-006] Owner iPhone Testing Path (SDK 57 vs Expo Go on iOS)
+
+Status: Proposed — **awaiting owner decision**
+Priority: P2
+Type: Testing / Release tooling
+Owner: Project owner (decision) · Engineering (delivery)
+Created: 2026-10-22
+Updated: 2026-10-22
+
+### Description
+
+The owner cannot run the app on their iPhone. The app is on Expo SDK 57
+(`expo` 57.0.13, React Native 0.86.3), and the owner reports that Expo Go on
+their iPhone runs only SDK 58. This item is separate from the redesign phases.
+
+**Facts checked 2026-10-22 (Expo's own pages):**
+
+- Expo SDK 58 was released on 2026-10-15. It upgrades React Native from 0.86 to 0.88, and its notes say Expo Go for SDK 58 would reach the App Store "within a few weeks".
+- Expo Go supports only one SDK at a time on a physical iPhone. Expo's troubleshooting page (modified 2026-09-03) says an older Expo Go cannot be installed on a physical iOS device, and that `eas go` (your own Expo Go through TestFlight) needs an Apple Developer Program membership.
+- EAS's Free plan currently lists 15 iOS builds a month in a low-priority queue; Starter is $19 a month.
+- The repository has no `expo-dev-client`, and `eas.json` has no iOS development-build profile. No Apple Developer Program membership is available today (`docs/RELEASE_READINESS.md`; iOS is deferred).
+
+**Options compared:**
+
+| | A. EAS development build (internal distribution) | B. TestFlight build | C. Upgrade to SDK 58 and use Expo Go |
+|---|---|---|---|
+| **Cost** | Apple Developer Program $99/year; EAS Free (15 iOS builds/month) | Same $99/year; EAS Free | $0 |
+| **Apple Developer account** | Required. The iPhone's UDID is registered for ad hoc provisioning. | Required, plus an App Store Connect app record for `com.appfitnessrd.mobile`. Internal testers need no Apple review. | Not required |
+| **New dependency / config** | `expo-dev-client` (needs an ADR-P037-style approval); iOS `development` profile in `eas.json` | iOS profile; `eas submit` to TestFlight; App Store identity is created (hard to undo) | SDK 58 versions of every Expo package; its own ADR |
+| **What the owner can test** | The real app (native modules, Face ID with the app's own permission text, icon, splash), with fast JS reloads from Metro | A release-like build, closest to the App Store; no live reload; each change needs a new build | The JS app inside Expo Go only. No app icon, splash, own Face ID permission text, or native config; Expo Go's own bundled modules only |
+| **Risk** | Low: no SDK change; the Android path is untouched | Low–medium: creates the store record early | **Medium–high**: React Native 0.88, reworked expo-router (server output default), SceneDelegate, R8 on, strict TypeScript deep imports, `expo-sqlite` changes, Reanimated/SVG/masked-view compatibility. Full revalidation and a new Android AAB are needed. |
+| **Effort** | About 1 day: membership, credentials, profile, build, install | About 1–2 days, plus App Store Connect setup | Several days: ADR, upgrade, fixes, full test suite, both exports, Android device pass, docs |
+| **Also unblocks** | iOS native validation of the redesign and of biometrics (ADR-P036), UX-4C VoiceOver | The App Store release path | Staying current (SDK 57 will age out), but not iOS release |
+
+**Recommendation:** Option A. Buy the Apple Developer Program membership and
+use an EAS development build installed on the registered iPhone. It is the
+lowest-risk way to test the real app, including Face ID for ADR-P036. The
+same membership later enables Option B (TestFlight) for release.
+
+Take Option C (SDK 58) as its own planned upgrade, with an ADR and full
+validation, not as a workaround. Doing it to fit Expo Go would still not test
+the app's own native identity or biometrics.
+
+### Acceptance Criteria
+
+* [ ] Owner chooses A, B or C (or a combination)
+* [ ] A/B: Apple Developer Program membership active; iOS credentials created through EAS; iPhone registered (A); `expo-dev-client` approved and added (A); build installed and opened on the owner's iPhone
+* [ ] C: SDK 58 upgrade ADR accepted; upgrade done with the full validation battery and Android device pass; app opens in Expo Go on the owner's iPhone
+
+### Related Documents
+
+* .ai/12_DECISIONS.md (ADR-P028 identity, ADR-P036 biometrics, ADR-P037 dependencies)
+* mobile/eas.json, docs/RELEASE_READINESS.md
+* Sources: expo.dev/changelog/sdk-58, docs.expo.dev/troubleshooting/expo-go-version-mismatch, expo.dev/changelog/expo-go-and-app-store-may-2026, expo.dev/pricing
+
+---
+
 # Release Backlog
 
 ## [RELEASE-001] Phase 12 Store-Release Preparation Work Items
