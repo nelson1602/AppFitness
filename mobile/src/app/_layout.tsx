@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { AccessGateRedirect } from '@/features/authentication/presentation/access-gate-redirect';
+import { EvaluationGateRedirect } from '@/features/evaluation/presentation/evaluation-gate-redirect';
 import { registerNutritionSyncAppliers } from '@/features/nutrition';
 import { registerProgressSyncAppliers } from '@/features/progress';
 import {
@@ -78,6 +79,8 @@ export default function RootLayout() {
       {/* Mandatory email verification (ADR-P041): no data route stays open
           for an account that still owes a step. */}
       <AccessGateRedirect />
+      {/* The first-run Evaluación física after verification (v8 Block 2). */}
+      <EvaluationGateRedirect />
     </ThemeProvider>
   );
 }

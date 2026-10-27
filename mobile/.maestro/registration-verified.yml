@@ -11,6 +11,51 @@ appId: com.appfitnessrd.mobile
     timeout: 30000
 - tapOn:
     id: 'button-verify-confirm'
+# v8 Block 2: a verified account without its evaluation lands on the
+# Evaluación física. The date fields open the system picker on their default
+# dates (30 years ago; 90 days ahead), which are valid, so the flow accepts them.
+- extendedWaitUntil:
+    visible:
+      id: 'evaluation-weight'
+    timeout: 45000
+- tapOn:
+    id: 'evaluation-weight'
+- inputText: '80'
+- tapOn:
+    id: 'evaluation-height'
+- inputText: '175'
+- hideKeyboard
+- tapOn:
+    id: 'evaluation-birth-date'
+- tapOn: 'OK|Aceptar|ACEPTAR'
+- tapOn:
+    id: 'evaluation-continue'
+- tapOn:
+    id: 'evaluation-continue'
+- tapOn:
+    id: 'evaluation-continue'
+- tapOn:
+    id: 'evaluation-continue'
+- tapOn:
+    id: 'evaluation-target-weight'
+- inputText: '75'
+- hideKeyboard
+- tapOn:
+    id: 'evaluation-target-date'
+- tapOn: 'OK|Aceptar|ACEPTAR'
+- tapOn:
+    id: 'evaluation-continue'
+- extendedWaitUntil:
+    visible:
+      id: 'evaluation-preview-kcal'
+    timeout: 15000
+- tapOn:
+    id: 'evaluation-continue'
+# "Creando tu plan personal" saves the first week, then opens the welcome.
+- extendedWaitUntil:
+    visible:
+      id: 'building-steps'
+    timeout: 15000
 # ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
 # off under reduced motion (an emulator with animations off reports it), so
 # the flow continues explicitly.

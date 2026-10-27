@@ -174,10 +174,11 @@ describe('catalogue parity', () => {
   // 1298); the weekly-plan conflict labels (+8, 1306, in the family below); and
   // the weekly plan's screens — saved week and preview (+11), the "renews on
   // Monday" chip (+1), the change prompt (+9) and "Semanas anteriores" (+32),
-  // reaching 1359.
-  it('reaches 1359 keys in each language — 1194 shipped plus a 165-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1359);
-    expect(Object.keys(es)).toHaveLength(1359);
+  // reaching 1359; then the Evaluación física wizard and "Creando tu plan
+  // personal" (+221, 1580).
+  it('reaches 1580 keys in each language — 1415 shipped plus a 165-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1580);
+    expect(Object.keys(es)).toHaveLength(1580);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(165);
   });
 

@@ -98,7 +98,7 @@ describe('ProfileTab (ADR-P039)', () => {
   });
 
   it.each([
-    ['profile-wellness-safety', '/wellness-safety-profile'],
+    ['profile-wellness-safety', '/evaluation?mode=update'],
     ['profile-goal', '/goal-edit'],
     ['profile-edit', '/profile-edit'],
     ['profile-subscription', '/subscription'],

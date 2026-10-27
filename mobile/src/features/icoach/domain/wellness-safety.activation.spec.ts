@@ -75,14 +75,19 @@ describe('the dormancy tripwire is gone, deliberately', () => {
   });
 
   it('the analyzer is reachable from a production path', () => {
-    // The seam's only reader, and the only production file that supplies it.
+    // The seam's only reader, and the production files that supply it: the
+    // adapter, and the Evaluación física preview, which runs the same adapter
+    // on the unsaved draft (v8 Block 2).
     const engine = code(read(`${__dirname}/engine.ts`));
     expect(engine).toContain('analyzeWellnessSafety(input.wellness)');
 
     const suppliers = productionFiles().filter((file) =>
       /\bwellness(\?)?:\s*(wellness\.declaration|\{)/.test(code(read(file))),
     );
-    expect(suppliers.map((file) => file.split('/').pop())).toEqual(['icoach-adapter.ts']);
+    expect(suppliers.map((file) => file.split('/').pop())).toEqual([
+      'icoach-adapter.ts',
+      'evaluation.service.ts',
+    ]);
   });
 });
 
