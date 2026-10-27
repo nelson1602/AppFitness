@@ -6,7 +6,7 @@ import { GoalForm } from '@/features/profile/presentation/GoalForm';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Goal create/edit route (Phase 13 Slice 2). Session-guarded like the
@@ -20,9 +20,9 @@ export default function GoalEditRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -30,11 +30,11 @@ export default function GoalEditRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('goal.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionWriteBoundary>
           <GoalForm onSaved={() => router.replace('/dashboard')} />
         </SubscriptionWriteBoundary>
-      </Screen>
+      </StageScreen>
     </>
   );
 }

@@ -2,7 +2,7 @@ import { Stack, router } from 'expo-router';
 import { View } from 'react-native';
 
 import { DocumentHead, useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Screen } from '@/shared/presentation';
+import { AppButton, AppText, StageScreen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 /**
@@ -33,7 +33,7 @@ export default function NotFoundScreen() {
   const { t } = useLocalization();
 
   return (
-    <Screen>
+    <StageScreen>
       <Stack.Screen options={{ title: t('notFound.title') }} />
       <DocumentHead title={t('notFound.title')} />
       <View style={{ gap: theme.spacing.lg }} testID="not-found-screen">
@@ -50,6 +50,6 @@ export default function NotFoundScreen() {
           {t('notFound.action')}
         </AppButton>
       </View>
-    </Screen>
+    </StageScreen>
   );
 }

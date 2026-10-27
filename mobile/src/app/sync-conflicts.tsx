@@ -4,7 +4,7 @@ import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { SyncConflictsScreen } from '@/features/sync-conflicts';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Conflict review and resolution route (ADR-P030 **C-6**). Reached from the
@@ -25,9 +25,9 @@ export default function SyncConflictsRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -35,9 +35,9 @@ export default function SyncConflictsRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('sync.conflicts.screenTitle') }} />
-      <Screen>
+      <StageScreen>
         <SyncConflictsScreen />
-      </Screen>
+      </StageScreen>
     </>
   );
 }

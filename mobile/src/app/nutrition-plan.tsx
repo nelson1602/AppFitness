@@ -4,7 +4,7 @@ import { useSession } from '@/features/authentication';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
 import { NutritionPlanScreen } from '@/features/nutrition/presentation/NutritionPlanScreen';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * 15-day meal plan route (Phase 15 Slice 3B). Session-guarded like the other
@@ -16,9 +16,9 @@ export default function NutritionPlanRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -26,9 +26,9 @@ export default function NutritionPlanRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('nutrition.plan.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <NutritionPlanScreen />
-      </Screen>
+      </StageScreen>
     </>
   );
 }

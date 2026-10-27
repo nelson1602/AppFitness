@@ -6,7 +6,7 @@ import { DashboardSkeleton } from '@/features/dashboard/presentation/components/
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { WorkoutLogScreen } from '@/features/workout';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Workout logging route (ADR-P015 Phase 16 Slice 6). Session-guarded like the
@@ -19,9 +19,9 @@ export default function WorkoutLogRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -29,11 +29,11 @@ export default function WorkoutLogRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('workout.log.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionWriteBoundary>
           <WorkoutLogScreen />
         </SubscriptionWriteBoundary>
-      </Screen>
+      </StageScreen>
     </>
   );
 }

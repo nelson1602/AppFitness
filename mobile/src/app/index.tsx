@@ -3,16 +3,16 @@ import { Redirect } from 'expo-router';
 import { useSession } from '@/features/authentication';
 import { landingRouteFor } from '@/features/authentication/application/access-gate';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 export default function HomeRoute() {
   const { status, session } = useSession();
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
 

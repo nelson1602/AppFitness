@@ -3,6 +3,7 @@ import { Platform, Text, View } from 'react-native';
 
 import { useTheme } from '../theme';
 import { AppText } from './app-text';
+import { useStageSurface } from './stage-surface';
 
 type BannerTone = 'info' | 'success' | 'warning' | 'error';
 
@@ -14,6 +15,7 @@ interface BannerProps {
 
 export function Banner({ title, children, tone = 'info' }: BannerProps) {
   const theme = useTheme();
+  const stage = useStageSurface();
   const toneColor: Record<BannerTone, string> = {
     info: theme.colors.info,
     success: theme.colors.success,
@@ -55,8 +57,10 @@ export function Banner({ title, children, tone = 'info' }: BannerProps) {
       aria-live={tone === 'error' && !announces ? 'polite' : undefined}
       onLayout={announces && !laidOut ? () => setLaidOut(true) : undefined}
       style={{
-        backgroundColor: theme.colors.surfaceVariant,
-        borderColor: toneColor[tone],
+        // v8 Block 3: on the stage the banner is glass and keeps its tone edge.
+        backgroundColor: stage ? theme.colors.glassFill : theme.colors.surfaceVariant,
+        ...(stage ? { borderColor: theme.colors.glassBorder, borderWidth: 1 } : undefined),
+        borderLeftColor: toneColor[tone],
         borderLeftWidth: theme.spacing.xs,
         borderRadius: theme.radius.medium,
         gap: theme.spacing.xs,

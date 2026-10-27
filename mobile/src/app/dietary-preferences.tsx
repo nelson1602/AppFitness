@@ -6,7 +6,7 @@ import { DietaryPreferences } from '@/features/nutrition/presentation/DietaryPre
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
-import { Screen } from '@/shared/presentation';
+import { StageScreen } from '@/shared/presentation';
 
 /**
  * Dietary preferences / allergies route (ADR-P014 / FEATURE-006 Slice 2B).
@@ -19,9 +19,9 @@ export default function DietaryPreferencesRoute() {
 
   if (status === 'unknown') {
     return (
-      <Screen>
+      <StageScreen>
         <DashboardSkeleton />
-      </Screen>
+      </StageScreen>
     );
   }
   if (status !== 'authenticated') return <Redirect href="/sign-in" />;
@@ -29,11 +29,11 @@ export default function DietaryPreferencesRoute() {
   return (
     <>
       <Stack.Screen options={{ title: t('nutrition.preferences.routeTitle') }} />
-      <Screen>
+      <StageScreen>
         <SubscriptionWriteBoundary>
           <DietaryPreferences />
         </SubscriptionWriteBoundary>
-      </Screen>
+      </StageScreen>
     </>
   );
 }
