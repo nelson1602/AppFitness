@@ -21,12 +21,16 @@ import { ensureCurrentWeekPlan } from './weekly-plan.service';
  * local API, or for an account that already has past weeks.
  */
 
-/** Sessions skipped and the share of planned meals eaten, oldest week first. */
+/**
+ * Sessions skipped and the share of planned meals eaten, oldest week first.
+ * The two most recent weeks complete every session, so the "one more day"
+ * proposal (ADR-P040 D11) can be reviewed at the next Monday plan.
+ */
 const PATTERN = [
-  { skipped: 0, mealTenths: 9 },
-  { skipped: 1, mealTenths: 7 },
-  { skipped: 0, mealTenths: 8 },
   { skipped: 2, mealTenths: 5 },
+  { skipped: 1, mealTenths: 7 },
+  { skipped: 0, mealTenths: 9 },
+  { skipped: 0, mealTenths: 8 },
 ] as const;
 
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '10.0.2.2']);
