@@ -25,8 +25,11 @@ import type { AvoidTag, FoodId, FoodItem, ServingUnit } from './food-catalog';
  * `1.3.0` (v8 Block 3, owner decision 2026-10-27): a snack is at least
  * 100 kcal. When the day cannot fit that under its ceiling (1.05× the
  * target), the snack is dropped and the main meals take its calories.
+ *
+ * `1.4.0` (v8 Block 3, owner decision 2026-10-27): a vegetable never goes
+ * above three servings in any pass, so it is never the day's filler.
  */
-export const MEAL_RULE_VERSION = 'meal-rules@1.3.0';
+export const MEAL_RULE_VERSION = 'meal-rules@1.4.0';
 
 export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 

@@ -14934,6 +14934,7 @@ Accepted: 2026-10-26 by the project owner (v8 Block 2). Owner decisions recorded
   - If the day then still ends above 1.05× its target, or the snack food cannot reach 100 kcal within its two-serving cap, the earlier portions are restored, the snack is dropped and the main meals take its calories. Their per-meal targets are rescaled to cover the whole day.
   - The day still never falls below the engine target.
   - Across the reference profiles, about 9 % of days drop the snack, all of them unsweetened plant milks (26–35 kcal a serving).
+- **Vegetable cap** (2026-10-27, v8 Block 3, `meal-rules@1.4.0`): a vegetable never goes above three servings (`VEGETABLE_MAX_SERVINGS`, about three cups), in every pass including the last-resort top-up, so a day is never filled with vegetables ("6 taza" of bok choy in the Block 3 review).
 - **Display rounding** (2026-10-27, v8 Block 3):
   - Grams and millilitres show as whole numbers ("271 g").
   - Spoons, cups, pieces and slices show to the nearest half ("2 cda.", "½ unidad", "1½ taza"), never as zero.

@@ -310,12 +310,22 @@ export const MEAL_SHARE_CAP = 0.4;
 export const SNACK_MIN_KCAL = 100;
 /** The day's ceiling, as a multiple of its calorie target, when making room for the snack. */
 export const DAY_KCAL_CEILING = 1.05;
+/**
+ * meal-rules@1.4.0: a vegetable never goes above three servings (about three
+ * cups), in any pass — vegetables are never the day's filler.
+ */
+export const VEGETABLE_MAX_SERVINGS = 3;
 const SHARED_SLOTS: readonly MealSlot[] = ['BREAKFAST', 'LUNCH', 'DINNER'];
+
+/** The most servings any pass may give a food, whatever its meal. */
+function foodCeiling(entry: ScaledEntry): number {
+  return entry.food.category === 'vegetable' ? VEGETABLE_MAX_SERVINGS : MAX_SERVINGS;
+}
 
 function capOf(entry: ScaledEntry): number {
   const food = ENERGY_DENSE_CATEGORIES.has(entry.food.category)
     ? ENERGY_DENSE_MAX_SERVINGS
-    : MAX_SERVINGS;
+    : foodCeiling(entry);
   return entry.slot === 'SNACK' ? Math.min(food, SNACK_MAX_SERVINGS) : food;
 }
 
@@ -459,7 +469,7 @@ function realisticPortions(scaled: ScaledEntry[], daily: MealMacros): void {
     const passes: { ceiling: (entry: ScaledEntry) => number; keepShare: boolean }[] = [
       { ceiling: capOf, keepShare: true },
       { ceiling: capOf, keepShare: false },
-      { ceiling: () => MAX_SERVINGS, keepShare: false },
+      { ceiling: foodCeiling, keepShare: false },
     ];
     for (const pass of passes) {
       for (let guard = 0; guard < 2000 && kcalOf(scaled) < target; guard += 1) {

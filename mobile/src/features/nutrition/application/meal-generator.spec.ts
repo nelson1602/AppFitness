@@ -12,6 +12,7 @@ import {
   MEAL_SHARE_CAP,
   SNACK_MIN_KCAL,
   SNACK_MAX_SERVINGS,
+  VEGETABLE_MAX_SERVINGS,
 } from './meal-generator';
 
 const catalogIds = new Set(FOOD_CATALOG.map((f) => f.id));
@@ -458,6 +459,15 @@ describe('generateMealPlan — snack minimum (meal-rules@1.3.0)', () => {
       const lunch = day.meals.find((m) => m.slot === 'LUNCH');
       expect(lunch?.rationale).toContain('~34% of the day');
     }
+  });
+
+  it('never gives a vegetable more than three servings (regression: "6 taza" of bok choy)', () => {
+    for (const { day } of days)
+      for (const m of day.meals)
+        for (const f of m.foods)
+          if (FOOD_CATALOG.find((c) => c.id === f.foodId)?.category === 'vegetable') {
+            expect(f.servings).toBeLessThanOrEqual(VEGETABLE_MAX_SERVINGS);
+          }
   });
 
   it('is deterministic: the same inputs give the same plan', () => {
