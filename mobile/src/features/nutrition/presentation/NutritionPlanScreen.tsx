@@ -7,10 +7,9 @@ import { useDashboardStore } from '@/features/dashboard/application/dashboard.st
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
-import { deviceLocalDate } from '@/features/progress/application/progress.gathering';
+import { localDateOf, weekDates } from '@/features/weekly-plan/domain/week';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { effectivePlanDay } from '@/features/weekly-plan/domain/adherence';
-import { weekDates } from '@/features/weekly-plan/domain/week';
 import type { IngredientSubstitution } from '@/features/weekly-plan/domain/weekly-plan';
 import {
   formatDate,
@@ -346,7 +345,7 @@ export function NutritionPlanScreen() {
   const plan = useWeeklyPlanStore();
   const currentPlan = plan.current;
   const planRevisions = plan.revisions;
-  const today = deviceLocalDate(new Date().toISOString());
+  const today = localDateOf(new Date().toISOString());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const entitlement = useEntitlementAccess();
   const generationAllowed = entitlement.mode === 'unregulated' || entitlement.mode === 'active';

@@ -27,3 +27,11 @@ export function dayIndexInWeek(date: string): number {
 export function previousWeekStart(weekStart: string): string {
   return addDays(weekStart, -7);
 }
+
+/** The device-local calendar date of an ISO instant (same rule as Progress). */
+export function localDateOf(iso: string): string {
+  const d = new Date(iso);
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
+}

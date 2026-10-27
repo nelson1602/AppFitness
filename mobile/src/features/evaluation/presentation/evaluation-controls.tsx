@@ -171,7 +171,6 @@ export function Group({ title, count, children, testID, initiallyOpen = false }:
         onPress={() => setOpen((value) => !value)}
         style={({ pressed }) => [
           styles.row,
-          styles.wrap,
           {
             backgroundColor: pressed ? withAlpha(colors.onStage, 0.06) : 'transparent',
             gap: theme.spacing.sm,
@@ -182,7 +181,7 @@ export function Group({ title, count, children, testID, initiallyOpen = false }:
         ]}
         testID={`${testID}-toggle`}
       >
-        <AppText style={styles.grow} tone="onStage" variant="label">
+        <AppText style={styles.shrink} tone="onStage" variant="label">
           {title}
         </AppText>
         {count > 0 ? <Chip label={marked} testID={`${testID}-count`} tone="cyan" /> : null}
@@ -346,7 +345,7 @@ export function Legend({ children, hint }: { children: string; hint?: string }) 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   grow: { flex: 1 },
+  shrink: { flexGrow: 1, flexShrink: 1 },
   row: { alignItems: 'center', flexDirection: 'row' },
   unit: { bottom: 0, justifyContent: 'center', position: 'absolute', top: 0 },
-  wrap: { flexWrap: 'wrap' },
 });

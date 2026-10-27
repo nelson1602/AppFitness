@@ -3363,6 +3363,40 @@ UX-4C stays **PARTIAL**.
 
 ---
 
+## [BUG-043] Concurrent Token Refresh Signs the Person Out
+
+Status: Fixed in v8 Block 2 (client); server hardening open
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-10-27
+Updated: 2026-10-27
+
+### Description
+
+Found during the Block 2 emulator review against the local API. Several callers can hit a 401 at the same moment at launch (the first-run gate's pull, the dashboard and food-log syncs), and each called `refreshTokens()` with the same refresh token.
+
+1. The server minted four sibling tokens from one parent in the same second.
+2. The next replay of a revoked sibling tripped reuse detection.
+3. Reuse detection revoked the whole family, and the device was signed out mid-wizard.
+
+Evidence: `refresh_tokens` rows for the review account, with four children created at 03:41:44 UTC and the family revoked at 03:46:02 UTC; two `AUTH_FAILURE` audit rows at 03:46:02.
+
+### Fix
+
+`refreshTokens()` is single-flight per refresh token. Concurrent callers share one rotation. Regression test: `session-manager.spec.ts` "shares one rotation between concurrent callers" (fails without the fix).
+
+### Remaining
+
+The server still accepts the same refresh token concurrently and issues siblings before the parent is marked revoked. Making rotation atomic (revoke-if-not-revoked in the same statement) would stop other clients, or two devices sharing a token, from tripping the same family revocation. This needs its own change and tests.
+
+### Acceptance Criteria
+
+- [x] Concurrent `refreshTokens()` calls send one request and all receive the rotated session
+- [ ] Server rotation is atomic under concurrent use of the same refresh token
+
+---
+
 ## [BUG-042] Android Sign-in Shows "Unexpected" Instead of "No Connection" When the API Is Unreachable
 
 Status: Needs Triage

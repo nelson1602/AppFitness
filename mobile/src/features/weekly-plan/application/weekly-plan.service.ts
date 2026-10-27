@@ -5,7 +5,6 @@ import {
   listLoggedItems,
   listPlannedSlotsDone,
 } from '@/features/nutrition/infrastructure/food-log.repository';
-import { deviceLocalDate } from '@/features/progress/application/progress.gathering';
 import { listBodyWeights } from '@/features/progress/infrastructure/progress.repository';
 import { listRecentWorkoutLogs } from '@/features/workout/infrastructure/workout.repository';
 
@@ -18,7 +17,7 @@ import {
   type PlanInputChange,
 } from '../domain/plan-inputs';
 import { nextLoadStep, progressionNotes, type PreviousWeekResult } from '../domain/progression';
-import { addDays, previousWeekStart, weekDates, weekStartOf } from '../domain/week';
+import { addDays, localDateOf, previousWeekStart, weekDates, weekStartOf } from '../domain/week';
 import type { PlanTrigger, WeeklyPlan } from '../domain/weekly-plan';
 import {
   insertPlanRevision,
@@ -56,7 +55,7 @@ export async function loadWeekLogs(userId: string, planIds: readonly string[]): 
   ]);
   return {
     workouts: workouts.map((log) => ({
-      localDate: deviceLocalDate(log.startedAt),
+      localDate: localDateOf(log.startedAt),
       finished: log.finishedAt !== null,
       planLink: log.planLink,
     })),
@@ -120,7 +119,7 @@ async function saveRevision(
  */
 export async function ensureCurrentWeekPlan(now: Date = new Date()): Promise<CurrentPlanResult> {
   const userId = requireUserId();
-  const today = deviceLocalDate(now.toISOString());
+  const today = localDateOf(now.toISOString());
   const weekStart = weekStartOf(today);
 
   const existing = await listWeekRevisions(userId, weekStart);
@@ -181,7 +180,7 @@ export async function regenerateCurrentWeek(
 ): Promise<WeeklyPlan | null> {
   const gathered = await gatherPlanContext(now);
   if (gathered.status !== 'ready') return null;
-  const today = deviceLocalDate(now.toISOString());
+  const today = localDateOf(now.toISOString());
   const loadStep = changes.includes('injuries') ? 0 : current.loadStep;
   return saveRevision(
     gathered.context,
@@ -204,7 +203,7 @@ export interface PastWeek {
 /** Past weeks, newest first (ADR-P042 D7). Weeks without a saved plan are not shown. */
 export async function loadPastWeeks(now: Date = new Date()): Promise<PastWeek[]> {
   const userId = requireUserId();
-  const weekStart = weekStartOf(deviceLocalDate(now.toISOString()));
+  const weekStart = weekStartOf(localDateOf(now.toISOString()));
   const past = await listPastPlanRevisions(userId, weekStart);
   if (past.length === 0) return [];
   const current = await listWeekRevisions(userId, weekStart);
@@ -250,7 +249,7 @@ export async function loadTodayOverlay(
   current: WeeklyPlan,
   now: Date = new Date(),
 ): Promise<OffPlanAdjustment> {
-  const today = deviceLocalDate(now.toISOString());
+  const today = localDateOf(now.toISOString());
   const yesterday = addDays(today, -1);
   const [yesterdayItems, todayItems] = await Promise.all([
     listLoggedItems(current.userId, yesterday),

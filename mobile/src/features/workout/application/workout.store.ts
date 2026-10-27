@@ -8,7 +8,7 @@ import {
 } from '@/features/authentication';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
-import { deviceLocalDate } from '@/features/progress/application/progress.gathering';
+import { localDateOf } from '@/features/weekly-plan/domain/week';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { effectivePlanDay, linkForWorkout } from '@/features/weekly-plan/domain/adherence';
 
@@ -470,7 +470,7 @@ bindStoreToSession(() => useWorkoutStore.setState(INITIAL));
  * the saved week from its store; no plan means no link.
  */
 function todaysPlanLink(logs: readonly WorkoutLog[]): WorkoutPlanLink | null {
-  const today = deviceLocalDate(new Date().toISOString());
+  const today = localDateOf(new Date().toISOString());
   const { revisions } = useWeeklyPlanStore.getState();
   const plan = effectivePlanDay(revisions, today)?.plan ?? null;
   const ids = new Set(revisions.map((revision) => revision.id));

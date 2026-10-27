@@ -65,7 +65,7 @@ describe('DateField (Android)', () => {
     expect(localDateToIso(options.minimumDate as Date)).toBe('1920-01-01');
 
     await act(async () => {
-      options.onChange?.(
+      options.onValueChange?.(
         { type: 'set', nativeEvent: { timestamp: 0 } } as never,
         new Date(1990, 2, 15),
       );
@@ -80,7 +80,7 @@ describe('DateField (Android)', () => {
     await fireEvent.press(screen.getByTestId('d'));
     const options = jest.mocked(DateTimePickerAndroid.open).mock.calls[0][0];
     await act(async () => {
-      options.onChange?.({ type: 'dismissed', nativeEvent: { timestamp: 0 } } as never, undefined);
+      options.onDismiss?.();
     });
     expect(onChange).not.toHaveBeenCalled();
   });

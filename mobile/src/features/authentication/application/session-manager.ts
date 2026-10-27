@@ -423,11 +423,27 @@ export async function restoreSession(): Promise<Session | null> {
  * is never touched, and the newer session is left exactly as it is. Because the
  * whole session is one SecureStore key written inside the lock right after the
  * check, there is no partial-write window left to repair.
+ *
+ * Single-flight per refresh token (BUG-043): callers that ask while a rotation
+ * of the same token is in flight share it. Several screens and the first-run
+ * gate can each hit a 401 at launch; sending the same refresh token at once
+ * made the server mint sibling tokens, and the next replay of a sibling tripped
+ * reuse detection and revoked the whole family, signing the person out.
  */
-export async function refreshTokens(): Promise<Session | null> {
-  const refreshing = getSessionSnapshot();
-  if (!refreshing) return null;
+let refreshInFlight: { token: string; result: Promise<Session | null> } | null = null;
 
+export function refreshTokens(): Promise<Session | null> {
+  const refreshing = getSessionSnapshot();
+  if (!refreshing) return Promise.resolve(null);
+  if (refreshInFlight?.token === refreshing.refreshToken) return refreshInFlight.result;
+  const result = rotateSession(refreshing).finally(() => {
+    if (refreshInFlight?.result === result) refreshInFlight = null;
+  });
+  refreshInFlight = { token: refreshing.refreshToken, result };
+  return result;
+}
+
+async function rotateSession(refreshing: SessionSnapshot): Promise<Session | null> {
   let rotated: Awaited<ReturnType<typeof authApi.refresh>>;
   try {
     // Outside the lock: a slow refresh must not block a sign-in.

@@ -113,7 +113,14 @@ export function EvaluationWizard({ mode, onSaved, onExit }: EvaluationWizardProp
     if (await save()) onSaved();
   };
 
-  const stepProps = { draft, update, issues: shown, today };
+  // Only what still applies: a fixed field drops its message at once.
+  const current = stepIssues(step, draft, today);
+  const stepProps = {
+    draft,
+    update,
+    issues: shown.filter((issue) => current.includes(issue)),
+    today,
+  };
   const eyebrow = interpolate(
     t(mode === 'update' ? 'evaluation.eyebrowUpdate' : 'evaluation.eyebrow'),
     {

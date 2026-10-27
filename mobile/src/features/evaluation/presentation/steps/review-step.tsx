@@ -186,6 +186,16 @@ export function ReviewStep({ draft, today, preview, goStep }: ReviewStepProps) {
                 .filter(Boolean)
                 .join(' · ')}
             </AppText>
+            {preview.trainingDays < draft.trainingDays ? (
+              // The engine caps the days by fitness level; say so rather than
+              // silently showing fewer than were asked for.
+              <AppText style={onCta} testID="evaluation-preview-days-capped" variant="caption">
+                {interpolate(t('evaluation.preview.daysCapped'), {
+                  asked: formatNumber(draft.trainingDays, language),
+                  n: formatNumber(preview.trainingDays, language),
+                })}
+              </AppText>
+            ) : null}
           </>
         ) : (
           <AppText style={onCta}>{t('evaluation.preview.unavailable')}</AppText>

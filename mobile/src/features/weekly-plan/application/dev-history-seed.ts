@@ -1,13 +1,12 @@
 import { getSession } from '@/features/authentication';
 import { logPlannedMeal } from '@/features/nutrition/infrastructure/food-log.repository';
-import { recordMyBodyWeight } from '@/features/progress';
-import { deviceLocalDate } from '@/features/progress/application/progress.gathering';
+import { recordMyBodyWeight } from '@/features/progress/application/progress.service';
 import {
   createWorkoutLog,
   updateWorkoutLog,
 } from '@/features/workout/infrastructure/workout.repository';
 
-import { addDays, weekStartOf } from '../domain/week';
+import { addDays, localDateOf, weekStartOf } from '../domain/week';
 import { listPastPlanRevisions } from '../infrastructure/weekly-plan.repository';
 import { ensureCurrentWeekPlan } from './weekly-plan.service';
 
@@ -51,7 +50,7 @@ export async function seedDevHistory(now: Date = new Date()): Promise<number> {
   if (!session) throw new Error('Not authenticated');
   const userId = session.user.id;
 
-  const thisWeek = weekStartOf(deviceLocalDate(now.toISOString()));
+  const thisWeek = weekStartOf(localDateOf(now.toISOString()));
   const firstWeek = addDays(thisWeek, -7 * PATTERN.length);
   if ((await listPastPlanRevisions(userId, thisWeek)).length > 0) {
     throw new Error('dev history seed: this account already has past weeks');

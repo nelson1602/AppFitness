@@ -63,9 +63,9 @@ export function DateField({
         mode: 'date',
         minimumDate: minimum,
         maximumDate: maximum,
-        onChange: (event, date) => {
-          if (event.type === 'set' && date) onChange(localDateToIso(date));
-        },
+        // The picker's onChange is deprecated in datetimepicker 9: a confirmed date arrives
+        // through onValueChange, a cancelled dialog through onDismiss.
+        onValueChange: (_event, date) => onChange(localDateToIso(date)),
       });
       return;
     }
@@ -111,9 +111,7 @@ export function DateField({
             maximumDate={maximum}
             minimumDate={minimum}
             mode="date"
-            onChange={(_, date) => {
-              if (date) onChange(localDateToIso(date));
-            }}
+            onValueChange={(_, date) => onChange(localDateToIso(date))}
             value={current}
           />
           <AppButton onPress={() => setIosOpen(false)} variant="stage-link">
@@ -122,7 +120,7 @@ export function DateField({
         </View>
       ) : null}
       {error ? (
-        <AppText tone="errorOnStage" variant="label">
+        <AppText testID={`${testID}-error`} tone="errorOnStage" variant="caption">
           {error}
         </AppText>
       ) : null}

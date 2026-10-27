@@ -180,6 +180,28 @@ describe('session-manager token rotation and sign-out', () => {
     expect(getAccessToken()).toBe('a2');
   });
 
+  // BUG-043: concurrent callers must not send the same refresh token twice.
+  it('refreshTokens shares one rotation between concurrent callers', async () => {
+    await establishSession();
+    let resolve: (value: { accessToken: string; refreshToken: string }) => void = () => {};
+    mockRefresh.mockReturnValue(new Promise((r) => (resolve = r)));
+
+    const first = refreshTokens();
+    const second = refreshTokens();
+    const third = refreshTokens();
+    resolve({ accessToken: 'a2', refreshToken: 'r2' });
+    const results = await Promise.all([first, second, third]);
+
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(results.map((session) => session?.refreshToken)).toEqual(['r2', 'r2', 'r2']);
+
+    // The next rotation, with the new token, is a new request.
+    mockRefresh.mockResolvedValue({ accessToken: 'a3', refreshToken: 'r3' });
+    await refreshTokens();
+    expect(mockRefresh).toHaveBeenCalledTimes(2);
+    expect(mockRefresh).toHaveBeenLastCalledWith('r2');
+  });
+
   it('refreshTokens clears the session on an explicit 401', async () => {
     await establishSession();
     mockRefresh.mockRejectedValue(new AuthApiError(401, 'revoked'));
