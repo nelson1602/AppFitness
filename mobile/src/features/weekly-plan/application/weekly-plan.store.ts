@@ -52,7 +52,7 @@ export interface WeeklyPlanState {
   dismissChanges: () => void;
   loadHistory: (now?: Date) => Promise<void>;
   /** DEV ONLY: four sample past weeks (local API only). */
-  seedHistory: () => Promise<void>;
+  seedHistory: (workoutName: string) => Promise<void>;
   /** "Lo comí": log the planned dish's lines, linked to the slot (ADR-P042 D6). */
   markMealEaten: (date: string, slot: MealSlot) => Promise<boolean>;
 }
@@ -173,9 +173,9 @@ export const useWeeklyPlanStore = create<WeeklyPlanState>((set, get) => ({
     }
   },
 
-  seedHistory: async () => {
+  seedHistory: async (workoutName) => {
     try {
-      await seedDevHistory();
+      await seedDevHistory(workoutName);
     } catch (error) {
       logError('weeklyPlan.seedHistory', error);
     }

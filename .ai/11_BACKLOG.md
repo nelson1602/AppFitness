@@ -3398,6 +3398,28 @@ The server still accepts the same refresh token concurrently and issues siblings
 
 ---
 
+## [BUG-045] "Today" Does Not Roll Over While the App Stays Open
+
+Status: Open (found in v8 Block 3 review, not fixed)
+Priority: P2
+Type: Bug
+Owner: Engineering
+Created: 2026-10-27
+Updated: 2026-10-27
+
+### Description
+
+Found on the emulator while moving its clock for the "+1 día" review screenshot. The app was open on Monday and the clock was moved to Wednesday. Bringing the app to the foreground, switching tabs and pulling to refresh all left the header on "lunes, 19 de octubre", and the Workouts tab offered no start for Wednesday's session. Only signing in again, which reloads the data, moved "today" forward.
+
+A person who keeps the app open past midnight sees yesterday's date and plan until something reloads the data.
+
+### Acceptance Criteria
+
+- [ ] Returning to the foreground on a new local day reloads the day-bound data (header date, today's session and meals, the week when Monday passes)
+- [ ] A regression test covers the day change while the app stays mounted
+
+---
+
 ## [BUG-044] Logged Foods Never Reach the Server (Parent Meals Are Never Synced)
 
 Status: Fixed in PR (stacked on #240), pending owner review — found 2026-10-27 in the v8 Block 2 emulator review; predates v8

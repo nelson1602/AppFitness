@@ -48,7 +48,11 @@ export function canSeedDevHistory(): boolean {
 /** Local noon of a calendar date. */
 const noon = (date: string) => new Date(`${date}T12:00:00`);
 
-export async function seedDevHistory(now: Date = new Date()): Promise<number> {
+/**
+ * `workoutName` is the localized default a workout started from the app gets
+ * ("Entrenamiento"), so seeded workouts read like real ones.
+ */
+export async function seedDevHistory(workoutName: string, now: Date = new Date()): Promise<number> {
   if (!canSeedDevHistory()) throw new Error('dev history seed: development build + local API only');
   const session = getSession();
   if (!session) throw new Error('Not authenticated');
@@ -73,7 +77,7 @@ export async function seedDevHistory(now: Date = new Date()): Promise<number> {
       if (day.workout.kind !== 'TRAINING') continue;
       const startedAt = new Date(`${day.date}T18:00:00`).toISOString();
       const log = await createWorkoutLog(userId, {
-        name: day.workout.sessionKey,
+        name: workoutName,
         startedAt,
         planLink: {
           weeklyPlanId: plan.id,
