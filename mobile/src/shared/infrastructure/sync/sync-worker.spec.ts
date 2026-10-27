@@ -6,7 +6,7 @@ import {
 } from '../../application/entitlement-access';
 import type { SqlExecutor } from '../database';
 import type { SyncQueueRow } from '../database/types';
-import { allAppliers, getApplier, type EntityApplier } from './appliers';
+import { allAppliers, allPrePushHooks, getApplier, type EntityApplier } from './appliers';
 import { recordConflict } from './sync-conflicts';
 import {
   hasPendingOpFor,
@@ -43,6 +43,7 @@ jest.mock('../database', () => ({
 }));
 jest.mock('./appliers', () => ({
   allAppliers: jest.fn(() => []),
+  allPrePushHooks: jest.fn(() => []),
   getApplier: jest.fn(),
 }));
 jest.mock('./sync-conflicts', () => ({
@@ -261,6 +262,31 @@ describe('runSync — push loop', () => {
     expect(mockMarkInFlight).toHaveBeenCalledTimes(2);
     expect(mockMarkApplied).toHaveBeenCalledWith(USER, 'op-1');
     expect(mockMarkApplied).toHaveBeenCalledWith(USER, 'op-2');
+  });
+
+  // BUG-044: feature repairs run before the push; a failing one never stops sync.
+  it('runs pre-push hooks before pushing, and survives a failing one', async () => {
+    const order: string[] = [];
+    const failing = jest.fn(async () => {
+      order.push('failing');
+      throw new Error('boom');
+    });
+    const repair = jest.fn(async () => {
+      order.push('repair');
+    });
+    jest.mocked(allPrePushHooks).mockReturnValueOnce([failing, repair]);
+    const push = jest.fn(async () => {
+      order.push('push');
+      return [pushResult()];
+    });
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+    mockPeekReady.mockResolvedValueOnce([queueRow()]).mockResolvedValueOnce([]);
+
+    const report = await runSync(deps);
+
+    expect(repair).toHaveBeenCalledWith(USER, expect.any(String));
+    expect(order).toEqual(['failing', 'repair', 'push']);
+    expect(report.outcome).toBe('success');
   });
 
   it('sends decoded payloads with idempotent opId and baseVersion intact', async () => {
