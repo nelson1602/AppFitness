@@ -330,8 +330,24 @@ export function signIn(input: { email: string; password: string }): Promise<Auth
  * Restores the persisted session on app start. Rotates the refresh token
  * when the server is reachable; keeps the stored session when offline
  * (48h offline operation, .ai/06_MOBILE.md). Clears only on explicit 401.
+ *
+ * Single-flight (BUG-043): every `useSession` consumer that mounts while the
+ * status is `unknown` asks for a restore. Concurrent restores each presented
+ * the same stored refresh token, and the server's reuse detection then revoked
+ * the whole family. One restore runs; the others share its result.
  */
-export async function restoreSession(): Promise<Session | null> {
+let restoreInFlight: Promise<Session | null> | null = null;
+
+export function restoreSession(): Promise<Session | null> {
+  if (restoreInFlight) return restoreInFlight;
+  const result = restoreOnce().finally(() => {
+    if (restoreInFlight === result) restoreInFlight = null;
+  });
+  restoreInFlight = result;
+  return result;
+}
+
+async function restoreOnce(): Promise<Session | null> {
   // Restore races a user who signs in before it finishes. The newer, explicit
   // authentication always wins: every write below is abandoned if the
   // generation moved, so a restore can never overwrite or sign out the account

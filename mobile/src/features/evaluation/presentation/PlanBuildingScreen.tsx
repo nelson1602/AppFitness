@@ -2,7 +2,6 @@ import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
-import { loadHomeData } from '@/features/dashboard/application/use-home-data';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { formatNumber, formatQuantity, interpolate, useLocalization } from '@/shared/localization';
 import {
@@ -89,13 +88,9 @@ export function PlanBuildingScreen() {
       return () => clearTimeout(timer);
     }
     if (!ready) return;
-    const timer = setTimeout(
-      () => {
-        loadHomeData();
-        router.replace('/welcome');
-      },
-      reduceMotion ? 0 : BUILD_HOLD_MS,
-    );
+    // The welcome screen loads the home data itself; loading it here too
+    // doubled the concurrent local reads at the hand-over.
+    const timer = setTimeout(() => router.replace('/welcome'), reduceMotion ? 0 : BUILD_HOLD_MS);
     return () => clearTimeout(timer);
   }, [visible, items.length, ready, failed, reduceMotion]);
 

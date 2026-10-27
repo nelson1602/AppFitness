@@ -11,7 +11,6 @@ let mockReduceMotion = false;
 
 jest.mock('expo-router', () => ({ router: { replace: jest.fn() } }));
 jest.mock('@/features/authentication', () => ({ bindStoreToSession: jest.fn() }));
-jest.mock('@/features/dashboard/application/use-home-data', () => ({ loadHomeData: jest.fn() }));
 jest.mock('@/features/weekly-plan/application/weekly-plan.store', () => ({
   useWeeklyPlanStore: Object.assign(
     (select: (state: Record<string, unknown>) => unknown) => select(mockPlan),

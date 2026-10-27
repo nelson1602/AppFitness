@@ -103,6 +103,21 @@ describe('session-manager local_user mirroring', () => {
     expect(getAccessToken()).toBe('new-access');
   });
 
+  // BUG-043: several useSession consumers mount at launch; one restore runs.
+  it('restoreSession presents the stored refresh token once for concurrent callers', async () => {
+    mockLoadSession.mockResolvedValue(stored);
+    mockRefresh.mockResolvedValue({ accessToken: 'new-access', refreshToken: 'new-refresh' });
+
+    const results = await Promise.all([restoreSession(), restoreSession(), restoreSession()]);
+
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(results.map((session) => session?.accessToken)).toEqual([
+      'new-access',
+      'new-access',
+      'new-access',
+    ]);
+  });
+
   it('restoreSession ensures the local_user row when offline (network failure)', async () => {
     mockLoadSession.mockResolvedValue(stored);
     mockRefresh.mockRejectedValue(new Error('network request failed'));

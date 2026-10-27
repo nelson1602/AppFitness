@@ -3384,7 +3384,7 @@ Evidence: `refresh_tokens` rows for the review account, with four children creat
 
 ### Fix
 
-`refreshTokens()` is single-flight per refresh token. Concurrent callers share one rotation. Regression test: `session-manager.spec.ts` "shares one rotation between concurrent callers" (fails without the fix).
+`refreshTokens()` is single-flight per refresh token, and `restoreSession()` is single-flight. Every `useSession` consumer that mounts while the status is `unknown` asked for its own restore, and at launch three mount together (the route plus both access gates), each presenting the same stored token. Regression tests in `session-manager.spec.ts`: "shares one rotation between concurrent callers" and "presents the stored refresh token once for concurrent callers". Both fail without the fix. The restore path dates to the baseline; v8 Blocks 1 and 2 each added a launch-time consumer, which made it likely.
 
 ### Remaining
 
@@ -3393,6 +3393,7 @@ The server still accepts the same refresh token concurrently and issues siblings
 ### Acceptance Criteria
 
 - [x] Concurrent `refreshTokens()` calls send one request and all receive the rotated session
+- [x] Concurrent `restoreSession()` calls present the stored refresh token once
 - [ ] Server rotation is atomic under concurrent use of the same refresh token
 
 ---
