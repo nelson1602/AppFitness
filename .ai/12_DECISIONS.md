@@ -15171,6 +15171,18 @@ Amends: ADR-P037 (redesign dependencies)
 
 - This is a native module, so it needs a new native build. That is already planned for versionCode 8.
 
+### Block 3 (2026-10-27)
+
+- The remaining forms now pick their date: goal target date, profile birth date, weight and measurement dates, and the wellness evaluation date. They use `FormDateField` (React Hook Form + `DateField`), so the form value and each feature's Zod schema are unchanged.
+- Bounds:
+  - target date: from today on;
+  - birth date: 1900-01-01 up to today;
+  - weight, measurement and evaluation dates: up to today.
+  The schemas still reject an out-of-range date if the device clock moves.
+- An optional date (the goal's target date) gets a "Quitar fecha" link, since a picker alone cannot empty it.
+- The five typed-date placeholders left the catalogue. A guard now fails if a YYYY-MM-DD / AAAA-MM-DD hint comes back.
+- The dormant medical forms (`features/medical`, no route) keep their text fields.
+
 ---
 
 # AI Instructions
