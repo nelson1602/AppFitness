@@ -235,9 +235,15 @@ describe('no public-v1 surface renders an unlocalized string', () => {
   it('resolves the logged serving unit through the catalogue, never the stored token', () => {
     const screen = [...SOURCE].find(([file]) => file.endsWith('presentation/FoodLogScreen.tsx'));
     expect(screen).toBeDefined();
-    const text = screen![1];
-    expect(text).toContain('const unitKey = UNIT_LABEL[item.serving.unit];');
-    expect(text).toContain('unitKey ? t(unitKey) : item.serving.unit');
+    expect(screen![1]).toContain('formatServingAmount(');
+    // v8 Block 3: the lookup (with plurals) lives in the shared formatter; the
+    // stored token is shown only for a unit the catalogue does not know.
+    const formatter = [...SOURCE].find(([file]) =>
+      file.endsWith('nutrition/presentation/serving-amount.ts'),
+    );
+    expect(formatter).toBeDefined();
+    expect(formatter![1]).toContain('const UNIT_LABEL: Readonly<Record<ServingUnit,');
+    expect(formatter![1]).toContain('label ? t(shown > 1 ? label.many : label.one) : unit');
   });
 });
 

@@ -14937,7 +14937,8 @@ Accepted: 2026-10-26 by the project owner (v8 Block 2). Owner decisions recorded
 - **Vegetable cap** (2026-10-27, v8 Block 3, `meal-rules@1.4.0`): a vegetable never goes above three servings (`VEGETABLE_MAX_SERVINGS`, about three cups), in every pass including the last-resort top-up, so a day is never filled with vegetables ("6 taza" of bok choy in the Block 3 review).
 - **Display rounding** (2026-10-27, v8 Block 3):
   - Grams and millilitres show as whole numbers ("271 g").
-  - Spoons, cups, pieces and slices show to the nearest half ("2 cda.", "½ unidad", "1½ taza"), never as zero.
+  - Spoons, cups, pieces and slices show to the nearest half ("2 cda.", "½ unidad", "1½ tazas"), never as zero.
+  - The unit name agrees with the amount shown ("1 taza" / "2 tazas", "1 cup" / "2 cups"); abbreviations (g, ml, cda., tbsp) do not change.
   - Only planned and logged amounts are rounded. A catalog serving definition (the "1 porción = …" line when adding a food) keeps its exact value, and stored amounts and macro totals stay exact.
 Date: 2026-10-22
 Owner: iCoach / Nutrition / Architecture

@@ -22,7 +22,7 @@ import {
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { AvoidTag, ServingUnit } from '../domain/food-catalog';
+import type { AvoidTag } from '../domain/food-catalog';
 import type { MealMacros, MealPlan, MealPlanFood, MealSlot } from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
@@ -36,16 +36,6 @@ const SLOT_KEY: Record<MealSlot, TranslationKey> = {
   LUNCH: 'nutrition.plan.lunch',
   DINNER: 'nutrition.plan.dinner',
   SNACK: 'nutrition.plan.snack',
-};
-
-const UNIT_KEY: Record<ServingUnit, TranslationKey> = {
-  g: 'nutrition.unit.g',
-  ml: 'nutrition.unit.ml',
-  piece: 'nutrition.unit.piece',
-  cup: 'nutrition.unit.cup',
-  tbsp: 'nutrition.unit.tbsp',
-  tsp: 'nutrition.unit.tsp',
-  slice: 'nutrition.unit.slice',
 };
 
 const AVOID_TAG_KEY: Record<AvoidTag, TranslationKey> = {
@@ -180,16 +170,11 @@ function MealCard({
             <AppText>{foodDisplayName({ id: f.foodId, name: f.name }, language)}</AppText>
             {/* BUG-028: formatQuantity keeps each value and its unit on one line. */}
             <AppText variant="caption" tone="muted">
-              {formatServingAmount(
-                f.serving.amount,
-                f.serving.unit,
-                t(UNIT_KEY[f.serving.unit]),
-                language,
-              )}{' '}
-              · {formatQuantity(f.macros.calories, 'kcal', language)} ·{' '}
-              {t('nutrition.plan.protein')} {formatQuantity(f.macros.proteinG, 'g', language)} /{' '}
-              {t('nutrition.plan.carbs')} {formatQuantity(f.macros.carbsG, 'g', language)} /{' '}
-              {t('nutrition.plan.fat')} {formatQuantity(f.macros.fatG, 'g', language)}
+              {formatServingAmount(f.serving.amount, f.serving.unit, language, t)} ·{' '}
+              {formatQuantity(f.macros.calories, 'kcal', language)} · {t('nutrition.plan.protein')}{' '}
+              {formatQuantity(f.macros.proteinG, 'g', language)} / {t('nutrition.plan.carbs')}{' '}
+              {formatQuantity(f.macros.carbsG, 'g', language)} / {t('nutrition.plan.fat')}{' '}
+              {formatQuantity(f.macros.fatG, 'g', language)}
             </AppText>
           </View>
         ))}
