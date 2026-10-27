@@ -29,6 +29,7 @@ import { foodDisplayName } from '../application/food-display.service';
 import { selectMealPlan } from '../application/meal-plan.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { NutritionDataGap } from './NutritionDataGap';
+import { formatServingAmount } from './serving-amount';
 
 const SLOT_KEY: Record<MealSlot, TranslationKey> = {
   BREAKFAST: 'nutrition.plan.breakfast',
@@ -179,11 +180,16 @@ function MealCard({
             <AppText>{foodDisplayName({ id: f.foodId, name: f.name }, language)}</AppText>
             {/* BUG-028: formatQuantity keeps each value and its unit on one line. */}
             <AppText variant="caption" tone="muted">
-              {formatQuantity(f.serving.amount, t(UNIT_KEY[f.serving.unit]), language)} ·{' '}
-              {formatQuantity(f.macros.calories, 'kcal', language)} · {t('nutrition.plan.protein')}{' '}
-              {formatQuantity(f.macros.proteinG, 'g', language)} / {t('nutrition.plan.carbs')}{' '}
-              {formatQuantity(f.macros.carbsG, 'g', language)} / {t('nutrition.plan.fat')}{' '}
-              {formatQuantity(f.macros.fatG, 'g', language)}
+              {formatServingAmount(
+                f.serving.amount,
+                f.serving.unit,
+                t(UNIT_KEY[f.serving.unit]),
+                language,
+              )}{' '}
+              · {formatQuantity(f.macros.calories, 'kcal', language)} ·{' '}
+              {t('nutrition.plan.protein')} {formatQuantity(f.macros.proteinG, 'g', language)} /{' '}
+              {t('nutrition.plan.carbs')} {formatQuantity(f.macros.carbsG, 'g', language)} /{' '}
+              {t('nutrition.plan.fat')} {formatQuantity(f.macros.fatG, 'g', language)}
             </AppText>
           </View>
         ))}

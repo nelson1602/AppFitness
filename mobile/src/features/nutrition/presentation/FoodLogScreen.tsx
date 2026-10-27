@@ -5,7 +5,6 @@ import { useDashboardStore } from '@/features/dashboard/application/dashboard.st
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import {
   formatNumber,
-  formatQuantity,
   useLocalization,
   type SupportedLanguage,
   type TranslationKey,
@@ -33,6 +32,7 @@ import type { ConsumedMacros, LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS } from '../domain/meal-plan';
 import { FoodLogAddForm } from './food-log/FoodLogAddForm';
 import { formatServingCount, ServingStepper } from './food-log/ServingStepper';
+import { formatServingAmount } from './serving-amount';
 
 const MEAL_KEY: Record<MealTypeName, TranslationKey> = {
   BREAKFAST: 'nutrition.plan.breakfast',
@@ -237,8 +237,9 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
       </View>
       <AppText variant="caption" tone="muted">
         {/* v8: the amount eaten, not a serving multiplier. */}
-        {formatQuantity(
-          Math.round(item.serving.amount * item.servingCount * 10) / 10,
+        {formatServingAmount(
+          item.serving.amount * item.servingCount,
+          item.serving.unit,
           unitKey ? t(unitKey) : item.serving.unit,
           language,
         )}{' '}
