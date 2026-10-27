@@ -1787,9 +1787,11 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
       'heart_healthy',
       'quick_prep',
     ],
+    avoid: ['caffeine'],
   }),
   food('food.black_coffee', 'Coffee, black', 'beverage', mlFdc(240, 240.2), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
+    avoid: ['caffeine'],
   }),
   food('food.herbal_tea', 'Herbal tea, unsweetened', 'beverage', mlFdc(240, 240.2), 0, 0, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'quick_prep'],
@@ -1852,6 +1854,7 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
   }),
   food('food.matcha_unsweet', 'Matcha, unsweetened', 'beverage', ml(240), 1, 1, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium', 'heart_healthy'],
+    avoid: ['caffeine'],
   }),
   food('food.kombucha_unsweet', 'Kombucha, low-sugar', 'beverage', ml(240), 0, 7, 0, {
     tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'low_sodium'],
@@ -2040,5 +2043,78 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     fiber: 4,
     tags: ['high_protein', 'gluten_free', 'dairy_free', 'quick_prep'],
     srcNote: 'Estimated from component USDA references (tuna + greens + olive oil).',
+  }),
+  // ── Dominican foods seed (ADR-P040 D10, v8 Block 2) ────────────────────────
+  // Foods named in the first-run evaluation's lists that the catalog lacked.
+  // Sourced from the pinned USDA archives (sha256-verified, see the ADR-P013
+  // manifest pins); the record id is in each source note.
+  food('food.lobster', 'Lobster, cooked', 'protein_animal', g(100), 19, 0, 1, {
+    tags: ['high_protein', 'low_carb', 'gluten_free', 'dairy_free'],
+    avoid: ['shellfish_allergy'],
+    srcNote:
+      'USDA FDC SR Legacy 174209 "Crustaceans, lobster, northern, cooked, moist heat", per 100 g; macros rounded; calories via Atwater factors (4/4/9).',
+  }),
+  food('food.conch', 'Conch (lambí), cooked', 'protein_animal', g(100), 26, 2, 1, {
+    tags: ['high_protein', 'low_carb', 'gluten_free', 'dairy_free'],
+    avoid: ['shellfish_allergy'],
+    srcNote:
+      'USDA FDC SR Legacy 173720 "Mollusks, conch, baked or broiled", per 100 g; macros rounded; calories via Atwater factors (4/4/9).',
+  }),
+  food('food.clams', 'Clams, cooked', 'protein_animal', g(100), 26, 5, 2, {
+    tags: ['high_protein', 'low_carb', 'gluten_free', 'dairy_free'],
+    avoid: ['shellfish_allergy'],
+    srcNote:
+      'USDA FDC SR Legacy 171975 "Mollusks, clam, mixed species, cooked, moist heat", per 100 g; macros rounded; calories via Atwater factors (4/4/9).',
+  }),
+  food('food.pigeon_peas', 'Pigeon peas (guandules), cooked', 'legume', g(100), 7, 23, 0, {
+    fiber: 7,
+    tags: [
+      'complex_carb',
+      'vegan',
+      'vegetarian',
+      'gluten_free',
+      'dairy_free',
+      'high_fiber',
+      'budget_friendly',
+    ],
+    srcNote:
+      'USDA FDC SR Legacy 172437 "Pigeon peas (red gram), mature seeds, cooked, boiled, without salt", per 100 g; macros rounded; calories via Atwater factors (4/4/9).',
+  }),
+  food('food.plantain_boiled', 'Green plantain, boiled', 'vegetable', g(100), 1, 29, 0, {
+    fiber: 3,
+    tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
+    srcNote:
+      'USDA FDC SR Legacy 168216 "Plantains, green, boiled", per 100 g; macros rounded; calories via Atwater factors (4/4/9).',
+  }),
+  food('food.tostones', 'Fried green plantain (tostones)', 'vegetable', g(100), 2, 49, 12, {
+    fiber: 4,
+    tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
+    avoid: ['fried'],
+    srcNote:
+      'USDA FDC SR Legacy 168199 "Plantains, green, fried", per 100 g; macros rounded; calories via Atwater factors (4/4/9).',
+  }),
+  food('food.cassava_cooked', 'Cassava (yuca), cooked', 'vegetable', g(100), 1, 40, 3, {
+    fiber: 2,
+    tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
+    srcNote:
+      'USDA FDC FNDDS 2021-2023 2709564 "Cassava, cooked", per 100 g (ADR-P013 A1 second source; SR Legacy has raw cassava only); macros rounded; calories via Atwater factors (4/4/9).',
+  }),
+  food('food.yam_cooked', 'Yam (ñame), cooked', 'vegetable', g(100), 1, 27, 0, {
+    fiber: 4,
+    tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
+    srcNote:
+      'USDA FDC SR Legacy 170072 "Yam, cooked, boiled, drained, or baked, without salt", per 100 g; macros rounded; calories via Atwater factors (4/4/9).',
+  }),
+  food('food.yautia_raw', 'Yautía (tannier), raw weight', 'vegetable', g(100), 1, 24, 0, {
+    fiber: 2,
+    tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
+    srcNote:
+      'USDA FDC SR Legacy 169401 "Yautia (tannier), raw", per 100 g; macros rounded; calories via Atwater factors (4/4/9). No cooked record exists in either pinned archive, so the raw weight is labelled.',
+  }),
+  food('food.cola_regular', 'Cola soft drink, regular', 'beverage', g(100), 0, 10, 0, {
+    tags: ['vegan', 'vegetarian', 'gluten_free', 'dairy_free'],
+    avoid: ['added_sugar', 'caffeine'],
+    srcNote:
+      'USDA FDC SR Legacy 174852 "Beverages, carbonated, cola, regular", per 100 g; macros rounded; calories via Atwater factors (4/4/9).',
   }),
 ];

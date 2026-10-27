@@ -148,6 +148,10 @@ const WRITE_ERROR_COPY: Record<
     title: 'nutrition.log.writeError.addTitle',
     body: 'nutrition.log.writeError.addBody',
   },
+  blocked: {
+    title: 'nutrition.log.writeError.blockedTitle',
+    body: 'nutrition.log.writeError.blockedBody',
+  },
   servings: {
     title: 'nutrition.log.writeError.servingsTitle',
     body: 'nutrition.log.writeError.servingsBody',

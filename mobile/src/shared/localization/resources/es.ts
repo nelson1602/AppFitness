@@ -854,6 +854,9 @@ export const es = {
     'El cambio de porciones no se guardó. Inténtalo de nuevo.',
   'nutrition.log.writeError.removeTitle': 'No se pudo eliminar el alimento',
   'nutrition.log.writeError.removeBody': 'El alimento sigue en tu registro. Inténtalo de nuevo.',
+  'nutrition.log.writeError.blockedTitle': 'No se registró',
+  'nutrition.log.writeError.blockedBody':
+    'Ese alimento está marcado como alergia en tu evaluación.',
   'nutrition.log.webUnavailableTitle': 'El registro de alimentos no está disponible en la web',
   'nutrition.log.webUnavailableBody':
     'Usa la app móvil de AppFitnessRD para registrar tus comidas y seguir tu nutrición diaria.',
@@ -875,13 +878,13 @@ export const es = {
   'nutrition.log.logAccessibility': 'Registrar',
   'nutrition.log.decreaseServings': 'Disminuir porciones',
   'nutrition.log.increaseServings': 'Aumentar porciones',
-  'nutrition.warning.allergyTitle': 'Atención: coincide con una alergia o sensibilidad',
+  'nutrition.warning.allergyTitle': 'Marcaste este alimento como alergia',
   'nutrition.warning.preferenceTitle': 'Este alimento está en tu lista de exclusión',
   'nutrition.warning.catalogReason': 'un alimento que decidiste evitar',
   'nutrition.warning.matches': 'coincide con',
   'nutrition.warning.join': 'y',
   'nutrition.warning.allergyAdvice':
-    'Aún puedes registrarlo, pero confirma que sea seguro para ti. Esto no es asesoramiento médico de emergencia.',
+    'Por eso no se puede registrar. Si cambió, actualízalo en Perfil → Actualizar evaluación.',
   'nutrition.warning.preferenceAdvice':
     'en tus preferencias alimentarias. Aún puedes registrarlo si así lo deseas.',
   'nutrition.avoid.nuts': 'Frutos secos',
@@ -890,6 +893,10 @@ export const es = {
   'nutrition.avoid.lactose': 'Lactosa / lácteos',
   'nutrition.avoid.sodium': 'Alto contenido de sodio',
   'nutrition.avoid.purine': 'Ácido úrico alto',
+  'nutrition.avoid.addedSugar': 'Azúcares añadidos',
+  'nutrition.avoid.alcohol': 'Alcohol',
+  'nutrition.avoid.caffeine': 'Cafeína',
+  'nutrition.avoid.fried': 'Frituras',
   'nutrition.unit.g': 'g',
   'nutrition.unit.ml': 'ml',
   'nutrition.unit.piece': 'unidad',

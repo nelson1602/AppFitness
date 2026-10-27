@@ -36,6 +36,10 @@ const TAG_KEY: Record<AvoidTag, TranslationKey> = {
   lactose_sensitive: 'nutrition.avoid.lactose',
   high_sodium_sensitive: 'nutrition.avoid.sodium',
   high_purine: 'nutrition.avoid.purine',
+  added_sugar: 'nutrition.avoid.addedSugar',
+  alcohol: 'nutrition.avoid.alcohol',
+  caffeine: 'nutrition.avoid.caffeine',
+  fried: 'nutrition.avoid.fried',
 };
 
 const KIND_KEY: Record<DietaryPreference['kind'], TranslationKey> = {

@@ -2,7 +2,7 @@ import { filterByCategory, filterByTags, getById, listAll, search } from './food
 
 describe('food catalog service', () => {
   it('listAll returns the full catalog', () => {
-    expect(listAll()).toHaveLength(300);
+    expect(listAll()).toHaveLength(310);
   });
 
   it('getById returns a known item and undefined for an unknown id', () => {
@@ -33,7 +33,7 @@ describe('food catalog service', () => {
   });
 
   it('filterByTags with no tags returns the full catalog', () => {
-    expect(filterByTags([])).toHaveLength(300);
+    expect(filterByTags([])).toHaveLength(310);
   });
 
   it('search matches by name case-insensitively; blank returns nothing', () => {

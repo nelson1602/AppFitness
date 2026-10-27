@@ -11,8 +11,9 @@ import type { AvoidTag, FoodItem } from './food-catalog';
  *  - its catalog id/key is an active explicit per-food exclusion.
  *
  * Severity is safety-first: `allergy` when ANY matching preference is an
- * allergy/sensitivity (`kind === 'allergy'`), otherwise `preference`. This is
- * advisory only — the caller NEVER hard-blocks logging (Slice 4 scope).
+ * allergy/sensitivity (`kind === 'allergy'`), otherwise `preference`.
+ * ADR-P040 D4 (accepted 2026-10-26): an `allergy` match blocks logging
+ * ({@link isLoggingBlocked}); a `preference` match only warns.
  *
  * No I/O, no Date.now/Math.random — deterministic over its inputs.
  */
@@ -26,6 +27,11 @@ export interface ExclusionMatch {
   avoidTags: AvoidTag[];
   /** True when the food's catalog key was explicitly excluded. */
   byCatalogKey: boolean;
+}
+
+/** ADR-P040 D4: a food marked "Alergia" cannot be logged; "Prefiero evitar" only warns. */
+export function isLoggingBlocked(match: ExclusionMatch | null): boolean {
+  return match?.severity === 'allergy';
 }
 
 export function matchFoodExclusion(

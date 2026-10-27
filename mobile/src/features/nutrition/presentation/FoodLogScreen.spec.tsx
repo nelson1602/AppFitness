@@ -150,7 +150,7 @@ describe('FoodLogScreen (Slice 4C)', () => {
     await fireEvent.changeText(screen.getByTestId('food-search-input'), 'almonds');
     await fireEvent.press(await screen.findByText('Almonds'));
 
-    expect(screen.getByText('Heads up — this matches an allergy or sensitivity')).toBeOnTheScreen();
+    expect(screen.getByText('You marked this food as an allergy')).toBeOnTheScreen();
   });
 
   it('renders a loading state', async () => {

@@ -15,7 +15,11 @@ import { useTheme } from '@/shared/theme';
 
 import { foodDisplayName, searchFoodsForDisplay } from '../../application/food-display.service';
 import type { DietaryPreference } from '../../domain/dietary-preference';
-import { matchFoodExclusion, type ExclusionMatch } from '../../domain/dietary-preference-match';
+import {
+  isLoggingBlocked,
+  matchFoodExclusion,
+  type ExclusionMatch,
+} from '../../domain/dietary-preference-match';
 import type { AvoidTag, FoodItem, ServingUnit } from '../../domain/food-catalog';
 import { MEAL_SLOTS } from '../../domain/meal-plan';
 import { ServingStepper } from './ServingStepper';
@@ -39,6 +43,10 @@ const TAG_KEY: Record<AvoidTag, TranslationKey> = {
   lactose_sensitive: 'nutrition.avoid.lactose',
   high_sodium_sensitive: 'nutrition.avoid.sodium',
   high_purine: 'nutrition.avoid.purine',
+  added_sugar: 'nutrition.avoid.addedSugar',
+  alcohol: 'nutrition.avoid.alcohol',
+  caffeine: 'nutrition.avoid.caffeine',
+  fried: 'nutrition.avoid.fried',
 };
 
 const UNIT_KEY: Record<ServingUnit, TranslationKey> = {
@@ -110,8 +118,10 @@ export function FoodLogAddForm({
     setServingCount(1);
   };
 
+  const blocked = isLoggingBlocked(exclusion);
+
   const submit = (): void => {
-    if (!selected) return;
+    if (!selected || blocked) return;
     onAdd(selected.id, mealType, servingCount);
     reset();
   };
@@ -232,6 +242,7 @@ export function FoodLogAddForm({
             />
             <AppButton
               accessibilityLabel={`${t('nutrition.log.logAccessibility')} ${selectedDisplayName}`}
+              disabled={blocked}
               testID="food-log-add-submit"
               onPress={submit}
             >

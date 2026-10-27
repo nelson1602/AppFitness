@@ -45,8 +45,10 @@ const GOLDEN = [
   { key: 'food.pomegranate', revision: 2, id: '764bf1c8-895c-5f30-bb18-922a6d29a7b9' },
   { key: 'food.dragon_fruit', revision: 2, id: 'a8fe6508-0d34-5d93-a6f2-d0209b876474' },
   { key: 'food.mixed_greens', revision: 2, id: 'd0b4acb4-2289-5fa0-b9be-da5aeabb8973' },
+  // v8 Dominican seed anchor: a non-ASCII name hashes identically.
+  { key: 'food.conch', revision: 1, id: 'a2421342-6825-5f03-9262-822333ee10ea' },
 ];
-const EXPECTED_CATALOG_HASH = 'bb2922bed71b0131a37f0eef3f1984b9791629ab';
+const EXPECTED_CATALOG_HASH = 'b2450c53cc326c6a962cf8f4c6a844474ddf4ecc';
 
 describe('uuidv5 derivation', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -74,13 +76,13 @@ describe('committed canonical artifact', () => {
     expect(CANONICAL_FOOD_CATALOG).toEqual(buildCanonicalCatalog(FOOD_CATALOG));
   });
 
-  it('has one revision per authored food (300) with unique keys and ids', () => {
+  it('has one revision per authored food (310) with unique keys and ids', () => {
     expect(CANONICAL_FOOD_CATALOG).toHaveLength(FOOD_CATALOG.length);
-    expect(CANONICAL_FOOD_CATALOG).toHaveLength(300);
+    expect(CANONICAL_FOOD_CATALOG).toHaveLength(310);
     const keys = new Set(CANONICAL_FOOD_CATALOG.map((f) => `${f.catalogKey}:${f.foodRevision}`));
     const ids = new Set(CANONICAL_FOOD_CATALOG.map((f) => f.id));
-    expect(keys.size).toBe(300);
-    expect(ids.size).toBe(300);
+    expect(keys.size).toBe(310);
+    expect(ids.size).toBe(310);
   });
 
   it('every id equals uuidv5(catalog_key:food_revision)', () => {

@@ -296,3 +296,25 @@ describe('generateMealPlan — explainability', () => {
     }
   });
 });
+
+describe('generateMealPlan — never-planned foods (meal-rules@1.1.0, ADR-P040 D4)', () => {
+  it('never proposes foods tagged added sugar, alcohol or fried, even with no exclusions', () => {
+    const neverPlanned = new Set(
+      FOOD_CATALOG.filter((food) =>
+        (food.avoidFor ?? []).some((tag) => ['added_sugar', 'alcohol', 'fried'].includes(tag)),
+      ).map((food) => food.id),
+    );
+    expect(neverPlanned.has('food.tostones')).toBe(true);
+    expect(neverPlanned.has('food.cola_regular')).toBe(true);
+
+    for (const goalType of ['FAT_LOSS', 'MUSCLE_GAIN', 'MAINTENANCE'] as const) {
+      const plan = generateMealPlan(input({ goalType }));
+      for (const day of plan.days) {
+        for (const meal of day.meals) {
+          for (const food of meal.foods) expect(neverPlanned.has(food.foodId)).toBe(false);
+        }
+      }
+      expect(plan.excludedAvoidTags).toEqual([]);
+    }
+  });
+});

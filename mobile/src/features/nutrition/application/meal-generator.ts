@@ -363,6 +363,13 @@ function buildDay(dayIndex: number, pools: Pools, daily: MealMacros, hash: numbe
 
 // ── entry point ──────────────────────────────────────────────────────────
 
+/**
+ * meal-rules@1.1.0 (v8 Block 2, ADR-P040 D4): foods tagged with added sugar,
+ * alcohol or frying stay loggable but are never proposed in a plan, whatever
+ * the person excluded.
+ */
+export const NEVER_PLANNED_TAGS: readonly AvoidTag[] = ['added_sugar', 'alcohol', 'fried'];
+
 export function generateMealPlan(input: MealPlanInput): MealPlan {
   const days = input.days ?? DEFAULT_DAYS;
   const preferred = GOAL_PREFERRED_TAGS[input.goalType];
@@ -373,7 +380,13 @@ export function generateMealPlan(input: MealPlanInput): MealPlan {
   ]);
   const excludedKeys = new Set<FoodId>(input.excludeCatalogKeys ?? []);
 
-  const pools = buildPools(input.catalog, excluded, excludedKeys, preferred);
+  // The person's exclusions are reported; the never-planned tags only filter.
+  const pools = buildPools(
+    input.catalog,
+    new Set([...excluded, ...NEVER_PLANNED_TAGS]),
+    excludedKeys,
+    preferred,
+  );
   const hash = seedHash(input.seed);
 
   const daily: MealMacros = {

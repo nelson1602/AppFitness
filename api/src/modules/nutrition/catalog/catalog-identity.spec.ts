@@ -150,8 +150,14 @@ const GOLDEN = [
     revision: 2,
     id: 'd0b4acb4-2289-5fa0-b9be-da5aeabb8973',
   },
+  // v8 Dominican seed anchor: a non-ASCII name hashes identically.
+  {
+    key: 'food.conch',
+    revision: 1,
+    id: 'a2421342-6825-5f03-9262-822333ee10ea',
+  },
 ];
-const EXPECTED_CATALOG_HASH = 'bb2922bed71b0131a37f0eef3f1984b9791629ab';
+const EXPECTED_CATALOG_HASH = 'b2450c53cc326c6a962cf8f4c6a844474ddf4ecc';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -178,8 +184,8 @@ describe('catalog identity (uuidv5)', () => {
 });
 
 describe('canonical catalog seed artifact', () => {
-  it('contains 300 foods', () => {
-    expect(CATALOG).toHaveLength(300);
+  it('contains 310 foods', () => {
+    expect(CATALOG).toHaveLength(310);
   });
 
   it('every id equals uuidv5(catalog_key:food_revision) — server derivation', () => {
@@ -235,7 +241,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.13.6',
+      catalogVersionSnapshot: 'food-catalog@1.14.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

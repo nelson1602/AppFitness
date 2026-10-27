@@ -16,7 +16,7 @@ import type { AvoidTag, FoodId, FoodItem, ServingUnit } from './food-catalog';
  * outputs. Descriptive, non-medical; no AI/LLM.
  */
 
-export const MEAL_RULE_VERSION = 'meal-rules@1.0.0';
+export const MEAL_RULE_VERSION = 'meal-rules@1.1.0';
 
 export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 
