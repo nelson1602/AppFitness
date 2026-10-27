@@ -1,3 +1,4 @@
+import { INJURY_PREFERRED_SUBSTITUTES } from './injury-movement-map';
 import type { FitnessLevel, GoalType, Intensity } from './types';
 import {
   WORKOUT_ROUTINE_CONTRACT_VERSION,
@@ -10,6 +11,7 @@ import {
   type WorkoutRoutineExerciseCandidate,
   type WorkoutRoutineRequest,
   type WorkoutScheduleDay,
+  type WorkoutSessionAdjustment,
   type WorkoutSessionPrescription,
   type WorkoutTrainingPattern,
 } from './workout-routine';
@@ -24,9 +26,11 @@ import {
  * clock access, persistence, network access, or user-facing prose.
  */
 // ADR-P031 W-4D: `@1.1.0` is the first revision whose routines are filtered by
-// the user's own declared movements. The exercise catalogue is unchanged, so
-// `EXERCISE_CATALOG_VERSION` does not move; only the rule family does.
-export const WORKOUT_ROUTINE_RULE_VERSION = 'icoach-workout-rules@1.1.0';
+// the user's own declared movements. `@1.2.0` (ADR-P040 D5, v8 Block 2): when
+// the exclusions empty a slot, the injury map's preferred substitute fills it,
+// and with no valid substitute the slot is left out and recorded — the
+// exclusion itself is never dropped to make a plan buildable.
+export const WORKOUT_ROUTINE_RULE_VERSION = 'icoach-workout-rules@1.2.0';
 
 export type WorkoutRoutineGenerationErrorCode = 'INVALID_REQUEST' | 'INSUFFICIENT_CATALOG_COVERAGE';
 
@@ -152,8 +156,15 @@ export function generateWorkoutRoutine(
 
   const duration = Math.min(90, Math.max(20, request.sessionDurationMins ?? 45));
   const slots = duration >= 60 ? [...REQUIRED_SLOTS, CONDITIONING_SLOT] : REQUIRED_SLOTS;
+  // A slot emptied by the person's exclusions is handled per session
+  // (substitute or omit); only a slot the catalog and equipment cannot cover
+  // at all is still a coverage error.
   const missingPatterns = slots
-    .filter((slot) => !hasMatchingExercise(eligible, slot.patterns))
+    .filter(
+      (slot) =>
+        !hasMatchingExercise(eligible, slot.patterns) &&
+        !emptiedByExclusions(catalog.exercises, slot, availableEquipment, excludedMovements),
+    )
     .map((slot) => slot.patterns[0]);
 
   if (missingPatterns.length > 0) {
@@ -173,7 +184,14 @@ export function generateWorkoutRoutine(
   }
 
   const sessions = trainingIndexes.map((_dayIndex, sessionIndex) =>
-    buildSession(publicRequest, eligible, slots, availableEquipment, sessionIndex),
+    buildSession(
+      publicRequest,
+      eligible,
+      catalog.exercises,
+      slots,
+      availableEquipment,
+      sessionIndex,
+    ),
   );
   const schedule = buildSchedule(trainingIndexes, sessions);
   const progression = buildProgression(publicRequest.goal, sessions, eligible, availableEquipment);
@@ -230,12 +248,23 @@ function validateRequest(request: WorkoutRoutineRequest, catalog: WorkoutRoutine
 function buildSession(
   request: WorkoutRoutineRequest & { goal: Exclude<GoalType, 'REHABILITATION'> },
   eligible: readonly WorkoutRoutineExerciseCandidate[],
+  allExercises: readonly WorkoutRoutineExerciseCandidate[],
   slots: readonly ExerciseSlot[],
   availableEquipment: ReadonlySet<TrainingEquipment>,
   sessionIndex: number,
 ): WorkoutSessionPrescription {
   const selectedKeys = new Set<string>();
-  const exercises = slots.map((slot, slotIndex) => {
+  const bySlot = new Map<number, WorkoutExercisePrescription>();
+  const adjustments: WorkoutSessionAdjustment[] = [];
+
+  // Pass 1 — slots with their own eligible exercises, in slot order, exactly
+  // as before (rotation by session and slot index).
+  const emptied: number[] = [];
+  slots.forEach((slot, slotIndex) => {
+    if (!hasMatchingExercise(eligible, slot.patterns)) {
+      emptied.push(slotIndex);
+      return;
+    }
     const matches = matchingExercises(eligible, slot.patterns).filter(
       (candidate) => !selectedKeys.has(candidate.key),
     );
@@ -248,14 +277,104 @@ function buildSession(
     }
     const selected = matches[(sessionIndex + slotIndex) % matches.length];
     selectedKeys.add(selected.key);
-    return prescribeExercise(request, selected, eligible, slot, availableEquipment);
+    bySlot.set(slotIndex, prescribeExercise(request, selected, eligible, slot, availableEquipment));
   });
+
+  // Pass 2 — slots the person's exclusions emptied (ADR-P040 D5): a preferred
+  // substitute not already used, otherwise the slot is left out. Running after
+  // pass 1 means a substitute can never take the exercise another slot needs.
+  for (const slotIndex of emptied) {
+    const slot = slots[slotIndex];
+    const substitute = preferredSubstitute(
+      slot,
+      allExercises,
+      eligible,
+      selectedKeys,
+      availableEquipment,
+    );
+    if (substitute) {
+      selectedKeys.add(substitute.exercise.key);
+      bySlot.set(
+        slotIndex,
+        prescribeExercise(request, substitute.exercise, eligible, slot, availableEquipment),
+      );
+      adjustments.push({
+        slotKey: slot.key,
+        kind: 'SUBSTITUTED',
+        fromExerciseKey: substitute.fromKey,
+        toExerciseKey: substitute.exercise.key,
+      });
+    } else {
+      adjustments.push({ slotKey: slot.key, kind: 'OMITTED' });
+    }
+  }
+  const exercises = slots
+    .map((_, slotIndex) => bySlot.get(slotIndex))
+    .filter((exercise): exercise is WorkoutExercisePrescription => exercise !== undefined);
+  adjustments.sort(
+    (a, b) =>
+      slots.findIndex((slot) => slot.key === a.slotKey) -
+      slots.findIndex((slot) => slot.key === b.slotKey),
+  );
+
+  if (exercises.length === 0) {
+    throw new WorkoutRoutineGenerationError(
+      'INSUFFICIENT_CATALOG_COVERAGE',
+      'No eligible exercise for any slot',
+      slots.map((slot) => slot.patterns[0]),
+    );
+  }
 
   return {
     key: `session.full_body_${sessionIndex + 1}`,
     focusKey: 'workout.focus.full_body',
     exercises,
+    ...(adjustments.length > 0 ? { adjustments } : {}),
   };
+}
+
+/** True when the slot has equipment-compatible exercises that are all excluded. */
+function emptiedByExclusions(
+  allExercises: readonly WorkoutRoutineExerciseCandidate[],
+  slot: ExerciseSlot,
+  availableEquipment: ReadonlySet<TrainingEquipment>,
+  excludedMovements: ReadonlySet<string>,
+): boolean {
+  const usable = matchingExercises(allExercises, slot.patterns).filter((exercise) =>
+    exercise.equipment.some((equipment) => availableEquipment.has(equipment)),
+  );
+  return (
+    usable.length > 0 &&
+    usable.every((exercise) =>
+      exercise.movementPatterns.some((movement) => excludedMovements.has(movement)),
+    )
+  );
+}
+
+/**
+ * The first eligible preferred substitute for any exercise of this slot, in
+ * catalog order, preferring originals the person has the equipment for.
+ * Deterministic: no randomness, a fixed scan order.
+ */
+function preferredSubstitute(
+  slot: ExerciseSlot,
+  allExercises: readonly WorkoutRoutineExerciseCandidate[],
+  eligible: readonly WorkoutRoutineExerciseCandidate[],
+  selectedKeys: ReadonlySet<string>,
+  availableEquipment: ReadonlySet<TrainingEquipment>,
+): { exercise: WorkoutRoutineExerciseCandidate; fromKey: string } | null {
+  const eligibleByKey = new Map(eligible.map((exercise) => [exercise.key, exercise]));
+  const originals = matchingExercises(allExercises, slot.patterns);
+  const usable = (exercise: WorkoutRoutineExerciseCandidate) =>
+    exercise.equipment.some((equipment) => availableEquipment.has(equipment));
+  for (const original of [...originals.filter(usable), ...originals.filter((e) => !usable(e))]) {
+    for (const key of INJURY_PREFERRED_SUBSTITUTES[original.key] ?? []) {
+      const candidate = eligibleByKey.get(key);
+      if (candidate && !selectedKeys.has(key))
+        return { exercise: candidate, fromKey: original.key };
+    }
+  }
+  return null;
 }
 
 function prescribeExercise(

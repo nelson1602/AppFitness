@@ -103,6 +103,21 @@ describe('session-manager local_user mirroring', () => {
     expect(getAccessToken()).toBe('new-access');
   });
 
+  // BUG-043: several useSession consumers mount at launch; one restore runs.
+  it('restoreSession presents the stored refresh token once for concurrent callers', async () => {
+    mockLoadSession.mockResolvedValue(stored);
+    mockRefresh.mockResolvedValue({ accessToken: 'new-access', refreshToken: 'new-refresh' });
+
+    const results = await Promise.all([restoreSession(), restoreSession(), restoreSession()]);
+
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(results.map((session) => session?.accessToken)).toEqual([
+      'new-access',
+      'new-access',
+      'new-access',
+    ]);
+  });
+
   it('restoreSession ensures the local_user row when offline (network failure)', async () => {
     mockLoadSession.mockResolvedValue(stored);
     mockRefresh.mockRejectedValue(new Error('network request failed'));
@@ -178,6 +193,28 @@ describe('session-manager token rotation and sign-out', () => {
 
     expect(rotated?.accessToken).toBe('a2');
     expect(getAccessToken()).toBe('a2');
+  });
+
+  // BUG-043: concurrent callers must not send the same refresh token twice.
+  it('refreshTokens shares one rotation between concurrent callers', async () => {
+    await establishSession();
+    let resolve: (value: { accessToken: string; refreshToken: string }) => void = () => {};
+    mockRefresh.mockReturnValue(new Promise((r) => (resolve = r)));
+
+    const first = refreshTokens();
+    const second = refreshTokens();
+    const third = refreshTokens();
+    resolve({ accessToken: 'a2', refreshToken: 'r2' });
+    const results = await Promise.all([first, second, third]);
+
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    expect(results.map((session) => session?.refreshToken)).toEqual(['r2', 'r2', 'r2']);
+
+    // The next rotation, with the new token, is a new request.
+    mockRefresh.mockResolvedValue({ accessToken: 'a3', refreshToken: 'r3' });
+    await refreshTokens();
+    expect(mockRefresh).toHaveBeenCalledTimes(2);
+    expect(mockRefresh).toHaveBeenLastCalledWith('r2');
   });
 
   it('refreshTokens clears the session on an explicit 401', async () => {

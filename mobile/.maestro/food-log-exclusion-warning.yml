@@ -1,10 +1,11 @@
 # ADR-P014 / FEATURE-006 Slice 4 — food-log excluded-food warning.
 #
-# Proves the non-blocking dietary-preference warning on the food log: add a
-# "Nuts" allergy via the dietary-preferences surface (Slice 2B), then open the
-# food log, select a nut food (Almonds → carries avoidFor: nut_allergy), see the
-# allergy/sensitivity warning, and confirm the food can STILL be logged (the
-# warning never hard-blocks). Fake synthetic identity; disposable DB.
+# Proves the dietary-preference guard on the food log: add a "Nuts" allergy
+# via the dietary-preferences surface (Slice 2B), then open the food log,
+# select a nut food (Almonds → carries avoidFor: nut_allergy), see the allergy
+# explanation, and confirm the food CANNOT be logged (ADR-P040 D4, accepted
+# 2026-10-26: an allergy blocks; "Prefiero evitar" only warns). Fake synthetic
+# identity; disposable DB.
 #
 # Wired into mobile-e2e.yml after food-log.yml — reuses the persisted `onboard`
 # session established by onboarding-loop.yml (no -e vars needed). Requires an
@@ -91,24 +92,16 @@ appId: com.appfitnessrd.mobile
 # with the "almonds" search query text, so tap the result row explicitly.
 - tapOn:
     id: 'food-option-food.almonds'
-# The non-blocking warning renders below the selected food — scroll it in.
+# The allergy explanation renders below the selected food — scroll it in.
 - scrollUntilVisible:
-    element: 'Heads up — this matches an allergy or sensitivity'
-    timeout: 60000
-# Advisory, not a medical directive. The disclaimer is the banner's last line,
-# below the title — scroll it into view rather than asserting statically.
-- scrollUntilVisible:
-    element: '.*not emergency medical advice.*'
+    element: 'You marked this food as an allergy'
     timeout: 60000
 
-# --- The warning never blocks: the food can still be logged ---
+# --- An allergy blocks: the add control is disabled ---
 - scrollUntilVisible:
     element:
       id: 'food-log-add-submit'
     timeout: 60000
-- tapOn:
+- assertVisible:
     id: 'food-log-add-submit'
-- scrollUntilVisible:
-    element: 'Almonds'
-    timeout: 60000
-- assertVisible: 'Almonds'
+    enabled: false

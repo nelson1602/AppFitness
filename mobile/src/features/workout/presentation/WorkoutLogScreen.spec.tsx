@@ -104,6 +104,7 @@ const routine = (o: Partial<Routine> = {}): Routine => ({
 });
 
 const log = (o: Partial<WorkoutLog> = {}): WorkoutLog => ({
+  planLink: null,
   id: 'l1',
   userId: 'u1',
   routineId: null,

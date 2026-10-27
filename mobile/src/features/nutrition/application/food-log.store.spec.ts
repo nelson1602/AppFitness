@@ -14,6 +14,7 @@ import {
 import { generateMealPlan } from './meal-generator';
 import { selectMealPlan } from './meal-plan.service';
 import { useFoodLogStore } from './food-log.store';
+import { listActiveDietaryPreferences } from '../infrastructure/dietary-preference.repository';
 
 // A faithful in-memory session (generation + owner comparison), NOT a stub:
 // `isSessionCurrent` really compares, so the store guards are exercised.
@@ -25,6 +26,9 @@ jest.mock('@/features/authentication', () =>
 );
 jest.mock('@/shared/infrastructure/sync', () => ({ runSync: jest.fn() }));
 jest.mock('@/shared/infrastructure/logging', () => ({ logError: jest.fn(), logWarn: jest.fn() }));
+jest.mock('../infrastructure/dietary-preference.repository', () => ({
+  listActiveDietaryPreferences: jest.fn().mockResolvedValue([]),
+}));
 jest.mock('../infrastructure/food-log.repository', () => ({
   listLoggedItems: jest.fn(),
   logFood: jest.fn(),
@@ -162,6 +166,20 @@ describe('food-log store (Slice 4C)', () => {
       servingCount: 1.5,
     });
     expect(mockList).toHaveBeenCalled();
+  });
+
+  it('refuses to log a food the person marked as an allergy (ADR-P040 D4)', async () => {
+    const allergy = {
+      id: 'p1',
+      exclusionType: 'avoid_tag',
+      avoidTag: 'nut_allergy',
+      catalogKey: null,
+      kind: 'allergy',
+    } as unknown as Awaited<ReturnType<typeof listActiveDietaryPreferences>>[number];
+    jest.mocked(listActiveDietaryPreferences).mockResolvedValueOnce([allergy]);
+    await useFoodLogStore.getState().addFood('food.almonds', 'BREAKFAST', 1);
+    expect(mockLog).not.toHaveBeenCalled();
+    expect(useFoodLogStore.getState().writeError).toBe('blocked');
   });
 
   it('editServing and removeItem delegate to the repository and reload', async () => {

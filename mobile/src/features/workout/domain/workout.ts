@@ -97,6 +97,16 @@ export interface WorkoutLogInput {
   notes?: string | null;
   /** ISO start time; defaults to now at the repository if omitted. */
   startedAt?: string;
+  /** ADR-P042 D5: the planned session this workout fulfils. */
+  planLink?: WorkoutPlanLink | null;
+}
+
+/** The planned session a workout fulfils (ADR-P042 D5). */
+export interface WorkoutPlanLink {
+  weeklyPlanId: string;
+  planSessionKey: string;
+  /** YYYY-MM-DD, the plan day the session belongs to. */
+  planDate: string;
 }
 
 export interface WorkoutLog {
@@ -107,6 +117,7 @@ export interface WorkoutLog {
   notes: string | null;
   startedAt: string;
   finishedAt: string | null;
+  planLink: WorkoutPlanLink | null;
   version: number;
   syncStatus: SyncStatus;
   createdAt: string;
@@ -135,6 +146,14 @@ export function rowToWorkoutLog(row: WorkoutLogRow): WorkoutLog {
     notes: row.notes,
     startedAt: row.started_at,
     finishedAt: row.finished_at,
+    planLink:
+      row.weekly_plan_id && row.plan_session_key && row.plan_date
+        ? {
+            weeklyPlanId: row.weekly_plan_id,
+            planSessionKey: row.plan_session_key,
+            planDate: row.plan_date,
+          }
+        : null,
     version: row.version,
     syncStatus: row.sync_status,
     createdAt: row.created_at,

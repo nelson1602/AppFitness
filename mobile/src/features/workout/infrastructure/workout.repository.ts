@@ -166,12 +166,26 @@ export async function createWorkoutLog(
     routineId = input.routineId;
   }
 
+  const link = input.planLink ?? null;
   return inTransaction(async (tx) => {
     await run(
       `INSERT INTO workout_logs (id, user_id, created_at, updated_at, version, sync_status,
-         routine_id, name, notes, started_at, finished_at)
-       VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, NULL)`,
-      [id, userId, nowIso, nowIso, routineId, input.name, notes, startedAt],
+         routine_id, name, notes, started_at, finished_at,
+         weekly_plan_id, plan_session_key, plan_date)
+       VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, NULL, ?, ?, ?)`,
+      [
+        id,
+        userId,
+        nowIso,
+        nowIso,
+        routineId,
+        input.name,
+        notes,
+        startedAt,
+        link?.weeklyPlanId ?? null,
+        link?.planSessionKey ?? null,
+        link?.planDate ?? null,
+      ],
       tx,
     );
     await enqueue(
@@ -188,6 +202,9 @@ export async function createWorkoutLog(
           notes,
           started_at: startedAt,
           finished_at: null,
+          weekly_plan_id: link?.weeklyPlanId ?? null,
+          plan_session_key: link?.planSessionKey ?? null,
+          plan_date: link?.planDate ?? null,
         },
         baseVersion: 0,
       },
@@ -249,6 +266,10 @@ export async function updateWorkoutLog(
           notes,
           started_at: row.started_at,
           finished_at: finishedAt,
+          // The link is re-sent unchanged: an UPDATE is a whole representation.
+          weekly_plan_id: row.weekly_plan_id,
+          plan_session_key: row.plan_session_key,
+          plan_date: row.plan_date,
         },
         baseVersion: row.version,
       },
@@ -342,8 +363,9 @@ export async function applyServerWorkoutLog(
   await run(
     `INSERT OR REPLACE INTO workout_logs
        (id, user_id, created_at, updated_at, version, sync_status, deleted_at, deleted_by,
-        routine_id, name, notes, started_at, finished_at)
-     VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?)`,
+        routine_id, name, notes, started_at, finished_at,
+        weekly_plan_id, plan_session_key, plan_date)
+     VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       row.id,
       row.user_id,
@@ -357,6 +379,9 @@ export async function applyServerWorkoutLog(
       str(row['notes']),
       str(row['started_at']),
       str(row['finished_at']),
+      str(row['weekly_plan_id']),
+      str(row['plan_session_key']),
+      str(row['plan_date']),
     ],
     tx,
   );

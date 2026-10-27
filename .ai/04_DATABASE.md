@@ -96,6 +96,26 @@ Cross-device synchronization.
 
 ---
 
+## Saved Weekly Plans (ADR-P042, v8)
+
+`weekly_plans` is a synced, user-owned entity (UUID, soft delete,
+`version`/`sync_seq`).
+
+- Each row is one plan revision of one week. Rows are appended, never
+  rewritten. Columns:
+  - `week_start`, `revision`, `effective_from`, `trigger`, `load_step`;
+  - `inputs_fingerprint`, `rule_versions`;
+  - `plan` and `notes` (JSON).
+- Nullable links to it:
+  - `workout_logs`: `weekly_plan_id`, `plan_session_key`, `plan_date`;
+  - `meal_items`: `plan_id`, `plan_date`, `plan_slot`.
+- Migrations: SQLite migration 009, Prisma migration
+  `20261026130000_weekly_plans_and_plan_links`.
+- Rows are kept until the account is deleted. Deletion removes them through the
+  user's cascading foreign key.
+
+---
+
 # Synchronization Model
 
 Architecture

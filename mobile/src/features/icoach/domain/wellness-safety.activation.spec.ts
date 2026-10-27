@@ -75,14 +75,19 @@ describe('the dormancy tripwire is gone, deliberately', () => {
   });
 
   it('the analyzer is reachable from a production path', () => {
-    // The seam's only reader, and the only production file that supplies it.
+    // The seam's only reader, and the production files that supply it: the
+    // adapter, and the Evaluación física preview, which runs the same adapter
+    // on the unsaved draft (v8 Block 2).
     const engine = code(read(`${__dirname}/engine.ts`));
     expect(engine).toContain('analyzeWellnessSafety(input.wellness)');
 
     const suppliers = productionFiles().filter((file) =>
       /\bwellness(\?)?:\s*(wellness\.declaration|\{)/.test(code(read(file))),
     );
-    expect(suppliers.map((file) => file.split('/').pop())).toEqual(['icoach-adapter.ts']);
+    expect(suppliers.map((file) => file.split('/').pop())).toEqual([
+      'icoach-adapter.ts',
+      'evaluation.service.ts',
+    ]);
   });
 });
 
@@ -102,9 +107,11 @@ describe('atomic activation: the assessment and the routine agree', () => {
       code(read(file)).includes('selectWorkoutRoutine('),
     );
     // The service that defines it, the plan surface, and Inicio's summary
-    // (ADR-P039), which reads today's plan day from the same selection.
+    // (ADR-P039), which reads today's plan day from the same selection, and
+    // the saved weekly plan's context (ADR-P042), which freezes that selection.
     expect(callers.map((file) => file.split('/').pop()).sort()).toEqual([
       'GeneratedWorkoutPlan.tsx',
+      'plan-context.ts',
       'use-home-data.ts',
       'workout-routine.service.ts',
     ]);
@@ -149,11 +156,12 @@ describe('atomic activation: the assessment and the routine agree', () => {
 
 describe('rule-version boundaries', () => {
   it('each family moves only for its own reason', () => {
-    // The assessment family moved with W-4B (the wellness rule itself).
-    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.2.0');
+    // The assessment family moved with W-4B (the wellness rule itself) and
+    // again with the ADR-P040 D5 injury map (1.3.0).
+    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.4.0');
     // The routine family moves with W-4D: routines are now filtered by the
     // user's declarations.
-    expect(WORKOUT_ROUTINE_RULE_VERSION).toBe('icoach-workout-rules@1.1.0');
+    expect(WORKOUT_ROUTINE_RULE_VERSION).toBe('icoach-workout-rules@1.2.0');
     // Weekly snapshots consume no wellness data, so their identity is frozen.
     expect(PROGRESS_SNAPSHOT_RULE_VERSION).toBe('icoach-rules@1.1.0');
 

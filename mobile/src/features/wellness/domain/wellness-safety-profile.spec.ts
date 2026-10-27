@@ -97,7 +97,10 @@ describe('Wellness Safety Profile contract', () => {
         'knee',
         'lower_back',
         'lower_leg',
+        'muscle_tear',
         'neck',
+        'plantar_fasciitis',
+        'shin_splints',
         'shoulder',
         'thigh',
         'upper_arm',
@@ -246,9 +249,12 @@ describe('Wellness Safety Profile contract', () => {
     // `migrations/007-wellness-safety-profile.spec.ts`; PostgreSQL is audited
     // here because that is where the TypeScript contract lives.
     const PG_MIGRATION = `${__dirname}/../../../../../api/prisma/migrations/20260908120000_add_wellness_safety_profiles/migration.sql`;
+    // v8 Block 2 widened the affected-area allowlist in a later migration.
+    const PG_AREAS_MIGRATION = `${__dirname}/../../../../../api/prisma/migrations/20261026120000_wellness_injury_areas_v8/migration.sql`;
 
     function postgresAllowlist(column: string): string[] {
-      const sql = require('node:fs').readFileSync(PG_MIGRATION, 'utf8');
+      const file = column === 'affected_areas' ? PG_AREAS_MIGRATION : PG_MIGRATION;
+      const sql = require('node:fs').readFileSync(file, 'utf8');
       const section = new RegExp(`"${column}" <@ ARRAY\\[([\\s\\S]*?)\\]::text\\[\\]`).exec(sql);
       expect(section).not.toBeNull();
       return [...(section?.[1] ?? '').matchAll(/'([^']+)'/g)].map((match) => match[1]);
@@ -401,8 +407,9 @@ describe('Wellness Safety Profile contract', () => {
         ]) {
           expect(text).not.toContain(forbidden);
         }
-        // Exactly one iCoach production file may name the vocabulary module.
-        if (!file.endsWith('/wellness-safety.ts')) {
+        // Only the analyzer and the ADR-P040 D5 injury map may name the
+        // vocabulary module.
+        if (!file.endsWith('/wellness-safety.ts') && !file.endsWith('/injury-movement-map.ts')) {
           expect(text).not.toContain('wellness-safety-profile');
         }
       }

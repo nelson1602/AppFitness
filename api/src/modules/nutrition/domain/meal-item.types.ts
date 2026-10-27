@@ -24,6 +24,9 @@ export interface MealItemRecord {
   carbsPerServingSnapshot: number;
   fatPerServingSnapshot: number;
   fiberPerServingSnapshot: number | null;
+  planId: string | null;
+  planDate: Date | null;
+  planSlot: string | null;
   version: number;
   syncSeq: number;
   createdAt: Date;

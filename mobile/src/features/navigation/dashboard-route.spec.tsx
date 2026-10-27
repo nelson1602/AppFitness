@@ -52,6 +52,12 @@ jest.mock('@/features/dashboard', () => ({
   },
 }));
 
+let mockEvaluation: 'unknown' | 'checking' | 'owed' | 'done' = 'done';
+jest.mock('@/features/evaluation/application/evaluation-gate.store', () => ({
+  useEvaluationGate: (select: (state: { status: string }) => unknown) =>
+    select({ status: mockEvaluation }),
+}));
+
 let mockWelcomePending = false;
 jest.mock('@/features/shell/application/welcome-gate', () => ({
   useWelcomePending: () => mockWelcomePending,

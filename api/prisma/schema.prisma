@@ -209,6 +209,7 @@ model User {
   mealItems                 MealItem[]
   dietaryPreferences        DietaryPreference[]
   bodyWeights               BodyWeight[]
+  weeklyPlans               WeeklyPlan[]
   bodyMeasurements          BodyMeasurement[]
   progressSnapshots         ProgressSnapshot[]
   wellnessSafetyProfiles    WellnessSafetyProfile[]
@@ -647,6 +648,11 @@ model WorkoutLog {
   startedAt  DateTime  @map("started_at") @db.Timestamptz(6)
   finishedAt DateTime? @map("finished_at") @db.Timestamptz(6)
 
+  // ADR-P042 D5: the planned session this workout fulfils (nullable).
+  weeklyPlanId   String?   @map("weekly_plan_id") @db.Uuid
+  planSessionKey String?   @map("plan_session_key")
+  planDate       DateTime? @map("plan_date") @db.Date
+
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
   version   Int       @default(1)
@@ -800,6 +806,11 @@ model MealItem {
   carbsPerServingSnapshot    Float   @map("carbs_per_serving_snapshot")
   fatPerServingSnapshot      Float   @map("fat_per_serving_snapshot")
   fiberPerServingSnapshot    Float?  @map("fiber_per_serving_snapshot")
+
+  // ADR-P042 D6: "Lo comí" — the planned meal slot this item fulfils.
+  planId   String?   @map("plan_id") @db.Uuid
+  planDate DateTime? @map("plan_date") @db.Date
+  planSlot String?   @map("plan_slot")
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1108,4 +1119,33 @@ model UserStats {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_user_stats_user")
 
   @@map("user_stats")
+}
+
+/// ADR-P042 — the saved iCoach plan for one week, one row per revision.
+/// Synced, user-owned, kept until account deletion (cascade).
+model WeeklyPlan {
+  id                String   @id @db.Uuid // client-generated
+  userId            String   @map("user_id") @db.Uuid
+  weekStart         DateTime @map("week_start") @db.Date
+  revision          Int
+  effectiveFrom     DateTime @map("effective_from") @db.Date
+  generationTrigger String   @map("generation_trigger")
+  loadStep          Int      @default(0) @map("load_step")
+  inputsFingerprint String   @map("inputs_fingerprint")
+  ruleVersions      Json     @map("rule_versions")
+  plan              Json
+  notes             Json     @default("[]")
+
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  version   Int       @default(1)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy String?   @map("deleted_by") @db.Uuid
+  syncSeq   BigInt    @default(0) @map("sync_seq")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_weekly_plans_user")
+
+  @@index([userId, weekStart], map: "idx_weekly_plans_user_week")
+  @@index([userId, syncSeq], map: "idx_weekly_plans_user_syncseq")
+  @@map("weekly_plans")
 }

@@ -139,18 +139,15 @@ describe('selectWorkoutRoutine', () => {
     });
   });
 
-  it('returns missing catalog coverage without leaking generator messages', () => {
-    expect(
-      selectWorkoutRoutine(assessment(), {
-        equipment: [],
-        sessionDurationMins: 45,
-        excludedMovements: ['deep_squat', 'lunge', 'jumping'],
-      }),
-    ).toEqual({
-      status: 'error',
-      code: 'INSUFFICIENT_CATALOG_COVERAGE',
-      missingPatterns: ['SQUAT'],
+  it('leaves out a slot the exclusions empty instead of failing (ADR-P040 D5)', () => {
+    const result = selectWorkoutRoutine(assessment(), {
+      equipment: [],
+      sessionDurationMins: 45,
+      excludedMovements: ['deep_squat', 'lunge', 'jumping'],
     });
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') return;
+    expect(result.routine.sessions[0].adjustments).toEqual([{ slotKey: 'squat', kind: 'OMITTED' }]);
   });
 
   it('uses the assessment goal, level, intensity, RPE, and training-day cap', () => {
@@ -257,12 +254,19 @@ describe('selectWorkoutRoutine', () => {
       excludedMovements: ['deep_squat', 'lunge', 'jumping'],
     });
 
-    // Reported, not crashed, and not a routine that ignores an exclusion.
-    expect(result.status).toBe('error');
-    if (result.status !== 'error') return;
-    expect(result.code).toBe('INSUFFICIENT_CATALOG_COVERAGE');
-    expect(result.missingPatterns.length).toBeGreaterThan(0);
-    expect(result).not.toHaveProperty('routine');
+    // Since ADR-P040 D5 the slot is substituted or left out and recorded;
+    // the exclusion itself is never weakened.
+    expect(result.status).toBe('ready');
+    if (result.status !== 'ready') return;
+    for (const session of result.routine.sessions) {
+      expect(session.adjustments?.map((a) => a.slotKey)).toEqual(['squat']);
+    }
+    const banned = new Set(['deep_squat', 'lunge', 'jumping']);
+    for (const key of prescribedKeys(result.routine)) {
+      for (const pattern of getBuiltInExercise(key)?.movementPatterns ?? []) {
+        expect(banned.has(pattern)).toBe(false);
+      }
+    }
   });
 
   it('G29: coverage is never a reason to weaken a declaration', () => {
@@ -352,6 +356,6 @@ describe('selectWorkoutRoutine', () => {
     }
 
     // And the routine identity moved with the rule that now filters it.
-    expect(result.routine.ruleVersion).toBe('icoach-workout-rules@1.1.0');
+    expect(result.routine.ruleVersion).toBe('icoach-workout-rules@1.2.0');
   });
 });

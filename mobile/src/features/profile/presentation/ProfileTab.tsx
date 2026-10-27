@@ -158,7 +158,7 @@ export function ProfileTab() {
         </View>
         <AppButton
           accessibilityLabel={t('dashboard.wellnessSafetyAccessibility')}
-          onPress={() => router.push('/wellness-safety-profile')}
+          onPress={() => router.push('/evaluation?mode=update')}
           testID="profile-wellness-safety"
         >
           {t('profile.tab.updateEval')}

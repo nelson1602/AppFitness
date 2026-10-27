@@ -21,6 +21,9 @@ const RPE_CAP: Record<Intensity, number> = {
   HIGH: 9,
 };
 
+/** The most days a generated routine can schedule. */
+export const MAX_TRAINING_DAYS = 6;
+
 const MAX_DAYS: Record<FitnessLevel, number> = {
   BEGINNER: 3,
   INTERMEDIATE: 5,
@@ -44,6 +47,8 @@ export function planTraining(
    * it was before this parameter existed.
    */
   wellnessExcludedMovements: readonly string[] = [],
+  /** Days earned through the saved plan's days progression (ADR-P040 D11). */
+  unlockedTrainingDays = 0,
 ): TrainingPlan {
   let intensity = BASE_INTENSITY[fitnessLevel];
 
@@ -69,7 +74,13 @@ export function planTraining(
     intensity = minIntensity(intensity, analysis.intensityCap);
   }
 
-  const maxDays = analysis.blocked ? 0 : MAX_DAYS[fitnessLevel];
+  // The level cap, raised to the days already earned (ADR-P040 D11) and never
+  // above what a routine can schedule.
+  const levelCap = Math.max(
+    MAX_DAYS[fitnessLevel],
+    Math.min(unlockedTrainingDays, MAX_TRAINING_DAYS),
+  );
+  const maxDays = analysis.blocked ? 0 : levelCap;
   const preferred = trainingDaysPreference ?? maxDays;
   const daysPerWeek = analysis.blocked ? 0 : Math.max(1, Math.min(preferred, maxDays));
 

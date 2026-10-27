@@ -185,8 +185,10 @@ describe('migration 006 — sync user scoping', () => {
     expect(MIGRATIONS[5]).toBe(syncUserScopingMigration);
     // 001–005 are untouched: their versions still occupy 1..5 in order. 007
     // (ADR-P017 W-1) was appended after C-1 shipped, so 006 is no longer the
-    // last entry — it is still the sixth, and immutable.
-    expect(MIGRATIONS.map((m) => m.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    // last entry — it is still the sixth, and immutable. Later migrations
+    // append; the registry stays contiguous.
+    expect(MIGRATIONS.map((m) => m.version).slice(0, 6)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(MIGRATIONS.map((m) => m.version)).toEqual(MIGRATIONS.map((_, i) => i + 1));
   });
 
   it('applies cleanly on a fresh install (001 → 006)', () => {

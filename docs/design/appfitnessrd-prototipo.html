@@ -435,7 +435,7 @@ const FOOD_GROUPS = {
   'Legumbres': ['Habichuelas', 'Lentejas', 'Garbanzos', 'Guandules', 'Soya', 'Maní'],
   'Frutos secos y semillas': ['Almendras', 'Nueces', 'Cajuil', 'Pistachos', 'Ajonjolí', 'Chía', 'Linaza'],
   'Víveres': ['Plátano', 'Yuca', 'Batata', 'Papa', 'Ñame', 'Yautía'],
-  'Restricciones médicas': ['Alto en sodio', 'Alto en purinas', 'Azúcares añadidos', 'Alcohol', 'Cafeína', 'Frituras']
+  'Otras restricciones': ['Alto en sodio', 'Alto en purinas', 'Azúcares añadidos', 'Alcohol', 'Cafeína', 'Frituras']
 };
 /* A marked food only removes that food: dishes keep the rest and iCoach swaps the ingredient for one of the same role */
 const ALIAS = { 'Trigo y pan': ['pan', 'trigo'], 'Almejas y mejillones': ['almeja', 'mejillón'], Res: ['carne de res'], 'Proteína whey': ['whey', 'batida de proteína'], Ajíes: ['ají'] };
@@ -754,7 +754,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
         )}
         {step === 2 && (
           <div className="flex flex-col gap-4">
-            <Label hint="Abre cada grupo y marca lo que indicó tu médico. El iCoach nunca incluirá estos alimentos en tu plan.">Alergias y restricciones</Label>
+            <Label hint="Marca lo que no quieres en tu plan. El iCoach solo cambia lo que marques.">Alergias y restricciones</Label>
             <div className="flex flex-col gap-2">
               {Object.entries(FOOD_GROUPS).map(([g, items]) => (
                 <Group key={g} title={g} count={items.filter((i) => e.allergies.includes(i)).length} open={openGroup === g} onToggle={() => flip(g)}>

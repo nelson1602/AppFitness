@@ -102,6 +102,16 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   'src/app/sign-in.tsx': ['floor-both'],
   // ADR-P039 Inicio: the coach card's "Empezar" and each quick action.
   'src/features/dashboard/presentation/components/home-cards.tsx': ['floor', 'floor'],
+  // v8 Evaluación física: choice chip, option row, group header, stepper button;
+  // the wizard's back button; each Revisión section's edit button.
+  'src/features/evaluation/presentation/evaluation-controls.tsx': [
+    'floor',
+    'floor',
+    'floor',
+    'floor-both',
+  ],
+  'src/features/evaluation/presentation/EvaluationWizard.tsx': ['floor-both'],
+  'src/features/evaluation/presentation/steps/review-step.tsx': ['floor-both'],
   'src/features/nutrition/presentation/DietaryPreferences.tsx': ['floor-both', 'floor'],
   'src/features/nutrition/presentation/food-log/FoodLogAddForm.tsx': ['floor', 'content'],
   'src/features/nutrition/presentation/food-log/ServingStepper.tsx': ['floor-both'],
@@ -115,10 +125,14 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   // The list's round close button, then each notification row.
   'src/features/shell/presentation/notification-list.tsx': ['floor-both', 'floor'],
   'src/features/wellness/presentation/wellness-token-group.tsx': ['floor'],
+  // ADR-P042 Semanas anteriores: each week row, then the sheet's close button.
+  'src/features/weekly-plan/presentation/PastWeeksPanel.tsx': ['floor', 'floor-both'],
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
   'src/shared/presentation/app-button.tsx': ['primitive'],
+  // ADR-P043: the date field opens the native picker.
+  'src/shared/presentation/date-field.tsx': ['floor'],
   'src/shared/presentation/form/FormSelect.tsx': ['floor-both'],
   // ADR-P039: the tabs' navigation rows.
   'src/shared/presentation/glass-row.tsx': ['floor'],
@@ -147,8 +161,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 25 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(25);
+it('counts exactly 34 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(34);
 });
 
 describe.each(

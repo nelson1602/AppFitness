@@ -156,7 +156,7 @@ describe('FoodLogAddForm — dietary-preference warnings (ADR-P014 Slice 4)', ()
 
   it('warns when the selected food matches an active avoid-tag exclusion', async () => {
     await selectAlmonds([pref({ avoidTag: 'nut_allergy', kind: 'allergy' })]);
-    expect(screen.getByText('Heads up — this matches an allergy or sensitivity')).toBeOnTheScreen();
+    expect(screen.getByText('You marked this food as an allergy')).toBeOnTheScreen();
     expect(screen.getByText(/Nuts/)).toBeOnTheScreen();
   });
 
@@ -175,19 +175,20 @@ describe('FoodLogAddForm — dietary-preference warnings (ADR-P014 Slice 4)', ()
     expect(screen.getByText(/a food you chose to avoid/)).toBeOnTheScreen();
   });
 
-  it('uses stronger safety wording for an allergy/sensitivity, without emergency-advice claims', async () => {
+  it('explains an allergy block without medical claims (ADR-P040 D4)', async () => {
     await selectAlmonds([pref({ avoidTag: 'nut_allergy', kind: 'allergy' })]);
-    expect(screen.getByText('Heads up — this matches an allergy or sensitivity')).toBeOnTheScreen();
-    expect(screen.getByText(/not emergency medical advice/i)).toBeOnTheScreen();
+    expect(screen.getByText('You marked this food as an allergy')).toBeOnTheScreen();
+    expect(screen.getByText(/can't be logged/i)).toBeOnTheScreen();
+    expect(screen.queryByText(/medical/i)).toBeNull();
   });
 
   it('uses softer wording for a preference/dislike', async () => {
     await selectAlmonds([pref({ avoidTag: 'nut_allergy', kind: 'preference' })]);
     expect(screen.getByText('This is on your avoid list')).toBeOnTheScreen();
-    expect(screen.queryByText('Heads up — this matches an allergy or sensitivity')).toBeNull();
+    expect(screen.queryByText('You marked this food as an allergy')).toBeNull();
   });
 
-  it('never hard-blocks: the user can still log the food after a warning', async () => {
+  it('blocks a food marked as an allergy: the submit control is disabled (ADR-P040 D4)', async () => {
     const onAdd = jest.fn();
     await render(
       <FoodLogAddForm
@@ -197,15 +198,30 @@ describe('FoodLogAddForm — dietary-preference warnings (ADR-P014 Slice 4)', ()
     );
     await fireEvent.changeText(screen.getByTestId('food-search-input'), 'almonds');
     await fireEvent.press(await screen.findByText('Almonds'));
-    // Warning is shown, but the submit control remains available and works.
-    expect(screen.getByText('Heads up — this matches an allergy or sensitivity')).toBeOnTheScreen();
+    expect(screen.getByText('You marked this food as an allergy')).toBeOnTheScreen();
+    expect(screen.getByTestId('food-log-add-submit')).toBeDisabled();
+    await fireEvent.press(screen.getByTestId('food-log-add-submit'));
+    expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it('only warns for "Prefiero evitar": the food can still be logged', async () => {
+    const onAdd = jest.fn();
+    await render(
+      <FoodLogAddForm
+        onAdd={onAdd}
+        activePreferences={[pref({ avoidTag: 'nut_allergy', kind: 'preference' })]}
+      />,
+    );
+    await fireEvent.changeText(screen.getByTestId('food-search-input'), 'almonds');
+    await fireEvent.press(await screen.findByText('Almonds'));
+    expect(screen.getByText('This is on your avoid list')).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('food-log-add-submit'));
     expect(onAdd).toHaveBeenCalledWith('food.almonds', 'BREAKFAST', 1);
   });
 
   it('shows no warning when no active preference matches the selected food', async () => {
     await selectAlmonds([pref({ avoidTag: 'shellfish_allergy', kind: 'allergy' })]);
-    expect(screen.queryByText('Heads up — this matches an allergy or sensitivity')).toBeNull();
+    expect(screen.queryByText('You marked this food as an allergy')).toBeNull();
     expect(screen.queryByText('This is on your avoid list')).toBeNull();
     // Existing behavior intact: submit still present.
     expect(screen.getByTestId('food-log-add-submit')).toBeOnTheScreen();
@@ -213,7 +229,7 @@ describe('FoodLogAddForm — dietary-preference warnings (ADR-P014 Slice 4)', ()
 
   it('shows no warning when there are no active preferences (unchanged default behavior)', async () => {
     await selectAlmonds([]);
-    expect(screen.queryByText('Heads up — this matches an allergy or sensitivity')).toBeNull();
+    expect(screen.queryByText('You marked this food as an allergy')).toBeNull();
     expect(screen.queryByText('This is on your avoid list')).toBeNull();
   });
 });

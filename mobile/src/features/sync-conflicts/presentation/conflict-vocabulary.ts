@@ -110,6 +110,10 @@ const AVOID_TAG: Vocabulary<AvoidTag> = {
   lactose_sensitive: 'nutrition.avoid.lactose',
   high_sodium_sensitive: 'nutrition.avoid.sodium',
   high_purine: 'nutrition.avoid.purine',
+  added_sugar: 'nutrition.avoid.addedSugar',
+  alcohol: 'nutrition.avoid.alcohol',
+  caffeine: 'nutrition.avoid.caffeine',
+  fried: 'nutrition.avoid.fried',
 };
 
 const SERVING_UNIT: Vocabulary<ServingUnit> = {
@@ -151,6 +155,13 @@ export type FieldVocabulary =
  * - `equipment` — a comma-separated text input on the profile form, split into
  *   a list by the form adapter. Every entry is whatever the user typed.
  */
+/** ADR-P042 plan revision triggers. */
+const PLAN_TRIGGER: Readonly<Record<string, TranslationKey>> = {
+  FIRST_RUN: 'sync.conflicts.value.planTrigger.firstRun',
+  WEEKLY: 'sync.conflicts.value.planTrigger.weekly',
+  CHANGE: 'sync.conflicts.value.planTrigger.change',
+};
+
 const FIELD_VOCABULARY: Readonly<Record<string, FieldVocabulary>> = {
   gender: { kind: 'controlled', labels: GENDER },
   fitness_level: { kind: 'controlled', labels: FITNESS_LEVEL },
@@ -163,6 +174,7 @@ const FIELD_VOCABULARY: Readonly<Record<string, FieldVocabulary>> = {
   serving_unit_snapshot: { kind: 'controlled', labels: SERVING_UNIT },
   affected_areas: { kind: 'controlled', labels: AFFECTED_AREA_LABEL_KEY },
   movements_to_avoid: { kind: 'controlled', labels: MOVEMENT_LABEL_KEY },
+  generation_trigger: { kind: 'controlled', labels: PLAN_TRIGGER },
 
   catalog_key: { kind: 'catalogue' },
   catalog_key_snapshot: { kind: 'catalogue' },

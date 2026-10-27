@@ -5,13 +5,14 @@ import { StyleSheet, View } from 'react-native';
 import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-home-data';
 import type { Weekday } from '@/features/icoach';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
+import { PlanChangePrompt } from '@/features/weekly-plan/presentation/PlanChangePrompt';
 import {
   formatNumber,
   interpolate,
   type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
-import { AppButton, AppText, Banner, GlassCard, GlassRow, Icon } from '@/shared/presentation';
+import { AppButton, AppText, Banner, Chip, GlassCard, GlassRow, Icon } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useWorkoutStore } from '../application/workout.store';
@@ -67,12 +68,15 @@ export function WorkoutsTab() {
 
   return (
     <TabScreen>
+      <PlanChangePrompt />
       <GlassCard style={{ gap: spacing.md, padding: spacing.lg }} testID="workouts-week-card">
-        <View style={[styles.row, { gap: spacing.sm }]}>
+        <View style={[styles.row, styles.wrap, { gap: spacing.sm }]}>
           <Icon color={colors.accentCyan} name="dumbbell" size={18} />
           <AppText accessibilityRole="header" tone="onStage" variant="title">
             {t('workouts.week.title')}
           </AppText>
+          {/* ADR-P042: the week is saved; it changes on Monday. */}
+          <Chip label={t('workouts.week.renews')} testID="workouts-renews" />
         </View>
         {routine ? (
           <View accessibilityRole="list" style={[styles.row, { gap: spacing.xs }]}>
@@ -186,5 +190,8 @@ const styles = StyleSheet.create({
   row: {
     alignItems: 'center',
     flexDirection: 'row',
+  },
+  wrap: {
+    flexWrap: 'wrap',
   },
 });

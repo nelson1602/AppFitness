@@ -16,6 +16,7 @@ describe('workout routine public-v1 contract', () => {
       'cable',
       'bodyweight',
       'none',
+      'band',
     ]);
   });
 
@@ -29,6 +30,7 @@ describe('workout routine public-v1 contract', () => {
       'peso_corporal',
       'sin-equipo',
       'dumbbell',
+      'Banda elástica',
     ]);
     const second = normalizeTrainingEquipment([
       ' Dumbbells ',
@@ -39,6 +41,7 @@ describe('workout routine public-v1 contract', () => {
       'peso_corporal',
       'sin-equipo',
       'dumbbell',
+      'Banda elástica',
     ]);
 
     expect(first).toEqual(second);
@@ -46,9 +49,9 @@ describe('workout routine public-v1 contract', () => {
   });
 
   it('retains unsupported values without guessing or duplicating them', () => {
-    expect(normalizeTrainingEquipment(['bench', '', ' resistance bands ', 'bench'])).toEqual({
+    expect(normalizeTrainingEquipment(['bench', '', ' suspension trainer ', 'bench'])).toEqual({
       equipment: [],
-      unsupported: ['bench', 'resistance bands'],
+      unsupported: ['bench', 'suspension trainer'],
     });
   });
 

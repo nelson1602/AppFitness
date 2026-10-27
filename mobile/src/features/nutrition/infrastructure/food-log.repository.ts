@@ -55,17 +55,89 @@ interface JoinedMealItemRow extends MealItemRow {
  * target), inserts the meal_item with its per-serving snapshot, and enqueues
  * the CREATE. Atomic — a saved item can never miss its queue entry.
  */
+/** "Lo comí" (ADR-P042 D6): the planned meal slot an item fulfils. */
+export interface MealPlanLink {
+  planId: string;
+  /** YYYY-MM-DD */
+  planDate: string;
+  planSlot: MealTypeName;
+}
+
+export interface LogFoodInput {
+  date: string;
+  mealType: MealTypeName;
+  catalogKey: string;
+  servingCount: number;
+  planLink?: MealPlanLink | null;
+}
+
 export async function logFood(
   userId: string,
-  input: { date: string; mealType: MealTypeName; catalogKey: string; servingCount: number },
+  input: LogFoodInput,
   nowIso: string = new Date().toISOString(),
+): Promise<LoggedMealItem> {
+  return inTransaction((tx) => insertLoggedFood(userId, input, nowIso, tx));
+}
+
+/**
+ * "Lo comí": log every ingredient line of one planned dish in ONE transaction,
+ * each linked to the plan slot, so the slot is either fully marked or not at
+ * all (ADR-P042 D6). Logging never touches the saved plan itself.
+ */
+export async function logPlannedMeal(
+  userId: string,
+  input: {
+    date: string;
+    mealType: MealTypeName;
+    lines: readonly { catalogKey: string; servingCount: number }[];
+    planLink: MealPlanLink;
+  },
+  nowIso: string = new Date().toISOString(),
+): Promise<LoggedMealItem[]> {
+  if (input.lines.length === 0) throw new Error('a planned meal has at least one line');
+  return inTransaction(async (tx) => {
+    const logged: LoggedMealItem[] = [];
+    for (const line of input.lines) {
+      logged.push(
+        await insertLoggedFood(
+          userId,
+          { date: input.date, mealType: input.mealType, ...line, planLink: input.planLink },
+          nowIso,
+          tx,
+        ),
+      );
+    }
+    return logged;
+  });
+}
+
+/** Planned slots ("Lo comí") already marked for a plan, as `date|slot` keys. */
+export async function listPlannedSlotsDone(
+  userId: string,
+  planIds: readonly string[],
+): Promise<string[]> {
+  if (planIds.length === 0) return [];
+  const rows = await queryAll<{ plan_date: string; plan_slot: string }>(
+    `SELECT DISTINCT plan_date, plan_slot FROM meal_items
+      WHERE user_id = ? AND deleted_at IS NULL AND plan_id IN (${planIds.map(() => '?').join(',')})`,
+    [userId, ...planIds],
+  );
+  return rows.map((row) => `${row.plan_date}|${row.plan_slot}`);
+}
+
+async function insertLoggedFood(
+  userId: string,
+  input: LogFoodInput,
+  nowIso: string,
+  tx: SqlExecutor,
 ): Promise<LoggedMealItem> {
   const canonical = getCanonicalByCatalogKey(input.catalogKey);
   if (!canonical) throw new Error('unknown catalog food'); // slug only, no PHI
   if (!(input.servingCount > 0)) throw new Error('serving count must be positive');
   const snapshot = deriveServingSnapshot(canonical);
+  const link = input.planLink ?? null;
 
-  return inTransaction(async (tx) => {
+  {
     const logId = await ensureNutritionLog(userId, input.date, nowIso, tx);
     const mealId = await ensureMeal(userId, logId, input.mealType, nowIso, tx);
     await ensureFoodSeeded(canonical, nowIso, tx);
@@ -79,8 +151,9 @@ export async function logFood(
          catalog_version_snapshot, serving_amount_snapshot, serving_unit_snapshot,
          grams_per_serving_snapshot, calories_per_serving_snapshot,
          protein_per_serving_snapshot, carbs_per_serving_snapshot,
-         fat_per_serving_snapshot, fiber_per_serving_snapshot
-       ) VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         fat_per_serving_snapshot, fiber_per_serving_snapshot,
+         plan_id, plan_date, plan_slot
+       ) VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
@@ -101,6 +174,9 @@ export async function logFood(
         snapshot.carbsPerServingSnapshot,
         snapshot.fatPerServingSnapshot,
         snapshot.fiberPerServingSnapshot,
+        link?.planId ?? null,
+        link?.planDate ?? null,
+        link?.planSlot ?? null,
       ],
       tx,
     );
@@ -114,7 +190,15 @@ export async function logFood(
         entityType: MEAL_ITEM_ENTITY_TYPE,
         entityId: id,
         operation: 'CREATE',
-        payload: { meal_id: mealId, food_id: canonical.id, serving_count: input.servingCount },
+        payload: {
+          meal_id: mealId,
+          food_id: canonical.id,
+          serving_count: input.servingCount,
+          // Only a "Lo comí" item carries a plan link (ADR-P042 D6).
+          ...(link
+            ? { plan_id: link.planId, plan_date: link.planDate, plan_slot: link.planSlot }
+            : {}),
+        },
         baseVersion: 0,
         sensitive: true,
       },
@@ -123,7 +207,7 @@ export async function logFood(
     );
 
     return rowToLoggedItem(await mustReadItem(id, tx), input.mealType);
-  });
+  }
 }
 
 /** Edit the serving_count of a logged item (the only mutable field). */
@@ -255,8 +339,9 @@ export async function applyServerMealItem(
        catalog_version_snapshot, serving_amount_snapshot, serving_unit_snapshot,
        grams_per_serving_snapshot, calories_per_serving_snapshot,
        protein_per_serving_snapshot, carbs_per_serving_snapshot,
-       fat_per_serving_snapshot, fiber_per_serving_snapshot
-     ) VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       fat_per_serving_snapshot, fiber_per_serving_snapshot,
+       plan_id, plan_date, plan_slot
+     ) VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       row.id,
       row.user_id,
@@ -280,6 +365,9 @@ export async function applyServerMealItem(
       Number(row['carbs_per_serving_snapshot'] ?? 0),
       Number(row['fat_per_serving_snapshot'] ?? 0),
       numOrNull(row['fiber_per_serving_snapshot']),
+      str(row['plan_id']),
+      str(row['plan_date']),
+      str(row['plan_slot']),
     ],
     tx,
   );

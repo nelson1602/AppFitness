@@ -438,11 +438,13 @@ export class PrismaWorkoutRepository extends WorkoutRepositoryPort {
     return tx.$executeRaw`
       INSERT INTO workout_logs (
         id, user_id, routine_id, name, notes, started_at, finished_at,
-        updated_at
+        updated_at, weekly_plan_id, plan_session_key, plan_date
       )
       VALUES (
         ${id}::uuid, ${userId}::uuid, ${data.routineId}::uuid, ${data.name},
-        ${data.notes}, ${data.startedAt}, ${data.finishedAt}, ${new Date()}
+        ${data.notes}, ${data.startedAt}, ${data.finishedAt}, ${new Date()},
+        ${data.weeklyPlanId}::uuid, ${data.planSessionKey},
+        ${data.planDate ? data.planDate.toISOString().slice(0, 10) : null}::date
       )
       ON CONFLICT (id) DO NOTHING
     `;
@@ -462,6 +464,9 @@ export class PrismaWorkoutRepository extends WorkoutRepositoryPort {
         notes: data.notes,
         startedAt: data.startedAt,
         finishedAt: data.finishedAt,
+        weeklyPlanId: data.weeklyPlanId,
+        planSessionKey: data.planSessionKey,
+        planDate: data.planDate,
         version: expectedVersion + 1,
       },
     });
@@ -520,6 +525,9 @@ export class PrismaWorkoutRepository extends WorkoutRepositoryPort {
               notes: resolution.data.notes,
               startedAt: resolution.data.startedAt,
               finishedAt: resolution.data.finishedAt,
+              weeklyPlanId: resolution.data.weeklyPlanId,
+              planSessionKey: resolution.data.planSessionKey,
+              planDate: resolution.data.planDate,
             }),
         ...tombstoneFields(resolution, resolution.resolvedBy),
         version: resolution.expectedVersion + 1,

@@ -95,7 +95,8 @@ export class PrismaMealItemRepository extends MealItemRepositoryPort {
         serving_unit_snapshot, grams_per_serving_snapshot,
         calories_per_serving_snapshot, protein_per_serving_snapshot,
         carbs_per_serving_snapshot, fat_per_serving_snapshot,
-        fiber_per_serving_snapshot, updated_at
+        fiber_per_serving_snapshot, updated_at,
+        plan_id, plan_date, plan_slot
       )
       VALUES (
         ${data.id}::uuid,
@@ -115,7 +116,10 @@ export class PrismaMealItemRepository extends MealItemRepositoryPort {
         ${s.carbsPerServingSnapshot},
         ${s.fatPerServingSnapshot},
         ${s.fiberPerServingSnapshot},
-        ${new Date()}
+        ${new Date()},
+        ${data.planId ?? null}::uuid,
+        ${data.planDate ? data.planDate.toISOString().slice(0, 10) : null}::date,
+        ${data.planSlot ?? null}
       )
       ON CONFLICT (id) DO NOTHING
     `;

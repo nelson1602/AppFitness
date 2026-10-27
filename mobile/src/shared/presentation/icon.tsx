@@ -57,6 +57,8 @@ const PATHS = {
   ),
   check: <Path d="M5 12l5 5 9-10" />,
   chevron: <Path d="M9 6l6 6-6 6" />,
+  back: <Path d="M15 6l-6 6 6 6" />,
+  pencil: <Path d="M4 20h4L19 9l-4-4L4 16v4zM13 7l4 4" />,
   clipboard: (
     <>
       <Rect x={5} y={4} width={14} height={17} rx={2} />
@@ -92,6 +94,13 @@ const PATHS = {
     <>
       <Path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z" />
       <Path d="M19 15l.8 2.2 2.2.8-2.2.8L19 21l-.8-2.2-2.2-.8 2.2-.8z" />
+    </>
+  ),
+  // From the prototype (PR #238): the past-weeks panel and the date fields.
+  calendar: (
+    <>
+      <Rect x={3} y={5} width={18} height={16} rx={2} />
+      <Path d="M3 10h18M8 3v4M16 3v4" />
     </>
   ),
   target: (

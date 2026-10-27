@@ -12,7 +12,10 @@ import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/databas
 import { logError } from '@/shared/infrastructure/logging';
 import { runSync } from '@/shared/infrastructure/sync';
 
+import { isLoggingBlocked, matchFoodExclusion } from '../domain/dietary-preference-match';
 import { sumDailyTotals, type ConsumedMacros, type LoggedMealItem } from '../domain/food-log';
+import { listActiveDietaryPreferences } from '../infrastructure/dietary-preference.repository';
+import { getById as getCatalogFood } from './food-catalog.service';
 import {
   listLoggedItems,
   logFood,
@@ -33,7 +36,7 @@ export type FoodLogUiStatus = 'idle' | 'loading' | 'ready' | 'error' | 'web-unav
  * display copy. A failed write must be reported distinctly from a failed read
  * (BUG-008): the day is still on screen and the user's input is still valid.
  */
-export type FoodLogWriteOperation = 'add' | 'servings' | 'remove';
+export type FoodLogWriteOperation = 'add' | 'blocked' | 'servings' | 'remove';
 export type FoodLogSyncState =
   'idle' | 'syncing' | 'pending' | 'conflict' | 'action_required' | 'offline' | 'error';
 
@@ -163,6 +166,17 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     set({ writeError: null });
     try {
       owner = requireSessionSnapshot();
+      // ADR-P040 D4: an allergy is enforced here, not only in the form, so no
+      // screen can log a food the person marked as an allergy.
+      const food = getCatalogFood(catalogKey);
+      if (food) {
+        const preferences = await listActiveDietaryPreferences(owner.userId);
+        if (!isSessionCurrent(owner)) return;
+        if (isLoggingBlocked(matchFoodExclusion(food, preferences))) {
+          set({ writeError: 'blocked' });
+          return;
+        }
+      }
       await logFood(owner.userId, { date: get().date, mealType, catalogKey, servingCount });
       if (!isSessionCurrent(owner)) return;
       await get().load();

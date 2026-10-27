@@ -57,8 +57,8 @@ function presenterFields(): string[] {
 const catalogue = en as Record<string, string>;
 
 describe('record labels cover exactly the registered entity types', () => {
-  it('labels all 13, and only those', () => {
-    expect(SUPPORTED_PRESENTER_ENTITY_TYPES).toHaveLength(13);
+  it('labels all 14, and only those', () => {
+    expect(SUPPORTED_PRESENTER_ENTITY_TYPES).toHaveLength(14);
     for (const entityKind of SUPPORTED_PRESENTER_ENTITY_TYPES) {
       const key = recordLabel(entityKind);
       expect(key).toBe(`sync.conflicts.record.${entityKind}`);
@@ -71,7 +71,7 @@ describe('record labels cover exactly the registered entity types', () => {
     const labelled = Object.keys(catalogue)
       .filter((key) => key.startsWith('sync.conflicts.record.'))
       .map((key) => key.replace('sync.conflicts.record.', ''));
-    expect(labelled).toHaveLength(13);
+    expect(labelled).toHaveLength(14);
     expect(labelled.filter((entityKind) => !registered.has(entityKind))).toEqual([]);
   });
 
@@ -89,8 +89,8 @@ describe('record labels cover exactly the registered entity types', () => {
 describe('field labels cover exactly the allow-listed identifiers', () => {
   const fields = presenterFields();
 
-  it('labels all 75, and only those', () => {
-    expect(fields).toHaveLength(75);
+  it('labels all 79, and only those', () => {
+    expect(fields).toHaveLength(79);
     for (const field of fields) {
       const key = fieldLabel(field);
       expect(key).toBe(`sync.conflicts.field.${field}`);
@@ -103,7 +103,7 @@ describe('field labels cover exactly the allow-listed identifiers', () => {
     const labelled = Object.keys(catalogue)
       .filter((key) => key.startsWith('sync.conflicts.field.'))
       .map((key) => key.replace('sync.conflicts.field.', ''));
-    expect(labelled).toHaveLength(75);
+    expect(labelled).toHaveLength(79);
     expect(labelled.filter((field) => !allowed.has(field))).toEqual([]);
   });
 

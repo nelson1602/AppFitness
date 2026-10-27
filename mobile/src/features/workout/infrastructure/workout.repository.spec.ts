@@ -57,6 +57,9 @@ function routineRow(o: Partial<RoutineRow> = {}): RoutineRow {
 }
 function logRow(o: Partial<WorkoutLogRow> = {}): WorkoutLogRow {
   return {
+    weekly_plan_id: null,
+    plan_session_key: null,
+    plan_date: null,
     id: LID,
     user_id: USER,
     created_at: NOW,

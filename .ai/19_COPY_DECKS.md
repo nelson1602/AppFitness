@@ -1297,6 +1297,7 @@ registered, so they can never reach this surface (ADR-P017).
 | `sync.conflicts.record.workout_logs` | Workout | Entrenamiento | **SHIPPED** |
 | `sync.conflicts.record.workout_sets` | Set | Serie | **SHIPPED** |
 | `sync.conflicts.record.wellness_safety_profiles` | Wellness profile | Perfil de bienestar | **SHIPPED** |
+| `sync.conflicts.record.weekly_plans` | Weekly plan | Plan semanal | **SHIPPED** (v8, ADR-P042) |
 
 ## Field labels — 75 keys
 
@@ -1379,6 +1380,13 @@ meaning is shared, so the set is deduplicated.
 | `sync.conflicts.field.training_days_per_week` | Training days per week | Días de entrenamiento por semana | **SHIPPED** |
 | `sync.conflicts.field.waist_cm` | Waist | Cintura | **SHIPPED** |
 | `sync.conflicts.field.week_start` | Week of | Semana del | **SHIPPED** |
+| `sync.conflicts.field.effective_from` | In effect from | Vigente desde | **SHIPPED** (v8, ADR-P042) |
+| `sync.conflicts.field.generation_trigger` | Plan reason | Motivo del plan | **SHIPPED** (v8, ADR-P042) |
+| `sync.conflicts.field.load_step` | Load level | Nivel de carga | **SHIPPED** (v8, ADR-P042) |
+| `sync.conflicts.field.revision` | Plan version | Versión del plan | **SHIPPED** (v8, ADR-P042) |
+| `sync.conflicts.value.planTrigger.firstRun` | First plan | Primer plan | **SHIPPED** (v8, ADR-P042) |
+| `sync.conflicts.value.planTrigger.weekly` | Monday plan | Plan del lunes | **SHIPPED** (v8, ADR-P042) |
+| `sync.conflicts.value.planTrigger.change` | Confirmed change | Cambio confirmado | **SHIPPED** (v8, ADR-P042) |
 | `sync.conflicts.field.weight_kg` | Weight | Peso | **SHIPPED** |
 | `sync.conflicts.field.workout_count` | Workouts | Entrenamientos | **SHIPPED** |
 | `sync.conflicts.field.years_training` | Years training | Años entrenando | **SHIPPED** |

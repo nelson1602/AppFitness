@@ -13,6 +13,7 @@ import { HealthModule } from './modules/health/health.module';
 // No MedicalModule import — see the note in `imports` below.
 import { NutritionModule } from './modules/nutrition/nutrition.module';
 import { ProgressModule } from './modules/progress/progress.module';
+import { WeeklyPlansModule } from './modules/weekly-plans/weekly-plans.module';
 import { SubscriptionModule } from './modules/subscriptions/subscription.module';
 import { SyncModule } from './modules/sync/sync.module';
 import { UsersModule } from './modules/users/users.module';
@@ -50,6 +51,7 @@ import { WorkoutModule } from './modules/workout/workout.module';
     NutritionModule,
     WorkoutModule,
     ProgressModule,
+    WeeklyPlansModule,
     WellnessModule,
     SubscriptionModule,
   ],

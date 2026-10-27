@@ -8,6 +8,10 @@ import { formatNumber, formatQuantity, interpolate, useLocalization } from '@/sh
 import { AppText, Banner, GlassCard, GlassRow, Icon, ProgressBar } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
+import { canSeedDevHistory } from '@/features/weekly-plan/application/dev-history-seed';
+import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
+import { PastWeeksPanel } from '@/features/weekly-plan/presentation/PastWeeksPanel';
+
 import { useProgressStore } from '../application/progress.store';
 
 /**
@@ -21,10 +25,14 @@ export function ProgressTab() {
   const { language, t } = useLocalization();
   const status = useProgressStore((s) => s.status);
   const { summary, currentWeightKg } = useHomeData();
+  const pastWeeks = useWeeklyPlanStore((s) => s.pastWeeks);
+  const seedHistory = useWeeklyPlanStore((s) => s.seedHistory);
 
   useFocusEffect(
     useCallback(() => {
       loadHomeData();
+      // ADR-P042: plan vs. done for every past week with a saved plan.
+      void useWeeklyPlanStore.getState().loadHistory();
     }, []),
   );
 
@@ -97,6 +105,11 @@ export function ProgressTab() {
           </AppText>
         </View>
       </GlassCard>
+
+      <PastWeeksPanel
+        onSeed={canSeedDevHistory() ? () => void seedHistory() : undefined}
+        weeks={pastWeeks}
+      />
     </TabScreen>
   );
 }

@@ -16,6 +16,8 @@ export const TRAINING_EQUIPMENT = [
   'cable',
   'bodyweight',
   'none',
+  // v8 Block 2 (ADR-P040 D5): resistance bands, the "Banda elástica" choice.
+  'band',
 ] as const;
 
 export type TrainingEquipment = (typeof TRAINING_EQUIPMENT)[number];
@@ -83,6 +85,14 @@ const EQUIPMENT_ALIASES: Readonly<Record<string, TrainingEquipment>> = {
   none: 'none',
   'no equipment': 'none',
   'sin equipo': 'none',
+  band: 'band',
+  bands: 'band',
+  'resistance band': 'band',
+  'resistance bands': 'band',
+  banda: 'band',
+  bandas: 'band',
+  'banda elastica': 'band',
+  'bandas elasticas': 'band',
 };
 
 function normalizeAlias(value: string): string {
@@ -164,10 +174,19 @@ export interface WorkoutExercisePrescription {
   explanationKeys: readonly string[];
 }
 
+/**
+ * How the person's exclusions changed a session (ADR-P040 D5). Present only
+ * when something changed, so routines without exclusions are unchanged.
+ */
+export type WorkoutSessionAdjustment =
+  | { slotKey: string; kind: 'SUBSTITUTED'; fromExerciseKey: string; toExerciseKey: string }
+  | { slotKey: string; kind: 'OMITTED' };
+
 export interface WorkoutSessionPrescription {
   key: string;
   focusKey: string;
   exercises: readonly WorkoutExercisePrescription[];
+  adjustments?: readonly WorkoutSessionAdjustment[];
 }
 
 export interface WorkoutProgressionRule {

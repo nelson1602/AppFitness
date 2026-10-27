@@ -388,6 +388,52 @@ export const BUILT_IN_EXERCISES: readonly BuiltInExercise[] = [
     equipment: ['bodyweight', 'none'],
     bodyAreas: ['back', 'core'],
   },
+  // exercise-catalog@0.3.0 (v8 Block 2, ADR-P040 D5): the injury-map
+  // substitutes — stationary bike for running, and three band exercises.
+  {
+    id: '28849416-2ccf-56c7-a9a5-ef1e8f746326',
+    key: 'exercise.stationary_bike',
+    name: 'Stationary bike',
+    category: 'CARDIO',
+    muscleGroup: 'full_body',
+    trainingPatterns: ['CONDITIONING'],
+    movementPatterns: [],
+    equipment: ['machine'],
+    bodyAreas: ['full_body'],
+  },
+  {
+    id: '72e26b4f-b41a-5e77-9a65-852a4bb5ad50',
+    key: 'exercise.band_external_rotation',
+    name: 'Band external rotation',
+    category: 'STRENGTH',
+    muscleGroup: 'shoulders',
+    trainingPatterns: ['MOBILITY'],
+    movementPatterns: [],
+    equipment: ['band'],
+    bodyAreas: ['shoulder'],
+  },
+  {
+    id: 'e7a6f2b6-79de-5599-a74c-64885ae6d324',
+    key: 'exercise.band_lat_pulldown',
+    name: 'Band lat pulldown',
+    category: 'STRENGTH',
+    muscleGroup: 'back',
+    trainingPatterns: ['VERTICAL_PULL'],
+    movementPatterns: [],
+    equipment: ['band'],
+    bodyAreas: ['back', 'shoulder'],
+  },
+  {
+    id: '5826e3a2-0f5e-59cf-8f79-1cb388636932',
+    key: 'exercise.band_hip_abduction',
+    name: 'Band hip abduction',
+    category: 'STRENGTH',
+    muscleGroup: 'glutes',
+    trainingPatterns: ['MOBILITY'],
+    movementPatterns: [],
+    equipment: ['band'],
+    bodyAreas: ['hip'],
+  },
 ];
 
 const byKey: ReadonlyMap<string, BuiltInExercise> = new Map(

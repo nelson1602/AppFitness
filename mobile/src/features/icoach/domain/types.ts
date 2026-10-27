@@ -68,6 +68,12 @@ export interface EngineInput {
   recovery?: RecoveryContext;
   /** User preference; the engine may cap it, never raise it. */
   trainingDaysPreference?: number;
+  /**
+   * Training days already earned through the saved plan's days progression
+   * (ADR-P040 D11): the fitness-level cap rises to at least this many, never
+   * above 6. The preference still caps the result.
+   */
+  unlockedTrainingDays?: number;
 }
 
 // ─── Outputs ─────────────────────────────────────────────────────────────────

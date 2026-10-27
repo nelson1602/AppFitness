@@ -16,7 +16,13 @@ import type { AvoidTag, FoodId, FoodItem, ServingUnit } from './food-catalog';
  * outputs. Descriptive, non-medical; no AI/LLM.
  */
 
-export const MEAL_RULE_VERSION = 'meal-rules@1.0.0';
+/**
+ * `1.2.0` (v8, owner decision 2026-10-27): realistic portions. Oils, nuts,
+ * seeds and nut butters stay at one catalog serving; the snack at two; in
+ * breakfast, lunch and dinner no food carries more than ~40 % of the meal;
+ * lunch and dinner have four foods.
+ */
+export const MEAL_RULE_VERSION = 'meal-rules@1.2.0';
 
 export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 

@@ -330,8 +330,24 @@ export function signIn(input: { email: string; password: string }): Promise<Auth
  * Restores the persisted session on app start. Rotates the refresh token
  * when the server is reachable; keeps the stored session when offline
  * (48h offline operation, .ai/06_MOBILE.md). Clears only on explicit 401.
+ *
+ * Single-flight (BUG-043): every `useSession` consumer that mounts while the
+ * status is `unknown` asks for a restore. Concurrent restores each presented
+ * the same stored refresh token, and the server's reuse detection then revoked
+ * the whole family. One restore runs; the others share its result.
  */
-export async function restoreSession(): Promise<Session | null> {
+let restoreInFlight: Promise<Session | null> | null = null;
+
+export function restoreSession(): Promise<Session | null> {
+  if (restoreInFlight) return restoreInFlight;
+  const result = restoreOnce().finally(() => {
+    if (restoreInFlight === result) restoreInFlight = null;
+  });
+  restoreInFlight = result;
+  return result;
+}
+
+async function restoreOnce(): Promise<Session | null> {
   // Restore races a user who signs in before it finishes. The newer, explicit
   // authentication always wins: every write below is abandoned if the
   // generation moved, so a restore can never overwrite or sign out the account
@@ -423,11 +439,27 @@ export async function restoreSession(): Promise<Session | null> {
  * is never touched, and the newer session is left exactly as it is. Because the
  * whole session is one SecureStore key written inside the lock right after the
  * check, there is no partial-write window left to repair.
+ *
+ * Single-flight per refresh token (BUG-043): callers that ask while a rotation
+ * of the same token is in flight share it. Several screens and the first-run
+ * gate can each hit a 401 at launch; sending the same refresh token at once
+ * made the server mint sibling tokens, and the next replay of a sibling tripped
+ * reuse detection and revoked the whole family, signing the person out.
  */
-export async function refreshTokens(): Promise<Session | null> {
-  const refreshing = getSessionSnapshot();
-  if (!refreshing) return null;
+let refreshInFlight: { token: string; result: Promise<Session | null> } | null = null;
 
+export function refreshTokens(): Promise<Session | null> {
+  const refreshing = getSessionSnapshot();
+  if (!refreshing) return Promise.resolve(null);
+  if (refreshInFlight?.token === refreshing.refreshToken) return refreshInFlight.result;
+  const result = rotateSession(refreshing).finally(() => {
+    if (refreshInFlight?.result === result) refreshInFlight = null;
+  });
+  refreshInFlight = { token: refreshing.refreshToken, result };
+  return result;
+}
+
+async function rotateSession(refreshing: SessionSnapshot): Promise<Session | null> {
   let rotated: Awaited<ReturnType<typeof authApi.refresh>>;
   try {
     // Outside the lock: a slow refresh must not block a sign-in.

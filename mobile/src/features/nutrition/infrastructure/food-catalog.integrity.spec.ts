@@ -17,8 +17,8 @@ describe('food catalog integrity', () => {
     expect(CATALOG_VERSION).toMatch(/^food-catalog@\d+\.\d+\.\d+$/);
   });
 
-  it('contains exactly 300 items', () => {
-    expect(FOOD_CATALOG).toHaveLength(300);
+  it('contains exactly 310 items', () => {
+    expect(FOOD_CATALOG).toHaveLength(310);
   });
 
   it('has unique ids following the food.<slug> convention', () => {

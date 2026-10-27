@@ -8,6 +8,9 @@ import {
 } from '@/features/authentication';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
+import { localDateOf } from '@/features/weekly-plan/domain/week';
+import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
+import { effectivePlanDay, linkForWorkout } from '@/features/weekly-plan/domain/adherence';
 
 import type {
   CustomExercise,
@@ -18,6 +21,7 @@ import type {
   RoutineInput,
   WorkoutLog,
   WorkoutLogInput,
+  WorkoutPlanLink,
   WorkoutSet,
   WorkoutSetInput,
   WorkoutSetPatch,
@@ -97,7 +101,7 @@ const INITIAL = {
   error: null,
 };
 
-export const useWorkoutStore = create<WorkoutState>((set) => ({
+export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   ...INITIAL,
 
   load: async () => {
@@ -268,7 +272,9 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
     set({ status: 'saving', error: null });
     try {
       owner = requireSessionSnapshot();
-      const log = await startWorkout(input);
+      const log = await startWorkout(
+        input.planLink ? input : { ...input, planLink: todaysPlanLink(get().workoutLogs) },
+      );
       if (!isSessionCurrent(owner)) return false;
       set((s) => ({ workoutLogs: [log, ...s.workoutLogs], status: 'ready', error: null }));
       return true;
@@ -457,3 +463,24 @@ export const useWorkoutStore = create<WorkoutState>((set) => ({
 // Routines, logs, exercises and sets all belong to one account; a session
 // transition drops them before the next account can render them.
 bindStoreToSession(() => useWorkoutStore.setState(INITIAL));
+
+/**
+ * ADR-P042 D5: a workout started on a training day fulfils that day's planned
+ * session unless one already does; anything else is an extra workout. Reads
+ * the saved week from its store; no plan means no link.
+ */
+function todaysPlanLink(logs: readonly WorkoutLog[]): WorkoutPlanLink | null {
+  const today = localDateOf(new Date().toISOString());
+  const { revisions } = useWeeklyPlanStore.getState();
+  const plan = effectivePlanDay(revisions, today)?.plan ?? null;
+  const ids = new Set(revisions.map((revision) => revision.id));
+  return linkForWorkout(plan, today, (sessionKey) =>
+    logs.some(
+      (log) =>
+        log.planLink !== null &&
+        ids.has(log.planLink.weeklyPlanId) &&
+        log.planLink.planDate === today &&
+        log.planLink.planSessionKey === sessionKey,
+    ),
+  );
+}

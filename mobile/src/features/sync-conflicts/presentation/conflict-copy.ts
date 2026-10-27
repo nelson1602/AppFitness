@@ -24,7 +24,7 @@ import type { ConflictChoice } from '../application/sync-conflicts.store';
  * "can't be reviewed here" rather than a raw identifier.
  */
 
-/** The 13 registered entity types (ADR-P030 §Decision 12). Medical is absent. */
+/** The 14 registered entity types (ADR-P030 §Decision 12; weekly_plans per ADR-P042). Medical is absent. */
 const RECORD_LABELS: Readonly<Record<string, TranslationKey>> = {
   user_profiles: 'sync.conflicts.record.user_profiles',
   goals: 'sync.conflicts.record.goals',
@@ -39,10 +39,11 @@ const RECORD_LABELS: Readonly<Record<string, TranslationKey>> = {
   workout_logs: 'sync.conflicts.record.workout_logs',
   workout_sets: 'sync.conflicts.record.workout_sets',
   wellness_safety_profiles: 'sync.conflicts.record.wellness_safety_profiles',
+  weekly_plans: 'sync.conflicts.record.weekly_plans',
 };
 
 /**
- * The 75 allow-listed field identifiers — 69 shown plus the 6 excluded ones,
+ * The 79 allow-listed field identifiers — 73 shown plus the 6 excluded ones,
  * because an excluded field still renders a row saying a value exists.
  */
 const FIELD_LABELS: Readonly<Record<string, TranslationKey>> = {
@@ -63,6 +64,7 @@ const FIELD_LABELS: Readonly<Record<string, TranslationKey>> = {
   completed: 'sync.conflicts.field.completed',
   date: 'sync.conflicts.field.date',
   description: 'sync.conflicts.field.description',
+  effective_from: 'sync.conflicts.field.effective_from',
   ended_at: 'sync.conflicts.field.ended_at',
   equipment: 'sync.conflicts.field.equipment',
   evaluation_completed: 'sync.conflicts.field.evaluation_completed',
@@ -75,6 +77,7 @@ const FIELD_LABELS: Readonly<Record<string, TranslationKey>> = {
   food_name_snapshot: 'sync.conflicts.field.food_name_snapshot',
   food_revision_snapshot: 'sync.conflicts.field.food_revision_snapshot',
   gender: 'sync.conflicts.field.gender',
+  generation_trigger: 'sync.conflicts.field.generation_trigger',
   goal_type: 'sync.conflicts.field.goal_type',
   grams_per_serving_snapshot: 'sync.conflicts.field.grams_per_serving_snapshot',
   height_cm: 'sync.conflicts.field.height_cm',
@@ -84,6 +87,7 @@ const FIELD_LABELS: Readonly<Record<string, TranslationKey>> = {
   is_deload_week: 'sync.conflicts.field.is_deload_week',
   kind: 'sync.conflicts.field.kind',
   left_arm_cm: 'sync.conflicts.field.left_arm_cm',
+  load_step: 'sync.conflicts.field.load_step',
   movements_to_avoid: 'sync.conflicts.field.movements_to_avoid',
   muscle_group: 'sync.conflicts.field.muscle_group',
   muscle_mass_kg: 'sync.conflicts.field.muscle_mass_kg',
@@ -96,6 +100,7 @@ const FIELD_LABELS: Readonly<Record<string, TranslationKey>> = {
   protein_per_serving_snapshot: 'sync.conflicts.field.protein_per_serving_snapshot',
   reps: 'sync.conflicts.field.reps',
   right_arm_cm: 'sync.conflicts.field.right_arm_cm',
+  revision: 'sync.conflicts.field.revision',
   rpe: 'sync.conflicts.field.rpe',
   rule_version: 'sync.conflicts.field.rule_version',
   serving_amount_snapshot: 'sync.conflicts.field.serving_amount_snapshot',

@@ -237,7 +237,7 @@ describe('no public-v1 surface renders an unlocalized string', () => {
     expect(screen).toBeDefined();
     const text = screen![1];
     expect(text).toContain('const unitKey = UNIT_LABEL[item.serving.unit];');
-    expect(text).toContain('{unitKey ? t(unitKey) : item.serving.unit}');
+    expect(text).toContain('unitKey ? t(unitKey) : item.serving.unit');
   });
 });
 

@@ -113,6 +113,9 @@ export class MealItemSyncHandler implements EntitySyncHandler {
           foodId: input.foodId,
           servingCount: input.servingCount,
           snapshot: deriveServingSnapshot(food),
+          planId: input.planId,
+          planDate: input.planDate,
+          planSlot: input.planSlot,
         });
         break;
       }

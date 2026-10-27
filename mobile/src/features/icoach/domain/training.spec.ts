@@ -27,6 +27,23 @@ describe('training plan', () => {
     expect(planTraining('ADVANCED', 'STRENGTH', noRestrictions, undefined, 2).daysPerWeek).toBe(2);
   });
 
+  // ADR-P040 D11: days earned through the plan's days progression.
+  it('raises the level cap to the earned days, still under the preference and six', () => {
+    const plan = (preference: number, unlocked: number) =>
+      planTraining('BEGINNER', 'STRENGTH', noRestrictions, undefined, preference, [], unlocked)
+        .daysPerWeek;
+    expect(plan(5, 4)).toBe(4);
+    expect(plan(4, 5)).toBe(4);
+    expect(plan(6, 9)).toBe(6);
+    expect(plan(5, 0)).toBe(3);
+    expect(plan(5, 2)).toBe(3);
+  });
+
+  it('never lets earned days lift a blocked plan', () => {
+    const blocked = { ...noRestrictions, blocked: true };
+    expect(planTraining('BEGINNER', 'STRENGTH', blocked, undefined, 5, [], 5).daysPerWeek).toBe(0);
+  });
+
   it('REHABILITATION always trains LOW regardless of level', () => {
     expect(planTraining('ADVANCED', 'REHABILITATION', noRestrictions).intensity).toBe('LOW');
   });

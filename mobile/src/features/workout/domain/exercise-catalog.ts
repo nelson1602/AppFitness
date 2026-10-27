@@ -22,7 +22,7 @@ import type {
  * catalog and are treated as neutral (never auto-excluded) by the matcher.
  */
 
-export const EXERCISE_CATALOG_VERSION = 'exercise-catalog@0.2.0';
+export const EXERCISE_CATALOG_VERSION = 'exercise-catalog@0.3.0';
 
 /**
  * Deterministic built-in exercise identity (ADR-P015 Phase 16 exercise

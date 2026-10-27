@@ -12,7 +12,10 @@ import { countByStatus, listUnsettledConflicts } from '@/shared/infrastructure/s
 import type { DashboardData, SyncSummary } from '../domain/dashboard.types';
 import { buildDashboardAssessment } from './icoach-adapter';
 
-export async function loadDashboardData(now: Date = new Date()): Promise<DashboardData> {
+export async function loadDashboardData(
+  now: Date = new Date(),
+  options: { unlockedTrainingDays?: number } = {},
+): Promise<DashboardData> {
   const session = getSession();
   if (!session) throw new Error('Not authenticated');
 
@@ -42,6 +45,9 @@ export async function loadDashboardData(now: Date = new Date()): Promise<Dashboa
     physicalAssessment,
     today: now.toISOString().slice(0, 10),
     wellness,
+    ...(options.unlockedTrainingDays !== undefined
+      ? { unlockedTrainingDays: options.unlockedTrainingDays }
+      : {}),
   });
 
   return {

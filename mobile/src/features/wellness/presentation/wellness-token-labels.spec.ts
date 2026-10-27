@@ -32,7 +32,7 @@ describe('affected-area labels', () => {
     expect(Object.keys(AFFECTED_AREA_LABEL_KEY).sort()).toEqual(
       [...WELLNESS_AFFECTED_AREAS].sort(),
     );
-    expect(WELLNESS_AFFECTED_AREAS).toHaveLength(18);
+    expect(WELLNESS_AFFECTED_AREAS).toHaveLength(21);
   });
 
   it.each(CATALOGS)('has a non-empty %s label for every token', (_name, catalog) => {

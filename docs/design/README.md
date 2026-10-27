@@ -34,7 +34,7 @@ El usuario registra los resultados de su evaluación con el médico.
    - Condiciones: Hipertensión, Diabetes, Asma, Condición cardíaca, Otros (abre un cuadro de texto).
    - Botón **Lesiones** que despliega: Hombro, Rodilla, Espalda baja, Muñeca, Codo, Tobillo, Cadera o pelvis, Cuello, Desgarre muscular, Periostitis tibial, Fascitis plantar, Otra lesión (abre un cuadro de texto).
    - Presión sistólica y diastólica, pulso en reposo, medicamentos.
-3. **Alimentación:** grupos desplegables con los alimentos a excluir:
+3. **Alimentación:** grupos desplegables con los alimentos a excluir. Texto de ayuda: "Marca lo que no quieres en tu plan. El iCoach solo cambia lo que marques." Cada alimento marcado se indica como **Alergia** (no se puede registrar) o **Prefiero evitar** (solo avisa al registrarlo).
    - Frutas: guineo, manzana, fresas, arándanos, piña, lechosa, mango, naranja, sandía, kiwi, uvas, chinola.
    - Verduras y vegetales: brócoli, espinaca, lechuga, tomate, ajíes, zanahoria, pepino, coliflor, berenjena, cebolla, auyama.
    - Carnes, huevo y pescado: pollo, pavo, res, cerdo, pescado, atún, salmón, huevo.
@@ -44,7 +44,7 @@ El usuario registra los resultados de su evaluación con el médico.
    - Legumbres: habichuelas, lentejas, garbanzos, guandules, soya, maní.
    - Frutos secos y semillas: almendras, nueces, cajuil, pistachos, ajonjolí, chía, linaza.
    - Víveres: plátano, yuca, batata, papa, ñame, yautía.
-   - Restricciones médicas: alto en sodio, alto en purinas, azúcares añadidos, alcohol, cafeína, frituras.
+   - Otras restricciones: alto en sodio, alto en purinas, azúcares añadidos, alcohol, cafeína, frituras.
 4. **Estilo de vida:** nivel de actividad (5), estrés (5), horas de sueño, días para entrenar (2 a 6), equipo disponible.
 5. **Meta:** tipo de meta (7), peso meta y fecha meta.
 6. **Revisión:** resumen editable por sección y vista previa del iCoach (calorías, macros, ajustes por salud).
@@ -53,8 +53,10 @@ El usuario registra los resultados de su evaluación con el médico.
 - Calcula calorías y macros (Mifflin-St Jeor × actividad ± ajuste por meta) y arma la semana de entrenamientos según los días disponibles.
 - **Lesiones:** rodilla quita saltos y sentadilla profunda; espalda baja quita cargas pesadas sobre la espalda; hombro cambia el press militar por rotación externa con banda; tobillo, periostitis y fascitis cambian el trote por bicicleta; las demás bajan las cargas.
 - **Otras reglas:** hipertensión o condición cardíaca → intensidad moderada; diabetes → carbohidratos repartidos; estrés alto → respiración al final; sueño corto → descansos más largos.
+- **Días de entrenamiento:** el nivel limita los días (Principiante 3, Intermedio 5, Avanzado 6). Si las dos semanas anteriores se planificaron con los días actuales y en cada una se cumplió al menos el 80 % de los entrenamientos, el plan del lunes propone **un día más** con "¿Actualizar tu plan de esta semana?". Nunca pasa de los días que la persona eligió (ni de 6). Si elige más días de los que permite su nivel, Revisión lo explica (ADR-P040 D11).
+- **Porciones realistas:** aceites, frutos secos, semillas y mantequillas de maní se quedan en una porción (por ejemplo, 2 cucharadas de chía); la merienda, en dos porciones como máximo; en desayuno, almuerzo y cena ningún alimento pasa de ~40 % de las calorías de la comida. Las pantallas muestran cantidades ("150 g"), nunca un multiplicador ("1,3×").
 - **Alimentos excluidos:** solo se quita el alimento marcado, nunca el plato completo ni el grupo. El iCoach lo cambia por otro del mismo tipo (proteína por proteína, víveres por víveres, fruta por fruta…) y si no hay sustituto lo quita. El plato muestra "Ajustado por iCoach: huevo → pechuga de pollo".
-- **Restricciones médicas** (sodio, purinas, azúcares, alcohol, cafeína, frituras) sí excluyen los productos que las tienen.
+- **Otras restricciones** (sodio, purinas, azúcares, alcohol, cafeína, frituras) sí excluyen los productos que las tienen.
 - **Comida fuera del plan:** recalcula. Si se pasó de calorías añade cardio al próximo entrenamiento y baja la meta del día siguiente; si fue alcohol, recomienda evitar el entrenamiento intenso.
 
 ### Panel (pestañas Inicio, Entrenamientos, Nutrición, Progreso, Perfil)

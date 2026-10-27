@@ -19,8 +19,12 @@
  * `1.2.0` adds the wellness-safety rule (ADR-P031 W-4B): a declared movement
  * becomes a `TrainingPlan.excludedMovements` entry. Minor, not major — inputs
  * and output shape are additive.
+ *
+ * `1.4.0` adds the earned training days (ADR-P040 D11): `unlockedTrainingDays`
+ * raises the fitness-level cap on the week's training days. Additive and
+ * optional — without it every output is what 1.3.0 produced.
  */
-export const ENGINE_RULE_VERSION = 'icoach-rules@1.2.0';
+export const ENGINE_RULE_VERSION = 'icoach-rules@1.4.0';
 
 /**
  * The weekly progress-snapshot engine (`progress-analysis.ts`, ADR-P016

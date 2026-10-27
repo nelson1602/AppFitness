@@ -151,6 +151,23 @@ describe('iCoach engine', () => {
     expect(() => validateEngineInput({ ...baseInput(), trainingDaysPreference: 2.5 })).toThrow(
       InvalidEngineInputError,
     );
+    expect(() => validateEngineInput({ ...baseInput(), unlockedTrainingDays: 7 })).toThrow(
+      InvalidEngineInputError,
+    );
+    expect(() => validateEngineInput({ ...baseInput(), unlockedTrainingDays: 1.5 })).toThrow(
+      InvalidEngineInputError,
+    );
+  });
+
+  // ADR-P040 D11: earned days lift the level cap; without them nothing changes.
+  it('passes earned training days to the training plan', () => {
+    const beginner = {
+      ...baseInput(),
+      fitnessLevel: 'BEGINNER' as const,
+      trainingDaysPreference: 5,
+    };
+    expect(evaluate(beginner).training.daysPerWeek).toBe(3);
+    expect(evaluate({ ...beginner, unlockedTrainingDays: 4 }).training.daysPerWeek).toBe(4);
   });
 
   it('boundary values are accepted (13/120y, 100/250cm, 30/400kg, bf 3/70)', () => {
@@ -235,7 +252,7 @@ describe('iCoach engine', () => {
     expect(rec.id).toBe('WELLNESS:movement_exclusions');
     expect(rec.category).toBe('SAFETY');
     expect(rec.ruleVersion).toBe(ENGINE_RULE_VERSION);
-    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.2.0');
+    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.4.0');
 
     // Structured reason code, and the EXACT consumed inputs: the whole
     // validated set, de-duplicated and in the analyzer’s sorted order

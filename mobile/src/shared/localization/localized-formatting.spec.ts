@@ -111,6 +111,8 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
     'a caller-supplied chip — a composition slot, not a value',
   'src/features/dashboard/presentation/components/home-cards.tsx#Tile: bar':
     'a caller-supplied progress bar — a composition slot, not a value',
+  'src/features/evaluation/presentation/evaluation-controls.tsx#Group: children':
+    "a collapsible group's options — a composition slot, not a value",
   'src/features/profile/presentation/ProfileTab.tsx#Panel: children':
     "the panel's content — a composition slot, not a value",
   'src/features/profile/presentation/ProfileTab.tsx#Panel: right':

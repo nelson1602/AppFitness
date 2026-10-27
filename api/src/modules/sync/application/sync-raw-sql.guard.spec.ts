@@ -36,7 +36,7 @@ describe('ADR-P030 C-2 source safety boundaries', () => {
     expect(violations).toEqual([]);
   });
 
-  it('uses exactly 13 static, entity-owned PK-conflict inserts', () => {
+  it('uses exactly 14 static, entity-owned PK-conflict inserts', () => {
     const insertedTables: string[] = [];
 
     for (const path of productionTypeScriptFiles(SRC)) {
@@ -71,6 +71,7 @@ describe('ADR-P030 C-2 source safety boundaries', () => {
         'routine_exercises',
         'routines',
         'user_profiles',
+        'weekly_plans',
         'wellness_safety_profiles',
         'workout_logs',
         'workout_sets',
@@ -78,7 +79,7 @@ describe('ADR-P030 C-2 source safety boundaries', () => {
     );
   });
 
-  it('keeps all 13 public resolution mutations from rewriting an already-reviewed tombstone', () => {
+  it('keeps all 14 public resolution mutations from rewriting an already-reviewed tombstone', () => {
     const guardedSites = productionTypeScriptFiles(SRC)
       .filter((path) => path.endsWith('repository.ts'))
       .flatMap((path) =>
@@ -89,7 +90,7 @@ describe('ADR-P030 C-2 source safety boundaries', () => {
         ),
       );
 
-    expect(guardedSites).toHaveLength(13);
+    expect(guardedSites).toHaveLength(14);
     expect(
       isAlreadySatisfiedDelete({
         operation: SyncOperationType.DELETE,

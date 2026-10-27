@@ -7,12 +7,14 @@ import {
 import { BUILT_IN_EXERCISES } from '@/features/workout/infrastructure/exercise-catalog.data';
 
 import { evaluate } from './engine';
+import { INJURY_MAP_VERSION, INJURY_MOVEMENT_MAP } from './injury-movement-map';
 import { ENGINE_RULE_VERSION } from './rule-versions';
 import type { EngineInput } from './types';
 import {
   analyzeWellnessSafety,
   isWellnessAffectedArea,
   isWellnessMovementToAvoid,
+  WELLNESS_REASON_INJURY_MAPPED,
   WELLNESS_REASON_MOVEMENT_DECLARED,
   WellnessSafetyInputInvalid,
   type WellnessSafetyInput,
@@ -130,26 +132,53 @@ describe('wellness safety analyzer (ADR-P031 W-4B)', () => {
     expect(isWellnessMovementToAvoid('behind_neck_press')).toBe(false);
   });
 
-  it('A3: each of the 18 affected areas is computationally inert', () => {
-    expect(WELLNESS_AFFECTED_AREAS).toHaveLength(18);
+  it('A3: each affected area excludes exactly its injury-map movements (ADR-P040 D5)', () => {
+    expect(WELLNESS_AFFECTED_AREAS).toHaveLength(21);
 
     for (const area of WELLNESS_AFFECTED_AREAS) {
       const analysis = analyzeWellnessSafety(input({ affectedAreas: [area] }));
-      expect(analysis.excludedMovements).toEqual([]);
-      expect(analysis.reasons).toEqual([]);
+      expect(analysis.excludedMovements).toEqual([...(INJURY_MOVEMENT_MAP[area] ?? [])].sort());
+      for (const reason of analysis.reasons) {
+        expect(reason.code).toBe(WELLNESS_REASON_INJURY_MAPPED);
+        expect(reason.ruleVersion).toBe(`${ENGINE_RULE_VERSION}+${INJURY_MAP_VERSION}`);
+      }
     }
 
-    // All 18 together — including the areas an area → movement mapping would
-    // have been most tempted to act on (`knee`, `shoulder`, `lower_back`).
-    const everyArea = analyzeWellnessSafety(input({ affectedAreas: WELLNESS_AFFECTED_AREAS }));
-    expect(everyArea.excludedMovements).toEqual([]);
-    expect(everyArea.reasons).toEqual([]);
+    // Unmapped areas (the older form's finer values) still exclude nothing.
+    for (const area of ['forearm', 'thigh', 'upper_back'] as const) {
+      expect(analyzeWellnessSafety(input({ affectedAreas: [area] })).excludedMovements).toEqual([]);
+    }
 
-    // An area never adds to, subtracts from or reorders a declared movement set.
-    const withMovement = analyzeWellnessSafety(
-      input({ affectedAreas: WELLNESS_AFFECTED_AREAS, movementsToAvoid: ['jumping'] }),
+    // A declared movement keeps its own reason when an injury also excludes it.
+    const both = analyzeWellnessSafety(
+      input({ affectedAreas: ['knee'], movementsToAvoid: ['jumping'] }),
     );
-    expect(withMovement.excludedMovements).toEqual(['jumping']);
+    expect(both.reasons.find((r) => r.inputs.movement === 'jumping')?.code).toBe(
+      WELLNESS_REASON_MOVEMENT_DECLARED,
+    );
+    expect(both.reasons.find((r) => r.inputs.movement === 'deep_squat')?.code).toBe(
+      WELLNESS_REASON_INJURY_MAPPED,
+    );
+  });
+
+  it('A3b: the injury map is order-independent and versioned as pending review', () => {
+    const kneeShoulder = analyzeWellnessSafety(input({ affectedAreas: ['knee', 'shoulder'] }));
+    const shoulderKnee = analyzeWellnessSafety(input({ affectedAreas: ['shoulder', 'knee'] }));
+    expect(kneeShoulder).toEqual(shoulderKnee);
+    expect(kneeShoulder.excludedMovements).toEqual([
+      'deep_squat',
+      'dips',
+      'front_rack_loading',
+      'heavy_pressing',
+      'high_impact_cardio',
+      'jumping',
+      'lunge',
+      'max_effort_lifts',
+      'overhead_press',
+      'running',
+      'sprinting',
+    ]);
+    expect(INJURY_MAP_VERSION).toBe('injury-map@1.0.0-pending-review');
   });
 
   it('A4: all 18 areas remain accepted, valid inputs — inert, not rejected', () => {

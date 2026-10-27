@@ -13,6 +13,8 @@ import { useProgressStore } from '@/features/progress/application/progress.store
 import { useWellnessSafetyProfileStore } from '@/features/wellness/application/wellness-safety-profile.store';
 import { selectWorkoutRoutine } from '@/features/workout/application/workout-routine.service';
 import { useWorkoutStore } from '@/features/workout/application/workout.store';
+import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
+import { planAsRoutine } from '@/features/weekly-plan/domain/plan-routine';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import type { GoalType } from '@/shared/infrastructure/database/types';
 
@@ -37,6 +39,11 @@ export function loadHomeData(): void {
   void useFoodLogStore.getState().load();
   void useWellnessSafetyProfileStore.getState().load();
   void useNotificationsStore.getState().load();
+  // ADR-P042: the saved week, then whether its deciding inputs changed since.
+  void useWeeklyPlanStore
+    .getState()
+    .load()
+    .then(() => useWeeklyPlanStore.getState().checkForChanges());
 }
 
 /** One macro of "Tu evaluación de hoy": grams eaten today against the target. */
@@ -85,6 +92,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
   const foodLogReady = useFoodLogStore((s) => s.status === 'ready');
   const evaluationDate = useWellnessSafetyProfileStore((s) => s.profile?.evaluationDate ?? null);
   const { mode } = useEntitlementAccess();
+  const planRevisions = useWeeklyPlanStore((s) => s.revisions);
   const { today, weekStart, weekdayIndex } = todayParts(now);
 
   return useMemo(() => {
@@ -98,7 +106,14 @@ export function useHomeData(now: Date = new Date()): HomeData {
             excludedMovements: assessment?.assessment.training.excludedMovements ?? [],
           })
         : null;
-    const routine = selection?.status === 'ready' ? selection.routine : null;
+    // ADR-P042: the saved week is what the person is measured against; the
+    // live routine is only a fallback until the week's plan exists.
+    const routine =
+      mayGenerate && planRevisions.length > 0
+        ? planAsRoutine(planRevisions)
+        : selection?.status === 'ready'
+          ? selection.routine
+          : null;
 
     const summary = buildHomeSummary({
       today,
@@ -172,6 +187,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
     foodLogReady,
     goal,
     mode,
+    planRevisions,
     profile,
     today,
     totals,

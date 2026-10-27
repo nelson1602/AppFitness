@@ -3363,6 +3363,73 @@ UX-4C stays **PARTIAL**.
 
 ---
 
+## [BUG-043] Concurrent Token Refresh Signs the Person Out
+
+Status: Fixed in v8 Block 2 (client); server hardening open
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-10-27
+Updated: 2026-10-27
+
+### Description
+
+Found during the Block 2 emulator review against the local API. Several callers can hit a 401 at the same moment at launch (the first-run gate's pull, the dashboard and food-log syncs), and each called `refreshTokens()` with the same refresh token.
+
+1. The server minted four sibling tokens from one parent in the same second.
+2. The next replay of a revoked sibling tripped reuse detection.
+3. Reuse detection revoked the whole family, and the device was signed out mid-wizard.
+
+Evidence: `refresh_tokens` rows for the review account, with four children created at 03:41:44 UTC and the family revoked at 03:46:02 UTC; two `AUTH_FAILURE` audit rows at 03:46:02.
+
+### Fix
+
+`refreshTokens()` is single-flight per refresh token, and `restoreSession()` is single-flight. Every `useSession` consumer that mounts while the status is `unknown` asked for its own restore, and at launch three mount together (the route plus both access gates), each presenting the same stored token. Regression tests in `session-manager.spec.ts`: "shares one rotation between concurrent callers" and "presents the stored refresh token once for concurrent callers". Both fail without the fix. The restore path dates to the baseline; v8 Blocks 1 and 2 each added a launch-time consumer, which made it likely.
+
+### Remaining
+
+The server still accepts the same refresh token concurrently and issues siblings before the parent is marked revoked. Making rotation atomic (revoke-if-not-revoked in the same statement) would stop other clients, or two devices sharing a token, from tripping the same family revocation. This needs its own change and tests.
+
+### Acceptance Criteria
+
+- [x] Concurrent `refreshTokens()` calls send one request and all receive the rotated session
+- [x] Concurrent `restoreSession()` calls present the stored refresh token once
+- [ ] Server rotation is atomic under concurrent use of the same refresh token
+
+---
+
+## [BUG-044] Logged Foods Never Reach the Server (Parent Meals Are Never Synced)
+
+Status: Open — found 2026-10-27 in the v8 Block 2 emulator review; predates v8
+Priority: P1
+Type: Bug
+Owner: Engineering (fix); Project owner (scheduling)
+Created: 2026-10-27
+Updated: 2026-10-27
+
+### Description
+
+ADR-P012 specifies three nutrition sync entities: `nutrition_logs`, `meals` and `meal_items`. Only the `meal_items` handler exists on the server, and the app never enqueues its `nutrition_logs` or `meals` rows. `ensureNutritionLog`/`ensureMeal` insert them locally as `pending` with no queue entry.
+
+The server's `meal_items` CREATE requires the parent meal, so every logged food fails with the retryable `DEPENDENCY_NOT_READY` and retries forever. Food logs are therefore device-only. On the local review database, `meal_items` and `meals` are empty for every account; `main` has the same code.
+
+Consequences:
+- A reinstall or a second device loses every food log.
+- v8's "Lo comí" links and the meal half of weekly adherence (ADR-P042) are device-only for the same reason. The weekly plans themselves, workout links, profile, goal, wellness and preferences do sync (verified 2026-10-27).
+
+### Expected Outcome
+
+Logged foods, with their plan links, sync like every other user-owned row.
+
+### Acceptance Criteria
+
+- [ ] Server `EntitySyncHandler`s for `nutrition_logs` and `meals` (ownership, version/conflict, pull by `sync_seq`)
+- [ ] The app enqueues the parent CREATEs in the same transaction as the first item, in causal order
+- [ ] Mobile appliers for both parents; existing local rows are backfilled into the queue by a forward migration
+- [ ] e2e: log a food, sync, reinstall, pull → the item and its plan link come back
+
+---
+
 ## [BUG-042] Android Sign-in Shows "Unexpected" Instead of "No Connection" When the API Is Unreachable
 
 Status: Needs Triage
@@ -5939,7 +6006,7 @@ Open Food Facts is dropped.
 
 ## [FEATURE-016] versionCode 8 Release — Prototype Parity (owner scope 2026-10-26)
 
-Status: In Progress (Block 1 implemented, in review)
+Status: In Progress (Block 1 in review; Block 2 implemented, in review)
 Priority: P1
 Type: Feature
 Owner: Project owner (decisions, merges) · Engineering (delivery)
@@ -5960,7 +6027,7 @@ The versionCode 6 Android test did not match `docs/design/appfitnessrd-prototipo
 
 * [ ] Block 1 — ADR-P041: the API password policy and `EMAIL_NOT_VERIFIED` guard; the app's live checklist, "Verifica tu correo" screen and access gate; tests; Spanish screenshots in `dist/v8-review/block-1/`
 * [ ] Before merging Block 1, the owner verifies the Google Play reviewer account and updates its credentials in Play Console
-* [ ] Block 2 — first-run wizard and engine mapping, with migrations
+* [ ] Block 2 — first-run wizard and engine mapping, with migrations: the Evaluación física (6 steps) and its first-run gate; the saved weekly plan (ADR-P042) with session/meal links, "Lo comí", the change prompt, the off-plan overlay and "Semanas anteriores"; injury map (ADR-P040 D5), band equipment, avoid tags and the Dominican foods seed; date picker (ADR-P043); a development-only sample of four past weeks
 * [ ] Block 3 — every screen on the stage design, plus native date pickers
 * [ ] Block 4 — visual fixes
 * [ ] Block 5 — privacy links, icon, policy sync
@@ -5971,6 +6038,10 @@ The versionCode 6 Android test did not match `docs/design/appfitnessrd-prototipo
 
 * Verification mail is now on the sign-up critical path (ADR-P041 Consequences).
 * The ADR-P026 Perfil reminder card is unreachable and is removed in a cleanup.
+* Block 2: the injury→exercise map is applied conservatively and still needs the qualified review ADR-P031 D4 requires (`docs/design/INJURY_EXERCISE_MAP.md`).
+* Block 2: a returning account on a fresh install that is offline at first launch sees the evaluation again (the gate pulls once first); saving it would create local rows that can collide with the server copies on the next sync. How that collision resolves has not been tested yet.
+* Block 2: logged foods never sync (BUG-044, predates v8), so "Lo comí" links and the meal half of weekly adherence stay on the device until it is fixed.
+* Block 2: `.maestro/onboarding-loop.yml` still drives the pre-v8 dashboard gap actions; a new account now completes the evaluation in `registration-verified.yml`, so the loop needs rewriting to the wizard before it is run again.
 
 ### Related Documents
 

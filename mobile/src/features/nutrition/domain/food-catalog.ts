@@ -54,7 +54,12 @@ export type AvoidTag =
   | 'gluten_sensitive'
   | 'lactose_sensitive'
   | 'high_sodium_sensitive'
-  | 'high_purine';
+  | 'high_purine'
+  // ADR-P040 D4 (v8 Block 2): product-level tags for "Otras restricciones".
+  | 'added_sugar'
+  | 'alcohol'
+  | 'caffeine'
+  | 'fried';
 
 export interface ServingSize {
   amount: number;
@@ -225,8 +230,15 @@ export interface FoodItem {
  * kept at 2 cup, sourced 70 g (35 g/cup x 2); macros UNCHANGED (est 14.7
  * kcal / 2.40 C vs authored 12 / 2, within tolerance). New immutable
  * revision (2). Gate (c) closed; 22 third-source-residue foods remain gated.
+ *
+ * 1.14.0 (v8 Block 2, ADR-P040 D4/D10): avoid tags added_sugar, alcohol,
+ * caffeine and fried (coffee, green tea and matcha carry caffeine), and the
+ * Dominican foods seed — the foods of the first-run evaluation's lists the
+ * catalog lacked, each sourced from the pinned USDA archives (SR Legacy
+ * 2018-04, or the FNDDS 2024-10-31 second source for cooked cassava) with the
+ * record id in its source note. New foods only; no existing revision changes.
  */
-export const CATALOG_VERSION = 'food-catalog@1.13.6';
+export const CATALOG_VERSION = 'food-catalog@1.14.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [
@@ -267,6 +279,10 @@ export const AVOID_TAGS: readonly AvoidTag[] = [
   'lactose_sensitive',
   'high_sodium_sensitive',
   'high_purine',
+  'added_sugar',
+  'alcohol',
+  'caffeine',
+  'fried',
 ];
 
 /** Human-readable labels for the closed avoid-tag vocabulary (shared copy). */
@@ -277,6 +293,10 @@ export const AVOID_TAG_LABELS: Record<AvoidTag, string> = {
   lactose_sensitive: 'Lactose / dairy',
   high_sodium_sensitive: 'High sodium',
   high_purine: 'High purine (gout)',
+  added_sugar: 'Added sugars',
+  alcohol: 'Alcohol',
+  caffeine: 'Caffeine',
+  fried: 'Fried foods',
 };
 
 export const SERVING_UNITS: readonly ServingUnit[] = [
