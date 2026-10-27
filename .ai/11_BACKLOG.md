@@ -3427,7 +3427,7 @@ Logged foods, with their plan links, sync like every other user-owned row.
 - [x] The app enqueues the parent CREATEs in the same transaction as the first item, in causal order
 - [x] Mobile appliers for both parents; existing local rows are repaired and queued by a one-time pre-push repair (SQLite migrations cannot compute the deterministic ids), recorded in `app_metadata`
 - [x] Regression tests: API e2e (parent chain, out-of-order parents, second-device CREATE, isolation, pull, deletion cascade) and a mobile SQLite integration test (new food, legacy repair, one-shot, second device, pull merge)
-- [ ] On-device proof: food logged on the emulator, synced, rows on the server
+- [x] On-device proof (2026-10-27, local API): an account holding 209 stuck foods over 29 days was repaired on its first sync; the server received 29 days, 81 meals and 209 foods, all APPLIED, with no duplicate day or slot. A breakfast logged afterwards with "Lo comí" went out as one meal CREATE followed by its foods.
 
 ---
 
