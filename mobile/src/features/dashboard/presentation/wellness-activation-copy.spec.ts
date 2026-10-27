@@ -276,7 +276,7 @@ describe('the rendered recommendation', () => {
     expect(spanish.title).not.toBe(english.title);
     expect(assessment.training.excludedMovements).toEqual(['deep_squat', 'jumping']);
     expect(rec.inputs.movements).toBe('deep_squat,jumping');
-    expect(rec.ruleVersion).toBe('icoach-rules@1.3.0');
+    expect(rec.ruleVersion).toBe('icoach-rules@1.4.0');
     // Rendering is a pure projection: it mutates neither the rule nor its inputs.
     expect(JSON.stringify(evaluate(engineInput(['jumping', 'deep_squat'])))).toBe(
       JSON.stringify(assessment),

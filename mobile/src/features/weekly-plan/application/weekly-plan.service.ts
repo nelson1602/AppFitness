@@ -12,10 +12,12 @@ import { computeWeekAdherence, type WeekAdherence, type WeekLogs } from '../doma
 import { buildWeeklyPlanContent } from '../domain/build-plan';
 import { computeOffPlanAdjustment, type OffPlanAdjustment } from '../domain/off-plan';
 import {
-  changedPlanInputs,
-  planInputsFingerprint,
-  type PlanInputChange,
-} from '../domain/plan-inputs';
+  daysProposalNote,
+  openDaysProposal,
+  proposedTrainingDays,
+  type WeekWorkoutResult,
+} from '../domain/days-progression';
+import { changedPlanInputs, planInputsFingerprint, type PlanChange } from '../domain/plan-inputs';
 import { nextLoadStep, progressionNotes, type PreviousWeekResult } from '../domain/progression';
 import { addDays, localDateOf, previousWeekStart, weekDates, weekStartOf } from '../domain/week';
 import type { PlanTrigger, WeeklyPlan } from '../domain/weekly-plan';
@@ -127,23 +129,53 @@ export async function ensureCurrentWeekPlan(now: Date = new Date()): Promise<Cur
     return { status: 'ready', revisions: existing, current: existing[existing.length - 1] };
   }
 
-  const gathered = await gatherPlanContext(now);
+  const past = await listPastPlanRevisions(userId, weekStart);
+  const byWeek = (week: string) => past.filter((revision) => revision.weekStart === week);
+  const lastWeek = byWeek(previousWeekStart(weekStart));
+  const weekBefore = byWeek(previousWeekStart(previousWeekStart(weekStart)));
+
+  // Days earned through the days progression stay in force (ADR-P040 D11).
+  const daysLastWeek = lastWeek.at(-1)?.plan.inputs.trainingDays;
+  const gathered = await gatherPlanContext(
+    now,
+    daysLastWeek !== undefined ? { unlockedTrainingDays: daysLastWeek } : {},
+  );
   if (gathered.status !== 'ready')
     return gathered.status === 'gap' ? { status: 'gap' } : { status: 'error' };
 
-  const past = await listPastPlanRevisions(userId, weekStart);
-  const lastWeek = past.filter((revision) => revision.weekStart === previousWeekStart(weekStart));
   let previous: PreviousWeekResult | null = null;
+  const results: WeekWorkoutResult[] = [];
   if (lastWeek.length > 0) {
     const logs = await loadWeekLogs(
       userId,
-      lastWeek.map((revision) => revision.id),
+      [...lastWeek, ...weekBefore].map((revision) => revision.id),
     );
-    previous = resultOf(
-      computeWeekAdherence(lastWeek, logs),
-      lastWeek[lastWeek.length - 1].loadStep,
-    );
+    const lastAdherence = computeWeekAdherence(lastWeek, logs);
+    previous = resultOf(lastAdherence, lastWeek[lastWeek.length - 1].loadStep);
+    for (const [revisions, adherence] of [
+      [lastWeek, lastAdherence],
+      [weekBefore, weekBefore.length > 0 ? computeWeekAdherence(weekBefore, logs) : null],
+    ] as const) {
+      if (!adherence) continue;
+      results.push({
+        weekStart: adherence.weekStart,
+        plannedDays: revisions[revisions.length - 1].plan.inputs.trainingDays,
+        plannedSessions: adherence.plannedSessions,
+        fulfilledSessions: adherence.fulfilledSessions,
+      });
+    }
   }
+
+  const proposal = proposedTrainingDays({
+    daysInForce: gathered.context.inputs.trainingDays,
+    chosenDays: gathered.context.chosenTrainingDays,
+    weekStart,
+    previousWeeks: results,
+  });
+  const notes = [
+    ...progressionNotes(previous),
+    ...(proposal !== null ? [daysProposalNote(proposal)] : []),
+  ];
 
   const trigger: PlanTrigger = past.length === 0 ? 'FIRST_RUN' : 'WEEKLY';
   const current = await saveRevision(
@@ -152,43 +184,63 @@ export async function ensureCurrentWeekPlan(now: Date = new Date()): Promise<Cur
     weekStart,
     trigger,
     nextLoadStep(previous),
-    progressionNotes(previous),
+    notes,
     now.toISOString(),
   );
   return { status: 'ready', revisions: [current], current };
 }
 
-/** Important inputs that changed since this week's plan was saved (ADR-P042 D3). */
+/**
+ * What would change this week's plan, once confirmed (ADR-P042 D3): the
+ * important inputs that changed since it was saved, plus an open "one more
+ * day" proposal (ADR-P040 D11).
+ */
 export async function pendingPlanChanges(
   current: WeeklyPlan,
   now: Date = new Date(),
-): Promise<PlanInputChange[]> {
-  const gathered = await gatherPlanContext(now);
+): Promise<PlanChange[]> {
+  const daysInForce = current.plan.inputs.trainingDays;
+  const gathered = await gatherPlanContext(now, { unlockedTrainingDays: daysInForce });
   if (gathered.status !== 'ready') return [];
-  return changedPlanInputs(current.plan.inputs, gathered.context.inputs);
+  const changes: PlanChange[] = changedPlanInputs(current.plan.inputs, gathered.context.inputs);
+  const proposal = openDaysProposal(current.notes, daysInForce);
+  if (proposal !== null && proposal <= gathered.context.chosenTrainingDays) {
+    changes.push('moreDays');
+  }
+  return changes;
 }
 
 /**
  * The person confirmed "Actualizar tu plan de esta semana": a new revision
  * effective today. Earlier days keep the previous revision. An injury change
- * resets the load step; anything else keeps it.
+ * resets the load step; anything else keeps it. An accepted "one more day"
+ * raises the days in force; an unanswered proposal is carried forward.
  */
 export async function regenerateCurrentWeek(
   current: WeeklyPlan,
-  changes: readonly PlanInputChange[],
+  changes: readonly PlanChange[],
   now: Date = new Date(),
 ): Promise<WeeklyPlan | null> {
-  const gathered = await gatherPlanContext(now);
+  const daysInForce = current.plan.inputs.trainingDays;
+  const proposal = openDaysProposal(current.notes, daysInForce);
+  const accepted = changes.includes('moreDays') && proposal !== null;
+  const gathered = await gatherPlanContext(now, {
+    unlockedTrainingDays: accepted ? proposal : daysInForce,
+  });
   if (gathered.status !== 'ready') return null;
   const today = localDateOf(now.toISOString());
   const loadStep = changes.includes('injuries') ? 0 : current.loadStep;
+  const notes = [
+    ...changes.map((change) => ({ code: `plan.changed.${change}` })),
+    ...(!accepted && proposal !== null ? [daysProposalNote(proposal)] : []),
+  ];
   return saveRevision(
     gathered.context,
     current.weekStart,
     today < current.weekStart ? current.weekStart : today,
     'CHANGE',
     loadStep,
-    changes.map((change) => ({ code: `plan.changed.${change}` })),
+    notes,
     now.toISOString(),
   );
 }

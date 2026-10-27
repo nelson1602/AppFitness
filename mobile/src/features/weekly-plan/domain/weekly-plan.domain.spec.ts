@@ -103,13 +103,13 @@ describe('week helpers', () => {
 
 describe('plan inputs and regeneration triggers (ADR-P042 D3)', () => {
   it('fingerprints order-free and changes with any input or rule version', () => {
-    const versions = { engine: 'icoach-rules@1.3.0' };
+    const versions = { engine: 'icoach-rules@1.4.0' };
     const a = planInputsFingerprint(inputs(), versions);
     expect(
       planInputsFingerprint(inputs({ equipment: ['band', 'dumbbell', 'band'] }), versions),
     ).toBe(a);
     expect(planInputsFingerprint(inputs({ trainingDays: 4 }), versions)).not.toBe(a);
-    expect(planInputsFingerprint(inputs(), { engine: 'icoach-rules@1.4.0' })).not.toBe(a);
+    expect(planInputsFingerprint(inputs(), { engine: 'icoach-rules@9.9.9' })).not.toBe(a);
     expect(a).toMatch(/^[0-9a-f]{8}$/);
   });
 

@@ -8,6 +8,9 @@ import type { PlanInputs } from './weekly-plan';
 /** The changes that may regenerate the current week, once the person confirms. */
 export type PlanInputChange = 'goal' | 'trainingDays' | 'equipment' | 'injuries' | 'excludedFoods';
 
+/** What the change prompt can offer: an input change, or one more training day (ADR-P040 D11). */
+export type PlanChange = PlanInputChange | 'moreDays';
+
 export const PLAN_INPUT_CHANGES: readonly PlanInputChange[] = [
   'goal',
   'trainingDays',

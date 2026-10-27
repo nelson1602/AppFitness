@@ -25,6 +25,7 @@ import { selectWorkoutRoutine } from '@/features/workout/application/workout-rou
 import { EXERCISE_CATALOG_VERSION } from '@/features/workout/domain/exercise-catalog';
 
 import { ADHERENCE_RULE_VERSION } from '../domain/adherence';
+import { DAYS_PROGRESSION_RULE_VERSION } from '../domain/days-progression';
 import { OFF_PLAN_RULE_VERSION } from '../domain/off-plan';
 import { PROGRESSION_RULE_VERSION } from '../domain/progression';
 import {
@@ -45,6 +46,7 @@ export const PLAN_RULE_VERSIONS: Readonly<Record<string, string>> = {
   exerciseCatalog: EXERCISE_CATALOG_VERSION,
   injuryMap: INJURY_MAP_VERSION,
   progression: PROGRESSION_RULE_VERSION,
+  days: DAYS_PROGRESSION_RULE_VERSION,
   adherence: ADHERENCE_RULE_VERSION,
   offPlan: OFF_PLAN_RULE_VERSION,
 };
@@ -61,6 +63,8 @@ export interface PlanContext {
   isExcluded: (foodId: FoodId) => boolean;
   targets: PlanTargets;
   inputs: PlanInputs;
+  /** The days the person chose (the ceiling of the days progression, ADR-P040 D11). */
+  chosenTrainingDays: number;
 }
 
 export type PlanContextResult =
@@ -73,13 +77,16 @@ export type PlanContextResult =
  * deterministic assessment, the profile, the person's food exclusions and
  * their wellness declaration. No clock beyond `now`, no randomness.
  */
-export async function gatherPlanContext(now: Date): Promise<PlanContextResult> {
+export async function gatherPlanContext(
+  now: Date,
+  options: { unlockedTrainingDays?: number } = {},
+): Promise<PlanContextResult> {
   const session = getSession();
   if (!session) throw new Error('Not authenticated');
   const userId = session.user.id;
 
   const [data, profile, preferences] = await Promise.all([
-    loadDashboardData(now),
+    loadDashboardData(now, options),
     getMyProfile(),
     listActiveDietaryPreferences(userId),
   ]);
@@ -159,6 +166,7 @@ export async function gatherPlanContext(now: Date): Promise<PlanContextResult> {
       isExcluded,
       targets,
       inputs,
+      chosenTrainingDays: profile.trainingDaysPerWeek,
     },
   };
 }

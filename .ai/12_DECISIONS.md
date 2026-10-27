@@ -14902,6 +14902,7 @@ Accepted: 2026-10-26 by the project owner (v8 Block 2). Owner decisions recorded
 - **D7** is built in v8 as specified in ADR-P042 D8.
 - **D8:** stress and sleep stay explained notes.
 - **D10:** the Dominican foods seed starts with the foods from the evaluation's 10 lists that the catalog lacked, each sourced from the pinned USDA SR Legacy archive with Spanish and English names.
+- **D11** (2026-10-27): the Principiante cap of 3 training days stays; after 2 consecutive weeks at ≥ 80 % workout compliance, the Monday plan proposes +1 day (never above the days chosen), confirmed through the existing prompt.
 Date: 2026-10-22
 Owner: iCoach / Nutrition / Architecture
 Would revise: ADR-P031 D4 (injury-area mapping), D5 (workload signals) and D13 (nutrition restriction input), conditional on ADR-P038 for condition rules; ADR-P012 D3/D5 (custom foods); ADR-P013 acceptance (food sources); ADR-P014 (new avoid tags)
@@ -14965,6 +14966,18 @@ The prototype's implementation has known defects: substring matching, notes that
     - USDA FDC remains the only accepted public source, imported at **build time** and pinned (ADR-P013).
     - **Open Food Facts is dropped** (owner decision 2026-10-22); it is not a planned source.
     - The accepted sources are exactly three: USDA FDC (ADR-P013), a Dominican foods seed (each item with a documented source and ES/EN labels), and user-created foods.
+
+11. **Training-days progression** (owner decision 2026-10-27, rule `plan-days@1.0.0`). The fitness level caps the weekly training days (Principiante 3, Intermedio 5, Avanzado 6), and the cap stays. The Monday plan proposes **one more day** when all of the following hold:
+    - the two weeks immediately before were both planned at the current number of days;
+    - each of those weeks fulfilled at least 80 % of its planned sessions.
+
+    The proposal:
+    - never goes above the days the person chose, and never above 6;
+    - is offered through the existing "¿Actualizar tu plan de esta semana?" confirmation;
+    - on "Sí", saves a CHANGE revision effective that day;
+    - on "Ahora no", leaves the week as it is.
+
+    Days already earned stay in force in later weeks: the engine input `unlockedTrainingDays` (`icoach-rules@1.4.0`) raises the level cap to them. Each further day is earned with two new weeks at the new count. Deterministic tests: `days-progression.spec.ts` (the rule), `weekly-plan.service.spec.ts` (proposal, prompt, accept, carry-forward), `training.spec.ts` and `engine.spec.ts` (the cap).
 
 ### Consequences
 

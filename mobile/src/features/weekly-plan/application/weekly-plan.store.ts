@@ -11,7 +11,7 @@ import { logError } from '@/shared/infrastructure/logging';
 
 import { computeWeekAdherence, effectivePlanDay, type WeekAdherence } from '../domain/adherence';
 import type { OffPlanAdjustment } from '../domain/off-plan';
-import { planInputsFingerprint, type PlanInputChange } from '../domain/plan-inputs';
+import { planInputsFingerprint, type PlanChange } from '../domain/plan-inputs';
 import type { WeeklyPlan } from '../domain/weekly-plan';
 import { logPlannedMeal } from '@/features/nutrition/infrastructure/food-log.repository';
 import type { MealSlot } from '@/features/nutrition/domain/meal-plan';
@@ -40,12 +40,12 @@ export interface WeeklyPlanState {
   /** `date|slot` keys of this week's planned meals marked eaten. */
   mealSlotsDone: string[];
   /** Important inputs that changed since the plan was saved; empty when none. */
-  pendingChanges: PlanInputChange[];
+  pendingChanges: PlanChange[];
   pastWeeks: PastWeek[];
   historyStatus: 'idle' | 'loading' | 'ready' | 'error';
   load: (now?: Date) => Promise<void>;
   /** Re-checks the plan's inputs; call after saving profile, goal, injuries or foods. */
-  checkForChanges: (now?: Date) => Promise<PlanInputChange[]>;
+  checkForChanges: (now?: Date) => Promise<PlanChange[]>;
   /** "Sí, actualizar": a new revision from today (ADR-P042 D3). */
   confirmRegenerate: (now?: Date) => Promise<boolean>;
   /** "Ahora no": the change applies from next Monday. */
@@ -64,7 +64,7 @@ const INITIAL = {
   adherence: null,
   overlay: null,
   mealSlotsDone: [] as string[],
-  pendingChanges: [] as PlanInputChange[],
+  pendingChanges: [] as PlanChange[],
   pastWeeks: [] as PastWeek[],
   historyStatus: 'idle' as const,
 };

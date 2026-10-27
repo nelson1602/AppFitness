@@ -8,11 +8,13 @@ import { PlanChangePrompt } from './PlanChangePrompt';
 const mockConfirm = jest.fn().mockResolvedValue(true);
 const mockDismiss = jest.fn();
 let mockPending: string[] = [];
+let mockCurrent: unknown = null;
 
 jest.mock('../application/weekly-plan.store', () => ({
   useWeeklyPlanStore: (select: (state: Record<string, unknown>) => unknown) =>
     select({
       pendingChanges: mockPending,
+      current: mockCurrent,
       confirmRegenerate: mockConfirm,
       dismissChanges: mockDismiss,
     }),
@@ -115,5 +117,22 @@ describe('PlanChangePrompt (ADR-P042 D3)', () => {
     expect(mockConfirm).toHaveBeenCalledTimes(1);
     await fireEvent.press(screen.getByTestId('plan-change-dismiss'));
     expect(mockDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  // ADR-P040 D11: two strong weeks earned one more training day.
+  it('offers one more training day with its number', async () => {
+    mockPending = ['moreDays'];
+    mockCurrent = {
+      notes: [{ code: 'plan.days.proposal', params: { days: 4 } }],
+      plan: { inputs: { trainingDays: 3 } },
+    };
+    await render(<PlanChangePrompt />);
+    expect(screen.getByTestId('plan-change-more-days')).toHaveTextContent(
+      /dos semanas seguidas. ¿Subimos a 4 entrenamientos por semana desde hoy?/,
+    );
+    expect(screen.queryByText(/^Cambiaste/)).toBeNull();
+    await fireEvent.press(screen.getByTestId('plan-change-confirm'));
+    expect(mockConfirm).toHaveBeenCalledTimes(1);
+    mockCurrent = null;
   });
 });

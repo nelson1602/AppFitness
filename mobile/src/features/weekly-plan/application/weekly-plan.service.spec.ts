@@ -22,7 +22,7 @@ jest.mock('../infrastructure/weekly-plan.repository', () => ({
 }));
 jest.mock('./plan-context', () => ({
   gatherPlanContext: jest.fn(),
-  PLAN_RULE_VERSIONS: { engine: 'icoach-rules@1.3.0' },
+  PLAN_RULE_VERSIONS: { engine: 'icoach-rules@1.4.0' },
 }));
 jest.mock('@/features/workout/infrastructure/workout.repository', () => ({
   listRecentWorkoutLogs: jest.fn().mockResolvedValue([]),
@@ -78,6 +78,7 @@ const context = (over: Partial<PlanContext['inputs']> = {}): PlanContext =>
     isExcluded: () => false,
     targets: { calories: 2000, proteinG: 150, carbsG: 200, fatG: 60, floorCalories: 1500 },
     inputs: { ...inputs, ...over },
+    chosenTrainingDays: 5,
   }) as unknown as PlanContext;
 
 const saved = (over: Partial<WeeklyPlan> = {}): WeeklyPlan =>
@@ -210,5 +211,119 @@ describe('regeneration after a confirmed change (ADR-P042 D3)', () => {
   it('resets the load step when injuries changed', async () => {
     await regenerateCurrentWeek(saved(), ['injuries'], NOW);
     expect(jest.mocked(insertPlanRevision).mock.calls[0][1].loadStep).toBe(0);
+  });
+});
+
+describe('training-days progression (ADR-P040 D11)', () => {
+  const trainingWeek = (weekStart: string, days = 3) => {
+    const dates = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(`${weekStart}T00:00:00.000Z`);
+      d.setUTCDate(d.getUTCDate() + i);
+      return d.toISOString().slice(0, 10);
+    });
+    return saved({
+      id: `plan-${weekStart}`,
+      weekStart,
+      effectiveFrom: weekStart,
+      plan: {
+        contractVersion: 'weekly-plan@1',
+        targets: { calories: 2000, proteinG: 0, carbsG: 0, fatG: 0, floorCalories: 1500 },
+        inputs: { ...inputs, trainingDays: days },
+        days: dates.map((date, i) => ({
+          date,
+          workout:
+            i % 2 === 0 && i < days * 2
+              ? {
+                  kind: 'TRAINING',
+                  sessionKey: `session.full_body_${i / 2 + 1}`,
+                  focusKey: 'f',
+                  exercises: [],
+                }
+              : { kind: 'RECOVERY', recovery: 'FULL_REST' },
+          meals: [],
+        })),
+      },
+    } as unknown as Partial<WeeklyPlan>);
+  };
+  const doneOn = (dates: string[]) =>
+    dates.map((date) => ({
+      startedAt: new Date(`${date}T18:00:00`).toISOString(),
+      finishedAt: new Date(`${date}T18:50:00`).toISOString(),
+      planLink: null,
+    }));
+  const proposal = { code: 'plan.days.proposal', params: { days: 4 } };
+
+  it('proposes one more day after two strong weeks, keeping the earned days in force', async () => {
+    jest
+      .mocked(listPastPlanRevisions)
+      .mockResolvedValue([trainingWeek('2026-10-12'), trainingWeek('2026-10-19')]);
+    const { listRecentWorkoutLogs } = jest.requireMock(
+      '@/features/workout/infrastructure/workout.repository',
+    );
+    jest
+      .mocked(listRecentWorkoutLogs)
+      .mockResolvedValueOnce(
+        doneOn([
+          '2026-10-12',
+          '2026-10-14',
+          '2026-10-16',
+          '2026-10-19',
+          '2026-10-21',
+          '2026-10-23',
+        ]),
+      );
+
+    await ensureCurrentWeekPlan(NOW);
+
+    expect(gatherPlanContext).toHaveBeenCalledWith(NOW, { unlockedTrainingDays: 3 });
+    expect(jest.mocked(insertPlanRevision).mock.calls[0][1].notes).toContainEqual(proposal);
+  });
+
+  it('offers no day when one of the two weeks fell below 80 %', async () => {
+    jest
+      .mocked(listPastPlanRevisions)
+      .mockResolvedValue([trainingWeek('2026-10-12'), trainingWeek('2026-10-19')]);
+    const { listRecentWorkoutLogs } = jest.requireMock(
+      '@/features/workout/infrastructure/workout.repository',
+    );
+    jest
+      .mocked(listRecentWorkoutLogs)
+      .mockResolvedValueOnce(doneOn(['2026-10-12', '2026-10-14', '2026-10-16', '2026-10-19']));
+
+    await ensureCurrentWeekPlan(NOW);
+
+    expect(jest.mocked(insertPlanRevision).mock.calls[0][1].notes).not.toContainEqual(proposal);
+  });
+
+  it('surfaces an open proposal through the change prompt', async () => {
+    expect(await pendingPlanChanges(saved({ notes: [proposal] }), NOW)).toEqual(['moreDays']);
+    expect(gatherPlanContext).toHaveBeenCalledWith(NOW, { unlockedTrainingDays: 3 });
+  });
+
+  it('never offers more than the person chose', async () => {
+    jest.mocked(gatherPlanContext).mockResolvedValue({
+      status: 'ready',
+      context: { ...context(), chosenTrainingDays: 3 },
+    });
+    expect(await pendingPlanChanges(saved({ notes: [proposal] }), NOW)).toEqual([]);
+  });
+
+  it('applies an accepted day from today', async () => {
+    await regenerateCurrentWeek(saved({ notes: [proposal] }), ['moreDays'], NOW);
+    expect(gatherPlanContext).toHaveBeenCalledWith(NOW, { unlockedTrainingDays: 4 });
+    expect(jest.mocked(insertPlanRevision).mock.calls[0][1]).toMatchObject({
+      trigger: 'CHANGE',
+      effectiveFrom: '2026-10-28',
+      notes: [{ code: 'plan.changed.moreDays' }],
+    });
+  });
+
+  it('carries an unanswered proposal into a revision made for another change', async () => {
+    await regenerateCurrentWeek(saved({ notes: [proposal] }), ['equipment'], NOW);
+    expect(gatherPlanContext).toHaveBeenCalledWith(NOW, { unlockedTrainingDays: 3 });
+    expect(jest.mocked(insertPlanRevision).mock.calls[0][1].notes).toEqual([
+      { code: 'plan.changed.equipment' },
+      proposal,
+    ]);
   });
 });

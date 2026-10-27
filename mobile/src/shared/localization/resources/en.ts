@@ -358,7 +358,7 @@ export const en = {
   'evaluation.preview.macros': 'Protein {p} · Carbs {c} · Fat {f}',
   'evaluation.preview.days': '{n} workouts a week',
   'evaluation.preview.daysCapped':
-    'You chose {asked} days. For your level, iCoach starts you on {n} workouts a week.',
+    'You chose {asked} days. For your level, iCoach starts you on {n} workouts a week and will offer one more once you complete at least 80 % two weeks in a row.',
   'evaluation.preview.adjustOne': '1 health adjustment',
   'evaluation.preview.adjustMany': '{n} health adjustments',
   'evaluation.preview.unavailable': 'Complete the previous steps to see your plan.',
@@ -383,11 +383,15 @@ export const en = {
     'You missed {missed} workouts. I kept the same load next week so you can finish it without forcing it.',
   'plan.note.calories': 'On food, try to get closer to your calorie target on more days.',
   'plan.note.none': 'No adjustments for the next week.',
+  'plan.note.days':
+    'You completed your workouts two weeks in a row, so I offered {days} workouts a week.',
   'plan.change.title': "Update this week's plan?",
   'plan.change.body':
     'You changed {changes}. You can rebuild the plan from today or keep it until Monday.',
   'plan.change.confirm': 'Yes, update from today',
   'plan.change.dismiss': 'Not now',
+  'plan.change.moreDays':
+    'You completed at least 80 % of your workouts two weeks in a row. Move up to {days} workouts a week from today?',
   'plan.change.goal': 'your goal',
   'plan.change.trainingDays': 'your training days',
   'plan.change.equipment': 'your equipment',

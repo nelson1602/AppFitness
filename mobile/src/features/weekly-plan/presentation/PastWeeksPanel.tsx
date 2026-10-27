@@ -78,6 +78,8 @@ export function noteText(
         );
       case 'plan.calories.closer':
         return t('plan.note.calories');
+      case 'plan.days.proposal':
+        return interpolate(t('plan.note.days'), { days: n('days') });
       default:
         return null;
     }

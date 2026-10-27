@@ -177,10 +177,11 @@ describe('catalogue parity', () => {
   // reaching 1359; then the Evaluación física wizard and "Creando tu plan
   // personal" (+221, 1580); and the development-only sample-weeks button
   // (+1, 1581); and the note when the engine caps the chosen training days
-  // (+1, 1582).
-  it('reaches 1582 keys in each language — 1417 shipped plus a 165-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1582);
-    expect(Object.keys(es)).toHaveLength(1582);
+  // (+1, 1582); the training-days progression prompt and history note
+  // (+2, 1584).
+  it('reaches 1584 keys in each language — 1419 shipped plus a 165-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1584);
+    expect(Object.keys(es)).toHaveLength(1584);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(165);
   });
 

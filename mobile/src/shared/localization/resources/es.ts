@@ -355,7 +355,7 @@ export const es = {
   'evaluation.preview.macros': 'Proteína {p} · Carbohidratos {c} · Grasas {f}',
   'evaluation.preview.days': '{n} entrenamientos por semana',
   'evaluation.preview.daysCapped':
-    'Elegiste {asked} días. Por tu nivel, el iCoach empieza con {n} entrenamientos por semana.',
+    'Elegiste {asked} días. Por tu nivel, el iCoach empieza con {n} entrenamientos por semana y te propondrá uno más cuando cumplas al menos el 80 % dos semanas seguidas.',
   'evaluation.preview.adjustOne': '1 ajuste por tu salud',
   'evaluation.preview.adjustMany': '{n} ajustes por tu salud',
   'evaluation.preview.unavailable': 'Completa los pasos anteriores para ver tu plan.',
@@ -381,11 +381,15 @@ export const es = {
     'Te faltaron {missed} entrenamientos. La semana siguiente mantuve la misma carga para que la completes sin forzarte.',
   'plan.note.calories': 'En la alimentación, intenta acercarte a tu meta de calorías más días.',
   'plan.note.none': 'Sin ajustes para la semana siguiente.',
+  'plan.note.days':
+    'Cumpliste tus entrenamientos dos semanas seguidas: te propuse subir a {days} entrenamientos por semana.',
   'plan.change.title': '¿Actualizar tu plan de esta semana?',
   'plan.change.body':
     'Cambiaste {changes}. Puedes rehacer el plan desde hoy o mantenerlo hasta el lunes.',
   'plan.change.confirm': 'Sí, actualizar desde hoy',
   'plan.change.dismiss': 'Ahora no',
+  'plan.change.moreDays':
+    'Cumpliste al menos el 80 % de tus entrenamientos dos semanas seguidas. ¿Subimos a {days} entrenamientos por semana desde hoy?',
   'plan.change.goal': 'tu meta',
   'plan.change.trainingDays': 'tus días de entrenamiento',
   'plan.change.equipment': 'tu equipo',

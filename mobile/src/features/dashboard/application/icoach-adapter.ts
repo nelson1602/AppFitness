@@ -35,6 +35,8 @@ export interface AdapterSources {
    * explicit `absent` must still omit that key.
    */
   wellness: WellnessConsumptionOutcome;
+  /** Days earned through the saved plan's days progression (ADR-P040 D11). */
+  unlockedTrainingDays?: number;
 }
 
 export type AdapterResult =
@@ -142,6 +144,9 @@ export function buildDashboardAssessment(sources: AdapterSources): AdapterResult
       stressLevel: profile.stressLevelBaseline ?? undefined,
     },
     trainingDaysPreference: profile.trainingDaysPerWeek,
+    ...(sources.unlockedTrainingDays !== undefined
+      ? { unlockedTrainingDays: sources.unlockedTrainingDays }
+      : {}),
   };
 
   // A declaration that reached here and still fails the engine's own

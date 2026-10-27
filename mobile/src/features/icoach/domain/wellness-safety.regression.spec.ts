@@ -388,7 +388,7 @@ describe('W-4B regression against the 6946aae baseline (ADR-P031)', () => {
 
     // And the one intended difference, in both places it is stamped.
     expect(baseline.ruleVersion).toBe(BASELINE_VERSION);
-    expect(assessment.ruleVersion).toBe('icoach-rules@1.3.0');
+    expect(assessment.ruleVersion).toBe('icoach-rules@1.4.0');
     expect(assessment.recommendations.every((rec) => rec.ruleVersion === ENGINE_RULE_VERSION)).toBe(
       true,
     );

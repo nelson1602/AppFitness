@@ -3,7 +3,7 @@ import { assessMetabolics } from './metabolic';
 import { planNutrition } from './nutrition';
 import { analyzeRestrictions } from './restrictions';
 import { ENGINE_RULE_VERSION } from './rule-versions';
-import { planTraining } from './training';
+import { MAX_TRAINING_DAYS, planTraining } from './training';
 import {
   analyzeWellnessSafety,
   WELLNESS_PLAN_EXPLANATION_KEYS,
@@ -54,6 +54,14 @@ export function validateEngineInput(input: EngineInput): void {
   ) {
     throw new InvalidEngineInputError('trainingDaysPreference', 'must be an integer 0–7');
   }
+  if (
+    input.unlockedTrainingDays !== undefined &&
+    (!Number.isInteger(input.unlockedTrainingDays) ||
+      input.unlockedTrainingDays < 0 ||
+      input.unlockedTrainingDays > MAX_TRAINING_DAYS)
+  ) {
+    throw new InvalidEngineInputError('unlockedTrainingDays', 'must be an integer 0–6');
+  }
 }
 
 export function evaluate(input: EngineInput): CoachAssessment {
@@ -75,6 +83,7 @@ export function evaluate(input: EngineInput): CoachAssessment {
     input.recovery,
     input.trainingDaysPreference,
     wellnessAnalysis.excludedMovements,
+    input.unlockedTrainingDays,
   );
 
   const recommendations: Recommendation[] = [];
