@@ -9,7 +9,7 @@ import { Screen, StageSurfaceProvider } from '@/shared/presentation';
  */
 export function TabScreen({ children }: { children: ReactNode }) {
   return (
-    <Screen safeArea="sides" stage>
+    <Screen safeArea="sides" stage="under-header">
       <StageSurfaceProvider>{children}</StageSurfaceProvider>
     </Screen>
   );

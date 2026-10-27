@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet, type ViewStyle } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import type { HomeSummary } from '@/features/dashboard/domain/home-summary';
@@ -107,6 +108,17 @@ describe('ProfileTab (ADR-P039)', () => {
     await render(<ProfileTab />);
     await fireEvent.press(screen.getByTestId(testID));
     expect(push()).toHaveBeenCalledWith(href);
+  });
+
+  it('lets the "Próximamente" chip wrap below the title instead of breaking the word (v8 Block 4)', async () => {
+    mockLanguage = 'es';
+    await render(<ProfileTab />);
+
+    const row = StyleSheet.flatten(
+      screen.getByTestId('profile-soon-title-row').props.style as ViewStyle,
+    );
+    expect(row).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+    expect(screen.getByText('Próximamente')).toBeOnTheScreen();
   });
 
   it('offers sign-out that clears the session (the route guard handles the redirect)', async () => {

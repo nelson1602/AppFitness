@@ -45,11 +45,19 @@ function Panel({
   const { colors, spacing } = useTheme();
   return (
     <GlassCard style={{ gap: spacing.md, padding: spacing.lg }} testID={testID}>
-      <View style={[styles.row, { gap: spacing.sm }]}>
-        <Icon color={colors.accentCyan} name={icon} size={18} />
-        <AppText accessibilityRole="header" style={styles.grow} tone="onStage" variant="title">
-          {title}
-        </AppText>
+      {/* v8 Block 4: as on Inicio (PanelTitle), the title keeps its natural
+          width and the chip wraps below it when both do not fit (narrow
+          phone, large text), so "Próximamente" never breaks mid-word. */}
+      <View
+        style={[styles.row, styles.spread, styles.wrap, { gap: spacing.sm }]}
+        testID={`${testID}-title-row`}
+      >
+        <View style={[styles.row, styles.natural, { gap: spacing.sm }]}>
+          <Icon color={colors.accentCyan} name={icon} size={18} />
+          <AppText accessibilityRole="header" style={styles.shrink} tone="onStage" variant="title">
+            {title}
+          </AppText>
+        </View>
         {right}
       </View>
       {children}
@@ -257,11 +265,24 @@ const styles = StyleSheet.create({
   grow: {
     flex: 1,
   },
+  natural: {
+    flexShrink: 0,
+    maxWidth: '100%',
+  },
   row: {
     alignItems: 'center',
     flexDirection: 'row',
   },
+  shrink: {
+    flexShrink: 1,
+  },
+  spread: {
+    justifyContent: 'space-between',
+  },
   stretch: {
     alignItems: 'stretch',
+  },
+  wrap: {
+    flexWrap: 'wrap',
   },
 });

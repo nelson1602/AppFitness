@@ -15,13 +15,13 @@ interface ScreenProps {
    * whole screen instead of the plain `background`. Scrolling, safe areas and
    * the Android keyboard clearance (BUG-022) are unchanged.
    */
-  stage?: boolean;
+  stage?: boolean | 'under-header';
   /**
    * `sides`: only the left/right safe areas. For a screen inside the tab
    * shell (ADR-P039), whose header already clears the top inset and whose tab
    * bar clears the bottom one — applying them again left an empty band.
    */
-  safeArea?: 'all' | 'sides';
+  safeArea?: 'all' | 'sides' | 'below-header';
 }
 
 /**
@@ -75,6 +75,8 @@ function useAndroidKeyboardClearance(enabled: boolean): number {
 }
 
 const SIDE_EDGES = ['left', 'right'] as const;
+/** Under a stack header: it already clears the top inset (v8 Block 4). */
+const BELOW_HEADER_EDGES = ['left', 'right', 'bottom'] as const;
 
 export function Screen({
   children,
@@ -85,7 +87,10 @@ export function Screen({
 }: ScreenProps) {
   const theme = useTheme();
   const ground = stage
-    ? backgroundImageStyle(stageBackgroundImage(theme.colors), theme.colors.stage)
+    ? backgroundImageStyle(
+        stageBackgroundImage(theme.colors, { glow: stage !== 'under-header' }),
+        theme.colors.stage,
+      )
     : { backgroundColor: theme.colors.background };
   const innerBackground = stage ? 'transparent' : theme.colors.background;
   const keyboardClearance = useAndroidKeyboardClearance(scroll);
@@ -96,7 +101,13 @@ export function Screen({
 
   return (
     <SafeAreaView
-      edges={safeArea === 'sides' ? SIDE_EDGES : undefined}
+      edges={
+        safeArea === 'sides'
+          ? SIDE_EDGES
+          : safeArea === 'below-header'
+            ? BELOW_HEADER_EDGES
+            : undefined
+      }
       style={[{ flex: 1 }, ground]}
       testID={stage ? 'screen-stage' : undefined}
     >
