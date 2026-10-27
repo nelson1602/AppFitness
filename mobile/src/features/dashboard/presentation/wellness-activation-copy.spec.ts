@@ -56,7 +56,8 @@ const engineInput = (movementsToAvoid: readonly string[]): EngineInput =>
     wellness: {
       evaluationCompleted: true,
       evaluationDate: '2026-01-15',
-      affectedAreas: ['knee', 'shoulder'],
+      // Unmapped areas (ADR-P040 D5): this spec is about declared movements.
+      affectedAreas: ['forearm', 'thigh'],
       movementsToAvoid,
     },
   }) as EngineInput;
@@ -275,7 +276,7 @@ describe('the rendered recommendation', () => {
     expect(spanish.title).not.toBe(english.title);
     expect(assessment.training.excludedMovements).toEqual(['deep_squat', 'jumping']);
     expect(rec.inputs.movements).toBe('deep_squat,jumping');
-    expect(rec.ruleVersion).toBe('icoach-rules@1.2.0');
+    expect(rec.ruleVersion).toBe('icoach-rules@1.3.0');
     // Rendering is a pure projection: it mutates neither the rule nor its inputs.
     expect(JSON.stringify(evaluate(engineInput(['jumping', 'deep_squat'])))).toBe(
       JSON.stringify(assessment),

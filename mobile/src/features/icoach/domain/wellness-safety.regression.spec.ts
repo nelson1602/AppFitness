@@ -1,4 +1,5 @@
 import { evaluate } from './engine';
+import { movementsForInjuries } from './injury-movement-map';
 import { ENGINE_RULE_VERSION, PROGRESS_SNAPSHOT_RULE_VERSION } from './rule-versions';
 import { analyzeRestrictions, BODY_AREA_EXCLUSIONS } from './restrictions';
 import { planTraining } from './training';
@@ -387,7 +388,7 @@ describe('W-4B regression against the 6946aae baseline (ADR-P031)', () => {
 
     // And the one intended difference, in both places it is stamped.
     expect(baseline.ruleVersion).toBe(BASELINE_VERSION);
-    expect(assessment.ruleVersion).toBe('icoach-rules@1.2.0');
+    expect(assessment.ruleVersion).toBe('icoach-rules@1.3.0');
     expect(assessment.recommendations.every((rec) => rec.ruleVersion === ENGINE_RULE_VERSION)).toBe(
       true,
     );
@@ -459,10 +460,18 @@ describe('W-4B regression against the 6946aae baseline (ADR-P031)', () => {
       'SAFETY:movement_exclusions',
     );
 
-    // A declared AREA still maps to nothing, even though the medical table has
-    // an entry for the same word: the two vocabularies are not connected.
+    // ADR-P040 D5: a declared area maps through the wellness injury map, never
+    // through the dormant medical table that happens to share the word.
     expect(BODY_AREA_EXCLUSIONS.knee).toBeDefined();
-    expect(declaring.training.excludedMovements).toEqual(['deep_squat', 'overhead_press']);
+    expect(declaring.training.excludedMovements).toEqual(
+      [
+        ...new Set([
+          ...movementsForInjuries(['knee', 'shoulder', 'lower_back']),
+          'deep_squat',
+          'overhead_press',
+        ]),
+      ].sort(),
+    );
   });
 
   it('J40: nutrition is identical for a declaring user (Decision 13)', () => {

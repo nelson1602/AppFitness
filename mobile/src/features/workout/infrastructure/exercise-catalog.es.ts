@@ -33,4 +33,8 @@ export const SPANISH_EXERCISE_NAMES: Readonly<Record<string, string>> = {
   'exercise.cable_pull_through': 'Pull-through en polea',
   'exercise.brisk_walk': 'Caminata rápida',
   'exercise.cat_cow': 'Movilidad gato-vaca',
+  'exercise.stationary_bike': 'Bicicleta estática',
+  'exercise.band_external_rotation': 'Rotación externa con banda',
+  'exercise.band_lat_pulldown': 'Jalón con banda',
+  'exercise.band_hip_abduction': 'Abducción con banda',
 };

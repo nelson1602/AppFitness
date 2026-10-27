@@ -220,7 +220,9 @@ describe('buildDashboardAssessment', () => {
   const declaration = (movementsToAvoid: readonly string[]): WellnessDeclaration => ({
     evaluationCompleted: true,
     evaluationDate: '2026-01-15',
-    affectedAreas: ['knee', 'shoulder'],
+    // Areas the injury map leaves unmapped (ADR-P040 D5), so these tests stay
+    // about declared movements; mapped areas are covered in the analyzer spec.
+    affectedAreas: ['forearm', 'thigh'],
     movementsToAvoid: movementsToAvoid as WellnessDeclaration['movementsToAvoid'],
   });
 
@@ -344,7 +346,7 @@ describe('buildDashboardAssessment', () => {
 
     expect(withAreas.status === 'ready' && withoutAreas.status === 'ready').toBe(true);
     if (withAreas.status !== 'ready' || withoutAreas.status !== 'ready') return;
-    // Areas and evaluation metadata change no computed value.
+    // Unmapped areas and evaluation metadata change no computed value.
     expect(JSON.stringify(withAreas.data.assessment)).toBe(
       JSON.stringify(withoutAreas.data.assessment),
     );

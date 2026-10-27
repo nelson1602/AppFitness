@@ -262,5 +262,37 @@
     "muscleGroup": "core",
     "category": "FLEXIBILITY",
     "instructions": null
+  },
+  {
+    "id": "28849416-2ccf-56c7-a9a5-ef1e8f746326",
+    "key": "exercise.stationary_bike",
+    "name": "Stationary bike",
+    "muscleGroup": "full_body",
+    "category": "CARDIO",
+    "instructions": null
+  },
+  {
+    "id": "72e26b4f-b41a-5e77-9a65-852a4bb5ad50",
+    "key": "exercise.band_external_rotation",
+    "name": "Band external rotation",
+    "muscleGroup": "shoulders",
+    "category": "STRENGTH",
+    "instructions": null
+  },
+  {
+    "id": "e7a6f2b6-79de-5599-a74c-64885ae6d324",
+    "key": "exercise.band_lat_pulldown",
+    "name": "Band lat pulldown",
+    "muscleGroup": "back",
+    "category": "STRENGTH",
+    "instructions": null
+  },
+  {
+    "id": "5826e3a2-0f5e-59cf-8f79-1cb388636932",
+    "key": "exercise.band_hip_abduction",
+    "name": "Band hip abduction",
+    "muscleGroup": "glutes",
+    "category": "STRENGTH",
+    "instructions": null
   }
 ]

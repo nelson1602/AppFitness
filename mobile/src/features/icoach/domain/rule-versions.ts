@@ -20,7 +20,7 @@
  * becomes a `TrainingPlan.excludedMovements` entry. Minor, not major — inputs
  * and output shape are additive.
  */
-export const ENGINE_RULE_VERSION = 'icoach-rules@1.2.0';
+export const ENGINE_RULE_VERSION = 'icoach-rules@1.3.0';
 
 /**
  * The weekly progress-snapshot engine (`progress-analysis.ts`, ADR-P016

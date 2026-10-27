@@ -5,6 +5,7 @@ import {
   type WellnessMovementToAvoid,
 } from '@/features/wellness/domain/wellness-safety-profile';
 
+import { INJURY_MAP_VERSION, movementsForInjuries } from './injury-movement-map';
 import { ENGINE_RULE_VERSION } from './rule-versions';
 
 /**
@@ -81,6 +82,9 @@ export interface WellnessSafetyInput {
  */
 export const WELLNESS_REASON_MOVEMENT_DECLARED = 'wellness.movement.declared';
 
+/** A movement excluded by the injury map (ADR-P040 D5), not declared directly. */
+export const WELLNESS_REASON_INJURY_MAPPED = 'wellness.movement.injuryMapped';
+
 /** Stable rule identifier for the assessment recommendation (Decision 10). */
 export const WELLNESS_RULE_MOVEMENT_EXCLUSIONS = 'WELLNESS:movement_exclusions';
 
@@ -144,8 +148,8 @@ export class WellnessSafetyInputInvalid extends Error {
  * produced it (Decision 10, `.ai/07_ICOACH.md` §Versioning).
  */
 export interface WellnessExclusionReason {
-  /** Always {@link WELLNESS_REASON_MOVEMENT_DECLARED} in W-4 V1. */
-  readonly code: typeof WELLNESS_REASON_MOVEMENT_DECLARED;
+  /** Declared by the person, or derived from a declared injury (ADR-P040 D5). */
+  readonly code: typeof WELLNESS_REASON_MOVEMENT_DECLARED | typeof WELLNESS_REASON_INJURY_MAPPED;
   readonly inputs: { readonly movement: WellnessMovementToAvoid };
   /** The rule revision that emitted this reason — always `ENGINE_RULE_VERSION`. */
   readonly ruleVersion: string;
@@ -219,32 +223,40 @@ export function analyzeWellnessSafety(
   // Absent, not malformed: no profile means no declared limitations.
   if (!input) return EMPTY_ANALYSIS;
 
-  // Validated for trustworthiness, never for computation (Decision 4). The
-  // return value is deliberately discarded — reading it below is what would
-  // make the field non-inert.
-  requireTokens<WellnessAffectedArea>(
+  // ADR-P040 D5 (accepted 2026-10-26) revises Decision 4: a declared injury
+  // now excludes the movements of the conservative injury map.
+  const areas = requireTokens<WellnessAffectedArea>(
     input.affectedAreas,
     WELLNESS_AFFECTED_AREAS,
     'affectedAreas',
   );
 
-  const declared = requireTokens<WellnessMovementToAvoid>(
-    input.movementsToAvoid,
-    MOVEMENTS,
-    'movementsToAvoid',
+  const declared = new Set(
+    requireTokens<WellnessMovementToAvoid>(input.movementsToAvoid, MOVEMENTS, 'movementsToAvoid'),
   );
-  if (declared.length === 0) return EMPTY_ANALYSIS;
+  const fromInjuries = movementsForInjuries(areas);
+  if (declared.size === 0 && fromInjuries.length === 0) return EMPTY_ANALYSIS;
 
   // `evaluationCompleted` and `evaluationDate` are read nowhere: they are
   // records, never permissions (Decision 2).
-  const excludedMovements = [...new Set(declared)].sort();
+  const excludedMovements = [...new Set([...declared, ...fromInjuries])].sort();
   return {
     excludedMovements,
-    reasons: excludedMovements.map((movement) => ({
-      code: WELLNESS_REASON_MOVEMENT_DECLARED,
-      inputs: { movement },
-      ruleVersion: ENGINE_RULE_VERSION,
-    })),
+    // A movement the person declared keeps the declared reason; one that comes
+    // only from the injury map names the injury map's version as well.
+    reasons: excludedMovements.map((movement) =>
+      declared.has(movement)
+        ? {
+            code: WELLNESS_REASON_MOVEMENT_DECLARED,
+            inputs: { movement },
+            ruleVersion: ENGINE_RULE_VERSION,
+          }
+        : {
+            code: WELLNESS_REASON_INJURY_MAPPED,
+            inputs: { movement },
+            ruleVersion: `${ENGINE_RULE_VERSION}+${INJURY_MAP_VERSION}`,
+          },
+    ),
   };
 }
 

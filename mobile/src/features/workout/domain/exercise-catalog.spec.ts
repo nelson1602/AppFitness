@@ -48,7 +48,7 @@ const hasPattern = (equipment: readonly Equipment[], pattern: TrainingPattern): 
 
 describe('built-in exercise catalog', () => {
   it('is a versioned, non-empty artifact', () => {
-    expect(EXERCISE_CATALOG_VERSION).toBe('exercise-catalog@0.2.0');
+    expect(EXERCISE_CATALOG_VERSION).toBe('exercise-catalog@0.3.0');
     expect(BUILT_IN_EXERCISES.length).toBeGreaterThan(0);
     expect(listBuiltInExercises()).toBe(BUILT_IN_EXERCISES);
   });

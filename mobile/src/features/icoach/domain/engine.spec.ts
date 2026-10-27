@@ -235,7 +235,7 @@ describe('iCoach engine', () => {
     expect(rec.id).toBe('WELLNESS:movement_exclusions');
     expect(rec.category).toBe('SAFETY');
     expect(rec.ruleVersion).toBe(ENGINE_RULE_VERSION);
-    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.2.0');
+    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.3.0');
 
     // Structured reason code, and the EXACT consumed inputs: the whole
     // validated set, de-duplicated and in the analyzer’s sorted order

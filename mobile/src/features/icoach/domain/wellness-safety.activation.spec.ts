@@ -149,11 +149,12 @@ describe('atomic activation: the assessment and the routine agree', () => {
 
 describe('rule-version boundaries', () => {
   it('each family moves only for its own reason', () => {
-    // The assessment family moved with W-4B (the wellness rule itself).
-    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.2.0');
+    // The assessment family moved with W-4B (the wellness rule itself) and
+    // again with the ADR-P040 D5 injury map (1.3.0).
+    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.3.0');
     // The routine family moves with W-4D: routines are now filtered by the
     // user's declarations.
-    expect(WORKOUT_ROUTINE_RULE_VERSION).toBe('icoach-workout-rules@1.1.0');
+    expect(WORKOUT_ROUTINE_RULE_VERSION).toBe('icoach-workout-rules@1.2.0');
     // Weekly snapshots consume no wellness data, so their identity is frozen.
     expect(PROGRESS_SNAPSHOT_RULE_VERSION).toBe('icoach-rules@1.1.0');
 

@@ -7,7 +7,6 @@ import { planTraining } from './training';
 import {
   analyzeWellnessSafety,
   WELLNESS_PLAN_EXPLANATION_KEYS,
-  WELLNESS_REASON_MOVEMENT_DECLARED,
   WELLNESS_RULE_MOVEMENT_EXCLUSIONS,
   type WellnessSafetyAnalysis,
 } from './wellness-safety';
@@ -126,7 +125,11 @@ export function evaluate(input: EngineInput): CoachAssessment {
       explanation: WELLNESS_PLAN_EXPLANATION_KEYS.body,
       scientificBasis: WELLNESS_PLAN_EXPLANATION_KEYS.basis,
       inputs: {
-        reasonCode: WELLNESS_REASON_MOVEMENT_DECLARED,
+        // One code per kind of source, in a fixed order (ADR-P040 D5 adds the
+        // injury map next to the declared movements).
+        reasonCode: [...new Set(wellnessAnalysis.reasons.map((reason) => reason.code))]
+          .sort()
+          .join(','),
         // The exact consumed inputs, complete and in the analyzer's
         // deterministic sorted order — comma-joined because `inputs` is a
         // scalar map, which is the convention the medical rule below already

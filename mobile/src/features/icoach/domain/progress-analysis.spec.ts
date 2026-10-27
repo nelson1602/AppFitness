@@ -123,7 +123,7 @@ describe('computeWeeklyProgressSnapshots', () => {
 
     // The assessment family moved on; the snapshot family did not. If these
     // two are ever collapsed back into one constant, this fails.
-    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.2.0');
+    expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.3.0');
     expect(PROGRESS_SNAPSHOT_RULE_VERSION).not.toBe(ENGINE_RULE_VERSION);
     expect(snaps.every((s) => s.ruleVersion !== ENGINE_RULE_VERSION)).toBe(true);
   });

@@ -507,7 +507,7 @@ describe('token selection', () => {
 
     await render(<WellnessSafetyProfileScreen />);
 
-    expect(screen.getAllByTestId(/^wellness-area-[a-z_]+$/)).toHaveLength(18);
+    expect(screen.getAllByTestId(/^wellness-area-[a-z_]+$/)).toHaveLength(21);
     expect(screen.getAllByTestId(/^wellness-movement-[a-z_]+$/)).toHaveLength(18);
     // `head` is deliberately absent from the vocabulary (W-1).
     expect(screen.queryByTestId('wellness-area-head')).toBeNull();

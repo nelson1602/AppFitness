@@ -152,13 +152,14 @@ describe('catalogue parity', () => {
   // evaluation card, notification times and the four tabs, minus 7 that the
   // pass left unreachable. It moved to 1265 on 2026-10-26, when the store
   // screenshot review added a short goal name per goal type (goal.typeShort.*)
-  // so Inicio's goal card keeps the weight whole. It moved to 1286 on
+  // so Inicio's goal card keeps the weight whole. It moved to 1289 on
   // 2026-10-26 with ADR-P041: 22 keys for the live password checklist and the
-  // "Verify your email" step, minus the retired 8-character message.
+  // "Verify your email" step, minus the retired 8-character message. It moved
+  // to 1289 with v8 Block 2: labels for the three new injury values.
   // None of these is in this family, so the 157-key conflict family below is unchanged.
-  it('reaches 1286 keys in each language — 1129 shipped plus a 157-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1286);
-    expect(Object.keys(es)).toHaveLength(1286);
+  it('reaches 1289 keys in each language — 1132 shipped plus a 157-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1289);
+    expect(Object.keys(es)).toHaveLength(1289);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(157);
   });
 

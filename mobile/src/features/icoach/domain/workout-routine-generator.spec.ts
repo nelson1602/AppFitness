@@ -153,21 +153,69 @@ describe('generateWorkoutRoutine', () => {
     }
   });
 
-  it('fails safely when exclusions remove an essential movement role', () => {
-    expect(() =>
-      generateWorkoutRoutine(
-        {
-          ...BASE_REQUEST,
-          availableEquipment: [],
-          excludedMovements: ['deep_squat', 'lunge', 'jumping'],
-        },
-        CATALOG,
-      ),
-    ).toThrow(
-      expect.objectContaining({
-        code: 'INSUFFICIENT_CATALOG_COVERAGE',
-        missingPatterns: ['SQUAT'],
-      }),
+  it('fills a slot emptied by exclusions with a substitute, or leaves it out (ADR-P040 D5)', () => {
+    // Bodyweight only: every squat candidate is excluded, and the glute bridge
+    // (a preferred substitute) is already the hinge slot's exercise.
+    const bodyweight = generateWorkoutRoutine(
+      {
+        ...BASE_REQUEST,
+        availableEquipment: [],
+        excludedMovements: ['deep_squat', 'lunge', 'jumping'],
+      },
+      CATALOG,
+    );
+    for (const session of bodyweight.sessions) {
+      expect(session.adjustments).toEqual([{ slotKey: 'squat', kind: 'OMITTED' }]);
+    }
+
+    // With a band, the band hip abduction takes the squat slot.
+    const withBand = generateWorkoutRoutine(
+      {
+        ...BASE_REQUEST,
+        availableEquipment: ['band'],
+        excludedMovements: ['deep_squat', 'lunge', 'jumping'],
+      },
+      CATALOG,
+    );
+    const squat = withBand.sessions[0].adjustments?.find((a) => a.slotKey === 'squat');
+    expect(squat).toMatchObject({
+      kind: 'SUBSTITUTED',
+      toExerciseKey: 'exercise.band_hip_abduction',
+    });
+    expect(withBand.sessions[0].exercises[0].exerciseKey).toBe('exercise.band_hip_abduction');
+  });
+
+  it('swaps the push for band external rotation when shoulder and elbow are injured', () => {
+    const routine = generateWorkoutRoutine(
+      {
+        ...BASE_REQUEST,
+        availableEquipment: ['band', 'dumbbell'],
+        excludedMovements: [
+          'overhead_press',
+          'heavy_pressing',
+          'dips',
+          'front_rack_loading',
+          'max_effort_lifts',
+          'skull_crushers',
+        ],
+      },
+      CATALOG,
+    );
+    const push = routine.sessions[0].adjustments?.find((a) => a.slotKey === 'push');
+    expect(push).toMatchObject({
+      kind: 'SUBSTITUTED',
+      toExerciseKey: 'exercise.band_external_rotation',
+    });
+  });
+
+  it('is deterministic with substitutions', () => {
+    const request = {
+      ...BASE_REQUEST,
+      availableEquipment: ['band' as const],
+      excludedMovements: ['deep_squat', 'lunge', 'jumping'],
+    };
+    expect(generateWorkoutRoutine(request, CATALOG)).toEqual(
+      generateWorkoutRoutine(request, CATALOG),
     );
   });
 

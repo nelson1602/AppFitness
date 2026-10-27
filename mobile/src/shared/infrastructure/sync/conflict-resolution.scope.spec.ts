@@ -93,9 +93,13 @@ describe('C-4 keeps SQLite out of presentation', () => {
 });
 
 describe('C-4 adds no UI, copy, server or schema surface', () => {
-  it('adds no migration beyond the seven already shipped', () => {
+  it('adds no migration of its own (the first seven shipped before it)', () => {
     // The outbox columns were pre-provisioned by 006; C-4 only activates them.
-    expect(MIGRATIONS.map((migration) => migration.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    // Later slices append migrations (008+ for v8); C-4 added none.
+    expect(MIGRATIONS.map((migration) => migration.version).slice(0, 7)).toEqual([
+      1, 2, 3, 4, 5, 6, 7,
+    ]);
+    expect(MIGRATIONS.map((m) => m.name)).not.toContain('conflict-resolution');
   });
 
   it('does not touch migration 006', () => {

@@ -7,6 +7,7 @@ import { progressSchemaActivationMigration } from './004-progress-schema-activat
 import { bodyMeasurementMuscleMassMigration } from './005-body-measurement-muscle-mass';
 import { syncUserScopingMigration } from './006-sync-user-scoping';
 import { wellnessSafetyProfileMigration } from './007-wellness-safety-profile';
+import { wellnessInjuryAreasMigration } from './008-wellness-injury-areas';
 
 export interface Migration {
   version: number;
@@ -32,6 +33,7 @@ export const MIGRATIONS: readonly Migration[] = [
   bodyMeasurementMuscleMassMigration,
   syncUserScopingMigration,
   wellnessSafetyProfileMigration,
+  wellnessInjuryAreasMigration,
 ];
 
 /**

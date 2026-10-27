@@ -123,12 +123,20 @@ function insertProfile(
   }
 }
 
+/**
+ * The affected-area vocabulary as 007 shipped it. Migration 008 (v8 Block 2)
+ * widened it with three values; 007 itself is immutable and still enforces
+ * exactly these 18 until 008 replaces its triggers.
+ */
+const V8_AREAS: readonly string[] = ['muscle_tear', 'plantar_fasciitis', 'shin_splints'];
+const AREAS_AT_007 = WELLNESS_AFFECTED_AREAS.filter((area) => !V8_AREAS.includes(area));
+
 describe('migration 007 — wellness safety profile', () => {
-  it('is registered last, and 001–006 keep their versions in order', () => {
+  it('is registered seventh, and 001–006 keep their versions in order', () => {
     expect(wellnessSafetyProfileMigration.version).toBe(7);
-    expect(MIGRATIONS[MIGRATIONS.length - 1]).toBe(wellnessSafetyProfileMigration);
-    expect(MIGRATIONS.map((m) => m.version)).toEqual([1, 2, 3, 4, 5, 6, 7]);
-    expect(MIGRATIONS.map((m) => m.name)).toEqual([
+    expect(MIGRATIONS[6]).toBe(wellnessSafetyProfileMigration);
+    expect(MIGRATIONS.map((m) => m.version)).toEqual(MIGRATIONS.map((_, i) => i + 1));
+    expect(MIGRATIONS.slice(0, 7).map((m) => m.name)).toEqual([
       'initial',
       'nutrition-catalog-4a',
       'dietary-preferences',
@@ -413,12 +421,7 @@ describe('migration 007 — wellness safety profile', () => {
       // Real vocabulary tokens, repeated: the elements are allowlisted, and
       // de-duplication is application-owned, so length is the only failure.
       const repeat = (n: number): string =>
-        JSON.stringify(
-          Array.from(
-            { length: n },
-            (_, i) => WELLNESS_AFFECTED_AREAS[i % WELLNESS_AFFECTED_AREAS.length],
-          ),
-        );
+        JSON.stringify(Array.from({ length: n }, (_, i) => AREAS_AT_007[i % AREAS_AT_007.length]));
       const result = insertProfile(db, 'p5', { areas: repeat(65) });
       expect(result.ok).toBe(false);
       expect(result.error).toContain('CHECK constraint failed');
@@ -523,7 +526,7 @@ describe('migration 007 — wellness safety profile', () => {
     const REFUSED = 'token outside the allowed vocabulary';
 
     it('accepts every allowed affected-area token', () => {
-      for (const [index, token] of WELLNESS_AFFECTED_AREAS.entries()) {
+      for (const [index, token] of AREAS_AT_007.entries()) {
         const result = insertProfile(db, `area-${index}`, {
           userId: index % 2 === 0 ? 'user-a' : 'user-b',
           areas: JSON.stringify([token]),
@@ -546,7 +549,7 @@ describe('migration 007 — wellness safety profile', () => {
     it('accepts the whole vocabulary at once, and an empty list', () => {
       expect(
         insertProfile(db, 'all', {
-          areas: JSON.stringify([...WELLNESS_AFFECTED_AREAS]),
+          areas: JSON.stringify([...AREAS_AT_007]),
           movements: JSON.stringify([...WELLNESS_MOVEMENTS_TO_AVOID]),
           deletedAt: T,
         }),
@@ -661,7 +664,7 @@ describe('migration 007 — wellness safety profile', () => {
     }
 
     it('validates affected_areas against exactly the TypeScript contract', () => {
-      expect(allowlistFor('affected_areas')).toEqual([...WELLNESS_AFFECTED_AREAS]);
+      expect(allowlistFor('affected_areas')).toEqual([...AREAS_AT_007]);
     });
 
     it('validates movements_to_avoid against exactly the TypeScript contract', () => {
