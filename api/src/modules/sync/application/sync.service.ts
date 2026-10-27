@@ -171,6 +171,15 @@ export class SyncService {
             ((payload: Record<string, unknown>) => payload);
 
           if (op.operation === 'CREATE' && serverState !== null) {
+            // BUG-044: a container with a deterministic id (a day's food log,
+            // a meal slot) that another device already created is the same
+            // row, so the CREATE is already satisfied — not a conflict.
+            if (handler.isEquivalentCreate?.(serverState, op)) {
+              return this.recordOutcome(tx, userId, deviceId, op, {
+                status: SyncOperationStatus.APPLIED,
+                errorCode: null,
+              });
+            }
             return this.recordConflict(
               tx,
               userId,

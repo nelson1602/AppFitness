@@ -169,6 +169,17 @@ export interface EntitySyncHandler {
    */
   redactForConflict?(payload: Record<string, unknown>): Record<string, unknown>;
   /**
+   * Optional (BUG-044): a CREATE whose id already exists is normally a
+   * conflict. A handler whose rows have deterministic ids (structural
+   * containers) can say the existing row IS what the CREATE asked for, and
+   * the pipeline records the operation as applied. Must not throw on a
+   * malformed payload it would reject anyway — return false instead.
+   */
+  isEquivalentCreate?(
+    serverState: ServerEntityState,
+    op: SyncOperationInput,
+  ): boolean;
+  /**
    * Owner-scoped **unredacted** current row (ADR-P030 §Decision 3).
    *
    * Present on every public-V1 handler. A handler without it is an
