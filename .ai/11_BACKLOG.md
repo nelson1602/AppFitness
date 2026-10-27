@@ -3400,7 +3400,7 @@ The server still accepts the same refresh token concurrently and issues siblings
 
 ## [BUG-044] Logged Foods Never Reach the Server (Parent Meals Are Never Synced)
 
-Status: Open — found 2026-10-27 in the v8 Block 2 emulator review; predates v8
+Status: Fixed in PR (stacked on #240), pending owner review — found 2026-10-27 in the v8 Block 2 emulator review; predates v8
 Priority: P1
 Type: Bug
 Owner: Engineering (fix); Project owner (scheduling)
@@ -3423,10 +3423,11 @@ Logged foods, with their plan links, sync like every other user-owned row.
 
 ### Acceptance Criteria
 
-- [ ] Server `EntitySyncHandler`s for `nutrition_logs` and `meals` (ownership, version/conflict, pull by `sync_seq`)
-- [ ] The app enqueues the parent CREATEs in the same transaction as the first item, in causal order
-- [ ] Mobile appliers for both parents; existing local rows are backfilled into the queue by a forward migration
-- [ ] e2e: log a food, sync, reinstall, pull → the item and its plan link come back
+- [x] Server `EntitySyncHandler`s for `nutrition_logs` and `meals` (ownership, version/conflict, pull by `sync_seq`)
+- [x] The app enqueues the parent CREATEs in the same transaction as the first item, in causal order
+- [x] Mobile appliers for both parents; existing local rows are repaired and queued by a one-time pre-push repair (SQLite migrations cannot compute the deterministic ids), recorded in `app_metadata`
+- [x] Regression tests: API e2e (parent chain, out-of-order parents, second-device CREATE, isolation, pull, deletion cascade) and a mobile SQLite integration test (new food, legacy repair, one-shot, second device, pull merge)
+- [x] On-device proof (2026-10-27, local API): an account holding 209 stuck foods over 29 days was repaired on its first sync; the server received 29 days, 81 meals and 209 foods, all APPLIED, with no duplicate day or slot. A breakfast logged afterwards with "Lo comí" went out as one meal CREATE followed by its foods.
 
 ---
 
@@ -6040,7 +6041,7 @@ The versionCode 6 Android test did not match `docs/design/appfitnessrd-prototipo
 * The ADR-P026 Perfil reminder card is unreachable and is removed in a cleanup.
 * Block 2: the injury→exercise map is applied conservatively and still needs the qualified review ADR-P031 D4 requires (`docs/design/INJURY_EXERCISE_MAP.md`).
 * Block 2: a returning account on a fresh install that is offline at first launch sees the evaluation again (the gate pulls once first); saving it would create local rows that can collide with the server copies on the next sync. How that collision resolves has not been tested yet.
-* Block 2: logged foods never sync (BUG-044, predates v8), so "Lo comí" links and the meal half of weekly adherence stay on the device until it is fixed.
+* Block 2: logged foods never synced (BUG-044, predates v8); fixed in the PR stacked on #240, which must merge with it.
 * Block 2: `.maestro/onboarding-loop.yml` still drives the pre-v8 dashboard gap actions; a new account now completes the evaluation in `registration-verified.yml`, so the loop needs rewriting to the wizard before it is run again.
 
 ### Related Documents

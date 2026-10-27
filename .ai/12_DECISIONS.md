@@ -2716,6 +2716,30 @@ reconciliation). No production server has been seeded (pre-activation).
 - mobile/src/features/nutrition/infrastructure/food-catalog.data.ts (Slice 1–3B bundled catalog; the `piece(182)` count-unit conflation is normalized as of 2026-07-14 — see Risk-3 Normalization Note)
 - mobile/src/features/nutrition/domain/catalog-identity.ts (`FOOD_REVISIONS` per-food revision overrides; `normalizeServing`)
 
+### Amendment — BUG-044: the parents sync (2026-10-27, owner decision)
+
+ADR-P012 named three sync entities (`nutrition_logs`, `meals`, `meal_items`), but only `meal_items` was built. Every logged food therefore failed `DEPENDENCY_NOT_READY` forever. This amendment builds the other two as specified, with these decisions:
+
+1. **Deterministic container ids.**
+   - A day's log is `uuidv5("nutrition_log:<user>:<date>")`; a meal is `uuidv5("meal:<user>:<date>:<slot>")`, both under the fixed namespace `efc43af2-830e-42cd-b79e-c4e8ad19a403` (`food-log-ids.ts`).
+   - Every device, and a reinstall, names the same day the same way, so the server's unique `(user_id, date)` can never be hit by two devices.
+2. **Idempotent container CREATE.**
+   - The sync pipeline gains one optional handler hook, `isEquivalentCreate`.
+   - A CREATE that finds the same live day or slot under its id is recorded APPLIED, not as a conflict.
+   - The same id naming a different day still conflicts.
+   - Containers have no user-editable fields and stay out of the conflict review screen (no `readCurrentOwnedRow`, ADR-P030 §Decision 12).
+3. **Order.**
+   - The parents' CREATEs are queued in the same transaction as, and ahead of, the first food logged into them.
+   - On pull, parents are applied before their foods (applier registration order).
+   - A meal whose log has not arrived is a retryable `DEPENDENCY_NOT_READY`.
+4. **No loss for foods logged before the fix.** A one-time repair runs as a pre-push hook, recorded per user in `app_metadata`. It:
+   - renames earlier logs and meals to their deterministic ids, moving their foods with them;
+   - rewrites the queued (encrypted) food payloads that named the old meal;
+   - queues the missing parent CREATEs;
+   - moves the waiting foods behind them with their backoff cleared.
+
+   A pulled day that meets an unsynced local day under another id triggers the same rename instead of a second row.
+
 ---
 
 ## ADR-P013 — USDA-FDC `foodPortion` Gram-Weight Sourcing for Volumetric & Slice Catalog Foods (TECHDEBT-004 risk 3, part 2)

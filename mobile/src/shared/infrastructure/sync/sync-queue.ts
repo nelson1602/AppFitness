@@ -350,3 +350,71 @@ export async function countByStatus(userId: string): Promise<Record<string, numb
   );
   return Object.fromEntries(rows.map((r) => [r.status, r.n]));
 }
+
+/**
+ * Replace one queued op's payload, re-encrypting it when it was sensitive
+ * (BUG-044: a re-keyed parent id inside a queued meal item). An in-flight op is
+ * never rewritten.
+ */
+export async function rewriteQueuedPayload(
+  userId: string,
+  opId: string,
+  payload: Record<string, unknown>,
+  sensitive: boolean,
+  nowIso: string,
+  tx?: SqlExecutor,
+): Promise<void> {
+  const payloadText = sensitive
+    ? JSON.stringify({ __enc: await encryptToBase64(JSON.stringify(payload)) })
+    : JSON.stringify(payload);
+  await run(
+    `UPDATE sync_queue SET payload = ?, updated_at = ?
+      WHERE user_id = ? AND op_id = ? AND status != 'IN_FLIGHT'`,
+    [payloadText, nowIso, userId, opId],
+    tx,
+  );
+}
+
+/**
+ * Move ops to the back of the FIFO as PENDING with no backoff, keeping their
+ * op ids and payloads (BUG-044: food items queued before the parents they
+ * need). The queue is ordered by rowid, so each op is re-inserted. In-flight
+ * ops are left exactly where they are.
+ */
+export async function requeueAtEnd(
+  userId: string,
+  opIds: readonly string[],
+  nowIso: string,
+  tx?: SqlExecutor,
+): Promise<number> {
+  let moved = 0;
+  for (const opId of opIds) {
+    const row = await queryFirst<SyncQueueRow>(
+      `SELECT * FROM sync_queue WHERE user_id = ? AND op_id = ? AND status != 'IN_FLIGHT'`,
+      [userId, opId],
+      tx,
+    );
+    if (!row) continue;
+    await run(`DELETE FROM sync_queue WHERE user_id = ? AND op_id = ?`, [userId, opId], tx);
+    await run(
+      `INSERT INTO sync_queue
+         (op_id, user_id, entity_type, entity_id, operation, payload, base_version,
+          status, retry_count, next_retry_at, last_error, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', 0, NULL, NULL, ?, ?)`,
+      [
+        row.op_id,
+        row.user_id,
+        row.entity_type,
+        row.entity_id,
+        row.operation,
+        row.payload,
+        row.base_version,
+        row.created_at,
+        nowIso,
+      ],
+      tx,
+    );
+    moved += 1;
+  }
+  return moved;
+}

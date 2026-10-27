@@ -60,3 +60,21 @@ export function getApplier(entityType: string): EntityApplier | undefined {
 export function allAppliers(): readonly EntityApplier[] {
   return [...appliers.values()];
 }
+
+/**
+ * Work a feature needs done on its own queue before a push (BUG-044: the
+ * one-time repair that gives legacy food logs their parents). Hooks run in
+ * registration order at the start of every paid push, after abandoned
+ * in-flight work is recovered. A failing hook is logged and never stops sync.
+ */
+export type PrePushHook = (userId: string, nowIso: string) => Promise<void>;
+
+const prePushHooks: PrePushHook[] = [];
+
+export function registerPrePushHook(hook: PrePushHook): void {
+  if (!prePushHooks.includes(hook)) prePushHooks.push(hook);
+}
+
+export function allPrePushHooks(): readonly PrePushHook[] {
+  return [...prePushHooks];
+}

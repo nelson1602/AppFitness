@@ -36,7 +36,7 @@ describe('ADR-P030 C-2 source safety boundaries', () => {
     expect(violations).toEqual([]);
   });
 
-  it('uses exactly 14 static, entity-owned PK-conflict inserts', () => {
+  it('uses exactly 16 static, entity-owned PK-conflict inserts', () => {
     const insertedTables: string[] = [];
 
     for (const path of productionTypeScriptFiles(SRC)) {
@@ -67,6 +67,9 @@ describe('ADR-P030 C-2 source safety boundaries', () => {
         'exercises',
         'goals',
         'meal_items',
+        // BUG-044: the parents of a logged food.
+        'meals',
+        'nutrition_logs',
         'progress_snapshots',
         'routine_exercises',
         'routines',

@@ -4,6 +4,8 @@ import type { MealItemRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue, listParkedEntityIds } from '@/shared/infrastructure/sync';
 
+import { mealIdFor, nutritionLogIdFor } from '../domain/food-log-ids';
+
 import {
   applyServerMealItem,
   listDailyCalorieTotals,
@@ -101,16 +103,41 @@ describe('food-log repository — local-first create (ADR-P012 Slice 4C)', () =>
     expect(item.foodId).toBe(CHICKEN_ID);
     expect(item.servingCount).toBe(2);
 
-    // Exactly one sync op — meal_items only (parents are NOT synced in 4B).
-    expect(mockEnqueue).toHaveBeenCalledTimes(1);
-    expect(mockEnqueue).toHaveBeenCalledWith(
+    // BUG-044: the day's log and meal are queued first, with deterministic
+    // ids, then the food itself (sensitive) — three CREATEs in that order.
+    const logId = nutritionLogIdFor(USER, DATE);
+    const mealId = mealIdFor(USER, DATE, 'LUNCH');
+    expect(mockEnqueue.mock.calls.map(([op]) => op.entityType)).toEqual([
+      'nutrition_logs',
+      'meals',
+      'meal_items',
+    ]);
+    expect(mockEnqueue.mock.calls[0][0]).toEqual({
+      opId: 'uuid-1',
+      userId: USER,
+      entityType: 'nutrition_logs',
+      entityId: logId,
+      operation: 'CREATE',
+      payload: { date: DATE, notes: null },
+      baseVersion: 0,
+    });
+    expect(mockEnqueue.mock.calls[1][0]).toEqual({
+      opId: 'uuid-2',
+      userId: USER,
+      entityType: 'meals',
+      entityId: mealId,
+      operation: 'CREATE',
+      payload: { nutrition_log_id: logId, type: 'LUNCH', order_index: 1 },
+      baseVersion: 0,
+    });
+    expect(mockEnqueue).toHaveBeenLastCalledWith(
       {
         opId: 'uuid-4',
         userId: USER,
         entityType: 'meal_items',
         entityId: 'uuid-3',
         operation: 'CREATE',
-        payload: { meal_id: 'uuid-2', food_id: CHICKEN_ID, serving_count: 2 },
+        payload: { meal_id: mealId, food_id: CHICKEN_ID, serving_count: 2 },
         baseVersion: 0,
         sensitive: true,
       },
@@ -154,7 +181,7 @@ describe('food-log repository — local-first create (ADR-P012 Slice 4C)', () =>
       NOW,
     );
 
-    const payload = mockEnqueue.mock.calls[0][0].payload;
+    const payload = mockEnqueue.mock.calls[2][0].payload;
     expect(Object.keys(payload).sort()).toEqual(['food_id', 'meal_id', 'serving_count']);
     expect(JSON.stringify(payload)).not.toContain('Chicken');
   });

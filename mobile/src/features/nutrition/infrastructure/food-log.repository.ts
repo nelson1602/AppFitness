@@ -10,12 +10,13 @@ import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue, listParkedEntityIds, SYNC_ERROR_CODES } from '@/shared/infrastructure/sync';
 
 import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
+// BUG-044: the day's log and meal are synced parents, queued ahead of the food.
+import { ensureMeal, ensureNutritionLog } from './food-log-parents';
 import {
   deriveServingSnapshot,
   type CanonicalFood,
   type ServingSnapshot,
 } from '../domain/catalog-identity';
-import { MEAL_SLOTS } from '../domain/meal-plan';
 import {
   itemConsumed,
   sumDailyTotals,
@@ -139,7 +140,7 @@ async function insertLoggedFood(
 
   {
     const logId = await ensureNutritionLog(userId, input.date, nowIso, tx);
-    const mealId = await ensureMeal(userId, logId, input.mealType, nowIso, tx);
+    const mealId = await ensureMeal(userId, logId, input.date, input.mealType, nowIso, tx);
     await ensureFoodSeeded(canonical, nowIso, tx);
 
     const id = generateUuid();
@@ -379,56 +380,6 @@ export async function markMealItemConflict(id: string, nowIso: string): Promise<
     nowIso,
     id,
   ]);
-}
-
-// ─── Local parent ensure (not synced in Slice 4C) ────────────────────────────
-
-async function ensureNutritionLog(
-  userId: string,
-  date: string,
-  nowIso: string,
-  tx: SqlExecutor,
-): Promise<string> {
-  const existing = await queryFirst<{ id: string }>(
-    `SELECT id FROM nutrition_logs WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
-    [userId, date],
-    tx,
-  );
-  if (existing) return existing.id;
-  const id = generateUuid();
-  await run(
-    `INSERT INTO nutrition_logs (id, user_id, created_at, updated_at, version, sync_status, date, notes)
-     VALUES (?, ?, ?, ?, 1, 'pending', ?, NULL)`,
-    [id, userId, nowIso, nowIso, date],
-    tx,
-  );
-  return id;
-}
-
-async function ensureMeal(
-  userId: string,
-  nutritionLogId: string,
-  type: MealTypeName,
-  nowIso: string,
-  tx: SqlExecutor,
-): Promise<string> {
-  const existing = await queryFirst<{ id: string }>(
-    `SELECT id FROM meals
-      WHERE nutrition_log_id = ? AND type = ? AND deleted_at IS NULL`,
-    [nutritionLogId, type],
-    tx,
-  );
-  if (existing) return existing.id;
-  const id = generateUuid();
-  const orderIndex = Math.max(0, MEAL_SLOTS.indexOf(type));
-  await run(
-    `INSERT INTO meals (id, user_id, created_at, updated_at, version, sync_status,
-                        nutrition_log_id, type, order_index)
-     VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?)`,
-    [id, userId, nowIso, nowIso, nutritionLogId, type, orderIndex],
-    tx,
-  );
-  return id;
 }
 
 /**

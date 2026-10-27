@@ -2,7 +2,7 @@ import { hasPaidMutationAccess } from '../../application/entitlement-access';
 import { encryptToBase64 } from '../crypto/field-cipher';
 import { rootExecutor } from '../database';
 import { logWarn } from '../logging';
-import { allAppliers, getApplier } from './appliers';
+import { allAppliers, allPrePushHooks, getApplier } from './appliers';
 import { recordConflict } from './sync-conflicts';
 import {
   hasPendingOpFor,
@@ -128,6 +128,15 @@ async function executeSync(deps: SyncDeps): Promise<SyncReport> {
   // This run holds the user's exclusive boundary, so any IN_FLIGHT row is
   // left over from an earlier run. Return it for replay under its own op id.
   report.recovered = await recoverAbandonedInFlight(deps.userId, now());
+
+  // Feature repairs that must precede this push (BUG-044). Never fatal.
+  for (const hook of allPrePushHooks()) {
+    try {
+      await hook(deps.userId, now());
+    } catch (error) {
+      logWarn('sync.prePush', error instanceof Error ? error.message : 'pre-push hook failed');
+    }
+  }
 
   const pushOutcome = await pushLoop(deps.userId, transport, now, report);
   if (pushOutcome === 'subscription-required') {

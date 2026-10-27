@@ -14,6 +14,9 @@ export {
   peekReady,
   removeParkedOperation,
   removeRejected,
+  readQueuePayload,
+  requeueAtEnd,
+  rewriteQueuedPayload,
 } from './sync-queue';
 export {
   findOwnedConflict,
@@ -54,7 +57,15 @@ export {
   type SettlementCondition,
 } from './conflict-presenter';
 export { getCursor, setCursor } from './sync-state';
-export { allAppliers, getApplier, registerApplier, type EntityApplier } from './appliers';
+export {
+  allAppliers,
+  allPrePushHooks,
+  getApplier,
+  registerApplier,
+  registerPrePushHook,
+  type EntityApplier,
+  type PrePushHook,
+} from './appliers';
 export {
   runSync,
   SYNC_ERROR_CODES,
