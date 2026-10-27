@@ -232,7 +232,8 @@ describe('ProgressScreen (Slice 5a)', () => {
     });
     await render(<ProgressScreen />);
 
-    expect(screen.getByText('Progress')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Progress')).toBeNull();
     expect(
       screen.getByText(
         'Record your weight and measurements. Saved on your device first, synced when online.',
@@ -250,7 +251,8 @@ describe('ProgressScreen (Slice 5a)', () => {
     setState({ bodyWeights: [{ ...weight, weightKg: 80.5 }], bodyMeasurements: [] });
     await render(<ProgressScreen />);
 
-    expect(screen.getByText('Progreso')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Progreso')).toBeNull();
     // Spanish decimal comma + connector "el" + day 3 (local parse, no UTC shift).
     expect(screen.getByText(/^80,5 kg el 3\b.*2026$/)).toBeOnTheScreen();
     // Spanish pluralized counts: 1 weight entry, 0 measurement entries.
@@ -263,7 +265,8 @@ describe('ProgressScreen (Slice 5a)', () => {
     await render(<ProgressScreen />);
 
     // Normal heading preserved.
-    expect(screen.getByText('Progress')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Progress')).toBeNull();
     expect(screen.getByText("Progress isn't available on the web")).toBeOnTheScreen();
     expect(
       screen.getByText('Use the AppFitnessRD mobile app to record and track your progress.'),

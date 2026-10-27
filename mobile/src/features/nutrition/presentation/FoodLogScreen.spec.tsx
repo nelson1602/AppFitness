@@ -186,7 +186,8 @@ describe('FoodLogScreen (Slice 4C)', () => {
 
     await render(<FoodLogScreen />);
 
-    expect(screen.getByText('Registro de alimentos')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Registro de alimentos')).toBeNull();
     expect(screen.getByText('Pechuga de pollo, cocida')).toBeOnTheScreen();
     expect(screen.getByText('Eliminar')).toBeOnTheScreen();
     expect(logged.catalogKey).toBe('food.chicken_breast');
@@ -381,7 +382,8 @@ describe('FoodLogScreen (Slice 4C)', () => {
       ),
     ).toBeOnTheScreen();
     // Header preserved.
-    expect(screen.getByText('Food log')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Food log')).toBeNull();
     // No sync banner, add form, entries, empty state, sync/write controls, or disclaimer.
     expect(screen.queryByText('Log up to date')).toBeNull();
     expect(screen.queryByTestId('food-search-input')).toBeNull();

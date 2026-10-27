@@ -373,7 +373,6 @@ export function FoodLogScreen() {
     return (
       <View style={{ gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('nutrition.log.title')}</AppText>
           <AppText tone="muted">{t('nutrition.log.subtitle')}</AppText>
         </View>
         <Banner title={t('nutrition.log.webUnavailableTitle')} tone="info">
@@ -386,7 +385,6 @@ export function FoodLogScreen() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('nutrition.log.title')}</AppText>
         <AppText tone="muted">{t('nutrition.log.subtitle')}</AppText>
       </View>
 

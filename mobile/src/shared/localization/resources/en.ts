@@ -673,7 +673,6 @@ export const en = {
     'Use the AppFitnessRD mobile app to record and track your progress.',
   'progress.webUnavailableCard': 'Not available on the web',
   'progress.routeTitle': 'Progress',
-  'progress.screen.title': 'Progress',
   'progress.screen.subtitle':
     'Record your weight and measurements. Saved on your device first, synced when online.',
   'progress.screen.loading': 'Loading…',
@@ -873,7 +872,6 @@ export const en = {
   'workout.movement.maxEffortLifts': 'maximum-effort lifts',
   'workout.movement.valsalvaHeavyLifts': 'heavy lifts while holding your breath',
   'workout.library.routeTitle': 'Exercise library',
-  'workout.library.title': 'Exercise library',
   'workout.library.subtitle':
     'Create your own exercises to use in routines and workouts. They are saved on your device first and synced to your account later.',
   'workout.library.errorTitle': 'Something went wrong',
@@ -922,7 +920,6 @@ export const en = {
   'workout.muscle.shoulders': 'Shoulders',
   'workout.muscle.triceps': 'Triceps',
   'workout.log.routeTitle': 'Log a workout',
-  'workout.log.title': 'Log a workout',
   'workout.log.subtitle':
     'Track your sets as you train. Everything is saved on your device first and syncs to your account later.',
   'workout.log.errorTitle': 'Something went wrong',
@@ -1101,7 +1098,6 @@ export const en = {
   'nutrition.preferences.remove': 'Remove',
   'nutrition.preferences.removeAccessibility': 'Remove exclusion',
   'nutrition.log.routeTitle': 'Food log',
-  'nutrition.log.title': 'Food log',
   'nutrition.log.subtitle':
     'Log what you eat today. Saved on your device first, synced when online.',
   'nutrition.log.syncingTitle': 'Syncing',
@@ -1247,7 +1243,6 @@ export const en = {
   'dashboard.subscription': 'Subscription',
   'dashboard.subscriptionAccessibility': 'View your AppFitnessRD Pro subscription',
   'account.delete.screenTitle': 'Delete account',
-  'account.delete.title': 'Delete account',
   'account.delete.description':
     'This permanently deletes your account and all your data. This cannot be undone.',
   'account.delete.errorTitle': 'Deletion failed',
@@ -1366,7 +1361,6 @@ export const en = {
   // a dosage or free text. Token labels are presentation only — the stored
   // value is always the language-neutral token.
   'wellness.safety.routeTitle': 'Evaluation and limitations',
-  'wellness.safety.title': 'Evaluation and limitations',
   'wellness.safety.subtitle': 'Optional details that help us keep your training conservative.',
   'wellness.safety.disclaimerTitle': 'This is fitness software, not a medical opinion',
   'wellness.safety.disclaimerBody':

@@ -81,9 +81,6 @@ export function GoalForm({ onSaved }: GoalFormProps) {
   if (status === 'web-unavailable') {
     return (
       <View style={{ gap: theme.spacing.lg }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('goal.routeTitle')}</AppText>
-        </View>
         <Banner title={t('goal.webUnavailableTitle')} tone="info">
           {t('goal.webUnavailableBody')}
         </Banner>

@@ -10,6 +10,8 @@ import {
   Banner,
   Card,
   usePaidWriteDisabled,
+  stageChoiceColors,
+  useStageSurface,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -95,6 +97,7 @@ export function FoodLogAddForm({
   activePreferences?: readonly DietaryPreference[];
 }) {
   const theme = useTheme();
+  const stage = useStageSurface();
   const paidWriteDisabled = usePaidWriteDisabled();
   const { language, t } = useLocalization();
   const [query, setQuery] = useState('');
@@ -146,8 +149,16 @@ export function FoodLogAddForm({
                 onPress={() => setMealType(slot)}
                 style={{
                   opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
-                  backgroundColor: active ? theme.colors.primary : theme.colors.surfaceVariant,
-                  borderColor: active ? theme.colors.primary : theme.colors.outline,
+                  backgroundColor: stage
+                    ? stageChoiceColors(theme.colors, active).backgroundColor
+                    : active
+                      ? theme.colors.primary
+                      : theme.colors.surfaceVariant,
+                  borderColor: stage
+                    ? stageChoiceColors(theme.colors, active).borderColor
+                    : active
+                      ? theme.colors.primary
+                      : theme.colors.outline,
                   borderRadius: theme.radius.medium,
                   borderWidth: 1,
                   minHeight: theme.spacing.x5l,
@@ -155,7 +166,13 @@ export function FoodLogAddForm({
                   paddingHorizontal: theme.spacing.md,
                 }}
               >
-                <AppText tone={active ? 'onPrimary' : 'muted'}>{label}</AppText>
+                {stage ? (
+                  <AppText style={{ color: stageChoiceColors(theme.colors, active).labelColor }}>
+                    {label}
+                  </AppText>
+                ) : (
+                  <AppText tone={active ? 'onPrimary' : 'muted'}>{label}</AppText>
+                )}
               </Pressable>
             );
           })}
@@ -196,7 +213,8 @@ export function FoodLogAddForm({
                     // ("if a divider ever becomes the sole boundary of an
                     // interactive element, it must meet 3:1 or an `outline`
                     // must be used instead"). ADR-P022 Addendum A.
-                    borderColor: theme.colors.outline,
+                    // On the stage the glass hairline bounds it (v8 Block 3).
+                    borderColor: stage ? theme.colors.glassBorder : theme.colors.outline,
                     borderRadius: theme.radius.medium,
                     borderWidth: 1,
                     padding: theme.spacing.md,

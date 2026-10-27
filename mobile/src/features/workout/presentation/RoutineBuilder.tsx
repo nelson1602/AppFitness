@@ -14,6 +14,7 @@ import {
   Card,
   PaidWriteDisabledProvider,
   usePaidWriteDisabled,
+  useStageSurface,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -56,6 +57,7 @@ const MUSCLE_GROUP_KEYS: Readonly<Record<string, TranslationKey>> = {
 
 export function RoutineBuilder() {
   const theme = useTheme();
+  const stage = useStageSurface();
   const { language, t } = useLocalization();
   const paidWriteDisabled = usePaidWriteDisabled();
   const {
@@ -263,7 +265,7 @@ export function RoutineBuilder() {
                             disabled={paidWriteDisabled}
                             onPress={() => onAddExerciseById(exercise.id)}
                             style={{
-                              borderColor: theme.colors.outline,
+                              borderColor: stage ? theme.colors.glassBorder : theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
                               opacity: paidWriteDisabled ? 0.5 : 1,
@@ -300,7 +302,7 @@ export function RoutineBuilder() {
                             disabled={paidWriteDisabled}
                             onPress={() => onAddExerciseById(exercise.id)}
                             style={{
-                              borderColor: theme.colors.outline,
+                              borderColor: stage ? theme.colors.glassBorder : theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
                               opacity: paidWriteDisabled ? 0.5 : 1,

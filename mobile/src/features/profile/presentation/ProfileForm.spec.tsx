@@ -211,7 +211,8 @@ describe('ProfileForm', () => {
     await render(<ProfileForm onSaved={jest.fn()} />);
 
     // Neutral heading preserved.
-    expect(screen.getByText('Profile')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Profile')).toBeNull();
     expect(screen.getByText("Profile editing isn't available on the web")).toBeOnTheScreen();
     expect(
       screen.getByText('Use the AppFitnessRD mobile app to create and update your profile.'),
@@ -245,7 +246,8 @@ describe('ProfileForm', () => {
 
     await render(<ProfileForm onSaved={jest.fn()} />);
 
-    expect(screen.getByText('Perfil')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Perfil')).toBeNull();
     expect(
       screen.getByText('La edición del perfil no está disponible en la web'),
     ).toBeOnTheScreen();

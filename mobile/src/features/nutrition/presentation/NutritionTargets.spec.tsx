@@ -185,7 +185,8 @@ describe('NutritionTargets', () => {
 
     await render(<NutritionTargets />);
 
-    expect(screen.getByText('Objetivos nutricionales')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Objetivos nutricionales')).toBeNull();
     expect(
       screen.getByText(
         'Las calorías se establecen 20% por debajo del nivel de mantenimiento para apoyar la pérdida de grasa.',
@@ -207,7 +208,8 @@ describe('NutritionTargets', () => {
       ),
     ).toBeOnTheScreen();
     // Header preserved.
-    expect(screen.getByText('Nutrition targets')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Nutrition targets')).toBeNull();
     // Not a generic error, no data-gap, no plan navigation, no disclaimer/content.
     expect(screen.queryByText('Nutrition unavailable')).toBeNull();
     expect(screen.queryByText('Complete your basic info first')).toBeNull();

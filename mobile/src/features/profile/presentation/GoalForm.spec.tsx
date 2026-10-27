@@ -221,7 +221,8 @@ describe('GoalForm', () => {
     await render(<GoalForm onSaved={jest.fn()} />);
 
     // Neutral heading preserved.
-    expect(screen.getByText('Goal')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Goal')).toBeNull();
     expect(screen.getByText("Goal editing isn't available on the web")).toBeOnTheScreen();
     expect(
       screen.getByText('Use the AppFitnessRD mobile app to set and update your goal.'),
@@ -240,7 +241,8 @@ describe('GoalForm', () => {
 
     await render(<GoalForm onSaved={jest.fn()} />);
 
-    expect(screen.getByText('Meta')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Meta')).toBeNull();
     expect(
       screen.getByText('La edición de la meta no está disponible en la web'),
     ).toBeOnTheScreen();

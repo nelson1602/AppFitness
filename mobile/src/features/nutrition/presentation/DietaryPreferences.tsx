@@ -13,6 +13,8 @@ import {
   Banner,
   Card,
   usePaidWriteDisabled,
+  stageChoiceColors,
+  useStageSurface,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -113,6 +115,8 @@ function Chip({
 }) {
   const theme = useTheme();
   const paidWriteDisabled = usePaidWriteDisabled();
+  const stage = useStageSurface();
+  const onStage = stageChoiceColors(theme.colors, active);
   return (
     <Pressable
       accessibilityRole="button"
@@ -122,8 +126,16 @@ function Chip({
       onPress={onPress}
       style={{
         opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
-        backgroundColor: active ? theme.colors.primary : theme.colors.surfaceVariant,
-        borderColor: active ? theme.colors.primary : theme.colors.outline,
+        backgroundColor: stage
+          ? onStage.backgroundColor
+          : active
+            ? theme.colors.primary
+            : theme.colors.surfaceVariant,
+        borderColor: stage
+          ? onStage.borderColor
+          : active
+            ? theme.colors.primary
+            : theme.colors.outline,
         borderRadius: theme.radius.medium,
         borderWidth: 1,
         // BUG-023: the 44×44 touch-target floor. Padding and one label line
@@ -139,9 +151,15 @@ function Chip({
         paddingVertical: theme.spacing.sm,
       }}
     >
-      <AppText tone={active ? 'onPrimary' : 'muted'} variant="label">
-        {label}
-      </AppText>
+      {stage ? (
+        <AppText style={{ color: onStage.labelColor }} variant="label">
+          {label}
+        </AppText>
+      ) : (
+        <AppText tone={active ? 'onPrimary' : 'muted'} variant="label">
+          {label}
+        </AppText>
+      )}
     </Pressable>
   );
 }

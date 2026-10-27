@@ -4,7 +4,7 @@ import { View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useLocalization } from '@/shared/localization';
-import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
+import { AppButton, AppText, Banner, Card, useStageSurface } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import type { SubscriptionIssue } from '../application/subscription.store';
@@ -29,6 +29,7 @@ function issueTone(issue: Exclude<SubscriptionIssue, null>): 'error' | 'warning'
  */
 export function SubscriptionScreen() {
   const theme = useTheme();
+  const stage = useStageSurface();
   const { t } = useLocalization();
   const { status, storeKind, access, offer, operation, notice, issue, purchasePending } =
     useSubscriptionStore(
@@ -111,7 +112,7 @@ export function SubscriptionScreen() {
           <View style={{ gap: theme.spacing.md }}>
             <View
               style={{
-                backgroundColor: theme.colors.surfaceVariant,
+                backgroundColor: stage ? theme.colors.glassBorder : theme.colors.surfaceVariant,
                 borderRadius: theme.radius.medium,
                 height: theme.spacing.xxl,
                 width: '54%',
@@ -119,7 +120,7 @@ export function SubscriptionScreen() {
             />
             <View
               style={{
-                backgroundColor: theme.colors.surfaceVariant,
+                backgroundColor: stage ? theme.colors.glassBorder : theme.colors.surfaceVariant,
                 borderRadius: theme.radius.medium,
                 height: theme.spacing.lg,
                 width: '86%',

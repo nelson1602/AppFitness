@@ -395,7 +395,10 @@ describe('GeneratedWorkoutPlan — the saved week (ADR-P042, v8 Block 3)', () =>
     mockLanguage = 'en';
     mockDashboardState = {
       status: 'ready',
-      data: { wellness: 'absent', assessment: { assessment: { training: { excludedMovements: [] } } } },
+      data: {
+        wellness: 'absent',
+        assessment: { assessment: { training: { excludedMovements: [] } } },
+      },
       refresh: mockRefreshDashboard,
     };
     mockProfileState = {

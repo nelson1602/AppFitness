@@ -20,6 +20,7 @@ export { useReducedMotion } from './use-reduced-motion';
 export { useScreenReader } from './use-screen-reader';
 export { Screen } from './screen';
 export { StageScreen } from './stage-screen';
+export { stageChoiceColors } from './stage-choice';
 export { StageSurfaceProvider, useStageSurface } from './stage-surface';
 export { PaidWriteDisabledProvider, usePaidWriteDisabled } from './paid-write-context';
 export { FormField } from './form/FormField';

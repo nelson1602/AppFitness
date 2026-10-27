@@ -87,7 +87,6 @@ export function NutritionTargets() {
     return (
       <View style={{ gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('nutrition.targets.title')}</AppText>
           <AppText tone="muted">{t('nutrition.targets.subtitle')}</AppText>
         </View>
         <Banner title={t('nutrition.targets.webUnavailableTitle')} tone="info">
@@ -100,7 +99,6 @@ export function NutritionTargets() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('nutrition.targets.title')}</AppText>
         <AppText tone="muted">{t('nutrition.targets.subtitle')}</AppText>
       </View>
 

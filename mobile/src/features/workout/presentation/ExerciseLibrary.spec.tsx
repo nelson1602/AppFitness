@@ -103,7 +103,8 @@ describe('ExerciseLibrary', () => {
     await render(<ExerciseLibrary />);
 
     await waitFor(() => expect(load).toHaveBeenCalledTimes(1));
-    expect(screen.getByText('Exercise library')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Exercise library')).toBeNull();
     expect(screen.getByText('Built-in exercises')).toBeOnTheScreen();
   });
 
@@ -132,7 +133,8 @@ describe('ExerciseLibrary', () => {
     setStore({ customExercises: [customExercise({ muscleGroup: 'mis piernas' })] });
     await render(<ExerciseLibrary />);
 
-    expect(screen.getByText('Biblioteca de ejercicios')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Biblioteca de ejercicios')).toBeNull();
     expect(screen.getByText('Tus ejercicios personalizados')).toBeOnTheScreen();
     expect(screen.getByText('Zercher Squat')).toBeOnTheScreen();
     expect(screen.getByText('mis piernas · Fuerza')).toBeOnTheScreen();
@@ -343,7 +345,8 @@ describe('ExerciseLibrary', () => {
       screen.getByText('Use the AppFitnessRD mobile app to create and manage your exercises.'),
     ).toBeOnTheScreen();
     // Header preserved.
-    expect(screen.getByText('Exercise library')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Exercise library')).toBeNull();
     // No forms, lists, or catalog controls.
     expect(screen.queryByText('Add a custom exercise')).toBeNull();
     expect(screen.queryByText('Your custom exercises')).toBeNull();

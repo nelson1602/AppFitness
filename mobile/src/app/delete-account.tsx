@@ -50,7 +50,6 @@ export default function DeleteAccountScreen() {
       <Stack.Screen options={{ title: t('account.delete.screenTitle') }} />
       <View style={{ flexGrow: 1, justifyContent: 'center', gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('account.delete.title')}</AppText>
           <AppText tone="muted">{t('account.delete.description')}</AppText>
         </View>
 

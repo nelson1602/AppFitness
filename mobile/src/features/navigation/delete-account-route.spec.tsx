@@ -111,7 +111,8 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
     mockLanguage = 'es';
     await render(<DeleteAccountScreen />);
 
-    expect(screen.getByText('Eliminar cuenta')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Eliminar cuenta')).toBeNull();
     expect(screen.getByText('Escribe DELETE para confirmar')).toBeOnTheScreen();
     expect(screen.getByLabelText('Frase de confirmación para eliminar la cuenta')).toHaveProp(
       'testID',

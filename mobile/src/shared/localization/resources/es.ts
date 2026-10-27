@@ -672,7 +672,6 @@ export const es = {
     'Usa la app móvil de AppFitnessRD para registrar y seguir tu progreso.',
   'progress.webUnavailableCard': 'No disponible en la web',
   'progress.routeTitle': 'Progreso',
-  'progress.screen.title': 'Progreso',
   'progress.screen.subtitle':
     'Registra tu peso y medidas. Se guarda primero en tu dispositivo y se sincroniza cuando haya conexión.',
   'progress.screen.loading': 'Cargando…',
@@ -868,7 +867,6 @@ export const es = {
   'workout.movement.maxEffortLifts': 'levantamientos de esfuerzo máximo',
   'workout.movement.valsalvaHeavyLifts': 'levantamientos pesados aguantando la respiración',
   'workout.library.routeTitle': 'Biblioteca de ejercicios',
-  'workout.library.title': 'Biblioteca de ejercicios',
   'workout.library.subtitle':
     'Crea tus propios ejercicios para usarlos en rutinas y entrenamientos. Se guardan primero en tu dispositivo y luego se sincronizan con tu cuenta.',
   'workout.library.errorTitle': 'Algo salió mal',
@@ -918,7 +916,6 @@ export const es = {
   'workout.muscle.shoulders': 'Hombros',
   'workout.muscle.triceps': 'Tríceps',
   'workout.log.routeTitle': 'Registrar un entrenamiento',
-  'workout.log.title': 'Registrar un entrenamiento',
   'workout.log.subtitle':
     'Registra tus series mientras entrenas. Todo se guarda primero en tu dispositivo y se sincroniza después con tu cuenta.',
   'workout.log.errorTitle': 'Algo salió mal',
@@ -1106,7 +1103,6 @@ export const es = {
   'nutrition.preferences.remove': 'Eliminar',
   'nutrition.preferences.removeAccessibility': 'Eliminar exclusión',
   'nutrition.log.routeTitle': 'Registro de alimentos',
-  'nutrition.log.title': 'Registro de alimentos',
   'nutrition.log.subtitle':
     'Registra lo que consumes hoy. Se guarda primero en tu dispositivo y se sincroniza cuando haya conexión.',
   'nutrition.log.syncingTitle': 'Sincronizando',
@@ -1256,7 +1252,6 @@ export const es = {
   'dashboard.subscription': 'Suscripción',
   'dashboard.subscriptionAccessibility': 'Ver tu suscripción a AppFitnessRD Pro',
   'account.delete.screenTitle': 'Eliminar cuenta',
-  'account.delete.title': 'Eliminar cuenta',
   'account.delete.description':
     'Esto elimina permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.',
   'account.delete.errorTitle': 'No se pudo eliminar la cuenta',
@@ -1379,7 +1374,6 @@ export const es = {
   // a dosage or free text. Token labels are presentation only — the stored
   // value is always the language-neutral token.
   'wellness.safety.routeTitle': 'Evaluación y limitaciones',
-  'wellness.safety.title': 'Evaluación y limitaciones',
   'wellness.safety.subtitle':
     'Datos opcionales que nos ayudan a mantener tu entrenamiento conservador.',
   'wellness.safety.disclaimerTitle': 'AppFitnessRD es una app de fitness, no una opinión médica',

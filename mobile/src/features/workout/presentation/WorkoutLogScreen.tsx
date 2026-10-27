@@ -10,6 +10,8 @@ import {
   Card,
   PaidWriteDisabledProvider,
   usePaidWriteDisabled,
+  useStageSurface,
+  withAlpha,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -79,6 +81,7 @@ function ConflictHint({ syncStatus }: { syncStatus: SyncStatus }) {
 
 export function WorkoutLogScreen() {
   const theme = useTheme();
+  const stage = useStageSurface();
   const paidWriteDisabled = usePaidWriteDisabled();
   const { language, t } = useLocalization();
   const {
@@ -155,7 +158,6 @@ export function WorkoutLogScreen() {
     return (
       <View style={{ gap: theme.spacing.lg }}>
         <View style={{ gap: theme.spacing.xs }}>
-          <AppText variant="headline">{t('workout.log.title')}</AppText>
           <AppText tone="muted">{t('workout.log.subtitle')}</AppText>
         </View>
         <Banner title={t('workout.log.webUnavailableTitle')} tone="info">
@@ -168,7 +170,6 @@ export function WorkoutLogScreen() {
   return (
     <View style={{ gap: theme.spacing.lg }}>
       <View style={{ gap: theme.spacing.xs }}>
-        <AppText variant="headline">{t('workout.log.title')}</AppText>
         <AppText tone="muted">{t('workout.log.subtitle')}</AppText>
       </View>
 
@@ -333,14 +334,21 @@ export function WorkoutLogScreen() {
                             onPress={() => setExerciseId(exercise.id)}
                             style={{
                               opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
+                              // v8 Block 3: on the stage, the evaluation's option row.
                               backgroundColor:
                                 exerciseId === exercise.id
-                                  ? theme.colors.surfaceVariant
+                                  ? stage
+                                    ? withAlpha(theme.colors.accentCyan, 0.16)
+                                    : theme.colors.surfaceVariant
                                   : 'transparent',
                               borderColor:
                                 exerciseId === exercise.id
-                                  ? theme.colors.primary
-                                  : theme.colors.outline,
+                                  ? stage
+                                    ? theme.colors.accentCyan
+                                    : theme.colors.primary
+                                  : stage
+                                    ? theme.colors.glassBorder
+                                    : theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
                               // BUG-023: padding, border and one name line came
@@ -377,14 +385,21 @@ export function WorkoutLogScreen() {
                             onPress={() => setExerciseId(exercise.id)}
                             style={{
                               opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
+                              // v8 Block 3: on the stage, the evaluation's option row.
                               backgroundColor:
                                 exerciseId === exercise.id
-                                  ? theme.colors.surfaceVariant
+                                  ? stage
+                                    ? withAlpha(theme.colors.accentCyan, 0.16)
+                                    : theme.colors.surfaceVariant
                                   : 'transparent',
                               borderColor:
                                 exerciseId === exercise.id
-                                  ? theme.colors.primary
-                                  : theme.colors.outline,
+                                  ? stage
+                                    ? theme.colors.accentCyan
+                                    : theme.colors.primary
+                                  : stage
+                                    ? theme.colors.glassBorder
+                                    : theme.colors.outline,
                               borderRadius: theme.radius.medium,
                               borderWidth: 1,
                               padding: theme.spacing.sm,

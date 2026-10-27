@@ -447,7 +447,8 @@ describe('WorkoutLogScreen', () => {
     });
     await render(<WorkoutLogScreen />);
 
-    expect(screen.getByText('Registrar un entrenamiento')).toBeOnTheScreen();
+    // v8 Block 3: the stack header names the screen; the page does not repeat it.
+    expect(screen.queryByText('Registrar un entrenamiento')).toBeNull();
     expect(screen.getByText('Entrenamientos abiertos')).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('workout-select-l1'));
     expect(screen.getAllByText('Sentadilla trasera').length).toBeGreaterThan(0);
