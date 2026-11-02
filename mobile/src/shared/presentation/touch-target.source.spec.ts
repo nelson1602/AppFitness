@@ -141,6 +141,10 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
   'src/shared/presentation/app-button.tsx': ['primitive'],
+  // v8.1 (ADR-P043 amendment): the birth-date field, and each wheel row (it
+  // fills its column, and every row is at least 48 dp tall).
+  'src/shared/presentation/birth-date-field.tsx': ['floor'],
+  'src/shared/presentation/date-wheel-picker.tsx': ['floor'],
   // ADR-P043: the date field opens the native picker.
   'src/shared/presentation/date-field.tsx': ['floor'],
   'src/shared/presentation/form/FormSelect.tsx': ['floor-both'],
@@ -171,8 +175,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 39 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(39);
+it('counts exactly 41 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(41);
 });
 
 describe.each(

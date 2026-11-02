@@ -3,11 +3,10 @@ import { View } from 'react-native';
 
 import { classifyBmi } from '@/features/icoach/domain/body-composition';
 import { formatNumber, useLocalization } from '@/shared/localization';
-import { AppText, Chip, DateField, GlassCard, Icon } from '@/shared/presentation';
+import { AppText, BirthDateField, Chip, DateField, GlassCard, Icon } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import { BOUNDS, decimalText, draftBmi, parseDecimal } from '../../domain/evaluation';
-import { addYears } from '../evaluation-format';
+import { decimalText, draftBmi, parseDecimal } from '../../domain/evaluation';
 import { Choice, Legend, NumberField } from '../evaluation-controls';
 import type { StepProps } from './step-props';
 import { BMI_LABEL, SEX_LABEL } from '../evaluation-copy';
@@ -59,14 +58,13 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
         />
       </View>
 
-      <DateField
+      {/* v8.1: the Día / Mes / Año wheel, ages 16 to 100 (ADR-P043 amendment). */}
+      <BirthDateField
         error={issues.includes('birthDate') ? t('evaluation.error.birthDate') : undefined}
-        initialDate={addYears(today, -30)}
         label={t('evaluation.measures.birthDate')}
-        maximumDate={addYears(today, -BOUNDS.age.min)}
-        minimumDate={addYears(today, -BOUNDS.age.max)}
         onChange={(birthDate) => update({ birthDate })}
         testID="evaluation-birth-date"
+        today={today}
         value={draft.birthDate}
       />
       <DateField

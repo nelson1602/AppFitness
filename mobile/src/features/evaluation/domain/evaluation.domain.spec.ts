@@ -219,6 +219,15 @@ describe('step validation', () => {
     expect(stepIssues('measures', draft, TODAY)).toEqual(['weight', 'height', 'birthDate']);
   });
 
+  // v8.1 (owner): the birth date agrees with the wheel — ages 16 to 100.
+  it('accepts a birth date from exactly 100 to exactly 16 years ago, and nothing else', () => {
+    const issues = (birthDate: string) => stepIssues('measures', complete({ birthDate }), TODAY);
+    expect(issues('1926-10-28')).toEqual([]);
+    expect(issues('2010-10-28')).toEqual([]);
+    expect(issues('1926-10-27')).toEqual(['birthDate']);
+    expect(issues('2010-10-29')).toEqual(['birthDate']);
+  });
+
   it('refuses a future assessment date and a past target date', () => {
     expect(stepIssues('measures', complete({ evaluationDate: '2026-10-29' }), TODAY)).toEqual([
       'evaluationDate',

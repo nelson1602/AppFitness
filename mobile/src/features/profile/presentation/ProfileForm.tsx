@@ -9,7 +9,7 @@ import {
   AppButton,
   AppText,
   Banner,
-  FormDateField,
+  FormBirthDateField,
   FormField,
   FormSelect,
 } from '@/shared/presentation';
@@ -124,14 +124,12 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
         </Banner>
       ) : null}
 
-      {/* v8 Block 3 (ADR-P043): the native picker, never a future date. */}
-      <FormDateField
+      {/* v8.1 (ADR-P043 amendment): the Día / Mes / Año wheel, ages 16 to 100. */}
+      <FormBirthDateField
         control={control}
         name="birthDate"
         label={t('profile.birthDate')}
-        initialDate="1990-01-01"
-        maximumDate={today}
-        minimumDate="1900-01-01"
+        today={today}
         required
       />
       <FormField

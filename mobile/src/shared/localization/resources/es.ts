@@ -6,6 +6,10 @@ export const es = {
   'form.date.empty': 'sin fecha',
   'form.date.done': 'Listo',
   'form.date.clear': 'Quitar fecha',
+  'form.dateWheel.day': 'Día',
+  'form.dateWheel.month': 'Mes',
+  'form.dateWheel.year': 'Año',
+  'form.dateWheel.openHint': 'Abre el selector de fecha',
   // Shell del documento web y superficie de producto para páginas no
   // encontradas (BUG-016, ADR-P032).
   'web.document.title': 'AppFitnessRD',
@@ -177,7 +181,7 @@ export const es = {
   'evaluation.unit.cm': 'cm',
   'evaluation.error.weight': 'Escribe un peso entre 30 y 400 kg.',
   'evaluation.error.height': 'Escribe una estatura entre 100 y 250 cm.',
-  'evaluation.error.birthDate': 'Elige tu fecha de nacimiento (de 13 a 120 años).',
+  'evaluation.error.birthDate': 'Elige tu fecha de nacimiento (de 16 a 100 años).',
   'evaluation.error.evaluationDate': 'La fecha de la evaluación no puede ser futura.',
   'evaluation.error.equipment': 'Elige al menos un equipo.',
   'evaluation.error.targetWeight': 'Escribe un peso meta entre 30 y 400 kg.',
