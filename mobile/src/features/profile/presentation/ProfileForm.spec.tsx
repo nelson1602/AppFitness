@@ -257,7 +257,7 @@ describe('ProfileForm', () => {
 
   describe('País (v8.1)', () => {
     async function fillRequired() {
-      await pickDate('field-birthDate', '1990-05-14');
+      await pickBirthDate('field-birthDate', '1990-05-14');
       await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
       await fireEvent.press(screen.getByTestId('option-fitnessLevel-INTERMEDIATE'));
       await fireEvent.press(screen.getByTestId('option-activityLevel-MODERATE'));
