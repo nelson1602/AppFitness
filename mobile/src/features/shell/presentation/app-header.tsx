@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useSession } from '@/features/authentication';
@@ -14,6 +14,9 @@ import { useTheme } from '@/shared/theme';
 import { NotificationList } from './notification-list';
 import { tabOf } from './tab-config';
 
+/** From this text scale the title gets its own line (v8 Block 5 copy pass). */
+export const HEADER_STACK_FONT_SCALE = 1.5;
+
 /**
  * The design's header (ADR-P039): today's date, then "Hola, {name}" on Inicio
  * or the tab's name elsewhere, and the notification bell. The bell is native
@@ -24,6 +27,7 @@ export function AppHeader({ routeName }: { routeName: string }) {
   const { colors, radius, spacing } = useTheme();
   const { language, t } = useLocalization();
   const insets = useSafeAreaInsets();
+  const { fontScale } = useWindowDimensions();
   const { session } = useSession();
   const tab = tabOf(routeName);
   const title =
@@ -39,11 +43,16 @@ export function AppHeader({ routeName }: { routeName: string }) {
     day: 'numeric',
     month: 'long',
   });
+  // At large text a tab name no longer fits between the avatar and the bell and
+  // would break mid-word; the date and title then take a full-width line.
+  const stacked = fontScale >= HEADER_STACK_FONT_SCALE;
+  const bell = Platform.OS === 'web' ? null : <NotificationBell radius={radius.full} />;
 
   return (
     <View
       style={[
         styles.row,
+        stacked ? styles.wrap : null,
         {
           backgroundColor: colors.stageTop,
           gap: spacing.md,
@@ -77,7 +86,16 @@ export function AppHeader({ routeName }: { routeName: string }) {
           </AppText>
         </View>
       ) : null}
-      <View style={[styles.grow, { gap: spacing.xs }]}>
+      {stacked ? (
+        <>
+          <View style={styles.grow} />
+          {bell}
+        </>
+      ) : null}
+      <View
+        style={[stacked ? styles.fullWidth : styles.grow, { gap: spacing.xs }]}
+        testID="header-titles"
+      >
         <AppText tone="onStageVariant" variant="caption">
           {date}
         </AppText>
@@ -85,7 +103,7 @@ export function AppHeader({ routeName }: { routeName: string }) {
           {title}
         </AppText>
       </View>
-      {Platform.OS === 'web' ? null : <NotificationBell radius={radius.full} />}
+      {stacked ? null : bell}
     </View>
   );
 }
@@ -173,11 +191,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
   },
+  fullWidth: {
+    flexBasis: '100%',
+  },
   grow: {
     flex: 1,
   },
   row: {
     alignItems: 'center',
     flexDirection: 'row',
+  },
+  wrap: {
+    flexWrap: 'wrap',
   },
 });

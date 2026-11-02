@@ -84,6 +84,17 @@ describe('AppTabBar (ADR-P039 D1)', () => {
     expect(screen.getByText('Inicio')).toBeOnTheScreen();
   });
 
+  // v8 Block 5: at 200% text "Entrenamientos" pushed Perfil off screen.
+  it('lets the active pill give way so all five tabs stay on screen at large text', async () => {
+    await render(<AppTabBar {...props(1)} />);
+
+    expect(screen.getByTestId('tab-workouts')).toHaveStyle({ flexShrink: 1 });
+    expect(screen.getByTestId('tab-dashboard')).toHaveStyle({ flexShrink: 0 });
+    const label = screen.getByTestId('tab-workouts-label');
+    expect(label.props.numberOfLines).toBe(1);
+    expect(label.props.adjustsFontSizeToFit).toBe(true);
+  });
+
   it('clears the bottom inset', async () => {
     await render(<AppTabBar {...props(0)} />);
     expect(screen.getByTestId('tab-bar')).toHaveStyle({ paddingBottom: 24 });
