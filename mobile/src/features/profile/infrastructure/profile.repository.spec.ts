@@ -54,6 +54,7 @@ function profileRow(overrides: Partial<UserProfileRow> = {}): UserProfileRow {
     target_protein_g: null,
     target_carbs_g: null,
     target_fat_g: null,
+    country: 'DO',
     ...overrides,
   };
 }
@@ -167,5 +168,82 @@ describe('profile repository (local-first, ADR-0006)', () => {
     expect((params as unknown[])[4]).toBe(7); // server version wins
     expect((params as unknown[])[5]).toEqual(expect.any(String)); // deleted_at stamped
     expect(mockEnqueue).not.toHaveBeenCalled(); // pulls never re-enqueue
+  });
+
+  describe('country (v8.1)', () => {
+    const lastParam = (call: number) => {
+      const params = mockRun.mock.calls[call][1] as unknown[];
+      return params[params.length - 1];
+    };
+
+    it('creates a profile as DO when nothing names a country', async () => {
+      mockQueryFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(profileRow({ id: 'uuid-1' }));
+
+      await saveProfile(USER, { heightCm: 178 }, NOW);
+
+      expect(mockRun.mock.calls[0][0]).toContain('target_fat_g, country');
+      expect(lastParam(0)).toBe('DO');
+      expect(mockEnqueue.mock.calls[0][0].payload['country']).toBe('DO');
+    });
+
+    it('creates a profile with the sign-up country when the input names none', async () => {
+      mockQueryFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(profileRow({ id: 'uuid-1', country: 'MX' }));
+
+      await saveProfile(USER, { heightCm: 178 }, NOW, { countryForNewProfile: 'MX' });
+
+      expect(lastParam(0)).toBe('MX');
+      expect(mockEnqueue.mock.calls[0][0].payload['country']).toBe('MX');
+    });
+
+    it('prefers the country the input names over the sign-up one', async () => {
+      mockQueryFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(profileRow({ id: 'uuid-1' }));
+
+      await saveProfile(USER, { country: 'US' }, NOW, { countryForNewProfile: 'MX' });
+
+      expect(lastParam(0)).toBe('US');
+    });
+
+    it('never applies the sign-up country to an existing profile', async () => {
+      const existing = profileRow({ country: 'CO', version: 3 });
+      mockQueryFirst.mockResolvedValueOnce(existing).mockResolvedValueOnce(existing);
+
+      await saveProfile(USER, { heightCm: 181 }, NOW, { countryForNewProfile: 'MX' });
+
+      const params = mockRun.mock.calls[0][1] as unknown[];
+      expect(params[params.length - 2]).toBe('CO'); // country, before the id
+    });
+
+    it('updates the country and ships it in the UPDATE payload', async () => {
+      const existing = profileRow({ version: 3 });
+      mockQueryFirst
+        .mockResolvedValueOnce(existing)
+        .mockResolvedValueOnce(profileRow({ version: 3, country: 'ES' }));
+
+      const saved = await saveProfile(USER, { country: 'ES' }, NOW);
+
+      expect(mockRun.mock.calls[0][0]).toContain('country = ?');
+      const params = mockRun.mock.calls[0][1] as unknown[];
+      expect(params[params.length - 2]).toBe('ES');
+      expect(mockEnqueue.mock.calls[0][0].payload['country']).toBe('ES');
+      expect(saved.country).toBe('ES');
+    });
+
+    it('applies a pulled country, and reads a server without the field as DO', async () => {
+      await applyServerProfile({ ...profileRow({ country: 'PE' }), equipment: [] }, false, mockTx);
+      expect(lastParam(0)).toBe('PE');
+
+      const { country: _omitted, ...older } = profileRow();
+      await applyServerProfile({ ...older, equipment: [] }, false, mockTx);
+      expect(lastParam(1)).toBe('DO');
+
+      await applyServerProfile({ ...profileRow(), country: 'pe', equipment: [] }, false, mockTx);
+      expect(lastParam(2)).toBe('DO');
+    });
   });
 });

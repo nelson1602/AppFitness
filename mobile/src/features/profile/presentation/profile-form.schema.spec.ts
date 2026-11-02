@@ -141,6 +141,7 @@ describe('profileToFormValues', () => {
     targetProteinG: null,
     targetCarbsG: null,
     targetFatG: null,
+    country: 'DO',
     version: 2,
     syncStatus: 'synced',
     updatedAt: '2026-07-01T00:00:00.000Z',

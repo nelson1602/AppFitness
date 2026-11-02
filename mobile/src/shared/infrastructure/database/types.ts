@@ -101,6 +101,8 @@ export interface UserProfileRow extends SyncedRow {
   target_protein_g: number | null;
   target_carbs_g: number | null;
   target_fat_g: number | null;
+  /** v8.1 (migration 010): ISO 3166-1 alpha-2; 'DO' for every pre-existing row. */
+  country: string;
 }
 
 export interface GoalRow extends SyncedRow {

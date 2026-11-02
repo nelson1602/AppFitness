@@ -148,6 +148,8 @@ const PRESENTERS: Readonly<Record<string, EntityPresenter>> = {
       { field: 'target_protein_g', kind: 'number' },
       { field: 'target_carbs_g', kind: 'number' },
       { field: 'target_fat_g', kind: 'number' },
+      // v8.1: ISO 3166-1 alpha-2, shown by its localized name.
+      { field: 'country', kind: 'enum' },
     ],
     hidden: ['occupation'],
   },

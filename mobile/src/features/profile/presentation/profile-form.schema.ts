@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { DEFAULT_COUNTRY, normalizeCountry } from '../domain/country';
 import type { Profile, ProfileInput } from '../domain/profile.types';
 
 /**
@@ -63,6 +64,12 @@ export function createProfileFormSchema(messages: ProfileValidationMessages = DE
     ),
     occupation: z.string().max(120).optional(),
     equipment: z.string().optional(), // comma-separated in the UI; split in the adapter
+    // v8.1: ISO 3166-1 alpha-2, chosen from the curated picker. Optional so a
+    // caller without the field leaves the stored country untouched.
+    country: z
+      .string()
+      .regex(/^[A-Z]{2}$/)
+      .optional(),
   });
 }
 
@@ -92,6 +99,7 @@ export function toProfileInput(values: ProfileFormOutput): ProfileInput {
     stressLevelBaseline: values.stressLevelBaseline ?? null,
     occupation: occupation ? occupation : null,
     equipment,
+    ...(values.country !== undefined ? { country: values.country } : {}),
   };
 }
 
@@ -120,5 +128,6 @@ export function profileToFormValues(profile: Profile | null): ProfileFormInput {
     ) as unknown as ProfileFormInput['stressLevelBaseline'],
     occupation: profile?.occupation ?? '',
     equipment: (profile?.equipment ?? []).join(', '),
+    country: profile ? normalizeCountry(profile.country) : DEFAULT_COUNTRY,
   };
 }

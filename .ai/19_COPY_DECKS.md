@@ -1387,6 +1387,7 @@ meaning is shared, so the set is deduplicated.
 | `sync.conflicts.value.planTrigger.firstRun` | First plan | Primer plan | **SHIPPED** (v8, ADR-P042) |
 | `sync.conflicts.value.planTrigger.weekly` | Monday plan | Plan del lunes | **SHIPPED** (v8, ADR-P042) |
 | `sync.conflicts.value.planTrigger.change` | Confirmed change | Cambio confirmado | **SHIPPED** (v8, ADR-P042) |
+| `sync.conflicts.field.country` | Country | País | **SHIPPED** (v8.1, meal-rules@1.5.0) |
 | `sync.conflicts.field.weight_kg` | Weight | Peso | **SHIPPED** |
 | `sync.conflicts.field.workout_count` | Workouts | Entrenamientos | **SHIPPED** |
 | `sync.conflicts.field.years_training` | Years training | Años entrenando | **SHIPPED** |

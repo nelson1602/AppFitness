@@ -49,6 +49,7 @@ const profile: Profile = {
   targetProteinG: null,
   targetCarbsG: null,
   targetFatG: null,
+  country: 'DO',
   version: 1,
   syncStatus: 'pending',
   updatedAt: '2026-07-08T00:00:00.000Z',

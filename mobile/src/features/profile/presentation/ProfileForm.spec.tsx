@@ -61,6 +61,7 @@ const existingProfile: Profile = {
   targetProteinG: null,
   targetCarbsG: null,
   targetFatG: null,
+  country: 'DO',
   version: 2,
   syncStatus: 'synced',
   updatedAt: '2026-07-01T00:00:00.000Z',
@@ -238,6 +239,62 @@ describe('ProfileForm', () => {
     const options = await pickDate('field-birthDate', '1990-05-14');
     expect(localDateToIso(options.maximumDate as Date)).toBe(localDayOf(new Date()));
     expect(localDateToIso(options.minimumDate as Date)).toBe('1900-01-01');
+  });
+
+  describe('País (v8.1)', () => {
+    async function fillRequired() {
+      await pickDate('field-birthDate', '1990-05-14');
+      await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
+      await fireEvent.press(screen.getByTestId('option-fitnessLevel-INTERMEDIATE'));
+      await fireEvent.press(screen.getByTestId('option-activityLevel-MODERATE'));
+    }
+
+    it('defaults a new profile to the Dominican Republic and saves it', async () => {
+      save.mockResolvedValue(true);
+      setStore({ status: 'ready', profile: null });
+      await render(<ProfileForm onSaved={jest.fn()} />);
+
+      expect(screen.getByTestId('profile-country-value')).toHaveTextContent('Dominican Republic');
+      await fillRequired();
+      await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
+
+      await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({ country: 'DO' }));
+    });
+
+    it('prefills the saved country and saves another one picked from the radio list', async () => {
+      save.mockResolvedValue(true);
+      setStore({ status: 'ready', profile: { ...existingProfile, country: 'MX' } });
+      await render(<ProfileForm onSaved={jest.fn()} />);
+
+      await waitFor(() =>
+        expect(screen.getByTestId('profile-country-value')).toHaveTextContent('Mexico'),
+      );
+      expect(screen.queryByRole('radio', { name: 'Country: Colombia' })).toBeNull();
+      await fireEvent.press(screen.getByRole('button', { name: 'Change country. Now: Mexico' }));
+      expect(screen.getByRole('radio', { name: 'Country: Mexico' })).toBeSelected();
+      expect(screen.getByRole('radio', { name: 'Country: Dominican Republic' })).not.toBeSelected();
+      await fireEvent.press(screen.getByRole('radio', { name: 'Country: Colombia' }));
+
+      // Picking closes the list and shows the choice.
+      expect(screen.queryByRole('radio', { name: 'Country: Colombia' })).toBeNull();
+      expect(screen.getByTestId('profile-country-value')).toHaveTextContent('Colombia');
+      await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
+      await waitFor(() => expect(save).toHaveBeenCalledTimes(1));
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({ country: 'CO' }));
+    });
+
+    it('names the country in Spanish', async () => {
+      mockLanguage = 'es';
+      setStore({ status: 'ready', profile: null });
+      await render(<ProfileForm onSaved={jest.fn()} />);
+
+      expect(screen.getByText('País')).toBeOnTheScreen();
+      expect(screen.getByTestId('profile-country-value')).toHaveTextContent('República Dominicana');
+      expect(
+        screen.getByText('Con República Dominicana, tu plan de comidas usa platos dominicanos.'),
+      ).toBeOnTheScreen();
+    });
   });
 
   it('renders the web-unavailable state in Spanish', async () => {

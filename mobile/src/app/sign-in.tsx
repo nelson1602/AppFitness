@@ -7,6 +7,8 @@ import { landingRouteFor } from '@/features/authentication/application/access-ga
 import { meetsPasswordPolicy } from '@/features/authentication/domain/password-policy';
 import { PasswordChecklist } from '@/features/authentication/presentation/password-checklist';
 import { PrivacyPolicyLink } from '@/features/legal/presentation/privacy-policy-link';
+import { deviceDefaultCountry, rememberMySignupCountry } from '@/features/profile';
+import { CountrySelect } from '@/features/profile/presentation/CountrySelect';
 import {
   AuthScreen,
   HERO_MIN_HEIGHT,
@@ -70,6 +72,8 @@ export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  // v8.1: "País" — preselected from the device region, else República Dominicana.
+  const [country, setCountry] = useState<string>(deviceDefaultCountry);
   const [loading, setLoading] = useState(false);
   const [errorReason, setErrorReason] = useState<AuthErrorReason | null>(null);
   const [policyError, setPolicyError] = useState(false);
@@ -119,6 +123,9 @@ export default function SignInScreen() {
       // an error for it — a superseded attempt acted for an account the user no
       // longer asked for.
       if (outcome.status === 'superseded') return;
+      // v8.1: the profile does not exist yet; the country waits on the device
+      // until the evaluation creates it. Never blocks sign-up (failures are logged).
+      if (mode === 'register') await rememberMySignupCountry(outcome.session.user.id, country);
       // ADR-P041 D2: an unverified account lands on "Verifica tu correo".
       // After sign-up the first email is already on its way, so resend waits.
       const landing = landingRouteFor(outcome.session.user);
@@ -220,6 +227,9 @@ export default function SignInScreen() {
               testID="input-username"
               value={username}
             />
+          ) : null}
+          {mode === 'register' ? (
+            <CountrySelect onChange={setCountry} testID="input-country" value={country} />
           ) : null}
           <StageField
             accessory={
