@@ -10,6 +10,7 @@ import type {
   WorkoutProgressionRule,
 } from '@/features/icoach';
 import { useProfileStore } from '@/features/profile/application/profile.store';
+import { useTabPagerSwipeExclusion } from '@/features/shell/presentation/tab-pager-gesture';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { planAsRoutine } from '@/features/weekly-plan/domain/plan-routine';
 // Direct import: the barrel would also load the subscription store composition.
@@ -330,12 +331,14 @@ function WeekStrip({
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
   const { t } = useLocalization();
+  const tabSwipeExclusion = useTabPagerSwipeExclusion();
   return (
     <ScrollView
       accessibilityLabel={t('workout.plan.weekStrip')}
       accessibilityRole="tablist"
       contentContainerStyle={[styles.row, { flexGrow: 1, gap: spacing.xs }]}
       horizontal
+      {...tabSwipeExclusion}
       showsHorizontalScrollIndicator={false}
     >
       {WEEKDAYS.map((weekday) => {

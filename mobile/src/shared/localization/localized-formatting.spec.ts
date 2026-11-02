@@ -119,6 +119,8 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
     'a caller-supplied date or chip — a composition slot, not a value',
   'src/features/shell/presentation/tab-screen.tsx#TabScreen: children':
     "the tab's content — a composition slot, not a value",
+  'src/features/shell/presentation/tab-pager-gesture.tsx#TabPagerGestureProvider: children':
+    "the pager page's content — a composition slot, not a value",
   // The auth screens' shared frame (stage + centred column) renders the route's
   // content as-is; it owns no copy and no numeric value of its own.
   'src/features/authentication/presentation/auth-screen.tsx#AuthScreen: children':

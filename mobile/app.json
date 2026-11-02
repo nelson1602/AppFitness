@@ -4,25 +4,25 @@
     "slug": "appfitness",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/brand/appfitnessrd-icon-v2.png",
+    "icon": "./assets/brand/appfitnessrd-icon-v4.png",
     "scheme": "appfitness",
     "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.appfitnessrd.mobile",
-      "icon": "./assets/brand/appfitnessrd-icon-v2.png"
+      "icon": "./assets/brand/appfitnessrd-icon-v4.png"
     },
     "android": {
       "package": "com.appfitnessrd.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#002C8F",
-        "foregroundImage": "./assets/brand/appfitnessrd-adaptive-foreground-v2.png",
-        "monochromeImage": "./assets/brand/appfitnessrd-adaptive-monochrome-v2.png"
+        "foregroundImage": "./assets/brand/appfitnessrd-adaptive-foreground-v3.png",
+        "monochromeImage": "./assets/brand/appfitnessrd-adaptive-monochrome-v3.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/brand/appfitnessrd-favicon-v2.png"
+      "favicon": "./assets/brand/appfitnessrd-favicon-v4.png"
     },
     "plugins": [
       "expo-router",
@@ -30,8 +30,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#002C8F",
-          "image": "./assets/brand/appfitnessrd-mark-v1.png",
-          "imageWidth": 168
+          "image": "./assets/brand/appfitnessrd-adaptive-foreground-v3.png",
+          "imageWidth": 220
         }
       ],
       "expo-sqlite",

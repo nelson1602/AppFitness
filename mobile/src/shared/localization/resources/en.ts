@@ -1764,6 +1764,8 @@ export const en = {
   'subscription.readOnlyBody':
     'Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new iCoach plan.',
   'subscription.open': 'View subscription',
+  'legal.privacyPolicy': 'Privacy policy',
+  'legal.privacyPolicyAccessibility': 'Open the AppFitnessRD privacy policy',
 } as const;
 
 export type TranslationKey = keyof typeof en;

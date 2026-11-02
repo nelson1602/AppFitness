@@ -6,6 +6,7 @@ import { signOut } from '@/features/authentication';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-home-data';
 import { AccountSettingsSection } from '@/features/dashboard/presentation/AccountSettingsSection';
+import { PrivacyPolicyLink } from '@/features/legal/presentation/privacy-policy-link';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
 import {
   formatDate,
@@ -217,6 +218,7 @@ export function ProfileTab() {
           testID="profile-subscription"
         />
         <LanguageSelector appearance="stage" />
+        <PrivacyPolicyLink testID="profile-privacy-policy" />
       </Panel>
 
       {/* Sign-out clears the session; the tab's session guard then redirects

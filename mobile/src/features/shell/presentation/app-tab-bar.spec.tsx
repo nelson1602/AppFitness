@@ -1,8 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import type { BottomTabBarProps } from 'expo-router/tabs';
-
 import { AppTabBar } from './app-tab-bar';
-import { TABS } from './tab-config';
 
 let mockLanguage: 'en' | 'es' = 'en';
 
@@ -19,20 +16,15 @@ jest.mock('@/shared/localization', () => {
   };
 });
 
-const emit = jest.fn(() => ({ defaultPrevented: false }));
-const navigate = jest.fn();
+const select = jest.fn();
 
-function props(index: number): BottomTabBarProps {
-  return {
-    state: {
-      index,
-      routes: TABS.map((tab) => ({ key: `${tab.name}-key`, name: tab.name })),
-    },
-    navigation: { emit, navigate },
-    insets: { top: 0, bottom: 24, left: 0, right: 0 },
-    descriptors: {},
-  } as unknown as BottomTabBarProps;
+function props(index: number) {
+  return { activeIndex: index, onSelect: select };
 }
+
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 24, left: 0, right: 0 }),
+}));
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -65,26 +57,17 @@ describe('AppTabBar (ADR-P039 D1)', () => {
     expect(screen.queryByText('Profile')).toBeNull();
   });
 
-  it('emits tabPress and then navigates to an inactive tab', async () => {
+  it('selects an inactive tab', async () => {
     await render(<AppTabBar {...props(0)} />);
     await fireEvent.press(screen.getByTestId('tab-profile'));
 
-    expect(emit).toHaveBeenCalledWith({
-      type: 'tabPress',
-      target: 'profile-key',
-      canPreventDefault: true,
-    });
-    expect(navigate).toHaveBeenCalledWith('profile');
+    expect(select).toHaveBeenCalledWith(4);
   });
 
-  it('does not navigate again to the tab already shown, or when tabPress is prevented', async () => {
+  it('delegates a press on the tab already shown so the shell owns the no-op', async () => {
     await render(<AppTabBar {...props(0)} />);
     await fireEvent.press(screen.getByTestId('tab-dashboard'));
-    expect(navigate).not.toHaveBeenCalled();
-
-    emit.mockReturnValueOnce({ defaultPrevented: true });
-    await fireEvent.press(screen.getByTestId('tab-workouts'));
-    expect(navigate).not.toHaveBeenCalled();
+    expect(select).toHaveBeenCalledWith(0);
   });
 
   it('names the tabs in Spanish', async () => {

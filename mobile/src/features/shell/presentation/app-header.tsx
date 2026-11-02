@@ -1,4 +1,3 @@
-import type { BottomTabHeaderProps } from 'expo-router/tabs';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,14 +20,14 @@ import { tabOf } from './tab-config';
  * only — on Web the notification state lives in the dormant local database
  * (ADR-P019), so there is nothing truthful to count.
  */
-export function AppHeader({ route }: BottomTabHeaderProps) {
+export function AppHeader({ routeName }: { routeName: string }) {
   const { colors, radius, spacing } = useTheme();
   const { language, t } = useLocalization();
   const insets = useSafeAreaInsets();
   const { session } = useSession();
-  const tab = tabOf(route.name);
+  const tab = tabOf(routeName);
   const title =
-    route.name === 'dashboard' && session
+    routeName === 'dashboard' && session
       ? interpolate(t('header.greeting'), { name: session.user.username })
       : tab
         ? t(tab.labelKey)

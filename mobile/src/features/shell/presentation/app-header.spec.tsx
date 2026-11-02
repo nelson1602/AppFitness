@@ -1,5 +1,4 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
-import type { BottomTabHeaderProps } from 'expo-router/tabs';
 import { Platform } from 'react-native';
 
 import type { AppNotification } from '@/features/notifications';
@@ -57,7 +56,7 @@ const WEIGH: AppNotification = {
 };
 
 function header(name: string) {
-  return { route: { key: `${name}-key`, name } } as unknown as BottomTabHeaderProps;
+  return { routeName: name };
 }
 
 function navigate() {

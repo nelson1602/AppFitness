@@ -6033,12 +6033,12 @@ Open Food Facts is dropped.
 
 ## [FEATURE-016] versionCode 8 Release — Prototype Parity (owner scope 2026-10-26)
 
-Status: In Progress (Block 1 in review; Block 2 implemented, in review)
+Status: In Progress (Blocks 1–3 merged; Block 4 in delivery)
 Priority: P1
 Type: Feature
 Owner: Project owner (decisions, merges) · Engineering (delivery)
 Created: 2026-10-26
-Updated: 2026-10-26
+Updated: 2026-10-27
 
 ### Description
 
@@ -6047,17 +6047,17 @@ The versionCode 6 Android test did not match `docs/design/appfitnessrd-prototipo
 1. Sign-up security: password policy and mandatory email verification (ADR-P041).
 2. First-run flow: verify email → Evaluación física (6 steps) → iCoach "Creando tu plan personal" → "Tu meta te espera" → Panel. The wizard is reused from Perfil → "Actualizar evaluación". ADR-P040 is accepted for this. The injury map goes in `docs/design/INJURY_EXERCISE_MAP.md`, conservative and pending professional review. "Otra lesión" free text and the SECURITY-002 medical fields stay out. The food group "Restricciones médicas" becomes "Otras restricciones".
 3. Restyle every remaining screen to the stage design, and replace every AAAA-MM-DD text field with a native date picker (`@react-native-community/datetimepicker`, with an ADR entry).
-4. Visual fixes: the band under the tab header, title+chip rows, and the 200% text breaks.
-5. Privacy-policy links (sign-up and Perfil), the new app icon, and syncing `docs/legal/PRIVACY_POLICY.md` with the published text.
+4. Visual fixes, the approved app icon, bilingual privacy-policy links and native swipe navigation across the five tabs (`react-native-pager-view`, ADR-P044).
+5. Reset-password title cleanup, legal-policy/Data Safety reconciliation, full ES/EN copy and largest-font review.
 
 ### Acceptance Criteria
 
-* [ ] Block 1 — ADR-P041: the API password policy and `EMAIL_NOT_VERIFIED` guard; the app's live checklist, "Verifica tu correo" screen and access gate; tests; Spanish screenshots in `dist/v8-review/block-1/`
-* [ ] Before merging Block 1, the owner verifies the Google Play reviewer account and updates its credentials in Play Console
-* [ ] Block 2 — first-run wizard and engine mapping, with migrations: the Evaluación física (6 steps) and its first-run gate; the saved weekly plan (ADR-P042) with session/meal links, "Lo comí", the change prompt, the off-plan overlay and "Semanas anteriores"; injury map (ADR-P040 D5), band equipment, avoid tags and the Dominican foods seed; date picker (ADR-P043); a development-only sample of four past weeks
-* [ ] Block 3 — every screen on the stage design, plus native date pickers
-* [ ] Block 4 — visual fixes
-* [ ] Block 5 — privacy links, icon, policy sync
+* [x] Block 1 — ADR-P041 password policy, mandatory verification and reviewer account (PR #239)
+* [x] Block 2 — first-run evaluation, saved weekly plan and deterministic iCoach rules (PR #240)
+* [x] BUG-044 food-log sync prerequisite (PR #241)
+* [x] Block 3 — remaining stage restyle, native dates and BUG-045 (PR #242)
+* [ ] Block 4 — visual fixes, icon, privacy links and native tab swipe (ADR-P044)
+* [ ] Block 5 — reset-title cleanup, policy/Data Safety reconciliation and copy/large-text pass
 * [ ] Each block: its screens run against the local API, with Spanish screenshots in `dist/v8-review/block-N/`
 * [ ] Before the build: the full first-run flow on the emulator, with a brand-new account against Railway Development, and Spanish screenshots of every screen in `dist/v8-review/`
 

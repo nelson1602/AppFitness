@@ -1,30 +1,44 @@
-import { Tabs } from 'expo-router/tabs';
+import { Redirect, usePathname } from 'expo-router';
+import { Platform } from 'react-native';
 
-import { AppHeader } from '@/features/shell/presentation/app-header';
-import { AppTabBar } from '@/features/shell/presentation/app-tab-bar';
-import { TABS } from '@/features/shell/presentation/tab-config';
-import { useTheme } from '@/shared/theme';
+import { useSession } from '@/features/authentication';
+import { landingRouteFor } from '@/features/authentication/application/access-gate';
+import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
+import { useEvaluationGate } from '@/features/evaluation/application/evaluation-gate.store';
+import { useWelcomePending } from '@/features/shell/application/welcome-gate';
+import { TabShell } from '@/features/shell/presentation/tab-shell';
+import { TABS, type TabName } from '@/features/shell/presentation/tab-config';
+import { Screen } from '@/shared/presentation';
 
 /**
- * The five-tab shell (ADR-P039 D1), on the stable JS tabs that expo-router
- * vendors — no new dependency. Each tab route keeps its own session guard;
- * the spokes (food log, routines, edit screens…) stay Stack routes above.
- * Web renders the same shell (D2, Option A).
+ * The five-tab shell (ADR-P039 D1 and ADR-P044). Native pages use the approved
+ * pager dependency; Web keeps URL/tab-bar navigation. Stack spokes (food log,
+ * routines and edit screens) stay outside the pager.
  */
 export default function TabsLayout() {
-  const { colors } = useTheme();
+  const pathname = usePathname();
+  const { status, session } = useSession();
+  const evaluation = useEvaluationGate((state) => state.status);
+  const welcomePending = useWelcomePending();
+  const active = TABS.find((tab) => pathname === tab.href || pathname.endsWith(tab.href));
+  const activeName: TabName = active?.name ?? 'dashboard';
 
-  return (
-    <Tabs
-      screenOptions={{
-        header: (props) => <AppHeader {...props} />,
-        sceneStyle: { backgroundColor: colors.stage },
-      }}
-      tabBar={(props) => <AppTabBar {...props} />}
-    >
-      {TABS.map((tab) => (
-        <Tabs.Screen key={tab.name} name={tab.name} />
-      ))}
-    </Tabs>
-  );
+  if (status === 'unknown')
+    return (
+      <Screen>
+        <DashboardSkeleton />
+      </Screen>
+    );
+  if (status !== 'authenticated' || !session) return <Redirect href="/sign-in" />;
+  if (landingRouteFor(session.user) !== '/dashboard') return <Redirect href="/verify-pending" />;
+  if (evaluation === 'owed') return <Redirect href="/evaluation" />;
+  if (evaluation !== 'done')
+    return (
+      <Screen>
+        <DashboardSkeleton />
+      </Screen>
+    );
+  if (welcomePending && Platform.OS !== 'web') return <Redirect href="/welcome" />;
+
+  return <TabShell activeName={activeName} />;
 }

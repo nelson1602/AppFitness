@@ -7,12 +7,17 @@ import type { IconName } from '@/shared/presentation';
  * `/nutrition`, `/progress`) are unchanged.
  */
 export const TABS = [
-  { name: 'dashboard', labelKey: 'tabs.home', icon: 'home' },
-  { name: 'workouts', labelKey: 'tabs.workouts', icon: 'dumbbell' },
-  { name: 'nutrition', labelKey: 'tabs.nutrition', icon: 'food' },
-  { name: 'progress', labelKey: 'tabs.progress', icon: 'chart' },
-  { name: 'profile', labelKey: 'tabs.profile', icon: 'user' },
-] as const satisfies readonly { name: string; labelKey: TranslationKey; icon: IconName }[];
+  { name: 'dashboard', href: '/dashboard', labelKey: 'tabs.home', icon: 'home' },
+  { name: 'workouts', href: '/workouts', labelKey: 'tabs.workouts', icon: 'dumbbell' },
+  { name: 'nutrition', href: '/nutrition', labelKey: 'tabs.nutrition', icon: 'food' },
+  { name: 'progress', href: '/progress', labelKey: 'tabs.progress', icon: 'chart' },
+  { name: 'profile', href: '/profile', labelKey: 'tabs.profile', icon: 'user' },
+] as const satisfies readonly {
+  name: string;
+  href: `/${string}`;
+  labelKey: TranslationKey;
+  icon: IconName;
+}[];
 
 export type TabName = (typeof TABS)[number]['name'];
 
