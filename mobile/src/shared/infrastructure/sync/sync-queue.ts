@@ -343,6 +343,40 @@ export async function removeParkedOperation(
   return result.changes;
 }
 
+export interface UnsyncedRecord {
+  entityType: string;
+  operation: string;
+  status: string;
+  retryCount: number;
+  lastError: string | null;
+}
+
+/**
+ * The rows still waiting to reach the server, oldest first, without their
+ * payloads (v8.1): what is stuck and why, for the sync details on Perfil.
+ */
+export async function listUnsynced(userId: string, limit = 10): Promise<UnsyncedRecord[]> {
+  const rows = await queryAll<{
+    entity_type: string;
+    operation: string;
+    status: string;
+    retry_count: number;
+    last_error: string | null;
+  }>(
+    `SELECT entity_type, operation, status, retry_count, last_error FROM sync_queue
+     WHERE user_id = ? AND status IN ('PENDING', 'IN_FLIGHT', 'FAILED')
+     ORDER BY rowid LIMIT ?`,
+    [userId, limit],
+  );
+  return rows.map((row) => ({
+    entityType: row.entity_type,
+    operation: row.operation,
+    status: row.status,
+    retryCount: row.retry_count,
+    lastError: row.last_error,
+  }));
+}
+
 export async function countByStatus(userId: string): Promise<Record<string, number>> {
   const rows = await queryAll<{ status: string; n: number }>(
     `SELECT status, COUNT(*) AS n FROM sync_queue WHERE user_id = ? GROUP BY status`,

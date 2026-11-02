@@ -17,6 +17,21 @@ export interface DashboardAssessment {
   notes: DataRequirement[];
 }
 
+/**
+ * Why the last sync run ended without pushing (v8.1): the session could not
+ * be renewed, the account cannot write, or something failed on the device.
+ */
+export type SyncProblem = 'session' | 'subscription' | 'unexpected';
+
+/** A queued change still waiting for the server, without its payload. */
+export interface UnsyncedChange {
+  entityType: string;
+  operation: string;
+  status: string;
+  retryCount: number;
+  lastError: string | null;
+}
+
 export interface SyncSummary {
   pending: number;
   inFlight: number;
@@ -25,6 +40,10 @@ export interface SyncSummary {
   status: SyncUiStatus;
   lastSyncedAt: string | null;
   message: string | null;
+  /** Set with `status: 'error'`: the reason shown instead of a generic error. */
+  problem?: SyncProblem;
+  /** The oldest unsynced changes, for the sync details on Perfil. */
+  unsynced?: readonly UnsyncedChange[];
 }
 
 /**

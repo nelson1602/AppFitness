@@ -45,6 +45,9 @@ export const SYNC_ERROR_CODES = {
   CATALOG_REVISION_UNSUPPORTED: 'CATALOG_REVISION_UNSUPPORTED',
 } as const;
 
+/** `last_error` prefix for a queued row whose payload this device cannot read. */
+export const UNREADABLE_PAYLOAD = 'payload_unreadable';
+
 export type SyncOutcome = 'success' | 'unauthenticated' | 'offline' | 'subscription-required';
 
 export interface SyncReport {
@@ -61,6 +64,8 @@ export interface SyncReport {
   skippedPending: number;
   /** Abandoned `IN_FLIGHT` ops returned to the queue for replay (BUG-030). */
   recovered: number;
+  /** Queued rows whose payload could not be read; failed with backoff (v8.1). */
+  unreadable: number;
 }
 
 export interface SyncDeps {
@@ -107,6 +112,7 @@ async function executeSync(deps: SyncDeps): Promise<SyncReport> {
     pulledApplied: 0,
     skippedPending: 0,
     recovered: 0,
+    unreadable: 0,
   };
   if (!deps.getToken()) {
     return { ...report, outcome: 'unauthenticated' };
@@ -168,16 +174,32 @@ async function pushLoop(
       now(),
     );
 
-    // Decode payloads (decrypting sensitive envelopes just-in-time).
+    // Decode payloads (decrypting sensitive envelopes just-in-time). A row
+    // this device cannot read fails on its own, with its reason, instead of
+    // aborting the run and stranding every queued row behind it (v8.1).
     const decoded = new Map<string, { payload: Record<string, unknown>; sensitive: boolean }>();
+    const readable: typeof batch = [];
     for (const row of batch) {
-      decoded.set(row.op_id, await readQueuePayload(row));
+      try {
+        decoded.set(row.op_id, await readQueuePayload(row));
+        readable.push(row);
+      } catch (error) {
+        logWarn('sync.push', `unreadable payload for ${row.entity_type}`);
+        await markFailed(
+          userId,
+          row.op_id,
+          `${UNREADABLE_PAYLOAD}: ${describeError(error)}`,
+          now(),
+        );
+        report.unreadable += 1;
+      }
     }
+    if (readable.length === 0) continue;
 
     let results;
     try {
       results = await transport.push(
-        batch.map((row) => ({
+        readable.map((row) => ({
           opId: row.op_id,
           entityType: row.entity_type,
           entityId: row.entity_id,
@@ -190,19 +212,19 @@ async function pushLoop(
       if (error instanceof SyncHttpError && error.status === 402) {
         await returnInFlightToPending(
           userId,
-          batch.map((row) => row.op_id),
+          readable.map((row) => row.op_id),
           now(),
         );
         return 'subscription-required';
       }
       // Whole-batch failure (network/server/auth): schedule retries and stop.
-      for (const row of batch) {
+      for (const row of readable) {
         await markFailed(userId, row.op_id, describeError(error), now());
       }
       return error instanceof SyncHttpError && error.status === 401 ? 'unauthenticated' : 'offline';
     }
 
-    const byOpId = new Map(batch.map((row) => [row.op_id, row]));
+    const byOpId = new Map(readable.map((row) => [row.op_id, row]));
     for (const result of results) {
       const row = byOpId.get(result.opId);
       if (!row) continue;
@@ -285,7 +307,7 @@ async function pushLoop(
     // replayed duplicate bumps no sequence, so the row would never be re-pulled
     // and would stay 'pending'.
     const answered = new Set(results.map((result) => result.opId));
-    const unanswered = batch.filter((row) => !answered.has(row.op_id));
+    const unanswered = readable.filter((row) => !answered.has(row.op_id));
     if (unanswered.length > 0) {
       logWarn('sync.push', `incomplete response: ${unanswered.length} operation(s) unanswered`);
       return 'offline';

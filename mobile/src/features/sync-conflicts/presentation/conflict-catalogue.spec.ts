@@ -179,10 +179,10 @@ describe('catalogue parity', () => {
   // (+1, 1581); and the note when the engine caps the chosen training days
   // (+1, 1582); the training-days progression prompt and history note
   // (+2, 1584); the plural unit names (+3, 1587); the restyled meal plan (+8 new, -3 no longer shown, 1592); the restyled workout plan (+6 new, -5 no longer shown, 1593); native date pickers on the remaining forms (+1, -5 placeholders, 1589); in-page titles that repeated the header (-6, 1583); the privacy-policy link (+2, 1585); the reset-password headline that repeated the header (-1, 1584); and the Salud hints that named conditions (-5, 1579).
-  // v8.1 then added the birth-date wheel's Día / Mes / Año column names and its open hint (+4, 1583).
-  it('reaches 1583 keys in each language — 1424 shipped plus a 159-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1583);
-    expect(Object.keys(es)).toHaveLength(1583);
+  // v8.1 then added the birth-date wheel's Día / Mes / Año column names and its open hint (+4, 1583), and the sync reasons and details on Perfil (+14, 1597).
+  it('reaches 1597 keys in each language — 1438 shipped plus a 159-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1597);
+    expect(Object.keys(es)).toHaveLength(1597);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(165);
   });
 

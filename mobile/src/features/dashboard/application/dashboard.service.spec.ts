@@ -38,6 +38,17 @@ jest.mock('@/features/profile', () => ({
 jest.mock('@/shared/infrastructure/sync', () => ({
   countByStatus: jest.fn(() => Promise.resolve({})),
   listUnsettledConflicts: jest.fn(() => Promise.resolve([])),
+  listUnsynced: jest.fn(() =>
+    Promise.resolve([
+      {
+        entityType: 'goals',
+        operation: 'CREATE',
+        status: 'FAILED',
+        retryCount: 1,
+        lastError: 'http_500',
+      },
+    ]),
+  ),
 }));
 jest.mock('./icoach-adapter', () => ({
   buildDashboardAssessment: jest.fn(),
@@ -169,6 +180,16 @@ describe('dashboard service', () => {
       status: 'idle',
       lastSyncedAt: null,
       message: null,
+      // v8.1: what is still waiting, for the sync details on Perfil.
+      unsynced: [
+        {
+          entityType: 'goals',
+          operation: 'CREATE',
+          status: 'FAILED',
+          retryCount: 1,
+          lastError: 'http_500',
+        },
+      ],
     });
   });
 

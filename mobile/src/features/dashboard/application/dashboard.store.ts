@@ -115,6 +115,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
                 : outcome.outcome === 'offline'
                   ? 'Offline - showing local data.'
                   : 'Sync needs attention.',
+            // v8.1: say why, instead of one generic "needs attention".
+            ...(outcome.outcome === 'unauthenticated'
+              ? { problem: 'session' as const }
+              : outcome.outcome === 'subscription-required'
+                ? { problem: 'subscription' as const }
+                : {}),
           },
         },
         status: resolveStatus(data),
@@ -125,7 +131,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const data = await loadDashboardData();
       if (owner && !isSessionCurrent(owner)) return;
       set({
-        data: { ...data, sync: { ...data.sync, status: 'error', message: 'Sync failed.' } },
+        data: {
+          ...data,
+          sync: { ...data.sync, status: 'error', message: 'Sync failed.', problem: 'unexpected' },
+        },
         status: resolveStatus(data),
       });
     }
