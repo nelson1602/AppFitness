@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 
-import { translate } from './i18n';
+import { translatorFor } from './i18n';
 import {
   getLanguageSnapshot,
   initializeLanguage,
@@ -19,5 +19,7 @@ export function useLocalization() {
     void initializeLanguage();
   }, []);
 
-  return { ...current, setLanguagePreference, t: translate };
+  // `t` follows the published language, so compiled components re-render
+  // their strings on a live language switch.
+  return { ...current, setLanguagePreference, t: translatorFor(current.language) };
 }
