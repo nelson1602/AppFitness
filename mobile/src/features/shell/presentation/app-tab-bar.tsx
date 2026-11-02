@@ -1,11 +1,18 @@
-import type { BottomTabBarProps } from 'expo-router/tabs';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLocalization } from '@/shared/localization';
 import { backgroundImageStyle, ctaBackgroundImage, Icon } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import { tabOf } from './tab-config';
+import { TABS } from './tab-config';
+
+export interface AppTabBarProps {
+  activeIndex: number;
+  onSelect: (index: number) => void;
+  progress?: Animated.Value | Animated.AnimatedInterpolation<number>;
+}
 
 /**
  * The design's pill tab bar for the stable expo-router `Tabs` (ADR-P039 D1).
@@ -14,10 +21,13 @@ import { tabOf } from './tab-config';
  * gradient pill that shows its label, and it is `selected` to assistive
  * technology. Inactive tabs are icon-only, each named by its label.
  */
-export function AppTabBar({ state, navigation, insets }: BottomTabBarProps) {
+export function AppTabBar({ activeIndex, onSelect, progress }: AppTabBarProps) {
   const theme = useTheme();
   const { colors, radius, spacing, typography } = theme;
   const { t } = useLocalization();
+  const insets = useSafeAreaInsets();
+  const settledProgress = useMemo(() => new Animated.Value(activeIndex), [activeIndex]);
+  const pageProgress = progress ?? settledProgress;
 
   return (
     <View
@@ -32,26 +42,21 @@ export function AppTabBar({ state, navigation, insets }: BottomTabBarProps) {
       testID="tab-bar"
     >
       <View accessibilityRole="tablist" style={[styles.row, { gap: spacing.xs }]} testID="tab-list">
-        {state.routes.map((route, index) => {
-          const tab = tabOf(route.name);
-          if (!tab) return null;
-          const focused = state.index === index;
+        {TABS.map((tab, index) => {
+          const focused = activeIndex === index;
           const label = t(tab.labelKey);
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-            if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
-          };
+          const opacity = pageProgress.interpolate({
+            inputRange: [index - 1, index, index + 1],
+            outputRange: [0, 1, 0],
+            extrapolate: 'clamp',
+          });
           return (
             <Pressable
               accessibilityLabel={label}
               accessibilityRole="tab"
               accessibilityState={{ selected: focused }}
-              key={route.key}
-              onPress={onPress}
+              key={tab.name}
+              onPress={() => onSelect(index)}
               style={[
                 styles.tab,
                 {
@@ -61,12 +66,18 @@ export function AppTabBar({ state, navigation, insets }: BottomTabBarProps) {
                   minWidth: theme.spacing.x5l,
                   paddingHorizontal: focused ? spacing.md : 0,
                 },
-                focused
-                  ? backgroundImageStyle(ctaBackgroundImage(colors), colors.ctaStart)
-                  : undefined,
               ]}
-              testID={`tab-${route.name}`}
+              testID={`tab-${tab.name}`}
             >
+              <Animated.View
+                pointerEvents="none"
+                style={[
+                  StyleSheet.absoluteFill,
+                  backgroundImageStyle(ctaBackgroundImage(colors), colors.ctaStart),
+                  { borderRadius: radius.full, opacity },
+                ]}
+                testID={`tab-${tab.name}-pill`}
+              />
               <Icon
                 color={focused ? colors.onCta : colors.onStageVariant}
                 name={tab.icon}

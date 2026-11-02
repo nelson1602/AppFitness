@@ -15185,6 +15185,64 @@ Amends: ADR-P037 (redesign dependencies)
 
 ---
 
+## ADR-P044 — Native Swipe Navigation for the Five Main Tabs
+
+Status: Accepted
+Date: 2026-10-27
+Accepted: 2026-10-27 by the project owner (versionCode 8 Block 4 scope).
+Owner: Mobile Architecture / Accessibility
+Amends: ADR-P039 D1
+
+### Context
+
+The owner requires Instagram-like horizontal paging between Inicio,
+Entrenamientos, Nutrición, Progreso and Perfil. The page must follow the finger
+and the selected tab treatment must animate with it. Stack screens and Web keep
+their existing navigation, and nested horizontal controls retain their gesture.
+
+### Decision
+
+1. Install Expo's compatible `react-native-pager-view` version with
+   `npx expo install`. It is used only by the native five-tab shell.
+2. The native tab shell is expo-router's vendored material top tabs
+   (`expo-router/js-top-tabs`, `withLayoutContext`) with
+   `tabBarPosition="bottom"`, the design's `AppTabBar` as the custom tab bar,
+   `lazy` pages (one neighbour preloaded) and the five tabs in the order
+   defined by `tab-config.ts`. The navigator owns the pages, so they stay
+   mounted while the URL changes. It needs `react-native-tab-view` (JS only,
+   pinned exactly), which renders over `react-native-pager-view`.
+
+   Amended 2026-11-02 by the owner: the first implementation drove
+   `PagerView` by hand from the URL. On an Android device the pager never
+   swiped, and a tab press under reduce motion crashed in ViewPager2
+   ("Scrapped or attached views may not be recycled"). The navigator replaces
+   it.
+3. Web renders the active route and tab bar without importing or enabling the
+   native pager. Stack routes remain outside the pager, preserving back gestures.
+4. While a screen reader or reduce-motion preference is active, the navigator
+   runs with `swipeEnabled=false` and `animationEnabled=false`. Tab-bar
+   selection then changes pages instantly, and the new active tab is announced.
+5. Horizontal scrollers inside a tab retain their gesture. The current five
+   top-level tab surfaces contain no horizontal scroller; the 15-day strip and
+   workout-week strip live on Stack spokes and therefore never compete with the
+   pager. A future horizontal control added directly to a main tab requires a
+   gesture-conflict regression test before shipping.
+
+### Consequences
+
+- Positive: native users can move between the five primary destinations with a
+  direct gesture while URLs, tab presses and accessibility state stay aligned.
+- Negative: this adds a native dependency (`react-native-pager-view`) plus a
+  JS one (`react-native-tab-view`), and requires a new store binary. Visited
+  tab surfaces stay mounted; their focus-driven refreshes must remain
+  idempotent and performance must be checked on the release build.
+
+### Related Documents
+
+ADR-P039, ADR-P035 D5, `docs/design/README.md` §Panel, `.ai/11_BACKLOG.md` FEATURE-016
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

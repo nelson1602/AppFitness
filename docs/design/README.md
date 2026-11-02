@@ -64,6 +64,13 @@ El usuario registra los resultados de su evaluación con el médico.
 
 ### Panel (pestañas Inicio, Entrenamientos, Nutrición, Progreso, Perfil)
 La pestaña activa muestra su nombre; las demás, solo el ícono.
+- **Navegación horizontal:** en Android e iOS se puede deslizar a izquierda o derecha
+  en el cuerpo de una pestaña para ir a la pestaña anterior o siguiente; la página
+  sigue el dedo y la píldora activa acompaña el cambio. Los controles horizontales
+  internos conservan su propio gesto. Con lector de pantalla o reducción de
+  movimiento no hay paginación animada. Web conserva únicamente la barra de
+  pestañas. Las pantallas que se abren encima del Panel mantienen el gesto normal
+  de volver.
 - **Encabezado:** fecha, saludo y campanita con el número de notificaciones sin leer. Al tocarla se abre la lista; cada notificación lleva a su pantalla y hay "Marcar todo como leído".
 - **Inicio:**
   - Tarjeta "Tu meta te espera" con anillo de entrenamientos de la semana (naranja; **verde al completar la semana**) y avance de peso hacia la meta.

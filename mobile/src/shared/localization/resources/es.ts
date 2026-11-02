@@ -1785,4 +1785,6 @@ export const es = {
   'subscription.readOnlyBody':
     'Tus datos guardados están seguros y disponibles. Renueva o restaura tu suscripción para guardar cambios, sincronizar ediciones, resolver conflictos o generar un plan nuevo de iCoach.',
   'subscription.open': 'Ver suscripción',
+  'legal.privacyPolicy': 'Política de privacidad',
+  'legal.privacyPolicyAccessibility': 'Abrir la política de privacidad de AppFitnessRD',
 } as const satisfies Record<TranslationKey, string>;

@@ -6,6 +6,7 @@ import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/auth
 import { landingRouteFor } from '@/features/authentication/application/access-gate';
 import { meetsPasswordPolicy } from '@/features/authentication/domain/password-policy';
 import { PasswordChecklist } from '@/features/authentication/presentation/password-checklist';
+import { PrivacyPolicyLink } from '@/features/legal/presentation/privacy-policy-link';
 import {
   AuthScreen,
   HERO_MIN_HEIGHT,
@@ -275,6 +276,7 @@ export default function SignInScreen() {
           >
             {mode === 'register' ? t('auth.useExistingAccount') : t('auth.createAccount')}
           </AppButton>
+          {mode === 'register' ? <PrivacyPolicyLink testID="register-privacy-policy" /> : null}
         </GlassCard>
 
         <LanguageSelector appearance="stage" />
