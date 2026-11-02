@@ -6,7 +6,8 @@ import type { PlanInputs } from './weekly-plan';
  */
 
 /** The changes that may regenerate the current week, once the person confirms. */
-export type PlanInputChange = 'goal' | 'trainingDays' | 'equipment' | 'injuries' | 'excludedFoods';
+export type PlanInputChange =
+  'goal' | 'trainingDays' | 'equipment' | 'injuries' | 'excludedFoods' | 'country';
 
 /** What the change prompt can offer: an input change, or one more training day (ADR-P040 D11). */
 export type PlanChange = PlanInputChange | 'moreDays';
@@ -17,6 +18,7 @@ export const PLAN_INPUT_CHANGES: readonly PlanInputChange[] = [
   'equipment',
   'injuries',
   'excludedFoods',
+  'country',
 ];
 
 const sorted = (values: readonly string[]): string[] => [...new Set(values)].sort();
@@ -31,6 +33,9 @@ export function normalizePlanInputs(inputs: PlanInputs): PlanInputs {
     movementsToAvoid: sorted(inputs.movementsToAvoid),
     excludedFoods: sorted(inputs.excludedFoods),
     excludedTags: sorted(inputs.excludedTags),
+    // v8.1: present only when the plan recorded it, so older fingerprints and
+    // comparisons are unchanged.
+    ...(inputs.country !== undefined ? { country: inputs.country } : {}),
   };
 }
 
@@ -74,6 +79,10 @@ export function changedPlanInputs(before: PlanInputs, after: PlanInputs): PlanIn
   }
   if (!same(a.excludedFoods, b.excludedFoods) || !same(a.excludedTags, b.excludedTags)) {
     changes.push('excludedFoods');
+  }
+  // v8.1: a plan saved before the country existed never reports it as changed.
+  if (a.country !== undefined && b.country !== undefined && a.country !== b.country) {
+    changes.push('country');
   }
   return changes;
 }

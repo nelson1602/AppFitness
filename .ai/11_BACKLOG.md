@@ -9452,6 +9452,36 @@ Convert technical decisions into formal Architecture Decision Records inside `.a
 
 ---
 
+## [FEATURE-017] v8.1 — Country on the Profile and the Dominican Dish Meal Plan
+
+Status: In Progress (branch `codex/v81-country-dr-meals`, not pushed)
+Priority: P1
+Type: Feature
+Owner: Project owner (decisions, merges) · Engineering (delivery)
+Created: 2026-11-02
+Updated: 2026-11-02
+
+### Description
+
+Owner requirement: "País" on sign-up and Editar perfil (device region, else República Dominicana; existing users DO; API field + migration, synced). Country DO → a meal plan of named Dominican dishes (prototype `MEALS` plus an expanded catalogue) scaled to the kcal target with allergy/avoid swaps; any other country → the generic food plan. The v8 portion rules stay. Recorded in ADR-P040 ("Country and Dominican dishes").
+
+### Acceptance Criteria
+
+* [x] `user_profiles.country` on both databases (NOT NULL DEFAULT 'DO'), synced both ways, validated server-side
+* [x] País on sign-up (kept on the device until the profile exists) and in Editar perfil
+* [x] Dish catalogue (44 dishes) and dish generator, `meal-rules@1.5.0`, with deterministic tests
+* [x] Saved weekly plan freezes dish id, name key, swaps; old plans still load
+* [ ] Nutrición tab renders dish name, "Ajustado por iCoach" and "(cambio del iCoach)" (integrator)
+* [ ] Privacy policy names "país" under Perfil (owner/legal; not covered by the published text)
+* [ ] Catalog gaps for prototype ingredients: casabe, queso blanco/de freír, cinnamon (need a sourced catalog batch, ADR-P040 D10)
+
+### Related Documents
+
+* .ai/12_DECISIONS.md (ADR-P040)
+* docs/design/appfitnessrd-prototipo.html
+
+---
+
 # Research Backlog
 
 ## [RESEARCH-001] SQLite Encryption Strategy

@@ -159,6 +159,7 @@ export function NutritionPlanScreen() {
   }, [refresh, loadPreferences]);
 
   const userId = getSession()?.user.id ?? null;
+  const previewCountry = currentPlan?.plan.inputs.country;
   const selection = useMemo(
     () =>
       // Preferences are additive: only feed them in once the store is ready.
@@ -168,9 +169,11 @@ export function NutritionPlanScreen() {
             data?.assessment ?? null,
             userId,
             prefStatus === 'ready' ? preferences : [],
+            // v8.1: the preview days follow the saved week's country.
+            previewCountry,
           )
         : ({ status: 'gap' } as const),
-    [data?.assessment, generationAllowed, userId, prefStatus, preferences],
+    [data?.assessment, generationAllowed, userId, prefStatus, preferences, previewCountry],
   );
 
   // ADR-P042 D9: days 1–7 are the saved week; days 8–15 an unsaved preview.

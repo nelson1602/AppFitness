@@ -27,6 +27,8 @@ const ACTIVITY_LEVELS: readonly ActivityLevel[] = [
   'VERY_ACTIVE',
 ];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/** v8.1: ISO 3166-1 alpha-2 — two uppercase ASCII letters ('ZZ' = another country). */
+export const COUNTRY_RE = /^[A-Z]{2}$/;
 
 export class ProfilePayloadError extends Error {
   constructor(field: string, reason: string) {
@@ -188,6 +190,18 @@ export function parseProfilePayload(
     (n) => n >= 0 && n < 2000,
   );
   if (fat !== undefined) out.targetFatG = fat;
+
+  // v8.1: ISO 3166-1 alpha-2, never null (the column is NOT NULL DEFAULT 'DO').
+  if ('country' in payload) {
+    const value = payload['country'];
+    if (typeof value !== 'string' || !COUNTRY_RE.test(value)) {
+      throw new ProfilePayloadError(
+        'country',
+        'must be two uppercase letters (ISO 3166-1 alpha-2)',
+      );
+    }
+    out.country = value;
+  }
 
   return out;
 }

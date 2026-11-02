@@ -16,6 +16,7 @@ const CHANGE_KEY: Record<PlanInputChange, TranslationKey> = {
   equipment: 'plan.change.equipment',
   injuries: 'plan.change.injuries',
   excludedFoods: 'plan.change.excludedFoods',
+  country: 'plan.change.country',
 };
 
 /**

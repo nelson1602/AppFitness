@@ -9,6 +9,7 @@ import { syncUserScopingMigration } from './006-sync-user-scoping';
 import { wellnessSafetyProfileMigration } from './007-wellness-safety-profile';
 import { wellnessInjuryAreasMigration } from './008-wellness-injury-areas';
 import { weeklyPlansMigration } from './009-weekly-plans';
+import { userProfileCountryMigration } from './010-user-profile-country';
 
 export interface Migration {
   version: number;
@@ -36,6 +37,7 @@ export const MIGRATIONS: readonly Migration[] = [
   wellnessSafetyProfileMigration,
   wellnessInjuryAreasMigration,
   weeklyPlansMigration,
+  userProfileCountryMigration,
 ];
 
 /**

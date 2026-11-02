@@ -435,6 +435,8 @@ model UserProfile {
   targetProteinG      Float?        @map("target_protein_g")
   targetCarbsG        Float?        @map("target_carbs_g")
   targetFatG          Float?        @map("target_fat_g")
+  /// v8.1: ISO 3166-1 alpha-2 ('ZZ' = another country). Picks the meal-plan style.
+  country             String        @default("DO") @db.Char(2)
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)

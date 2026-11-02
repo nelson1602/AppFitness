@@ -28,8 +28,15 @@ import type { AvoidTag, FoodId, FoodItem, ServingUnit } from './food-catalog';
  *
  * `1.4.0` (v8 Block 3, owner decision 2026-10-27): a vegetable never goes
  * above three servings in any pass, so it is never the day's filler.
+ *
+ * `1.5.0` (v8.1, owner decision 2026-11-02): a person whose country is the
+ * Dominican Republic gets named Dominican dishes (`dominican-dishes.ts`) with
+ * household portions, scaled to each meal's target under the same portion
+ * rules; an excluded ingredient is swapped for one of the same role or left
+ * out ("Ajustado por iCoach"). A multi-food snack grows on its smallest food
+ * to reach the snack minimum. Every other country keeps the food-based plan.
  */
-export const MEAL_RULE_VERSION = 'meal-rules@1.4.0';
+export const MEAL_RULE_VERSION = 'meal-rules@1.5.0';
 
 export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 
@@ -52,10 +59,32 @@ export interface MealPlanFood {
   serving: { amount: number; unit: ServingUnit };
   /** Scaled macros contributed by this food. */
   macros: MealMacros;
+  /**
+   * v8.1 (meal-rules@1.5.0), dish plans only: the dish's own ingredient this
+   * food replaced because the person excluded it — rendered as "(cambio del
+   * iCoach)". Absent on an unchanged line and on every food-based plan.
+   */
+  swappedFrom?: FoodId;
+}
+
+/** "Ajustado por iCoach: X → Y" — an excluded dish ingredient and its replacement, or null when left out. */
+export interface MealAdjustment {
+  from: FoodId;
+  to: FoodId | null;
 }
 
 export interface MealPlanMeal {
   slot: MealSlot;
+  /**
+   * v8.1 (meal-rules@1.5.0), dish plans only: the Dominican dish this meal is
+   * (`dominican-dishes.ts` id) and its catalogue name key
+   * (`nutrition.dish.<id>`, ES/EN). Absent on food-based plans and on plans
+   * saved before v8.1.
+   */
+  dishId?: string;
+  dishNameKey?: string;
+  /** Dish plans only: what the iCoach swapped or left out, in dish order. */
+  adjustments?: MealAdjustment[];
   foods: MealPlanFood[];
   /** Slot sub-target (share of the daily target). */
   targets: MealMacros;
@@ -110,6 +139,11 @@ export interface MealPlanInput {
    * every selection pool.
    */
   excludeCatalogKeys?: readonly FoodId[];
+  /**
+   * v8.1: the person's country (ISO 3166-1 alpha-2). 'DO' selects the
+   * Dominican dish plan; anything else, or absent, the food-based plan.
+   */
+  country?: string;
 }
 
 export interface MealPlan {

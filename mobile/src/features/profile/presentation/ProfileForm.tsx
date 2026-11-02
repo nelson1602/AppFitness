@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { useLocalization } from '@/shared/localization';
@@ -16,6 +16,7 @@ import {
 import { useTheme } from '@/shared/theme';
 
 import { useProfileStore } from '../application/profile.store';
+import { CountrySelect } from './CountrySelect';
 import {
   createProfileFormSchema,
   profileToFormValues,
@@ -144,6 +145,14 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
         name="gender"
         label={t('profile.gender')}
         options={genderOptions}
+      />
+      {/* v8.1: the country picks the meal-plan style (DO → Dominican dishes). */}
+      <Controller
+        control={control}
+        name="country"
+        render={({ field: { onChange, value } }) => (
+          <CountrySelect onChange={onChange} testID="profile-country" value={value ?? ''} />
+        )}
       />
       <FormSelect
         control={control}

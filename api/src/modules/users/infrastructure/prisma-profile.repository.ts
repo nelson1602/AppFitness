@@ -49,6 +49,7 @@ function toPrismaData(
     data.targetCarbsG = attributes.targetCarbsG;
   if (attributes.targetFatG !== undefined)
     data.targetFatG = attributes.targetFatG;
+  if (attributes.country !== undefined) data.country = attributes.country;
   return data;
 }
 
@@ -160,7 +161,7 @@ export class PrismaProfileRepository extends ProfileRepositoryPort {
         years_training, activity_level, occupation, sleep_hours_baseline,
         stress_level_baseline, equipment, training_days_per_week,
         session_duration_mins, target_calories, target_protein_g,
-        target_carbs_g, target_fat_g, updated_at
+        target_carbs_g, target_fat_g, country, updated_at
       )
       VALUES (
         ${id}::uuid,
@@ -181,6 +182,7 @@ export class PrismaProfileRepository extends ProfileRepositoryPort {
         ${attributes.targetProteinG},
         ${attributes.targetCarbsG},
         ${attributes.targetFatG},
+        ${attributes.country},
         ${new Date()}
       )
       ON CONFLICT (id) DO NOTHING

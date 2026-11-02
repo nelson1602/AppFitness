@@ -91,19 +91,26 @@ const ADDED_BY_V8 = [
   'sync.conflicts.value.planTrigger.change',
 ];
 
+/** v8.1: the profile's country field, tabulated in the deck. */
+const ADDED_BY_V81 = ['sync.conflicts.field.country'];
+
 const REMOVED_BY_C6 = ['sync.conflicts.actionNeededTitle', 'sync.conflicts.actionNeededBody'];
 
 describe('the approved C-5 deck reaches both catalogues unchanged', () => {
   const tabulated = approvedRows();
   const rows = tabulated.filter(
-    (row) => !ADDED_BY_C6.includes(row.key) && !ADDED_BY_V8.includes(row.key),
+    (row) =>
+      !ADDED_BY_C6.includes(row.key) &&
+      !ADDED_BY_V8.includes(row.key) &&
+      !ADDED_BY_V81.includes(row.key),
   );
 
-  it('tabulates 165 rows — 150 surviving C-5 rows, the 7 C-6 added and 8 for v8', () => {
-    expect(tabulated).toHaveLength(165);
+  it('tabulates 166 rows — 150 surviving C-5 rows, the 7 C-6 added, 8 for v8 and 1 for v8.1', () => {
+    expect(tabulated).toHaveLength(166);
     expect(rows).toHaveLength(150);
-    expect(new Set(tabulated.map((row) => row.key)).size).toBe(165);
+    expect(new Set(tabulated.map((row) => row.key)).size).toBe(166);
     expect(tabulated.map((row) => row.key)).toEqual(expect.arrayContaining(ADDED_BY_V8));
+    expect(tabulated.map((row) => row.key)).toEqual(expect.arrayContaining(ADDED_BY_V81));
   });
 
   it('tabulates every key C-6 added, separately from the C-5 family', () => {
@@ -128,7 +135,7 @@ describe('the approved C-5 deck reaches both catalogues unchanged', () => {
     const approved = new Set(tabulated.map((row) => row.key));
     const shipped = Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'));
     expect(shipped.filter((key) => !approved.has(key))).toEqual([]);
-    expect(shipped).toHaveLength(165);
+    expect(shipped).toHaveLength(166);
   });
 
   it('ships neither action-needed key in either catalogue', () => {
@@ -180,10 +187,13 @@ describe('catalogue parity', () => {
   // (+1, 1582); the training-days progression prompt and history note
   // (+2, 1584); the plural unit names (+3, 1587); the restyled meal plan (+8 new, -3 no longer shown, 1592); the restyled workout plan (+6 new, -5 no longer shown, 1593); native date pickers on the remaining forms (+1, -5 placeholders, 1589); in-page titles that repeated the header (-6, 1583); the privacy-policy link (+2, 1585); the reset-password headline that repeated the header (-1, 1584); and the Salud hints that named conditions (-5, 1579).
   // v8.1 then added the birth-date wheel's Día / Mes / Año column names and its open hint (+4, 1583), the sync reasons and details on Perfil (+14, 1597), and the prototype Entrenamientos tab: set-by-set progress, rest timer, week status and the demo cues (+76, -4 no longer shown, 1669).
-  it('reaches 1669 keys in each language — 1510 shipped plus a 159-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1669);
-    expect(Object.keys(es)).toHaveLength(1669);
-    expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(165);
+  // v8.1 then added the country — the País picker, its hint and 22 country names (+26), the
+  // plan-change label (+1) and the conflict field label (+1, in the family below) — and the
+  // Dominican dish plan: 44 dish names and the "(cambio del iCoach)" mark (+45), (+73 together, 1742).
+  it('reaches 1742 keys in each language — 1582 shipped plus a 160-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1742);
+    expect(Object.keys(es)).toHaveLength(1742);
+    expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 
   it('translates every added key, bar the words that are the same in both', () => {
