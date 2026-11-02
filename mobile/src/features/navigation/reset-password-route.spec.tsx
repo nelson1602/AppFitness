@@ -176,11 +176,31 @@ describe('ResetPasswordScreen', () => {
     expect(screen.getByTestId('screen-stage')).toBeOnTheScreen();
   });
 
+  // v8 Block 5: the stack header already says "Choose a new password"; the
+  // page must not repeat it as a headline (the prototype has none).
+  it('does not repeat the header title inside the page', async () => {
+    await render(<ResetPasswordScreen />);
+
+    await waitFor(() => expect(screen.getByTestId('reset-form')).toBeOnTheScreen());
+    expect(screen.queryByText('Choose a new password')).toBeNull();
+    expect(
+      screen.getByText('Your new password replaces the old one and signs out every device.'),
+    ).toBeTruthy();
+  });
+
   // The end-to-end shape of the emailed Web link: token in the fragment, no
   // router parameter at all, and the address bar cleaned on mount.
   it.each<['en' | 'es', string, string]>([
-    ['en', 'Choose a new password', 'Password changed'],
-    ['es', 'Elige una nueva contraseña', 'Contraseña cambiada'],
+    [
+      'en',
+      'Your new password replaces the old one and signs out every device.',
+      'Password changed',
+    ],
+    [
+      'es',
+      'Tu nueva contraseña sustituye a la anterior y cierra la sesión en todos los dispositivos.',
+      'Contraseña cambiada',
+    ],
   ])(
     'accepts a fragment-delivered token and scrubs the URL (%s)',
     async (language, heading, success) => {
@@ -339,7 +359,11 @@ describe('ResetPasswordScreen', () => {
     mockLanguage = 'es';
     await render(<ResetPasswordScreen />);
 
-    expect(screen.getByText('Elige una nueva contraseña')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'Tu nueva contraseña sustituye a la anterior y cierra la sesión en todos los dispositivos.',
+      ),
+    ).toBeTruthy();
     await fill('Brand-new-pass-1!');
     await submit();
     expect(await screen.findByText('Contraseña cambiada')).toBeTruthy();

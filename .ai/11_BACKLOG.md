@@ -3398,6 +3398,36 @@ The server still accepts the same refresh token concurrently and issues siblings
 
 ---
 
+## [RISK-003] v8 Injury Values May Count as Health Information for the Privacy Policy and Play Data Safety
+
+Status: Open (owner handling the policy with counsel)
+Priority: P1
+Type: Risk
+Owner: Project owner / Legal
+Created: 2026-11-02
+Updated: 2026-11-02
+
+### Description
+
+v8 Block 5 data check, reported only, no legal text changed. ADR-P040 D5 stores three named injuries as tokens in `wellness_safety_profiles.affected_areas`: `muscle_tear` (Desgarre muscular), `shin_splints` (Periostitis tibial) and `plantar_fasciitis` (Fascitis plantar).
+
+- The published policy (effective 2026-10-26) only lists "zonas del cuerpo o movimientos" and says the app does not ask about diagnosed health conditions.
+- The Data Safety row in `docs/legal/PLAY_DATA_SAFETY.md` describes affected areas only.
+- Named injuries most likely fall under Play's "Health info" type.
+- The `WellnessSafetyProfile` schema comment ("no named condition") no longer matches ADR-P040 D5.
+
+Smaller gap: saved weekly plans and plan-vs-done history are kept until account deletion. Section 2 of the policy does not list them.
+
+Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, hernia discal, tendinitis, esguince, codo de tenista). Only body areas and pain remain.
+
+### Acceptance Criteria
+
+- [ ] Counsel decides how the policy describes injuries and saved plans
+- [ ] Play Console Data Safety reconciled ("Health info" decision recorded)
+- [ ] `PLAY_DATA_SAFETY.md` and the schema comment match the decision
+
+---
+
 ## [BUG-045] "Today" Does Not Roll Over While the App Stays Open
 
 Status: Fixed in v8 Block 3 (PR #242)

@@ -178,10 +178,10 @@ describe('catalogue parity', () => {
   // personal" (+221, 1580); and the development-only sample-weeks button
   // (+1, 1581); and the note when the engine caps the chosen training days
   // (+1, 1582); the training-days progression prompt and history note
-  // (+2, 1584); the plural unit names (+3, 1587); the restyled meal plan (+8 new, -3 no longer shown, 1592); the restyled workout plan (+6 new, -5 no longer shown, 1593); native date pickers on the remaining forms (+1, -5 placeholders, 1589); in-page titles that repeated the header (-6, 1583); and the privacy-policy link (+2, 1585).
-  it('reaches 1585 keys in each language — 1420 shipped plus a 165-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1585);
-    expect(Object.keys(es)).toHaveLength(1585);
+  // (+2, 1584); the plural unit names (+3, 1587); the restyled meal plan (+8 new, -3 no longer shown, 1592); the restyled workout plan (+6 new, -5 no longer shown, 1593); native date pickers on the remaining forms (+1, -5 placeholders, 1589); in-page titles that repeated the header (-6, 1583); the privacy-policy link (+2, 1585); the reset-password headline that repeated the header (-1, 1584); and the Salud hints that named conditions (-5, 1579).
+  it('reaches 1579 keys in each language — 1420 shipped plus a 159-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1579);
+    expect(Object.keys(es)).toHaveLength(1579);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(165);
   });
 

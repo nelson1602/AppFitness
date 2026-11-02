@@ -94,6 +94,26 @@ describe('EvaluationWizard (first run)', () => {
     expect(screen.getByText('Sobrepeso')).toBeTruthy();
   });
 
+  // v8 Block 5 (owner): Salud names injuries and pain areas only, never a
+  // medical condition or diagnosis.
+  it('names no medical condition in Salud, only areas and pain', async () => {
+    given(sourcesWith({}));
+    await render(<EvaluationWizard mode="first-run" onSaved={jest.fn()} />);
+    await screen.findByTestId('evaluation-continue');
+    await next(); // Medidas → Salud
+    expect(screen.getByText('Salud')).toBeTruthy();
+    for (const condition of [
+      /manguito|pinzamiento/i,
+      /lumbalgia|hernia/i,
+      /esguince|tendinitis/i,
+      /tenista|golfista/i,
+    ]) {
+      expect(screen.queryByText(condition)).toBeNull();
+    }
+    expect(screen.getByText('dolor de rótula, ligamentos')).toBeTruthy();
+    expect(screen.getByText('dolor en la espinilla')).toBeTruthy();
+  });
+
   it('walks the six steps and generates the plan with the marked foods', async () => {
     given(sourcesWith({}));
     const onSaved = jest.fn();

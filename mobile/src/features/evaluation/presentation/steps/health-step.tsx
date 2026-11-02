@@ -9,14 +9,12 @@ import { Group, OptionRow } from '../evaluation-controls';
 import type { StepProps } from './step-props';
 import { INJURY_LABEL } from '../evaluation-copy';
 
-/** Injuries the design describes with a second line. */
+/**
+ * Injuries with a second line. Only body areas or pain are named: no
+ * condition or diagnosis (owner decision, v8 Block 5).
+ */
 const DETAIL: Partial<Record<InjuryOption, TranslationKey>> = {
-  shoulder: 'evaluation.injury.shoulder.detail',
   knee: 'evaluation.injury.knee.detail',
-  lower_back: 'evaluation.injury.lower_back.detail',
-  wrist: 'evaluation.injury.wrist.detail',
-  elbow: 'evaluation.injury.elbow.detail',
-  ankle: 'evaluation.injury.ankle.detail',
   neck: 'evaluation.injury.neck.detail',
   muscle_tear: 'evaluation.injury.muscle_tear.detail',
   shin_splints: 'evaluation.injury.shin_splints.detail',

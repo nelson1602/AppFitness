@@ -179,12 +179,7 @@ export default function ResetPasswordScreen() {
         }}
       />
       <View style={{ gap: theme.spacing.lg }}>
-        <View>
-          <AppText tone="onStage" variant="headline">
-            {t('auth.reset.title')}
-          </AppText>
-          <AppText tone="onStageVariant">{t('auth.reset.subtitle')}</AppText>
-        </View>
+        <AppText tone="onStageVariant">{t('auth.reset.subtitle')}</AppText>
 
         {errorReason ? (
           <Banner title={t(RECOVERY_ERROR_COPY[errorReason].title)} tone="error">

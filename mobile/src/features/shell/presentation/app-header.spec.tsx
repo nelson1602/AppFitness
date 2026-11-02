@@ -10,7 +10,12 @@ let mockLanguage: 'en' | 'es' = 'en';
 let mockNotifications: AppNotification[] = [];
 let mockReadIds: string[] = [];
 const mockMarkRead = jest.fn();
+let mockFontScale = 1;
 
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: () => ({ fontScale: mockFontScale, height: 800, scale: 1, width: 400 }),
+}));
 jest.mock('expo-router', () => ({ router: { navigate: jest.fn() } }));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 20, bottom: 0, left: 0, right: 0 }),
@@ -68,6 +73,26 @@ beforeEach(() => {
   mockLanguage = 'en';
   mockNotifications = [TODAY, WEIGH];
   mockReadIds = [];
+  mockFontScale = 1;
+});
+
+describe('AppHeader at large text (v8 Block 5)', () => {
+  it('keeps the title beside the avatar and bell at default text size', async () => {
+    await render(<AppHeader {...header('workouts')} />);
+
+    expect(screen.getByTestId('header-titles')).toHaveStyle({ flex: 1 });
+    expect(screen.getByTestId('app-header')).not.toHaveStyle({ flexWrap: 'wrap' });
+  });
+
+  it('gives the date and title a full-width line at 200% so no word breaks', async () => {
+    mockFontScale = 2;
+    await render(<AppHeader {...header('workouts')} />);
+
+    expect(screen.getByTestId('app-header')).toHaveStyle({ flexWrap: 'wrap' });
+    expect(screen.getByTestId('header-titles')).toHaveStyle({ flexBasis: '100%' });
+    expect(screen.getByRole('header', { name: 'Workouts' })).toBeOnTheScreen();
+    expect(screen.getByTestId('header-bell')).toBeOnTheScreen();
+  });
 });
 
 describe('AppHeader (ADR-P039)', () => {

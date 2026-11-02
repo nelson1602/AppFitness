@@ -61,6 +61,9 @@ export function AppTabBar({ activeIndex, onSelect, progress }: AppTabBarProps) {
                 styles.tab,
                 {
                   borderRadius: radius.full,
+                  // The active pill gives way at large text so the other four
+                  // tabs stay on screen (v8 Block 5 copy pass).
+                  flexShrink: focused ? 1 : 0,
                   gap: spacing.xs,
                   minHeight: theme.spacing.x5l,
                   minWidth: theme.spacing.x5l,
@@ -85,8 +88,12 @@ export function AppTabBar({ activeIndex, onSelect, progress }: AppTabBarProps) {
               />
               {focused ? (
                 <Text
+                  adjustsFontSizeToFit
                   allowFontScaling
+                  minimumFontScale={0.5}
+                  numberOfLines={1}
                   style={[typography.label, { color: colors.onCta, flexShrink: 1 }]}
+                  testID={`tab-${tab.name}-label`}
                 >
                   {label}
                 </Text>
