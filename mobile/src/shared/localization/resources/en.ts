@@ -467,7 +467,6 @@ export const en = {
   'auth.forgot.sentBody':
     'If an account exists for that address, a reset link is on its way. The link expires in 30 minutes and can be used once.',
   'auth.reset.screenTitle': 'Choose a new password',
-  'auth.reset.title': 'Choose a new password',
   'auth.reset.subtitle': 'Your new password replaces the old one and signs out every device.',
   'auth.reset.newPassword': 'New password',
   'auth.reset.confirmPassword': 'Confirm new password',

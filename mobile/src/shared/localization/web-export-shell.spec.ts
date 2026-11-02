@@ -252,7 +252,7 @@ describe('the document shell source', () => {
   });
 
   it('duplicates no portal copy into the shell', () => {
-    for (const key of ['auth.forgot.title', 'auth.forgot.submit', 'auth.reset.title'] as const) {
+    for (const key of ['auth.forgot.title', 'auth.forgot.submit', 'auth.reset.subtitle'] as const) {
       expect(html).not.toContain(en[key]);
       expect(html).not.toContain(es[key]);
     }

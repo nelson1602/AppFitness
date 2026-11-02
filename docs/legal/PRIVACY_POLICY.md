@@ -1,198 +1,247 @@
-# AppFitnessRD — Privacy Policy (DRAFT)
+# AppFitnessRD — Privacy Policy / Política de privacidad
 
-> **DRAFT — NOT LEGAL ADVICE.** Engineering-produced draft grounded in
-> `DATA_INVENTORY.md`. It MUST be reviewed and completed by a qualified
-> human/legal reviewer before publication or any app-store submission.
-> Bracketed `[PLACEHOLDER]` fields require business/legal input. Do not treat
-> this as a published policy or as evidence of legal compliance.
+> **Published text.** This file mirrors the policy published at
+> <https://appfitnessrd.com/privacidad/> (ES, controlling text) and
+> <https://appfitnessrd.com/en/privacy/> (EN translation), effective
+> 2026-10-26. It was synced from the live pages on 2026-11-02 (v8 Block 5).
+> The website is the source of truth; change it there first, then re-sync this
+> copy. The app links to both pages from Perfil and sign-up.
+>
+> Evidence for the data claims below lives in `DATA_INVENTORY.md` and
+> `PLAY_DATA_SAFETY.md`.
 
-> Draft technically refreshed 2026-09-30 · Evidence baseline `356bebd` plus
-> the FEATURE-012 S-3 candidate · App
-> state: public-v1 Phase 21 wellness product, including bilingual surfaces,
-> wellness-safety declarations, conflict resolution, password recovery, and
-> email verification. External legal review remains pending.
+## Política de privacidad
 
-Effective date: `[PLACEHOLDER — actual first-public-release date; owner target November 2026 or earlier]`
-Data controller: Nelson Deschamps, an individual trading as HardTech Solutions,
-Calle La Guardia 41, Santo Domingo D.N., Dominican Republic
-Privacy contact: `privacy@appfitnessrd.com`
-Support contact: `support@appfitnessrd.com`
+Cómo tratamos tus datos en la app AppFitnessRD.
 
-## 1. Summary
+**Vigente desde:** 26 de octubre de 2026
 
-AppFitnessRD helps you track fitness, nutrition, progress, and wellness data
-and receive deterministic coaching recommendations. We collect only what the
-current product needs to function. We do **not** sell your data, show
-third-party ads, or include third-party analytics SDKs. This policy describes
-what we process and your choices.
+**Responsable:** Nelson Deschamps, persona física que opera comercialmente como HardTech Solutions, Calle La Guardia 41, Santo Domingo D.N., República Dominicana.
 
-## 2. Data we process
+**Privacidad:** [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com) · **Soporte:** [support@appfitnessrd.com](mailto:support@appfitnessrd.com)
 
-Grounded in `DATA_INVENTORY.md`:
+### 1. Resumen
 
-- **Account and authentication:** email, username, password (stored only as an
-  Argon2 hash), email-verification status, session information, and hashed
-  refresh, password-reset, and email-verification tokens. Raw reset and
-  verification values are not stored server-side; an emailed link carries the
-  value that the client submits for redemption.
-- **Profile:** birth date, gender, height, fitness level, activity level,
-  training preferences, equipment, schedule, sleep/stress baselines, and
-  similar profile attributes you enter.
-- **Wellness Safety Profile:** whether you report completing a professional
-  physical evaluation, the date when provided, and closed-list areas or
-  movements you ask the app to avoid. The app does not collect the evaluation
-  result or professional findings through this profile.
-- **Nutrition:** foods and quantities you log, calories/macronutrients, meal
-  entries, and dietary preferences or allergies. An optional
-  dietary-preference note is AES-256-GCM encrypted at rest on your device and
-  on the server. Other structured nutrition data is not field-encrypted.
-- **Workout:** logged workouts and sets, routines you build, and custom
-  exercises you create.
-- **Progress:** body-weight and body-measurement entries (including waist,
-  hip, chest, body-fat percentage, and muscle mass when entered) and
-  deterministic weekly progress snapshots computed on your device. This
-  wellness data is not field-encrypted at rest; it is protected by
-  app-private storage, TLS in transit, and server access controls.
-- **Goals:** goal type and optional targets.
-- **Synchronization:** queued operations, version/cursor metadata, and conflict
-  records used to synchronize devices and let you review unresolved
-  differences. Sensitive queued payloads identified in `DATA_INVENTORY.md`
-  are encrypted on device; this does not mean every sync or conflict field is
-  field-encrypted.
-- **On-device data:** an offline-first SQLite database and a device encryption
-  key held in your device's secure keystore. The database-backed product is a
-  native mobile capability; the current Web portals do not persist this data
-  in browser storage.
-- **Transactional email:** Postmark receives the recipient address, language,
-  and password-recovery or email-verification message needed to deliver those
-  emails. These messages are transactional, not marketing mail.
-- **Diagnostics:** configured production builds may send scrubbed crash/error
-  data to Sentry, including an opaque user identifier and app/device/runtime
-  metadata. `sendDefaultPii` is disabled and repository scrubbers remove
-  identified credential, token, personal, and health fields. Candidate-build
-  monitoring must still be reverified before release.
+AppFitnessRD te ayuda a registrar tus entrenamientos, tu alimentación, tu progreso y tu información de bienestar, y te da recomendaciones de su asistente iCoach. Solo tratamos los datos que la app necesita para funcionar. **No vendemos tus datos, no mostramos anuncios y no usamos herramientas de analítica publicitaria.**
 
-Public v1 does **not** ask for doctor notes, medications, medical conditions,
-blood pressure, diagnoses, treatment instructions, professional restrictions,
-or professional evaluation results. The repository retains a dormant legacy
-medical implementation and may retain legacy rows created by earlier builds;
-that capability is not exposed, written, synchronized, or used by public-v1
-iCoach. Any retained legacy rows remain protected and are removed by account
-deletion.
+### 2. Datos que tratamos
 
-We do **not** collect precise location, contacts, photos, microphone/audio, or
-advertising identifiers. Habits, push notifications, and supplement education
-are not implemented in public v1.
+- **Cuenta:** correo electrónico, nombre de usuario y contraseña. La contraseña se guarda cifrada de forma irreversible y nunca la vemos. También guardamos si verificaste tu correo y la información técnica de tu sesión.
 
-**Subscription implementation gate:** the owner has selected a one-month free
-trial followed by an auto-renewing monthly subscription with a target base price
-of US$5. The repository now implements a disabled-by-default server entitlement
-mirror, minimal event-id/hash ledger, RevenueCat reconciliation/webhook adapter
-and provider-first deletion. A native adapter is present but stays inert without
-platform public keys and sends only the authenticated account UUID when later
-enabled. An in-app subscription screen and store purchase and restore flow
-are present behind the same inert boundary. Access enforcement is not
-implemented, and no provider account, key, secret, store product or live
-transaction exists. Before
-release, this policy must be reconciled to the completed
-Apple/Google path, provider agreement, retention/deletion behavior, and exact
-store disclosures. AppFitnessRD must never receive or store full payment-card
-details for the mobile subscription.
+- **Perfil:** fecha de nacimiento, sexo, estatura, nivel de condición física y de actividad, días y tiempo para entrenar, equipo disponible, horas de sueño y nivel de estrés que tú indiques.
 
-## 3. How we use data
+- **Evaluación y seguridad:** si indicas que hiciste una evaluación física, su fecha, y las zonas del cuerpo o movimientos que nos pides evitar. No te pedimos el resultado de esa evaluación.
 
-- To provide authentication, password recovery, email verification, local
-  storage, synchronization, conflict review/resolution, fitness and nutrition
-  tracking, and deterministic on-device coaching.
-- To apply user-declared movement exclusions conservatively to deterministic
-  assessment and routine generation. These declarations are not diagnoses or
-  professional medical restrictions.
-- To keep the service reliable and secure through operational audit records
-  and scrubbed error monitoring.
+- **Alimentación:** alimentos y cantidades que registras, calorías y macronutrientes, comidas, y tus preferencias o alergias alimentarias. La nota opcional sobre tus preferencias se guarda cifrada.
 
-We rely on `[PLACEHOLDER: applicable legal bases and any consent requirements,
-to be determined by qualified legal review]`. No legal basis is established by
-this engineering draft.
+- **Entrenamientos:** entrenamientos y series que registras, rutinas que creas y ejercicios personalizados.
 
-## 4. Storage, security, and transmission
+- **Progreso:** peso y medidas corporales que registras (cintura, cadera, pecho, porcentaje de grasa y masa muscular) y tu resumen semanal.
 
-- Production traffic is encrypted in transit using HTTPS/TLS.
-- Passwords are Argon2-hashed; refresh, reset, and verification tokens are
-  stored only as hashes on the server.
-- The optional dietary-preference note and retained legacy medical free-text
-  are AES-256-GCM encrypted at rest on device and server. Other structured
-  fitness/wellness data is not field-encrypted at rest.
-- Session tokens and the device field-encryption key are stored in the native
-  OS secure keystore, never in SQLite. The current Web session is memory-only.
-- Public-v1 iCoach decisions are deterministic, versioned, and run from
-  structured local inputs; generative AI is not the decision maker.
+- **Metas:** el tipo de meta y los valores objetivo que elijas.
 
-No security control eliminates all risk. `[PLACEHOLDER: final security and
-incident-response wording after legal review.]`
+- **Sincronización:** la información técnica necesaria para mantener tus datos al día entre tu teléfono y nuestro servidor, y para que revises los cambios que no coincidan.
 
-## 5. External services and disclosures
+- **Diagnóstico:** cuando la app falla, puede enviar un reporte técnico del error con un identificador anónimo y datos del dispositivo y de la app. Esos reportes se filtran para excluir contraseñas, credenciales y tus datos de salud.
 
-The engineering inventory identifies these external service paths:
+- **Suscripción:** si te suscribes a AppFitnessRD Pro, guardamos el estado de tu suscripción (por ejemplo, prueba gratis, activa o vencida). El pago lo procesa Google Play o el App Store; **nunca recibimos ni guardamos los datos de tu tarjeta**.
 
-- Railway hosts the API and PostgreSQL environments.
-- Postmark delivers transactional recovery and verification email.
-- Cloudflare serves the deployed account/recovery/verification Web portals.
-- Sentry receives scrubbed diagnostics from configured builds.
+La versión actual de la app **no** te pide notas médicas, medicamentos, condiciones de salud diagnosticadas, presión arterial, diagnósticos ni tratamientos. Tampoco recopilamos tu ubicación, contactos, fotos, micrófono ni identificadores de publicidad.
 
-ADR-P034 approves RevenueCat for the store-subscription implementation. Its S-1
-server adapter and S-2 native boundary are present but disabled and have no
-configured account, key, secret or live traffic; they become active service
-paths only after those external gates are approved and enabled.
+### 3. Para qué usamos tus datos
 
-The app contains no advertising or third-party analytics SDK. `[PLACEHOLDER:
-qualified legal review must classify each service relationship, finalize the
-subprocessor list, regions, transfer terms, and required disclosures; do not
-infer a Play/App Store “sharing” answer from this engineering description.]`
+- Crear y proteger tu cuenta, recuperar tu contraseña y verificar tu correo.
 
-## 6. Data retention and deletion
+- Guardar y sincronizar tu información, y calcular tus metas de calorías, tu plan de entrenamientos y tu plan de comidas.
 
-**Current product behavior:** the in-app **Delete account** action immediately
-and irreversibly deletes the account and its user-owned data, including profile,
-wellness-safety, nutrition, workout, progress, token, sync, and conflict rows.
-Only an anonymized security audit record is retained. The owner's selected
-retention period for that anonymized record is 12 months, subject to qualified
-legal confirmation and an implemented expiry/deletion procedure. The local database is
-wiped as part of successful account deletion; uninstalling the app removes its
-app-private local data. A separate user-facing data-export flow is not yet
-available.
+- Respetar las zonas, movimientos y alimentos que nos pides evitar. Esas indicaciones no son diagnósticos ni restricciones médicas profesionales.
 
-`[PLACEHOLDER: qualified legal review must determine retention periods for the
-anonymized security audit, any legal-hold obligations, and whether an in-scope
-jurisdiction conflicts with immediate irreversible deletion.]`
+- Gestionar tu suscripción, si te suscribes.
 
-## 7. Your rights
+- Mantener la app segura y estable, y corregir errores.
 
-Subject to applicable law, you may have rights to access, export, correct,
-delete, restrict processing, or withdraw consent. Deletion can be exercised
-directly in the app. Until self-service export exists, send other requests from
-the account's registered email to `privacy@appfitnessrd.com`. The operator will
-verify control of the account, prepare the data available to the service,
-deliver it through a secure channel, record completion, and confirm the outcome
-to the requester. `[PLACEHOLDER: counsel must approve the applicable rights,
-identity-verification standard, secure-delivery method, and statutory response
-deadline.]`
+Tratamos tus datos **con tu consentimiento**, que das al crear tu cuenta y al registrar tu información, y **porque son necesarios para darte el servicio** que pides. Para la seguridad y la corrección de errores, nos basamos en el interés legítimo de mantener la app funcionando de forma segura. Cumplimos con la Ley No. 172-13 de la República Dominicana sobre protección de datos personales. Puedes retirar tu consentimiento en cualquier momento eliminando tu cuenta.
 
-## 8. Children
+Las recomendaciones del iCoach se calculan con reglas fijas a partir de tus datos. AppFitnessRD es una app de fitness y bienestar: **no ofrece diagnósticos ni sustituye la orientación de un profesional de la salud**.
 
-The owner-selected product minimum age is 16. The service is not directed to
-children under 16. `[PLACEHOLDER — qualified legal review must decide whether
-users aged 16–17 require parent/guardian consent, how age is verified, and the
-corresponding store audience settings.]`
+### 4. Cómo protegemos tus datos
 
-## 9. International transfers
+- Toda la comunicación entre la app y nuestro servidor viaja cifrada (HTTPS/TLS).
 
-`[PLACEHOLDER — hosting/service regions and any transfer mechanisms must be
-confirmed in qualified legal review.]`
+- Las contraseñas y los códigos de acceso se guardan de forma que no se pueden leer.
 
-## 10. Changes and contact
+- Tu sesión y las llaves de cifrado se guardan en el almacenamiento seguro de tu teléfono.
 
-We will update this policy as the product evolves. Spanish is the controlling
-legal version; English is provided as a translation, while the app displays the
-user's selected language. Contact `privacy@appfitnessrd.com` for privacy
-requests or `support@appfitnessrd.com` for product support. The owner confirmed
-receipt at the privacy mailbox on 2026-09-29.
+- El acceso al servidor está restringido.
+
+Ninguna medida de seguridad es infalible. Si ocurriera un incidente que afecte tus datos personales, te avisaremos sin demora indebida, junto con las autoridades cuando la ley lo exija, y te diremos qué pasó y qué medidas tomamos.
+
+### 5. Con quién compartimos datos
+
+No vendemos ni alquilamos tus datos y no los compartimos para publicidad. Para que la app funcione usamos estos proveedores, que tratan tus datos solo por encargo nuestro:
+
+- **Railway:** aloja nuestro servidor y nuestra base de datos.
+
+- **Postmark:** envía los correos de verificación y recuperación de contraseña.
+
+- **Cloudflare:** sirve nuestras páginas web de cuenta.
+
+- **Sentry:** recibe los reportes técnicos de errores, ya filtrados.
+
+- **RevenueCat:** gestiona el estado de la suscripción, cuando la actives. Solo recibe un identificador anónimo de tu cuenta.
+
+- **Google Play y Apple App Store:** procesan los pagos de la suscripción según sus propias políticas.
+
+También podríamos revelar datos si una ley o una autoridad competente lo exige.
+
+### 6. Transferencias internacionales
+
+Varios de estos proveedores tienen sus servidores en los Estados Unidos y en otros países, por lo que tus datos pueden almacenarse o tratarse fuera de la República Dominicana. Elegimos proveedores que ofrecen medidas de seguridad y compromisos de confidencialidad adecuados para proteger tus datos.
+
+### 7. Cuánto tiempo guardamos tus datos y cómo eliminarlos
+
+Guardamos tus datos mientras tengas una cuenta activa. Puedes eliminar tu cuenta cuando quieras:
+
+- **En la app:** en la pestaña Perfil, opción Eliminar cuenta.
+
+- **Desde la web, sin la app:** [account.appfitnessrd.com/delete-account](https://account.appfitnessrd.com/delete-account).
+
+- **Por correo:** escríbenos a [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com) desde el correo de tu cuenta.
+
+Al eliminar tu cuenta borramos de inmediato y de forma definitiva tu perfil, tus entrenamientos, tu alimentación, tu progreso y el resto de tus datos, también en tu teléfono. Solo conservamos durante **12 meses** un registro de seguridad **anónimo**, que no permite identificarte, y luego lo borramos. Desinstalar la app borra los datos guardados en tu teléfono, pero no tu cuenta.
+
+### 8. Tus derechos
+
+Puedes pedir **acceder** a tus datos, **corregirlos**, **eliminarlos**, **oponerte** a su tratamiento o **recibir una copia**. Puedes corregir tu perfil y tu meta directamente en la app, y eliminar tu cuenta completa en cualquier momento. Para lo demás, escribe a [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com) desde el correo de tu cuenta. Confirmaremos que la cuenta es tuya, te responderemos dentro de los plazos que fija la ley y te entregaremos la información por un medio seguro. Si no quedas conforme con nuestra respuesta, puedes acudir a la autoridad competente de la República Dominicana.
+
+### 9. Menores de edad
+
+AppFitnessRD está pensada para personas de **16 años o más** y no está dirigida a menores de 16 años. Si tienes entre 16 y 17 años, usa la app con el conocimiento y permiso de tu madre, padre o tutor. Si sabemos que una persona menor de 16 años creó una cuenta, la eliminaremos junto con sus datos. Si crees que esto ocurrió, escríbenos a [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com).
+
+### 10. Cambios a esta política
+
+Podemos actualizar esta política cuando la app cambie. Si el cambio es importante, te avisaremos en la app o por correo antes de que entre en vigor, y aquí verás siempre la fecha de la versión vigente.
+
+### 11. Idioma y contacto
+
+La versión en español de esta política es la oficial; la versión en inglés es una traducción. Para cualquier duda sobre tu privacidad escribe a [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com), y para soporte de la app a [support@appfitnessrd.com](mailto:support@appfitnessrd.com).
+
+---
+
+## Privacy Policy
+
+How we handle your data in the AppFitnessRD app.
+
+**Effective:** October 26, 2026
+
+**Controller:** Nelson Deschamps, an individual trading as HardTech Solutions, Calle La Guardia 41, Santo Domingo D.N., Dominican Republic.
+
+**Privacy:** [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com) · **Support:** [support@appfitnessrd.com](mailto:support@appfitnessrd.com)
+
+This English version is a translation; the [Spanish version](https://appfitnessrd.com/privacidad/) is the controlling text.
+
+### 1. Summary
+
+AppFitnessRD helps you track your workouts, nutrition, progress and wellness information, and gives you recommendations from its iCoach assistant. We only process the data the app needs to work. **We do not sell your data, show ads or use advertising analytics tools.**
+
+### 2. Data we process
+
+- **Account:** email address, username and password. Your password is stored with irreversible encryption and we never see it. We also keep whether you verified your email and technical session information.
+
+- **Profile:** birth date, sex, height, fitness and activity level, days and time available to train, equipment, sleep hours and stress level that you provide.
+
+- **Evaluation and safety:** whether you report completing a physical evaluation, its date, and the body areas or movements you ask us to avoid. We do not ask for the result of that evaluation.
+
+- **Nutrition:** foods and amounts you log, calories and macronutrients, meals, and your food preferences or allergies. The optional note about your preferences is stored encrypted.
+
+- **Workouts:** workouts and sets you log, routines you create and custom exercises.
+
+- **Progress:** weight and body measurements you log (waist, hip, chest, body-fat percentage and muscle mass) and your weekly summary.
+
+- **Goals:** the goal type and target values you choose.
+
+- **Sync:** the technical information needed to keep your data up to date between your phone and our server, and to let you review changes that don't match.
+
+- **Diagnostics:** when the app fails, it may send a technical error report with an anonymous identifier and device and app details. These reports are filtered to exclude passwords, credentials and your health data.
+
+- **Subscription:** if you subscribe to AppFitnessRD Pro, we keep your subscription status (for example free trial, active or expired). Payment is processed by Google Play or the App Store; **we never receive or store your card details**.
+
+The current version of the app does **not** ask for medical notes, medications, diagnosed health conditions, blood pressure, diagnoses or treatments. We also do not collect your location, contacts, photos, microphone or advertising identifiers.
+
+### 3. How we use your data
+
+- To create and protect your account, recover your password and verify your email.
+
+- To store and sync your information, and calculate your calorie targets, workout plan and meal plan.
+
+- To respect the areas, movements and foods you ask us to avoid. These are not diagnoses or professional medical restrictions.
+
+- To manage your subscription, if you subscribe.
+
+- To keep the app secure and stable, and fix errors.
+
+We process your data **with your consent**, which you give when you create your account and enter your information, and **because it is necessary to provide the service** you request. For security and error fixing we rely on our legitimate interest in keeping the app working safely. We comply with Dominican Republic Law No. 172-13 on personal data protection. You can withdraw your consent at any time by deleting your account.
+
+iCoach recommendations are calculated with fixed rules from your data. AppFitnessRD is a fitness and wellness app: **it does not provide diagnoses or replace guidance from a health professional**.
+
+### 4. How we protect your data
+
+- All communication between the app and our server is encrypted (HTTPS/TLS).
+
+- Passwords and access codes are stored in a form that cannot be read.
+
+- Your session and encryption keys are kept in your phone's secure storage.
+
+- Access to the server is restricted.
+
+No security measure is infallible. If an incident affects your personal data, we will notify you without undue delay, and the authorities where the law requires it, and tell you what happened and what we did about it.
+
+### 5. Who we share data with
+
+We do not sell or rent your data and do not share it for advertising. To run the app we use these providers, who process your data only on our behalf:
+
+- **Railway:** hosts our server and database.
+
+- **Postmark:** sends verification and password-recovery emails.
+
+- **Cloudflare:** serves our account web pages.
+
+- **Sentry:** receives filtered technical error reports.
+
+- **RevenueCat:** manages subscription status once subscriptions are enabled. It only receives an anonymous identifier for your account.
+
+- **Google Play and the Apple App Store:** process subscription payments under their own policies.
+
+We may also disclose data when a law or a competent authority requires it.
+
+### 6. International transfers
+
+Several of these providers operate servers in the United States and other countries, so your data may be stored or processed outside the Dominican Republic. We choose providers that offer appropriate security measures and confidentiality commitments to protect your data.
+
+### 7. Retention and deletion
+
+We keep your data while your account is active. You can delete your account at any time:
+
+- **In the app:** in the Profile tab, Delete account.
+
+- **On the web, without the app:** [account.appfitnessrd.com/delete-account](https://account.appfitnessrd.com/delete-account).
+
+- **By email:** write to [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com) from your account's email address.
+
+When you delete your account we immediately and permanently delete your profile, workouts, nutrition, progress and the rest of your data, including on your phone. We only keep an **anonymous** security record, which cannot identify you, for **12 months**, and then delete it. Uninstalling the app removes the data stored on your phone, but not your account.
+
+### 8. Your rights
+
+You can ask to **access** your data, **correct** it, **delete** it, **object** to its processing or **receive a copy**. You can correct your profile and goal directly in the app, and delete your whole account at any time. For anything else, write to [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com) from your account's email. We will confirm the account is yours, reply within the time limits set by law and deliver the information through a secure channel. If you are not satisfied with our reply, you can contact the competent authority in the Dominican Republic.
+
+### 9. Minors
+
+AppFitnessRD is intended for people aged **16 or older** and is not directed at children under 16. If you are 16 or 17, use the app with the knowledge and permission of your parent or guardian. If we learn that someone under 16 created an account, we will delete it along with its data. If you believe this has happened, write to [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com).
+
+### 10. Changes to this policy
+
+We may update this policy when the app changes. If a change is important, we will let you know in the app or by email before it takes effect, and this page will always show the date of the current version.
+
+### 11. Language and contact
+
+The Spanish version of this policy is the controlling text; this English version is a translation. For privacy questions write to [privacy@appfitnessrd.com](mailto:privacy@appfitnessrd.com), and for app support to [support@appfitnessrd.com](mailto:support@appfitnessrd.com).

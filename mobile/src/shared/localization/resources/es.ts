@@ -464,7 +464,6 @@ export const es = {
   'auth.forgot.sentBody':
     'Si existe una cuenta con esa dirección, el enlace ya está en camino. Caduca en 30 minutos y solo puede usarse una vez.',
   'auth.reset.screenTitle': 'Elige una nueva contraseña',
-  'auth.reset.title': 'Elige una nueva contraseña',
   'auth.reset.subtitle':
     'Tu nueva contraseña sustituye a la anterior y cierra la sesión en todos los dispositivos.',
   'auth.reset.newPassword': 'Nueva contraseña',
