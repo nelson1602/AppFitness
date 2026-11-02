@@ -1,39 +1,51 @@
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
 
 import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-home-data';
+import { isoWeekStart } from '@/features/icoach/domain/progress-analysis';
+import { useGoalStore } from '@/features/profile/application/goal.store';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
-import { formatNumber, formatQuantity, interpolate, useLocalization } from '@/shared/localization';
-import { AppText, Banner, GlassCard, GlassRow, Icon, ProgressBar } from '@/shared/presentation';
-import { useTheme } from '@/shared/theme';
+import { useLocalDay } from '@/shared/application/local-day';
+import { useLocalization } from '@/shared/localization';
+import { Banner } from '@/shared/presentation';
 
 import { canSeedDevHistory } from '@/features/weekly-plan/application/dev-history-seed';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { PastWeeksPanel } from '@/features/weekly-plan/presentation/PastWeeksPanel';
 
 import { useProgressStore } from '../application/progress.store';
+import { buildMeasurementTiles, buildWeekSummary, buildWeightChart } from '../domain/progress-tab';
+import { MeasurementsPanel, WeekSummaryPanel, WeightPanel } from './ProgressTabPanels';
 
 /**
- * The Progreso tab (ADR-P039): the stage with glass cards — current weight
- * toward the goal and this week's workouts — and one row to the full progress
- * screen (weight and measurement entry, trends, weekly insights). The weight
- * chart with its goal line and the measurement grid come with their own phase.
+ * The Progreso tab (ADR-P039; v8.1 restores the approved prototype): "Peso"
+ * with the weight line against the target and today's weight inline,
+ * "Medidas" against about four weeks ago, "Resumen de la semana" with
+ * workouts, volume and average kcal, then "Semanas anteriores" (ADR-P042).
+ * Every number comes from the existing stores through the pure read models in
+ * `domain/progress-tab`; the full progress screen stays at `/progress-log`.
  */
 export function ProgressTab() {
-  const { colors, spacing } = useTheme();
-  const { language, t } = useLocalization();
+  const { t } = useLocalization();
   const status = useProgressStore((s) => s.status);
+  const error = useProgressStore((s) => s.error);
+  const bodyWeights = useProgressStore((s) => s.bodyWeights);
+  const bodyMeasurements = useProgressStore((s) => s.bodyMeasurements);
+  const weekActivity = useProgressStore((s) => s.weekActivity);
+  const targetWeightKg = useGoalStore((s) => s.goal?.targetWeightKg ?? null);
+  const today = useLocalDay((s) => s.today);
   const { summary, currentWeightKg } = useHomeData();
   const pastWeeks = useWeeklyPlanStore((s) => s.pastWeeks);
   const seedHistory = useWeeklyPlanStore((s) => s.seedHistory);
+  const weekStart = isoWeekStart(today);
 
   useFocusEffect(
     useCallback(() => {
       loadHomeData();
+      void useProgressStore.getState().loadWeekActivity(weekStart);
       // ADR-P042: plan vs. done for every past week with a saved plan.
       void useWeeklyPlanStore.getState().loadHistory();
-    }, []),
+    }, [weekStart]),
   );
 
   if (status === 'web-unavailable') {
@@ -46,66 +58,34 @@ export function ProgressTab() {
     );
   }
 
-  const kg = (value: number) => formatQuantity(value, 'kg', language, { maximumFractionDigits: 1 });
-  const { weight, week } = summary;
+  // Same flow as the full weight log: save, then refresh the weekly snapshot.
+  const saveTodayWeight = async (weightKg: number): Promise<boolean> => {
+    const progress = useProgressStore.getState();
+    const ok = await progress.addBodyWeight({ date: today, weightKg, notes: null });
+    if (ok) await useProgressStore.getState().recomputeSnapshots();
+    return ok;
+  };
+
+  const week = buildWeekSummary({
+    weekStart,
+    workouts: weekActivity?.weekStart === weekStart ? weekActivity.workouts : [],
+    calorieDays: weekActivity?.weekStart === weekStart ? weekActivity.calorieDays : [],
+    done: summary.week.done,
+    planned: summary.week.goal,
+  });
 
   return (
     <TabScreen>
-      <GlassCard style={{ gap: spacing.md, padding: spacing.lg }} testID="progress-weight-card">
-        <View style={[styles.row, { gap: spacing.sm }]}>
-          <Icon color={colors.accentCyan} name="scale" size={18} />
-          <AppText accessibilityRole="header" style={styles.grow} tone="onStage" variant="title">
-            {t('progress.tab.weightTitle')}
-          </AppText>
-          {currentWeightKg !== null ? (
-            <AppText tone="onStage" testID="progress-current-weight" variant="title">
-              {kg(currentWeightKg)}
-            </AppText>
-          ) : null}
-        </View>
-        {weight ? (
-          <>
-            <ProgressBar
-              accessibilityLabel={t('home.weight.label')}
-              tone="cyan"
-              value={weight.progress}
-            />
-            <AppText tone="onStageVariant" variant="caption">
-              {interpolate(t('progress.tab.target'), { target: kg(weight.target) })}
-            </AppText>
-          </>
-        ) : (
-          // A weight without a target has no bar to fill: ask for the target.
-          <AppText tone="onStageVariant">
-            {t(currentWeightKg !== null ? 'home.weight.empty' : 'progress.tab.noWeight')}
-          </AppText>
-        )}
-        <GlassRow
-          detail={t('progress.tab.logRowDetail')}
-          icon="plus"
-          label={t('progress.tab.logRow')}
-          onPress={() => router.push('/progress-log')}
-          testID="progress-open-log"
-        />
-      </GlassCard>
-
-      <GlassCard style={{ gap: spacing.md, padding: spacing.lg }} testID="progress-week-card">
-        <View style={[styles.row, { gap: spacing.sm }]}>
-          <Icon color={colors.accentCyan} name="chart" size={18} />
-          <AppText accessibilityRole="header" tone="onStage" variant="title">
-            {t('progress.tab.weekTitle')}
-          </AppText>
-        </View>
-        <View style={[styles.row, styles.spread]}>
-          <AppText tone="onStageVariant">{t('progress.tab.workouts')}</AppText>
-          <AppText tone="onStage" variant="title">
-            {week.goal === null
-              ? '–'
-              : `${formatNumber(week.done, language)}/${formatNumber(week.goal, language)}`}
-          </AppText>
-        </View>
-      </GlassCard>
-
+      <WeightPanel
+        chart={buildWeightChart(bodyWeights, targetWeightKg)}
+        currentWeightKg={currentWeightKg}
+        hasTarget={targetWeightKg !== null}
+        onSave={saveTodayWeight}
+        saveFailed={error !== null && status === 'ready'}
+        saving={status === 'saving'}
+      />
+      <MeasurementsPanel tiles={buildMeasurementTiles(bodyMeasurements)} />
+      <WeekSummaryPanel week={week} />
       <PastWeeksPanel
         onSeed={
           canSeedDevHistory() ? () => void seedHistory(t('workout.log.defaultName')) : undefined
@@ -115,16 +95,3 @@ export function ProgressTab() {
     </TabScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  grow: {
-    flex: 1,
-  },
-  row: {
-    alignItems: 'center',
-    flexDirection: 'row',
-  },
-  spread: {
-    justifyContent: 'space-between',
-  },
-});

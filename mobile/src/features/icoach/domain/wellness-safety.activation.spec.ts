@@ -93,7 +93,8 @@ describe('the dormancy tripwire is gone, deliberately', () => {
 
 describe('atomic activation: the assessment and the routine agree', () => {
   it('routine selection receives the assessment’s exclusions, never a literal []', () => {
-    const plan = code(read(`${FEATURES_DIR}/workout/presentation/GeneratedWorkoutPlan.tsx`));
+    // v8.1: the plan surfaces share this selection hook.
+    const plan = code(read(`${FEATURES_DIR}/workout/application/use-workout-selection.ts`));
 
     expect(plan).toContain('selectWorkoutRoutine(assessment, {');
     // The activation itself.
@@ -110,9 +111,9 @@ describe('atomic activation: the assessment and the routine agree', () => {
     // (ADR-P039), which reads today's plan day from the same selection, and
     // the saved weekly plan's context (ADR-P042), which freezes that selection.
     expect(callers.map((file) => file.split('/').pop()).sort()).toEqual([
-      'GeneratedWorkoutPlan.tsx',
       'plan-context.ts',
       'use-home-data.ts',
+      'use-workout-selection.ts',
       'workout-routine.service.ts',
     ]);
 

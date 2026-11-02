@@ -190,9 +190,10 @@ describe('catalogue parity', () => {
   // v8.1 then added the country — the País picker, its hint and 22 country names (+26), the
   // plan-change label (+1) and the conflict field label (+1, in the family below) — and the
   // Dominican dish plan: 44 dish names and the "(cambio del iCoach)" mark (+45), (+73 together, 1742).
-  it('reaches 1742 keys in each language — 1582 shipped plus a 160-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1742);
-    expect(Object.keys(es)).toHaveLength(1742);
+  // v8.1 Progreso restored the prototype's panels: the weight chart, today's weight, the measurement tiles and the week's three stats (+27), replacing the log row and its detail (-2, 1767).
+  it('reaches 1767 keys in each language — 1607 shipped plus a 160-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1767);
+    expect(Object.keys(es)).toHaveLength(1767);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

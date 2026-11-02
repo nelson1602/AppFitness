@@ -216,7 +216,7 @@ function DayStrip({
               flex: 1,
               gap: spacing.xs,
               justifyContent: 'center',
-              minHeight: theme.spacing.x6l,
+              minHeight: theme.spacing.x5l,
               paddingVertical: spacing.sm,
             }}
             testID={`workout-day-${index}`}
@@ -241,7 +241,8 @@ function DayStrip({
 }
 
 function RestTimer({ until, onDone }: { until: number; onDone: () => void }) {
-  const { colors, radius, spacing } = useTheme();
+  const theme = useTheme();
+  const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
   const [now, setNow] = useState(() => Date.now());
   const left = Math.max(0, Math.ceil((until - now) / 1000));
@@ -288,7 +289,7 @@ function RestTimer({ until, onDone }: { until: number; onDone: () => void }) {
           backgroundColor: colors.glassFill,
           borderRadius: radius.field,
           justifyContent: 'center',
-          minHeight: 48,
+          minHeight: theme.spacing.x5l,
           paddingHorizontal: spacing.md,
         }}
         testID="workout-rest-skip"
@@ -322,7 +323,8 @@ function SessionPanel({
   language: SupportedLanguage;
   onSetDone: (restSeconds: number) => void;
 }) {
-  const { colors, radius, spacing } = useTheme();
+  const theme = useTheme();
+  const { colors, radius, spacing } = theme;
   const { t } = useLocalization();
   const [demo, setDemo] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -426,7 +428,7 @@ function SessionPanel({
                   accessibilityRole="button"
                   accessibilityState={{ expanded: open }}
                   onPress={() => setDemo(open ? null : key)}
-                  style={[styles.grow, { gap: spacing.xs }]}
+                  style={[styles.grow, { gap: spacing.xs, minHeight: theme.spacing.x5l }]}
                   testID={`workout-exercise-${index}-demo-toggle`}
                 >
                   <AppText style={full ? { color: colors.success } : undefined} variant="label">
@@ -496,8 +498,8 @@ function SessionPanel({
                       borderRadius: radius.field,
                       borderWidth: 1,
                       justifyContent: 'center',
-                      minHeight: 48,
-                      minWidth: 48,
+                      minHeight: theme.spacing.x5l,
+                      minWidth: theme.spacing.x5l,
                       paddingHorizontal: spacing.md,
                     }}
                     testID={`workout-exercise-${index}-set`}
@@ -590,7 +592,8 @@ function WeekPlanPanel({
   sessionName: (sessionKey: string) => string;
   onSelect: (index: number) => void;
 }) {
-  const { colors, spacing } = useTheme();
+  const theme = useTheme();
+  const { colors, spacing } = theme;
   const { t } = useLocalization();
   const days = WEEKDAYS.map((weekday, index) => ({
     index,
@@ -628,7 +631,7 @@ function WeekPlanPanel({
                   borderTopColor: colors.glassBorder,
                   borderTopWidth: position > 0 ? StyleSheet.hairlineWidth : 0,
                   gap: spacing.md,
-                  minHeight: 48,
+                  minHeight: theme.spacing.x5l,
                   paddingVertical: spacing.sm,
                 },
               ]}
