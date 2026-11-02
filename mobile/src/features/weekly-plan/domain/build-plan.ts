@@ -62,10 +62,18 @@ export function buildWeeklyPlanContent(input: BuildPlanInput): WeeklyPlanContent
     const mealDay = input.mealPlan.days[index];
     const baselineDay = input.unrestrictedMealPlan?.days[index];
     const meals: PlannedMeal[] = (mealDay?.meals ?? []).map((meal) => {
+      // v8.1: a dish meal names its own swaps (the generator adapted the dish);
+      // a food-based meal is compared line by line with the unrestricted plan.
       const baseline = baselineDay?.meals.find((candidate) => candidate.slot === meal.slot);
-      const substitutions = baseline ? substitutionsFor(meal, baseline, input.isExcluded) : [];
+      const substitutions: IngredientSubstitution[] = meal.dishId
+        ? (meal.adjustments ?? []).map(({ from, to }) => ({ from, to }))
+        : baseline
+          ? substitutionsFor(meal, baseline, input.isExcluded)
+          : [];
       return {
         slot: meal.slot,
+        ...(meal.dishId ? { dishId: meal.dishId } : {}),
+        ...(meal.dishNameKey ? { dishNameKey: meal.dishNameKey } : {}),
         foods: meal.foods,
         totals: meal.totals,
         ...(substitutions.length > 0 ? { substitutions } : {}),

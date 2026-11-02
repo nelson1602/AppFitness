@@ -187,10 +187,11 @@ describe('catalogue parity', () => {
   // (+1, 1582); the training-days progression prompt and history note
   // (+2, 1584); the plural unit names (+3, 1587); the restyled meal plan (+8 new, -3 no longer shown, 1592); the restyled workout plan (+6 new, -5 no longer shown, 1593); native date pickers on the remaining forms (+1, -5 placeholders, 1589); in-page titles that repeated the header (-6, 1583); the privacy-policy link (+2, 1585); the reset-password headline that repeated the header (-1, 1584); and the Salud hints that named conditions (-5, 1579).
   // v8.1 then added the country — the País picker, its hint and 22 country names (+26), the
-  // plan-change label (+1) and the conflict field label (+1, in the family below), reaching 1607.
-  it('reaches 1607 keys in each language — 1447 shipped plus a 160-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1607);
-    expect(Object.keys(es)).toHaveLength(1607);
+  // plan-change label (+1) and the conflict field label (+1, in the family below) — and the
+  // Dominican dish plan: 44 dish names and the "(cambio del iCoach)" mark (+45), reaching 1652.
+  it('reaches 1652 keys in each language — 1492 shipped plus a 160-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1652);
+    expect(Object.keys(es)).toHaveLength(1652);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

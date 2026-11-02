@@ -13,6 +13,7 @@ import {
   buildMealSeed,
   toMealExclusions,
 } from '@/features/nutrition/application/meal-plan.service';
+import { DISH_CATALOG_VERSION } from '@/features/nutrition/domain/dominican-dishes';
 import { CATALOG_VERSION, type FoodId } from '@/features/nutrition/domain/food-catalog';
 import {
   MEAL_RULE_VERSION,
@@ -21,6 +22,7 @@ import {
 } from '@/features/nutrition/domain/meal-plan';
 import { listActiveDietaryPreferences } from '@/features/nutrition/infrastructure/dietary-preference.repository';
 import { getMyProfile } from '@/features/profile';
+import { normalizeCountry } from '@/features/profile/domain/country';
 import { selectWorkoutRoutine } from '@/features/workout/application/workout-routine.service';
 import { EXERCISE_CATALOG_VERSION } from '@/features/workout/domain/exercise-catalog';
 
@@ -42,6 +44,8 @@ export const PLAN_RULE_VERSIONS: Readonly<Record<string, string>> = {
   engine: ENGINE_RULE_VERSION,
   workout: WORKOUT_ROUTINE_RULE_VERSION,
   meals: MEAL_RULE_VERSION,
+  // v8.1: the Dominican dish catalogue the meal plan may be built from.
+  dishes: DISH_CATALOG_VERSION,
   foodCatalog: CATALOG_VERSION,
   exerciseCatalog: EXERCISE_CATALOG_VERSION,
   injuryMap: INJURY_MAP_VERSION,
@@ -104,6 +108,8 @@ export async function gatherPlanContext(
 
   const { engineInput } = assessment;
   const { avoidTags, catalogKeys } = toMealExclusions(preferences);
+  // v8.1: the country picks the meal-plan style (DO → Dominican dishes).
+  const country = normalizeCountry(profile.country);
   const seed = buildMealSeed(
     userId,
     engineInput.goal,
@@ -118,6 +124,7 @@ export async function gatherPlanContext(
     catalog: listAll(),
     seed,
     days: MEAL_PLAN_DAYS,
+    country,
   };
   const mealPlan = generateMealPlan({
     ...common,
@@ -153,6 +160,7 @@ export async function gatherPlanContext(
     movementsToAvoid: engineInput.wellness?.movementsToAvoid ?? [],
     excludedFoods: catalogKeys,
     excludedTags: avoidTags,
+    country,
   };
 
   return {
