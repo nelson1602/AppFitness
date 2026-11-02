@@ -11,7 +11,7 @@ import { TABS } from './tab-config';
 export interface AppTabBarProps {
   activeIndex: number;
   onSelect: (index: number) => void;
-  progress?: Animated.Value;
+  progress?: Animated.Value | Animated.AnimatedInterpolation<number>;
 }
 
 /**

@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { useTabPagerSwipeExclusion } from '@/features/shell/presentation/tab-pager-gesture';
 import type { IngredientSubstitution } from '@/features/weekly-plan/domain/weekly-plan';
 import {
   formatDate,
@@ -69,7 +68,6 @@ export function PlanDayStrip({
   const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
   const strip = useRef<ScrollView>(null);
-  const tabSwipeExclusion = useTabPagerSwipeExclusion();
 
   useEffect(() => {
     // Keep the chosen day in view, one chip of context before it.
@@ -131,7 +129,6 @@ export function PlanDayStrip({
         ref={strip}
         horizontal
         contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.sm }}
-        {...tabSwipeExclusion}
         showsHorizontalScrollIndicator
       >
         {Array.from({ length: count }, (_, i) => i + 1).map((day) => {
