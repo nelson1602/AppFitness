@@ -1,25 +1,19 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import type {
   GeneratedWorkoutRoutine,
   Weekday,
   WorkoutExercisePrescription,
   WorkoutProgressionRule,
 } from '@/features/icoach';
-import { useProfileStore } from '@/features/profile/application/profile.store';
-import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
-import { planAsRoutine } from '@/features/weekly-plan/domain/plan-routine';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
-import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import {
   formatNumber,
   interpolate,
   type SupportedLanguage,
-  type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
 import {
@@ -35,20 +29,9 @@ import {
 import { useTheme } from '@/shared/theme';
 
 import { exerciseDisplayName } from '../application/exercise-display.service';
-import {
-  selectWorkoutRoutine,
-  type WorkoutRoutineSelection,
-} from '../application/workout-routine.service';
-
-const WEEKDAY_KEYS: Readonly<Record<Weekday, TranslationKey>> = {
-  MONDAY: 'workout.day.monday',
-  TUESDAY: 'workout.day.tuesday',
-  WEDNESDAY: 'workout.day.wednesday',
-  THURSDAY: 'workout.day.thursday',
-  FRIDAY: 'workout.day.friday',
-  SATURDAY: 'workout.day.saturday',
-  SUNDAY: 'workout.day.sunday',
-};
+import { useWorkoutSelection } from '../application/use-workout-selection';
+import { WEEKDAY_KEYS, WEEKDAY_SHORT_KEYS, WEEKDAYS } from './weekday-labels';
+import type { WorkoutRoutineSelection } from '../application/workout-routine.service';
 
 /**
  * Read-only public-v1 projection of the deterministic workout generator.
@@ -56,112 +39,33 @@ const WEEKDAY_KEYS: Readonly<Record<Weekday, TranslationKey>> = {
  * generated routine or reads dormant medical data.
  */
 export function GeneratedWorkoutPlan() {
-  const dashboardStatus = useDashboardStore((state) => state.status);
-  const assessment = useDashboardStore((state) => state.data?.assessment ?? null);
-  // The read outcome, so this surface can tell an unreadable declaration
-  // (ADR-P031 §Decision 8) from a generic dashboard failure and say the
-  // right thing about it.
-  const wellnessRead = useDashboardStore((state) => state.data?.wellness ?? 'absent');
-  const refreshDashboard = useDashboardStore((state) => state.refresh);
-  const profileStatus = useProfileStore((state) => state.status);
-  const profile = useProfileStore((state) => state.profile);
-  const loadProfile = useProfileStore((state) => state.load);
   const { t } = useLocalization();
-  const entitlement = useEntitlementAccess();
-  const generationAllowed = entitlement.mode === 'unregulated' || entitlement.mode === 'active';
+  const state = useWorkoutSelection();
 
-  useEffect(() => {
-    if (dashboardStatus === 'idle') void refreshDashboard();
-  }, [dashboardStatus, refreshDashboard]);
-
-  useEffect(() => {
-    if (profileStatus === 'idle') void loadProfile();
-  }, [loadProfile, profileStatus]);
-
-  const planRevisions = useWeeklyPlanStore((state) => state.revisions);
-
-  const live = useMemo(
-    () =>
-      profile
-        ? generationAllowed
-          ? selectWorkoutRoutine(assessment, {
-              equipment: profile.equipment,
-              sessionDurationMins: profile.sessionDurationMins,
-              // ADR-P031 W-4D: the assessment’s own exclusion set, not `[]`.
-              // Same list, same order, so the routine can never contain what
-              // the assessment says was excluded.
-              excludedMovements: assessment?.assessment.training.excludedMovements ?? [],
-            })
-          : ({ status: 'gap' } satisfies WorkoutRoutineSelection)
-        : ({ status: 'gap' } satisfies WorkoutRoutineSelection),
-    [assessment, generationAllowed, profile],
-  );
-  // v8 Block 3 (ADR-P042): "Ver plan completo" shows the saved week the
-  // Entrenamientos tab shows — with the days earned through ADR-P040 D11 —
-  // and keeps the live routine's progression rules and equipment notes. The
-  // live routine stays the fallback until the week's plan exists.
-  const selection = useMemo<WorkoutRoutineSelection>(() => {
-    const saved = generationAllowed ? planAsRoutine(planRevisions) : null;
-    if (!saved || live.status !== 'ready') return live;
-    return { ...live, routine: { ...saved, progression: live.routine.progression } };
-  }, [generationAllowed, live, planRevisions]);
-
-  if (!generationAllowed) return <SubscriptionAccessNotice />;
-
-  if (
-    dashboardStatus === 'idle' ||
-    dashboardStatus === 'loading' ||
-    profileStatus === 'idle' ||
-    profileStatus === 'loading'
-  ) {
+  if (state.kind === 'subscription') return <SubscriptionAccessNotice />;
+  if (state.kind === 'loading') {
     return (
       <Card accessibilityLabel={t('workout.plan.accessibility')}>
         <AppText>{t('workout.plan.loading')}</AppText>
       </Card>
     );
   }
-
-  // An unreadable declaration outranks the generic failure: the plan must not
-  // be presented as respecting limitations the app could not read, and it is
-  // not Empty, not Data-gap and not a crash.
-  if (wellnessRead === 'unavailable') {
+  if (state.kind === 'wellness-unavailable') {
     return (
       <Banner title={t('workout.plan.wellnessUnavailableTitle')} tone="error">
         {t('workout.plan.wellnessUnavailableBody')}
       </Banner>
     );
   }
-
-  if (dashboardStatus === 'error' || profileStatus === 'error') {
+  if (state.kind === 'error') {
     return (
       <Banner title={t('workout.plan.errorTitle')} tone="error">
         {t('workout.plan.errorMessage')}
       </Banner>
     );
   }
-
-  return <GeneratedWorkoutPlanView selection={selection} />;
+  return <GeneratedWorkoutPlanView selection={state.selection} />;
 }
-
-const WEEKDAYS: readonly Weekday[] = [
-  'MONDAY',
-  'TUESDAY',
-  'WEDNESDAY',
-  'THURSDAY',
-  'FRIDAY',
-  'SATURDAY',
-  'SUNDAY',
-];
-
-const WEEKDAY_SHORT_KEYS: Readonly<Record<Weekday, TranslationKey>> = {
-  MONDAY: 'workouts.dayShort.monday',
-  TUESDAY: 'workouts.dayShort.tuesday',
-  WEDNESDAY: 'workouts.dayShort.wednesday',
-  THURSDAY: 'workouts.dayShort.thursday',
-  FRIDAY: 'workouts.dayShort.friday',
-  SATURDAY: 'workouts.dayShort.saturday',
-  SUNDAY: 'workouts.dayShort.sunday',
-};
 
 /**
  * "Plan completo" in the prototype's language (v8 Block 3,

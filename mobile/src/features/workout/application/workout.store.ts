@@ -469,7 +469,7 @@ bindStoreToSession(() => useWorkoutStore.setState(INITIAL));
  * session unless one already does; anything else is an extra workout. Reads
  * the saved week from its store; no plan means no link.
  */
-function todaysPlanLink(logs: readonly WorkoutLog[]): WorkoutPlanLink | null {
+export function todaysPlanLink(logs: readonly WorkoutLog[]): WorkoutPlanLink | null {
   const today = localDateOf(new Date().toISOString());
   const { revisions } = useWeeklyPlanStore.getState();
   const plan = effectivePlanDay(revisions, today)?.plan ?? null;

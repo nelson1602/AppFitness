@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 
 import { useTheme } from '../theme';
 
-type ChipTone = 'cyan' | 'energy' | 'neutral';
+type ChipTone = 'cyan' | 'energy' | 'neutral' | 'success';
 
 interface ChipProps {
   label: string;
@@ -21,6 +21,7 @@ export function Chip({ label, tone = 'neutral', testID = 'chip' }: ChipProps) {
     cyan: colors.accentCyan,
     energy: colors.accentEnergy,
     neutral: colors.onStageVariant,
+    success: colors.success,
   }[tone];
 
   return (
