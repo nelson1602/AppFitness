@@ -36,6 +36,7 @@ const record = (overrides: Partial<ProfileRecord> = {}): ProfileRecord => ({
   targetProteinG: 150,
   targetCarbsG: 250,
   targetFatG: 80,
+  country: 'DO',
   version: 4,
   syncSeq: 42,
   createdAt: new Date('2026-07-01T00:00:00Z'),
@@ -164,6 +165,8 @@ describe('ProfileSyncHandler', () => {
       targetProteinG: null,
       targetCarbsG: null,
       targetFatG: null,
+      // v8.1: a CREATE from a build without the field lands as Dominican.
+      country: 'DO',
     });
   });
 
@@ -239,6 +242,28 @@ describe('ProfileSyncHandler', () => {
     ).rejects.toThrow('stress_level_baseline');
     expect(repo.updateForSync).not.toHaveBeenCalled();
   });
+
+  it('UPDATE carries an ISO alpha-2 country through to the write (v8.1)', async () => {
+    await handler.apply(USER, op({ payload: { country: 'MX' } }), TX);
+
+    expect(repo.updateForSync).toHaveBeenCalledWith(
+      TX,
+      USER,
+      PROFILE_ID,
+      { country: 'MX' },
+      4,
+    );
+  });
+
+  it.each([['do'], ['DOM'], ['D'], [''], ['1A'], [null], [42]])(
+    'rejects the country %p — two uppercase letters only (mirrors the DB CHECK)',
+    async (country) => {
+      await expect(
+        handler.apply(USER, op({ payload: { country } }), TX),
+      ).rejects.toThrow('country');
+      expect(repo.updateForSync).not.toHaveBeenCalled();
+    },
+  );
 
   it('DELETE soft-deletes with the authenticated user as deletedBy at the expected version', async () => {
     await handler.apply(USER, op({ operation: 'DELETE', payload: {} }), TX);

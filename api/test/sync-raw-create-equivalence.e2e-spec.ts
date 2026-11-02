@@ -680,6 +680,7 @@ describe('ADR-P030 C-2 — raw CREATE vs Prisma create field equivalence', () =>
       targetProteinG: 140,
       targetCarbsG: 230,
       targetFatG: 70,
+      country: 'MX',
     };
 
     it('writes the same columns, defaults and trigger values as Prisma', async () => {
@@ -711,6 +712,7 @@ describe('ADR-P030 C-2 — raw CREATE vs Prisma create field equivalence', () =>
           targetProteinG: attributes.targetProteinG,
           targetCarbsG: attributes.targetCarbsG,
           targetFatG: attributes.targetFatG,
+          country: attributes.country,
         },
       });
 

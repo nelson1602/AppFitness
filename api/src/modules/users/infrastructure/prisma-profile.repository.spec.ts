@@ -127,7 +127,8 @@ describe('PrismaProfileRepository (ADR-P030 C-2)', () => {
       expect(values[7]).toBe('MODERATE'); // activity_level default
       expect(values[12]).toBe(3); // training_days_per_week default
       expect(values[13]).toBe(60); // session_duration_mins default
-      expect(values[18]).toBeInstanceOf(Date); // updated_at
+      expect(values[18]).toBe('DO'); // country default (v8.1)
+      expect(values[19]).toBeInstanceOf(Date); // updated_at
     });
 
     it('returns 0 on a primary-key collision without raising', async () => {
@@ -276,6 +277,7 @@ describe('PrismaProfileRepository (ADR-P030 C-2)', () => {
       targetProteinG: null,
       targetCarbsG: null,
       targetFatG: null,
+      country: 'DO',
       version: 1,
       syncSeq: BigInt(1),
       createdAt: new Date(),

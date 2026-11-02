@@ -104,4 +104,11 @@ export class UpdateProfileDto {
   @Min(0)
   @Max(2000)
   targetFatG?: number;
+
+  /** v8.1: ISO 3166-1 alpha-2, two uppercase letters ('ZZ' = another country). */
+  @IsOptional()
+  @Matches(/^[A-Z]{2}$/, {
+    message: 'country must be two uppercase letters (ISO 3166-1 alpha-2)',
+  })
+  country?: string;
 }
