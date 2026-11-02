@@ -15183,6 +15183,14 @@ Amends: ADR-P037 (redesign dependencies)
 - The five typed-date placeholders left the catalogue. A guard now fails if a YYYY-MM-DD / AAAA-MM-DD hint comes back.
 - The dormant medical forms (`features/medical`, no route) keep their text fields.
 
+### v8.1 — Birth dates use an in-app wheel (owner decision 2026-11-02)
+
+- The owner rejected the month-by-month calendar for birth dates: reaching a date ~30 years back took hundreds of taps.
+- Every birth date (evaluation Medidas, Editar perfil) now opens `BirthDateField`: a bottom sheet with `DateWheelPicker`, three snapping `FlatList` columns Día / Mes / Año and a "Listo" button. It is plain React Native — no new dependency, no native module — and renders the same on iOS, Android and Web. The system back gesture closes the sheet without saving.
+- Range: ages 16 to 100, so a birth date lies in [today − 100 years, today − 16 years] (`shared/application/birth-date.ts`). An empty field starts exactly 30 years ago; 29 February falls back to the 28th. The evaluation's Medidas step validates the same range (it was 13–120, the engine's `BOUNDS.age`, which is unchanged and still contains it). This replaces the Block 3 profile bound of 1900-01-01 up to today. The stored value is still `YYYY-MM-DD`; the profile's Zod schema is unchanged.
+- Accessibility: each column is one `adjustable` element with a localized name and value (the month by name in the app language) and increment/decrement actions; Web adds the arrow keys. Focus starts on the year: the columns are rendered Año, Mes, Día and laid out with `row-reverse`, and the sheet moves screen-reader focus to the year column when it opens (VoiceOver may order siblings by position). Rows are at least 48 dp and grow with the OS text size; reduce motion turns off the animated scroll.
+- Every other date (evaluation date, goal target date, weight, measurement and wellness dates) keeps the native picker.
+
 ---
 
 ## ADR-P044 — Native Swipe Navigation for the Five Main Tabs

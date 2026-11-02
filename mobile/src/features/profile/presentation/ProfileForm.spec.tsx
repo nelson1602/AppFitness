@@ -1,8 +1,8 @@
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { localDayOf } from '@/shared/application/local-day';
-import { localDateToIso } from '@/shared/presentation/date-field.format';
-import { pickDate } from '@/shared/presentation/date-field.testkit';
+import { pickBirthDate } from '@/shared/presentation/birth-date-field.testkit';
 
 import type { Profile } from '../domain/profile.types';
 import type { ProfileFormState } from '../application/profile.store';
@@ -117,7 +117,7 @@ describe('ProfileForm', () => {
 
     await render(<ProfileForm onSaved={onSaved} />);
 
-    await pickDate('field-birthDate', '1990-05-14');
+    await pickBirthDate('field-birthDate', '1990-05-14');
     await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
     await fireEvent.press(screen.getByTestId('option-fitnessLevel-INTERMEDIATE'));
     await fireEvent.press(screen.getByTestId('option-activityLevel-MODERATE'));
@@ -145,7 +145,7 @@ describe('ProfileForm', () => {
     expect(screen.getByText('Crea tu perfil')).toBeOnTheScreen();
     expect(screen.getByText('Nivel de condición física *')).toBeOnTheScreen();
     expect(screen.getByText('Intermedio')).toBeOnTheScreen();
-    await pickDate('field-birthDate', '1990-05-14');
+    await pickBirthDate('field-birthDate', '1990-05-14');
     await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
     await fireEvent.press(screen.getByTestId('option-fitnessLevel-ADVANCED'));
     await fireEvent.press(screen.getByTestId('option-activityLevel-ACTIVE'));
@@ -179,7 +179,7 @@ describe('ProfileForm', () => {
 
     await render(<ProfileForm onSaved={onSaved} />);
 
-    await pickDate('field-birthDate', '1990-05-14');
+    await pickBirthDate('field-birthDate', '1990-05-14');
     await fireEvent.changeText(screen.getByTestId('field-heightCm'), '178');
     await fireEvent.press(screen.getByRole('button', { name: 'Save profile' }));
 
@@ -231,13 +231,27 @@ describe('ProfileForm', () => {
     expect(screen.getByText('MM/DD/YYYY')).toBeOnTheScreen();
   });
 
-  it('never offers a future birth date in the calendar (ADR-P043)', async () => {
+  // v8.1 (owner, ADR-P043 amendment): the birth date opens the Día / Mes / Año
+  // wheel — ages 16 to 100, 30 years ago when empty — not the native calendar.
+  it('opens the birth-date wheel, ages 16 to 100, starting 30 years ago', async () => {
     mockLanguage = 'es';
     setStore({ status: 'ready', profile: null });
     await render(<ProfileForm onSaved={jest.fn()} />);
-    const options = await pickDate('field-birthDate', '1990-05-14');
-    expect(localDateToIso(options.maximumDate as Date)).toBe(localDayOf(new Date()));
-    expect(localDateToIso(options.minimumDate as Date)).toBe('1900-01-01');
+    jest.mocked(DateTimePickerAndroid.open).mockClear();
+    await fireEvent.press(screen.getByTestId('field-birthDate'));
+    expect(DateTimePickerAndroid.open).not.toHaveBeenCalled();
+
+    const today = localDayOf(new Date());
+    const thisYear = Number(today.slice(0, 4));
+    expect(screen.getByTestId('field-birthDate-wheel-year').props.accessibilityValue).toEqual({
+      text: String(thisYear - 30),
+    });
+    const yearRow = (year: number) =>
+      screen.queryByTestId(`field-birthDate-wheel-year-${year}`, { includeHiddenElements: true });
+    expect(yearRow(thisYear - 16)).not.toBeNull();
+    expect(yearRow(thisYear - 100)).not.toBeNull();
+    expect(yearRow(thisYear - 15)).toBeNull();
+    expect(yearRow(thisYear - 101)).toBeNull();
   });
 
   it('renders the web-unavailable state in Spanish', async () => {

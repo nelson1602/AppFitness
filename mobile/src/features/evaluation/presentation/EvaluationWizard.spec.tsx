@@ -1,6 +1,9 @@
+import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import type { Profile } from '@/features/profile/domain/profile.types';
+import { pickBirthDate } from '@/shared/presentation/birth-date-field.testkit';
+import { pickDate } from '@/shared/presentation/date-field.testkit';
 
 import { loadEvaluationDraft, saveEvaluation } from '../application/evaluation.service';
 import { useEvaluationStore } from '../application/evaluation.store';
@@ -83,6 +86,42 @@ describe('EvaluationWizard (first run)', () => {
     expect(screen.getByTestId('evaluation-weight-error')).toBeTruthy();
     expect(screen.getByTestId('evaluation-height-error')).toBeTruthy();
     expect(screen.getByText('Medidas')).toBeTruthy();
+  });
+
+  // v8.1 (owner, ADR-P043 amendment): the birth date is the Día / Mes / Año
+  // wheel; the evaluation date keeps the native picker.
+  it('asks the birth date on the wheel, 30 years ago by default, and stores YYYY-MM-DD', async () => {
+    given(sourcesWith(null));
+    await render(<EvaluationWizard mode="first-run" onSaved={jest.fn()} />);
+    await fireEvent.press(await screen.findByTestId('evaluation-birth-date'));
+    expect(screen.getByTestId('evaluation-birth-date-wheel-year').props.accessibilityValue).toEqual(
+      { text: '1996' },
+    );
+    await fireEvent.press(screen.getByTestId('evaluation-birth-date-done'));
+    expect(useEvaluationStore.getState().draft?.birthDate).toBe('1996-10-28');
+
+    await pickBirthDate('evaluation-birth-date', '1990-05-14');
+    expect(useEvaluationStore.getState().draft?.birthDate).toBe('1990-05-14');
+
+    const options = await pickDate('evaluation-date', '2026-10-20');
+    expect(options.mode).toBe('date');
+    expect(useEvaluationStore.getState().draft?.evaluationDate).toBe('2026-10-20');
+    expect(screen.queryByTestId('evaluation-date-wheel')).toBeNull();
+    expect(DateTimePickerAndroid.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects a birth date under 16 years old until the wheel sets one in range', async () => {
+    given(sourcesWith({ birthDate: '2011-01-01' }));
+    await render(<EvaluationWizard mode="first-run" onSaved={jest.fn()} />);
+    await screen.findByTestId('evaluation-continue');
+    await next();
+    expect(screen.getByTestId('evaluation-birth-date-error')).toHaveTextContent(
+      'Elige tu fecha de nacimiento (de 16 a 100 años).',
+    );
+    await pickBirthDate('evaluation-birth-date', '2010-10-28');
+    expect(useEvaluationStore.getState().draft?.birthDate).toBe('2010-10-28');
+    await next();
+    expect(screen.getByText('Salud')).toBeTruthy();
   });
 
   it('computes the BMI as the person types', async () => {

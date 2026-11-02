@@ -30,6 +30,7 @@ Login → (vincular biometría) → Evaluación física → el iCoach crea el pl
 ### Evaluación física (6 pasos)
 El usuario registra los resultados de su evaluación con el médico.
 1. **Medidas:** peso, estatura, edad, sexo y fecha de la evaluación. IMC calculado al momento.
+   - La edad se pide como **fecha de nacimiento** con una rueda de tres columnas (Día / Mes / Año) en una hoja inferior con "Listo", no con un calendario mes a mes: de 16 a 100 años, empieza 30 años atrás, y el lector de pantalla entra por la columna del año. La misma rueda se usa en Editar perfil (decisión del dueño 2026-11-02, v8.1; ADR-P043).
 2. **Salud:**
    - Condiciones: Hipertensión, Diabetes, Asma, Condición cardíaca, Otros (abre un cuadro de texto).
    - Botón **Lesiones** que despliega: Hombro, Rodilla, Espalda baja, Muñeca, Codo, Tobillo, Cadera o pelvis, Cuello, Desgarre muscular, Periostitis tibial, Fascitis plantar, Otra lesión (abre un cuadro de texto).

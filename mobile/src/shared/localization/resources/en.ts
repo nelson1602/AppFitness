@@ -4,6 +4,10 @@ export const en = {
   'form.date.empty': 'no date',
   'form.date.done': 'Done',
   'form.date.clear': 'Clear date',
+  'form.dateWheel.day': 'Day',
+  'form.dateWheel.month': 'Month',
+  'form.dateWheel.year': 'Year',
+  'form.dateWheel.openHint': 'Opens the date wheel',
   // Web document shell and the product not-found surface (BUG-016, ADR-P032).
   // 'web.document.title' is the product title every exported Web document
   // carries; the three shipped portals reuse their own screen-title keys.
@@ -180,7 +184,7 @@ export const en = {
   'evaluation.unit.cm': 'cm',
   'evaluation.error.weight': 'Enter a weight between 30 and 400 kg.',
   'evaluation.error.height': 'Enter a height between 100 and 250 cm.',
-  'evaluation.error.birthDate': 'Choose your date of birth (age 13 to 120).',
+  'evaluation.error.birthDate': 'Choose your date of birth (age 16 to 100).',
   'evaluation.error.evaluationDate': "The assessment date can't be in the future.",
   'evaluation.error.equipment': 'Choose at least one option.',
   'evaluation.error.targetWeight': 'Enter a target weight between 30 and 400 kg.',

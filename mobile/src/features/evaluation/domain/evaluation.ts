@@ -4,6 +4,7 @@ import type { Goal, GoalInput } from '@/features/profile/domain/goal.types';
 import type { Profile, ProfileInput } from '@/features/profile/domain/profile.types';
 import type { WellnessSafetyProfile } from '@/features/wellness/domain/wellness-safety-profile';
 import type { WellnessSafetyProfileInput } from '@/features/wellness/domain/wellness-safety-profile.rules';
+import { isBirthDateInRange } from '@/shared/application/birth-date';
 import type {
   ActivityLevel,
   DietaryPreferenceKind,
@@ -223,9 +224,9 @@ export function stepIssues(
   if (step === 'measures') {
     if (!inRange(draft.weightKg, BOUNDS.weightKg)) issues.push('weight');
     if (!inRange(draft.heightCm, BOUNDS.heightCm)) issues.push('height');
-    if (!draft.birthDate || !inRange(ageOn(draft.birthDate, today), BOUNDS.age)) {
-      issues.push('birthDate');
-    }
+    // The birth-date wheel's own range, ages 16 to 100 (v8.1, ADR-P043
+    // amendment); it lies inside the engine's BOUNDS.age.
+    if (!isBirthDateInRange(draft.birthDate, today)) issues.push('birthDate');
     if (draft.evaluationDate > today) issues.push('evaluationDate');
   }
   if (step === 'lifestyle' && draft.equipment.length === 0) issues.push('equipment');
