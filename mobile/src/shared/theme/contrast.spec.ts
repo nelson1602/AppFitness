@@ -576,6 +576,15 @@ const PAIRINGS: readonly Pairing[] = [
       where: 'Chip tone label on a GlassCard',
     })),
   ),
+  // v8.1 Progreso: an improved measurement's change, as text on a GlassCard.
+  ...(['stage', 'stageDeep', 'stageMid'] as const).map((over): Pairing => ({
+    foreground: 'success',
+    background: 'glassFill',
+    over,
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Measurement change (improved) on a GlassCard',
+  })),
   ...(['stage', 'stageDeep', 'stageMid'] as const).map((background): Pairing => ({
     foreground: 'success',
     background,
@@ -838,6 +847,8 @@ describe('negative control — the pre-addendum palette fails this gate', () => 
       'primary on surface',
       'primary on surfaceVariant',
       'success on background',
+      // The v8.1 improved-measurement text: the pre-addendum green fails on glass too.
+      'success on glassFill over stageMid',
       'success on surfaceVariant',
       'warning on background',
       'warning on surface',

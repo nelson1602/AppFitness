@@ -3,7 +3,13 @@ import { listDailyCalorieTotals } from '@/features/nutrition';
 import { listRecentWorkoutLogs, listWorkoutSets } from '@/features/workout';
 
 import { listBodyWeights, upsertProgressSnapshot } from '../infrastructure/progress.repository';
-import { deviceLocalDate, gatherProgressInputs, recomputeSnapshots } from './progress.gathering';
+import {
+  completedVolumeKg,
+  deviceLocalDate,
+  gatherProgressInputs,
+  gatherWeekActivity,
+  recomputeSnapshots,
+} from './progress.gathering';
 
 jest.mock('@/features/icoach/domain/progress-analysis', () => ({
   computeWeeklyProgressSnapshots: jest.fn(),
@@ -109,5 +115,50 @@ describe('recomputeSnapshots', () => {
     expect(mockUpsert).toHaveBeenNthCalledWith(1, USER, computed[0], NOW);
     expect(mockUpsert).toHaveBeenNthCalledWith(2, USER, computed[1], NOW);
     expect(out).toHaveLength(2);
+  });
+});
+
+describe('gatherWeekActivity (v8.1 Progreso)', () => {
+  const log = (id: string, startedAt: string) => ({ id, startedAt }) as never;
+
+  it("reads this week's logs and calorie days only, and writes nothing", async () => {
+    mockLogs.mockResolvedValueOnce([
+      log('this-week', '2026-10-28T15:00:00'),
+      log('last-week', '2026-10-20T15:00:00'),
+    ]);
+    mockSets.mockResolvedValueOnce([
+      { completed: true, weightKg: 60, reps: 10 },
+      { completed: true, weightKg: 60, reps: 8 },
+      { completed: false, weightKg: 100, reps: 5 },
+      { completed: true, weightKg: null, reps: 12 },
+    ] as never);
+    mockCalories.mockResolvedValueOnce([
+      { date: '2026-10-25', calories: 1500 },
+      { date: '2026-10-27', calories: 2100 },
+    ]);
+
+    const week = await gatherWeekActivity(USER, '2026-10-26');
+
+    expect(mockLogs).toHaveBeenCalledWith(USER, 100);
+    expect(mockSets).toHaveBeenCalledTimes(1);
+    expect(mockSets).toHaveBeenCalledWith(USER, 'this-week');
+    expect(week).toEqual({
+      weekStart: '2026-10-26',
+      workouts: [{ date: '2026-10-28', volumeKg: 1080 }],
+      calorieDays: [{ date: '2026-10-27', calories: 2100 }],
+    });
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+});
+
+describe('completedVolumeKg', () => {
+  it('sums weight × reps over completed sets only', () => {
+    expect(
+      completedVolumeKg([
+        { completed: true, weightKg: 50, reps: 10 },
+        { completed: false, weightKg: 50, reps: 10 },
+        { completed: true, weightKg: 20, reps: null },
+      ]),
+    ).toBe(500);
   });
 });

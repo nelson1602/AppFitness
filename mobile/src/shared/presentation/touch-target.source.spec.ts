@@ -126,6 +126,8 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   ],
   'src/features/profile/presentation/ProfileTab.tsx': ['floor'],
   'src/features/progress/presentation/ProgressSummaryCard.tsx': ['content'],
+  // v8.1 Progreso: the dashed "Agregar medidas" tile (half the panel's width).
+  'src/features/progress/presentation/ProgressTabPanels.tsx': ['floor'],
   // ADR-P039 shell: the bell, each tab, and each notification row.
   'src/features/shell/presentation/app-header.tsx': ['floor-both'],
   'src/features/shell/presentation/app-tab-bar.tsx': ['floor-both'],
@@ -175,8 +177,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 41 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(41);
+it('counts exactly 42 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(42);
 });
 
 describe.each(

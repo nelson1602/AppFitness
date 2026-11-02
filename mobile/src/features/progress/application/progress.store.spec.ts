@@ -10,7 +10,7 @@ import {
   listBodyWeights,
   listProgressSnapshots,
 } from '../infrastructure/progress.repository';
-import { recomputeSnapshots } from './progress.gathering';
+import { gatherWeekActivity, recomputeSnapshots } from './progress.gathering';
 import { useProgressStore } from './progress.store';
 
 // A faithful in-memory session (generation + owner comparison), NOT a stub:
@@ -33,7 +33,10 @@ jest.mock('../infrastructure/progress.repository', () => ({
   updateBodyMeasurement: jest.fn(),
   deleteBodyMeasurement: jest.fn(),
 }));
-jest.mock('./progress.gathering', () => ({ recomputeSnapshots: jest.fn() }));
+jest.mock('./progress.gathering', () => ({
+  recomputeSnapshots: jest.fn(),
+  gatherWeekActivity: jest.fn(),
+}));
 
 const auth = authModule as unknown as FakeSessionModule;
 const mockLogError = jest.mocked(logError);
@@ -43,6 +46,7 @@ const mockListSnap = jest.mocked(listProgressSnapshots);
 const mockCreateBW = jest.mocked(createBodyWeight);
 const mockDeleteBW = jest.mocked(deleteBodyWeight);
 const mockRecompute = jest.mocked(recomputeSnapshots);
+const mockGatherWeek = jest.mocked(gatherWeekActivity);
 
 const USER = 'user-1';
 const bw = { id: 'bw-1', date: '2026-08-03', weightKg: 80 } as never;
@@ -180,5 +184,35 @@ describe('useProgressStore', () => {
     expect(s.status).toBe('ready');
     expect(s.error).toBe('We could not save your changes. Please try again.');
     expect(mockLogError).toHaveBeenCalled();
+  });
+});
+
+describe('loadWeekActivity (v8.1 Progreso)', () => {
+  const week = { weekStart: '2026-10-26', workouts: [], calorieDays: [] };
+
+  it("reads the owner's week, read-only", async () => {
+    mockGatherWeek.mockResolvedValueOnce(week);
+    await useProgressStore.getState().loadWeekActivity('2026-10-26');
+    expect(mockGatherWeek).toHaveBeenCalledWith(USER, '2026-10-26');
+    expect(useProgressStore.getState().weekActivity).toEqual(week);
+    expect(mockRecompute).not.toHaveBeenCalled();
+  });
+
+  it('logs a failure and leaves the week empty, without breaking the screen', async () => {
+    useProgressStore.setState({ status: 'ready', weekActivity: week });
+    mockGatherWeek.mockRejectedValueOnce(new Error('disk I/O'));
+    await useProgressStore.getState().loadWeekActivity('2026-10-26');
+    const s = useProgressStore.getState();
+    expect(s.weekActivity).toBeNull();
+    expect(s.status).toBe('ready');
+    expect(s.error).toBeNull();
+    expect(mockLogError).toHaveBeenCalled();
+  });
+
+  it('does not log the dormant Web database (ADR-P019)', async () => {
+    mockGatherWeek.mockRejectedValueOnce(new DatabaseUnsupportedOnWebError());
+    await useProgressStore.getState().loadWeekActivity('2026-10-26');
+    expect(useProgressStore.getState().weekActivity).toBeNull();
+    expect(mockLogError).not.toHaveBeenCalled();
   });
 });
