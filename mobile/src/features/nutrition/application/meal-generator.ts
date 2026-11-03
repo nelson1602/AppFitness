@@ -10,6 +10,7 @@ import {
 import { DISH_PLAN_COUNTRY } from '../domain/dominican-dishes';
 import {
   MEAL_RULE_VERSION,
+  MEAL_SLOTS,
   type MealMacros,
   type MealPlan,
   type MealPlanDay,
@@ -266,9 +267,7 @@ function buildDay(dayIndex: number, pools: Pools, daily: MealMacros, hash: numbe
   realisticPortions(scaled, daily);
 
   // A dropped snack's share of the day goes to the main meals, in proportion.
-  const slots = (['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'] as MealSlot[]).filter((slot) =>
-    scaled.some((e) => e.slot === slot),
-  );
+  const slots = MEAL_SLOTS.filter((slot) => scaled.some((e) => e.slot === slot));
   const planned = slots.reduce((sum, slot) => sum + SLOT_SPLIT[slot], 0);
   const meals: MealPlanMeal[] = slots.map((slot) => {
     const foods = scaled.filter((e) => e.slot === slot).map((e) => e.mpf);

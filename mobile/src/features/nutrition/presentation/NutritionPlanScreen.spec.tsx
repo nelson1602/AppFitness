@@ -228,6 +228,20 @@ describe('NutritionPlanScreen', () => {
     expect(screen.queryByText(/×/)).toBeNull();
   });
 
+  it('lists the meals Breakfast, Lunch, Snack, Dinner — even from a plan saved snack-last', async () => {
+    // The fixture keeps the pre-1.6.0 order (dinner before the snack).
+    expect(plan().days[0].meals.map((m) => m.slot)).toEqual([
+      'BREAKFAST',
+      'LUNCH',
+      'DINNER',
+      'SNACK',
+    ]);
+    await render(<NutritionPlanScreen />);
+    expect(screen.getAllByTestId(/^plan-meal-1-[A-Z]+$/).map((node) => node.props.testID)).toEqual(
+      ['plan-meal-1-BREAKFAST', 'plan-meal-1-LUNCH', 'plan-meal-1-SNACK', 'plan-meal-1-DINNER'],
+    );
+  });
+
   it("opens and closes a meal's ingredients", async () => {
     await render(<NutritionPlanScreen />);
     expect(screen.queryByTestId('plan-ingredients-1-LUNCH')).toBeNull();

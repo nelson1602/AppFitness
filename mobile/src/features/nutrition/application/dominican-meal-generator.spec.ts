@@ -80,6 +80,19 @@ describe('country branch (v8.1, meal-rules@1.6.0)', () => {
     }
   });
 
+  it('lists each day Desayuno, Almuerzo, Merienda, Cena', () => {
+    for (const day of dominican().days) {
+      expect(day.meals.map((m) => m.slot)).toEqual(['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER']);
+    }
+    // A dropped snack leaves the others in the same order.
+    for (const day of generateMealPlan(input({ nutritionPlan: np(700) })).days) {
+      const slots = day.meals.map((m) => m.slot);
+      expect(slots).toEqual(
+        ['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER'].filter((s) => slots.includes(s as never)),
+      );
+    }
+  });
+
   it.each([['US'], ['MX'], ['ES'], ['ZZ'], [undefined]])(
     'keeps the generic food plan, unchanged, for %p',
     (country) => {

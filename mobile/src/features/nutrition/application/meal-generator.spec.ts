@@ -68,10 +68,11 @@ describe('generateMealPlan — determinism & structure', () => {
     expect(generateMealPlan(input({ days: 7 })).days).toHaveLength(7);
   });
 
-  it('gives every day all four meal slots in order', () => {
+  it('gives every day all four meal slots in the order they are eaten', () => {
     const plan = generateMealPlan(input());
     for (const d of plan.days) {
-      expect(d.meals.map((m) => m.slot)).toEqual(['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK']);
+      // v8.1 round 2: Desayuno, Almuerzo, Merienda, Cena.
+      expect(d.meals.map((m) => m.slot)).toEqual(['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER']);
       for (const m of d.meals) expect(m.foods.length).toBeGreaterThan(0);
     }
   });

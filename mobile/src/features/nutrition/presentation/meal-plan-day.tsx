@@ -13,7 +13,7 @@ import {
 import { AppText, GlassCard, Icon, withAlpha } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { MealMacros, MealPlanFood, MealSlot } from '../domain/meal-plan';
+import { bySlotOrder, type MealMacros, type MealPlanFood, type MealSlot } from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
 import { dishNameKeyFor, SWAP_MARK_KEY } from './dish-name';
@@ -385,7 +385,7 @@ export function MealPlanPanel({
           </AppText>
         ) : null}
       </View>
-      {day.meals.map((meal, index) => (
+      {bySlotOrder(day.meals).map((meal, index) => (
         <View
           key={meal.slot}
           style={
@@ -402,7 +402,7 @@ export function MealPlanPanel({
           />
         </View>
       ))}
-      {extras.map((extra) => (
+      {bySlotOrder(extras).map((extra) => (
         <View
           key={extra.id}
           style={{
