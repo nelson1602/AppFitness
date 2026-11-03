@@ -17,6 +17,7 @@ import { bySlotOrder, type MealMacros, type MealPlanFood, type MealSlot } from '
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
 import { dishNameKeyFor, SWAP_MARK_KEY } from './dish-name';
+import { PlanDaySlider } from './plan-day-slider';
 import { formatServingAmount } from './serving-amount';
 
 /**
@@ -115,16 +116,20 @@ export function PlanDayStrip({
     <View style={{ gap: spacing.sm }}>
       <View style={[styles.row, { gap: spacing.sm }]}>
         {arrow(-1)}
-        <View style={[styles.grow, styles.row, { justifyContent: 'space-between' }]}>
-          <AppText tone="muted" variant="label">
-            {t('nutrition.plan.stripLabel')}
-          </AppText>
-          <AppText variant="label">
-            {interpolate(t('nutrition.plan.dayOf'), {
-              day: formatNumber(selected, language),
-              count: formatNumber(count, language),
-            })}
-          </AppText>
+        {/* The prototype's label row with the range track under it, between the arrows. */}
+        <View style={styles.grow}>
+          <View style={[styles.row, { justifyContent: 'space-between' }]}>
+            <AppText tone="muted" variant="label">
+              {t('nutrition.plan.stripLabel')}
+            </AppText>
+            <AppText variant="label">
+              {interpolate(t('nutrition.plan.dayOf'), {
+                day: formatNumber(selected, language),
+                count: formatNumber(count, language),
+              })}
+            </AppText>
+          </View>
+          <PlanDaySlider count={count} onSelect={onSelect} selected={selected} />
         </View>
         {arrow(1)}
       </View>

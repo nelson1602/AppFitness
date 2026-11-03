@@ -341,6 +341,15 @@ describe('NutritionPlanScreen', () => {
     expect(screen.getByText('Day 2 of 3')).toBeOnTheScreen();
   });
 
+  it('shows the 15-day slider under the plan title and day, and it changes the day', async () => {
+    await render(<NutritionPlanScreen />);
+    const slider = screen.getByTestId('plan-day-slider');
+    expect(slider.props.accessibilityValue).toMatchObject({ now: 1, max: 3, text: 'Day 1 of 3' });
+    await fireEvent(slider, 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
+    expect(screen.getByText('Meal plan · day 2')).toBeOnTheScreen();
+    expect(screen.getByTestId('plan-day-slider').props.accessibilityValue.now).toBe(2);
+  });
+
   /**
    * ADR-P022 Addendum A carried into the redesign: the selected chip is the
    * prototype's cyan, labelled with the dark stage ink, never a light tone.

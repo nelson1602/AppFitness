@@ -1121,6 +1121,8 @@ export const en = {
   'nutrition.plan.showDay': 'Show day',
   'nutrition.plan.stripLabel': '15-day plan',
   'nutrition.plan.dayOf': 'Day {day} of {count}',
+  // v8.1 round 2: the 15-day slider between the title and the day.
+  'nutrition.plan.sliderHint': 'Drag to choose the plan day',
   'nutrition.plan.previousDay': 'Previous day',
   'nutrition.plan.nextDay': 'Next day',
   'nutrition.plan.mealsOfDay': 'Meal plan · day {day}',
