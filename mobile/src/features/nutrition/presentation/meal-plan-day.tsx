@@ -13,7 +13,12 @@ import {
 import { AppText, GlassCard, Icon, withAlpha } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import { bySlotOrder, type MealMacros, type MealPlanFood, type MealSlot } from '../domain/meal-plan';
+import {
+  bySlotOrder,
+  type MealMacros,
+  type MealPlanFood,
+  type MealSlot,
+} from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
 import { dishNameKeyFor, SWAP_MARK_KEY } from './dish-name';
@@ -365,7 +370,7 @@ export function MealPlanPanel({
       <View style={{ gap: spacing.xs, paddingBottom: spacing.xs }}>
         <View style={[styles.row, { gap: spacing.sm }]}>
           <Icon color={colors.linkOnStage} name="sparkle" size={17} />
-          <AppText accessibilityRole="header" style={styles.grow} variant="title">
+          <AppText accessibilityRole="header" style={styles.grow} variant="panelTitle">
             {interpolate(t('nutrition.plan.mealsOfDay'), {
               day: formatNumber(day.index, language),
             })}

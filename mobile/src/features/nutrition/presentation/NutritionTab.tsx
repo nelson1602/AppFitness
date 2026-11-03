@@ -285,7 +285,7 @@ function AdjustedPanel({ substitutions }: { substitutions: readonly IngredientSu
     <GlassCard testID="nutrition-adjusted">
       <View style={[styles.row, { gap: spacing.sm }]}>
         <Icon color={colors.accentEnergy} name="sparkle" size={18} />
-        <AppText accessibilityRole="header" style={styles.grow} variant="title">
+        <AppText accessibilityRole="header" style={styles.grow} variant="panelTitle">
           {t('nutrition.tab.adjustedTitle')}
         </AppText>
       </View>
