@@ -119,6 +119,16 @@ describe('PlanChangePrompt (ADR-P042 D3)', () => {
     expect(mockDismiss).toHaveBeenCalledTimes(1);
   });
 
+  // v8.1 round 2 (item 7): the Dominican dish plan is offered, not blamed on the person.
+  it('offers the dish plan without saying the country changed', async () => {
+    mockPending = ['dishPlan'];
+    await render(<PlanChangePrompt />);
+    expect(screen.getByTestId('plan-change-dish-plan')).toHaveTextContent(
+      'Tu plan ya puede usar platos dominicanos. Puedes rehacerlo desde hoy o mantenerlo hasta el lunes.',
+    );
+    expect(screen.queryByText(/Cambiaste|tu país/)).toBeNull();
+  });
+
   // ADR-P040 D11: two strong weeks earned one more training day.
   it('offers one more training day with its number', async () => {
     mockPending = ['moreDays'];

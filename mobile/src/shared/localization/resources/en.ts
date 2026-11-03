@@ -397,6 +397,8 @@ export const en = {
   'plan.change.injuries': 'your injuries',
   'plan.change.excludedFoods': 'your excluded foods',
   'plan.change.country': 'your country',
+  'plan.change.dishPlan':
+    'Your plan can now use Dominican dishes. You can rebuild it from today or keep it until Monday.',
   'workouts.week.training': '{day}, training',
   'workouts.week.rest': '{day}, rest',
   'workouts.week.today': 'Today',
