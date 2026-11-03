@@ -38,8 +38,8 @@ async function renderSlider(selected = 3, onSelect = jest.fn()) {
 }
 
 /** A touch on the row `x` dp from its left edge, the row starting at page x 16. */
-const touchAt = (x: number) => ({
-  nativeEvent: { locationX: x, pageX: 16 + x, touches: [], changedTouches: [] },
+const touchAt = (x: number, y = 0) => ({
+  nativeEvent: { locationX: x, pageX: 16 + x, pageY: 500 + y, touches: [], changedTouches: [] },
   touchHistory: { touchBank: [] },
 });
 
@@ -111,24 +111,47 @@ describe('PlanDaySlider', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 
-  it('picks the day under a tap and follows a drag along the track', async () => {
+  // Day 3 of 15 on a 200 dp travel: thumb centre at 11 + 200 · 2/14.
+  const THUMB_CENTRE_DAY3 = THUMB / 2 + (200 * 2) / 14;
+
+  it('follows a drag that starts on the thumb and keeps it from the tab pager', async () => {
     const { onSelect } = await renderSlider(3);
     const slider = screen.getByTestId('plan-day-slider');
-    // Claims the touch on contact and keeps it from the tab pager.
     expect(slider.props.onStartShouldSetResponder()).toBe(true);
-    expect(slider.props.onResponderTerminationRequest()).toBe(false);
 
-    // Day 8 is the middle: thumb centre at 11 + 100.
-    expect(slider.props.onResponderGrant(touchAt(THUMB / 2 + 100))).toBe(true);
-    expect(onSelect).toHaveBeenLastCalledWith(8);
+    expect(slider.props.onResponderGrant(touchAt(THUMB_CENTRE_DAY3))).toBe(true);
+    expect(slider.props.onResponderTerminationRequest()).toBe(false);
     slider.props.onResponderMove(touchAt(THUMB / 2 + 200));
     expect(onSelect).toHaveBeenLastCalledWith(15);
     // Within the same day nothing new is reported.
     slider.props.onResponderMove(touchAt(THUMB / 2 + 199));
-    expect(onSelect).toHaveBeenCalledTimes(2);
+    expect(onSelect).toHaveBeenCalledTimes(1);
     slider.props.onResponderMove(touchAt(-30));
     expect(onSelect).toHaveBeenLastCalledWith(1);
-    slider.props.onResponderRelease();
+    slider.props.onResponderRelease(touchAt(-30));
+    expect(onSelect).toHaveBeenCalledTimes(2);
+  });
+
+  it('jumps to the day under a tap on the track, on release', async () => {
+    const { onSelect } = await renderSlider(3);
+    const slider = screen.getByTestId('plan-day-slider');
+    // Day 8 is the middle: centre at 11 + 100. Off the thumb, so not claimed.
+    expect(slider.props.onResponderGrant(touchAt(THUMB / 2 + 100))).toBe(false);
+    expect(onSelect).not.toHaveBeenCalled();
+    slider.props.onResponderRelease(touchAt(THUMB / 2 + 100));
+    expect(onSelect).toHaveBeenCalledWith(8);
+  });
+
+  // v8.1 round 2 device check: a vertical swipe over the track moved the plan
+  // to day 8 and the page would not scroll.
+  it('lets a vertical scroll over the track go without changing the day', async () => {
+    const { onSelect } = await renderSlider(3);
+    const slider = screen.getByTestId('plan-day-slider');
+    slider.props.onResponderGrant(touchAt(THUMB / 2 + 100));
+    slider.props.onResponderMove(touchAt(THUMB / 2 + 100, 60));
+    expect(slider.props.onResponderTerminationRequest()).toBe(true);
+    slider.props.onResponderRelease(touchAt(THUMB / 2 + 100, 60));
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it('keeps the whole row at least the 44 dp touch floor', async () => {

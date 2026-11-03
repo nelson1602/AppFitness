@@ -25,6 +25,8 @@ import { useTheme } from '@/shared/theme';
 const THUMB_SIZE = 22;
 const TRACK_HEIGHT = 4;
 const SETTLE_MS = 160;
+/** Movement (dp) under which a touch on the track counts as a tap. */
+const TAP_SLOP = 8;
 
 /** The day (1…count) under `x` on a track whose thumb centre travels `travel` (pure). */
 export function dayAt(x: number, travel: number, count: number): number {
@@ -54,7 +56,14 @@ export function PlanDaySlider({
   const [travel, setTravel] = useState(0);
   const [offset] = useState(() => new Animated.Value(0));
   // Touch state lives in refs, read and written only by the touch handlers.
-  const drag = useRef({ active: false, originX: 0, day: selected });
+  const drag = useRef({
+    active: false,
+    originX: 0,
+    startX: 0,
+    startY: 0,
+    moved: false,
+    day: selected,
+  });
 
   useEffect(() => {
     const to = thumbOffset(selected, travel, count);
@@ -78,20 +87,36 @@ export function PlanDaySlider({
     onSelect(day);
   };
 
-  // The row claims the touch on contact and keeps it, and returning true from
-  // the grant blocks the native responder, so the tab pager cannot take the drag.
+  // Only a drag that starts on the thumb keeps the touch (and blocks the tab
+  // pager). Anywhere else on the track the page keeps its vertical scroll and
+  // the pager its swipe; a tap there (no movement) jumps to that day on release.
   const touch = {
     onStartShouldSetResponder: () => true,
-    onMoveShouldSetResponder: () => true,
-    onResponderTerminationRequest: () => false,
+    onResponderTerminationRequest: () => !drag.current.active,
     onResponderGrant: (event: GestureResponderEvent) => {
-      const { locationX, pageX } = event.nativeEvent;
-      drag.current = { active: true, originX: pageX - locationX, day: selected };
-      pick(pageX);
-      return true;
+      const { locationX, pageX, pageY } = event.nativeEvent;
+      const thumbCenter = thumbOffset(selected, travel, count) + THUMB_SIZE / 2;
+      const onThumb = Math.abs(locationX - thumbCenter) <= THUMB_SIZE;
+      drag.current = {
+        active: onThumb,
+        originX: pageX - locationX,
+        startX: pageX,
+        startY: pageY,
+        moved: false,
+        day: selected,
+      };
+      return onThumb;
     },
-    onResponderMove: (event: GestureResponderEvent) => pick(event.nativeEvent.pageX),
-    onResponderRelease: () => {
+    onResponderMove: (event: GestureResponderEvent) => {
+      const { pageX, pageY } = event.nativeEvent;
+      const { startX, startY } = drag.current;
+      if (Math.abs(pageX - startX) > TAP_SLOP || Math.abs(pageY - startY) > TAP_SLOP) {
+        drag.current.moved = true;
+      }
+      if (drag.current.active) pick(pageX);
+    },
+    onResponderRelease: (event: GestureResponderEvent) => {
+      if (!drag.current.active && !drag.current.moved) pick(event.nativeEvent.pageX);
       drag.current.active = false;
     },
     onResponderTerminate: () => {
