@@ -128,6 +128,8 @@ describe('WorkoutWeek (v8.1, prototype Entrenamientos)', () => {
     expect(screen.getByTestId('workout-week-row-0-status')).toHaveTextContent('Done');
     expect(screen.getByTestId('workout-week-row-2-status')).toHaveTextContent('Today');
     expect(screen.getByTestId('workout-week-row-4-status')).toHaveTextContent('Pending');
+    // v8.1 round 2 (item 9): the prototype's gray chip on the week plan.
+    expect(screen.getByTestId('workout-week-renews')).toHaveTextContent('Renews on Monday');
     // Rest days have no dot.
     expect(screen.getByTestId('workout-day-1-dot')).toHaveStyle({
       backgroundColor: 'transparent',

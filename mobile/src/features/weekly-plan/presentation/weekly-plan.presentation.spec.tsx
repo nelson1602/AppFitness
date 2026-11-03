@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import type { PastWeek } from '../application/weekly-plan.service';
 import type { WeekAdherence } from '../domain/adherence';
@@ -66,6 +66,14 @@ beforeEach(() => {
 });
 
 describe('PastWeeksPanel (ADR-P042 D7)', () => {
+  // v8.1 round 2 (item 9): the synced prototype puts the subtitle on the title row.
+  it('puts "Plan vs. lo cumplido" at the end of the title row', async () => {
+    await render(<PastWeeksPanel weeks={[]} />);
+    expect(
+      within(screen.getByTestId('past-weeks-header')).getByTestId('past-weeks-subtitle'),
+    ).toHaveTextContent('Plan vs. lo cumplido');
+  });
+
   it('shows the empty state before the first week ends', async () => {
     await render(<PastWeeksPanel weeks={[]} />);
     expect(screen.getByTestId('past-weeks-empty')).toBeTruthy();
