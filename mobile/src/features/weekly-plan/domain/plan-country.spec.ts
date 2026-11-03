@@ -44,9 +44,11 @@ describe('country in the plan inputs', () => {
     expect(changedPlanInputs(inputs({ country: 'DO' }), inputs({ country: 'DO' }))).toEqual([]);
   });
 
-  it('never reports a country change against a plan saved before v8.1', () => {
-    expect(changedPlanInputs(inputs(), inputs({ country: 'DO' }))).toEqual([]);
+  it('offers the Dominican plan against a food-based plan saved before v8.1', () => {
+    expect(changedPlanInputs(inputs(), inputs({ country: 'DO' }))).toEqual(['country']);
+    // Any other country keeps the food-based plan, so nothing changed.
     expect(changedPlanInputs(inputs(), inputs({ country: 'US' }))).toEqual([]);
+    expect(changedPlanInputs(inputs(), inputs())).toEqual([]);
   });
 
   it('leaves the fingerprint of inputs without a country unchanged, and fingerprints the country', () => {

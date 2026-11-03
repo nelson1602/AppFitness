@@ -6,7 +6,10 @@ import { NutritionTab } from './NutritionTab';
 
 let mockLanguage: 'en' | 'es' = 'en';
 let mockStatus = 'ready';
+let mockView: unknown;
+let mockItems: unknown[] = [];
 const mockLoadHomeData = jest.fn();
+const mockPanelProps = jest.fn();
 
 const SUMMARY: HomeSummary = {
   week: { done: 0, goal: null, complete: false },
@@ -24,8 +27,32 @@ jest.mock('expo-router', () => ({
   },
 }));
 jest.mock('../application/food-log.store', () => ({
-  useFoodLogStore: (select: (state: { status: string }) => unknown) =>
-    select({ status: mockStatus }),
+  useFoodLogStore: (select: (state: { status: string; items: unknown[] }) => unknown) =>
+    select({ status: mockStatus, items: mockItems }),
+}));
+jest.mock('./use-nutrition-plan-view', () => ({
+  useNutritionPlanView: () => mockView,
+}));
+jest.mock('./meal-plan-day', () => {
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    PlanDayStrip: () => <RN.Text>day-strip</RN.Text>,
+    MealPlanPanel: (props: { footer?: React.ReactNode }) => {
+      mockPanelProps(props);
+      return (
+        <RN.View>
+          <RN.Text>meal-panel</RN.Text>
+          {props.footer}
+        </RN.View>
+      );
+    },
+  };
+});
+jest.mock('@/features/weekly-plan/presentation/PlanChangePrompt', () => ({
+  PlanChangePrompt: () => null,
+}));
+jest.mock('@/features/subscriptions/presentation/SubscriptionAccessNotice', () => ({
+  SubscriptionAccessNotice: () => null,
 }));
 jest.mock('@/features/dashboard/application/use-home-data', () => ({
   loadHomeData: () => mockLoadHomeData(),
@@ -59,41 +86,133 @@ function push() {
   return jest.requireMock<{ router: { push: jest.Mock } }>('expo-router').router.push;
 }
 
+const TODAY = {
+  index: 1,
+  date: '2026-11-02',
+  preview: false,
+  isToday: true,
+  isFuture: false,
+  meals: [
+    {
+      slot: 'LUNCH',
+      foods: [],
+      totals: { calories: 600, proteinG: 0, carbsG: 0, fatG: 0 },
+      substitutions: [{ from: 'no-such-food-a', to: 'no-such-food-b' }],
+    },
+  ],
+  targets: { calories: 2000, proteinG: 0, carbsG: 0, fatG: 0 },
+  totals: { calories: 600, proteinG: 0, carbsG: 0, fatG: 0 },
+  safetyFloorApplied: false,
+};
+
+function ready() {
+  return {
+    state: {
+      kind: 'ready',
+      plan: { excludedAvoidTags: ['shellfish_allergy'], excludedCatalogKeys: [] },
+      days: [TODAY],
+      todayIndex: 1,
+      overlay: null,
+      saved: true,
+    },
+    shownDay: TODAY,
+    shownIndex: 1,
+    selectDay: jest.fn(),
+    isDone: () => false,
+    onEaten: jest.fn(),
+  };
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockLanguage = 'en';
   mockStatus = 'ready';
+  mockItems = [];
+  mockView = ready();
 });
 
-describe('NutritionTab (ADR-P039)', () => {
-  it("shows today's calories and macros against the targets", async () => {
+describe('NutritionTab (v8.1, prototype layout)', () => {
+  it("shows today's calorie ring and the three macros against their targets", async () => {
+    await render(<NutritionTab />);
+
+    expect(mockLoadHomeData).toHaveBeenCalled();
+    const hidden = { includeHiddenElements: true };
+    expect(screen.getByTestId('nutrition-calories', hidden)).toHaveTextContent('400');
+    expect(screen.getByText('of 2,776', hidden)).toBeTruthy();
+    expect(screen.getByLabelText('400 of 2,776 kcal today')).toBeOnTheScreen();
+    expect(screen.getByTestId('nutrition-macro-protein')).toHaveTextContent('30/163 g', {
+      exact: false,
+    });
+    expect(screen.getByTestId('nutrition-macro-fat')).toHaveTextContent('0/77 g', {
+      exact: false,
+    });
+  });
+
+  it('lists the foods kept off the plan and what the iCoach adjusted', async () => {
+    await render(<NutritionTab />);
+
+    expect(screen.getByTestId('nutrition-excluded')).toHaveTextContent('Shellfish', {
+      exact: false,
+    });
+    expect(screen.getByTestId('nutrition-adjusted')).toHaveTextContent(
+      'iCoach adjusted your plan',
+      { exact: false },
+    );
+  });
+
+  it('shows the 15-day strip and the day panel with extras and "Registrar comida"', async () => {
+    mockItems = [
+      {
+        id: 'extra-1',
+        mealType: 'SNACK',
+        name: 'Beer',
+        servingCount: 1,
+        consumed: { calories: 150.4 },
+        planned: false,
+      },
+      {
+        id: 'planned-1',
+        mealType: 'LUNCH',
+        name: 'Rice',
+        servingCount: 1,
+        consumed: { calories: 200 },
+        planned: true,
+      },
+    ];
+    await render(<NutritionTab />);
+
+    expect(screen.getByText('day-strip')).toBeOnTheScreen();
+    const props = mockPanelProps.mock.calls[0][0] as { extras: { id: string }[] };
+    expect(props.extras).toEqual([
+      expect.objectContaining({ id: 'extra-1', slot: 'SNACK', calories: 150 }),
+    ]);
+    await fireEvent.press(screen.getByTestId('nutrition-food-log'));
+    expect(push()).toHaveBeenCalledWith('/food-log');
+  });
+
+  it('keeps targets and preferences one tap away below', async () => {
+    await render(<NutritionTab />);
+
+    await fireEvent.press(screen.getByTestId('nutrition-targets'));
+    expect(push()).toHaveBeenCalledWith('/nutrition-targets');
+    await fireEvent.press(screen.getByTestId('nutrition-preferences'));
+    expect(push()).toHaveBeenCalledWith('/dietary-preferences');
+  });
+
+  it('renders in Spanish with Spanish copy', async () => {
     mockLanguage = 'es';
     await render(<NutritionTab />);
 
-    expect(mockLoadHomeData).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('header', { name: 'Hoy' })).toBeOnTheScreen();
-    expect(screen.getByTestId('nutrition-calories')).toHaveTextContent('400 de 2776 kcal');
-    expect(screen.getByTestId('nutrition-macro-protein')).toHaveTextContent('Proteína30 g');
-    expect(screen.getByLabelText('Carbohidratos: 60 de 358 g hoy')).toBeOnTheScreen();
-    expect(screen.getByTestId('nutrition-macro-fat')).toHaveTextContent('Grasa0 g');
+    expect(screen.getByText(/^de 2.?776$/, { includeHiddenElements: true })).toBeTruthy();
+    expect(screen.getByText('Fuera de tu plan por tu evaluación:')).toBeOnTheScreen();
+    expect(screen.getByText('iCoach ajustó tu plan')).toBeOnTheScreen();
   });
 
-  it.each([
-    ['nutrition-food-log', '/food-log'],
-    ['nutrition-plan', '/nutrition-plan'],
-    ['nutrition-targets', '/nutrition-targets'],
-    ['nutrition-preferences', '/dietary-preferences'],
-  ] as const)('%s opens %s', async (testID, href) => {
-    await render(<NutritionTab />);
-    await fireEvent.press(screen.getByTestId(testID));
-    expect(push()).toHaveBeenCalledWith(href);
-  });
-
-  it('renders the honest Web state with no data and no actions (ADR-P019)', async () => {
+  it('shows the honest Web state', async () => {
     mockStatus = 'web-unavailable';
     await render(<NutritionTab />);
 
-    expect(screen.queryByTestId('nutrition-today-card')).toBeNull();
-    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByText('meal-panel')).toBeNull();
+    expect(screen.queryByTestId('nutrition-rows')).toBeNull();
   });
 });

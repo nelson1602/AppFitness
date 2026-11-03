@@ -80,9 +80,13 @@ export function changedPlanInputs(before: PlanInputs, after: PlanInputs): PlanIn
   if (!same(a.excludedFoods, b.excludedFoods) || !same(a.excludedTags, b.excludedTags)) {
     changes.push('excludedFoods');
   }
-  // v8.1: a plan saved before the country existed never reports it as changed.
-  if (a.country !== undefined && b.country !== undefined && a.country !== b.country) {
-    changes.push('country');
-  }
+  // v8.1: a plan saved before the country existed was food-based. It reports a
+  // change only when the country now asks for something else: the Dominican
+  // dish plan (owner, v8.1). Any other country keeps the food-based plan.
+  const countryChanged =
+    a.country === undefined
+      ? b.country === 'DO'
+      : b.country !== undefined && a.country !== b.country;
+  if (countryChanged) changes.push('country');
   return changes;
 }

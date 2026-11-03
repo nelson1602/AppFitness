@@ -58,6 +58,8 @@ export interface LoggedMealItem {
   serving: { amount: number; unit: string };
   consumed: ConsumedMacros;
   syncState: MealItemSyncState;
+  /** Logged through "Lo comí" for a planned meal (ADR-P042 D6); false for extras. */
+  planned?: boolean;
 }
 
 /** The whole day's log for one user/date, with derived totals. */

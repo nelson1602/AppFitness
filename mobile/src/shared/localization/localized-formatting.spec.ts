@@ -121,6 +121,8 @@ const ACCEPTED_BYPASS: Readonly<Record<string, string>> = {
     "the Progreso panel's content — a composition slot, not a value",
   'src/features/progress/presentation/ProgressTabPanels.tsx#Panel: right':
     'a caller-supplied weight or caption, already formatted — a composition slot, not a value',
+  'src/features/nutrition/presentation/meal-plan-day.tsx#MealPlanPanel: footer':
+    "the day panel's closing action (the tab's Registrar comida) — a composition slot, not a value",
   'src/features/shell/presentation/tab-screen.tsx#TabScreen: children':
     "the tab's content — a composition slot, not a value",
   // The auth screens' shared frame (stage + centred column) renders the route's
