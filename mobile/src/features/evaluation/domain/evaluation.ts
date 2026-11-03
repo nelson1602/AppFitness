@@ -195,6 +195,44 @@ export function draftFromSources(sources: EvaluationSources): EvaluationDraft {
   };
 }
 
+/**
+ * What the Perfil tab's evaluation summary shows (v8.1 round 2): the saved
+ * answers only — no wizard defaults, so a field nobody answered stays empty.
+ * Salud is the wizard's injury list (never a medical condition); Alimentación
+ * the marked foods; Estilo de vida activity and stress; plus the weekly
+ * training days for the Meta line.
+ */
+export interface EvaluationSummary {
+  injuries: InjuryOption[];
+  /** `FOOD_ITEMS` ids, in the wizard's order. */
+  foods: string[];
+  activityLevel: ActivityLevel | null;
+  /** 1–5, or null when never answered. */
+  stressLevel: number | null;
+  /** Null when unknown or zero (nothing to say on the Meta line). */
+  trainingDays: number | null;
+}
+
+export function evaluationSummaryFrom(
+  sources: Pick<EvaluationSources, 'profile' | 'wellness' | 'preferences'>,
+): EvaluationSummary {
+  const { profile, wellness, preferences } = sources;
+  const stress = profile?.stressLevelBaseline;
+  const days = profile?.trainingDaysPerWeek;
+  return {
+    injuries: INJURY_OPTIONS.filter((area) =>
+      (wellness?.affectedAreas as readonly string[] | undefined)?.includes(area),
+    ),
+    foods: Object.keys(foodsFrom(preferences)),
+    activityLevel: profile?.activityLevel ?? null,
+    stressLevel:
+      stress === null || stress === undefined || !Number.isFinite(stress)
+        ? null
+        : clamp(Math.round(stress), 1, 5),
+    trainingDays: days !== undefined && Number.isFinite(days) && days > 0 ? days : null,
+  };
+}
+
 /** Whole years between two `YYYY-MM-DD` dates. */
 export function ageOn(birthDate: string, today: string): number {
   const [by, bm, bd] = birthDate.split('-').map(Number);
