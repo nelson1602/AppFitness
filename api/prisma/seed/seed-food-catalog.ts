@@ -28,7 +28,15 @@ import {
 // dist/prisma/seed/ and the image keeps the JSON in prisma/seed/.
 const CANONICAL_PATH = [
   join(__dirname, 'food-catalog.canonical.json'),
-  join(__dirname, '..', '..', '..', 'prisma', 'seed', 'food-catalog.canonical.json'),
+  join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'prisma',
+    'seed',
+    'food-catalog.canonical.json',
+  ),
 ].find((path) => existsSync(path)) as string;
 
 async function main(): Promise<void> {
