@@ -1466,11 +1466,14 @@ export const en = {
   'dashboard.sync.errorTitle': 'Sync needs attention',
   'dashboard.sync.errorMessage': 'Your local changes are safe. We will try again.',
   'dashboard.sync.problem.sessionTitle': 'Sign in again to sync',
-  'dashboard.sync.problem.sessionBody': 'Your session expired. Your changes are still saved on this phone.',
+  'dashboard.sync.problem.sessionBody':
+    'Your session expired. Your changes are still saved on this phone.',
   'dashboard.sync.problem.subscriptionTitle': 'Sync paused',
-  'dashboard.sync.problem.subscriptionBody': 'Your account has no active access to save changes to the server. They are still saved on this phone.',
+  'dashboard.sync.problem.subscriptionBody':
+    'Your account has no active access to save changes to the server. They are still saved on this phone.',
   'dashboard.sync.problem.unexpectedTitle': 'Sync couldn’t finish',
-  'dashboard.sync.problem.unexpectedBody': 'Something failed on this phone. We will try again, and your changes are still saved.',
+  'dashboard.sync.problem.unexpectedBody':
+    'Something failed on this phone. We will try again, and your changes are still saved.',
   'dashboard.sync.details.title': 'Changes waiting to sync',
   'dashboard.sync.details.waiting': 'Waiting',
   'dashboard.sync.details.session': 'Your session expired',

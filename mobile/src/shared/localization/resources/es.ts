@@ -1479,11 +1479,14 @@ export const es = {
   'dashboard.sync.errorMessage':
     'Tus cambios locales están seguros. Intentaremos sincronizarlos nuevamente.',
   'dashboard.sync.problem.sessionTitle': 'Inicia sesión de nuevo para sincronizar',
-  'dashboard.sync.problem.sessionBody': 'Tu sesión venció. Tus cambios siguen guardados en este teléfono.',
+  'dashboard.sync.problem.sessionBody':
+    'Tu sesión venció. Tus cambios siguen guardados en este teléfono.',
   'dashboard.sync.problem.subscriptionTitle': 'Sincronización en pausa',
-  'dashboard.sync.problem.subscriptionBody': 'Tu cuenta no tiene acceso activo para guardar cambios en el servidor. Siguen guardados en este teléfono.',
+  'dashboard.sync.problem.subscriptionBody':
+    'Tu cuenta no tiene acceso activo para guardar cambios en el servidor. Siguen guardados en este teléfono.',
   'dashboard.sync.problem.unexpectedTitle': 'No pudimos terminar de sincronizar',
-  'dashboard.sync.problem.unexpectedBody': 'Algo falló en este teléfono. Lo intentaremos de nuevo y tus cambios siguen guardados.',
+  'dashboard.sync.problem.unexpectedBody':
+    'Algo falló en este teléfono. Lo intentaremos de nuevo y tus cambios siguen guardados.',
   'dashboard.sync.details.title': 'Cambios por sincronizar',
   'dashboard.sync.details.waiting': 'En espera',
   'dashboard.sync.details.session': 'Tu sesión venció',
