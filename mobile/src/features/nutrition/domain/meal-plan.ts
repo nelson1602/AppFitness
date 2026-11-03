@@ -35,12 +35,29 @@ import type { AvoidTag, FoodId, FoodItem, ServingUnit } from './food-catalog';
  * rules; an excluded ingredient is swapped for one of the same role or left
  * out ("Ajustado por iCoach"). A multi-food snack grows on its smallest food
  * to reach the snack minimum. Every other country keeps the food-based plan.
+ *
+ * `1.6.0` (v8.1 round 2, owner fix list 2026-11-03): everyday Dominican dishes
+ * dominate the plan — each meal's rotation serves an `everyday` dish three
+ * days out of four (`dominican-dishes.ts`, do-dishes@1.1.0, now with casabe,
+ * queso blanco and cinnamon instead of their nearest-food stand-ins). Every
+ * plan lists a day's meals in the order they are eaten: Desayuno, Almuerzo,
+ * Merienda, Cena (`MEAL_SLOTS`).
  */
-export const MEAL_RULE_VERSION = 'meal-rules@1.5.0';
+export const MEAL_RULE_VERSION = 'meal-rules@1.6.0';
 
 export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 
-export const MEAL_SLOTS: readonly MealSlot[] = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'];
+/**
+ * The order a day's meals are eaten and shown everywhere (v8.1 round 2):
+ * Desayuno, Almuerzo, Merienda, Cena. Plans saved before meal-rules@1.6.0
+ * listed the snack last, so screens sort with `bySlotOrder` too.
+ */
+export const MEAL_SLOTS: readonly MealSlot[] = ['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER'];
+
+/** Sorts anything with a meal slot into `MEAL_SLOTS` order (stable). */
+export function bySlotOrder<T extends { slot: MealSlot }>(items: readonly T[]): T[] {
+  return [...items].sort((a, b) => MEAL_SLOTS.indexOf(a.slot) - MEAL_SLOTS.indexOf(b.slot));
+}
 
 export interface MealMacros {
   calories: number;

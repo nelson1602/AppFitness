@@ -2,7 +2,7 @@ import type { AvoidTag, FoodId, FoodItem } from './food-catalog';
 import type { MealAdjustment, MealSlot } from './meal-plan';
 
 /**
- * The Dominican dish catalogue (v8.1, meal-rules@1.5.0; ADR-P040 D2/D3).
+ * The Dominican dish catalogue (v8.1, meal-rules@1.6.0; ADR-P040 D2/D3).
  *
  * A dish is a versioned recipe of bundled-catalog foods in common household
  * portions — "Mangú con huevo y aguacate" is 200 g of boiled green plantain,
@@ -15,18 +15,22 @@ import type { MealAdjustment, MealSlot } from './meal-plan';
  *
  * It starts from the design prototype's `MEALS` (docs/design) and reuses the
  * Dominican foods seeded by ADR-P040 D10 (plantain, cassava, yam, yautía,
- * pigeon peas, conch, clams, lobster). Prototype ingredients the catalog does
- * not carry are represented by the closest catalog food and the dish is named
- * for what it really contains (see the notes on each dish). Fried foods,
- * added sugar and alcohol never appear (NEVER_PLANNED_TAGS).
+ * pigeon peas, conch, clams, lobster) and the everyday staples added in
+ * food-catalog@1.15.0 (casabe, queso blanco, cinnamon). Prototype ingredients
+ * the catalog still does not carry are represented by the closest catalog food
+ * and the dish is named for what it really contains (see the notes on each
+ * dish). Fried foods, added sugar and alcohol never appear (NEVER_PLANNED_TAGS).
  *
- * Every slot has enough dishes (≥ 8) that a 15-day plan shows any dish at most
- * twice. Display names are i18n keys `nutrition.dish.<id>` (ES/EN); food
+ * `everyday` marks the dishes a Dominican table eats most days — mangú, moro,
+ * la bandera, sancocho, locrio, yuca, casabe, queso blanco, avena con canela,
+ * habichuelas guisadas (owner fix list, v8.1 round 2). The plan serves them on
+ * three days out of four; the rest of the slot fills the fourth day for
+ * variety. Display names are i18n keys `nutrition.dish.<id>` (ES/EN); food
  * names come from the catalog's own localization. PURE data and functions.
  */
 
 /** Bump on ANY change to a dish, a line, a portion, a pool or the order. */
-export const DISH_CATALOG_VERSION = 'do-dishes@1.0.0';
+export const DISH_CATALOG_VERSION = 'do-dishes@1.1.0';
 
 /** The country whose plan is built from these dishes. */
 export const DISH_PLAN_COUNTRY = 'DO';
@@ -53,6 +57,8 @@ export interface Dish {
   id: string;
   slot: MealSlot;
   lines: readonly DishLine[];
+  /** An everyday Dominican dish, served three days out of four (see the header). */
+  everyday?: true;
 }
 
 export const dishNameKey = (dishId: string): string => `nutrition.dish.${dishId}`;
@@ -74,6 +80,10 @@ const NUT_ALTERNATIVES = ['food.pumpkin_seeds', 'food.sunflower_seeds'] as const
 const NUT_BUTTER_ALTERNATIVES = ['food.sunflower_butter'] as const;
 const BREAD_ALTERNATIVES = ['food.corn_tortilla'] as const;
 const BEAN_ALTERNATIVES = ['food.pigeon_peas', 'food.black_beans', 'food.lentils_brown'] as const;
+// Mozzarella keeps a cheese in a low-sodium plan; tofu covers lactose.
+const QUESO_ALTERNATIVES = ['food.mozzarella_part_skim', 'food.tofu_firm'] as const;
+// Casabe is cassava bread: boiled cassava is the same root without the salt.
+const CASABE_ALTERNATIVES = ['food.cassava_cooked'] as const;
 
 /**
  * ADR-P040 D3 — the versioned same-role pools: an excluded ingredient becomes
@@ -124,6 +134,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'mangu_huevo_aguacate',
     slot: 'BREAKFAST',
+    everyday: true,
     lines: [
       line('plantain_boiled', 2, 'carb'),
       line('egg_whole', 2, 'protein'),
@@ -132,27 +143,28 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
     ],
   },
   {
-    // Prototype "Avena con guineo y canela": the catalog has no cinnamon or
-    // honey (added sugar is never planned), so it is oats with milk, banana and chia.
-    id: 'avena_guineo_chia',
+    // Prototype "Avena con guineo y canela"; its honey is left out (added
+    // sugar is never planned).
+    id: 'avena_guineo_canela',
     slot: 'BREAKFAST',
+    everyday: true,
     lines: [
       line('oats_rolled', 1.25, 'carb', { alternatives: ['food.quinoa'] }),
       line('milk_skim', 0.5, 'dairy', { alternatives: MILK_ALTERNATIVES }),
       line('banana', 1, 'fruit'),
       line('chia_seeds', 0.5, 'fat'),
+      seasoning('cinnamon_ground', 1),
     ],
   },
   {
-    // Prototype "queso blanco": the catalog's closest fresh white cheese is
-    // part-skim mozzarella.
-    id: 'pan_queso_tomate',
+    id: 'pan_queso_blanco_tomate',
     slot: 'BREAKFAST',
+    everyday: true,
     lines: [
       line('whole_wheat_bread', 2, 'carb', { alternatives: BREAD_ALTERNATIVES }),
-      line('mozzarella_part_skim', 2, 'protein', { alternatives: ['food.tofu_firm'] }),
+      line('queso_blanco', 0.4, 'protein', { alternatives: QUESO_ALTERNATIVES }),
       line('tomato', 0.5, 'vegetable'),
-      line('olive_oil', 0.25, 'fat'),
+      line('avocado_half', 0.25, 'fat'),
     ],
   },
   {
@@ -180,10 +192,25 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'yuca_huevo_aguacate',
     slot: 'BREAKFAST',
+    everyday: true,
     lines: [
       line('cassava_cooked', 1.25, 'carb'),
       line('egg_whole', 2, 'protein'),
       line('avocado_half', 0.5, 'fat'),
+      line('onion', 0.25, 'vegetable'),
+    ],
+  },
+  {
+    // Queso blanco is mostly fat (24 g against 20 g protein per 100 g): where an
+    // egg carries the protein, the cheese takes the fat role, so the protein
+    // top-up grows the egg and not the cheese.
+    id: 'mangu_huevo_queso_blanco',
+    slot: 'BREAKFAST',
+    everyday: true,
+    lines: [
+      line('plantain_boiled', 2, 'carb'),
+      line('egg_whole', 1, 'protein'),
+      line('queso_blanco', 0.5, 'fat', { alternatives: QUESO_ALTERNATIVES }),
       line('onion', 0.25, 'vegetable'),
     ],
   },
@@ -243,6 +270,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'locrio_pollo_ensalada',
     slot: 'LUNCH',
+    everyday: true,
     lines: [
       line('white_rice', 1, 'carb'),
       line('chicken_breast', 1.5, 'protein'),
@@ -254,6 +282,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'moro_habichuelas_pechuga',
     slot: 'LUNCH',
+    everyday: true,
     lines: [
       line('white_rice', 0.75, 'carb'),
       line('kidney_beans', 0.5, 'carb', { alternatives: BEAN_ALTERNATIVES }),
@@ -289,6 +318,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'sancocho_ligero_pollo',
     slot: 'LUNCH',
+    everyday: true,
     lines: [
       line('chicken_breast', 1.5, 'protein'),
       line('cassava_cooked', 0.75, 'carb'),
@@ -300,6 +330,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'moro_guandules_pollo',
     slot: 'LUNCH',
+    everyday: true,
     lines: [
       line('white_rice', 0.75, 'carb'),
       line('pigeon_peas', 1, 'carb', { alternatives: BEAN_ALTERNATIVES }),
@@ -311,6 +342,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'la_bandera',
     slot: 'LUNCH',
+    everyday: true,
     lines: [
       line('white_rice', 1, 'carb'),
       line('kidney_beans', 0.5, 'carb', { alternatives: BEAN_ALTERNATIVES }),
@@ -354,6 +386,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'bacalao_guisado_yuca',
     slot: 'LUNCH',
+    everyday: true,
     lines: [
       line('cod', 1.75, 'protein'),
       line('cassava_cooked', 1, 'carb'),
@@ -365,6 +398,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'chuleta_moro_negro',
     slot: 'LUNCH',
+    everyday: true,
     lines: [
       line('pork_loin_chop', 1.25, 'protein'),
       line('white_rice', 0.75, 'carb'),
@@ -378,6 +412,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
   {
     id: 'pechuga_pure_yuca',
     slot: 'DINNER',
+    everyday: true,
     lines: [
       line('chicken_breast', 1.5, 'protein'),
       line('cassava_cooked', 1.25, 'carb'),
@@ -409,16 +444,27 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
     ],
   },
   {
-    // Prototype "con casabe": the catalog has no casabe (cassava bread), so the
-    // omelette comes with boiled cassava.
-    id: 'tortilla_vegetales_yuca',
+    id: 'tortilla_vegetales_casabe',
     slot: 'DINNER',
+    everyday: true,
     lines: [
       line('egg_whole', 3, 'protein'),
-      line('cassava_cooked', 0.75, 'carb'),
+      line('casabe', 0.5, 'carb', { alternatives: CASABE_ALTERNATIVES }),
       line('bell_pepper_red', 0.5, 'vegetable'),
       line('spinach', 0.5, 'vegetable'),
       line('olive_oil', 0.25, 'fat'),
+    ],
+  },
+  {
+    // Cheese in the fat role, as in mangu_huevo_queso_blanco.
+    id: 'yuca_huevo_queso_blanco',
+    slot: 'DINNER',
+    everyday: true,
+    lines: [
+      line('cassava_cooked', 1.25, 'carb'),
+      line('egg_whole', 2, 'protein'),
+      line('queso_blanco', 0.25, 'fat', { alternatives: QUESO_ALTERNATIVES }),
+      line('onion', 0.5, 'vegetable'),
     ],
   },
   {
@@ -535,11 +581,24 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
     ],
   },
   {
-    // Prototype "Casabe con aguacate": the catalog has no casabe; its closest
-    // crisp flatbread is the brown-rice cake.
-    id: 'tortitas_arroz_aguacate',
+    id: 'casabe_aguacate',
     slot: 'SNACK',
-    lines: [line('rice_cakes', 2, 'carb'), line('avocado_half', 0.5, 'fat')],
+    everyday: true,
+    lines: [
+      line('casabe', 0.5, 'carb', { alternatives: CASABE_ALTERNATIVES }),
+      line('avocado_half', 0.5, 'fat'),
+    ],
+  },
+  {
+    // Avena con canela, the everyday oat drink; no added sugar.
+    id: 'batida_avena_canela',
+    slot: 'SNACK',
+    everyday: true,
+    lines: [
+      line('oats_rolled', 0.5, 'carb', { alternatives: ['food.quinoa'] }),
+      line('milk_skim', 0.75, 'dairy', { alternatives: MILK_ALTERNATIVES }),
+      seasoning('cinnamon_ground', 1),
+    ],
   },
   {
     id: 'nueces_pasas',

@@ -192,9 +192,11 @@ describe('catalogue parity', () => {
   // Dominican dish plan: 44 dish names and the "(cambio del iCoach)" mark (+45), (+73 together, 1742).
   // v8.1 Progreso restored the prototype's panels: the weight chart, today's weight, the measurement tiles and the week's three stats (+27), replacing the log row and its detail (-2, 1767), and the prototype Nutrición tab: the ring, the macros, the foods off the plan, what the iCoach adjusted and the extras (+10, -2 no longer shown, 1775). v8.1 round 2: the exercise figure label (+1, 1776) and the dish-plan prompt sentence (+1, 1777).
   // v8.1 round 2 Perfil: the summary row label, the activity and stress chips and the Meta line's weekly workouts (+5, 1782).
-  it('reaches 1782 keys in each language — 1615 shipped plus a 167-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1782);
-    expect(Object.keys(es)).toHaveLength(1782);
+  // v8.1 round 2: the everyday Dominican dishes with casabe, queso blanco and canela (+7, 1782), and the 15-day slider's hint (+1, 1783).
+  // Merged total for v8.1 round 2: 1775 + 2 (figure label, dish-plan prompt) + 5 (Perfil) + 8 (dishes, slider hint) = 1790.
+  it('reaches 1790 keys in each language — 1615 shipped plus a 175-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1790);
+    expect(Object.keys(es)).toHaveLength(1790);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

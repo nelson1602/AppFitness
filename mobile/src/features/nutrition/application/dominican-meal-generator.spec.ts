@@ -7,7 +7,7 @@ import { dishesForSlot, DOMINICAN_DISHES } from '../domain/dominican-dishes';
 import { MEAL_RULE_VERSION, type MealPlan, type MealPlanInput } from '../domain/meal-plan';
 import { FOOD_CATALOG } from '../infrastructure/food-catalog.data';
 import { formatServingAmount } from '../presentation/serving-amount';
-import { generateDominicanMealPlan } from './dominican-meal-generator';
+import { generateDominicanMealPlan, slotRotation } from './dominican-meal-generator';
 import { generateFoodMealPlan, generateMealPlan } from './meal-generator';
 import {
   DAY_KCAL_CEILING,
@@ -63,11 +63,11 @@ function dominican(over: Partial<MealPlanInput> = {}): MealPlan {
   return plan;
 }
 
-describe('country branch (v8.1, meal-rules@1.5.0)', () => {
+describe('country branch (v8.1, meal-rules@1.6.0)', () => {
   it('builds Dominican dishes for DO', () => {
     const plan = dominican();
     expect(plan.ruleVersion).toBe(MEAL_RULE_VERSION);
-    expect(MEAL_RULE_VERSION).toBe('meal-rules@1.5.0');
+    expect(MEAL_RULE_VERSION).toBe('meal-rules@1.6.0');
     expect(plan.days).toHaveLength(15);
     for (const day of plan.days) {
       for (const meal of day.meals) {
@@ -77,6 +77,19 @@ describe('country branch (v8.1, meal-rules@1.5.0)', () => {
         expect(es[meal.dishNameKey as keyof typeof es]).toBeTruthy();
         expect(meal.foods.length).toBeGreaterThan(0);
       }
+    }
+  });
+
+  it('lists each day Desayuno, Almuerzo, Merienda, Cena', () => {
+    for (const day of dominican().days) {
+      expect(day.meals.map((m) => m.slot)).toEqual(['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER']);
+    }
+    // A dropped snack leaves the others in the same order.
+    for (const day of generateMealPlan(input({ nutritionPlan: np(700) })).days) {
+      const slots = day.meals.map((m) => m.slot);
+      expect(slots).toEqual(
+        ['BREAKFAST', 'LUNCH', 'SNACK', 'DINNER'].filter((s) => slots.includes(s as never)),
+      );
     }
   });
 
@@ -113,26 +126,58 @@ describe('determinism and variety', () => {
   });
 
   it.each(PROFILES.map((profile) => [profile.seed, profile.nutritionPlan.calories, profile]))(
-    'shows no dish more than twice in 15 days, never on two days running (%s, %i kcal)',
+    'never serves a dish on two days running, and every everyday dish appears (%s, %i kcal)',
     (_seed, _kcal, profile) => {
       const plan = generateMealPlan(profile as MealPlanInput);
-      const counts = new Map<string, number>();
-      for (const day of plan.days) {
-        for (const meal of day.meals) {
-          counts.set(meal.dishId as string, (counts.get(meal.dishId as string) ?? 0) + 1);
-        }
-      }
-      for (const count of counts.values()) expect(count).toBeLessThanOrEqual(2);
       for (const slot of ['BREAKFAST', 'LUNCH', 'DINNER'] as const) {
         const sequence = plan.days.map((d) => d.meals.find((m) => m.slot === slot)?.dishId);
         for (let i = 1; i < sequence.length; i += 1) expect(sequence[i]).not.toBe(sequence[i - 1]);
-        // Most of the slot's dishes appear.
-        expect(new Set(sequence).size).toBeGreaterThanOrEqual(
-          Math.min(dishesForSlot(slot).length, 8),
-        );
+        const everyday = dishesForSlot(slot).filter((d) => d.everyday);
+        for (const dish of everyday) expect(sequence).toContain(dish.id);
+        // ...and the fourth days still bring other dishes.
+        expect(new Set(sequence).size).toBeGreaterThan(everyday.length);
       }
     },
   );
+
+  it.each(PROFILES.map((profile) => [profile.seed, profile.nutritionPlan.calories, profile]))(
+    'serves everyday Dominican dishes in at least 70 %% of the 15 days of meals (%s, %i kcal)',
+    (_seed, _kcal, profile) => {
+      const everyday = new Set(DOMINICAN_DISHES.filter((d) => d.everyday).map((d) => d.id));
+      const meals = generateMealPlan(profile as MealPlanInput).days.flatMap((d) => d.meals);
+      const share = meals.filter((m) => everyday.has(m.dishId as string)).length / meals.length;
+      expect(share).toBeGreaterThanOrEqual(0.7);
+      // Each main meal on its own: at least 11 of the 15 days (three in every four).
+      for (const slot of ['BREAKFAST', 'LUNCH', 'DINNER'] as const) {
+        const ofSlot = meals.filter((m) => m.slot === slot);
+        const served = ofSlot.filter((m) => everyday.has(m.dishId as string));
+        expect(served.length).toBeGreaterThanOrEqual(11);
+      }
+    },
+  );
+
+  it('builds a rotation of three everyday dishes then one other, seamless at the wrap', () => {
+    const option = (id: string, everyday: boolean) => ({
+      id,
+      dish: everyday ? { everyday: true as const } : {},
+    });
+    const rotation = slotRotation([
+      option('e1', true),
+      option('o1', false),
+      option('e2', true),
+      option('o2', false),
+    ]).map((o) => o.id);
+    // Both cycles close after everyday × other blocks of four (2 × 2 × 4 = 16 days).
+    expect(rotation).toHaveLength(16);
+    expect(rotation.slice(0, 8)).toEqual(['e1', 'e2', 'e1', 'o1', 'e2', 'e1', 'e2', 'o2']);
+    // Read as a ring, no dish follows itself.
+    rotation.forEach((id, i) => expect(rotation[(i + 1) % rotation.length]).not.toBe(id));
+    // A slot without both kinds keeps its plain order.
+    expect(slotRotation([option('a', false), option('b', false)]).map((o) => o.id)).toEqual([
+      'a',
+      'b',
+    ]);
+  });
 });
 
 describe('the v8 portion rules hold for dishes', () => {
@@ -286,6 +331,24 @@ describe('allergies and "prefer to avoid" (adaptDish)', () => {
     );
   });
 
+  it('keeps every dish under lactose and low-sodium exclusions, swapping only the ingredient', () => {
+    const free = dominican();
+    const restricted = dominican({
+      excludeAvoidTags: ['lactose_sensitive', 'high_sodium_sensitive'],
+    });
+    const dishes = (plan: MealPlan) => plan.days.map((d) => d.meals.map((m) => m.dishId));
+    expect(dishes(restricted)).toEqual(dishes(free));
+    const meals = restricted.days.flatMap((d) => d.meals);
+    for (const meal of meals) {
+      for (const food of meal.foods) {
+        expect(food.foodId).not.toBe('food.queso_blanco');
+        expect(food.foodId).not.toBe('food.casabe');
+      }
+    }
+    const casabe = meals.find((m) => m.dishId === 'casabe_aguacate');
+    expect(casabe?.adjustments).toEqual([{ from: 'food.casabe', to: 'food.cassava_cooked' }]);
+  });
+
   it('records "sin" when an excluded ingredient has no substitute', () => {
     const plan = dominican({ excludeCatalogKeys: ['food.garlic'] });
     const garlicDish = plan.days
@@ -297,7 +360,8 @@ describe('allergies and "prefer to avoid" (adaptDish)', () => {
 
   it('covers every dish in the catalogue across a few seeds', () => {
     const seen = new Set<string>();
-    for (const seed of ['a', 'b', 'c', 'd']) {
+    // Other dishes come up one day in four, so it takes more seeds to see them all.
+    for (const seed of 'abcdefghijklmnopqrstuvwxyz'.split('')) {
       for (const day of dominican({ seed }).days)
         for (const meal of day.meals) seen.add(meal.dishId as string);
     }

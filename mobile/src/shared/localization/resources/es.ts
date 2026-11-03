@@ -1128,6 +1128,8 @@ export const es = {
   'nutrition.plan.showDay': 'Mostrar día',
   'nutrition.plan.stripLabel': 'Plan de 15 días',
   'nutrition.plan.dayOf': 'Día {day} de {count}',
+  // v8.1 round 2: the 15-day slider between the title and the day.
+  'nutrition.plan.sliderHint': 'Arrastra para elegir el día del plan',
   'nutrition.plan.previousDay': 'Día anterior',
   'nutrition.plan.nextDay': 'Día siguiente',
   'nutrition.plan.mealsOfDay': 'Plan de comidas · día {day}',
@@ -1192,6 +1194,16 @@ export const es = {
   'nutrition.dish.manzana_mantequilla_mani': 'Manzana con mantequilla de maní',
   'nutrition.dish.naranja_mani': 'Naranja con maní',
   'nutrition.dish.batida_guineo_avena': 'Batida de guineo y avena',
+  // v8.1 round 2 (meal-rules@1.6.0): everyday dishes with casabe, queso blanco
+  // and canela. The four dishes they replace keep their names above so a plan
+  // saved before the update still shows them.
+  'nutrition.dish.avena_guineo_canela': 'Avena con guineo y canela',
+  'nutrition.dish.pan_queso_blanco_tomate': 'Pan integral con queso blanco y tomate',
+  'nutrition.dish.mangu_huevo_queso_blanco': 'Mangú con huevo y queso blanco',
+  'nutrition.dish.tortilla_vegetales_casabe': 'Tortilla de vegetales con casabe',
+  'nutrition.dish.yuca_huevo_queso_blanco': 'Yuca con huevo, queso blanco y cebolla',
+  'nutrition.dish.casabe_aguacate': 'Casabe con aguacate',
+  'nutrition.dish.batida_avena_canela': 'Avena con leche y canela',
   'nutrition.plan.overlayTitle': 'Ajuste de hoy',
   'nutrition.plan.overlayBody':
     'Ayer pasaste tu meta: hoy tu meta es {kcal} kcal ({reduced} menos).',
