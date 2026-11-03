@@ -108,13 +108,14 @@ describe('ADR-P034 paid-write enforcement scope', () => {
     'features/nutrition/presentation/NutritionPlanScreen.tsx',
   ])('%s blocks new deterministic plan generation without active access', (path) => {
     const file = source(path);
-    // v8.1: the workout surfaces read access through the shared selection hook.
+    // v8.1: the plan surfaces read access through their shared hooks.
+    const viaHook = (hook: string) => source(`features/${hook}`).includes('useEntitlementAccess');
     expect(
       file.includes('useEntitlementAccess') ||
         (file.includes('useWorkoutSelection') &&
-          source('features/workout/application/use-workout-selection.ts').includes(
-            'useEntitlementAccess',
-          )),
+          viaHook('workout/application/use-workout-selection.ts')) ||
+        (file.includes('useNutritionPlanView') &&
+          viaHook('nutrition/presentation/use-nutrition-plan-view.ts')),
     ).toBe(true);
     expect(file).toContain('SubscriptionAccessNotice');
   });

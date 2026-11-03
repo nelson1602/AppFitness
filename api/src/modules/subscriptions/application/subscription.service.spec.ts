@@ -130,6 +130,25 @@ describe('SubscriptionService', () => {
   let provider: jest.Mocked<EntitlementProvider>;
   let service: SubscriptionService;
 
+  // The fixtures expire a month after EVENT_TIME; read them against a fixed
+  // "now" one day later, not the real clock (they went stale on 2026-10-29).
+  beforeAll(() => {
+    jest.useFakeTimers({
+      doNotFake: [
+        'nextTick',
+        'setImmediate',
+        'setTimeout',
+        'setInterval',
+        'queueMicrotask',
+      ],
+    });
+    jest.setSystemTime(new Date(EVENT_TIME.getTime() + 24 * 60 * 60 * 1000));
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   beforeEach(() => {
     entitlementRow = null;
     eventRows = new Map();
