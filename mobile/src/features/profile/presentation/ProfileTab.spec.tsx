@@ -5,6 +5,7 @@ import { signOut } from '@/features/authentication';
 import type { HomeSummary } from '@/features/dashboard/domain/home-summary';
 
 import { ProfileTab } from './ProfileTab';
+import { otherLanguageStrings } from '@/shared/localization/language-leak.testkit';
 
 let mockLanguage: 'en' | 'es' = 'en';
 const mockRefresh = jest.fn();
@@ -152,4 +153,16 @@ describe('ProfileTab (ADR-P039)', () => {
     expect(screen.queryByText(/Pulso/)).toBeNull();
     expect(screen.queryByText('Record evaluation')).toBeNull();
   });
+});
+
+// v8.1 guard: no string of the other language on this screen, in either language.
+describe('ProfileTab language guard (v8.1)', () => {
+  it.each(['en', 'es'] as const)(
+    'renders no copy of the other language in %s',
+    async (language) => {
+      mockLanguage = language;
+      await render(<ProfileTab />);
+      expect(otherLanguageStrings(screen.root, language)).toEqual([]);
+    },
+  );
 });

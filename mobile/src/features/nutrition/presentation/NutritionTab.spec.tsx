@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { HomeSummary } from '@/features/dashboard/domain/home-summary';
 
 import { NutritionTab } from './NutritionTab';
+import { otherLanguageStrings } from '@/shared/localization/language-leak.testkit';
 
 let mockLanguage: 'en' | 'es' = 'en';
 let mockStatus = 'ready';
@@ -215,4 +216,16 @@ describe('NutritionTab (v8.1, prototype layout)', () => {
     expect(screen.queryByText('meal-panel')).toBeNull();
     expect(screen.queryByTestId('nutrition-rows')).toBeNull();
   });
+});
+
+// v8.1 guard: no string of the other language on this screen, in either language.
+describe('NutritionTab language guard (v8.1)', () => {
+  it.each(['en', 'es'] as const)(
+    'renders no copy of the other language in %s',
+    async (language) => {
+      mockLanguage = language;
+      await render(<NutritionTab />);
+      expect(otherLanguageStrings(screen.root, language)).toEqual([]);
+    },
+  );
 });

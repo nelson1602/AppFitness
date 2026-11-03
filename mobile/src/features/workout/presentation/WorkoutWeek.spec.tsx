@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import type { GeneratedWorkoutRoutine } from '@/features/icoach';
+import { otherLanguageStrings } from '@/shared/localization/language-leak.testkit';
 import { en } from '@/shared/localization/resources/en';
 
 import { BUILT_IN_EXERCISES } from '../infrastructure/exercise-catalog.data';
@@ -8,6 +9,22 @@ import { DEMO_MOTIONS, demoMotionFor } from '../domain/exercise-demo';
 import { WorkoutWeek } from './WorkoutWeek';
 
 let mockDone: Record<string, number> = {};
+let mockLanguage: 'en' | 'es' = 'en';
+
+jest.mock('@/shared/localization', () => {
+  const actual = jest.requireActual('@/shared/localization');
+  const resources = {
+    en: jest.requireActual('@/shared/localization/resources/en').en,
+    es: jest.requireActual('@/shared/localization/resources/es').es,
+  };
+  return {
+    ...actual,
+    useLocalization: () => ({
+      language: mockLanguage,
+      t: (key: string) => resources[mockLanguage][key],
+    }),
+  };
+});
 const mockCompleteSet = jest.fn(() => Promise.resolve(true));
 const mockLoad = jest.fn();
 
@@ -87,6 +104,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.useRealTimers();
   mockDone = {};
+  mockLanguage = 'en';
 });
 
 describe('WorkoutWeek (v8.1, prototype Entrenamientos)', () => {
@@ -200,4 +218,18 @@ describe('exercise demo mapping', () => {
       }
     }
   });
+});
+
+// v8.1 guard: no string of the other language on this tab, in either language.
+describe('WorkoutWeek language guard (v8.1)', () => {
+  it.each(['en', 'es'] as const)(
+    'renders no copy of the other language in %s',
+    async (language) => {
+      mockLanguage = language;
+      mockDone = { 'exercise.goblet_squat': 1 };
+      await renderWeek();
+      await fireEvent.press(screen.getByTestId('workout-exercise-0-demo-toggle'));
+      expect(otherLanguageStrings(screen.root, language)).toEqual([]);
+    },
+  );
 });

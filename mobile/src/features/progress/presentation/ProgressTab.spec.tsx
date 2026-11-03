@@ -8,6 +8,7 @@ import { useTheme } from '@/shared/theme';
 import type { WeekActivity } from '../application/progress.gathering';
 import type { BodyMeasurement, BodyWeight } from '../domain/progress';
 import { ProgressTab } from './ProgressTab';
+import { otherLanguageStrings } from '@/shared/localization/language-leak.testkit';
 
 let mockLanguage: 'en' | 'es' = 'en';
 let mockProgress: {
@@ -393,4 +394,16 @@ describe('ProgressTab copy', () => {
     expect(text).toContain(own['progress.tab.average']);
     expect(text).toContain(own['progress.validation.weightPositive']);
   });
+});
+
+// v8.1 guard: no string of the other language on this screen, in either language.
+describe('ProgressTab language guard (v8.1)', () => {
+  it.each(['en', 'es'] as const)(
+    'renders no copy of the other language in %s',
+    async (language) => {
+      mockLanguage = language;
+      await render(<ProgressTab />);
+      expect(otherLanguageStrings(screen.root, language)).toEqual([]);
+    },
+  );
 });
