@@ -149,7 +149,7 @@ describe('ProfileTab (ADR-P039)', () => {
     );
     // Injuries and foods to avoid in the energy tone, lifestyle neutral.
     const border = (testID: string) =>
-      StyleSheet.flatten(screen.getByTestId(testID).props.style as ViewStyle).borderColor;
+      StyleSheet.flatten(screen.getByTestId(testID).props.style as ViewStyle).backgroundColor;
     expect(border('profile-summary-health-chip-0')).toBe(border('profile-summary-food-chip-0'));
     expect(border('profile-summary-health-chip-0')).not.toBe(
       border('profile-summary-lifestyle-chip-0'),

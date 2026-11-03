@@ -203,11 +203,12 @@ describe('ADR-P035 redesign primitives', () => {
     );
   });
 
-  it('names a Chip by its text and colours only its border and text by tone', async () => {
+  it('names a Chip by its text and tints its fill and text by tone (v8.1 round 2)', async () => {
     useScheme('dark');
     await render(<Chip label="Today" testID="chip" tone="energy" />);
-    expect(screen.getByText('Today')).toHaveStyle({ color: darkColors.accentEnergy });
-    expect(flat('chip').borderColor).toBe(darkColors.accentEnergy);
+    expect(screen.getByText('Today')).toHaveStyle({ color: darkColors.onChipEnergy });
+    expect(flat('chip').backgroundColor).toBe(darkColors.chipEnergy);
+    expect(flat('chip').borderWidth).toBeUndefined();
   });
 
   describe('Ring and ProgressBar', () => {
