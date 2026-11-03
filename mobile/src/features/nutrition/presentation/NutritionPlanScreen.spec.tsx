@@ -237,9 +237,12 @@ describe('NutritionPlanScreen', () => {
       'SNACK',
     ]);
     await render(<NutritionPlanScreen />);
-    expect(screen.getAllByTestId(/^plan-meal-1-[A-Z]+$/).map((node) => node.props.testID)).toEqual(
-      ['plan-meal-1-BREAKFAST', 'plan-meal-1-LUNCH', 'plan-meal-1-SNACK', 'plan-meal-1-DINNER'],
-    );
+    expect(screen.getAllByTestId(/^plan-meal-1-[A-Z]+$/).map((node) => node.props.testID)).toEqual([
+      'plan-meal-1-BREAKFAST',
+      'plan-meal-1-LUNCH',
+      'plan-meal-1-SNACK',
+      'plan-meal-1-DINNER',
+    ]);
   });
 
   it("opens and closes a meal's ingredients", async () => {

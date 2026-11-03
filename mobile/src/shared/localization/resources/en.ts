@@ -1199,7 +1199,8 @@ export const en = {
   // saved before the update still shows them.
   'nutrition.dish.avena_guineo_canela': 'Oatmeal with banana and cinnamon',
   'nutrition.dish.pan_queso_blanco_tomate': 'Whole-wheat bread with queso blanco and tomato',
-  'nutrition.dish.mangu_huevo_queso_blanco': 'Mangú (mashed green plantain) with egg and queso blanco',
+  'nutrition.dish.mangu_huevo_queso_blanco':
+    'Mangú (mashed green plantain) with egg and queso blanco',
   'nutrition.dish.tortilla_vegetales_casabe': 'Vegetable omelette with casabe (cassava bread)',
   'nutrition.dish.yuca_huevo_queso_blanco': 'Cassava with egg, queso blanco and onion',
   'nutrition.dish.casabe_aguacate': 'Casabe (cassava bread) with avocado',

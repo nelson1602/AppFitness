@@ -86,9 +86,7 @@ const EVERYDAY_RUN = 3;
  * dish, repeated. Its length is a whole number of both cycles, so wrapping
  * around continues the same pattern (no dish twice in a row at the seam).
  */
-export function slotRotation<T extends { dish: { everyday?: true } }>(
-  options: readonly T[],
-): T[] {
+export function slotRotation<T extends { dish: { everyday?: true } }>(options: readonly T[]): T[] {
   const everyday = options.filter((option) => option.dish.everyday);
   const other = options.filter((option) => !option.dish.everyday);
   if (everyday.length === 0 || other.length === 0) return [...options];
