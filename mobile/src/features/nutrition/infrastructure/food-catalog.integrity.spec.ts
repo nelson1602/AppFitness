@@ -17,8 +17,8 @@ describe('food catalog integrity', () => {
     expect(CATALOG_VERSION).toMatch(/^food-catalog@\d+\.\d+\.\d+$/);
   });
 
-  it('contains exactly 313 items', () => {
-    expect(FOOD_CATALOG).toHaveLength(313);
+  it('contains exactly 314 items', () => {
+    expect(FOOD_CATALOG).toHaveLength(314);
   });
 
   it('has unique ids following the food.<slug> convention', () => {
@@ -59,6 +59,26 @@ describe('food catalog integrity', () => {
       expect(typeof f.source.ref).toBe('string');
       expect(f.source.ref.length).toBeGreaterThan(0);
     }
+  });
+
+  it('sources every food from USDA FoodData Central, except the named non-USDA foods', () => {
+    // v8.1 round 2 (owner decision): green banana has no USDA record; it comes
+    // from INCAP/OPS 2007 code 12011, raw, per 100 g, without fibre.
+    const NON_USDA: Record<string, string> = {
+      'food.green_banana_raw':
+        'INCAP/OPS 2007, Tabla de Composición de Alimentos de Centroamérica, 2ª ed.',
+    };
+    for (const f of FOOD_CATALOG) {
+      expect({ id: f.id, ref: f.source.ref }).toEqual({
+        id: f.id,
+        ref: NON_USDA[f.id] ?? 'USDA FoodData Central',
+      });
+    }
+    const banana = FOOD_CATALOG.find((f) => f.id === 'food.green_banana_raw');
+    expect(banana).toMatchObject({ proteinG: 1.4, carbsG: 28.7, fatG: 0.2, calories: 122 });
+    expect(banana?.fiberG).toBeUndefined();
+    expect(banana?.avoidFor).toBeUndefined();
+    expect(banana?.source.note).toContain('código 12011 "BANANO/GUINEO, VERDE", crudo');
   });
 
   it('has valid serving data', () => {

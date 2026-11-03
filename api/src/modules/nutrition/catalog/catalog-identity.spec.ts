@@ -162,8 +162,14 @@ const GOLDEN = [
     revision: 1,
     id: '7df91ade-060f-5b6c-bd4f-41823514e2d9',
   },
+  // The first non-USDA food (INCAP/OPS 2007) derives its id the same way.
+  {
+    key: 'food.green_banana_raw',
+    revision: 1,
+    id: '56198e57-c455-5a5f-9732-b75a8e6be358',
+  },
 ];
-const EXPECTED_CATALOG_HASH = '5a328e6edf80661fc5de5c3e2a6d5473aa6007a3';
+const EXPECTED_CATALOG_HASH = '799429e97cd9d27d1b57be5ac5995446040dba60';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -190,8 +196,8 @@ describe('catalog identity (uuidv5)', () => {
 });
 
 describe('canonical catalog seed artifact', () => {
-  it('contains 313 foods', () => {
-    expect(CATALOG).toHaveLength(313);
+  it('contains 314 foods', () => {
+    expect(CATALOG).toHaveLength(314);
   });
 
   it('every id equals uuidv5(catalog_key:food_revision) — server derivation', () => {
@@ -252,7 +258,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.15.0',
+      catalogVersionSnapshot: 'food-catalog@1.16.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

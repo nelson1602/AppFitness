@@ -21,6 +21,8 @@ interface Extra {
   tags: FoodTag[];
   avoid?: AvoidTag[];
   caution?: string;
+  /** The reference source; USDA FoodData Central unless a food names another. */
+  srcRef?: string;
   srcNote?: string;
 }
 
@@ -50,7 +52,10 @@ function food(
     tags: extra.tags,
     ...(extra.avoid ? { avoidFor: extra.avoid } : {}),
     ...(extra.caution ? { caution: extra.caution } : {}),
-    source: { ref: 'USDA FoodData Central', note: extra.srcNote ?? DEFAULT_SRC_NOTE },
+    source: {
+      ref: extra.srcRef ?? 'USDA FoodData Central',
+      note: extra.srcNote ?? DEFAULT_SRC_NOTE,
+    },
   };
 }
 
@@ -2139,4 +2144,24 @@ export const FOOD_CATALOG: readonly FoodItem[] = [
     srcNote:
       'USDA FDC SR Legacy 171320 "Spices, cinnamon, ground", 1 tsp = 2.6 g (see catalog/fdc-portion-manifest.json); macros rounded; calories via Atwater factors (4/4/9).',
   }),
+  // Guineítos (owner decision, v8.1 round 2, food-catalog@1.16.0): neither
+  // pinned USDA archive has a green-banana record, so this is the catalog's
+  // first non-USDA food. Raw peeled weight, so the per-100 g values apply
+  // exactly; macros kept to the table's decimals; fibre left out (the row's
+  // fibre column is ambiguous); no sodium-based avoid tag (not stated reliably).
+  food(
+    'food.green_banana_raw',
+    'Green banana, peeled (raw weight)',
+    'vegetable',
+    g(100),
+    1.4,
+    28.7,
+    0.2,
+    {
+      tags: ['complex_carb', 'vegan', 'vegetarian', 'gluten_free', 'dairy_free', 'budget_friendly'],
+      srcRef: 'INCAP/OPS 2007, Tabla de Composición de Alimentos de Centroamérica, 2ª ed.',
+      srcNote:
+        'INCAP/OPS 2007, Tabla de Composición de Alimentos de Centroamérica, 2ª ed., código 12011 "BANANO/GUINEO, VERDE", crudo, por 100 g de porción comestible; fibra no incluida. Macros as listed (protein 1.40 g, fat 0.20 g, carbohydrate 28.70 g); calories via Atwater factors (4/4/9) = 122 kcal, where the table lists 110 kcal.',
+    },
+  ),
 ];

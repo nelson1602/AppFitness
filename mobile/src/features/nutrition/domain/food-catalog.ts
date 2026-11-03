@@ -244,8 +244,15 @@ export interface FoodItem {
  * white, queso blanco") and ground cinnamon (SR 171320, 1 tsp = 2.6 g in the
  * ADR-P013 manifest), from the same sha256-pinned archives, per 100 g except
  * cinnamon's teaspoon. New foods at revision 1; no existing revision changes.
+ *
+ * 1.16.0 (v8.1 round 2, owner decision 2026-11-03): guineítos — green banana,
+ * peeled, raw weight, from INCAP/OPS 2007 (Tabla de Composición de Alimentos
+ * de Centroamérica, 2ª ed., código 12011 "BANANO/GUINEO, VERDE"), the
+ * catalog's first non-USDA source (neither pinned USDA archive has a green
+ * banana). Fibre left out; calories by Atwater (122) where INCAP lists 110.
+ * New food at revision 1; no existing revision changes.
  */
-export const CATALOG_VERSION = 'food-catalog@1.15.0';
+export const CATALOG_VERSION = 'food-catalog@1.16.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [

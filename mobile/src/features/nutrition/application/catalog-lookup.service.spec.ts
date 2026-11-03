@@ -21,6 +21,6 @@ describe('catalog lookup service', () => {
   });
 
   it('exposes the full committed catalog', () => {
-    expect(listCanonicalFoods().length).toBe(313);
+    expect(listCanonicalFoods().length).toBe(314);
   });
 });
