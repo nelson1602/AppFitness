@@ -156,8 +156,14 @@ const GOLDEN = [
     revision: 1,
     id: 'a2421342-6825-5f03-9262-822333ee10ea',
   },
+  // v8.1 round 2 anchor: a food added after the seed derives the same id.
+  {
+    key: 'food.casabe',
+    revision: 1,
+    id: '7df91ade-060f-5b6c-bd4f-41823514e2d9',
+  },
 ];
-const EXPECTED_CATALOG_HASH = 'b2450c53cc326c6a962cf8f4c6a844474ddf4ecc';
+const EXPECTED_CATALOG_HASH = '5a328e6edf80661fc5de5c3e2a6d5473aa6007a3';
 
 describe('catalog identity (uuidv5)', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -184,8 +190,8 @@ describe('catalog identity (uuidv5)', () => {
 });
 
 describe('canonical catalog seed artifact', () => {
-  it('contains 310 foods', () => {
-    expect(CATALOG).toHaveLength(310);
+  it('contains 313 foods', () => {
+    expect(CATALOG).toHaveLength(313);
   });
 
   it('every id equals uuidv5(catalog_key:food_revision) — server derivation', () => {
@@ -214,7 +220,12 @@ describe('canonical catalog seed artifact', () => {
     for (const food of CATALOG) {
       if (food.servingUnit === 'g') {
         expect(food.gramsPerServing).toBe(food.servingAmount);
-      } else if (food.foodRevision === 2) {
+      } else if (
+        food.foodRevision === 2 ||
+        // v8.1 round 2: a food added after ADR-P013 is born with its sourced
+        // gram weight at the base revision (no gated rev-1 snapshot to keep).
+        food.catalogKey === 'food.cinnamon_ground'
+      ) {
         // Revision-2 count-unit food with a known, non-fabricated gram weight:
         // part-1 `piece` foods (amount 1), ADR-P013 Batch-1/2/3A
         // `slice`/`tbsp`/`cup` foods, or tsp-semantics `tsp` foods (authored count kept;
@@ -241,7 +252,7 @@ describe('serving snapshot derivation (server)', () => {
       foodNameSnapshot: 'Chicken breast, cooked',
       catalogKeySnapshot: 'food.chicken_breast',
       foodRevisionSnapshot: 1,
-      catalogVersionSnapshot: 'food-catalog@1.14.0',
+      catalogVersionSnapshot: 'food-catalog@1.15.0',
       servingAmountSnapshot: 100,
       servingUnitSnapshot: 'g',
       gramsPerServingSnapshot: 100,

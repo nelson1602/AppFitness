@@ -17,8 +17,8 @@ describe('food catalog integrity', () => {
     expect(CATALOG_VERSION).toMatch(/^food-catalog@\d+\.\d+\.\d+$/);
   });
 
-  it('contains exactly 310 items', () => {
-    expect(FOOD_CATALOG).toHaveLength(310);
+  it('contains exactly 313 items', () => {
+    expect(FOOD_CATALOG).toHaveLength(313);
   });
 
   it('has unique ids following the food.<slug> convention', () => {
@@ -93,8 +93,9 @@ describe('food catalog integrity', () => {
     // dragon_fruit (owner-approved Option A authored-macro corrections +
     // sourced cup weights); the gate-(c) slice adds mixed_greens (direct
     // exact-name FNDDS "Mixed salad greens, raw" match, 2 cup = 70 g).
+    // v8.1 round 2 adds ground cinnamon, born with its SR tsp weight.
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(168);
+    expect(withGrams).toHaveLength(169);
     for (const f of withGrams) {
       expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
@@ -114,7 +115,7 @@ describe('food catalog integrity', () => {
       'food.whole_wheat_bread',
     ]);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(25);
-    expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(5);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(6);
     expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(89);
     expect(withGrams.filter((f) => f.servingSize.unit === 'ml')).toHaveLength(15);
   });

@@ -237,8 +237,15 @@ export interface FoodItem {
  * catalog lacked, each sourced from the pinned USDA archives (SR Legacy
  * 2018-04, or the FNDDS 2024-10-31 second source for cooked cassava) with the
  * record id in its source note. New foods only; no existing revision changes.
+ *
+ * 1.15.0 (v8.1 round 2, owner fix list 2026-11-03): three Dominican everyday
+ * staples the dish plan used to replace with the nearest food — casabe
+ * (FNDDS 2709566 "Casabe, cassava bread"), queso blanco (SR 172224 "Cheese,
+ * white, queso blanco") and ground cinnamon (SR 171320, 1 tsp = 2.6 g in the
+ * ADR-P013 manifest), from the same sha256-pinned archives, per 100 g except
+ * cinnamon's teaspoon. New foods at revision 1; no existing revision changes.
  */
-export const CATALOG_VERSION = 'food-catalog@1.14.0';
+export const CATALOG_VERSION = 'food-catalog@1.15.0';
 
 /** Closed vocabularies — the integrity test asserts data stays within these. */
 export const FOOD_CATEGORIES: readonly FoodCategory[] = [
