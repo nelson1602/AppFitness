@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -14,15 +14,30 @@ import {
  *
  * Distribution, not a user write path: it seeds the global bundled catalog into
  * PostgreSQL, byte-identical to the mobile bundle (food-catalog.canonical.json).
- * It is NOT wired into any auto-run hook — a human runs `npm run db:seed`
- * against a real database deliberately. Behaviour:
+ * v8.1 (owner, 2026-11-03; ADR-P012 addendum): it runs on every deploy as
+ * part of the release step `npm run db:deploy` (migrations, then this seed
+ * compiled to dist/), so new catalog revisions reach Railway with the image
+ * that needs them. `npm run db:seed` still runs it from source. Behaviour:
  *   - Verifies every id === uuidv5(catalog_key:food_revision) before writing.
  *   - Insert-new-revisions-only: on an existing id it is a NO-OP, so an existing
  *     immutable catalog revision is never overwritten (ADR-P012).
  *   - Never deletes and never edits historical revisions.
  */
 
-const CANONICAL_PATH = join(__dirname, 'food-catalog.canonical.json');
+// From source (ts-node) the JSON sits beside this file; compiled, this file is
+// dist/prisma/seed/ and the image keeps the JSON in prisma/seed/.
+const CANONICAL_PATH = [
+  join(__dirname, 'food-catalog.canonical.json'),
+  join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    'prisma',
+    'seed',
+    'food-catalog.canonical.json',
+  ),
+].find((path) => existsSync(path)) as string;
 
 async function main(): Promise<void> {
   const catalog = JSON.parse(

@@ -57,7 +57,8 @@ describe('RevenueCat webhook (e2e)', () => {
     snapshot = {
       entitlementId: 'appfitness_pro',
       isActive: true,
-      expiresAt: new Date('2026-10-29T16:00:00.000Z'),
+      // Relative to the real clock: a fixed date went stale on 2026-10-29.
+      expiresAt: new Date(Date.now() + 30 * 86_400_000),
       periodType: 'trial',
       productId: 'appfitness_pro_monthly',
       store: 'play_store',

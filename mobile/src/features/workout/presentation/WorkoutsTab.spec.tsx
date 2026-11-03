@@ -1,14 +1,14 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import type { HomeSummary } from '@/features/dashboard/domain/home-summary';
-
 import { WorkoutsTab } from './WorkoutsTab';
 
 let mockLanguage: 'en' | 'es' = 'en';
 let mockStatus = 'ready';
-let mockSummary: HomeSummary;
-let mockRoutine: { schedule: { kind: 'TRAINING' | 'RECOVERY' }[] } | null;
+let mockSelection: { kind: string; selection?: { status: string; routine?: unknown } } = {
+  kind: 'loading',
+};
 const mockLoadHomeData = jest.fn();
+const mockWeekProps = jest.fn();
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
@@ -21,9 +21,42 @@ jest.mock('../application/workout.store', () => ({
   useWorkoutStore: (select: (state: { status: string }) => unknown) =>
     select({ status: mockStatus }),
 }));
+jest.mock('../application/use-workout-selection', () => ({
+  useWorkoutSelection: () => mockSelection,
+}));
 jest.mock('@/features/dashboard/application/use-home-data', () => ({
   loadHomeData: () => mockLoadHomeData(),
-  useHomeData: () => ({ summary: mockSummary, routine: mockRoutine, weekdayIndex: 4 }),
+  useHomeData: () => ({ weekdayIndex: 2 }),
+}));
+jest.mock('@/features/weekly-plan/application/weekly-plan.store', () => ({
+  useWeeklyPlanStore: (
+    select: (state: {
+      current: { weekStart: string; notes: never[] };
+      adherence: { sessions: { date: string; done: boolean }[] };
+    }) => unknown,
+  ) =>
+    select({
+      current: { weekStart: '2026-11-02', notes: [] },
+      adherence: {
+        sessions: [
+          { date: '2026-11-02', done: true },
+          { date: '2026-11-04', done: false },
+        ],
+      },
+    }),
+}));
+jest.mock('@/features/weekly-plan/presentation/PlanChangePrompt', () => ({
+  PlanChangePrompt: () => null,
+}));
+jest.mock('@/features/subscriptions/presentation/SubscriptionAccessNotice', () => ({
+  SubscriptionAccessNotice: () => null,
+}));
+jest.mock('./WorkoutWeek', () => ({
+  WorkoutWeek: (props: unknown) => {
+    mockWeekProps(props);
+    const RN = jest.requireActual<typeof import('react-native')>('react-native');
+    return <RN.Text>workout-week</RN.Text>;
+  },
 }));
 jest.mock('@/shared/localization', () => {
   const actual = jest.requireActual('@/shared/localization');
@@ -38,14 +71,6 @@ jest.mock('@/shared/localization', () => {
   };
 });
 
-const TRAINING: HomeSummary = {
-  week: { done: 1, goal: 4, complete: false },
-  weight: null,
-  today: { kind: 'training', minutes: 40, completed: false },
-  coach: 'start',
-  calories: { consumed: null, target: null, share: null },
-};
-
 function push() {
   return jest.requireMock<{ router: { push: jest.Mock } }>('expo-router').router.push;
 }
@@ -54,60 +79,45 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockLanguage = 'en';
   mockStatus = 'ready';
-  mockSummary = TRAINING;
-  // Mon Tue Thu Sat training, as the generator's 4-day pattern.
-  mockRoutine = {
-    schedule: ['T', 'T', 'R', 'T', 'R', 'T', 'R'].map((day) => ({
-      kind: day === 'T' ? 'TRAINING' : 'RECOVERY',
-    })),
-  };
+  mockSelection = { kind: 'loading' };
 });
 
-describe('WorkoutsTab (ADR-P039)', () => {
-  it('loads on focus and shows the iCoach week, today marked', async () => {
-    mockLanguage = 'es';
+describe('WorkoutsTab (v8.1, prototype layout)', () => {
+  it('loads on focus and shows the week with the saved plan and its done days', async () => {
+    mockSelection = { kind: 'ready', selection: { status: 'ready', routine: { id: 'r' } } };
     await render(<WorkoutsTab />);
 
-    expect(mockLoadHomeData).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('header', { name: 'Tu semana' })).toBeOnTheScreen();
-    expect(screen.getByTestId('workouts-day-0').props.accessibilityLabel).toBe(
-      'Lunes, entrenamiento',
-    );
-    expect(screen.getByTestId('workouts-day-4').props.accessibilityLabel).toBe('Viernes, descanso');
-    expect(screen.getByTestId('workouts-today')).toHaveTextContent(
-      'Sesión de cuerpo completo · 40 min',
-    );
+    expect(mockLoadHomeData).toHaveBeenCalled();
+    expect(screen.getByText('workout-week')).toBeOnTheScreen();
+    const props = mockWeekProps.mock.calls[0][0] as {
+      todayIndex: number;
+      weekDates: string[];
+      doneDates: Set<string>;
+    };
+    expect(props.todayIndex).toBe(2);
+    expect(props.weekDates[0]).toBe('2026-11-02');
+    expect(props.weekDates).toHaveLength(7);
+    expect([...props.doneDates]).toEqual(['2026-11-02']);
   });
 
-  it("starts today's session from the week card", async () => {
+  it('shows the loading state, then no week without a routine', async () => {
     await render(<WorkoutsTab />);
-    await fireEvent.press(screen.getByTestId('workouts-start'));
+    expect(screen.getByText('Building your workout plan…')).toBeOnTheScreen();
+
+    mockSelection = { kind: 'ready', selection: { status: 'gap' } };
+    await render(<WorkoutsTab />);
+    expect(screen.queryByText('workout-week')).toBeNull();
+  });
+
+  it('keeps the log, routines and library one tap away', async () => {
+    await render(<WorkoutsTab />);
+
+    await fireEvent.press(screen.getByTestId('workouts-log'));
     expect(push()).toHaveBeenCalledWith('/workout-log');
-  });
-
-  it('offers no start on a rest day or without a plan', async () => {
-    mockSummary = { ...TRAINING, coach: 'rest', today: { kind: 'rest', active: true } };
-    await render(<WorkoutsTab />);
-    expect(screen.queryByTestId('workouts-start')).toBeNull();
-
-    mockSummary = { ...TRAINING, coach: 'no-plan', today: { kind: 'unknown' } };
-    mockRoutine = null;
-    await render(<WorkoutsTab />);
-    expect(screen.queryByTestId('workouts-day-0')).toBeNull();
-    expect(screen.getByTestId('workouts-today')).toHaveTextContent(
-      'Complete your profile and goal so the iCoach can plan your week.',
-    );
-  });
-
-  it.each([
-    ['workouts-plan', '/routines'],
-    ['workouts-log', '/workout-log'],
-    ['workouts-routines', '/routines'],
-    ['workouts-exercises', '/exercises'],
-  ] as const)('%s opens %s', async (testID, href) => {
-    await render(<WorkoutsTab />);
-    await fireEvent.press(screen.getByTestId(testID));
-    expect(push()).toHaveBeenCalledWith(href);
+    await fireEvent.press(screen.getByTestId('workouts-routines'));
+    expect(push()).toHaveBeenCalledWith('/routines');
+    await fireEvent.press(screen.getByTestId('workouts-exercises'));
+    expect(push()).toHaveBeenCalledWith('/exercises');
   });
 
   it('renders the honest Web state with no plan and no actions (ADR-P019)', async () => {
@@ -118,7 +128,7 @@ describe('WorkoutsTab (ADR-P039)', () => {
     expect(
       screen.getByText('La sección Entrenamientos no está disponible en la web'),
     ).toBeOnTheScreen();
-    expect(screen.queryByTestId('workouts-week-card')).toBeNull();
+    expect(screen.queryByText('workout-week')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
   });
 });

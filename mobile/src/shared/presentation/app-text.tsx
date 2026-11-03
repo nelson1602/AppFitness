@@ -4,7 +4,7 @@ import { Text, type TextProps, type TextStyle } from 'react-native';
 import { useTheme } from '../theme';
 import { useStageSurface } from './stage-surface';
 
-type TextVariant = 'display' | 'headline' | 'title' | 'body' | 'label' | 'caption';
+type TextVariant = 'display' | 'headline' | 'title' | 'panelTitle' | 'body' | 'label' | 'caption';
 /**
  * `onPrimary` is the label tone for text that sits ON a `primary` fill — the
  * filled CTA and every selected chip. It is not interchangeable with the other

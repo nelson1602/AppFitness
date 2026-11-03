@@ -2740,6 +2740,16 @@ ADR-P012 named three sync entities (`nutrition_logs`, `meals`, `meal_items`), bu
 
    A pulled day that meets an unsynced local day under another id triggers the same rename instead of a second row.
 
+### Addendum — the catalog seed runs on deploy (2026-11-03, owner decision, v8.1)
+
+Slice 4A kept the catalog seed manual ("a human runs `npm run db:seed`"). v8.1 adds foods (casabe, queso blanco, cinnamon, and green banana when sourced), and a food logged on the phone fails to sync until its revision exists on the server. So the seed now runs on every deploy:
+
+- `npm run db:deploy` — the documented Railway pre-deploy command — is `prisma migrate deploy` followed by `npm run db:seed:catalog` (the seed compiled to `dist/prisma/seed/`, reading `prisma/seed/food-catalog.canonical.json` in the image).
+- The seed is unchanged otherwise: integrity preflight on every id, insert-new-revisions-only, never updates or deletes. A deploy with no new revisions inserts 0.
+- A failing seed fails the pre-deploy step, so the new image never takes traffic without its catalog.
+- `npm run db:migrate` is the migrations-only command for local use; `npm run db:seed` still runs the seed from source.
+- api-ci runs the release step twice against the disposable Postgres: the first run must insert, the second must insert 0.
+
 ---
 
 ## ADR-P013 — USDA-FDC `foodPortion` Gram-Weight Sourcing for Volumetric & Slice Catalog Foods (TECHDEBT-004 risk 3, part 2)
@@ -14940,6 +14950,11 @@ Accepted: 2026-10-26 by the project owner (v8 Block 2). Owner decisions recorded
   - Spoons, cups, pieces and slices show to the nearest half ("2 cda.", "½ unidad", "1½ tazas"), never as zero.
   - The unit name agrees with the amount shown ("1 taza" / "2 tazas", "1 cup" / "2 cups"); abbreviations (g, ml, cda., tbsp) do not change.
   - Only planned and logged amounts are rounded. A catalog serving definition (the "1 porción = …" line when adding a food) keeps its exact value, and stored amounts and macro totals stay exact.
+- **Country and Dominican dishes** (owner decision 2026-11-02, v8.1, `meal-rules@1.5.0`, `do-dishes@1.0.0`):
+  - The profile carries `country` (ISO 3166-1 alpha-2; `ZZ` = another country), NOT NULL DEFAULT `DO` on both databases (Prisma `20261102120000_user_profile_country`, SQLite migration 010). Existing profiles read `DO`. It syncs with the other profile fields; the API accepts two uppercase letters only.
+  - Sign-up and Editar perfil offer "País" (a curated list: República Dominicana first, the Spanish-speaking countries of the Americas, United States, Spain, "Otro país"), preselected from the device region when listed, else `DO`. The sign-up choice waits on the device and is applied when the evaluation creates the profile; the register API is unchanged.
+  - `DO` → the plan is built from named Dominican dishes (D2 recipes, `nutrition/domain/dominican-dishes.ts`): catalog foods in household portions, kcal and macros computed from the catalog, allergen tags derived. A fixed rotation per meal (11 breakfasts, 12 lunches, 12 dinners, 9 snacks) shows no dish more than twice in 15 days and never on two days running. Exclusions never change the dish: the excluded ingredient becomes the first same-role food from the line's alternatives and then the role pool that is not already in the dish, or is left out (D3). Portions are scaled to the meal's share and keep every v8 rule (caps, 40 %, snack ≥ 100 kcal with the drop rule, vegetable ceiling, day never below target, display rounding); the food furthest from its share of the recipe moves first, and a day > 10 % short of protein nudges the dish's protein line. Any other country keeps the food-based plan, unchanged.
+  - The saved weekly plan records `inputs.country` and freezes `dishId`, `dishNameKey`, per-food `swappedFrom` and the dish's own substitutions; plans saved before v8.1 load unchanged, and a missing country is never reported as a change.
 Date: 2026-10-22
 Owner: iCoach / Nutrition / Architecture
 Would revise: ADR-P031 D4 (injury-area mapping), D5 (workload signals) and D13 (nutrition restriction input), conditional on ADR-P038 for condition rules; ADR-P012 D3/D5 (custom foods); ADR-P013 acceptance (food sources); ADR-P014 (new avoid tags)
@@ -15182,6 +15197,14 @@ Amends: ADR-P037 (redesign dependencies)
 - An optional date (the goal's target date) gets a "Quitar fecha" link, since a picker alone cannot empty it.
 - The five typed-date placeholders left the catalogue. A guard now fails if a YYYY-MM-DD / AAAA-MM-DD hint comes back.
 - The dormant medical forms (`features/medical`, no route) keep their text fields.
+
+### v8.1 — Birth dates use an in-app wheel (owner decision 2026-11-02)
+
+- The owner rejected the month-by-month calendar for birth dates: reaching a date ~30 years back took hundreds of taps.
+- Every birth date (evaluation Medidas, Editar perfil) now opens `BirthDateField`: a bottom sheet with `DateWheelPicker`, three snapping `FlatList` columns Día / Mes / Año and a "Listo" button. It is plain React Native — no new dependency, no native module — and renders the same on iOS, Android and Web. The system back gesture closes the sheet without saving.
+- Range: ages 16 to 100, so a birth date lies in [today − 100 years, today − 16 years] (`shared/application/birth-date.ts`). An empty field starts exactly 30 years ago; 29 February falls back to the 28th. The evaluation's Medidas step validates the same range (it was 13–120, the engine's `BOUNDS.age`, which is unchanged and still contains it). This replaces the Block 3 profile bound of 1900-01-01 up to today. The stored value is still `YYYY-MM-DD`; the profile's Zod schema is unchanged.
+- Accessibility: each column is one `adjustable` element with a localized name and value (the month by name in the app language) and increment/decrement actions; Web adds the arrow keys. Focus starts on the year: the columns are rendered Año, Mes, Día and laid out with `row-reverse`, and the sheet moves screen-reader focus to the year column when it opens (VoiceOver may order siblings by position). Rows are at least 48 dp and grow with the OS text size; reduce motion turns off the animated scroll.
+- Every other date (evaluation date, goal target date, weight, measurement and wellness dates) keeps the native picker.
 
 ---
 

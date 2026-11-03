@@ -2,7 +2,11 @@ import type { TranslationKey } from '@/shared/localization';
 import { en } from '@/shared/localization/resources/en';
 import { es } from '@/shared/localization/resources/es';
 
-import { formatServingAmount } from './serving-amount';
+import {
+  formatIngredientAmount,
+  formatServingAmount,
+  GREEN_BANANA_PEELED_GRAMS,
+} from './serving-amount';
 
 const NBSP = ' ';
 const tEs = (key: TranslationKey) => es[key];
@@ -45,5 +49,36 @@ describe('formatServingAmount (v8 Block 3 display rounding)', () => {
 
   it('keeps an unknown stored unit as stored rather than dropping it', () => {
     expect(formatServingAmount(2, 'oz', 'es', tEs)).toBe(`2${NBSP}oz`);
+  });
+});
+
+describe('formatIngredientAmount (guineítos, v8.1 round 2)', () => {
+  it('counts guineítos from the peeled weight, then shows the grams', () => {
+    expect(GREEN_BANANA_PEELED_GRAMS).toBe(118);
+    expect(formatIngredientAmount('food.green_banana_raw', 236, 'g', 'es', tEs)).toBe(
+      `2 guineítos · 236${NBSP}g`,
+    );
+    expect(formatIngredientAmount('food.green_banana_raw', 236, 'g', 'en', tEn)).toBe(
+      `2 green bananas · 236${NBSP}g`,
+    );
+    // To the nearest half; the name agrees with the count; never zero.
+    expect(formatIngredientAmount('food.green_banana_raw', 177, 'g', 'es', tEs)).toBe(
+      `1½ guineítos · 177${NBSP}g`,
+    );
+    expect(formatIngredientAmount('food.green_banana_raw', 118, 'g', 'es', tEs)).toBe(
+      `1 guineíto · 118${NBSP}g`,
+    );
+    expect(formatIngredientAmount('food.green_banana_raw', 20, 'g', 'en', tEn)).toBe(
+      `½ green banana · 20${NBSP}g`,
+    );
+  });
+
+  it('leaves every other food as formatServingAmount shows it', () => {
+    expect(formatIngredientAmount('food.plantain_boiled', 200, 'g', 'es', tEs)).toBe(
+      formatServingAmount(200, 'g', 'es', tEs),
+    );
+    expect(formatIngredientAmount('toString', 2, 'cup', 'en', tEn)).toBe(
+      formatServingAmount(2, 'cup', 'en', tEn),
+    );
   });
 });

@@ -28,6 +28,11 @@ export interface ProfileAttributes {
   targetProteinG: number | null;
   targetCarbsG: number | null;
   targetFatG: number | null;
+  /**
+   * v8.1: ISO 3166-1 alpha-2, two uppercase letters ('ZZ' = another country).
+   * Picks the meal-plan style on the device; the server only stores it.
+   */
+  country: string;
 }
 
 /** A persisted profile row. */
@@ -58,4 +63,6 @@ export const PROFILE_DEFAULTS: ProfileAttributes = {
   targetProteinG: null,
   targetCarbsG: null,
   targetFatG: null,
+  // v8.1: existing users and profiles created without a choice are Dominican.
+  country: 'DO',
 };

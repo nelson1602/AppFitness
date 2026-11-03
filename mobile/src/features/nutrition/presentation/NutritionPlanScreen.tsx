@@ -1,58 +1,21 @@
 import { router } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { getSession } from '@/features/authentication';
-import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
-import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
-import { localDateOf, weekDates } from '@/features/weekly-plan/domain/week';
-import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
-import { effectivePlanDay } from '@/features/weekly-plan/domain/adherence';
-import {
-  formatNumber,
-  formatQuantity,
-  interpolate,
-  useLocalization,
-  type TranslationKey,
-} from '@/shared/localization';
+import { formatNumber, formatQuantity, interpolate, useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { AvoidTag } from '../domain/food-catalog';
-import type { MealMacros, MealPlan } from '../domain/meal-plan';
+import type { OffPlanAdjustment } from '@/features/weekly-plan/domain/off-plan';
+
+import type { MealPlan } from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
-import { selectMealPlan } from '../application/meal-plan.service';
-import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { MealPlanPanel, PlanDayStrip, type ViewDay } from './meal-plan-day';
+import { useNutritionPlanView } from './use-nutrition-plan-view';
+import { AVOID_TAG_KEY } from './avoid-tag-labels';
 import { NutritionDataGap } from './NutritionDataGap';
-
-function sumMacros(meals: ViewDay['meals']): MealMacros {
-  return meals.reduce(
-    (sum, meal) => ({
-      calories: sum.calories + meal.totals.calories,
-      proteinG: sum.proteinG + meal.totals.proteinG,
-      carbsG: sum.carbsG + meal.totals.carbsG,
-      fatG: sum.fatG + meal.totals.fatG,
-    }),
-    { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
-  );
-}
-
-const AVOID_TAG_KEY: Record<AvoidTag, TranslationKey> = {
-  nut_allergy: 'nutrition.avoid.nuts',
-  shellfish_allergy: 'nutrition.avoid.shellfish',
-  gluten_sensitive: 'nutrition.avoid.gluten',
-  lactose_sensitive: 'nutrition.avoid.lactose',
-  high_sodium_sensitive: 'nutrition.avoid.sodium',
-  high_purine: 'nutrition.avoid.purine',
-  added_sugar: 'nutrition.avoid.addedSugar',
-  alcohol: 'nutrition.avoid.alcohol',
-  caffeine: 'nutrition.avoid.caffeine',
-  fried: 'nutrition.avoid.fried',
-};
 
 /** Day totals against the targets, under the meal panel. */
 function DayTotals({ day }: { day: ViewDay }) {
@@ -141,95 +104,13 @@ function ExclusionsCard({ plan }: { plan: MealPlan }) {
  */
 export function NutritionPlanScreen() {
   const theme = useTheme();
-  const { language, t } = useLocalization();
-  const { status, data, error, refresh } = useDashboardStore();
-  const { status: prefStatus, preferences, load: loadPreferences } = useDietaryPreferenceStore();
-  const plan = useWeeklyPlanStore();
-  const currentPlan = plan.current;
-  const planRevisions = plan.revisions;
-  const today = localDateOf(new Date().toISOString());
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const entitlement = useEntitlementAccess();
-  const generationAllowed = entitlement.mode === 'unregulated' || entitlement.mode === 'active';
-
-  useEffect(() => {
-    void refresh();
-    void loadPreferences();
-    void useWeeklyPlanStore.getState().load();
-  }, [refresh, loadPreferences]);
-
-  const userId = getSession()?.user.id ?? null;
-  const selection = useMemo(
-    () =>
-      // Preferences are additive: only feed them in once the store is ready.
-      // On an error/loading state the plan still builds with no exclusions.
-      generationAllowed
-        ? selectMealPlan(
-            data?.assessment ?? null,
-            userId,
-            prefStatus === 'ready' ? preferences : [],
-          )
-        : ({ status: 'gap' } as const),
-    [data?.assessment, generationAllowed, userId, prefStatus, preferences],
-  );
-
-  // ADR-P042 D9: days 1–7 are the saved week; days 8–15 an unsaved preview.
-  const days = useMemo<ViewDay[]>(() => {
-    if (selection.status !== 'ready') return [];
-    const live = selection.plan.days;
-    const fromLive = (index: number): ViewDay => {
-      const day = live[index];
-      return {
-        index: index + 1,
-        date: null,
-        preview: true,
-        isToday: false,
-        isFuture: true,
-        meals: day.meals,
-        targets: day.targets,
-        totals: day.totals,
-        safetyFloorApplied: day.rationale.safetyFloorApplied,
-      };
-    };
-    if (!currentPlan || planRevisions.length === 0) return live.map((_, index) => fromLive(index));
-    const fallbackTargets = currentPlan.plan.targets;
-    const saved = weekDates(currentPlan.weekStart).map((date, index): ViewDay => {
-      const effective = effectivePlanDay(planRevisions, date);
-      const meals = effective?.day.meals ?? [];
-      const targets = effective?.plan.plan.targets ?? fallbackTargets;
-      return {
-        index: index + 1,
-        date,
-        preview: false,
-        isToday: date === today,
-        isFuture: date > today,
-        meals,
-        targets: {
-          calories: targets.calories,
-          proteinG: targets.proteinG,
-          carbsG: targets.carbsG,
-          fatG: targets.fatG,
-        },
-        totals: sumMacros(meals),
-        safetyFloorApplied: targets.calories <= targets.floorCalories,
-      };
-    });
-    return [...saved, ...live.slice(7).map((_, index) => fromLive(index + 7))];
-  }, [selection, currentPlan, planRevisions, today]);
-  const todayIndex = days.find((day) => day.isToday)?.index ?? 1;
-  const shownDay = days[(selectedDay ?? todayIndex) - 1];
-  const done = new Set(plan.mealSlotsDone);
-  const overlay = plan.overlay;
-
-  // Wait for both the assessment and the (additive) preference load to settle
-  // so the first rendered plan already reflects any exclusions.
-  const preferencesLoading = prefStatus === 'idle' || prefStatus === 'loading';
+  const { t } = useLocalization();
+  const view = useNutritionPlanView();
+  const { state, shownDay, shownIndex } = view;
 
   // Local database is dormant on Web (ADR-P019): render an honest, info-tone
   // bilingual state — no plan, day controls, food-log link, data-gap, or error.
-  // Either the dashboard assessment or the (additive) preferences being
-  // web-unavailable means the local database is unreachable.
-  if (status === 'web-unavailable' || prefStatus === 'web-unavailable') {
+  if (state.kind === 'web-unavailable') {
     return (
       <View style={{ gap: theme.spacing.lg }}>
         <AppText tone="muted">{t('nutrition.plan.subtitle')}</AppText>
@@ -256,71 +137,32 @@ export function NutritionPlanScreen() {
     <View style={{ gap: theme.spacing.lg }}>
       <AppText tone="muted">{t('nutrition.plan.subtitle')}</AppText>
 
-      {!generationAllowed ? (
+      {state.kind === 'subscription' ? (
         <SubscriptionAccessNotice />
-      ) : status === 'loading' || status === 'idle' || preferencesLoading ? (
+      ) : state.kind === 'loading' ? (
         <AppText accessibilityLabel={t('nutrition.plan.loadingAccessibility')}>
           {t('nutrition.plan.loading')}
         </AppText>
-      ) : error ? (
+      ) : state.kind === 'error' ? (
         <Banner title={t('nutrition.plan.unavailable')} tone="error">
           {t('nutrition.plan.errorMessage')}
         </Banner>
-      ) : selection.status === 'error' ? (
-        <Banner title={t('nutrition.plan.unavailable')} tone="error">
-          {t('nutrition.plan.errorMessage')}
-        </Banner>
-      ) : selection.status === 'gap' ? (
+      ) : state.kind === 'gap' ? (
         <>
-          <NutritionDataGap missing={data?.missing ?? []} context="plan" />
+          <NutritionDataGap missing={state.missing} context="plan" />
           {logFood}
         </>
       ) : (
         <>
-          {overlay && (overlay.reducedBy > 0 || overlay.avoidIntenseTraining) ? (
-            <View testID="plan-overlay">
-              <Banner title={t('nutrition.plan.overlayTitle')} tone="info">
-                {[
-                  overlay.reducedBy > 0
-                    ? interpolate(t('nutrition.plan.overlayBody'), {
-                        kcal: formatNumber(overlay.todayCalories, language),
-                        reduced: formatNumber(overlay.reducedBy, language),
-                      })
-                    : null,
-                  overlay.extraCardioMinutes > 0
-                    ? interpolate(t('nutrition.plan.overlayCardio'), {
-                        minutes: formatNumber(overlay.extraCardioMinutes, language),
-                      })
-                    : null,
-                  overlay.avoidIntenseTraining ? t('nutrition.plan.overlayAlcohol') : null,
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              </Banner>
-            </View>
-          ) : null}
-          <PlanDayStrip
-            count={days.length}
-            selected={selectedDay ?? todayIndex}
-            onSelect={setSelectedDay}
-          />
+          {state.overlay ? <PlanOverlayBanner overlay={state.overlay} /> : null}
+          <PlanDayStrip count={state.days.length} selected={shownIndex} onSelect={view.selectDay} />
           {shownDay ? (
-            <MealPlanPanel
-              day={shownDay}
-              isDone={(slot) => (shownDay.date ? done.has(`${shownDay.date}|${slot}`) : false)}
-              onEaten={
-                plan.current && shownDay.date
-                  ? (slot) => {
-                      void plan.markMealEaten(shownDay.date as string, slot);
-                    }
-                  : null
-              }
-            />
+            <MealPlanPanel day={shownDay} isDone={view.isDone} onEaten={view.onEaten} />
           ) : null}
           {logFood}
           {shownDay ? <DayTotals day={shownDay} /> : null}
-          <ExclusionsCard plan={selection.plan} />
-          {plan.current ? (
+          <ExclusionsCard plan={state.plan} />
+          {state.saved ? (
             <AppText testID="plan-saved-week" tone="muted" variant="caption">
               {t('nutrition.plan.savedWeek')}
             </AppText>
@@ -331,6 +173,34 @@ export function NutritionPlanScreen() {
       <AppText variant="caption" tone="muted">
         {t('nutrition.plan.disclaimer')}
       </AppText>
+    </View>
+  );
+}
+
+/** The off-plan adjustment (ADR-P040 D7) in words, when it changes today. */
+export function PlanOverlayBanner({ overlay }: { overlay: OffPlanAdjustment }) {
+  const { language, t } = useLocalization();
+  if (!(overlay.reducedBy > 0 || overlay.avoidIntenseTraining)) return null;
+  return (
+    <View testID="plan-overlay">
+      <Banner title={t('nutrition.plan.overlayTitle')} tone="info">
+        {[
+          overlay.reducedBy > 0
+            ? interpolate(t('nutrition.plan.overlayBody'), {
+                kcal: formatNumber(overlay.todayCalories, language),
+                reduced: formatNumber(overlay.reducedBy, language),
+              })
+            : null,
+          overlay.extraCardioMinutes > 0
+            ? interpolate(t('nutrition.plan.overlayCardio'), {
+                minutes: formatNumber(overlay.extraCardioMinutes, language),
+              })
+            : null,
+          overlay.avoidIntenseTraining ? t('nutrition.plan.overlayAlcohol') : null,
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      </Banner>
     </View>
   );
 }

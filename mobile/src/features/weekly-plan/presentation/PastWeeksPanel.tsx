@@ -107,16 +107,20 @@ export function PastWeeksPanel({
 
   return (
     <GlassCard style={{ gap: spacing.md, padding: spacing.lg }} testID="past-weeks">
-      {/* The title keeps the whole row so it stays on one line; the subtitle
-          sits below it (owner review 2026-10-27). */}
-      <View style={{ gap: 2 }} testID="past-weeks-header">
-        <View style={[styles.row, { gap: spacing.sm }]}>
-          <Icon color={colors.accentCyan} name="calendar" size={18} />
-          <AppText accessibilityRole="header" style={styles.grow} tone="onStage" variant="title">
+      {/* Synced prototype (v8.1 round 2): "Plan vs. lo cumplido" sits at the
+          end of the title row. The title keeps its natural width and the
+          subtitle wraps below it when both do not fit, so neither breaks. */}
+      <View
+        style={[styles.row, { flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between' }]}
+        testID="past-weeks-header"
+      >
+        <View style={[styles.row, { flexShrink: 0, gap: spacing.sm, maxWidth: '100%' }]}>
+          <Icon color={colors.linkOnStage} name="calendar" size={18} />
+          <AppText accessibilityRole="header" tone="onStage" variant="panelTitle">
             {t('plan.history.title')}
           </AppText>
         </View>
-        <AppText tone="onStageVariant" variant="caption">
+        <AppText testID="past-weeks-subtitle" tone="onStageVariant" variant="caption">
           {t('plan.history.subtitle')}
         </AppText>
       </View>
@@ -155,7 +159,7 @@ export function PastWeeksPanel({
                   backgroundColor: pressed
                     ? withAlpha(colors.onStage, 0.09)
                     : withAlpha(colors.onStage, 0.05),
-                  borderRadius: radius.field,
+                  borderRadius: radius.large,
                   gap: spacing.md,
                   minHeight: theme.spacing.x5l,
                   padding: spacing.sm,

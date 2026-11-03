@@ -1,13 +1,22 @@
 import { router, useFocusEffect } from 'expo-router';
-import { type ReactNode, useCallback } from 'react';
+import { type ReactNode, useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-home-data';
 import { AccountSettingsSection } from '@/features/dashboard/presentation/AccountSettingsSection';
+import { evaluationSummaryFrom } from '@/features/evaluation/domain/evaluation';
+import {
+  ACTIVITY_LABEL,
+  INJURY_LABEL,
+  STRESS_LABEL,
+  foodLabelKey,
+} from '@/features/evaluation/presentation/evaluation-copy';
 import { PrivacyPolicyLink } from '@/features/legal/presentation/privacy-policy-link';
+import { useDietaryPreferenceStore } from '@/features/nutrition/application/dietary-preference.store';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
+import { useWellnessSafetyProfileStore } from '@/features/wellness/application/wellness-safety-profile.store';
 import {
   formatDate,
   formatNumber,
@@ -54,8 +63,13 @@ function Panel({
         testID={`${testID}-title-row`}
       >
         <View style={[styles.row, styles.natural, { gap: spacing.sm }]}>
-          <Icon color={colors.accentCyan} name={icon} size={18} />
-          <AppText accessibilityRole="header" style={styles.shrink} tone="onStage" variant="title">
+          <Icon color={colors.linkOnStage} name={icon} size={18} />
+          <AppText
+            accessibilityRole="header"
+            style={styles.shrink}
+            tone="onStage"
+            variant="panelTitle"
+          >
             {title}
           </AppText>
         </View>
@@ -85,12 +99,43 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+/** One summary line of the evaluation: "Salud:" followed by its chips (they wrap). */
+function SummaryRow({
+  label,
+  chips,
+  testID,
+}: {
+  label: string;
+  chips: { label: string; tone: 'energy' | 'neutral' | 'success' }[];
+  testID: string;
+}) {
+  const { spacing } = useTheme();
+  return (
+    <View style={[styles.row, styles.wrap, { gap: spacing.xs }]} testID={testID}>
+      <AppText tone="onStageVariant" variant="caption">
+        {label}
+      </AppText>
+      {chips.map((chip, index) => (
+        <Chip
+          key={chip.label}
+          label={chip.label}
+          testID={`${testID}-chip-${index}`}
+          tone={chip.tone}
+        />
+      ))}
+    </View>
+  );
+}
+
 /**
  * The Perfil tab (ADR-P039): the prototype's panels — physical evaluation with
- * "Actualizar evaluación", the goal, "Próximamente" and sign-out — plus one
- * compact "Cuenta y ajustes" section holding everything that left Inicio. The
- * biometric switch joins with PR #233; the medical rows (pressure, pulse,
- * conditions) wait for ADR-P038.
+ * its Salud / Alimentación / Estilo de vida summary and "Actualizar
+ * evaluación", the goal with the weekly workouts, "Próximamente" and sign-out —
+ * plus one compact "Cuenta y ajustes" section holding everything that left
+ * Inicio. Salud shows only injuries and pain areas (owner rule, v8): never a
+ * medical condition, pressure or pulse (ADR-P038). The prototype's Seguridad
+ * panel (Face ID / Huella) is not shown: the app has no biometric capability
+ * yet, and a switch that secures nothing would mislead.
  */
 export function ProfileTab() {
   const theme = useTheme();
@@ -98,13 +143,20 @@ export function ProfileTab() {
   const { language, t } = useLocalization();
   const refresh = useDashboardStore((s) => s.refresh);
   const profile = useProfileStore((s) => s.profile);
+  const wellness = useWellnessSafetyProfileStore((s) => s.profile);
+  const preferences = useDietaryPreferenceStore((s) => s.preferences);
   const { summary, currentWeightKg, evaluation, evaluationDate, goalType, goalTargetDate } =
     useHomeData();
+  const answers = useMemo(
+    () => evaluationSummaryFrom({ profile, wellness, preferences }),
+    [profile, wellness, preferences],
+  );
 
   useFocusEffect(
     useCallback(() => {
       void refresh();
       loadHomeData();
+      void useDietaryPreferenceStore.getState().load();
     }, [refresh]),
   );
 
@@ -126,6 +178,36 @@ export function ProfileTab() {
             date: date(goalTargetDate),
           })
         : interpolate(t('profile.tab.goalTarget'), { target: kg(target) });
+  const weeklyWorkouts =
+    answers.trainingDays === null
+      ? null
+      : answers.trainingDays === 1
+        ? t('profile.tab.trainingDaysOne')
+        : interpolate(t('profile.tab.trainingDaysMany'), {
+            n: formatNumber(answers.trainingDays, language),
+          });
+  // The prototype's Meta line: "78 kg para el 31 de diciembre · 4 entrenamientos
+  // por semana". Without a target the empty-state prompt stands alone.
+  const goalLine =
+    goalDetail === null
+      ? null
+      : [goalDetail, weeklyWorkouts].filter((part) => part !== null).join(' · ');
+  const summaryLabel = (section: string) => interpolate(t('profile.tab.summaryLabel'), { section });
+  const lower = (value: string) => value.toLocaleLowerCase(language);
+  const lifestyleChips = [
+    answers.activityLevel
+      ? interpolate(t('profile.tab.activityChip'), {
+          level: lower(t(ACTIVITY_LABEL[answers.activityLevel])),
+        })
+      : null,
+    answers.stressLevel !== null
+      ? interpolate(t('profile.tab.stressChip'), {
+          level: lower(t(STRESS_LABEL[answers.stressLevel])),
+        })
+      : null,
+  ]
+    .filter((label): label is string => label !== null)
+    .map((label) => ({ label, tone: 'neutral' as const }));
 
   return (
     <TabScreen>
@@ -165,6 +247,39 @@ export function ProfileTab() {
             }
           />
         </View>
+        <View style={{ gap: spacing.sm }} testID="profile-evaluation-summary">
+          <SummaryRow
+            chips={
+              answers.injuries.length > 0
+                ? answers.injuries.map((injury) => ({
+                    label: t(INJURY_LABEL[injury]),
+                    tone: 'energy' as const,
+                  }))
+                : [{ label: t('evaluation.review.noInjuries'), tone: 'success' }]
+            }
+            label={summaryLabel(t('evaluation.step.health'))}
+            testID="profile-summary-health"
+          />
+          <SummaryRow
+            chips={
+              answers.foods.length > 0
+                ? answers.foods.map((id) => ({
+                    label: t(foodLabelKey(id)),
+                    tone: 'energy' as const,
+                  }))
+                : [{ label: t('evaluation.review.noFoods'), tone: 'success' }]
+            }
+            label={summaryLabel(t('evaluation.step.food'))}
+            testID="profile-summary-food"
+          />
+          {lifestyleChips.length > 0 ? (
+            <SummaryRow
+              chips={lifestyleChips}
+              label={summaryLabel(t('evaluation.step.lifestyle'))}
+              testID="profile-summary-lifestyle"
+            />
+          ) : null}
+        </View>
         <AppButton
           accessibilityLabel={t('dashboard.wellnessSafetyAccessibility')}
           onPress={() => router.push('/evaluation?mode=update')}
@@ -180,8 +295,8 @@ export function ProfileTab() {
             {t(goalKey)}
           </AppText>
         ) : null}
-        <AppText tone="onStageVariant" variant="caption">
-          {goalDetail ?? t('profile.tab.goalEmpty')}
+        <AppText tone="onStageVariant" testID="profile-goal-detail" variant="caption">
+          {goalLine ?? t('profile.tab.goalEmpty')}
         </AppText>
         <GlassRow
           icon="target"

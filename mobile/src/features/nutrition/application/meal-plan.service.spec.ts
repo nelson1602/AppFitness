@@ -123,6 +123,15 @@ describe('selectMealPlan', () => {
     expect(a).not.toEqual(b);
   });
 
+  it('builds the Dominican dish plan for DO and the food plan otherwise (v8.1)', () => {
+    const dominican = selectMealPlan(assessment(), 'user-1', [], 'DO');
+    const generic = selectMealPlan(assessment(), 'user-1', [], 'US');
+    if (dominican.status !== 'ready' || generic.status !== 'ready') throw new Error('not ready');
+    expect(dominican.plan.days[0].meals.every((meal) => meal.dishId !== undefined)).toBe(true);
+    expect(generic.plan.days[0].meals.some((meal) => meal.dishId !== undefined)).toBe(false);
+    expect(generic).toEqual(selectMealPlan(assessment(), 'user-1'));
+  });
+
   it('returns a gap state when there is no assessment or no user', () => {
     expect(selectMealPlan(null, 'user-1').status).toBe('gap');
     expect(selectMealPlan(assessment(), null).status).toBe('gap');

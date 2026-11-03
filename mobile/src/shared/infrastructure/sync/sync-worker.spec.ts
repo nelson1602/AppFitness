@@ -309,6 +309,49 @@ describe('runSync — push loop', () => {
     ]);
   });
 
+  // v8.1: one unreadable row used to throw out of the run, leaving the whole
+  // queue behind it stuck and the UI on a generic "needs attention".
+  it('fails only a row whose payload cannot be read and still pushes the rest', async () => {
+    const push = jest.fn().mockResolvedValue([pushResult({ opId: 'op-2' })]);
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+    mockPeekReady
+      .mockResolvedValueOnce([
+        queueRow({ op_id: 'op-1', entity_type: 'weekly_plans' }),
+        queueRow({ op_id: 'op-2', entity_id: 'goal-2' }),
+      ])
+      .mockResolvedValueOnce([]);
+    mockReadPayload
+      .mockRejectedValueOnce(new Error('decrypt failed'))
+      .mockResolvedValueOnce({ payload: { id: 'goal-2' }, sensitive: false });
+
+    const report = await runSync(deps);
+
+    expect(report.outcome).toBe('success');
+    expect(report.unreadable).toBe(1);
+    expect(report.pushedApplied).toBe(1);
+    expect(mockMarkFailed).toHaveBeenCalledWith(
+      USER,
+      'op-1',
+      'payload_unreadable: decrypt failed',
+      NOW,
+    );
+    expect(push).toHaveBeenCalledWith([expect.objectContaining({ opId: 'op-2' })]);
+    expect(mockMarkApplied).toHaveBeenCalledWith(USER, 'op-2');
+  });
+
+  it('does not push an empty batch when every row is unreadable', async () => {
+    const push = jest.fn();
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+    mockPeekReady.mockResolvedValueOnce([queueRow()]).mockResolvedValueOnce([]);
+    mockReadPayload.mockRejectedValueOnce(new Error('bad envelope'));
+
+    const report = await runSync(deps);
+
+    expect(push).not.toHaveBeenCalled();
+    expect(report.unreadable).toBe(1);
+    expect(report.outcome).toBe('success');
+  });
+
   it('marks the whole batch failed and reports offline on network failure', async () => {
     mockCreateTransport.mockReturnValue(
       fakeTransport({ push: jest.fn().mockRejectedValue(new Error('Network request failed')) }),

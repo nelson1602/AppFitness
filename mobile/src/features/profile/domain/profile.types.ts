@@ -5,6 +5,8 @@ import type {
   UserProfileRow,
 } from '../../../shared/infrastructure/database/types';
 
+import { normalizeCountry } from './country';
+
 /** Editable profile fields (camelCase domain shape). */
 export interface ProfileInput {
   birthDate?: string | null; // YYYY-MM-DD
@@ -23,6 +25,8 @@ export interface ProfileInput {
   targetProteinG?: number | null;
   targetCarbsG?: number | null;
   targetFatG?: number | null;
+  /** v8.1: ISO 3166-1 alpha-2 ('ZZ' = another country). Picks the meal-plan style. */
+  country?: string;
 }
 
 /** Profile as read by the app (domain shape over the SQLite row). */
@@ -54,6 +58,7 @@ export function rowToProfile(row: UserProfileRow): Profile {
     targetProteinG: row.target_protein_g,
     targetCarbsG: row.target_carbs_g,
     targetFatG: row.target_fat_g,
+    country: normalizeCountry(row.country),
     version: row.version,
     syncStatus: row.sync_status,
     updatedAt: row.updated_at,

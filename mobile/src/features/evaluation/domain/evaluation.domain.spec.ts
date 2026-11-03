@@ -12,6 +12,7 @@ import {
   draftBmi,
   draftFromSources,
   equipmentToStore,
+  evaluationSummaryFrom,
   goalChanged,
   INJURY_OPTIONS,
   isDraftComplete,
@@ -120,6 +121,50 @@ describe('food groups (ADR-P040 D3)', () => {
   });
 });
 
+describe('evaluationSummaryFrom (Perfil summary, v8.1 round 2)', () => {
+  it('reads the saved answers: injuries only, marked foods, activity, stress and days', () => {
+    const wellness = {
+      affectedAreas: ['chest', 'knee', 'lower_back'],
+    } as unknown as WellnessSafetyProfile;
+    expect(
+      evaluationSummaryFrom({
+        profile: profile(),
+        wellness,
+        preferences: [
+          pref({ catalogKey: 'food.shrimp', kind: 'preference' }),
+          pref({ exclusionType: 'avoid_tag', avoidTag: 'caffeine', kind: 'allergy' }),
+        ],
+      }),
+    ).toEqual({
+      injuries: ['knee', 'lower_back'],
+      foods: ['shrimp', 'caffeine'],
+      activityLevel: 'LIGHT',
+      stressLevel: 4,
+      trainingDays: 4,
+    });
+  });
+
+  it('invents nothing for a new account (no wizard defaults)', () => {
+    expect(evaluationSummaryFrom({ profile: null, wellness: null, preferences: [] })).toEqual({
+      injuries: [],
+      foods: [],
+      activityLevel: null,
+      stressLevel: null,
+      trainingDays: null,
+    });
+  });
+
+  it('drops zero training days and an unanswered stress level', () => {
+    expect(
+      evaluationSummaryFrom({
+        profile: profile({ trainingDaysPerWeek: 0, stressLevelBaseline: null }),
+        wellness: null,
+        preferences: [],
+      }),
+    ).toMatchObject({ stressLevel: null, trainingDays: null });
+  });
+});
+
 describe('draftFromSources', () => {
   it('starts a new account on the defaults (owner decision 6 lives in the profile input)', () => {
     const draft = draftFromSources(sources());
@@ -217,6 +262,15 @@ describe('step validation', () => {
   it('asks for usable measurements within the engine bounds', () => {
     const draft = complete({ weightKg: 25, heightCm: null, birthDate: '2020-01-01' });
     expect(stepIssues('measures', draft, TODAY)).toEqual(['weight', 'height', 'birthDate']);
+  });
+
+  // v8.1 (owner): the birth date agrees with the wheel — ages 16 to 100.
+  it('accepts a birth date from exactly 100 to exactly 16 years ago, and nothing else', () => {
+    const issues = (birthDate: string) => stepIssues('measures', complete({ birthDate }), TODAY);
+    expect(issues('1926-10-28')).toEqual([]);
+    expect(issues('2010-10-28')).toEqual([]);
+    expect(issues('1926-10-27')).toEqual(['birthDate']);
+    expect(issues('2010-10-29')).toEqual(['birthDate']);
   });
 
   it('refuses a future assessment date and a past target date', () => {

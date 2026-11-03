@@ -28,6 +28,8 @@ export const typography = {
   headline: { fontSize: 28, lineHeight: 36, fontFamily: family(FONT_FAMILY.displayBold) },
   title: { fontSize: 20, lineHeight: 28, fontFamily: family(FONT_FAMILY.displaySemiBold) },
   body: { fontSize: 16, lineHeight: 24, fontFamily: family(FONT_FAMILY.bodyRegular) },
+  /** Panel titles on the tabs (design Panel: 16 bold). */
+  panelTitle: { fontSize: 16, lineHeight: 22, fontFamily: family(FONT_FAMILY.displayBold) },
   label: { fontSize: 14, lineHeight: 20, fontFamily: family(FONT_FAMILY.bodySemiBold) },
   caption: { fontSize: 12, lineHeight: 16, fontFamily: family(FONT_FAMILY.bodyRegular) },
 } as const satisfies Record<string, TypographyToken>;

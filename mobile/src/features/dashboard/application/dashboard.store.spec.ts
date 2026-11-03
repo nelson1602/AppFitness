@@ -69,6 +69,7 @@ function report(outcome: SyncOutcome): SyncReport {
     pulledApplied: 0,
     skippedPending: 0,
     recovered: 0,
+    unreadable: 0,
   };
 }
 
@@ -178,6 +179,28 @@ describe('dashboard store syncNow', () => {
     expect(mockRunSync).toHaveBeenCalledTimes(1);
     expect(state.data?.sync.status).toBe('error');
     expect(state.data?.sync.message).toBe('Sync needs attention.');
+    // v8.1: the reason travels with the error, so Perfil can say "sign in again".
+    expect(state.data?.sync.problem).toBe('session');
+  });
+
+  it('marks a read-only run as a subscription problem (v8.1)', async () => {
+    mockRunSync.mockResolvedValue(report('subscription-required'));
+
+    await useDashboardStore.getState().syncNow();
+
+    const sync = useDashboardStore.getState().data?.sync;
+    expect(sync?.status).toBe('error');
+    expect(sync?.problem).toBe('subscription');
+  });
+
+  it('marks a run that threw as an unexpected problem (v8.1)', async () => {
+    mockRunSync.mockRejectedValue(new Error('boom'));
+
+    await useDashboardStore.getState().syncNow();
+
+    const sync = useDashboardStore.getState().data?.sync;
+    expect(sync?.status).toBe('error');
+    expect(sync?.problem).toBe('unexpected');
   });
 
   it('loadSampleData seeds through the service then refreshes', async () => {

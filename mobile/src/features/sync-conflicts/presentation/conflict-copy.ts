@@ -43,7 +43,7 @@ const RECORD_LABELS: Readonly<Record<string, TranslationKey>> = {
 };
 
 /**
- * The 79 allow-listed field identifiers — 73 shown plus the 6 excluded ones,
+ * The 80 allow-listed field identifiers — 74 shown plus the 6 excluded ones,
  * because an excluded field still renders a row saying a value exists.
  */
 const FIELD_LABELS: Readonly<Record<string, TranslationKey>> = {
@@ -62,6 +62,7 @@ const FIELD_LABELS: Readonly<Record<string, TranslationKey>> = {
   category: 'sync.conflicts.field.category',
   chest_cm: 'sync.conflicts.field.chest_cm',
   completed: 'sync.conflicts.field.completed',
+  country: 'sync.conflicts.field.country',
   date: 'sync.conflicts.field.date',
   description: 'sync.conflicts.field.description',
   effective_from: 'sync.conflicts.field.effective_from',

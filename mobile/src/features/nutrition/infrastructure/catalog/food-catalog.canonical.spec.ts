@@ -47,8 +47,12 @@ const GOLDEN = [
   { key: 'food.mixed_greens', revision: 2, id: 'd0b4acb4-2289-5fa0-b9be-da5aeabb8973' },
   // v8 Dominican seed anchor: a non-ASCII name hashes identically.
   { key: 'food.conch', revision: 1, id: 'a2421342-6825-5f03-9262-822333ee10ea' },
+  // v8.1 round 2 anchor: a food added after the seed derives the same id.
+  { key: 'food.casabe', revision: 1, id: '7df91ade-060f-5b6c-bd4f-41823514e2d9' },
+  // The first non-USDA food (INCAP/OPS 2007) derives its id the same way.
+  { key: 'food.green_banana_raw', revision: 1, id: '56198e57-c455-5a5f-9732-b75a8e6be358' },
 ];
-const EXPECTED_CATALOG_HASH = 'b2450c53cc326c6a962cf8f4c6a844474ddf4ecc';
+const EXPECTED_CATALOG_HASH = '799429e97cd9d27d1b57be5ac5995446040dba60';
 
 describe('uuidv5 derivation', () => {
   it('matches the RFC 4122 v5 reference vector', () => {
@@ -76,13 +80,13 @@ describe('committed canonical artifact', () => {
     expect(CANONICAL_FOOD_CATALOG).toEqual(buildCanonicalCatalog(FOOD_CATALOG));
   });
 
-  it('has one revision per authored food (310) with unique keys and ids', () => {
+  it('has one revision per authored food (314) with unique keys and ids', () => {
     expect(CANONICAL_FOOD_CATALOG).toHaveLength(FOOD_CATALOG.length);
-    expect(CANONICAL_FOOD_CATALOG).toHaveLength(310);
+    expect(CANONICAL_FOOD_CATALOG).toHaveLength(314);
     const keys = new Set(CANONICAL_FOOD_CATALOG.map((f) => `${f.catalogKey}:${f.foodRevision}`));
     const ids = new Set(CANONICAL_FOOD_CATALOG.map((f) => f.id));
-    expect(keys.size).toBe(310);
-    expect(ids.size).toBe(310);
+    expect(keys.size).toBe(314);
+    expect(ids.size).toBe(314);
   });
 
   it('every id equals uuidv5(catalog_key:food_revision)', () => {
@@ -106,6 +110,11 @@ describe('committed canonical artifact', () => {
   });
 });
 
+// A food ADDED after ADR-P013 is born with its sourced gram weight at the base
+// revision: it never had a gated rev-1 snapshot to keep immutable, so no
+// revision bump applies (v8.1 round 2: ground cinnamon, SR 171320 tsp).
+const BORN_SOURCED = new Set(['food.cinnamon_ground']);
+
 describe('serving normalization policy', () => {
   it('records grams_per_serving only where a valid gram conversion exists', () => {
     for (const food of CANONICAL_FOOD_CATALOG) {
@@ -114,7 +123,7 @@ describe('serving normalization policy', () => {
         // are revision 2 because this mini-slice corrected their mislabeled
         // tsp(N grams) serving semantics to gram servings.
         expect(food.gramsPerServing).toBe(food.servingAmount);
-      } else if (food.foodRevision === 2) {
+      } else if (food.foodRevision === 2 || BORN_SOURCED.has(food.catalogKey)) {
         // Revision-2 count-unit food with a known gram weight — never
         // fabricated. Part 1: `piece` foods normalized to amount 1 (weight was
         // the pre-4A authored amount). ADR-P013 batches: `slice`/`tbsp` foods
@@ -131,16 +140,18 @@ describe('serving normalization policy', () => {
     }
   });
 
-  it('exactly 168 foods carry a non-gram gram weight, all at revision 2 (29 piece + 5 slice + 25 tbsp + 5 tsp + 89 cup + 15 ml)', () => {
+  it('exactly 169 foods carry a non-gram gram weight, at revision 2 unless born sourced (29 piece + 5 slice + 25 tbsp + 6 tsp + 89 cup + 15 ml)', () => {
     const withGrams = CANONICAL_FOOD_CATALOG.filter(
       (f) => f.servingUnit !== 'g' && f.gramsPerServing != null,
     );
-    expect(withGrams).toHaveLength(168);
-    expect(withGrams.every((f) => f.foodRevision === 2)).toBe(true);
+    expect(withGrams).toHaveLength(169);
+    expect(
+      withGrams.every((f) => f.foodRevision === (BORN_SOURCED.has(f.catalogKey) ? 1 : 2)),
+    ).toBe(true);
     expect(withGrams.filter((f) => f.servingUnit === 'piece')).toHaveLength(29);
     expect(withGrams.filter((f) => f.servingUnit === 'slice')).toHaveLength(5);
     expect(withGrams.filter((f) => f.servingUnit === 'tbsp')).toHaveLength(25);
-    expect(withGrams.filter((f) => f.servingUnit === 'tsp')).toHaveLength(5);
+    expect(withGrams.filter((f) => f.servingUnit === 'tsp')).toHaveLength(6);
     expect(withGrams.filter((f) => f.servingUnit === 'cup')).toHaveLength(89);
     expect(withGrams.filter((f) => f.servingUnit === 'ml')).toHaveLength(15);
   });

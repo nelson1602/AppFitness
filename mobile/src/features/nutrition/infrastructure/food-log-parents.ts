@@ -15,7 +15,6 @@ import {
 } from '@/shared/infrastructure/sync';
 
 import { mealIdFor, nutritionLogIdFor } from '../domain/food-log-ids';
-import { MEAL_SLOTS } from '../domain/meal-plan';
 
 /**
  * The parents of a logged food (BUG-044): one `nutrition_logs` row per day and
@@ -34,11 +33,24 @@ const MEAL_ITEM_ENTITY_TYPE = 'meal_items';
 /** Marks the one-time repair of a user's earlier, unsynced food logs. */
 export const PARENTS_REPAIR_KEY = 'bug044.food-log-parents.v1';
 
+/**
+ * The synced `order_index` of each meal row. Kept as the values rows were
+ * first written with, even though screens now list the snack before dinner
+ * (MEAL_SLOTS, v8.1 round 2): rows already on devices and the server keep
+ * one consistent meaning, and every screen orders by slot, not this column.
+ */
+const MEAL_ORDER_INDEX: Readonly<Record<MealTypeName, number>> = {
+  BREAKFAST: 0,
+  LUNCH: 1,
+  DINNER: 2,
+  SNACK: 3,
+};
+
 const logPayload = (date: string) => ({ date, notes: null });
 const mealPayload = (logId: string, type: MealTypeName) => ({
   nutrition_log_id: logId,
   type,
-  order_index: Math.max(0, MEAL_SLOTS.indexOf(type)),
+  order_index: MEAL_ORDER_INDEX[type],
 });
 
 async function enqueueCreate(
@@ -109,7 +121,7 @@ export async function ensureMeal(
     `INSERT INTO meals (id, user_id, created_at, updated_at, version, sync_status,
                         nutrition_log_id, type, order_index)
      VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?)`,
-    [id, userId, nowIso, nowIso, nutritionLogId, type, Math.max(0, MEAL_SLOTS.indexOf(type))],
+    [id, userId, nowIso, nowIso, nutritionLogId, type, MEAL_ORDER_INDEX[type]],
     tx,
   );
   await enqueueCreate(userId, MEAL_ENTITY_TYPE, id, mealPayload(nutritionLogId, type), nowIso, tx);

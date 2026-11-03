@@ -6,7 +6,26 @@ import {
 } from '@/shared/localization';
 import { Banner } from '@/shared/presentation';
 
-import type { SyncSummary } from '../../domain/dashboard.types';
+import type { SyncProblem, SyncSummary } from '../../domain/dashboard.types';
+
+/** v8.1: the reason a run ended without pushing, in words. */
+const PROBLEM_COPY: Record<
+  SyncProblem,
+  (t: (key: TranslationKey) => string) => { title: string; body: string }
+> = {
+  session: (t) => ({
+    title: t('dashboard.sync.problem.sessionTitle'),
+    body: t('dashboard.sync.problem.sessionBody'),
+  }),
+  subscription: (t) => ({
+    title: t('dashboard.sync.problem.subscriptionTitle'),
+    body: t('dashboard.sync.problem.subscriptionBody'),
+  }),
+  unexpected: (t) => ({
+    title: t('dashboard.sync.problem.unexpectedTitle'),
+    body: t('dashboard.sync.problem.unexpectedBody'),
+  }),
+};
 
 interface SyncStatusBannerProps {
   sync: SyncSummary;
@@ -36,6 +55,8 @@ export function syncStatusCopy(
       body: t('dashboard.sync.offlineMessage'),
       tone: 'warning',
     };
+  if (sync.status === 'error' && sync.problem)
+    return { ...PROBLEM_COPY[sync.problem](t), tone: 'error' };
   if (sync.status === 'error')
     return {
       title: t('dashboard.sync.errorTitle'),

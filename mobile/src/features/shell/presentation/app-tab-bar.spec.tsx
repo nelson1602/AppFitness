@@ -95,8 +95,14 @@ describe('AppTabBar (ADR-P039 D1)', () => {
     expect(label.props.adjustsFontSizeToFit).toBe(true);
   });
 
-  it('clears the bottom inset', async () => {
+  it('floats inset 12 above the bottom safe area (v8.1 round 2)', async () => {
     await render(<AppTabBar {...props(0)} />);
-    expect(screen.getByTestId('tab-bar')).toHaveStyle({ paddingBottom: 24 });
+    expect(screen.getByTestId('tab-bar')).toHaveStyle({
+      borderRadius: 26,
+      bottom: 36,
+      left: 12,
+      position: 'absolute',
+      right: 12,
+    });
   });
 });

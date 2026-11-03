@@ -187,6 +187,17 @@ jobs:
         if: needs.changes.outputs.api == 'true'
         run: npm run test:e2e
 
+      # The Railway pre-deploy step, as it runs in the image: migrations, then
+      # the compiled catalog seed. Twice: the second run must insert nothing.
+      - name: Release step (migrations + catalog seed), run twice
+        if: needs.changes.outputs.api == 'true'
+        run: |
+          npm run build
+          npm run db:deploy | tee first.log
+          npm run db:deploy | tee second.log
+          grep -E "Seeded catalog: [0-9]+ revisions processed, [1-9][0-9]* newly inserted" first.log
+          grep -E "Seeded catalog: [0-9]+ revisions processed, 0 newly inserted" second.log
+
       - name: No-op (api unchanged)
         if: needs.changes.outputs.api != 'true'
         # Runs from the workspace root: checkout is skipped when api/ is

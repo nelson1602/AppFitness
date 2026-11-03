@@ -6,7 +6,15 @@ import type { PlanInputs } from './weekly-plan';
  */
 
 /** The changes that may regenerate the current week, once the person confirms. */
-export type PlanInputChange = 'goal' | 'trainingDays' | 'equipment' | 'injuries' | 'excludedFoods';
+export type PlanInputChange =
+  | 'goal'
+  | 'trainingDays'
+  | 'equipment'
+  | 'injuries'
+  | 'excludedFoods'
+  | 'country'
+  /** A plan saved before v8.1 can now use the Dominican dishes; nothing was changed. */
+  | 'dishPlan';
 
 /** What the change prompt can offer: an input change, or one more training day (ADR-P040 D11). */
 export type PlanChange = PlanInputChange | 'moreDays';
@@ -17,6 +25,8 @@ export const PLAN_INPUT_CHANGES: readonly PlanInputChange[] = [
   'equipment',
   'injuries',
   'excludedFoods',
+  'country',
+  'dishPlan',
 ];
 
 const sorted = (values: readonly string[]): string[] => [...new Set(values)].sort();
@@ -31,6 +41,9 @@ export function normalizePlanInputs(inputs: PlanInputs): PlanInputs {
     movementsToAvoid: sorted(inputs.movementsToAvoid),
     excludedFoods: sorted(inputs.excludedFoods),
     excludedTags: sorted(inputs.excludedTags),
+    // v8.1: present only when the plan recorded it, so older fingerprints and
+    // comparisons are unchanged.
+    ...(inputs.country !== undefined ? { country: inputs.country } : {}),
   };
 }
 
@@ -74,6 +87,15 @@ export function changedPlanInputs(before: PlanInputs, after: PlanInputs): PlanIn
   }
   if (!same(a.excludedFoods, b.excludedFoods) || !same(a.excludedTags, b.excludedTags)) {
     changes.push('excludedFoods');
+  }
+  // v8.1: a plan saved before the country existed was food-based. When the
+  // country now asks for the Dominican dish plan, that is offered as the new
+  // dish plan — the person changed nothing (round 2, item 7). Any other
+  // country keeps the food-based plan.
+  if (a.country === undefined) {
+    if (b.country === 'DO') changes.push('dishPlan');
+  } else if (b.country !== undefined && a.country !== b.country) {
+    changes.push('country');
   }
   return changes;
 }

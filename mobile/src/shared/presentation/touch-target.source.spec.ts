@@ -126,6 +126,8 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   ],
   'src/features/profile/presentation/ProfileTab.tsx': ['floor'],
   'src/features/progress/presentation/ProgressSummaryCard.tsx': ['content'],
+  // v8.1 Progreso: the dashed "Agregar medidas" tile (half the panel's width).
+  'src/features/progress/presentation/ProgressTabPanels.tsx': ['floor'],
   // ADR-P039 shell: the bell, each tab, and each notification row.
   'src/features/shell/presentation/app-header.tsx': ['floor-both'],
   'src/features/shell/presentation/app-tab-bar.tsx': ['floor-both'],
@@ -137,10 +139,23 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   // v8 Block 3 Plan completo: each row of the week's sessions (full width),
   // then each day of the week strip (it scrolls on a narrow phone).
   'src/features/workout/presentation/GeneratedWorkoutPlan.tsx': ['floor', 'floor-both'],
+  // v8.1 Entrenamientos: each day of the strip, the rest timer's Saltar, each
+  // exercise's demo toggle, its Serie N button, then each row of the week.
+  'src/features/workout/presentation/WorkoutWeek.tsx': [
+    'floor',
+    'floor',
+    'floor',
+    'floor-both',
+    'floor',
+  ],
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
   'src/shared/presentation/app-button.tsx': ['primitive'],
+  // v8.1 (ADR-P043 amendment): the birth-date field, and each wheel row (it
+  // fills its column, and every row is at least 48 dp tall).
+  'src/shared/presentation/birth-date-field.tsx': ['floor'],
+  'src/shared/presentation/date-wheel-picker.tsx': ['floor'],
   // ADR-P043: the date field opens the native picker.
   'src/shared/presentation/date-field.tsx': ['floor'],
   'src/shared/presentation/form/FormSelect.tsx': ['floor-both'],
@@ -171,8 +186,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 39 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(39);
+it('counts exactly 47 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(47);
 });
 
 describe.each(

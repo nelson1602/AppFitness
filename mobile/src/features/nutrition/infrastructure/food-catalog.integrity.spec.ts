@@ -17,8 +17,8 @@ describe('food catalog integrity', () => {
     expect(CATALOG_VERSION).toMatch(/^food-catalog@\d+\.\d+\.\d+$/);
   });
 
-  it('contains exactly 310 items', () => {
-    expect(FOOD_CATALOG).toHaveLength(310);
+  it('contains exactly 314 items', () => {
+    expect(FOOD_CATALOG).toHaveLength(314);
   });
 
   it('has unique ids following the food.<slug> convention', () => {
@@ -61,6 +61,26 @@ describe('food catalog integrity', () => {
     }
   });
 
+  it('sources every food from USDA FoodData Central, except the named non-USDA foods', () => {
+    // v8.1 round 2 (owner decision): green banana has no USDA record; it comes
+    // from INCAP/OPS 2007 code 12011, raw, per 100 g, without fibre.
+    const NON_USDA: Record<string, string> = {
+      'food.green_banana_raw':
+        'INCAP/OPS 2007, Tabla de Composición de Alimentos de Centroamérica, 2ª ed.',
+    };
+    for (const f of FOOD_CATALOG) {
+      expect({ id: f.id, ref: f.source.ref }).toEqual({
+        id: f.id,
+        ref: NON_USDA[f.id] ?? 'USDA FoodData Central',
+      });
+    }
+    const banana = FOOD_CATALOG.find((f) => f.id === 'food.green_banana_raw');
+    expect(banana).toMatchObject({ proteinG: 1.4, carbsG: 28.7, fatG: 0.2, calories: 122 });
+    expect(banana?.fiberG).toBeUndefined();
+    expect(banana?.avoidFor).toBeUndefined();
+    expect(banana?.source.note).toContain('código 12011 "BANANO/GUINEO, VERDE", crudo');
+  });
+
   it('has valid serving data', () => {
     for (const f of FOOD_CATALOG) {
       expect(f.servingSize.amount).toBeGreaterThan(0);
@@ -93,8 +113,9 @@ describe('food catalog integrity', () => {
     // dragon_fruit (owner-approved Option A authored-macro corrections +
     // sourced cup weights); the gate-(c) slice adds mixed_greens (direct
     // exact-name FNDDS "Mixed salad greens, raw" match, 2 cup = 70 g).
+    // v8.1 round 2 adds ground cinnamon, born with its SR tsp weight.
     const withGrams = FOOD_CATALOG.filter((f) => f.servingSize.grams != null);
-    expect(withGrams).toHaveLength(168);
+    expect(withGrams).toHaveLength(169);
     for (const f of withGrams) {
       expect(['piece', 'slice', 'tbsp', 'tsp', 'cup', 'ml']).toContain(f.servingSize.unit);
       if (f.servingSize.unit === 'piece') expect(f.servingSize.amount).toBe(1);
@@ -114,7 +135,7 @@ describe('food catalog integrity', () => {
       'food.whole_wheat_bread',
     ]);
     expect(withGrams.filter((f) => f.servingSize.unit === 'tbsp')).toHaveLength(25);
-    expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(5);
+    expect(withGrams.filter((f) => f.servingSize.unit === 'tsp')).toHaveLength(6);
     expect(withGrams.filter((f) => f.servingSize.unit === 'cup')).toHaveLength(89);
     expect(withGrams.filter((f) => f.servingSize.unit === 'ml')).toHaveLength(15);
   });

@@ -316,4 +316,8 @@ export const SPANISH_FOOD_NAMES: Readonly<Record<string, string>> = {
   'food.yam_cooked': 'Ñame, cocido',
   'food.yautia_raw': 'Yautía, peso en crudo',
   'food.cola_regular': 'Refresco de cola',
+  'food.casabe': 'Casabe',
+  'food.queso_blanco': 'Queso blanco',
+  'food.cinnamon_ground': 'Canela en polvo',
+  'food.green_banana_raw': 'Guineo verde, pelado (peso crudo)',
 };

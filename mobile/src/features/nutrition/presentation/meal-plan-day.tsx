@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import type { IngredientSubstitution } from '@/features/weekly-plan/domain/weekly-plan';
@@ -13,10 +13,17 @@ import {
 import { AppText, GlassCard, Icon, withAlpha } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { MealMacros, MealPlanFood, MealSlot } from '../domain/meal-plan';
+import {
+  bySlotOrder,
+  type MealMacros,
+  type MealPlanFood,
+  type MealSlot,
+} from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
-import { formatServingAmount } from './serving-amount';
+import { dishNameKeyFor, SWAP_MARK_KEY } from './dish-name';
+import { PlanDaySlider } from './plan-day-slider';
+import { formatIngredientAmount } from './serving-amount';
 
 /**
  * "Plan alimentario" in the prototype's language (v8 Block 3,
@@ -36,6 +43,8 @@ const CHIP_WIDTH = 52;
 
 export interface PlanMeal {
   slot: MealSlot;
+  /** v8.1 Dominican dish plans: the dish whose name titles the meal. */
+  dishId?: string;
   foods: readonly MealPlanFood[];
   totals: MealMacros;
   substitutions?: readonly IngredientSubstitution[];
@@ -112,16 +121,20 @@ export function PlanDayStrip({
     <View style={{ gap: spacing.sm }}>
       <View style={[styles.row, { gap: spacing.sm }]}>
         {arrow(-1)}
-        <View style={[styles.grow, styles.row, { justifyContent: 'space-between' }]}>
-          <AppText tone="muted" variant="label">
-            {t('nutrition.plan.stripLabel')}
-          </AppText>
-          <AppText variant="label">
-            {interpolate(t('nutrition.plan.dayOf'), {
-              day: formatNumber(selected, language),
-              count: formatNumber(count, language),
-            })}
-          </AppText>
+        {/* The prototype's label row with the range track under it, between the arrows. */}
+        <View style={styles.grow}>
+          <View style={[styles.row, { justifyContent: 'space-between' }]}>
+            <AppText tone="muted" variant="label">
+              {t('nutrition.plan.stripLabel')}
+            </AppText>
+            <AppText variant="label">
+              {interpolate(t('nutrition.plan.dayOf'), {
+                day: formatNumber(selected, language),
+                count: formatNumber(count, language),
+              })}
+            </AppText>
+          </View>
+          <PlanDaySlider count={count} onSelect={onSelect} selected={selected} />
         </View>
         {arrow(1)}
       </View>
@@ -211,6 +224,8 @@ function MealRow({
   const [open, setOpen] = useState(false);
   const slotLabel = t(SLOT_KEY[meal.slot]);
   const names = meal.foods.map((f) => foodDisplayName({ id: f.foodId, name: f.name }, language));
+  const dishKey = dishNameKeyFor(meal.dishId);
+  const title = dishKey ? t(dishKey) : names.join(' · ');
   const count = meal.foods.length;
   const toggle = open
     ? t('nutrition.plan.hideIngredients')
@@ -236,7 +251,7 @@ function MealRow({
             {slotLabel}
           </AppText>
           <AppText style={done ? { color: colors.onStageVariant } : undefined} variant="label">
-            {names.join(' · ')}
+            {title}
           </AppText>
           <AppText tone="muted" variant="caption">
             {formatQuantity(meal.totals.calories, 'kcal', language)} ·{' '}
@@ -299,10 +314,15 @@ function MealRow({
           {meal.foods.map((f, idx) => (
             <View key={`${f.foodId}-${idx}`} style={[styles.row, { gap: spacing.sm }]}>
               {/* BUG-028: formatQuantity keeps each value and its unit together. */}
-              <AppText style={styles.grow} variant="caption">
-                {names[idx]}{' '}
+              <AppText
+                style={[styles.grow, f.swappedFrom ? { color: colors.linkOnStage } : undefined]}
+                variant="caption"
+              >
+                {names[idx]}
+                {f.swappedFrom ? ` ${t(SWAP_MARK_KEY)}` : ''}{' '}
                 <AppText tone="muted" variant="caption">
-                  · {formatServingAmount(f.serving.amount, f.serving.unit, language, t)}
+                  ·{' '}
+                  {formatIngredientAmount(f.foodId, f.serving.amount, f.serving.unit, language, t)}
                 </AppText>
               </AppText>
               <AppText tone="muted" variant="caption">
@@ -321,14 +341,28 @@ function MealRow({
   );
 }
 
+/** A food logged outside the plan on the shown day (prototype "fuera del plan"). */
+export interface PlanExtra {
+  id: string;
+  slot: MealSlot;
+  name: string;
+  servings: number;
+  calories: number;
+}
+
 export function MealPlanPanel({
   day,
   isDone,
   onEaten,
+  extras = [],
+  footer = null,
 }: {
   day: ViewDay;
   isDone: (slot: MealSlot) => boolean;
   onEaten: ((slot: MealSlot) => void) | null;
+  extras?: readonly PlanExtra[];
+  /** Rendered at the end of the panel (the tab's "Registrar comida"). */
+  footer?: ReactNode;
 }) {
   const { colors, spacing } = useTheme();
   const { language, t } = useLocalization();
@@ -337,7 +371,7 @@ export function MealPlanPanel({
       <View style={{ gap: spacing.xs, paddingBottom: spacing.xs }}>
         <View style={[styles.row, { gap: spacing.sm }]}>
           <Icon color={colors.linkOnStage} name="sparkle" size={17} />
-          <AppText accessibilityRole="header" style={styles.grow} variant="title">
+          <AppText accessibilityRole="header" style={styles.grow} variant="panelTitle">
             {interpolate(t('nutrition.plan.mealsOfDay'), {
               day: formatNumber(day.index, language),
             })}
@@ -362,7 +396,7 @@ export function MealPlanPanel({
           </AppText>
         ) : null}
       </View>
-      {day.meals.map((meal, index) => (
+      {bySlotOrder(day.meals).map((meal, index) => (
         <View
           key={meal.slot}
           style={
@@ -379,6 +413,34 @@ export function MealPlanPanel({
           />
         </View>
       ))}
+      {bySlotOrder(extras).map((extra) => (
+        <View
+          key={extra.id}
+          style={{
+            borderTopColor: colors.glassBorder,
+            borderTopWidth: StyleSheet.hairlineWidth,
+            gap: 2,
+            paddingVertical: spacing.md,
+          }}
+          testID={`plan-extra-${extra.id}`}
+        >
+          <AppText style={{ color: colors.accentEnergy }} variant="caption">
+            {interpolate(t('nutrition.plan.extraLabel'), { slot: t(SLOT_KEY[extra.slot]) })}
+          </AppText>
+          <AppText variant="label">{extra.name}</AppText>
+          <AppText tone="muted" variant="caption">
+            {`${interpolate(
+              t(
+                extra.servings === 1
+                  ? 'nutrition.plan.extraServingOne'
+                  : 'nutrition.plan.extraServingMany',
+              ),
+              { servings: formatNumber(extra.servings, language) },
+            )} · ${formatQuantity(extra.calories, 'kcal', language)}`}
+          </AppText>
+        </View>
+      ))}
+      {footer ? <View style={{ paddingTop: spacing.md }}>{footer}</View> : null}
     </GlassCard>
   );
 }

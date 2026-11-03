@@ -488,6 +488,7 @@ function rowToLoggedItem(
     serving: { amount: row.serving_amount_snapshot, unit: row.serving_unit_snapshot },
     consumed: itemConsumed(snapshot, row.serving_count),
     syncState: syncStateOf(row.sync_status, catalogBlocked),
+    planned: row.plan_slot != null,
   };
 }
 

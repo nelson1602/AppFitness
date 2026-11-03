@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react-native';
 import type { DashboardState } from '../domain/dashboard.types';
 import type { HomeSummary } from '../domain/home-summary';
 import { DashboardScreen } from './DashboardScreen';
+import { otherLanguageStrings } from '@/shared/localization/language-leak.testkit';
 
 const mockRefresh = jest.fn();
 const mockLoadHomeData = jest.fn();
@@ -141,6 +142,18 @@ describe('DashboardScreen (Inicio, ADR-P039)', () => {
       expect(screen.getByText(title)).toBeOnTheScreen();
       expect(screen.queryByTestId('home-goal-card')).toBeNull();
       expect(screen.queryByTestId('home-coach-card')).toBeNull();
+    },
+  );
+});
+
+// v8.1 guard: no string of the other language on this screen, in either language.
+describe('DashboardScreen language guard (v8.1)', () => {
+  it.each(['en', 'es'] as const)(
+    'renders no copy of the other language in %s',
+    async (language) => {
+      mockLanguage = language;
+      await render(<DashboardScreen />);
+      expect(otherLanguageStrings(screen.root, language)).toEqual([]);
     },
   );
 });

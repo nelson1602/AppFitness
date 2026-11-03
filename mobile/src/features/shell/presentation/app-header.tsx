@@ -18,7 +18,7 @@ import { tabOf } from './tab-config';
 export const HEADER_STACK_FONT_SCALE = 1.5;
 
 /**
- * The design's header (ADR-P039): today's date, then "Hola, {name}" on Inicio
+ * The design's header (ADR-P039), transparent over the shell's glow (v8.1 round 2): today's date, then "Hola, {name}" on Inicio
  * or the tab's name elsewhere, and the notification bell. The bell is native
  * only — on Web the notification state lives in the dormant local database
  * (ADR-P019), so there is nothing truthful to count.
@@ -54,7 +54,6 @@ export function AppHeader({ routeName }: { routeName: string }) {
         styles.row,
         stacked ? styles.wrap : null,
         {
-          backgroundColor: colors.stageTop,
           gap: spacing.md,
           paddingBottom: spacing.md,
           paddingHorizontal: spacing.lg,

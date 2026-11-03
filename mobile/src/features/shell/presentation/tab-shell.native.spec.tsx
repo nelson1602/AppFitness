@@ -21,6 +21,7 @@ jest.mock('expo-router/js-top-tabs', () => {
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
+jest.mock('./shell-ground', () => ({ ShellGlow: () => null }));
 jest.mock('@/shared/presentation', () => ({
   useReducedMotion: () => mockReducedMotion,
   useScreenReader: () => mockScreenReader,

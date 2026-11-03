@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 
 import { useTheme } from '../theme';
 
-type ChipTone = 'cyan' | 'energy' | 'neutral';
+type ChipTone = 'cyan' | 'energy' | 'neutral' | 'success';
 
 interface ChipProps {
   label: string;
@@ -11,25 +11,26 @@ interface ChipProps {
 }
 
 /**
- * A passive status label on the stage (ADR-P035). The text names the state, and
- * the tone colours its border and text — colour is never the only signal.
- * Tone foregrounds are contrast-gated on every stage ground.
+ * A passive status label on the stage (ADR-P035), in the design's tinted
+ * form (v8.1 round 2): a translucent fill of the tone with its light text. The
+ * text names the state — colour is never the only signal — and each tone's
+ * text is contrast-gated over its fill on the stage grounds.
  */
 export function Chip({ label, tone = 'neutral', testID = 'chip' }: ChipProps) {
   const { colors, radius, spacing, typography } = useTheme();
-  const color = {
-    cyan: colors.accentCyan,
-    energy: colors.accentEnergy,
-    neutral: colors.onStageVariant,
+  const [fill, color] = {
+    cyan: [colors.chipCyan, colors.onChipCyan],
+    energy: [colors.chipEnergy, colors.onChipEnergy],
+    neutral: [colors.chipNeutral, colors.onChipNeutral],
+    success: [colors.chipSuccess, colors.onChipSuccess],
   }[tone];
 
   return (
     <View
       style={{
         alignSelf: 'flex-start',
-        borderColor: color,
+        backgroundColor: fill,
         borderRadius: radius.full,
-        borderWidth: 1,
         paddingHorizontal: spacing.md,
         paddingVertical: spacing.xs,
       }}

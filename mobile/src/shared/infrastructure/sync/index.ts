@@ -5,6 +5,7 @@ export {
   findParkedOperation,
   hasPendingOpFor,
   listParkedEntityIds,
+  listUnsynced,
   markActionRequired,
   markApplied,
   markConflict,
@@ -18,6 +19,7 @@ export {
   requeueAtEnd,
   rewriteQueuedPayload,
 } from './sync-queue';
+export type { UnsyncedRecord } from './sync-queue';
 export {
   findOwnedConflict,
   listPendingConflicts,
@@ -69,6 +71,7 @@ export {
 export {
   runSync,
   SYNC_ERROR_CODES,
+  UNREADABLE_PAYLOAD,
   type SyncDeps,
   type SyncOutcome,
   type SyncReport,

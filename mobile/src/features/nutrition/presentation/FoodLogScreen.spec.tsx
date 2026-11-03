@@ -179,6 +179,25 @@ describe('FoodLogScreen (Slice 4C)', () => {
     expect(screen.getByText('320 / 2,000 kcal')).toBeOnTheScreen();
   });
 
+  it('groups the day as Breakfast, Lunch, Snack, Dinner (v8.1 round 2)', async () => {
+    // The repository returns rows by their synced order_index: dinner (2) before snack (3).
+    setState({
+      items: [
+        item({ id: 'd1', mealType: 'DINNER' }),
+        item({ id: 's1', mealType: 'SNACK' }),
+        item({ id: 'b1', mealType: 'BREAKFAST' }),
+        item({ id: 'l1', mealType: 'LUNCH' }),
+      ],
+    });
+    await render(<FoodLogScreen />);
+    expect(screen.getAllByTestId(/^logged-item-/).map((node) => node.props.testID)).toEqual([
+      'logged-item-b1',
+      'logged-item-l1',
+      'logged-item-s1',
+      'logged-item-d1',
+    ]);
+  });
+
   it('presents a logged catalog item in Spanish without changing its stored snapshot', async () => {
     mockLanguage = 'es';
     const logged = item();

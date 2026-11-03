@@ -27,7 +27,11 @@ import {
   updateBodyMeasurement,
   updateBodyWeight,
 } from '../infrastructure/progress.repository';
-import { recomputeSnapshots as gatherAndUpsertSnapshots } from './progress.gathering';
+import {
+  gatherWeekActivity,
+  recomputeSnapshots as gatherAndUpsertSnapshots,
+  type WeekActivity,
+} from './progress.gathering';
 
 /**
  * Progress Monitoring orchestration (ADR-P016 Slice 3b). Holds UI/derived state
@@ -57,9 +61,13 @@ export interface ProgressState {
   bodyWeights: BodyWeight[];
   bodyMeasurements: BodyMeasurement[];
   snapshots: ProgressSnapshot[];
+  /** The current week's workout volumes and calorie days (Progreso tab, v8.1). */
+  weekActivity: WeekActivity | null;
   error: string | null;
   load: () => Promise<void>;
   loadSnapshots: () => Promise<void>;
+  /** Read-only: loads `weekActivity` for the week starting `weekStart`. */
+  loadWeekActivity: (weekStart: string) => Promise<void>;
   /** Deterministically recompute weekly snapshots from local data + upsert them. */
   recomputeSnapshots: () => Promise<boolean>;
   addBodyWeight: (input: BodyWeightInput) => Promise<boolean>;
@@ -75,6 +83,7 @@ const INITIAL = {
   bodyWeights: [] as BodyWeight[],
   bodyMeasurements: [] as BodyMeasurement[],
   snapshots: [] as ProgressSnapshot[],
+  weekActivity: null as WeekActivity | null,
   error: null,
 };
 
@@ -129,6 +138,7 @@ export const useProgressStore = create<ProgressState>((set, get) => {
             bodyWeights: [],
             bodyMeasurements: [],
             snapshots: [],
+            weekActivity: null,
             error: null,
           });
           return;
@@ -149,6 +159,25 @@ export const useProgressStore = create<ProgressState>((set, get) => {
         logError('progress.store loadSnapshots failed', err);
         if (owner && !isSessionCurrent(owner)) return;
         set({ status: 'error', error: LOAD_ERROR });
+      }
+    },
+
+    loadWeekActivity: async (weekStart) => {
+      let owner: SessionSnapshot | null = null;
+      try {
+        owner = requireSessionSnapshot();
+        const weekActivity = await gatherWeekActivity(owner.userId, weekStart);
+        if (!isSessionCurrent(owner)) return;
+        set({ weekActivity });
+      } catch (err) {
+        if (owner && !isSessionCurrent(owner)) return;
+        // Web has no local database (ADR-P019); `load` owns that state. A real
+        // failure is logged and the week's volume and calories read "—": the
+        // rest of the tab stays usable.
+        if (!isDatabaseUnsupportedOnWebError(err)) {
+          logError('progress.store loadWeekActivity failed', err);
+        }
+        set({ weekActivity: null });
       }
     },
 

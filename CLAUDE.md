@@ -63,6 +63,9 @@ The approved UI/UX and screen behavior for the AppFitnessRD redesign live in `do
 
 * `docs/design/README.md` — product decisions and screen-by-screen spec
 * `docs/design/appfitnessrd-prototipo.html` — interactive prototype (open it in a browser)
+* `docs/design/FOCUS.md` — the current fix list, design tokens and prototype line ranges
+
+Before any UI change, read docs/design/FOCUS.md; only touch what it lists.
 
 The code adapts to this design, not the other way around. When the code, the data model, or the `.ai` documents disagree with it, report the gap and propose the change (with an ADR when the architecture rules require one) instead of changing the design to fit the code.
 

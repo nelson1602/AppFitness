@@ -2894,6 +2894,26 @@
       },
       "derivedGramsPerServing": 70,
       "reviewNote": "Gate-(c) slice — the owner chose Option A of the mixed_greens decision gate (ADR-P013, 2026-07-15). This corrects the Batch F1 unmatched reason, which INACCURATELY claimed FNDDS had no mixed/spring-mix record: FNDDS 2709792 'Mixed salad greens, raw' (WWEIA 6410) is an exact-name match F1 missed. Direct A1 match (NOT a proxy): portion '1 cup' = 35 g, so the authored 2-cup serving derives 2 x 35 = 70 g. Macros unchanged (authored kept). Reconciliation at 70 g: est 14.7 kcal vs authored 12 (delta 2.7); protein 0.92 vs 1; carbs 2.40 vs 2; fat 0.15 vs 0; fiber 0.98 vs 1 — passes every gate. The generic 'Lettuce, raw' (2709789) proxy F1 considered is moot now that the exact mix record is confirmed."
+    },
+    {
+      "catalogKey": "food.cinnamon_ground",
+      "fdcId": 171320,
+      "fdcDataType": "sr_legacy_food",
+      "fdcDescription": "Spices, cinnamon, ground",
+      "portion": {
+        "portionRowId": 88429,
+        "amount": 1,
+        "modifier": "tsp",
+        "gramWeight": 2.6
+      },
+      "fdcPer100g": {
+        "kcal": 247,
+        "proteinG": 3.99,
+        "carbsG": 80.59,
+        "fatG": 1.24
+      },
+      "derivedGramsPerServing": 2.6,
+      "reviewNote": "v8.1 round 2 (food-catalog@1.15.0): new food for the Dominican dish plan's 'avena con canela', authored at revision 1 with the SR portion from the start (archive re-verified against the manifest sha256 on 2026-11-03). SR portion row 88429 '1 tsp' = 2.6 g. Reconciliation at 2.6 g: est 6.4 kcal vs authored 8 (delta 1.6); protein 0.10 vs 0; carbs 2.10 vs 2; fat 0.03 vs 0; fiber 1.38 vs 1 — passes every gate."
     }
   ],
   "unmatched": [

@@ -1,4 +1,5 @@
 import { foodDisplayNameForKey, type AvoidTag, type ServingUnit } from '@/features/nutrition';
+import { COUNTRY_LABEL_KEY } from '@/features/profile/presentation/country-label';
 import { AFFECTED_AREA_LABEL_KEY, MOVEMENT_LABEL_KEY } from '@/features/wellness';
 import type {
   ActivityLevel,
@@ -175,6 +176,8 @@ const FIELD_VOCABULARY: Readonly<Record<string, FieldVocabulary>> = {
   affected_areas: { kind: 'controlled', labels: AFFECTED_AREA_LABEL_KEY },
   movements_to_avoid: { kind: 'controlled', labels: MOVEMENT_LABEL_KEY },
   generation_trigger: { kind: 'controlled', labels: PLAN_TRIGGER },
+  // v8.1: a curated-list country by name; any other code is withheld.
+  country: { kind: 'controlled', labels: COUNTRY_LABEL_KEY },
 
   catalog_key: { kind: 'catalogue' },
   catalog_key_snapshot: { kind: 'catalogue' },

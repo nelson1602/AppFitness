@@ -27,6 +27,7 @@ export type {
   MealPlan,
   MealPlanDay,
   MealPlanMeal,
+  MealAdjustment,
   MealPlanFood,
   MealPlanInput,
   MealPlanRationale,
@@ -35,6 +36,14 @@ export type {
   RestrictionRef,
 } from './domain/meal-plan';
 export { MEAL_RULE_VERSION, MEAL_SLOTS } from './domain/meal-plan';
+export {
+  DISH_CATALOG_VERSION,
+  DISH_PLAN_COUNTRY,
+  DOMINICAN_DISHES,
+  dishNameKey,
+  type Dish,
+  type DishRole,
+} from './domain/dominican-dishes';
 export { restrictionsToAvoidTags } from './domain/restriction-map';
 export { generateMealPlan } from './application/meal-generator';
 export { NutritionPlanScreen } from './presentation/NutritionPlanScreen';
@@ -71,3 +80,4 @@ export {
   listDailyCalorieTotals,
   type DailyCalorieTotal,
 } from './infrastructure/food-log.repository';
+export { dishNameKeyFor, SWAP_MARK_KEY } from './presentation/dish-name';

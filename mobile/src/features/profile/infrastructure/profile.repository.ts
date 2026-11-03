@@ -7,6 +7,7 @@ import {
 import type { UserProfileRow } from '../../../shared/infrastructure/database/types';
 import { generateUuid } from '../../../shared/infrastructure/ids';
 import { enqueue } from '../../../shared/infrastructure/sync';
+import { DEFAULT_COUNTRY, normalizeCountry } from '../domain/country';
 import type { Profile, ProfileInput } from '../domain/profile.types';
 import { rowToProfile } from '../domain/profile.types';
 
@@ -32,10 +33,19 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return row ? rowToProfile(row) : null;
 }
 
+export interface SaveProfileOptions {
+  /**
+   * v8.1: the country to give a profile this save CREATES when the input names
+   * none (the one chosen at sign-up). Ignored when the profile already exists.
+   */
+  countryForNewProfile?: string;
+}
+
 export async function saveProfile(
   userId: string,
   input: ProfileInput,
   nowIso: string = new Date().toISOString(),
+  options: SaveProfileOptions = {},
 ): Promise<Profile> {
   return inTransaction(async (tx) => {
     const existing = await queryFirst<UserProfileRow>(
@@ -45,7 +55,12 @@ export async function saveProfile(
     );
     return existing
       ? updateExisting(userId, existing, input, nowIso, tx)
-      : createNew(userId, input, nowIso, tx);
+      : createNew(
+          userId,
+          { ...input, country: input.country ?? options.countryForNewProfile },
+          nowIso,
+          tx,
+        );
   });
 }
 
@@ -62,8 +77,8 @@ async function createNew(
        birth_date, gender, height_cm, fitness_level, years_training,
        activity_level, occupation, sleep_hours_baseline, stress_level_baseline,
        equipment, training_days_per_week, session_duration_mins,
-       target_calories, target_protein_g, target_carbs_g, target_fat_g
-     ) VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       target_calories, target_protein_g, target_carbs_g, target_fat_g, country
+     ) VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       userId,
@@ -85,6 +100,7 @@ async function createNew(
       input.targetProteinG ?? null,
       input.targetCarbsG ?? null,
       input.targetFatG ?? null,
+      input.country ?? DEFAULT_COUNTRY,
     ],
     tx,
   );
@@ -121,7 +137,8 @@ async function updateExisting(
        years_training = ?, activity_level = ?, occupation = ?,
        sleep_hours_baseline = ?, stress_level_baseline = ?, equipment = ?,
        training_days_per_week = ?, session_duration_mins = ?,
-       target_calories = ?, target_protein_g = ?, target_carbs_g = ?, target_fat_g = ?
+       target_calories = ?, target_protein_g = ?, target_carbs_g = ?, target_fat_g = ?,
+       country = ?
      WHERE id = ?`,
     [
       nowIso,
@@ -141,6 +158,7 @@ async function updateExisting(
       merged.target_protein_g,
       merged.target_carbs_g,
       merged.target_fat_g,
+      merged.country,
       existing.id,
     ],
     tx,
@@ -177,8 +195,8 @@ export async function applyServerProfile(
        birth_date, gender, height_cm, fitness_level, years_training,
        activity_level, occupation, sleep_hours_baseline, stress_level_baseline,
        equipment, training_days_per_week, session_duration_mins,
-       target_calories, target_protein_g, target_carbs_g, target_fat_g
-     ) VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       target_calories, target_protein_g, target_carbs_g, target_fat_g, country
+     ) VALUES (?, ?, ?, ?, ?, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       row.id,
       row.user_id,
@@ -203,6 +221,8 @@ export async function applyServerProfile(
       row.target_protein_g,
       row.target_carbs_g,
       row.target_fat_g,
+      // A server without the column (or a malformed value) reads as the default.
+      normalizeCountry(row.country),
     ],
     tx,
   );
@@ -251,6 +271,7 @@ function mergeRow(existing: UserProfileRow, input: ProfileInput, nowIso: string)
       input.targetProteinG !== undefined ? input.targetProteinG : existing.target_protein_g,
     target_carbs_g: input.targetCarbsG !== undefined ? input.targetCarbsG : existing.target_carbs_g,
     target_fat_g: input.targetFatG !== undefined ? input.targetFatG : existing.target_fat_g,
+    country: input.country ?? existing.country,
   };
 }
 
@@ -281,5 +302,6 @@ function toWirePayload(row: UserProfileRow): Record<string, unknown> {
     target_protein_g: row.target_protein_g,
     target_carbs_g: row.target_carbs_g,
     target_fat_g: row.target_fat_g,
+    country: row.country,
   };
 }

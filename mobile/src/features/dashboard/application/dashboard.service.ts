@@ -7,7 +7,7 @@ import {
 } from '@/features/progress';
 import { getActiveGoal, getMyProfile, saveMyProfile, setGoal } from '@/features/profile';
 import { resolveWellnessDeclaration } from '@/features/wellness';
-import { countByStatus, listUnsettledConflicts } from '@/shared/infrastructure/sync';
+import { countByStatus, listUnsettledConflicts, listUnsynced } from '@/shared/infrastructure/sync';
 
 import type { DashboardData, SyncSummary } from '../domain/dashboard.types';
 import { buildDashboardAssessment } from './icoach-adapter';
@@ -19,7 +19,7 @@ export async function loadDashboardData(
   const session = getSession();
   if (!session) throw new Error('Not authenticated');
 
-  const [profile, activeGoal, physicalAssessment, queueCounts, conflicts, wellness] =
+  const [profile, activeGoal, physicalAssessment, queueCounts, conflicts, wellness, unsynced] =
     await Promise.all([
       getMyProfile(),
       getActiveGoal(session.user.id),
@@ -37,6 +37,8 @@ export async function loadDashboardData(
       // load can never mix two accounts even if the session changes
       // mid-flight (ADR-P030 C-1).
       resolveWellnessDeclaration(session.user.id),
+      // v8.1: what is still waiting and why, for the sync details on Perfil.
+      listUnsynced(session.user.id),
     ]);
 
   const adapter = buildDashboardAssessment({
@@ -62,7 +64,7 @@ export async function loadDashboardData(
         : adapter.status === 'ready'
           ? adapter.data.notes
           : [],
-    sync: buildSyncSummary(queueCounts, conflicts.length),
+    sync: buildSyncSummary(queueCounts, conflicts.length, unsynced),
     wellness: wellness.status,
   };
 }
@@ -110,6 +112,7 @@ export async function loadSampleDashboardData(now: Date = new Date()): Promise<v
 function buildSyncSummary(
   queueCounts: Awaited<ReturnType<typeof countByStatus>>,
   conflicts: number,
+  unsynced: SyncSummary['unsynced'] = [],
 ): SyncSummary {
   return {
     pending: queueCounts.PENDING ?? 0,
@@ -119,5 +122,6 @@ function buildSyncSummary(
     status: 'idle',
     lastSyncedAt: null,
     message: null,
+    unsynced,
   };
 }

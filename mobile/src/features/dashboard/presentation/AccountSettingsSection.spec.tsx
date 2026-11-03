@@ -9,6 +9,7 @@ import {
   configureEntitlementEnforcement,
   setEntitlementAccess,
 } from '@/shared/application/entitlement-access';
+import { otherLanguageStrings } from '@/shared/localization/language-leak.testkit';
 
 const refresh = jest.fn();
 const syncNow = jest.fn();
@@ -629,4 +630,38 @@ describe('S-4 read-only access in Cuenta y ajustes', () => {
       expect.objectContaining({ disabled: true }),
     );
   });
+});
+
+// v8.1 guard: no string of the other language on this screen, in either language.
+describe('AccountSettingsSection language guard (v8.1)', () => {
+  it.each(['en', 'es'] as const)(
+    'renders no copy of the other language in %s',
+    async (language) => {
+      mockLanguage = language;
+      mockHomeSummary = EMPTY_SUMMARY;
+      setStore({
+        status: 'ready',
+        data: {
+          ...baseData,
+          sync: {
+            ...baseData.sync,
+            status: 'error',
+            problem: 'session',
+            failed: 1,
+            unsynced: [
+              {
+                entityType: 'weekly_plans',
+                operation: 'CREATE',
+                status: 'FAILED',
+                retryCount: 1,
+                lastError: 'http_500',
+              },
+            ],
+          },
+        },
+      });
+      await render(<AccountSettingsSection />);
+      expect(otherLanguageStrings(screen.root, language)).toEqual([]);
+    },
+  );
 });

@@ -65,6 +65,8 @@ export function selectMealPlan(
   assessment: DashboardAssessment | null,
   userId: string | null,
   preferences: readonly DietaryPreference[] = [],
+  /** v8.1: the person's country; 'DO' builds the Dominican dish plan. */
+  country?: string,
 ): MealPlanSelection {
   // No assessment (incomplete profile/weight) or no session → data-gap.
   if (!assessment || !userId) return { status: 'gap' };
@@ -87,6 +89,7 @@ export function selectMealPlan(
       seed,
       excludeAvoidTags: avoidTags,
       excludeCatalogKeys: catalogKeys,
+      ...(country !== undefined ? { country } : {}),
     });
     return { status: 'ready', plan };
   } catch (error) {

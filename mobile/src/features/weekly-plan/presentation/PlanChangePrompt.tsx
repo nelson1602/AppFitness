@@ -10,12 +10,14 @@ import { useWeeklyPlanStore } from '../application/weekly-plan.store';
 import { openDaysProposal } from '../domain/days-progression';
 import type { PlanInputChange } from '../domain/plan-inputs';
 
-const CHANGE_KEY: Record<PlanInputChange, TranslationKey> = {
+/** What the person changed; `dishPlan` is not a change of theirs and has its own sentence. */
+const CHANGE_KEY: Record<Exclude<PlanInputChange, 'dishPlan'>, TranslationKey> = {
   goal: 'plan.change.goal',
   trainingDays: 'plan.change.trainingDays',
   equipment: 'plan.change.equipment',
   injuries: 'plan.change.injuries',
   excludedFoods: 'plan.change.excludedFoods',
+  country: 'plan.change.country',
 };
 
 /**
@@ -33,7 +35,11 @@ export function PlanChangePrompt() {
   const [busy, setBusy] = useState(false);
 
   if (pending.length === 0) return null;
-  const inputChanges = pending.filter((change): change is PlanInputChange => change !== 'moreDays');
+  const inputChanges = pending.filter(
+    (change): change is Exclude<PlanInputChange, 'dishPlan'> =>
+      change !== 'moreDays' && change !== 'dishPlan',
+  );
+  const dishPlan = pending.includes('dishPlan');
   const changes = inputChanges.map((change) => t(CHANGE_KEY[change])).join(', ');
   // ADR-P040 D11: two strong weeks earned one more training day.
   const moreDays =
@@ -51,6 +57,11 @@ export function PlanChangePrompt() {
       </AppText>
       {inputChanges.length > 0 ? (
         <AppText tone="onStageVariant">{interpolate(t('plan.change.body'), { changes })}</AppText>
+      ) : null}
+      {dishPlan ? (
+        <AppText testID="plan-change-dish-plan" tone="onStageVariant">
+          {t('plan.change.dishPlan')}
+        </AppText>
       ) : null}
       {moreDays !== null ? (
         <AppText testID="plan-change-more-days" tone="onStageVariant">

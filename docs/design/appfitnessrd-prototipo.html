@@ -413,7 +413,7 @@ function Welcome({ name, done, goal, autoNext, onContinue }) {
   );
 }
 
-/* ---------- Data from the physical evaluation (matches the app's profile, goal, medical and dietary models) ---------- */
+/* ---------- Data from the physical evaluation (matches the app's profile, goal, injury and dietary models; no medical data) ---------- */
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const DAY_NAMES = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const TODAY = (new Date().getDay() + 6) % 7;
@@ -423,7 +423,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 
 const CONDITIONS = ['Hipertensión', 'Diabetes', 'Asma', 'Condición cardíaca', 'Otros'];
 /* Most common gym injuries: [name, detail] */
-const INJURIES = [['Hombro', ''], ['Rodilla', 'dolor de rótula, ligamentos'], ['Espalda baja', ''], ['Muñeca', ''], ['Codo', ''], ['Tobillo', ''], ['Cadera o pelvis', ''], ['Cuello', 'cervical'], ['Desgarre muscular', 'isquiotibiales, pectoral'], ['Periostitis tibial', 'dolor en la espinilla'], ['Fascitis plantar', ''], ['Otra lesión', '']];
+const INJURIES = [['Hombro', 'manguito rotador, pinzamiento'], ['Rodilla', 'dolor de rótula, ligamentos'], ['Espalda baja', 'lumbalgia, hernia discal'], ['Muñeca', 'esguince, tendinitis'], ['Codo', 'codo de tenista o de golfista'], ['Tobillo', 'esguince'], ['Cadera o pelvis', ''], ['Cuello', 'cervical'], ['Desgarre muscular', 'isquiotibiales, pectoral'], ['Periostitis tibial', 'dolor en la espinilla'], ['Fascitis plantar', ''], ['Otra lesión', '']];
 /* Foods the user can mark as allergy or restriction, grouped */
 const FOOD_GROUPS = {
   'Frutas': ['Guineo', 'Manzana', 'Fresas', 'Arándanos', 'Piña', 'Lechosa', 'Mango', 'Naranja', 'Sandía', 'Kiwi', 'Uvas', 'Chinola'],
@@ -466,7 +466,7 @@ const adaptDish = (dish, allergies) => {
   });
   return [dish[0], ings.reduce((a, i) => a + i[2], 0), dish[2], ings, changes];
 };
-/* A single food is blocked only if it is the marked food itself or carries a marked medical restriction */
+/* A single food is blocked only if it is the marked food itself or carries a marked restriction */
 const blockedBy = (food, allergies) => [...new Set([...food[2].filter((t) => allergies.includes(t)), ...allergies.filter((a) => matches(a, food[0]))])];
 const healthList = (e) => [
   ...e.conditions.map((c) => (c === 'Otros' && e.otherCondition ? e.otherCondition : c)),
@@ -649,7 +649,7 @@ const Label = ({ children, hint }) => (
   <div className="flex flex-col gap-0.5"><span className="text-[14px] font-bold text-white">{children}</span>{hint && <span className="text-[12.5px] leading-snug text-[#9FB0C8]">{hint}</span>}</div>
 );
 
-/* ---------- Evaluación física (the user copies the doctor's results) ---------- */
+/* ---------- Evaluación física (the user enters their own measurements; no medical questions) ---------- */
 const STEPS = ['Medidas', 'Salud', 'Alimentación', 'Estilo de vida', 'Meta', 'Revisión'];
 function Evaluation({ initial, editing, onDone, onExit }) {
   const [e, setE] = useState(initial);
@@ -685,7 +685,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
           <div className="flex flex-col gap-4">
             <div className="glass flex items-start gap-3 rounded-2xl p-3.5 text-[13px] leading-snug text-[#DCE7F7]">
               <Icon n="clipboard" s={20} className="mt-px shrink-0 text-[#67E8F9]" />
-              Copia aquí los resultados de tu evaluación con el médico. El iCoach los usa para crear tus entrenamientos y tu plan de comidas.
+              Copia aquí los resultados de tu evaluación física. El iCoach los usa para crear tus entrenamientos y tu plan de comidas.
             </div>
             <div className="grid grid-cols-2 gap-3">
               <NumField id="ev-w" label="Peso actual" unit="kg" step={0.1} value={e.weight} onChange={(v) => set('weight', v)} />
@@ -707,15 +707,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
         {step === 1 && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <Label hint="Marca lo que indicó tu médico. Si no tienes ninguna, déjalo vacío.">Condiciones de salud</Label>
-              <Choice multi options={CONDITIONS} value={e.conditions} onPick={(v) => toggle('conditions', v)} />
-              {e.conditions.includes('Otros') && (
-                <div className="mt-1 flex flex-col gap-1.5">
-                  <label htmlFor="ev-other" className="text-[13px] font-semibold text-[#DCE7F7]">Describe la condición</label>
-                  <textarea id="ev-other" rows="2" value={e.otherCondition} onChange={(ev) => set('otherCondition', ev.target.value)} placeholder="Ej.: hipotiroidismo, migrañas frecuentes"
-                    className="w-full rounded-[14px] border border-transparent bg-white/95 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-[#8593A8] focus:border-[#22D3EE] focus:ring-4 focus:ring-[#22D3EE]/25" />
-                </div>
-              )}
+              <Label hint="Marca las zonas con una lesión o molestia. Si no tienes ninguna, déjalo vacío.">Lesiones o molestias</Label>
               <div className="mt-1">
                 <Group title="Lesiones" count={e.injuries.length} open={openGroup === 'injuries'} onToggle={() => flip('injuries')}>
                   <div className="flex flex-col gap-1.5">
@@ -740,16 +732,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
                 </Group>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <NumField id="ev-sys" label="Presión sistólica" unit="mmHg" value={e.bpSys} onChange={(v) => set('bpSys', v)} />
-              <NumField id="ev-dia" label="Presión diastólica" unit="mmHg" value={e.bpDia} onChange={(v) => set('bpDia', v)} />
-              <NumField id="ev-rhr" label="Pulso en reposo" unit="lpm" value={e.rhr} onChange={(v) => set('rhr', v)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="ev-meds" className="text-[13px] font-semibold text-[#DCE7F7]">Medicamentos (opcional)</label>
-              <textarea id="ev-meds" rows="2" value={e.meds} onChange={(ev) => set('meds', ev.target.value)} placeholder="Ej.: losartán 50 mg en la mañana"
-                className="w-full rounded-[14px] border border-transparent bg-white/95 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-[#8593A8] focus:border-[#22D3EE] focus:ring-4 focus:ring-[#22D3EE]/25" />
-            </div>
+            <p className="text-[12.5px] leading-snug text-[#9FB0C8]">No te pedimos diagnósticos, medicamentos ni otros datos médicos.</p>
           </div>
         )}
         {step === 2 && (
@@ -1193,7 +1176,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
     { id: 'train', icon: 'dumbbell', title: todayR ? 'Hoy toca entrenar' : 'Hoy es día de descanso', body: todayR ? `${todayR.name} · ${e.minutes} min` : 'Camina 20 minutos y estira 10.', time: '7:00 a. m.', tab: 'entrenamientos' },
     { id: 'plan', icon: 'sparkle', title: 'iCoach creó tu plan', body: `${e.days} entrenamientos por semana y ${fmt(base.kcal)} kcal al día, según tu evaluación.`, time: 'Hoy', tab: 'entrenamientos' },
     { id: 'weight', icon: 'scale', title: 'Registra tu peso', body: 'Pésate en ayunas para ver tu progreso de la semana.', time: 'Ayer', tab: 'progreso' },
-    { id: 'eval', icon: 'clipboard', title: 'Tu evaluación física', body: 'Actualízala con tu médico cada 3 meses para que el iCoach siga acertando.', time: 'Hace 3 días', tab: 'perfil' }
+    { id: 'eval', icon: 'clipboard', title: 'Tu evaluación física', body: 'Actualízala cada 3 meses para que el iCoach siga acertando.', time: 'Hace 3 días', tab: 'perfil' }
   ];
   const unread = notifs.filter((n) => !readIds.includes(n.id)).length;
 
@@ -1292,7 +1275,6 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
               <div className="flex items-center justify-between gap-3 rounded-2xl bg-white/[.05] p-3">
                 <div><div className="text-[12px] text-[#9FB0C8]">IMC</div><div className="font-display text-[22px] font-bold tnum">{(current / (e.height / 100) ** 2).toFixed(1)}</div></div>
                 <Chip tone={plan.bmiCat === 'Saludable' ? 'green' : 'orange'}>{plan.bmiCat}</Chip>
-                <div className="text-right"><div className="text-[12px] text-[#9FB0C8]">Presión</div><div className="font-display text-[17px] font-bold tnum">{e.bpSys}/{e.bpDia}</div></div>
               </div>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 {[['Proteína', plan.protein, '#22D3EE'], ['Carbohidratos', plan.carbs, '#3B82F6'], ['Grasas', plan.fat, '#FBBF24']].map(([l, g, c]) => (
@@ -1515,7 +1497,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
           {tab === 'perfil' && <>
             <Panel title="Evaluación física" icon="clipboard" right={<span className="text-[12px] text-[#9FB0C8]">{fmtDate(e.date)}</span>}>
               <div className="grid grid-cols-3 gap-2.5">
-                {[['Peso', `${current} kg`], ['Estatura', `${e.height} cm`], ['IMC', plan.bmi.toFixed(1)], ['Presión', `${e.bpSys}/${e.bpDia}`], ['Pulso', `${e.rhr} lpm`], ['Sueño', `${e.sleep} h`]].map(([l, v]) => (
+                {[['Peso', `${current} kg`], ['Estatura', `${e.height} cm`], ['IMC', plan.bmi.toFixed(1)], ['Sueño', `${e.sleep} h`]].map(([l, v]) => (
                   <div key={l} className="rounded-2xl bg-white/[.05] p-2.5"><div className="text-[11.5px] text-[#9FB0C8]">{l}</div><div className="font-display text-[15px] font-bold tnum">{v}</div></div>
                 ))}
               </div>
@@ -1687,7 +1669,7 @@ function App() {
   const jump = (s) => { if (s === 'welcome' || s === 'dashboard') setEvaluated(true); if (s === 'evaluation') setEditing(evaluated); go(s); };
   const reset = () => { go('login'); setLinked(false); setEvaluated(false); setEv(EVAL_SAMPLE); setSt(initialState(EVAL_SAMPLE)); };
 
-  const tabs = [['login', '1', 'Inicio de sesión', 'Biometría y muñeco'], ['evaluation', '2', 'Evaluación física', 'Resultados del médico → iCoach'], ['welcome', '3', 'Tu meta te espera', 'Bienvenida'], ['dashboard', '4', 'Panel', 'Inicio, entrenamientos, nutrición, progreso, perfil']];
+  const tabs = [['login', '1', 'Inicio de sesión', 'Biometría y muñeco'], ['evaluation', '2', 'Evaluación física', 'Tus datos → iCoach'], ['welcome', '3', 'Tu meta te espera', 'Bienvenida'], ['dashboard', '4', 'Panel', 'Inicio, entrenamientos, nutrición, progreso, perfil']];
   const active = screen === 'coach' ? 'evaluation' : screen;
 
   return (

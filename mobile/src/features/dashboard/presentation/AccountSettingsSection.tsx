@@ -17,6 +17,7 @@ import { AssessmentSummaryCard } from './components/assessment-summary-card';
 import { DataGapCard } from './components/data-gap-card';
 import { OnboardingChecklistCard } from './components/onboarding-checklist-card';
 import { RecommendationCard } from './components/recommendation-card';
+import { shouldShowSyncDetails, SyncDetails } from './components/sync-details';
 import { syncStatusCopy } from './components/sync-status-banner';
 import { VerificationReminderCard } from './components/verification-reminder-card';
 
@@ -75,6 +76,8 @@ export function AccountSettingsSection() {
   const verificationPending = useVerificationPending();
   const assessment = status === 'ready' ? (data?.assessment ?? null) : null;
   const syncCopy = data ? syncStatusCopy(data.sync, t, language) : null;
+  // Everything not yet on the server: waiting, in flight or failed (v8.1).
+  const unsyncedCount = data ? data.sync.pending + data.sync.inFlight + data.sync.failed : 0;
 
   return (
     <View style={{ gap: spacing.md }} testID="account-settings">
@@ -134,7 +137,7 @@ export function AccountSettingsSection() {
           {/* Sync as one row: the state in words, tap to sync now. */}
           <GlassRow
             accessibilityLabel={`${t('dashboard.syncAccessibility')}. ${syncCopy?.title}. ${syncCopy?.body}`}
-            badge={data.sync.pending > 0 ? formatNumber(data.sync.pending, language) : undefined}
+            badge={unsyncedCount > 0 ? formatNumber(unsyncedCount, language) : undefined}
             detail={syncCopy?.title}
             icon="refresh"
             label={t('dashboard.syncNow')}
@@ -143,6 +146,7 @@ export function AccountSettingsSection() {
             }}
             testID="dashboard-sync-now"
           />
+          {shouldShowSyncDetails(data.sync) ? <SyncDetails sync={data.sync} /> : null}
           {/* Conflict review entry (ADR-P030 §Decision 1): an explicit,
               labelled button, shown only while conflicts are unsettled. */}
           {data.sync.conflicts > 0 ? (

@@ -37,6 +37,17 @@ export function stageBackgroundImage(c: StageColors, options: { glow?: boolean }
   ].join(', ');
 }
 
+/**
+ * The five tabs' ground (v8.1 round 2, design dashboard): solid `stage` with
+ * one soft blue glow at the top, `DASHBOARD_GLOW_HEIGHT` tall. No full-screen
+ * blue gradient.
+ */
+export const DASHBOARD_GLOW_HEIGHT = 340;
+
+export function dashboardGlowImage(c: Pick<ColorTokens, 'stageGlow' | 'stageGlowSoft'>): string {
+  return `radial-gradient(120% 70% at 50% 0%, ${withAlpha(c.stageGlow, 0.55)} 0%, ${withAlpha(c.stageGlowSoft, 0.25)} 45%, ${withAlpha(c.stageGlowSoft, 0)} 75%)`;
+}
+
 /** The gradient primary CTA fill (ADR-P035 D3); `ctaStart` is its solid fallback. */
 export function ctaBackgroundImage(c: StageColors): string {
   return `linear-gradient(90deg, ${c.ctaStart}, ${c.ctaEnd})`;

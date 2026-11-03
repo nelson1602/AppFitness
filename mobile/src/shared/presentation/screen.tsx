@@ -13,9 +13,10 @@ interface ScreenProps {
   /**
    * ADR-P035: paint the redesign's stage (layered navy gradient) behind the
    * whole screen instead of the plain `background`. Scrolling, safe areas and
-   * the Android keyboard clearance (BUG-022) are unchanged.
+   * the Android keyboard clearance (BUG-022) are unchanged. `shell`: a tab
+   * page — transparent, over the tab shell's own dark ground and glow.
    */
-  stage?: boolean | 'under-header';
+  stage?: boolean | 'under-header' | 'shell';
   /**
    * `sides`: only the left/right safe areas. For a screen inside the tab
    * shell (ADR-P039), whose header already clears the top inset and whose tab
@@ -86,12 +87,15 @@ export function Screen({
   safeArea = 'all',
 }: ScreenProps) {
   const theme = useTheme();
-  const ground = stage
-    ? backgroundImageStyle(
-        stageBackgroundImage(theme.colors, { glow: stage !== 'under-header' }),
-        theme.colors.stage,
-      )
-    : { backgroundColor: theme.colors.background };
+  const ground =
+    stage === 'shell'
+      ? { backgroundColor: 'transparent' }
+      : stage
+        ? backgroundImageStyle(
+            stageBackgroundImage(theme.colors, { glow: stage !== 'under-header' }),
+            theme.colors.stage,
+          )
+        : { backgroundColor: theme.colors.background };
   const innerBackground = stage ? 'transparent' : theme.colors.background;
   const keyboardClearance = useAndroidKeyboardClearance(scroll);
   const contentStyle: ViewStyle = {
