@@ -2740,6 +2740,16 @@ ADR-P012 named three sync entities (`nutrition_logs`, `meals`, `meal_items`), bu
 
    A pulled day that meets an unsynced local day under another id triggers the same rename instead of a second row.
 
+### Addendum — the catalog seed runs on deploy (2026-11-03, owner decision, v8.1)
+
+Slice 4A kept the catalog seed manual ("a human runs `npm run db:seed`"). v8.1 adds foods (casabe, queso blanco, cinnamon, and green banana when sourced), and a food logged on the phone fails to sync until its revision exists on the server. So the seed now runs on every deploy:
+
+- `npm run db:deploy` — the documented Railway pre-deploy command — is `prisma migrate deploy` followed by `npm run db:seed:catalog` (the seed compiled to `dist/prisma/seed/`, reading `prisma/seed/food-catalog.canonical.json` in the image).
+- The seed is unchanged otherwise: integrity preflight on every id, insert-new-revisions-only, never updates or deletes. A deploy with no new revisions inserts 0.
+- A failing seed fails the pre-deploy step, so the new image never takes traffic without its catalog.
+- `npm run db:migrate` is the migrations-only command for local use; `npm run db:seed` still runs the seed from source.
+- api-ci runs the release step twice against the disposable Postgres: the first run must insert, the second must insert 0.
+
 ---
 
 ## ADR-P013 — USDA-FDC `foodPortion` Gram-Weight Sourcing for Volumetric & Slice Catalog Foods (TECHDEBT-004 risk 3, part 2)

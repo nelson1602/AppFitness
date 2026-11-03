@@ -23,7 +23,9 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
-    "db:deploy": "prisma migrate deploy",
+    "db:deploy": "prisma migrate deploy && npm run db:seed:catalog",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed:catalog": "node dist/prisma/seed/seed-food-catalog.js",
     "db:seed": "ts-node prisma/seed/seed-food-catalog.ts"
   },
   "dependencies": {

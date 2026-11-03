@@ -134,7 +134,11 @@ Five properties are worth keeping in mind when operating this:
 4. Set the environment variables above (reference the Postgres plugin
    for `DATABASE_URL`).
 5. Set the **pre-deploy command** (runs in the built image before it
-   receives traffic): **`npm run db:deploy`** (= `prisma migrate deploy`).
+   receives traffic): **`npm run db:deploy`** (= `prisma migrate deploy`,
+   then the compiled food-catalog seed `npm run db:seed:catalog`, which
+   inserts only catalog revisions the database does not have yet — ADR-P012
+   addendum, 2026-11-03). The deploy log shows
+   `Seeded catalog: N revisions processed, M newly inserted.`
    The runtime image ships `prisma/` (schema + migrations) and
    `prisma.config.ts`, and `npm ci --omit=dev` installs the **Prisma CLI at
    the lockfile-pinned version** (the lockfile resolves `prisma` into the
