@@ -8,6 +8,7 @@ import { useTheme } from '@/shared/theme';
 
 import { AppHeader } from './app-header';
 import { AppTabBar } from './app-tab-bar';
+import { ShellGlow } from './shell-ground';
 import { TABS, type TabName } from './tab-config';
 
 /**
@@ -24,14 +25,15 @@ export function TabShell({ activeName }: { activeName: TabName }) {
   const motionAllowed = !reducedMotion && !screenReader;
 
   return (
-    <View style={styles.shell} testID="tab-shell">
+    <View style={[styles.shell, { backgroundColor: colors.stage }]} testID="tab-shell">
+      <ShellGlow />
       <AppHeader routeName={activeName} />
       <TopTabs
         screenOptions={{
           animationEnabled: motionAllowed,
           lazy: true,
           lazyPreloadDistance: 1,
-          sceneStyle: { backgroundColor: colors.stage },
+          sceneStyle: { backgroundColor: 'transparent' },
           swipeEnabled: motionAllowed,
         }}
         tabBar={(props: MaterialTopTabBarProps) => <ShellTabBar {...props} />}

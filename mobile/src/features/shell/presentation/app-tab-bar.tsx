@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useLocalization } from '@/shared/localization';
 import { backgroundImageStyle, ctaBackgroundImage, Icon } from '@/shared/presentation';
-import { useTheme } from '@/shared/theme';
+import { type Theme, useTheme } from '@/shared/theme';
 
 import { TABS } from './tab-config';
 
@@ -14,12 +14,24 @@ export interface AppTabBarProps {
   progress?: Animated.Value | Animated.AnimatedInterpolation<number>;
 }
 
+/** The floating bar's inset from the screen edges (design: 12). */
+const barInset = (spacing: Theme['spacing']) => spacing.md;
+
+/**
+ * Scroll room a tab page leaves at its end so its last card clears the
+ * floating bar: the inset, the bar (a 48 tab plus its padding) and a gap.
+ */
+export function tabBarClearance(spacing: Theme['spacing'], bottomInset: number): number {
+  return bottomInset + barInset(spacing) + spacing.x5l + spacing.sm * 2 + spacing.lg;
+}
+
 /**
  * The design's pill tab bar for the stable expo-router `Tabs` (ADR-P039 D1).
  *
  * Selected is never colour alone (ADR-P022 D7): the active tab is a filled
  * gradient pill that shows its label, and it is `selected` to assistive
- * technology. Inactive tabs are icon-only, each named by its label.
+ * technology. Inactive tabs are icon-only, each named by its label. It floats
+ * over the page (v8.1 round 2): inset 12, radius 26, translucent navy.
  */
 export function AppTabBar({ activeIndex, onSelect, progress }: AppTabBarProps) {
   const theme = useTheme();
@@ -32,12 +44,15 @@ export function AppTabBar({ activeIndex, onSelect, progress }: AppTabBarProps) {
   return (
     <View
       style={{
-        backgroundColor: colors.stageDeep,
-        borderColor: colors.glassBorder,
-        borderTopWidth: 1,
-        paddingBottom: Math.max(insets.bottom, spacing.sm),
-        paddingHorizontal: spacing.md,
-        paddingTop: spacing.sm,
+        backgroundColor: colors.tabBarFill,
+        borderColor: colors.tabBarBorder,
+        borderRadius: radius.bar,
+        borderWidth: 1,
+        bottom: insets.bottom + barInset(spacing),
+        left: barInset(spacing),
+        padding: spacing.sm,
+        position: 'absolute',
+        right: barInset(spacing),
       }}
       testID="tab-bar"
     >

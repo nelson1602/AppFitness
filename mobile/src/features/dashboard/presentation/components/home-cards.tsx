@@ -50,8 +50,13 @@ function PanelTitle({ icon, title, right }: { icon: IconName; title: string; rig
       testID="panel-title-row"
     >
       <View style={[styles.row, styles.natural, { gap: spacing.sm }]} testID="panel-title-main">
-        <Icon color={colors.accentCyan} name={icon} size={18} />
-        <AppText accessibilityRole="header" style={styles.shrink} tone="onStage" variant="title">
+        <Icon color={colors.linkOnStage} name={icon} size={18} />
+        <AppText
+          accessibilityRole="header"
+          style={styles.shrink}
+          tone="onStage"
+          variant="panelTitle"
+        >
           {title}
         </AppText>
       </View>

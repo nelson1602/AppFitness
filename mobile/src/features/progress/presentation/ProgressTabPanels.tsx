@@ -54,8 +54,13 @@ function Panel({
       {/* Wraps at large text sizes: the right side drops below the title. */}
       <View style={[styles.row, styles.wrap, { columnGap: spacing.sm, rowGap: spacing.xs }]}>
         <View style={[styles.row, styles.grow, { gap: spacing.sm }]}>
-          <Icon color={colors.accentCyan} name={icon} size={18} />
-          <AppText accessibilityRole="header" style={styles.shrink} tone="onStage" variant="title">
+          <Icon color={colors.linkOnStage} name={icon} size={18} />
+          <AppText
+            accessibilityRole="header"
+            style={styles.shrink}
+            tone="onStage"
+            variant="panelTitle"
+          >
             {title}
           </AppText>
         </View>

@@ -111,8 +111,13 @@ export function PastWeeksPanel({
           sits below it (owner review 2026-10-27). */}
       <View style={{ gap: 2 }} testID="past-weeks-header">
         <View style={[styles.row, { gap: spacing.sm }]}>
-          <Icon color={colors.accentCyan} name="calendar" size={18} />
-          <AppText accessibilityRole="header" style={styles.grow} tone="onStage" variant="title">
+          <Icon color={colors.linkOnStage} name="calendar" size={18} />
+          <AppText
+            accessibilityRole="header"
+            style={styles.grow}
+            tone="onStage"
+            variant="panelTitle"
+          >
             {t('plan.history.title')}
           </AppText>
         </View>

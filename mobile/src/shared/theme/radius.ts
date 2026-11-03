@@ -10,6 +10,8 @@ export const radius = {
   large: 16,
   control: 20,
   extraLarge: 24,
+  /** The floating tab bar (design: 26). */
+  bar: 26,
   sheet: 28,
   full: 9999,
 } as const;

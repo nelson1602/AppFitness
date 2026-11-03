@@ -133,7 +133,7 @@ export function WorkoutWeek({
         <GlassCard testID="workout-rest-day">
           <View style={[styles.row, { gap: spacing.sm }]}>
             <Icon color={colors.linkOnStage} name="moon" size={18} />
-            <AppText accessibilityRole="header" style={styles.grow} variant="title">
+            <AppText accessibilityRole="header" style={styles.grow} variant="panelTitle">
               {t('workout.plan.restDay')}
             </AppText>
           </View>
@@ -352,7 +352,7 @@ function SessionPanel({
       <View style={{ gap: spacing.xs }}>
         <View style={[styles.row, styles.wrap, { gap: spacing.sm }]}>
           <Icon color={colors.linkOnStage} name="sparkle" size={18} />
-          <AppText accessibilityRole="header" style={styles.grow} variant="title">
+          <AppText accessibilityRole="header" style={styles.grow} variant="panelTitle">
             {title}
           </AppText>
           {minutes ? (
@@ -643,7 +643,7 @@ function WeekPlanPanel({
     <GlassCard testID="workout-week-plan">
       <View style={[styles.row, styles.wrap, { gap: spacing.sm }]}>
         <Icon color={colors.linkOnStage} name="dumbbell" size={18} />
-        <AppText accessibilityRole="header" style={styles.grow} variant="title">
+        <AppText accessibilityRole="header" style={styles.grow} variant="panelTitle">
           {t('workout.plan.weekPlan')}
         </AppText>
         <Chip label={t('workouts.week.renews')} testID="workout-week-renews" />

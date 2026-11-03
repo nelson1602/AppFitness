@@ -17,7 +17,13 @@ export { Mascot } from './mascot';
 export { ProgressBar } from './progress-bar';
 export { Pulse } from './pulse';
 export { Ring } from './ring';
-export { ctaBackgroundImage, goalCardBackgroundImage, stageBackgroundImage } from './stage-style';
+export {
+  ctaBackgroundImage,
+  DASHBOARD_GLOW_HEIGHT,
+  dashboardGlowImage,
+  goalCardBackgroundImage,
+  stageBackgroundImage,
+} from './stage-style';
 export { useReducedMotion } from './use-reduced-motion';
 export { useScreenReader } from './use-screen-reader';
 export { Screen } from './screen';
