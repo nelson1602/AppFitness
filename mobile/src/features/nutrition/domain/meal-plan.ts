@@ -35,8 +35,13 @@ import type { AvoidTag, FoodId, FoodItem, ServingUnit } from './food-catalog';
  * rules; an excluded ingredient is swapped for one of the same role or left
  * out ("Ajustado por iCoach"). A multi-food snack grows on its smallest food
  * to reach the snack minimum. Every other country keeps the food-based plan.
+ *
+ * `1.6.0` (v8.1 round 2, owner fix list 2026-11-03): everyday Dominican dishes
+ * dominate the plan — each meal's rotation serves an `everyday` dish three
+ * days out of four (`dominican-dishes.ts`, do-dishes@1.1.0, now with casabe,
+ * queso blanco and cinnamon instead of their nearest-food stand-ins).
  */
-export const MEAL_RULE_VERSION = 'meal-rules@1.5.0';
+export const MEAL_RULE_VERSION = 'meal-rules@1.6.0';
 
 export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 

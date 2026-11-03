@@ -32,8 +32,8 @@ const blockedBy =
 /** The prototype's MEALS (docs/design/appfitnessrd-prototipo.html), by catalogue id. */
 const PROTOTYPE_DISHES = [
   'mangu_huevo_aguacate',
-  'avena_guineo_chia',
-  'pan_queso_tomate',
+  'avena_guineo_canela',
+  'pan_queso_blanco_tomate',
   'batata_huevos_revueltos',
   'yogur_fresas_almendras',
   'locrio_pollo_ensalada',
@@ -44,12 +44,12 @@ const PROTOTYPE_DISHES = [
   'pina_chia',
   'batida_lechosa_leche',
   'guineo_mantequilla_mani',
-  'tortitas_arroz_aguacate',
+  'casabe_aguacate',
   'nueces_pasas',
   'pechuga_pure_yuca',
   'ensalada_atun_aguacate',
   'camarones_ajillo_arroz_integral',
-  'tortilla_vegetales_yuca',
+  'tortilla_vegetales_casabe',
   'salmon_batata_vegetales',
 ];
 
@@ -66,7 +66,7 @@ const DOMINICAN_SEED_FOODS = [
 ];
 
 describe('the Dominican dish catalogue (v8.1)', () => {
-  it('has enough dishes per meal for 15 days with any dish at most twice', () => {
+  it('has enough dishes per meal for variety around the everyday dishes', () => {
     expect(dishesForSlot('BREAKFAST').length).toBeGreaterThanOrEqual(10);
     expect(dishesForSlot('LUNCH').length).toBeGreaterThanOrEqual(10);
     expect(dishesForSlot('DINNER').length).toBeGreaterThanOrEqual(10);
@@ -104,6 +104,43 @@ describe('the Dominican dish catalogue (v8.1)', () => {
         );
       }
     }
+  });
+
+  it('marks everyday dishes in every meal, with other dishes left for variety', () => {
+    for (const slot of ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK'] as const) {
+      const dishes = dishesForSlot(slot);
+      // Two or more, so the everyday run never repeats a dish on consecutive days.
+      expect(dishes.filter((d) => d.everyday).length).toBeGreaterThanOrEqual(2);
+      expect(dishes.filter((d) => !d.everyday).length).toBeGreaterThanOrEqual(1);
+    }
+    const everyday = DOMINICAN_DISHES.filter((d) => d.everyday).map((d) => d.id);
+    expect(everyday).toEqual(
+      expect.arrayContaining([
+        'mangu_huevo_aguacate',
+        'avena_guineo_canela',
+        'la_bandera',
+        'locrio_pollo_ensalada',
+        'moro_habichuelas_pechuga',
+        'sancocho_ligero_pollo',
+        'yuca_huevo_aguacate',
+        'casabe_aguacate',
+        'pan_queso_blanco_tomate',
+      ]),
+    );
+  });
+
+  it('cooks with casabe, queso blanco and canela instead of a nearest-food stand-in', () => {
+    const foodsOf = (id: string) => dish(id).lines.map((l) => l.food);
+    expect(foodsOf('casabe_aguacate')).toContain('food.casabe');
+    expect(foodsOf('tortilla_vegetales_casabe')).toContain('food.casabe');
+    expect(foodsOf('pan_queso_blanco_tomate')).toContain('food.queso_blanco');
+    expect(foodsOf('mangu_huevo_queso_blanco')).toContain('food.queso_blanco');
+    expect(foodsOf('avena_guineo_canela')).toContain('food.cinnamon_ground');
+    expect(foodsOf('batida_avena_canela')).toContain('food.cinnamon_ground');
+    // The old stand-ins are only substitutes now, never a dish's own line.
+    const lines = DOMINICAN_DISHES.flatMap((d) => d.lines.map((l) => l.food));
+    expect(lines).not.toContain('food.rice_cakes');
+    expect(lines).not.toContain('food.mozzarella_part_skim');
   });
 
   it('reuses the Dominican foods seeded for the evaluation', () => {
@@ -230,6 +267,35 @@ describe('adaptDish — only the excluded ingredient changes (ADR-P040 D3)', () 
     expect(adapted.lines.map((line) => line.food)).toEqual(['food.banana']);
   });
 
+  it('swaps queso blanco and casabe for the closest food the person can have', () => {
+    // Lactose: mozzarella is dairy too, so tofu; sodium only: mozzarella keeps a cheese.
+    expect(
+      adaptDish(dish('pan_queso_blanco_tomate'), blockedBy([], ['lactose_sensitive']), lookup)
+        .adjustments,
+    ).toEqual([{ from: 'food.queso_blanco', to: 'food.tofu_firm' }]);
+    expect(
+      adaptDish(dish('pan_queso_blanco_tomate'), blockedBy([], ['high_sodium_sensitive']), lookup)
+        .adjustments,
+    ).toEqual([{ from: 'food.queso_blanco', to: 'food.mozzarella_part_skim' }]);
+    // Casabe (salted cassava bread) becomes boiled cassava; the dish stays.
+    const adapted = adaptDish(
+      dish('casabe_aguacate'),
+      blockedBy([], ['high_sodium_sensitive']),
+      lookup,
+    );
+    expect(adapted.dish.id).toBe('casabe_aguacate');
+    expect(adapted.adjustments).toEqual([{ from: 'food.casabe', to: 'food.cassava_cooked' }]);
+  });
+
+  it('leaves the cinnamon out rather than substituting it ("sin canela")', () => {
+    const adapted = adaptDish(
+      dish('avena_guineo_canela'),
+      blockedBy(['food.cinnamon_ground']),
+      lookup,
+    );
+    expect(adapted.adjustments).toEqual([{ from: 'food.cinnamon_ground', to: null }]);
+  });
+
   it('is deterministic', () => {
     const run = () =>
       adaptDish(dish('la_bandera'), blockedBy(['food.kidney_beans', 'food.beef_sirloin']), lookup);
@@ -245,6 +311,19 @@ describe('dish names for the screens', () => {
   it('resolves every catalogue dish to its name key, and an unknown id to null', () => {
     for (const candidate of DOMINICAN_DISHES) {
       expect(dishNameKeyFor(candidate.id)).toBe(dishNameKey(candidate.id));
+    }
+    // Dishes replaced in meal-rules@1.6.0 keep their names for weeks saved before it.
+    for (const legacy of [
+      'avena_guineo_chia',
+      'pan_queso_tomate',
+      'tortilla_vegetales_yuca',
+      'tortitas_arroz_aguacate',
+    ]) {
+      expect(DOMINICAN_DISHES.some((d) => d.id === legacy)).toBe(false);
+      const key = dishNameKeyFor(legacy);
+      expect(key).toBe(`nutrition.dish.${legacy}`);
+      expect(es[key as keyof typeof es]).toBeTruthy();
+      expect(en[key as keyof typeof en]).toBeTruthy();
     }
     expect(dishNameKeyFor('no_such_dish')).toBeNull();
     expect(dishNameKeyFor(undefined)).toBeNull();

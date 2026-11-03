@@ -30,12 +30,14 @@ import {
 } from './meal-portions';
 
 /**
- * The Dominican dish plan (v8.1, meal-rules@1.5.0).
+ * The Dominican dish plan (v8.1, meal-rules@1.6.0).
  *
  * For each day and meal a dish is taken from the Dominican catalogue by a
- * fixed rotation (the seed only chooses where each slot's rotation starts),
- * so over 15 days no dish shows more than ⌈15 ÷ dishes in its slot⌉ times and
- * the same dish never falls on two days in a row. The person's exclusions
+ * fixed rotation (the seed only chooses where each slot's rotation starts).
+ * The rotation serves the slot's everyday dishes on three days out of four
+ * and one of its other dishes on the fourth (meal-rules@1.6.0), so any 15
+ * days carry at least 11 everyday dishes per meal, and the same dish never
+ * falls on two days in a row. The person's exclusions
  * never change WHICH dish is served — only the excluded ingredient is swapped
  * or left out (ADR-P040 D3, `adaptDish`), which is what lets the plan say
  * "Ajustado por iCoach: X → Y".
@@ -76,17 +78,41 @@ interface DishEntry extends DishPortionEntry {
   line: AdaptedLine;
 }
 
+/** Of every four days, this many serve an everyday dish (meal-rules@1.6.0). */
+const EVERYDAY_RUN = 3;
+
+/**
+ * A slot's rotation: three everyday dishes in catalogue order, then one other
+ * dish, repeated. Its length is a whole number of both cycles, so wrapping
+ * around continues the same pattern (no dish twice in a row at the seam).
+ */
+export function slotRotation<T extends { dish: { everyday?: true } }>(
+  options: readonly T[],
+): T[] {
+  const everyday = options.filter((option) => option.dish.everyday);
+  const other = options.filter((option) => !option.dish.everyday);
+  if (everyday.length === 0 || other.length === 0) return [...options];
+  const rotation: T[] = [];
+  for (let block = 0; block < everyday.length * other.length; block += 1) {
+    for (let run = 0; run < EVERYDAY_RUN; run += 1) {
+      rotation.push(everyday[(block * EVERYDAY_RUN + run) % everyday.length]);
+    }
+    rotation.push(other[block % other.length]);
+  }
+  return rotation;
+}
+
 function pickDish(
   slot: MealSlot,
   dayIndex: number,
   hash: number,
-  adapt: (dishIndex: number) => AdaptedDish,
-  count: number,
+  rotation: readonly AdaptedDish[],
 ): AdaptedDish | null {
+  const count = rotation.length;
   const start = (hash + SLOT_SEED[slot] + (dayIndex - 1)) % count;
   // The rotation's dish, or the next one that is still viable.
   for (let step = 0; step < count; step += 1) {
-    const adapted = adapt((start + step) % count);
+    const adapted = rotation[(start + step) % count];
     if (isViable(adapted)) return adapted;
   }
   return null;
@@ -189,10 +215,10 @@ export function generateDominicanMealPlan(input: MealPlanInput): MealPlan | null
   };
 
   // Each dish is adapted once: the exclusions are the same every day.
-  const adaptedBySlot = new Map<MealSlot, AdaptedDish[]>(
+  const rotationBySlot = new Map<MealSlot, AdaptedDish[]>(
     MEAL_SLOTS.map((slot) => [
       slot,
-      dishesForSlot(slot).map((dish) => adaptDish(dish, isBlocked, lookup)),
+      slotRotation(dishesForSlot(slot).map((dish) => adaptDish(dish, isBlocked, lookup))),
     ]),
   );
 
@@ -208,9 +234,9 @@ export function generateDominicanMealPlan(input: MealPlanInput): MealPlan | null
   for (let d = 1; d <= days; d += 1) {
     const dishes: PlannedDish[] = [];
     for (const slot of MEAL_SLOTS) {
-      const options = adaptedBySlot.get(slot) ?? [];
-      if (options.length === 0) return null;
-      const adapted = pickDish(slot, d, hash, (index) => options[index], options.length);
+      const rotation = rotationBySlot.get(slot) ?? [];
+      if (rotation.length === 0) return null;
+      const adapted = pickDish(slot, d, hash, rotation);
       if (!adapted) return null;
       dishes.push({ slot, adapted });
     }

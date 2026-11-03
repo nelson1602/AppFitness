@@ -5,14 +5,17 @@ import type { TranslationKey } from '@/shared/localization';
  * generator stores a dish id and its `nutrition.dish.<id>` key in the plan; the
  * screens resolve it here, so every key is named literally and a saved key
  * the app no longer ships resolves to null (render the ingredients only).
+ * meal-rules@1.6.0 replaced four dishes; their keys stay (marked below) so a
+ * week saved before the update keeps its names.
  */
 const DISH_NAME_KEY: Readonly<Record<string, TranslationKey>> = {
   mangu_huevo_aguacate: 'nutrition.dish.mangu_huevo_aguacate',
-  avena_guineo_chia: 'nutrition.dish.avena_guineo_chia',
-  pan_queso_tomate: 'nutrition.dish.pan_queso_tomate',
+  avena_guineo_canela: 'nutrition.dish.avena_guineo_canela',
+  pan_queso_blanco_tomate: 'nutrition.dish.pan_queso_blanco_tomate',
   batata_huevos_revueltos: 'nutrition.dish.batata_huevos_revueltos',
   yogur_fresas_almendras: 'nutrition.dish.yogur_fresas_almendras',
   yuca_huevo_aguacate: 'nutrition.dish.yuca_huevo_aguacate',
+  mangu_huevo_queso_blanco: 'nutrition.dish.mangu_huevo_queso_blanco',
   tortilla_espinaca_pan: 'nutrition.dish.tortilla_espinaca_pan',
   name_huevo_tomate: 'nutrition.dish.name_huevo_tomate',
   yautia_huevo_cebolla: 'nutrition.dish.yautia_huevo_cebolla',
@@ -33,7 +36,8 @@ const DISH_NAME_KEY: Readonly<Record<string, TranslationKey>> = {
   pechuga_pure_yuca: 'nutrition.dish.pechuga_pure_yuca',
   ensalada_atun_aguacate: 'nutrition.dish.ensalada_atun_aguacate',
   camarones_ajillo_arroz_integral: 'nutrition.dish.camarones_ajillo_arroz_integral',
-  tortilla_vegetales_yuca: 'nutrition.dish.tortilla_vegetales_yuca',
+  tortilla_vegetales_casabe: 'nutrition.dish.tortilla_vegetales_casabe',
+  yuca_huevo_queso_blanco: 'nutrition.dish.yuca_huevo_queso_blanco',
   salmon_batata_vegetales: 'nutrition.dish.salmon_batata_vegetales',
   pavo_pure_batata: 'nutrition.dish.pavo_pure_batata',
   pescado_horno_name: 'nutrition.dish.pescado_horno_name',
@@ -45,12 +49,18 @@ const DISH_NAME_KEY: Readonly<Record<string, TranslationKey>> = {
   pina_chia: 'nutrition.dish.pina_chia',
   batida_lechosa_leche: 'nutrition.dish.batida_lechosa_leche',
   guineo_mantequilla_mani: 'nutrition.dish.guineo_mantequilla_mani',
-  tortitas_arroz_aguacate: 'nutrition.dish.tortitas_arroz_aguacate',
+  casabe_aguacate: 'nutrition.dish.casabe_aguacate',
+  batida_avena_canela: 'nutrition.dish.batida_avena_canela',
   nueces_pasas: 'nutrition.dish.nueces_pasas',
   yogur_mango: 'nutrition.dish.yogur_mango',
   manzana_mantequilla_mani: 'nutrition.dish.manzana_mantequilla_mani',
   naranja_mani: 'nutrition.dish.naranja_mani',
   batida_guineo_avena: 'nutrition.dish.batida_guineo_avena',
+  // Replaced in meal-rules@1.6.0; kept for weeks saved before the update.
+  avena_guineo_chia: 'nutrition.dish.avena_guineo_chia',
+  pan_queso_tomate: 'nutrition.dish.pan_queso_tomate',
+  tortilla_vegetales_yuca: 'nutrition.dish.tortilla_vegetales_yuca',
+  tortitas_arroz_aguacate: 'nutrition.dish.tortitas_arroz_aguacate',
 };
 
 /** The ingredient mark for a food the iCoach swapped into a dish. */

@@ -1184,6 +1184,16 @@ export const en = {
   'nutrition.dish.manzana_mantequilla_mani': 'Apple with peanut butter',
   'nutrition.dish.naranja_mani': 'Orange with peanuts',
   'nutrition.dish.batida_guineo_avena': 'Banana and oat milkshake (batida)',
+  // v8.1 round 2 (meal-rules@1.6.0): everyday dishes with casabe, queso blanco
+  // and cinnamon. The four dishes they replace keep their names above so a plan
+  // saved before the update still shows them.
+  'nutrition.dish.avena_guineo_canela': 'Oatmeal with banana and cinnamon',
+  'nutrition.dish.pan_queso_blanco_tomate': 'Whole-wheat bread with queso blanco and tomato',
+  'nutrition.dish.mangu_huevo_queso_blanco': 'Mangú (mashed green plantain) with egg and queso blanco',
+  'nutrition.dish.tortilla_vegetales_casabe': 'Vegetable omelette with casabe (cassava bread)',
+  'nutrition.dish.yuca_huevo_queso_blanco': 'Cassava with egg, queso blanco and onion',
+  'nutrition.dish.casabe_aguacate': 'Casabe (cassava bread) with avocado',
+  'nutrition.dish.batida_avena_canela': 'Oats with milk and cinnamon',
   'nutrition.plan.overlayTitle': "Today's adjustment",
   'nutrition.plan.overlayBody':
     "You went over yesterday: today's target is {kcal} kcal ({reduced} less).",

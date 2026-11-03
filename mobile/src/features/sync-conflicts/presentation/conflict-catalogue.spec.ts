@@ -191,9 +191,10 @@ describe('catalogue parity', () => {
   // plan-change label (+1) and the conflict field label (+1, in the family below) — and the
   // Dominican dish plan: 44 dish names and the "(cambio del iCoach)" mark (+45), (+73 together, 1742).
   // v8.1 Progreso restored the prototype's panels: the weight chart, today's weight, the measurement tiles and the week's three stats (+27), replacing the log row and its detail (-2, 1767), and the prototype Nutrición tab: the ring, the macros, the foods off the plan, what the iCoach adjusted and the extras (+10, -2 no longer shown, 1775).
-  it('reaches 1775 keys in each language — 1615 shipped plus a 160-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1775);
-    expect(Object.keys(es)).toHaveLength(1775);
+  // v8.1 round 2: the everyday Dominican dishes with casabe, queso blanco and canela (+7, 1782).
+  it('reaches 1782 keys in each language — 1622 shipped plus a 160-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1782);
+    expect(Object.keys(es)).toHaveLength(1782);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 
