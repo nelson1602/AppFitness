@@ -42,8 +42,13 @@ import type { AvoidTag, FoodId, FoodItem, ServingUnit } from './food-catalog';
  * queso blanco and cinnamon instead of their nearest-food stand-ins). Every
  * plan lists a day's meals in the order they are eaten: Desayuno, Almuerzo,
  * Merienda, Cena (`MEAL_SLOTS`).
+ *
+ * `1.7.0` (v8.1 round 2, owner decision 2026-11-03): guineítos join the
+ * everyday rotation (do-dishes@1.2.0: guineítos con huevo y cebolla at
+ * breakfast, guineítos con bacalao guisado at dinner), on the INCAP green
+ * banana of food-catalog@1.16.0.
  */
-export const MEAL_RULE_VERSION = 'meal-rules@1.6.0';
+export const MEAL_RULE_VERSION = 'meal-rules@1.7.0';
 
 export type MealSlot = 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
 

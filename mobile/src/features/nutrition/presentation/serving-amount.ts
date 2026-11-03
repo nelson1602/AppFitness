@@ -1,6 +1,11 @@
-import { formatNumber, type SupportedLanguage, type TranslationKey } from '@/shared/localization';
+import {
+  formatNumber,
+  interpolate,
+  type SupportedLanguage,
+  type TranslationKey,
+} from '@/shared/localization';
 
-import type { ServingUnit } from '../domain/food-catalog';
+import type { FoodId, ServingUnit } from '../domain/food-catalog';
 
 const WHOLE_UNITS: ReadonlySet<string> = new Set(['g', 'ml']);
 
@@ -49,4 +54,53 @@ export function formatServingAmount(
   const label = labelOf(unit);
   const name = label ? t(shown > 1 ? label.many : label.one) : unit;
   return `${number} ${name}`;
+}
+
+interface HouseholdPiece {
+  /** Grams of one piece, as weighed in the plan. */
+  grams: number;
+  one: TranslationKey;
+  many: TranslationKey;
+}
+
+/**
+ * The average peeled weight of one guineo (v8.1 round 2): USDA FDC SR Legacy
+ * 173944 "Bananas, raw", portion "medium (7" to 7-7/8" long)" = 118 g of
+ * edible fruit (portion row 93515, the pinned 2018-04 archive). Neither pinned
+ * archive nor the INCAP row carries a green-banana piece weight, so the
+ * medium banana's size stands for one guineo; display only, never nutrition.
+ */
+export const GREEN_BANANA_PEELED_GRAMS = 118;
+
+/** Foods the plan weighs in grams but people count at the table. */
+const HOUSEHOLD_PIECES: Readonly<Partial<Record<FoodId, HouseholdPiece>>> = {
+  'food.green_banana_raw': {
+    grams: GREEN_BANANA_PEELED_GRAMS,
+    one: 'nutrition.household.greenBananaOne',
+    many: 'nutrition.household.greenBananaMany',
+  },
+};
+
+/**
+ * A dish ingredient's amount: `formatServingAmount`, and for a food people
+ * count, how many pieces that is first — "2 guineítos · 236 g" (to the
+ * nearest half, never zero; the name agrees with the count).
+ */
+export function formatIngredientAmount(
+  foodId: FoodId,
+  amount: number,
+  unit: string,
+  language: SupportedLanguage,
+  t: (key: TranslationKey) => string,
+): string {
+  const weighed = formatServingAmount(amount, unit, language, t);
+  const piece = Object.prototype.hasOwnProperty.call(HOUSEHOLD_PIECES, foodId)
+    ? HOUSEHOLD_PIECES[foodId]
+    : undefined;
+  if (!piece || unit !== 'g') return weighed;
+  const halves = Math.max(1, Math.round((amount / piece.grams) * 2));
+  const whole = Math.floor(halves / 2);
+  const half = halves % 2 === 1 ? '½' : '';
+  const count = whole === 0 ? half : `${formatNumber(whole, language)}${half}`;
+  return interpolate(t(halves > 2 ? piece.many : piece.one), { count, amount: weighed });
 }

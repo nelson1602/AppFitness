@@ -1204,6 +1204,11 @@ export const es = {
   'nutrition.dish.yuca_huevo_queso_blanco': 'Yuca con huevo, queso blanco y cebolla',
   'nutrition.dish.casabe_aguacate': 'Casabe con aguacate',
   'nutrition.dish.batida_avena_canela': 'Avena con leche y canela',
+  // v8.1 round 2 (meal-rules@1.7.0): guineítos, and how many a weighed portion is.
+  'nutrition.dish.guineitos_huevo_cebolla': 'Guineítos con huevo y cebolla',
+  'nutrition.dish.guineitos_bacalao': 'Guineítos con bacalao guisado',
+  'nutrition.household.greenBananaOne': '{count} guineíto · {amount}',
+  'nutrition.household.greenBananaMany': '{count} guineítos · {amount}',
   'nutrition.plan.overlayTitle': 'Ajuste de hoy',
   'nutrition.plan.overlayBody':
     'Ayer pasaste tu meta: hoy tu meta es {kcal} kcal ({reduced} menos).',

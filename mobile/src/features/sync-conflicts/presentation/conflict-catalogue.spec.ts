@@ -194,9 +194,10 @@ describe('catalogue parity', () => {
   // v8.1 round 2 Perfil: the summary row label, the activity and stress chips and the Meta line's weekly workouts (+5, 1782).
   // v8.1 round 2: the everyday Dominican dishes with casabe, queso blanco and canela (+7, 1782), and the 15-day slider's hint (+1, 1783).
   // Merged total for v8.1 round 2: 1775 + 2 (figure label, dish-plan prompt) + 5 (Perfil) + 8 (dishes, slider hint) = 1790.
-  it('reaches 1790 keys in each language — 1615 shipped plus a 175-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1790);
-    expect(Object.keys(es)).toHaveLength(1790);
+  // Then guineítos: two dish names and the "N guineítos · g" portion (one, many) (+4, 1794).
+  it('reaches 1794 keys in each language — 1615 shipped plus a 179-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1794);
+    expect(Object.keys(es)).toHaveLength(1794);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

@@ -22,15 +22,15 @@ import type { MealAdjustment, MealSlot } from './meal-plan';
  * dish). Fried foods, added sugar and alcohol never appear (NEVER_PLANNED_TAGS).
  *
  * `everyday` marks the dishes a Dominican table eats most days — mangú, moro,
- * la bandera, sancocho, locrio, yuca, casabe, queso blanco, avena con canela,
- * habichuelas guisadas (owner fix list, v8.1 round 2). The plan serves them on
+ * la bandera, sancocho, locrio, guineítos, yuca, casabe, queso blanco, avena
+ * con canela, habichuelas guisadas (owner fix list, v8.1 round 2). The plan serves them on
  * three days out of four; the rest of the slot fills the fourth day for
  * variety. Display names are i18n keys `nutrition.dish.<id>` (ES/EN); food
  * names come from the catalog's own localization. PURE data and functions.
  */
 
 /** Bump on ANY change to a dish, a line, a portion, a pool or the order. */
-export const DISH_CATALOG_VERSION = 'do-dishes@1.1.0';
+export const DISH_CATALOG_VERSION = 'do-dishes@1.2.0';
 
 /** The country whose plan is built from these dishes. */
 export const DISH_PLAN_COUNTRY = 'DO';
@@ -84,6 +84,8 @@ const BEAN_ALTERNATIVES = ['food.pigeon_peas', 'food.black_beans', 'food.lentils
 const QUESO_ALTERNATIVES = ['food.mozzarella_part_skim', 'food.tofu_firm'] as const;
 // Casabe is cassava bread: boiled cassava is the same root without the salt.
 const CASABE_ALTERNATIVES = ['food.cassava_cooked'] as const;
+// Guineítos are boiled green bananas: green plantain is the closest staple, then yuca.
+const GUINEO_ALTERNATIVES = ['food.plantain_boiled', 'food.cassava_cooked'] as const;
 
 /**
  * ADR-P040 D3 — the versioned same-role pools: an excluded ingredient becomes
@@ -198,6 +200,19 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
       line('egg_whole', 2, 'protein'),
       line('avocado_half', 0.5, 'fat'),
       line('onion', 0.25, 'vegetable'),
+    ],
+  },
+  {
+    // Guineítos: the green banana is weighed raw and peeled (its INCAP values
+    // are for that weight); 1.5 servings is about a guineo and a half.
+    id: 'guineitos_huevo_cebolla',
+    slot: 'BREAKFAST',
+    everyday: true,
+    lines: [
+      line('green_banana_raw', 1.5, 'carb', { alternatives: GUINEO_ALTERNATIVES }),
+      line('egg_whole', 2, 'protein'),
+      line('onion', 0.25, 'vegetable'),
+      line('olive_oil', 0.25, 'fat'),
     ],
   },
   {
@@ -456,6 +471,18 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
     ],
   },
   {
+    id: 'guineitos_bacalao',
+    slot: 'DINNER',
+    everyday: true,
+    lines: [
+      line('green_banana_raw', 1.5, 'carb', { alternatives: GUINEO_ALTERNATIVES }),
+      line('cod', 1.25, 'protein'),
+      line('tomato', 0.5, 'vegetable'),
+      line('onion', 0.25, 'vegetable'),
+      line('olive_oil', 0.5, 'fat'),
+    ],
+  },
+  {
     // Cheese in the fat role, as in mangu_huevo_queso_blanco.
     id: 'yuca_huevo_queso_blanco',
     slot: 'DINNER',
@@ -596,7 +623,7 @@ export const DOMINICAN_DISHES: readonly Dish[] = [
     everyday: true,
     lines: [
       line('oats_rolled', 0.5, 'carb', { alternatives: ['food.quinoa'] }),
-      line('milk_skim', 0.75, 'dairy', { alternatives: MILK_ALTERNATIVES }),
+      line('milk_skim', 0.5, 'dairy', { alternatives: MILK_ALTERNATIVES }),
       seasoning('cinnamon_ground', 1),
     ],
   },

@@ -125,8 +125,29 @@ describe('the Dominican dish catalogue (v8.1)', () => {
         'yuca_huevo_aguacate',
         'casabe_aguacate',
         'pan_queso_blanco_tomate',
+        'guineitos_huevo_cebolla',
+        'guineitos_bacalao',
       ]),
     );
+  });
+
+  it('cooks guineítos with the INCAP green banana, swapping to plantain then yuca', () => {
+    for (const id of ['guineitos_huevo_cebolla', 'guineitos_bacalao']) {
+      const banana = dish(id).lines.find((l) => l.food === 'food.green_banana_raw');
+      expect(banana).toMatchObject({
+        role: 'carb',
+        alternatives: ['food.plantain_boiled', 'food.cassava_cooked'],
+      });
+      expect(dishAvoidTags(dish(id), lookup)).not.toContain('high_sodium_sensitive');
+    }
+    expect(byId.get('food.green_banana_raw')?.source.ref).toMatch(/^INCAP\/OPS 2007/);
+    expect(
+      adaptDish(
+        dish('guineitos_huevo_cebolla'),
+        blockedBy(['food.green_banana_raw', 'food.plantain_boiled']),
+        lookup,
+      ).adjustments,
+    ).toEqual([{ from: 'food.green_banana_raw', to: 'food.cassava_cooked' }]);
   });
 
   it('cooks with casabe, queso blanco and canela instead of a nearest-food stand-in', () => {

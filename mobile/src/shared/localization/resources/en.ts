@@ -1205,6 +1205,11 @@ export const en = {
   'nutrition.dish.yuca_huevo_queso_blanco': 'Cassava with egg, queso blanco and onion',
   'nutrition.dish.casabe_aguacate': 'Casabe (cassava bread) with avocado',
   'nutrition.dish.batida_avena_canela': 'Oats with milk and cinnamon',
+  // v8.1 round 2 (meal-rules@1.7.0): guineítos, and how many a weighed portion is.
+  'nutrition.dish.guineitos_huevo_cebolla': 'Guineítos (boiled green bananas) with egg and onion',
+  'nutrition.dish.guineitos_bacalao': 'Guineítos (boiled green bananas) with stewed salt cod',
+  'nutrition.household.greenBananaOne': '{count} green banana · {amount}',
+  'nutrition.household.greenBananaMany': '{count} green bananas · {amount}',
   'nutrition.plan.overlayTitle': "Today's adjustment",
   'nutrition.plan.overlayBody':
     "You went over yesterday: today's target is {kcal} kcal ({reduced} less).",

@@ -23,7 +23,7 @@ import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
 import { dishNameKeyFor, SWAP_MARK_KEY } from './dish-name';
 import { PlanDaySlider } from './plan-day-slider';
-import { formatServingAmount } from './serving-amount';
+import { formatIngredientAmount } from './serving-amount';
 
 /**
  * "Plan alimentario" in the prototype's language (v8 Block 3,
@@ -321,7 +321,8 @@ function MealRow({
                 {names[idx]}
                 {f.swappedFrom ? ` ${t(SWAP_MARK_KEY)}` : ''}{' '}
                 <AppText tone="muted" variant="caption">
-                  · {formatServingAmount(f.serving.amount, f.serving.unit, language, t)}
+                  ·{' '}
+                  {formatIngredientAmount(f.foodId, f.serving.amount, f.serving.unit, language, t)}
                 </AppText>
               </AppText>
               <AppText tone="muted" variant="caption">

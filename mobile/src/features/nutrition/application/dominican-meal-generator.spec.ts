@@ -63,11 +63,11 @@ function dominican(over: Partial<MealPlanInput> = {}): MealPlan {
   return plan;
 }
 
-describe('country branch (v8.1, meal-rules@1.6.0)', () => {
+describe('country branch (v8.1, meal-rules@1.7.0)', () => {
   it('builds Dominican dishes for DO', () => {
     const plan = dominican();
     expect(plan.ruleVersion).toBe(MEAL_RULE_VERSION);
-    expect(MEAL_RULE_VERSION).toBe('meal-rules@1.6.0');
+    expect(MEAL_RULE_VERSION).toBe('meal-rules@1.7.0');
     expect(plan.days).toHaveLength(15);
     for (const day of plan.days) {
       for (const meal of day.meals) {
@@ -152,6 +152,18 @@ describe('determinism and variety', () => {
         const ofSlot = meals.filter((m) => m.slot === slot);
         const served = ofSlot.filter((m) => everyday.has(m.dishId as string));
         expect(served.length).toBeGreaterThanOrEqual(11);
+      }
+    },
+  );
+
+  it.each(PROFILES.map((profile) => [profile.seed, profile.nutritionPlan.calories, profile]))(
+    'serves guineítos in a 15-day plan, weighed raw and peeled (%s, %i kcal)',
+    (_seed, _kcal, profile) => {
+      const meals = generateMealPlan(profile as MealPlanInput).days.flatMap((d) => d.meals);
+      const guineitos = meals.filter((m) => m.dishId?.startsWith('guineitos_'));
+      expect(guineitos.length).toBeGreaterThan(0);
+      for (const meal of guineitos) {
+        expect(meal.foods.map((f) => f.foodId)).toContain('food.green_banana_raw');
       }
     },
   );
@@ -347,6 +359,19 @@ describe('allergies and "prefer to avoid" (adaptDish)', () => {
     }
     const casabe = meals.find((m) => m.dishId === 'casabe_aguacate');
     expect(casabe?.adjustments).toEqual([{ from: 'food.casabe', to: 'food.cassava_cooked' }]);
+  });
+
+  it('swaps the green banana for green plantain when it is excluded, keeping the dish', () => {
+    const free = dominican();
+    const restricted = dominican({ excludeCatalogKeys: ['food.green_banana_raw'] });
+    const dishes = (plan: MealPlan) => plan.days.map((d) => d.meals.map((m) => m.dishId));
+    expect(dishes(restricted)).toEqual(dishes(free));
+    const meal = restricted.days
+      .flatMap((d) => d.meals)
+      .find((m) => m.dishId === 'guineitos_huevo_cebolla' || m.dishId === 'guineitos_bacalao');
+    expect(meal?.adjustments).toEqual([
+      { from: 'food.green_banana_raw', to: 'food.plantain_boiled' },
+    ]);
   });
 
   it('records "sin" when an excluded ingredient has no substitute', () => {
