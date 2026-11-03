@@ -12,6 +12,7 @@ import {
   draftBmi,
   draftFromSources,
   equipmentToStore,
+  evaluationSummaryFrom,
   goalChanged,
   INJURY_OPTIONS,
   isDraftComplete,
@@ -117,6 +118,50 @@ describe('food groups (ADR-P040 D3)', () => {
     const ids = FOOD_GROUPS.flatMap((group) => group.items.map((item) => item.id));
     expect(new Set(ids).size).toBe(ids.length);
     expect(FOOD_ITEMS.size).toBe(75);
+  });
+});
+
+describe('evaluationSummaryFrom (Perfil summary, v8.1 round 2)', () => {
+  it('reads the saved answers: injuries only, marked foods, activity, stress and days', () => {
+    const wellness = {
+      affectedAreas: ['chest', 'knee', 'lower_back'],
+    } as unknown as WellnessSafetyProfile;
+    expect(
+      evaluationSummaryFrom({
+        profile: profile(),
+        wellness,
+        preferences: [
+          pref({ catalogKey: 'food.shrimp', kind: 'preference' }),
+          pref({ exclusionType: 'avoid_tag', avoidTag: 'caffeine', kind: 'allergy' }),
+        ],
+      }),
+    ).toEqual({
+      injuries: ['knee', 'lower_back'],
+      foods: ['shrimp', 'caffeine'],
+      activityLevel: 'LIGHT',
+      stressLevel: 4,
+      trainingDays: 4,
+    });
+  });
+
+  it('invents nothing for a new account (no wizard defaults)', () => {
+    expect(evaluationSummaryFrom({ profile: null, wellness: null, preferences: [] })).toEqual({
+      injuries: [],
+      foods: [],
+      activityLevel: null,
+      stressLevel: null,
+      trainingDays: null,
+    });
+  });
+
+  it('drops zero training days and an unanswered stress level', () => {
+    expect(
+      evaluationSummaryFrom({
+        profile: profile({ trainingDaysPerWeek: 0, stressLevelBaseline: null }),
+        wellness: null,
+        preferences: [],
+      }),
+    ).toMatchObject({ stressLevel: null, trainingDays: null });
   });
 });
 
