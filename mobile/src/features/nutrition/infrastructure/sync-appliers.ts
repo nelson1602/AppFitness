@@ -1,5 +1,6 @@
 import { registerApplier, registerPrePushHook } from '@/shared/infrastructure/sync';
 
+import { requeueCatalogRejections } from './catalog-rejection-requeue';
 import {
   applyServerDietaryPreference,
   markDietaryPreferenceConflict,
@@ -54,4 +55,6 @@ export function registerNutritionSyncAppliers(): void {
 
   // Foods logged before BUG-044 get their parents before the next push.
   registerPrePushHook(repairFoodLogParents);
+  // Foods rejected while the server catalogue was empty go out again, once.
+  registerPrePushHook(requeueCatalogRejections);
 }

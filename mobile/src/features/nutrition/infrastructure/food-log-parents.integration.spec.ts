@@ -14,6 +14,7 @@ import {
 } from '@/shared/infrastructure/sync/sync-transport';
 
 import { mealIdFor, nutritionLogIdFor } from '../domain/food-log-ids';
+import { CATALOG_REQUEUE_KEY } from './catalog-rejection-requeue';
 import { applyServerMeal, applyServerNutritionLog, PARENTS_REPAIR_KEY } from './food-log-parents';
 import { listPlannedSlotsDone, logFood, logPlannedMeal } from './food-log.repository';
 import { registerNutritionSyncAppliers } from './sync-appliers';
@@ -85,6 +86,10 @@ class FakeServer implements Pick<SyncTransport, 'push' | 'pull'> {
   pending: PulledChange[] = [];
   /** Entity types whose CREATE the server answers with a conflict. */
   readonly conflictOn = new Set<string>();
+  /** The server catalogue is empty: every food is CATALOG_REVISION_UNSUPPORTED. */
+  catalogEmpty = false;
+  /** Rejections are recorded per op id and replayed for the same id. */
+  readonly rejectedOps = new Set<string>();
 
   push = jest.fn(async (operations: PushOperation[]): Promise<PushOperationResult[]> => {
     this.pushes.push(operations);
@@ -95,6 +100,10 @@ class FakeServer implements Pick<SyncTransport, 'push' | 'pull'> {
         duplicate: false,
         errorCode,
       });
+      if (this.rejectedOps.has(op.opId) || (this.catalogEmpty && op.entityType === 'meal_items')) {
+        this.rejectedOps.add(op.opId);
+        return result('REJECTED', 'CATALOG_REVISION_UNSUPPORTED');
+      }
       if (this.conflictOn.has(op.entityType)) {
         return { ...result('CONFLICT'), serverVersion: 2, serverSnapshot: { id: op.entityId } };
       }
@@ -511,3 +520,55 @@ function directExecutor() {
       Promise.resolve(mockDb.prepare(sql).all(...params)),
   } as never;
 }
+
+// v9: foods logged while the Railway catalogue was empty (before the
+// deploy-time seed) were parked as CATALOG_REVISION_UNSUPPORTED, and the server
+// replays a recorded rejection for the same op id.
+describe('foods rejected by an empty server catalogue (v9 requeue)', () => {
+  const parkedRow = () =>
+    mockDb.prepare(`SELECT op_id, status, last_error FROM sync_queue`).get() as
+      { op_id: string; status: string; last_error: string | null } | undefined;
+  const itemStatus = (id: string) =>
+    (
+      mockDb.prepare(`SELECT sync_status FROM meal_items WHERE id = ?`).get(id) as {
+        sync_status: string;
+      }
+    ).sync_status;
+
+  it('sends a parked food again, once, under a new op id, after the catalogue is seeded', async () => {
+    const item = await logFood(
+      USER,
+      { date: DAY, mealType: 'LUNCH', catalogKey: 'food.chicken_breast', servingCount: 1 },
+      T0,
+    );
+    server.catalogEmpty = true;
+    await sync(T0);
+
+    const parked = parkedRow();
+    expect(parked).toMatchObject({
+      status: 'CONFLICT',
+      last_error: 'CATALOG_REVISION_UNSUPPORTED',
+    });
+    expect(itemStatus(item.id)).toBe('conflict');
+
+    // The device as it was before this update: the one-time requeue never ran.
+    mockDb.prepare(`DELETE FROM app_metadata WHERE key LIKE ?`).run(`${CATALOG_REQUEUE_KEY}:%`);
+    server.catalogEmpty = false;
+    await sync(T1);
+
+    expect(server.rows.get(item.id)?.entityType).toBe('meal_items');
+    const resent = server.pushes.flat().filter((op) => op.entityId === item.id);
+    expect(resent).toHaveLength(2);
+    expect(resent[1]?.opId).not.toBe(parked?.op_id);
+    expect(parkedRow()).toBeUndefined();
+    expect(itemStatus(item.id)).not.toBe('conflict');
+  });
+
+  it('runs once: a later sync does not touch the queue again', async () => {
+    await sync(T0);
+    const key = mockDb
+      .prepare(`SELECT value FROM app_metadata WHERE key = ?`)
+      .get(`${CATALOG_REQUEUE_KEY}:${USER}`);
+    expect(key).toEqual({ value: T0 });
+  });
+});

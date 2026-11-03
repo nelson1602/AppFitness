@@ -3428,6 +3428,30 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-046] Foods Logged While the Server Catalogue Was Empty Stay Stuck
+
+Status: Fixed in PR (codex/v9-catalog-requeue), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-03
+Updated: 2026-11-03
+
+### Description
+
+The first deploy with the deploy-time catalog seed (#245, e7382b6) logged "Seeded catalog: 314 revisions processed, 314 newly inserted" on both Railway services: the server food catalogue had been empty. Every food logged before that was rejected by the meal-item sync handler with CATALOG_REVISION_UNSUPPORTED (non-retryable). The device parks such an operation in CONFLICT with no automatic retry and flags the meal item `conflict` ("Sync needs attention"), and the server records the rejection against the op id and replays it for the same id. So those foods never sync, even now that the catalogue exists.
+
+Not the cause of the five evaluation records investigated in v8.1 (profile, weight, goal, health profile, weekly plan): no handler for those reads the food catalogue.
+
+### Fix
+
+`nutrition/infrastructure/catalog-rejection-requeue.ts`, a one-time pre-push hook per user (app_metadata key `v9.catalog-rejection-requeue.v1`): every queued CATALOG_REVISION_UNSUPPORTED rejection goes back to PENDING under a new op id, retry state cleared, meal item back to `pending`; payload and FIFO position kept. No API change.
+
+- [x] A food rejected by an empty catalogue reaches the server after the update, under a new op id
+- [x] The repair runs once
+
+---
+
 ## [BUG-045] "Today" Does Not Roll Over While the App Stays Open
 
 Status: Fixed in v8 Block 3 (PR #242)
