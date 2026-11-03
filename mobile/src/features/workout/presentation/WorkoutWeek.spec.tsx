@@ -187,6 +187,10 @@ describe('WorkoutWeek (v8.1, prototype Entrenamientos)', () => {
       en['workout.demo.squat.cue1'],
       { exact: false },
     );
+    expect(screen.getByTestId('workout-exercise-figure')).toHaveProp(
+      'accessibilityLabel',
+      'Figure doing Goblet squat',
+    );
     expect(screen.getByText('Hide demonstration')).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('workout-exercise-0-demo-toggle'));
     expect(screen.queryByTestId('workout-exercise-demo')).toBeNull();

@@ -89,6 +89,36 @@ export interface ColorTokens {
   accentCyan: string;
   accentEnergy: string;
   errorOnStage: string;
+  /** Dashboard top glow, outer stop (design: rgba(11,79,196,.25)). Decorative. */
+  stageGlowSoft: string;
+  /** Floating tab bar fill and border (design: #0D1628/85, white/15). */
+  tabBarFill: string;
+  tabBarBorder: string;
+  /** Tinted status chips (design Chip tones): translucent fill + its text. */
+  chipCyan: string;
+  onChipCyan: string;
+  chipEnergy: string;
+  onChipEnergy: string;
+  chipSuccess: string;
+  onChipSuccess: string;
+  chipNeutral: string;
+  onChipNeutral: string;
+  /**
+   * "Ver cómo se hace" figure art (prototype ExerciseDemo). The figure sits on
+   * its own blue stage in both themes, so the values are the same in each.
+   */
+  figureLight: string;
+  figureLightEnd: string;
+  figureShade: string;
+  figureShadeEnd: string;
+  figureHalo: string;
+  figureProp: string;
+  figurePropLine: string;
+  figureGround: string;
+  figureStage: string;
+  figureStageMid: string;
+  figureStageDeep: string;
+  onFigure: string;
 }
 
 export const lightColors: ColorTokens = {
@@ -144,6 +174,29 @@ export const lightColors: ColorTokens = {
   accentCyan: '#0E7490',
   accentEnergy: '#B03A0B',
   errorOnStage: '#B91C1C',
+  stageGlowSoft: '#CFE4FA',
+  tabBarFill: '#FFFFFFD9',
+  tabBarBorder: '#0A3FA826',
+  chipCyan: '#0E749024',
+  onChipCyan: '#0B5E75',
+  chipEnergy: '#B03A0B1F',
+  onChipEnergy: '#93300A',
+  chipSuccess: '#18773724',
+  onChipSuccess: '#14612D',
+  chipNeutral: '#0A3FA814',
+  onChipNeutral: '#46566E',
+  figureLight: '#F4FCFF',
+  figureLightEnd: '#8ED7FF',
+  figureShade: '#BFE6FF',
+  figureShadeEnd: '#3F9FE6',
+  figureHalo: '#FFFFFF',
+  figureProp: '#13213A',
+  figurePropLine: '#38B6F5',
+  figureGround: '#67E8F9',
+  figureStage: '#1F6FD8',
+  figureStageMid: '#0A2A6E',
+  figureStageDeep: '#08142E',
+  onFigure: '#DCE7F7',
 };
 
 export const darkColors: ColorTokens = {
@@ -186,8 +239,8 @@ export const darkColors: ColorTokens = {
   stageGlow: '#1F8BF0',
   onStage: '#E6EDF7',
   onStageVariant: '#C7D7F0',
-  glassFill: '#FFFFFF12',
-  glassBorder: '#FFFFFF29',
+  glassFill: '#FFFFFF0D',
+  glassBorder: '#FFFFFF1A',
   fieldFill: '#FFFFFF',
   onField: '#0F1B2D',
   fieldIcon: '#808EA3',
@@ -200,4 +253,27 @@ export const darkColors: ColorTokens = {
   // Lightened from the prototype's #FF7A45 (4.27:1 on glass over stageMid).
   accentEnergy: '#FF8A5B',
   errorOnStage: '#FCA5A5',
+  stageGlowSoft: '#0B4FC4',
+  tabBarFill: '#0D1628D9',
+  tabBarBorder: '#FFFFFF26',
+  chipCyan: '#22D3EE24',
+  onChipCyan: '#67E8F9',
+  chipEnergy: '#FF7A4529',
+  onChipEnergy: '#FFA585',
+  chipSuccess: '#22C55E29',
+  onChipSuccess: '#86EFAC',
+  chipNeutral: '#FFFFFF1A',
+  onChipNeutral: '#CBD5E1',
+  figureLight: '#F4FCFF',
+  figureLightEnd: '#8ED7FF',
+  figureShade: '#BFE6FF',
+  figureShadeEnd: '#3F9FE6',
+  figureHalo: '#FFFFFF',
+  figureProp: '#13213A',
+  figurePropLine: '#38B6F5',
+  figureGround: '#67E8F9',
+  figureStage: '#1F6FD8',
+  figureStageMid: '#0A2A6E',
+  figureStageDeep: '#08142E',
+  onFigure: '#DCE7F7',
 };

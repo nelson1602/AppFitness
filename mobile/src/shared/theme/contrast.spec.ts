@@ -104,6 +104,100 @@ interface Pairing {
 }
 
 const PAIRINGS: readonly Pairing[] = [
+  {
+    foreground: 'onChipCyan',
+    background: 'chipCyan',
+    over: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Chip tone label (v8.1 round 2 tinted chips)',
+  },
+  {
+    foreground: 'onChipCyan',
+    background: 'chipCyan',
+    over: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Chip tone label (v8.1 round 2 tinted chips)',
+  },
+  {
+    foreground: 'onChipEnergy',
+    background: 'chipEnergy',
+    over: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Chip tone label (v8.1 round 2 tinted chips)',
+  },
+  {
+    foreground: 'onChipEnergy',
+    background: 'chipEnergy',
+    over: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Chip tone label (v8.1 round 2 tinted chips)',
+  },
+  {
+    foreground: 'onChipSuccess',
+    background: 'chipSuccess',
+    over: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Chip tone label (v8.1 round 2 tinted chips)',
+  },
+  {
+    foreground: 'onChipSuccess',
+    background: 'chipSuccess',
+    over: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Chip tone label (v8.1 round 2 tinted chips)',
+  },
+  {
+    foreground: 'onChipNeutral',
+    background: 'chipNeutral',
+    over: 'stage',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Chip tone label (v8.1 round 2 tinted chips)',
+  },
+  {
+    foreground: 'onChipNeutral',
+    background: 'chipNeutral',
+    over: 'stageMid',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Chip tone label (v8.1 round 2 tinted chips)',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'tabBarFill',
+    over: 'stage',
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Inactive tab icon on the floating tab bar',
+  },
+  {
+    foreground: 'onStageVariant',
+    background: 'tabBarFill',
+    over: 'stageMid',
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Inactive tab icon on the floating tab bar',
+  },
+  {
+    foreground: 'onFigure',
+    background: 'figureStageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Numbered cues under the exercise figure',
+  },
+  {
+    foreground: 'figureGround',
+    background: 'figureStageDeep',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Numbered cues under the exercise figure',
+  },
   // ── Neutral foregrounds ───────────────────────────────────────────────────
   {
     foreground: 'onSurface',
@@ -665,7 +759,21 @@ const UNCONSUMED_ROLES: readonly (keyof ColorTokens)[] = [
  * grouping hairline whose glass fill and contents are gated above. Each has an
  * `EXEMPT` entry below; listing them here keeps the coverage test honest.
  */
-const DECORATIVE_ROLES: readonly (keyof ColorTokens)[] = ['stageGlow', 'glassBorder'];
+const DECORATIVE_ROLES: readonly (keyof ColorTokens)[] = [
+  'stageGlow',
+  'stageGlowSoft',
+  'glassBorder',
+  'tabBarBorder',
+  'figureLight',
+  'figureLightEnd',
+  'figureShade',
+  'figureShadeEnd',
+  'figureHalo',
+  'figureProp',
+  'figurePropLine',
+  'figureStage',
+  'figureStageMid',
+];
 
 /**
  * Pairings that are real but carry no contrast requirement, with the exemption
@@ -673,6 +781,11 @@ const DECORATIVE_ROLES: readonly (keyof ColorTokens)[] = ['stageGlow', 'glassBor
  * non-text — an exemption may never be claimed for text.
  */
 const EXEMPT: readonly { readonly pairing: string; readonly exemption: string }[] = [
+  {
+    pairing: 'stageGlowSoft, tabBarBorder and the exercise-figure art (v8.1 round 2)',
+    exemption:
+      'WCAG 1.4.11 — decorative: the dashboard top glow, the floating tab bar hairline (the bar is identified by its tabs, each gated above) and the illustrative figure, which carries no information the numbered cues do not also give in text.',
+  },
   {
     pairing: 'stageGlow radial light at the top of the stage (ADR-P035)',
     exemption:
@@ -899,8 +1012,8 @@ describe('negative control — the pre-addendum palette fails this gate', () => 
   });
 
   it('composites glass before measuring, so translucency cannot hide a failure', () => {
-    // 7% white over the dark stage is #181B25, a known anchor for the helper.
-    expect(composite(darkColors.glassFill, darkColors.stage)).toBe('#181b25');
+    // 5% white over the dark stage is #131620, a known anchor for the helper.
+    expect(composite(darkColors.glassFill, darkColors.stage)).toBe('#131620');
     // An opaque near-white glass would leave light-on-glass text unreadable.
     const rejected: ColorTokens = { ...darkColors, glassFill: '#F3F8FEFF' };
     expect(failures(rejected)).toEqual(

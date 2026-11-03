@@ -889,6 +889,7 @@ export const es = {
   'workout.demo.mobility.cue1': 'Muévete despacio y sin dolor',
   'workout.demo.mobility.cue2': 'Respira en cada repetición',
   'workout.demo.mobility.cue3': 'Detente si sientes molestia',
+  'workout.demo.figureLabel': 'Muñeco haciendo {name}',
   'workout.plan.reps': 'repeticiones',
   'workout.plan.seconds': 'segundos',
   'workout.plan.rest': 'descanso',

@@ -16,6 +16,7 @@ import {
 } from '@/shared/localization';
 import {
   AppText,
+  backgroundImageStyle,
   Banner,
   Chip,
   GlassCard,
@@ -32,7 +33,9 @@ import {
   usePlannedSessionStore,
 } from '../application/planned-session.store';
 import { demoMotionFor } from '../domain/exercise-demo';
+import { figureFor } from '../domain/exercise-figure';
 import { DEMO_CUE_KEYS } from './exercise-demo-copy';
+import { ExerciseFigure } from './ExerciseFigure';
 import { WEEKDAY_KEYS, WEEKDAY_SHORT_KEYS, WEEKDAYS } from './weekday-labels';
 
 export interface WorkoutWeekProps {
@@ -516,7 +519,7 @@ function SessionPanel({
                   </Pressable>
                 ) : null}
               </View>
-              {open ? <ExerciseDemo exerciseKey={exercise.exerciseKey} /> : null}
+              {open ? <ExerciseDemo exerciseKey={exercise.exerciseKey} name={name} /> : null}
             </View>
           );
         })}
@@ -546,33 +549,69 @@ function SessionPanel({
   );
 }
 
-function ExerciseDemo({ exerciseKey }: { exerciseKey: string }) {
+/**
+ * "Ver cómo se hace": the prototype's animated figure over its blue stage,
+ * then the numbered cues. An exercise the figure would misrepresent shows the
+ * cues only (exercise-figure.ts).
+ */
+function ExerciseDemo({ exerciseKey, name }: { exerciseKey: string; name: string }) {
   const { colors, radius, spacing } = useTheme();
   const { language, t } = useLocalization();
   const cues = DEMO_CUE_KEYS[demoMotionFor(exerciseKey)];
+  const figure = figureFor(exerciseKey);
   return (
     <View
-      accessibilityRole="list"
-      style={{
-        backgroundColor: withAlpha(colors.stageDeep, 0.4),
-        borderColor: colors.glassBorder,
-        borderRadius: radius.large,
-        borderWidth: 1,
-        gap: spacing.xs,
-        padding: spacing.md,
-      }}
+      style={[
+        figure
+          ? backgroundImageStyle(
+              `radial-gradient(90% 90% at 50% 20%, ${colors.figureStage} 0%, ${colors.figureStageMid} 55%, ${colors.figureStageDeep} 100%)`,
+              colors.figureStageMid,
+            )
+          : { backgroundColor: withAlpha(colors.stageDeep, 0.4) },
+        {
+          borderColor: colors.glassBorder,
+          borderRadius: radius.large,
+          borderWidth: 1,
+          overflow: 'hidden',
+        },
+      ]}
       testID="workout-exercise-demo"
     >
-      {cues.map((cue, index) => (
-        <View key={cue} style={[styles.row, { alignItems: 'flex-start', gap: spacing.sm }]}>
-          <AppText style={{ color: colors.linkOnStage }} variant="label">
-            {`${formatNumber(index + 1, language)}.`}
-          </AppText>
-          <AppText style={styles.grow} variant="body">
-            {t(cue)}
-          </AppText>
-        </View>
-      ))}
+      {figure ? (
+        <ExerciseFigure
+          exerciseName={name}
+          idSuffix={exerciseKey.replace(/W/g, '_')}
+          motion={figure}
+        />
+      ) : null}
+      <View
+        accessibilityRole="list"
+        style={{
+          backgroundColor: figure ? withAlpha(colors.figureStageDeep, 0.4) : undefined,
+          borderColor: colors.glassBorder,
+          borderTopWidth: figure ? 1 : 0,
+          gap: spacing.xs,
+          padding: spacing.md,
+        }}
+        testID="workout-exercise-cues"
+      >
+        {cues.map((cue, index) => (
+          <View key={cue} style={[styles.row, { alignItems: 'flex-start', gap: spacing.sm }]}>
+            <AppText
+              style={{ color: figure ? colors.figureGround : colors.linkOnStage }}
+              variant="label"
+            >
+              {`${formatNumber(index + 1, language)}.`}
+            </AppText>
+            <AppText
+              style={[styles.grow, figure ? { color: colors.onFigure } : null]}
+              variant="body"
+            >
+              {t(cue)}
+            </AppText>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }

@@ -892,6 +892,7 @@ export const en = {
   'workout.demo.mobility.cue1': 'Move slowly and without pain',
   'workout.demo.mobility.cue2': 'Breathe with each repetition',
   'workout.demo.mobility.cue3': 'Stop if you feel discomfort',
+  'workout.demo.figureLabel': 'Figure doing {name}',
   'workout.plan.reps': 'reps',
   'workout.plan.seconds': 'seconds',
   'workout.plan.rest': 'rest',
