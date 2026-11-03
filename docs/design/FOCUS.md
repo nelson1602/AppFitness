@@ -39,6 +39,11 @@
 8. **Dev-only button:** "Cargar 4 semanas de ejemplo (desarrollo)" must not appear in release builds; show the guard.
 9. **Progreso:** "Plan de la semana" in Entrenamientos gets the "Se renueva el lunes" chip; "Semanas anteriores" follows the synced prototype.
 
+## Approved exceptions and deferrals (owner, 2026-11-03)
+- **Header date colour:** the app keeps `onStageVariant` (#C7D7F0) instead of `#9FB0C8`. #9FB0C8 reads 3.7:1 over the top glow, below WCAG AA 4.5:1; #C7D7F0 reads about 5.5:1. Approved exception.
+- **Seguridad panel (Face ID / Huella):** not in v8.1. Seguridad panel → PR #233 (biometrics), after v8.1.
+- **Medical questions:** the app asks none (published privacy policy). The prototype's conditions, blood pressure, pulse, medications, "Restricciones médicas" and doctor wording were removed so the design matches the app.
+
 ## Already approved — do not touch
 Swipe between tabs, the 7-day strip and Serie N, the weight chart and Medidas, language switching, País, the birth-date wheel, sync diagnostics.
 
