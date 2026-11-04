@@ -97,6 +97,7 @@ export function WorkoutsTab() {
         <WorkoutWeek
           doneDates={doneDates}
           notes={current?.notes ?? []}
+          moves={realtime.moves}
           planStart={planStart}
           routine={shownRoutine}
           sessionMinutes={selectionState.sessionMinutes}

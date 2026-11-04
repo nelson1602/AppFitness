@@ -144,6 +144,8 @@ export const en = {
   'workout.plan.beforeStartBody': 'Your plan started on {date}. Earlier days don’t count.',
   'workouts.session.markDone': 'Mark the session as done',
   'workouts.session.pastDay': 'Saved with {day}’s date.',
+  'workout.plan.movedFrom': 'The iCoach moved it here from {day}.',
+  'workout.plan.movedTo': 'The iCoach moved this session to {day}.',
   'plan.history.title': 'Past weeks',
   'plan.history.subtitle': 'Plan vs. done',
   'plan.history.empty': 'Your weeks will appear here once the first one ends.',

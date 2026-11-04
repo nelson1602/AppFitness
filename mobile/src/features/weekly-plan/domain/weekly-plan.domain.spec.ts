@@ -220,6 +220,25 @@ describe('adherence (ADR-P042 D7)', () => {
     planLink: linked ? { weeklyPlanId: 'p1', planSessionKey: sessionKey, planDate: date } : null,
   });
 
+  // v10 Block A R3: a session the iCoach moved, logged on its new day, counts for its planned day.
+  it('counts a moved session logged on another day for its planned day', () => {
+    const logs = emptyLogs();
+    logs.workouts = [
+      {
+        localDate: '2026-10-27',
+        finished: true,
+        planLink: {
+          weeklyPlanId: 'p1',
+          planSessionKey: 'session.full_body_1',
+          planDate: '2026-10-26',
+        },
+      },
+    ];
+    const result = computeWeekAdherence([plan()], logs);
+    expect(result?.sessions.find((session) => session.date === '2026-10-26')?.done).toBe(true);
+    expect(result?.fulfilledSessions).toBe(1);
+  });
+
   it('is 50 % workouts + 50 % meals, with the ring tones', () => {
     const logs = emptyLogs();
     logs.workouts = [

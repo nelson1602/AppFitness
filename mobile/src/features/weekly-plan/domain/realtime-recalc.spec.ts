@@ -5,6 +5,8 @@ import {
   ACTIVITY_BONUS_CAP_KCAL,
   activityCalorieBonus,
   applyLightening,
+  applyMoves,
+  completedMoves,
   computeRealtimeWeek,
   computeWeekProgress,
   latestCoachChange,
@@ -418,5 +420,70 @@ describe('realtime recalculation (ADR-P040 Addendum v10-A)', () => {
       { date: '2026-11-04', sessionKey: 's2', exercises: [] },
     ]);
     expect(plannedSessionsOf(null, WEEK)).toEqual([]);
+  });
+});
+
+// R3 finished in v10 Block A: a moved session shows, is logged and counts on its new day.
+describe('R3 moved sessions on their new day', () => {
+  const base = {
+    weekDates: WEEK,
+    sessions: SESSIONS,
+    activities: new Map<string, ExtraActivity>(),
+    chosenTrainingDays: 3,
+    muscleGroupOf,
+    planUpdatedAt: null,
+  };
+
+  it('keeps a moved session that was done on its new day, whatever today is', () => {
+    // Monday skipped; on Tuesday the session moves to Tuesday and is logged there.
+    const log = logOf('mon-late', '2026-11-03', '2026-11-02');
+    expect(completedMoves({ weekDates: WEEK, trainingDays: TRAINING, logs: [log] })).toEqual([
+      { sessionKey: 's1', from: '2026-11-02', to: '2026-11-03' },
+    ]);
+    for (const today of ['2026-11-03', '2026-11-05', '2026-11-08']) {
+      const week = computeRealtimeWeek({ ...base, today, logs: [log] });
+      expect(week.moves).toContainEqual({ sessionKey: 's1', from: '2026-11-02', to: '2026-11-03' });
+      expect(week.progress.fulfilledDates).toContain('2026-11-02');
+    }
+  });
+
+  it('never moves a second session onto a day already holding a done move', () => {
+    const week = computeRealtimeWeek({
+      ...base,
+      today: '2026-11-05',
+      logs: [logOf('mon-late', '2026-11-03', '2026-11-02')],
+    });
+    // Wednesday is now skipped too: it moves to Thursday, not onto Tuesday.
+    expect(week.moves).toEqual([
+      { sessionKey: 's1', from: '2026-11-02', to: '2026-11-03' },
+      { sessionKey: 's2', from: '2026-11-04', to: '2026-11-05' },
+    ]);
+  });
+
+  it('applies the moves to the week shown: the new day trains, the old day rests', () => {
+    const routine = {
+      sessions: [],
+      schedule: [
+        { weekday: 'MONDAY', kind: 'TRAINING', sessionKey: 's1' },
+        { weekday: 'TUESDAY', kind: 'RECOVERY', recovery: 'FULL_REST' },
+        { weekday: 'WEDNESDAY', kind: 'TRAINING', sessionKey: 's2' },
+        { weekday: 'THURSDAY', kind: 'RECOVERY', recovery: 'FULL_REST' },
+        { weekday: 'FRIDAY', kind: 'TRAINING', sessionKey: 's3' },
+        { weekday: 'SATURDAY', kind: 'RECOVERY', recovery: 'FULL_REST' },
+        { weekday: 'SUNDAY', kind: 'RECOVERY', recovery: 'FULL_REST' },
+      ],
+    } as unknown as GeneratedWorkoutRoutine;
+    const shown = applyMoves(
+      routine,
+      [{ sessionKey: 's1', from: '2026-11-02', to: '2026-11-03' }],
+      WEEK,
+    );
+    expect(shown.schedule[0]).toEqual({
+      weekday: 'MONDAY',
+      kind: 'RECOVERY',
+      recovery: 'FULL_REST',
+    });
+    expect(shown.schedule[1]).toEqual({ weekday: 'TUESDAY', kind: 'TRAINING', sessionKey: 's1' });
+    expect(applyMoves(routine, [], WEEK)).toBe(routine);
   });
 });

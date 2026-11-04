@@ -252,3 +252,31 @@ describe('logging an earlier day of the week', () => {
     expect(logWorkoutSet).not.toHaveBeenCalled();
   });
 });
+
+// v10 Block A R3: a session moved to another day is logged there and fulfils its planned day.
+describe('logging a moved session', () => {
+  it('stamps the new day and links the planned day', async () => {
+    const TUESDAY = '2026-11-03';
+    jest.mocked(startWorkout).mockResolvedValue(log());
+    jest.mocked(logWorkoutSet).mockResolvedValue(set(SQUAT?.id ?? ''));
+    usePlannedSessionStore.setState({ sessionId: `${TUESDAY}|session-1`, done: {} });
+
+    const ok = await usePlannedSessionStore.getState().completeSet({
+      sessionKey: 'session-1',
+      sessionName: 'Session 1 · Full body',
+      exercise: EXERCISES[0],
+      exercises: EXERCISES,
+      date: TUESDAY,
+      planDate: '2026-11-02',
+      now: new Date('2026-11-04T09:00:00'),
+    });
+
+    expect(ok).toBe(true);
+    expect(startWorkout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startedAt: new Date(`${TUESDAY}T12:00:00`).toISOString(),
+        planLink: expect.objectContaining({ planDate: '2026-11-02' }),
+      }),
+    );
+  });
+});

@@ -95,10 +95,12 @@ function renderWeek(
   todayIndex = 2,
   done: string[] = ['2026-11-02'],
   planStart: string | null = null,
+  moves: readonly { sessionKey: string; from: string; to: string }[] = [],
 ) {
   return render(
     <WorkoutWeek
       doneDates={new Set(done)}
+      moves={moves}
       notes={[{ code: 'plan.progression.up' }]}
       routine={ROUTINE}
       sessionMinutes={45}
@@ -129,7 +131,7 @@ describe('WorkoutWeek (v8.1, prototype Entrenamientos)', () => {
     expect(screen.getByText('0/4 sets')).toBeOnTheScreen();
     expect(screen.getByText('2 × 10–12')).toBeOnTheScreen();
     expect(screen.getByText('2 × 30 s')).toBeOnTheScreen();
-    expect(mockLoad).toHaveBeenCalledWith('session-1', undefined, '2026-11-04');
+    expect(mockLoad).toHaveBeenCalledWith('session-1', undefined, '2026-11-04', '2026-11-04');
   });
 
   it('marks the week with Hecho / Hoy / Pendiente and colours the strip dots', async () => {
@@ -269,7 +271,7 @@ describe('WorkoutWeek logging an earlier day', () => {
   it('marks the Monday session done with the Monday date', async () => {
     await renderWeek(2, []);
     await fireEvent.press(screen.getByTestId('workout-day-0'));
-    expect(mockLoad).toHaveBeenLastCalledWith('session-1', undefined, '2026-11-02');
+    expect(mockLoad).toHaveBeenLastCalledWith('session-1', undefined, '2026-11-02', '2026-11-02');
     expect(screen.getByTestId('workout-exercise-0-set')).toBeOnTheScreen();
 
     await fireEvent.press(screen.getByTestId('workout-session-mark-done'));
@@ -283,5 +285,41 @@ describe('WorkoutWeek logging an earlier day', () => {
     await fireEvent.press(screen.getByTestId('workout-day-4'));
     expect(screen.queryByTestId('workout-exercise-0-set')).toBeNull();
     expect(screen.queryByTestId('workout-session-mark-done')).toBeNull();
+  });
+});
+
+// v10 Block A R3: the moved session shows, is logged and is done on its new day.
+describe('WorkoutWeek with a session the iCoach moved', () => {
+  const MOVE = [{ sessionKey: 'session-1', from: '2026-11-02', to: '2026-11-03' }];
+
+  it('shows it on Tuesday in the strip and the week, and Monday as moved', async () => {
+    await renderWeek(2, [], null, MOVE);
+    expect(screen.getByLabelText('Tuesday, training')).toBeOnTheScreen();
+    expect(screen.getByLabelText('Monday, rest')).toBeOnTheScreen();
+    expect(screen.getByTestId('workout-week-row-1')).toBeOnTheScreen();
+    expect(screen.queryByTestId('workout-week-row-0')).toBeNull();
+
+    await fireEvent.press(screen.getByTestId('workout-day-0'));
+    expect(screen.getByTestId('workout-moved-out')).toHaveTextContent(
+      'The iCoach moved this session to Tuesday.',
+    );
+  });
+
+  it('logs it on Tuesday for the Monday plan', async () => {
+    await renderWeek(2, [], null, MOVE);
+    await fireEvent.press(screen.getByTestId('workout-day-1'));
+    expect(screen.getByTestId('workout-moved-in')).toHaveTextContent(
+      'The iCoach moved it here from Monday.',
+    );
+    expect(mockLoad).toHaveBeenLastCalledWith('session-1', undefined, '2026-11-03', '2026-11-02');
+    await fireEvent.press(screen.getByTestId('workout-session-mark-done'));
+    expect(mockCompleteSession).toHaveBeenCalledWith(
+      expect.objectContaining({ date: '2026-11-03', planDate: '2026-11-02' }),
+    );
+  });
+
+  it('marks Tuesday done once the Monday session is fulfilled there', async () => {
+    await renderWeek(2, ['2026-11-02'], null, MOVE);
+    expect(screen.getByTestId('workout-week-row-1-status')).toHaveTextContent('Done');
   });
 });

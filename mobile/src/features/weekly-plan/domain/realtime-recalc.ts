@@ -151,12 +151,39 @@ export interface RescheduleInput {
   today: string;
   /** The training days the person chose (profile). */
   chosenTrainingDays: number;
+  /** Free days already holding a moved session that was done there. */
+  occupiedDates?: readonly string[];
+}
+
+/**
+ * R3: a moved session that was logged on its new day. The workout stays linked
+ * to the session's planned date (so adherence counts it) but carries its own
+ * date, and that pair fixes the move: it no longer depends on today.
+ */
+export function completedMoves(input: {
+  weekDates: readonly string[];
+  trainingDays: readonly PlannedTrainingDay[];
+  logs: readonly ProgressLog[];
+}): SessionMove[] {
+  const inWeek = new Set(input.weekDates);
+  const moves: SessionMove[] = [];
+  for (const log of [...input.logs].sort(byDateThenId)) {
+    if (!log.finished || log.planDate === null || log.planDate === log.localDate) continue;
+    if (!inWeek.has(log.localDate)) continue;
+    const day = input.trainingDays.find((candidate) => candidate.date === log.planDate);
+    if (!day || moves.some((move) => move.from === day.date)) continue;
+    moves.push({ sessionKey: day.sessionKey, from: day.date, to: log.localDate });
+  }
+  return moves;
 }
 
 /** R3: skipped sessions moved to the week's free days, earliest first. */
 export function rescheduleSkippedSessions(input: RescheduleInput): SessionMove[] {
   const fulfilled = new Set(input.fulfilledDates);
-  const trainingDates = new Set(input.trainingDays.map((day) => day.date));
+  const trainingDates = new Set([
+    ...input.trainingDays.map((day) => day.date),
+    ...(input.occupiedDates ?? []),
+  ]);
   const skipped = input.trainingDays
     .filter((day) => day.date < input.today && !fulfilled.has(day.date))
     .sort((a, b) => a.date.localeCompare(b.date));
@@ -236,6 +263,33 @@ export function strengthRecoveryAdjustments(input: {
     });
   }
   return [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * R3 applied to the week shown: each moved session trains on its new day, and
+ * its original day is a rest day. `weekDates` is Monday first, like the
+ * schedule. The saved plan is never changed.
+ */
+export function applyMoves(
+  routine: GeneratedWorkoutRoutine,
+  moves: readonly SessionMove[],
+  weekDates: readonly string[],
+): GeneratedWorkoutRoutine {
+  if (moves.length === 0) return routine;
+  const dateOf = (weekday: string) =>
+    weekDates[WEEK_ORDER.indexOf(weekday as (typeof WEEK_ORDER)[number])];
+  return {
+    ...routine,
+    schedule: routine.schedule.map((day) => {
+      const date = dateOf(day.weekday);
+      const moveIn = moves.find((move) => move.to === date);
+      if (moveIn) return { weekday: day.weekday, kind: 'TRAINING', sessionKey: moveIn.sessionKey };
+      if (moves.some((move) => move.from === date)) {
+        return { weekday: day.weekday, kind: 'RECOVERY', recovery: 'FULL_REST' };
+      }
+      return day;
+    }),
+  };
 }
 
 /** R4 applied to the routine shown: the lightened sessions lose one set per loaded exercise. */
@@ -328,13 +382,19 @@ export function computeRealtimeWeek(input: RealtimeWeekInput): RealtimeWeek {
     trainingDays,
     logs: input.logs,
   });
-  const moves = rescheduleSkippedSessions({
-    weekDates: input.weekDates,
-    trainingDays,
-    fulfilledDates: base.fulfilledDates,
-    today: input.today,
-    chosenTrainingDays: input.chosenTrainingDays,
-  });
+  // Moves already done on their new day stay; the rest follow today.
+  const done = completedMoves({ weekDates: input.weekDates, trainingDays, logs: input.logs });
+  const moves = [
+    ...done,
+    ...rescheduleSkippedSessions({
+      weekDates: input.weekDates,
+      trainingDays,
+      fulfilledDates: base.fulfilledDates,
+      today: input.today,
+      chosenTrainingDays: input.chosenTrainingDays,
+      occupiedDates: done.map((move) => move.to),
+    }),
+  ].sort((a, b) => a.from.localeCompare(b.from));
   const progress =
     moves.length > 0
       ? computeWeekProgress({

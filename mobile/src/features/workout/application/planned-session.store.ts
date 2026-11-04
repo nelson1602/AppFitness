@@ -77,7 +77,7 @@ interface PlannedSessionState {
    * Loads the completed sets of this planned session on `date` (today by
    * default; v10 Block A: any earlier day of the current week).
    */
-  load: (sessionKey: string, now?: Date, date?: string) => Promise<void>;
+  load: (sessionKey: string, now?: Date, date?: string, planDate?: string) => Promise<void>;
   /**
    * "Serie N": records the next set of one exercise in today's planned
    * workout, starting that workout (linked to the plan) on the first set and
@@ -91,6 +91,11 @@ interface PlannedSessionState {
     now?: Date;
     /** The day the set belongs to; defaults to today. */
     date?: string;
+    /**
+     * The planned day it fulfils, when the iCoach moved the session to `date`
+     * (R3); defaults to `date`.
+     */
+    planDate?: string;
   }) => Promise<boolean>;
   /**
    * Marks every remaining planned set of the session done on `date` (an earlier
@@ -101,6 +106,7 @@ interface PlannedSessionState {
     sessionName: string;
     exercises: readonly PlannedExercise[];
     date: string;
+    planDate?: string;
     now?: Date;
   }) => Promise<boolean>;
 }
@@ -131,13 +137,18 @@ async function ensureLogs(): Promise<readonly WorkoutLog[]> {
 export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => ({
   ...INITIAL,
 
-  load: async (sessionKey, now = new Date(), date = localDateOf(now.toISOString())) => {
+  load: async (
+    sessionKey,
+    now = new Date(),
+    date = localDateOf(now.toISOString()),
+    planDate = date,
+  ) => {
     let owner: SessionSnapshot | null = null;
     set({ status: 'loading', sessionId: `${date}|${sessionKey}` });
     try {
       owner = requireSessionSnapshot();
       const logs = await ensureLogs();
-      const log = plannedLogFor(logs, revisionIds(), date, sessionKey);
+      const log = plannedLogFor(logs, revisionIds(), planDate, sessionKey);
       const sets = log ? await getWorkoutSets(log.id) : [];
       if (!isSessionCurrent(owner)) return;
       set({ status: 'ready', done: completedSetsByExercise(sets) });
@@ -155,6 +166,7 @@ export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => 
     exercises,
     now = new Date(),
     date = localDateOf(now.toISOString()),
+    planDate = date,
   }) => {
     let owner: SessionSnapshot | null = null;
     // Counts belong to one day's session; never add to another day's.
@@ -167,12 +179,12 @@ export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => 
     try {
       owner = requireSessionSnapshot();
       const logs = await ensureLogs();
-      let log = plannedLogFor(logs, revisionIds(), date, sessionKey);
+      let log = plannedLogFor(logs, revisionIds(), planDate, sessionKey);
       if (!log) {
         log = await startWorkout({
           name: sessionName,
           startedAt: stampFor(date, now),
-          planLink: planLinkFor(logs, date),
+          planLink: planLinkFor(logs, planDate),
         });
         useWorkoutStore.setState((s) => ({ workoutLogs: [log as WorkoutLog, ...s.workoutLogs] }));
       }
@@ -206,7 +218,14 @@ export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => 
     }
   },
 
-  completeSession: async ({ sessionKey, sessionName, exercises, date, now = new Date() }) => {
+  completeSession: async ({
+    sessionKey,
+    sessionName,
+    exercises,
+    date,
+    planDate,
+    now = new Date(),
+  }) => {
     for (const exercise of exercises) {
       while ((get().done[exercise.exerciseKey] ?? 0) < exercise.sets) {
         const ok = await get().completeSet({
@@ -216,6 +235,7 @@ export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => 
           exercises,
           now,
           date,
+          planDate,
         });
         if (!ok) return false;
       }

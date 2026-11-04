@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type {
@@ -6,6 +6,7 @@ import type {
   Weekday,
   WorkoutExercisePrescription,
 } from '@/features/icoach';
+import { applyMoves, type SessionMove } from '@/features/weekly-plan/domain/realtime-recalc';
 import type { PlanNote } from '@/features/weekly-plan/domain/weekly-plan';
 import { noteText } from '@/features/weekly-plan/presentation/PastWeeksPanel';
 import {
@@ -56,6 +57,11 @@ export interface WorkoutWeekProps {
    * Earlier days are not part of the plan (v10 Block A, item 2).
    */
   planStart: string | null;
+  /**
+   * Skipped sessions the iCoach moved to a free day (ADR-P040 v10-A R3): they
+   * show, and are logged, on their new day, and count for their planned day.
+   */
+  moves?: readonly SessionMove[];
 }
 
 /** Repetitions recorded for a completed set: the prescription's upper bound. */
@@ -79,10 +85,11 @@ function plannedExercises(exercises: readonly WorkoutExercisePrescription[]): Pl
  * day, then "Plan de la semana" with Hecho / Hoy / Pendiente.
  */
 export function WorkoutWeek({
-  routine,
+  routine: planned,
+  moves = [],
   sessionMinutes,
   notes,
-  doneDates,
+  doneDates: plannedDone,
   weekDates,
   todayIndex,
   planStart,
@@ -91,10 +98,20 @@ export function WorkoutWeek({
   const { language, t } = useLocalization();
   const [selectedIndex, setSelectedIndex] = useState(todayIndex);
   const [restUntil, setRestUntil] = useState<number | null>(null);
+  // The week as it stands: moved sessions on their new day (R3).
+  const routine = useMemo(() => applyMoves(planned, moves, weekDates), [planned, moves, weekDates]);
+  const shownDone = useMemo(
+    () => new Set([...plannedDone].map((date) => moves.find((m) => m.from === date)?.to ?? date)),
+    [plannedDone, moves],
+  );
   const selectedWeekday = WEEKDAYS[selectedIndex];
   const selectedDay = routine.schedule.find((day) => day.weekday === selectedWeekday);
   const beforeStart = (index: number) => planStart !== null && (weekDates[index] ?? '') < planStart;
   const selectedDate = weekDates[selectedIndex] ?? '';
+  const movedIn = moves.find((move) => move.to === selectedDate);
+  const movedOut = moves.find((move) => move.from === selectedDate);
+  // A moved session fulfils its planned day.
+  const selectedPlanDate = movedIn?.from ?? selectedDate;
   // Today and the earlier days of this week can be logged, with their own date
   // (v10 Block A, item 3); later days only show their plan.
   const canLog = selectedIndex <= todayIndex && !beforeStart(selectedIndex);
@@ -103,8 +120,17 @@ export function WorkoutWeek({
   const loadPlanned = usePlannedSessionStore((s) => s.load);
 
   useEffect(() => {
-    if (selectedSessionKey) void loadPlanned(selectedSessionKey, undefined, selectedDate);
-  }, [loadPlanned, selectedSessionKey, selectedDate]);
+    if (selectedSessionKey) {
+      void loadPlanned(selectedSessionKey, undefined, selectedDate, selectedPlanDate);
+    }
+  }, [loadPlanned, selectedSessionKey, selectedDate, selectedPlanDate]);
+
+  const dayNameOf = (date: string) => {
+    const weekday = WEEKDAYS[weekDates.indexOf(date)];
+    const name = weekday ? t(WEEKDAY_KEYS[weekday]) : date;
+    // Mid-sentence, Spanish day names are lower case.
+    return language === 'es' ? name.toLocaleLowerCase('es') : name;
+  };
 
   const sessionName = (sessionKey: string) => {
     const index = routine.sessions.findIndex((session) => session.key === sessionKey);
@@ -115,7 +141,7 @@ export function WorkoutWeek({
     <View style={{ gap: spacing.lg }} testID="workout-week">
       <DayStrip
         beforeStart={beforeStart}
-        doneDates={doneDates}
+        doneDates={shownDone}
         onSelect={setSelectedIndex}
         routine={routine}
         selectedIndex={selectedIndex}
@@ -149,6 +175,12 @@ export function WorkoutWeek({
         <SessionPanel
           canLog={canLog}
           date={selectedDate}
+          movedNote={
+            movedIn
+              ? interpolate(t('workout.plan.movedFrom'), { day: dayNameOf(movedIn.from) })
+              : null
+          }
+          planDate={selectedPlanDate}
           isToday={selectedIndex === todayIndex}
           language={language}
           minutes={sessionMinutes}
@@ -160,7 +192,7 @@ export function WorkoutWeek({
           sessionKey={selectedDay.sessionKey}
           title={sessionName(selectedDay.sessionKey)}
           weekday={selectedWeekday}
-          doneOnDate={doneDates.has(weekDates[selectedIndex] ?? '')}
+          doneOnDate={shownDone.has(selectedDate)}
         />
       ) : (
         <GlassCard testID="workout-rest-day">
@@ -170,19 +202,21 @@ export function WorkoutWeek({
               {t('workout.plan.restDay')}
             </AppText>
           </View>
-          <AppText tone="onStageVariant">
-            {t(
-              selectedDay?.kind === 'RECOVERY' && selectedDay.recovery === 'ACTIVE_RECOVERY'
-                ? 'workout.plan.restDayActive'
-                : 'workout.plan.restDayFull',
-            )}
+          <AppText tone="onStageVariant" testID={movedOut ? 'workout-moved-out' : undefined}>
+            {movedOut
+              ? interpolate(t('workout.plan.movedTo'), { day: dayNameOf(movedOut.to) })
+              : t(
+                  selectedDay?.kind === 'RECOVERY' && selectedDay.recovery === 'ACTIVE_RECOVERY'
+                    ? 'workout.plan.restDayActive'
+                    : 'workout.plan.restDayFull',
+                )}
           </AppText>
         </GlassCard>
       )}
 
       <WeekPlanPanel
         beforeStart={beforeStart}
-        doneDates={doneDates}
+        doneDates={shownDone}
         onSelect={setSelectedIndex}
         routine={routine}
         sessionName={sessionName}
@@ -348,6 +382,8 @@ function SessionPanel({
   isToday,
   canLog,
   date,
+  planDate,
+  movedNote,
   doneOnDate,
   minutes,
   notes,
@@ -363,6 +399,10 @@ function SessionPanel({
   canLog: boolean;
   /** The selected day (YYYY-MM-DD); sets are recorded on it. */
   date: string;
+  /** The planned day the session fulfils (differs from `date` when moved, R3). */
+  planDate: string;
+  /** "Movida del lunes por el iCoach", when moved. */
+  movedNote: string | null;
   doneOnDate: boolean;
   minutes: number | null;
   notes: readonly PlanNote[];
@@ -414,6 +454,15 @@ function SessionPanel({
         <AppText tone="onStageVariant" variant="caption">
           {interpolate(t('workout.plan.byICoach'), { day: t(WEEKDAY_KEYS[weekday]) })}
         </AppText>
+        {movedNote ? (
+          <AppText
+            style={{ color: colors.linkOnStage }}
+            testID="workout-moved-in"
+            variant="caption"
+          >
+            {movedNote}
+          </AppText>
+        ) : null}
       </View>
 
       {noteChips.length > 0 ? (
@@ -458,6 +507,7 @@ function SessionPanel({
                 sessionName: title,
                 exercises: planned,
                 date,
+                planDate,
               });
               setSaveFailed(!ok);
             }}
@@ -572,6 +622,7 @@ function SessionPanel({
                         exercise: plannedExercise,
                         exercises: planned,
                         date,
+                        planDate,
                       });
                       setSaveFailed(!ok);
                       if (ok) onSetDone(exercise.restSeconds);
