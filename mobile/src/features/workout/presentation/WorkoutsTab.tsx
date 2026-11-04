@@ -5,7 +5,9 @@ import { View } from 'react-native';
 import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-home-data';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
+import { useRealtimeWeek } from '@/features/weekly-plan/application/use-realtime-week';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
+import { applyLightening } from '@/features/weekly-plan/domain/realtime-recalc';
 import { weekDates } from '@/features/weekly-plan/domain/week';
 import { PlanChangePrompt } from '@/features/weekly-plan/presentation/PlanChangePrompt';
 import { useLocalization } from '@/shared/localization';
@@ -14,6 +16,7 @@ import { useTheme } from '@/shared/theme';
 
 import { useWorkoutSelection } from '../application/use-workout-selection';
 import { useWorkoutStore } from '../application/workout.store';
+import { ExtraActivityPanel } from './ExtraActivityPanel';
 import { WorkoutWeek } from './WorkoutWeek';
 
 /**
@@ -41,6 +44,16 @@ export function WorkoutsTab() {
   const doneDates = useMemo(
     () => new Set((adherence?.sessions ?? []).filter((s) => s.done).map((session) => session.date)),
     [adherence],
+  );
+  const routine =
+    selectionState.kind === 'ready' && selectionState.selection.status === 'ready'
+      ? selectionState.selection.routine
+      : null;
+  // ADR-P040 Addendum v10-A: extra activities and the real-time overlays.
+  const realtime = useRealtimeWeek(routine);
+  const shownRoutine = useMemo(
+    () => (routine ? applyLightening(routine, realtime.lightenings) : null),
+    [realtime.lightenings, routine],
   );
 
   if (status === 'web-unavailable') {
@@ -77,16 +90,23 @@ export function WorkoutsTab() {
           {t('workout.plan.gapMessage')}
         </Banner>
       ) : null}
-      {selectionState.kind === 'ready' && selectionState.selection.status === 'ready' ? (
+      {selectionState.kind === 'ready' && shownRoutine ? (
         <WorkoutWeek
           doneDates={doneDates}
           notes={current?.notes ?? []}
-          routine={selectionState.selection.routine}
+          routine={shownRoutine}
           sessionMinutes={selectionState.sessionMinutes}
           todayIndex={weekdayIndex}
           weekDates={dates}
         />
       ) : null}
+      <ExtraActivityPanel
+        calorieBonus={realtime.calorieBonus}
+        extras={realtime.extras}
+        lightenings={realtime.lightenings}
+        moves={realtime.moves}
+        today={realtime.today}
+      />
 
       <View style={{ gap: spacing.xs }}>
         <AppText accessibilityRole="header" tone="onStageVariant" variant="caption">

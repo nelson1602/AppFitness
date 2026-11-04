@@ -39,14 +39,22 @@ import {
   getMyRoutines,
   getMyWorkoutLogs,
   getRoutineExercises,
+  getSetExercisesForLogs,
   getWorkoutSets,
   logWorkoutSet,
   removeCustomExercise,
   removeExerciseFromRoutine,
   removeWorkoutLog,
   removeWorkoutSetEntry,
+  saveWorkoutAsRoutine,
   startWorkout,
 } from './workout.service';
+
+/** A set's exercise, keyed for the extra-activity rule (ADR-P040 Addendum v10-A). */
+export interface ActivitySetRef {
+  setId: string;
+  exerciseId: string;
+}
 
 /**
  * Workout orchestration (ADR-P015 Slice 4A). Holds UI/derived state and
@@ -69,8 +77,14 @@ export interface WorkoutState {
   routineExercises: RoutineExercise[];
   /** Sets of the most recently loaded workout log (per-context). */
   workoutSets: WorkoutSet[];
+  /** Each recent workout's set exercises, by workout id: what its activity type is read from. */
+  activitySets: Record<string, ActivitySetRef[]>;
   error: string | null;
   load: () => Promise<void>;
+  /** Reads the set exercises of these workouts (the week's activities). Never throws. */
+  loadActivitySets: (workoutLogIds: readonly string[]) => Promise<void>;
+  /** "Guardar como rutina": the logged workout becomes a named, reusable routine. */
+  saveWorkoutAsRoutine: (workoutLogId: string, name: string) => Promise<boolean>;
   loadCustomExercises: () => Promise<void>;
   createCustomExercise: (input: CustomExerciseInput) => Promise<boolean>;
   updateCustomExercise: (id: string, input: CustomExerciseInput) => Promise<boolean>;
@@ -98,11 +112,53 @@ const INITIAL = {
   customExercises: [] as CustomExercise[],
   routineExercises: [] as RoutineExercise[],
   workoutSets: [] as WorkoutSet[],
+  activitySets: {} as Record<string, ActivitySetRef[]>,
   error: null,
 };
 
 export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   ...INITIAL,
+
+  loadActivitySets: async (workoutLogIds) => {
+    if (workoutLogIds.length === 0) return;
+    let owner: SessionSnapshot | null = null;
+    try {
+      owner = requireSessionSnapshot();
+      const rows = await getSetExercisesForLogs(workoutLogIds);
+      if (!isSessionCurrent(owner)) return;
+      const next: Record<string, ActivitySetRef[]> = {};
+      for (const id of workoutLogIds) next[id] = [];
+      for (const row of rows) {
+        next[row.workoutLogId] = [
+          ...(next[row.workoutLogId] ?? []),
+          { setId: row.setId, exerciseId: row.exerciseId },
+        ];
+      }
+      set((s) => ({ activitySets: { ...s.activitySets, ...next } }));
+    } catch (error) {
+      if (isDatabaseUnsupportedOnWebError(error)) return;
+      logError('workout.loadActivitySets', error);
+    }
+  },
+
+  saveWorkoutAsRoutine: async (workoutLogId, name) => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    let owner: SessionSnapshot | null = null;
+    set({ status: 'saving', error: null });
+    try {
+      owner = requireSessionSnapshot();
+      const { routine } = await saveWorkoutAsRoutine(workoutLogId, trimmed);
+      if (!isSessionCurrent(owner)) return false;
+      set((s) => ({ routines: [...s.routines, routine], status: 'ready', error: null }));
+      return true;
+    } catch (error) {
+      logError('workout.saveWorkoutAsRoutine', error);
+      if (owner && !isSessionCurrent(owner)) return false;
+      set({ status: 'error', error: 'Your routine could not be saved. Please try again.' });
+      return false;
+    }
+  },
 
   load: async () => {
     let owner: SessionSnapshot | null = null;
@@ -300,6 +356,10 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
         status: 'ready',
         error: null,
       }));
+      // A finished workout may fulfil a planned session: the week's adherence
+      // follows the local write at once, not the next sync or focus.
+      if (useWeeklyPlanStore.getState().status === 'ready')
+        void useWeeklyPlanStore.getState().load();
       return true;
     } catch (error) {
       logError('workout.finishWorkout', error);
@@ -405,7 +465,19 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       owner = requireSessionSnapshot();
       const wset = await logWorkoutSet(workoutLogId, input);
       if (!isSessionCurrent(owner)) return false;
-      set((s) => ({ workoutSets: [...s.workoutSets, wset], status: 'ready', error: null }));
+      set((s) => ({
+        workoutSets: [...s.workoutSets, wset],
+        // The activity's type follows its sets at once (ADR-P040 Addendum v10-A).
+        activitySets: {
+          ...s.activitySets,
+          [workoutLogId]: [
+            ...(s.activitySets[workoutLogId] ?? []),
+            { setId: wset.id, exerciseId: wset.exerciseId },
+          ],
+        },
+        status: 'ready',
+        error: null,
+      }));
       return true;
     } catch (error) {
       logError('workout.logWorkoutSet', error);
@@ -447,6 +519,12 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       if (!isSessionCurrent(owner)) return false;
       set((s) => ({
         workoutSets: s.workoutSets.filter((w) => w.id !== id),
+        activitySets: Object.fromEntries(
+          Object.entries(s.activitySets).map(([logId, refs]) => [
+            logId,
+            refs.filter((ref) => ref.setId !== id),
+          ]),
+        ),
         status: 'ready',
         error: null,
       }));

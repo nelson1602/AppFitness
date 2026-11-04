@@ -32,6 +32,13 @@ export interface HomeInputs {
   readonly targetWeightKg: number | null;
   readonly caloriesConsumed: number | null;
   readonly calorieTarget: number | null;
+  /**
+   * The week's progress under ADR-P040 Addendum v10-A R1 (planned sessions
+   * fulfilled, extras apart). Without it, every finished workout counts.
+   */
+  readonly weekProgress?: { readonly done: number; readonly extra: number } | null;
+  /** R2: today's kcal from extra cardio, added to the calorie target. */
+  readonly activityCalories?: number;
 }
 
 export type HomeToday =
@@ -48,11 +55,13 @@ export type CoachState = 'start' | 'today-done' | 'week-done' | 'rest' | 'no-pla
 
 export interface HomeSummary {
   readonly week: {
-    /** Finished workouts this ISO week. */
+    /** Planned sessions fulfilled this ISO week (finished workouts without a progress input). */
     readonly done: number;
     /** Planned training days this week, or `null` without a plan. */
     readonly goal: number | null;
     readonly complete: boolean;
+    /** Finished workouts that fulfilled no planned session ("+N extra"); absent = 0. */
+    readonly extra?: number;
   };
   readonly weight: {
     readonly current: number;
@@ -68,6 +77,8 @@ export interface HomeSummary {
     readonly target: number | null;
     /** 0–1 of the target, or `null` without both values. */
     readonly share: number | null;
+    /** kcal added to the target today by extra cardio; absent = 0. */
+    readonly activityBonus?: number;
   };
 }
 
@@ -92,7 +103,8 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
   const goal = inputs.routine
     ? inputs.routine.schedule.filter((day) => day.kind === 'TRAINING').length
     : null;
-  const done = finishedThisWeek.length;
+  const done = inputs.weekProgress ? inputs.weekProgress.done : finishedThisWeek.length;
+  const extra = inputs.weekProgress ? inputs.weekProgress.extra : 0;
   const complete = goal !== null && goal > 0 && done >= goal;
   const today = todayFromPlan(inputs, finishedToday);
 
@@ -115,9 +127,11 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
         }
       : null;
 
-  const { caloriesConsumed: consumed, calorieTarget: calTarget } = inputs;
+  const { caloriesConsumed: consumed } = inputs;
+  const activityBonus = inputs.calorieTarget !== null ? (inputs.activityCalories ?? 0) : 0;
+  const calTarget = inputs.calorieTarget !== null ? inputs.calorieTarget + activityBonus : null;
   return {
-    week: { done, goal, complete },
+    week: { done, goal, complete, extra },
     weight,
     today,
     coach,
@@ -128,6 +142,7 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
         consumed !== null && calTarget !== null && calTarget > 0
           ? clamp01(consumed / calTarget)
           : null,
+      activityBonus,
     },
   };
 }

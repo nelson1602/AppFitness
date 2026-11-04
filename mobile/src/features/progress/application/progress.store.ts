@@ -6,6 +6,7 @@ import {
   requireSessionSnapshot,
   type SessionSnapshot,
 } from '@/features/authentication';
+import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
 
@@ -185,9 +186,11 @@ export const useProgressStore = create<ProgressState>((set, get) => {
       mutate((userId) => gatherAndUpsertSnapshots(userId).then(() => undefined)),
 
     addBodyWeight: (input) =>
-      mutate((userId) => createBodyWeight(userId, input).then(() => undefined)),
+      mutate((userId) => createBodyWeight(userId, input).then(() => undefined)).then(afterWeighIn),
     editBodyWeight: (id, input) =>
-      mutate((userId) => updateBodyWeight(userId, id, input).then(() => undefined)),
+      mutate((userId) => updateBodyWeight(userId, id, input).then(() => undefined)).then(
+        afterWeighIn,
+      ),
     removeBodyWeight: (id) => mutate((userId) => deleteBodyWeight(userId, id)),
 
     addBodyMeasurement: (input) =>
@@ -197,6 +200,16 @@ export const useProgressStore = create<ProgressState>((set, get) => {
     removeBodyMeasurement: (id) => mutate((userId) => deleteBodyMeasurement(userId, id)),
   };
 });
+
+/**
+ * ADR-P040 Addendum v10-A R6: a saved weigh-in may move the week's targets, so
+ * the saved plan is re-checked at once; when they moved, "¿Actualizar tu
+ * plan?" asks before anything changes.
+ */
+function afterWeighIn(ok: boolean): boolean {
+  if (ok) void useWeeklyPlanStore.getState().checkForChanges();
+  return ok;
+}
 
 // Weights, measurements and snapshots all belong to one account; a session
 // transition drops them before the next account can render them.

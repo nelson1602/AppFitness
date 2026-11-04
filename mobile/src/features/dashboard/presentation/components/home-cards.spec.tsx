@@ -126,6 +126,40 @@ describe('GoalCard', () => {
   });
 });
 
+// ADR-P040 Addendum v10-A: "+N extra", "+N kcal por actividad" and R5's sentence.
+describe('real-time changes on Inicio', () => {
+  it('shows extras beside the week and the activity bonus under the calories', async () => {
+    mockLanguage = 'es';
+    const summary: HomeSummary = {
+      ...TRAINING,
+      week: { ...TRAINING.week, extra: 1 },
+      calories: { ...TRAINING.calories, activityBonus: 120 },
+    };
+    await render(<GoalCard goalType={null} summary={summary} />);
+    expect(screen.getByTestId('home-goal-extra')).toHaveTextContent('+1 extra');
+    await render(<TodayTiles summary={summary} />);
+    expect(screen.getByTestId('home-tile-calories-note')).toHaveTextContent(
+      '+120 kcal por actividad',
+    );
+  });
+
+  it('adds the latest change in one sentence to the iCoach card', async () => {
+    mockLanguage = 'es';
+    await render(
+      <CoachCard
+        evaluationDate={null}
+        latestChange={{ kind: 'moved', at: 1, from: '2026-11-04', to: '2026-11-07' }}
+        summary={TRAINING}
+      />,
+    );
+    expect(screen.getByTestId('home-coach-change')).toHaveTextContent(
+      'Moví tu sesión del miércoles al sábado para que no la pierdas.',
+    );
+    await render(<CoachCard evaluationDate={null} summary={TRAINING} />);
+    expect(screen.queryByTestId('home-coach-change')).toBeNull();
+  });
+});
+
 describe('CoachCard', () => {
   it("offers 'Empezar' for today's session and opens Entrenamientos", async () => {
     mockLanguage = 'es';

@@ -37,9 +37,11 @@ export function PlanChangePrompt() {
   if (pending.length === 0) return null;
   const inputChanges = pending.filter(
     (change): change is Exclude<PlanInputChange, 'dishPlan'> =>
-      change !== 'moreDays' && change !== 'dishPlan',
+      change !== 'moreDays' && change !== 'dishPlan' && change !== 'targets',
   );
   const dishPlan = pending.includes('dishPlan');
+  // ADR-P040 Addendum v10-A R6: a weigh-in or an evaluation change.
+  const targets = pending.includes('targets');
   const changes = inputChanges.map((change) => t(CHANGE_KEY[change])).join(', ');
   // ADR-P040 D11: two strong weeks earned one more training day.
   const moreDays =
@@ -61,6 +63,11 @@ export function PlanChangePrompt() {
       {dishPlan ? (
         <AppText testID="plan-change-dish-plan" tone="onStageVariant">
           {t('plan.change.dishPlan')}
+        </AppText>
+      ) : null}
+      {targets ? (
+        <AppText testID="plan-change-targets" tone="onStageVariant">
+          {t('plan.change.targets')}
         </AppText>
       ) : null}
       {moreDays !== null ? (

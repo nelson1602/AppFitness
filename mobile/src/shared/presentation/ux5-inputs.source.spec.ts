@@ -27,7 +27,8 @@ const SRC = `${__dirname}/../..`;
 const UX5_FILES: Record<string, number> = {
   'features/nutrition/presentation/DietaryPreferences.tsx': 2,
   'features/workout/presentation/RoutineBuilder.tsx': 1,
-  'features/workout/presentation/WorkoutLogScreen.tsx': 4,
+  // v10 Block A item 5 added the "Guardar como rutina" name field (born an AppTextInput).
+  'features/workout/presentation/WorkoutLogScreen.tsx': 5,
 };
 
 /** A raw React Native text input element. `<AppTextInput` does not match. */
@@ -64,7 +65,7 @@ describe.each(Object.entries(UX5_FILES))('%s', (path, expected) => {
   });
 });
 
-it('accounts for all seven UX-5 inputs', () => {
+it('accounts for all seven UX-5 inputs, plus the v10 routine-name field', () => {
   const total = Object.keys(UX5_FILES).reduce((sum, path) => sum + count(read(path), APP_INPUT), 0);
-  expect(total).toBe(7);
+  expect(total).toBe(8);
 });

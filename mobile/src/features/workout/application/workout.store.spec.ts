@@ -22,11 +22,14 @@ import {
   getMyRoutines,
   getMyWorkoutLogs,
   getRoutineExercises,
+  getSetExercisesForLogs,
   getWorkoutSets,
   logWorkoutSet,
   removeCustomExercise,
   removeExerciseFromRoutine,
   removeWorkoutLog,
+  removeWorkoutSetEntry,
+  saveWorkoutAsRoutine,
   startWorkout,
 } from './workout.service';
 import { useWorkoutStore } from './workout.store';
@@ -52,6 +55,8 @@ jest.mock('./workout.service', () => ({
   logWorkoutSet: jest.fn(),
   editWorkoutSet: jest.fn(),
   removeWorkoutSetEntry: jest.fn(),
+  getSetExercisesForLogs: jest.fn(),
+  saveWorkoutAsRoutine: jest.fn(),
 }));
 // A faithful in-memory session (generation + owner comparison), NOT a stub:
 // `isSessionCurrent` really compares, so the store guards are exercised.
@@ -171,6 +176,7 @@ beforeEach(() => {
     customExercises: [],
     routineExercises: [],
     workoutSets: [],
+    activitySets: {},
     error: null,
   });
 });
@@ -363,5 +369,42 @@ describe('useWorkoutStore', () => {
       }),
     ).toBe(true);
     expect(useWorkoutStore.getState().workoutSets.map((s) => s.id)).toEqual(['s1', 's2']);
+  });
+
+  // ADR-P040 Addendum v10-A: the extra-activity rule reads each workout's set
+  // exercises from the store, which follows every local set write at once.
+  it('loads the set exercises of the week’s workouts and follows set writes', async () => {
+    jest
+      .mocked(getSetExercisesForLogs)
+      .mockResolvedValue([{ workoutLogId: 'l1', setId: 's1', exerciseId: 'e1' }]);
+    await useWorkoutStore.getState().loadActivitySets(['l1', 'l2']);
+    expect(useWorkoutStore.getState().activitySets).toEqual({
+      l1: [{ setId: 's1', exerciseId: 'e1' }],
+      l2: [],
+    });
+
+    mockLogSet.mockResolvedValue(wset({ id: 's2', workoutLogId: 'l2', exerciseId: 'e2' }));
+    await useWorkoutStore.getState().logWorkoutSet('l2', { exerciseId: 'e2', setNumber: 1 });
+    expect(useWorkoutStore.getState().activitySets.l2).toEqual([{ setId: 's2', exerciseId: 'e2' }]);
+
+    jest.mocked(removeWorkoutSetEntry).mockResolvedValue(undefined);
+    await useWorkoutStore.getState().removeWorkoutSet('s1');
+    expect(useWorkoutStore.getState().activitySets.l1).toEqual([]);
+  });
+
+  it('never throws when the set exercises cannot be read', async () => {
+    jest.mocked(getSetExercisesForLogs).mockRejectedValue(new Error('boom'));
+    await expect(useWorkoutStore.getState().loadActivitySets(['l1'])).resolves.toBeUndefined();
+    expect(logError).toHaveBeenCalledWith('workout.loadActivitySets', expect.any(Error));
+  });
+
+  it('saves a logged workout as a named, reusable routine', async () => {
+    jest
+      .mocked(saveWorkoutAsRoutine)
+      .mockResolvedValue({ routine: routine({ id: 'r9', name: 'Piernas' }), exercises: [] });
+    expect(await useWorkoutStore.getState().saveWorkoutAsRoutine('l1', '  Piernas ')).toBe(true);
+    expect(saveWorkoutAsRoutine).toHaveBeenCalledWith('l1', 'Piernas');
+    expect(useWorkoutStore.getState().routines.map((r) => r.name)).toEqual(['Piernas']);
+    expect(await useWorkoutStore.getState().saveWorkoutAsRoutine('l1', '  ')).toBe(false);
   });
 });

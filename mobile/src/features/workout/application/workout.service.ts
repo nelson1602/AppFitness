@@ -35,6 +35,7 @@ import {
   addWorkoutSet,
   countRoutinesUsingExercise,
   listRoutineExercises,
+  listSetExercisesForLogs,
   listWorkoutSets,
   removeRoutineExercise,
   removeWorkoutSet,
@@ -160,4 +161,50 @@ export function editWorkoutSet(id: string, patch: WorkoutSetPatch): Promise<Work
 
 export function removeWorkoutSetEntry(id: string): Promise<void> {
   return removeWorkoutSet(requireUserId(), id);
+}
+
+// ── extra activities and saved routines (ADR-P040 Addendum v10-A) ─────────────
+/** The exercise of each set of these workouts, for the extra-activity rule. */
+export function getSetExercisesForLogs(
+  workoutLogIds: readonly string[],
+): Promise<{ workoutLogId: string; setId: string; exerciseId: string }[]> {
+  return listSetExercisesForLogs(requireUserId(), workoutLogIds);
+}
+
+/**
+ * "Guardar como rutina": a logged workout becomes a reusable routine with the
+ * person's name for it and one entry per exercise, in the order first logged,
+ * targeting the sets logged and the most reps and weight used.
+ */
+export async function saveWorkoutAsRoutine(
+  workoutLogId: string,
+  name: string,
+): Promise<{ routine: Routine; exercises: RoutineExercise[] }> {
+  const userId = requireUserId();
+  const sets = await listWorkoutSets(userId, workoutLogId);
+  const routine = await createRoutine(userId, { name });
+  const order: string[] = [];
+  const byExercise = new Map<string, WorkoutSet[]>();
+  for (const set of sets) {
+    if (!byExercise.has(set.exerciseId)) order.push(set.exerciseId);
+    byExercise.set(set.exerciseId, [...(byExercise.get(set.exerciseId) ?? []), set]);
+  }
+  const exercises: RoutineExercise[] = [];
+  for (const [index, exerciseId] of order.entries()) {
+    const logged = byExercise.get(exerciseId) ?? [];
+    const most = (values: (number | null)[]) => {
+      const known = values.filter((value): value is number => value !== null);
+      return known.length > 0 ? Math.max(...known) : null;
+    };
+    exercises.push(
+      await addRoutineExercise(userId, routine.id, {
+        exerciseId,
+        order: index,
+        targetSets: logged.length,
+        targetReps: most(logged.map((set) => set.reps)),
+        targetWeightKg: most(logged.map((set) => set.weightKg)),
+      }),
+    );
+  }
+  return { routine, exercises };
 }

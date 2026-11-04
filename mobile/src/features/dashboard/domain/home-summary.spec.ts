@@ -39,7 +39,7 @@ describe('buildHomeSummary (ADR-P039 Inicio)', () => {
       ],
     });
 
-    expect(summary.week).toEqual({ done: 1, goal: 3, complete: false });
+    expect(summary.week).toEqual({ done: 1, goal: 3, complete: false, extra: 0 });
     expect(summary.today).toEqual({ kind: 'training', minutes: 45, completed: false });
     expect(summary.coach).toBe('start');
   });
@@ -63,7 +63,7 @@ describe('buildHomeSummary (ADR-P039 Inicio)', () => {
         finished: true,
       })),
     });
-    expect(summary.week).toEqual({ done: 3, goal: 3, complete: true });
+    expect(summary.week).toEqual({ done: 3, goal: 3, complete: true, extra: 0 });
     expect(summary.coach).toBe('week-done');
   });
 
@@ -107,7 +107,7 @@ describe('buildHomeSummary (ADR-P039 Inicio)', () => {
   it('shares calories of the target only when both exist', () => {
     expect(
       buildHomeSummary({ ...base, caloriesConsumed: 900, calorieTarget: 1800 }).calories,
-    ).toEqual({ consumed: 900, target: 1800, share: 0.5 });
+    ).toEqual({ consumed: 900, target: 1800, share: 0.5, activityBonus: 0 });
     expect(
       buildHomeSummary({ ...base, caloriesConsumed: 2400, calorieTarget: 1800 }).calories.share,
     ).toBe(1);
@@ -124,5 +124,36 @@ describe('buildHomeSummary (ADR-P039 Inicio)', () => {
       calorieTarget: 1800,
     };
     expect(buildHomeSummary(inputs)).toEqual(buildHomeSummary(inputs));
+  });
+
+  // ADR-P040 Addendum v10-A R1/R2.
+  it('takes the week from the real-time progress: planned sessions done, extras apart', () => {
+    const summary = buildHomeSummary({
+      ...base,
+      logs: [
+        { localDate: '2026-10-19', finished: true },
+        { localDate: '2026-10-20', finished: true },
+      ],
+      weekProgress: { done: 1, extra: 1 },
+    });
+    expect(summary.week).toEqual({ done: 1, goal: 3, complete: false, extra: 1 });
+  });
+
+  it("adds today's activity kcal to the calorie target", () => {
+    const summary = buildHomeSummary({
+      ...base,
+      caloriesConsumed: 1000,
+      calorieTarget: 1900,
+      activityCalories: 100,
+    });
+    expect(summary.calories).toEqual({
+      consumed: 1000,
+      target: 2000,
+      share: 0.5,
+      activityBonus: 100,
+    });
+    expect(
+      buildHomeSummary({ ...base, calorieTarget: null, activityCalories: 100 }).calories,
+    ).toEqual({ consumed: null, target: null, share: null, activityBonus: 0 });
   });
 });
