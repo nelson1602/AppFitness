@@ -209,6 +209,19 @@ async function pushLoop(
         })),
       );
     } catch (error) {
+      // v10 Block A: a 401 is about the access token (15 min TTL), not the
+      // operations. Counting it as a failed attempt put every row in backoff,
+      // so the retry with the rotated token right after found nothing ready,
+      // and each later sync pushed the backoff further out. Like a 402, the
+      // batch goes back to PENDING untouched.
+      if (error instanceof SyncHttpError && error.status === 401) {
+        await returnInFlightToPending(
+          userId,
+          readable.map((row) => row.op_id),
+          now(),
+        );
+        return 'unauthenticated';
+      }
       if (error instanceof SyncHttpError && error.status === 402) {
         await returnInFlightToPending(
           userId,
@@ -221,7 +234,7 @@ async function pushLoop(
       for (const row of readable) {
         await markFailed(userId, row.op_id, describeError(error), now());
       }
-      return error instanceof SyncHttpError && error.status === 401 ? 'unauthenticated' : 'offline';
+      return 'offline';
     }
 
     const byOpId = new Map(readable.map((row) => [row.op_id, row]));

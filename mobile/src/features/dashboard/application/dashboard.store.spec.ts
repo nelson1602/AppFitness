@@ -133,6 +133,23 @@ describe('dashboard store syncNow', () => {
     expect(state.data?.sync.status).toBe('idle');
   });
 
+  // v10 Block A: the real refresh publishes the rotated session (generation
+  // bump). The run used to look stale after it, return early and leave
+  // "Sincronizar" spinning forever.
+  it('finishes the sync after a real token rotation instead of spinning forever', async () => {
+    mockRunSync
+      .mockResolvedValueOnce(report('unauthenticated'))
+      .mockResolvedValueOnce(report('success'));
+    mockRefreshTokens.mockImplementation(async () => auth.rotateTo(rotatedSession));
+
+    await useDashboardStore.getState().syncNow();
+
+    const state = useDashboardStore.getState();
+    expect(mockRunSync.mock.calls[1][0].getToken()).toBe('fresh-token');
+    expect(state.data?.sync.status).toBe('idle');
+    expect(state.data?.sync.lastSyncedAt).not.toBeNull();
+  });
+
   /**
    * The session is captured once and its id stays paired with its token. A
    * rotation that returns a DIFFERENT account (the user switched while the

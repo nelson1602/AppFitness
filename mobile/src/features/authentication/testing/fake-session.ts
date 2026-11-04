@@ -41,6 +41,11 @@ export interface FakeSessionModule {
   becomeUser(userId: string, overrides?: Partial<Session>): Session;
   /** Signs out (bumps the generation). */
   endSession(): void;
+  /**
+   * What the real `refreshTokens` does on success: publishes the rotated
+   * session for the same account, which bumps the generation (v10 Block A).
+   */
+  rotateTo(next: Session): Session;
 }
 
 function userFor(userId: string): AuthUser {
@@ -115,5 +120,9 @@ export function createFakeSessionModule(): FakeSessionModule {
       return next;
     },
     endSession: () => transition(null, 'unauthenticated'),
+    rotateTo: (next) => {
+      transition(next, 'authenticated');
+      return next;
+    },
   };
 }

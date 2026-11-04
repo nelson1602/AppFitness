@@ -369,7 +369,9 @@ describe('runSync — push loop', () => {
     expect(mockMarkFailed).toHaveBeenCalledWith(USER, 'op-2', 'Network request failed', NOW);
   });
 
-  it('reports unauthenticated on a 401 push failure (retry metadata still recorded)', async () => {
+  // v10 Block A: an expired token is not a failed attempt — no backoff, so the
+  // retry with the rotated token can push the same rows at once.
+  it('reports unauthenticated on a 401 push failure and returns the batch to PENDING', async () => {
     mockCreateTransport.mockReturnValue(
       fakeTransport({ push: jest.fn().mockRejectedValue(new SyncHttpError(401)) }),
     );
@@ -378,7 +380,8 @@ describe('runSync — push loop', () => {
     const report = await runSync(deps);
 
     expect(report.outcome).toBe('unauthenticated');
-    expect(mockMarkFailed).toHaveBeenCalledWith(USER, 'op-1', 'http_401', NOW);
+    expect(mockMarkFailed).not.toHaveBeenCalled();
+    expect(mockReturnInFlightToPending).toHaveBeenCalledWith(USER, ['op-1'], NOW);
   });
 
   it('records a conflict locally and flags the entity row on CONFLICT', async () => {
