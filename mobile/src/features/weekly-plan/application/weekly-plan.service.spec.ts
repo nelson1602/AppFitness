@@ -212,6 +212,37 @@ describe('regeneration after a confirmed change (ADR-P042 D3)', () => {
     await regenerateCurrentWeek(saved(), ['injuries'], NOW);
     expect(jest.mocked(insertPlanRevision).mock.calls[0][1].loadStep).toBe(0);
   });
+
+  // ADR-P040 Addendum v10-A R6: a weigh-in or an evaluation change moved the targets.
+  it('offers new targets when they moved enough and nothing else changed', async () => {
+    jest.mocked(gatherPlanContext).mockResolvedValue({ status: 'ready', context: context() });
+    const withTargets = (calories: number) =>
+      saved({
+        plan: {
+          contractVersion: 'weekly-plan@1',
+          targets: { calories, proteinG: 150, carbsG: 200, fatG: 60, floorCalories: 1500 },
+          inputs,
+          days: [],
+        },
+      });
+    expect(await pendingPlanChanges(withTargets(2100), NOW)).toEqual(['targets']);
+    expect(await pendingPlanChanges(withTargets(2030), NOW)).toEqual([]);
+
+    jest.mocked(gatherPlanContext).mockResolvedValue({
+      status: 'ready',
+      context: context({ trainingDays: 4 }),
+    });
+    expect(await pendingPlanChanges(withTargets(2100), NOW)).toEqual(['trainingDays']);
+  });
+
+  it('saves new targets as a CHANGE revision from today', async () => {
+    await regenerateCurrentWeek(saved(), ['targets'], NOW);
+    expect(jest.mocked(insertPlanRevision).mock.calls[0][1]).toMatchObject({
+      effectiveFrom: '2026-10-28',
+      trigger: 'CHANGE',
+      notes: [{ code: 'plan.changed.targets' }],
+    });
+  });
 });
 
 describe('training-days progression (ADR-P040 D11)', () => {
