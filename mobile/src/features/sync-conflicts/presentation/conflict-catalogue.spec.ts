@@ -195,10 +195,13 @@ describe('catalogue parity', () => {
   // v8.1 round 2: the everyday Dominican dishes with casabe, queso blanco and canela (+7, 1782), and the 15-day slider's hint (+1, 1783).
   // Merged total for v8.1 round 2: 1775 + 2 (figure label, dish-plan prompt) + 5 (Perfil) + 8 (dishes, slider hint) = 1790.
   // Then guineítos: two dish names and the "N guineítos · g" portion (one, many) (+4, 1794).
-  // v10 Block A: the plan start panel (title, body) and logging an earlier day (mark done, date note) (+4, 1798).
-  it('reaches 1798 keys in each language — 1615 shipped plus a 183-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1798);
-    expect(Object.keys(es)).toHaveLength(1798);
+  // v10 Block A items 2–3: the plan start panel (title, body) and logging an earlier day (mark done, date note) (+4).
+  // Items 5–6 (ADR-P040 Addendum v10-A): "Actividad extra" and its iCoach notes (+6),
+  // the week's "+N extra" and the "+N kcal por actividad" bonus (+2), the iCoach card's latest
+  // change (+4), "Guardar como rutina" (+3) and the new-targets prompt sentence (+1) (+16; 1814 together).
+  it('reaches 1814 keys in each language — 1631 shipped plus a 183-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1814);
+    expect(Object.keys(es)).toHaveLength(1814);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

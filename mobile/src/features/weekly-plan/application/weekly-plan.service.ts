@@ -17,7 +17,12 @@ import {
   proposedTrainingDays,
   type WeekWorkoutResult,
 } from '../domain/days-progression';
-import { changedPlanInputs, planInputsFingerprint, type PlanChange } from '../domain/plan-inputs';
+import {
+  changedPlanInputs,
+  planInputsFingerprint,
+  targetsChanged,
+  type PlanChange,
+} from '../domain/plan-inputs';
 import { nextLoadStep, progressionNotes, type PreviousWeekResult } from '../domain/progression';
 import { addDays, localDateOf, previousWeekStart, weekDates, weekStartOf } from '../domain/week';
 import type { PlanTrigger, WeeklyPlan } from '../domain/weekly-plan';
@@ -204,6 +209,10 @@ export async function pendingPlanChanges(
   const gathered = await gatherPlanContext(now, { unlockedTrainingDays: daysInForce });
   if (gathered.status !== 'ready') return [];
   const changes: PlanChange[] = changedPlanInputs(current.plan.inputs, gathered.context.inputs);
+  // ADR-P040 Addendum v10-A R6: a weigh-in or evaluation change moved the targets.
+  if (changes.length === 0 && targetsChanged(current.plan.targets, gathered.context.targets)) {
+    changes.push('targets');
+  }
   const proposal = openDaysProposal(current.notes, daysInForce);
   if (proposal !== null && proposal <= gathered.context.chosenTrainingDays) {
     changes.push('moreDays');

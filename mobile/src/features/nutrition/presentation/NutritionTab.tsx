@@ -244,6 +244,15 @@ function TodayPanel() {
           })}
         </View>
       </View>
+      {(calories.activityBonus ?? 0) > 0 ? (
+        <Chip
+          label={interpolate(t('home.tile.activityBonus'), {
+            kcal: formatNumber(calories.activityBonus ?? 0, language),
+          })}
+          testID="nutrition-activity-bonus"
+          tone="energy"
+        />
+      ) : null}
     </GlassCard>
   );
 }

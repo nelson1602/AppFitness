@@ -342,6 +342,29 @@ export async function listWorkoutSets(userId: string, workoutLogId: string): Pro
   return rows.map(rowToWorkoutSet);
 }
 
+/**
+ * The exercise of every active set of the given workouts (ADR-P040 Addendum
+ * v10-A): what an extra activity's type and muscle groups are read from.
+ */
+export async function listSetExercisesForLogs(
+  userId: string,
+  workoutLogIds: readonly string[],
+): Promise<{ workoutLogId: string; setId: string; exerciseId: string }[]> {
+  if (workoutLogIds.length === 0) return [];
+  const placeholders = workoutLogIds.map(() => '?').join(', ');
+  const rows = await queryAll<Pick<WorkoutSetRow, 'id' | 'workout_log_id' | 'exercise_id'>>(
+    `SELECT id, workout_log_id, exercise_id FROM workout_sets
+     WHERE user_id = ? AND deleted_at IS NULL AND workout_log_id IN (${placeholders})
+     ORDER BY workout_log_id ASC, set_number ASC`,
+    [userId, ...workoutLogIds],
+  );
+  return rows.map((row) => ({
+    workoutLogId: row.workout_log_id,
+    setId: row.id,
+    exerciseId: row.exercise_id,
+  }));
+}
+
 export async function updateWorkoutSet(
   userId: string,
   id: string,

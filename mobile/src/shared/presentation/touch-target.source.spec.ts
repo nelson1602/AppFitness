@@ -139,9 +139,11 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   // v8 Block 3 Plan completo: each row of the week's sessions (full width),
   // then each day of the week strip (it scrolls on a narrow phone).
   'src/features/workout/presentation/GeneratedWorkoutPlan.tsx': ['floor', 'floor-both'],
-  // v8.1 Entrenamientos: each day of the strip, the rest timer's Saltar, each
-  // exercise's demo toggle, its Serie N button, then each row of the week.
+  // v8.1 Entrenamientos: each day of the strip, the rest timer's Saltar, (v10)
+  // "Marcar la sesión como hecha" on an earlier day, each exercise's demo
+  // toggle, its Serie N button, then each row of the week.
   'src/features/workout/presentation/WorkoutWeek.tsx': [
+    'floor',
     'floor',
     'floor',
     'floor',
@@ -186,8 +188,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 47 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(47);
+it('counts exactly 48 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(48);
 });
 
 describe.each(

@@ -110,6 +110,27 @@ export const es = {
   'home.eval.grams': '{consumed} / {target} g',
   'home.eval.macroLabel': '{macro}: {consumed} de {target} g hoy',
   'home.coach.basedOn': 'Según tu evaluación del {date}',
+  // ADR-P040 Addendum v10-A: real-time recalculation.
+  'home.goal.extra': '+{count} extra',
+  'home.tile.activityBonus': '+{kcal} kcal por actividad',
+  'home.coach.change.activityBonus':
+    'Sumé {kcal} kcal a tu presupuesto de hoy por tu actividad extra.',
+  'home.coach.change.lightened': 'Aligeré tu sesión del {day}: ya trabajaste {groups}.',
+  'home.coach.change.moved': 'Moví tu sesión del {from} al {to} para que no la pierdas.',
+  'home.coach.change.planUpdated': 'Actualicé tu plan de esta semana con tus cambios.',
+  'workouts.extra.title': 'Actividad extra',
+  'workouts.extra.done': 'Completada',
+  'workouts.extra.inProgress': 'En curso',
+  'workouts.extra.noTime': 'Sin duración',
+  'workouts.extra.lightened':
+    'iCoach: tu sesión del {day} lleva una serie menos en {groups}, porque ya los trabajaste.',
+  'workouts.extra.moved': 'iCoach: la sesión del {from} pasa al {to}.',
+  'workout.log.saveAsRoutine': 'Guardar como rutina',
+  'workout.log.saveAsRoutineAccessibility': 'Guardar como rutina reutilizable:',
+  'workout.log.routineSaved':
+    'Rutina guardada. La encuentras en Rutinas y al empezar un entrenamiento.',
+  'plan.change.targets':
+    'Tu último peso o tu evaluación cambiaron tus objetivos de calorías y macros.',
   'home.soon.waterTitle': 'Agua',
   'home.soon.waterBody': 'vasos al día, desde tu reloj inteligente',
   'home.soon.heartTitle': 'Ritmo cardíaco',

@@ -31,7 +31,7 @@ export function DashboardScreen() {
   const { t } = useLocalization();
   const status = useDashboardStore((s) => s.status);
   const refresh = useDashboardStore((s) => s.refresh);
-  const { summary, goalType, evaluationDate, evaluation } = useHomeData();
+  const { summary, goalType, evaluationDate, evaluation, latestChange } = useHomeData();
 
   // BUG-019: `back` reveals this screen's existing instance instead of
   // remounting it, so a mount-only effect never re-reads. Focus fires on that
@@ -59,7 +59,7 @@ export function DashboardScreen() {
     <TabScreen>
       <PlanChangePrompt />
       <GoalCard goalType={goalType} summary={summary} />
-      <CoachCard evaluationDate={evaluationDate} summary={summary} />
+      <CoachCard evaluationDate={evaluationDate} latestChange={latestChange} summary={summary} />
       <TodayTiles summary={summary} />
       <EvaluationCard evaluation={evaluation} />
       <QuickActions />

@@ -1,4 +1,4 @@
-import type { PlanInputs } from './weekly-plan';
+import type { PlanInputs, PlanTargets } from './weekly-plan';
 
 /**
  * The plan's deciding inputs (ADR-P042 D3): normalized, fingerprinted, and
@@ -16,8 +16,31 @@ export type PlanInputChange =
   /** A plan saved before v8.1 can now use the Dominican dishes; nothing was changed. */
   | 'dishPlan';
 
-/** What the change prompt can offer: an input change, or one more training day (ADR-P040 D11). */
-export type PlanChange = PlanInputChange | 'moreDays';
+/**
+ * What the change prompt can offer: an input change, one more training day
+ * (ADR-P040 D11), or new targets after a weigh-in or an evaluation change
+ * (ADR-P040 Addendum v10-A R6).
+ */
+export type PlanChange = PlanInputChange | 'moreDays' | 'targets';
+
+/** R6: a calorie target this far from the saved one is a change worth asking about. */
+export const TARGETS_CHANGE_KCAL = 50;
+/** R6: likewise for any macro target, in grams. */
+export const TARGETS_CHANGE_GRAMS = 10;
+
+/**
+ * R6 (ADR-P040 Addendum v10-A): whether the targets recomputed from today's
+ * data (latest weigh-in, evaluation) differ enough from the saved week's to
+ * offer "¿Actualizar tu plan?". Smaller drifts are not worth a new revision.
+ */
+export function targetsChanged(saved: PlanTargets, now: PlanTargets): boolean {
+  return (
+    Math.abs(saved.calories - now.calories) >= TARGETS_CHANGE_KCAL ||
+    Math.abs(saved.proteinG - now.proteinG) >= TARGETS_CHANGE_GRAMS ||
+    Math.abs(saved.carbsG - now.carbsG) >= TARGETS_CHANGE_GRAMS ||
+    Math.abs(saved.fatG - now.fatG) >= TARGETS_CHANGE_GRAMS
+  );
+}
 
 export const PLAN_INPUT_CHANGES: readonly PlanInputChange[] = [
   'goal',
