@@ -146,6 +146,7 @@ export const en = {
   'workouts.session.pastDay': 'Saved with {day}’s date.',
   'workout.plan.movedFrom': 'The iCoach moved it here from {day}.',
   'workout.plan.movedTo': 'The iCoach moved this session to {day}.',
+  'workout.plan.movedLogHere': 'The iCoach moved it to {day}. If you did it this day, log it here.',
   'plan.history.title': 'Past weeks',
   'plan.history.subtitle': 'Plan vs. done',
   'plan.history.empty': 'Your weeks will appear here once the first one ends.',

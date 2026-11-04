@@ -299,9 +299,14 @@ describe('WorkoutWeek with a session the iCoach moved', () => {
     expect(screen.getByTestId('workout-week-row-1')).toBeOnTheScreen();
     expect(screen.queryByTestId('workout-week-row-0')).toBeNull();
 
+    // Monday has passed: it still offers the session, for a person who did it after all.
     await fireEvent.press(screen.getByTestId('workout-day-0'));
-    expect(screen.getByTestId('workout-moved-out')).toHaveTextContent(
-      'The iCoach moved this session to Tuesday.',
+    expect(screen.getByTestId('workout-moved-in')).toHaveTextContent(
+      'The iCoach moved it to Tuesday. If you did it this day, log it here.',
+    );
+    await fireEvent.press(screen.getByTestId('workout-session-mark-done'));
+    expect(mockCompleteSession).toHaveBeenCalledWith(
+      expect.objectContaining({ date: '2026-11-02', planDate: '2026-11-02' }),
     );
   });
 

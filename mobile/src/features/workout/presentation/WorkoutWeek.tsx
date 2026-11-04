@@ -115,8 +115,16 @@ export function WorkoutWeek({
   // Today and the earlier days of this week can be logged, with their own date
   // (v10 Block A, item 3); later days only show their plan.
   const canLog = selectedIndex <= todayIndex && !beforeStart(selectedIndex);
-  const selectedSessionKey =
-    selectedDay?.kind === 'TRAINING' && canLog ? selectedDay.sessionKey : null;
+  // A past day whose session the iCoach moved can still be logged there, if the
+  // person did it after all; that fulfils it and the move goes away (R3 + item 3).
+  const plannedDay = planned.schedule.find((day) => day.weekday === selectedWeekday);
+  const sessionDay =
+    selectedDay?.kind === 'TRAINING'
+      ? selectedDay
+      : movedOut && canLog && plannedDay?.kind === 'TRAINING'
+        ? plannedDay
+        : undefined;
+  const selectedSessionKey = sessionDay && canLog ? sessionDay.sessionKey : null;
   const loadPlanned = usePlannedSessionStore((s) => s.load);
 
   useEffect(() => {
@@ -171,14 +179,16 @@ export function WorkoutWeek({
             })}
           </AppText>
         </GlassCard>
-      ) : selectedDay?.kind === 'TRAINING' ? (
+      ) : sessionDay ? (
         <SessionPanel
           canLog={canLog}
           date={selectedDate}
           movedNote={
             movedIn
               ? interpolate(t('workout.plan.movedFrom'), { day: dayNameOf(movedIn.from) })
-              : null
+              : movedOut
+                ? interpolate(t('workout.plan.movedLogHere'), { day: dayNameOf(movedOut.to) })
+                : null
           }
           planDate={selectedPlanDate}
           isToday={selectedIndex === todayIndex}
@@ -189,8 +199,8 @@ export function WorkoutWeek({
             setRestUntil(restSeconds > 0 ? Date.now() + restSeconds * 1000 : null)
           }
           routine={routine}
-          sessionKey={selectedDay.sessionKey}
-          title={sessionName(selectedDay.sessionKey)}
+          sessionKey={sessionDay.sessionKey}
+          title={sessionName(sessionDay.sessionKey)}
           weekday={selectedWeekday}
           doneOnDate={shownDone.has(selectedDate)}
         />
