@@ -64,6 +64,12 @@ export interface FoodLogState {
   editServing: (id: string, servingCount: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   syncNow: () => Promise<void>;
+  /**
+   * "Lo comí" (v10 Block A, item 4): items the weekly plan already wrote to
+   * SQLite for `date`, published into the loaded day so the ring and the macro
+   * bars move in the same render — no re-read, no sync.
+   */
+  applyPlannedItems: (date: string, items: readonly LoggedMealItem[]) => void;
 }
 
 const EMPTY_TOTALS: ConsumedMacros = {
@@ -256,6 +262,15 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       if (owner && !isSessionCurrent(owner)) return;
       set((state) => ({ sync: { ...state.sync, state: 'error' } }));
     }
+  },
+
+  applyPlannedItems: (date, items) => {
+    const state = get();
+    // Another day, or not loaded yet: that day's next load reads them from SQLite.
+    if (state.status !== 'ready' || state.date !== date || items.length === 0) return;
+    const known = new Set(state.items.map((item) => item.id));
+    const merged = [...state.items, ...items.filter((item) => !known.has(item.id))];
+    set({ items: merged, totals: sumDailyTotals(merged), sync: deriveSyncSummary(merged) });
   },
 }));
 

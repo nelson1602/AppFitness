@@ -107,6 +107,7 @@ function setState(overrides: Partial<FoodLogState> = {}): void {
     editServing: jest.fn(),
     removeItem: jest.fn(),
     syncNow: jest.fn(),
+    applyPlannedItems: jest.fn(),
     ...overrides,
   };
 }
