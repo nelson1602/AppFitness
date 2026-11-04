@@ -32,11 +32,13 @@ jest.mock('@/features/weekly-plan/application/weekly-plan.store', () => ({
   useWeeklyPlanStore: (
     select: (state: {
       current: { weekStart: string; notes: never[] };
+      revisions: never[];
       adherence: { sessions: { date: string; done: boolean }[] };
     }) => unknown,
   ) =>
     select({
       current: { weekStart: '2026-11-02', notes: [] },
+      revisions: [],
       adherence: {
         sessions: [
           { date: '2026-11-02', done: true },

@@ -9,6 +9,7 @@ import type {
 import type { PlanNote } from '@/features/weekly-plan/domain/weekly-plan';
 import { noteText } from '@/features/weekly-plan/presentation/PastWeeksPanel';
 import {
+  formatDate,
   formatNumber,
   interpolate,
   type SupportedLanguage,
@@ -50,6 +51,11 @@ export interface WorkoutWeekProps {
   weekDates: readonly string[];
   /** Index of today in the week, Monday = 0. */
   todayIndex: number;
+  /**
+   * First day of the plan (YYYY-MM-DD) in the person's first week, else null.
+   * Earlier days are not part of the plan (v10 Block A, item 2).
+   */
+  planStart: string | null;
 }
 
 /** Repetitions recorded for a completed set: the prescription's upper bound. */
@@ -79,6 +85,7 @@ export function WorkoutWeek({
   doneDates,
   weekDates,
   todayIndex,
+  planStart,
 }: WorkoutWeekProps) {
   const { colors, spacing } = useTheme();
   const { language, t } = useLocalization();
@@ -86,13 +93,18 @@ export function WorkoutWeek({
   const [restUntil, setRestUntil] = useState<number | null>(null);
   const selectedWeekday = WEEKDAYS[selectedIndex];
   const selectedDay = routine.schedule.find((day) => day.weekday === selectedWeekday);
-  const todayDay = routine.schedule.find((day) => day.weekday === WEEKDAYS[todayIndex]);
-  const todaySessionKey = todayDay?.kind === 'TRAINING' ? todayDay.sessionKey : null;
+  const beforeStart = (index: number) => planStart !== null && (weekDates[index] ?? '') < planStart;
+  const selectedDate = weekDates[selectedIndex] ?? '';
+  // Today and the earlier days of this week can be logged, with their own date
+  // (v10 Block A, item 3); later days only show their plan.
+  const canLog = selectedIndex <= todayIndex && !beforeStart(selectedIndex);
+  const selectedSessionKey =
+    selectedDay?.kind === 'TRAINING' && canLog ? selectedDay.sessionKey : null;
   const loadPlanned = usePlannedSessionStore((s) => s.load);
 
   useEffect(() => {
-    if (todaySessionKey) void loadPlanned(todaySessionKey);
-  }, [loadPlanned, todaySessionKey]);
+    if (selectedSessionKey) void loadPlanned(selectedSessionKey, undefined, selectedDate);
+  }, [loadPlanned, selectedSessionKey, selectedDate]);
 
   const sessionName = (sessionKey: string) => {
     const index = routine.sessions.findIndex((session) => session.key === sessionKey);
@@ -102,6 +114,7 @@ export function WorkoutWeek({
   return (
     <View style={{ gap: spacing.lg }} testID="workout-week">
       <DayStrip
+        beforeStart={beforeStart}
         doneDates={doneDates}
         onSelect={setSelectedIndex}
         routine={routine}
@@ -114,8 +127,28 @@ export function WorkoutWeek({
         <RestTimer onDone={() => setRestUntil(null)} until={restUntil} />
       ) : null}
 
-      {selectedDay?.kind === 'TRAINING' ? (
+      {beforeStart(selectedIndex) && planStart !== null ? (
+        <GlassCard testID="workout-before-start">
+          <View style={[styles.row, { gap: spacing.sm }]}>
+            <Icon color={colors.linkOnStage} name="calendar" size={18} />
+            <AppText accessibilityRole="header" style={styles.grow} variant="panelTitle">
+              {t('workout.plan.beforeStartTitle')}
+            </AppText>
+          </View>
+          <AppText tone="onStageVariant">
+            {interpolate(t('workout.plan.beforeStartBody'), {
+              date: formatDate(new Date(`${planStart}T12:00:00`), language, {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              }),
+            })}
+          </AppText>
+        </GlassCard>
+      ) : selectedDay?.kind === 'TRAINING' ? (
         <SessionPanel
+          canLog={canLog}
+          date={selectedDate}
           isToday={selectedIndex === todayIndex}
           language={language}
           minutes={sessionMinutes}
@@ -148,6 +181,7 @@ export function WorkoutWeek({
       )}
 
       <WeekPlanPanel
+        beforeStart={beforeStart}
         doneDates={doneDates}
         onSelect={setSelectedIndex}
         routine={routine}
@@ -166,7 +200,9 @@ function DayStrip({
   doneDates,
   weekDates,
   onSelect,
+  beforeStart,
 }: {
+  beforeStart: (index: number) => boolean;
   routine: GeneratedWorkoutRoutine;
   selectedIndex: number;
   todayIndex: number;
@@ -186,9 +222,10 @@ function DayStrip({
     >
       {WEEKDAYS.map((weekday, index) => {
         const active = index === selectedIndex;
-        const training = routine.schedule.some(
-          (day) => day.weekday === weekday && day.kind === 'TRAINING',
-        );
+        // A day before the plan started is neither a session nor missed.
+        const training =
+          !beforeStart(index) &&
+          routine.schedule.some((day) => day.weekday === weekday && day.kind === 'TRAINING');
         const done = training && doneDates.has(weekDates[index] ?? '');
         const dayName = t(WEEKDAY_KEYS[weekday]);
         // The prototype's dot: green once done, dark on the chosen day,
@@ -309,6 +346,8 @@ function SessionPanel({
   title,
   weekday,
   isToday,
+  canLog,
+  date,
   doneOnDate,
   minutes,
   notes,
@@ -320,6 +359,10 @@ function SessionPanel({
   title: string;
   weekday: Weekday;
   isToday: boolean;
+  /** Today or an earlier day of this week since the plan started. */
+  canLog: boolean;
+  /** The selected day (YYYY-MM-DD); sets are recorded on it. */
+  date: string;
   doneOnDate: boolean;
   minutes: number | null;
   notes: readonly PlanNote[];
@@ -334,14 +377,17 @@ function SessionPanel({
   const done = usePlannedSessionStore((s) => s.done);
   const saving = usePlannedSessionStore((s) => s.status === 'saving');
   const completeSet = usePlannedSessionStore((s) => s.completeSet);
+  const completeSession = usePlannedSessionStore((s) => s.completeSession);
+  const loadedFor = usePlannedSessionStore((s) => s.sessionId);
   const session = routine.sessions.find((candidate) => candidate.key === sessionKey);
   const exercises = session?.exercises ?? [];
   const planned = plannedExercises(exercises);
-  // Set progress is today's: other days show their planned sets only.
-  const madeOf = (key: string) => (isToday ? (done[key] ?? 0) : 0);
+  // Set progress belongs to the selected day; later days show their plan only.
+  const ownCounts = canLog && loadedFor === `${date}|${sessionKey}`;
+  const madeOf = (key: string) => (ownCounts ? (done[key] ?? 0) : 0);
   const total = planned.reduce((sum, x) => sum + x.sets, 0);
   const made = planned.reduce((sum, x) => sum + Math.min(madeOf(x.exerciseKey), x.sets), 0);
-  const complete = doneOnDate || (isToday && sessionComplete(planned, done));
+  const complete = doneOnDate || (ownCounts && sessionComplete(planned, done));
   const noteChips = notes
     .map((note) => noteText([note], t, language))
     .filter((text) => text !== t('plan.note.none'))
@@ -396,6 +442,41 @@ function SessionPanel({
           })}
         </AppText>
       </View>
+
+      {canLog && !isToday && !complete ? (
+        <View style={{ gap: spacing.sm }} testID="workout-past-day">
+          <AppText tone="onStageVariant" variant="caption">
+            {interpolate(t('workouts.session.pastDay'), { day: t(WEEKDAY_KEYS[weekday]) })}
+          </AppText>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: saving }}
+            disabled={saving}
+            onPress={async () => {
+              const ok = await completeSession({
+                sessionKey,
+                sessionName: title,
+                exercises: planned,
+                date,
+              });
+              setSaveFailed(!ok);
+            }}
+            style={{
+              alignItems: 'center',
+              backgroundColor: withAlpha(colors.accentCyan, 0.14),
+              borderColor: withAlpha(colors.accentCyan, 0.45),
+              borderRadius: radius.field,
+              borderWidth: 1,
+              justifyContent: 'center',
+              minHeight: theme.spacing.x5l,
+              paddingHorizontal: spacing.md,
+            }}
+            testID="workout-session-mark-done"
+          >
+            <AppText variant="label">{t('workouts.session.markDone')}</AppText>
+          </Pressable>
+        </View>
+      ) : null}
 
       {saveFailed ? <Banner title={t('workouts.exercise.saveError')} tone="error" /> : null}
 
@@ -471,7 +552,7 @@ function SessionPanel({
                     </AppText>
                   </View>
                 </Pressable>
-                {isToday && plannedExercise ? (
+                {canLog && plannedExercise ? (
                   <Pressable
                     accessibilityLabel={
                       full
@@ -490,6 +571,7 @@ function SessionPanel({
                         sessionName: title,
                         exercise: plannedExercise,
                         exercises: planned,
+                        date,
                       });
                       setSaveFailed(!ok);
                       if (ok) onSetDone(exercise.restSeconds);
@@ -623,7 +705,9 @@ function WeekPlanPanel({
   weekDates,
   sessionName,
   onSelect,
+  beforeStart,
 }: {
+  beforeStart: (index: number) => boolean;
   routine: GeneratedWorkoutRoutine;
   todayIndex: number;
   doneDates: ReadonlySet<string>;
@@ -634,10 +718,11 @@ function WeekPlanPanel({
   const theme = useTheme();
   const { colors, spacing } = theme;
   const { t } = useLocalization();
+  // Days before the plan started are left out: never pending, never missed.
   const days = WEEKDAYS.map((weekday, index) => ({
     index,
     day: routine.schedule.find((candidate) => candidate.weekday === weekday),
-  }));
+  })).filter(({ index, day }) => day?.kind === 'TRAINING' && !beforeStart(index));
 
   return (
     <GlassCard testID="workout-week-plan">

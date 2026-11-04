@@ -181,7 +181,8 @@ export async function ensureCurrentWeekPlan(now: Date = new Date()): Promise<Cur
   const current = await saveRevision(
     gathered.context,
     weekStart,
-    weekStart,
+    // v10 Block A: the first week starts the day the person starts.
+    trigger === 'FIRST_RUN' ? today : weekStart,
     trigger,
     nextLoadStep(previous),
     notes,

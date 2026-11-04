@@ -15,6 +15,7 @@ import { useWellnessSafetyProfileStore } from '@/features/wellness/application/w
 import { selectWorkoutRoutine } from '@/features/workout/application/workout-routine.service';
 import { useWorkoutStore } from '@/features/workout/application/workout.store';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
+import { planStartDate } from '@/features/weekly-plan/domain/adherence';
 import { planAsRoutine } from '@/features/weekly-plan/domain/plan-routine';
 import { onLocalDayChange, useLocalDay } from '@/shared/application/local-day';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
@@ -147,6 +148,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
       targetWeightKg: goal?.targetWeightKg ?? null,
       caloriesConsumed: foodLogReady ? totals.calories : null,
       calorieTarget: assessment?.assessment.nutrition.calories ?? null,
+      planStart: planStartDate(planRevisions),
     });
 
     const notifications = buildNotifications({

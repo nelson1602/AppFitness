@@ -28,6 +28,15 @@ const base: HomeInputs = {
 };
 
 describe('buildHomeSummary (ADR-P039 Inicio)', () => {
+  // v10 Block A: Monday is before a Wednesday start, so the week asks for two.
+  it('leaves training days before the plan start out of the week goal', () => {
+    expect(buildHomeSummary({ ...base, planStart: '2026-10-21' }).week).toEqual({
+      done: 0,
+      goal: 2,
+      complete: false,
+    });
+  });
+
   it('counts only finished workouts in the current ISO week toward the plan', () => {
     const summary = buildHomeSummary({
       ...base,

@@ -121,12 +121,13 @@ describe('ensureCurrentWeekPlan (ADR-P042 D2)', () => {
     expect(insertPlanRevision).not.toHaveBeenCalled();
   });
 
-  it('creates the first plan as FIRST_RUN for the whole Monday-started week', async () => {
+  // v10 Block A: the first week starts on the day the person starts.
+  it('creates the first plan as FIRST_RUN, effective from the day it is created', async () => {
     await ensureCurrentWeekPlan(NOW);
     const input = jest.mocked(insertPlanRevision).mock.calls[0][1];
     expect(input).toMatchObject({
       weekStart: '2026-10-26',
-      effectiveFrom: '2026-10-26',
+      effectiveFrom: '2026-10-28',
       trigger: 'FIRST_RUN',
       loadStep: 0,
       notes: [],

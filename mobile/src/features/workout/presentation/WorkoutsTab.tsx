@@ -6,6 +6,7 @@ import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
+import { planStartDate } from '@/features/weekly-plan/domain/adherence';
 import { weekDates } from '@/features/weekly-plan/domain/week';
 import { PlanChangePrompt } from '@/features/weekly-plan/presentation/PlanChangePrompt';
 import { useLocalization } from '@/shared/localization';
@@ -30,6 +31,8 @@ export function WorkoutsTab() {
   const selectionState = useWorkoutSelection();
   const current = useWeeklyPlanStore((s) => s.current);
   const adherence = useWeeklyPlanStore((s) => s.adherence);
+  const revisions = useWeeklyPlanStore((s) => s.revisions);
+  const planStart = useMemo(() => planStartDate(revisions), [revisions]);
 
   useFocusEffect(
     useCallback(() => {
@@ -81,6 +84,7 @@ export function WorkoutsTab() {
         <WorkoutWeek
           doneDates={doneDates}
           notes={current?.notes ?? []}
+          planStart={planStart}
           routine={selectionState.selection.routine}
           sessionMinutes={selectionState.sessionMinutes}
           todayIndex={weekdayIndex}

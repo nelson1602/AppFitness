@@ -470,16 +470,20 @@ bindStoreToSession(() => useWorkoutStore.setState(INITIAL));
  * the saved week from its store; no plan means no link.
  */
 export function todaysPlanLink(logs: readonly WorkoutLog[]): WorkoutPlanLink | null {
-  const today = localDateOf(new Date().toISOString());
+  return planLinkFor(logs, localDateOf(new Date().toISOString()));
+}
+
+/** The plan link for a workout on `date` (v10 Block A: earlier days of the week too). */
+export function planLinkFor(logs: readonly WorkoutLog[], date: string): WorkoutPlanLink | null {
   const { revisions } = useWeeklyPlanStore.getState();
-  const plan = effectivePlanDay(revisions, today)?.plan ?? null;
+  const plan = effectivePlanDay(revisions, date)?.plan ?? null;
   const ids = new Set(revisions.map((revision) => revision.id));
-  return linkForWorkout(plan, today, (sessionKey) =>
+  return linkForWorkout(plan, date, (sessionKey) =>
     logs.some(
       (log) =>
         log.planLink !== null &&
         ids.has(log.planLink.weeklyPlanId) &&
-        log.planLink.planDate === today &&
+        log.planLink.planDate === date &&
         log.planLink.planSessionKey === sessionKey,
     ),
   );

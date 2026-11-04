@@ -5,6 +5,7 @@ import {
   computeWeekAdherence,
   effectivePlanDay,
   linkForWorkout,
+  planStartDate,
   type LoggedWorkout,
   type WeekLogs,
 } from './adherence';
@@ -356,5 +357,38 @@ describe('off-plan overlay (ADR-P040 D7)', () => {
       extraCardioMinutes: 0,
       avoidIntenseTraining: true,
     });
+  });
+});
+
+// v10 Block A, item 2: the first week starts on the day the person started.
+describe('plan start date', () => {
+  const wednesdayAfternoon = new Date(2026, 9, 28, 15).toISOString();
+
+  it('is the creation day of a first-run plan saved with its Monday (accounts before v10)', () => {
+    expect(planStartDate([plan({ trigger: 'FIRST_RUN', createdAt: wednesdayAfternoon })])).toBe(
+      '2026-10-28',
+    );
+  });
+
+  it('is the effective date of a first-run plan saved on its start day (v10 and later)', () => {
+    expect(
+      planStartDate([
+        plan({ trigger: 'FIRST_RUN', effectiveFrom: '2026-10-28', createdAt: wednesdayAfternoon }),
+      ]),
+    ).toBe('2026-10-28');
+  });
+
+  it('does not apply to later weeks', () => {
+    expect(planStartDate([plan({ createdAt: wednesdayAfternoon })])).toBeNull();
+  });
+
+  it('keeps the days before the start out of the plan and the adherence', () => {
+    const first = plan({ trigger: 'FIRST_RUN', createdAt: wednesdayAfternoon });
+    expect(effectivePlanDay([first], '2026-10-26')).toBeNull();
+    expect(effectivePlanDay([first], '2026-10-28')).not.toBeNull();
+    const result = computeWeekAdherence([first], emptyLogs());
+    // Monday's session and the meals of Monday and Tuesday are not planned.
+    expect(result).toMatchObject({ plannedSessions: 2, plannedMeals: 20 });
+    expect(result?.sessions.map((session) => session.date)).not.toContain('2026-10-26');
   });
 });

@@ -1,4 +1,5 @@
 import type { GeneratedWorkoutRoutine, WorkoutScheduleDay } from '@/features/icoach';
+import { addDays } from '@/features/weekly-plan/domain/week';
 
 /**
  * Inicio ("Tu meta te espera") summary — ADR-P039, design `docs/design`.
@@ -32,6 +33,11 @@ export interface HomeInputs {
   readonly targetWeightKg: number | null;
   readonly caloriesConsumed: number | null;
   readonly calorieTarget: number | null;
+  /**
+   * First day of the plan in the person's first week (v10 Block A): training
+   * days before it are not counted in the week's goal. Omitted or null: none.
+   */
+  readonly planStart?: string | null;
 }
 
 export type HomeToday =
@@ -89,8 +95,13 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
     (log) => log.finished && log.localDate >= inputs.weekStart && log.localDate <= inputs.today,
   );
   const finishedToday = finishedThisWeek.some((log) => log.localDate === inputs.today);
+  const planStart = inputs.planStart ?? null;
   const goal = inputs.routine
-    ? inputs.routine.schedule.filter((day) => day.kind === 'TRAINING').length
+    ? inputs.routine.schedule.filter(
+        (day, index) =>
+          day.kind === 'TRAINING' &&
+          (planStart === null || addDays(inputs.weekStart, index) >= planStart),
+      ).length
     : null;
   const done = finishedThisWeek.length;
   const complete = goal !== null && goal > 0 && done >= goal;
