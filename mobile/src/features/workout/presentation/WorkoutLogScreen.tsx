@@ -127,7 +127,10 @@ export function WorkoutLogScreen() {
     const fromRoutine = routines.find((routine) => routine.id === routineId)?.name;
     const trimmed = name.trim() || fromRoutine || t('workout.log.defaultName');
     const ok = await startWorkout(routineId ? { name: trimmed, routineId } : { name: trimmed });
-    if (ok) setName('');
+    if (!ok) return;
+    setName('');
+    // v10 Block A: open the new workout so the routine's pre-filled sets show.
+    if (routineId) setSelectedLogId(useWorkoutStore.getState().workoutLogs[0]?.id ?? null);
   };
 
   const onSaveAsRoutine = async (logId: string) => {

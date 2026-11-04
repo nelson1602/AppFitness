@@ -23,8 +23,10 @@ const removeWorkoutSet = jest.fn();
 const createCustomExercise = jest.fn();
 
 jest.mock('../application/workout.store', () => ({
-  useWorkoutStore: (selector?: (s: WorkoutState) => unknown) =>
-    selector ? selector(mockState) : mockState,
+  useWorkoutStore: Object.assign(
+    (selector?: (s: WorkoutState) => unknown) => (selector ? selector(mockState) : mockState),
+    { getState: () => mockState },
+  ),
 }));
 
 jest.mock('@/shared/localization', () => {
@@ -239,6 +241,25 @@ describe('WorkoutLogScreen', () => {
 
     await fireEvent.press(screen.getByTestId('workout-start-routine-r1'));
     expect(startWorkout).toHaveBeenCalledWith({ name: saved.name, routineId: 'r1' });
+  });
+
+  // v10 Block A: starting a saved routine opens the workout with its exercises
+  // pre-filled, ready to tick off.
+  it('opens the new workout with the routine sets pre-filled', async () => {
+    const saved = routine({ id: 'r1' });
+    const started = log({ id: 'l-new' });
+    const prefilled = [wset({ id: 'p1', completed: false }), wset({ id: 'p2', completed: false })];
+    const start = jest.fn(async () => {
+      mockState = { ...mockState, workoutLogs: [started], workoutSets: prefilled };
+      return true;
+    });
+    setStore({ status: 'ready', workoutLogs: [], routines: [saved], startWorkout: start });
+    const view = await render(<WorkoutLogScreen />);
+
+    await fireEvent.press(screen.getByTestId('workout-start-routine-r1'));
+    await view.rerender(<WorkoutLogScreen />);
+    expect(screen.getByTestId('set-p1')).toBeOnTheScreen();
+    expect(screen.getByTestId('set-p2')).toBeOnTheScreen();
   });
 
   // v10 Block A item 5: a logged workout becomes a named, reusable routine.

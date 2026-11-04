@@ -1,5 +1,7 @@
 import { getSession } from '@/features/authentication';
 
+import { routinePrefill } from '../domain/routine-prefill';
+
 import type {
   CustomExercise,
   CustomExerciseInput,
@@ -149,6 +151,17 @@ export function removeExerciseFromRoutine(id: string): Promise<void> {
 // ── workout sets ──────────────────────────────────────────────────────────────
 export function getWorkoutSets(workoutLogId: string): Promise<WorkoutSet[]> {
   return listWorkoutSets(requireUserId(), workoutLogId);
+}
+
+/** Starts a workout from a saved routine, pre-filled with its exercises. */
+export async function startWorkoutFromRoutine(
+  input: WorkoutLogInput & { routineId: string },
+): Promise<{ log: WorkoutLog; sets: WorkoutSet[] }> {
+  const exercises = await getRoutineExercises(input.routineId);
+  const log = await startWorkout(input);
+  const sets: WorkoutSet[] = [];
+  for (const set of routinePrefill(exercises)) sets.push(await logWorkoutSet(log.id, set));
+  return { log, sets };
 }
 
 export function logWorkoutSet(workoutLogId: string, input: WorkoutSetInput): Promise<WorkoutSet> {

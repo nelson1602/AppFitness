@@ -48,6 +48,7 @@ import {
   removeWorkoutSetEntry,
   saveWorkoutAsRoutine,
   startWorkout,
+  startWorkoutFromRoutine,
 } from './workout.service';
 
 /** A set's exercise, keyed for the extra-activity rule (ADR-P040 Addendum v10-A). */
@@ -328,11 +329,21 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     set({ status: 'saving', error: null });
     try {
       owner = requireSessionSnapshot();
-      const log = await startWorkout(
-        input.planLink ? input : { ...input, planLink: todaysPlanLink(get().workoutLogs) },
-      );
+      const withLink = input.planLink
+        ? input
+        : { ...input, planLink: todaysPlanLink(get().workoutLogs) };
+      // v10 Block A: a saved routine starts pre-filled with its exercises.
+      const routineId = input.routineId;
+      const { log, sets } = routineId
+        ? await startWorkoutFromRoutine({ ...withLink, routineId })
+        : { log: await startWorkout(withLink), sets: null };
       if (!isSessionCurrent(owner)) return false;
-      set((s) => ({ workoutLogs: [log, ...s.workoutLogs], status: 'ready', error: null }));
+      set((s) => ({
+        workoutLogs: [log, ...s.workoutLogs],
+        ...(sets ? { workoutSets: sets } : {}),
+        status: 'ready',
+        error: null,
+      }));
       return true;
     } catch (error) {
       logError('workout.startWorkout', error);

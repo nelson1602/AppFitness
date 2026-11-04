@@ -31,6 +31,7 @@ import {
   removeWorkoutSetEntry,
   saveWorkoutAsRoutine,
   startWorkout,
+  startWorkoutFromRoutine,
 } from './workout.service';
 import { useWorkoutStore } from './workout.store';
 
@@ -45,6 +46,7 @@ jest.mock('./workout.service', () => ({
   addRoutine: jest.fn(),
   deactivateRoutine: jest.fn(),
   startWorkout: jest.fn(),
+  startWorkoutFromRoutine: jest.fn(),
   finishWorkout: jest.fn(),
   removeWorkoutLog: jest.fn(),
   getRoutineExercises: jest.fn(),
@@ -275,6 +277,22 @@ describe('useWorkoutStore', () => {
     const ok = await useWorkoutStore.getState().startWorkout({ name: 'Leg day' });
     expect(ok).toBe(true);
     expect(useWorkoutStore.getState().workoutLogs[0].id).toBe('l9');
+  });
+
+  // v10 Block A: a saved routine starts pre-filled with its exercises.
+  it('startWorkout from a routine pre-fills its sets', async () => {
+    const prefilled = [{ id: 'p1' }, { id: 'p2' }] as never[];
+    jest
+      .mocked(startWorkoutFromRoutine)
+      .mockResolvedValue({ log: log({ id: 'l10' }), sets: prefilled });
+    const ok = await useWorkoutStore.getState().startWorkout({ name: 'Pierna', routineId: 'r1' });
+    expect(ok).toBe(true);
+    expect(startWorkoutFromRoutine).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Pierna', routineId: 'r1' }),
+    );
+    expect(mockStart).not.toHaveBeenCalled();
+    expect(useWorkoutStore.getState().workoutLogs[0].id).toBe('l10');
+    expect(useWorkoutStore.getState().workoutSets).toBe(prefilled);
   });
 
   it('finishWorkout replaces the finished log in place', async () => {
