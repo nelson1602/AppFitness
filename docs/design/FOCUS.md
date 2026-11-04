@@ -1,10 +1,82 @@
-# FOCUS — current fix list (read this first, nothing else)
+# FOCUS — v10 (read this first, nothing else)
 
-**Rule:** read only this file, the prototype line ranges listed below, and the app files you change. Do not re-read the whole codebase or the whole prototype. Do not redesign anything not listed here.
+**Rule:** read only this file, the prototype line ranges in the "Prototype map" of the previous FOCUS, and the files you change. Work one block at a time. A block is finished only when its PR is merged with green CI and device screenshots. Never leave a block half done: if a block can't be finished, stop and report before starting anything else.
 
-**Design source of truth:** `docs/design/appfitnessrd-prototipo.html`, replaced by the synced copy in this handoff folder. The old repo copy was missing "Semanas anteriores" and the "Se renueva el lunes" chip.
+**Product principle (applies to every item):** AppFitnessRD recalculates in real time. Every action the user records (a set, a workout, an extra activity, a meal, a weigh-in, water, an evaluation change) must update every affected screen at once and feed the iCoach.
+- The iCoach stays deterministic (ADR-P040): explicit rules, documented and tested. No AI deciding the plan.
 
-## Prototype map (line numbers in the synced copy)
+---
+
+## Block A — real time, sync and plan dates (first)
+1. **Sync is stuck.** "Sincronizar" keeps loading and the owner's changes never reach the server (release build against the production API). Find the cause from device logs and the server response, fix it, and prove it with the server rows. Nothing else in this block counts until sync works.
+2. **The plan starts on the sign-up date.**
+   - The first week starts on the day the account was created.
+   - Days before sign-up never appear as missed or pending, and never count in adherence or "Semanas anteriores".
+   - Also fix existing accounts.
+3. **Logging past days.** In Entrenamientos the user can open any earlier day of the current week (for example Monday) and mark its sets or session as done, with the true date. Adherence and "Semanas anteriores" update.
+4. **"Lo comí"** updates the check, the calorie ring and the macro bars immediately (optimistic local write), without waiting for sync.
+5. **Extra and custom workouts.**
+   - A logged workout (for example "Correr 15 min" or "Levantamiento de pesas") shows in the Entrenamientos tab for that day, as "Actividad extra", with time, kcal and status.
+   - It counts toward the week's progress.
+   - A custom routine the user names is saved as a reusable routine.
+6. **Real-time recalculation rules** (deterministic, added to ADR-P040, with tests):
+   - Extra cardio adds its estimated kcal to the day's budget (shown as "+N kcal por actividad"), capped at a safe maximum.
+   - Extra strength work on a muscle group: the next planned session that loads the same group within 48 h is lightened or swapped, with the iCoach explaining why.
+   - A completed or skipped planned session updates the remaining week. A skipped key session can move to a free day, without going over the training days the user chose.
+   - Weigh-ins and evaluation changes recompute the targets for the rest of the week, using the existing "¿Actualizar tu plan?" flow when the plan itself changes.
+   - The iCoach card on Inicio shows the latest change in one sentence.
+
+## Block B — food search and preferences
+7. **Search beyond the local list.** When a food isn't in the catalogue, the server searches USDA FoodData Central (API key kept on the server only) and Open Food Facts. It returns Spanish-friendly results, and the chosen food is saved into the shared catalogue (the self-growing food base).
+   - Offline: show only local results, with a clear message.
+   - If nothing is found: let the user create a custom food (name, portion, kcal, protein, carbs, fat).
+   - Example that must work: "Chicharrón de cerdo".
+8. **Preferencias alimentarias, exclusion picker.**
+   - Selecting a search result must add it to the excluded list as a chip in Spanish, with an X to remove it. Today the list just closes.
+   - Remove the "Seleccionado: Soy milk, unsweetened" line.
+   - Show Spanish food names whenever we have them.
+
+## Block C — UX fixes
+9. **Units.** Perfil → "Unidades": kg/cm or lb/ft-in. It applies to every input and display (evaluation, weight, measurements, charts, Progreso). Values are stored in metric. ES/EN.
+10. **Rename "Alto en purinas" to "Ácido úrico alto"** (es.ts `evaluation.food.item.high_purine`); EN "High uric acid". Check that no other screen still uses "purinas".
+11. **Animated figure for every exercise.**
+    - List every library exercise without a figure, then add correct MOTIONS keyframes in the prototype's style.
+    - Never show a motion that doesn't match the exercise.
+    - Report the before/after count.
+12. **Delete account.** Move it from the main Perfil list to Perfil → Cuenta y ajustes → "Privacidad y datos" → "Eliminar cuenta".
+    - Before confirming, show a short retention step: what they'll lose, plus "Prefiero quedarme".
+    - It must stay reachable inside the app. Google Play requires in-app deletion.
+    - Keep the web deletion link working.
+13. **Light mode.** Strengthen the blue glow and gradient so they read clearly on the light background, using the dark design's proportions. Show dark and light screenshots.
+
+## Block D — water and heart rate (Android first, Apple later)
+14. **Water.**
+    - Manual logging: quick buttons for 250 and 500 ml plus a custom amount.
+    - Daily goal of 35 ml per kg, raised on training days.
+    - A card on Inicio and a history in Progreso.
+15. **Health Connect (Android).**
+    - Read Hydration, HeartRate, RestingHeartRate and ExerciseSession through a `HealthDataSource` interface, so Apple HealthKit can plug in later.
+    - Permissions are asked only when the user taps "Conectar reloj" in Perfil; everything works without them.
+    - The deterministic iCoach rule: if resting heart rate is 7 or more bpm above the user's 14-day baseline for 2 days in a row, the next session is lighter, with an explanation. It's not medical advice.
+    - Replace the "Próximamente" card with the real connection.
+16. **Compliance (report and prepare; the owner and the lawyer decide):**
+    - Heart rate is health data. Draft the privacy-policy addition (ES/EN) and the Data Safety changes.
+    - List the Play Console Health Connect permission declaration steps.
+    - Do not ship Block D to any track until the owner confirms the policy is updated.
+
+---
+
+## Already approved — do not touch
+The design (dark-first, the prototype tabs), swipe between tabs, the Dominican plan, País, the birth-date wheel, language switching, sync diagnostics, and biometrics (PR #233, which comes after Block C).
+
+## Screenshots
+- Device: release or internal build where possible.
+- Spanish only (English where text changed).
+- Save to `dist/v10-review/block-X/`.
+
+---
+
+## Prototype map (carried over from the v8.1 FOCUS, referenced by the rule above) (line numbers in the synced copy)
 | What | Lines |
 |---|---|
 | Colors: HERO_BG, BTN_BG | 180–191 |
@@ -16,38 +88,3 @@
 | Nutrición tab | 1390–1462 |
 | Progreso tab | 1463–1514 |
 | Perfil tab | 1515–1565 |
-
-## Exact design tokens
-- Screen background: `#060A14`, plus a top glow `radial-gradient(120% 70% at 50% 0%, rgba(31,139,240,.55), rgba(11,79,196,.25) 45%, transparent 75%)`, 340 px tall. The rest of the screen stays dark. **No bright-blue full-screen gradient.**
-- Header: transparent over the glow. Date `#9FB0C8` at 12.5; title 19 bold.
-- Panel: radius 24, border `white/10`, background `white/5`, padding 16; title 16 bold with a `#67E8F9` icon.
-- Chips: cyan `#22D3EE`/14% with text `#67E8F9`; orange `#FF7A45`/16% with `#FFA585`; green `#22C55E`/16% with `#86EFAC`; gray `white/10` with `#CBD5E1`.
-- Tab bar: floating, inset 12, radius 26, background `#0D1628`/85, border `white/15`.
-
-## Open items (v8.1, PR #245)
-1. **Animated figure ("muñeco")** in "Ver cómo se hace": port ExerciseDemo exactly. It is the SVG stick figure with the MOTIONS keyframes (a→b, cosine easing over 2.4 s; bike uses the circular formula), props (bench, seat, box, bike), gradients `dmF`/`dmB`, the radial background, and the numbered cues below.
-   - Use react-native-svg + reanimated (already installed).
-   - Copy the MOTIONS and motionFor tables verbatim.
-   - Reduce motion → a static pose.
-   - Never show a motion that doesn't match the exercise (fallback: cues only).
-2. **Background and colors:** match the tokens above on all 5 tabs.
-3. **Dominican dishes:** everyday dishes dominate the plan (mangú, moro, la bandera, sancocho, locrio, guineítos, yuca, casabe, queso blanco, avena con canela, habichuelas guisadas). Add casabe, queso blanco and canela to the catalogue.
-4. **Meal order:** Desayuno, Almuerzo, Merienda, Cena.
-5. **15-day slider:** a draggable track between "Plan de 15 días" and "Día N de 15".
-6. **Perfil:** evaluation summary chips (Salud, Alimentación, Estilo de vida; no pressure or pulse), "· N entrenamientos por semana" on the Meta line, and the Seguridad panel with the Face ID / Huella toggle.
-7. **Update prompt:** the "You changed your country" reason appears even when the country didn't change.
-8. **Dev-only button:** "Cargar 4 semanas de ejemplo (desarrollo)" must not appear in release builds; show the guard.
-9. **Progreso:** "Plan de la semana" in Entrenamientos gets the "Se renueva el lunes" chip; "Semanas anteriores" follows the synced prototype.
-
-## Approved exceptions and deferrals (owner, 2026-11-03)
-- **Header date colour:** the app keeps `onStageVariant` (#C7D7F0) instead of `#9FB0C8`. #9FB0C8 reads 3.7:1 over the top glow, below WCAG AA 4.5:1; #C7D7F0 reads about 5.5:1. Approved exception.
-- **Seguridad panel (Face ID / Huella):** not in v8.1. Seguridad panel → PR #233 (biometrics), after v8.1.
-- **Medical questions:** the app asks none (published privacy policy). The prototype's conditions, blood pressure, pulse, medications, "Restricciones médicas" and doctor wording were removed so the design matches the app.
-
-## Already approved — do not touch
-Swipe between tabs, the 7-day strip and Serie N, the weight chart and Medidas, language switching, País, the birth-date wheel, sync diagnostics.
-
-## Screenshots
-- ES only; EN only where text changed. Side by side with the prototype, one image per screen position, no duplicates.
-- Save to `dist/v8.1-review/round-2/`.
-- Stop after that: no merge, no build.
