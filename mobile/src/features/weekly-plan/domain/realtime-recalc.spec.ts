@@ -10,7 +10,6 @@ import {
   computeRealtimeWeek,
   computeWeekProgress,
   latestCoachChange,
-  localMidnight,
   plannedSessionsOf,
   REALTIME_RECALC_RULE_VERSION,
   rescheduleSkippedSessions,
@@ -64,7 +63,8 @@ describe('realtime recalculation (ADR-P040 Addendum v10-A)', () => {
   });
 
   describe('R1 week progress', () => {
-    it('counts linked and same-day unlinked workouts as planned sessions, the rest as extra', () => {
+    // ADR-P042 D5 amended (v10 Block A): only a workout started from the plan counts.
+    it('counts only plan-started workouts as planned sessions; every other workout is extra', () => {
       const progress = computeWeekProgress({
         weekDates: WEEK,
         trainingDays: TRAINING,
@@ -72,55 +72,55 @@ describe('realtime recalculation (ADR-P040 Addendum v10-A)', () => {
           logOf('a', '2026-11-02', '2026-11-02'),
           logOf('b', '2026-11-02'), // second workout on Monday → extra
           logOf('c', '2026-11-03'), // rest day → extra
-          logOf('d', '2026-11-04'), // unlinked on Wednesday → fulfils it (ADR-P042 D5)
+          logOf('d', '2026-11-04'), // "Correr 15 min" on Wednesday → extra; Wednesday stays open
           { id: 'e', localDate: '2026-11-04', finished: false, planDate: null },
           logOf('f', '2026-10-30'), // last week → ignored
         ],
       });
       expect(progress).toEqual({
         goal: 3,
-        done: 2,
-        extra: 2,
+        done: 1,
+        extra: 3,
         complete: false,
-        fulfilledDates: ['2026-11-02', '2026-11-04'],
-        extraLogIds: ['b', 'c'],
+        fulfilledDates: ['2026-11-02'],
+        extraLogIds: ['b', 'c', 'd'],
       });
-    });
-
-    it('lets the earlier workout of a day fulfil its session', () => {
-      const progress = computeWeekProgress({
-        weekDates: WEEK,
-        trainingDays: TRAINING,
-        logs: [
-          { ...logOf('a-late', '2026-11-02'), startedAt: '2026-11-02T18:00:00.000Z' },
-          { ...logOf('z-early', '2026-11-02'), startedAt: '2026-11-02T07:00:00.000Z' },
-        ],
-      });
-      expect(progress.extraLogIds).toEqual(['a-late']);
     });
 
     it('never counts an extra as a planned session, so done never exceeds the goal', () => {
       const progress = computeWeekProgress({
         weekDates: WEEK,
         trainingDays: TRAINING,
-        logs: ['2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06'].map(
-          (date, index) => logOf(`l${index}`, date),
-        ),
+        logs: [
+          ...TRAINING.map((day, index) => logOf(`p${index}`, day.date, day.date)),
+          logOf('x1', '2026-11-03'),
+          logOf('x2', '2026-11-05'),
+        ],
       });
       expect(progress.done).toBe(3);
       expect(progress.complete).toBe(true);
       expect(progress.extra).toBe(2);
     });
 
-    it('lets a workout on the new day fulfil a moved session', () => {
-      const progress = computeWeekProgress({
+    it('counts a moved session done on its new day, linked to its planned day', () => {
+      const moves = [{ sessionKey: 's1', from: '2026-11-02', to: '2026-11-05' }];
+      const linked = computeWeekProgress({
         weekDates: WEEK,
         trainingDays: TRAINING,
-        logs: [logOf('x', '2026-11-05')],
-        moves: [{ sessionKey: 's1', from: '2026-11-02', to: '2026-11-05' }],
+        logs: [logOf('x', '2026-11-05', '2026-11-02')],
+        moves,
       });
-      expect(progress.fulfilledDates).toEqual(['2026-11-02']);
-      expect(progress.extra).toBe(0);
+      expect(linked.fulfilledDates).toEqual(['2026-11-02']);
+      expect(linked.extra).toBe(0);
+      // A run logged on that day outside the plan does not fulfil it.
+      const unlinked = computeWeekProgress({
+        weekDates: WEEK,
+        trainingDays: TRAINING,
+        logs: [logOf('y', '2026-11-05')],
+        moves,
+      });
+      expect(unlinked.fulfilledDates).toEqual([]);
+      expect(unlinked.extra).toBe(1);
     });
   });
 
@@ -350,18 +350,14 @@ describe('realtime recalculation (ADR-P040 Addendum v10-A)', () => {
 
     it('combines R1–R5 deterministically', () => {
       const week = computeRealtimeWeek(input);
-      // Wednesday was skipped and moves to Thursday, where the run fulfils it.
+      // Wednesday was skipped and moves to Thursday. The run logged there is not
+      // the session (ADR-P042 D5 amended v10): it stays an extra with its kcal.
       expect(week.moves).toEqual([{ sessionKey: 's2', from: '2026-11-04', to: '2026-11-05' }]);
-      expect(week.progress.done).toBe(2);
-      expect(week.progress.extra).toBe(0);
-      expect(week.extras).toEqual([]);
-      expect(week.calorieBonus).toBe(0);
-      expect(week.latestChange).toEqual({
-        kind: 'moved',
-        at: localMidnight('2026-11-05'),
-        from: '2026-11-04',
-        to: '2026-11-05',
-      });
+      expect(week.progress.done).toBe(1);
+      expect(week.progress.extra).toBe(1);
+      expect(week.extras.map((a) => a.id)).toEqual(['run']);
+      expect(week.calorieBonus).toBe(123);
+      expect(week.latestChange).toMatchObject({ kind: 'activityBonus' });
       expect(computeRealtimeWeek(input)).toEqual(week);
     });
 

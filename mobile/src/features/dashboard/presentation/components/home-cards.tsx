@@ -175,11 +175,16 @@ export function GoalCard({
   );
 }
 
-/** Today's plan day in words; the done states are added beside it as chips. */
+/**
+ * Today's plan day in words; the done states are added beside it as chips.
+ * Once today's planned session is done, the headline says so (v10 Block A).
+ */
 function coachMessage(today: HomeSummary['today']): { key: TranslationKey; minutes?: number } {
   switch (today.kind) {
     case 'training':
-      return { key: 'home.coach.train', minutes: today.minutes ?? DEFAULT_MINUTES };
+      return today.completed
+        ? { key: 'home.coach.todayDoneHeadline' }
+        : { key: 'home.coach.train', minutes: today.minutes ?? DEFAULT_MINUTES };
     case 'rest':
       return { key: today.active ? 'home.coach.restActive' : 'home.coach.restFull' };
     case 'unknown':

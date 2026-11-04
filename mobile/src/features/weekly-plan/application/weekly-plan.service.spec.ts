@@ -5,6 +5,7 @@ import {
 } from '../infrastructure/weekly-plan.repository';
 import type { WeeklyPlan } from '../domain/weekly-plan';
 import { gatherPlanContext, type PlanContext } from './plan-context';
+import { dayIndexInWeek, weekStartOf } from '../domain/week';
 import {
   ensureCurrentWeekPlan,
   pendingPlanChanges,
@@ -277,12 +278,21 @@ describe('training-days progression (ADR-P040 D11)', () => {
       },
     } as unknown as Partial<WeeklyPlan>);
   };
+  // Workouts started from the plan (ADR-P042 D5 amended v10: only these fulfil it).
   const doneOn = (dates: string[]) =>
-    dates.map((date) => ({
-      startedAt: new Date(`${date}T18:00:00`).toISOString(),
-      finishedAt: new Date(`${date}T18:50:00`).toISOString(),
-      planLink: null,
-    }));
+    dates.map((date) => {
+      const weekStart = weekStartOf(date);
+      const index = dayIndexInWeek(date);
+      return {
+        startedAt: new Date(`${date}T18:00:00`).toISOString(),
+        finishedAt: new Date(`${date}T18:50:00`).toISOString(),
+        planLink: {
+          weeklyPlanId: `plan-${weekStart}`,
+          planSessionKey: `session.full_body_${index / 2 + 1}`,
+          planDate: date,
+        },
+      };
+    });
   const proposal = { code: 'plan.days.proposal', params: { days: 4 } };
 
   it('proposes one more day after two strong weeks, keeping the earned days in force', async () => {

@@ -74,6 +74,7 @@ export const en = {
   'home.coach.title': 'iCoach',
   'home.coach.chip': "Today's recommendation",
   'home.coach.train': 'Today: full-body training, {minutes} minutes.',
+  'home.coach.todayDoneHeadline': 'You finished today’s workout. Great job!',
   'home.coach.restActive': 'Active recovery today: walk 20 minutes and stretch 10.',
   'home.coach.restFull': 'Rest day today. Recover well.',
   'home.coach.noPlan': 'Complete your profile and goal so the iCoach can plan your week.',

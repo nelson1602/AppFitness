@@ -329,9 +329,10 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
     set({ status: 'saving', error: null });
     try {
       owner = requireSessionSnapshot();
-      const withLink = input.planLink
-        ? input
-        : { ...input, planLink: todaysPlanLink(get().workoutLogs) };
+      // ADR-P042 D5 (amended v10): a workout started here is never linked to
+      // the plan; only Entrenamientos (Serie N, "Marcar la sesión como hecha")
+      // fulfils a planned session. Anything logged here is an extra activity.
+      const withLink = input;
       // v10 Block A: a saved routine starts pre-filled with its exercises.
       const routineId = input.routineId;
       const { log, sets } = routineId

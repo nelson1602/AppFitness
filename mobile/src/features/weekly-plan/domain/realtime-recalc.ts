@@ -104,24 +104,9 @@ export function computeWeekProgress(input: WeekProgressInput): WeekProgress {
       used.add(log.id);
     }
   }
-  for (const log of finished) {
-    if (used.has(log.id) || log.planDate !== null) continue;
-    if (training.has(log.localDate) && !fulfilled.has(log.localDate)) {
-      fulfilled.add(log.localDate);
-      used.add(log.id);
-    }
-  }
-  for (const move of input.moves ?? []) {
-    if (fulfilled.has(move.from)) continue;
-    const log = finished.find(
-      (candidate) =>
-        !used.has(candidate.id) && candidate.planDate === null && candidate.localDate === move.to,
-    );
-    if (log) {
-      fulfilled.add(move.from);
-      used.add(log.id);
-    }
-  }
+  // ADR-P042 D5 (amended v10): only a workout started from the plan (linked)
+  // fulfils a session — a moved one too, linked to its planned day. Every other
+  // finished workout is an extra activity.
 
   const extraLogIds = finished.filter((log) => !used.has(log.id)).map((log) => log.id);
   const goal = input.trainingDays.length;

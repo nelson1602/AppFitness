@@ -94,6 +94,11 @@ function localIso(day: number, hour = 9): string {
   return new Date(2026, 9, day, hour, 0, 0).toISOString();
 }
 
+/** A workout started from the plan (ADR-P042 D5 amended v10: only these fulfil a session). */
+function fromPlan(day: number) {
+  return { weeklyPlanId: 'plan-1', planSessionKey: 'session', planDate: `2026-10-${day}` };
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
   mockMode = 'unregulated';
@@ -119,8 +124,20 @@ beforeEach(() => {
   };
   mockStores.workout = {
     workoutLogs: [
-      { id: 'w19', name: 'Session', startedAt: localIso(19), finishedAt: localIso(19, 10) },
-      { id: 'w23', name: 'Session', startedAt: localIso(23), finishedAt: localIso(23, 10) },
+      {
+        id: 'w19',
+        name: 'Session',
+        startedAt: localIso(19),
+        finishedAt: localIso(19, 10),
+        planLink: fromPlan(19),
+      },
+      {
+        id: 'w23',
+        name: 'Session',
+        startedAt: localIso(23),
+        finishedAt: localIso(23, 10),
+        planLink: fromPlan(23),
+      },
       { id: 'w21', name: 'Session', startedAt: localIso(21), finishedAt: null },
     ],
     activitySets: { w19: [], w23: [], w21: [] },
@@ -214,8 +231,20 @@ describe('useHomeData', () => {
     mockStores.workout = {
       ...mockStores.workout,
       workoutLogs: [
-        { id: 'w19', name: 'Session', startedAt: localIso(19), finishedAt: localIso(19, 10) },
-        { id: 'w23', name: 'Session', startedAt: localIso(23, 7), finishedAt: localIso(23, 8) },
+        {
+          id: 'w19',
+          name: 'Session',
+          startedAt: localIso(19),
+          finishedAt: localIso(19, 10),
+          planLink: fromPlan(19),
+        },
+        {
+          id: 'w23',
+          name: 'Session',
+          startedAt: localIso(23, 7),
+          finishedAt: localIso(23, 8),
+          planLink: fromPlan(23),
+        },
         {
           id: 'run',
           name: 'Correr 15 min',

@@ -129,15 +129,13 @@ export function computeWeekAdherence(
           log.planLink.planDate === date &&
           log.planLink.planSessionKey === sessionKey,
       );
-      // ADR-P042 D5: a finished, unlinked workout on a training day fulfils it.
-      const unlinkedSameDay = logs.workouts.some(
-        (log) => log.finished && log.planLink === null && log.localDate === date,
-      );
       sessions.push({
         date,
         sessionKey,
         focusKey: day.workout.focusKey,
-        done: linked || unlinkedSameDay,
+        // ADR-P042 D5 (amended v10): only a workout started from the plan
+        // fulfils it; any other workout is an extra activity.
+        done: linked,
       });
     }
 

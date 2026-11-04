@@ -187,6 +187,26 @@ describe('CoachCard', () => {
 
     expect(screen.queryByTestId('home-coach-start')).toBeNull();
     expect(screen.getByText('Entrenamiento de hoy completado')).toBeOnTheScreen();
+    // v10 Block A: the headline says it too, never "Hoy toca…".
+    expect(screen.getByTestId('home-coach-message')).toHaveTextContent(
+      'Ya completaste tu entrenamiento de hoy. ¡Buen trabajo!',
+    );
+  });
+
+  it('says today is done in English too', async () => {
+    await render(
+      <CoachCard
+        evaluationDate={null}
+        summary={{
+          ...TRAINING,
+          coach: 'today-done',
+          today: { kind: 'training', minutes: 45, completed: true },
+        }}
+      />,
+    );
+    expect(screen.getByTestId('home-coach-message')).toHaveTextContent(
+      'You finished today’s workout. Great job!',
+    );
   });
 
   it('says the whole week is done once it is', async () => {

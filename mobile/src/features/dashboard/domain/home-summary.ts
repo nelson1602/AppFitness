@@ -15,6 +15,12 @@ export interface HomeWorkoutLog {
   /** Device-local `YYYY-MM-DD` the workout started. */
   readonly localDate: string;
   readonly finished: boolean;
+  /**
+   * Started from the plan (linked to a planned session). ADR-P042 D5 (amended
+   * v10): only these complete today's session; others are extra activities.
+   * Omitted: treated as planned (older callers).
+   */
+  readonly planned?: boolean;
 }
 
 export interface HomeInputs {
@@ -105,7 +111,9 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
   const finishedThisWeek = inputs.logs.filter(
     (log) => log.finished && log.localDate >= inputs.weekStart && log.localDate <= inputs.today,
   );
-  const finishedToday = finishedThisWeek.some((log) => log.localDate === inputs.today);
+  const finishedToday = finishedThisWeek.some(
+    (log) => log.localDate === inputs.today && log.planned !== false,
+  );
   const planStart = inputs.planStart ?? null;
   const goal = inputs.routine
     ? inputs.routine.schedule.filter(

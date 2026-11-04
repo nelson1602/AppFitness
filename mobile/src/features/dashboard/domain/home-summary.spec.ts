@@ -28,6 +28,21 @@ const base: HomeInputs = {
 };
 
 describe('buildHomeSummary (ADR-P039 Inicio)', () => {
+  // ADR-P042 D5 amended (v10): a run logged outside the plan is not today's session.
+  it('keeps today open after a workout logged outside the plan', () => {
+    const summary = buildHomeSummary({
+      ...base,
+      logs: [{ localDate: '2026-10-21', finished: true, planned: false }],
+    });
+    expect(summary.today).toEqual({ kind: 'training', minutes: 45, completed: false });
+    expect(summary.coach).toBe('start');
+    const done = buildHomeSummary({
+      ...base,
+      logs: [{ localDate: '2026-10-21', finished: true, planned: true }],
+    });
+    expect(done.coach).toBe('today-done');
+  });
+
   // v10 Block A: Monday is before a Wednesday start, so the week asks for two.
   it('leaves training days before the plan start out of the week goal', () => {
     expect(buildHomeSummary({ ...base, planStart: '2026-10-21' }).week).toMatchObject({

@@ -265,13 +265,22 @@ describe('adherence (ADR-P042 D7)', () => {
     expect(adherenceTone(64)).toBe('retake');
   });
 
-  it('counts an unlinked finished workout on a training day; ignores rest days and unfinished ones', () => {
+  // ADR-P042 D5 amended (v10 Block A): only a workout started from the plan fulfils it.
+  it('never counts a workout logged outside the plan, even on a training day', () => {
     const logs = emptyLogs();
     logs.workouts = [
-      done('2026-10-26', '', false),
-      done('2026-10-27', '', false), // rest day → extra, outside adherence
+      done('2026-10-26', '', false), // "Correr 15 min" on a training day → extra
+      done('2026-10-27', '', false), // rest day → extra
       { localDate: '2026-10-28', finished: false, planLink: null },
     ];
+    const result = computeWeekAdherence([plan()], logs);
+    expect(result?.sessions.map((s) => s.done)).toEqual([false, false, false]);
+    expect(result?.fulfilledSessions).toBe(0);
+  });
+
+  it('counts a finished workout started from the plan', () => {
+    const logs = emptyLogs();
+    logs.workouts = [done('2026-10-26', 'session.full_body_1')];
     const result = computeWeekAdherence([plan()], logs);
     expect(result?.sessions.map((s) => s.done)).toEqual([true, false, false]);
   });

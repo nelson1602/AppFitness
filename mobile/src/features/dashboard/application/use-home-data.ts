@@ -151,6 +151,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
       logs: workoutLogs.map((log) => ({
         localDate: deviceLocalDate(log.startedAt),
         finished: log.finishedAt !== null,
+        planned: log.planLink !== null,
       })),
       weightsNewestFirst: bodyWeights.map((weight) => weight.weightKg),
       targetWeightKg: goal?.targetWeightKg ?? null,
@@ -219,6 +220,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
     evaluationDate,
     foodLogReady,
     goal,
+    planRevisions,
     profile,
     realtime,
     routine,

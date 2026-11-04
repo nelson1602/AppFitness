@@ -276,6 +276,8 @@ describe('useWorkoutStore', () => {
     mockStart.mockResolvedValue(log({ id: 'l9' }));
     const ok = await useWorkoutStore.getState().startWorkout({ name: 'Leg day' });
     expect(ok).toBe(true);
+    // ADR-P042 D5 amended (v10): never linked to the plan from here.
+    expect(mockStart).toHaveBeenCalledWith({ name: 'Leg day' });
     expect(useWorkoutStore.getState().workoutLogs[0].id).toBe('l9');
   });
 
