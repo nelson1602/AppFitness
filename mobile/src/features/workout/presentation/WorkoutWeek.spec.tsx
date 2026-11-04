@@ -280,6 +280,13 @@ describe('WorkoutWeek logging an earlier day', () => {
     );
   });
 
+  it('names the day in lower case mid-sentence in Spanish', async () => {
+    mockLanguage = 'es';
+    await renderWeek(2, []);
+    await fireEvent.press(screen.getByTestId('workout-day-0'));
+    expect(screen.getByText('Se guarda con la fecha del lunes.')).toBeOnTheScreen();
+  });
+
   it('keeps later days read-only', async () => {
     await renderWeek(2, []);
     await fireEvent.press(screen.getByTestId('workout-day-4'));

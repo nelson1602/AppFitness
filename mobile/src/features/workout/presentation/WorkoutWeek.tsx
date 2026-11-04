@@ -505,7 +505,13 @@ function SessionPanel({
       {canLog && !isToday && !complete ? (
         <View style={{ gap: spacing.sm }} testID="workout-past-day">
           <AppText tone="onStageVariant" variant="caption">
-            {interpolate(t('workouts.session.pastDay'), { day: t(WEEKDAY_KEYS[weekday]) })}
+            {interpolate(t('workouts.session.pastDay'), {
+              // Mid-sentence, Spanish day names are lower case.
+              day:
+                language === 'es'
+                  ? t(WEEKDAY_KEYS[weekday]).toLocaleLowerCase('es')
+                  : t(WEEKDAY_KEYS[weekday]),
+            })}
           </AppText>
           <Pressable
             accessibilityRole="button"
