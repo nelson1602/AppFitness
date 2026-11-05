@@ -265,13 +265,17 @@ describe('PrismaMealItemRepository (ADR-P030 C-2)', () => {
       expect(meal).toEqual({ userId: 'other', deletedAt: null });
     });
 
-    it('findActiveFood excludes soft-deleted catalog rows', async () => {
-      await repo.findActiveFood(tx as unknown as SyncTx, FOOD_ID);
+    it("findActiveFood excludes soft-deleted rows and another user's custom food", async () => {
+      await repo.findActiveFood(tx as unknown as SyncTx, USER, FOOD_ID);
 
       const [{ where }] = tx.food.findFirst.mock.calls[0] as [
         { where: Record<string, unknown> },
       ];
-      expect(where).toEqual({ id: FOOD_ID, deletedAt: null });
+      expect(where).toEqual({
+        id: FOOD_ID,
+        deletedAt: null,
+        OR: [{ createdBy: null }, { createdBy: USER }],
+      });
     });
   });
 

@@ -15282,6 +15282,106 @@ ADR-P039, ADR-P035 D5, `docs/design/README.md` §Panel, `.ai/11_BACKLOG.md` FEAT
 
 ---
 
+## ADR-P045 — External Food Search, the Shared Self-Growing Catalogue and Private Custom Foods
+
+Status: Accepted
+Date: 2026-11-05
+Accepted: 2026-11-05 by the project owner (v10 Block B item 7, `docs/design/FOCUS.md`).
+Owner: Backend Architecture / Nutrition
+Amends: ADR-P040 D9 and D10 (food sources, user foods), ADR-P013 acceptance (FDC used only at build time), ADR-P012 D3/D5 (custom foods)
+
+### Context
+
+The owner requires that a food missing from the bundled catalogue can still be
+found and logged: the server searches USDA FoodData Central (FDC) and Open Food
+Facts (OFF), returns Spanish-friendly results, and the chosen food joins a
+shared catalogue that grows with use. When nothing is found, the user creates a
+custom food. "Chicharrón de cerdo" must work.
+
+This reverses the 2026-10-22 decision that dropped OFF (ADR-P040 D10) and adds
+a runtime FDC path beside the pinned build-time import (ADR-P013). Custom foods
+are stored as private `foods` rows rather than the separate entity ADR-P040 D9
+sketched, because a `meal_items` row already references `foods.id` and the
+server derives every snapshot from that row (ADR-P012).
+
+### Decision
+
+1. **Endpoints** (JWT; the two writes are paid mutations under ADR-P034):
+   - `GET /foods/search?q=&limit=` (q 2..80 chars, limit 1..20, default 15) →
+     `{ results, external: 'ok' | 'partial' | 'unavailable' }`.
+   - `POST /foods/import { source: 'fdc' | 'off', sourceId }` → the stored food.
+   - `POST /foods/custom { name, servingAmount, servingUnit, gramsPerServing?,
+     caloriesPerServing, proteinPerServing, carbsPerServing, fatPerServing }` →
+     `201` with the stored food.
+2. **Search order.** The database first: active foods that are global
+   (`created_by IS NULL`) or the caller's own, matched word by word,
+   accent- and case-insensitively (SQL `translate` + `lower`; no `unaccent`
+   extension and no migration). Then OFF and FDC in parallel. External hits
+   whose name holds every query word come first, and within each group OFF
+   Spanish names come first. Duplicates by (source, sourceId) are dropped, and
+   a hit already imported (`fdc.<id>` / `off.<code>` exists) is returned as
+   that catalogue food.
+3. **Spanish-friendly.** OFF is queried with `lc=es` and `product_name_es`
+   wins over `product_name`. FDC is searched both as typed and with a
+   deterministic ES→EN translation from a small reviewed term table
+   (`ES_EN_FOOD_TERMS` in `nutrition/catalog/external-food.ts`; accent-
+   insensitive whole words, Spanish connector words dropped). The FDC
+   description is kept as the name.
+4. **Normalization.** Every external item is stored per 100 g (`servingAmount
+   100`, `servingUnit 'g'`, `gramsPerServing 100`), rounded to one decimal.
+   FDC nutrients 1008 (kcal, else Atwater 2048/2047), 1003, 1005, 1004, 1079;
+   OFF `energy-kcal_100g`, `proteins_100g`, `carbohydrates_100g`, `fat_100g`,
+   `fiber_100g`. Items missing kcal, protein, carbs or fat, or with kcal above
+   900, a macro outside 0..100 g, or macros summing above 100 g, are dropped.
+5. **Import re-fetches.** The server fetches the item again by id from its
+   source and never accepts client-sent names or macros. It stores it in the
+   shared catalogue as `catalogKey fdc.<fdcId>` / `off.<code>`, `foodRevision
+   1`, id `deriveFoodId(catalogKey, 1)`, `catalogVersion 'external@1'`,
+   `createdBy NULL`, `isVerified false`. The import is idempotent: an existing
+   row is returned unchanged, and concurrent imports insert once (`ON CONFLICT
+   DO NOTHING`). A missing or unusable item is `404`; an unreachable source is
+   `503`. Imported revisions are immutable like every catalogue revision.
+6. **Custom foods are private.** `catalogKey custom.<uuid v4>`, id
+   `deriveFoodId(catalogKey, 1)`, `catalogVersion 'custom@1'`, `createdBy` the
+   caller, `isVerified false`. When the portion weight is known (given, or the
+   unit is `g`), more than 9 kcal per gram or macros heavier than the portion
+   are rejected. Only their creator sees them in search, and `meal_items` sync
+   resolves a food only when it is global or the syncing user's own; another
+   user's custom food is the non-retryable `CATALOG_REVISION_UNSUPPORTED`.
+7. **Availability.** Each external call has a 4 s timeout. A failed source
+   never fails the search: `external` is `ok` when both answered, `partial`
+   when one failed or was skipped, `unavailable` when both failed, and the
+   database results are always returned. `/foods/search` and
+   `/foods/import` are limited to 30 requests per 60 s per client.
+8. **Secrets.** `FDC_API_KEY` is optional and server-only. Without it, FDC is
+   skipped and a single warning is logged at startup. The value is never
+   logged, returned or shipped to the app, and error messages never include
+   the request URL.
+9. **Attribution.** OFF data is ODbL-licensed. The app shows "Datos de Open
+   Food Facts" (EN "Data from Open Food Facts") wherever OFF-sourced food data
+   is displayed: search results with `source: 'off'` and foods whose
+   `catalogKey` starts with `off.`. OFF requests identify the client with the
+   User-Agent `AppFitnessRD/1.0 (+https://appfitnessrd.com)`. FDC data is
+   public domain.
+
+### Consequences
+
+- Positive: any packaged food or common dish can be found and logged, and each
+  import makes the next search answer from the database alone.
+- Negative: imported foods are unverified third-party data (`isVerified
+  false`), mostly English names for FDC, and per-100 g only (liquids are
+  stored per 100 g as well). OFF limits search requests per IP (about 10 per
+  minute) and FDC keys allow about 1,000 requests per hour, so a busy server
+  will see `partial` answers; a short-lived result cache is the follow-up if
+  that happens. This ADR does not feed imported or custom foods into the
+  deterministic iCoach plan engine; they are for logging.
+
+### Related Documents
+
+ADR-P012, ADR-P013, ADR-P014, ADR-P034, ADR-P040 D9/D10, `docs/design/FOCUS.md` Block B item 7, `api/DEPLOYMENT.md`
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
