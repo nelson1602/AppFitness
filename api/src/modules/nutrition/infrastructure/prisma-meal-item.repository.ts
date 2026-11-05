@@ -56,10 +56,16 @@ export class PrismaMealItemRepository extends MealItemRepositoryPort {
 
   async findActiveFood(
     tx: SyncTx,
+    userId: string,
     foodId: string,
   ): Promise<FoodRevisionSnapshotSource | null> {
+    // ADR-P045: custom foods are private — only global or own foods resolve.
     const food = await tx.food.findFirst({
-      where: { id: foodId, deletedAt: null },
+      where: {
+        id: foodId,
+        deletedAt: null,
+        OR: [{ createdBy: null }, { createdBy: userId }],
+      },
       select: {
         name: true,
         catalogKey: true,
