@@ -33,6 +33,8 @@ type Route = { status: number; body?: unknown } | 'network-error';
 
 /** Mocked global fetch routed by URL; records every call. */
 function mockFetch(routes: {
+  /** search.openfoodfacts.org (current search service). */
+  offHits?: Route;
   offSearch?: Route;
   fdcSearch?: Route;
   offProduct?: Route;
@@ -40,15 +42,17 @@ function mockFetch(routes: {
 }): jest.Mock {
   return jest.fn((input: string) => {
     const url = String(input);
-    const route = url.includes('/cgi/search.pl')
-      ? routes.offSearch
-      : url.includes('/fdc/v1/foods/search')
-        ? routes.fdcSearch
-        : url.includes('/api/v2/product/')
-          ? routes.offProduct
-          : url.includes('/fdc/v1/food/')
-            ? routes.fdcFood
-            : undefined;
+    const route = url.includes('search.openfoodfacts.org/search')
+      ? routes.offHits
+      : url.includes('/cgi/search.pl')
+        ? routes.offSearch
+        : url.includes('/fdc/v1/foods/search')
+          ? routes.fdcSearch
+          : url.includes('/api/v2/product/')
+            ? routes.offProduct
+            : url.includes('/fdc/v1/food/')
+              ? routes.fdcFood
+              : undefined;
     if (!route || route === 'network-error') {
       return Promise.reject(new TypeError('fetch failed'));
     }
@@ -158,6 +162,35 @@ afterEach(() => {
 });
 
 describe('FoodSearchService.search (ADR-P045)', () => {
+  // 2026-11-05: the legacy search.pl answered 503; the current search service
+  // (search-a-licious, brands as an array) is used first.
+  it('uses the current Open Food Facts search first, with brands as an array', async () => {
+    const products = (
+      OFF_SEARCH_BODY as { products: Record<string, unknown>[] }
+    ).products;
+    const fetchMock = mockFetch({
+      offHits: {
+        status: 200,
+        body: {
+          hits: products.map((p) => ({ ...p, brands: ['La Famosa', 'Otra'] })),
+        },
+      },
+      fdcSearch: { status: 200, body: FDC_SEARCH_BODY },
+    });
+    const { service } = build(fetchMock);
+    const response = await service.search('user-1', 'Chicharrón de cerdo', 15);
+    const off = response.results.find((r) => r.source === 'off');
+    expect(off).toMatchObject({
+      name: 'Chicharrón de cerdo',
+      brand: 'La Famosa',
+    });
+    expect(
+      fetchMock.mock.calls.some(([url]) =>
+        String(url).includes('/cgi/search.pl'),
+      ),
+    ).toBe(false);
+  });
+
   it('"Chicharrón de cerdo": DB first, then ranked external hits, external ok', async () => {
     const fetchMock = mockFetch(OK_ROUTES);
     const { service, foods } = build(fetchMock);

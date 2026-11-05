@@ -208,6 +208,13 @@ function cleanText(value: unknown, max: number): string | null {
  * carbs/fat, kcal outside 0..900, a macro outside 0..100 g, or macros summing
  * above 100 g. An implausible fiber becomes null rather than dropping the item.
  */
+/** kcal off the Atwater estimate tolerated before a product is dropped. */
+const ENERGY_TOLERANCE_KCAL = 60;
+
+function kjToKcal(kj: number | null): number | null {
+  return kj === null ? null : kj / 4.184;
+}
+
 export function checkPer100g(raw: {
   kcal: number | null;
   protein: number | null;
@@ -223,6 +230,13 @@ export function checkPer100g(raw: {
   const macros = [protein, carbs, fat];
   if (macros.some((m) => m < 0 || m > 100)) return null;
   if (protein + carbs + fat > 101) return null;
+  // Energy must agree with the macros (Atwater 4/4/9, generous margin for
+  // fibre, alcohol and polyols): a wrong unit or a typo is dropped, not shown.
+  const atwater = 4 * protein + 4 * carbs + 9 * fat;
+  if (
+    Math.abs(kcal - atwater) > Math.max(ENERGY_TOLERANCE_KCAL, 0.35 * atwater)
+  )
+    return null;
   const fiber =
     raw.fiber !== null && raw.fiber >= 0 && raw.fiber <= 100
       ? round1(raw.fiber)
@@ -283,12 +297,20 @@ export function normalizeOffProduct(raw: unknown): ExternalFood | null {
   const name = esName ?? cleanText(product.product_name, MAX_NAME_LENGTH);
   if (!name) return null;
 
-  const brandList = typeof product.brands === 'string' ? product.brands : '';
+  // The legacy search returns brands as "A,B"; search-a-licious as ["A","B"].
+  const brandList = Array.isArray(product.brands)
+    ? product.brands.filter((b): b is string => typeof b === 'string').join(',')
+    : typeof product.brands === 'string'
+      ? product.brands
+      : '';
   const brand = cleanText(brandList.split(',')[0], MAX_BRAND_LENGTH);
 
   const nutriments = asRecord(product.nutriments) ?? {};
   const per100g = checkPer100g({
-    kcal: toNumber(nutriments['energy-kcal_100g']),
+    // Some products give energy only in kJ (1 kcal = 4.184 kJ).
+    kcal:
+      toNumber(nutriments['energy-kcal_100g']) ??
+      kjToKcal(toNumber(nutriments['energy-kj_100g'])),
     protein: toNumber(nutriments.proteins_100g),
     carbs: toNumber(nutriments.carbohydrates_100g),
     fat: toNumber(nutriments.fat_100g),
@@ -373,6 +395,22 @@ export function normalizeFdcFood(raw: unknown): ExternalFood | null {
  * Spanish names before everything else; the source order breaks ties.
  * Duplicates by (source, sourceId) keep their first occurrence.
  */
+/**
+ * Keeps only external hits that name at least one meaningful word of the query
+ * or of its English translation, as a whole word ("Chicharrón de cerdo" →
+ * chicharron, cerdo, pork, rinds): "Pork skins" stays, while "lemon rind"
+ * cookies or watermelon rind — which only share a fragment — are dropped.
+ * Ranking (below) still puts full matches first.
+ */
+export function matchesQuery(name: string, query: string): boolean {
+  const nameWords = new Set(foldText(name).split(' '));
+  const words = [
+    ...queryWords(query),
+    ...queryWords(translateQueryToEnglish(query)),
+  ];
+  return words.some((word) => nameWords.has(word));
+}
+
 export function rankExternal(
   items: readonly ExternalFood[],
   query: string,
@@ -382,7 +420,7 @@ export function rankExternal(
   const seen = new Set<string>();
   const unique = items.filter((item) => {
     const key = `${item.source}:${item.sourceId}`;
-    if (seen.has(key)) return false;
+    if (seen.has(key) || !matchesQuery(item.name, query)) return false;
     seen.add(key);
     return true;
   });

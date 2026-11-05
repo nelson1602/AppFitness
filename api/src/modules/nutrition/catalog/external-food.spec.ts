@@ -15,6 +15,7 @@ import {
   ES_EN_FOOD_TERMS,
   type ExternalFood,
   checkPer100g,
+  matchesQuery,
   containsAllWords,
   externalCatalogKey,
   foldText,
@@ -133,13 +134,43 @@ describe('external food normalization (ADR-P045)', () => {
     const base = { kcal: 100, protein: 10, carbs: 10, fat: 5, fiber: 1 };
 
     it('accepts the bounds and rounds to one decimal', () => {
-      expect(checkPer100g({ ...base, kcal: 900, protein: 0.04 })).toEqual({
+      expect(
+        checkPer100g({
+          ...base,
+          kcal: 900,
+          protein: 0.04,
+          carbs: 0,
+          fat: 99.96,
+        }),
+      ).toEqual({
         kcal: 900,
         protein: 0,
-        carbs: 10,
-        fat: 5,
+        carbs: 0,
+        fat: 100,
         fiber: 1,
       });
+    });
+
+    it('drops a product whose energy contradicts its macros (wrong unit or typo)', () => {
+      // 100 kcal with 36.7 g fat (Atwater ≈ 557 kcal): energy was entered in kJ.
+      expect(
+        checkPer100g({
+          kcal: 24,
+          protein: 56.7,
+          carbs: 0,
+          fat: 36.7,
+          fiber: 0,
+        }),
+      ).toBeNull();
+      expect(
+        checkPer100g({
+          kcal: 557,
+          protein: 56.7,
+          carbs: 0,
+          fat: 36.7,
+          fiber: 0,
+        }),
+      ).not.toBeNull();
     });
 
     it.each([
@@ -228,7 +259,27 @@ describe('external ranking (ADR-P045)', () => {
       ],
       'pork skins',
     );
-    expect(ranked.map((r) => r.sourceId)).toEqual(['168201', '7460000000017']);
+    // The Spanish chicharrón shares no word with "pork skins": not an answer.
+    expect(ranked.map((r) => r.sourceId)).toEqual(['168201']);
+  });
+
+  it('drops hits that only share a word fragment with the query', () => {
+    expect(
+      matchesQuery('Snacks, pork skins, plain', 'Chicharrón de cerdo'),
+    ).toBe(true);
+    expect(matchesQuery('Chicharrón Barcel', 'chicharron de cerdo')).toBe(true);
+    expect(
+      matchesQuery(
+        'Cookies, ladyfingers, with lemon juice and rind',
+        'Chicharrón de cerdo',
+      ),
+    ).toBe(false);
+    expect(
+      matchesQuery(
+        'Watermelon, seedless, rind only, raw',
+        'Chicharrón de cerdo',
+      ),
+    ).toBe(false);
   });
 
   it('is deterministic for identical input', () => {

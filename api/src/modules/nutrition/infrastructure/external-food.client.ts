@@ -21,6 +21,8 @@ export class ExternalSourceUnavailableError extends Error {
 }
 
 const OFF_BASE = 'https://world.openfoodfacts.org';
+/** Open Food Facts' current full-text search (search-a-licious). */
+const OFF_SEARCH_BASE = 'https://search.openfoodfacts.org';
 const FDC_BASE = 'https://api.nal.usda.gov/fdc/v1';
 /** Open Food Facts asks every client to identify itself. */
 export const OFF_USER_AGENT = 'AppFitnessRD/1.0 (+https://appfitnessrd.com)';
@@ -48,7 +50,38 @@ export class ExternalFoodClient {
     return this.config.fdcApiKey !== null;
   }
 
+  /**
+   * Open Food Facts search: the current search service first, the legacy
+   * `search.pl` endpoint when it fails (it returned 503 on 2026-11-05).
+   */
   async searchOff(query: string, limit: number): Promise<ExternalFood[]> {
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        langs: 'es',
+        page_size: String(limit),
+        fields: OFF_FIELDS,
+      });
+      const body = await this.getJson(
+        'off',
+        `${OFF_SEARCH_BASE}/search?${params.toString()}`,
+      );
+      const hits = (body as { hits?: unknown } | null)?.hits;
+      if (Array.isArray(hits)) {
+        return hits
+          .map(normalizeOffProduct)
+          .filter((f): f is ExternalFood => f !== null);
+      }
+    } catch {
+      // Falls through to the legacy search below.
+    }
+    return this.searchOffLegacy(query, limit);
+  }
+
+  private async searchOffLegacy(
+    query: string,
+    limit: number,
+  ): Promise<ExternalFood[]> {
     const params = new URLSearchParams({
       search_terms: query,
       search_simple: '1',
