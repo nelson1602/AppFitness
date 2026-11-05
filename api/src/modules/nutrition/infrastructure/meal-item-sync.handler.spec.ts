@@ -147,7 +147,7 @@ describe('MealItemSyncHandler', () => {
     );
 
     expect(outcome).toEqual({ status: 'APPLIED' });
-    expect(repo.findActiveFood).toHaveBeenCalledWith(TX, FOOD_ID);
+    expect(repo.findActiveFood).toHaveBeenCalledWith(TX, USER, FOOD_ID);
     const [txArg, userIdArg, data] = repo.create.mock.calls[0] as [
       SyncTx,
       string,
@@ -178,7 +178,7 @@ describe('MealItemSyncHandler', () => {
     );
 
     expect(repo.findMeal).toHaveBeenCalledWith(TX, MEAL_ID);
-    expect(repo.findActiveFood).toHaveBeenCalledWith(TX, FOOD_ID);
+    expect(repo.findActiveFood).toHaveBeenCalledWith(TX, USER, FOOD_ID);
     const [createTx] = repo.create.mock.calls[0] as [SyncTx];
     expect(createTx).toBe(TX);
   });

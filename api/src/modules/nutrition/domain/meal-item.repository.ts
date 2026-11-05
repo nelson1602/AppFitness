@@ -58,9 +58,14 @@ export abstract class MealItemRepositoryPort {
   ): Promise<MealItemRecord | null>;
   /** Parent-meal ownership probe by id (global — null when the parent has not synced). */
   abstract findMeal(tx: SyncTx, mealId: string): Promise<MealOwnership | null>;
-  /** The referenced food revision if it exists and is active; null otherwise. */
+  /**
+   * The referenced food revision if it exists, is active and is visible to
+   * `userId` — a global food (createdBy null) or the user's own custom food
+   * (ADR-P045). Another user's custom food resolves to null.
+   */
   abstract findActiveFood(
     tx: SyncTx,
+    userId: string,
     foodId: string,
   ): Promise<FoodRevisionSnapshotSource | null>;
   /** @returns 1 inserted, 0 when the id already exists (primary key only). */
