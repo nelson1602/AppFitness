@@ -12,6 +12,7 @@ import { enqueue, listParkedEntityIds, SYNC_ERROR_CODES } from '@/shared/infrast
 import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
 // BUG-044: the day's log and meal are synced parents, queued ahead of the food.
 import { ensureMeal, ensureNutritionLog } from './food-log-parents';
+import { readSavedFood } from './saved-foods.repository';
 import {
   deriveServingSnapshot,
   type CanonicalFood,
@@ -132,7 +133,10 @@ async function insertLoggedFood(
   nowIso: string,
   tx: SqlExecutor,
 ): Promise<LoggedMealItem> {
-  const canonical = getCanonicalByCatalogKey(input.catalogKey);
+  // v10 Block B: a food chosen from USDA / Open Food Facts or created by the
+  // person is not bundled; it was saved on the phone when chosen.
+  const canonical =
+    getCanonicalByCatalogKey(input.catalogKey) ?? (await readSavedFood(input.catalogKey, tx));
   if (!canonical) throw new Error('unknown catalog food'); // slug only, no PHI
   if (!(input.servingCount > 0)) throw new Error('serving count must be positive');
   const snapshot = deriveServingSnapshot(canonical);
@@ -332,6 +336,36 @@ export async function applyServerMealItem(
   tx: SqlExecutor,
 ): Promise<void> {
   const row = data as Record<string, unknown> & { id: string; user_id: string };
+  // v10 Block B: a food from another device may not be on this phone (an
+  // imported or custom food). Its row is rebuilt from the item's immutable
+  // snapshot so the foreign key holds; a known food is left untouched.
+  await run(
+    `INSERT OR IGNORE INTO foods (
+       id, created_at, updated_at, version, sync_status,
+       catalog_key, food_revision, catalog_version, name, brand,
+       serving_amount, serving_unit, grams_per_serving,
+       calories_per_serving, protein_per_serving, carbs_per_serving,
+       fat_per_serving, fiber_per_serving, created_by, is_verified
+     ) VALUES (?, ?, ?, 1, 'synced', ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)`,
+    [
+      str(row['food_id']),
+      str(row['created_at']),
+      str(row['updated_at']),
+      str(row['catalog_key_snapshot']),
+      numOrNull(row['food_revision_snapshot']) ?? 1,
+      str(row['catalog_version_snapshot']),
+      str(row['food_name_snapshot']) ?? '',
+      Number(row['serving_amount_snapshot'] ?? 0),
+      str(row['serving_unit_snapshot']) ?? 'g',
+      numOrNull(row['grams_per_serving_snapshot']),
+      Number(row['calories_per_serving_snapshot'] ?? 0),
+      Number(row['protein_per_serving_snapshot'] ?? 0),
+      Number(row['carbs_per_serving_snapshot'] ?? 0),
+      Number(row['fat_per_serving_snapshot'] ?? 0),
+      numOrNull(row['fiber_per_serving_snapshot']),
+    ],
+    tx,
+  );
   await run(
     `INSERT OR REPLACE INTO meal_items (
        id, user_id, created_at, updated_at, version, sync_status, deleted_at, deleted_by,

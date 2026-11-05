@@ -198,10 +198,10 @@ describe('catalogue parity', () => {
   // v10 Block A items 2–3: the plan start panel (title, body) and logging an earlier day (mark done, date note) (+4).
   // Items 5–6 (ADR-P040 Addendum v10-A): "Actividad extra" and its iCoach notes (+6),
   // the week's "+N extra" and the "+N kcal por actividad" bonus (+2), the iCoach card's latest
-  // change (+4), "Guardar como rutina" (+3) and the new-targets prompt sentence (+1) (+16; 1814 together). R3 on the new day: moved from / moved to / log it here (+3, 1817). The iCoach headline once today is done (+1, 1818).
-  it('reaches 1818 keys in each language — 1631 shipped plus a 187-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1818);
-    expect(Object.keys(es)).toHaveLength(1818);
+  // change (+4), "Guardar como rutina" (+3) and the new-targets prompt sentence (+1) (+16; 1814 together). R3 on the new day: moved from / moved to / log it here (+3, 1817). The iCoach headline once today is done (+1, 1818). v10 Block B item 7: server food search, its sources and states, and the custom food form (+25, 1843).
+  it('reaches 1843 keys in each language — 1656 shipped plus a 187-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1843);
+    expect(Object.keys(es)).toHaveLength(1843);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 
