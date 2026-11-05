@@ -13,6 +13,7 @@ import { computeWeekAdherence, effectivePlanDay, type WeekAdherence } from '../d
 import type { OffPlanAdjustment } from '../domain/off-plan';
 import { planInputsFingerprint, type PlanChange } from '../domain/plan-inputs';
 import type { WeeklyPlan } from '../domain/weekly-plan';
+import { useFoodLogStore } from '@/features/nutrition/application/food-log.store';
 import { logPlannedMeal } from '@/features/nutrition/infrastructure/food-log.repository';
 import type { MealSlot } from '@/features/nutrition/domain/meal-plan';
 
@@ -154,21 +155,30 @@ export const useWeeklyPlanStore = create<WeeklyPlanState>((set, get) => ({
     const effective = effectivePlanDay(revisions, date);
     const meal = effective?.day.meals.find((candidate) => candidate.slot === slot);
     if (!effective || !meal || meal.foods.length === 0) return false;
+    const key = `${date}|${slot}`;
+    // Already marked, or a tap still in flight: never log the dish twice.
+    if (get().mealSlotsDone.includes(key)) return true;
     let owner: SessionSnapshot | null = null;
+    // v10 Block A, item 4: the check turns on at once; a failed write undoes it.
+    const unmark = () =>
+      set((state) => ({ mealSlotsDone: state.mealSlotsDone.filter((done) => done !== key) }));
+    set((state) => ({ mealSlotsDone: [...state.mealSlotsDone, key] }));
     try {
       owner = requireSessionSnapshot();
-      await logPlannedMeal(owner.userId, {
+      const logged = await logPlannedMeal(owner.userId, {
         date,
         mealType: slot,
         lines: meal.foods.map((food) => ({ catalogKey: food.foodId, servingCount: food.servings })),
         planLink: { planId: effective.plan.id, planDate: date, planSlot: slot },
       });
       if (!isSessionCurrent(owner)) return false;
-      set((state) => ({ mealSlotsDone: [...state.mealSlotsDone, `${date}|${slot}`] }));
+      // The ring and the macro bars (Nutrición and Inicio) read the food log.
+      useFoodLogStore.getState().applyPlannedItems(date, logged);
       void get().load();
       return true;
     } catch (error) {
       logError('weeklyPlan.markMealEaten', error);
+      if (!owner || isSessionCurrent(owner)) unmark();
       return false;
     }
   },

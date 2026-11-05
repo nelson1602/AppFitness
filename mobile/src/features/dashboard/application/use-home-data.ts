@@ -14,8 +14,11 @@ import { useProgressStore } from '@/features/progress/application/progress.store
 import { useWellnessSafetyProfileStore } from '@/features/wellness/application/wellness-safety-profile.store';
 import { selectWorkoutRoutine } from '@/features/workout/application/workout-routine.service';
 import { useWorkoutStore } from '@/features/workout/application/workout.store';
+import { useRealtimeWeek } from '@/features/weekly-plan/application/use-realtime-week';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
+import { planStartDate } from '@/features/weekly-plan/domain/adherence';
 import { planAsRoutine } from '@/features/weekly-plan/domain/plan-routine';
+import type { CoachChange } from '@/features/weekly-plan/domain/realtime-recalc';
 import { onLocalDayChange, useLocalDay } from '@/shared/application/local-day';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import type { GoalType } from '@/shared/infrastructure/database/types';
@@ -90,6 +93,8 @@ export interface HomeData {
   evaluationDate: string | null;
   /** The iCoach assessment's BMI and macro targets, or null before it can compute. */
   evaluation: HomeEvaluation | null;
+  /** The iCoach's latest real-time change this week (ADR-P040 Addendum v10-A R5). */
+  latestChange: CoachChange | null;
 }
 
 /** "Today" from the device clock, resolved once per render. */
@@ -113,9 +118,9 @@ export function useHomeData(now: Date = new Date()): HomeData {
   useLocalDay((s) => s.today);
   const { today, weekStart, weekdayIndex } = todayParts(now);
 
-  return useMemo(() => {
-    // Generation follows the same access rule as the plan screen.
-    const mayGenerate = mode === 'unregulated' || mode === 'active';
+  // Generation follows the same access rule as the plan screen.
+  const mayGenerate = mode === 'unregulated' || mode === 'active';
+  const routine = useMemo(() => {
     const selection =
       mayGenerate && profile
         ? selectWorkoutRoutine(assessment, {
@@ -126,13 +131,17 @@ export function useHomeData(now: Date = new Date()): HomeData {
         : null;
     // ADR-P042: the saved week is what the person is measured against; the
     // live routine is only a fallback until the week's plan exists.
-    const routine =
-      mayGenerate && planRevisions.length > 0
-        ? planAsRoutine(planRevisions)
-        : selection?.status === 'ready'
-          ? selection.routine
-          : null;
+    return mayGenerate && planRevisions.length > 0
+      ? planAsRoutine(planRevisions)
+      : selection?.status === 'ready'
+        ? selection.routine
+        : null;
+  }, [assessment, mayGenerate, planRevisions, profile]);
+  // ADR-P040 Addendum v10-A: progress with extras, the activity bonus and the
+  // latest change, recomputed from the stores after every local write.
+  const realtime = useRealtimeWeek(routine, now);
 
+  return useMemo(() => {
     const summary = buildHomeSummary({
       today,
       weekStart,
@@ -142,11 +151,17 @@ export function useHomeData(now: Date = new Date()): HomeData {
       logs: workoutLogs.map((log) => ({
         localDate: deviceLocalDate(log.startedAt),
         finished: log.finishedAt !== null,
+        planned: log.planLink !== null,
       })),
       weightsNewestFirst: bodyWeights.map((weight) => weight.weightKg),
       targetWeightKg: goal?.targetWeightKg ?? null,
       caloriesConsumed: foodLogReady ? totals.calories : null,
       calorieTarget: assessment?.assessment.nutrition.calories ?? null,
+      planStart: planStartDate(planRevisions),
+      weekProgress: routine
+        ? { done: realtime.progress.done, extra: realtime.progress.extra }
+        : null,
+      activityCalories: realtime.calorieBonus,
     });
 
     const notifications = buildNotifications({
@@ -197,6 +212,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
       goalTargetDate: goal?.targetDate ?? null,
       evaluationDate,
       evaluation,
+      latestChange: realtime.latestChange,
     };
   }, [
     assessment,
@@ -204,9 +220,10 @@ export function useHomeData(now: Date = new Date()): HomeData {
     evaluationDate,
     foodLogReady,
     goal,
-    mode,
     planRevisions,
     profile,
+    realtime,
+    routine,
     today,
     totals,
     weekStart,

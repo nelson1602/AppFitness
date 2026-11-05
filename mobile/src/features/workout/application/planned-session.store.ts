@@ -16,7 +16,7 @@ import {
   getBuiltInExerciseById,
 } from '../infrastructure/exercise-catalog.data';
 import { finishWorkout, getWorkoutSets, logWorkoutSet, startWorkout } from './workout.service';
-import { todaysPlanLink, useWorkoutStore } from './workout.store';
+import { planLinkFor, useWorkoutStore } from './workout.store';
 
 /** One exercise of today's planned session, as the tab shows it. */
 export interface PlannedExercise {
@@ -73,8 +73,11 @@ interface PlannedSessionState {
   /** The session the counts below belong to (`date|sessionKey`). */
   sessionId: string | null;
   done: Record<string, number>;
-  /** Loads today's completed sets for this planned session. */
-  load: (sessionKey: string, now?: Date) => Promise<void>;
+  /**
+   * Loads the completed sets of this planned session on `date` (today by
+   * default; v10 Block A: any earlier day of the current week).
+   */
+  load: (sessionKey: string, now?: Date, date?: string, planDate?: string) => Promise<void>;
   /**
    * "Serie N": records the next set of one exercise in today's planned
    * workout, starting that workout (linked to the plan) on the first set and
@@ -86,6 +89,25 @@ interface PlannedSessionState {
     exercise: PlannedExercise;
     exercises: readonly PlannedExercise[];
     now?: Date;
+    /** The day the set belongs to; defaults to today. */
+    date?: string;
+    /**
+     * The planned day it fulfils, when the iCoach moved the session to `date`
+     * (R3); defaults to `date`.
+     */
+    planDate?: string;
+  }) => Promise<boolean>;
+  /**
+   * Marks every remaining planned set of the session done on `date` (an earlier
+   * day the person forgot to log), then finishes the workout on that date.
+   */
+  completeSession: (input: {
+    sessionKey: string;
+    sessionName: string;
+    exercises: readonly PlannedExercise[];
+    date: string;
+    planDate?: string;
+    now?: Date;
   }) => Promise<boolean>;
 }
 
@@ -93,6 +115,17 @@ const INITIAL = { status: 'idle' as PlannedSessionStatus, sessionId: null, done:
 
 function revisionIds(): Set<string> {
   return new Set(useWeeklyPlanStore.getState().revisions.map((revision) => revision.id));
+}
+
+/**
+ * When a set recorded for `date` happened. Today it is now; an earlier day is
+ * stamped at that day's local noon, so the log carries its true date (the
+ * week and adherence read the local date, never the time).
+ */
+function stampFor(date: string, now: Date): string {
+  return date === localDateOf(now.toISOString())
+    ? now.toISOString()
+    : new Date(`${date}T12:00:00`).toISOString();
 }
 
 async function ensureLogs(): Promise<readonly WorkoutLog[]> {
@@ -104,14 +137,18 @@ async function ensureLogs(): Promise<readonly WorkoutLog[]> {
 export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => ({
   ...INITIAL,
 
-  load: async (sessionKey, now = new Date()) => {
+  load: async (
+    sessionKey,
+    now = new Date(),
+    date = localDateOf(now.toISOString()),
+    planDate = date,
+  ) => {
     let owner: SessionSnapshot | null = null;
-    const date = localDateOf(now.toISOString());
     set({ status: 'loading', sessionId: `${date}|${sessionKey}` });
     try {
       owner = requireSessionSnapshot();
       const logs = await ensureLogs();
-      const log = plannedLogFor(logs, revisionIds(), date, sessionKey);
+      const log = plannedLogFor(logs, revisionIds(), planDate, sessionKey);
       const sets = log ? await getWorkoutSets(log.id) : [];
       if (!isSessionCurrent(owner)) return;
       set({ status: 'ready', done: completedSetsByExercise(sets) });
@@ -122,9 +159,19 @@ export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => 
     }
   },
 
-  completeSet: async ({ sessionKey, sessionName, exercise, exercises, now = new Date() }) => {
+  completeSet: async ({
+    sessionKey,
+    sessionName,
+    exercise,
+    exercises,
+    now = new Date(),
+    date = localDateOf(now.toISOString()),
+    planDate = date,
+  }) => {
     let owner: SessionSnapshot | null = null;
-    const date = localDateOf(now.toISOString());
+    // Counts belong to one day's session; never add to another day's.
+    const loadedFor = get().sessionId;
+    if (loadedFor !== null && loadedFor !== `${date}|${sessionKey}`) return false;
     const made = get().done[exercise.exerciseKey] ?? 0;
     const exerciseId = getBuiltInExercise(exercise.exerciseKey)?.id;
     if (!exerciseId || made >= exercise.sets) return false;
@@ -132,12 +179,12 @@ export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => 
     try {
       owner = requireSessionSnapshot();
       const logs = await ensureLogs();
-      let log = plannedLogFor(logs, revisionIds(), date, sessionKey);
+      let log = plannedLogFor(logs, revisionIds(), planDate, sessionKey);
       if (!log) {
         log = await startWorkout({
           name: sessionName,
-          startedAt: now.toISOString(),
-          planLink: todaysPlanLink(logs),
+          startedAt: stampFor(date, now),
+          planLink: planLinkFor(logs, planDate),
         });
         useWorkoutStore.setState((s) => ({ workoutLogs: [log as WorkoutLog, ...s.workoutLogs] }));
       }
@@ -152,7 +199,7 @@ export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => 
       set({ status: 'ready', done });
 
       if (sessionComplete(exercises, done) && log.finishedAt === null) {
-        const finished = await finishWorkout(log.id);
+        const finished = await finishWorkout(log.id, stampFor(date, now));
         if (!isSessionCurrent(owner)) return true;
         if (finished) {
           useWorkoutStore.setState((s) => ({
@@ -169,6 +216,31 @@ export const usePlannedSessionStore = create<PlannedSessionState>((set, get) => 
       set({ status: 'error' });
       return false;
     }
+  },
+
+  completeSession: async ({
+    sessionKey,
+    sessionName,
+    exercises,
+    date,
+    planDate,
+    now = new Date(),
+  }) => {
+    for (const exercise of exercises) {
+      while ((get().done[exercise.exerciseKey] ?? 0) < exercise.sets) {
+        const ok = await get().completeSet({
+          sessionKey,
+          sessionName,
+          exercise,
+          exercises,
+          now,
+          date,
+          planDate,
+        });
+        if (!ok) return false;
+      }
+    }
+    return true;
   },
 }));
 

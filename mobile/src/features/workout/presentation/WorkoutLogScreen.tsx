@@ -100,6 +100,7 @@ export function WorkoutLogScreen() {
     updateWorkoutSet,
     removeWorkoutSet,
     createCustomExercise,
+    saveWorkoutAsRoutine,
   } = useWorkoutStore();
 
   const [name, setName] = useState('');
@@ -108,6 +109,10 @@ export function WorkoutLogScreen() {
   const [reps, setReps] = useState('');
   const [weight, setWeight] = useState('');
   const [showNewExercise, setShowNewExercise] = useState(false);
+  // "Guardar como rutina" (v10 Block A item 5): the workout being saved and its name.
+  const [saveAsLogId, setSaveAsLogId] = useState<string | null>(null);
+  const [routineName, setRoutineName] = useState('');
+  const [savedRoutineFor, setSavedRoutineFor] = useState<string | null>(null);
 
   useEffect(() => {
     void load();
@@ -117,9 +122,23 @@ export function WorkoutLogScreen() {
   const openLogs = workoutLogs.filter((l) => !l.finishedAt);
   const finishedLogs = workoutLogs.filter((l) => l.finishedAt);
   const onStart = async (routineId: string | null) => {
-    const trimmed = name.trim() || t('workout.log.defaultName');
+    // A workout started from a routine carries the routine's name unless the
+    // person typed another, so the routine is recognisable when reused.
+    const fromRoutine = routines.find((routine) => routine.id === routineId)?.name;
+    const trimmed = name.trim() || fromRoutine || t('workout.log.defaultName');
     const ok = await startWorkout(routineId ? { name: trimmed, routineId } : { name: trimmed });
-    if (ok) setName('');
+    if (!ok) return;
+    setName('');
+    // v10 Block A: open the new workout so the routine's pre-filled sets show.
+    if (routineId) setSelectedLogId(useWorkoutStore.getState().workoutLogs[0]?.id ?? null);
+  };
+
+  const onSaveAsRoutine = async (logId: string) => {
+    const ok = await saveWorkoutAsRoutine(logId, routineName);
+    if (ok) {
+      setSaveAsLogId(null);
+      setSavedRoutineFor(logId);
+    }
   };
 
   const onSelectLog = async (log: WorkoutLog) => {
@@ -448,6 +467,49 @@ export function WorkoutLogScreen() {
                 <AppText variant="caption" tone="muted">
                   {t('workout.log.finished')}
                 </AppText>
+                {savedRoutineFor === log.id ? (
+                  <AppText
+                    accessibilityLiveRegion="polite"
+                    testID={`workout-routine-saved-${log.id}`}
+                    tone="success"
+                    variant="caption"
+                  >
+                    {t('workout.log.routineSaved')}
+                  </AppText>
+                ) : null}
+                {saveAsLogId === log.id ? (
+                  <View style={{ gap: theme.spacing.sm }}>
+                    <AppTextInput
+                      accessibilityLabel={t('workout.builder.name')}
+                      testID={`workout-routine-name-${log.id}`}
+                      placeholder={t('workout.builder.namePlaceholder')}
+                      value={routineName}
+                      onChangeText={setRoutineName}
+                    />
+                    <AppButton
+                      accessibilityLabel={`${t('workout.log.saveAsRoutineAccessibility')} ${routineName}`}
+                      testID={`workout-routine-save-${log.id}`}
+                      disabled={!routineName.trim()}
+                      loading={status === 'saving'}
+                      onPress={() => void onSaveAsRoutine(log.id)}
+                    >
+                      {t('workout.builder.createButton')}
+                    </AppButton>
+                  </View>
+                ) : (
+                  <AppButton
+                    accessibilityLabel={`${t('workout.log.saveAsRoutineAccessibility')} ${log.name}`}
+                    testID={`workout-save-routine-${log.id}`}
+                    variant="secondary"
+                    onPress={() => {
+                      setRoutineName(log.name);
+                      setSavedRoutineFor(null);
+                      setSaveAsLogId(log.id);
+                    }}
+                  >
+                    {t('workout.log.saveAsRoutine')}
+                  </AppButton>
+                )}
                 <AppButton
                   accessibilityLabel={`${t('workout.log.removeWorkoutAccessibility')} ${log.name}`}
                   testID={`workout-remove-${log.id}`}

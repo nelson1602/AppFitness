@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { goalTypeShortLabelKey } from '@/features/profile/presentation/goal-type-label';
+import type { CoachChange } from '@/features/weekly-plan/domain/realtime-recalc';
+import { coachChangeText } from '@/features/weekly-plan/presentation/realtime-copy';
 import type { GoalType } from '@/shared/infrastructure/database/types';
 import {
   formatDate,
@@ -135,6 +137,11 @@ export function GoalCard({
           <AppText style={onCta} testID="home-goal-status" variant="caption">
             {status}
           </AppText>
+          {(summary.week.extra ?? 0) > 0 ? (
+            <AppText style={onCta} testID="home-goal-extra" variant="caption">
+              {interpolate(t('home.goal.extra'), { count: n(summary.week.extra ?? 0) })}
+            </AppText>
+          ) : null}
         </View>
       </View>
       <View style={{ gap: spacing.xs }}>
@@ -168,11 +175,16 @@ export function GoalCard({
   );
 }
 
-/** Today's plan day in words; the done states are added beside it as chips. */
+/**
+ * Today's plan day in words; the done states are added beside it as chips.
+ * Once today's planned session is done, the headline says so (v10 Block A).
+ */
 function coachMessage(today: HomeSummary['today']): { key: TranslationKey; minutes?: number } {
   switch (today.kind) {
     case 'training':
-      return { key: 'home.coach.train', minutes: today.minutes ?? DEFAULT_MINUTES };
+      return today.completed
+        ? { key: 'home.coach.todayDoneHeadline' }
+        : { key: 'home.coach.train', minutes: today.minutes ?? DEFAULT_MINUTES };
     case 'rest':
       return { key: today.active ? 'home.coach.restActive' : 'home.coach.restFull' };
     case 'unknown':
@@ -188,9 +200,12 @@ function coachMessage(today: HomeSummary['today']): { key: TranslationKey; minut
 export function CoachCard({
   summary,
   evaluationDate,
+  latestChange = null,
 }: {
   summary: HomeSummary;
   evaluationDate: string | null;
+  /** ADR-P040 Addendum v10-A R5: the latest real-time change, in one sentence. */
+  latestChange?: CoachChange | null;
 }) {
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
@@ -219,6 +234,16 @@ export function CoachCard({
       <AppText tone="onStage" testID="home-coach-message" variant="label">
         {text}
       </AppText>
+      {latestChange ? (
+        <AppText
+          accessibilityLiveRegion="polite"
+          testID="home-coach-change"
+          tone="onStageVariant"
+          variant="body"
+        >
+          {coachChangeText(latestChange, t, language)}
+        </AppText>
+      ) : null}
       <View style={[styles.row, styles.wrap, styles.spread, { gap: spacing.sm }]}>
         {basedOn ? (
           <AppText style={styles.shrink} tone="onStageVariant" variant="caption">
@@ -271,6 +296,7 @@ function Tile({
   value,
   bar,
   testID,
+  note = null,
 }: {
   icon: IconName;
   iconColor: string;
@@ -278,6 +304,8 @@ function Tile({
   value: string;
   bar: ReactNode;
   testID: string;
+  /** A caption under the value (the activity bonus). */
+  note?: string | null;
 }) {
   const { spacing } = useTheme();
   return (
@@ -291,6 +319,11 @@ function Tile({
       <AppText style={styles.grow} tone="onStage" variant="title">
         {value}
       </AppText>
+      {note ? (
+        <AppText testID={`${testID}-note`} tone="onStageVariant" variant="caption">
+          {note}
+        </AppText>
+      ) : null}
       {bar}
     </GlassCard>
   );
@@ -354,6 +387,13 @@ export function TodayTiles({ summary }: { summary: HomeSummary }) {
         icon="flame"
         iconColor={colors.accentEnergy}
         label={t('home.tile.calories')}
+        note={
+          (calories.activityBonus ?? 0) > 0
+            ? interpolate(t('home.tile.activityBonus'), {
+                kcal: formatNumber(calories.activityBonus ?? 0, language),
+              })
+            : null
+        }
         testID="home-tile-calories"
         value={caloriesValue}
       />

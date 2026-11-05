@@ -89,6 +89,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         // A must never refresh B.
         const rotated = isSessionCurrent(owner) ? await refreshTokens() : null;
         if (rotated && rotated.user.id === userId) {
+          // The rotation is itself a session transition (the generation moves):
+          // carry on as the rotated session, or every check below sees a stale
+          // run, returns early and leaves the spinner on (v10 Block A).
+          owner = requireSessionSnapshot();
           outcome = await runSync({ userId, getToken: () => rotated.accessToken });
         }
       }

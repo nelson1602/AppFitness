@@ -1,4 +1,4 @@
-import { addDays, weekDates } from './week';
+import { addDays, localDateOf, weekDates } from './week';
 import type { PlanDay, WeeklyPlan } from './weekly-plan';
 
 /**
@@ -63,10 +63,29 @@ export interface WeekAdherence {
 }
 
 /** The revision in force on `date`: the latest one effective on or before it. */
+/**
+ * The first day the plan applies (v10 Block A, item 2). The first week starts
+ * on the day the person started, not on its Monday: the first-run revision
+ * counts from the later of its effective date and the local day it was
+ * created. Plans saved before v10 recorded the Monday, so the creation day
+ * corrects existing accounts without rewriting synced rows. `null` when the
+ * week is not a first-run week.
+ */
+export function planStartDate(revisions: readonly WeeklyPlan[]): string | null {
+  const first = revisions.find((revision) => revision.trigger === 'FIRST_RUN');
+  if (!first) return null;
+  const created = localDateOf(first.createdAt);
+  return created > first.effectiveFrom ? created : first.effectiveFrom;
+}
+
 export function effectivePlanDay(
   revisions: readonly WeeklyPlan[],
   date: string,
 ): { plan: WeeklyPlan; day: PlanDay } | null {
+  // Days before the person started are not part of the plan: never missed,
+  // pending, or counted in adherence.
+  const start = planStartDate(revisions);
+  if (start !== null && date < start) return null;
   const candidates = revisions
     .filter((revision) => revision.effectiveFrom <= date)
     .sort((a, b) => b.revision - a.revision);
@@ -110,15 +129,13 @@ export function computeWeekAdherence(
           log.planLink.planDate === date &&
           log.planLink.planSessionKey === sessionKey,
       );
-      // ADR-P042 D5: a finished, unlinked workout on a training day fulfils it.
-      const unlinkedSameDay = logs.workouts.some(
-        (log) => log.finished && log.planLink === null && log.localDate === date,
-      );
       sessions.push({
         date,
         sessionKey,
         focusKey: day.workout.focusKey,
-        done: linked || unlinkedSameDay,
+        // ADR-P042 D5 (amended v10): only a workout started from the plan
+        // fulfils it; any other workout is an extra activity.
+        done: linked,
       });
     }
 

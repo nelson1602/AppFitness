@@ -1,21 +1,24 @@
+import * as authModule from '@/features/authentication';
+import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import { runSync } from '@/shared/infrastructure/sync';
 
 import { checkEvaluationOwed } from './evaluation.service';
 import { useEvaluationGate } from './evaluation-gate.store';
 
-const owner = { userId: 'u1', accessToken: 'token' };
-
-jest.mock('@/features/authentication', () => ({
-  bindStoreToSession: jest.fn(),
-  isSessionCurrent: () => true,
-  refreshTokens: jest.fn().mockResolvedValue(null),
-  requireSessionSnapshot: () => owner,
-}));
+// The faithful in-memory session: a token rotation bumps the generation, as
+// the real refreshTokens does.
+jest.mock('@/features/authentication', () =>
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require('@/features/authentication/testing/fake-session').createFakeSessionModule(),
+);
+const auth = authModule as unknown as FakeSessionModule;
 jest.mock('@/shared/infrastructure/sync', () => ({ runSync: jest.fn() }));
 jest.mock('@/shared/infrastructure/logging', () => ({ logError: jest.fn() }));
 jest.mock('./evaluation.service', () => ({ checkEvaluationOwed: jest.fn() }));
 
 beforeEach(() => {
+  auth.becomeUser('u1');
+  auth.refreshTokens.mockReset().mockResolvedValue(null);
   useEvaluationGate.setState({ status: 'unknown' });
   jest
     .mocked(runSync)
@@ -35,6 +38,23 @@ describe('useEvaluationGate (v8 Block 2 first run)', () => {
     jest.mocked(checkEvaluationOwed).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
     expect(await useEvaluationGate.getState().check()).toBe('done');
     expect(runSync).toHaveBeenCalledTimes(1);
+  });
+
+  // v10 Block A: after a real token rotation the gate used to see its own run
+  // as stale and answer 'unknown'.
+  it('answers after an expired token is rotated during the pull', async () => {
+    jest.mocked(checkEvaluationOwed).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    jest
+      .mocked(runSync)
+      .mockResolvedValueOnce({ outcome: 'unauthenticated' } as never)
+      .mockResolvedValueOnce({ outcome: 'success' } as never);
+    auth.refreshTokens.mockImplementation(async () => {
+      const now = auth.getSession();
+      if (!now) return null;
+      return auth.rotateTo({ ...now, accessToken: 'rotated' });
+    });
+    expect(await useEvaluationGate.getState().check()).toBe('done');
+    expect(runSync).toHaveBeenCalledTimes(2);
   });
 
   it('sends a new account to the evaluation', async () => {

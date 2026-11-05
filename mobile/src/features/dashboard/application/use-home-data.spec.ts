@@ -87,10 +87,16 @@ const ROUTINE = {
     { weekday: 'SATURDAY', kind: 'RECOVERY', recovery: 'ACTIVE_RECOVERY' },
     { weekday: 'SUNDAY', kind: 'RECOVERY', recovery: 'FULL_REST' },
   ],
+  sessions: [],
 };
 
 function localIso(day: number, hour = 9): string {
   return new Date(2026, 9, day, hour, 0, 0).toISOString();
+}
+
+/** A workout started from the plan (ADR-P042 D5 amended v10: only these fulfil a session). */
+function fromPlan(day: number) {
+  return { weeklyPlanId: 'plan-1', planSessionKey: 'session', planDate: `2026-10-${day}` };
 }
 
 beforeEach(() => {
@@ -118,10 +124,25 @@ beforeEach(() => {
   };
   mockStores.workout = {
     workoutLogs: [
-      { startedAt: localIso(19), finishedAt: localIso(19, 10) },
-      { startedAt: localIso(23), finishedAt: localIso(23, 10) },
-      { startedAt: localIso(21), finishedAt: null },
+      {
+        id: 'w19',
+        name: 'Session',
+        startedAt: localIso(19),
+        finishedAt: localIso(19, 10),
+        planLink: fromPlan(19),
+      },
+      {
+        id: 'w23',
+        name: 'Session',
+        startedAt: localIso(23),
+        finishedAt: localIso(23, 10),
+        planLink: fromPlan(23),
+      },
+      { id: 'w21', name: 'Session', startedAt: localIso(21), finishedAt: null },
     ],
+    activitySets: { w19: [], w23: [], w21: [] },
+    customExercises: [],
+    loadActivitySets: jest.fn(),
   };
   mockStores.foodLog = {
     status: 'ready',
@@ -191,12 +212,63 @@ describe('useHomeData', () => {
     const { summary } = result.current;
 
     // Two finished workouts this week (Mon, Fri); the unfinished Wed one does not count.
-    expect(summary.week).toEqual({ done: 2, goal: 3, complete: false });
+    expect(summary.week).toEqual({ done: 2, goal: 3, complete: false, extra: 0 });
     // Friday is a training day and one was finished today.
     expect(summary.today).toEqual({ kind: 'training', minutes: 30, completed: true });
     expect(summary.coach).toBe('today-done');
     expect(summary.weight).toEqual({ current: 80, start: 85, target: 75, progress: 0.5 });
-    expect(summary.calories).toEqual({ consumed: 1200, target: 2400, share: 0.5 });
+    expect(summary.calories).toEqual({
+      consumed: 1200,
+      target: 2400,
+      share: 0.5,
+      activityBonus: 0,
+    });
+  });
+
+  // ADR-P040 Addendum v10-A: today's second workout, a run, is "+1 extra"
+  // and adds its net kcal to today's budget: (8 − 1) × 80 kg × 0.25 h = 140.
+  it('counts an extra activity apart and adds its kcal to the budget', async () => {
+    mockStores.workout = {
+      ...mockStores.workout,
+      workoutLogs: [
+        {
+          id: 'w19',
+          name: 'Session',
+          startedAt: localIso(19),
+          finishedAt: localIso(19, 10),
+          planLink: fromPlan(19),
+        },
+        {
+          id: 'w23',
+          name: 'Session',
+          startedAt: localIso(23, 7),
+          finishedAt: localIso(23, 8),
+          planLink: fromPlan(23),
+        },
+        {
+          id: 'run',
+          name: 'Correr 15 min',
+          startedAt: localIso(23, 9),
+          finishedAt: localIso(23, 10),
+        },
+      ],
+      activitySets: { w19: [], w23: [], run: [] },
+    };
+    const { result } = await renderHook(() => useHomeData(NOW));
+    const { summary, latestChange } = result.current;
+    expect(summary.week).toEqual({ done: 2, goal: 3, complete: false, extra: 1 });
+    expect(summary.calories).toEqual({
+      consumed: 1200,
+      target: 2540,
+      share: 1200 / 2540,
+      activityBonus: 140,
+    });
+    // The run (10:00 today) is newer than Wednesday's move (Thursday midnight).
+    expect(latestChange).toEqual({
+      kind: 'activityBonus',
+      at: Date.parse(localIso(23, 10)),
+      kcal: 140,
+    });
   });
 
   it('clamps the session length like the generator (20–90 min, 45 by default)', async () => {
@@ -248,7 +320,12 @@ describe('useHomeData', () => {
     mockStores.foodLog = { status: 'loading', totals: { calories: 0 } };
     const { result } = await renderHook(() => useHomeData(NOW));
 
-    expect(result.current.summary.calories).toEqual({ consumed: null, target: 2400, share: null });
+    expect(result.current.summary.calories).toEqual({
+      consumed: null,
+      target: 2400,
+      share: null,
+      activityBonus: 0,
+    });
   });
 
   it("derives today's notification and the reminders that are due", async () => {

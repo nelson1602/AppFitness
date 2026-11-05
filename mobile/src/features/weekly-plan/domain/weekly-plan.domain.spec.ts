@@ -5,6 +5,7 @@ import {
   computeWeekAdherence,
   effectivePlanDay,
   linkForWorkout,
+  planStartDate,
   type LoggedWorkout,
   type WeekLogs,
 } from './adherence';
@@ -219,6 +220,25 @@ describe('adherence (ADR-P042 D7)', () => {
     planLink: linked ? { weeklyPlanId: 'p1', planSessionKey: sessionKey, planDate: date } : null,
   });
 
+  // v10 Block A R3: a session the iCoach moved, logged on its new day, counts for its planned day.
+  it('counts a moved session logged on another day for its planned day', () => {
+    const logs = emptyLogs();
+    logs.workouts = [
+      {
+        localDate: '2026-10-27',
+        finished: true,
+        planLink: {
+          weeklyPlanId: 'p1',
+          planSessionKey: 'session.full_body_1',
+          planDate: '2026-10-26',
+        },
+      },
+    ];
+    const result = computeWeekAdherence([plan()], logs);
+    expect(result?.sessions.find((session) => session.date === '2026-10-26')?.done).toBe(true);
+    expect(result?.fulfilledSessions).toBe(1);
+  });
+
   it('is 50 % workouts + 50 % meals, with the ring tones', () => {
     const logs = emptyLogs();
     logs.workouts = [
@@ -245,13 +265,22 @@ describe('adherence (ADR-P042 D7)', () => {
     expect(adherenceTone(64)).toBe('retake');
   });
 
-  it('counts an unlinked finished workout on a training day; ignores rest days and unfinished ones', () => {
+  // ADR-P042 D5 amended (v10 Block A): only a workout started from the plan fulfils it.
+  it('never counts a workout logged outside the plan, even on a training day', () => {
     const logs = emptyLogs();
     logs.workouts = [
-      done('2026-10-26', '', false),
-      done('2026-10-27', '', false), // rest day → extra, outside adherence
+      done('2026-10-26', '', false), // "Correr 15 min" on a training day → extra
+      done('2026-10-27', '', false), // rest day → extra
       { localDate: '2026-10-28', finished: false, planLink: null },
     ];
+    const result = computeWeekAdherence([plan()], logs);
+    expect(result?.sessions.map((s) => s.done)).toEqual([false, false, false]);
+    expect(result?.fulfilledSessions).toBe(0);
+  });
+
+  it('counts a finished workout started from the plan', () => {
+    const logs = emptyLogs();
+    logs.workouts = [done('2026-10-26', 'session.full_body_1')];
     const result = computeWeekAdherence([plan()], logs);
     expect(result?.sessions.map((s) => s.done)).toEqual([true, false, false]);
   });
@@ -356,5 +385,38 @@ describe('off-plan overlay (ADR-P040 D7)', () => {
       extraCardioMinutes: 0,
       avoidIntenseTraining: true,
     });
+  });
+});
+
+// v10 Block A, item 2: the first week starts on the day the person started.
+describe('plan start date', () => {
+  const wednesdayAfternoon = new Date(2026, 9, 28, 15).toISOString();
+
+  it('is the creation day of a first-run plan saved with its Monday (accounts before v10)', () => {
+    expect(planStartDate([plan({ trigger: 'FIRST_RUN', createdAt: wednesdayAfternoon })])).toBe(
+      '2026-10-28',
+    );
+  });
+
+  it('is the effective date of a first-run plan saved on its start day (v10 and later)', () => {
+    expect(
+      planStartDate([
+        plan({ trigger: 'FIRST_RUN', effectiveFrom: '2026-10-28', createdAt: wednesdayAfternoon }),
+      ]),
+    ).toBe('2026-10-28');
+  });
+
+  it('does not apply to later weeks', () => {
+    expect(planStartDate([plan({ createdAt: wednesdayAfternoon })])).toBeNull();
+  });
+
+  it('keeps the days before the start out of the plan and the adherence', () => {
+    const first = plan({ trigger: 'FIRST_RUN', createdAt: wednesdayAfternoon });
+    expect(effectivePlanDay([first], '2026-10-26')).toBeNull();
+    expect(effectivePlanDay([first], '2026-10-28')).not.toBeNull();
+    const result = computeWeekAdherence([first], emptyLogs());
+    // Monday's session and the meals of Monday and Tuesday are not planned.
+    expect(result).toMatchObject({ plannedSessions: 2, plannedMeals: 20 });
+    expect(result?.sessions.map((session) => session.date)).not.toContain('2026-10-26');
   });
 });

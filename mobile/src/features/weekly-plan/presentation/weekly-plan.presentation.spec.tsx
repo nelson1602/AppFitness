@@ -137,6 +137,16 @@ describe('PlanChangePrompt (ADR-P042 D3)', () => {
     expect(screen.queryByText(/Cambiaste|tu país/)).toBeNull();
   });
 
+  // ADR-P040 Addendum v10-A R6: a weigh-in or evaluation change moved the targets.
+  it('offers new targets in its own sentence, never as an input the person changed', async () => {
+    mockPending = ['targets'];
+    await render(<PlanChangePrompt />);
+    expect(screen.getByTestId('plan-change-targets')).toHaveTextContent(
+      'Tu último peso o tu evaluación cambiaron tus objetivos de calorías y macros.',
+    );
+    expect(screen.queryByText(/Cambiaste/)).toBeNull();
+  });
+
   // ADR-P040 D11: two strong weeks earned one more training day.
   it('offers one more training day with its number', async () => {
     mockPending = ['moreDays'];

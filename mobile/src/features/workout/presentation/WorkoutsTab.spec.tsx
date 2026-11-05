@@ -32,11 +32,13 @@ jest.mock('@/features/weekly-plan/application/weekly-plan.store', () => ({
   useWeeklyPlanStore: (
     select: (state: {
       current: { weekStart: string; notes: never[] };
+      revisions: never[];
       adherence: { sessions: { date: string; done: boolean }[] };
     }) => unknown,
   ) =>
     select({
       current: { weekStart: '2026-11-02', notes: [] },
+      revisions: [],
       adherence: {
         sessions: [
           { date: '2026-11-02', done: true },
@@ -44,6 +46,11 @@ jest.mock('@/features/weekly-plan/application/weekly-plan.store', () => ({
         ],
       },
     }),
+}));
+// ADR-P040 Addendum v10-A: the real-time week is its own pure rule and hook.
+let mockRealtime: Record<string, unknown> = {};
+jest.mock('@/features/weekly-plan/application/use-realtime-week', () => ({
+  useRealtimeWeek: () => mockRealtime,
 }));
 jest.mock('@/features/weekly-plan/presentation/PlanChangePrompt', () => ({
   PlanChangePrompt: () => null,
@@ -80,6 +87,13 @@ beforeEach(() => {
   mockLanguage = 'en';
   mockStatus = 'ready';
   mockSelection = { kind: 'loading' };
+  mockRealtime = {
+    extras: [],
+    calorieBonus: 0,
+    moves: [],
+    lightenings: [],
+    today: '2026-11-04',
+  };
 });
 
 describe('WorkoutsTab (v8.1, prototype layout)', () => {
@@ -98,6 +112,49 @@ describe('WorkoutsTab (v8.1, prototype layout)', () => {
     expect(props.weekDates[0]).toBe('2026-11-02');
     expect(props.weekDates).toHaveLength(7);
     expect([...props.doneDates]).toEqual(['2026-11-02']);
+  });
+
+  // v10 Block A item 5: an extra workout shows for its day as "Actividad extra";
+  // ADR-P040 Addendum v10-A R4: the lightened session reaches the week shown.
+  it('shows extra activities and passes the lightened routine to the week', async () => {
+    const routine = {
+      sessions: [{ key: 's2', exercises: [{ exerciseKey: 'exercise.back_squat', sets: 3 }] }],
+    };
+    mockSelection = { kind: 'ready', selection: { status: 'ready', routine } };
+    mockRealtime = {
+      ...mockRealtime,
+      extras: [
+        {
+          id: 'run',
+          name: 'Correr 15 min',
+          date: '2026-11-04',
+          status: 'done',
+          kind: 'cardio',
+          minutes: 15,
+          kcal: 123,
+        },
+      ],
+      calorieBonus: 123,
+      lightenings: [
+        {
+          date: '2026-11-05',
+          sessionKey: 's2',
+          exerciseKeys: ['exercise.back_squat'],
+          groups: ['quadriceps'],
+          activityId: 'lift',
+          at: '',
+        },
+      ],
+    };
+    await render(<WorkoutsTab />);
+
+    expect(screen.getByText('Extra activity')).toBeOnTheScreen();
+    expect(screen.getByText('Correr 15 min')).toBeOnTheScreen();
+    expect(screen.getByText('+123 kcal from activity')).toBeOnTheScreen();
+    const props = mockWeekProps.mock.calls[0][0] as {
+      routine: { sessions: { exercises: { sets: number }[] }[] };
+    };
+    expect(props.routine.sessions[0].exercises[0].sets).toBe(2);
   });
 
   it('shows the loading state, then no week without a routine', async () => {

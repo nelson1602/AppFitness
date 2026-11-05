@@ -337,6 +337,23 @@ describe('food-log store (Slice 4C)', () => {
     expect(useFoodLogStore.getState().sync.state).toBe('idle');
   });
 
+  // v10 Block A: the real refresh publishes the rotated session (generation
+  // bump); the sync used to return early after it and stay "syncing".
+  it('finishes the sync after a real token rotation instead of staying syncing', async () => {
+    mockRunSync
+      .mockResolvedValueOnce(syncReport('unauthenticated'))
+      .mockResolvedValueOnce(syncReport('success'));
+    mockRefresh.mockImplementation(async () =>
+      auth.rotateTo({ ...SESSION_A, accessToken: 'token-2', refreshToken: 'refresh-2' }),
+    );
+    mockList.mockResolvedValue([]);
+
+    await useFoodLogStore.getState().syncNow();
+
+    expect(mockRunSync.mock.calls[1][0].getToken()).toBe('token-2');
+    expect(useFoodLogStore.getState().sync.state).toBe('idle');
+  });
+
   /**
    * The account id and the access token come from ONE captured session, and a
    * rotation that returns a different account aborts the retry. Without that,

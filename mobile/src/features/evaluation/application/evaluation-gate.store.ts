@@ -31,14 +31,20 @@ interface EvaluationGateState {
   markDone: () => void;
 }
 
-async function pullOnce(owner: SessionSnapshot): Promise<void> {
+/**
+ * Pulls once, rotating an expired token. Returns the session the run ended as:
+ * a rotation is a session transition, so the caller must continue with the
+ * rotated snapshot, not the one it started with (v10 Block A).
+ */
+async function pullOnce(owner: SessionSnapshot): Promise<SessionSnapshot> {
   const { userId, accessToken } = owner;
   const report = await runSync({ userId, getToken: () => accessToken });
-  if (report.outcome !== 'unauthenticated' || !isSessionCurrent(owner)) return;
+  if (report.outcome !== 'unauthenticated' || !isSessionCurrent(owner)) return owner;
   const rotated = await refreshTokens();
-  if (rotated && rotated.user.id === userId) {
-    await runSync({ userId, getToken: () => rotated.accessToken });
-  }
+  if (!rotated || rotated.user.id !== userId) return owner;
+  const current = requireSessionSnapshot();
+  await runSync({ userId, getToken: () => rotated.accessToken });
+  return current;
 }
 
 export const useEvaluationGate = create<EvaluationGateState>((set, get) => ({
@@ -53,7 +59,11 @@ export const useEvaluationGate = create<EvaluationGateState>((set, get) => ({
       owner = requireSessionSnapshot();
       let owed = await checkEvaluationOwed();
       if (owed) {
-        await pullOnce(owner).catch((error: unknown) => logError('evaluationGate.pull', error));
+        const started: SessionSnapshot = owner;
+        owner = await pullOnce(started).catch((error: unknown) => {
+          logError('evaluationGate.pull', error);
+          return started;
+        });
         if (!isSessionCurrent(owner)) return 'unknown';
         owed = await checkEvaluationOwed();
       }

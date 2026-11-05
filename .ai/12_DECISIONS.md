@@ -15031,6 +15031,22 @@ The prototype's implementation has known defects: substring matching, notes that
 
     Days already earned stay in force in later weeks: the engine input `unlockedTrainingDays` (`icoach-rules@1.4.0`) raises the level cap to them. Each further day is earned with two new weeks at the new count. Deterministic tests: `days-progression.spec.ts` (the rule), `weekly-plan.service.spec.ts` (proposal, prompt, accept, carry-forward), `training.spec.ts` and `engine.spec.ts` (the cap).
 
+### Addendum v10-A — Extra activities and real-time recalculation (proposed 2026-11-04, v10 Block A items 5–6)
+
+Status: proposed with the v10 Block A PR; the owner accepts it with that PR. Rules `extra-activity@1.0.0` (`workout/domain/extra-activity.ts`) and `realtime-recalc@1.0.0` (`weekly-plan/domain/realtime-recalc.ts`). Every rule is a pure function with deterministic tests (`extra-activity.spec.ts`, `realtime-recalc.spec.ts`, `plan-targets.spec.ts`, `home-summary.spec.ts`). Like D7, they are overlays recomputed from the logs on every render: the saved plan is never written (ADR-P042 D2, D8). Screens read them from stores that update right after each local write, never after sync.
+
+- **A1 Extra activity.** A logged workout is classified, timed and costed:
+  - type: the catalog category of its logged sets first (strength wins a tie), else a fixed keyword table on its name (accents and case ignored, whole words: "correr", "caminar", "bici", "nadar", "pesas", "levantamiento", "yoga"…), else `other`;
+  - strength muscle groups: those of its sets, else the ones its name names ("piernas", "pecho", "espalda", "brazos", "hombros"), else the whole body;
+  - minutes: written in the name ("Correr 15 min", "1 h"), else finish − start, else 2 minutes per logged set, else unknown; clamped to 1–240;
+  - kcal: **net** = (MET − 1) × latest weight (kg) × hours, rounded. METs from the 2011 Compendium, the conservative row of each family: running 8.0, walking 3.5, cycling 7.5, swimming 6.0, other cardio 6.0, strength 3.5, bodyweight 3.8, flexibility 2.5. The resting MET is already in the day's target, so it is never counted twice. No minutes or no weight → no kcal.
+- **R1 Week progress.** A planned session is fulfilled only by a finished workout linked to it — started from the plan (ADR-P042 D5 as amended 2026-11-04); a moved session (R3) is logged on its new day with the link to its planned day. Every other finished workout of the week is an **extra activity**: shown in Entrenamientos as "Actividad extra" with day, time, kcal and status ("Completada" / "En curso"), and counted on Inicio as "+N extra" beside "done/goal". An extra never counts as a planned session, so done never exceeds the goal and adherence (D7 of ADR-P042) is unchanged.
+- **R2 Calorie budget.** Today's finished extra **cardio** adds its net kcal to today's calorie budget, shown as "+N kcal por actividad", capped at **300 kcal a day** (`ACTIVITY_BONUS_CAP_KCAL`). The cap mirrors D7's 300 kcal reduction, keeps a day from being "eaten back" on an overestimated session, and the estimate itself is net and conservative. Strength work and a workout that fulfils a planned session add nothing: the plan's target already includes the planned training.
+- **R3 Skipped session.** A planned session whose day passed unfulfilled moves to the first free (non-training) day from today on, earliest skipped first, one session per day. Moves never take the week above min(the days the person chose, the days planned) minus the sessions done and still ahead. A workout on the new day fulfils it (R1).
+- **R4 Strength recovery.** A finished extra **strength** workout lightens the next planned, unfulfilled session in the following two calendar days (48 h) that loads one of its muscle groups: **one set fewer** on each exercise that loads them, never below one set. The iCoach explains it in Entrenamientos ("tu sesión del miércoles lleva una serie menos en cuádriceps…"). No exercise is swapped in this version.
+- **R5 Latest change.** Inicio's iCoach card adds one sentence for the most recent of: the R2 bonus (when the cardio finished), an R4 lightening (when the strength work finished), an R3 move (the midnight after the skipped day) and a confirmed CHANGE revision (when it was saved). On equal times: plan update > move > lightening > bonus.
+- **R6 Weigh-ins and evaluation.** After a saved weigh-in (and, as before, after the evaluation), the saved week is re-checked. When no deciding input changed but the targets recomputed from today's data differ from the saved ones by ≥ 50 kcal or ≥ 10 g of any macro, the existing "¿Actualizar tu plan de esta semana?" prompt offers new targets ("plan.change.targets"). "Sí" saves a CHANGE revision effective today (ADR-P042 D3); "Ahora no" keeps the week. Smaller drifts never prompt.
+
 ### Consequences
 
 - **Positive:** the design's coaching promises become real, tested behaviour.
@@ -15140,7 +15156,7 @@ The engine recomputed the weekly workout routine and the 15-day meal plan on eve
    - The iCoach note for the week is generated from this rule, plus the calorie hint when fewer than 5 of 7 days were within the calorie target.
 5. **Session linking.** `workout_logs` gains `weekly_plan_id`, `plan_session_key` and `plan_date` (nullable, migrations on both sides).
    - A workout started from the plan carries its session.
-   - A workout logged on a training day without a link fulfils that day's session if it is still open.
+   - ~~A workout logged on a training day without a link fulfils that day's session if it is still open.~~ Amended 2026-11-04 (owner, v10 Block A): only a workout started from the plan fulfils a planned session — "Serie N" in Entrenamientos or "Marcar la sesión como hecha". A workout logged any other way ("Registrar entrenamiento", e.g. "Correr 15 min") never carries a plan link and is always an extra activity, even on a training day.
    - Anything else is an extra workout outside adherence.
 6. **"Lo comí".** Each planned meal can be marked eaten. That logs the dish's ingredient lines into the food log, with `meal_items.plan_id`, `plan_date` and `plan_slot` (nullable, migrations on both sides). Deleting those items undoes it.
    - Meal adherence = planned meal slots with at least one linked item ÷ planned meal slots in the week.

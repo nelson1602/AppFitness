@@ -1,4 +1,5 @@
 import type { GeneratedWorkoutRoutine, WorkoutScheduleDay } from '@/features/icoach';
+import { addDays } from '@/features/weekly-plan/domain/week';
 
 /**
  * Inicio ("Tu meta te espera") summary — ADR-P039, design `docs/design`.
@@ -14,6 +15,12 @@ export interface HomeWorkoutLog {
   /** Device-local `YYYY-MM-DD` the workout started. */
   readonly localDate: string;
   readonly finished: boolean;
+  /**
+   * Started from the plan (linked to a planned session). ADR-P042 D5 (amended
+   * v10): only these complete today's session; others are extra activities.
+   * Omitted: treated as planned (older callers).
+   */
+  readonly planned?: boolean;
 }
 
 export interface HomeInputs {
@@ -32,6 +39,18 @@ export interface HomeInputs {
   readonly targetWeightKg: number | null;
   readonly caloriesConsumed: number | null;
   readonly calorieTarget: number | null;
+  /**
+   * First day of the plan in the person's first week (v10 Block A): training
+   * days before it are not counted in the week's goal. Omitted or null: none.
+   */
+  readonly planStart?: string | null;
+  /**
+   * The week's progress under ADR-P040 Addendum v10-A R1 (planned sessions
+   * fulfilled, extras apart). Without it, every finished workout counts.
+   */
+  readonly weekProgress?: { readonly done: number; readonly extra: number } | null;
+  /** R2: today's kcal from extra cardio, added to the calorie target. */
+  readonly activityCalories?: number;
 }
 
 export type HomeToday =
@@ -48,11 +67,13 @@ export type CoachState = 'start' | 'today-done' | 'week-done' | 'rest' | 'no-pla
 
 export interface HomeSummary {
   readonly week: {
-    /** Finished workouts this ISO week. */
+    /** Planned sessions fulfilled this ISO week (finished workouts without a progress input). */
     readonly done: number;
     /** Planned training days this week, or `null` without a plan. */
     readonly goal: number | null;
     readonly complete: boolean;
+    /** Finished workouts that fulfilled no planned session ("+N extra"); absent = 0. */
+    readonly extra?: number;
   };
   readonly weight: {
     readonly current: number;
@@ -68,6 +89,8 @@ export interface HomeSummary {
     readonly target: number | null;
     /** 0–1 of the target, or `null` without both values. */
     readonly share: number | null;
+    /** kcal added to the target today by extra cardio; absent = 0. */
+    readonly activityBonus?: number;
   };
 }
 
@@ -88,11 +111,19 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
   const finishedThisWeek = inputs.logs.filter(
     (log) => log.finished && log.localDate >= inputs.weekStart && log.localDate <= inputs.today,
   );
-  const finishedToday = finishedThisWeek.some((log) => log.localDate === inputs.today);
+  const finishedToday = finishedThisWeek.some(
+    (log) => log.localDate === inputs.today && log.planned !== false,
+  );
+  const planStart = inputs.planStart ?? null;
   const goal = inputs.routine
-    ? inputs.routine.schedule.filter((day) => day.kind === 'TRAINING').length
+    ? inputs.routine.schedule.filter(
+        (day, index) =>
+          day.kind === 'TRAINING' &&
+          (planStart === null || addDays(inputs.weekStart, index) >= planStart),
+      ).length
     : null;
-  const done = finishedThisWeek.length;
+  const done = inputs.weekProgress ? inputs.weekProgress.done : finishedThisWeek.length;
+  const extra = inputs.weekProgress ? inputs.weekProgress.extra : 0;
   const complete = goal !== null && goal > 0 && done >= goal;
   const today = todayFromPlan(inputs, finishedToday);
 
@@ -115,9 +146,11 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
         }
       : null;
 
-  const { caloriesConsumed: consumed, calorieTarget: calTarget } = inputs;
+  const { caloriesConsumed: consumed } = inputs;
+  const activityBonus = inputs.calorieTarget !== null ? (inputs.activityCalories ?? 0) : 0;
+  const calTarget = inputs.calorieTarget !== null ? inputs.calorieTarget + activityBonus : null;
   return {
-    week: { done, goal, complete },
+    week: { done, goal, complete, extra },
     weight,
     today,
     coach,
@@ -128,6 +161,7 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
         consumed !== null && calTarget !== null && calTarget > 0
           ? clamp01(consumed / calTarget)
           : null,
+      activityBonus,
     },
   };
 }

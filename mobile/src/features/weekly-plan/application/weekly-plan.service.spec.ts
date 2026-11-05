@@ -5,6 +5,7 @@ import {
 } from '../infrastructure/weekly-plan.repository';
 import type { WeeklyPlan } from '../domain/weekly-plan';
 import { gatherPlanContext, type PlanContext } from './plan-context';
+import { dayIndexInWeek, weekStartOf } from '../domain/week';
 import {
   ensureCurrentWeekPlan,
   pendingPlanChanges,
@@ -121,12 +122,13 @@ describe('ensureCurrentWeekPlan (ADR-P042 D2)', () => {
     expect(insertPlanRevision).not.toHaveBeenCalled();
   });
 
-  it('creates the first plan as FIRST_RUN for the whole Monday-started week', async () => {
+  // v10 Block A: the first week starts on the day the person starts.
+  it('creates the first plan as FIRST_RUN, effective from the day it is created', async () => {
     await ensureCurrentWeekPlan(NOW);
     const input = jest.mocked(insertPlanRevision).mock.calls[0][1];
     expect(input).toMatchObject({
       weekStart: '2026-10-26',
-      effectiveFrom: '2026-10-26',
+      effectiveFrom: '2026-10-28',
       trigger: 'FIRST_RUN',
       loadStep: 0,
       notes: [],
@@ -212,6 +214,37 @@ describe('regeneration after a confirmed change (ADR-P042 D3)', () => {
     await regenerateCurrentWeek(saved(), ['injuries'], NOW);
     expect(jest.mocked(insertPlanRevision).mock.calls[0][1].loadStep).toBe(0);
   });
+
+  // ADR-P040 Addendum v10-A R6: a weigh-in or an evaluation change moved the targets.
+  it('offers new targets when they moved enough and nothing else changed', async () => {
+    jest.mocked(gatherPlanContext).mockResolvedValue({ status: 'ready', context: context() });
+    const withTargets = (calories: number) =>
+      saved({
+        plan: {
+          contractVersion: 'weekly-plan@1',
+          targets: { calories, proteinG: 150, carbsG: 200, fatG: 60, floorCalories: 1500 },
+          inputs,
+          days: [],
+        },
+      });
+    expect(await pendingPlanChanges(withTargets(2100), NOW)).toEqual(['targets']);
+    expect(await pendingPlanChanges(withTargets(2030), NOW)).toEqual([]);
+
+    jest.mocked(gatherPlanContext).mockResolvedValue({
+      status: 'ready',
+      context: context({ trainingDays: 4 }),
+    });
+    expect(await pendingPlanChanges(withTargets(2100), NOW)).toEqual(['trainingDays']);
+  });
+
+  it('saves new targets as a CHANGE revision from today', async () => {
+    await regenerateCurrentWeek(saved(), ['targets'], NOW);
+    expect(jest.mocked(insertPlanRevision).mock.calls[0][1]).toMatchObject({
+      effectiveFrom: '2026-10-28',
+      trigger: 'CHANGE',
+      notes: [{ code: 'plan.changed.targets' }],
+    });
+  });
 });
 
 describe('training-days progression (ADR-P040 D11)', () => {
@@ -245,12 +278,21 @@ describe('training-days progression (ADR-P040 D11)', () => {
       },
     } as unknown as Partial<WeeklyPlan>);
   };
+  // Workouts started from the plan (ADR-P042 D5 amended v10: only these fulfil it).
   const doneOn = (dates: string[]) =>
-    dates.map((date) => ({
-      startedAt: new Date(`${date}T18:00:00`).toISOString(),
-      finishedAt: new Date(`${date}T18:50:00`).toISOString(),
-      planLink: null,
-    }));
+    dates.map((date) => {
+      const weekStart = weekStartOf(date);
+      const index = dayIndexInWeek(date);
+      return {
+        startedAt: new Date(`${date}T18:00:00`).toISOString(),
+        finishedAt: new Date(`${date}T18:50:00`).toISOString(),
+        planLink: {
+          weeklyPlanId: `plan-${weekStart}`,
+          planSessionKey: `session.full_body_${index / 2 + 1}`,
+          planDate: date,
+        },
+      };
+    });
   const proposal = { code: 'plan.days.proposal', params: { days: 4 } };
 
   it('proposes one more day after two strong weeks, keeping the earned days in force', async () => {
