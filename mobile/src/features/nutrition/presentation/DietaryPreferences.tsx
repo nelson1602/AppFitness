@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import {
+  interpolate,
   useLocalization,
   type SupportedLanguage,
   type TranslationKey,
@@ -12,6 +13,7 @@ import {
   AppTextInput,
   Banner,
   Card,
+  Icon,
   usePaidWriteDisabled,
   stageChoiceColors,
   useStageSurface,
@@ -20,9 +22,12 @@ import { useTheme } from '@/shared/theme';
 
 import type { SyncStatus } from '@/shared/infrastructure/database/types';
 
-import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
-import { foodDisplayName, searchFoodsForDisplay } from '../application/food-display.service';
+import {
+  foodDisplayName,
+  foodDisplayNameForKey,
+  searchFoodsForDisplay,
+} from '../application/food-display.service';
 import type { DietaryPreference, DietaryPreferenceInput } from '../domain/dietary-preference';
 import { AVOID_TAGS, type AvoidTag } from '../domain/food-catalog';
 
@@ -95,11 +100,74 @@ function exclusionLabel(
     return `${t(TAG_KEY[preference.avoidTag])} · ${t('nutrition.preferences.categorySuffix')}`;
   }
   if (preference.catalogKey) {
-    const food = getCanonicalByCatalogKey(preference.catalogKey);
-    const name = food ? foodDisplayName(food, language) : preference.catalogKey;
-    return `${name} · ${t('nutrition.preferences.foodSuffix')}`;
+    return `${excludedFoodName(preference.catalogKey, language, t)} · ${t('nutrition.preferences.foodSuffix')}`;
   }
   return t('nutrition.preferences.exclusion');
+}
+
+/**
+ * v10 item 8: the localized name behind an excluded food's catalog key. The
+ * old lookup went through the canonical catalogue, whose ids are UUIDs, so the
+ * Spanish table (keyed by catalog key) never matched and Spanish users saw the
+ * English snapshot. A key outside the shipped catalogue fails closed to the
+ * generic word rather than showing the storage identifier.
+ */
+function excludedFoodName(catalogKey: string, language: SupportedLanguage, t: Translate): string {
+  return foodDisplayNameForKey(catalogKey, language) ?? t('nutrition.preferences.exclusion');
+}
+
+/** An excluded food as a removable chip: its localized name and an X. */
+function ExcludedFoodChip({
+  label,
+  disabled,
+  onRemove,
+  removeLabel,
+  testID,
+}: {
+  label: string;
+  disabled: boolean;
+  onRemove: () => void;
+  removeLabel: string;
+  testID: string;
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      testID={testID}
+      style={{
+        alignItems: 'center',
+        backgroundColor: theme.colors.surfaceVariant,
+        borderColor: theme.colors.outline,
+        borderRadius: theme.radius.medium,
+        borderWidth: 1,
+        flexDirection: 'row',
+        maxWidth: '100%',
+        paddingLeft: theme.spacing.md,
+      }}
+    >
+      <AppText style={{ flexShrink: 1 }} variant="label">
+        {label}
+      </AppText>
+      <Pressable
+        accessibilityLabel={removeLabel}
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
+        disabled={disabled}
+        testID={`${testID}-remove`}
+        onPress={onRemove}
+        // The 44×44 touch-target floor, met at 48 for the bare glyph.
+        style={{
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: theme.spacing.x5l,
+          minWidth: theme.spacing.x5l,
+          opacity: disabled ? DISABLED_OPACITY : 1,
+        }}
+      >
+        <Icon color={theme.colors.onSurfaceVariant} name="x" size={18} />
+      </Pressable>
+    </View>
+  );
 }
 
 function Chip({
@@ -175,7 +243,6 @@ export function DietaryPreferences() {
   const [kind, setKind] = useState<DietaryPreference['kind']>('allergy');
   const [tag, setTag] = useState<AvoidTag | null>(null);
   const [query, setQuery] = useState('');
-  const [food, setFood] = useState<{ catalogKey: string } | null>(null);
   const [note, setNote] = useState('');
 
   useEffect(() => {
@@ -186,25 +253,51 @@ export function DietaryPreferences() {
     () => (query.trim() ? searchFoodsForDisplay(query, language).slice(0, 8) : []),
     [language, query],
   );
-  const selectedFood = food ? getCanonicalByCatalogKey(food.catalogKey) : null;
-  const canAdd = mode === 'category' ? tag !== null : food !== null;
+  const excludedFoods = useMemo(
+    () =>
+      preferences.filter(
+        (preference): preference is DietaryPreference & { catalogKey: string } =>
+          preference.catalogKey !== null,
+      ),
+    [preferences],
+  );
+  const excludedKeys = useMemo(
+    () => new Set(excludedFoods.map((preference) => preference.catalogKey)),
+    [excludedFoods],
+  );
+  const saving = status === 'saving';
   const initialLoading = status === 'loading' && preferences.length === 0;
 
-  const reset = () => {
-    setTag(null);
-    setQuery('');
-    setFood(null);
-    setNote('');
+  const onAddCategory = async () => {
+    const input: DietaryPreferenceInput = {
+      kind,
+      note: note.trim() || null,
+      exclusionType: 'avoid_tag',
+      avoidTag: tag,
+    };
+    const ok = await add(input);
+    if (ok) {
+      setTag(null);
+      setNote('');
+    }
   };
 
-  const onAdd = async () => {
-    const base = { kind, note: note.trim() || null };
-    const input: DietaryPreferenceInput =
-      mode === 'category'
-        ? { ...base, exclusionType: 'avoid_tag', avoidTag: tag }
-        : { ...base, exclusionType: 'catalog_key', catalogKey: food?.catalogKey };
+  // v10 item 8: choosing a result is the add. The food joins the excluded
+  // chips at once and the field clears for the next search; a food that is
+  // already excluded is never added twice.
+  const onSelectFood = async (catalogKey: string) => {
+    if (excludedKeys.has(catalogKey) || saving) return;
+    const input: DietaryPreferenceInput = {
+      kind,
+      note: note.trim() || null,
+      exclusionType: 'catalog_key',
+      catalogKey,
+    };
     const ok = await add(input);
-    if (ok) reset();
+    if (ok) {
+      setQuery('');
+      setNote('');
+    }
   };
 
   // Local database is dormant on Web (ADR-P019): render an honest, info-tone
@@ -307,25 +400,24 @@ export function DietaryPreferences() {
                 testID="dp-food-search"
                 placeholder={t('nutrition.preferences.searchPlaceholder')}
                 value={query}
-                onChangeText={(text) => {
-                  setQuery(text);
-                  setFood(null);
-                }}
+                onChangeText={setQuery}
               />
-              {food ? (
-                <AppText tone="muted">
-                  {t('nutrition.preferences.selected')}:{' '}
-                  {selectedFood ? foodDisplayName(selectedFood, language) : food.catalogKey}
-                </AppText>
-              ) : (
-                results.map((result) => (
+              {results.map((result) => {
+                const name = foodDisplayName(result, language);
+                const excluded = excludedKeys.has(result.id);
+                const inert = paidWriteDisabled || excluded || saving;
+                const label = excluded
+                  ? `${name} · ${t('nutrition.preferences.alreadyExcluded')}`
+                  : name;
+                return (
                   <Pressable
                     key={result.id}
+                    accessibilityLabel={label}
                     accessibilityRole="button"
-                    accessibilityState={{ disabled: paidWriteDisabled }}
-                    disabled={paidWriteDisabled}
+                    accessibilityState={{ disabled: inert, selected: excluded }}
+                    disabled={inert}
                     testID={`dp-food-result-${result.id}`}
-                    onPress={() => setFood({ catalogKey: result.id })}
+                    onPress={() => void onSelectFood(result.id)}
                     // BUG-023: one unpadded text line was only 24 dp tall.
                     style={{
                       justifyContent: 'center',
@@ -333,10 +425,34 @@ export function DietaryPreferences() {
                       opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
                     }}
                   >
-                    <AppText>{foodDisplayName(result, language)}</AppText>
+                    <AppText tone={excluded ? 'muted' : undefined}>{label}</AppText>
                   </Pressable>
-                ))
-              )}
+                );
+              })}
+              {excludedFoods.length > 0 ? (
+                <View style={{ gap: theme.spacing.sm }}>
+                  <AppText variant="label" tone="muted">
+                    {t('nutrition.preferences.excludedFoods')}
+                  </AppText>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+                    {excludedFoods.map((preference) => {
+                      const name = excludedFoodName(preference.catalogKey, language, t);
+                      return (
+                        <ExcludedFoodChip
+                          key={preference.id}
+                          label={name}
+                          disabled={paidWriteDisabled || saving}
+                          removeLabel={interpolate(t('nutrition.preferences.removeFood'), {
+                            food: name,
+                          })}
+                          testID={`dp-excluded-${preference.id}`}
+                          onRemove={() => void remove(preference.id)}
+                        />
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
             </View>
           )}
 
@@ -356,15 +472,19 @@ export function DietaryPreferences() {
             </AppText>
           </View>
 
-          <AppButton
-            accessibilityLabel={t('nutrition.preferences.addAccessibility')}
-            testID="dp-add"
-            disabled={!canAdd}
-            loading={status === 'saving'}
-            onPress={() => void onAdd()}
-          >
-            {t('nutrition.preferences.addButton')}
-          </AppButton>
+          {/* In food mode choosing a result adds it, so only a category
+              needs the explicit add action. */}
+          {mode === 'category' ? (
+            <AppButton
+              accessibilityLabel={t('nutrition.preferences.addAccessibility')}
+              testID="dp-add"
+              disabled={tag === null}
+              loading={saving}
+              onPress={() => void onAddCategory()}
+            >
+              {t('nutrition.preferences.addButton')}
+            </AppButton>
+          ) : null}
         </View>
       </Card>
 
