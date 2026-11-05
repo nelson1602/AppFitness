@@ -112,7 +112,12 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   ],
   'src/features/evaluation/presentation/EvaluationWizard.tsx': ['floor-both'],
   'src/features/evaluation/presentation/steps/review-step.tsx': ['floor-both'],
-  'src/features/nutrition/presentation/DietaryPreferences.tsx': ['floor-both', 'floor'],
+  // Each choice chip, (v10) an excluded food chip's X glyph, then each search result row.
+  'src/features/nutrition/presentation/DietaryPreferences.tsx': [
+    'floor-both',
+    'floor-both',
+    'floor',
+  ],
   'src/features/nutrition/presentation/food-log/FoodLogAddForm.tsx': ['floor', 'content'],
   'src/features/nutrition/presentation/food-log/ServingStepper.tsx': ['floor-both'],
   'src/features/nutrition/presentation/FoodLogScreen.tsx': ['floor-both'],
@@ -188,8 +193,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 48 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(48);
+it('counts exactly 49 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(49);
 });
 
 describe.each(
