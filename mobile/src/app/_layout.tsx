@@ -18,7 +18,6 @@ import { registerWorkoutSyncAppliers } from '@/features/workout';
 import { startLocalDayWatch } from '@/shared/application/local-day';
 import { initMonitoring } from '@/shared/infrastructure/monitoring/sentry';
 import { DocumentHead, useLocalization } from '@/shared/localization';
-import { StageHeaderBackground } from '@/shared/presentation';
 import { holdSplashForBrandFonts, useBrandFonts, useTheme } from '@/shared/theme';
 
 // Composition root: features register their sync appliers once at app
@@ -71,12 +70,13 @@ export default function RootLayout() {
       <DocumentHead />
       <StatusBar style={theme.dark ? 'light' : 'dark'} />
       {/* v10 Block C: every pushed screen looks like the tabs — the solid dark
-          stage with the top glow, which starts in the header and continues in
-          the screen (`StageScreen`). */}
+          stage with the top glow behind a transparent header, drawn by the
+          screen itself (`StageScreen`), which starts its content below the
+          header. The auth screens keep an opaque header of their own. */}
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: theme.colors.stage },
-          headerBackground: StageHeaderBackground,
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
           headerTintColor: theme.colors.onStage,
           headerShadowVisible: false,
           contentStyle: { backgroundColor: theme.colors.stage },

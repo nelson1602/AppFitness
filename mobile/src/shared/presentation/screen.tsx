@@ -96,8 +96,9 @@ export function Screen({
       ? { backgroundColor: 'transparent' }
       : stage === 'under-header'
         ? // v10 Block C: a pushed screen looks like the tabs — solid dark stage
-          // with the dashboard glow, whose top slice the stack header draws.
-          { backgroundColor: theme.colors.stage }
+          // with the dashboard glow behind the transparent stack header; the
+          // content starts below the header.
+          { backgroundColor: theme.colors.stage, paddingTop: headerHeight }
         : stage
           ? backgroundImageStyle(stageBackgroundImage(theme.colors), theme.colors.stage)
           : { backgroundColor: theme.colors.background };
@@ -120,9 +121,7 @@ export function Screen({
       style={[{ flex: 1 }, ground]}
       testID={stage ? 'screen-stage' : undefined}
     >
-      {stage === 'under-header' ? (
-        <StageGlow offset={headerHeight} testID="screen-stage-glow" />
-      ) : null}
+      {stage === 'under-header' ? <StageGlow testID="screen-stage-glow" /> : null}
       {scroll ? (
         <ScrollView
           contentContainerStyle={[contentStyle, style]}

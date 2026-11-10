@@ -286,10 +286,11 @@ describe('Screen keyboard clearance (BUG-022)', () => {
 
   /**
    * v10 Block C. A pushed screen looks like the tabs: the solid dark stage with
-   * the dashboard glow — no full-screen navy gradient. The glow starts one
-   * header height higher, so it continues the slice the stack header draws.
+   * the dashboard glow — no full-screen navy gradient. The stack header is
+   * transparent, so the glow is drawn from the very top, behind it, and the
+   * content starts one header height lower.
    */
-  it('paints a pushed screen as the solid stage with the glow continuing the header', async () => {
+  it('paints a pushed screen as the solid stage with the glow behind the header', async () => {
     await render(
       <HeaderHeightContext.Provider value={96}>
         <Screen stage="under-header" safeArea="below-header">
@@ -301,10 +302,11 @@ describe('Screen keyboard clearance (BUG-022)', () => {
     const ground = StyleSheet.flatten(screen.getByTestId('screen-stage').props.style);
     expect([lightColors.stage, darkColors.stage]).toContain(ground.backgroundColor);
     expect(ground).not.toHaveProperty('experimental_backgroundImage');
+    expect(ground.paddingTop).toBe(96);
     expect(
       StyleSheet.flatten(
         screen.getByTestId('screen-stage-glow', { includeHiddenElements: true }).props.style,
       ).top,
-    ).toBe(-96);
+    ).toBe(0);
   });
 });

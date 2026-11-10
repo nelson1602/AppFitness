@@ -70,6 +70,8 @@ export default function ForgotPasswordScreen() {
       <Stack.Screen
         options={{
           headerShadowVisible: false,
+          // The auth stage paints under an opaque header (v10 Block C keeps it).
+          headerTransparent: false,
           headerStyle: { backgroundColor: theme.colors.stageTop },
           headerTintColor: theme.colors.onStage,
           title: t('auth.forgot.screenTitle'),
