@@ -5,7 +5,13 @@ import {
   muscleGroupsInSentence,
   weekdayInSentence,
 } from '@/features/weekly-plan/presentation/realtime-copy';
-import { formatNumber, formatQuantity, interpolate, useLocalization } from '@/shared/localization';
+import {
+  formatKcal,
+  formatKcalQuantity,
+  formatNumber,
+  interpolate,
+  useLocalization,
+} from '@/shared/localization';
 import { AppText, Chip, GlassCard, Icon, withAlpha } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -56,7 +62,7 @@ export function ExtraActivityPanel({
         {calorieBonus > 0 ? (
           <Chip
             label={interpolate(t('home.tile.activityBonus'), {
-              kcal: formatNumber(calorieBonus, language),
+              kcal: formatKcal(calorieBonus, language),
             })}
             testID="workout-extra-bonus"
             tone="energy"
@@ -71,8 +77,7 @@ export function ExtraActivityPanel({
                 minutes: formatNumber(activity.minutes, language),
               })
             : t('workouts.extra.noTime');
-        const kcal =
-          activity.kcal !== null ? formatQuantity(activity.kcal, 'kcal', language) : null;
+        const kcal = activity.kcal !== null ? formatKcalQuantity(activity.kcal, language) : null;
         const status = t(
           activity.status === 'done' ? 'workouts.extra.done' : 'workouts.extra.inProgress',
         );

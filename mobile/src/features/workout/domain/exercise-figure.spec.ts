@@ -1,6 +1,8 @@
+import { BUILT_IN_EXERCISES } from '../infrastructure/exercise-catalog.data';
 import { demoMotionFor } from './exercise-demo';
 import {
   FIGURE_STILL_PHASE,
+  figureCarriesLoad,
   type FigureMotion,
   figureFor,
   figurePose,
@@ -36,21 +38,70 @@ describe('exercise figure (prototype ExerciseDemo)', () => {
     expect(figurePropFor('squat')).toBeUndefined();
   });
 
-  it('never shows a figure that does not match the exercise', () => {
-    for (const key of [
-      'exercise.leg_press',
-      'exercise.push_up',
-      'exercise.overhead_press',
-      'exercise.lat_pulldown',
-      'exercise.seated_cable_row',
-      'exercise.skull_crusher',
-      'exercise.steady_run',
-      'exercise.box_jump',
-      'exercise.cat_cow',
-      'exercise.unknown',
-    ]) {
-      expect([key, figureFor(key)]).toEqual([key, null]);
+  it('shows a figure for every library exercise (v10 Block C, item 11: 21 → 37 of 37)', () => {
+    const missing = BUILT_IN_EXERCISES.map((e) => e.key).filter((key) => figureFor(key) === null);
+    expect(missing).toEqual([]);
+    expect(BUILT_IN_EXERCISES).toHaveLength(37);
+  });
+
+  it('still shows no figure for an exercise it does not know', () => {
+    expect(figureFor('exercise.unknown')).toBeNull();
+  });
+
+  it('keeps every joint of every figure inside its 120×100 box', () => {
+    const motions = [...new Set(BUILT_IN_EXERCISES.map((e) => figureFor(e.key)))];
+    for (const motion of motions) {
+      if (motion === null) continue;
+      for (let i = 0; i <= 20; i += 1) {
+        for (const [joint, [x, y]] of Object.entries(figurePose(motion, i / 20))) {
+          expect([motion, joint, x >= 0 && x <= 120 && y >= 0 && y <= 100]).toEqual([
+            motion,
+            joint,
+            true,
+          ]);
+        }
+      }
     }
+  });
+
+  it('keeps the spine straight unless the movement arches it (cat-cow)', () => {
+    const squat = figurePose('squat', 0);
+    expect(squat.m).toEqual([(squat.s[0] + squat.p[0]) / 2, (squat.s[1] + squat.p[1]) / 2]);
+    // Cat: the mid-back rises above the shoulder–hip line; cow: it sags below it.
+    const cat = figurePose('catCow', 0);
+    const cow = figurePose('catCow', 0.5);
+    expect(cat.m[1]).toBeLessThan(cat.s[1]);
+    expect(cow.m[1]).toBeGreaterThan(cow.s[1]);
+    expect(cat.h[1]).toBeGreaterThan(cow.h[1]);
+  });
+
+  it('never lets the box jump pass through the box', () => {
+    // lowBox: x 83–111, top at y 80.
+    for (let i = 0; i <= 40; i += 1) {
+      const { f1, f2 } = figurePose('boxJump', i / 40);
+      for (const [x, y] of [f1, f2]) expect(x >= 83 && y > 80).toBe(false);
+    }
+    // Pose b lands on top of the box: both feet over it, standing on its top edge.
+    const landed = figurePose('boxJump', 0.5);
+    for (const [x, y] of [landed.f1, landed.f2]) {
+      expect(x).toBeGreaterThanOrEqual(83);
+      expect(x).toBeLessThanOrEqual(111);
+      expect(y).toBeCloseTo(77, 0);
+    }
+  });
+
+  it('puts a weight in each hand only for the carry', () => {
+    expect(figureCarriesLoad('carry')).toBe(true);
+    expect(figureCarriesLoad('walk')).toBe(false);
+    expect(figureCarriesLoad('bike')).toBe(false);
+  });
+
+  it('draws the props of the new movements', () => {
+    expect(figurePropFor('dip')).toBe('bars');
+    expect(figurePropFor('seatedRow')).toBe('rowSeat');
+    expect(figurePropFor('boxJump')).toBe('lowBox');
+    expect(figurePropFor('legPress')).toBe('legPress');
+    expect(figurePropFor('machinePress')).toBe('seat');
   });
 
   it('keeps the figure and the cues on the same movement', () => {

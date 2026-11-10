@@ -5,6 +5,13 @@ import { classifyBmi } from '@/features/icoach/domain/body-composition';
 import { formatNumber, useLocalization } from '@/shared/localization';
 import { AppText, BirthDateField, Chip, DateField, GlassCard, Icon } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import {
+  cmToFeetInches,
+  displayToKg,
+  feetInchesToCm,
+  useUnits,
+  weightFieldText,
+} from '@/shared/units';
 
 import { decimalText, draftBmi, parseDecimal } from '../../domain/evaluation';
 import { Choice, Legend, NumberField } from '../evaluation-controls';
@@ -16,8 +23,19 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
   const theme = useTheme();
   const { colors, spacing } = theme;
   const { language, t } = useLocalization();
-  const [weight, setWeight] = useState(decimalText(draft.weightKg, language));
+  // v10 Block C, item 9: typed in the person's units, stored in kg and cm.
+  const { system } = useUnits();
+  const imperial = system === 'imperial';
+  const [weight, setWeight] = useState(weightFieldText(draft.weightKg, system, language));
   const [height, setHeight] = useState(decimalText(draft.heightCm, language));
+  const initialFeetInches = draft.heightCm === null ? null : cmToFeetInches(draft.heightCm);
+  const [feet, setFeet] = useState(initialFeetInches ? String(initialFeetInches.feet) : '');
+  const [inches, setInches] = useState(initialFeetInches ? String(initialFeetInches.inches) : '');
+  const updateFeetInches = (nextFeet: string, nextInches: string) => {
+    const f = parseDecimal(nextFeet);
+    const i = nextInches.trim() === '' ? 0 : parseDecimal(nextInches);
+    update({ heightCm: f === null || i === null ? null : feetInchesToCm(f, i) });
+  };
   const bmi = draftBmi(draft);
   const category = bmi === null ? null : classifyBmi(bmi);
 
@@ -35,27 +53,58 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
         <NumberField
-          error={issues.includes('weight') ? t('evaluation.error.weight') : undefined}
+          error={
+            issues.includes('weight')
+              ? t(imperial ? 'evaluation.error.weightImperial' : 'evaluation.error.weight')
+              : undefined
+          }
           label={t('evaluation.measures.weight')}
           onChangeText={(text) => {
             setWeight(text);
-            update({ weightKg: parseDecimal(text) });
+            const typed = parseDecimal(text);
+            update({ weightKg: typed === null ? null : displayToKg(typed, system) });
           }}
           testID="evaluation-weight"
-          unit={t('evaluation.unit.kg')}
+          unit={imperial ? 'lb' : t('evaluation.unit.kg')}
           value={weight}
         />
-        <NumberField
-          error={issues.includes('height') ? t('evaluation.error.height') : undefined}
-          label={t('evaluation.measures.height')}
-          onChangeText={(text) => {
-            setHeight(text);
-            update({ heightCm: parseDecimal(text) });
-          }}
-          testID="evaluation-height"
-          unit={t('evaluation.unit.cm')}
-          value={height}
-        />
+        {imperial ? (
+          <>
+            <NumberField
+              error={issues.includes('height') ? t('evaluation.error.heightImperial') : undefined}
+              label={t('evaluation.measures.height')}
+              onChangeText={(text) => {
+                setFeet(text);
+                updateFeetInches(text, inches);
+              }}
+              testID="evaluation-height-feet"
+              unit="ft"
+              value={feet}
+            />
+            <NumberField
+              label={t('units.inches')}
+              onChangeText={(text) => {
+                setInches(text);
+                updateFeetInches(feet, text);
+              }}
+              testID="evaluation-height-inches"
+              unit="in"
+              value={inches}
+            />
+          </>
+        ) : (
+          <NumberField
+            error={issues.includes('height') ? t('evaluation.error.height') : undefined}
+            label={t('evaluation.measures.height')}
+            onChangeText={(text) => {
+              setHeight(text);
+              update({ heightCm: parseDecimal(text) });
+            }}
+            testID="evaluation-height"
+            unit={t('evaluation.unit.cm')}
+            value={height}
+          />
+        )}
       </View>
 
       {/* v8.1: the Día / Mes / Año wheel, ages 16 to 100 (ADR-P043 amendment). */}

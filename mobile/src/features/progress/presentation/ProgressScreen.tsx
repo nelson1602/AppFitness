@@ -9,6 +9,7 @@ import {
 } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { kgToDisplay, roundToTenth, useUnits, weightUnit } from '@/shared/units';
 
 import { useProgressStore } from '../application/progress.store';
 import type { BodyMeasurementInput, BodyWeightInput } from '../domain/progress';
@@ -76,6 +77,10 @@ function formatPointDate(iso: string, language: SupportedLanguage): string {
 export function ProgressScreen() {
   const theme = useTheme();
   const { t, language } = useLocalization();
+  // v10 Block C, item 9: weights in the person's units (metric unchanged).
+  const { system } = useUnits();
+  const shown = (kg: number) => (system === 'metric' ? kg : roundToTenth(kgToDisplay(kg, system)));
+  const unitSuffix = ` ${weightUnit(system)}`;
   const {
     status,
     bodyWeights,
@@ -127,7 +132,7 @@ export function ProgressScreen() {
 
   // Charts read ascending (oldest → newest); the store holds both newest-first.
   const weightTrend: TrendPoint[] = bodyWeights
-    .map((w) => ({ label: formatPointDate(w.date, language), value: w.weightKg }))
+    .map((w) => ({ label: formatPointDate(w.date, language), value: shown(w.weightKg) }))
     .reverse();
   // A volume point is a WEEK, not a day, so its label carries the existing
   // `weekOf` prefix — otherwise a week start is announced as if it were a
@@ -136,14 +141,14 @@ export function ProgressScreen() {
     .filter((s) => s.totalVolumeKg !== null)
     .map((s) => ({
       label: `${t('progress.weekly.weekOf')} ${formatPointDate(s.weekStart, language)}`,
-      value: s.totalVolumeKg as number,
+      value: shown(s.totalVolumeKg as number),
     }))
     .reverse();
   const muscleMassTrend: TrendPoint[] = bodyMeasurements
     .filter((measurement) => measurement.muscleMassKg !== null)
     .map((measurement) => ({
       label: formatPointDate(measurement.date, language),
-      value: measurement.muscleMassKg as number,
+      value: shown(measurement.muscleMassKg as number),
     }))
     .reverse();
 
@@ -175,7 +180,8 @@ export function ProgressScreen() {
               <AppText variant="label">{t('progress.screen.latest')}</AppText>
               {latestWeight ? (
                 <AppText>
-                  {formatNumber(latestWeight.weightKg, language)} kg {t('progress.screen.on')}{' '}
+                  {formatNumber(shown(latestWeight.weightKg), language)} {weightUnit(system)}{' '}
+                  {t('progress.screen.on')}{' '}
                   {formatDate(parseLocalDate(latestWeight.date), language, {
                     year: 'numeric',
                     month: 'short',
@@ -228,19 +234,19 @@ export function ProgressScreen() {
               <TrendBars
                 title={t('progress.screen.trendWeight')}
                 data={weightTrend}
-                unit=" kg"
+                unit={unitSuffix}
                 testID="weight-trend"
               />
               <TrendBars
                 title={t('progress.trends.muscleMass')}
                 data={muscleMassTrend}
-                unit=" kg"
+                unit={unitSuffix}
                 testID="muscle-mass-trend"
               />
               <TrendBars
                 title={t('progress.screen.trendVolume')}
                 data={volumeTrend}
-                unit=" kg"
+                unit={unitSuffix}
                 testID="volume-trend"
               />
             </View>

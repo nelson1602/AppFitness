@@ -1,5 +1,13 @@
 import { z } from 'zod';
 
+import {
+  cmToDisplay,
+  displayToCm,
+  displayToKg,
+  kgToDisplay,
+  type UnitSystem,
+} from '@/shared/units';
+
 import type { BodyMeasurementInput, BodyWeightInput } from '../domain/progress';
 
 /**
@@ -57,15 +65,20 @@ const BODY_WEIGHT_DEFAULT_MESSAGES: BodyWeightFormMessages = {
 };
 
 // Factory mirrors createBodyMeasurementFormSchema so the form can inject
-// localized messages; validation bounds are unchanged.
+// localized messages. v10 Block C, item 9: the field holds the person's units;
+// the bound is still 1000 kg, expressed in those units.
 export function createBodyWeightFormSchema(
   messages: BodyWeightFormMessages = BODY_WEIGHT_DEFAULT_MESSAGES,
+  system: UnitSystem = 'metric',
 ) {
   return z.object({
     date: dateFieldWith(messages.dateFormat, messages.validDate),
     weightKg: z.preprocess(
       (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      z.coerce.number().positive(messages.weightPositive).max(1000, messages.tooLarge),
+      z.coerce
+        .number()
+        .positive(messages.weightPositive)
+        .max(kgToDisplay(1000, system), messages.tooLarge),
     ),
     notes: optionalText,
   });
@@ -76,10 +89,14 @@ export const bodyWeightFormSchema = createBodyWeightFormSchema();
 export type BodyWeightFormInput = z.input<typeof bodyWeightFormSchema>;
 export type BodyWeightFormOutput = z.output<typeof bodyWeightFormSchema>;
 
-export function toBodyWeightInput(values: BodyWeightFormOutput): BodyWeightInput {
+/** The form's values → the stored input, in kg whatever the person typed in. */
+export function toBodyWeightInput(
+  values: BodyWeightFormOutput,
+  system: UnitSystem = 'metric',
+): BodyWeightInput {
   return {
     date: values.date,
-    weightKg: values.weightKg,
+    weightKg: displayToKg(values.weightKg, system),
     notes: text(values.notes),
   };
 }
@@ -124,24 +141,31 @@ const BODY_MEASUREMENT_DEFAULT_MESSAGES: BodyMeasurementFormMessages = {
 
 export function createBodyMeasurementFormSchema(
   messages: BodyMeasurementFormMessages = BODY_MEASUREMENT_DEFAULT_MESSAGES,
+  system: UnitSystem = 'metric',
 ) {
+  // Bounds stay 500 cm and 300 kg, expressed in the person's units.
+  const maxLength = cmToDisplay(500, system);
+  const maxMuscle = kgToDisplay(300, system);
   return z
     .object({
       date: dateFieldWith(messages.dateFormat, messages.validDate),
       waistCm: optionalNumber(
-        z.coerce.number().positive(messages.waistPositive).max(500, messages.tooLarge),
+        z.coerce.number().positive(messages.waistPositive).max(maxLength, messages.tooLarge),
       ),
       hipCm: optionalNumber(
-        z.coerce.number().positive(messages.hipPositive).max(500, messages.tooLarge),
+        z.coerce.number().positive(messages.hipPositive).max(maxLength, messages.tooLarge),
       ),
       chestCm: optionalNumber(
-        z.coerce.number().positive(messages.chestPositive).max(500, messages.tooLarge),
+        z.coerce.number().positive(messages.chestPositive).max(maxLength, messages.tooLarge),
       ),
       bodyFatPct: optionalNumber(
         z.coerce.number().positive(messages.bodyFatPositive).max(100, messages.bodyFatRange),
       ),
       muscleMassKg: optionalNumber(
-        z.coerce.number().positive(messages.muscleMassRange).max(300, messages.muscleMassRange),
+        z.coerce
+          .number()
+          .positive(messages.muscleMassRange)
+          .max(maxMuscle, messages.muscleMassRange),
       ),
       notes: optionalText,
     })
@@ -159,14 +183,21 @@ export const bodyMeasurementFormSchema = createBodyMeasurementFormSchema();
 export type BodyMeasurementFormInput = z.input<typeof bodyMeasurementFormSchema>;
 export type BodyMeasurementFormOutput = z.output<typeof bodyMeasurementFormSchema>;
 
-export function toBodyMeasurementInput(values: BodyMeasurementFormOutput): BodyMeasurementInput {
+/** The form's values → the stored input, in cm and kg whatever the person typed in. */
+export function toBodyMeasurementInput(
+  values: BodyMeasurementFormOutput,
+  system: UnitSystem = 'metric',
+): BodyMeasurementInput {
+  const cm = (value: number | undefined) =>
+    value === undefined ? null : displayToCm(value, system);
   return {
     date: values.date,
-    waistCm: values.waistCm ?? null,
-    hipCm: values.hipCm ?? null,
-    chestCm: values.chestCm ?? null,
+    waistCm: cm(values.waistCm),
+    hipCm: cm(values.hipCm),
+    chestCm: cm(values.chestCm),
     bodyFatPct: values.bodyFatPct ?? null,
-    muscleMassKg: values.muscleMassKg ?? null,
+    muscleMassKg:
+      values.muscleMassKg === undefined ? null : displayToKg(values.muscleMassKg, system),
     notes: text(values.notes),
   };
 }

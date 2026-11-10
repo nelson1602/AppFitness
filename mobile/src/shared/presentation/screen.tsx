@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
+import { useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, Platform, ScrollView, View, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '../theme';
 import { backgroundImageStyle } from './gradient-style';
+import { StageGlow } from './stage-glow';
 import { stageBackgroundImage } from './stage-style';
 
 interface ScreenProps {
@@ -87,15 +89,19 @@ export function Screen({
   safeArea = 'all',
 }: ScreenProps) {
   const theme = useTheme();
+  // The context, not `useHeaderHeight`: a screen rendered alone (specs) has none.
+  const headerHeight = useContext(HeaderHeightContext) ?? 0;
   const ground =
     stage === 'shell'
       ? { backgroundColor: 'transparent' }
-      : stage
-        ? backgroundImageStyle(
-            stageBackgroundImage(theme.colors, { glow: stage !== 'under-header' }),
-            theme.colors.stage,
-          )
-        : { backgroundColor: theme.colors.background };
+      : stage === 'under-header'
+        ? // v10 Block C: a pushed screen looks like the tabs — solid dark stage
+          // with the dashboard glow behind the transparent stack header; the
+          // content starts below the header.
+          { backgroundColor: theme.colors.stage, paddingTop: headerHeight }
+        : stage
+          ? backgroundImageStyle(stageBackgroundImage(theme.colors), theme.colors.stage)
+          : { backgroundColor: theme.colors.background };
   const innerBackground = stage ? 'transparent' : theme.colors.background;
   const keyboardClearance = useAndroidKeyboardClearance(scroll);
   const contentStyle: ViewStyle = {
@@ -115,6 +121,7 @@ export function Screen({
       style={[{ flex: 1 }, ground]}
       testID={stage ? 'screen-stage' : undefined}
     >
+      {stage === 'under-header' ? <StageGlow testID="screen-stage-glow" /> : null}
       {scroll ? (
         <ScrollView
           contentContainerStyle={[contentStyle, style]}

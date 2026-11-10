@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { View } from 'react-native';
 
 import { goalTypeShortLabelKey } from '@/features/profile/presentation/goal-type-label';
-import { formatQuantity, interpolate, useLocalization } from '@/shared/localization';
+import { interpolate, useLocalization } from '@/shared/localization';
 import { AppText, DateField, GlassCard } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { displayToKg, formatWeight, useUnits, weightFieldText } from '@/shared/units';
 
-import { GOAL_OPTIONS, decimalText, parseDecimal } from '../../domain/evaluation';
+import { GOAL_OPTIONS, parseDecimal } from '../../domain/evaluation';
 import { addDaysTo } from '../evaluation-format';
 import { Choice, Legend, NumberField } from '../evaluation-controls';
 import type { StepProps } from './step-props';
@@ -16,9 +17,10 @@ export function GoalStep({ draft, update, issues, today }: StepProps) {
   const theme = useTheme();
   const { spacing } = theme;
   const { language, t } = useLocalization();
-  const [target, setTarget] = useState(decimalText(draft.targetWeightKg, language));
-  const kg = (value: number) =>
-    formatQuantity(value, t('evaluation.unit.kg'), language, { maximumFractionDigits: 1 });
+  const { system } = useUnits();
+  const imperial = system === 'imperial';
+  const [target, setTarget] = useState(weightFieldText(draft.targetWeightKg, system, language));
+  const kg = (value: number) => formatWeight(value, system, language);
 
   const from = draft.weightKg;
   const to = draft.targetWeightKg;
@@ -56,14 +58,23 @@ export function GoalStep({ draft, update, issues, today }: StepProps) {
       </View>
 
       <NumberField
-        error={issues.includes('targetWeight') ? t('evaluation.error.targetWeight') : undefined}
+        error={
+          issues.includes('targetWeight')
+            ? t(
+                imperial
+                  ? 'evaluation.error.targetWeightImperial'
+                  : 'evaluation.error.targetWeight',
+              )
+            : undefined
+        }
         label={t('evaluation.goal.targetWeight')}
         onChangeText={(text) => {
           setTarget(text);
-          update({ targetWeightKg: parseDecimal(text) });
+          const typed = parseDecimal(text);
+          update({ targetWeightKg: typed === null ? null : displayToKg(typed, system) });
         }}
         testID="evaluation-target-weight"
-        unit={t('evaluation.unit.kg')}
+        unit={imperial ? 'lb' : t('evaluation.unit.kg')}
         value={target}
       />
       <DateField

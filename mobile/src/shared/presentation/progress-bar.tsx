@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import { useTheme } from '../theme';
+import { darkColors, useTheme } from '../theme';
 import { withAlpha } from './gradient-style';
 
 type ProgressTone = 'energy' | 'cyan' | 'success';
@@ -12,6 +12,12 @@ interface ProgressBarProps {
   accessibilityLabel: string;
   tone?: ProgressTone;
   height?: number;
+  /**
+   * `cta`: drawn on the CTA blue (the Inicio goal card) — the dark-mode
+   * accents and light track in both themes, since the blue does not change
+   * (v10 Block C review).
+   */
+  surface?: 'stage' | 'cta';
   testID?: string;
 }
 
@@ -21,9 +27,12 @@ export function ProgressBar({
   accessibilityLabel,
   tone = 'cyan',
   height = 8,
+  surface = 'stage',
   testID = 'progress-bar',
 }: ProgressBarProps) {
-  const { colors, radius } = useTheme();
+  const theme = useTheme();
+  const { radius } = theme;
+  const colors = surface === 'cta' ? darkColors : theme.colors;
   const clamped = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
   const color = { energy: colors.accentEnergy, cyan: colors.accentCyan, success: colors.success }[
     tone

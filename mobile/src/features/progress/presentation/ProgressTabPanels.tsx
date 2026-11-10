@@ -4,8 +4,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { parseDecimal } from '@/features/evaluation/domain/evaluation';
 import {
+  formatKcalQuantity,
   formatNumber,
-  formatQuantity,
   interpolate,
   type SupportedLanguage,
   type TranslationKey,
@@ -22,6 +22,14 @@ import {
   withAlpha,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import {
+  displayToKg,
+  formatLength,
+  formatWeight,
+  type UnitSystem,
+  useUnits,
+  weightUnit,
+} from '@/shared/units';
 
 import type {
   MeasurementMetric,
@@ -71,21 +79,23 @@ function Panel({
   );
 }
 
-const kgText = (value: number, language: SupportedLanguage) =>
-  formatQuantity(value, 'kg', language, { maximumFractionDigits: 1 });
-
 // ── Peso ──────────────────────────────────────────────────────────────────────
 export type WeightValidation = 'invalid' | 'positive' | 'tooLarge';
 
-/** "70,5" or "70.5" → kilograms, or why it cannot be saved. */
+/**
+ * "70,5" or "70.5", in the person's units → kilograms, or why it cannot be
+ * saved (v10 Block C, item 9: the limit is checked in kg, as stored).
+ */
 export function parseTodayWeight(
   text: string,
+  system: UnitSystem = 'metric',
 ): { ok: true; weightKg: number } | { ok: false; reason: WeightValidation } {
   const value = parseDecimal(text);
   if (value === null) return { ok: false, reason: 'invalid' };
   if (value <= 0) return { ok: false, reason: 'positive' };
-  if (value > MAX_WEIGHT_KG) return { ok: false, reason: 'tooLarge' };
-  return { ok: true, weightKg: value };
+  const weightKg = displayToKg(value, system);
+  if (weightKg > MAX_WEIGHT_KG) return { ok: false, reason: 'tooLarge' };
+  return { ok: true, weightKg };
 }
 
 const VALIDATION_KEY: Record<WeightValidation, TranslationKey> = {
@@ -113,12 +123,14 @@ export function WeightPanel({
   const theme = useTheme();
   const { colors, spacing } = theme;
   const { language, t } = useLocalization();
+  const { system } = useUnits();
+  const imperial = system === 'imperial';
   const [text, setText] = useState('');
   const [error, setError] = useState<WeightValidation | null>(null);
   const [saved, setSaved] = useState(false);
 
   const submit = async () => {
-    const parsed = parseTodayWeight(text);
+    const parsed = parseTodayWeight(text, system);
     if (!parsed.ok) {
       setError(parsed.reason);
       setSaved(false);
@@ -136,7 +148,7 @@ export function WeightPanel({
       right={
         currentWeightKg !== null ? (
           <AppText tone="onStage" testID="progress-current-weight" variant="title">
-            {kgText(currentWeightKg, language)}
+            {formatWeight(currentWeightKg, system, language)}
           </AppText>
         ) : null
       }
@@ -166,7 +178,9 @@ export function WeightPanel({
       <View style={[styles.row, styles.wrap, { gap: spacing.sm }]}>
         <View style={[styles.field, { minWidth: theme.spacing.x7l * 2 }]}>
           <AppTextInput
-            accessibilityLabel={t('progress.tab.todayWeightLabel')}
+            accessibilityLabel={t(
+              imperial ? 'progress.tab.todayWeightLabelImperial' : 'progress.tab.todayWeightLabel',
+            )}
             appearance="stage"
             insetEnd={spacing.x4l}
             keyboardType="decimal-pad"
@@ -182,7 +196,7 @@ export function WeightPanel({
           />
           <View pointerEvents="none" style={[styles.unit, { right: spacing.md }]}>
             <AppText style={{ color: colors.fieldIcon }} variant="label">
-              kg
+              {weightUnit(system)}
             </AppText>
           </View>
         </View>
@@ -197,7 +211,11 @@ export function WeightPanel({
       </View>
       {error ? (
         <AppText testID="progress-today-weight-error" tone="errorOnStage" variant="caption">
-          {t(VALIDATION_KEY[error])}
+          {t(
+            error === 'invalid' && imperial
+              ? 'progress.tab.invalidWeightImperial'
+              : VALIDATION_KEY[error],
+          )}
         </AppText>
       ) : null}
     </Panel>
@@ -213,27 +231,42 @@ const METRIC_LABEL: Record<MeasurementMetric, TranslationKey> = {
   muscleMassKg: 'progress.trends.muscleMass',
 };
 
-/** A metric's value in its unit: "86 cm", "31 %" (ES) / "31%" (EN), "26,4 kg". */
-function metricText(metric: MeasurementMetric, value: number, language: SupportedLanguage) {
+/**
+ * A metric's value in its unit: "86 cm" / "33,9 in", "31 %" (ES) / "31%" (EN),
+ * "26,4 kg" / "58,2 lb".
+ */
+function metricText(
+  metric: MeasurementMetric,
+  value: number,
+  language: SupportedLanguage,
+  system: UnitSystem,
+) {
   if (metric === 'bodyFatPct') {
     return formatNumber(value / 100, language, { style: 'percent', maximumFractionDigits: 1 });
   }
-  const unit = metric === 'muscleMassKg' ? 'kg' : 'cm';
-  return formatQuantity(value, unit, language, { maximumFractionDigits: 1 });
+  return metric === 'muscleMassKg'
+    ? formatWeight(value, system, language)
+    : formatLength(value, system, language);
 }
 
 /** "−3 cm", "+0,6 kg", "0 cm" — a true minus sign, as in the design. */
-export function deltaText(metric: MeasurementMetric, delta: number, language: SupportedLanguage) {
+export function deltaText(
+  metric: MeasurementMetric,
+  delta: number,
+  language: SupportedLanguage,
+  system: UnitSystem = 'metric',
+) {
   const sign = delta > 0 ? '+' : delta < 0 ? '−' : '';
-  return `${sign}${metricText(metric, Math.abs(delta), language)}`;
+  return `${sign}${metricText(metric, Math.abs(delta), language, system)}`;
 }
 
 function MeasurementTileView({ tile }: { tile: MeasurementTile }) {
   const { colors, radius, spacing } = useTheme();
   const { language, t } = useLocalization();
+  const { system } = useUnits();
   const label = t(METRIC_LABEL[tile.metric]);
-  const value = tile.value === null ? '—' : metricText(tile.metric, tile.value, language);
-  const delta = tile.delta === null ? '—' : deltaText(tile.metric, tile.delta, language);
+  const value = tile.value === null ? '—' : metricText(tile.metric, tile.value, language, system);
+  const delta = tile.delta === null ? '—' : deltaText(tile.metric, tile.delta, language, system);
   const spoken = [
     `${label}: ${tile.value === null ? t('progress.tab.notRecorded') : value}`,
     tile.value === null
@@ -375,6 +408,7 @@ function Stat({
 export function WeekSummaryPanel({ week }: { week: WeekSummary }) {
   const { spacing } = useTheme();
   const { language, t } = useLocalization();
+  const { system } = useUnits();
   const noData = t('progress.tab.noData');
   const n = (value: number) => formatNumber(value, language);
   const workouts = week.workouts
@@ -389,8 +423,8 @@ export function WeekSummaryPanel({ week }: { week: WeekSummary }) {
   const volume =
     week.volumeKg === null
       ? null
-      : formatQuantity(week.volumeKg, 'kg', language, { maximumFractionDigits: 0 });
-  const kcal = week.avgKcal === null ? null : formatQuantity(week.avgKcal, 'kcal', language);
+      : formatWeight(week.volumeKg, system, language, { maximumFractionDigits: 0 });
+  const kcal = week.avgKcal === null ? null : formatKcalQuantity(week.avgKcal, language);
 
   return (
     <Panel icon="chart" testID="progress-week-card" title={t('progress.tab.weekTitle')}>

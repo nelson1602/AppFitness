@@ -9,6 +9,7 @@ import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/
 import type { IngredientSubstitution } from '@/features/weekly-plan/domain/weekly-plan';
 import { PlanChangePrompt } from '@/features/weekly-plan/presentation/PlanChangePrompt';
 import {
+  formatKcal,
   formatNumber,
   interpolate,
   type TranslationKey,
@@ -187,7 +188,7 @@ function TodayPanel() {
       ? t('home.tile.caloriesEmpty')
       : interpolate(t('nutrition.tab.ringA11y'), {
           consumed: formatNumber(consumed, language),
-          target: formatNumber(calories.target, language),
+          target: formatKcal(calories.target, language),
         });
 
   return (
@@ -207,7 +208,7 @@ function TodayPanel() {
           {calories.target !== null ? (
             <AppText tone="onStageVariant" variant="caption">
               {interpolate(t('nutrition.tab.ringOf'), {
-                target: formatNumber(calories.target, language),
+                target: formatKcal(calories.target, language),
               })}
             </AppText>
           ) : null}
@@ -247,7 +248,7 @@ function TodayPanel() {
       {(calories.activityBonus ?? 0) > 0 ? (
         <Chip
           label={interpolate(t('home.tile.activityBonus'), {
-            kcal: formatNumber(calories.activityBonus ?? 0, language),
+            kcal: formatKcal(calories.activityBonus ?? 0, language),
           })}
           testID="nutrition-activity-bonus"
           tone="energy"

@@ -3,7 +3,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
-import { formatNumber, formatQuantity, interpolate, useLocalization } from '@/shared/localization';
+import {
+  formatKcalQuantity,
+  formatNumber,
+  interpolate,
+  useLocalization,
+} from '@/shared/localization';
 import {
   AppButton,
   AppText,
@@ -68,7 +73,7 @@ export function PlanBuildingScreen() {
     if (current) {
       lines.push(
         interpolate(t('building.step.kcal'), {
-          kcal: formatQuantity(current.plan.targets.calories, 'kcal', language),
+          kcal: formatKcalQuantity(current.plan.targets.calories, language),
         }),
       );
       const days = current.plan.days.filter((day) => day.workout.kind === 'TRAINING').length;

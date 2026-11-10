@@ -1,3 +1,4 @@
+import { dailyTargets } from '@/features/nutrition/domain/daily-targets';
 import type { GeneratedWorkoutRoutine, WorkoutScheduleDay } from '@/features/icoach';
 import { addDays } from '@/features/weekly-plan/domain/week';
 
@@ -147,8 +148,17 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
       : null;
 
   const { caloriesConsumed: consumed } = inputs;
-  const activityBonus = inputs.calorieTarget !== null ? (inputs.activityCalories ?? 0) : 0;
-  const calTarget = inputs.calorieTarget !== null ? inputs.calorieTarget + activityBonus : null;
+  // The same rule as the food log (nutrition/domain/daily-targets): base kcal plus
+  // today's extra-cardio bonus.
+  const targets =
+    inputs.calorieTarget !== null
+      ? dailyTargets(
+          { calories: inputs.calorieTarget, proteinG: 0, carbsG: 0, fatG: 0 },
+          inputs.activityCalories ?? 0,
+        )
+      : null;
+  const activityBonus = targets?.activityBonus ?? 0;
+  const calTarget = targets?.calories ?? null;
   return {
     week: { done, goal, complete, extra },
     weight,

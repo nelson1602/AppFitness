@@ -17,6 +17,7 @@ import { useTheme } from '@/shared/theme';
 import {
   FIGURE_CYCLE_MS,
   FIGURE_STILL_PHASE,
+  figureCarriesLoad,
   type FigureMotion,
   figurePose,
   figurePropFor,
@@ -26,6 +27,10 @@ import {
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+
+/** The farmer's-carry dumbbell, centred under the hand. */
+const LOAD_WIDTH = 14;
 
 /** The prototype draws the figure 180 high in a 120×100 box. */
 const FIGURE_HEIGHT = 180;
@@ -34,7 +39,8 @@ const FIGURE_HEIGHT = 180;
 const LIMBS: readonly { joints: readonly Joint[]; front: boolean }[] = [
   { joints: ['p', 'k2', 'f2'], front: false },
   { joints: ['s', 'e2', 'w2'], front: false },
-  { joints: ['s', 'p'], front: true },
+  // Through the mid-back, so the spine can arch (cat-cow); straight otherwise.
+  { joints: ['s', 'm', 'p'], front: true },
   { joints: ['p', 'k1', 'f1'], front: true },
   { joints: ['s', 'e1', 'w1'], front: true },
 ];
@@ -144,6 +150,56 @@ export function ExerciseFigure({
           <Path d="M46 58L60 78L78 46M74 46h8M42 58h10M60 78l8 17M60 78l-10 17" />
         </G>
       ) : null}
+      {/* v10 Block C, item 11: the props of the new movements, same strokes. */}
+      {prop === 'bars' ? (
+        <Path
+          d="M40 59h40M44 59v36M76 59v36"
+          fill="none"
+          strokeLinecap="round"
+          strokeWidth={3}
+          {...propStroke}
+        />
+      ) : null}
+      {prop === 'rowSeat' ? (
+        <G>
+          <Rect
+            fill={colors.figureProp}
+            height={5}
+            rx={2}
+            width={30}
+            x={28}
+            y={81}
+            {...propStroke}
+          />
+          <Path
+            d="M88 72v23M88 72L100 60"
+            fill="none"
+            strokeLinecap="round"
+            strokeWidth={3}
+            {...propStroke}
+          />
+        </G>
+      ) : null}
+      {prop === 'lowBox' ? (
+        <Rect
+          fill={colors.figureProp}
+          height={15}
+          rx={3}
+          width={28}
+          x={83}
+          y={80}
+          {...propStroke}
+        />
+      ) : null}
+      {prop === 'legPress' ? (
+        <Path
+          d="M16 40L38 80h18M60 66L100 41"
+          fill="none"
+          strokeLinecap="round"
+          strokeWidth={3}
+          {...propStroke}
+        />
+      ) : null}
       {LIMBS.map(({ joints, front: isFront }) => (
         <Limb
           gradient={`url(#${isFront ? front : back})`}
@@ -154,6 +210,18 @@ export function ExerciseFigure({
           phase={phase}
         />
       ))}
+      {figureCarriesLoad(motion)
+        ? (['w2', 'w1'] as const).map((joint) => (
+            <Load
+              fill={colors.figureProp}
+              joint={joint}
+              key={joint}
+              motion={motion}
+              phase={phase}
+              stroke={colors.figurePropLine}
+            />
+          ))
+        : null}
       <Head fill={colors.figureHalo} motion={motion} opacity={0.28} phase={phase} radius={9.5} />
       <Head fill={`url(#${front})`} motion={motion} opacity={1} phase={phase} radius={7} />
     </Svg>
@@ -198,6 +266,32 @@ function Limb({
         strokeWidth={7}
       />
     </G>
+  );
+}
+
+/** A dumbbell held in the hand (farmer's carry): it moves with the wrist. */
+function Load({
+  motion,
+  phase,
+  joint,
+  fill,
+  stroke,
+}: FigurePartProps & { joint: 'w1' | 'w2'; fill: string; stroke: string }) {
+  const animatedProps = useAnimatedProps(() => {
+    const [x, y] = figurePose(motion, phase.value % 1)[joint];
+    return { x: x - LOAD_WIDTH / 2, y: y + 1 };
+  });
+  return (
+    <AnimatedRect
+      animatedProps={animatedProps}
+      fill={fill}
+      height={6}
+      rx={2}
+      stroke={stroke}
+      strokeOpacity={0.6}
+      strokeWidth={1.5}
+      width={LOAD_WIDTH}
+    />
   );
 }
 

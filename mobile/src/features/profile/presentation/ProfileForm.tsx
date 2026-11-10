@@ -14,6 +14,7 @@ import {
   FormSelect,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { useUnits } from '@/shared/units';
 
 import { useProfileStore } from '../application/profile.store';
 import { CountrySelect } from './CountrySelect';
@@ -38,17 +39,23 @@ interface ProfileFormProps {
 export function ProfileForm({ onSaved }: ProfileFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
+  // v10 Block C, item 9: height in cm, or in feet and inches; saved in cm.
+  const { system } = useUnits();
+  const imperial = system === 'imperial';
   const today = useLocalDay((s) => s.today);
   const { status, profile, error, load, save } = useProfileStore();
-  const schema = createProfileFormSchema({
-    dateFormat: t('profile.validation.dateFormat'),
-    validDate: t('profile.validation.validDate'),
-    greaterThanZero: t('profile.validation.greaterThanZero'),
-    tooLarge: t('profile.validation.tooLarge'),
-    cannotBeNegative: t('profile.validation.cannotBeNegative'),
-    maxSeven: t('profile.validation.maxSeven'),
-    scaleOneToFive: t('profile.validation.scaleOneToFive'),
-  });
+  const schema = createProfileFormSchema(
+    {
+      dateFormat: t('profile.validation.dateFormat'),
+      validDate: t('profile.validation.validDate'),
+      greaterThanZero: t('profile.validation.greaterThanZero'),
+      tooLarge: t('profile.validation.tooLarge'),
+      cannotBeNegative: t('profile.validation.cannotBeNegative'),
+      maxSeven: t('profile.validation.maxSeven'),
+      scaleOneToFive: t('profile.validation.scaleOneToFive'),
+    },
+    system,
+  );
   const genderOptions = [
     { label: t('profile.gender.male'), value: 'MALE' },
     { label: t('profile.gender.female'), value: 'FEMALE' },
@@ -70,7 +77,7 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
 
   const { control, handleSubmit, reset } = useForm<ProfileFormInput, unknown, ProfileFormOutput>({
     resolver: zodResolver(schema),
-    defaultValues: profileToFormValues(null),
+    defaultValues: profileToFormValues(null, system),
   });
 
   useEffect(() => {
@@ -79,11 +86,11 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
 
   // Prefill once the profile loads (edit mode).
   useEffect(() => {
-    if (profile) reset(profileToFormValues(profile));
-  }, [profile, reset]);
+    if (profile) reset(profileToFormValues(profile, system));
+  }, [profile, reset, system]);
 
   const onSubmit = async (values: ProfileFormOutput) => {
-    const ok = await save(toProfileInput(values));
+    const ok = await save(toProfileInput(values, system));
     if (ok) onSaved();
   };
 
@@ -136,10 +143,18 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
       <FormField
         control={control}
         name="heightCm"
-        label={t('profile.heightCm')}
+        label={t(imperial ? 'profile.heightFt' : 'profile.heightCm')}
         keyboardType="numeric"
         required
       />
+      {imperial ? (
+        <FormField
+          control={control}
+          name="heightIn"
+          label={t('profile.heightIn')}
+          keyboardType="decimal-pad"
+        />
+      ) : null}
       <FormSelect
         control={control}
         name="gender"

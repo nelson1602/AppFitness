@@ -5,10 +5,11 @@ import { View } from 'react-native';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import type { EngineInput, NutritionPlan } from '@/features/icoach';
 import {
+  formatKcal,
   formatNumber,
-  useLocalization,
   type SupportedLanguage,
   type TranslationKey,
+  useLocalization,
 } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
@@ -60,7 +61,7 @@ function MacroRow({
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: theme.spacing.sm }}>
       <AppText tone="muted">{label}</AppText>
       <AppText variant="label">
-        {formatNumber(grams, language)}g · {formatNumber(kcal, language)} kcal
+        {formatNumber(grams, language)}g · {formatKcal(kcal, language)} kcal
       </AppText>
     </View>
   );
@@ -149,7 +150,7 @@ function NutritionContent({
           <AppText variant="label" tone="muted">
             {t('nutrition.targets.dailyCalories')}
           </AppText>
-          <AppText variant="headline">{formatNumber(nutrition.calories, language)} kcal</AppText>
+          <AppText variant="headline">{formatKcal(nutrition.calories, language)} kcal</AppText>
           <AppText tone="muted">
             {localizedGoalAdjustment(goal, nutrition.adjustmentPct, language, t)}
           </AppText>

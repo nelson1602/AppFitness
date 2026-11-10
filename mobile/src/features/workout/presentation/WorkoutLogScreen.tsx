@@ -14,6 +14,7 @@ import {
   withAlpha,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { displayToKg, kgToDisplay, roundToTenth, useUnits, weightUnit } from '@/shared/units';
 
 import type { SyncStatus } from '@/shared/infrastructure/database/types';
 
@@ -84,6 +85,8 @@ export function WorkoutLogScreen() {
   const stage = useStageSurface();
   const paidWriteDisabled = usePaidWriteDisabled();
   const { language, t } = useLocalization();
+  // v10 Block C, item 9: lifted weight typed in the person's units, saved in kg.
+  const { system } = useUnits();
   const {
     status,
     routines,
@@ -157,7 +160,7 @@ export function WorkoutLogScreen() {
       exerciseId,
       setNumber: workoutSets.length + 1,
       reps: reps.trim() === '' ? null : Number(reps),
-      weightKg: weight.trim() === '' ? null : Number(weight),
+      weightKg: weight.trim() === '' ? null : displayToKg(Number(weight), system),
     });
     if (ok) {
       setReps('');
@@ -553,6 +556,8 @@ function NewSetInputs({
 }) {
   const theme = useTheme();
   const { t } = useLocalization();
+  const { system } = useUnits();
+  const weightLabel = t(system === 'imperial' ? 'workout.log.weightLb' : 'workout.log.weightKg');
   const [rowWidth, setRowWidth] = useState(0);
   const [placeholderWidths, setPlaceholderWidths] = useState({ reps: 0, weight: 0 });
 
@@ -581,7 +586,7 @@ function NewSetInputs({
           {t('workout.log.reps')}
         </AppText>
         <AppText testID="set-weight-input-measure" numberOfLines={1} onLayout={measure('weight')}>
-          {t('workout.log.weightKg')}
+          {weightLabel}
         </AppText>
       </View>
       <View
@@ -600,9 +605,9 @@ function NewSetInputs({
         </View>
         <View style={stacked ? undefined : { flex: 1 }}>
           <AppTextInput
-            accessibilityLabel={t('workout.log.weightKg')}
+            accessibilityLabel={weightLabel}
             testID="set-weight-input"
-            placeholder={t('workout.log.weightKg')}
+            placeholder={weightLabel}
             keyboardType="numeric"
             value={weight}
             onChangeText={onChangeWeight}
@@ -630,6 +635,7 @@ function SetList({
 }) {
   const theme = useTheme();
   const { language, t } = useLocalization();
+  const { system } = useUnits();
   if (sets.length === 0) {
     return <AppText tone="muted">{t('workout.log.setsEmpty')}</AppText>;
   }
@@ -669,7 +675,14 @@ function SetList({
                 />
               </View>
               <AppText tone="muted">
-                {set.weightKg === null ? '—' : `${formatNumber(set.weightKg, language)} kg`}
+                {set.weightKg === null
+                  ? '—'
+                  : `${formatNumber(
+                      system === 'metric'
+                        ? set.weightKg
+                        : roundToTenth(kgToDisplay(set.weightKg, system)),
+                      language,
+                    )} ${weightUnit(system)}`}
               </AppText>
               <AppButton
                 accessibilityLabel={`${t(

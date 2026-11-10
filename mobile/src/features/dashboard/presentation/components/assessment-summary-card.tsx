@@ -1,6 +1,11 @@
 import { View } from 'react-native';
 
-import { formatNumber, type TranslationKey, useLocalization } from '@/shared/localization';
+import {
+  formatKcal,
+  formatNumber,
+  type TranslationKey,
+  useLocalization,
+} from '@/shared/localization';
 import { AppText, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -30,7 +35,7 @@ export function AssessmentSummaryCard({ assessment }: AssessmentSummaryCardProps
             {t('dashboard.assessment.title')}
           </AppText>
           <AppText variant="headline">
-            {formatNumber(result.nutrition.calories, language)} kcal
+            {formatKcal(result.nutrition.calories, language)} kcal
           </AppText>
           <AppText tone="muted">
             {t('dashboard.assessment.bmi')} {formatNumber(result.bodyComposition.bmi, language)} /{' '}

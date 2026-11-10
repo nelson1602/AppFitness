@@ -201,9 +201,14 @@ describe('catalogue parity', () => {
   // change (+4), "Guardar como rutina" (+3) and the new-targets prompt sentence (+1) (+16; 1814 together). R3 on the new day: moved from / moved to / log it here (+3, 1817). The iCoach headline once today is done (+1, 1818). v10 Block B item 7: server food search, its sources and states, and the custom food form (+25, 1843).
   // v10 Block B item 8: the exclusion picker drops "Seleccionado" (-1) and gains
   // "Ya excluido", "Alimentos excluidos" and "Quitar {food}" (+3) (+2; 1845 with item 7).
-  it('reaches 1845 keys in each language — 1658 shipped plus a 187-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1845);
-    expect(Object.keys(es)).toHaveLength(1845);
+  // v10 Block C item 12: the retention step before deleting the account (+9) and the
+  // Privacidad y datos screen (+4) (+13, 1858).
+  // v10 Block C item 9: Unidades (title, two options, save error, inches, example) (+6), and the
+  // imperial labels, errors and examples of each weight / length field (+16) (+22, 1880).
+  // v10 Block C review: the singular "1 porción" / "1 serving" (+1, 1881).
+  it('reaches 1881 keys in each language — 1694 shipped plus a 187-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1881);
+    expect(Object.keys(es)).toHaveLength(1881);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

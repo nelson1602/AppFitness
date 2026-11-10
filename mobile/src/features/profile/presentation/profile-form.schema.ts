@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { DEFAULT_COUNTRY, normalizeCountry } from '../domain/country';
 import type { Profile, ProfileInput } from '../domain/profile.types';
+import { cmToFeetInches, feetInchesToCm, type UnitSystem } from '@/shared/units';
 
 /**
  * Zod is the single validation source of truth for the profile form
@@ -40,7 +41,15 @@ const optionalNumber = <T extends z.ZodType>(schema: T) =>
     schema.optional(),
   );
 
-export function createProfileFormSchema(messages: ProfileValidationMessages = DEFAULT_MESSAGES) {
+/**
+ * v10 Block C, item 9. In metric `heightCm` holds centimetres. In imperial it
+ * holds whole feet and `heightIn` the inches (0 to under 12); `toProfileInput`
+ * stores centimetres either way.
+ */
+export function createProfileFormSchema(
+  messages: ProfileValidationMessages = DEFAULT_MESSAGES,
+  system: UnitSystem = 'metric',
+) {
   return z.object({
     // Required for the iCoach engine (BMR/BMI + safety).
     birthDate: z
@@ -49,8 +58,12 @@ export function createProfileFormSchema(messages: ProfileValidationMessages = DE
       .refine((v) => !Number.isNaN(Date.parse(v)), messages.validDate),
     heightCm: z.preprocess(
       (v) => (v === '' || v === null || v === undefined ? undefined : v),
-      z.coerce.number().positive(messages.greaterThanZero).max(300, messages.tooLarge),
+      z.coerce
+        .number()
+        .positive(messages.greaterThanZero)
+        .max(system === 'imperial' ? 9 : 300, messages.tooLarge),
     ),
+    heightIn: optionalNumber(z.coerce.number().min(0, messages.cannotBeNegative).lt(12)),
     // Optional / defaulted.
     gender: z.enum(['MALE', 'FEMALE', 'OTHER', 'UNDISCLOSED']).optional(),
     fitnessLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
@@ -79,7 +92,10 @@ export type ProfileFormInput = z.input<typeof profileFormSchema>;
 export type ProfileFormOutput = z.output<typeof profileFormSchema>;
 
 /** Parsed, validated form output → domain ProfileInput (persistence shape). */
-export function toProfileInput(values: ProfileFormOutput): ProfileInput {
+export function toProfileInput(
+  values: ProfileFormOutput,
+  system: UnitSystem = 'metric',
+): ProfileInput {
   const occupation = values.occupation?.trim();
   const equipment = (values.equipment ?? '')
     .split(',')
@@ -88,7 +104,10 @@ export function toProfileInput(values: ProfileFormOutput): ProfileInput {
 
   return {
     birthDate: values.birthDate,
-    heightCm: values.heightCm,
+    heightCm:
+      system === 'imperial'
+        ? feetInchesToCm(values.heightCm, values.heightIn ?? 0)
+        : values.heightCm,
     gender: values.gender ?? null,
     fitnessLevel: values.fitnessLevel,
     activityLevel: values.activityLevel,
@@ -104,12 +123,21 @@ export function toProfileInput(values: ProfileFormOutput): ProfileInput {
 }
 
 /** Existing profile → form defaults (edit prefill). Numbers become strings for inputs. */
-export function profileToFormValues(profile: Profile | null): ProfileFormInput {
+export function profileToFormValues(
+  profile: Profile | null,
+  system: UnitSystem = 'metric',
+): ProfileFormInput {
   const numStr = (n: number | null | undefined): string =>
     n === null || n === undefined ? '' : String(n);
+  const height = profile?.heightCm ? cmToFeetInches(profile.heightCm) : null;
   return {
     birthDate: profile?.birthDate ?? '',
-    heightCm: numStr(profile?.heightCm) as unknown as ProfileFormInput['heightCm'],
+    heightCm: numStr(
+      system === 'imperial' ? height?.feet : profile?.heightCm,
+    ) as unknown as ProfileFormInput['heightCm'],
+    heightIn: numStr(
+      system === 'imperial' ? height?.inches : undefined,
+    ) as unknown as ProfileFormInput['heightIn'],
     gender: profile?.gender ?? undefined,
     fitnessLevel: profile?.fitnessLevel ?? 'INTERMEDIATE',
     activityLevel: profile?.activityLevel ?? 'MODERATE',

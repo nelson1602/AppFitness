@@ -1,13 +1,14 @@
 import { useEffect, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
+import { useTodayTargets } from '@/features/dashboard/application/use-today-targets';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import {
+  formatKcal,
   formatNumber,
-  useLocalization,
   type SupportedLanguage,
   type TranslationKey,
+  useLocalization,
 } from '@/shared/localization';
 import {
   AppButton,
@@ -30,7 +31,7 @@ import {
 import type { ConsumedMacros, LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS } from '../domain/meal-plan';
 import { FoodLogAddForm } from './food-log/FoodLogAddForm';
-import { formatServingCount, ServingStepper } from './food-log/ServingStepper';
+import { formatServingCount, ServingStepper, servingsKey } from './food-log/ServingStepper';
 import { formatServingAmount } from './serving-amount';
 
 const MEAL_KEY: Record<MealTypeName, TranslationKey> = {
@@ -197,7 +198,7 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
   const displayName = canonical ? foodDisplayName(canonical, language) : item.name;
   return (
     <View
-      accessibilityLabel={`${displayName}, ${formatServingCount(item.servingCount, language)} ${t('nutrition.log.servings')}`}
+      accessibilityLabel={`${displayName}, ${formatServingCount(item.servingCount, language)} ${t(servingsKey(item.servingCount))}`}
       testID={`logged-item-${item.id}`}
       style={{ gap: theme.spacing.sm }}
     >
@@ -216,10 +217,10 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
           language,
           t,
         )}{' '}
-        · {formatNumber(item.consumed.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
-        {formatNumber(item.consumed.proteinG, language)}g · {t('nutrition.plan.carbs')}{' '}
-        {formatNumber(item.consumed.carbsG, language)}g · {t('nutrition.plan.fat')}{' '}
-        {formatNumber(item.consumed.fatG, language)}g
+        · {formatKcal(item.consumed.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
+        {formatNumber(Math.round(item.consumed.proteinG), language)}g · {t('nutrition.plan.carbs')}{' '}
+        {formatNumber(Math.round(item.consumed.carbsG), language)}g · {t('nutrition.plan.fat')}{' '}
+        {formatNumber(Math.round(item.consumed.fatG), language)}g
       </AppText>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <ServingStepper
@@ -286,8 +287,9 @@ function TargetLine({
 }) {
   return (
     <AppText variant="caption" tone="muted">
-      {label} {formatNumber(consumed, language)}
-      {target != null ? ` / ${formatNumber(target, language)}` : ''}
+      {/* Whole grams, as Inicio shows them (v10 Block C review). */}
+      {label} {formatNumber(Math.round(consumed), language)}
+      {target != null ? ` / ${formatNumber(Math.round(target), language)}` : ''}
       {unit}
     </AppText>
   );
@@ -296,9 +298,9 @@ function TargetLine({
 function DailyTotals({ totals }: { totals: ConsumedMacros }) {
   const theme = useTheme();
   const { language, t } = useLocalization();
-  const nutrition = useDashboardStore(
-    (state) => state.data?.assessment?.assessment.nutrition ?? null,
-  );
+  // v10 Block C review: the same targets as Inicio and Nutrición, extra-cardio
+  // bonus included (one rule: nutrition/domain/daily-targets).
+  const nutrition = useTodayTargets();
 
   return (
     <Card accessibilityLabel={t('nutrition.log.totalsAccessibility')}>
@@ -308,8 +310,8 @@ function DailyTotals({ totals }: { totals: ConsumedMacros }) {
             goes through the same formatter — `2,500` there and `2500` here was a
             cross-surface disagreement in English, not a style choice. */}
         <AppText variant="headline">
-          {formatNumber(totals.calories, language)}
-          {nutrition ? ` / ${formatNumber(nutrition.calories, language)}` : ''} kcal
+          {formatKcal(totals.calories, language)}
+          {nutrition ? ` / ${formatKcal(nutrition.calories, language)}` : ''} kcal
         </AppText>
         <View style={{ gap: 2 }}>
           <TargetLine

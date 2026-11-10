@@ -8,8 +8,9 @@ import { coachChangeText } from '@/features/weekly-plan/presentation/realtime-co
 import type { GoalType } from '@/shared/infrastructure/database/types';
 import {
   formatDate,
+  formatKcal,
+  formatKcalQuantity,
   formatNumber,
-  formatQuantity,
   interpolate,
   type TranslationKey,
   useLocalization,
@@ -29,6 +30,7 @@ import {
   Ring,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { formatWeight, useUnits } from '@/shared/units';
 
 import type { HomeEvaluation } from '../../application/use-home-data';
 import type { HomeSummary } from '../../domain/home-summary';
@@ -82,6 +84,7 @@ export function GoalCard({
 }) {
   const { colors, radius, spacing } = useTheme();
   const { language, t } = useLocalization();
+  const { system: units } = useUnits();
   const { done, goal, complete } = summary.week;
   const n = (value: number) => formatNumber(value, language);
   const onCta = { color: colors.onCta };
@@ -100,7 +103,7 @@ export function GoalCard({
           ? t('home.goal.leftOne')
           : interpolate(t('home.goal.leftMany'), { count: n(left) });
   const goalKey = goalType ? goalTypeShortLabelKey(goalType) : null;
-  const kg = (value: number) => formatQuantity(value, 'kg', language, { maximumFractionDigits: 1 });
+  const kg = (value: number) => formatWeight(value, units, language);
 
   return (
     <View
@@ -118,6 +121,7 @@ export function GoalCard({
           accessibilityLabel={ringLabel}
           size={88}
           strokeWidth={10}
+          surface="cta"
           testID="home-week-ring"
           tone={complete ? 'success' : 'energy'}
           value={goal ? done / goal : 0}
@@ -160,6 +164,7 @@ export function GoalCard({
         {summary.weight ? (
           <ProgressBar
             accessibilityLabel={t('home.weight.label')}
+            surface="cta"
             testID="home-weight-bar"
             tone="cyan"
             value={summary.weight.progress}
@@ -170,7 +175,7 @@ export function GoalCard({
           </AppText>
         )}
       </View>
-      <Pulse gradientId="pulse-home" height={28} testID="home-goal-pulse" />
+      <Pulse gradientId="pulse-home" height={28} surface="cta" testID="home-goal-pulse" />
     </View>
   );
 }
@@ -352,10 +357,10 @@ export function TodayTiles({ summary }: { summary: HomeSummary }) {
     calories.target === null
       ? t('home.tile.caloriesEmpty')
       : calories.consumed === null
-        ? formatQuantity(calories.target, 'kcal', language)
+        ? formatKcalQuantity(calories.target, language)
         : interpolate(t('home.tile.caloriesValue'), {
-            consumed: formatNumber(Math.round(calories.consumed), language),
-            target: formatNumber(calories.target, language),
+            consumed: formatKcal(calories.consumed, language),
+            target: formatKcal(calories.target, language),
           });
 
   return (
@@ -390,7 +395,7 @@ export function TodayTiles({ summary }: { summary: HomeSummary }) {
         note={
           (calories.activityBonus ?? 0) > 0
             ? interpolate(t('home.tile.activityBonus'), {
-                kcal: formatNumber(calories.activityBonus ?? 0, language),
+                kcal: formatKcal(calories.activityBonus ?? 0, language),
               })
             : null
         }

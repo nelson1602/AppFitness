@@ -161,6 +161,8 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
+  // v10 Block C, item 9: the Unidades radios, the language selector's pills.
+  'src/shared/units/unit-selector.tsx': ['floor'],
   'src/shared/presentation/app-button.tsx': ['primitive'],
   // v8.1 (ADR-P043 amendment): the birth-date field, and each wheel row (it
   // fills its column, and every row is at least 48 dp tall).
@@ -196,8 +198,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 51 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(51);
+it('counts exactly 52 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(52);
 });
 
 describe.each(

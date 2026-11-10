@@ -8,6 +8,7 @@ import {
 } from '@/shared/localization';
 import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { kgToDisplay, roundToTenth, useUnits, weightUnit } from '@/shared/units';
 
 import type { ProgressSnapshot } from '../domain/progress';
 import { SyncHint } from './SyncHint';
@@ -139,6 +140,11 @@ export function WeeklySnapshotSummary({
 }: WeeklySnapshotSummaryProps) {
   const theme = useTheme();
   const { t, language } = useLocalization();
+  // v10 Block C, item 9: weights in the person's units (metric unchanged).
+  const { system } = useUnits();
+  const kgShown = (kg: number | null) =>
+    kg === null || system === 'metric' ? kg : roundToTenth(kgToDisplay(kg, system));
+  const kgUnit = ` ${weightUnit(system)}`;
 
   if (snapshots.length === 0) {
     return <AppText tone="muted">{t('progress.weekly.noInsights')}</AppText>;
@@ -157,13 +163,22 @@ export function WeeklySnapshotSummary({
         </AppText>
         <MetricRow
           label={t('progress.weekly.avgWeight')}
-          value={num(latest.avgWeightKg, ' kg', language)}
-          accessibleValue={announcedNum(latest.avgWeightKg, ' kg', language, notRecorded)}
+          value={num(kgShown(latest.avgWeightKg), kgUnit, language)}
+          accessibleValue={announcedNum(kgShown(latest.avgWeightKg), kgUnit, language, notRecorded)}
         />
         <MetricRow
-          label={t('progress.weekly.totalVolume')}
-          value={num(latest.totalVolumeKg, ' kg', language)}
-          accessibleValue={announcedNum(latest.totalVolumeKg, ' kg', language, notRecorded)}
+          label={t(
+            system === 'imperial'
+              ? 'progress.weekly.totalVolumeImperial'
+              : 'progress.weekly.totalVolume',
+          )}
+          value={num(kgShown(latest.totalVolumeKg), kgUnit, language)}
+          accessibleValue={announcedNum(
+            kgShown(latest.totalVolumeKg),
+            kgUnit,
+            language,
+            notRecorded,
+          )}
         />
         <MetricRow
           label={t('progress.weekly.avgCalories')}
@@ -192,8 +207,9 @@ export function WeeklySnapshotSummary({
           {recent.map((s) => (
             <View key={s.id} style={{ gap: theme.spacing.xs }}>
               <AppText variant="caption" tone="muted">
-                {formatWeek(s.weekStart, language)}: {num(s.totalVolumeKg, ' kg', language)}{' '}
-                {t('progress.weekly.volume')} · {formatNumber(s.workoutCount, language)}{' '}
+                {formatWeek(s.weekStart, language)}:{' '}
+                {num(kgShown(s.totalVolumeKg), kgUnit, language)} {t('progress.weekly.volume')} ·{' '}
+                {formatNumber(s.workoutCount, language)}{' '}
                 {t(
                   s.workoutCount === 1
                     ? 'progress.weekly.workoutOne'

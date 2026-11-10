@@ -10,15 +10,10 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg';
 
-import {
-  formatDate,
-  formatNumber,
-  formatQuantity,
-  interpolate,
-  useLocalization,
-} from '@/shared/localization';
+import { formatDate, formatNumber, interpolate, useLocalization } from '@/shared/localization';
 import { withAlpha } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { formatWeight, kgToDisplay, useUnits } from '@/shared/units';
 
 import type { WeightChartModel } from '../domain/progress-tab';
 import { parseLocalDate } from './ProgressScreen';
@@ -46,11 +41,13 @@ export function WeightChart({
 }) {
   const { colors } = useTheme();
   const { language, t } = useLocalization();
+  // v10 Block C, item 9: plotted in kg as stored; every label in the person's units.
+  const { system } = useUnits();
   const gradientId = `weight-fill-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [width, setWidth] = useState(FALLBACK_WIDTH);
   const { points, target, min, max, ticks } = model;
 
-  const kg = (value: number) => formatQuantity(value, 'kg', language, { maximumFractionDigits: 1 });
+  const kg = (value: number) => formatWeight(value, system, language);
   const plotWidth = width - INSET.left - INSET.right;
   const x = (i: number) =>
     points.length === 1
@@ -124,7 +121,7 @@ export function WeightChart({
             x={INSET.left - 6}
             y={y(tick) + 4}
           >
-            {formatNumber(tick, language)}
+            {formatNumber(Math.round(kgToDisplay(tick, system)), language)}
           </SvgText>
         ))}
         {target !== null ? (

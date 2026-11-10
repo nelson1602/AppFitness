@@ -1,7 +1,9 @@
 import { act, render, screen } from '@testing-library/react-native';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
 import { Profiler } from 'react';
 import { Keyboard, Platform, StyleSheet, type KeyboardEvent } from 'react-native';
 
+import { darkColors, lightColors } from '../theme';
 import { AppText } from './app-text';
 import { Screen } from './screen';
 
@@ -280,5 +282,31 @@ describe('Screen keyboard clearance (BUG-022)', () => {
     expect(Keyboard.addListener).not.toHaveBeenCalled();
     expect(clearanceSpacers()).toHaveLength(0);
     expect(scrollViews()).toHaveLength(0);
+  });
+
+  /**
+   * v10 Block C. A pushed screen looks like the tabs: the solid dark stage with
+   * the dashboard glow — no full-screen navy gradient. The stack header is
+   * transparent, so the glow is drawn from the very top, behind it, and the
+   * content starts one header height lower.
+   */
+  it('paints a pushed screen as the solid stage with the glow behind the header', async () => {
+    await render(
+      <HeaderHeightContext.Provider value={96}>
+        <Screen stage="under-header" safeArea="below-header">
+          <AppText>Registro de alimentos</AppText>
+        </Screen>
+      </HeaderHeightContext.Provider>,
+    );
+
+    const ground = StyleSheet.flatten(screen.getByTestId('screen-stage').props.style);
+    expect([lightColors.stage, darkColors.stage]).toContain(ground.backgroundColor);
+    expect(ground).not.toHaveProperty('experimental_backgroundImage');
+    expect(ground.paddingTop).toBe(96);
+    expect(
+      StyleSheet.flatten(
+        screen.getByTestId('screen-stage-glow', { includeHiddenElements: true }).props.style,
+      ).top,
+    ).toBe(0);
   });
 });

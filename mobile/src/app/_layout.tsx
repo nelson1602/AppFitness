@@ -69,11 +69,14 @@ export default function RootLayout() {
           native, where Stack.Screen options.title remains the only mechanism. */}
       <DocumentHead />
       <StatusBar style={theme.dark ? 'light' : 'dark'} />
-      {/* v8 Block 3: every pushed screen sits on the stage, under the same
-          header colour as the tab shell and the auth screens. */}
+      {/* v10 Block C: every pushed screen looks like the tabs — the solid dark
+          stage with the top glow behind a transparent header, drawn by the
+          screen itself (`StageScreen`), which starts its content below the
+          header. The auth screens keep an opaque header of their own. */}
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: theme.colors.stageTop },
+          headerTransparent: true,
+          headerStyle: { backgroundColor: 'transparent' },
           headerTintColor: theme.colors.onStage,
           headerShadowVisible: false,
           contentStyle: { backgroundColor: theme.colors.stage },
