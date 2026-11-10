@@ -32,6 +32,20 @@ export function formatQuantity(
   return `${formatNumber(value, language, options)}\u00A0${unit}`;
 }
 
+/**
+ * A kcal value as every screen shows it: rounded to a whole number, so the
+ * same food never reads "540,7" in one place and "541" in another (v10
+ * Block C). Only the number; the caller places "kcal".
+ */
+export function formatKcal(value: number, language: SupportedLanguage): string {
+  return formatNumber(Math.round(value), language);
+}
+
+/** `formatKcal` joined to "kcal" by a no-break space, like `formatQuantity`. */
+export function formatKcalQuantity(value: number, language: SupportedLanguage): string {
+  return formatQuantity(Math.round(value), 'kcal', language);
+}
+
 export function formatDate(
   value: Date | number,
   language: SupportedLanguage,

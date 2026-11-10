@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 import { goalTypeShortLabelKey } from '@/features/profile/presentation/goal-type-label';
 import {
   formatDate,
+  formatKcalQuantity,
   formatNumber,
   formatQuantity,
   interpolate,
@@ -160,7 +161,7 @@ export function ReviewStep({ draft, today, preview, goStep }: ReviewStepProps) {
           <>
             <AppText testID="evaluation-preview-kcal" style={onCta} variant="title">
               {interpolate(t('evaluation.preview.kcal'), {
-                kcal: formatQuantity(preview.calories, 'kcal', language),
+                kcal: formatKcalQuantity(preview.calories, language),
               })}
             </AppText>
             <AppText style={onCta} variant="caption">

@@ -23,6 +23,7 @@ jest.mock('@/shared/localization', () => {
   return {
     formatNumber: (value: number, language: 'en' | 'es') =>
       new Intl.NumberFormat(language === 'es' ? 'es' : 'en-US').format(value),
+    formatKcal: jest.requireActual('@/shared/localization/format').formatKcal,
     useLocalization: () => ({
       language: mockLanguage,
       t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,

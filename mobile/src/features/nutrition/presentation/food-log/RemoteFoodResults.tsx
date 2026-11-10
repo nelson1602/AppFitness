@@ -1,6 +1,11 @@
 import { Pressable, View } from 'react-native';
 
-import { formatNumber, type TranslationKey, useLocalization } from '@/shared/localization';
+import {
+  formatKcal,
+  formatNumber,
+  type TranslationKey,
+  useLocalization,
+} from '@/shared/localization';
 import { AppText, Chip, useStageSurface } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -90,7 +95,7 @@ export function RemoteFoodResults({
               }}
             >
               <AppText tone="muted" variant="caption">
-                {`${serving} · ${formatNumber(result.caloriesPerServing, language)} kcal`}
+                {`${serving} · ${formatKcal(result.caloriesPerServing, language)} kcal`}
                 {result.brand ? ` · ${result.brand}` : ''}
               </AppText>
               <Chip label={t(SOURCE_KEY[result.source])} tone="neutral" />

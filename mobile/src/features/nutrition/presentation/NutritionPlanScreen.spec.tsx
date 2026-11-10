@@ -56,6 +56,8 @@ jest.mock('@/shared/localization', () => {
       new Intl.NumberFormat(language === 'es' ? 'es' : 'en-US').format(value),
     // The real joiner, so the value–unit separator under test is the shipped one.
     formatQuantity: jest.requireActual('@/shared/localization/format').formatQuantity,
+    formatKcal: jest.requireActual('@/shared/localization/format').formatKcal,
+    formatKcalQuantity: jest.requireActual('@/shared/localization/format').formatKcalQuantity,
     formatDate: jest.requireActual('@/shared/localization/format').formatDate,
     interpolate: jest.requireActual('@/shared/localization/format').interpolate,
     useLocalization: () => ({

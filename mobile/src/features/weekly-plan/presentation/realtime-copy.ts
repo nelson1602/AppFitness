@@ -1,6 +1,6 @@
 import { WEEKDAY_KEYS, WEEKDAYS } from '@/features/workout/presentation/weekday-labels';
 import {
-  formatNumber,
+  formatKcal,
   interpolate,
   type SupportedLanguage,
   type TranslationKey,
@@ -56,7 +56,7 @@ export function coachChangeText(
   switch (change.kind) {
     case 'activityBonus':
       return interpolate(t('home.coach.change.activityBonus'), {
-        kcal: formatNumber(change.kcal, language),
+        kcal: formatKcal(change.kcal, language),
       });
     case 'lightened':
       return interpolate(t('home.coach.change.lightened'), {

@@ -27,6 +27,8 @@ jest.mock('@/shared/localization', () => {
   return {
     formatNumber: format.formatNumber,
     formatQuantity: format.formatQuantity,
+    formatKcal: format.formatKcal,
+    formatKcalQuantity: format.formatKcalQuantity,
     formatDate: format.formatDate,
     interpolate: format.interpolate,
     useLocalization: () => ({ language: 'es', t: (key: string) => es[key] ?? key }),

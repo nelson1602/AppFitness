@@ -4,10 +4,11 @@ import { Pressable, View } from 'react-native';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import {
+  formatKcal,
   formatNumber,
-  useLocalization,
   type SupportedLanguage,
   type TranslationKey,
+  useLocalization,
 } from '@/shared/localization';
 import {
   AppButton,
@@ -216,7 +217,7 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
           language,
           t,
         )}{' '}
-        · {formatNumber(item.consumed.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
+        · {formatKcal(item.consumed.calories, language)} kcal · {t('nutrition.plan.protein')}{' '}
         {formatNumber(item.consumed.proteinG, language)}g · {t('nutrition.plan.carbs')}{' '}
         {formatNumber(item.consumed.carbsG, language)}g · {t('nutrition.plan.fat')}{' '}
         {formatNumber(item.consumed.fatG, language)}g
@@ -308,8 +309,8 @@ function DailyTotals({ totals }: { totals: ConsumedMacros }) {
             goes through the same formatter — `2,500` there and `2500` here was a
             cross-surface disagreement in English, not a style choice. */}
         <AppText variant="headline">
-          {formatNumber(totals.calories, language)}
-          {nutrition ? ` / ${formatNumber(nutrition.calories, language)}` : ''} kcal
+          {formatKcal(totals.calories, language)}
+          {nutrition ? ` / ${formatKcal(nutrition.calories, language)}` : ''} kcal
         </AppText>
         <View style={{ gap: 2 }}>
           <TargetLine

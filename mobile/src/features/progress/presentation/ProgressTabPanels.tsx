@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { parseDecimal } from '@/features/evaluation/domain/evaluation';
 import {
+  formatKcalQuantity,
   formatNumber,
   formatQuantity,
   interpolate,
@@ -390,7 +391,7 @@ export function WeekSummaryPanel({ week }: { week: WeekSummary }) {
     week.volumeKg === null
       ? null
       : formatQuantity(week.volumeKg, 'kg', language, { maximumFractionDigits: 0 });
-  const kcal = week.avgKcal === null ? null : formatQuantity(week.avgKcal, 'kcal', language);
+  const kcal = week.avgKcal === null ? null : formatKcalQuantity(week.avgKcal, language);
 
   return (
     <Panel icon="chart" testID="progress-week-card" title={t('progress.tab.weekTitle')}>

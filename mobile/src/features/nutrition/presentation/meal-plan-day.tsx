@@ -4,11 +4,12 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { IngredientSubstitution } from '@/features/weekly-plan/domain/weekly-plan';
 import {
   formatDate,
+  formatKcalQuantity,
   formatNumber,
   formatQuantity,
   interpolate,
-  useLocalization,
   type TranslationKey,
+  useLocalization,
 } from '@/shared/localization';
 import { AppText, GlassCard, Icon, withAlpha } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
@@ -254,7 +255,7 @@ function MealRow({
             {title}
           </AppText>
           <AppText tone="muted" variant="caption">
-            {formatQuantity(meal.totals.calories, 'kcal', language)} ·{' '}
+            {formatKcalQuantity(meal.totals.calories, language)} ·{' '}
             <AppText style={{ color: colors.linkOnStage }} variant="caption">
               {toggle}
             </AppText>
@@ -326,7 +327,7 @@ function MealRow({
                 </AppText>
               </AppText>
               <AppText tone="muted" variant="caption">
-                {formatQuantity(f.macros.calories, 'kcal', language)}
+                {formatKcalQuantity(f.macros.calories, language)}
               </AppText>
             </View>
           ))}
@@ -436,7 +437,7 @@ export function MealPlanPanel({
                   : 'nutrition.plan.extraServingMany',
               ),
               { servings: formatNumber(extra.servings, language) },
-            )} · ${formatQuantity(extra.calories, 'kcal', language)}`}
+            )} · ${formatKcalQuantity(extra.calories, language)}`}
           </AppText>
         </View>
       ))}

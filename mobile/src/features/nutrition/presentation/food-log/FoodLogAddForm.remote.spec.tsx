@@ -7,6 +7,7 @@ import {
   type FoodSearchResult,
   searchRemoteFoods,
 } from '../../infrastructure/food-search-api';
+import { searchSavedFoods } from '../../infrastructure/saved-foods.repository';
 import { FoodLogAddForm } from './FoodLogAddForm';
 
 /**
@@ -135,6 +136,16 @@ describe('FoodLogAddForm beyond the local catalogue (v10 Block B, item 7)', () =
     expect(
       screen.getByText('No pudimos guardar este alimento. Revisa tu conexión e intenta de nuevo.'),
     ).toBeOnTheScreen();
+  });
+
+  it('shows a saved food with the same rounded kcal as the log: 541, never 540,7 (v10 Block C)', async () => {
+    jest.mocked(searchRemoteFoods).mockRejectedValue(new FoodSearchOfflineError());
+    jest.mocked(searchSavedFoods).mockResolvedValueOnce([saved({ caloriesPerServing: 540.7 })]);
+    await render(<FoodLogAddForm onAdd={jest.fn()} />);
+
+    await search('chicharron');
+    expect(await screen.findByText(/100 g · 541 kcal/)).toBeOnTheScreen();
+    expect(screen.queryByText(/540,7/)).toBeNull();
   });
 
   it('shows only local results with a clear message when offline', async () => {

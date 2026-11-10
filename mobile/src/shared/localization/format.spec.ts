@@ -1,4 +1,12 @@
-import { formatDate, formatNumber, formatQuantity, interpolate, localeForLanguage } from './format';
+import {
+  formatDate,
+  formatKcal,
+  formatKcalQuantity,
+  formatNumber,
+  formatQuantity,
+  interpolate,
+  localeForLanguage,
+} from './format';
 
 describe('localized formatting foundation', () => {
   it('maps supported languages to stable presentation locales', () => {
@@ -96,5 +104,13 @@ describe('number and unit joining', () => {
   it('never leaves a breakable space between the value and the unit', () => {
     expect(formatQuantity(36, 'g', 'es')).not.toMatch(/\d g/);
     expect(formatQuantity(36, 'g', 'es').replace(NBSP, ' ')).toBe('36 g');
+  });
+
+  it('shows every kcal value rounded, so one food never reads 540,7 here and 541 there (v10 Block C)', () => {
+    expect(formatKcal(540.7, 'es')).toBe('541');
+    expect(formatKcal(540.4, 'en')).toBe('540');
+    expect(formatKcal(2031, 'es')).toBe('2031');
+    expect(formatKcalQuantity(540.7, 'es').replace(NBSP, ' ')).toBe('541 kcal');
+    expect(formatKcalQuantity(540.7, 'es')).not.toMatch(/d kcal/);
   });
 });

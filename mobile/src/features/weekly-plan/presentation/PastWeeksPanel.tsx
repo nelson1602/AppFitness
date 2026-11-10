@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
   formatDate,
+  formatKcalQuantity,
   formatNumber,
   formatQuantity,
   type SupportedLanguage,
@@ -204,7 +205,7 @@ function WeekDetailSheet({ week, onClose }: { week: PastWeek; onClose: () => voi
   const { language, t } = useLocalization();
   const reduceMotion = useReducedMotion();
   const a: WeekAdherence = week.adherence;
-  const kcal = (value: number) => formatQuantity(value, 'kcal', language);
+  const kcal = (value: number) => formatKcalQuantity(value, language);
 
   return (
     <Modal

@@ -8,6 +8,8 @@ import { coachChangeText } from '@/features/weekly-plan/presentation/realtime-co
 import type { GoalType } from '@/shared/infrastructure/database/types';
 import {
   formatDate,
+  formatKcal,
+  formatKcalQuantity,
   formatNumber,
   formatQuantity,
   interpolate,
@@ -352,10 +354,10 @@ export function TodayTiles({ summary }: { summary: HomeSummary }) {
     calories.target === null
       ? t('home.tile.caloriesEmpty')
       : calories.consumed === null
-        ? formatQuantity(calories.target, 'kcal', language)
+        ? formatKcalQuantity(calories.target, language)
         : interpolate(t('home.tile.caloriesValue'), {
-            consumed: formatNumber(Math.round(calories.consumed), language),
-            target: formatNumber(calories.target, language),
+            consumed: formatKcal(calories.consumed, language),
+            target: formatKcal(calories.target, language),
           });
 
   return (
@@ -390,7 +392,7 @@ export function TodayTiles({ summary }: { summary: HomeSummary }) {
         note={
           (calories.activityBonus ?? 0) > 0
             ? interpolate(t('home.tile.activityBonus'), {
-                kcal: formatNumber(calories.activityBonus ?? 0, language),
+                kcal: formatKcal(calories.activityBonus ?? 0, language),
               })
             : null
         }

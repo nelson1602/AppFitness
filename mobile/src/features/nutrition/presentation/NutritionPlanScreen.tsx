@@ -3,7 +3,14 @@ import { View } from 'react-native';
 
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
-import { formatNumber, formatQuantity, interpolate, useLocalization } from '@/shared/localization';
+import {
+  formatKcal,
+  formatKcalQuantity,
+  formatNumber,
+  formatQuantity,
+  interpolate,
+  useLocalization,
+} from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -27,8 +34,8 @@ function DayTotals({ day }: { day: ViewDay }) {
         <View style={{ gap: theme.spacing.xs }}>
           <AppText variant="label">{t('nutrition.plan.dayTotalTarget')}</AppText>
           <AppText tone="muted">
-            {t('nutrition.plan.calories')}: {formatNumber(day.totals.calories, language)} /{' '}
-            {formatQuantity(day.targets.calories, 'kcal', language)}
+            {t('nutrition.plan.calories')}: {formatKcal(day.totals.calories, language)} /{' '}
+            {formatKcalQuantity(day.targets.calories, language)}
           </AppText>
           <AppText variant="caption" tone="muted">
             {t('nutrition.plan.protein')} {formatNumber(day.totals.proteinG, language)} /{' '}
@@ -43,11 +50,10 @@ function DayTotals({ day }: { day: ViewDay }) {
 
       <AppText variant="caption" tone="muted">
         {t('nutrition.plan.day')} {formatNumber(day.index, language)}{' '}
-        {t('nutrition.plan.targetSummary')}:{' '}
-        {formatQuantity(day.targets.calories, 'kcal', language)} · {t('nutrition.plan.protein')}{' '}
-        {formatQuantity(day.targets.proteinG, 'g', language)} · {t('nutrition.plan.carbs')}{' '}
-        {formatQuantity(day.targets.carbsG, 'g', language)} · {t('nutrition.plan.fat')}{' '}
-        {formatQuantity(day.targets.fatG, 'g', language)}.
+        {t('nutrition.plan.targetSummary')}: {formatKcalQuantity(day.targets.calories, language)} ·{' '}
+        {t('nutrition.plan.protein')} {formatQuantity(day.targets.proteinG, 'g', language)} ·{' '}
+        {t('nutrition.plan.carbs')} {formatQuantity(day.targets.carbsG, 'g', language)} ·{' '}
+        {t('nutrition.plan.fat')} {formatQuantity(day.targets.fatG, 'g', language)}.
       </AppText>
       {day.safetyFloorApplied ? (
         <Banner title={t('nutrition.plan.safeMinimumTitle')} tone="info">
@@ -187,7 +193,7 @@ export function PlanOverlayBanner({ overlay }: { overlay: OffPlanAdjustment }) {
         {[
           overlay.reducedBy > 0
             ? interpolate(t('nutrition.plan.overlayBody'), {
-                kcal: formatNumber(overlay.todayCalories, language),
+                kcal: formatKcal(overlay.todayCalories, language),
                 reduced: formatNumber(overlay.reducedBy, language),
               })
             : null,
