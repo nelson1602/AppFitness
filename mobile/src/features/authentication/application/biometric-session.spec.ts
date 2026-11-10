@@ -298,6 +298,25 @@ describe('biometric session (ADR-P036 Amendment A)', () => {
       );
     });
 
+    it('never stores, seals or sends the password (v10 security review)', async () => {
+      const env = await signedIn();
+      env.vault.createUnlockKey.mockResolvedValue(KEY);
+      await env.manager.linkBiometrics(PROMPT);
+
+      // Every value handed to storage, the vault or the API after the
+      // password sign-in itself: none may carry the password.
+      const handedOver = [
+        ...env.storage.saveSession.mock.calls,
+        ...env.storage.saveSealedSession.mock.calls,
+        ...env.vault.writeLink.mock.calls,
+        ...env.vault.createUnlockKey.mock.calls,
+        ...env.api.refresh.mock.calls,
+        ...env.api.logout.mock.calls,
+      ];
+      expect(JSON.stringify(handedOver)).not.toContain('password12345');
+      expect(env.api.login).toHaveBeenCalledTimes(1);
+    });
+
     it('writes nothing when the person does not authenticate', async () => {
       const env = await signedIn();
       env.vault.createUnlockKey.mockResolvedValue(null);

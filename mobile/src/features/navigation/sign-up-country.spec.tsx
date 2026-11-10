@@ -16,6 +16,12 @@ jest.mock('@/features/authentication', () => ({
   AuthError: class extends Error {},
   signIn: jest.fn(),
   signUp: (...args: unknown[]) => mockSignUp(...args),
+  // ADR-P036: no biometrics in this spec.
+  getSession: () => null,
+  useSession: () => ({ status: 'unauthenticated', session: null }),
+  useBiometricCapability: () => null,
+  unlockWithBiometrics: jest.fn(),
+  BiometricLinkSheet: () => null,
 }));
 
 jest.mock('@/features/profile', () => ({

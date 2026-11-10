@@ -20,6 +20,12 @@ jest.mock('@/features/authentication', () => ({
   AuthError: class MockAuthError extends Error {},
   signIn: jest.fn(),
   signUp: jest.fn(),
+  // ADR-P036: no biometrics in this spec.
+  getSession: () => null,
+  useSession: () => ({ status: 'unauthenticated', session: null }),
+  useBiometricCapability: () => null,
+  unlockWithBiometrics: jest.fn(),
+  BiometricLinkSheet: () => null,
 }));
 
 /** The hero crop's ratio (941×515), as `Mascot` uses it. */

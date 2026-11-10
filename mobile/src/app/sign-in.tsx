@@ -248,7 +248,9 @@ export default function SignInScreen() {
         {policyError && mode === 'register' && !meetsPasswordPolicy(password) ? (
           <Banner title={t('auth.passwordRules.incomplete')} tone="error" />
         ) : null}
-        {biometricReset ? (
+        {biometricReset || (locked && capability !== null && !biometricsAvailable) ? (
+          // A failed unlock reset, or a locked phone whose biometrics were
+          // removed since linking: the password is the way in (ADR-P036 A4).
           <Banner title={t('auth.biometric.resetTitle')} tone="info">
             {t('auth.biometric.resetBody')}
           </Banner>

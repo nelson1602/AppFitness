@@ -100,6 +100,8 @@ type Rule = 'floor' | 'floor-both' | 'content' | 'primitive';
 const REGISTRY: Record<string, readonly Rule[]> = {
   // ADR-P035 sign-in: the show/hide password glyph button.
   'src/app/sign-in.tsx': ['floor-both'],
+  // ADR-P036 Perfil → Seguridad: the biometric switch is a full-width row.
+  'src/features/authentication/presentation/biometric-switch.tsx': ['floor'],
   // ADR-P039 Inicio: the coach card's "Empezar" and each quick action.
   'src/features/dashboard/presentation/components/home-cards.tsx': ['floor', 'floor'],
   // v8 Evaluación física: choice chip, option row, group header, stepper button;
@@ -198,8 +200,8 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 52 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(52);
+it('counts exactly 53 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(53);
 });
 
 describe.each(

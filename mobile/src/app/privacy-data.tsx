@@ -17,7 +17,7 @@ export default function PrivacyDataScreen() {
   const { t } = useLocalization();
   const { status } = useSession();
 
-  if (status === 'unauthenticated') return <Redirect href="/sign-in" />;
+  if (status === 'unauthenticated' || status === 'locked') return <Redirect href="/sign-in" />;
 
   return (
     <StageScreen>

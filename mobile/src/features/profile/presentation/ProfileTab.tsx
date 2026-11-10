@@ -1,8 +1,8 @@
 import { router, useFocusEffect } from 'expo-router';
 import { type ReactNode, useCallback, useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { signOut } from '@/features/authentication';
+import { BiometricSwitch, signOut } from '@/features/authentication';
 import { useDashboardStore } from '@/features/dashboard/application/dashboard.store';
 import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-home-data';
 import { AccountSettingsSection } from '@/features/dashboard/presentation/AccountSettingsSection';
@@ -307,6 +307,13 @@ export function ProfileTab() {
         />
       </Panel>
 
+      {/* ADR-P036: the prototype places Seguridad between Meta and Próximamente.
+          Web has no biometric sign-in (ADR-P018), so no panel there. */}
+      {Platform.OS === 'web' ? null : (
+        <Panel icon="shield" testID="profile-security" title={t('auth.biometric.securityTitle')}>
+          <BiometricSwitch />
+        </Panel>
+      )}
       <Panel
         icon="watch"
         right={<Chip label={t('home.soon.chip')} />}

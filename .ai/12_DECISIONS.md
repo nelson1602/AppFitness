@@ -14797,11 +14797,35 @@ Amends: Decision 2 (mechanism) and Decision 3 (sign-out). Every other decision s
 6. **Biometric data never leaves the device.** The OS performs every
    biometric check. The app and the API receive only the released key, never
    a template or a match result. No API change is made.
-7. **Turning it off.** Until the Profile tab exists (ADR-P039), a temporary
-   switch in the Dashboard's Account group turns the link on or off. Both
-   directions ask for biometrics.
+7. **Turning it off.** A switch turns the link on or off; both directions
+   ask for biometrics. It first lived in the Dashboard's Account group and
+   now lives in Perfil → Seguridad (Amendment B).
 8. **Web.** Unchanged and unavailable (ADR-P018): no hint, no button, no
    switch.
+
+### Amendment B — Perfil → Seguridad and hardware wording (v10, 2026-11-10)
+
+Status: Accepted (owner prompt, 2026-11-10, reviving PR #233 for versionCode 10)
+Amends: A7 (where the switch lives). Every other decision stands.
+
+1. **The switch lives in Perfil → Seguridad**, the prototype's panel between
+   Meta and Próximamente (ADR-P039 delivered the Profile tab). The temporary
+   Dashboard row is gone. Both directions still ask for biometrics.
+2. **Without usable biometrics the switch shows, off and disabled**, as in the
+   prototype. The line under it says why: "Este teléfono no tiene biometría",
+   or where to enrol Face ID or a fingerprint in the phone's settings. Web
+   still shows no panel at all.
+3. **Wording by hardware.** "Face ID" only on an iPhone whose sensor is face
+   recognition; Touch ID and every Android sensor read "huella digital" /
+   "fingerprint" (Face ID is Apple's name and never describes an Android face
+   unlock).
+4. **A locked phone whose biometrics were removed** shows the password form with
+   the reset notice instead of an unlock button. A password sign-in then
+   replaces the sealed session and removes the old link (A5).
+5. **Linking is offered after a password sign-in only.** A new account first
+   verifies its email (ADR-P041) and can turn biometrics on from Perfil.
+6. **An unlock lands where a password sign-in would**: Inicio, or "Verifica tu
+   correo" for an unverified account (ADR-P041 D2).
 
 ---
 

@@ -190,12 +190,28 @@ describe('biometric vault and sealed session (ADR-P036 Amendment A)', () => {
     it('says Face ID only on iPhones with face recognition', async () => {
       jest.replaceProperty(Platform, 'OS', 'ios');
       jest.mocked(LocalAuthentication.supportedAuthenticationTypesAsync).mockResolvedValue([2]);
-      await expect(getBiometricCapability()).resolves.toEqual({ available: true, kind: 'face' });
+      await expect(getBiometricCapability()).resolves.toEqual({
+        available: true,
+        kind: 'face',
+        readiness: 'ready',
+      });
 
       jest.replaceProperty(Platform, 'OS', 'android');
       await expect(getBiometricCapability()).resolves.toEqual({
         available: true,
         kind: 'fingerprint',
+        readiness: 'ready',
+      });
+    });
+
+    it('names the sensor but stays unavailable when nothing is enrolled', async () => {
+      jest.replaceProperty(Platform, 'OS', 'ios');
+      jest.mocked(LocalAuthentication.supportedAuthenticationTypesAsync).mockResolvedValue([2]);
+      jest.mocked(LocalAuthentication.isEnrolledAsync).mockResolvedValue(false);
+      await expect(getBiometricCapability()).resolves.toEqual({
+        available: false,
+        kind: 'face',
+        readiness: 'not-enrolled',
       });
     });
 
@@ -205,10 +221,6 @@ describe('biometric vault and sealed session (ADR-P036 Amendment A)', () => {
         () => jest.mocked(LocalAuthentication.hasHardwareAsync).mockResolvedValue(false),
       ],
       [
-        'nothing enrolled',
-        () => jest.mocked(LocalAuthentication.isEnrolledAsync).mockResolvedValue(false),
-      ],
-      [
         'biometrics too weak to bind a key',
         () => jest.mocked(SecureStore.canUseBiometricAuthentication).mockReturnValue(false),
       ],
@@ -216,11 +228,12 @@ describe('biometric vault and sealed session (ADR-P036 Amendment A)', () => {
         'a platform error',
         () => jest.mocked(LocalAuthentication.hasHardwareAsync).mockRejectedValue(new Error('x')),
       ],
-    ])('is unavailable with %s', async (_case, arrange) => {
+    ])('is unsupported with %s', async (_case, arrange) => {
       arrange();
       await expect(getBiometricCapability()).resolves.toEqual({
         available: false,
         kind: 'fingerprint',
+        readiness: 'unsupported',
       });
     });
   });

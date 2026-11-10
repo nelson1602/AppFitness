@@ -1,13 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as ReactNative from 'react-native';
 
+import { es } from '@/shared/localization/resources/es';
+
+import type { BiometricCapability } from '../infrastructure/biometric-capability';
 import { BiometricLinkSheet } from './biometric-link-sheet';
 import { BiometricSwitch } from './biometric-switch';
 
 const mockLink = jest.fn();
 const mockUnlink = jest.fn();
 const mockIsLinked = jest.fn();
-let mockCapability: { available: boolean; kind: 'face' | 'fingerprint' } | null = null;
+let mockCapability: BiometricCapability | null = null;
 
 jest.mock('../application/session-manager', () => ({
   linkBiometrics: (...args: unknown[]) => mockLink(...args),
@@ -89,32 +92,56 @@ describe('BiometricLinkSheet (ADR-P036 A1)', () => {
   });
 });
 
-describe('BiometricSwitch (ADR-P036 A7)', () => {
+describe('BiometricSwitch (ADR-P036 A7, Perfil → Seguridad)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockCapability = { available: true, kind: 'fingerprint' };
+    mockCapability = { available: true, kind: 'fingerprint', readiness: 'ready' };
   });
   afterEach(() => {
     jest.restoreAllMocks();
   });
 
-  it('renders nothing where biometrics are unavailable', async () => {
-    mockCapability = { available: false, kind: 'fingerprint' };
+  it('stays off and disabled, and says why, on a phone without biometrics', async () => {
+    mockCapability = { available: false, kind: 'fingerprint', readiness: 'unsupported' };
     await render(<BiometricSwitch />);
-    expect(screen.queryByRole('switch')).toBeNull();
+
+    const toggle = screen.getByRole('switch', { name: 'Sign in with Face ID or fingerprint' });
+    expect(toggle).toHaveProp('accessibilityState', { checked: false, disabled: true });
+    expect(screen.getByTestId('biometric-switch-status')).toHaveTextContent(
+      "This phone doesn't have biometrics",
+    );
+    expect(
+      screen.getByTestId('biometric-switch-track', { includeHiddenElements: true }),
+    ).toHaveStyle({ opacity: 0.4 });
     expect(mockIsLinked).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['face', 'Sign in with Face ID', "Set up Face ID in your phone's settings"],
+    ['fingerprint', 'Sign in with fingerprint', "Set up your fingerprint in your phone's settings"],
+  ] as const)(
+    'names %s and points to the phone settings when nothing is enrolled',
+    async (kind, name, status) => {
+      mockCapability = { available: false, kind, readiness: 'not-enrolled' };
+      await render(<BiometricSwitch />);
+
+      expect(screen.getByRole('switch', { name })).toHaveProp('accessibilityState', {
+        checked: false,
+        disabled: true,
+      });
+      expect(screen.getByTestId('biometric-switch-status')).toHaveTextContent(status);
+    },
+  );
 
   it('turns biometrics on with a prompt and reports the checked state', async () => {
     mockIsLinked.mockResolvedValue(false);
     mockLink.mockResolvedValue('linked');
     await render(<BiometricSwitch />);
 
-    const toggle = await screen.findByRole('switch', {
-      name: 'Sign in with Face ID or fingerprint',
-    });
+    const toggle = await screen.findByRole('switch', { name: 'Sign in with fingerprint' });
     expect(toggle).toHaveProp('accessibilityState', { checked: false, disabled: false });
     expect(toggle).toHaveStyle({ minHeight: 48 });
+    expect(screen.getByTestId('biometric-switch-status')).toHaveTextContent('Off');
 
     await fireEvent.press(toggle);
     await waitFor(() =>
@@ -123,14 +150,34 @@ describe('BiometricSwitch (ADR-P036 A7)', () => {
         disabled: false,
       }),
     );
+    expect(screen.getByTestId('biometric-switch-status')).toHaveTextContent('On');
+    expect(
+      screen.getByTestId('biometric-switch-track', { includeHiddenElements: true }),
+    ).toHaveStyle({ alignItems: 'flex-end' });
     expect(mockLink).toHaveBeenCalledWith("Confirm it's you");
   });
 
+  it('keeps it off when linking is cancelled or fails', async () => {
+    mockIsLinked.mockResolvedValue(false);
+    mockLink.mockResolvedValueOnce('cancelled').mockResolvedValueOnce('failed');
+    await render(<BiometricSwitch />);
+    const toggle = await screen.findByRole('switch');
+
+    await fireEvent.press(toggle);
+    await waitFor(() => expect(mockLink).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('switch').props.accessibilityState.checked).toBe(false);
+
+    await fireEvent.press(screen.getByRole('switch'));
+    await waitFor(() => expect(mockLink).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole('switch').props.accessibilityState.checked).toBe(false);
+  });
+
   it('turns biometrics off with a prompt, and keeps them on when cancelled', async () => {
+    mockCapability = { available: true, kind: 'face', readiness: 'ready' };
     mockIsLinked.mockResolvedValue(true);
     mockUnlink.mockResolvedValueOnce('cancelled').mockResolvedValueOnce('unlinked');
     await render(<BiometricSwitch />);
-    const toggle = await screen.findByRole('switch');
+    const toggle = await screen.findByRole('switch', { name: 'Sign in with Face ID' });
 
     await fireEvent.press(toggle);
     await waitFor(() => expect(mockUnlink).toHaveBeenCalledTimes(1));
@@ -140,5 +187,15 @@ describe('BiometricSwitch (ADR-P036 A7)', () => {
     await waitFor(() =>
       expect(screen.getByRole('switch').props.accessibilityState.checked).toBe(false),
     );
+  });
+
+  it('uses "Face ID" or "Huella digital" in Spanish, by hardware', () => {
+    expect(es['auth.biometric.signInFace']).toBe('Entrar con Face ID');
+    expect(es['auth.biometric.signInFingerprint']).toBe('Entrar con huella digital');
+    expect(es['auth.biometric.switch']).toBe('Entrar con Face ID o Huella');
+    expect(es['auth.biometric.switchOn']).toBe('Activado');
+    expect(es['auth.biometric.switchOff']).toBe('Desactivado');
+    expect(es['auth.biometric.switchNoHardware']).toBe('Este teléfono no tiene biometría');
+    expect(es['auth.biometric.securityTitle']).toBe('Seguridad');
   });
 });

@@ -36,6 +36,7 @@ describe('biometric Web forms (ADR-P036, ADR-P018)', () => {
     await expect(getBiometricCapability()).resolves.toEqual({
       available: false,
       kind: 'fingerprint',
+      readiness: 'unsupported',
     });
   });
 

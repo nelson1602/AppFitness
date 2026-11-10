@@ -1,25 +1,48 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useLocalization } from '@/shared/localization';
-import { AppText } from '@/shared/presentation';
-import { useTheme } from '@/shared/theme';
+import { type TranslationKey, useLocalization } from '@/shared/localization';
+import { AppText, withAlpha } from '@/shared/presentation';
+import { lightColors, useTheme } from '@/shared/theme';
 
 import {
   isBiometricLinked,
   linkBiometrics,
   unlinkBiometrics,
 } from '../application/session-manager';
+import type { BiometricCapability } from '../infrastructure/biometric-capability';
 import { useBiometricCapability } from './use-biometric-capability';
 
-const TRACK_WIDTH = 44;
-const TRACK_HEIGHT = 26;
-const THUMB = 20;
+/** The prototype's switch: a 56 × 32 track with a 24 dp thumb. */
+const TRACK_WIDTH = 56;
+const TRACK_HEIGHT = 32;
+const THUMB = 24;
+/** The prototype dims a switch that cannot be used to 40 %. */
+const DISABLED_OPACITY = 0.4;
+
+/** The row's name: the phone's own word for it, or the prototype's "Face ID o Huella". */
+function labelKey(capability: BiometricCapability): TranslationKey {
+  if (capability.readiness === 'unsupported') return 'auth.biometric.switch';
+  return capability.kind === 'face'
+    ? 'auth.biometric.signInFace'
+    : 'auth.biometric.signInFingerprint';
+}
+
+function statusKey(capability: BiometricCapability, linked: boolean): TranslationKey {
+  if (capability.readiness === 'unsupported') return 'auth.biometric.switchNoHardware';
+  if (capability.readiness === 'not-enrolled') {
+    return capability.kind === 'face'
+      ? 'auth.biometric.switchNotEnrolledFace'
+      : 'auth.biometric.switchNotEnrolledFingerprint';
+  }
+  return linked ? 'auth.biometric.switchOn' : 'auth.biometric.switchOff';
+}
 
 /**
- * Temporary home for turning biometric sign-in on or off (ADR-P036 A7) until
- * the Profile tab exists (ADR-P039). Both directions ask for biometrics. It
- * renders nothing where biometrics cannot be used, including Web.
+ * Perfil → Seguridad: turns biometric sign-in on or off (ADR-P036 A7, the
+ * prototype's Perfil tab). Both directions ask for biometrics. Without usable
+ * biometrics the switch stays off and disabled, and the line under the name
+ * says why. Native only: the Profile tab does not render it on Web.
  *
  * The whole row is the control: a `switch` with its checked state, a 48 dp
  * floor, and an on/off signal carried by the thumb position as well as colour.
@@ -41,9 +64,15 @@ export function BiometricSwitch() {
     return () => {
       active = false;
     };
-  }, [capability?.available]);
+  }, [capability]);
 
-  if (!capability?.available || linked === null) return null;
+  // Unusable biometrics read as off without asking storage; usable ones wait
+  // for the stored link so the switch never flips after it appears.
+  if (!capability || (capability.available && linked === null)) return null;
+
+  const usable = capability.available;
+  const disabled = !usable || busy;
+  const on = usable && linked === true;
 
   const toggle = async () => {
     setBusy(true);
@@ -60,37 +89,46 @@ export function BiometricSwitch() {
     }
   };
 
+  const label = t(labelKey(capability));
+  const status = t(statusKey(capability, on));
+
   return (
     <Pressable
-      accessibilityLabel={t('auth.biometric.switch')}
+      accessibilityHint={status}
+      accessibilityLabel={label}
       accessibilityRole="switch"
-      accessibilityState={{ checked: linked, disabled: busy }}
-      disabled={busy}
+      accessibilityState={{ checked: on, disabled }}
+      disabled={disabled}
       onPress={() => void toggle()}
-      style={[
-        styles.row,
-        { gap: theme.spacing.md, minHeight: theme.spacing.x5l, opacity: busy ? 0.56 : 1 },
-      ]}
+      style={[styles.row, { gap: theme.spacing.md, minHeight: theme.spacing.x5l }]}
       testID="biometric-switch"
     >
-      <AppText style={styles.label}>{t('auth.biometric.switch')}</AppText>
+      <View style={styles.text}>
+        <AppText tone="onStage" variant="label">
+          {label}
+        </AppText>
+        <AppText testID="biometric-switch-status" tone="onStageVariant" variant="caption">
+          {status}
+        </AppText>
+      </View>
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={[
           styles.track,
           {
-            alignItems: linked ? 'flex-end' : 'flex-start',
-            backgroundColor: linked ? theme.colors.primary : theme.colors.surfaceVariant,
-            borderColor: linked ? theme.colors.primary : theme.colors.outline,
+            alignItems: on ? 'flex-end' : 'flex-start',
+            backgroundColor: on ? theme.colors.accentCyan : withAlpha(theme.colors.onStage, 0.2),
             borderRadius: theme.radius.full,
+            opacity: !usable ? DISABLED_OPACITY : busy ? 0.56 : 1,
           },
         ]}
         testID="biometric-switch-track"
       >
         <View
           style={{
-            backgroundColor: linked ? theme.colors.onPrimary : theme.colors.outline,
+            // White in both themes, as in the prototype.
+            backgroundColor: lightColors.surface,
             borderRadius: theme.radius.full,
             height: THUMB,
             width: THUMB,
@@ -102,18 +140,18 @@ export function BiometricSwitch() {
 }
 
 const styles = StyleSheet.create({
-  label: {
-    flex: 1,
-  },
   row: {
     alignItems: 'center',
     flexDirection: 'row',
   },
+  text: {
+    flex: 1,
+    gap: 2,
+  },
   track: {
-    borderWidth: 1,
     height: TRACK_HEIGHT,
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: (TRACK_HEIGHT - THUMB) / 2,
     width: TRACK_WIDTH,
   },
 });

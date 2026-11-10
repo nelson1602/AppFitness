@@ -23,6 +23,7 @@ jest.mock('@/features/authentication', () => {
     AuthError: MockAuthError,
     signIn: (...args: unknown[]) => mockSignIn(...args),
     signUp: jest.fn(),
+    getSession: () => mockSession,
     useSession: () => ({ status: mockSessionStatus, session: null }),
     useBiometricCapability: () => mockCapability,
     unlockWithBiometrics: (...args: unknown[]) => mockUnlock(...args),
@@ -40,6 +41,8 @@ jest.mock('@/features/authentication', () => {
 let mockSessionStatus: 'unauthenticated' | 'locked' = 'unauthenticated';
 let mockCapability: { available: boolean; kind: 'face' | 'fingerprint' } | null = null;
 const mockUnlock = jest.fn();
+const VERIFIED = { user: { emailVerifiedAt: '2026-11-01T00:00:00.000Z' } };
+let mockSession: typeof VERIFIED | null = null;
 
 // ADR-P036 (Amendment A) on the sign-in screen.
 describe('SignInScreen biometric sign-in', () => {
@@ -47,7 +50,8 @@ describe('SignInScreen biometric sign-in', () => {
     jest.clearAllMocks();
     mockSessionStatus = 'unauthenticated';
     mockCapability = null;
-    mockSignIn.mockResolvedValue({ status: 'authenticated', session: {} });
+    mockSession = null;
+    mockSignIn.mockResolvedValue({ status: 'authenticated', session: VERIFIED });
   });
 
   it('shows the hint, with the owner sentence, only while biometrics are not linked', async () => {
@@ -70,6 +74,32 @@ describe('SignInScreen biometric sign-in', () => {
 
     expect(screen.queryByTestId('biometric-hint')).toBeNull();
     expect(screen.queryByTestId('button-biometric-unlock')).toBeNull();
+    // Biometrics removed since linking: the password is the way in, and the screen says so.
+    expect(screen.getByText('Sign in with your password')).toBeOnTheScreen();
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeOnTheScreen();
+  });
+
+  it('sends an unverified account to "Verifica tu correo" after an unlock', async () => {
+    mockCapability = { available: true, kind: 'fingerprint' };
+    mockSessionStatus = 'locked';
+    mockUnlock.mockImplementation(async () => {
+      mockSession = { user: { emailVerifiedAt: null } } as unknown as typeof VERIFIED;
+      return 'unlocked';
+    });
+    await render(<SignInScreen />);
+
+    await fireEvent.press(screen.getByTestId('button-biometric-unlock'));
+
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/verify-pending'));
+  });
+
+  it('does not offer linking after creating an account', async () => {
+    mockCapability = { available: true, kind: 'fingerprint' };
+    await render(<SignInScreen />);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Create an account' }));
+    expect(screen.queryByTestId('biometric-hint')).toBeNull();
+    expect(screen.queryByTestId('mock-link-sheet')).toBeNull();
   });
 
   it.each([
@@ -89,7 +119,10 @@ describe('SignInScreen biometric sign-in', () => {
   it('goes to the dashboard after a successful unlock', async () => {
     mockCapability = { available: true, kind: 'fingerprint' };
     mockSessionStatus = 'locked';
-    mockUnlock.mockResolvedValue('unlocked');
+    mockUnlock.mockImplementation(async () => {
+      mockSession = VERIFIED;
+      return 'unlocked';
+    });
     await render(<SignInScreen />);
 
     await fireEvent.press(screen.getByTestId('button-biometric-unlock'));

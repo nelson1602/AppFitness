@@ -384,6 +384,8 @@ Implemented by ADR-P036 (Amendment A), native only:
 * A linked device launches `locked`: no session is read and no network call is made until the OS releases the key.
 * Fail safe to password: an invalidated key (enrolment change; on iOS a keychain `errSecAuthFailed` also counts, pending the TEST-006 device check), an undecryptable sealed session, five failed unlocks in a launch, or a 401 erase the key, the link and the sealed session.
 * Sign-out, account deletion, a password reset and any password sign-in also forget biometrics.
+* The person turns it on or off in Perfil → Seguridad (Amendment B); both directions need a biometric match. A locked phone whose biometrics were removed offers only the password, which replaces the sealed session.
+* The password is never stored, sealed or sent by this feature: only the session envelope (access and refresh tokens, user) is sealed, and linking happens after a password sign-in has already returned that envelope.
 * Biometric data never reaches the app or the API; there is no server change.
 * iOS declares `NSFaceIDUsageDescription` in ES and EN.
 * Residual risk: the sealed refresh token cannot be revoked from another device while the phone is offline; it is bounded by the 7-day refresh-token expiry, and a password sign-in or sign-out on the device erases it.
