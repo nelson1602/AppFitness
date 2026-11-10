@@ -104,8 +104,9 @@ const POSE_MOTIONS: Readonly<Record<Exclude<FigureMotion, 'bike'>, PoseMotion>> 
   carry: { load: true, a: { ...STAND, e1: [61, 42], w1: [62, 58], e2: [59, 42], w2: [58, 58], k1: [66, 72], f1: [72, 91], k2: [56, 73], f2: [48, 91] }, b: { ...STAND, e1: [61, 42], w1: [62, 58], e2: [59, 42], w2: [58, 58], k1: [56, 73], f1: [48, 91], k2: [66, 72], f2: [72, 91] } },
   // Seated cable row: feet on the plate, hands from reach to the ribs, chest tall.
   seatedRow: { prop: 'rowSeat', a: { h: [56, 42], s: [52, 54], p: [42, 78], e1: [64, 60], w1: [78, 63], e2: [62, 60], w2: [76, 63], k1: [64, 70], f1: [86, 84], k2: [62, 70], f2: [84, 84] }, b: { h: [46, 40], s: [45, 52], p: [42, 78], e1: [34, 62], w1: [50, 64], e2: [32, 62], w2: [48, 64], k1: [64, 70], f1: [86, 84], k2: [62, 70], f2: [84, 84] } },
-  // Box jump: from the loaded crouch to airborne over the box edge (never inside it).
-  boxJump: { prop: 'lowBox', a: { h: [48, 38], s: [46, 49], p: [30, 68], e1: [36, 60], w1: [26, 66], e2: [34, 60], w2: [24, 66], k1: [52, 72], f1: [44, 92], k2: [50, 73], f2: [40, 92] }, b: { h: [68, 16], s: [66, 29], p: [62, 54], e1: [74, 22], w1: [80, 12], e2: [72, 22], w2: [78, 12], k1: [78, 60], f1: [72, 74], k2: [76, 61], f2: [68, 73] } },
+  // Box jump: from the loaded crouch to a soft landing on top of the box. The feet land at
+  // its near edge, so the straight path between the poses never cuts through the box.
+  boxJump: { prop: 'lowBox', a: { h: [48, 38], s: [46, 49], p: [30, 68], e1: [36, 60], w1: [26, 66], e2: [34, 60], w2: [24, 66], k1: [52, 72], f1: [44, 92], k2: [50, 73], f2: [40, 92] }, b: { h: [96, 24], s: [92, 36], p: [84, 57], e1: [100, 44], w1: [108, 40], e2: [98, 45], w2: [106, 41], k1: [96, 65], f1: [86, 77], k2: [94, 66], f2: [84, 77] } },
   // Running: a forward lean, knee drive, bent arms swinging opposite the legs.
   run: { a: { h: [65, 15], s: [63, 28], p: [58, 54], e1: [70, 38], w1: [77, 31], e2: [52, 39], w2: [47, 47], k1: [72, 63], f1: [66, 79], k2: [56, 73], f2: [50, 92] }, b: { h: [65, 15], s: [63, 28], p: [58, 54], e1: [52, 39], w1: [47, 47], e2: [70, 38], w2: [77, 31], k1: [56, 73], f1: [50, 92], k2: [72, 63], f2: [66, 79] } },
   // Floor push-up: hands under the shoulders, a straight line from head to heels.

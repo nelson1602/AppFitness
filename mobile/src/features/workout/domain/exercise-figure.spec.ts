@@ -76,10 +76,17 @@ describe('exercise figure (prototype ExerciseDemo)', () => {
   });
 
   it('never lets the box jump pass through the box', () => {
-    // lowBox: x 84–112, top at y 80.
+    // lowBox: x 83–111, top at y 80.
     for (let i = 0; i <= 40; i += 1) {
       const { f1, f2 } = figurePose('boxJump', i / 40);
-      for (const [x, y] of [f1, f2]) expect(x >= 84 && y > 80).toBe(false);
+      for (const [x, y] of [f1, f2]) expect(x >= 83 && y > 80).toBe(false);
+    }
+    // Pose b lands on top of the box: both feet over it, standing on its top edge.
+    const landed = figurePose('boxJump', 0.5);
+    for (const [x, y] of [landed.f1, landed.f2]) {
+      expect(x).toBeGreaterThanOrEqual(83);
+      expect(x).toBeLessThanOrEqual(111);
+      expect(y).toBeCloseTo(77, 0);
     }
   });
 

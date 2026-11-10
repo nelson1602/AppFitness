@@ -186,7 +186,7 @@ export function ExerciseFigure({
           height={15}
           rx={3}
           width={28}
-          x={84}
+          x={83}
           y={80}
           {...propStroke}
         />
