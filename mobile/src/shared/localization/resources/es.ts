@@ -1408,14 +1408,17 @@ export const es = {
   'nutrition.log.noResults': 'Ningún alimento coincide con esa búsqueda.',
   'nutrition.search.remoteTitle': 'Más alimentos',
   'nutrition.search.loading': 'Buscando en USDA y Open Food Facts…',
-  'nutrition.search.offline': 'Sin conexión: solo se muestran los alimentos guardados en tu teléfono.',
-  'nutrition.search.unavailable': 'No pudimos consultar USDA ni Open Food Facts ahora. Intenta de nuevo en un momento.',
+  'nutrition.search.offline':
+    'Sin conexión: solo se muestran los alimentos guardados en tu teléfono.',
+  'nutrition.search.unavailable':
+    'No pudimos consultar USDA ni Open Food Facts ahora. Intenta de nuevo en un momento.',
   'nutrition.search.attribution': 'Datos de USDA FoodData Central y de Open Food Facts (ODbL).',
   'nutrition.search.sourceShared': 'Guardado',
   'nutrition.search.sourceMine': 'Tuyo',
   'nutrition.search.sourceFdc': 'USDA',
   'nutrition.search.sourceOff': 'Open Food Facts',
-  'nutrition.search.saveError': 'No pudimos guardar este alimento. Revisa tu conexión e intenta de nuevo.',
+  'nutrition.search.saveError':
+    'No pudimos guardar este alimento. Revisa tu conexión e intenta de nuevo.',
   'nutrition.custom.open': '¿No está? Crear un alimento',
   'nutrition.custom.title': 'Tu alimento',
   'nutrition.custom.offline': 'Necesitas conexión para crear un alimento.',
@@ -1427,8 +1430,10 @@ export const es = {
   'nutrition.custom.protein': 'Proteína (g)',
   'nutrition.custom.carbs': 'Carbohidratos (g)',
   'nutrition.custom.fat': 'Grasa (g)',
-  'nutrition.custom.invalid': 'Revisa los datos: el nombre, una porción mayor que 0 y calorías y macros de 0 o más.',
-  'nutrition.custom.saveError': 'No pudimos crear el alimento. Revisa tu conexión e intenta de nuevo.',
+  'nutrition.custom.invalid':
+    'Revisa los datos: el nombre, una porción mayor que 0 y calorías y macros de 0 o más.',
+  'nutrition.custom.saveError':
+    'No pudimos crear el alimento. Revisa tu conexión e intenta de nuevo.',
   'nutrition.custom.save': 'Guardar alimento',
   'nutrition.custom.cancel': 'Cancelar',
   'nutrition.log.oneServing': '1 porción',

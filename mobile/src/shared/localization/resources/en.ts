@@ -1397,7 +1397,8 @@ export const en = {
   'nutrition.search.remoteTitle': 'More foods',
   'nutrition.search.loading': 'Searching USDA and Open Food Facts…',
   'nutrition.search.offline': 'Offline: showing only the foods saved on your phone.',
-  'nutrition.search.unavailable': 'We couldn’t reach USDA or Open Food Facts right now. Try again in a moment.',
+  'nutrition.search.unavailable':
+    'We couldn’t reach USDA or Open Food Facts right now. Try again in a moment.',
   'nutrition.search.attribution': 'Data from USDA FoodData Central and Open Food Facts (ODbL).',
   'nutrition.search.sourceShared': 'Saved',
   'nutrition.search.sourceMine': 'Yours',
@@ -1415,7 +1416,8 @@ export const en = {
   'nutrition.custom.protein': 'Protein (g)',
   'nutrition.custom.carbs': 'Carbs (g)',
   'nutrition.custom.fat': 'Fat (g)',
-  'nutrition.custom.invalid': 'Check the details: a name, a portion above 0, and calories and macros of 0 or more.',
+  'nutrition.custom.invalid':
+    'Check the details: a name, a portion above 0, and calories and macros of 0 or more.',
   'nutrition.custom.saveError': 'We couldn’t create the food. Check your connection and try again.',
   'nutrition.custom.save': 'Save food',
   'nutrition.custom.cancel': 'Cancel',
