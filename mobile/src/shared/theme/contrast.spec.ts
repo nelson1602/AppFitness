@@ -1050,3 +1050,11 @@ describe('dashboard top glow (v10 Block C, item 13)', () => {
     expect(contrastRatio(peak(previous), previous.stage)).toBeLessThan(1.4);
   });
 });
+
+/**
+ * v10 Block C review: in light mode the floating tab bar is opaque, so the
+ * content scrolling under it (a "Sincronizar ahora" row) never shows through.
+ */
+it('keeps the light tab bar fully opaque', () => {
+  expect(lightColors.tabBarFill).toMatch(/^#[0-9A-Fa-f]{6}FF$/);
+});

@@ -175,7 +175,9 @@ export const lightColors: ColorTokens = {
   accentEnergy: '#B03A0B',
   errorOnStage: '#B91C1C',
   stageGlowSoft: '#84BAF2',
-  tabBarFill: '#FFFFFFD9',
+  // v10 Block C review: opaque in light mode, so nothing shows through the bar
+  // (no blur dependency is approved; the dark bar's #0D1628 at 85 % stays).
+  tabBarFill: '#F4F8FEFF',
   tabBarBorder: '#0A3FA826',
   chipCyan: '#0E749024',
   onChipCyan: '#0B5E75',
