@@ -18,19 +18,12 @@ type StageColors = Pick<
  * The redesign's stage (ADR-P035): the blue glow of the brand art melting into
  * deep navy with no hard edge, plus faint energy and cyan light at the sides.
  * Same four layers as the approved prototype's `BLEND_BG`, built from tokens.
- *
- * Under a header (v8 Block 4) the top glow is left out: the gradient then
- * starts at `stageTop`, the header's own colour, so no band or seam shows
- * where the header ends.
+ * Used by the full-screen auth and welcome stages; pushed screens and tabs use
+ * the solid stage with the dashboard glow instead (v10 Block C).
  */
-export function stageBackgroundImage(c: StageColors, options: { glow?: boolean } = {}): string {
-  const glow = options.glow ?? true;
+export function stageBackgroundImage(c: StageColors): string {
   return [
-    ...(glow
-      ? [
-          `radial-gradient(120% 55% at 50% 0%, ${c.stageGlow} 0%, ${c.stageTop} 40%, ${withAlpha(c.stageTop, 0)} 72%)`,
-        ]
-      : []),
+    `radial-gradient(120% 55% at 50% 0%, ${c.stageGlow} 0%, ${c.stageTop} 40%, ${withAlpha(c.stageTop, 0)} 72%)`,
     `radial-gradient(60% 35% at 100% 72%, ${withAlpha(c.accentEnergy, 0.2)} 0%, ${withAlpha(c.accentEnergy, 0)} 70%)`,
     `radial-gradient(70% 40% at 0% 88%, ${withAlpha(c.accentCyan, 0.16)} 0%, ${withAlpha(c.accentCyan, 0)} 70%)`,
     `linear-gradient(180deg, ${c.stageTop} 0%, ${c.stageMid} 38%, ${c.stageDeep} 68%, ${c.stage} 100%)`,

@@ -1024,3 +1024,29 @@ describe('negative control — the pre-addendum palette fails this gate', () => 
     );
   });
 });
+
+/**
+ * v10 Block C, item 13. The dashboard glow peaks at `stageGlow` 55 % over the
+ * stage, right where the tab header's title and date sit (and the pushed-screen
+ * header, which now shows the same glow). The text there must stay readable,
+ * and in light mode the glow must actually show — the old light tokens drew it
+ * at 1.31:1, practically invisible next to dark mode's 2.44:1.
+ */
+describe('dashboard top glow (v10 Block C, item 13)', () => {
+  // 0x8C / 255 ≈ 0.55, the peak alpha in `dashboardGlowImage`.
+  const peak = (c: ColorTokens) => composite(`${c.stageGlow}8C`, c.stage);
+
+  it.each([
+    ['light', lightColors],
+    ['dark', darkColors],
+  ] as const)('keeps header text readable on the glow peak (%s)', (_name, c) => {
+    expect(contrastRatio(c.onStage, peak(c))).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(c.onStageVariant, peak(c))).toBeGreaterThanOrEqual(4.5);
+  });
+
+  it('draws a glow that shows in light mode, not only in dark mode', () => {
+    expect(contrastRatio(peak(lightColors), lightColors.stage)).toBeGreaterThanOrEqual(1.7);
+    const previous: ColorTokens = { ...lightColors, stageGlow: '#9CC8F5' };
+    expect(contrastRatio(peak(previous), previous.stage)).toBeLessThan(1.4);
+  });
+});

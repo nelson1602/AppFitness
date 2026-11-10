@@ -27,6 +27,7 @@ export {
 export { useReducedMotion } from './use-reduced-motion';
 export { useScreenReader } from './use-screen-reader';
 export { Screen } from './screen';
+export { StageGlow, StageHeaderBackground } from './stage-glow';
 export { StageScreen } from './stage-screen';
 export { stageChoiceColors } from './stage-choice';
 export { StageSurfaceProvider, useStageSurface } from './stage-surface';
