@@ -14,6 +14,7 @@ import {
   FormSelect,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { useUnits } from '@/shared/units';
 
 import { useGoalStore } from '../application/goal.store';
 import {
@@ -38,14 +39,19 @@ interface GoalFormProps {
 export function GoalForm({ onSaved }: GoalFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
+  // v10 Block C, item 9: the target weight in the person's units, saved in kg.
+  const { system } = useUnits();
   const today = useLocalDay((s) => s.today);
   const { status, goal, error, load, save } = useGoalStore();
-  const schema = createGoalFormSchema({
-    greaterThanZero: t('goal.validation.greaterThanZero'),
-    tooLarge: t('goal.validation.tooLarge'),
-    dateFormat: t('goal.validation.dateFormat'),
-    validDate: t('goal.validation.validDate'),
-  });
+  const schema = createGoalFormSchema(
+    {
+      greaterThanZero: t('goal.validation.greaterThanZero'),
+      tooLarge: t('goal.validation.tooLarge'),
+      dateFormat: t('goal.validation.dateFormat'),
+      validDate: t('goal.validation.validDate'),
+    },
+    system,
+  );
   const goalOptions = [
     { label: t('goal.type.fatLoss'), value: 'FAT_LOSS' },
     { label: t('goal.type.muscleGain'), value: 'MUSCLE_GAIN' },
@@ -58,7 +64,7 @@ export function GoalForm({ onSaved }: GoalFormProps) {
 
   const { control, handleSubmit, reset } = useForm<GoalFormInput, unknown, GoalFormOutput>({
     resolver: zodResolver(schema),
-    defaultValues: goalToFormValues(null),
+    defaultValues: goalToFormValues(null, system),
   });
 
   useEffect(() => {
@@ -67,11 +73,11 @@ export function GoalForm({ onSaved }: GoalFormProps) {
 
   // Prefill once the active goal loads (edit mode).
   useEffect(() => {
-    if (goal) reset(goalToFormValues(goal));
-  }, [goal, reset]);
+    if (goal) reset(goalToFormValues(goal, system));
+  }, [goal, reset, system]);
 
   const onSubmit = async (values: GoalFormOutput) => {
-    const ok = await save(toGoalInput(values));
+    const ok = await save(toGoalInput(values, system));
     if (ok) onSaved();
   };
 
@@ -132,7 +138,7 @@ export function GoalForm({ onSaved }: GoalFormProps) {
       <FormField
         control={control}
         name="targetWeightKg"
-        label={t('goal.targetWeightKg')}
+        label={t(system === 'imperial' ? 'goal.targetWeightLb' : 'goal.targetWeightKg')}
         keyboardType="decimal-pad"
       />
       {/* v8 Block 3 (ADR-P043): the native picker, from today on. */}

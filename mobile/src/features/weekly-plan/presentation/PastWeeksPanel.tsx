@@ -5,7 +5,6 @@ import {
   formatDate,
   formatKcalQuantity,
   formatNumber,
-  formatQuantity,
   type SupportedLanguage,
   type TranslationKey,
   useLocalization,
@@ -22,6 +21,7 @@ import {
   withAlpha,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { formatWeight, useUnits } from '@/shared/units';
 
 import type { PastWeek } from '../application/weekly-plan.service';
 import type { AdherenceTone, WeekAdherence } from '../domain/adherence';
@@ -203,6 +203,7 @@ function WeekDetailSheet({ week, onClose }: { week: PastWeek; onClose: () => voi
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
+  const { system: units } = useUnits();
   const reduceMotion = useReducedMotion();
   const a: WeekAdherence = week.adherence;
   const kcal = (value: number) => formatKcalQuantity(value, language);
@@ -366,7 +367,7 @@ function WeekDetailSheet({ week, onClose }: { week: PastWeek; onClose: () => voi
               {a.weightChangeKg === null
                 ? t('plan.history.noWeight')
                 : interpolate(t('plan.history.weightChange'), {
-                    kg: `${a.weightChangeKg > 0 ? '+' : ''}${formatQuantity(a.weightChangeKg, 'kg', language, { maximumFractionDigits: 1 })}`,
+                    kg: `${a.weightChangeKg > 0 ? '+' : ''}${formatWeight(a.weightChangeKg, units, language)}`,
                   })}
             </AppText>
 

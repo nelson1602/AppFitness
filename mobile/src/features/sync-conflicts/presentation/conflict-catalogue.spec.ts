@@ -203,9 +203,11 @@ describe('catalogue parity', () => {
   // "Ya excluido", "Alimentos excluidos" and "Quitar {food}" (+3) (+2; 1845 with item 7).
   // v10 Block C item 12: the retention step before deleting the account (+9) and the
   // Privacidad y datos screen (+4) (+13, 1858).
-  it('reaches 1858 keys in each language — 1671 shipped plus a 187-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1858);
-    expect(Object.keys(es)).toHaveLength(1858);
+  // v10 Block C item 9: Unidades (title, two options, save error, inches, example) (+6), and the
+  // imperial labels, errors and examples of each weight / length field (+16) (+22, 1880).
+  it('reaches 1880 keys in each language — 1693 shipped plus a 187-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1880);
+    expect(Object.keys(es)).toHaveLength(1880);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

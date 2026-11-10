@@ -20,7 +20,6 @@ import { useWellnessSafetyProfileStore } from '@/features/wellness/application/w
 import {
   formatDate,
   formatNumber,
-  formatQuantity,
   interpolate,
   LanguageSelector,
   useLocalization,
@@ -35,6 +34,7 @@ import {
   type IconName,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { formatHeight, formatWeight, UnitSelector, useUnits } from '@/shared/units';
 
 import { useProfileStore } from '../application/profile.store';
 import { goalTypeLabelKey } from './goal-type-label';
@@ -141,6 +141,7 @@ export function ProfileTab() {
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
+  const { system: units } = useUnits();
   const refresh = useDashboardStore((s) => s.refresh);
   const profile = useProfileStore((s) => s.profile);
   const wellness = useWellnessSafetyProfileStore((s) => s.profile);
@@ -160,7 +161,7 @@ export function ProfileTab() {
     }, [refresh]),
   );
 
-  const kg = (value: number) => formatQuantity(value, 'kg', language, { maximumFractionDigits: 1 });
+  const kg = (value: number) => formatWeight(value, units, language);
   const date = (value: string) =>
     formatDate(new Date(`${value}T12:00:00`), language, {
       day: 'numeric',
@@ -233,7 +234,7 @@ export function ProfileTab() {
           />
           <Stat
             label={t('profile.tab.height')}
-            value={profile?.heightCm ? formatQuantity(profile.heightCm, 'cm', language) : '–'}
+            value={profile?.heightCm ? formatHeight(profile.heightCm, units, language) : '–'}
           />
           <Stat
             label={t('home.eval.bmi')}
@@ -340,6 +341,7 @@ export function ProfileTab() {
           testID="profile-privacy-data"
         />
         <LanguageSelector appearance="stage" />
+        <UnitSelector />
         <PrivacyPolicyLink testID="profile-privacy-policy" />
       </Panel>
 

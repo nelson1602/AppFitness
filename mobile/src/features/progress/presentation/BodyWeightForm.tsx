@@ -2,7 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { View } from 'react-native';
 
-import { useLocalization } from '@/shared/localization';
+import { formatNumber, interpolate, useLocalization } from '@/shared/localization';
+import { kgToDisplay, roundToTenth, useUnits } from '@/shared/units';
 import { useLocalDay } from '@/shared/application/local-day';
 import { AppButton, AppText, FormDateField, FormField } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
@@ -33,14 +34,20 @@ interface BodyWeightFormProps {
  */
 export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightFormProps) {
   const theme = useTheme();
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
+  // v10 Block C, item 9: typed in the person's units, saved in kg.
+  const { system } = useUnits();
+  const imperial = system === 'imperial';
   const today = useLocalDay((s) => s.today);
-  const schema = createBodyWeightFormSchema({
-    dateFormat: t('progress.validation.dateFormat'),
-    validDate: t('progress.validation.validDate'),
-    weightPositive: t('progress.validation.weightPositive'),
-    tooLarge: t('progress.validation.tooLarge'),
-  });
+  const schema = createBodyWeightFormSchema(
+    {
+      dateFormat: t('progress.validation.dateFormat'),
+      validDate: t('progress.validation.validDate'),
+      weightPositive: t('progress.validation.weightPositive'),
+      tooLarge: t('progress.validation.tooLarge'),
+    },
+    system,
+  );
   const { control, handleSubmit, reset } = useForm<
     BodyWeightFormInput,
     unknown,
@@ -51,7 +58,7 @@ export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightForm
   });
 
   const submit = async (values: BodyWeightFormOutput): Promise<void> => {
-    const ok = await onSubmit(toBodyWeightInput(values));
+    const ok = await onSubmit(toBodyWeightInput(values, system));
     if (ok) reset(blankBodyWeightValues(defaultDate));
     // A false result surfaces via the parent screen's error banner.
   };
@@ -70,8 +77,14 @@ export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightForm
       <FormField
         control={control}
         name="weightKg"
-        label={t('progress.weight.weightKg')}
-        placeholder={t('progress.weight.weightPlaceholder')}
+        label={t(imperial ? 'progress.weight.weightLb' : 'progress.weight.weightKg')}
+        placeholder={
+          imperial
+            ? interpolate(t('units.example'), {
+                value: formatNumber(roundToTenth(kgToDisplay(80.5, system)), language),
+              })
+            : t('progress.weight.weightPlaceholder')
+        }
         keyboardType="decimal-pad"
         required
         selectTextOnFocus

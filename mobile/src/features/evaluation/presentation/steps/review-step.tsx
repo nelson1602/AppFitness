@@ -17,6 +17,7 @@ import {
   withAlpha,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { formatHeight, formatWeight, useUnits } from '@/shared/units';
 
 import type { EvaluationPreview } from '../../application/evaluation.service';
 import { ageOn, draftBmi, type EvaluationStep } from '../../domain/evaluation';
@@ -34,8 +35,8 @@ export function ReviewStep({ draft, today, preview, goStep }: ReviewStepProps) {
   const theme = useTheme();
   const { colors, spacing } = theme;
   const { language, t } = useLocalization();
-  const kg = (value: number) =>
-    formatQuantity(value, t('evaluation.unit.kg'), language, { maximumFractionDigits: 1 });
+  const { system } = useUnits();
+  const kg = (value: number) => formatWeight(value, system, language);
   const g = (value: number) => formatQuantity(value, 'g', language);
   const onCta = { color: colors.onCta };
   const bmi = draftBmi(draft);
@@ -48,10 +49,7 @@ export function ReviewStep({ draft, today, preview, goStep }: ReviewStepProps) {
       title: t('evaluation.step.measures'),
       value: interpolate(t('evaluation.review.measures'), {
         weight: draft.weightKg === null ? '—' : kg(draft.weightKg),
-        height:
-          draft.heightCm === null
-            ? '—'
-            : formatQuantity(draft.heightCm, t('evaluation.unit.cm'), language),
+        height: draft.heightCm === null ? '—' : formatHeight(draft.heightCm, system, language),
         age: draft.birthDate ? formatNumber(ageOn(draft.birthDate, today), language) : '—',
         bmi:
           bmi === null

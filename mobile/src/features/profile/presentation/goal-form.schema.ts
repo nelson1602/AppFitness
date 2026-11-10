@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { displayToKg, kgToDisplay, roundToTenth, type UnitSystem } from '@/shared/units';
+
 import type { Goal, GoalInput } from '../domain/goal.types';
 
 /**
@@ -37,10 +39,21 @@ const DEFAULT_MESSAGES: GoalValidationMessages = {
   validDate: 'Enter a valid date',
 };
 
-export function createGoalFormSchema(messages: GoalValidationMessages = DEFAULT_MESSAGES) {
+/**
+ * v10 Block C, item 9: the target weight is typed in the person's units; the
+ * bound stays 500 kg, expressed in those units.
+ */
+export function createGoalFormSchema(
+  messages: GoalValidationMessages = DEFAULT_MESSAGES,
+  system: UnitSystem = 'metric',
+) {
   const optionalWeight = z.preprocess(
     (v) => (v === '' || v === null || v === undefined ? undefined : v),
-    z.coerce.number().positive(messages.greaterThanZero).max(500, messages.tooLarge).optional(),
+    z.coerce
+      .number()
+      .positive(messages.greaterThanZero)
+      .max(kgToDisplay(500, system), messages.tooLarge)
+      .optional(),
   );
 
   const optionalDate = z.preprocess(
@@ -65,18 +78,21 @@ export type GoalFormInput = z.input<typeof goalFormSchema>;
 export type GoalFormOutput = z.output<typeof goalFormSchema>;
 
 /** Parsed, validated form output → domain GoalInput (persistence shape). */
-export function toGoalInput(values: GoalFormOutput): GoalInput {
+export function toGoalInput(values: GoalFormOutput, system: UnitSystem = 'metric'): GoalInput {
   return {
     goalType: values.goalType,
-    targetWeightKg: values.targetWeightKg ?? null,
+    targetWeightKg:
+      values.targetWeightKg === undefined ? null : displayToKg(values.targetWeightKg, system),
     targetDate: values.targetDate ?? null,
   };
 }
 
 /** Existing active goal → form defaults (edit prefill). Numbers become strings for inputs. */
-export function goalToFormValues(goal: Goal | null): GoalFormInput {
+export function goalToFormValues(goal: Goal | null, system: UnitSystem = 'metric'): GoalFormInput {
   const numStr = (n: number | null | undefined): string =>
-    n === null || n === undefined ? '' : String(n);
+    n === null || n === undefined
+      ? ''
+      : String(system === 'metric' ? n : roundToTenth(kgToDisplay(n, system)));
   return {
     goalType:
       goal?.goalType && goal.goalType !== 'REHABILITATION' ? goal.goalType : 'GENERAL_HEALTH',

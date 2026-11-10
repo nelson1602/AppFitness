@@ -11,7 +11,6 @@ import {
   formatKcal,
   formatKcalQuantity,
   formatNumber,
-  formatQuantity,
   interpolate,
   type TranslationKey,
   useLocalization,
@@ -31,6 +30,7 @@ import {
   Ring,
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
+import { formatWeight, useUnits } from '@/shared/units';
 
 import type { HomeEvaluation } from '../../application/use-home-data';
 import type { HomeSummary } from '../../domain/home-summary';
@@ -84,6 +84,7 @@ export function GoalCard({
 }) {
   const { colors, radius, spacing } = useTheme();
   const { language, t } = useLocalization();
+  const { system: units } = useUnits();
   const { done, goal, complete } = summary.week;
   const n = (value: number) => formatNumber(value, language);
   const onCta = { color: colors.onCta };
@@ -102,7 +103,7 @@ export function GoalCard({
           ? t('home.goal.leftOne')
           : interpolate(t('home.goal.leftMany'), { count: n(left) });
   const goalKey = goalType ? goalTypeShortLabelKey(goalType) : null;
-  const kg = (value: number) => formatQuantity(value, 'kg', language, { maximumFractionDigits: 1 });
+  const kg = (value: number) => formatWeight(value, units, language);
 
   return (
     <View
