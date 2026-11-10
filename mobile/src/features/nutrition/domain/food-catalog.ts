@@ -306,7 +306,7 @@ export const AVOID_TAG_LABELS: Record<AvoidTag, string> = {
   gluten_sensitive: 'Gluten',
   lactose_sensitive: 'Lactose / dairy',
   high_sodium_sensitive: 'High sodium',
-  high_purine: 'High purine (gout)',
+  high_purine: 'High uric acid',
   added_sugar: 'Added sugars',
   alcohol: 'Alcohol',
   caffeine: 'Caffeine',

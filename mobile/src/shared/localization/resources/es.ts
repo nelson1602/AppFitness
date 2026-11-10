@@ -332,7 +332,7 @@ export const es = {
   'evaluation.food.item.yam': 'Ñame',
   'evaluation.food.item.yautia': 'Yautía',
   'evaluation.food.item.high_sodium': 'Alto en sodio',
-  'evaluation.food.item.high_purine': 'Alto en purinas',
+  'evaluation.food.item.high_purine': 'Ácido úrico alto',
   'evaluation.food.item.added_sugar': 'Azúcares añadidos',
   'evaluation.food.item.alcohol': 'Alcohol',
   'evaluation.food.item.caffeine': 'Cafeína',
