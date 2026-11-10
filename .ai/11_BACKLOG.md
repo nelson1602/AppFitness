@@ -6061,10 +6061,10 @@ Open Food Facts is dropped.
 ### Acceptance Criteria
 
 * [ ] Phase 1: stage tokens, Sora/Inter, primitives, redesigned sign-in — automated checks pass; Android emulator and Web verified; owner visual approval
-* [ ] Biometric sign-in (ADR-P036, accepted and amended 2026-10-22), including the deferred login hint "Podrás activar Face ID o Huella al iniciar sesión." — **implemented** on `codex/redesign-p036-biometrics`. Still open:
-  * security review before merge
-  * device proof of the locked relaunch, unlock and sign-out (the Android emulator process kept segfaulting at app launch; Expo Go 57.0.9 needs an Expo login)
-  * iOS Face ID (TEST-006)
+* [ ] Biometric sign-in (ADR-P036, accepted and amended 2026-10-22; Amendment B 2026-11-10), including the deferred login hint "Podrás activar Face ID o Huella al iniciar sesión." — **implemented** on `codex/redesign-p036-biometrics` (PR #233), rebased onto v10 main for versionCode 10:
+  * the switch lives in Perfil → Seguridad (prototype), dark and light; "Face ID" only on Face ID iPhones, "huella digital" elsewhere
+  * Android device proof on EAS build 020167c9: link, locked relaunch, unlock, failed and cancelled prompts, sign-out erase, enrolment change → password fallback (`dist/v10-review/biometrics/`)
+  * still open: iOS Face ID / Touch ID on a real iPhone (TEST-006)
 * [ ] Tab shell, header, in-app notifications and welcome screen (ADR-P039 accepted first)
   * ADR-P039 accepted 2026-10-23. The tab shell, header, bell, in-app
     notifications, the Inicio layout and the welcome screen are on
