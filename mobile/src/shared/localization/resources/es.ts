@@ -1393,6 +1393,7 @@ export const es = {
   'nutrition.log.actionShort': 'Acción necesaria',
   'nutrition.log.pendingShort': 'Pendiente de sincronizar',
   'nutrition.log.servings': 'porciones',
+  'nutrition.log.servingOne': 'porción',
   'nutrition.log.remove': 'Eliminar',
   'nutrition.log.removeAccessibility': 'Eliminar',
   'nutrition.log.entries': 'registros',

@@ -266,6 +266,29 @@ describe('FoodLogScreen (Slice 4C)', () => {
     );
   });
 
+  it('says "1 porción" / "1 serving" and shows whole grams like Inicio (v10 Block C review)', async () => {
+    mockLanguage = 'es';
+    setState({
+      items: [
+        item({
+          servingCount: 1,
+          consumed: { calories: 540.7, proteinG: 61.7, carbsG: 0.4, fatG: 32.7, fiberG: null },
+        }),
+      ],
+      totals: { calories: 860.7, proteinG: 67.7, carbsG: 58, fatG: 39.7, fiberG: null },
+    });
+    const { rerender } = await render(<FoodLogScreen />);
+
+    expect(screen.getByTestId('edit-serving-i1-value')).toHaveTextContent(/^1\sporción$/);
+    expect(screen.getByText(/Proteína 62g/)).toBeOnTheScreen();
+    expect(screen.getByText(/Proteína 68 \/ 150g/)).toBeOnTheScreen();
+    expect(screen.queryByText(/67,7|61,7|32,7|39,7/)).toBeNull();
+
+    mockLanguage = 'en';
+    await rerender(<FoodLogScreen />);
+    expect(screen.getByTestId('edit-serving-i1-value')).toHaveTextContent(/^1\sserving$/);
+  });
+
   it('keeps the stored serving count out of the presentation change', async () => {
     mockLanguage = 'es';
     const logged = item({ servingCount: 1.5 });

@@ -19,6 +19,11 @@ const MIN = 0.25;
  * of every Spanish user. `Intl` already drops trailing zeros, which is what the
  * previous integer special-case was for.
  */
+/** "1 porción" / "1 serving", any other amount the plural (v10 Block C review). */
+export function servingsKey(count: number): 'nutrition.log.servingOne' | 'nutrition.log.servings' {
+  return count === 1 ? 'nutrition.log.servingOne' : 'nutrition.log.servings';
+}
+
 export function formatServingCount(value: number, language: SupportedLanguage): string {
   return formatNumber(value, language, { maximumFractionDigits: 2 });
 }
@@ -80,10 +85,10 @@ export function ServingStepper({
       <AppText
         variant="label"
         testID={`${testIDPrefix}-value`}
-        accessibilityLabel={`${formatServingCount(value, language)} ${t('nutrition.log.servings')}`}
+        accessibilityLabel={`${formatServingCount(value, language)} ${t(servingsKey(value))}`}
         style={{ minWidth: theme.spacing.x3l, textAlign: 'center' }}
       >
-        {formatQuantity(value, t('nutrition.log.servings'), language, {
+        {formatQuantity(value, t(servingsKey(value)), language, {
           maximumFractionDigits: 2,
         })}
       </AppText>
