@@ -121,6 +121,7 @@ export function GoalCard({
           accessibilityLabel={ringLabel}
           size={88}
           strokeWidth={10}
+          surface="cta"
           testID="home-week-ring"
           tone={complete ? 'success' : 'energy'}
           value={goal ? done / goal : 0}
@@ -163,6 +164,7 @@ export function GoalCard({
         {summary.weight ? (
           <ProgressBar
             accessibilityLabel={t('home.weight.label')}
+            surface="cta"
             testID="home-weight-bar"
             tone="cyan"
             value={summary.weight.progress}
@@ -173,7 +175,7 @@ export function GoalCard({
           </AppText>
         )}
       </View>
-      <Pulse gradientId="pulse-home" height={28} testID="home-goal-pulse" />
+      <Pulse gradientId="pulse-home" height={28} surface="cta" testID="home-goal-pulse" />
     </View>
   );
 }

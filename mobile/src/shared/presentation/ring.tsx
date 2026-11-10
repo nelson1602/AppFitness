@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
-import { useTheme } from '../theme';
+import { darkColors, useTheme } from '../theme';
 import { withAlpha } from './gradient-style';
 
 type RingTone = 'energy' | 'cyan' | 'success';
@@ -17,6 +17,8 @@ interface RingProps {
   strokeWidth?: number;
   /** Optional centre content (visible value). Hidden from AT; the label carries it. */
   children?: ReactNode;
+  /** `cta`: on the CTA blue — dark-mode accents and light track in both themes. */
+  surface?: 'stage' | 'cta';
   testID?: string;
 }
 
@@ -32,9 +34,11 @@ export function Ring({
   size = 96,
   strokeWidth = 9,
   children,
+  surface = 'stage',
   testID = 'ring',
 }: RingProps) {
-  const { colors } = useTheme();
+  const theme = useTheme();
+  const colors = surface === 'cta' ? darkColors : theme.colors;
   const clamped = Math.min(1, Math.max(0, Number.isFinite(value) ? value : 0));
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;

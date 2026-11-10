@@ -10,7 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
-import { useTheme } from '../theme';
+import { darkColors, useTheme } from '../theme';
 import { withAlpha } from './gradient-style';
 import { useReducedMotion } from './use-reduced-motion';
 
@@ -28,6 +28,8 @@ interface PulseProps {
   height?: number;
   /** Distinct per screen so two pulses never share a gradient id on Web. */
   gradientId: string;
+  /** `cta`: on the CTA blue — the dark-mode cyan→orange line in both themes. */
+  surface?: 'stage' | 'cta';
   testID?: string;
 }
 
@@ -38,8 +40,14 @@ interface PulseProps {
  * Under reduced motion it is completely still — the full line drawn in the
  * gradient, with no sweep — so no information depends on the movement.
  */
-export function Pulse({ height = 34, gradientId, testID = 'pulse' }: PulseProps) {
-  const { colors } = useTheme();
+export function Pulse({
+  height = 34,
+  gradientId,
+  surface = 'stage',
+  testID = 'pulse',
+}: PulseProps) {
+  const theme = useTheme();
+  const colors = surface === 'cta' ? darkColors : theme.colors;
   const reduceMotion = useReducedMotion();
   const offset = useSharedValue(DASH_CYCLE);
 

@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import { Dimensions, StyleSheet } from 'react-native';
 
-import { lightColors } from '@/shared/theme';
+import { withAlpha } from '@/shared/presentation';
+import { darkColors } from '@/shared/theme';
 
 import type { HomeSummary } from '../../domain/home-summary';
 import type { HomeEvaluation } from '../../application/use-home-data';
@@ -71,10 +72,19 @@ describe('GoalCard', () => {
     expect(screen.getByLabelText('2 of 4 workouts this week')).toBeOnTheScreen();
     expect(screen.getByTestId('home-goal-status')).toHaveTextContent('2 workouts to go');
     expect(screen.getByTestId('home-week-ring-arc').props.stroke).toEqual(
-      svgColor(lightColors.accentEnergy),
+      // On the CTA blue the ring keeps the dark-mode accents in both themes (v10 Block C review).
+      svgColor(darkColors.accentEnergy),
     );
     expect(screen.getByLabelText('Weight toward your goal')).toBeOnTheScreen();
     expect(screen.getByText('80 kg → 76 kg')).toBeOnTheScreen();
+    // v10 Block C review: the weight bar on the CTA blue is cyan on a light
+    // track in light mode too, never a dark track.
+    expect(
+      StyleSheet.flatten(screen.getByTestId('home-weight-bar').props.style).backgroundColor,
+    ).toBe(withAlpha(darkColors.onStage, 0.14));
+    expect(
+      StyleSheet.flatten(screen.getByTestId('home-weight-bar-fill').props.style).backgroundColor,
+    ).toBe(darkColors.accentCyan);
   });
 
   it('turns the ring green and says so once the week is complete', async () => {
@@ -90,7 +100,7 @@ describe('GoalCard', () => {
       'You completed every workout this week',
     );
     expect(screen.getByTestId('home-week-ring-arc').props.stroke).toEqual(
-      svgColor(lightColors.success),
+      svgColor(darkColors.success),
     );
   });
 
