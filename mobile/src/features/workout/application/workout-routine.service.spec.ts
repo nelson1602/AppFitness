@@ -165,8 +165,13 @@ describe('selectWorkoutRoutine', () => {
     expect(result.status).toBe('ready');
     if (result.status === 'ready') {
       expect(result.routine.sessions).toHaveLength(5);
+      // Jumping moves keep their own 6–8 range (rules @1.3.0), whatever the goal.
       const repeatedExercises = result.routine.sessions.flatMap((session) =>
-        session.exercises.filter((exercise) => exercise.target.kind === 'REPETITIONS'),
+        session.exercises.filter(
+          (exercise) =>
+            exercise.target.kind === 'REPETITIONS' &&
+            !getBuiltInExercise(exercise.exerciseKey)?.movementPatterns.includes('jumping'),
+        ),
       );
       expect(repeatedExercises.length).toBeGreaterThan(0);
       for (const exercise of repeatedExercises) {
@@ -356,6 +361,6 @@ describe('selectWorkoutRoutine', () => {
     }
 
     // And the routine identity moved with the rule that now filters it.
-    expect(result.routine.ruleVersion).toBe('icoach-workout-rules@1.2.0');
+    expect(result.routine.ruleVersion).toBe('icoach-workout-rules@1.3.0');
   });
 });

@@ -162,7 +162,7 @@ describe('rule-version boundaries', () => {
     expect(ENGINE_RULE_VERSION).toBe('icoach-rules@1.4.0');
     // The routine family moves with W-4D: routines are now filtered by the
     // user's declarations.
-    expect(WORKOUT_ROUTINE_RULE_VERSION).toBe('icoach-workout-rules@1.2.0');
+    expect(WORKOUT_ROUTINE_RULE_VERSION).toBe('icoach-workout-rules@1.3.0');
     // Weekly snapshots consume no wellness data, so their identity is frozen.
     expect(PROGRESS_SNAPSHOT_RULE_VERSION).toBe('icoach-rules@1.1.0');
 
