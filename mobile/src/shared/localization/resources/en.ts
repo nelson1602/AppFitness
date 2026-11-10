@@ -1512,6 +1512,22 @@ export const en = {
   'account.delete.deleteButton': 'Delete my account',
   'account.delete.cancelAccessibility': 'Cancel account deletion',
   'account.delete.cancel': 'Cancel',
+  'account.delete.retain.title': 'Before you go',
+  'account.delete.retain.lead':
+    'If you delete your account, everything is erased and can’t be recovered:',
+  'account.delete.retain.plan': 'Your iCoach training and meal plan',
+  'account.delete.retain.history':
+    'Your physical evaluation and your weight and measurement history',
+  'account.delete.retain.logs': 'Your food logs, workouts and past weeks',
+  'account.delete.retain.subscription':
+    'An active subscription is not cancelled automatically: cancel it in Google Play.',
+  'account.delete.retain.stay': 'I’d rather stay',
+  'account.delete.retain.stayAccessibility': 'I’d rather stay and keep my account',
+  'account.delete.retain.continue': 'Continue to delete',
+  'privacyData.title': 'Privacy & data',
+  'privacyData.rowAccessibility': 'Open privacy and data',
+  'privacyData.body': 'Read how we handle your data, or delete your account with all its data.',
+  'privacyData.deleteHint': 'Your account and all its data are erased. This can’t be undone.',
   'dashboard.gap.accessibility': 'Dashboard setup requirements',
   'dashboard.gap.title': 'Complete your basic info',
   'dashboard.gap.description':

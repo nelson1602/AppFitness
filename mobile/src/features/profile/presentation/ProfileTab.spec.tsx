@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { StyleSheet, type ViewStyle } from 'react-native';
 
 import { signOut } from '@/features/authentication';
@@ -206,11 +206,21 @@ describe('ProfileTab (ADR-P039)', () => {
     ['profile-goal', '/goal-edit'],
     ['profile-edit', '/profile-edit'],
     ['profile-subscription', '/subscription'],
-    ['profile-delete-account', '/delete-account'],
+    ['profile-privacy-data', '/privacy-data'],
   ] as const)('%s opens %s (never acts directly)', async (testID, href) => {
     await render(<ProfileTab />);
     await fireEvent.press(screen.getByTestId(testID));
     expect(push()).toHaveBeenCalledWith(href);
+  });
+
+  it('moves "Eliminar cuenta" into Cuenta y ajustes → Privacidad y datos (v10 Block C, item 12)', async () => {
+    mockLanguage = 'es';
+    await render(<ProfileTab />);
+
+    expect(screen.queryByTestId('profile-delete-account')).toBeNull();
+    expect(screen.queryByText('Eliminar cuenta')).toBeNull();
+    const panel = within(screen.getByTestId('profile-settings'));
+    expect(panel.getByRole('button', { name: 'Abrir privacidad y datos' })).toBeOnTheScreen();
   });
 
   it('lets the "Próximamente" chip wrap below the title instead of breaking the word (v8 Block 4)', async () => {

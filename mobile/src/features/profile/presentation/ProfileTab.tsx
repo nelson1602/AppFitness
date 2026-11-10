@@ -332,6 +332,13 @@ export function ProfileTab() {
           onPress={() => router.push('/subscription')}
           testID="profile-subscription"
         />
+        <GlassRow
+          accessibilityLabel={t('privacyData.rowAccessibility')}
+          icon="shield"
+          label={t('privacyData.title')}
+          onPress={() => router.push('/privacy-data')}
+          testID="profile-privacy-data"
+        />
         <LanguageSelector appearance="stage" />
         <PrivacyPolicyLink testID="profile-privacy-policy" />
       </Panel>
@@ -363,14 +370,8 @@ export function ProfileTab() {
           {t('dashboard.signOut')}
         </AppText>
       </Pressable>
-      <AppButton
-        accessibilityLabel={t('dashboard.deleteAccountAccessibility')}
-        onPress={() => router.push('/delete-account')}
-        testID="profile-delete-account"
-        variant="stage-link"
-      >
-        {t('dashboard.deleteAccount')}
-      </AppButton>
+      {/* v10 Block C, item 12: "Eliminar cuenta" now lives in Cuenta y ajustes →
+          Privacidad y datos, behind a retention step. */}
     </TabScreen>
   );
 }

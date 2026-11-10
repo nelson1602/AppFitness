@@ -34,6 +34,13 @@ jest.mock('@/shared/localization', () => {
 
 const mockDeleteAccount = jest.mocked(deleteAccount);
 
+/** v10 Block C: the confirmation comes after the retention step. */
+async function renderConfirmStep() {
+  await render(<DeleteAccountScreen />);
+  const label = mockLanguage === 'es' ? 'Continuar con la eliminación' : 'Continue to delete';
+  await fireEvent.press(screen.getByRole('button', { name: label }));
+}
+
 describe('DeleteAccountScreen (Step 6B product surface)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,8 +48,34 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
     mockLanguage = 'en';
   });
 
-  it('does not delete until the confirmation phrase is typed exactly', async () => {
+  it('opens on a retention step that says what is lost and offers to stay (v10 Block C, item 12)', async () => {
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+    mockLanguage = 'es';
     await render(<DeleteAccountScreen />);
+
+    expect(screen.getByRole('header', { name: 'Antes de irte' })).toBeOnTheScreen();
+    expect(screen.getByText(/plan de entrenamientos y de comidas/)).toBeOnTheScreen();
+    expect(screen.getByText(/historial de peso y medidas/)).toBeOnTheScreen();
+    expect(screen.getByText(/cancélala en Google Play/)).toBeOnTheScreen();
+    expect(screen.queryByTestId('input-confirm-phrase')).toBeNull();
+
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'Prefiero quedarme y conservar mi cuenta' }),
+    );
+    expect(router.back).toHaveBeenCalledTimes(1);
+    expect(mockDeleteAccount).not.toHaveBeenCalled();
+  });
+
+  it('reaches the typed confirmation only after "Continuar con la eliminación"', async () => {
+    mockLanguage = 'es';
+    await renderConfirmStep();
+
+    expect(screen.getByTestId('input-confirm-phrase')).toBeOnTheScreen();
+    expect(screen.queryByText('Antes de irte')).toBeNull();
+  });
+
+  it('does not delete until the confirmation phrase is typed exactly', async () => {
+    await renderConfirmStep();
 
     const confirm = screen.getByRole('button', { name: 'Permanently delete account' });
     // Disabled + guarded before the phrase matches.
@@ -59,7 +92,7 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
   it('deletes and routes to sign-in once DELETE is confirmed', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     mockDeleteAccount.mockResolvedValue(undefined);
-    await render(<DeleteAccountScreen />);
+    await renderConfirmStep();
 
     fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'DELETE');
     // Wait for the confirmation to enable the button before pressing.
@@ -78,7 +111,7 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
   it('shows a safe error and stays put when deletion fails', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     mockDeleteAccount.mockRejectedValue(new Error('500 boom token=secret'));
-    await render(<DeleteAccountScreen />);
+    await renderConfirmStep();
 
     fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'DELETE');
     await waitFor(() =>
@@ -99,7 +132,7 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
 
   it('cancel returns without deleting', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    await render(<DeleteAccountScreen />);
+    await renderConfirmStep();
 
     fireEvent.press(screen.getByRole('button', { name: 'Cancel account deletion' }));
 
@@ -109,7 +142,7 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
 
   it('renders the complete destructive action surface in Spanish', async () => {
     mockLanguage = 'es';
-    await render(<DeleteAccountScreen />);
+    await renderConfirmStep();
 
     // v8 Block 3: the stack header names the screen; the page does not repeat it.
     expect(screen.queryByText('Eliminar cuenta')).toBeNull();
@@ -132,7 +165,7 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
    * shrinking — to the viewport.
    */
   it('renders inside a scroll view so the keyboard cannot cover its actions', async () => {
-    await render(<DeleteAccountScreen />);
+    await renderConfirmStep();
 
     const root = screen.root;
     if (root === null) throw new Error('Screen rendered no root');
@@ -144,7 +177,7 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
   });
 
   it('keeps its content centred when the keyboard is absent', async () => {
-    await render(<DeleteAccountScreen />);
+    await renderConfirmStep();
 
     const root = screen.root;
     if (root === null) throw new Error('Screen rendered no root');

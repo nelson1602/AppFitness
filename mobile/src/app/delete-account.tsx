@@ -9,6 +9,12 @@ import { useTheme } from '@/shared/theme';
 
 const CONFIRM_PHRASE = 'DELETE';
 
+const RETAIN_ITEMS = [
+  'account.delete.retain.plan',
+  'account.delete.retain.history',
+  'account.delete.retain.logs',
+] as const;
+
 /**
  * Minimal, guarded account-deletion surface (ADR-P011 / Step 6B).
  * Deletion is immediate and irreversible (v1 — no recovery window), so
@@ -20,11 +26,53 @@ export default function DeleteAccountScreen() {
   const theme = useTheme();
   const { t } = useLocalization();
   const { status } = useSession();
+  // v10 Block C, item 12: a short retention step comes first.
+  const [step, setStep] = useState<'retain' | 'confirm'>('retain');
   const [phrase, setPhrase] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (status === 'unauthenticated') return <Redirect href="/sign-in" />;
+
+  if (step === 'retain') {
+    return (
+      <StageScreen style={{ flexGrow: 1 }}>
+        <Stack.Screen options={{ title: t('account.delete.screenTitle') }} />
+        <View style={{ flexGrow: 1, justifyContent: 'center', gap: theme.spacing.lg }}>
+          <Card>
+            <View style={{ gap: theme.spacing.md }}>
+              <AppText accessibilityRole="header" variant="title">
+                {t('account.delete.retain.title')}
+              </AppText>
+              <AppText>{t('account.delete.retain.lead')}</AppText>
+              {RETAIN_ITEMS.map((key) => (
+                <AppText key={key} tone="muted">
+                  {`•  ${t(key)}`}
+                </AppText>
+              ))}
+              <AppText tone="muted" variant="caption">
+                {t('account.delete.retain.subscription')}
+              </AppText>
+              <AppButton
+                accessibilityLabel={t('account.delete.retain.stayAccessibility')}
+                onPress={() => router.back()}
+                testID="delete-account-stay"
+              >
+                {t('account.delete.retain.stay')}
+              </AppButton>
+              <AppButton
+                onPress={() => setStep('confirm')}
+                testID="delete-account-continue"
+                variant="text"
+              >
+                {t('account.delete.retain.continue')}
+              </AppButton>
+            </View>
+          </Card>
+        </View>
+      </StageScreen>
+    );
+  }
 
   const confirmed = phrase.trim() === CONFIRM_PHRASE;
 
