@@ -15,7 +15,12 @@ import {
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import { foodDisplayName, searchFoodsForDisplay } from '../../application/food-display.service';
+import { foodDisplayName } from '../../application/food-display.service';
+import {
+  foodItemFromCanonical,
+  foodItemFromSearchResult,
+  saveChosenFood,
+} from '../../application/remote-food.service';
 import type { DietaryPreference } from '../../domain/dietary-preference';
 import {
   isLoggingBlocked,
@@ -24,12 +29,14 @@ import {
 } from '../../domain/dietary-preference-match';
 import type { AvoidTag, FoodItem, ServingUnit } from '../../domain/food-catalog';
 import { MEAL_SLOTS } from '../../domain/meal-plan';
+import type { FoodSearchResult } from '../../infrastructure/food-search-api';
+import { CustomFoodForm } from './CustomFoodForm';
+import { RemoteFoodResults } from './RemoteFoodResults';
 import { ServingStepper } from './ServingStepper';
+import { useFoodSearch } from './use-food-search';
 
 /** Same dimming as a disabled `AppButton` (S-4 read-only write controls). */
 const DISABLED_OPACITY = 0.56;
-
-const MAX_RESULTS = 8;
 
 const MEAL_KEY: Record<MealTypeName, TranslationKey> = {
   BREAKFAST: 'nutrition.plan.breakfast',
@@ -104,11 +111,17 @@ export function FoodLogAddForm({
   const [selected, setSelected] = useState<FoodItem | null>(null);
   const [mealType, setMealType] = useState<MealTypeName>(defaultMealType);
   const [servingCount, setServingCount] = useState(1);
+  // v10 Block B: a server result is saved (shared catalogue) only when added.
+  const [pending, setPending] = useState<FoodSearchResult | null>(null);
+  const [showCustom, setShowCustom] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
 
-  const results = useMemo(
-    () => (query.trim() ? searchFoodsForDisplay(query, language).slice(0, MAX_RESULTS) : []),
-    [language, query],
-  );
+  const {
+    local: results,
+    remote,
+    remoteStatus,
+  } = useFoodSearch(query, language, !paidWriteDisabled);
   const exclusion = useMemo(
     () => (selected ? matchFoodExclusion(selected, activePreferences) : null),
     [selected, activePreferences],
@@ -117,16 +130,33 @@ export function FoodLogAddForm({
 
   const reset = (): void => {
     setSelected(null);
+    setPending(null);
+    setShowCustom(false);
+    setSaveFailed(false);
     setQuery('');
     setServingCount(1);
   };
 
   const blocked = isLoggingBlocked(exclusion);
 
-  const submit = (): void => {
-    if (!selected || blocked) return;
-    onAdd(selected.id, mealType, servingCount);
-    reset();
+  const submit = async (): Promise<void> => {
+    if (!selected || blocked || saving) return;
+    if (!pending) {
+      onAdd(selected.id, mealType, servingCount);
+      reset();
+      return;
+    }
+    setSaving(true);
+    setSaveFailed(false);
+    try {
+      const food = await saveChosenFood(pending);
+      onAdd(food.catalogKey, mealType, servingCount);
+      reset();
+    } catch {
+      setSaveFailed(true);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -187,6 +217,7 @@ export function FoodLogAddForm({
           onChangeText={(text) => {
             setQuery(text);
             setSelected(null);
+            setPending(null);
           }}
         />
 
@@ -232,10 +263,48 @@ export function FoodLogAddForm({
           </View>
         ) : null}
 
-        {!selected && query.trim() && results.length === 0 ? (
+        {!selected && !showCustom ? (
+          <RemoteFoodResults
+            disabled={paidWriteDisabled}
+            onChoose={(result) => {
+              setSelected(foodItemFromSearchResult(result));
+              setPending(result);
+            }}
+            results={remote}
+            status={remoteStatus}
+          />
+        ) : null}
+
+        {!selected &&
+        query.trim() &&
+        results.length === 0 &&
+        remote.length === 0 &&
+        remoteStatus !== 'loading' ? (
           <AppText tone="muted" testID="food-search-no-results">
             {t('nutrition.log.noResults')}
           </AppText>
+        ) : null}
+
+        {!selected && query.trim() && !showCustom && !paidWriteDisabled ? (
+          <AppButton
+            onPress={() => setShowCustom(true)}
+            testID="custom-food-open"
+            variant="stage-secondary"
+          >
+            {t('nutrition.custom.open')}
+          </AppButton>
+        ) : null}
+
+        {!selected && showCustom ? (
+          <CustomFoodForm
+            initialName={query}
+            offline={remoteStatus === 'offline'}
+            onCancel={() => setShowCustom(false)}
+            onCreated={(food) => {
+              setSelected(foodItemFromCanonical(food));
+              setShowCustom(false);
+            }}
+          />
         ) : null}
 
         {selected ? (
@@ -258,11 +327,13 @@ export function FoodLogAddForm({
               onChange={setServingCount}
               testIDPrefix="add-serving"
             />
+            {saveFailed ? <Banner title={t('nutrition.search.saveError')} tone="error" /> : null}
             <AppButton
               accessibilityLabel={`${t('nutrition.log.logAccessibility')} ${selectedDisplayName}`}
               disabled={blocked}
+              loading={saving}
               testID="food-log-add-submit"
-              onPress={submit}
+              onPress={() => void submit()}
             >
               {t('nutrition.log.addButton')}
             </AppButton>

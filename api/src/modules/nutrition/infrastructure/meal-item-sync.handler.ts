@@ -97,9 +97,13 @@ export class MealItemSyncHandler implements EntitySyncHandler {
         }
 
         // Resolve the referenced immutable food revision and derive the
-        // snapshot server-side. Unknown/unsupported revision → non-retryable,
-        // actionable.
-        const food = await this.mealItems.findActiveFood(tx, input.foodId);
+        // snapshot server-side. Unknown/unsupported revision — or another
+        // user's private custom food (ADR-P045) → non-retryable, actionable.
+        const food = await this.mealItems.findActiveFood(
+          tx,
+          userId,
+          input.foodId,
+        );
         if (!food) {
           throw new SyncApplyError(
             SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED,

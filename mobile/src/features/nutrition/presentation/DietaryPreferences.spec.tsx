@@ -8,6 +8,7 @@ import type { DietaryPreference } from '../domain/dietary-preference';
 import type { DietaryPreferenceState } from '../application/dietary-preference.store';
 import { DietaryPreferences } from './DietaryPreferences';
 import { PaidWriteDisabledProvider } from '@/shared/presentation';
+import { otherLanguageStrings } from '@/shared/localization/language-leak.testkit';
 
 const load = jest.fn();
 const add = jest.fn();
@@ -27,7 +28,11 @@ jest.mock('@/shared/localization', () => {
   const { es } = jest.requireActual('@/shared/localization/resources/es') as {
     es: Record<string, string>;
   };
+  const { interpolate } = jest.requireActual('@/shared/localization/format') as {
+    interpolate: (value: string, replacements: Record<string, string>) => string;
+  };
   return {
+    interpolate,
     useLocalization: () => ({
       language: mockLanguage,
       t: (key: string) => (mockLanguage === 'es' ? es[key] : en[key]) ?? key,
@@ -210,7 +215,7 @@ describe('DietaryPreferences', () => {
     expect(StyleSheet.flatten(result.props.style).minHeight).toBeGreaterThanOrEqual(48);
   });
 
-  it('adds an explicit catalog-food exclusion via search and selection', async () => {
+  it('adds an explicit catalog-food exclusion as soon as a result is chosen', async () => {
     setStore({ status: 'ready', preferences: [] });
     await render(<DietaryPreferences />);
 
@@ -218,8 +223,9 @@ describe('DietaryPreferences', () => {
     await fireEvent.press(screen.getByTestId('dp-kind-preference'));
     fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pomegranate');
     await fireEvent.press(await screen.findByTestId('dp-food-result-food.pomegranate'));
-    await fireEvent.press(screen.getByTestId('dp-add'));
 
+    // Choosing the result is the add: food mode has no separate add button.
+    expect(screen.queryByTestId('dp-add')).toBeNull();
     expect(add).toHaveBeenCalledWith({
       exclusionType: 'catalog_key',
       catalogKey: 'food.pomegranate',
@@ -236,7 +242,6 @@ describe('DietaryPreferences', () => {
     await fireEvent.press(screen.getByTestId('dp-mode-food'));
     fireEvent.changeText(screen.getByTestId('dp-food-search'), 'granada');
     await fireEvent.press(await screen.findByText('Semillas de granada'));
-    await fireEvent.press(screen.getByTestId('dp-add'));
 
     expect(screen.getByText('Preferencias y alergias alimentarias')).toBeOnTheScreen();
     expect(add).toHaveBeenCalledWith({
@@ -494,19 +499,30 @@ describe('DietaryPreferences inputs (UX-5, BUG-027)', () => {
     expect(screen.getByTestId('dp-note').props.value).toBe('reacts badly');
   });
 
-  it('clears the selected food when the search query changes', async () => {
+  it('clears the search after an add so the next food can be searched', async () => {
     await render(<DietaryPreferences />);
     await fireEvent.press(screen.getByTestId('dp-mode-food'));
 
     await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pomegranate');
     await fireEvent.press(await screen.findByTestId('dp-food-result-food.pomegranate'));
-    expect(screen.getByText(/^Selected:/)).toBeOnTheScreen();
-    expect(screen.getByTestId('dp-add')).toBeEnabled();
 
+    await waitFor(() => expect(screen.getByTestId('dp-food-search').props.value).toBe(''));
+    expect(screen.queryByTestId('dp-food-result-food.pomegranate')).toBeNull();
+    // The field stays usable for the next food.
     await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pomegranat');
-    expect(screen.queryByText(/^Selected:/)).not.toBeOnTheScreen();
-    expect(screen.getByTestId('dp-add')).toBeDisabled();
     expect(await screen.findByTestId('dp-food-result-food.pomegranate')).toBeOnTheScreen();
+  });
+
+  it('keeps the query when the store rejects the add', async () => {
+    add.mockResolvedValue(false);
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+
+    await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pomegranate');
+    await fireEvent.press(await screen.findByTestId('dp-food-result-food.pomegranate'));
+
+    await waitFor(() => expect(add).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('dp-food-search').props.value).toBe('pomegranate');
   });
 
   it.each([
@@ -602,4 +618,152 @@ describe('S-4 read-only write boundary', () => {
     await fireEvent.press(screen.getByTestId('dp-add'));
     expect(add).not.toHaveBeenCalled();
   });
+});
+
+/**
+ * v10 Block B item 8 (owner): choosing a search result adds the food to the
+ * excluded list at once, as a chip with its Spanish name and an X to remove it.
+ * The "Seleccionado: Soy milk, unsweetened" line is gone. It also showed the
+ * English name, because the lookup went through the canonical catalogue's UUID
+ * ids, which the Spanish table never matched.
+ */
+describe('DietaryPreferences exclusion picker (v10 item 8)', () => {
+  const soyPref: DietaryPreference = {
+    ...tagPref,
+    id: 'dp-soy',
+    exclusionType: 'catalog_key',
+    avoidTag: null,
+    catalogKey: 'food.soy_milk_unsweet',
+    hasNote: false,
+    syncStatus: 'synced',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLanguage = 'es';
+    remove.mockResolvedValue(true);
+    setStore({ status: 'ready', preferences: [] });
+    // The store appends the saved row, as the real one does after a local write.
+    add.mockImplementation(async (input: { catalogKey?: string }) => {
+      if (input.catalogKey === 'food.soy_milk_unsweet') {
+        mockState = { ...mockState, preferences: [...mockState.preferences, soyPref] };
+      }
+      return true;
+    });
+  });
+
+  it('adds the chosen result as a Spanish chip whose X removes it', async () => {
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+    await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'leche de soya');
+    await fireEvent.press(await screen.findByTestId('dp-food-result-food.soy_milk_unsweet'));
+
+    expect(add).toHaveBeenCalledWith({
+      exclusionType: 'catalog_key',
+      catalogKey: 'food.soy_milk_unsweet',
+      kind: 'allergy',
+      note: null,
+    });
+    const chip = await screen.findByTestId('dp-excluded-dp-soy');
+    expect(chip).toHaveTextContent('Leche de soya sin azúcar');
+    expect(screen.getByText('Alimentos excluidos')).toBeOnTheScreen();
+
+    const x = screen.getByLabelText('Quitar Leche de soya sin azúcar');
+    expect(x.props.testID).toBe('dp-excluded-dp-soy-remove');
+    await fireEvent.press(x);
+    expect(remove).toHaveBeenCalledWith('dp-soy');
+  });
+
+  it.each(['es', 'en'] as const)(
+    'never renders a "Seleccionado" / "Selected" line (%s)',
+    async (language) => {
+      mockLanguage = language;
+      await render(<DietaryPreferences />);
+      await fireEvent.press(screen.getByTestId('dp-mode-food'));
+      await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'soy milk');
+      await fireEvent.press(await screen.findByTestId('dp-food-result-food.soy_milk_unsweet'));
+
+      expect(screen.queryByText(/Seleccionado|Selected/)).toBeNull();
+    },
+  );
+
+  it('shows Spanish names in the results, even for an English query', async () => {
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+    await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'soy milk');
+
+    expect(await screen.findByTestId('dp-food-result-food.soy_milk_unsweet')).toHaveTextContent(
+      'Leche de soya sin azúcar',
+    );
+    expect(screen.queryByText('Soy milk, unsweetened')).toBeNull();
+  });
+
+  it('shows the English name in English', async () => {
+    mockLanguage = 'en';
+    setStore({ status: 'ready', preferences: [soyPref] });
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+
+    expect(screen.getByTestId('dp-excluded-dp-soy')).toHaveTextContent('Soy milk, unsweetened');
+    expect(screen.getByLabelText('Remove Soy milk, unsweetened')).toBeOnTheScreen();
+    expect(screen.getByText('Excluded foods')).toBeOnTheScreen();
+  });
+
+  it('shows the Spanish name in the exclusions list too', async () => {
+    setStore({ status: 'ready', preferences: [soyPref] });
+    await render(<DietaryPreferences />);
+
+    expect(screen.getByText('Leche de soya sin azúcar · alimento')).toBeOnTheScreen();
+  });
+
+  it('marks an already-excluded food in the results and never adds it twice', async () => {
+    setStore({ status: 'ready', preferences: [soyPref] });
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+    await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'leche de soya');
+
+    const result = await screen.findByTestId('dp-food-result-food.soy_milk_unsweet');
+    expect(result).toHaveTextContent('Leche de soya sin azúcar · Ya excluido');
+    expect(result.props.accessibilityState).toMatchObject({ selected: true, disabled: true });
+    await fireEvent.press(result);
+    expect(add).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId('dp-excluded-dp-soy')).toHaveLength(1);
+  });
+
+  it('gives the chip X at least a 48 by 48 touch target', async () => {
+    setStore({ status: 'ready', preferences: [soyPref] });
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+
+    const x = StyleSheet.flatten(screen.getByTestId('dp-excluded-dp-soy-remove').props.style);
+    expect(x.minHeight).toBeGreaterThanOrEqual(48);
+    expect(x.minWidth).toBeGreaterThanOrEqual(48);
+  });
+
+  it('keeps the X and the results inert while a write is saving', async () => {
+    setStore({ status: 'saving', preferences: [soyPref] });
+    await render(<DietaryPreferences />);
+    await fireEvent.press(screen.getByTestId('dp-mode-food'));
+    await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'pomegranate');
+
+    const x = screen.getByTestId('dp-excluded-dp-soy-remove');
+    expect(x.props.accessibilityState).toMatchObject({ disabled: true });
+    await fireEvent.press(x);
+    await fireEvent.press(await screen.findByTestId('dp-food-result-food.pomegranate'));
+    expect(remove).not.toHaveBeenCalled();
+    expect(add).not.toHaveBeenCalled();
+  });
+
+  it.each(['es', 'en'] as const)(
+    'leaks no other-language copy in the picker (%s)',
+    async (language) => {
+      mockLanguage = language;
+      setStore({ status: 'ready', preferences: [soyPref] });
+      await render(<DietaryPreferences />);
+      await fireEvent.press(screen.getByTestId('dp-mode-food'));
+      await fireEvent.changeText(screen.getByTestId('dp-food-search'), 'soy');
+
+      expect(otherLanguageStrings(screen.root, language)).toEqual([]);
+    },
+  );
 });

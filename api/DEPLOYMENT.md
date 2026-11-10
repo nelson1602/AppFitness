@@ -36,6 +36,7 @@ injected via environment variables.
 | `REVENUECAT_WEBHOOK_AUTH_TOKEN` | Required when enabled; at least 32 characters. Configure the same opaque value as the RevenueCat webhook Authorization header. Use a different value per hosted environment |
 | `REVENUECAT_WEBHOOK_SIGNING_SECRET` | Required when enabled; at least 32 characters. Verifies `X-RevenueCat-Webhook-Signature` over the exact raw request body. Use a different value per hosted environment |
 | `REVENUECAT_ENTITLEMENT_ID` | Required when enabled; the single RevenueCat entitlement identifier. ADR-P034 fixes this to `appfitness_pro` |
+| `FDC_API_KEY` | Optional (ADR-P045). USDA FoodData Central key for `GET /foods/search` and `POST /foods/import`. Free api.data.gov key: sign up at https://fdc.nal.usda.gov/api-key-signup (default limit 1,000 requests/hour per key). Unset ⇒ FDC is skipped, search still answers from the catalogue and Open Food Facts (`external: 'partial'`), and one warning is logged at startup. Secret — never logged (the value) and never shipped to the app. Use a different key per hosted environment. Open Food Facts needs no key, but its data is ODbL-licensed: the app must show "Datos de Open Food Facts" wherever OFF-sourced food data is displayed |
 
 Rules: secrets exist ONLY in Railway's variable store. Never reuse
 local `.env` values, never commit values, never share keys between
