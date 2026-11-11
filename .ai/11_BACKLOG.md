@@ -3430,7 +3430,7 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ## [BUG-048] A Second Edit Before Sync Conflicts With the First
 
-Status: Fixed in PR (codex/bug048-queued-base-version), pending owner review
+Status: Fixed in PR #252 (codex/bug048-queued-base-version), pending owner review
 Priority: P1
 Type: Bug
 Owner: Engineering
@@ -3462,7 +3462,7 @@ Cause: every repository bases an edit on the local row's `version`, which only c
   weekly_plans and meals queue only CREATE.
 
 - [x] 4 quick stepper taps offline → 1 op → 0 conflicts; edit while a push is in flight → chained, 0 conflicts (`sync-queue.coalesce.spec.ts`)
-- [ ] Device proof on the local stack (`dist/v10-review/bug-048/`)
+- [x] Device proof on the local stack (local e2e build of 9ea8783): 4 stepper taps offline → 1 queued op (base 1) → `POST /sync/push 207B ops=1 201` → server serving_count 1, version 2, 0 sync_conflicts (`dist/v10-review/bug-048/`)
 
 ---
 
