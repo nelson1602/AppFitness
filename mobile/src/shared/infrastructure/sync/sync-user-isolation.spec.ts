@@ -311,7 +311,8 @@ describe('quarantined rows are unreachable from every session', () => {
 describe('the owning user sync behaviour is unchanged', () => {
   it('runs the ordinary enqueue -> peek -> apply lifecycle', async () => {
     await enqueueUpdate(A, 'op-1', 'bw-a');
-    await enqueueUpdate(A, 'op-2', 'bw-a');
+    // A second entity: two edits to one entity fold into one op (BUG-048).
+    await enqueueUpdate(A, 'op-2', 'bw-b');
 
     const batch = await peekReady(A, NOW, 50);
     expect(batch.map((row) => row.op_id)).toEqual(['op-1', 'op-2']); // FIFO by rowid

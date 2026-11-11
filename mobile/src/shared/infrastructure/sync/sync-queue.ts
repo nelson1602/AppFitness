@@ -36,11 +36,28 @@ export async function enqueue(
   // inactive account can never accumulate edits that merely look saved.
   assertPaidMutationAccess(input.userId);
 
-  // Sensitive payloads (medical free-text) are encrypted at rest even in
-  // the queue: stored as {"__enc": "<base64>"} (ADR-P001).
-  const payloadText = input.sensitive
-    ? JSON.stringify({ __enc: await encryptToBase64(JSON.stringify(input.payload)) })
-    : JSON.stringify(input.payload);
+  // BUG-048: a repository bases an edit on the local row's version, which only
+  // moves on pull. A second edit to an entity whose earlier op is still queued
+  // would carry that same stale version and conflict with the first once it is
+  // applied. So an UPDATE folds into an earlier queued UPDATE, and anything
+  // else is based on the version the earlier op will produce.
+  let baseVersion = input.baseVersion;
+  if (input.operation === 'UPDATE' || input.operation === 'DELETE') {
+    const prior = await latestQueuedOp(input, tx);
+    if (prior) {
+      if (
+        input.operation === 'UPDATE' &&
+        prior.operation === 'UPDATE' &&
+        prior.status !== 'IN_FLIGHT'
+      ) {
+        if (await mergeIntoQueuedUpdate(prior, input, nowIso, tx)) return;
+        // It went on the wire meanwhile: chain behind it instead.
+      }
+      baseVersion = versionProducedBy(prior);
+    }
+  }
+
+  const payloadText = await encodeQueuePayload(input.payload, input.sensitive === true);
 
   await run(
     `INSERT INTO sync_queue
@@ -54,12 +71,75 @@ export async function enqueue(
       input.entityId,
       input.operation,
       payloadText,
-      input.baseVersion,
+      baseVersion,
       nowIso,
       nowIso,
     ],
     tx,
   );
+}
+
+/**
+ * Sensitive payloads (medical free-text) are encrypted at rest even in the
+ * queue: stored as {"__enc": "<base64>"} (ADR-P001).
+ */
+async function encodeQueuePayload(
+  payload: Record<string, unknown>,
+  sensitive: boolean,
+): Promise<string> {
+  return sensitive
+    ? JSON.stringify({ __enc: await encryptToBase64(JSON.stringify(payload)) })
+    : JSON.stringify(payload);
+}
+
+/**
+ * The newest op for the same entity that will still reach the server: queued,
+ * retrying or on the wire. Parked ops (CONFLICT, ACTION_REQUIRED) are excluded:
+ * they wait for the person, and the server version behind them is unknown.
+ */
+function latestQueuedOp(input: EnqueueInput, tx?: SqlExecutor): Promise<SyncQueueRow | null> {
+  return queryFirst<SyncQueueRow>(
+    `SELECT * FROM sync_queue
+     WHERE user_id = ? AND entity_type = ? AND entity_id = ?
+       AND status IN ('PENDING', 'FAILED', 'IN_FLIGHT')
+     ORDER BY rowid DESC
+     LIMIT 1`,
+    [input.userId, input.entityType, input.entityId],
+    tx,
+  );
+}
+
+/** The server version an op leaves behind: a CREATE makes 1, an edit adds 1. */
+function versionProducedBy(op: SyncQueueRow): number {
+  return op.operation === 'CREATE' ? 1 : op.base_version + 1;
+}
+
+/**
+ * Folds a new UPDATE into a queued one (BUG-048): the later value of each
+ * field wins, fields only the earlier edit set are kept, and the earlier op
+ * keeps its base version, op id and place in the queue. Returns false when the
+ * row left PENDING/FAILED in the meantime (the worker claimed it), so nothing
+ * is lost: the caller then queues the change as its own op.
+ */
+async function mergeIntoQueuedUpdate(
+  prior: SyncQueueRow,
+  input: EnqueueInput,
+  nowIso: string,
+  tx?: SqlExecutor,
+): Promise<boolean> {
+  const earlier = await readQueuePayload(prior);
+  const merged = { ...earlier.payload, ...input.payload };
+  const payloadText = await encodeQueuePayload(
+    merged,
+    earlier.sensitive || input.sensitive === true,
+  );
+  const { changes } = await run(
+    `UPDATE sync_queue SET payload = ?, updated_at = ?
+     WHERE op_id = ? AND user_id = ? AND status IN ('PENDING', 'FAILED')`,
+    [payloadText, nowIso, prior.op_id, input.userId],
+    tx,
+  );
+  return changes === 1;
 }
 
 /** Decodes a queue row's payload, decrypting the sensitive envelope if present. */
@@ -92,6 +172,11 @@ export async function readQueuePayload(
  * applied and removed, the later ops become eligible in FIFO order on the next
  * batch. Other entities are never held back. A held op is simply not selected,
  * so an entity waiting on its CREATE adds no work to the push loop.
+ *
+ * **An earlier edit is a barrier too (BUG-048).** An UPDATE or DELETE chained
+ * to the version an earlier UPDATE/DELETE will produce waits while that op is
+ * still PENDING, IN_FLIGHT or FAILED, so it can never reach the server first.
+ * Parked ops (CONFLICT, ACTION_REQUIRED) do not hold it back.
  */
 export async function peekReady(
   userId: string,
@@ -110,9 +195,31 @@ export async function peekReady(
                AND barrier.entity_id = sync_queue.entity_id
                AND barrier.operation = 'CREATE'
                AND barrier.rowid < sync_queue.rowid))
+       AND NOT (operation IN ('UPDATE','DELETE') AND EXISTS (
+             SELECT 1 FROM sync_queue AS ahead
+             WHERE ahead.user_id = sync_queue.user_id
+               AND ahead.entity_type = sync_queue.entity_type
+               AND ahead.entity_id = sync_queue.entity_id
+               AND ahead.operation IN ('UPDATE','DELETE')
+               AND ahead.status IN ('PENDING','IN_FLIGHT','FAILED')
+               AND ahead.rowid < sync_queue.rowid))
      ORDER BY rowid ASC
      LIMIT ?`,
     [userId, nowIso, limit],
+  );
+}
+
+/**
+ * The claimed rows as they are now (BUG-048). Read after `markInFlight`, so a
+ * change merged into a row before it was claimed is always the one sent.
+ */
+export function readClaimed(userId: string, opIds: readonly string[]): Promise<SyncQueueRow[]> {
+  if (opIds.length === 0) return Promise.resolve([]);
+  return queryAll<SyncQueueRow>(
+    `SELECT * FROM sync_queue
+     WHERE user_id = ? AND status = 'IN_FLIGHT' AND op_id IN (${opIds.map(() => '?').join(', ')})
+     ORDER BY rowid ASC`,
+    [userId, ...opIds],
   );
 }
 

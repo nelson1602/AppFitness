@@ -57,6 +57,8 @@ jest.mock('./sync-queue', () => ({
   markFailed: jest.fn(),
   markInFlight: jest.fn(),
   peekReady: jest.fn(),
+  // BUG-048: the worker re-reads its claimed rows; here they are the peeked batch.
+  readClaimed: jest.fn(async () => (await mockPeekReady.mock.results.at(-1)?.value) ?? []),
   readQueuePayload: jest.fn(),
   // BUG-030: nothing is abandoned in these unit scenarios.
   recoverAbandonedInFlight: jest.fn(() => Promise.resolve(0)),
