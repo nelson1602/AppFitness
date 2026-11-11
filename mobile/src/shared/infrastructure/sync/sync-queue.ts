@@ -3,6 +3,7 @@ import { decryptFromBase64, encryptToBase64 } from '../crypto/field-cipher';
 import { queryAll, queryFirst, run, type SqlExecutor } from '../database';
 import type { SyncQueueRow } from '../database/types';
 import { computeNextRetryAt } from './backoff';
+import { notifyEnqueued } from './sync-events';
 import type { EnqueueInput } from './types';
 
 /**
@@ -50,7 +51,10 @@ export async function enqueue(
         prior.operation === 'UPDATE' &&
         prior.status !== 'IN_FLIGHT'
       ) {
-        if (await mergeIntoQueuedUpdate(prior, input, nowIso, tx)) return;
+        if (await mergeIntoQueuedUpdate(prior, input, nowIso, tx)) {
+          notifyEnqueued(input.userId);
+          return;
+        }
         // It went on the wire meanwhile: chain behind it instead.
       }
       baseVersion = versionProducedBy(prior);
@@ -77,6 +81,7 @@ export async function enqueue(
     ],
     tx,
   );
+  notifyEnqueued(input.userId);
 }
 
 /**

@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 import { useSession } from '@/features/authentication';
 import { landingRouteFor } from '@/features/authentication/application/access-gate';
 import { DashboardSkeleton } from '@/features/dashboard/presentation/components/dashboard-skeleton';
+import { useAutoSync } from '@/features/dashboard/presentation/use-auto-sync';
 import { useEvaluationGate } from '@/features/evaluation/application/evaluation-gate.store';
 import { useWelcomePending } from '@/features/shell/application/welcome-gate';
 import { TabShell } from '@/features/shell/presentation/tab-shell';
@@ -22,6 +23,13 @@ export default function TabsLayout() {
   const welcomePending = useWelcomePending();
   const active = TABS.find((tab) => pathname === tab.href || pathname.endsWith(tab.href));
   const activeName: TabName = active?.name ?? 'dashboard';
+  // BUG-049: local writes sync on their own once the shell is open.
+  const shellOpen =
+    status === 'authenticated' &&
+    !!session &&
+    landingRouteFor(session.user) === '/dashboard' &&
+    evaluation === 'done';
+  useAutoSync(shellOpen && session ? session.user.id : null);
 
   if (status === 'unknown')
     return (

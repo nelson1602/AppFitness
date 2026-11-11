@@ -59,6 +59,7 @@ export {
   type SettlementCondition,
 } from './conflict-presenter';
 export { getCursor, setCursor } from './sync-state';
+export { notifyEnqueued, onEnqueued } from './sync-events';
 export {
   allAppliers,
   allPrePushHooks,
