@@ -513,6 +513,22 @@ describe('what the last action meant', () => {
     expect(JSON.stringify(screen.toJSON())).not.toContain('RESOLVED_SERVER_WINS');
   });
 
+  it('names a server error without calling it offline (v10)', async () => {
+    setStore({ conflicts: [conflict()], notice: { kind: 'serverError', conflictId: 'x' } });
+    await render(<SyncConflictsScreen />);
+
+    expect(screen.getByText(en['sync.settlement.serverErrorTitle'])).toBeOnTheScreen();
+    expect(screen.queryByText(en['sync.conflicts.offlineTitle'])).toBeNull();
+  });
+
+  it('offers Suscripción when settling answered 402 (v10)', async () => {
+    setStore({ conflicts: [conflict()], notice: { kind: 'subscription', conflictId: 'x' } });
+    await render(<SyncConflictsScreen />);
+
+    expect(screen.getByText(en['subscription.requiredTitle'])).toBeOnTheScreen();
+    expect(screen.getByTestId('sync-conflicts-subscription-open')).toBeOnTheScreen();
+  });
+
   it('is truthful about offline: stored now, finished later', async () => {
     setStore({ conflicts: [conflict()], notice: { kind: 'offline', conflictId: 'x' } });
     await render(<SyncConflictsScreen />);

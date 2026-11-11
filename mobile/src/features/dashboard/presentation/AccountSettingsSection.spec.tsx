@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { StyleSheet, type ViewStyle } from 'react-native';
 
 import type { DashboardData, DashboardState } from '../domain/dashboard.types';
@@ -664,4 +664,55 @@ describe('AccountSettingsSection language guard (v8.1)', () => {
       expect(otherLanguageStrings(screen.root, language)).toEqual([]);
     },
   );
+});
+
+// v10: a 402 from sync gets its own message and a way to Suscripción — never
+// "check your connection" — and the queued changes stay on the phone.
+describe('AccountSettingsSection sync problems (v10 402/413)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockLanguage = 'es';
+    mockHomeSummary = EMPTY_SUMMARY;
+  });
+
+  function withProblem(problem: 'subscription' | 'server') {
+    setStore({
+      status: 'ready',
+      data: { ...baseData, sync: { ...baseData.sync, status: 'error', problem, pending: 4 } },
+    });
+  }
+
+  it('says a subscription is needed and opens Suscripción', async () => {
+    withProblem('subscription');
+    const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+
+    await render(<AccountSettingsSection />);
+
+    expect(
+      within(screen.getByTestId('sync-subscription-required')).getByText(
+        'Necesitas una suscripción activa para guardar esto',
+      ),
+    ).toBeOnTheScreen();
+    expect(
+      screen.getByText(
+        'Lo que registraste sigue guardado en tu teléfono y se sincronizará cuando tu suscripción esté activa.',
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(/conexión/i)).toBeNull();
+    await fireEvent.press(screen.getByTestId('sync-subscription-required-open'));
+    expect(router.push).toHaveBeenCalledWith('/subscription');
+  });
+
+  it('names a server error as such, without the subscription button or "sin conexión"', async () => {
+    withProblem('server');
+
+    await render(<AccountSettingsSection />);
+
+    expect(screen.getByTestId('dashboard-sync-now')).toHaveProp(
+      'accessibilityLabel',
+      expect.stringContaining('El servidor no pudo guardar tus cambios'),
+    );
+    expect(screen.queryByTestId('sync-subscription-required')).toBeNull();
+    expect(screen.queryByText(/sin conexión/i)).toBeNull();
+  });
 });

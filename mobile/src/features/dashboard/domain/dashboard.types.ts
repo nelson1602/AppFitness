@@ -21,7 +21,8 @@ export interface DashboardAssessment {
  * Why the last sync run ended without pushing (v8.1): the session could not
  * be renewed, the account cannot write, or something failed on the device.
  */
-export type SyncProblem = 'session' | 'subscription' | 'unexpected';
+/** v10: `server` — the server answered with an error (never shown as offline). */
+export type SyncProblem = 'session' | 'subscription' | 'server' | 'unexpected';
 
 /** A queued change still waiting for the server, without its payload. */
 export interface UnsyncedChange {

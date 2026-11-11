@@ -3428,6 +3428,39 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-047] 402 Shown as "Check Your Connection"; Sync Push Over the 100 kB Body Limit
+
+Status: Fixed in PR #251 (codex/fix-402-413), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-11
+Updated: 2026-11-11
+
+### Description
+
+The owner's device report on versionCode 10 against Development (lucid-flexibility, REVENUECAT_PROVIDER=revenuecat):
+
+- **402 shown as a connection error.** `POST /foods/import` answered 402 SUBSCRIPTION_REQUIRED, and the app said "Revisa tu conexión". `/foods/custom` had the same copy. Sync push already kept its rows queued on a 402, but its status line gave no way to Suscripción.
+- **413 on sync push.** `POST /sync/push` answered 413 PayloadTooLargeError: the API's JSON limit is 100 kB, and up to 50 queued operations went in one request. A 413 (or any 5xx) was also reported as "Sin conexión".
+
+### Fix (mobile only; the server limit is unchanged)
+
+- **402.** `SubscriptionRequiredNotice` ("Necesitas una suscripción activa para guardar esto" plus "Ver suscripción" to `/subscription`) is shown:
+  - in Perfil's sync row;
+  - in the food log's sync banner;
+  - when saving a food from the internet;
+  - when creating a food;
+  - for conflict settlement.
+  Queued changes stay PENDING; nothing is dropped.
+- **Sync push.** `push-batching.ts` splits the queue into requests under 90 KB and at most 50 operations, sent one after another in queue order. A 413 halves the request. A single operation still too large stays queued with backoff and the reason "Es demasiado grande para enviarlo".
+- **Server errors are never "offline".** A new `server-error` sync outcome covers push, pull and conflict settlement. The food save errors and the "Verifica tu correo" check now tell offline apart from a server answer.
+
+- [x] Unit tests: batching under 90 KB / 50 ops, 413 halving, a single oversized op kept, 402 mid-queue returns the unsent rows to PENDING, 5xx is `server-error`, and every UI state
+- [x] Device proof on the local stack with REVENUECAT_PROVIDER=revenuecat (EAS e2e build c52a6a7f): 402 notices in Perfil, the food log and food save; server error vs offline; a 106.7 KB queue sent as 71,442 B + 35,244 B with no 413 (`dist/v10-review/fix-402-413/`). Development (lucid-flexibility) has RevenueCat disabled, so it cannot return 402.
+
+---
+
 ## [BUG-046] Foods Logged While the Server Catalogue Was Empty Stay Stuck
 
 Status: Fixed in PR (codex/v9-catalog-requeue), pending owner review

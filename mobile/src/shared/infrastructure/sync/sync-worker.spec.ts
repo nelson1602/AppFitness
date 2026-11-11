@@ -801,3 +801,135 @@ describe('runSync — pull loop', () => {
     await expect(runSync(deps)).resolves.toMatchObject({ outcome: 'offline' });
   });
 });
+
+// v10: the API's JSON body limit is 100 kB. Requests stay under 90 KB, go one
+// after another, and a 413 halves the batch — the server limit is never raised.
+describe('runSync — push batching and server errors (v10)', () => {
+  /** n queued rows whose payloads are about `bytes` each. */
+  function rows(n: number, bytes: number): SyncQueueRow[] {
+    const queued = Array.from({ length: n }, (_, i) =>
+      queueRow({ op_id: `op-${i}`, entity_id: `goal-${i}` }),
+    );
+    mockReadPayload.mockImplementation((row) =>
+      Promise.resolve({
+        payload: { id: row.entity_id, note: 'x'.repeat(bytes) },
+        sensitive: false,
+      }),
+    );
+    return queued;
+  }
+
+  const applyAll = jest.fn((operations: { opId: string }[]) =>
+    Promise.resolve(operations.map((operation) => pushResult({ opId: operation.opId }))),
+  );
+
+  it('splits a large queue into requests under 90 KB, sent one after another', async () => {
+    const push = jest.fn(applyAll);
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+    mockPeekReady.mockResolvedValueOnce(rows(40, 6_000));
+
+    const report = await runSync(deps);
+
+    expect(report.outcome).toBe('success');
+    expect(report.pushedApplied).toBe(40);
+    expect(push.mock.calls.length).toBeGreaterThan(2);
+    const sent = push.mock.calls.flatMap(([operations]) => operations.map((o) => o.opId));
+    expect(sent).toEqual(Array.from({ length: 40 }, (_, i) => `op-${i}`));
+    for (const [operations] of push.mock.calls) {
+      expect(JSON.stringify({ operations }).length).toBeLessThanOrEqual(90 * 1024);
+    }
+  });
+
+  it('halves a batch the server refuses with 413 until it fits, losing nothing', async () => {
+    // The server accepts at most 3 operations per request in this scenario.
+    const push = jest.fn((operations: { opId: string }[]) =>
+      operations.length > 3 ? Promise.reject(new SyncHttpError(413)) : applyAll(operations),
+    );
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+    mockPeekReady.mockResolvedValueOnce(rows(10, 100));
+
+    const report = await runSync(deps);
+
+    expect(report.outcome).toBe('success');
+    expect(report.pushedApplied).toBe(10);
+    expect(mockMarkApplied).toHaveBeenCalledTimes(10);
+    expect(mockMarkFailed).not.toHaveBeenCalled();
+    const applied = push.mock.calls
+      .filter(([operations]) => operations.length <= 3)
+      .flatMap(([operations]) => operations.map((o) => o.opId));
+    expect(applied).toEqual(Array.from({ length: 10 }, (_, i) => `op-${i}`));
+  });
+
+  it('keeps a single operation that is still too large queued, and pushes the rest', async () => {
+    const push = jest.fn((operations: { opId: string }[]) =>
+      operations.some((operation) => operation.opId === 'op-1')
+        ? Promise.reject(new SyncHttpError(413))
+        : applyAll(operations),
+    );
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+    mockPeekReady.mockResolvedValueOnce(rows(3, 100));
+
+    const report = await runSync(deps);
+
+    expect(report.outcome).toBe('success');
+    expect(mockMarkFailed).toHaveBeenCalledTimes(1);
+    expect(mockMarkFailed).toHaveBeenCalledWith(USER, 'op-1', 'http_413', NOW);
+    expect(mockRemoveRejected).not.toHaveBeenCalled();
+    expect(mockMarkApplied).toHaveBeenCalledWith(USER, 'op-0');
+    expect(mockMarkApplied).toHaveBeenCalledWith(USER, 'op-2');
+  });
+
+  it('on a 402 mid-queue, returns every unsent row to PENDING and keeps what was applied', async () => {
+    let calls = 0;
+    const push = jest.fn((operations: { opId: string }[]) => {
+      calls += 1;
+      return calls === 1 ? applyAll(operations) : Promise.reject(new SyncHttpError(402));
+    });
+    mockCreateTransport.mockReturnValue(fakeTransport({ push }));
+    mockPeekReady.mockResolvedValueOnce(rows(40, 6_000));
+
+    const report = await runSync(deps);
+
+    expect(report.outcome).toBe('subscription-required');
+    const firstBatch = push.mock.calls[0][0].map((o) => o.opId);
+    expect(report.pushedApplied).toBe(firstBatch.length);
+    const returned = mockReturnInFlightToPending.mock.calls.flatMap(([, ids]) => ids);
+    expect([...firstBatch, ...returned].sort()).toEqual(
+      Array.from({ length: 40 }, (_, i) => `op-${i}`).sort(),
+    );
+    expect(mockMarkFailed).not.toHaveBeenCalled();
+  });
+
+  it('reports a server error, not offline, when the server answers 500', async () => {
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({ push: jest.fn().mockRejectedValue(new SyncHttpError(500)) }),
+    );
+    mockPeekReady.mockResolvedValueOnce([queueRow()]);
+
+    const report = await runSync(deps);
+
+    expect(report.outcome).toBe('server-error');
+    expect(mockMarkFailed).toHaveBeenCalledWith(USER, 'op-1', 'http_500', NOW);
+  });
+
+  it('maps pull failures by cause: 402 subscription, 5xx server, no answer offline', async () => {
+    mockAllAppliers.mockReturnValue([
+      {
+        entityType: 'goals',
+        applyServerChange: jest.fn(),
+        markConflict: jest.fn(),
+      } as unknown as EntityApplier,
+    ]);
+    mockGetCursor.mockResolvedValue(0);
+
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({ pull: jest.fn().mockRejectedValue(new SyncHttpError(402)) }),
+    );
+    await expect(runSync(deps)).resolves.toMatchObject({ outcome: 'subscription-required' });
+
+    mockCreateTransport.mockReturnValue(
+      fakeTransport({ pull: jest.fn().mockRejectedValue(new SyncHttpError(503)) }),
+    );
+    await expect(runSync(deps)).resolves.toMatchObject({ outcome: 'server-error' });
+  });
+});

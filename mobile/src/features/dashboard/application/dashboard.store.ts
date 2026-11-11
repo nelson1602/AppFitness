@@ -124,7 +124,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
               ? { problem: 'session' as const }
               : outcome.outcome === 'subscription-required'
                 ? { problem: 'subscription' as const }
-                : {}),
+                : outcome.outcome === 'server-error'
+                  ? { problem: 'server' as const }
+                  : {}),
           },
         },
         status: resolveStatus(data),

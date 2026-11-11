@@ -4,6 +4,8 @@ import type { FoodItem, ServingUnit } from '../domain/food-catalog';
 import {
   createCustomFood,
   type CustomFoodInput,
+  FoodSearchOfflineError,
+  FoodSearchRequestError,
   type FoodSearchResult,
   importRemoteFood,
 } from '../infrastructure/food-search-api';
@@ -125,6 +127,20 @@ export async function saveChosenFood(
   }
   await saveFoodLocally(food, nowIso);
   return food;
+}
+
+/**
+ * Why saving a food on the server failed, for the screen (v10): no connection,
+ * a 402 SUBSCRIPTION_REQUIRED, or any other answer from the server. Only the
+ * first is ever shown as a connection problem.
+ */
+export type RemoteFoodFailure = 'offline' | 'subscription' | 'server';
+
+export function remoteFoodFailureOf(error: unknown): RemoteFoodFailure {
+  if (error instanceof FoodSearchRequestError) {
+    return error.status === 402 ? 'subscription' : 'server';
+  }
+  return error instanceof FoodSearchOfflineError ? 'offline' : 'server';
 }
 
 /** Creates the person's own food on the server and keeps it on the phone. */

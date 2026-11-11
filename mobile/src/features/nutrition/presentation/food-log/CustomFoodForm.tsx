@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionRequiredNotice } from '@/features/subscriptions/presentation/SubscriptionRequiredNotice';
 import { parseDecimal } from '@/features/evaluation/domain/evaluation';
 import { type TranslationKey, useLocalization } from '@/shared/localization';
 import {
@@ -13,7 +15,11 @@ import {
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import { saveCustomFood } from '../../application/remote-food.service';
+import {
+  type RemoteFoodFailure,
+  remoteFoodFailureOf,
+  saveCustomFood,
+} from '../../application/remote-food.service';
 import type { CanonicalFood } from '../../domain/catalog-identity';
 import type { CustomFoodInput } from '../../infrastructure/food-search-api';
 
@@ -94,7 +100,7 @@ export function CustomFoodForm({
     carbs: '',
     fat: '',
   });
-  const [problem, setProblem] = useState<'invalid' | 'save' | null>(null);
+  const [problem, setProblem] = useState<'invalid' | RemoteFoodFailure | null>(null);
   const [saving, setSaving] = useState(false);
   const set = (field: keyof Draft) => (value: string) =>
     setDraft((current) => ({ ...current, [field]: value }));
@@ -122,8 +128,8 @@ export function CustomFoodForm({
     setProblem(null);
     try {
       onCreated(await saveCustomFood(input));
-    } catch {
-      setProblem('save');
+    } catch (error) {
+      setProblem(remoteFoodFailureOf(error));
     } finally {
       setSaving(false);
     }
@@ -187,10 +193,16 @@ export function CustomFoodForm({
         {field('carbs', 'nutrition.custom.carbs')}
         {field('fat', 'nutrition.custom.fat')}
       </View>
-      {problem ? (
+      {problem === 'subscription' ? (
+        <SubscriptionRequiredNotice outcome="not-saved" testID="custom-food-subscription" />
+      ) : problem ? (
         <Banner
           title={t(
-            problem === 'invalid' ? 'nutrition.custom.invalid' : 'nutrition.custom.saveError',
+            problem === 'invalid'
+              ? 'nutrition.custom.invalid'
+              : problem === 'offline'
+                ? 'nutrition.custom.saveOffline'
+                : 'nutrition.custom.saveError',
           )}
           tone="error"
         />

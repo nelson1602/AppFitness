@@ -39,7 +39,15 @@ export type FoodLogUiStatus = 'idle' | 'loading' | 'ready' | 'error' | 'web-unav
  */
 export type FoodLogWriteOperation = 'add' | 'blocked' | 'servings' | 'remove';
 export type FoodLogSyncState =
-  'idle' | 'syncing' | 'pending' | 'conflict' | 'action_required' | 'offline' | 'error';
+  | 'idle'
+  | 'syncing'
+  | 'pending'
+  | 'conflict'
+  | 'action_required'
+  | 'offline'
+  | 'error'
+  /** v10: the server answered 402; the items stay queued on the phone. */
+  | 'subscription';
 
 export interface FoodLogSyncSummary {
   state: FoodLogSyncState;
@@ -253,9 +261,11 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       const override: FoodLogSyncState | undefined =
         outcome.outcome === 'offline'
           ? 'offline'
-          : outcome.outcome === 'unauthenticated'
-            ? 'error'
-            : undefined;
+          : outcome.outcome === 'subscription-required'
+            ? 'subscription'
+            : outcome.outcome === 'unauthenticated' || outcome.outcome === 'server-error'
+              ? 'error'
+              : undefined;
       set({ items, totals: sumDailyTotals(items), sync: deriveSyncSummary(items, override) });
     } catch (error) {
       logError('nutrition.foodLog.sync', error);

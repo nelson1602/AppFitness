@@ -2,7 +2,12 @@ import { Redirect, Stack, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
 
-import { EmailVerificationError, signOut, useSession } from '@/features/authentication';
+import {
+  AuthApiError,
+  EmailVerificationError,
+  signOut,
+  useSession,
+} from '@/features/authentication';
 import {
   confirmEmailVerified,
   requiredAccessStep,
@@ -42,6 +47,12 @@ const CHECK_FAILED: Notice = {
   tone: 'error',
   title: 'auth.pending.checkFailedTitle',
   body: 'auth.pending.checkFailedBody',
+};
+/** v10: the server answered with an error — not a connection problem. */
+const CHECK_FAILED_SERVER: Notice = {
+  tone: 'error',
+  title: 'auth.pending.checkFailedTitle',
+  body: 'auth.pending.checkFailedServerBody',
 };
 
 /**
@@ -83,8 +94,8 @@ export default function VerifyPendingScreen() {
         return;
       }
       setNotice(NOT_YET);
-    } catch {
-      setNotice(CHECK_FAILED);
+    } catch (error) {
+      setNotice(error instanceof AuthApiError ? CHECK_FAILED_SERVER : CHECK_FAILED);
     } finally {
       busy.current = false;
       setChecking(false);

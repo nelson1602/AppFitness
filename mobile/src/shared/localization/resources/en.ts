@@ -653,6 +653,8 @@ export const en = {
   'auth.pending.notYetBody': "Open the link in the email, then tap “I've verified it” again.",
   'auth.pending.checkFailedTitle': "Couldn't check right now",
   'auth.pending.checkFailedBody': 'Check your connection and try again.',
+  'auth.pending.checkFailedServerBody':
+    "AppFitnessRD couldn't check it right now. Try again in a few minutes.",
   'auth.pending.switchAccount': 'Use another account',
   'auth.error.mailUnavailableTitle': 'Password reset is unavailable',
   'auth.error.mailUnavailableBody':
@@ -1460,7 +1462,9 @@ export const en = {
   'nutrition.search.sourceMine': 'Yours',
   'nutrition.search.sourceFdc': 'USDA',
   'nutrition.search.sourceOff': 'Open Food Facts',
-  'nutrition.search.saveError': 'We couldn’t save this food. Check your connection and try again.',
+  'nutrition.search.saveError': 'We couldn’t save this food. Try again in a moment.',
+  'nutrition.search.saveOffline':
+    'We couldn’t save this food. Check your connection and try again.',
   'nutrition.custom.open': 'Not here? Create a food',
   'nutrition.custom.title': 'Your food',
   'nutrition.custom.offline': 'You need a connection to create a food.',
@@ -1474,7 +1478,9 @@ export const en = {
   'nutrition.custom.fat': 'Fat (g)',
   'nutrition.custom.invalid':
     'Check the details: a name, a portion above 0, and calories and macros of 0 or more.',
-  'nutrition.custom.saveError': 'We couldn’t create the food. Check your connection and try again.',
+  'nutrition.custom.saveError': 'We couldn’t create the food. Try again in a moment.',
+  'nutrition.custom.saveOffline':
+    'We couldn’t create the food. Check your connection and try again.',
   'nutrition.custom.save': 'Save food',
   'nutrition.custom.cancel': 'Cancel',
   'nutrition.log.oneServing': '1 serving',
@@ -1622,16 +1628,17 @@ export const en = {
   'dashboard.sync.problem.sessionTitle': 'Sign in again to sync',
   'dashboard.sync.problem.sessionBody':
     'Your session expired. Your changes are still saved on this phone.',
-  'dashboard.sync.problem.subscriptionTitle': 'Sync paused',
-  'dashboard.sync.problem.subscriptionBody':
-    'Your account has no active access to save changes to the server. They are still saved on this phone.',
   'dashboard.sync.problem.unexpectedTitle': 'Sync couldn’t finish',
   'dashboard.sync.problem.unexpectedBody':
     'Something failed on this phone. We will try again, and your changes are still saved.',
+  'dashboard.sync.problem.serverTitle': "The server couldn't save your changes",
+  'dashboard.sync.problem.serverBody':
+    'They are still saved on this phone. We will try again in a few minutes.',
   'dashboard.sync.details.title': 'Changes waiting to sync',
   'dashboard.sync.details.waiting': 'Waiting',
   'dashboard.sync.details.session': 'Your session expired',
   'dashboard.sync.details.server': 'The server didn’t accept it; we will try again',
+  'dashboard.sync.details.tooLarge': 'Too large to send; we will try again',
   'dashboard.sync.details.network': 'No connection; we will try again',
   'dashboard.sync.details.unreadable': 'Couldn’t be read on this phone',
   'dashboard.sync.details.retries': 'attempt {count}',
@@ -1919,6 +1926,9 @@ export const en = {
   'sync.conflicts.offlineTitle': "You're offline",
   'sync.conflicts.offlineBody':
     "You can still choose now. We'll save it on this device and finish when you're connected again.",
+  'sync.settlement.serverErrorTitle': 'Your choice is saved on this device',
+  'sync.settlement.serverErrorBody':
+    "The server couldn't finish right now. We will try again; you don't need to do anything else.",
   'sync.conflicts.dashboardButton': 'Review changes',
   'sync.conflicts.dashboardButtonAccessibility': 'Review changes that need your decision',
   'sync.conflicts.record.user_profiles': 'Profile',
@@ -2113,6 +2123,11 @@ export const en = {
   'subscription.readOnlyBody':
     'Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new iCoach plan.',
   'subscription.open': 'View subscription',
+  'subscription.requiredTitle': 'You need an active subscription to save this',
+  'subscription.requiredKeptBody':
+    'What you logged is still saved on your phone and will sync once your subscription is active.',
+  'subscription.requiredNotSavedBody':
+    "This food wasn't saved. Activate your subscription and try again.",
   'legal.privacyPolicy': 'Privacy policy',
   'legal.privacyPolicyAccessibility': 'Open the AppFitnessRD privacy policy',
 } as const;

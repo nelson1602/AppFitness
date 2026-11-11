@@ -210,6 +210,16 @@ describe('dashboard store syncNow', () => {
     expect(sync?.problem).toBe('subscription');
   });
 
+  it('marks a server error as its own problem, never offline (v10)', async () => {
+    mockRunSync.mockResolvedValue(report('server-error'));
+
+    await useDashboardStore.getState().syncNow();
+
+    const sync = useDashboardStore.getState().data?.sync;
+    expect(sync?.status).toBe('error');
+    expect(sync?.problem).toBe('server');
+  });
+
   it('marks a run that threw as an unexpected problem (v8.1)', async () => {
     mockRunSync.mockRejectedValue(new Error('boom'));
 

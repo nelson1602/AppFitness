@@ -123,7 +123,12 @@ export interface ConflictResolutionDeps {
 }
 
 export type SettlementOutcome =
-  'success' | 'unauthenticated' | 'offline' | 'session-changed' | 'subscription-required';
+  | 'success'
+  | 'unauthenticated'
+  | 'offline'
+  | 'server-error'
+  | 'session-changed'
+  | 'subscription-required';
 
 /**
  * What one pass did to one conflict.
@@ -259,6 +264,17 @@ async function readConflictPayloads(row: SyncConflictRow): Promise<ConflictPaylo
  */
 function describeFailure(error: unknown): string {
   return error instanceof SyncHttpError ? `http_${error.status}` : 'network_error';
+}
+
+/**
+ * A failed request, by what went wrong (v10): only an unreachable server is
+ * `offline`; any answer from it is `server-error` (a 401 asks for a new token).
+ */
+function failedRequestOutcome(error: unknown): SettlementOutcome {
+  if (!(error instanceof SyncHttpError)) return 'offline';
+  if (error.status === 401) return 'unauthenticated';
+  if (error.status === 402) return 'subscription-required';
+  return 'server-error';
 }
 
 // ── Reading ──────────────────────────────────────────────────────────────────
@@ -480,7 +496,7 @@ async function settleOne(
     report.failed += 1;
     // The stable diagnostic code stays in the outbox; the event carries none.
     note('FAILED', choice);
-    return error instanceof SyncHttpError && error.status === 401 ? 'unauthenticated' : 'offline';
+    return failedRequestOutcome(error);
   }
   if (!deps.isCurrent()) return 'session-changed';
 
@@ -644,8 +660,7 @@ export async function reconcileConflictStatuses(
   } catch (error) {
     return {
       ...report,
-      outcome:
-        error instanceof SyncHttpError && error.status === 401 ? 'unauthenticated' : 'offline',
+      outcome: failedRequestOutcome(error),
     };
   }
   if (!deps.isCurrent()) return { ...report, outcome: 'session-changed' };

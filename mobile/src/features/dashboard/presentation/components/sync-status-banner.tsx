@@ -17,9 +17,14 @@ const PROBLEM_COPY: Record<
     title: t('dashboard.sync.problem.sessionTitle'),
     body: t('dashboard.sync.problem.sessionBody'),
   }),
+  // v10: the same words as every other 402 (SubscriptionRequiredNotice).
   subscription: (t) => ({
-    title: t('dashboard.sync.problem.subscriptionTitle'),
-    body: t('dashboard.sync.problem.subscriptionBody'),
+    title: t('subscription.requiredTitle'),
+    body: t('subscription.requiredKeptBody'),
+  }),
+  server: (t) => ({
+    title: t('dashboard.sync.problem.serverTitle'),
+    body: t('dashboard.sync.problem.serverBody'),
   }),
   unexpected: (t) => ({
     title: t('dashboard.sync.problem.unexpectedTitle'),
