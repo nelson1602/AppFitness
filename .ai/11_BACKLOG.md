@@ -3428,6 +3428,31 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-049] Local Writes Wait for "Sincronizar ahora": Nothing Syncs Them Automatically
+
+Status: Open (proposed; not fixed in PR #253)
+Priority: P2
+Type: Bug
+Owner: Engineering
+Created: 2026-11-11
+Updated: 2026-11-11
+
+### Description
+
+Found in the PR #253 review (shot 08 read "Sincronizar ahora · 20 cambios locales pendientes"). The API was up, so this was not an outage. In the device queue, all 20 ops were `PENDING` with `retry_count 0` and no `last_error`, so no push had ever been tried. The last pull was at 17:39:00Z. The first op was queued at 17:41:08Z and the last at 18:45:36Z: 3× "Lo comí", the galleta, deleting it, and logging it again.
+
+Cause: `runSync` is invoked explicitly only (`sync-worker.ts`: "no background scheduling yet"). Its callers are the evaluation gate, and the two "Sincronizar ahora" buttons (Perfil, Registro de alimentos). Writes only enqueue. Relaunching the app refreshed the token but did not push. The documented V1 behavior (`18_SCREEN_STATE_MATRICES.md`, "set only by an explicit `syncNow()`") matches.
+
+Drain proof: one tap on "Sincronizar ahora" → 2× `POST /sync/push 201` → queue 0, server meal_items for 2026-11-11 = 2.849 kcal (galleta v2 deleted + new galleta live), 0 `sync_conflicts`, local "Omitir" state kept (`dist/v10-review/rebalance/fix-1/`).
+
+### Proposal (needs owner decision; touches the sync policy)
+
+- Run `runSync` when the app comes to the foreground, and debounced (for example 5 s) after a write is enqueued, while signed in and online.
+- Keep "Sincronizar ahora" as the manual path.
+- Respect the BUG-030 one-run-per-user guard.
+
+---
+
 ## [BUG-048] A Second Edit Before Sync Conflicts With the First
 
 Status: Fixed in PR #252 (codex/bug048-queued-base-version), pending owner review
