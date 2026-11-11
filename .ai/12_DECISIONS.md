@@ -15131,6 +15131,23 @@ Status: proposed with the v10 Block A PR; the owner accepts it with that PR. Rul
 - **R5 Latest change.** Inicio's iCoach card adds one sentence for the most recent of: the R2 bonus (when the cardio finished), an R4 lightening (when the strength work finished), an R3 move (the midnight after the skipped day) and a confirmed CHANGE revision (when it was saved). On equal times: plan update > move > lightening > bonus.
 - **R6 Weigh-ins and evaluation.** After a saved weigh-in (and, as before, after the evaluation), the saved week is re-checked. When no deciding input changed but the targets recomputed from today's data differ from the saved ones by ≥ 50 kcal or ≥ 10 g of any macro, the existing "¿Actualizar tu plan de esta semana?" prompt offers new targets ("plan.change.targets"). "Sí" saves a CHANGE revision effective today (ADR-P042 D3); "Ahora no" keeps the week. Smaller drifts never prompt.
 
+### Addendum v10-B — Real-time meal rebalancing (proposed 2026-11-11, v10 rebalance block)
+
+Status: proposed with the rebalance PR; the owner accepts it with that PR. Rule `meal-rebalance@1.0.0` (`nutrition/domain/meal-rebalance.ts`, wired by `nutrition/application/meal-rebalance.service.ts`). Pure and deterministic, with tests (`meal-rebalance.spec.ts`, `rebalance-ui.spec.tsx`, `FoodLogAddForm.preview.spec.tsx`). Like D7 and v10-A, it is an **overlay** recomputed from today's log on every render, offline and right after each local write: the saved plan is never written.
+
+- **B1 Remaining.** remaining = today's calorie target (+ the R2 activity bonus) − everything logged today, from the plan ("Lo comí") or outside it ("fuera del plan"). The target never changes.
+- **B2 Which meals.** Only today's pending meals are rebalanced: never one marked "Lo comí", never one skipped with "Omitir" (a per-day device preference, not synced).
+- **B3 Re-portioning.** scale = remaining ÷ the pending meals' planned kcal. Within ±5 % the plan stays as it is. Otherwise each pending meal is portioned to its planned kcal × scale:
+  - protein-rich foods (protein ≥ 35 % of their kcal) scale by a protein factor between the calorie scale and no change, chosen to keep the protein still needed today;
+  - the other foods take the rest of the meal's budget;
+  - portions stay in the plan's 0.25-serving steps.
+- **B4 Minimum portion.** A meal whose budget falls below **150 kcal** becomes the lightest catalogue dish for its slot that fits (Dominican dishes, adapted to the person's exclusions, for country DO), or is marked **"Opcional"** where no dish fits or the plan is food-based.
+- **B5 Covered day.** remaining ≤ 0: each pending meal says **"Ya cubriste tus calorías de hoy"** and offers one light option of **≤ 100 kcal** (fruit, yogurt or vegetable, rotated by slot, never an excluded food) or **"Omitir"**. Wellness wording only.
+- **B6 Planned total.** The day's planned total is consumed + the pending meals' new portions, **never above the target**: food eaten beyond it is consumption, not plan (the owner repro: target 2.430, three meals 2.108 + Galleta de Soda 403 → the Merienda becomes "covered" at once and the day plans 2.430, never 2.511).
+- **B7 Preview.** Before saving a food that takes today past its target, the form shows, without blocking: "Con esto llegas a X de Y kcal. El iCoach ajustará tus comidas pendientes."
+- **B8 Explanation.** Inicio's iCoach card adds R5's newest change, `mealsRebalanced`, dated by the food that caused it: "Ajusté tu merienda por Galleta de Soda, que registraste." (or the covered-day sentence). On equal times: plan update > rebalance > move > lightening > bonus.
+- **B9 Undo.** Deleting the logged food lowers what was consumed, so the overlay recomputes to the plan as it was; nothing is stored to undo.
+
 ### Consequences
 
 - **Positive:** the design's coaching promises become real, tested behaviour.

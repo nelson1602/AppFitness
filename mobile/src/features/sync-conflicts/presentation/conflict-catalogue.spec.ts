@@ -211,9 +211,11 @@ describe('catalogue parity', () => {
   // the too-large row reason (+1), the food save offline lines (+2), the conflict settlement
   // server error (+2) and the verification check server error (+1), minus the old sync-paused
   // pair (-2) (+9, 1916).
-  it('reaches 1916 keys in each language — 1729 shipped plus a 187-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1916);
-    expect(Object.keys(es)).toHaveLength(1916);
+  // v10-B real-time rebalancing: the meal and day lines, the light option, Omitir and the
+  // over-target preview (+12), and the iCoach card's four rebalance sentences (+4) (+16, 1932).
+  it('reaches 1932 keys in each language — 1745 shipped plus a 187-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1932);
+    expect(Object.keys(es)).toHaveLength(1932);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

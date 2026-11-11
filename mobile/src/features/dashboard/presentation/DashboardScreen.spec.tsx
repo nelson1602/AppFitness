@@ -18,6 +18,11 @@ const SUMMARY: HomeSummary = {
   calories: { consumed: 400, target: 2776, share: 0.14 },
 };
 
+jest.mock('@/features/nutrition/presentation/use-today-rebalance', () => ({
+  // ADR-P040 v10-B has its own specs; this screen's are about everything else.
+  useTodayRebalance: () => null,
+  rebalanceCoachChange: () => null,
+}));
 jest.mock('../application/dashboard.store', () => ({
   useDashboardStore: (select: (state: Pick<DashboardState, 'status' | 'refresh'>) => unknown) =>
     select({ status: mockStatus, refresh: mockRefresh }),

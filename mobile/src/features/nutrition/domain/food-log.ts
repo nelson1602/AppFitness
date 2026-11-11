@@ -60,6 +60,8 @@ export interface LoggedMealItem {
   syncState: MealItemSyncState;
   /** Logged through "Lo comí" for a planned meal (ADR-P042 D6); false for extras. */
   planned?: boolean;
+  /** When it was logged on this device (ISO); names the latest change on Inicio (v10-B). */
+  loggedAt?: string;
 }
 
 /** The whole day's log for one user/date, with derived totals. */

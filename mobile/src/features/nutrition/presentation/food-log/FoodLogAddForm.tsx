@@ -4,9 +4,13 @@ import { Pressable, View } from 'react-native';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionRequiredNotice } from '@/features/subscriptions/presentation/SubscriptionRequiredNotice';
+import { useTodayTargets } from '@/features/dashboard/application/use-today-targets';
+import { localDateOf } from '@/features/weekly-plan/domain/week';
 import {
   formatKcal,
+  formatKcalQuantity,
   formatNumber,
+  interpolate,
   type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
@@ -23,6 +27,7 @@ import {
 import { useTheme } from '@/shared/theme';
 
 import { foodDisplayName } from '../../application/food-display.service';
+import { useFoodLogStore } from '../../application/food-log.store';
 import {
   foodItemFromCanonical,
   foodItemFromSearchResult,
@@ -116,6 +121,9 @@ export function FoodLogAddForm({
   const stage = useStageSurface();
   const paidWriteDisabled = usePaidWriteDisabled();
   const { language, t } = useLocalization();
+  const targets = useTodayTargets();
+  const logDate = useFoodLogStore((state) => state.date);
+  const consumedToday = useFoodLogStore((state) => state.totals.calories);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<FoodItem | null>(null);
   const [mealType, setMealType] = useState<MealTypeName>(defaultMealType);
@@ -147,6 +155,16 @@ export function FoodLogAddForm({
   };
 
   const blocked = isLoggingBlocked(exclusion);
+  // ADR-P040 v10-B: today, a food that takes the day past its target gets a
+  // preview of the total before it is saved.
+  const overTarget =
+    selected && targets && logDate === localDateOf(new Date().toISOString())
+      ? (() => {
+          const total = Math.round(consumedToday + selected.calories * servingCount);
+          const target = Math.round(targets.calories);
+          return total > target ? { total, target } : null;
+        })()
+      : null;
 
   const submit = async (): Promise<void> => {
     if (!selected || blocked || saving) return;
@@ -336,6 +354,16 @@ export function FoodLogAddForm({
               onChange={setServingCount}
               testIDPrefix="add-serving"
             />
+            {overTarget ? (
+              // ADR-P040 v10-B: a heads-up, never a block; saving stays one tap away.
+              <Banner
+                title={interpolate(t('nutrition.rebalance.preview'), {
+                  total: formatNumber(overTarget.total, language),
+                  target: formatKcalQuantity(overTarget.target, language),
+                })}
+                tone="info"
+              />
+            ) : null}
             {saveProblem === 'subscription' ? (
               <SubscriptionRequiredNotice outcome="not-saved" testID="food-save-subscription" />
             ) : saveProblem ? (

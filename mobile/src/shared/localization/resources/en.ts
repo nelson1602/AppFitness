@@ -128,6 +128,12 @@ export const en = {
   'home.coach.change.lightened': 'I lightened your {day} session: you already trained {groups}.',
   'home.coach.change.moved': "I moved your {from} session to {to} so you don't miss it.",
   'home.coach.change.planUpdated': "I updated this week's plan with your changes.",
+  'home.coach.change.rebalancedOne': 'I adjusted your {meal} for the {food} you logged.',
+  'home.coach.change.rebalancedMany': 'I adjusted your pending meals for the {food} you logged.',
+  'home.coach.change.coveredOne':
+    "With the {food} you've covered today's calories; your {meal} is now light or optional.",
+  'home.coach.change.coveredMany':
+    "With the {food} you've covered today's calories; your pending meals are now light or optional.",
   'workouts.extra.title': 'Extra activity',
   'workouts.extra.done': 'Completed',
   'workouts.extra.inProgress': 'In progress',
@@ -1228,6 +1234,21 @@ export const en = {
   'nutrition.plan.meal': 'meal',
   'nutrition.plan.savedWeek': "This week's plan. It renews on Monday.",
   'nutrition.plan.previewBadge': 'May change on Monday',
+  'nutrition.rebalance.scaled': 'Adjusted by the iCoach · was {kcal}',
+  'nutrition.rebalance.swapped': 'A lighter option from the iCoach · was {kcal}',
+  'nutrition.rebalance.optional': 'Optional today · was {kcal}',
+  'nutrition.rebalance.covered': "You've covered today's calories",
+  'nutrition.rebalance.lightOption': 'Light option: {food} · {kcal}',
+  'nutrition.rebalance.lightOptionA11y': 'Log the light option for {meal}: {food}',
+  'nutrition.rebalance.skip': 'Skip',
+  'nutrition.rebalance.skipA11y': 'Skip {meal} today',
+  'nutrition.rebalance.skipped': 'Skipped today',
+  'nutrition.rebalance.dayAdjusted':
+    "You're at {consumed} of {target}. The iCoach adjusted your pending meals.",
+  'nutrition.rebalance.dayCovered':
+    "You're at {consumed} of {target}. You've covered today's calories.",
+  'nutrition.rebalance.preview':
+    'With this you reach {total} of {target}. The iCoach will adjust your pending meals.',
   'nutrition.plan.ateAccessibility': "I ate it: log the plan's {meal}",
   'nutrition.plan.eaten': 'Eaten ✓',
   'nutrition.plan.adjusted': 'Adjusted by iCoach: {from} → {to}',
