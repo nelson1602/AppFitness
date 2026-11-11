@@ -35,6 +35,14 @@
         "EXPO_PUBLIC_API_URL": "https://appfitness-production-1e78.up.railway.app"
       }
     },
+    "internal-apk": {
+      "extends": "internal",
+      "distribution": "internal",
+      "autoIncrement": false,
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "android": {
