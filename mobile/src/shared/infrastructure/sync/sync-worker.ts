@@ -18,7 +18,15 @@ import {
   returnInFlightToPending,
 } from './sync-queue';
 import { getCursor, setCursor } from './sync-state';
-import { createSyncTransport, SyncHttpError, type SyncTransport } from './sync-transport';
+import type { SyncQueueRow } from '../database/types';
+import { halve, splitIntoPushBatches } from './push-batching';
+import {
+  createSyncTransport,
+  type PushOperation,
+  type PushOperationResult,
+  SyncHttpError,
+  type SyncTransport,
+} from './sync-transport';
 
 /**
  * The sync worker (ADR-0006 device side): drains the local queue to
@@ -48,7 +56,13 @@ export const SYNC_ERROR_CODES = {
 /** `last_error` prefix for a queued row whose payload this device cannot read. */
 export const UNREADABLE_PAYLOAD = 'payload_unreadable';
 
-export type SyncOutcome = 'success' | 'unauthenticated' | 'offline' | 'subscription-required';
+/**
+ * `offline`: the server could not be reached. `server-error`: it answered with
+ * an error (5xx, an unexpected status, an incomplete response) — never shown as
+ * a connection problem (v10). `subscription-required`: a 402, data kept queued.
+ */
+export type SyncOutcome =
+  'success' | 'unauthenticated' | 'offline' | 'server-error' | 'subscription-required';
 
 export interface SyncReport {
   outcome: SyncOutcome;
@@ -196,134 +210,161 @@ async function pushLoop(
     }
     if (readable.length === 0) continue;
 
-    let results;
-    try {
-      results = await transport.push(
-        readable.map((row) => ({
-          opId: row.op_id,
-          entityType: row.entity_type,
-          entityId: row.entity_id,
-          operation: row.operation,
-          baseVersion: row.base_version,
-          payload: decoded.get(row.op_id)?.payload ?? {},
-        })),
-      );
-    } catch (error) {
-      // v10 Block A: a 401 is about the access token (15 min TTL), not the
-      // operations. Counting it as a failed attempt put every row in backoff,
-      // so the retry with the rotated token right after found nothing ready,
-      // and each later sync pushed the backoff further out. Like a 402, the
-      // batch goes back to PENDING untouched.
-      if (error instanceof SyncHttpError && error.status === 401) {
-        await returnInFlightToPending(
-          userId,
-          readable.map((row) => row.op_id),
-          now(),
-        );
-        return 'unauthenticated';
-      }
-      if (error instanceof SyncHttpError && error.status === 402) {
-        await returnInFlightToPending(
-          userId,
-          readable.map((row) => row.op_id),
-          now(),
-        );
-        return 'subscription-required';
-      }
-      // Whole-batch failure (network/server/auth): schedule retries and stop.
-      for (const row of readable) {
-        await markFailed(userId, row.op_id, describeError(error), now());
-      }
-      return 'offline';
-    }
-
     const byOpId = new Map(readable.map((row) => [row.op_id, row]));
-    for (const result of results) {
-      const row = byOpId.get(result.opId);
-      if (!row) continue;
+    // v10: requests stay under the API's 100 kB body limit (push-batching.ts)
+    // and go one after another, in queue order.
+    const pending = splitIntoPushBatches(
+      readable.map((row) => ({
+        opId: row.op_id,
+        entityType: row.entity_type,
+        entityId: row.entity_id,
+        operation: row.operation,
+        baseVersion: row.base_version,
+        payload: decoded.get(row.op_id)?.payload ?? {},
+      })),
+    );
 
-      switch (result.status) {
-        case 'APPLIED': {
-          await markApplied(userId, result.opId);
-          report.pushedApplied += 1;
+    while (pending.length > 0) {
+      const chunk = pending.shift() as PushOperation[];
+      let results: PushOperationResult[];
+      try {
+        results = await transport.push(chunk);
+      } catch (error) {
+        // 413: still too large for the server. Halve and send both halves; a
+        // single operation that is too large on its own stays queued with
+        // backoff and a visible reason. Nothing is dropped.
+        if (error instanceof SyncHttpError && error.status === 413) {
+          if (chunk.length > 1) {
+            pending.unshift(...halve(chunk));
+            continue;
+          }
+          logWarn('sync.push', `operation too large: ${chunk[0].entityType}`);
+          await markFailed(userId, chunk[0].opId, describeError(error), now());
+          continue;
+        }
+        const unsent = [chunk, ...pending].flat().map((operation) => operation.opId);
+        // v10 Block A: a 401 is about the access token (15 min TTL), not the
+        // operations. Counting it as a failed attempt put every row in backoff,
+        // so the retry with the rotated token right after found nothing ready,
+        // and each later sync pushed the backoff further out. Like a 402, the
+        // unsent rows go back to PENDING untouched.
+        if (error instanceof SyncHttpError && error.status === 401) {
+          await returnInFlightToPending(userId, unsent, now());
+          return 'unauthenticated';
+        }
+        if (error instanceof SyncHttpError && error.status === 402) {
+          await returnInFlightToPending(userId, unsent, now());
+          return 'subscription-required';
+        }
+        // The server answered with an error, or could not be reached: schedule
+        // retries and stop. Only a request that never got an answer is "offline".
+        for (const opId of unsent) {
+          await markFailed(userId, opId, describeError(error), now());
+        }
+        return error instanceof SyncHttpError ? 'server-error' : 'offline';
+      }
+
+      await applyPushResults(userId, results, byOpId, decoded, now, report);
+
+      // An incomplete response is a failed exchange (BUG-030). The server may
+      // have applied an unanswered op, so the op stays IN_FLIGHT for the next
+      // run to recover and replay under its own op id. The run also ends here,
+      // without pulling. A pull now would skip that entity, because work is
+      // still outstanding, and advance the cursor past its new server version.
+      // The replayed duplicate bumps no sequence, so the row would never be
+      // re-pulled and would stay 'pending'. Batches not sent yet go back to
+      // PENDING.
+      const answered = new Set(results.map((result) => result.opId));
+      const unanswered = chunk.filter((operation) => !answered.has(operation.opId));
+      if (unanswered.length > 0) {
+        logWarn('sync.push', `incomplete response: ${unanswered.length} operation(s) unanswered`);
+        const notSent = pending.flat().map((operation) => operation.opId);
+        if (notSent.length > 0) await returnInFlightToPending(userId, notSent, now());
+        return 'server-error';
+      }
+    }
+  }
+}
+
+async function applyPushResults(
+  userId: string,
+  results: readonly PushOperationResult[],
+  byOpId: ReadonlyMap<string, SyncQueueRow>,
+  decoded: ReadonlyMap<string, { payload: Record<string, unknown>; sensitive: boolean }>,
+  now: () => string,
+  report: SyncReport,
+): Promise<void> {
+  for (const result of results) {
+    const row = byOpId.get(result.opId);
+    if (!row) continue;
+
+    switch (result.status) {
+      case 'APPLIED': {
+        await markApplied(userId, result.opId);
+        report.pushedApplied += 1;
+        break;
+      }
+      case 'CONFLICT': {
+        await markConflict(userId, result.opId, now());
+        const info = decoded.get(result.opId);
+        // Sensitive conflicts stay encrypted in the local conflict
+        // store — plaintext medical text never rests in SQLite.
+        const localPayload = info?.sensitive
+          ? { __enc: await encryptToBase64(JSON.stringify(info.payload)) }
+          : (info?.payload ?? {});
+        const serverPayload = info?.sensitive
+          ? { __enc: await encryptToBase64(JSON.stringify(result.serverSnapshot ?? {})) }
+          : (result.serverSnapshot ?? {});
+        await recordConflict(
+          {
+            id: result.conflictId ?? result.opId,
+            userId,
+            entityType: row.entity_type,
+            entityId: row.entity_id,
+            localPayload,
+            serverPayload,
+            baseVersion: row.base_version,
+            serverVersion: result.serverVersion ?? row.base_version,
+          },
+          now(),
+        );
+        await getApplier(row.entity_type)?.markConflict(row.entity_id, now(), userId);
+        report.conflicts += 1;
+        break;
+      }
+      case 'REJECTED': {
+        if (result.errorCode === SYNC_ERROR_CODES.DEPENDENCY_NOT_READY) {
+          // Retryable: the parent (e.g. a meal not yet synced) will arrive
+          // later. Keep the op queued with backoff — never drop it.
+          await markFailed(userId, result.opId, SYNC_ERROR_CODES.DEPENDENCY_NOT_READY, now());
+          report.deferred += 1;
           break;
         }
-        case 'CONFLICT': {
-          await markConflict(userId, result.opId, now());
-          const info = decoded.get(result.opId);
-          // Sensitive conflicts stay encrypted in the local conflict
-          // store — plaintext medical text never rests in SQLite.
-          const localPayload = info?.sensitive
-            ? { __enc: await encryptToBase64(JSON.stringify(info.payload)) }
-            : (info?.payload ?? {});
-          const serverPayload = info?.sensitive
-            ? { __enc: await encryptToBase64(JSON.stringify(result.serverSnapshot ?? {})) }
-            : (result.serverSnapshot ?? {});
-          await recordConflict(
-            {
-              id: result.conflictId ?? result.opId,
-              userId,
-              entityType: row.entity_type,
-              entityId: row.entity_id,
-              localPayload,
-              serverPayload,
-              baseVersion: row.base_version,
-              serverVersion: result.serverVersion ?? row.base_version,
-            },
+        if (result.errorCode === SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED) {
+          // Terminal + actionable: park it visibly (no auto-retry) and flag
+          // the entity row so the UI can surface it — not silently discarded.
+          await markActionRequired(
+            userId,
+            result.opId,
+            SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED,
             now(),
           );
           await getApplier(row.entity_type)?.markConflict(row.entity_id, now(), userId);
-          report.conflicts += 1;
-          break;
-        }
-        case 'REJECTED': {
-          if (result.errorCode === SYNC_ERROR_CODES.DEPENDENCY_NOT_READY) {
-            // Retryable: the parent (e.g. a meal not yet synced) will arrive
-            // later. Keep the op queued with backoff — never drop it.
-            await markFailed(userId, result.opId, SYNC_ERROR_CODES.DEPENDENCY_NOT_READY, now());
-            report.deferred += 1;
-            break;
-          }
-          if (result.errorCode === SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED) {
-            // Terminal + actionable: park it visibly (no auto-retry) and flag
-            // the entity row so the UI can surface it — not silently discarded.
-            await markActionRequired(
-              userId,
-              result.opId,
-              SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED,
-              now(),
-            );
-            await getApplier(row.entity_type)?.markConflict(row.entity_id, now(), userId);
-            logWarn(
-              'sync.push',
-              `action required: ${row.entity_type}/${row.entity_id} (${SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED})`,
-            );
-            report.actionRequired += 1;
-            break;
-          }
-          await removeRejected(userId, result.opId);
           logWarn(
             'sync.push',
-            `operation rejected: ${row.entity_type}/${row.entity_id} (${result.errorCode ?? 'unknown'})`,
+            `action required: ${row.entity_type}/${row.entity_id} (${SYNC_ERROR_CODES.CATALOG_REVISION_UNSUPPORTED})`,
           );
-          report.rejected += 1;
+          report.actionRequired += 1;
           break;
         }
+        await removeRejected(userId, result.opId);
+        logWarn(
+          'sync.push',
+          `operation rejected: ${row.entity_type}/${row.entity_id} (${result.errorCode ?? 'unknown'})`,
+        );
+        report.rejected += 1;
+        break;
       }
-    }
-
-    // An incomplete response is a failed exchange (BUG-030). The server may
-    // have applied an unanswered op, so the op stays IN_FLIGHT for the next run
-    // to recover and replay under its own op id. The run also ends here,
-    // without pulling. A pull now would skip that entity, because work is still
-    // outstanding, and advance the cursor past its new server version. The
-    // replayed duplicate bumps no sequence, so the row would never be re-pulled
-    // and would stay 'pending'.
-    const answered = new Set(results.map((result) => result.opId));
-    const unanswered = readable.filter((row) => !answered.has(row.op_id));
-    if (unanswered.length > 0) {
-      logWarn('sync.push', `incomplete response: ${unanswered.length} operation(s) unanswered`);
-      return 'offline';
     }
   }
 }
@@ -341,9 +382,7 @@ async function pullLoop(
       try {
         response = await transport.pull(cursor, [applier.entityType], PULL_PAGE_SIZE);
       } catch (error) {
-        return error instanceof SyncHttpError && error.status === 401
-          ? 'unauthenticated'
-          : 'offline';
+        return outcomeOfFailedRequest(error);
       }
 
       for (const change of response.changes) {
@@ -372,6 +411,14 @@ async function pullLoop(
     }
   }
   return 'success';
+}
+
+/** A failed sync request, by what actually went wrong (v10). */
+export function outcomeOfFailedRequest(error: unknown): SyncOutcome {
+  if (!(error instanceof SyncHttpError)) return 'offline';
+  if (error.status === 401) return 'unauthenticated';
+  if (error.status === 402) return 'subscription-required';
+  return 'server-error';
 }
 
 function describeError(error: unknown): string {

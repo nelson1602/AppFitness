@@ -540,7 +540,8 @@ describe('replaying abandoned work end to end (BUG-030)', () => {
     // The server applied it, but the response never said so. The exchange
     // counts as failed: the op stays IN_FLIGHT, and the run ends before
     // pulling, so no cursor moves past the server's new version.
-    expect(incomplete).toMatchObject({ outcome: 'offline' });
+    // v10: an incomplete answer is a server problem, never "offline".
+    expect(incomplete).toMatchObject({ outcome: 'server-error' });
     expect(servers[A].push).toHaveBeenCalledTimes(2); // one batch per run, no spinning
     expect(servers[A].pushes).toHaveLength(1);
     expect(servers[A].pull).not.toHaveBeenCalled();
@@ -566,7 +567,7 @@ describe('replaying abandoned work end to end (BUG-030)', () => {
     const [setCreate] = queue(set.id);
     servers[A].omitFromNextResponse = new Set([setCreate.op_id]);
 
-    await expect(sync(A)).resolves.toMatchObject({ outcome: 'offline', pushedApplied: 1 });
+    await expect(sync(A)).resolves.toMatchObject({ outcome: 'server-error', pushedApplied: 1 });
 
     expect(queue(log.id)).toEqual([]); // answered: applied and removed
     expect(queue(set.id).map((r) => r.status)).toEqual(['IN_FLIGHT']);

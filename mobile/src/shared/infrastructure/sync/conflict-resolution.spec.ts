@@ -710,7 +710,8 @@ describe('retry, backoff and restart', () => {
 
     const report = await settlePendingResolutions(deps());
 
-    expect(report).toMatchObject({ outcome: 'offline', failed: 1 });
+    // v10: an answer from the server is never reported as offline.
+    expect(report).toMatchObject({ outcome: 'server-error', failed: 1 });
     const row = conflictRow();
     expect(row.settlement_status).toBe('FAILED');
     expect(row.settlement_attempts).toBe(1);
@@ -1362,7 +1363,8 @@ describe('degraded and racing paths', () => {
 
     const report = await settlePendingResolutions(deps());
 
-    expect(report).toMatchObject({ outcome: 'offline', failed: 1 });
+    // v10: an answer from the server is never reported as offline.
+    expect(report).toMatchObject({ outcome: 'server-error', failed: 1 });
     expect(conflictRow()).toBeUndefined();
   });
 });
@@ -1397,7 +1399,8 @@ describe('reconciliation edge cases', () => {
 
   it.each([
     [401, 'unauthenticated'],
-    [500, 'offline'],
+    [402, 'subscription-required'],
+    [500, 'server-error'],
   ])('maps a %s from the status probe to %s', async (status, expected) => {
     mockCreateTransport.mockReturnValue(
       fakeTransport({ listConflicts: jest.fn().mockRejectedValue(new SyncHttpError(status)) }),
