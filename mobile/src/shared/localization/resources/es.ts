@@ -528,6 +528,38 @@ export const es = {
   'profile.tab.stressChip': 'Estrés {level}',
   'profile.tab.trainingDaysOne': '1 entrenamiento por semana',
   'profile.tab.trainingDaysMany': '{n} entrenamientos por semana',
+  'auth.biometric.hint': 'Podrás activar Face ID o Huella al iniciar sesión.',
+  'auth.biometric.signInFace': 'Entrar con Face ID',
+  'auth.biometric.signInFingerprint': 'Entrar con huella digital',
+  'auth.biometric.unlockPrompt': 'Desbloquea AppFitnessRD',
+  'auth.biometric.linkPrompt': 'Confirma que eres tú',
+  'auth.biometric.linkTitle': '¿Entrar más rápido la próxima vez?',
+  'auth.biometric.linkBodyFace':
+    'Vincula tu cuenta con Face ID y entra en un segundo, sin escribir tu contraseña.',
+  'auth.biometric.linkBodyFingerprint':
+    'Vincula tu cuenta con tu huella digital y entra en un segundo, sin escribir tu contraseña.',
+  'auth.biometric.privacy':
+    'Tus datos biométricos se quedan en tu teléfono. AppFitnessRD solo recibe la confirmación de que eres tú.',
+  'auth.biometric.activateFace': 'Activar Face ID',
+  'auth.biometric.activateFingerprint': 'Activar huella digital',
+  'auth.biometric.notNow': 'Ahora no',
+  'auth.biometric.linkedFace': 'Face ID activado',
+  'auth.biometric.linkedFingerprint': 'Huella digital activada',
+  'auth.biometric.linkedBody': 'La próxima vez entrarás con un toque.',
+  'auth.biometric.continue': 'Ir a mi panel',
+  'auth.biometric.linkFailed':
+    'No pudimos activarlo ahora. Puedes intentarlo de nuevo desde Perfil.',
+  'auth.biometric.resetTitle': 'Inicia sesión con tu contraseña',
+  'auth.biometric.resetBody':
+    'Por seguridad, desactivamos el acceso con biometría. Puedes activarlo de nuevo al entrar.',
+  'auth.biometric.switch': 'Entrar con Face ID o Huella',
+  'auth.biometric.securityTitle': 'Seguridad',
+  'auth.biometric.switchOn': 'Activado',
+  'auth.biometric.switchOff': 'Desactivado',
+  'auth.biometric.switchNoHardware': 'Este teléfono no tiene biometría',
+  'auth.biometric.switchNotEnrolledFace': 'Configura Face ID en los ajustes del teléfono',
+  'auth.biometric.switchNotEnrolledFingerprint':
+    'Configura tu huella digital en los ajustes del teléfono',
   'auth.newHere': '¿Nuevo aquí?',
   'auth.showPassword': 'Mostrar contraseña',
   'auth.hidePassword': 'Ocultar contraseña',

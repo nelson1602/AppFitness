@@ -33,3 +33,28 @@ export function clearSession(): Promise<void> {
   memorySession = null;
   return Promise.resolve();
 }
+
+/**
+ * ADR-P036: Web never links biometrics, so there is never a sealed session.
+ * These exist only so the session manager compiles against one storage shape.
+ */
+export function saveSealedSession(session: Session): Promise<void> {
+  memorySession = session;
+  return Promise.resolve();
+}
+
+export function loadSealedSession(): Promise<Session | null> {
+  return Promise.resolve(null);
+}
+
+export function hasSealedSession(): Promise<boolean> {
+  return Promise.resolve(false);
+}
+
+export function deleteSealedSession(): Promise<void> {
+  return Promise.resolve();
+}
+
+export function deletePlaintextSession(): Promise<void> {
+  return Promise.resolve();
+}

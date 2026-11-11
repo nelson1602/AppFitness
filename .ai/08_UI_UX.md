@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.26
+Version: 1.27
 Status: Active
-Last Updated: 2026-10-23
+Last Updated: 2026-11-10
 
 ---
 
@@ -13,6 +13,41 @@ This document defines the official Design System for AppFitness.
 Its purpose is to ensure visual consistency, usability, accessibility, scalability, and maintainability across every screen, component, and interaction.
 
 Every UI implementation must comply with this specification.
+
+---
+
+# Revision Scope (v1.27 — ADR-P036 biometric sign-in, v10)
+
+- **Sign-in.** While biometrics can be used and are not linked, the design's
+  hint "Podrás activar Face ID o Huella al iniciar sesión." / "You can turn on
+  Face ID or fingerprint when you sign in." sits under the CTA (glass row,
+  face or fingerprint icon). On a `locked` device a secondary button "Entrar
+  con Face ID" / "Entrar con huella digital" opens the session. The password
+  form always stays available. A fail-safe reset, or a locked phone whose
+  biometrics were removed, shows an info Banner asking for the password.
+- **Wording by hardware.** "Face ID" only on iPhones with Face ID; everywhere
+  else (Touch ID, every Android sensor) "huella digital" / "fingerprint".
+- **Link sheet.** The design's "¿Entrar más rápido la próxima vez?" sheet
+  follows a password sign-in (not a registration):
+  - it is an opaque `stageDeep` surface;
+  - it carries the privacy note on glass;
+  - it offers "Activar …" and "Ahora no";
+  - it confirms "… activado" with a continue button. There is no auto-advance
+    (WCAG 2.2.1), and the slide animation runs only when motion is allowed.
+- **Perfil → Seguridad.** The prototype's panel, between Meta and Próximamente:
+  - the name "Entrar con Face ID" / "Entrar con huella digital" (the prototype's
+    "Entrar con Face ID o Huella" when the phone has no usable sensor);
+  - the line under it: "Activado" / "Desactivado", "Este teléfono no tiene
+    biometría", or where to enrol in the phone's settings;
+  - a 56 × 32 switch with a white 24 dp thumb, `accentCyan` when on and
+    `onStage` at 20 % when off, dimmed to 40 % when it cannot be used.
+  The whole row is one `switch` with a 48 dp floor; the thumb position is the
+  non-colour state signal. Both directions ask for biometrics.
+- **Web.** Nothing biometric renders, and Perfil has no Seguridad panel
+  (ADR-P018).
+- **Deviation from the prototype.** The prototype pairs a square icon button
+  with a separate text link for the same action. The app uses one labelled
+  button, so assistive technology meets one control, not two.
 
 ---
 

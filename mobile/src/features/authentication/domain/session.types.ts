@@ -28,4 +28,9 @@ export interface Session extends SessionTokens {
   user: AuthUser;
 }
 
-export type SessionStatus = 'unknown' | 'authenticated' | 'unauthenticated';
+/**
+ * `locked` (ADR-P036 Amendment A): a biometric-linked session is stored sealed
+ * and waits for the OS to release its key. Nothing is authenticated yet, so
+ * every guarded route treats it exactly like `unauthenticated`.
+ */
+export type SessionStatus = 'unknown' | 'authenticated' | 'unauthenticated' | 'locked';

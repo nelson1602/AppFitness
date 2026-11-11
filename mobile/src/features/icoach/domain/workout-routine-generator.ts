@@ -29,8 +29,10 @@ import {
 // the user's own declared movements. `@1.2.0` (ADR-P040 D5, v8 Block 2): when
 // the exclusions empty a slot, the injury map's preferred substitute fills it,
 // and with no valid substitute the slot is left out and recorded — the
-// exclusion itself is never dropped to make a plan buildable.
-export const WORKOUT_ROUTINE_RULE_VERSION = 'icoach-workout-rules@1.2.0';
+// exclusion itself is never dropped to make a plan buildable. `@1.3.0` (v10):
+// plyometric moves (any jumping movement, such as the box jump) are prescribed
+// in repetitions, never as a timed conditioning block.
+export const WORKOUT_ROUTINE_RULE_VERSION = 'icoach-workout-rules@1.3.0';
 
 export type WorkoutRoutineGenerationErrorCode = 'INVALID_REQUEST' | 'INSUFFICIENT_CATALOG_COVERAGE';
 
@@ -120,6 +122,15 @@ const DURATION_SECONDS: Readonly<Record<FitnessLevel, number>> = {
   INTERMEDIATE: 480,
   ADVANCED: 600,
 };
+
+/**
+ * Plyometric moves: explosive reps with full recovery between sets, so a few
+ * short sets, never minutes of continuous work. Recognised by the catalogue's
+ * movement pattern, so a new jumping exercise follows the rule on its own.
+ */
+const PLYOMETRIC_MOVEMENTS: readonly string[] = ['jumping'];
+const PLYOMETRIC_REPS = { min: 6, max: 8 } as const;
+const PLYOMETRIC_REST_SECONDS = 90;
 
 const CORE_SECONDS: Readonly<Record<FitnessLevel, number>> = {
   BEGINNER: 20,
@@ -390,7 +401,10 @@ function prescribeExercise(
     LEVEL_RPE[request.fitnessLevel],
     INTENSITY_RPE[request.intensity],
   );
-  const isConditioning = exercise.trainingPatterns.includes('CONDITIONING');
+  const isPlyometric = exercise.movementPatterns.some((movement) =>
+    PLYOMETRIC_MOVEMENTS.includes(movement),
+  );
+  const isConditioning = !isPlyometric && exercise.trainingPatterns.includes('CONDITIONING');
   const isCore = exercise.trainingPatterns.includes('CORE');
   const profile = REPETITION_PROFILES[request.goal];
   const alternatives = matchingExercises(eligible, slot.patterns)
@@ -406,12 +420,20 @@ function prescribeExercise(
   return {
     exerciseKey: exercise.key,
     sets: isConditioning ? 1 : baseSets,
-    target: isConditioning
-      ? { kind: 'DURATION_SECONDS', seconds: DURATION_SECONDS[request.fitnessLevel] }
-      : isCore
-        ? { kind: 'DURATION_SECONDS', seconds: CORE_SECONDS[request.fitnessLevel] }
-        : { kind: 'REPETITIONS', min: profile.min, max: profile.max },
-    restSeconds: isConditioning ? 60 : isCore ? 45 : profile.restSeconds,
+    target: isPlyometric
+      ? { kind: 'REPETITIONS', ...PLYOMETRIC_REPS }
+      : isConditioning
+        ? { kind: 'DURATION_SECONDS', seconds: DURATION_SECONDS[request.fitnessLevel] }
+        : isCore
+          ? { kind: 'DURATION_SECONDS', seconds: CORE_SECONDS[request.fitnessLevel] }
+          : { kind: 'REPETITIONS', min: profile.min, max: profile.max },
+    restSeconds: isPlyometric
+      ? PLYOMETRIC_REST_SECONDS
+      : isConditioning
+        ? 60
+        : isCore
+          ? 45
+          : profile.restSeconds,
     targetRpe,
     substitutions: alternatives,
     explanationKeys: [

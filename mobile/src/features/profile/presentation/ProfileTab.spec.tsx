@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
-import { StyleSheet, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, type ViewStyle } from 'react-native';
 
 import { signOut } from '@/features/authentication';
 import type { HomeSummary } from '@/features/dashboard/domain/home-summary';
@@ -31,7 +31,14 @@ jest.mock('expo-router', () => ({
     useEffect(() => effect(), [effect]);
   },
 }));
-jest.mock('@/features/authentication', () => ({ signOut: jest.fn() }));
+jest.mock('@/features/authentication', () => ({
+  signOut: jest.fn(),
+  // ADR-P036: the switch has its own spec (biometric-ui.spec.tsx).
+  BiometricSwitch: () => {
+    const { Text } = jest.requireActual('react-native');
+    return <Text testID="mock-biometric-switch">switch</Text>;
+  },
+}));
 jest.mock('@/features/dashboard/application/dashboard.store', () => ({
   useDashboardStore: (select: (state: { refresh: () => void }) => unknown) =>
     select({ refresh: mockRefresh }),
@@ -192,13 +199,28 @@ describe('ProfileTab (ADR-P039)', () => {
     expect(screen.queryByTestId('profile-summary-lifestyle')).toBeNull();
   });
 
-  it('shows no Seguridad panel or biometric switch: the app has no biometric lock to wire it to', async () => {
+  it('places Seguridad, with the biometric switch, between Meta and Próximamente (ADR-P036)', async () => {
     mockLanguage = 'es';
     await render(<ProfileTab />);
 
-    expect(screen.queryByRole('header', { name: 'Seguridad' })).toBeNull();
-    expect(screen.queryByRole('switch')).toBeNull();
-    expect(screen.queryByText(/Face ID|Huella/)).toBeNull();
+    const titles = screen.getAllByRole('header').map((header) => header.props.children);
+    const meta = titles.indexOf('Meta');
+    expect(titles.slice(meta, meta + 3)).toEqual(['Meta', 'Seguridad', 'Próximamente']);
+    expect(
+      within(screen.getByTestId('profile-security')).getByTestId('mock-biometric-switch'),
+    ).toBeOnTheScreen();
+  });
+
+  it('shows no Seguridad panel on Web, which has no biometric sign-in (ADR-P018)', async () => {
+    jest.replaceProperty(Platform, 'OS', 'web');
+    try {
+      await render(<ProfileTab />);
+
+      expect(screen.queryByTestId('profile-security')).toBeNull();
+      expect(screen.queryByTestId('mock-biometric-switch')).toBeNull();
+    } finally {
+      jest.restoreAllMocks();
+    }
   });
 
   it.each([

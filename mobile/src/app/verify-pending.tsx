@@ -134,7 +134,11 @@ export default function VerifyPendingScreen() {
     }
   };
 
-  if (status === 'unauthenticated' || (status === 'authenticated' && !session)) {
+  if (
+    status === 'unauthenticated' ||
+    status === 'locked' ||
+    (status === 'authenticated' && !session)
+  ) {
     return <Redirect href="/sign-in" />;
   }
   if (session && requiredAccessStep(session.user) === 'app') return <Redirect href="/dashboard" />;

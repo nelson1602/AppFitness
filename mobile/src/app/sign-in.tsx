@@ -1,8 +1,18 @@
-import { Stack, router } from 'expo-router';
+import { type Href, Stack, router } from 'expo-router';
 import { type ReactNode, useRef, useState } from 'react';
 import { type LayoutChangeEvent, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AuthError, type AuthErrorReason, signIn, signUp } from '@/features/authentication';
+import {
+  AuthError,
+  type AuthErrorReason,
+  BiometricLinkSheet,
+  getSession,
+  signIn,
+  signUp,
+  unlockWithBiometrics,
+  useBiometricCapability,
+  useSession,
+} from '@/features/authentication';
 import { landingRouteFor } from '@/features/authentication/application/access-gate';
 import { meetsPasswordPolicy } from '@/features/authentication/domain/password-policy';
 import { PasswordChecklist } from '@/features/authentication/presentation/password-checklist';
@@ -77,6 +87,15 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   const [errorReason, setErrorReason] = useState<AuthErrorReason | null>(null);
   const [policyError, setPolicyError] = useState(false);
+  // ADR-P036. `locked`: a biometric-linked session waits to be unlocked here.
+  const { status } = useSession();
+  const capability = useBiometricCapability();
+  const biometricsAvailable = capability?.available === true;
+  const locked = status === 'locked';
+  /** Where a password sign-in goes once the biometric offer is done. */
+  const [offerLinkThen, setOfferLinkThen] = useState<Href | null>(null);
+  const [unlocking, setUnlocking] = useState(false);
+  const [biometricReset, setBiometricReset] = useState(false);
   /**
    * Which submission this screen currently owns (ADR-P030 C-1).
    *
@@ -129,11 +148,17 @@ export default function SignInScreen() {
       // ADR-P041 D2: an unverified account lands on "Verifica tu correo".
       // After sign-up the first email is already on its way, so resend waits.
       const landing = landingRouteFor(outcome.session.user);
-      router.replace(
+      const next: Href =
         landing === '/verify-pending' && mode === 'register'
           ? { pathname: landing, params: { sent: '1' } }
-          : landing,
-      );
+          : landing;
+      // A password sign-in offers biometric linking first (ADR-P036 A1); the
+      // landing route follows once the person is done with the offer.
+      if (mode === 'sign-in' && biometricsAvailable && ownsScreen()) {
+        setOfferLinkThen(next);
+        return;
+      }
+      router.replace(next);
     } catch (error) {
       // Only the typed, safe reason is used — never the raw error/message. A
       // superseded attempt never throws, so no stale banner can appear here;
@@ -146,6 +171,21 @@ export default function SignInScreen() {
       // still owns the screen.
       inFlight.current = false;
       if (ownsScreen()) setLoading(false);
+    }
+  };
+
+  // ADR-P036 A2: one prompt opens the sealed session. Any failure leaves the
+  // password form in place; a reset says why biometrics were turned off.
+  const unlock = async () => {
+    setUnlocking(true);
+    setBiometricReset(false);
+    try {
+      const outcome = await unlockWithBiometrics(t('auth.biometric.unlockPrompt'));
+      const session = outcome === 'unlocked' ? getSession() : null;
+      if (session) router.replace(landingRouteFor(session.user));
+      else if (outcome === 'reset') setBiometricReset(true);
+    } finally {
+      setUnlocking(false);
     }
   };
 
@@ -208,6 +248,13 @@ export default function SignInScreen() {
         {policyError && mode === 'register' && !meetsPasswordPolicy(password) ? (
           <Banner title={t('auth.passwordRules.incomplete')} tone="error" />
         ) : null}
+        {biometricReset || (locked && capability !== null && !biometricsAvailable) ? (
+          // A failed unlock reset, or a locked phone whose biometrics were
+          // removed since linking: the password is the way in (ADR-P036 A4).
+          <Banner title={t('auth.biometric.resetTitle')} tone="info">
+            {t('auth.biometric.resetBody')}
+          </Banner>
+        ) : null}
 
         <GlassCard style={web ? { padding: theme.spacing.lg } : undefined} testID="sign-in-form">
           <StageField
@@ -264,6 +311,46 @@ export default function SignInScreen() {
           >
             {mode === 'register' ? t('auth.register') : t('auth.signIn')}
           </AppButton>
+          {locked && biometricsAvailable && mode === 'sign-in' ? (
+            // ADR-P036 A2: one prompt opens the sealed session.
+            <AppButton
+              loading={unlocking}
+              onPress={() => void unlock()}
+              style={{ borderRadius: theme.radius.large }}
+              testID="button-biometric-unlock"
+              variant="stage-secondary"
+            >
+              {t(
+                capability?.kind === 'face'
+                  ? 'auth.biometric.signInFace'
+                  : 'auth.biometric.signInFingerprint',
+              )}
+            </AppButton>
+          ) : null}
+          {!locked && biometricsAvailable && mode === 'sign-in' ? (
+            // The design's hint, until biometrics are linked.
+            <View
+              style={[
+                styles.hint,
+                {
+                  backgroundColor: theme.colors.glassFill,
+                  borderRadius: theme.radius.field,
+                  gap: theme.spacing.sm,
+                  padding: theme.spacing.md,
+                },
+              ]}
+              testID="biometric-hint"
+            >
+              <Icon
+                color={theme.colors.linkOnStage}
+                name={capability?.kind === 'face' ? 'face' : 'finger'}
+                size={18}
+              />
+              <AppText style={styles.hintText} tone="onStageVariant" variant="caption">
+                {t('auth.biometric.hint')}
+              </AppText>
+            </View>
+          ) : null}
 
           {mode === 'sign-in' ? (
             <View style={[styles.divider, { gap: theme.spacing.md }]}>
@@ -291,6 +378,16 @@ export default function SignInScreen() {
 
         <LanguageSelector appearance="stage" />
       </View>
+      {offerLinkThen !== null && capability ? (
+        <BiometricLinkSheet
+          kind={capability.kind}
+          onDone={() => {
+            const next = offerLinkThen;
+            setOfferLinkThen(null);
+            router.replace(next);
+          }}
+        />
+      ) : null}
     </AuthScreen>
   );
 }
@@ -305,6 +402,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     top: 0,
+  },
+  hint: {
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  hintText: {
+    flex: 1,
   },
   headline: {
     alignItems: 'baseline',

@@ -14711,8 +14711,9 @@ ADR-0010, ADR-P022 (+ Addenda A–C), ADR-P037, `.ai/08_UI_UX.md`, `docs/design/
 
 ## ADR-P036 — Biometric Sign-In (Face ID / Fingerprint) on Native
 
-Status: Proposed
+Status: Accepted
 Date: 2026-10-22
+Accepted: 2026-10-22 by the project owner, as written, after the Phase 1 visual review (PR #231). Implemented on `codex/redesign-p036-biometrics`; the design's hint "Podrás activar Face ID o Huella al iniciar sesión." returns in this phase.
 Owner: Security / Mobile Architecture
 Depends on: ADR-P037 (dependency `expo-local-authentication`)
 
@@ -14742,6 +14743,89 @@ The design asks to offer linking Face ID or a fingerprint after a password sign-
 ### Related Documents
 
 `.ai/05_SECURITY.md` (Secure Storage, Device Security), ADR-P018, ADR-P026, ADR-P034
+
+### Amendment A — Biometrics unlock a hardware-protected key (2026-10-22)
+
+Status: Accepted (owner, 2026-10-22)
+Amends: Decision 2 (mechanism) and Decision 3 (sign-out). Every other decision stands.
+
+**Why.** Decision 2 as first written could not work:
+
+- The app already keeps the session across launches. The password screen
+  appears only after a sign-out or an expired session.
+- Sign-out revokes the refresh token, and a 401 clears it. So the moment a
+  biometric button would appear, the token it guarded was already unusable.
+- On Android, `requireAuthentication` items prompt on **every** operation,
+  writes included, and the session is rewritten on each token rotation.
+
+**Decision.**
+
+1. **Linking** (after a password sign-in, native only, when
+   `SecureStore.canUseBiometricAuthentication()` is true) creates a random
+   256-bit key. The key is stored in SecureStore with
+   `requireAuthentication: true`, so only the device's biometric hardware can
+   release it.
+   - The stored session envelope is then sealed with AES-256-GCM under that key
+     (`@noble/ciphers`, the ADR-P001 cipher), and the plaintext envelope is
+     deleted.
+   - A non-secret link marker records the linked account id.
+2. **On launch**, a linked device does not restore silently. The session status
+   is `locked` and the sign-in screen offers the biometric button.
+   - One biometric prompt releases the key and opens the sealed session.
+   - The normal restore then runs, including the offline rule (ADR-0005,
+     `.ai/06_MOBILE.md` 48 h).
+   - Password sign-in stays available at all times.
+3. **While the app is open** the key is held **in memory only**. Token
+   rotation re-seals without prompting. The key is dropped on sign-out, unlink
+   or failure.
+4. **Fail safe to password.** The link, the key and the sealed session are all
+   erased, and a password sign-in is required, when:
+   - the key is unreadable (biometric enrolment changed, so the OS invalidated
+     it);
+   - the sealed session fails to open;
+   - there are five consecutive failed or cancelled unlock attempts in one
+     launch;
+   - the server rejects the session with a 401.
+
+   A sealed refresh token that can no longer be read cannot be revoked; it
+   expires server-side on its own (`JWT_REFRESH_EXPIRES_IN`).
+5. **Sign-out (Decision 3, owner Option A)** still revokes the session
+   server-side. It also removes the link, the key and the sealed session.
+   Account deletion and a successful password reset do the same. A password
+   sign-in while `locked` replaces the sealed session, removes the old link
+   and offers linking again.
+6. **Biometric data never leaves the device.** The OS performs every
+   biometric check. The app and the API receive only the released key, never
+   a template or a match result. No API change is made.
+7. **Turning it off.** A switch turns the link on or off; both directions
+   ask for biometrics. It first lived in the Dashboard's Account group and
+   now lives in Perfil → Seguridad (Amendment B).
+8. **Web.** Unchanged and unavailable (ADR-P018): no hint, no button, no
+   switch.
+
+### Amendment B — Perfil → Seguridad and hardware wording (v10, 2026-11-10)
+
+Status: Accepted (owner prompt, 2026-11-10, reviving PR #233 for versionCode 10)
+Amends: A7 (where the switch lives). Every other decision stands.
+
+1. **The switch lives in Perfil → Seguridad**, the prototype's panel between
+   Meta and Próximamente (ADR-P039 delivered the Profile tab). The temporary
+   Dashboard row is gone. Both directions still ask for biometrics.
+2. **Without usable biometrics the switch shows, off and disabled**, as in the
+   prototype. The line under it says why: "Este teléfono no tiene biometría",
+   or where to enrol Face ID or a fingerprint in the phone's settings. Web
+   still shows no panel at all.
+3. **Wording by hardware.** "Face ID" only on an iPhone whose sensor is face
+   recognition; Touch ID and every Android sensor read "huella digital" /
+   "fingerprint" (Face ID is Apple's name and never describes an Android face
+   unlock).
+4. **A locked phone whose biometrics were removed** shows the password form with
+   the reset notice instead of an unlock button. A password sign-in then
+   replaces the sealed session and removes the old link (A5).
+5. **Linking is offered after a password sign-in only.** A new account first
+   verifies its email (ADR-P041) and can turn biometrics on from Perfil.
+6. **An unlock lands where a password sign-in would**: Inicio, or "Verifica tu
+   correo" for an unverified account (ADR-P041 D2).
 
 ---
 

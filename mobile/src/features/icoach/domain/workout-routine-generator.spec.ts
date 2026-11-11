@@ -113,7 +113,7 @@ describe('generateWorkoutRoutine', () => {
     }
   });
 
-  it('adds a duration-based conditioning slot to longer sessions', () => {
+  it('adds a conditioning slot to longer sessions: timed cardio, or reps for a jump', () => {
     const result = generateWorkoutRoutine({ ...BASE_REQUEST, sessionDurationMins: 60 }, CATALOG);
 
     for (const session of result.sessions) {
@@ -121,12 +121,67 @@ describe('generateWorkoutRoutine', () => {
       const conditioning = session.exercises.find((exercise) =>
         byKey.get(exercise.exerciseKey)?.trainingPatterns.includes('CONDITIONING'),
       );
-      expect(conditioning).toMatchObject({
-        sets: 1,
-        target: { kind: 'DURATION_SECONDS', seconds: 480 },
-        restSeconds: 60,
-      });
+      const jumping = byKey.get(conditioning!.exerciseKey)!.movementPatterns.includes('jumping');
+      expect(conditioning).toMatchObject(
+        jumping
+          ? { sets: 3, target: { kind: 'REPETITIONS', min: 6, max: 8 }, restSeconds: 90 }
+          : { sets: 1, target: { kind: 'DURATION_SECONDS', seconds: 480 }, restSeconds: 60 },
+      );
     }
+  });
+
+  describe('plyometric moves (v10, rules @1.3.0)', () => {
+    const LEVELS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
+    const GOALS = ['FAT_LOSS', 'MUSCLE_GAIN', 'STRENGTH', 'ENDURANCE', 'GENERAL_HEALTH'] as const;
+
+    /** Every prescription across goals, levels, 1–6 days and 45/60-minute sessions. */
+    function everyPrescription(levels: readonly (typeof LEVELS)[number][] = LEVELS) {
+      return GOALS.flatMap((goal) =>
+        levels.flatMap((fitnessLevel) =>
+          [1, 2, 3, 4, 5, 6].flatMap((daysPerWeek) =>
+            [45, 60].flatMap((sessionDurationMins) =>
+              generateWorkoutRoutine(
+                { ...BASE_REQUEST, goal, fitnessLevel, daysPerWeek, sessionDurationMins },
+                CATALOG,
+              ).sessions.flatMap((session) => session.exercises),
+            ),
+          ),
+        ),
+      );
+    }
+
+    it.each(LEVELS)(
+      'prescribes "Salto al cajón" in reps, never as a timed block (%s)',
+      (fitnessLevel) => {
+        const jumps = everyPrescription([fitnessLevel]).filter(
+          (exercise) => exercise.exerciseKey === 'exercise.box_jump',
+        );
+
+        // The beginner plan that showed "1 × 300 s" must now show "2 × 6–8".
+        expect(jumps.length).toBeGreaterThan(0);
+        for (const jump of jumps) {
+          expect(jump.target).toEqual({ kind: 'REPETITIONS', min: 6, max: 8 });
+          expect(jump.sets).toBe(fitnessLevel === 'BEGINNER' ? 2 : 3);
+          expect(jump.restSeconds).toBe(90);
+        }
+      },
+    );
+
+    it('keeps every jumping move on reps, and still times running, walking and cycling', () => {
+      const all = everyPrescription();
+      const jumping = all.filter((exercise) =>
+        byKey.get(exercise.exerciseKey)?.movementPatterns.includes('jumping'),
+      );
+      const timedCardio = all.filter(
+        (exercise) =>
+          exercise.target.kind === 'DURATION_SECONDS' &&
+          byKey.get(exercise.exerciseKey)?.trainingPatterns.includes('CONDITIONING'),
+      );
+
+      expect(jumping.length).toBeGreaterThan(0);
+      expect(jumping.every((exercise) => exercise.target.kind === 'REPETITIONS')).toBe(true);
+      expect(timedCardio.length).toBeGreaterThan(0);
+    });
   });
 
   it.each([
@@ -225,8 +280,13 @@ describe('generateWorkoutRoutine', () => {
     ['ENDURANCE', 12, 20, 60],
   ] as const)('applies the %s repetition and rest profile', (goal, min, max, restSeconds) => {
     const result = generateWorkoutRoutine({ ...BASE_REQUEST, goal }, CATALOG);
+    // Jumping moves keep their own 6–8 range (rules @1.3.0), whatever the goal.
     const repetitionTargets = result.sessions.flatMap((session) =>
-      session.exercises.filter((exercise) => exercise.target.kind === 'REPETITIONS'),
+      session.exercises.filter(
+        (exercise) =>
+          exercise.target.kind === 'REPETITIONS' &&
+          !byKey.get(exercise.exerciseKey)?.movementPatterns.includes('jumping'),
+      ),
     );
 
     expect(repetitionTargets.length).toBeGreaterThan(0);
