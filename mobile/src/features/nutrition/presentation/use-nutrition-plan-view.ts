@@ -213,6 +213,9 @@ export function withRebalance(days: readonly ViewDay[], today: TodayRebalance | 
     if (day.date !== today.date) return day;
     const { rebalance } = today;
     const meals = day.meals.map((meal) => {
+      // An eaten meal shows what was logged for it (its rebalanced portions).
+      const logged = today.eaten[meal.slot];
+      if (logged) return { ...meal, foods: logged.foods, totals: logged.totals };
       if (today.skipped.includes(meal.slot)) return { ...meal, skipped: true };
       const adjusted = rebalance.meals.find((candidate) => candidate.slot === meal.slot);
       if (!adjusted) return meal;

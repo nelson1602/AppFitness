@@ -13,7 +13,8 @@ import { useFoodLogStore } from '../application/food-log.store';
 import { rebalanceToday } from '../application/meal-rebalance.service';
 import { useSkippedMealsStore } from '../application/skipped-meals.store';
 import type { LoggedMealItem } from '../domain/food-log';
-import { MEAL_SLOTS, type MealSlot } from '../domain/meal-plan';
+import { MEAL_SLOTS, type MealMacros, type MealPlanFood, type MealSlot } from '../domain/meal-plan';
+import type { ServingUnit } from '../domain/food-catalog';
 import type { DayRebalance } from '../domain/meal-rebalance';
 
 export interface TodayRebalance {
@@ -22,6 +23,11 @@ export interface TodayRebalance {
   /** The latest food logged outside the plan today: what the iCoach adjusted for. */
   trigger: LoggedMealItem | null;
   skipped: readonly MealSlot[];
+  /**
+   * What "Lo comí" actually logged per meal today: an eaten meal shows these
+   * portions (possibly rebalanced), not the plan's original ones.
+   */
+  eaten: Partial<Record<MealSlot, { foods: MealPlanFood[]; totals: MealMacros }>>;
 }
 
 /**
@@ -77,7 +83,7 @@ export function useTodayRebalance(): TodayRebalance | null {
       items
         .filter((item) => !item.planned)
         .sort((a, b) => (b.loggedAt ?? '').localeCompare(a.loggedAt ?? ''))[0] ?? null;
-    return { date: today, rebalance, trigger, skipped };
+    return { date: today, rebalance, trigger, skipped, eaten: eatenBySlot(items) };
   }, [
     targets,
     current,
@@ -113,4 +119,40 @@ export function rebalanceCoachChange(today: TodayRebalance | null): CoachChange 
     food: today.trigger.name,
     covered: today.rebalance.status === 'covered',
   };
+}
+
+/** The planned meals logged today ("Lo comí"), as plan lines, by meal. */
+function eatenBySlot(items: readonly LoggedMealItem[]): TodayRebalance['eaten'] {
+  const eaten: TodayRebalance['eaten'] = {};
+  for (const item of items) {
+    if (!item.planned) continue;
+    const slot = item.mealType as MealSlot;
+    const entry = eaten[slot] ?? {
+      foods: [],
+      totals: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+    };
+    entry.foods.push({
+      foodId: item.catalogKey ?? item.foodId,
+      name: item.name,
+      servings: item.servingCount,
+      serving: {
+        amount: Math.round(item.serving.amount * item.servingCount * 10) / 10,
+        unit: item.serving.unit as ServingUnit,
+      },
+      macros: {
+        calories: Math.round(item.consumed.calories),
+        proteinG: item.consumed.proteinG,
+        carbsG: item.consumed.carbsG,
+        fatG: item.consumed.fatG,
+      },
+    });
+    entry.totals = {
+      calories: entry.totals.calories + Math.round(item.consumed.calories),
+      proteinG: Math.round((entry.totals.proteinG + item.consumed.proteinG) * 10) / 10,
+      carbsG: Math.round((entry.totals.carbsG + item.consumed.carbsG) * 10) / 10,
+      fatG: Math.round((entry.totals.fatG + item.consumed.fatG) * 10) / 10,
+    };
+    eaten[slot] = entry;
+  }
+  return eaten;
 }

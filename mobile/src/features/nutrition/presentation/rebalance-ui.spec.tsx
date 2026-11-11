@@ -108,6 +108,7 @@ function repro(skipped: MealSlot[] = []): TodayRebalance {
       loggedAt: '2026-11-11T19:30:00.000Z',
     },
     skipped,
+    eaten: {},
   };
 }
 
@@ -192,6 +193,18 @@ describe('rebalance on screen (ADR-P040 v10-B)', () => {
     expect(screen.getByTestId('plan-rebalance-day')).toHaveTextContent(
       /El iCoach ajustó tus comidas pendientes\.$/,
     );
+  });
+
+  it('shows an eaten meal with the portions "Lo comí" logged, not the planned ones', () => {
+    const logged = {
+      foods: MEALS[1].foods.slice(0, 2),
+      totals: { calories: 632, proteinG: 40, carbsG: 60, fatG: 20 },
+    };
+    const [today] = withRebalance([DAY], { ...repro(), eaten: { LUNCH: logged } });
+    const lunch = today.meals.find((m) => m.slot === 'LUNCH')!;
+    expect(lunch.totals.calories).toBe(632);
+    expect(lunch.foods).toBe(logged.foods);
+    expect(lunch.rebalance).toBeUndefined();
   });
 
   it('leaves other days alone', () => {
