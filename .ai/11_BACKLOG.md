@@ -3460,7 +3460,12 @@ Drain proof: one tap on "Sincronizar ahora" → 2× `POST /sync/push 201` → qu
 - "Sincronizar ahora" stays as the manual path.
 
 - [x] Scheduler tests (`auto-sync.spec.ts`: start, debounce, offline retry until drained, no retry when blocked, never in background, save during a run, dispose). Runner mapping (`auto-sync-runner.spec.ts`). Enqueue notifies on insert and on fold (`sync-queue.coalesce.spec.ts`, `sync-events.spec.ts`).
-- [ ] Device proof: log a food, wait without tapping, Perfil shows 0 pending (`dist/v10-review/rebalance/fix-1/`).
+- [x] Device proof (local e2e build of f132471, no tap anywhere). The `dist/v10-review/rebalance/fix-1/` INDEX has the timings.
+  - **Save:** push 6 s after logging, then Perfil shows 0 pending.
+  - **Start:** a stuck FAILED op was pushed 3 s after launch.
+  - **Network regain:** an offline edit was pushed right after its 60 s backoff.
+  - **Foreground:** a sync ran 0.3 s after returning to the app.
+  - **Result:** 0 `sync_conflicts`.
 
 ---
 
