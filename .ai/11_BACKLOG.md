@@ -3430,7 +3430,7 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ## [BUG-047] 402 Shown as "Check Your Connection"; Sync Push Over the 100 kB Body Limit
 
-Status: Fixed in PR (codex/fix-402-413), pending device proof on Development and owner review
+Status: Fixed in PR #251 (codex/fix-402-413), pending owner review
 Priority: P1
 Type: Bug
 Owner: Engineering
@@ -3457,7 +3457,7 @@ The owner's device report on versionCode 10 against Development (lucid-flexibili
 - **Server errors are never "offline".** A new `server-error` sync outcome covers push, pull and conflict settlement. The food save errors and the "Verifica tu correo" check now tell offline apart from a server answer.
 
 - [x] Unit tests: batching under 90 KB / 50 ops, 413 halving, a single oversized op kept, 402 mid-queue returns the unsent rows to PENDING, 5xx is `server-error`, and every UI state
-- [ ] Device proof against lucid-flexibility (`dist/v10-review/fix-402-413/`)
+- [x] Device proof on the local stack with REVENUECAT_PROVIDER=revenuecat (EAS e2e build c52a6a7f): 402 notices in Perfil, the food log and food save; server error vs offline; a 106.7 KB queue sent as 71,442 B + 35,244 B with no 413 (`dist/v10-review/fix-402-413/`). Development (lucid-flexibility) has RevenueCat disabled, so it cannot return 402.
 
 ---
 
