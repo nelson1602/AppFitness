@@ -9,6 +9,7 @@ import {
   cmToFeetInches,
   displayToKg,
   feetInchesToCm,
+  UnitSelector,
   useUnits,
   weightFieldText,
 } from '@/shared/units';
@@ -31,6 +32,17 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
   const initialFeetInches = draft.heightCm === null ? null : cmToFeetInches(draft.heightCm);
   const [feet, setFeet] = useState(initialFeetInches ? String(initialFeetInches.feet) : '');
   const [inches, setInches] = useState(initialFeetInches ? String(initialFeetInches.inches) : '');
+  // v10-B: switching kg/lb · cm/ft-in here re-shows what was typed in the new
+  // units (the draft keeps kg and cm, so nothing is lost or converted twice).
+  const [shownSystem, setShownSystem] = useState(system);
+  if (shownSystem !== system) {
+    setShownSystem(system);
+    setWeight(weightFieldText(draft.weightKg, system, language));
+    setHeight(decimalText(draft.heightCm, language));
+    const converted = draft.heightCm === null ? null : cmToFeetInches(draft.heightCm);
+    setFeet(converted ? String(converted.feet) : '');
+    setInches(converted ? String(converted.inches) : '');
+  }
   const updateFeetInches = (nextFeet: string, nextInches: string) => {
     const f = parseDecimal(nextFeet);
     const i = nextInches.trim() === '' ? 0 : parseDecimal(nextInches);
@@ -50,6 +62,9 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
           {t('evaluation.measures.intro')}
         </AppText>
       </GlassCard>
+
+      {/* v10-B: new people pick their units right where they type their measures. */}
+      <UnitSelector />
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
         <NumberField

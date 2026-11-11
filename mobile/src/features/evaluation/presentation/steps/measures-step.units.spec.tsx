@@ -90,3 +90,24 @@ describe('Evaluación física in lb / ft-in', () => {
     expect(update).toHaveBeenLastCalledWith({ targetWeightKg: expect.closeTo(68.039, 3) });
   });
 });
+
+/** v10-B: new people choose kg/lb · cm/ft-in right in the Medidas step. */
+describe('Medidas offers the units toggle', () => {
+  it('shows the toggle and re-shows what was typed in the new units', async () => {
+    const update = jest.fn();
+    await render(<MeasuresStep draft={draft} issues={[]} today={TODAY} update={update} />);
+
+    expect(screen.getByTestId('unit-selector')).toBeOnTheScreen();
+    expect(screen.getByTestId('evaluation-weight')).toHaveProp('value', '72');
+
+    await fireEvent.press(screen.getByTestId('unit-option-imperial'));
+    // The draft keeps kilograms; the field now reads pounds, converted once.
+    expect(await screen.findByTestId('evaluation-height-feet')).toBeOnTheScreen();
+    expect(screen.getByTestId('evaluation-weight')).toHaveProp('value', '158.7');
+    expect(update).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByTestId('unit-option-metric'));
+    expect(await screen.findByTestId('evaluation-height')).toBeOnTheScreen();
+    expect(screen.getByTestId('evaluation-weight')).toHaveProp('value', '72');
+  });
+});

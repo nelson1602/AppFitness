@@ -326,6 +326,9 @@ export function ProfileTab() {
       </Panel>
 
       <Panel icon="user" testID="profile-settings" title={t('profile.tab.settingsTitle')}>
+        {/* v10-B: Idioma and Unidades first, each its own row, where people look. */}
+        <LanguageSelector appearance="stage" />
+        <UnitSelector />
         <AccountSettingsSection />
         <GlassRow
           icon="user"
@@ -347,8 +350,6 @@ export function ProfileTab() {
           onPress={() => router.push('/privacy-data')}
           testID="profile-privacy-data"
         />
-        <LanguageSelector appearance="stage" />
-        <UnitSelector />
         <PrivacyPolicyLink testID="profile-privacy-policy" />
       </Panel>
 

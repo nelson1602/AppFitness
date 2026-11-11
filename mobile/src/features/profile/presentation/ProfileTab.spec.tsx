@@ -211,6 +211,19 @@ describe('ProfileTab (ADR-P039)', () => {
     ).toBeOnTheScreen();
   });
 
+  it('puts Idioma and Unidades first in Cuenta y ajustes, each its own row (v10-B)', async () => {
+    mockLanguage = 'es';
+    await render(<ProfileTab />);
+
+    // Render order inside the panel: Idioma, Unidades, then the rest.
+    const ids = ['language-selector', 'unit-selector', 'account-settings', 'profile-edit'];
+    const tree = JSON.stringify(screen.toJSON());
+    const start = tree.indexOf('"testID":"profile-settings"');
+    const positions = ids.map((id) => tree.indexOf(`"testID":"${id}"`));
+    expect(positions.every((position) => position > start)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  });
+
   it('shows no Seguridad panel on Web, which has no biometric sign-in (ADR-P018)', async () => {
     jest.replaceProperty(Platform, 'OS', 'web');
     try {
