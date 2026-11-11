@@ -73,7 +73,7 @@ Counts reproducible at this commit:
 | Presentation files branching on `status === 'web-unavailable'` | **12** |
 | Specs asserting Web-unavailable behaviour | **19** |
 | Route files importing `DashboardSkeleton` as their session loader | **12** |
-| Stores that call `runSync` | **2** — `dashboard.store.ts`, `food-log.store.ts` |
+| Stores that call `runSync` | **2** — `dashboard.store.ts`, `food-log.store.ts` (also driven automatically by `auto-sync.ts`, BUG-049) |
 | `accessibilityLiveRegion` / `announceForAccessibility` occurrences | **0** |
 
 ---

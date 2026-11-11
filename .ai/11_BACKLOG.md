@@ -3428,10 +3428,10 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
-## [BUG-049] Local Writes Wait for "Sincronizar ahora": Nothing Syncs Them Automatically
+## [BUG-049] Local Writes Waited for "Sincronizar ahora": Nothing Synced Them Automatically
 
-Status: Open (proposed; not fixed in PR #253)
-Priority: P2
+Status: Fixed in PR #253 (codex/v10-rebalance-units, review fix-1), pending owner review
+Priority: P1
 Type: Bug
 Owner: Engineering
 Created: 2026-11-11
@@ -3445,11 +3445,21 @@ Cause: `runSync` is invoked explicitly only (`sync-worker.ts`: "no background sc
 
 Drain proof: one tap on "Sincronizar ahora" → 2× `POST /sync/push 201` → queue 0, server meal_items for 2026-11-11 = 2.849 kcal (galleta v2 deleted + new galleta live), 0 `sync_conflicts`, local "Omitir" state kept (`dist/v10-review/rebalance/fix-1/`).
 
-### Proposal (needs owner decision; touches the sync policy)
+### Fix (owner-directed in the #253 review)
 
-- Run `runSync` when the app comes to the foreground, and debounced (for example 5 s) after a write is enqueued, while signed in and online.
-- Keep "Sincronizar ahora" as the manual path.
-- Respect the BUG-030 one-run-per-user guard.
+- `features/dashboard/application/auto-sync.ts`: a scheduler that runs sync only while the app is in the foreground and signed in. It runs:
+  - **at start**: once, when the signed-in tab shell opens;
+  - **in the foreground**: on every return to the foreground (AppState);
+  - **after a save**: 2 s after the last local write (`onEnqueued` from `sync-queue.ts`), so a burst of taps makes one run;
+  - **on a retry**: every 30 s while ops stay pending after an offline or server-error run.
+- **Network regain:** there is no connectivity listener, because NetInfo is not in the approved stack and would need an ADR. The foreground retry covers it.
+- **No retry when the person must act:** a session or subscription problem is not retried.
+- `auto-sync-runner.ts` runs through the same `syncNow` as "Sincronizar ahora" (dashboard, plus the food log when it is loaded) in one tick, so both share one standing `runSync` (BUG-030). Perfil's count updates with it.
+- Mounted by `useAutoSync` in `(tabs)/_layout.tsx`. Not on Web (no local database, ADR-P019).
+- "Sincronizar ahora" stays as the manual path.
+
+- [x] Scheduler tests (`auto-sync.spec.ts`: start, debounce, offline retry until drained, no retry when blocked, never in background, save during a run, dispose). Runner mapping (`auto-sync-runner.spec.ts`). Enqueue notifies on insert and on fold (`sync-queue.coalesce.spec.ts`, `sync-events.spec.ts`).
+- [ ] Device proof: log a food, wait without tapping, Perfil shows 0 pending (`dist/v10-review/rebalance/fix-1/`).
 
 ---
 
