@@ -1,6 +1,7 @@
 export { computeBackoffMs, computeNextRetryAt } from './backoff';
 export {
   countByStatus,
+  earliestRetryAt,
   enqueue,
   findParkedOperation,
   hasPendingOpFor,

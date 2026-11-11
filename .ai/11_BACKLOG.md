@@ -3451,7 +3451,8 @@ Drain proof: one tap on "Sincronizar ahora" → 2× `POST /sync/push 201` → qu
   - **at start**: once, when the signed-in tab shell opens;
   - **in the foreground**: on every return to the foreground (AppState);
   - **after a save**: 2 s after the last local write (`onEnqueued` from `sync-queue.ts`), so a burst of taps makes one run;
-  - **on a retry**: every 30 s while ops stay pending after an offline or server-error run.
+  - **on a retry**: right after the earliest failed op's backoff ends (`next_retry_at`, 30 s doubling per retry). If there is no backoff to wait for, every 30 s while ops stay pending after an offline or server-error run.
+- **Device finding while proving it:** at first the retry only ran every 30 s after a failed run. On the device, an offline save went FAILED with a 60 s backoff. The 30 s retry pulled fine but could not push yet, called the run a success, and stopped. The retry now lands on the backoff (`earliestRetryAt` in `sync-queue.ts`). A ready-but-held op never makes it spin.
 - **Network regain:** there is no connectivity listener, because NetInfo is not in the approved stack and would need an ADR. The foreground retry covers it.
 - **No retry when the person must act:** a session or subscription problem is not retried.
 - `auto-sync-runner.ts` runs through the same `syncNow` as "Sincronizar ahora" (dashboard, plus the food log when it is loaded) in one tick, so both share one standing `runSync` (BUG-030). Perfil's count updates with it.

@@ -436,7 +436,7 @@ Negative:
 
 ### Addendum BUG-049 (2026-11-11) — Automatic sync triggers
 
-The device sync worker no longer runs only when someone taps it. While the app is signed in and in the foreground, it runs at start, on every return to the foreground, 2 s after the last local write, and every 30 s while ops stay pending after an offline or server-error run. That last retry stands in for a connectivity listener, which is not in the approved stack. A session or subscription problem is never retried automatically. "Sincronizar ahora" stays. Nothing runs in the background or on Web. See BUG-049.
+The device sync worker no longer runs only when someone taps it. While the app is signed in and in the foreground, it runs at start, on every return to the foreground, 2 s after the last local write, and right after a failed op's backoff ends (or every 30 s after an offline or server-error run with no backoff to wait for). That retry stands in for a connectivity listener, which is not in the approved stack. A session or subscription problem is never retried automatically. "Sincronizar ahora" stays. Nothing runs in the background or on Web. See BUG-049.
 
 ---
 

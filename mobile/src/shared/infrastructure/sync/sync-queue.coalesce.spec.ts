@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { MIGRATIONS } from '../database/migrations';
 import type { SyncOperationType, SyncQueueRow } from '../database/types';
 import {
+  earliestRetryAt,
   enqueue,
   markApplied,
   markConflict,
@@ -279,5 +280,14 @@ describe('BUG-049: a local write tells automatic sync', () => {
     stop();
     await edit({ servingCount: 2 });
     expect(seen).toHaveLength(2);
+  });
+
+  it('reports when the earliest failed op may go again (60 s after a first failure, as on the device)', async () => {
+    expect(await earliestRetryAt(A)).toBeNull();
+    const opId = await edit({ servingCount: 1.25 });
+    await markInFlight(A, [opId], NOW);
+    await markFailed(A, opId, 'fetch failed', NOW);
+    expect(await earliestRetryAt(A)).toBe('2026-11-11T10:01:00.000Z');
+    expect(await earliestRetryAt('user-b')).toBeNull();
   });
 });

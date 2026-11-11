@@ -15,7 +15,7 @@ import { runAutoSync } from '../application/auto-sync-runner';
 export function useAutoSync(userId: string | null): void {
   useEffect(() => {
     if (!userId || Platform.OS === 'web') return undefined;
-    const auto = createAutoSync({ sync: runAutoSync });
+    const auto = createAutoSync({ sync: () => runAutoSync(userId) });
     const stopSaves = onEnqueued((owner) => {
       if (owner === userId) auto.request('save');
     });

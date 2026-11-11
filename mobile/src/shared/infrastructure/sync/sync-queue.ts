@@ -489,6 +489,18 @@ export async function listUnsynced(userId: string, limit = 10): Promise<Unsynced
   }));
 }
 
+/**
+ * BUG-049: when the earliest FAILED op becomes ready again (its backoff ends),
+ * so automatic sync can come back exactly then instead of giving up.
+ */
+export async function earliestRetryAt(userId: string): Promise<string | null> {
+  const row = await queryFirst<{ at: string | null }>(
+    `SELECT MIN(next_retry_at) AS at FROM sync_queue WHERE user_id = ? AND status = 'FAILED'`,
+    [userId],
+  );
+  return row?.at ?? null;
+}
+
 export async function countByStatus(userId: string): Promise<Record<string, number>> {
   const rows = await queryAll<{ status: string; n: number }>(
     `SELECT status, COUNT(*) AS n FROM sync_queue WHERE user_id = ? GROUP BY status`,

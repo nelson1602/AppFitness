@@ -9,6 +9,12 @@ const mockFoodLog = { status: 'idle', syncNow: jest.fn(() => Promise.resolve()) 
 jest.mock('./dashboard.store', () => ({
   useDashboardStore: { getState: () => mockDashboard },
 }));
+const mockEarliestRetryAt = jest.fn((_userId: string): Promise<string | null> =>
+  Promise.resolve(null),
+);
+jest.mock('@/shared/infrastructure/sync', () => ({
+  earliestRetryAt: (userId: string) => mockEarliestRetryAt(userId),
+}));
 jest.mock('@/features/nutrition/application/food-log.store', () => ({
   useFoodLogStore: { getState: () => mockFoodLog },
 }));
@@ -25,7 +31,11 @@ describe('one automatic sync run (BUG-049)', () => {
 
   it('goes through "Sincronizar ahora" and reports a drained queue', async () => {
     syncState({});
-    await expect(runAutoSync()).resolves.toEqual({ outcome: 'success', pending: 0 });
+    await expect(runAutoSync('user-a')).resolves.toEqual({
+      outcome: 'success',
+      pending: 0,
+      nextRetryAt: null,
+    });
     expect(mockDashboard.syncNow).toHaveBeenCalledTimes(1);
     expect(mockFoodLog.syncNow).not.toHaveBeenCalled();
   });
@@ -33,18 +43,34 @@ describe('one automatic sync run (BUG-049)', () => {
   it('also refreshes a loaded food log, in the same tick (one shared run)', async () => {
     mockFoodLog.status = 'ready';
     syncState({});
-    await runAutoSync();
+    await runAutoSync('user-a');
     expect(mockFoodLog.syncNow).toHaveBeenCalledTimes(1);
   });
 
   it('counts pending and failed ops, and maps offline, error and blocked', async () => {
     syncState({ status: 'offline', pending: 2, failed: 1 });
-    await expect(runAutoSync()).resolves.toEqual({ outcome: 'offline', pending: 3 });
+    await expect(runAutoSync('user-a')).resolves.toEqual({
+      outcome: 'offline',
+      pending: 3,
+      nextRetryAt: null,
+    });
     syncState({ status: 'error', pending: 1, problem: 'server' });
-    await expect(runAutoSync()).resolves.toEqual({ outcome: 'error', pending: 1 });
+    await expect(runAutoSync('user-a')).resolves.toEqual({
+      outcome: 'error',
+      pending: 1,
+      nextRetryAt: null,
+    });
     syncState({ status: 'error', pending: 1, problem: 'session' });
-    await expect(runAutoSync()).resolves.toEqual({ outcome: 'blocked', pending: 1 });
+    await expect(runAutoSync('user-a')).resolves.toEqual({
+      outcome: 'blocked',
+      pending: 1,
+      nextRetryAt: null,
+    });
     syncState({ status: 'error', pending: 1, problem: 'subscription' });
-    await expect(runAutoSync()).resolves.toEqual({ outcome: 'blocked', pending: 1 });
+    await expect(runAutoSync('user-a')).resolves.toEqual({
+      outcome: 'blocked',
+      pending: 1,
+      nextRetryAt: null,
+    });
   });
 });
