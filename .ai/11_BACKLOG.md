@@ -3428,6 +3428,44 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-048] A Second Edit Before Sync Conflicts With the First
+
+Status: Fixed in PR (codex/bug048-queued-base-version), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-11
+Updated: 2026-11-11
+
+### Description
+
+Found while proving BUG-047 (PR #251) on the local stack. Four servings taps on one food-log entry (Chicharrón, 1 → 1,25 → 1 → 1,25 → 1) queued four UPDATEs, all with base version 1. The first applied (server v2); the other three became sync conflicts.
+
+Cause: every repository bases an edit on the local row's `version`, which only changes on pull (`food-log.repository.ts:247` and the same pattern in every repository that queues UPDATE or DELETE). Any second edit to an entity before its first edit syncs carried a stale base version: offline, after a 402, or while retries back off.
+
+### Fix (mobile, one place: `enqueue` in `sync-queue.ts`)
+
+- **UPDATE after a queued UPDATE** (PENDING or FAILED, not on the wire): the new change is merged into it.
+  - Last value wins; fields only the earlier edit set stay.
+  - The earlier op keeps its op id, base version and queue position.
+  - Sensitive payloads stay encrypted.
+- **Anything else after a queued op** (an UPDATE in flight, a CREATE, or a DELETE): the new op is based on the version that op will produce (CREATE → 1, edit → base + 1).
+- **Race.** The merge is a conditional write (only while the row is still PENDING/FAILED). If the worker claimed the row meanwhile, the change is queued as its own chained op. The worker now re-reads claimed rows, so a merge made before the claim is always the one sent.
+- **Barrier.** `peekReady` holds an UPDATE/DELETE while an earlier UPDATE/DELETE for the same entity is PENDING, IN_FLIGHT or FAILED, so a chained op never overtakes the one it depends on (extends the BUG-029 CREATE barrier).
+- **Parked ops** (CONFLICT, ACTION_REQUIRED) are left alone.
+- **Entity types covered** (every one that queues UPDATE or DELETE):
+  - meal_items, dietary_preferences, goals, user_profiles;
+  - body_weights, body_measurements, progress_snapshots, wellness_safety_profiles;
+  - exercises, routines, routine_exercises, workout_logs, workout_sets;
+  - medical_evaluations, medical_restrictions.
+
+  weekly_plans and meals queue only CREATE.
+
+- [x] 4 quick stepper taps offline → 1 op → 0 conflicts; edit while a push is in flight → chained, 0 conflicts (`sync-queue.coalesce.spec.ts`)
+- [ ] Device proof on the local stack (`dist/v10-review/bug-048/`)
+
+---
+
 ## [BUG-047] 402 Shown as "Check Your Connection"; Sync Push Over the 100 kB Body Limit
 
 Status: Fixed in PR #251 (codex/fix-402-413), pending owner review

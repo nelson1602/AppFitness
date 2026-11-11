@@ -120,15 +120,26 @@ describe('queued CREATE barrier (BUG-029)', () => {
     expect(await ready()).toEqual(['delete']);
   });
 
-  it('releases every later op in FIFO order', async () => {
+  // BUG-048: the second UPDATE folds into the first, and the DELETE is chained
+  // to the version that UPDATE will produce, so the edits go one at a time.
+  it('releases every later op in FIFO order, one edit at a time', async () => {
     await op('create', 'CREATE');
     await op('update-1', 'UPDATE');
     await op('update-2', 'UPDATE');
     await op('delete', 'DELETE');
 
     await markApplied(A, 'create');
+    const [update] = await peekReady(A, NOW, 50);
+    expect(update.op_id).toBe('update-1');
+    expect(update.base_version).toBe(1); // the version the CREATE produced
+    expect((await readQueuePayload(update)).payload).toMatchObject({ reps: 'update-2'.length });
 
-    expect(await ready()).toEqual(['update-1', 'update-2', 'delete']);
+    await markApplied(A, 'update-1');
+    const [remove] = await peekReady(A, NOW, 50);
+    expect(remove.op_id).toBe('delete');
+    expect(remove.base_version).toBe(2);
+    await markApplied(A, 'delete');
+    expect(await ready()).toEqual([]);
   });
 
   it.each([

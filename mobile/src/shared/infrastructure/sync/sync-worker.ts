@@ -12,6 +12,7 @@ import {
   markFailed,
   markInFlight,
   peekReady,
+  readClaimed,
   readQueuePayload,
   recoverAbandonedInFlight,
   removeRejected,
@@ -188,12 +189,20 @@ async function pushLoop(
       now(),
     );
 
+    // BUG-048: read the rows again now that they are claimed. A change merged
+    // into a queued UPDATE before the claim is then always the one sent; one
+    // that arrives after it queues as its own op, chained behind this one.
+    const claimed = await readClaimed(
+      userId,
+      batch.map((row) => row.op_id),
+    );
+
     // Decode payloads (decrypting sensitive envelopes just-in-time). A row
     // this device cannot read fails on its own, with its reason, instead of
     // aborting the run and stranding every queued row behind it (v8.1).
     const decoded = new Map<string, { payload: Record<string, unknown>; sensitive: boolean }>();
     const readable: typeof batch = [];
-    for (const row of batch) {
+    for (const row of claimed) {
       try {
         decoded.set(row.op_id, await readQueuePayload(row));
         readable.push(row);
