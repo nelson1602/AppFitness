@@ -51,7 +51,7 @@ describe('sync reason and details (v8.1)', () => {
     );
     expect(
       syncStatusCopy(summary({ status: 'error', problem: 'subscription' }), t, 'en').title,
-    ).toBe(en['dashboard.sync.problem.subscriptionTitle']);
+    ).toBe(en['subscription.requiredTitle']);
     expect(syncStatusCopy(summary({ status: 'error', problem: 'unexpected' }), t, 'en').title).toBe(
       en['dashboard.sync.problem.unexpectedTitle'],
     );
@@ -73,6 +73,10 @@ describe('sync reason and details (v8.1)', () => {
     );
     expect(unsyncedReasonKey({ ...change, status: 'FAILED', lastError: 'http_500' })).toBe(
       'dashboard.sync.details.server',
+    );
+    // v10: one change still too large on its own after halving stays queued.
+    expect(unsyncedReasonKey({ ...change, status: 'FAILED', lastError: 'http_413' })).toBe(
+      'dashboard.sync.details.tooLarge',
     );
     expect(
       unsyncedReasonKey({ ...change, status: 'FAILED', lastError: 'Network request failed' }),

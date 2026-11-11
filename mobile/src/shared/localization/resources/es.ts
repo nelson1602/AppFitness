@@ -654,6 +654,8 @@ export const es = {
   'auth.pending.notYetBody': 'Abre el enlace del correo y vuelve a tocar «Ya lo verifiqué».',
   'auth.pending.checkFailedTitle': 'No pudimos comprobarlo',
   'auth.pending.checkFailedBody': 'Revisa tu conexión e inténtalo de nuevo.',
+  'auth.pending.checkFailedServerBody':
+    'AppFitnessRD no pudo comprobarlo ahora. Inténtalo de nuevo en unos minutos.',
   'auth.pending.switchAccount': 'Usar otra cuenta',
   'auth.error.mailUnavailableTitle': 'El restablecimiento no está disponible',
   'auth.error.mailUnavailableBody':
@@ -1474,6 +1476,8 @@ export const es = {
   'nutrition.search.sourceFdc': 'USDA',
   'nutrition.search.sourceOff': 'Open Food Facts',
   'nutrition.search.saveError':
+    'No pudimos guardar este alimento. Inténtalo de nuevo en un momento.',
+  'nutrition.search.saveOffline':
     'No pudimos guardar este alimento. Revisa tu conexión e intenta de nuevo.',
   'nutrition.custom.open': '¿No está? Crear un alimento',
   'nutrition.custom.title': 'Tu alimento',
@@ -1488,7 +1492,8 @@ export const es = {
   'nutrition.custom.fat': 'Grasa (g)',
   'nutrition.custom.invalid':
     'Revisa los datos: el nombre, una porción mayor que 0 y calorías y macros de 0 o más.',
-  'nutrition.custom.saveError':
+  'nutrition.custom.saveError': 'No pudimos crear el alimento. Inténtalo de nuevo en un momento.',
+  'nutrition.custom.saveOffline':
     'No pudimos crear el alimento. Revisa tu conexión e intenta de nuevo.',
   'nutrition.custom.save': 'Guardar alimento',
   'nutrition.custom.cancel': 'Cancelar',
@@ -1638,16 +1643,17 @@ export const es = {
   'dashboard.sync.problem.sessionTitle': 'Inicia sesión de nuevo para sincronizar',
   'dashboard.sync.problem.sessionBody':
     'Tu sesión venció. Tus cambios siguen guardados en este teléfono.',
-  'dashboard.sync.problem.subscriptionTitle': 'Sincronización en pausa',
-  'dashboard.sync.problem.subscriptionBody':
-    'Tu cuenta no tiene acceso activo para guardar cambios en el servidor. Siguen guardados en este teléfono.',
   'dashboard.sync.problem.unexpectedTitle': 'No pudimos terminar de sincronizar',
   'dashboard.sync.problem.unexpectedBody':
     'Algo falló en este teléfono. Lo intentaremos de nuevo y tus cambios siguen guardados.',
+  'dashboard.sync.problem.serverTitle': 'El servidor no pudo guardar tus cambios',
+  'dashboard.sync.problem.serverBody':
+    'Siguen guardados en este teléfono. Lo intentaremos de nuevo en unos minutos.',
   'dashboard.sync.details.title': 'Cambios por sincronizar',
   'dashboard.sync.details.waiting': 'En espera',
   'dashboard.sync.details.session': 'Tu sesión venció',
   'dashboard.sync.details.server': 'El servidor no lo aceptó; lo intentaremos de nuevo',
+  'dashboard.sync.details.tooLarge': 'Es demasiado grande para enviarlo; lo intentaremos de nuevo',
   'dashboard.sync.details.network': 'Sin conexión; lo intentaremos de nuevo',
   'dashboard.sync.details.unreadable': 'No se pudo leer en este teléfono',
   'dashboard.sync.details.retries': 'intento {count}',
@@ -1939,6 +1945,9 @@ export const es = {
   'sync.conflicts.offlineTitle': 'Estás sin conexión',
   'sync.conflicts.offlineBody':
     'Aún puedes elegir ahora. Lo guardaremos en este dispositivo y terminaremos cuando vuelvas a tener conexión.',
+  'sync.settlement.serverErrorTitle': 'Guardamos tu elección en este dispositivo',
+  'sync.settlement.serverErrorBody':
+    'El servidor no pudo terminar ahora. Lo intentaremos de nuevo; no necesitas hacer nada más.',
   'sync.conflicts.dashboardButton': 'Revisar cambios',
   'sync.conflicts.dashboardButtonAccessibility': 'Revisar los cambios que necesitan tu decisión',
   'sync.conflicts.record.user_profiles': 'Perfil',
@@ -2138,6 +2147,11 @@ export const es = {
   'subscription.readOnlyBody':
     'Tus datos guardados están seguros y disponibles. Renueva o restaura tu suscripción para guardar cambios, sincronizar ediciones, resolver conflictos o generar un plan nuevo de iCoach.',
   'subscription.open': 'Ver suscripción',
+  'subscription.requiredTitle': 'Necesitas una suscripción activa para guardar esto',
+  'subscription.requiredKeptBody':
+    'Lo que registraste sigue guardado en tu teléfono y se sincronizará cuando tu suscripción esté activa.',
+  'subscription.requiredNotSavedBody':
+    'Este alimento no se guardó. Activa tu suscripción e inténtalo de nuevo.',
   'legal.privacyPolicy': 'Política de privacidad',
   'legal.privacyPolicyAccessibility': 'Abrir la política de privacidad de AppFitnessRD',
 } as const satisfies Record<TranslationKey, string>;

@@ -242,6 +242,19 @@ describe('recording a choice', () => {
     });
   });
 
+  it.each([
+    ['server-error', 'serverError'],
+    ['subscription-required', 'subscription'],
+  ] as const)('reports a %s settlement as %s, never offline (v10)', async (outcome, kind) => {
+    mockedChoose.mockResolvedValue({ status: 'RECORDED' });
+    mockedSettle.mockResolvedValue(report({ outcome, failed: 1, events: [] }));
+    mockedList.mockResolvedValue([conflict({ chosenResolution: 'RESOLVED_LOCAL_WINS' })]);
+
+    await useSyncConflictsStore.getState().choose('conflict-1', 'RESOLVED_LOCAL_WINS');
+
+    expect(useSyncConflictsStore.getState().notice).toEqual({ kind, conflictId: 'conflict-1' });
+  });
+
   it('asks for a fresh review when the account moved on', async () => {
     mockedChoose.mockResolvedValue({ status: 'RECORDED' });
     mockedSettle.mockResolvedValue(

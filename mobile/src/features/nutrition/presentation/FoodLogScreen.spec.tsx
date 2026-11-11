@@ -326,6 +326,18 @@ describe('FoodLogScreen (Slice 4C)', () => {
     expect(screen.getByLabelText('Pending sync')).toBeOnTheScreen();
   });
 
+  // v10: a 402 keeps the log on the phone and offers Suscripción — never "offline".
+  it('shows the subscription-required notice when sync answers 402', async () => {
+    setState({
+      items: [item()],
+      sync: { state: 'subscription', pending: 1, actionRequired: 0, conflicts: 0 },
+    });
+    await render(<FoodLogScreen />);
+    expect(screen.getByText('You need an active subscription to save this')).toBeOnTheScreen();
+    expect(screen.getByTestId('food-log-subscription-open')).toBeOnTheScreen();
+    expect(screen.queryByText(/offline|connection/i)).toBeNull();
+  });
+
   it('shows an action-required (failed) banner when a food is unsupported server-side', async () => {
     setState({
       items: [item({ syncState: 'action_required' })],

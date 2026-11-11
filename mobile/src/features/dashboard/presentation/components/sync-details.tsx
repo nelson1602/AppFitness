@@ -39,6 +39,7 @@ export function unsyncedReasonKey(change: UnsyncedChange): TranslationKey {
   if (change.status !== 'FAILED' || error === '') return 'dashboard.sync.details.waiting';
   if (error.startsWith(UNREADABLE_PAYLOAD)) return 'dashboard.sync.details.unreadable';
   if (error === 'http_401') return 'dashboard.sync.details.session';
+  if (error === 'http_413') return 'dashboard.sync.details.tooLarge';
   if (error.startsWith('http_')) return 'dashboard.sync.details.server';
   return 'dashboard.sync.details.network';
 }

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 
 // Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionRequiredNotice } from '@/features/subscriptions/presentation/SubscriptionRequiredNotice';
 import { SubscriptionWriteBoundary } from '@/features/subscriptions/presentation/SubscriptionWriteBoundary';
 import { useLocalization } from '@/shared/localization';
 import { AppButton, AppText, Banner } from '@/shared/presentation';
@@ -111,7 +112,9 @@ export function SyncConflictsScreen() {
   );
 }
 
-const NOTICE_COPY: Readonly<Record<SyncConflictsNotice['kind'], NoticeCopy>> = {
+const NOTICE_COPY: Readonly<
+  Record<Exclude<SyncConflictsNotice['kind'], 'subscription'>, NoticeCopy>
+> = {
   settled: { title: 'sync.conflicts.settledTitle', body: 'sync.conflicts.settledBody' },
   alreadyResolved: {
     title: 'sync.conflicts.alreadyResolvedTitle',
@@ -119,6 +122,10 @@ const NOTICE_COPY: Readonly<Record<SyncConflictsNotice['kind'], NoticeCopy>> = {
   },
   stale: { title: 'sync.conflicts.staleTitle', body: 'sync.conflicts.staleBody' },
   offline: { title: 'sync.conflicts.offlineTitle', body: 'sync.conflicts.offlineBody' },
+  serverError: {
+    title: 'sync.settlement.serverErrorTitle',
+    body: 'sync.settlement.serverErrorBody',
+  },
 };
 
 /** Which side the standing decision kept, said in the words the cards use. */
@@ -139,6 +146,10 @@ const STANDING_SIDE = {
 function ActionNotice({ notice, onReview }: { notice: SyncConflictsNotice; onReview: () => void }) {
   const theme = useTheme();
   const { t } = useLocalization();
+  // v10: a 402 is never a connection problem; it opens Suscripción.
+  if (notice.kind === 'subscription') {
+    return <SubscriptionRequiredNotice outcome="kept" testID="sync-conflicts-subscription" />;
+  }
   const copy = NOTICE_COPY[notice.kind];
 
   return (

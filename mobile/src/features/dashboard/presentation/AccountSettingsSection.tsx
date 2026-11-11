@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { dismissedUserSnapshot, subscribeToReminder, useSession } from '@/features/authentication';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
+import { SubscriptionRequiredNotice } from '@/features/subscriptions/presentation/SubscriptionRequiredNotice';
 import { WellnessSafetyRecommendationCard } from '@/features/wellness';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import { interpolate, formatNumber, useLocalization } from '@/shared/localization';
@@ -146,6 +147,12 @@ export function AccountSettingsSection() {
             }}
             testID="dashboard-sync-now"
           />
+          {/* v10: a 402 gets its own way out, never the connection message. */}
+          {data.sync.status === 'error' &&
+          data.sync.problem === 'subscription' &&
+          !paidWriteDisabled ? (
+            <SubscriptionRequiredNotice outcome="kept" testID="sync-subscription-required" />
+          ) : null}
           {shouldShowSyncDetails(data.sync) ? <SyncDetails sync={data.sync} /> : null}
           {/* Conflict review entry (ADR-P030 §Decision 1): an explicit,
               labelled button, shown only while conflicts are unsettled. */}

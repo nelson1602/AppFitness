@@ -211,6 +211,30 @@ describe('food-log store (Slice 4C)', () => {
     expect(useFoodLogStore.getState().sync.state).toBe('offline');
   });
 
+  it.each([
+    ['subscription-required', 'subscription'],
+    ['server-error', 'error'],
+  ] as const)(
+    'syncNow maps a %s run to the %s state, never offline (v10)',
+    async (outcome, state) => {
+      mockRunSync.mockResolvedValue({
+        outcome,
+        pushedApplied: 0,
+        conflicts: 0,
+        rejected: 0,
+        deferred: 0,
+        actionRequired: 0,
+        pulledApplied: 0,
+        skippedPending: 0,
+        recovered: 0,
+        unreadable: 0,
+      });
+      mockList.mockResolvedValue([]);
+      await useFoodLogStore.getState().syncNow();
+      expect(useFoodLogStore.getState().sync.state).toBe(state);
+    },
+  );
+
   it('never recomputes or mutates the deterministic NutritionPlan / MealPlan', async () => {
     mockList.mockResolvedValue([loggedItem()]);
     await useFoodLogStore.getState().load();

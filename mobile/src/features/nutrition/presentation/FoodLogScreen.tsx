@@ -2,6 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { useTodayTargets } from '@/features/dashboard/application/use-today-targets';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionRequiredNotice } from '@/features/subscriptions/presentation/SubscriptionRequiredNotice';
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
 import {
   formatKcal,
@@ -56,6 +58,9 @@ function SyncBanner({ sync }: { sync: FoodLogSyncSummary }) {
           {t('nutrition.log.offlineMessage')}
         </Banner>
       );
+    case 'subscription':
+      // v10: a 402 is never a connection problem; the log stays on the phone.
+      return <SubscriptionRequiredNotice outcome="kept" testID="food-log-subscription" />;
     case 'action_required':
       // Catalog incompatibility: a terminal sync FAILURE the user must act on.
       // Distinct from Conflict below — different cause, different copy, and

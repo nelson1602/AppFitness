@@ -74,7 +74,11 @@ export type SyncConflictsNotice =
   /** The account moved on; C-4 refreshed the comparison and re-review is required. */
   | { readonly kind: 'stale'; readonly conflictId: string }
   /** The choice is stored on this device and the round trip finishes later. */
-  | { readonly kind: 'offline'; readonly conflictId: string };
+  | { readonly kind: 'offline'; readonly conflictId: string }
+  /** v10: the server answered with an error; the choice is kept on this device. */
+  | { readonly kind: 'serverError'; readonly conflictId: string }
+  /** v10: a 402; the choice is kept and finishes once the subscription is active. */
+  | { readonly kind: 'subscription'; readonly conflictId: string };
 
 export interface SyncConflictsState {
   status: SyncConflictsStatus;
@@ -150,10 +154,18 @@ export const useSyncConflictsStore = create<SyncConflictsState>((set, get) => {
     const conflicts = await republish(owner);
     if (!conflicts) return null;
 
-    const offline =
-      report.outcome === 'offline' ? ({ kind: 'offline', conflictId } as const) : null;
+    // Why the round trip did not finish, in its own words (v10): only an
+    // unreachable server is "offline".
+    const unfinished: SyncConflictsNotice | null =
+      report.outcome === 'offline'
+        ? { kind: 'offline', conflictId }
+        : report.outcome === 'server-error'
+          ? { kind: 'serverError', conflictId }
+          : report.outcome === 'subscription-required'
+            ? { kind: 'subscription', conflictId }
+            : null;
     const event = report.events.find((entry) => entry.conflictId === conflictId);
-    if (!event) return offline;
+    if (!event) return unfinished;
 
     switch (event.outcome) {
       case 'SETTLED':
@@ -167,7 +179,7 @@ export const useSyncConflictsStore = create<SyncConflictsState>((set, get) => {
       case 'STALE':
         return { kind: 'stale', conflictId };
       case 'FAILED':
-        return offline;
+        return unfinished;
       // A blocked restore and a skipped row are both fully described by the
       // refreshed card; adding a notice would only repeat it.
       case 'BLOCKED':

@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import type { MealTypeName } from '@/shared/infrastructure/database/types';
+// Direct import: the barrel would also load the subscription store composition.
+import { SubscriptionRequiredNotice } from '@/features/subscriptions/presentation/SubscriptionRequiredNotice';
 import {
   formatKcal,
   formatNumber,
@@ -24,6 +26,8 @@ import { foodDisplayName } from '../../application/food-display.service';
 import {
   foodItemFromCanonical,
   foodItemFromSearchResult,
+  type RemoteFoodFailure,
+  remoteFoodFailureOf,
   saveChosenFood,
 } from '../../application/remote-food.service';
 import type { DietaryPreference } from '../../domain/dietary-preference';
@@ -120,7 +124,7 @@ export function FoodLogAddForm({
   const [pending, setPending] = useState<FoodSearchResult | null>(null);
   const [showCustom, setShowCustom] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [saveFailed, setSaveFailed] = useState(false);
+  const [saveProblem, setSaveProblem] = useState<RemoteFoodFailure | null>(null);
 
   const {
     local: results,
@@ -137,7 +141,7 @@ export function FoodLogAddForm({
     setSelected(null);
     setPending(null);
     setShowCustom(false);
-    setSaveFailed(false);
+    setSaveProblem(null);
     setQuery('');
     setServingCount(1);
   };
@@ -152,13 +156,13 @@ export function FoodLogAddForm({
       return;
     }
     setSaving(true);
-    setSaveFailed(false);
+    setSaveProblem(null);
     try {
       const food = await saveChosenFood(pending);
       onAdd(food.catalogKey, mealType, servingCount);
       reset();
-    } catch {
-      setSaveFailed(true);
+    } catch (error) {
+      setSaveProblem(remoteFoodFailureOf(error));
     } finally {
       setSaving(false);
     }
@@ -332,7 +336,18 @@ export function FoodLogAddForm({
               onChange={setServingCount}
               testIDPrefix="add-serving"
             />
-            {saveFailed ? <Banner title={t('nutrition.search.saveError')} tone="error" /> : null}
+            {saveProblem === 'subscription' ? (
+              <SubscriptionRequiredNotice outcome="not-saved" testID="food-save-subscription" />
+            ) : saveProblem ? (
+              <Banner
+                title={t(
+                  saveProblem === 'offline'
+                    ? 'nutrition.search.saveOffline'
+                    : 'nutrition.search.saveError',
+                )}
+                tone="error"
+              />
+            ) : null}
             <AppButton
               accessibilityLabel={`${t('nutrition.log.logAccessibility')} ${selectedDisplayName}`}
               disabled={blocked}

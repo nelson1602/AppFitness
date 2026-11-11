@@ -207,9 +207,13 @@ describe('catalogue parity', () => {
   // imperial labels, errors and examples of each weight / length field (+16) (+22, 1880).
   // v10 Block C review: the singular "1 porción" / "1 serving" (+1, 1881).
   // ADR-P036 biometric sign-in (rebased for v10): the 20-key `auth.biometric.*` family (+20, 1901), then the Perfil Seguridad panel: its title, on/off, no-sensor and two enrol-in-settings lines (+6, 1907).
-  it('reaches 1907 keys in each language — 1720 shipped plus a 187-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1907);
-    expect(Object.keys(es)).toHaveLength(1907);
+  // v10 402/413: the subscription-required notice (+3), the server-error sync problem (+2) and
+  // the too-large row reason (+1), the food save offline lines (+2), the conflict settlement
+  // server error (+2) and the verification check server error (+1), minus the old sync-paused
+  // pair (-2) (+9, 1916).
+  it('reaches 1916 keys in each language — 1729 shipped plus a 187-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1916);
+    expect(Object.keys(es)).toHaveLength(1916);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

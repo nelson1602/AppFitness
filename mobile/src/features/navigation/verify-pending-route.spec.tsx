@@ -31,7 +31,15 @@ jest.mock('@/features/authentication', () => {
       this.reason = reason;
     }
   }
+  class AuthApiError extends Error {
+    status: number;
+    constructor(status: number, message: string) {
+      super(message);
+      this.status = status;
+    }
+  }
   return {
+    AuthApiError,
     EmailVerificationError,
     signOut: () => mockSignOut(),
     useSession: () => ({
@@ -134,7 +142,27 @@ describe('VerifyPendingScreen (ADR-P041 D2)', () => {
     await fireEvent.press(screen.getByTestId('button-verify-confirm'));
 
     expect(await screen.findByText("Couldn't check right now")).toBeOnTheScreen();
+    expect(screen.getByText('Check your connection and try again.')).toBeOnTheScreen();
     expect(screen.queryByText('Not verified yet')).toBeNull();
+  });
+
+  // v10: an answer from the server is never reported as a connection problem.
+  it('says the server could not check it on a server error, without "check your connection"', async () => {
+    const { AuthApiError } = jest.requireMock<typeof import('@/features/authentication')>(
+      '@/features/authentication',
+    );
+    await render(<VerifyPendingScreen />);
+    await waitFor(() => expect(mockConfirm).toHaveBeenCalledTimes(1));
+
+    mockConfirm.mockRejectedValueOnce(new AuthApiError(503, 'unavailable'));
+    await fireEvent.press(screen.getByTestId('button-verify-confirm'));
+
+    expect(
+      await screen.findByText(
+        "AppFitnessRD couldn't check it right now. Try again in a few minutes.",
+      ),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText('Check your connection and try again.')).toBeNull();
   });
 
   it('re-checks quietly when the person comes back from the mail app', async () => {

@@ -4,6 +4,7 @@ import { saveChosenFood, saveCustomFood } from '../../application/remote-food.se
 import type { CanonicalFood } from '../../domain/catalog-identity';
 import {
   FoodSearchOfflineError,
+  FoodSearchRequestError,
   type FoodSearchResult,
   searchRemoteFoods,
 } from '../../infrastructure/food-search-api';
@@ -33,6 +34,8 @@ jest.mock('@/shared/localization', () => {
     }),
   };
 });
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({ router: { push: (href: string) => mockPush(href) } }));
 jest.mock('../../infrastructure/food-search-api', () => ({
   ...jest.requireActual('../../infrastructure/food-search-api'),
   searchRemoteFoods: jest.fn(),
@@ -122,9 +125,9 @@ describe('FoodLogAddForm beyond the local catalogue (v10 Block B, item 7)', () =
     expect(onAdd).toHaveBeenCalledWith('off.7501000000123', 'LUNCH', 1);
   });
 
-  it('keeps the choice and says so when the food cannot be saved', async () => {
+  it('keeps the choice and asks to check the connection only when the phone is offline', async () => {
     jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [CHICHARRON], external: 'ok' });
-    jest.mocked(saveChosenFood).mockRejectedValue(new Error('offline'));
+    jest.mocked(saveChosenFood).mockRejectedValue(new FoodSearchOfflineError());
     const onAdd = jest.fn();
     await render(<FoodLogAddForm onAdd={onAdd} />);
 
@@ -136,6 +139,58 @@ describe('FoodLogAddForm beyond the local catalogue (v10 Block B, item 7)', () =
     expect(
       screen.getByText('No pudimos guardar este alimento. Revisa tu conexión e intenta de nuevo.'),
     ).toBeOnTheScreen();
+  });
+
+  // v10: a 402 SUBSCRIPTION_REQUIRED is never shown as a connection problem.
+  it('says a subscription is needed on a 402, with a button to Suscripción', async () => {
+    jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [CHICHARRON], external: 'ok' });
+    jest.mocked(saveChosenFood).mockRejectedValue(new FoodSearchRequestError(402));
+    const onAdd = jest.fn();
+    await render(<FoodLogAddForm onAdd={onAdd} />);
+
+    await search('chicharron');
+    await fireEvent.press(screen.getByTestId('food-remote-off-7501000000123'));
+    await fireEvent.press(screen.getByTestId('food-log-add-submit'));
+
+    expect(onAdd).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('Necesitas una suscripción activa para guardar esto'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(/Revisa tu conexión/)).toBeNull();
+    await fireEvent.press(screen.getByTestId('food-save-subscription-open'));
+    expect(mockPush).toHaveBeenCalledWith('/subscription');
+  });
+
+  it('says the server could not save it on any other error, never "check your connection"', async () => {
+    jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [CHICHARRON], external: 'ok' });
+    jest.mocked(saveChosenFood).mockRejectedValue(new FoodSearchRequestError(500));
+    await render(<FoodLogAddForm onAdd={jest.fn()} />);
+
+    await search('chicharron');
+    await fireEvent.press(screen.getByTestId('food-remote-off-7501000000123'));
+    await fireEvent.press(screen.getByTestId('food-log-add-submit'));
+
+    expect(
+      screen.getByText('No pudimos guardar este alimento. Inténtalo de nuevo en un momento.'),
+    ).toBeOnTheScreen();
+    expect(screen.queryByText(/Revisa tu conexión/)).toBeNull();
+  });
+
+  it('says a subscription is needed when creating a food answers 402', async () => {
+    jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [], external: 'ok' });
+    jest.mocked(saveCustomFood).mockRejectedValue(new FoodSearchRequestError(402));
+    await render(<FoodLogAddForm onAdd={jest.fn()} />);
+
+    await search('Chicharrón de la abuela');
+    await fireEvent.press(screen.getByTestId('custom-food-open'));
+    await fireEvent.changeText(screen.getByTestId('custom-food-kcal'), '520');
+    await fireEvent.changeText(screen.getByTestId('custom-food-protein'), '58');
+    await fireEvent.changeText(screen.getByTestId('custom-food-carbs'), '0');
+    await fireEvent.changeText(screen.getByTestId('custom-food-fat'), '32');
+    await fireEvent.press(screen.getByTestId('custom-food-save'));
+
+    expect(screen.getByTestId('custom-food-subscription')).toBeOnTheScreen();
+    expect(screen.queryByText(/Revisa tu conexión/)).toBeNull();
   });
 
   it('shows a saved food with the same rounded kcal as the log: 541, never 540,7 (v10 Block C)', async () => {
