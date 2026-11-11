@@ -170,6 +170,51 @@ describe('rebalance on screen (ADR-P040 v10-B)', () => {
     expect(screen.queryByTestId('plan-covered-3-SNACK')).toBeNull();
   });
 
+  it.each([
+    ['covered', [] as MealSlot[]],
+    ['skipped', ['SNACK'] as MealSlot[]],
+  ])(
+    'a %s meal shows its plan kcal struck through as "antes", never as a suggestion',
+    async (_state, skipped) => {
+      const [today] = withRebalance([DAY], repro(skipped));
+      const planKcal = new Intl.NumberFormat('es').format(MEALS[2].totals.calories);
+      await render(
+        <MealPlanPanel
+          day={today}
+          isDone={eaten}
+          onEaten={jest.fn()}
+          onLightOption={jest.fn()}
+          onSkip={jest.fn()}
+        />,
+      );
+
+      const before = screen.getByTestId('plan-before-3-SNACK');
+      expect(before).toHaveTextContent(`antes ${planKcal} kcal`);
+      const struck = within(before).getByText(`${planKcal} kcal`);
+      expect(struck).toHaveStyle({ textDecorationLine: 'line-through' });
+      // The plan kcal never stands alone on the meal row any more.
+      expect(screen.getByTestId('plan-meal-toggle-3-SNACK')).toHaveTextContent(
+        new RegExp(`aguacateantes ${planKcal} kcal · `),
+      );
+      // An open meal keeps its kcal plain.
+      expect(screen.queryByTestId('plan-before-3-LUNCH')).toBeNull();
+      if (skipped.length === 0) {
+        // The light option and Omitir stay.
+        expect(screen.getByTestId('plan-light-3-SNACK')).toBeOnTheScreen();
+        expect(screen.getByTestId('plan-skip-3-SNACK')).toBeOnTheScreen();
+      }
+    },
+  );
+
+  it('says "was" in English', async () => {
+    mockLanguage = 'en';
+    const [today] = withRebalance([DAY], repro());
+    await render(<MealPlanPanel day={today} isDone={eaten} onEaten={jest.fn()} />);
+    expect(screen.getByTestId('plan-before-3-SNACK')).toHaveTextContent(
+      `was ${new Intl.NumberFormat('en-US').format(MEALS[2].totals.calories)} kcal`,
+    );
+  });
+
   it('labels a re-portioned meal with what it was before', async () => {
     const adjusted: TodayRebalance = {
       ...repro(),

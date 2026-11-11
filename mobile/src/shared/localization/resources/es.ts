@@ -1245,6 +1245,7 @@ export const es = {
   'nutrition.rebalance.skip': 'Omitir',
   'nutrition.rebalance.skipA11y': 'Omitir {meal} hoy',
   'nutrition.rebalance.skipped': 'Omitida hoy',
+  'nutrition.rebalance.before': 'antes',
   'nutrition.rebalance.dayAdjusted':
     'Llevas {consumed} de {target}. El iCoach ajustó tus comidas pendientes.',
   'nutrition.rebalance.dayCovered':

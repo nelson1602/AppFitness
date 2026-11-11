@@ -1243,6 +1243,7 @@ export const en = {
   'nutrition.rebalance.skip': 'Skip',
   'nutrition.rebalance.skipA11y': 'Skip {meal} today',
   'nutrition.rebalance.skipped': 'Skipped today',
+  'nutrition.rebalance.before': 'was',
   'nutrition.rebalance.dayAdjusted':
     "You're at {consumed} of {target}. The iCoach adjusted your pending meals.",
   'nutrition.rebalance.dayCovered':

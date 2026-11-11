@@ -285,7 +285,25 @@ function MealRow({
             {title}
           </AppText>
           <AppText tone="muted" variant="caption">
-            {formatKcalQuantity(meal.totals.calories, language)} ·{' '}
+            {covered || skipped ? (
+              // Covered or skipped today: the plan's kcal is no longer a suggestion.
+              <AppText
+                style={{ color: colors.onStageVariant }}
+                testID={`plan-before-${dayIndex}-${meal.slot}`}
+                variant="caption"
+              >
+                {t('nutrition.rebalance.before')}{' '}
+                <AppText
+                  style={{ color: colors.onStageVariant, textDecorationLine: 'line-through' }}
+                  variant="caption"
+                >
+                  {formatKcalQuantity(rebalance?.plannedCalories ?? meal.totals.calories, language)}
+                </AppText>
+              </AppText>
+            ) : (
+              formatKcalQuantity(meal.totals.calories, language)
+            )}{' '}
+            ·{' '}
             <AppText style={{ color: colors.linkOnStage }} variant="caption">
               {toggle}
             </AppText>
