@@ -169,9 +169,10 @@ export function useNutritionPlanView() {
     onEaten:
       plan.current && shownDay?.date
         ? (slot: MealSlot) => {
-            // v10-B: an adjusted meal logs the portions shown.
+            // v10-B / v11-A: a fitted or adjusted meal logs the portions shown.
             const meal = shownDay.meals.find((candidate) => candidate.slot === slot);
-            const adjusted = meal?.rebalance && meal.rebalance.status !== 'covered';
+            const adjusted =
+              meal?.fitted === true || (meal?.rebalance && meal.rebalance.status !== 'covered');
             void plan.markMealEaten(
               shownDay.date as string,
               slot,
@@ -216,9 +217,19 @@ export function withRebalance(days: readonly ViewDay[], today: TodayRebalance | 
       // An eaten meal shows what was logged for it (its rebalanced portions).
       const logged = today.eaten[meal.slot];
       if (logged) return { ...meal, foods: logged.foods, totals: logged.totals };
-      if (today.skipped.includes(meal.slot)) return { ...meal, skipped: true };
+      if (today.skipped.includes(meal.slot)) {
+        // v11-A: a skipped meal quotes today's plan, fitted to today's target.
+        const fitted = rebalance.fittedPlan.find((candidate) => candidate.slot === meal.slot);
+        return fitted
+          ? { ...meal, foods: fitted.foods, totals: fitted.totals, skipped: true }
+          : { ...meal, skipped: true };
+      }
       const adjusted = rebalance.meals.find((candidate) => candidate.slot === meal.slot);
       if (!adjusted) return meal;
+      // v11-A: today's plan at today's target, with nothing logged to explain it.
+      if (adjusted.status === 'fitted') {
+        return { ...meal, foods: adjusted.foods, totals: adjusted.totals, fitted: true };
+      }
       return {
         ...meal,
         ...(adjusted.status === 'covered'

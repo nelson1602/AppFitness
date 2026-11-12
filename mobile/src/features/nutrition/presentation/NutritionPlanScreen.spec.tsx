@@ -8,7 +8,9 @@ import type { DashboardState } from '@/features/dashboard/domain/dashboard.types
 import type { MealMacros, MealPlan, MealPlanDay, MealSlot } from '../domain/meal-plan';
 import type { MealPlanSelection } from '../application/meal-plan.service';
 import type { DietaryPreferenceState } from '../application/dietary-preference.store';
+import { MEAL_REBALANCE_RULE_VERSION } from '../domain/meal-rebalance';
 import { NutritionPlanScreen } from './NutritionPlanScreen';
+import type { TodayRebalance } from './use-today-rebalance';
 import {
   beginEntitlementCheck,
   configureEntitlementEnforcement,
@@ -22,9 +24,10 @@ let mockSelection: MealPlanSelection;
 let mockPrefs: DietaryPreferenceState;
 let mockLanguage: 'en' | 'es' = 'en';
 
+let mockTodayRebalance: TodayRebalance | null = null;
 jest.mock('@/features/nutrition/presentation/use-today-rebalance', () => ({
   // ADR-P040 v10-B has its own specs; this screen's are about everything else.
-  useTodayRebalance: () => null,
+  useTodayRebalance: () => mockTodayRebalance,
   rebalanceCoachChange: () => null,
 }));
 jest.mock('@/features/dashboard/application/dashboard.store', () => ({
@@ -156,6 +159,7 @@ describe('NutritionPlanScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLanguage = 'en';
+    mockTodayRebalance = null;
     setDash({});
     setPrefs({});
     lastSelectArgs = [];
@@ -641,6 +645,45 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     await fireEvent.press(screen.getByTestId(`plan-ate-${todayIndex}-BREAKFAST`));
     // No rebalance today: the plan's own portions are logged (v10-B passes none).
     expect(mockMarkMealEaten).toHaveBeenCalledWith(dates[todayIndex - 1], 'BREAKFAST', undefined);
+  });
+
+  it('v11-A: a meal fitted to the day target shows no label and logs the portions shown', async () => {
+    const todayIndex = ((today.getDay() + 6) % 7) + 1;
+    const date = dates[todayIndex - 1];
+    const fittedFoods = [
+      {
+        foodId: 'food.egg_whole',
+        name: 'Egg, whole',
+        servings: 2.25,
+        serving: { amount: 2.3, unit: 'piece' as const },
+        macros: { calories: 158, proteinG: 13.5, carbsG: 0.9, fatG: 11.3 },
+      },
+    ];
+    const totals = { calories: 158, proteinG: 13.5, carbsG: 0.9, fatG: 11.3 };
+    mockTodayRebalance = {
+      date,
+      rebalance: {
+        ruleVersion: MEAL_REBALANCE_RULE_VERSION,
+        status: 'unchanged',
+        targetCalories: 2711,
+        consumedCalories: 0,
+        remainingCalories: 2711,
+        scale: 1,
+        meals: [
+          { slot: 'BREAKFAST', foods: fittedFoods, totals, status: 'fitted', plannedCalories: 158 },
+        ],
+        plannedTotalCalories: 2655,
+        fittedPlan: [{ slot: 'BREAKFAST', foods: fittedFoods, totals }],
+      },
+      trigger: null,
+      skipped: [],
+      eaten: {},
+    };
+    await render(<NutritionPlanScreen />);
+    expect(screen.queryByTestId(`plan-rebalance-${todayIndex}-BREAKFAST`)).toBeNull();
+    expect(screen.queryByTestId('plan-rebalance-day')).toBeNull();
+    await fireEvent.press(screen.getByTestId(`plan-ate-${todayIndex}-BREAKFAST`));
+    expect(mockMarkMealEaten).toHaveBeenCalledWith(date, 'BREAKFAST', fittedFoods);
   });
 
   it('shows eaten slots and the iCoach substitution on Monday', async () => {

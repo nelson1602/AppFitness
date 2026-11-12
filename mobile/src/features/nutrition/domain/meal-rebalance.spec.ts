@@ -105,8 +105,13 @@ describe(`real-time meal rebalancing (${MEAL_REBALANCE_RULE_VERSION}, ADR-P040 v
       result.remainingCalories * 0.08,
     );
     expect(result.plannedTotalCalories).toBeLessThanOrEqual(2430);
+    // v1.1.0: "antes" is today's plan at today's target (fitted when the saved
+    // day was planned for another total), never above what is left.
+    expect(pending).toBeLessThanOrEqual(result.remainingCalories);
+    const todays = run().meals;
     for (const m of result.meals) {
-      expect(m.plannedCalories).toBe(DAY.find((d) => d.slot === m.slot)!.totals.calories);
+      const planned = todays.find((d) => d.slot === m.slot) ?? DAY.find((d) => d.slot === m.slot)!;
+      expect(m.plannedCalories).toBe(planned.totals.calories);
       for (const food of m.foods) expect(food.servings % 0.25).toBe(0);
     }
   });
