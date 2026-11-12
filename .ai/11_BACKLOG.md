@@ -3500,11 +3500,12 @@ Updated: 2026-11-12
 
 In the v10 and v11 device runs, the first search result for "galleta" read **"Galleta de Soda field"** (100 g · 403 kcal). Logged items keep it as `food_name_snapshot`.
 - The name is not in the bundled catalogue or the server seed.
-- So it is a food saved from the external search (v10 Block B: USDA / Open Food Facts) or created by a person. "field" looks like the product's brand (Field) appended in lowercase by the source.
+- It is an **Open Food Facts product already saved on the server** (v10 Block B). The v11-A local device run shows it as "Galleta de Soda field · 100 g · 403 kcal · **Field** · Guardado".
+- The brand (Field) is already shown separately, so the lowercase "field" is part of the product name as the source gives it, not something the app appends.
 
 ### To do
 
-- Find the saved food's source record and how its display name is composed (product name + brand).
+- Check the saved food's source record for its `product_name` and brand fields.
 - Decide on a display rule, for example brand shown separately or title-cased.
 - Already-logged snapshots keep their name (historical data is never rewritten).
 
