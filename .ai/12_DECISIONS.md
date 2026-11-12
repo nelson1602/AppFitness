@@ -15152,6 +15152,41 @@ Status: proposed with the rebalance PR; the owner accepts it with that PR. Rule 
 - **B8 Explanation.** Inicio's iCoach card adds R5's newest change, `mealsRebalanced`, dated by the food that caused it: "Ajusté tu merienda por Galleta de Soda, que registraste." (or the covered-day sentence). On equal times: plan update > rebalance > move > lightening > bonus.
 - **B9 Undo.** Deleting the logged food lowers what was consumed, so the overlay recomputes to the plan as it was; nothing is stored to undo.
 
+### Addendum v11-A — The rebalance never plans above what is left (proposed 2026-11-12, before Block D)
+
+Status: proposed with the v11-A PR; the owner accepts it with that PR. Rule `meal-rebalance@1.1.0` amends B3, B4 and B6. Tests: `meal-rebalance.cap.spec.ts` with the owner's smoke-test day (`meal-rebalance.owner-day.fixture.ts`), `meal-rebalance.spec.ts`, `rebalance-ui.spec.tsx`, `NutritionPlanScreen.spec.tsx`.
+
+**Found in the versionCode 11 smoke test (2026-11-12).** The account kept a week generated for **2.430 kcal** ("Ahora no" on the plan prompt) after its evaluation raised the target to **2.711**. Today's saved meals were 669 + 777 + 346 + 662 = 2.454.
+- **Nothing logged:** v1.0.0 planned 739 + 865 + 433 + 740 = **2.777**, 66 over the target. Every meal read "Ajustada por el iCoach".
+- **After Galleta de Soda (403):** it planned 628 + 755 + 325 + 648 = **2.356** for the 2.308 left.
+- **Cause:** each scaled serving was rounded to the *nearest* quarter, and the saved plans use 0.1-serving steps. Casabe 0.8 × 1.105 = 0.88 became 1.0, +25 %.
+- **Also:** the ±5 % tolerance kept a plan up to 5 % *over* what was left.
+
+- **A1 Cap (amends B3/B6).**
+  - Pending meals never plan more than what is left.
+  - Each meal's budget is its planned kcal × scale, and the budgets add up to what is left.
+  - Each food rounds **down** to its quarter step. Quarter steps are then given back in order of the largest remainder, only while the meal stays within its budget.
+  - Each line rounds its own kcal, so the floors alone can still go over. When they do, quarters come back off, largest kcal step first.
+  - "Fits as planned" now means **at most** what is left and **at most 5 % under** it. A plan over what is left is always portioned down.
+- **A2 Swaps are paid for (amends B4).**
+  - A lighter dish chosen for a meal under 150 kcal may still be up to 1.25 × its budget.
+  - The other pending meals now share what is left **after** the swapped dishes.
+  - If the swapped dishes alone exceed what is left, the swaps are not made, largest first, and those meals are portioned (or "Opcional").
+- **A3 Today's plan at today's target, without a label.**
+  - First, today's saved meals are portioned to today's target with the same cap, whenever they plan more than the target or more than 5 % under it. The meal status is `fitted`.
+  - This is the case of a week kept until Monday after the target changed, or an activity bonus. The R2 bonus keeps its own Inicio sentence.
+  - With **nothing logged or skipped today**, that plan stands with **no "Ajustada" label** and no day line.
+  - The label and "antes X kcal" appear only once something logged or skipped today changes a meal. "antes" then quotes today's fitted plan, not the stale saved week; skipped and covered meals do too.
+  - "Lo comí" on a fitted meal logs the portions shown.
+- **Why A3 rather than relabelling only after a log.**
+  - A label with nothing logged has nothing to explain, and the owner asked for that case to read as a plain plan.
+  - Keeping the saved 2.454 unfitted would leave 257 kcal of today's 2.711 unplanned. Fitting is what makes "the day's plan" match "the day's target".
+  - Regenerating the saved week instead would overwrite the plan the person chose to keep until Monday.
+- **Result on the owner day:**
+  - nothing logged: 739 + 851 + 357 + 708 = **2.655** (≤ 2.711), unlabelled;
+  - after the galleta: 642 + 702 + 281 + 612 = **2.237** (≤ 2.308), the day plans 2.640.
+  - A deterministic sweep (targets 1.500–3.600, closed slots, consumption, DO swaps and US) asserts the cap across more than 1.000 cases.
+
 ### Consequences
 
 - **Positive:** the design's coaching promises become real, tested behaviour.

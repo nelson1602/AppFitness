@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.27
+Version: 1.28
 Status: Active
-Last Updated: 2026-11-10
+Last Updated: 2026-11-12
 
 ---
 
@@ -13,6 +13,27 @@ This document defines the official Design System for AppFitness.
 Its purpose is to ensure visual consistency, usability, accessibility, scalability, and maintainability across every screen, component, and interaction.
 
 Every UI implementation must comply with this specification.
+
+---
+
+# Revision Scope (v1.28 — selected choice pill, v11-A item 3)
+
+- **Problem (v11 smoke, light mode).** The selected option of a stage choice row
+  (Perfil → Idioma / Unidades, and the Unidades toggle in Evaluación → Medidas)
+  was a white `fieldFill` pill with a white border on the light glass card, so
+  only its blue label showed which option was selected.
+- **Two new roles, both themes.** `choiceSelectedFill` (the pill and its 2 px
+  border) and `onChoiceSelected` (its label).
+  - **Dark:** the white pill with the `#0A57C2` label, unchanged.
+  - **Light:** the inverse, a `#0A57C2` pill with a white label.
+  - Unselected options stay glass with a 1 px border, so selection never relies
+    on colour alone (fill plus border width).
+- **Contrast** (gated in `contrast.spec.ts`): the label on the pill as text
+  (4.5:1), and the pill against the glass card over `stage` and `stageDeep` as
+  non-text (3:1), in both themes.
+- **Consumers:** `LanguageSelector` (stage appearance) and `UnitSelector`. The
+  evaluation's own choice pills (`evaluation-controls.tsx`) already had a filled
+  selected style and are unchanged. Each theme now declares 77 roles.
 
 ---
 
