@@ -99,6 +99,23 @@ beforeEach(() => {
 });
 
 describe('"Lo comí" updates every view from the local write', () => {
+  it('v11-A item 4: the light option logs exactly the one serving it offered, nothing else', async () => {
+    mockLogPlanned.mockResolvedValue([item('orange', 64, 1, 15, 0)]);
+
+    await useWeeklyPlanStore
+      .getState()
+      .markMealEaten(DATE, 'LUNCH', [{ foodId: 'food.orange', servings: 1 }]);
+
+    expect(mockLogPlanned).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        mealType: 'LUNCH',
+        lines: [{ catalogKey: 'food.orange', servingCount: 1 }],
+      }),
+    );
+    expect(useFoodLogStore.getState().totals.calories).toBe(300 + 64);
+  });
+
   it('turns the check on and adds the dish to the ring and macro totals, without a sync', async () => {
     mockLogPlanned.mockResolvedValue([
       item('arroz', 200, 4, 45, 1),

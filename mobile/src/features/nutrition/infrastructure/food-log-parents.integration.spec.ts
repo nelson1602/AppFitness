@@ -488,6 +488,33 @@ describe('food-log parents sync (BUG-044)', () => {
     ).rejects.toThrow('a planned meal has at least one line');
   });
 
+  // v11-A item 4: "Opción ligera: Naranja · 64 kcal" logs one orange, 64 kcal,
+  // linked to the slot. (The 96 kcal Orange on the server in the v10 evidence
+  // was a search-logged orange edited offline to 1,5 servings: no plan_slot, v3.)
+  it('logs the light option as one serving at the kcal it offered', async () => {
+    const planLink = { planId: 'plan-1', planDate: DAY, planSlot: 'SNACK' as const };
+    const [orange] = await logPlannedMeal(
+      USER,
+      {
+        date: DAY,
+        mealType: 'SNACK',
+        lines: [{ catalogKey: 'food.orange', servingCount: 1 }],
+        planLink,
+      },
+      T0,
+    );
+    expect(orange.servingCount).toBe(1);
+    expect(orange.consumed.calories).toBe(64);
+    await sync(T0);
+    // The server derives the kcal from its own catalogue row for food_id
+    // (api/prisma/seed/food-catalog.canonical.json: food.orange, 64 per piece).
+    expect(server.rows.get(orange.id)?.data).toMatchObject({
+      food_id: 'dd47b3d0-f79f-5ac9-862f-d68293e926b5',
+      serving_count: 1,
+      plan_slot: 'SNACK',
+    });
+  });
+
   it('flags the local day and meal when the server reports a conflict', async () => {
     server.conflictOn.add('nutrition_logs').add('meals');
     await logFood(
