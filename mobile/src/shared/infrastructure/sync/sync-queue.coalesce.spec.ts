@@ -5,6 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { MIGRATIONS } from '../database/migrations';
 import type { SyncOperationType, SyncQueueRow } from '../database/types';
 import {
+  earliestRetryAt,
   enqueue,
   markApplied,
   markConflict,
@@ -14,6 +15,7 @@ import {
   readClaimed,
   readQueuePayload,
 } from './sync-queue';
+import { onEnqueued } from './sync-events';
 
 /**
  * **BUG-048 — a second edit before sync must not conflict with the first.**
@@ -264,5 +266,28 @@ describe('BUG-048: queued edits to one entity', () => {
     await edit({ serving_count: 3 }, 'UPDATE', { entityId: 'other-item' });
 
     expect(queued()).toHaveLength(2);
+  });
+});
+
+describe('BUG-049: a local write tells automatic sync', () => {
+  it('notifies once per write: a new op and an edit folded into a queued one', async () => {
+    const seen: string[] = [];
+    const stop = onEnqueued((userId) => seen.push(userId));
+    await edit({ servingCount: 1.25 });
+    await edit({ servingCount: 1 });
+    expect(queued()).toHaveLength(1);
+    expect(seen).toEqual([A, A]);
+    stop();
+    await edit({ servingCount: 2 });
+    expect(seen).toHaveLength(2);
+  });
+
+  it('reports when the earliest failed op may go again (60 s after a first failure, as on the device)', async () => {
+    expect(await earliestRetryAt(A)).toBeNull();
+    const opId = await edit({ servingCount: 1.25 });
+    await markInFlight(A, [opId], NOW);
+    await markFailed(A, opId, 'fetch failed', NOW);
+    expect(await earliestRetryAt(A)).toBe('2026-11-11T10:01:00.000Z');
+    expect(await earliestRetryAt('user-b')).toBeNull();
   });
 });

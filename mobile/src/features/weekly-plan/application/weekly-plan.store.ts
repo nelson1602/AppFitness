@@ -55,7 +55,15 @@ export interface WeeklyPlanState {
   /** DEV ONLY: four sample past weeks (local API only). */
   seedHistory: (workoutName: string) => Promise<void>;
   /** "Lo comí": log the planned dish's lines, linked to the slot (ADR-P042 D6). */
-  markMealEaten: (date: string, slot: MealSlot) => Promise<boolean>;
+  /**
+   * Logs the planned meal and marks it eaten. `foods` overrides the plan's
+   * lines: the rebalanced portions, or a light option (ADR-P040 v10-B).
+   */
+  markMealEaten: (
+    date: string,
+    slot: MealSlot,
+    foods?: readonly { foodId: string; servings: number }[],
+  ) => Promise<boolean>;
 }
 
 const INITIAL = {
@@ -150,11 +158,13 @@ export const useWeeklyPlanStore = create<WeeklyPlanState>((set, get) => ({
     set({ pendingChanges: [] });
   },
 
-  markMealEaten: async (date, slot) => {
+  markMealEaten: async (date, slot, foods) => {
     const { revisions } = get();
     const effective = effectivePlanDay(revisions, date);
     const meal = effective?.day.meals.find((candidate) => candidate.slot === slot);
-    if (!effective || !meal || meal.foods.length === 0) return false;
+    // v10-B: a rebalanced meal logs the portions shown, or the light option.
+    const lines = foods ?? meal?.foods ?? [];
+    if (!effective || !meal || lines.length === 0) return false;
     const key = `${date}|${slot}`;
     // Already marked, or a tap still in flight: never log the dish twice.
     if (get().mealSlotsDone.includes(key)) return true;
@@ -168,7 +178,7 @@ export const useWeeklyPlanStore = create<WeeklyPlanState>((set, get) => ({
       const logged = await logPlannedMeal(owner.userId, {
         date,
         mealType: slot,
-        lines: meal.foods.map((food) => ({ catalogKey: food.foodId, servingCount: food.servings })),
+        lines: lines.map((food) => ({ catalogKey: food.foodId, servingCount: food.servings })),
         planLink: { planId: effective.plan.id, planDate: date, planSlot: slot },
       });
       if (!isSessionCurrent(owner)) return false;

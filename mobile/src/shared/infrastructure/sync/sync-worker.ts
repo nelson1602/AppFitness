@@ -34,7 +34,8 @@ import {
  * /sync/push, processes per-op outcomes, then pulls server changes per
  * entity cursor and applies them through registered appliers.
  *
- * Invocation is explicit (`runSync`) — no background scheduling yet;
+ * Invocation is explicit (`runSync`): the foreground triggers live in the
+ * dashboard's auto-sync scheduler (BUG-049), plus "Sincronizar ahora";
  * app wiring decides when to run (on foreground, after writes, etc.).
  */
 

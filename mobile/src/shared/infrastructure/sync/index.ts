@@ -1,6 +1,7 @@
 export { computeBackoffMs, computeNextRetryAt } from './backoff';
 export {
   countByStatus,
+  earliestRetryAt,
   enqueue,
   findParkedOperation,
   hasPendingOpFor,
@@ -59,6 +60,7 @@ export {
   type SettlementCondition,
 } from './conflict-presenter';
 export { getCursor, setCursor } from './sync-state';
+export { notifyEnqueued, onEnqueued } from './sync-events';
 export {
   allAppliers,
   allPrePushHooks,

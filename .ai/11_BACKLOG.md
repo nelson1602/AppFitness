@@ -3428,6 +3428,47 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-049] Local Writes Waited for "Sincronizar ahora": Nothing Synced Them Automatically
+
+Status: Fixed in PR #253 (codex/v10-rebalance-units, review fix-1), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-11
+Updated: 2026-11-11
+
+### Description
+
+Found in the PR #253 review (shot 08 read "Sincronizar ahora · 20 cambios locales pendientes"). The API was up, so this was not an outage. In the device queue, all 20 ops were `PENDING` with `retry_count 0` and no `last_error`, so no push had ever been tried. The last pull was at 17:39:00Z. The first op was queued at 17:41:08Z and the last at 18:45:36Z: 3× "Lo comí", the galleta, deleting it, and logging it again.
+
+Cause: `runSync` is invoked explicitly only (`sync-worker.ts`: "no background scheduling yet"). Its callers are the evaluation gate, and the two "Sincronizar ahora" buttons (Perfil, Registro de alimentos). Writes only enqueue. Relaunching the app refreshed the token but did not push. The documented V1 behavior (`18_SCREEN_STATE_MATRICES.md`, "set only by an explicit `syncNow()`") matches.
+
+Drain proof: one tap on "Sincronizar ahora" → 2× `POST /sync/push 201` → queue 0, server meal_items for 2026-11-11 = 2.849 kcal (galleta v2 deleted + new galleta live), 0 `sync_conflicts`, local "Omitir" state kept (`dist/v10-review/rebalance/fix-1/`).
+
+### Fix (owner-directed in the #253 review)
+
+- `features/dashboard/application/auto-sync.ts`: a scheduler that runs sync only while the app is in the foreground and signed in. It runs:
+  - **at start**: once, when the signed-in tab shell opens;
+  - **in the foreground**: on every return to the foreground (AppState);
+  - **after a save**: 2 s after the last local write (`onEnqueued` from `sync-queue.ts`), so a burst of taps makes one run;
+  - **on a retry**: right after the earliest failed op's backoff ends (`next_retry_at`, 30 s doubling per retry). If there is no backoff to wait for, every 30 s while ops stay pending after an offline or server-error run.
+- **Device finding while proving it:** at first the retry only ran every 30 s after a failed run. On the device, an offline save went FAILED with a 60 s backoff. The 30 s retry pulled fine but could not push yet, called the run a success, and stopped. The retry now lands on the backoff (`earliestRetryAt` in `sync-queue.ts`). A ready-but-held op never makes it spin.
+- **Network regain:** there is no connectivity listener, because NetInfo is not in the approved stack and would need an ADR. The foreground retry covers it.
+- **No retry when the person must act:** a session or subscription problem is not retried.
+- `auto-sync-runner.ts` runs through the same `syncNow` as "Sincronizar ahora" (dashboard, plus the food log when it is loaded) in one tick, so both share one standing `runSync` (BUG-030). Perfil's count updates with it.
+- Mounted by `useAutoSync` in `(tabs)/_layout.tsx`. Not on Web (no local database, ADR-P019).
+- "Sincronizar ahora" stays as the manual path.
+
+- [x] Scheduler tests (`auto-sync.spec.ts`: start, debounce, offline retry until drained, no retry when blocked, never in background, save during a run, dispose). Runner mapping (`auto-sync-runner.spec.ts`). Enqueue notifies on insert and on fold (`sync-queue.coalesce.spec.ts`, `sync-events.spec.ts`).
+- [x] Device proof (local e2e build of f132471, no tap anywhere). The `dist/v10-review/rebalance/fix-1/` INDEX has the timings.
+  - **Save:** push 6 s after logging, then Perfil shows 0 pending.
+  - **Start:** a stuck FAILED op was pushed 3 s after launch.
+  - **Network regain:** an offline edit was pushed right after its 60 s backoff.
+  - **Foreground:** a sync ran 0.3 s after returning to the app.
+  - **Result:** 0 `sync_conflicts`.
+
+---
+
 ## [BUG-048] A Second Edit Before Sync Conflicts With the First
 
 Status: Fixed in PR #252 (codex/bug048-queued-base-version), pending owner review

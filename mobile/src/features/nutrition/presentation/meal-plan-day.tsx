@@ -11,7 +11,7 @@ import {
   type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
-import { AppText, GlassCard, Icon, withAlpha } from '@/shared/presentation';
+import { AppButton, AppText, GlassCard, Icon, withAlpha } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import {
@@ -20,6 +20,7 @@ import {
   type MealPlanFood,
   type MealSlot,
 } from '../domain/meal-plan';
+import type { DayRebalance, RebalancedMealStatus } from '../domain/meal-rebalance';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
 import { dishNameKeyFor, SWAP_MARK_KEY } from './dish-name';
@@ -49,6 +50,14 @@ export interface PlanMeal {
   foods: readonly MealPlanFood[];
   totals: MealMacros;
   substitutions?: readonly IngredientSubstitution[];
+  /** Today only (ADR-P040 v10-B): how the rebalance changed this pending meal. */
+  rebalance?: {
+    status: RebalancedMealStatus;
+    plannedCalories: number;
+    lightOption?: { foodId: string; name: string; calories: number };
+  };
+  /** Today only: skipped with "Omitir". */
+  skipped?: boolean;
 }
 
 /** One day as the screen shows it: saved (days 1–7) or preview (days 8–15). */
@@ -63,6 +72,12 @@ export interface ViewDay {
   targets: MealMacros;
   totals: MealMacros;
   safetyFloorApplied: boolean;
+  /** Today only (v10-B): the day's rebalance, when the log changed the plan. */
+  rebalance?: {
+    status: DayRebalance['status'];
+    consumedCalories: number;
+    targetCalories: number;
+  };
 }
 
 export function PlanDayStrip({
@@ -208,16 +223,27 @@ function SubstitutionLine({ substitution }: { substitution: IngredientSubstituti
   );
 }
 
+/** ADR-P040 v10-B: how the rebalance changed a pending meal, in one line. */
+const REBALANCE_LINE: Record<Exclude<RebalancedMealStatus, 'covered'>, TranslationKey> = {
+  scaled: 'nutrition.rebalance.scaled',
+  swapped: 'nutrition.rebalance.swapped',
+  optional: 'nutrition.rebalance.optional',
+};
+
 function MealRow({
   meal,
   dayIndex,
   done,
   onEaten,
+  onLightOption = null,
+  onSkip = null,
 }: {
   meal: PlanMeal;
   dayIndex: number;
   done: boolean;
   onEaten: (() => void) | null;
+  onLightOption?: (() => void) | null;
+  onSkip?: (() => void) | null;
 }) {
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
@@ -233,6 +259,10 @@ function MealRow({
     : count === 1
       ? t('nutrition.plan.ingredientsOne')
       : interpolate(t('nutrition.plan.ingredients'), { count: formatNumber(count, language) });
+  const rebalance = done ? undefined : meal.rebalance;
+  const covered = rebalance?.status === 'covered';
+  const skipped = !done && meal.skipped === true;
+  const muted = done || skipped || covered;
 
   return (
     <View
@@ -251,17 +281,55 @@ function MealRow({
           <AppText style={{ color: colors.linkOnStage }} variant="caption">
             {slotLabel}
           </AppText>
-          <AppText style={done ? { color: colors.onStageVariant } : undefined} variant="label">
+          <AppText style={muted ? { color: colors.onStageVariant } : undefined} variant="label">
             {title}
           </AppText>
           <AppText tone="muted" variant="caption">
-            {formatKcalQuantity(meal.totals.calories, language)} ·{' '}
+            {covered || skipped ? (
+              // Covered or skipped today: the plan's kcal is no longer a suggestion.
+              <AppText
+                style={{ color: colors.onStageVariant }}
+                testID={`plan-before-${dayIndex}-${meal.slot}`}
+                variant="caption"
+              >
+                {t('nutrition.rebalance.before')}{' '}
+                <AppText
+                  style={{ color: colors.onStageVariant, textDecorationLine: 'line-through' }}
+                  variant="caption"
+                >
+                  {formatKcalQuantity(rebalance?.plannedCalories ?? meal.totals.calories, language)}
+                </AppText>
+              </AppText>
+            ) : (
+              formatKcalQuantity(meal.totals.calories, language)
+            )}{' '}
+            ·{' '}
             <AppText style={{ color: colors.linkOnStage }} variant="caption">
               {toggle}
             </AppText>
           </AppText>
+          {rebalance && rebalance.status !== 'covered' ? (
+            <AppText
+              style={{ color: colors.accentEnergy }}
+              testID={`plan-rebalance-${dayIndex}-${meal.slot}`}
+              variant="caption"
+            >
+              {interpolate(t(REBALANCE_LINE[rebalance.status]), {
+                kcal: formatKcalQuantity(rebalance.plannedCalories, language),
+              })}
+            </AppText>
+          ) : null}
+          {skipped ? (
+            <AppText
+              tone="muted"
+              testID={`plan-skipped-${dayIndex}-${meal.slot}`}
+              variant="caption"
+            >
+              {t('nutrition.rebalance.skipped')}
+            </AppText>
+          ) : null}
         </Pressable>
-        {done ? (
+        {covered || skipped ? null : done ? (
           <View
             accessibilityLabel={t('nutrition.plan.eaten')}
             accessible
@@ -299,6 +367,49 @@ function MealRow({
           </Pressable>
         ) : null}
       </View>
+      {covered && !skipped ? (
+        <View style={{ gap: spacing.sm }} testID={`plan-covered-${dayIndex}-${meal.slot}`}>
+          <AppText style={{ color: colors.accentEnergy }} variant="label">
+            {t('nutrition.rebalance.covered')}
+          </AppText>
+          <View style={[styles.row, styles.wrap, { gap: spacing.sm }]}>
+            {rebalance?.lightOption && onLightOption ? (
+              <AppButton
+                accessibilityLabel={interpolate(t('nutrition.rebalance.lightOptionA11y'), {
+                  meal: slotLabel,
+                  food: foodDisplayName(
+                    { id: rebalance.lightOption.foodId, name: rebalance.lightOption.name },
+                    language,
+                  ),
+                })}
+                onPress={onLightOption}
+                testID={`plan-light-${dayIndex}-${meal.slot}`}
+                variant="secondary"
+              >
+                {interpolate(t('nutrition.rebalance.lightOption'), {
+                  food: foodDisplayName(
+                    { id: rebalance.lightOption.foodId, name: rebalance.lightOption.name },
+                    language,
+                  ),
+                  kcal: formatKcalQuantity(rebalance.lightOption.calories, language),
+                })}
+              </AppButton>
+            ) : null}
+            {onSkip ? (
+              <AppButton
+                accessibilityLabel={interpolate(t('nutrition.rebalance.skipA11y'), {
+                  meal: slotLabel,
+                })}
+                onPress={onSkip}
+                testID={`plan-skip-${dayIndex}-${meal.slot}`}
+                variant="secondary"
+              >
+                {t('nutrition.rebalance.skip')}
+              </AppButton>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
       {(meal.substitutions ?? []).map((substitution, index) => (
         <SubstitutionLine key={`${substitution.from}-${index}`} substitution={substitution} />
       ))}
@@ -355,12 +466,18 @@ export function MealPlanPanel({
   day,
   isDone,
   onEaten,
+  onLightOption = null,
+  onSkip = null,
   extras = [],
   footer = null,
 }: {
   day: ViewDay;
   isDone: (slot: MealSlot) => boolean;
   onEaten: ((slot: MealSlot) => void) | null;
+  /** ADR-P040 v10-B, a covered day: eat the light option instead of the meal. */
+  onLightOption?: ((slot: MealSlot) => void) | null;
+  /** ADR-P040 v10-B: skip a pending meal today. */
+  onSkip?: ((slot: MealSlot) => void) | null;
   extras?: readonly PlanExtra[];
   /** Rendered at the end of the panel (the tab's "Registrar comida"). */
   footer?: ReactNode;
@@ -396,6 +513,25 @@ export function MealPlanPanel({
             {t('nutrition.plan.previewBadge')}
           </AppText>
         ) : null}
+        {day.rebalance && day.rebalance.status !== 'unchanged' ? (
+          <AppText
+            style={{ color: colors.accentEnergy }}
+            testID="plan-rebalance-day"
+            variant="caption"
+          >
+            {interpolate(
+              t(
+                day.rebalance.status === 'covered'
+                  ? 'nutrition.rebalance.dayCovered'
+                  : 'nutrition.rebalance.dayAdjusted',
+              ),
+              {
+                consumed: formatNumber(day.rebalance.consumedCalories, language),
+                target: formatKcalQuantity(day.rebalance.targetCalories, language),
+              },
+            )}
+          </AppText>
+        ) : null}
       </View>
       {bySlotOrder(day.meals).map((meal, index) => (
         <View
@@ -411,6 +547,8 @@ export function MealPlanPanel({
             done={isDone(meal.slot)}
             meal={meal}
             onEaten={onEaten && !day.preview && !day.isFuture ? () => onEaten(meal.slot) : null}
+            onLightOption={onLightOption && day.isToday ? () => onLightOption(meal.slot) : null}
+            onSkip={onSkip && day.isToday ? () => onSkip(meal.slot) : null}
           />
         </View>
       ))}
@@ -449,4 +587,5 @@ export function MealPlanPanel({
 const styles = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
   row: { alignItems: 'center', flexDirection: 'row' },
+  wrap: { flexWrap: 'wrap' },
 });

@@ -3,6 +3,7 @@ import { decryptFromBase64, encryptToBase64 } from '../crypto/field-cipher';
 import { queryAll, queryFirst, run, type SqlExecutor } from '../database';
 import type { SyncQueueRow } from '../database/types';
 import { computeNextRetryAt } from './backoff';
+import { notifyEnqueued } from './sync-events';
 import type { EnqueueInput } from './types';
 
 /**
@@ -50,7 +51,10 @@ export async function enqueue(
         prior.operation === 'UPDATE' &&
         prior.status !== 'IN_FLIGHT'
       ) {
-        if (await mergeIntoQueuedUpdate(prior, input, nowIso, tx)) return;
+        if (await mergeIntoQueuedUpdate(prior, input, nowIso, tx)) {
+          notifyEnqueued(input.userId);
+          return;
+        }
         // It went on the wire meanwhile: chain behind it instead.
       }
       baseVersion = versionProducedBy(prior);
@@ -77,6 +81,7 @@ export async function enqueue(
     ],
     tx,
   );
+  notifyEnqueued(input.userId);
 }
 
 /**
@@ -482,6 +487,18 @@ export async function listUnsynced(userId: string, limit = 10): Promise<Unsynced
     retryCount: row.retry_count,
     lastError: row.last_error,
   }));
+}
+
+/**
+ * BUG-049: when the earliest FAILED op becomes ready again (its backoff ends),
+ * so automatic sync can come back exactly then instead of giving up.
+ */
+export async function earliestRetryAt(userId: string): Promise<string | null> {
+  const row = await queryFirst<{ at: string | null }>(
+    `SELECT MIN(next_retry_at) AS at FROM sync_queue WHERE user_id = ? AND status = 'FAILED'`,
+    [userId],
+  );
+  return row?.at ?? null;
 }
 
 export async function countByStatus(userId: string): Promise<Record<string, number>> {

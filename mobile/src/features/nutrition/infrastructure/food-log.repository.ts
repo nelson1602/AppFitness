@@ -523,6 +523,7 @@ function rowToLoggedItem(
     consumed: itemConsumed(snapshot, row.serving_count),
     syncState: syncStateOf(row.sync_status, catalogBlocked),
     planned: row.plan_slot != null,
+    loggedAt: row.created_at,
   };
 }
 

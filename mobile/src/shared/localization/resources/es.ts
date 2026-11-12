@@ -125,6 +125,12 @@ export const es = {
   'home.coach.change.lightened': 'Aligeré tu sesión del {day}: ya trabajaste {groups}.',
   'home.coach.change.moved': 'Moví tu sesión del {from} al {to} para que no la pierdas.',
   'home.coach.change.planUpdated': 'Actualicé tu plan de esta semana con tus cambios.',
+  'home.coach.change.rebalancedOne': 'Ajusté tu {meal} por {food}, que registraste.',
+  'home.coach.change.rebalancedMany': 'Ajusté tus comidas pendientes por {food}, que registraste.',
+  'home.coach.change.coveredOne':
+    'Con {food} ya cubriste tus calorías de hoy; tu {meal} queda ligera u opcional.',
+  'home.coach.change.coveredMany':
+    'Con {food} ya cubriste tus calorías de hoy; tus comidas pendientes quedan ligeras u opcionales.',
   'workouts.extra.title': 'Actividad extra',
   'workouts.extra.done': 'Completada',
   'workouts.extra.inProgress': 'En curso',
@@ -1230,6 +1236,22 @@ export const es = {
   'nutrition.plan.meal': 'comida',
   'nutrition.plan.savedWeek': 'Plan de esta semana. Se renueva el lunes.',
   'nutrition.plan.previewBadge': 'Puede ajustarse el lunes',
+  'nutrition.rebalance.scaled': 'Ajustada por el iCoach · antes {kcal}',
+  'nutrition.rebalance.swapped': 'Opción más ligera del iCoach · antes {kcal}',
+  'nutrition.rebalance.optional': 'Opcional hoy · antes {kcal}',
+  'nutrition.rebalance.covered': 'Ya cubriste tus calorías de hoy',
+  'nutrition.rebalance.lightOption': 'Opción ligera: {food} · {kcal}',
+  'nutrition.rebalance.lightOptionA11y': 'Registrar la opción ligera para {meal}: {food}',
+  'nutrition.rebalance.skip': 'Omitir',
+  'nutrition.rebalance.skipA11y': 'Omitir {meal} hoy',
+  'nutrition.rebalance.skipped': 'Omitida hoy',
+  'nutrition.rebalance.before': 'antes',
+  'nutrition.rebalance.dayAdjusted':
+    'Llevas {consumed} de {target}. El iCoach ajustó tus comidas pendientes.',
+  'nutrition.rebalance.dayCovered':
+    'Llevas {consumed} de {target}. Ya cubriste tus calorías de hoy.',
+  'nutrition.rebalance.preview':
+    'Con esto llegas a {total} de {target}. El iCoach ajustará tus comidas pendientes.',
   'nutrition.plan.ateAccessibility': 'Lo comí: registrar {meal} del plan',
   'nutrition.plan.eaten': 'Comido ✓',
   'nutrition.plan.adjusted': 'Ajustado por iCoach: {from} → {to}',

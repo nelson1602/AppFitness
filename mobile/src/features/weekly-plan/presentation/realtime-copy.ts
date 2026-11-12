@@ -6,6 +6,7 @@ import {
   type TranslationKey,
 } from '@/shared/localization';
 
+import type { MealSlot } from '@/features/nutrition/domain/meal-plan';
 import type { CoachChange } from '../domain/realtime-recalc';
 import { dayIndexInWeek } from '../domain/week';
 
@@ -24,6 +25,14 @@ const MUSCLE_KEYS: Readonly<Record<string, TranslationKey>> = {
 };
 
 /** Spanish names weekdays and muscles in lower case inside a sentence. */
+/** The meal names the iCoach card uses (v10-B), the plan's own labels. */
+const MEAL_SLOT_KEYS: Readonly<Record<MealSlot, TranslationKey>> = {
+  BREAKFAST: 'nutrition.plan.breakfast',
+  LUNCH: 'nutrition.plan.lunch',
+  SNACK: 'nutrition.plan.snack',
+  DINNER: 'nutrition.plan.dinner',
+};
+
 function inSentence(text: string, language: SupportedLanguage): string {
   return language === 'es' ? text.toLocaleLowerCase('es') : text;
 }
@@ -70,5 +79,20 @@ export function coachChangeText(
       });
     case 'planUpdated':
       return t('home.coach.change.planUpdated');
+    case 'mealsRebalanced': {
+      const one = change.meals.length === 1;
+      const key = change.covered
+        ? one
+          ? 'home.coach.change.coveredOne'
+          : 'home.coach.change.coveredMany'
+        : one
+          ? 'home.coach.change.rebalancedOne'
+          : 'home.coach.change.rebalancedMany';
+      return interpolate(t(key), {
+        food: change.food,
+        // Meal names are common nouns in both languages (unlike English weekdays).
+        meal: one ? t(MEAL_SLOT_KEYS[change.meals[0]]).toLocaleLowerCase(language) : '',
+      });
+    }
   }
 }

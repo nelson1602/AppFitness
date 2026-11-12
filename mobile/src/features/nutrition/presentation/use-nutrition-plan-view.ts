@@ -13,7 +13,9 @@ import { useEntitlementAccess } from '@/shared/application/use-entitlement-acces
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
 import { selectMealPlan } from '../application/meal-plan.service';
 import type { MealMacros, MealPlan, MealSlot } from '../domain/meal-plan';
+import { useSkippedMealsStore } from '../application/skipped-meals.store';
 import type { ViewDay } from './meal-plan-day';
+import { type TodayRebalance, useTodayRebalance } from './use-today-rebalance';
 
 export type NutritionPlanViewState =
   | { kind: 'web-unavailable' }
@@ -128,9 +130,11 @@ export function useNutritionPlanView() {
     return [...saved, ...live.slice(7).map((_, index) => fromLive(index + 7))];
   }, [selection, currentPlan, planRevisions, today]);
 
-  const todayIndex = days.find((day) => day.isToday)?.index ?? 1;
+  const rebalanced = useTodayRebalance();
+  const shownDays = useMemo(() => withRebalance(days, rebalanced), [days, rebalanced]);
+  const todayIndex = shownDays.find((day) => day.isToday)?.index ?? 1;
   const shownIndex = selectedDay ?? todayIndex;
-  const shownDay = days[shownIndex - 1] ?? null;
+  const shownDay = shownDays[shownIndex - 1] ?? null;
   const done = new Set(plan.mealSlotsDone);
   const preferencesLoading = prefStatus === 'idle' || prefStatus === 'loading';
 
@@ -149,7 +153,7 @@ export function useNutritionPlanView() {
     state = {
       kind: 'ready',
       plan: selection.plan,
-      days,
+      days: shownDays,
       todayIndex,
       overlay: plan.overlay,
       saved: plan.current !== null,
@@ -165,8 +169,81 @@ export function useNutritionPlanView() {
     onEaten:
       plan.current && shownDay?.date
         ? (slot: MealSlot) => {
-            void plan.markMealEaten(shownDay.date as string, slot);
+            // v10-B: an adjusted meal logs the portions shown.
+            const meal = shownDay.meals.find((candidate) => candidate.slot === slot);
+            const adjusted = meal?.rebalance && meal.rebalance.status !== 'covered';
+            void plan.markMealEaten(
+              shownDay.date as string,
+              slot,
+              adjusted ? meal.foods : undefined,
+            );
+          }
+        : null,
+    /** v10-B, a covered day: eat the light option instead of the meal. */
+    onLightOption:
+      plan.current && shownDay?.date
+        ? (slot: MealSlot) => {
+            const option = shownDay.meals.find((candidate) => candidate.slot === slot)?.rebalance
+              ?.lightOption;
+            if (option) {
+              void plan.markMealEaten(shownDay.date as string, slot, [
+                { foodId: option.foodId, servings: 1 },
+              ]);
+            }
+          }
+        : null,
+    /** v10-B: skip a pending meal today ("Omitir"). */
+    onSkip:
+      shownDay?.isToday && shownDay.date
+        ? (slot: MealSlot) => {
+            void useSkippedMealsStore.getState().skip(shownDay.date as string, slot);
           }
         : null,
   };
+}
+
+/**
+ * Today's day with the rebalance applied (ADR-P040 v10-B): pending meals carry
+ * their new portions and status, skipped meals are marked, and the day's
+ * planned total never exceeds its target. Other days are unchanged.
+ */
+export function withRebalance(days: readonly ViewDay[], today: TodayRebalance | null): ViewDay[] {
+  if (!today) return [...days];
+  return days.map((day) => {
+    if (day.date !== today.date) return day;
+    const { rebalance } = today;
+    const meals = day.meals.map((meal) => {
+      // An eaten meal shows what was logged for it (its rebalanced portions).
+      const logged = today.eaten[meal.slot];
+      if (logged) return { ...meal, foods: logged.foods, totals: logged.totals };
+      if (today.skipped.includes(meal.slot)) return { ...meal, skipped: true };
+      const adjusted = rebalance.meals.find((candidate) => candidate.slot === meal.slot);
+      if (!adjusted) return meal;
+      return {
+        ...meal,
+        ...(adjusted.status === 'covered'
+          ? {}
+          : {
+              dishId: adjusted.dishId,
+              foods: adjusted.foods,
+              totals: adjusted.totals,
+            }),
+        rebalance: {
+          status: adjusted.status,
+          plannedCalories: adjusted.plannedCalories,
+          ...(adjusted.lightOption ? { lightOption: adjusted.lightOption } : {}),
+        },
+      };
+    });
+    return {
+      ...day,
+      meals,
+      totals: { ...day.totals, calories: rebalance.plannedTotalCalories },
+      rebalance: {
+        status: rebalance.status,
+        consumedCalories: rebalance.consumedCalories,
+        targetCalories: rebalance.targetCalories,
+      },
+    };
+  });
 }

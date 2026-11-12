@@ -22,6 +22,11 @@ let mockSelection: MealPlanSelection;
 let mockPrefs: DietaryPreferenceState;
 let mockLanguage: 'en' | 'es' = 'en';
 
+jest.mock('@/features/nutrition/presentation/use-today-rebalance', () => ({
+  // ADR-P040 v10-B has its own specs; this screen's are about everything else.
+  useTodayRebalance: () => null,
+  rebalanceCoachChange: () => null,
+}));
 jest.mock('@/features/dashboard/application/dashboard.store', () => ({
   useDashboardStore: () => mockDash,
 }));
@@ -634,7 +639,8 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     );
     const todayIndex = ((today.getDay() + 6) % 7) + 1;
     await fireEvent.press(screen.getByTestId(`plan-ate-${todayIndex}-BREAKFAST`));
-    expect(mockMarkMealEaten).toHaveBeenCalledWith(dates[todayIndex - 1], 'BREAKFAST');
+    // No rebalance today: the plan's own portions are logged (v10-B passes none).
+    expect(mockMarkMealEaten).toHaveBeenCalledWith(dates[todayIndex - 1], 'BREAKFAST', undefined);
   });
 
   it('shows eaten slots and the iCoach substitution on Monday', async () => {

@@ -2,6 +2,11 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
+import {
+  rebalanceCoachChange,
+  useTodayRebalance,
+} from '@/features/nutrition/presentation/use-today-rebalance';
+import { type CoachChange, latestCoachChange } from '@/features/weekly-plan/domain/realtime-recalc';
 import { PlanChangePrompt } from '@/features/weekly-plan/presentation/PlanChangePrompt';
 import { useLocalization } from '@/shared/localization';
 import { Banner } from '@/shared/presentation';
@@ -31,7 +36,14 @@ export function DashboardScreen() {
   const { t } = useLocalization();
   const status = useDashboardStore((s) => s.status);
   const refresh = useDashboardStore((s) => s.refresh);
-  const { summary, goalType, evaluationDate, evaluation, latestChange } = useHomeData();
+  const { summary, goalType, evaluationDate, evaluation, latestChange: weekChange } = useHomeData();
+  // ADR-P040 v10-B: a rebalance after a food outside the plan is the newest change.
+  const rebalanced = useTodayRebalance();
+  const latestChange = latestCoachChange(
+    [weekChange, rebalanceCoachChange(rebalanced)].filter(
+      (change): change is CoachChange => change != null,
+    ),
+  );
 
   // BUG-019: `back` reveals this screen's existing instance instead of
   // remounting it, so a mount-only effect never re-reads. Focus fires on that

@@ -1,3 +1,4 @@
+import type { MealSlot } from '@/features/nutrition/domain/meal-plan';
 import type {
   GeneratedWorkoutRoutine,
   WorkoutSessionPrescription,
@@ -303,11 +304,24 @@ export type CoachChange =
   | { kind: 'activityBonus'; at: number; kcal: number }
   | { kind: 'lightened'; at: number; date: string; groups: string[] }
   | { kind: 'moved'; at: number; from: string; to: string }
-  | { kind: 'planUpdated'; at: number };
+  | { kind: 'planUpdated'; at: number }
+  /**
+   * ADR-P040 v10-B: today's pending meals were re-portioned (or the day is
+   * covered) because of a food logged outside the plan. `meals` are the slots
+   * that changed; `food` is what was logged.
+   */
+  | {
+      kind: 'mealsRebalanced';
+      at: number;
+      meals: readonly MealSlot[];
+      food: string;
+      covered: boolean;
+    };
 
 /** Equal times: the rule that changes the most wins (plan > moved > lightened > budget). */
 const PRIORITY: Readonly<Record<CoachChange['kind'], number>> = {
-  planUpdated: 4,
+  planUpdated: 5,
+  mealsRebalanced: 4,
   moved: 3,
   lightened: 2,
   activityBonus: 1,
