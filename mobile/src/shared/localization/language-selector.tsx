@@ -106,18 +106,19 @@ export function LanguageSelector({ appearance = 'default' }: LanguageSelectorPro
                 onPress={() => void select(option)}
                 {...(isWeb ? { onKeyDown: onSpace(option) } : null)}
                 style={{
-                  // Stage: a selected pill is filled white with a heavier border, an
-                  // unselected one is glass — fill and border width, not colour alone.
+                  // Stage: a selected pill is solid (white in dark, its inverse in
+                  // light, v11-A) with a heavier border, an unselected one is glass —
+                  // fill and border width, not colour alone.
                   backgroundColor: stage
                     ? selected
-                      ? theme.colors.fieldFill
+                      ? theme.colors.choiceSelectedFill
                       : theme.colors.glassFill
                     : selected
                       ? theme.colors.primary
                       : theme.colors.surfaceVariant,
                   borderColor: stage
                     ? selected
-                      ? theme.colors.fieldFill
+                      ? theme.colors.choiceSelectedFill
                       : theme.colors.glassBorder
                     : selected
                       ? theme.colors.primary
@@ -134,7 +135,7 @@ export function LanguageSelector({ appearance = 'default' }: LanguageSelectorPro
                   style={{
                     color: stage
                       ? selected
-                        ? theme.colors.ctaStart
+                        ? theme.colors.onChoiceSelected
                         : theme.colors.onStage
                       : selected
                         ? theme.colors.onPrimary

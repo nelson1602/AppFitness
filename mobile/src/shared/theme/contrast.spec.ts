@@ -105,6 +105,29 @@ interface Pairing {
 
 const PAIRINGS: readonly Pairing[] = [
   {
+    foreground: 'onChoiceSelected',
+    background: 'choiceSelectedFill',
+    requirement: 'text',
+    status: 'rendered',
+    where: 'Selected option label in Idioma / Unidades (Perfil, Evaluación Medidas)',
+  },
+  {
+    foreground: 'choiceSelectedFill',
+    background: 'glassFill',
+    over: 'stage',
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Selected Idioma / Unidades pill against its glass card (it marks the choice)',
+  },
+  {
+    foreground: 'choiceSelectedFill',
+    background: 'glassFill',
+    over: 'stageDeep',
+    requirement: 'nonText',
+    status: 'rendered',
+    where: 'Selected Idioma / Unidades pill against its glass card (it marks the choice)',
+  },
+  {
     foreground: 'onChipCyan',
     background: 'chipCyan',
     over: 'stage',

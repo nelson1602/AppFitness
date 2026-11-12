@@ -82,8 +82,13 @@ export function UnitSelector() {
                 onPress={() => void select(option)}
                 {...(isWeb ? { onKeyDown: onSpace(option) } : null)}
                 style={{
-                  backgroundColor: selected ? theme.colors.fieldFill : theme.colors.glassFill,
-                  borderColor: selected ? theme.colors.fieldFill : theme.colors.glassBorder,
+                  // v11-A: a solid pill in both themes (white in dark, its inverse in light).
+                  backgroundColor: selected
+                    ? theme.colors.choiceSelectedFill
+                    : theme.colors.glassFill,
+                  borderColor: selected
+                    ? theme.colors.choiceSelectedFill
+                    : theme.colors.glassBorder,
                   borderRadius: theme.radius.field,
                   borderWidth: selected ? 2 : 1,
                   justifyContent: 'center',
@@ -93,7 +98,7 @@ export function UnitSelector() {
                 testID={`unit-option-${option}`}
               >
                 <AppText
-                  style={{ color: selected ? theme.colors.ctaStart : theme.colors.onStage }}
+                  style={{ color: selected ? theme.colors.onChoiceSelected : theme.colors.onStage }}
                   variant="label"
                 >
                   {label}

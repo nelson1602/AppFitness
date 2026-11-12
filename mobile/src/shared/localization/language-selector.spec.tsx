@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import * as ReactNative from 'react-native';
 import { Platform } from 'react-native';
 
-import { darkColors } from '@/shared/theme';
+import { darkColors, lightColors } from '@/shared/theme';
 
 import { LanguageSelector } from './language-selector';
 
@@ -271,12 +271,37 @@ describe('LanguageSelector', () => {
     const flat = (option: string) =>
       ReactNative.StyleSheet.flatten(screen.getByTestId(`language-option-${option}`).props.style);
     expect(flat('es')).toEqual(
-      expect.objectContaining({ backgroundColor: darkColors.fieldFill, borderWidth: 2 }),
+      expect.objectContaining({ backgroundColor: darkColors.choiceSelectedFill, borderWidth: 2 }),
     );
     expect(flat('en')).toEqual(
       expect.objectContaining({ backgroundColor: darkColors.glassFill, borderWidth: 1 }),
     );
     expect(screen.queryByText('Elige el idioma que usa AppFitnessRD.')).toBeNull();
+  });
+
+  // v11-A item 3: in light mode the selected pill was white on the light glass
+  // card; it is now solid (the dark pill's inverse) with its label in contrast.
+  it('shows the selected stage option as a solid pill in light mode too', async () => {
+    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('light');
+    mockState.language = 'es';
+    await render(<LanguageSelector appearance="stage" />);
+
+    const flat = (option: string) =>
+      ReactNative.StyleSheet.flatten(screen.getByTestId(`language-option-${option}`).props.style);
+    expect(flat('es')).toEqual(
+      expect.objectContaining({
+        backgroundColor: lightColors.choiceSelectedFill,
+        borderColor: lightColors.choiceSelectedFill,
+        borderWidth: 2,
+      }),
+    );
+    expect(lightColors.choiceSelectedFill).not.toBe(lightColors.fieldFill);
+    expect(flat('en')).toEqual(
+      expect.objectContaining({ backgroundColor: lightColors.glassFill, borderWidth: 1 }),
+    );
+    expect(ReactNative.StyleSheet.flatten(screen.getByText('Español').props.style)).toEqual(
+      expect.objectContaining({ color: lightColors.onChoiceSelected }),
+    );
   });
 
   it.each(['android', 'ios'] as const)(

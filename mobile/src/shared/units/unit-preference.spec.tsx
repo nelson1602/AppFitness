@@ -1,5 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as ReactNative from 'react-native';
+
+import { darkColors, lightColors } from '@/shared/theme';
 
 import {
   getUnitSnapshot,
@@ -56,6 +59,33 @@ describe('unit preference (v10 Block C, item 9)', () => {
 });
 
 describe('UnitSelector (Perfil → Unidades)', () => {
+  // v11-A item 3: the selected option is a solid pill in both themes.
+  it.each([
+    ['light', lightColors],
+    ['dark', darkColors],
+  ] as const)('marks the selected option as a solid pill in %s mode', async (scheme, colors) => {
+    jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue(scheme);
+    await render(<UnitSelector />);
+    await act(async () => {
+      await initializeUnits();
+    });
+    const flat = (system: string) =>
+      ReactNative.StyleSheet.flatten(screen.getByTestId(`unit-option-${system}`).props.style);
+    expect(flat('metric')).toEqual(
+      expect.objectContaining({
+        backgroundColor: colors.choiceSelectedFill,
+        borderColor: colors.choiceSelectedFill,
+        borderWidth: 2,
+      }),
+    );
+    expect(flat('imperial')).toEqual(
+      expect.objectContaining({ backgroundColor: colors.glassFill, borderWidth: 1 }),
+    );
+    expect(ReactNative.StyleSheet.flatten(screen.getByText('kg / cm').props.style)).toEqual(
+      expect.objectContaining({ color: colors.onChoiceSelected }),
+    );
+  });
+
   it('offers kg / cm and lb / ft-in as radios and switches on press', async () => {
     await render(<UnitSelector />);
     await act(async () => {
