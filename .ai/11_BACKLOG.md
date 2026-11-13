@@ -3428,6 +3428,63 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-052] expo-sqlite 57.0.5 Ships Its Native Library for arm64-v8a Only: 32-bit and x86 Devices Hang at "Cargando contenido"
+
+Status: Fixed in PR (codex/expo-sqlite-57-0-4-pin) by pinning 57.0.4, owner decision 2026-11-13; closes on merge. The pin is removed under TECHDEBT-006.
+Priority: P0
+Type: Bug
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+PR #255 moved `expo-sqlite` from 57.0.4 to 57.0.5, the `sdk-57` tag published 2026-11-12. Since then every Android build started and stayed on "Cargando contenido" on the x86_64 emulator. The session refresh succeeded, and the database file was never opened.
+
+### Cause
+
+Expo publishes expo-sqlite with a prebuilt AAR (`node_modules/expo-sqlite/local-maven-repo/…/expo.modules.sqlite-57.0.5.aar`), and Gradle links that AAR instead of compiling the module. The 57.0.5 AAR contains `jni/arm64-v8a/libexpo-sqlite.so` and nothing for the other ABIs. The file matches its published SHA-256, so the download is not corrupt.
+
+| | 57.0.4 AAR | 57.0.5 AAR |
+|---|---|---|
+| Size | 3.8 MB | 1.1 MB |
+| `libexpo-sqlite.so` | arm64-v8a, armeabi-v7a, x86, x86_64 | arm64-v8a only |
+
+The source change between the two versions is small (a statement reset after `SQLITE_BUSY` in `SQLiteModule.kt`) and is not the cause.
+
+### Evidence
+
+- x86_64 APKs built from main `a76f7b8` and from v11-B `88ebe34` with 57.0.5 contain no `lib/x86_64/libexpo-sqlite.so`. The same main built with 57.0.4 contains it and starts ("Hola, …").
+- Logcat on the emulator: `nativeloader: Load libexpo-sqlite.so … dlopen failed: library "libexpo-sqlite.so" not found`.
+- The owner confirmed the AAR contents independently.
+- An earlier reading blamed a non-checkpointed WAL on the existing data, or a `node_modules` mismatch. The library is missing whatever the data, so a fresh install hangs the same way.
+
+### Impact
+
+- **Who hangs:** every device whose ABI is not arm64-v8a, that is 32-bit Android phones (armeabi-v7a), x86 and x86_64 devices, and emulators. They wait forever at "Cargando contenido", because the open never settles (TECHDEBT-005).
+- **Who is fine:** arm64-v8a phones run normally.
+- **Store builds:** they include all four ABIs (`reactNativeArchitectures`), so a versionCode 12 AAB built on 57.0.5 would ship the hang to 32-bit phones. versionCode 11 shipped 57.0.4 and is not affected.
+- **Detection:** nothing in CI noticed. Type-check, Jest, expo-doctor and the JS export never look inside the AAR.
+
+### Fix
+
+- `expo-sqlite` pinned to exactly `57.0.4` (package.json + lockfile). It is also listed in `expo.install.exclude`, so `expo install --fix` / expo-doctor do not move it back to 57.0.5. This is temporary: drop it once Expo publishes a fixed version (TECHDEBT-006). JSON allows no comments, so this entry is the comment.
+- CI guard `npm run verify:native-abis` (`mobile/scripts/check-native-abis.js`, `mobile-ci` → `export` job) fails if the expo-sqlite prebuilt AAR lacks `libexpo-sqlite.so` for any of arm64-v8a, armeabi-v7a, x86, x86_64. It is tested by `native-abis.spec.ts`, including an arm64-only archive shaped like 57.0.5.
+- Nothing has been reported to Expo. Posting on Expo's GitHub needs the owner's OK.
+
+### Acceptance Criteria
+
+- [x] Root cause found and confirmed on device (logcat) and in the published AAR
+- [x] Pin + exclude; CI guard with unit tests
+- [ ] x86_64 emulator APK from this PR contains `libexpo-sqlite.so` and starts on the existing data (`dist/v11-review/sqlite-pin/`)
+
+### Related Documents
+
+- .ai/11_BACKLOG.md (TECHDEBT-005, TECHDEBT-006)
+- .ai/02_TECH_STACK.md (Expo SQLite)
+
+---
+
 ## [BUG-050] The Rebalance Planned Above the Target and Labelled Meals With Nothing Logged
 
 Status: Fixed in PR #254 (codex/v11-rebalance-cap), scope approved by the owner 2026-11-13; closes on merge
@@ -9259,6 +9316,62 @@ kombucha_unsweet (see the A1 ledgers). Nothing fabricated.
 - .ai/12_DECISIONS.md (ADR-P012 incl. Risk-3 Normalization Note, ADR-0011)
 - .ai/15_DATABASE_SCHEMA_DESIGN.md, .ai/16_SQLITE_SCHEMA_DESIGN.md
 - api/prisma/schema.prisma (Food, MealItem)
+
+---
+
+## [TECHDEBT-005] Startup Waits Forever When the Local Database Fails to Open
+
+Status: Open
+Priority: P2
+Type: Technical Debt
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+Found while diagnosing BUG-052. When `libexpo-sqlite.so` was missing, `openDatabaseAsync` never settled. The native `UnsatisfiedLinkError` is a Java `Error`, not an `Exception`, and it never reached JavaScript as a rejection. `getDatabase()` (`mobile/src/shared/infrastructure/database/database.ts`) handles a rejected open, but nothing handles one that never finishes. The app stayed on "Cargando contenido" with no error and no log in JavaScript. This conflicts with "no silent error swallowing" (`03_CODING_STANDARDS.md`).
+
+### Expected Outcome
+
+If the database does not open, or open + migrations do not finish within a bounded time, startup stops waiting and shows a localized error screen with a retry. The underlying error goes to the sanctioned logger with no medical data or tokens (`05_SECURITY.md`).
+
+### Acceptance Criteria
+
+- [ ] A failed or hung database open ends in an error state, not an endless loading screen
+- [ ] The error screen is localized (es/en), accessible, and offers a retry that calls `getDatabase()` again
+- [ ] The timeout is long enough not to trip on a slow first migration of a large existing database
+- [ ] Unit tests for a rejected open and a never-settling open
+
+### Related Documents
+
+- .ai/11_BACKLOG.md (BUG-052)
+- .ai/06_MOBILE.md, .ai/03_CODING_STANDARDS.md, .ai/05_SECURITY.md
+
+---
+
+## [TECHDEBT-006] Drop the expo-sqlite 57.0.4 Pin When Expo Ships a Fixed Version
+
+Status: Open (blocked on Expo)
+Priority: P2
+Type: Technical Debt
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+BUG-052 pins `expo-sqlite` to exactly `57.0.4` and lists it in `expo.install.exclude` in `mobile/package.json`. JSON allows no comments, so the reason is recorded here and in BUG-052. This is temporary. Every Expo SDK 57 patch to expo-sqlite is skipped until the pin goes, including the 57.0.5 fix for statements left running after `database is locked`.
+
+### Acceptance Criteria
+
+- [ ] An expo-sqlite release for SDK 57 (the `sdk-57` npm tag) whose prebuilt AAR carries `libexpo-sqlite.so` for arm64-v8a, armeabi-v7a, x86 and x86_64. `npm run verify:native-abis` passes against it.
+- [ ] `expo-sqlite` back to Expo's `~` range, removed from `expo.install.exclude`, lockfile updated (owner approval: dependency change)
+- [ ] An x86_64 emulator APK starts on existing data; expo-doctor passes
+
+### Related Documents
+
+- .ai/11_BACKLOG.md (BUG-052)
 
 ---
 
