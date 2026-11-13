@@ -140,6 +140,14 @@ jobs:
         if: needs.changes.outputs.mobile == 'true'
         run: npm ci
 
+      - name: Prebuilt native libraries cover every ABI
+        if: needs.changes.outputs.mobile == 'true'
+        # BUG-052: expo-sqlite 57.0.5's prebuilt AAR carried libexpo-sqlite.so
+        # for arm64-v8a only, so 32-bit and x86 devices hung at startup with
+        # every other check green. Fails if a checked AAR lacks any of
+        # arm64-v8a, armeabi-v7a, x86, x86_64.
+        run: npm run verify:native-abis
+
       - name: Expo doctor
         if: needs.changes.outputs.mobile == 'true'
         # Pinned for deterministic CI; update deliberately. 1.21.5 carries the
