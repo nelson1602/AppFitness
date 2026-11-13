@@ -1250,6 +1250,15 @@ export const en = {
     "You're at {consumed} of {target}. You've covered today's calories.",
   'nutrition.rebalance.preview':
     'With this you reach {total} of {target}. The iCoach will adjust your pending meals.',
+  'nutrition.carryOver.lessAfterYesterday':
+    'Yesterday you reached {consumed} of {target}; today the iCoach spreads {kcal} less across your meals.',
+  'nutrition.carryOver.moreAfterYesterday':
+    'Yesterday you reached {consumed} of {target}; today the iCoach spreads {kcal} more across your meals.',
+  'nutrition.carryOver.less':
+    'Based on what you logged on earlier days, today the iCoach spreads {kcal} less across your meals.',
+  'nutrition.carryOver.more':
+    'Based on what you logged on earlier days, today the iCoach spreads {kcal} more across your meals.',
+  'nutrition.carryOver.rest': 'The rest is spread over the next few days.',
   'nutrition.plan.ateAccessibility': "I ate it: log the plan's {meal}",
   'nutrition.plan.eaten': 'Eaten ✓',
   'nutrition.plan.adjusted': 'Adjusted by iCoach: {from} → {to}',

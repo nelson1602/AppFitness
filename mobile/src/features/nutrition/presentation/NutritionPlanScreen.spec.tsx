@@ -662,6 +662,7 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     const totals = { calories: 158, proteinG: 13.5, carbsG: 0.9, fatG: 11.3 };
     mockTodayRebalance = {
       date,
+      carryOver: null,
       rebalance: {
         ruleVersion: MEAL_REBALANCE_RULE_VERSION,
         status: 'unchanged',

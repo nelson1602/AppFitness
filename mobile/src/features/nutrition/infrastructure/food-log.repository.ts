@@ -559,3 +559,27 @@ export async function listDailyCalorieTotals(userId: string): Promise<DailyCalor
   }
   return totals;
 }
+
+/**
+ * Logged kcal and item count per day from `from` to `to` (inclusive, user-local
+ * dates), for the day-to-day carry-over (ADR-P040 Addendum v11-B). Read-only;
+ * days with nothing logged are absent or have `items: 0`.
+ */
+export async function listDayIntakes(
+  userId: string,
+  from: string,
+  to: string,
+): Promise<{ date: string; calories: number; items: number }[]> {
+  const dateRows = await queryAll<{ date: string }>(
+    `SELECT DISTINCT date FROM nutrition_logs
+      WHERE user_id = ? AND deleted_at IS NULL AND date >= ? AND date <= ?
+      ORDER BY date ASC`,
+    [userId, from, to],
+  );
+  const days: { date: string; calories: number; items: number }[] = [];
+  for (const { date } of dateRows) {
+    const items = await listLoggedItems(userId, date);
+    days.push({ date, calories: sumDailyTotals(items).calories, items: items.length });
+  }
+  return days;
+}

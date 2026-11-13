@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 
 import { getSession } from '@/features/authentication';
+import { useCarryOver } from '@/features/dashboard/application/use-carry-over';
 import { useTodayTargets } from '@/features/dashboard/application/use-today-targets';
 import { useProfileStore } from '@/features/profile/application/profile.store';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
@@ -15,6 +16,7 @@ import { useSkippedMealsStore } from '../application/skipped-meals.store';
 import type { LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS, type MealMacros, type MealPlanFood, type MealSlot } from '../domain/meal-plan';
 import type { ServingUnit } from '../domain/food-catalog';
+import type { CarryOver } from '../domain/carry-over';
 import type { DayRebalance } from '../domain/meal-rebalance';
 
 export interface TodayRebalance {
@@ -28,6 +30,8 @@ export interface TodayRebalance {
    * portions (possibly rebalanced), not the plan's original ones.
    */
   eaten: Partial<Record<MealSlot, { foods: MealPlanFood[]; totals: MealMacros }>>;
+  /** ADR-P040 Addendum v11-B: today's carry-over, for the day header. */
+  carryOver: CarryOver | null;
 }
 
 /**
@@ -45,6 +49,7 @@ export function useTodayRebalance(): TodayRebalance | null {
   const items = useFoodLogStore((s) => s.items);
   const totals = useFoodLogStore((s) => s.totals);
   const targets = useTodayTargets();
+  const carryOver = useCarryOver();
   const profileCountry = useProfileStore((s) => s.profile?.country);
   const prefStatus = useDietaryPreferenceStore((s) => s.status);
   const preferences = useDietaryPreferenceStore((s) => s.preferences);
@@ -69,6 +74,7 @@ export function useTodayRebalance(): TodayRebalance | null {
       meals: effective.day.meals,
       closedSlots,
       targetCalories: targets.calories,
+      carryOverUp: targets.carryOver > 0,
       proteinTargetG: targets.proteinG,
       consumed: {
         calories: totals.calories,
@@ -83,9 +89,17 @@ export function useTodayRebalance(): TodayRebalance | null {
       items
         .filter((item) => !item.planned)
         .sort((a, b) => (b.loggedAt ?? '').localeCompare(a.loggedAt ?? ''))[0] ?? null;
-    return { date: today, rebalance, trigger, skipped, eaten: eatenBySlot(items) };
+    return {
+      date: today,
+      rebalance,
+      trigger,
+      skipped,
+      eaten: eatenBySlot(items),
+      carryOver,
+    };
   }, [
     targets,
+    carryOver,
     current,
     logStatus,
     logDate,

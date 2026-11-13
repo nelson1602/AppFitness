@@ -1252,6 +1252,15 @@ export const es = {
     'Llevas {consumed} de {target}. Ya cubriste tus calorías de hoy.',
   'nutrition.rebalance.preview':
     'Con esto llegas a {total} de {target}. El iCoach ajustará tus comidas pendientes.',
+  'nutrition.carryOver.lessAfterYesterday':
+    'Ayer llegaste a {consumed} de {target}; hoy el iCoach reparte {kcal} menos entre tus comidas.',
+  'nutrition.carryOver.moreAfterYesterday':
+    'Ayer llegaste a {consumed} de {target}; hoy el iCoach reparte {kcal} más entre tus comidas.',
+  'nutrition.carryOver.less':
+    'Por lo que registraste en días anteriores, hoy el iCoach reparte {kcal} menos entre tus comidas.',
+  'nutrition.carryOver.more':
+    'Por lo que registraste en días anteriores, hoy el iCoach reparte {kcal} más entre tus comidas.',
+  'nutrition.carryOver.rest': 'El resto se reparte en los próximos días.',
   'nutrition.plan.ateAccessibility': 'Lo comí: registrar {meal} del plan',
   'nutrition.plan.eaten': 'Comido ✓',
   'nutrition.plan.adjusted': 'Ajustado por iCoach: {from} → {to}',

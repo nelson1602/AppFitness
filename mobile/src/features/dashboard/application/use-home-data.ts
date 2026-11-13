@@ -5,6 +5,7 @@ import type { GeneratedWorkoutRoutine } from '@/features/icoach';
 import type { BmiCategory } from '@/features/icoach/domain/types';
 import { isoWeekStart } from '@/features/icoach/domain/progress-analysis';
 import { useFoodLogStore } from '@/features/nutrition/application/food-log.store';
+import type { CarryOver } from '@/features/nutrition/domain/carry-over';
 import { buildNotifications, type AppNotification } from '@/features/notifications';
 import { useNotificationsStore } from '@/features/notifications/application/notifications.store';
 import { useGoalStore } from '@/features/profile/application/goal.store';
@@ -24,6 +25,7 @@ import { useEntitlementAccess } from '@/shared/application/use-entitlement-acces
 import type { GoalType } from '@/shared/infrastructure/database/types';
 
 import { buildHomeSummary, type HomeSummary } from '../domain/home-summary';
+import { useCarryOver } from './use-carry-over';
 import { useDashboardStore } from './dashboard.store';
 
 /** The design's session length clamp, the same one the routine generator uses. */
@@ -95,6 +97,8 @@ export interface HomeData {
   evaluation: HomeEvaluation | null;
   /** The iCoach's latest real-time change this week (ADR-P040 Addendum v10-A R5). */
   latestChange: CoachChange | null;
+  /** ADR-P040 Addendum v11-B: today's day-to-day carry-over, or null. */
+  carryOver: CarryOver | null;
 }
 
 /** "Today" from the device clock, resolved once per render. */
@@ -140,6 +144,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
   // ADR-P040 Addendum v10-A: progress with extras, the activity bonus and the
   // latest change, recomputed from the stores after every local write.
   const realtime = useRealtimeWeek(routine, now);
+  const carryOver = useCarryOver();
 
   return useMemo(() => {
     const summary = buildHomeSummary({
@@ -162,6 +167,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
         ? { done: realtime.progress.done, extra: realtime.progress.extra }
         : null,
       activityCalories: realtime.calorieBonus,
+      carryOverCalories: carryOver?.adjustment ?? 0,
     });
 
     const notifications = buildNotifications({
@@ -213,10 +219,12 @@ export function useHomeData(now: Date = new Date()): HomeData {
       evaluationDate,
       evaluation,
       latestChange: realtime.latestChange,
+      carryOver,
     };
   }, [
     assessment,
     bodyWeights,
+    carryOver,
     evaluationDate,
     foodLogReady,
     goal,

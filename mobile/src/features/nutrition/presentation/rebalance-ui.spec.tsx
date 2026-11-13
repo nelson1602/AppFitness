@@ -91,6 +91,7 @@ const DAY: ViewDay = {
 function repro(skipped: MealSlot[] = []): TodayRebalance {
   return {
     date: TODAY,
+    carryOver: null,
     rebalance: rebalanceToday({
       meals: MEALS,
       closedSlots: new Set<MealSlot>(['BREAKFAST', 'LUNCH', 'DINNER', ...skipped]),
@@ -358,5 +359,35 @@ describe('v11-A on screen: the owner day (target 2.711)', () => {
     expect(screen.getByTestId('plan-rebalance-3-SNACK')).toHaveTextContent(
       `Ajustada por el iCoach · antes ${es(357)} kcal`,
     );
+  });
+});
+
+describe('v11-B on screen: the carry-over sentence in the day header', () => {
+  beforeEach(() => {
+    mockLanguage = 'es';
+  });
+
+  it("today's header says what yesterday was and what the iCoach does today", async () => {
+    const [today, other] = withRebalance([DAY, { ...DAY, index: 4, date: '2026-11-14' }], {
+      ...repro(),
+      date: DAY.date as string,
+      carryOver: {
+        ruleVersion: 'carry-over@1.0.0',
+        adjustment: -189,
+        yesterday: { date: '2026-11-12', consumed: 2900, target: 2711 },
+        remaining: 0,
+      },
+    });
+    expect(other.carryOver).toBeUndefined();
+    await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
+    expect(screen.getByTestId('plan-carry-over')).toHaveTextContent(
+      /^Ayer llegaste a .+ de .+ kcal; hoy el iCoach reparte 189 kcal menos entre tus comidas\.$/,
+    );
+  });
+
+  it('no sentence without a carry-over', async () => {
+    const [today] = withRebalance([DAY], { ...repro(), date: DAY.date as string });
+    await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
+    expect(screen.queryByTestId('plan-carry-over')).toBeNull();
   });
 });

@@ -168,6 +168,27 @@ describe('real-time changes on Inicio', () => {
     await render(<CoachCard evaluationDate={null} summary={TRAINING} />);
     expect(screen.queryByTestId('home-coach-change')).toBeNull();
   });
+
+  it('adds the day-to-day carry-over to the iCoach card (ADR-P040 v11-B)', async () => {
+    mockLanguage = 'es';
+    await render(
+      <CoachCard
+        carryOver={{
+          ruleVersion: 'carry-over@1.0.0',
+          adjustment: 271,
+          yesterday: { date: '2026-11-12', consumed: 2311, target: 2711 },
+          remaining: 129,
+        }}
+        evaluationDate={null}
+        summary={TRAINING}
+      />,
+    );
+    expect(screen.getByTestId('home-coach-carry-over')).toHaveTextContent(
+      /hoy el iCoach reparte 271 kcal más entre tus comidas\. El resto se reparte en los próximos días\.$/,
+    );
+    await render(<CoachCard evaluationDate={null} summary={TRAINING} />);
+    expect(screen.queryByTestId('home-coach-carry-over')).toBeNull();
+  });
 });
 
 describe('CoachCard', () => {

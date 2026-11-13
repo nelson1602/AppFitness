@@ -2,6 +2,8 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import type { CarryOver } from '@/features/nutrition/domain/carry-over';
+import { carryOverText } from '@/features/nutrition/presentation/carry-over-copy';
 import { goalTypeShortLabelKey } from '@/features/profile/presentation/goal-type-label';
 import type { CoachChange } from '@/features/weekly-plan/domain/realtime-recalc';
 import { coachChangeText } from '@/features/weekly-plan/presentation/realtime-copy';
@@ -206,16 +208,20 @@ export function CoachCard({
   summary,
   evaluationDate,
   latestChange = null,
+  carryOver = null,
 }: {
   summary: HomeSummary;
   evaluationDate: string | null;
   /** ADR-P040 Addendum v10-A R5: the latest real-time change, in one sentence. */
   latestChange?: CoachChange | null;
+  /** ADR-P040 Addendum v11-B: today's day-to-day carry-over. */
+  carryOver?: CarryOver | null;
 }) {
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
   const message = coachMessage(summary.today);
+  const carried = carryOverText(carryOver, t, language);
   const text =
     message.minutes === undefined
       ? t(message.key)
@@ -247,6 +253,11 @@ export function CoachCard({
           variant="body"
         >
           {coachChangeText(latestChange, t, language)}
+        </AppText>
+      ) : null}
+      {carried ? (
+        <AppText testID="home-coach-carry-over" tone="onStageVariant" variant="body">
+          {carried}
         </AppText>
       ) : null}
       <View style={[styles.row, styles.wrap, styles.spread, { gap: spacing.sm }]}>
