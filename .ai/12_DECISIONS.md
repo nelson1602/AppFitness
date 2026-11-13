@@ -15187,6 +15187,32 @@ Status: Accepted by the owner on 2026-11-13 in the review of PR #254 (fit today'
   - after the galleta: 642 + 702 + 281 + 612 = **2.237** (≤ 2.308), the day plans 2.640.
   - A deterministic sweep (targets 1.500–3.600, closed slots, consumption, DO swaps and US) asserts the cap across more than 1.000 cases.
 
+### Addendum v11-B — Day-to-day carry-over (proposed 2026-11-13, with the v11-B PR)
+
+Status: proposed with the v11-B PR; the owner accepts it with that PR. Rule `carry-over@1.0.0` (`nutrition/domain/carry-over.ts`), wired by `dashboard/application/use-carry-over.ts` into the one daily-targets rule (`dailyTargets`), so Inicio, Nutrición, the food log and the rebalance all read the same adjusted target. Amends the rebalance to `meal-rebalance@1.2.0` (C7). Tests: `carry-over.spec.ts`, `carry-over-copy.spec.ts`, `meal-rebalance.cap.spec.ts`, `rebalance-ui.spec.tsx`, `home-cards.spec.tsx`, `daily-targets.spec.ts`.
+
+**Owner request (2026-11-13).** Yesterday's logged intake against yesterday's target adjusts today's planned target, deterministically: over → less, under → more.
+
+- **C1 Difference.** A day with at least one logged food compares what was logged with that day's planned target (base + its own carry-over + its extra-cardio bonus, R2). A day with nothing logged adds no difference.
+- **C2 Spread.** A new difference first cancels what is still queued with the opposite sign, oldest first. The rest is queued for the next **3** calendar days, then dropped.
+- **C3 Daily cap.** Each day takes at most **10 % of the base target** from the queue, oldest first, in either direction.
+- **C4 Safe minimum.** A day's planned target never goes below the iCoach's existing safe minimum, the larger of the clinical floor and BMR (`planNutrition`). Only what was applied leaves the queue.
+- **C5 Base target.** It never changes and is never written. The carry-over is an overlay recomputed from the local logs (offline) on every render, like D7, v10-A and v10-B.
+- **C6 Window.** The queue is rebuilt from the 7 days before today, starting empty, so identical logs always give the identical adjustment.
+- **C7 Today's plan (`meal-rebalance@1.2.0`).** A negative carry-over always falls outside the 5 % band, so v11-A A3 already fits the meals to it. A positive one within 5 % is fitted too, but only when quarter-step portioning actually plans more; otherwise the plan stands.
+- **Copy (es + en, neutral, no health claim).** On Inicio's iCoach card and Nutrición's day header:
+  - "Ayer llegaste a 2.900 de 2.711 kcal; hoy el iCoach reparte 189 kcal menos entre tus comidas."
+  - "… reparte 271 kcal más …", followed by "El resto se reparte en los próximos días." while more is queued.
+  - Without a logged yesterday that points the same way: "Por lo que registraste en días anteriores, hoy el iCoach reparte X kcal menos/más entre tus comidas."
+  - Nothing is shown when today's adjustment is 0.
+- **Owner cases, pinned in tests (base 2.711):**
+  - 189 over → −189;
+  - 400 under → +271 today, then +129;
+  - 900 over → −271, −271, −271, and the last 87 dropped;
+  - an unlogged day adds nothing;
+  - base 1.600 with a safe minimum of 1.500 → at most −100, and a base at the minimum → 0.
+- **Known limit.** The extra-cardio bonus of a past day counts only within the current ISO week (where the realtime week knows it). A day in the previous week is compared with base + carry-over. Backlog TASK-v11B-1.
+
 ### Consequences
 
 - **Positive:** the design's coaching promises become real, tested behaviour.

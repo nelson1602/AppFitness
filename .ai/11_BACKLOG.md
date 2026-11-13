@@ -3546,12 +3546,20 @@ Contrast is gated in `contrast.spec.ts`. Style tests cover both themes in `langu
 
 ## [DATA-001] A Food Shows as "Galleta de Soda field" (Lowercase Brand Glued to the Name)
 
-Status: Open (backlog only, owner 2026-11-12)
+Status: Display rule in the v11-B PR (codex/v11-carryover-units), pending owner review; stored data unchanged
 Priority: P3
 Type: Data quality
 Owner: Engineering
 Created: 2026-11-12
-Updated: 2026-11-12
+Updated: 2026-11-13
+
+### Resolution (v11-B item c, owner rule 2026-11-13)
+
+`shownFoodName` / `loggedFoodName` (`nutrition/application/food-display.service.ts`), display only:
+- A name matching a bundled food (accents, case and spacing aside) shows its catalogue name.
+- Otherwise the name is sentence-cased, and a brand repeated at its end moves into parentheses: "Galleta de Soda field" (brand Field) → **"Galleta de soda (Field)"**.
+- Used in search results (the separate "· Field" caption is then dropped), the food log, the plan's "fuera del plan" rows and the iCoach sentence.
+- Logged items read the brand from their local `foods` row. `food_name_snapshot` is never rewritten.
 
 ### Description
 
@@ -3565,6 +3573,45 @@ In the v10 and v11 device runs, the first search result for "galleta" read **"Ga
 - Check the saved food's source record for its `product_name` and brand fields.
 - Decide on a display rule, for example brand shown separately or title-cased.
 - Already-logged snapshots keep their name (historical data is never rewritten).
+
+---
+
+## [DATA-002] "Chicharron De Cerdo" Has No Spanish Catalogue Name, So Its Accent Is Not Restored
+
+Status: Open (owner decision needed)
+Priority: P3
+Type: Data quality
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+The owner's v11-B rule shows the Spanish catalogue name when one exists, and sentence case otherwise. The bundled catalogue (`food-catalog.es.ts`, 300+ names) has no chicharrón entry, and the server seed has none either. The API's `external-food.ts` only translates *chicharron* → *pork rinds* for searching. So "Chicharron De Cerdo" now reads **"Chicharron de cerdo"**: sentence case, without the accent.
+
+### Options
+
+- Add a sourced catalogue food for chicharrón de cerdo. This goes through ADR-P013 sourcing, with FDC data for pork skins.
+- Or add a display-only list of Spanish names for common DO foods with no catalogue entry, which needs the owner's approval for the list.
+
+---
+
+## [TASK-v11B-1] Carry-Over: Count the Previous Week's Extra-Cardio Bonus
+
+Status: Open
+Priority: P3
+Type: Task
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+`carry-over@1.0.0` (ADR-P040 Addendum v11-B) compares a past day with its target including that day's extra-cardio bonus (R2). The realtime week only knows the current ISO week's extra activities. So on a Monday or Tuesday, a day from the previous week is compared with base + carry-over, without its bonus. Someone who did extra cardio last Sunday and ate the bonus could read as over.
+
+### To do
+
+Compute R2 for the 7-day lookback window from the workout logs, not just the current week, and add a test that crosses the week boundary.
 
 ---
 

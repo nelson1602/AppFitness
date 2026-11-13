@@ -1,8 +1,8 @@
 # AppFitness iCoach Functional Specification
 
-Version: 1.1
+Version: 1.2
 Status: Active
-Last Updated: 2026-08-10
+Last Updated: 2026-11-13
 
 ---
 
@@ -301,6 +301,14 @@ Meal Rotation
 Shopping Suggestions (Future)
 
 Never generate unsafe nutritional advice.
+
+## Day-to-day carry-over (ADR-P040 Addendum v11-B, `carry-over@1.0.0`)
+
+- Yesterday's logged intake against yesterday's target adjusts today's planned calorie target: over → less, under → more.
+- At most ±10 % of the base target a day; a larger difference is spread over the next 3 days, then dropped.
+- Never below the safe minimum of this engine (the larger of the clinical floor and BMR); only days with a logged food count.
+- The base target never changes: the carry-over is a deterministic overlay recomputed from the last 7 days of logs, offline.
+- Shown in neutral words on Inicio's iCoach card and Nutrición's day header (es + en), never as a judgement or a health claim.
 
 ---
 

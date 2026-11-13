@@ -1,8 +1,8 @@
 # AppFitness Design System Specification
 
-Version: 1.28
+Version: 1.29
 Status: Active
-Last Updated: 2026-11-12
+Last Updated: 2026-11-13
 
 ---
 
@@ -13,6 +13,38 @@ This document defines the official Design System for AppFitness.
 Its purpose is to ensure visual consistency, usability, accessibility, scalability, and maintainability across every screen, component, and interaction.
 
 Every UI implementation must comply with this specification.
+
+---
+
+# Revision Scope (v1.29 — v11-B: units apart, readable food names, light pulse, carry-over line)
+
+- **Units dropdowns (owner, 2026-11-13).** Evaluación → Medidas puts a unit
+  dropdown on each field: Peso [kg ▾ | lb] and Estatura [cm ▾ | ft-in],
+  independent (lb with cm is valid). Perfil → Unidades shows the same two
+  dropdowns, replacing the single kg / cm · lb / ft-in toggle.
+  - **`UnitDropdown`** (`shared/units/unit-dropdown.tsx`): a 48 × 48 minimum
+    button ("kg ▾", role button, hint "Abre las unidades…") opens a bottom sheet
+    with the units as radios. Its selected row uses `choiceSelectedFill` /
+    `onChoiceSelected` plus a check mark and a 2 px border, so it never relies on
+    colour alone. Like the birth-date sheet, the scrim is not a control: choosing
+    closes the sheet, and so does the system back gesture.
+  - Body lengths (waist, hips, chest) follow the height unit; muscle mass
+    follows the weight unit. Stored values stay metric.
+- **Readable food names (display only).** A name outside the bundled catalogue
+  shows the catalogue name when it matches one (accents and case aside).
+  Otherwise it is sentence-cased, with a brand repeated at its end in
+  parentheses: "Galleta de Soda field" → "Galleta de soda (Field)". The
+  search result then omits the separate "· Field" caption. Stored names never
+  change.
+- **Light-mode pulse.** Four decorative roles: `pulseStart`, `pulseMid`,
+  `pulseEnd` and `pulseTrack`.
+  - **Light:** the prototype's login line (`#22D3EE` → `#9BEBFF` → `#FF5A36`)
+    over a 10 % brand-blue track, replacing the slate middle stop and navy track.
+  - **Dark:** keeps its exact colours.
+  - Each theme now declares 81 roles.
+- **Carry-over line** (ADR-P040 v11-B). A caption on Nutrición's day header
+  (`plan-carry-over`) and a body line on Inicio's iCoach card
+  (`home-coach-carry-over`). It is shown only when today's target moved.
 
 ---
 
