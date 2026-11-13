@@ -94,6 +94,13 @@ export interface ColorTokens {
   /** Floating tab bar fill and border (design: #0D1628/85, white/15). */
   tabBarFill: string;
   tabBarBorder: string;
+  /**
+   * The selected option of a stage choice row (Idioma, Unidades): a solid pill
+   * and its label. Dark keeps the white pill; light uses its inverse so the
+   * choice reads as selected on the light glass card (v11-A, item 3).
+   */
+  choiceSelectedFill: string;
+  onChoiceSelected: string;
   /** Tinted status chips (design Chip tones): translucent fill + its text. */
   chipCyan: string;
   onChipCyan: string;
@@ -179,6 +186,8 @@ export const lightColors: ColorTokens = {
   // (no blur dependency is approved; the dark bar's #0D1628 at 85 % stays).
   tabBarFill: '#F4F8FEFF',
   tabBarBorder: '#0A3FA826',
+  choiceSelectedFill: '#0A57C2',
+  onChoiceSelected: '#FFFFFF',
   chipCyan: '#0E749024',
   onChipCyan: '#0B5E75',
   chipEnergy: '#B03A0B1F',
@@ -258,6 +267,8 @@ export const darkColors: ColorTokens = {
   stageGlowSoft: '#0B4FC4',
   tabBarFill: '#0D1628D9',
   tabBarBorder: '#FFFFFF26',
+  choiceSelectedFill: '#FFFFFF',
+  onChoiceSelected: '#0A57C2',
   chipCyan: '#22D3EE24',
   onChipCyan: '#67E8F9',
   chipEnergy: '#FF7A4529',

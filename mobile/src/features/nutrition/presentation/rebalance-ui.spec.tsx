@@ -5,7 +5,13 @@ import { coachChangeText } from '@/features/weekly-plan/presentation/realtime-co
 import { scaleFood, sumMacros } from '../application/meal-portions';
 import { getById } from '../application/food-catalog.service';
 import { rebalanceToday } from '../application/meal-rebalance.service';
-import type { MealSlot } from '../domain/meal-plan';
+import type { MealMacros, MealSlot } from '../domain/meal-plan';
+import {
+  GALLETA_DE_SODA,
+  OWNER_DAY,
+  OWNER_DAY_PROTEIN_G,
+  OWNER_DAY_TARGET_KCAL,
+} from '../domain/meal-rebalance.owner-day.fixture';
 import { MealPlanPanel, type PlanMeal, type ViewDay } from './meal-plan-day';
 import { withRebalance } from './use-nutrition-plan-view';
 import { rebalanceCoachChange, type TodayRebalance } from './use-today-rebalance';
@@ -114,6 +120,20 @@ function repro(skipped: MealSlot[] = []): TodayRebalance {
 
 const eaten = (slot: MealSlot) => slot !== 'SNACK';
 
+/**
+ * v11-A: this day plans more than 2.430, so today's Merienda is first fitted
+ * to the target; 'antes' quotes that, not the saved week.
+ */
+const TODAYS_SNACK_KCAL = rebalanceToday({
+  meals: MEALS,
+  closedSlots: new Set<MealSlot>(),
+  targetCalories: 2430,
+  proteinTargetG: 150,
+  consumed: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0 },
+  country: 'DO',
+  preferences: [],
+}).meals.find((m) => m.slot === 'SNACK')!.totals.calories;
+
 describe('rebalance on screen (ADR-P040 v10-B)', () => {
   beforeEach(() => {
     mockLanguage = 'es';
@@ -177,7 +197,7 @@ describe('rebalance on screen (ADR-P040 v10-B)', () => {
     'a %s meal shows its plan kcal struck through as "antes", never as a suggestion',
     async (_state, skipped) => {
       const [today] = withRebalance([DAY], repro(skipped));
-      const planKcal = new Intl.NumberFormat('es').format(MEALS[2].totals.calories);
+      const planKcal = new Intl.NumberFormat('es').format(TODAYS_SNACK_KCAL);
       await render(
         <MealPlanPanel
           day={today}
@@ -211,7 +231,7 @@ describe('rebalance on screen (ADR-P040 v10-B)', () => {
     const [today] = withRebalance([DAY], repro());
     await render(<MealPlanPanel day={today} isDone={eaten} onEaten={jest.fn()} />);
     expect(screen.getByTestId('plan-before-3-SNACK')).toHaveTextContent(
-      `was ${new Intl.NumberFormat('en-US').format(MEALS[2].totals.calories)} kcal`,
+      `was ${new Intl.NumberFormat('en-US').format(TODAYS_SNACK_KCAL)} kcal`,
     );
   });
 
@@ -276,5 +296,67 @@ describe('rebalance on screen (ADR-P040 v10-B)', () => {
       "With the Galleta de Soda you've covered today's calories; your snack is now light or optional.",
     );
     expect(rebalanceCoachChange(null)).toBeNull();
+  });
+});
+
+describe('v11-A on screen: the owner day (target 2.711)', () => {
+  const ownerDay: ViewDay = {
+    ...DAY,
+    meals: OWNER_DAY,
+    targets: {
+      calories: OWNER_DAY_TARGET_KCAL,
+      proteinG: OWNER_DAY_PROTEIN_G,
+      carbsG: 381,
+      fatG: 75,
+    },
+    totals: sumMacros(OWNER_DAY.flatMap((m) => m.foods)),
+  };
+  const ownerToday = (consumed: MealMacros): TodayRebalance => ({
+    ...repro(),
+    trigger: consumed.calories > 0 ? repro().trigger : null,
+    rebalance: rebalanceToday({
+      meals: OWNER_DAY,
+      closedSlots: new Set<MealSlot>(),
+      targetCalories: OWNER_DAY_TARGET_KCAL,
+      proteinTargetG: OWNER_DAY_PROTEIN_G,
+      consumed,
+      country: 'DO',
+      preferences: [],
+    }),
+  });
+  const es = (n: number) => new Intl.NumberFormat('es').format(n);
+
+  beforeEach(() => {
+    mockLanguage = 'es';
+  });
+
+  it('nothing logged: the meals are portioned to 2.711 with no "Ajustada" label', async () => {
+    const [today] = withRebalance(
+      [ownerDay],
+      ownerToday({ calories: 0, proteinG: 0, carbsG: 0, fatG: 0 }),
+    );
+    expect(today.totals.calories).toBe(2655);
+    expect(today.meals.map((m) => [m.totals.calories, m.fitted, m.rebalance])).toEqual([
+      [739, true, undefined],
+      [851, true, undefined],
+      [357, true, undefined],
+      [708, true, undefined],
+    ]);
+    await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
+    expect(screen.queryByText(/Ajustada por el iCoach/)).toBeNull();
+    expect(screen.queryByTestId('plan-rebalance-day')).toBeNull();
+  });
+
+  it('after Galleta de Soda: "Ajustada · antes" quotes today’s plan and the day never passes 2.711', async () => {
+    const [today] = withRebalance([ownerDay], ownerToday(GALLETA_DE_SODA));
+    expect(today.totals.calories).toBe(403 + 642 + 702 + 281 + 612);
+    expect(today.totals.calories).toBeLessThanOrEqual(OWNER_DAY_TARGET_KCAL);
+    await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
+    expect(screen.getByTestId('plan-rebalance-3-BREAKFAST')).toHaveTextContent(
+      `Ajustada por el iCoach · antes ${es(739)} kcal`,
+    );
+    expect(screen.getByTestId('plan-rebalance-3-SNACK')).toHaveTextContent(
+      `Ajustada por el iCoach · antes ${es(357)} kcal`,
+    );
   });
 });

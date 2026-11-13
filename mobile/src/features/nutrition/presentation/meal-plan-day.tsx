@@ -50,9 +50,14 @@ export interface PlanMeal {
   foods: readonly MealPlanFood[];
   totals: MealMacros;
   substitutions?: readonly IngredientSubstitution[];
-  /** Today only (ADR-P040 v10-B): how the rebalance changed this pending meal. */
+  /**
+   * Today only (v11-A): portioned to today's target with nothing logged today.
+   * Shown and logged as is, without a label.
+   */
+  fitted?: boolean;
+  /** Today only (ADR-P040 v10-B): how something logged today changed this pending meal. */
   rebalance?: {
-    status: RebalancedMealStatus;
+    status: Exclude<RebalancedMealStatus, 'fitted'>;
     plannedCalories: number;
     lightOption?: { foodId: string; name: string; calories: number };
   };
@@ -224,7 +229,10 @@ function SubstitutionLine({ substitution }: { substitution: IngredientSubstituti
 }
 
 /** ADR-P040 v10-B: how the rebalance changed a pending meal, in one line. */
-const REBALANCE_LINE: Record<Exclude<RebalancedMealStatus, 'covered'>, TranslationKey> = {
+const REBALANCE_LINE: Record<
+  Exclude<RebalancedMealStatus, 'covered' | 'fitted'>,
+  TranslationKey
+> = {
   scaled: 'nutrition.rebalance.scaled',
   swapped: 'nutrition.rebalance.swapped',
   optional: 'nutrition.rebalance.optional',

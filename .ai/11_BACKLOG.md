@@ -3428,6 +3428,89 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-050] The Rebalance Planned Above the Target and Labelled Meals With Nothing Logged
+
+Status: Fixed in PR #254 (codex/v11-rebalance-cap), scope approved by the owner 2026-11-13; closes on merge
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-12
+Updated: 2026-11-12
+
+### Description
+
+Found in the versionCode 11 smoke test (shot 09, target 2.711):
+- **Nothing logged:** the four pending meals planned 739 + 865 + 433 + 740 = 2.777 and all read "Ajustada por el iCoach".
+- **After Galleta de Soda (403):** they planned 2.356 for the 2.308 left (day 2.759).
+
+Causes in `meal-rebalance@1.0.0`:
+1. Scaled servings were rounded to the nearest quarter. The saved plans use 0.1 steps, so a food could grow by up to 25 %: casabe 0.8 → 1.0.
+2. The ±5 % tolerance kept a plan up to 5 % over what was left.
+3. A lighter-dish swap could exceed its budget by 1.25 × with nobody paying for it.
+4. A week generated for 2.430 and kept until Monday after the evaluation raised the target was "rebalanced" with nothing logged.
+
+### Fix
+
+ADR-P040 Addendum v11-A, `meal-rebalance@1.1.0`:
+- quarter steps rounded down, then given back by largest remainder within each meal's budget;
+- tolerance only under what is left;
+- swaps paid for by the other pending meals;
+- today's plan fitted to today's target with no label, which appears only after something is logged or skipped today.
+
+- [x] Tests with the exact owner numbers (`meal-rebalance.cap.spec.ts`): 2.655 ≤ 2.711 unlabelled; 2.237 ≤ 2.308 after the galleta.
+- [x] A deterministic sweep of more than 1.000 cases, swaps included.
+- [x] UI specs: no label with nothing logged; "antes" quotes today's plan; "Lo comí" logs the fitted portions.
+- [x] Device screenshots, dark and light: `dist/v11-review/rebalance-cap/`.
+
+---
+
+## [BUG-051] Light Mode: the Selected Idioma / Unidades Option Did Not Look Selected
+
+Status: Fixed in PR #254 (codex/v11-rebalance-cap), scope approved by the owner 2026-11-13; closes on merge
+Priority: P2
+Type: Bug
+Owner: Engineering
+Created: 2026-11-12
+Updated: 2026-11-12
+
+### Description
+
+In light mode, the selected option in Perfil → Cuenta y ajustes (Idioma, Unidades) and in the Evaluación → Medidas unit toggle was a white pill with a white border on the light glass card. Only its blue label marked it. Dark mode shows a solid white pill.
+
+### Fix
+
+New roles `choiceSelectedFill` / `onChoiceSelected` (`08_UI_UX.md` v1.28):
+- **Dark:** unchanged.
+- **Light:** the inverse (`#0A57C2` pill, white label, 2 px border).
+
+Contrast is gated in `contrast.spec.ts`. Style tests cover both themes in `language-selector.spec.tsx` and `unit-preference.spec.tsx`.
+
+---
+
+## [DATA-001] A Food Shows as "Galleta de Soda field" (Lowercase Brand Glued to the Name)
+
+Status: Open (backlog only, owner 2026-11-12)
+Priority: P3
+Type: Data quality
+Owner: Engineering
+Created: 2026-11-12
+Updated: 2026-11-12
+
+### Description
+
+In the v10 and v11 device runs, the first search result for "galleta" read **"Galleta de Soda field"** (100 g · 403 kcal). Logged items keep it as `food_name_snapshot`.
+- The name is not in the bundled catalogue or the server seed.
+- It is an **Open Food Facts product already saved on the server** (v10 Block B). The v11-A local device run shows it as "Galleta de Soda field · 100 g · 403 kcal · **Field** · Guardado".
+- The brand (Field) is already shown separately, so the lowercase "field" is part of the product name as the source gives it, not something the app appends.
+
+### To do
+
+- Check the saved food's source record for its `product_name` and brand fields.
+- Decide on a display rule, for example brand shown separately or title-cased.
+- Already-logged snapshots keep their name (historical data is never rewritten).
+
+---
+
 ## [BUG-049] Local Writes Waited for "Sincronizar ahora": Nothing Synced Them Automatically
 
 Status: Fixed in PR #253 (codex/v10-rebalance-units, review fix-1), pending owner review
