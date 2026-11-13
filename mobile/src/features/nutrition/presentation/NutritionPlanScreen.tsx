@@ -8,7 +8,6 @@ import {
   formatKcalQuantity,
   formatNumber,
   formatQuantity,
-  interpolate,
   useLocalization,
 } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
@@ -183,29 +182,17 @@ export function NutritionPlanScreen() {
   );
 }
 
-/** The off-plan adjustment (ADR-P040 D7) in words, when it changes today. */
+/**
+ * The off-plan note (ADR-P040 D7, `off-plan@1.1.0`): alcohol only. Yesterday's
+ * calories and the cardio are the carry-over's single sentence (v11-B).
+ */
 export function PlanOverlayBanner({ overlay }: { overlay: OffPlanAdjustment }) {
-  const { language, t } = useLocalization();
-  if (!(overlay.reducedBy > 0 || overlay.avoidIntenseTraining)) return null;
+  const { t } = useLocalization();
+  if (!overlay.avoidIntenseTraining) return null;
   return (
     <View testID="plan-overlay">
       <Banner title={t('nutrition.plan.overlayTitle')} tone="info">
-        {[
-          overlay.reducedBy > 0
-            ? interpolate(t('nutrition.plan.overlayBody'), {
-                kcal: formatKcal(overlay.todayCalories, language),
-                reduced: formatNumber(overlay.reducedBy, language),
-              })
-            : null,
-          overlay.extraCardioMinutes > 0
-            ? interpolate(t('nutrition.plan.overlayCardio'), {
-                minutes: formatNumber(overlay.extraCardioMinutes, language),
-              })
-            : null,
-          overlay.avoidIntenseTraining ? t('nutrition.plan.overlayAlcohol') : null,
-        ]
-          .filter(Boolean)
-          .join(' ')}
+        {t('nutrition.plan.overlayAlcohol')}
       </Banner>
     </View>
   );

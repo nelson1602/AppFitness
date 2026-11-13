@@ -217,9 +217,12 @@ describe('catalogue parity', () => {
   // v11-B carry-over: yesterday's / earlier days' sentence, less and more, and "the rest" (+5,
   // 1938); units apart: Peso / Estatura, their sheet titles, the four unit names and the
   // dropdown hint (+9), minus the kg / cm and lb / ft-in pair (-2) (+7, 1945).
-  it('reaches 1945 keys in each language — 1757 shipped plus a 188-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1945);
-    expect(Object.keys(es)).toHaveLength(1945);
+  // v11-B unified carry-over: food + cardio and cardio-only sentences (+2), the added
+  // cardio's label, minutes, Quitar and its label (+4), minus D7's calorie and cardio lines (-2)
+  // (+4, 1949).
+  it('reaches 1949 keys in each language — 1761 shipped plus a 188-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1949);
+    expect(Object.keys(es)).toHaveLength(1949);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

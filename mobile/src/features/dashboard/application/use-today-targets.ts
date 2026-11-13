@@ -16,5 +16,5 @@ export function useTodayTargets(): DailyTargets | null {
   );
   const { calorieBonus } = useRealtimeWeek(null);
   const carryOver = useCarryOver();
-  return dailyTargets(nutrition, calorieBonus, carryOver?.adjustment ?? 0);
+  return dailyTargets(nutrition, calorieBonus, carryOver?.carryOver.adjustment ?? 0);
 }

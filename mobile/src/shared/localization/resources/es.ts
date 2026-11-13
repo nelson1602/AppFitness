@@ -1260,9 +1260,13 @@ export const es = {
   'nutrition.rebalance.preview':
     'Con esto llegas a {total} de {target}. El iCoach ajustará tus comidas pendientes.',
   'nutrition.carryOver.lessAfterYesterday':
-    'Ayer llegaste a {consumed} de {target}; hoy el iCoach reparte {kcal} menos entre tus comidas.',
+    'Ayer llegaste a {consumed} de {target}. Hoy el iCoach reparte {kcal} menos entre tus comidas.',
+  'nutrition.carryOver.lessWithCardio':
+    'Ayer llegaste a {consumed} de {target}. Hoy el iCoach reparte {kcal} menos entre tus comidas y suma {minutes} min de cardio suave a tu próximo entrenamiento.',
+  'nutrition.carryOver.cardioOnly':
+    'Ayer llegaste a {consumed} de {target}. Hoy el iCoach suma {minutes} min de cardio suave a tu próximo entrenamiento.',
   'nutrition.carryOver.moreAfterYesterday':
-    'Ayer llegaste a {consumed} de {target}; hoy el iCoach reparte {kcal} más entre tus comidas.',
+    'Ayer llegaste a {consumed} de {target}. Hoy el iCoach reparte {kcal} más entre tus comidas.',
   'nutrition.carryOver.less':
     'Por lo que registraste en días anteriores, hoy el iCoach reparte {kcal} menos entre tus comidas.',
   'nutrition.carryOver.more':
@@ -1335,11 +1339,11 @@ export const es = {
   'nutrition.household.greenBananaOne': '{count} guineíto · {amount}',
   'nutrition.household.greenBananaMany': '{count} guineítos · {amount}',
   'nutrition.plan.overlayTitle': 'Ajuste de hoy',
-  'nutrition.plan.overlayBody':
-    'Ayer pasaste tu meta: hoy tu meta es {kcal} kcal ({reduced} menos).',
-  'nutrition.plan.overlayCardio':
-    'El iCoach suma {minutes} min de cardio a tu próximo entrenamiento.',
-  'nutrition.plan.overlayAlcohol': 'Registraste alcohol: hoy evita el entrenamiento intenso.',
+  'nutrition.plan.overlayAlcohol': 'Registraste alcohol: hoy conviene un entrenamiento suave.',
+  'workouts.addedCardio.label': 'Añadido por el iCoach',
+  'workouts.addedCardio.minutes': '{minutes} min de cardio suave',
+  'workouts.addedCardio.remove': 'Quitar',
+  'workouts.addedCardio.removeA11y': 'Quitar el cardio que añadió el iCoach',
   'nutrition.plan.dayTotalsAccessibility': 'Totales diarios comparados con los objetivos',
   'nutrition.plan.dayTotalTarget': 'Total diario frente al objetivo',
   'nutrition.plan.calories': 'Calorías',

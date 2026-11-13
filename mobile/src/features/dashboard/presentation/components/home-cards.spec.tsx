@@ -174,17 +174,23 @@ describe('real-time changes on Inicio', () => {
     await render(
       <CoachCard
         carryOver={{
-          ruleVersion: 'carry-over@1.0.0',
-          adjustment: 271,
-          yesterday: { date: '2026-11-12', consumed: 2311, target: 2711 },
-          remaining: 129,
+          carryOver: {
+            ruleVersion: 'carry-over@1.0.0',
+            adjustment: -271,
+            yesterday: { date: '2026-11-12', consumed: 3200, target: 2711 },
+            remaining: 0,
+            cardio: [{ fromDate: '2026-11-12', kcal: 218, minutes: 30 }],
+          },
+          cardioMinutesToday: 30,
         }}
         evaluationDate={null}
         summary={TRAINING}
       />,
     );
+    // One sentence: the food and the cardio together.
+    expect(screen.getAllByText(/Ayer llegaste a/)).toHaveLength(1);
     expect(screen.getByTestId('home-coach-carry-over')).toHaveTextContent(
-      /hoy el iCoach reparte 271 kcal más entre tus comidas\. El resto se reparte en los próximos días\.$/,
+      /Hoy el iCoach reparte 271 kcal menos entre tus comidas y suma 30 min de cardio suave a tu próximo entrenamiento\.$/,
     );
     await render(<CoachCard evaluationDate={null} summary={TRAINING} />);
     expect(screen.queryByTestId('home-coach-carry-over')).toBeNull();

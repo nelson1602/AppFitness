@@ -15187,31 +15187,58 @@ Status: Accepted by the owner on 2026-11-13 in the review of PR #254 (fit today'
   - after the galleta: 642 + 702 + 281 + 612 = **2.237** (≤ 2.308), the day plans 2.640.
   - A deterministic sweep (targets 1.500–3.600, closed slots, consumption, DO swaps and US) asserts the cap across more than 1.000 cases.
 
-### Addendum v11-B — Day-to-day carry-over (proposed 2026-11-13, with the v11-B PR)
+### Addendum v11-B — Day-to-day carry-over: food and exercise, one rule (proposed 2026-11-13, with the v11-B PR)
 
-Status: proposed with the v11-B PR; the owner accepts it with that PR. Rule `carry-over@1.0.0` (`nutrition/domain/carry-over.ts`), wired by `dashboard/application/use-carry-over.ts` into the one daily-targets rule (`dailyTargets`), so Inicio, Nutrición, the food log and the rebalance all read the same adjusted target. Amends the rebalance to `meal-rebalance@1.2.0` (C7). Tests: `carry-over.spec.ts`, `carry-over-copy.spec.ts`, `meal-rebalance.cap.spec.ts`, `rebalance-ui.spec.tsx`, `home-cards.spec.tsx`, `daily-targets.spec.ts`.
+Status: proposed with the v11-B PR; the owner accepts it with that PR.
+- **Rules:**
+  - `carry-over@1.0.0` (`nutrition/domain/carry-over.ts`);
+  - its cardio placement (`weekly-plan/domain/carry-over-cardio.ts`).
+- **Wiring:** `dashboard/application/use-carry-over.ts` feeds the one daily-targets rule (`dailyTargets`). So Inicio, Nutrición, the food log and the rebalance all read the same adjusted target, and Entrenamientos shows the added cardio.
+- **Supersedes** D7's calorie reduction and extra cardio (`off-plan@1.1.0` keeps only the alcohol note).
+- **Amends** the rebalance to `meal-rebalance@1.2.0` (C8).
+- **Tests:** `carry-over.spec.ts`, `carry-over-cardio.spec.ts`, `carry-over-copy.spec.ts`, `WorkoutWeek.spec.tsx`, `meal-rebalance.cap.spec.ts`, `rebalance-ui.spec.tsx`, `home-cards.spec.tsx`, `NutritionPlanScreen.spec.tsx`, `weekly-plan.domain.spec.ts`.
 
-**Owner request (2026-11-13).** Yesterday's logged intake against yesterday's target adjusts today's planned target, deterministically: over → less, under → more.
+**Owner decision (2026-11-13).** Yesterday's logged intake against yesterday's target adjusts today, deterministically. Exercise compensation is kept, and D7's two sentences become one rule.
 
-- **C1 Difference.** A day with at least one logged food compares what was logged with that day's planned target (base + its own carry-over + its extra-cardio bonus, R2). A day with nothing logged adds no difference.
-- **C2 Spread.** A new difference first cancels what is still queued with the opposite sign, oldest first. The rest is queued for the next **3** calendar days, then dropped.
-- **C3 Daily cap.** Each day takes at most **10 % of the base target** from the queue, oldest first, in either direction.
-- **C4 Safe minimum.** A day's planned target never goes below the iCoach's existing safe minimum, the larger of the clinical floor and BMR (`planNutrition`). Only what was applied leaves the queue.
-- **C5 Base target.** It never changes and is never written. The carry-over is an overlay recomputed from the local logs (offline) on every render, like D7, v10-A and v10-B.
-- **C6 Window.** The queue is rebuilt from the 7 days before today, starting empty, so identical logs always give the identical adjustment.
-- **C7 Today's plan (`meal-rebalance@1.2.0`).** A negative carry-over always falls outside the 5 % band, so v11-A A3 already fits the meals to it. A positive one within 5 % is fitted too, but only when quarter-step portioning actually plans more; otherwise the plan stands.
-- **Copy (es + en, neutral, no health claim).** On Inicio's iCoach card and Nutrición's day header:
-  - "Ayer llegaste a 2.900 de 2.711 kcal; hoy el iCoach reparte 189 kcal menos entre tus comidas."
-  - "… reparte 271 kcal más …", followed by "El resto se reparte en los próximos días." while more is queued.
-  - Without a logged yesterday that points the same way: "Por lo que registraste en días anteriores, hoy el iCoach reparte X kcal menos/más entre tus comidas."
-  - Nothing is shown when today's adjustment is 0.
-- **Owner cases, pinned in tests (base 2.711):**
-  - 189 over → −189;
-  - 400 under → +271 today, then +129;
-  - 900 over → −271, −271, −271, and the last 87 dropped;
-  - an unlogged day adds nothing;
-  - base 1.600 with a safe minimum of 1.500 → at most −100, and a base at the minimum → 0.
-- **Known limit.** The extra-cardio bonus of a past day counts only within the current ISO week (where the realtime week knows it). A day in the previous week is compared with base + carry-over. Backlog TASK-v11B-1.
+**Why D7's calorie and cardio parts go.** The v11-B device run showed D7's banner next to the new sentence:
+- D7 measured yesterday against the saved week's stale 2.169 target: "hoy tu meta es 1.869 kcal (300 menos)".
+- It announced 30 min of cardio that nothing ever added.
+- The carry-over said 111 kcal less.
+
+The rule:
+- **C1 Base.** A day with at least one logged food is compared with its *actual* target: today's model (base + its own carry-over + its extra-cardio bonus, R2), never a saved week's stale target. A day with nothing logged adds nothing.
+- **C2 Over.**
+  - Up to **10 % of the base** comes off the next day's food.
+  - The excess beyond that becomes **easy cardio on the next scheduled workout**, instead of more reduced-food days.
+  - Minutes = kcal ÷ (net MET × kg ÷ 60). This is the workout calorie model of `extra-activity` (net = MET − 1), with brisk walking (MET 3,5, low–moderate). Minutes come in 5-minute steps, **capped at 30**; the rest is dropped.
+  - No double counting: kcal covered by food are never also covered by cardio. A block that is completed is a planned exercise, so it earns no R2 bonus.
+- **C3 Under.** Food goes up, at most **+10 %** of the base a day, spread over the next **3** days, then dropped. Exercise is never reduced or changed.
+- **C4 Opposites cancel first.** A day over cancels food still queued from a day under (oldest first), and the reverse.
+- **C5 Safe minimum unchanged.** A day's planned target never goes below the iCoach's safe minimum, the larger of the clinical floor and BMR (`planNutrition`). Food that the floor keeps out is dropped, not moved to cardio.
+- **C6 Window and base.** The queue is rebuilt from the 7 days before today, starting empty. The base target is never written: this is an overlay recomputed from local logs (offline), like D7, v10-A and v10-B.
+- **C7 The cardio block.**
+  - It is a real exercise appended to the first scheduled session dated after the day over (a moved session counts on its new day): `exercise.brisk_walk`, one timed set.
+  - It is labelled **"Añadido por el iCoach"** and is logged like any other exercise.
+  - **"Quitar"** removes it. The removal is a device preference in `app_metadata`, like "Omitir", and is never synced.
+  - It is gone once that session's day has passed. One session takes at most 30 min.
+  - **Never added** when the evaluation restricts this kind of exercise: an excluded impact movement (`high_impact_cardio`, `running`, `sprinting`, `jumping`), or the engine's `SAFETY:medical_clearance` / `SAFETY:bp_crisis_block` flags (low intensity until a professional clears more). Without a known weight there are no minutes.
+- **C8 Today's plan (`meal-rebalance@1.2.0`).** A negative carry-over always falls outside the 5 % band, so v11-A A3 already fits the meals to it. A positive one within 5 % is fitted too, but only when quarter-step portioning actually plans more.
+- **One message (es + en, neutral, no medical claims)** on Inicio's iCoach card and Nutrición's day header. D7's banner keeps only its alcohol note.
+  - "Ayer llegaste a 3.200 de 2.711 kcal. Hoy el iCoach reparte 271 kcal menos entre tus comidas y suma 30 min de cardio suave a tu próximo entrenamiento."
+  - Without cardio (or after "Quitar") the clause is omitted. When the safe minimum leaves no food change: "… Hoy el iCoach suma N min de cardio suave a tu próximo entrenamiento."
+  - Under: "… Hoy el iCoach reparte 271 kcal más entre tus comidas. El resto se reparte en los próximos días."
+  - Without a logged yesterday pointing the same way: "Por lo que registraste en días anteriores, hoy el iCoach reparte X kcal menos/más entre tus comidas."
+- **Alcohol note (softened).** "Registraste alcohol: hoy conviene un entrenamiento suave." / "You logged alcohol: a lighter session suits today better." No earlier agreed wording was found in the repository, so this text is proposed with the PR.
+- **Owner cases, pinned in tests (base 2.711, 80 kg):**
+  - over 5 % (2.847) → −136, no cardio;
+  - over 18 % (3.199) → −271 and 217 kcal of cardio = 30 min;
+  - 2.000 over → −271, 30 min, nothing the day after;
+  - under 15 % (2.304) → +271, then +136, workout unchanged;
+  - a restriction → food only;
+  - an unlogged day → nothing;
+  - one sentence rendered;
+  - the block removable.
+- **Known limit.** The extra-cardio bonus of a past day counts only within the current ISO week (where the realtime week knows it). Backlog TASK-v11B-1.
 
 ### Consequences
 
@@ -15330,6 +15357,7 @@ The engine recomputed the weekly workout routine and the 15-day meal plan on eve
    - The week detail shows: each planned session as Cumplido / No realizado; meal %; days within the calorie target (logged kcal within ±10 % of target, of 7); average daily kcal against the target; the weight change (last weigh-in of the week minus the last one before it); and the iCoach note of the **following** week's plan.
    - All of it is computed by pure functions from the logs and the saved plan.
 8. **Off-plan adjustment (ADR-P040 D7) is an overlay, never a write.**
+   - **Superseded in part (2026-11-13, ADR-P040 Addendum v11-B, `off-plan@1.1.0`):** the calorie reduction and the extra cardio below are replaced by the day-to-day carry-over, which measures yesterday against its actual target and really adds the cardio to the next workout. Only the alcohol note remains, softened to "hoy conviene un entrenamiento suave".
    - When yesterday's logged kcal exceeded the target by more than 10 %, today's target is lowered by min(excess, 300) kcal. It is never lowered below the engine's calorie floor.
    - The next scheduled session gets clamp(excess ÷ 10, 10, 30) minutes of extra cardio.
    - A food tagged `alcohol` logged yesterday or today adds the note "evita el entrenamiento intenso hoy".

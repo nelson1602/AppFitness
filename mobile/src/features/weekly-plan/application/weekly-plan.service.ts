@@ -304,8 +304,9 @@ export async function loadCurrentWeekAdherence(
 }
 
 /**
- * Today's off-plan overlay (ADR-P040 D7): yesterday's logged calories against
- * the plan, and alcohol logged yesterday or today. Never writes the plan.
+ * Today's off-plan overlay (ADR-P040 D7, `off-plan@1.1.0`): alcohol logged
+ * yesterday or today. Yesterday's calories are the carry-over's (v11-B).
+ * Never writes the plan.
  */
 export async function loadTodayOverlay(
   current: WeeklyPlan,
@@ -317,15 +318,10 @@ export async function loadTodayOverlay(
     listLoggedItems(current.userId, yesterday),
     listLoggedItems(current.userId, today),
   ]);
-  const kcal = yesterdayItems.reduce((sum, item) => sum + item.consumed.calories, 0);
   const alcohol = [...yesterdayItems, ...todayItems].some((item) =>
     (getCatalogFood(item.catalogKey ?? '')?.avoidFor ?? []).includes('alcohol'),
   );
-  return computeOffPlanAdjustment({
-    targets: current.plan.targets,
-    yesterdayCalories: yesterdayItems.length > 0 ? kcal : null,
-    alcoholYesterdayOrToday: alcohol,
-  });
+  return computeOffPlanAdjustment({ alcoholYesterdayOrToday: alcohol });
 }
 
 /** The 7 dates of the current plan's week (for the meal-plan slider). */

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import type { CarryOver } from '@/features/nutrition/domain/carry-over';
+import type { CarryOverMessage } from '@/features/nutrition/presentation/carry-over-copy';
 import { carryOverText } from '@/features/nutrition/presentation/carry-over-copy';
 import { goalTypeShortLabelKey } from '@/features/profile/presentation/goal-type-label';
 import type { CoachChange } from '@/features/weekly-plan/domain/realtime-recalc';
@@ -215,7 +215,7 @@ export function CoachCard({
   /** ADR-P040 Addendum v10-A R5: the latest real-time change, in one sentence. */
   latestChange?: CoachChange | null;
   /** ADR-P040 Addendum v11-B: today's day-to-day carry-over. */
-  carryOver?: CarryOver | null;
+  carryOver?: CarryOverMessage | null;
 }) {
   const theme = useTheme();
   const { colors, radius, spacing } = theme;

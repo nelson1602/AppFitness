@@ -16,7 +16,7 @@ import { useSkippedMealsStore } from '../application/skipped-meals.store';
 import type { LoggedMealItem } from '../domain/food-log';
 import { MEAL_SLOTS, type MealMacros, type MealPlanFood, type MealSlot } from '../domain/meal-plan';
 import type { ServingUnit } from '../domain/food-catalog';
-import type { CarryOver } from '../domain/carry-over';
+import type { CarryOverMessage } from './carry-over-copy';
 import type { DayRebalance } from '../domain/meal-rebalance';
 
 export interface TodayRebalance {
@@ -31,7 +31,7 @@ export interface TodayRebalance {
    */
   eaten: Partial<Record<MealSlot, { foods: MealPlanFood[]; totals: MealMacros }>>;
   /** ADR-P040 Addendum v11-B: today's carry-over, for the day header. */
-  carryOver: CarryOver | null;
+  carryOver: CarryOverMessage | null;
 }
 
 /**

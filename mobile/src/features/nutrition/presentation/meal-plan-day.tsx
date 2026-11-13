@@ -20,7 +20,7 @@ import {
   type MealPlanFood,
   type MealSlot,
 } from '../domain/meal-plan';
-import type { CarryOver } from '../domain/carry-over';
+import type { CarryOverMessage } from './carry-over-copy';
 import type { DayRebalance, RebalancedMealStatus } from '../domain/meal-rebalance';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
@@ -86,7 +86,7 @@ export interface ViewDay {
     targetCalories: number;
   };
   /** Today only (Addendum v11-B): the day-to-day carry-over sentence's data. */
-  carryOver?: CarryOver | null;
+  carryOver?: CarryOverMessage | null;
 }
 
 export function PlanDayStrip({

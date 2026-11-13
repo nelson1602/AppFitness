@@ -158,6 +158,8 @@ const REGISTRY: Record<string, readonly Rule[]> = {
     'floor',
     'floor',
     'floor-both',
+    // v11-B: "Quitar" on the cardio the iCoach added (48 × 48 at least).
+    'floor-both',
     'floor',
   ],
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
@@ -201,9 +203,10 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-// v11-B: the units radios (one Pressable) became a dropdown and its sheet rows (two).
-it('counts exactly 54 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(54);
+// v11-B: the units radios (one Pressable) became a dropdown and its sheet rows (two), and
+// the added cardio got its "Quitar" (one).
+it('counts exactly 55 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(55);
 });
 
 describe.each(

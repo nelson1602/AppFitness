@@ -5,7 +5,7 @@ import type { GeneratedWorkoutRoutine } from '@/features/icoach';
 import type { BmiCategory } from '@/features/icoach/domain/types';
 import { isoWeekStart } from '@/features/icoach/domain/progress-analysis';
 import { useFoodLogStore } from '@/features/nutrition/application/food-log.store';
-import type { CarryOver } from '@/features/nutrition/domain/carry-over';
+import type { CarryOverView } from './use-carry-over';
 import { buildNotifications, type AppNotification } from '@/features/notifications';
 import { useNotificationsStore } from '@/features/notifications/application/notifications.store';
 import { useGoalStore } from '@/features/profile/application/goal.store';
@@ -98,7 +98,7 @@ export interface HomeData {
   /** The iCoach's latest real-time change this week (ADR-P040 Addendum v10-A R5). */
   latestChange: CoachChange | null;
   /** ADR-P040 Addendum v11-B: today's day-to-day carry-over, or null. */
-  carryOver: CarryOver | null;
+  carryOver: CarryOverView | null;
 }
 
 /** "Today" from the device clock, resolved once per render. */
@@ -167,7 +167,7 @@ export function useHomeData(now: Date = new Date()): HomeData {
         ? { done: realtime.progress.done, extra: realtime.progress.extra }
         : null,
       activityCalories: realtime.calorieBonus,
-      carryOverCalories: carryOver?.adjustment ?? 0,
+      carryOverCalories: carryOver?.carryOver.adjustment ?? 0,
     });
 
     const notifications = buildNotifications({

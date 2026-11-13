@@ -373,17 +373,33 @@ describe('v11-B on screen: the carry-over sentence in the day header', () => {
       ...repro(),
       date: DAY.date as string,
       carryOver: {
-        ruleVersion: 'carry-over@1.0.0',
-        adjustment: -189,
-        yesterday: { date: '2026-11-12', consumed: 2900, target: 2711 },
-        remaining: 0,
+        carryOver: {
+          ruleVersion: 'carry-over@1.0.0',
+          adjustment: -189,
+          yesterday: { date: '2026-11-12', consumed: 2900, target: 2711 },
+          remaining: 0,
+          cardio: [],
+        },
+        cardioMinutesToday: 0,
       },
     });
     expect(other.carryOver).toBeUndefined();
     await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
     expect(screen.getByTestId('plan-carry-over')).toHaveTextContent(
-      /^Ayer llegaste a .+ de .+ kcal; hoy el iCoach reparte 189 kcal menos entre tus comidas\.$/,
+      /^Ayer llegaste a .+ de .+ kcal\. Hoy el iCoach reparte 189 kcal menos entre tus comidas\.$/,
     );
+  });
+
+  it('only one message: the D7 banner keeps just the alcohol note (off-plan@1.1.0)', async () => {
+    const { PlanOverlayBanner } =
+      jest.requireActual<typeof import('./NutritionPlanScreen')>('./NutritionPlanScreen');
+    await render(<PlanOverlayBanner overlay={{ avoidIntenseTraining: false }} />);
+    expect(screen.queryByTestId('plan-overlay')).toBeNull();
+    await render(<PlanOverlayBanner overlay={{ avoidIntenseTraining: true }} />);
+    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(
+      /Registraste alcohol: hoy conviene un entrenamiento suave.$/,
+    );
+    expect(screen.queryByText(/menos\)|min de cardio/)).toBeNull();
   });
 
   it('no sentence without a carry-over', async () => {
