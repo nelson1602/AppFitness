@@ -15152,9 +15152,9 @@ Status: proposed with the rebalance PR; the owner accepts it with that PR. Rule 
 - **B8 Explanation.** Inicio's iCoach card adds R5's newest change, `mealsRebalanced`, dated by the food that caused it: "Ajusté tu merienda por Galleta de Soda, que registraste." (or the covered-day sentence). On equal times: plan update > rebalance > move > lightening > bonus.
 - **B9 Undo.** Deleting the logged food lowers what was consumed, so the overlay recomputes to the plan as it was; nothing is stored to undo.
 
-### Addendum v11-A — The rebalance never plans above what is left (proposed 2026-11-12, before Block D)
+### Addendum v11-A — The rebalance never plans above what is left (proposed 2026-11-12, accepted 2026-11-13, before Block D)
 
-Status: proposed with the v11-A PR; the owner accepts it with that PR. Rule `meal-rebalance@1.1.0` amends B3, B4 and B6. Tests: `meal-rebalance.cap.spec.ts` with the owner's smoke-test day (`meal-rebalance.owner-day.fixture.ts`), `meal-rebalance.spec.ts`, `rebalance-ui.spec.tsx`, `NutritionPlanScreen.spec.tsx`.
+Status: Accepted by the owner on 2026-11-13 in the review of PR #254 (fit today's plan to today's target silently; "Ajustada" only after a log or skip changes a meal). Rule `meal-rebalance@1.1.0` amends B3, B4 and B6. Tests: `meal-rebalance.cap.spec.ts` with the owner's smoke-test day (`meal-rebalance.owner-day.fixture.ts`), `meal-rebalance.spec.ts`, `rebalance-ui.spec.tsx`, `NutritionPlanScreen.spec.tsx`.
 
 **Found in the versionCode 11 smoke test (2026-11-12).** The account kept a week generated for **2.430 kcal** ("Ahora no" on the plan prompt) after its evaluation raised the target to **2.711**. Today's saved meals were 669 + 777 + 346 + 662 = 2.454.
 - **Nothing logged:** v1.0.0 planned 739 + 865 + 433 + 740 = **2.777**, 66 over the target. Every meal read "Ajustada por el iCoach".

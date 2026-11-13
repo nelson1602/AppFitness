@@ -3430,7 +3430,7 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ## [BUG-050] The Rebalance Planned Above the Target and Labelled Meals With Nothing Logged
 
-Status: Fixed in the v11-A PR (codex/v11-rebalance-cap), pending owner review
+Status: Fixed in PR #254 (codex/v11-rebalance-cap), scope approved by the owner 2026-11-13; closes on merge
 Priority: P1
 Type: Bug
 Owner: Engineering
@@ -3466,7 +3466,7 @@ ADR-P040 Addendum v11-A, `meal-rebalance@1.1.0`:
 
 ## [BUG-051] Light Mode: the Selected Idioma / Unidades Option Did Not Look Selected
 
-Status: Fixed in the v11-A PR (codex/v11-rebalance-cap), pending owner review
+Status: Fixed in PR #254 (codex/v11-rebalance-cap), scope approved by the owner 2026-11-13; closes on merge
 Priority: P2
 Type: Bug
 Owner: Engineering
