@@ -662,6 +662,7 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     const totals = { calories: 158, proteinG: 13.5, carbsG: 0.9, fatG: 11.3 };
     mockTodayRebalance = {
       date,
+      carryOver: null,
       rebalance: {
         ruleVersion: MEAL_REBALANCE_RULE_VERSION,
         status: 'unchanged',
@@ -701,19 +702,13 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     expect(screen.queryByTestId('plan-ate-8-BREAKFAST')).toBeNull();
   });
 
-  it("explains today's off-plan adjustment", async () => {
-    mockPlanState = {
-      ...mockPlanState,
-      overlay: {
-        todayCalories: 2050,
-        reducedBy: 250,
-        extraCardioMinutes: 25,
-        avoidIntenseTraining: true,
-      },
-    };
+  it("keeps only the alcohol note of today's off-plan overlay (off-plan@1.1.0)", async () => {
+    // v11-B: yesterday's calories and cardio are the carry-over's single sentence.
+    mockPlanState = { ...mockPlanState, overlay: { avoidIntenseTraining: true } };
     await render(<NutritionPlanScreen />);
-    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/2,050 kcal \(250 less\)/);
-    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/25 min of cardio/);
-    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/avoid intense training/);
+    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(
+      /You logged alcohol: a lighter session suits today better\.$/,
+    );
+    expect(screen.queryByText(/less\)|min of cardio/)).toBeNull();
   });
 });

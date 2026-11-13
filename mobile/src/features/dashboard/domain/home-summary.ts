@@ -52,6 +52,8 @@ export interface HomeInputs {
   readonly weekProgress?: { readonly done: number; readonly extra: number } | null;
   /** R2: today's kcal from extra cardio, added to the calorie target. */
   readonly activityCalories?: number;
+  /** ADR-P040 v11-B: today's carry-over kcal (signed), added to the calorie target. */
+  readonly carryOverCalories?: number;
 }
 
 export type HomeToday =
@@ -149,12 +151,13 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
 
   const { caloriesConsumed: consumed } = inputs;
   // The same rule as the food log (nutrition/domain/daily-targets): base kcal plus
-  // today's extra-cardio bonus.
+  // today's extra-cardio bonus and the day-to-day carry-over.
   const targets =
     inputs.calorieTarget !== null
       ? dailyTargets(
           { calories: inputs.calorieTarget, proteinG: 0, carbsG: 0, fatG: 0 },
           inputs.activityCalories ?? 0,
+          inputs.carryOverCalories ?? 0,
         )
       : null;
   const activityBonus = targets?.activityBonus ?? 0;

@@ -36,7 +36,14 @@ export function DashboardScreen() {
   const { t } = useLocalization();
   const status = useDashboardStore((s) => s.status);
   const refresh = useDashboardStore((s) => s.refresh);
-  const { summary, goalType, evaluationDate, evaluation, latestChange: weekChange } = useHomeData();
+  const {
+    summary,
+    goalType,
+    evaluationDate,
+    evaluation,
+    latestChange: weekChange,
+    carryOver,
+  } = useHomeData();
   // ADR-P040 v10-B: a rebalance after a food outside the plan is the newest change.
   const rebalanced = useTodayRebalance();
   const latestChange = latestCoachChange(
@@ -71,7 +78,12 @@ export function DashboardScreen() {
     <TabScreen>
       <PlanChangePrompt />
       <GoalCard goalType={goalType} summary={summary} />
-      <CoachCard evaluationDate={evaluationDate} latestChange={latestChange} summary={summary} />
+      <CoachCard
+        carryOver={carryOver}
+        evaluationDate={evaluationDate}
+        latestChange={latestChange}
+        summary={summary}
+      />
       <TodayTiles summary={summary} />
       <EvaluationCard evaluation={evaluation} />
       <QuickActions />

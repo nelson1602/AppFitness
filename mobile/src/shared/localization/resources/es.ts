@@ -23,8 +23,15 @@ export const es = {
   'language.spanish': 'Español',
   'language.saveError': 'No se pudo guardar el idioma. Inténtalo de nuevo.',
   'units.title': 'Unidades',
-  'units.metric': 'kg / cm',
-  'units.imperial': 'lb / ft-in',
+  'units.weight': 'Peso',
+  'units.height': 'Estatura',
+  'units.weightTitle': 'Unidad de peso',
+  'units.heightTitle': 'Unidad de estatura',
+  'units.kg': 'kg',
+  'units.lb': 'lb',
+  'units.cm': 'cm',
+  'units.ftIn': 'ft-in',
+  'units.openHint': 'Abre las unidades para elegir otra',
   'units.saveError': 'No se pudieron guardar las unidades. Inténtalo de nuevo.',
   'units.inches': 'Pulgadas',
   'units.example': 'p. ej., {value}',
@@ -1252,6 +1259,19 @@ export const es = {
     'Llevas {consumed} de {target}. Ya cubriste tus calorías de hoy.',
   'nutrition.rebalance.preview':
     'Con esto llegas a {total} de {target}. El iCoach ajustará tus comidas pendientes.',
+  'nutrition.carryOver.lessAfterYesterday':
+    'Ayer llegaste a {consumed} de {target}. Hoy el iCoach reparte {kcal} menos entre tus comidas.',
+  'nutrition.carryOver.lessWithCardio':
+    'Ayer llegaste a {consumed} de {target}. Hoy el iCoach reparte {kcal} menos entre tus comidas y suma {minutes} min de cardio suave a tu próximo entrenamiento.',
+  'nutrition.carryOver.cardioOnly':
+    'Ayer llegaste a {consumed} de {target}. Hoy el iCoach suma {minutes} min de cardio suave a tu próximo entrenamiento.',
+  'nutrition.carryOver.moreAfterYesterday':
+    'Ayer llegaste a {consumed} de {target}. Hoy el iCoach reparte {kcal} más entre tus comidas.',
+  'nutrition.carryOver.less':
+    'Por lo que registraste en días anteriores, hoy el iCoach reparte {kcal} menos entre tus comidas.',
+  'nutrition.carryOver.more':
+    'Por lo que registraste en días anteriores, hoy el iCoach reparte {kcal} más entre tus comidas.',
+  'nutrition.carryOver.rest': 'El resto se reparte en los próximos días.',
   'nutrition.plan.ateAccessibility': 'Lo comí: registrar {meal} del plan',
   'nutrition.plan.eaten': 'Comido ✓',
   'nutrition.plan.adjusted': 'Ajustado por iCoach: {from} → {to}',
@@ -1319,11 +1339,11 @@ export const es = {
   'nutrition.household.greenBananaOne': '{count} guineíto · {amount}',
   'nutrition.household.greenBananaMany': '{count} guineítos · {amount}',
   'nutrition.plan.overlayTitle': 'Ajuste de hoy',
-  'nutrition.plan.overlayBody':
-    'Ayer pasaste tu meta: hoy tu meta es {kcal} kcal ({reduced} menos).',
-  'nutrition.plan.overlayCardio':
-    'El iCoach suma {minutes} min de cardio a tu próximo entrenamiento.',
-  'nutrition.plan.overlayAlcohol': 'Registraste alcohol: hoy evita el entrenamiento intenso.',
+  'nutrition.plan.overlayAlcohol': 'Registraste alcohol: hoy conviene un entrenamiento suave.',
+  'workouts.addedCardio.label': 'Añadido por el iCoach',
+  'workouts.addedCardio.minutes': '{minutes} min de cardio suave',
+  'workouts.addedCardio.remove': 'Quitar',
+  'workouts.addedCardio.removeA11y': 'Quitar el cardio que añadió el iCoach',
   'nutrition.plan.dayTotalsAccessibility': 'Totales diarios comparados con los objetivos',
   'nutrition.plan.dayTotalTarget': 'Total diario frente al objetivo',
   'nutrition.plan.calories': 'Calorías',

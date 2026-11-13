@@ -3,8 +3,8 @@ import type { MealMacros, MealPlanFood, MealSlot } from './meal-plan';
 import { MEAL_SLOTS } from './meal-plan';
 
 /**
- * Real-time meal rebalancing (ADR-P040 Addendum v10-B, amended by v11-A:
- * `meal-rebalance@1.1.0`).
+ * Real-time meal rebalancing (ADR-P040 Addendum v10-B, amended by v11-A and v11-B:
+ * `meal-rebalance@1.2.0`).
  *
  * An overlay computed from today's log, never a write to the saved plan (the
  * same contract as the off-plan adjustment, D7). Every food logged today —
@@ -13,6 +13,8 @@ import { MEAL_SLOTS } from './meal-plan';
  *
  * 0. Today's plan at today's target (v1.1.0): a saved day planned for another
  *    target is first portioned to today's target, with no label ("fitted").
+ *    On a carry-over day (v1.2.0, Addendum v11-B) a plan already within 5 %
+ *    under the target is portioned up too, when that plans more.
  * 1. remaining = the day's target (+ the activity bonus) − consumed today.
  *    The target itself never changes.
  * 2. Meals already eaten ("Lo comí") or skipped ("Omitir") are never touched.
@@ -34,7 +36,7 @@ import { MEAL_SLOTS } from './meal-plan';
  * plan as it was: nothing is stored. Pure and deterministic: identical inputs
  * give deep-equal outputs. Wellness wording only.
  */
-export const MEAL_REBALANCE_RULE_VERSION = 'meal-rebalance@1.1.0';
+export const MEAL_REBALANCE_RULE_VERSION = 'meal-rebalance@1.2.0';
 
 /** Pending meals at most 5 % under what is left (never over it) are kept as planned. */
 export const REBALANCE_TOLERANCE = 0.05;
@@ -88,8 +90,13 @@ export interface RebalanceInput {
   meals: readonly RebalanceMeal[];
   /** Slots eaten or skipped today: never touched. */
   closedSlots: ReadonlySet<MealSlot>;
-  /** The day's calorie target including today's activity bonus. */
+  /** The day's calorie target including today's activity bonus and carry-over. */
   targetCalories: number;
+  /**
+   * v1.2.0 (Addendum v11-B): today's target carries a positive carry-over, so a
+   * plan that fits it within 5 % is still portioned up when that plans more.
+   */
+  carryOverUp?: boolean;
   proteinTargetG: number;
   /** Everything logged today, from the plan and outside it. */
   consumed: MealMacros;
@@ -287,24 +294,25 @@ function lightOptionFor(
 function todaysPlan(
   meals: readonly RebalanceMeal[],
   target: number,
+  carryOverUp: boolean,
 ): { meals: RebalanceMeal[]; fitted: boolean } {
   const ordered = MEAL_SLOTS.flatMap((slot) => meals.filter((meal) => meal.slot === slot));
   const planned = kcalOf(ordered);
-  if (planned <= 0 || target <= 0 || fits(planned, target)) {
-    return { meals: ordered, fitted: false };
-  }
+  if (planned <= 0 || target <= 0) return { meals: ordered, fitted: false };
+  const alreadyFits = fits(planned, target);
+  if (alreadyFits && !(carryOverUp && planned < target)) return { meals: ordered, fitted: false };
   const scale = target / planned;
-  return {
-    meals: ordered.map((meal) => portioned(meal, meal.totals.calories * scale, scale)),
-    fitted: true,
-  };
+  const fitted = ordered.map((meal) => portioned(meal, meal.totals.calories * scale, scale));
+  // v1.2.0: portioning up by a few % can round below the plan; keep the plan then.
+  if (alreadyFits && kcalOf(fitted) <= planned) return { meals: ordered, fitted: false };
+  return { meals: fitted, fitted: true };
 }
 
 export function rebalanceDay(input: RebalanceInput): DayRebalance {
   const consumed = Math.round(input.consumed.calories);
   const target = Math.round(input.targetCalories);
   const remaining = target - consumed;
-  const today = todaysPlan(input.meals, target);
+  const today = todaysPlan(input.meals, target, input.carryOverUp === true);
   const pending = today.meals.filter((meal) => !input.closedSlots.has(meal.slot));
   const planned = kcalOf(pending);
   const base = {

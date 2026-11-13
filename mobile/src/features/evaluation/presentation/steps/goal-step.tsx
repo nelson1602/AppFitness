@@ -17,7 +17,7 @@ export function GoalStep({ draft, update, issues, today }: StepProps) {
   const theme = useTheme();
   const { spacing } = theme;
   const { language, t } = useLocalization();
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const imperial = system === 'imperial';
   const [target, setTarget] = useState(weightFieldText(draft.targetWeightKg, system, language));
   const kg = (value: number) => formatWeight(value, system, language);

@@ -2,9 +2,11 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 
+import { useCarryOver } from '@/features/dashboard/application/use-carry-over';
 import { loadHomeData, useHomeData } from '@/features/dashboard/application/use-home-data';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
+import { useAddedCardioStore } from '@/features/weekly-plan/application/added-cardio.store';
 import { useRealtimeWeek } from '@/features/weekly-plan/application/use-realtime-week';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { planStartDate } from '@/features/weekly-plan/domain/adherence';
@@ -54,6 +56,9 @@ export function WorkoutsTab() {
       : null;
   // ADR-P040 Addendum v10-A: extra activities and the real-time overlays.
   const realtime = useRealtimeWeek(routine);
+  // ADR-P040 v11-B: the carry-over's cardio, a real block on the next workouts.
+  const carryOver = useCarryOver();
+  const removeCardio = useAddedCardioStore((s) => s.remove);
   const shownRoutine = useMemo(
     () => (routine ? applyLightening(routine, realtime.lightenings) : null),
     [realtime.lightenings, routine],
@@ -98,6 +103,13 @@ export function WorkoutsTab() {
           doneDates={doneDates}
           notes={current?.notes ?? []}
           moves={realtime.moves}
+          addedCardio={carryOver?.added ?? []}
+          onRemoveCardio={(date) =>
+            void removeCardio(
+              carryOver?.added.find((block) => block.date === date)?.fromDates ?? [],
+              realtime.today,
+            )
+          }
           planStart={planStart}
           routine={shownRoutine}
           sessionMinutes={selectionState.sessionMinutes}

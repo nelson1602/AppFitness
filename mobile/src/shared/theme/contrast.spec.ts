@@ -805,6 +805,10 @@ const DECORATIVE_ROLES: readonly (keyof ColorTokens)[] = [
   'figurePropLine',
   'figureStage',
   'figureStageMid',
+  'pulseStart',
+  'pulseMid',
+  'pulseEnd',
+  'pulseTrack',
 ];
 
 /**
@@ -813,6 +817,11 @@ const DECORATIVE_ROLES: readonly (keyof ColorTokens)[] = [
  * non-text — an exemption may never be claimed for text.
  */
 const EXEMPT: readonly { readonly pairing: string; readonly exemption: string }[] = [
+  {
+    pairing: 'pulse line stops and track (ADR-P035 D5, v11-B item d)',
+    exemption:
+      'WCAG 1.4.11 — decorative: the brand heartbeat is hidden from assistive technology, is driven by no data and carries no information.',
+  },
   {
     pairing: 'stageGlowSoft, tabBarBorder and the exercise-figure art (v8.1 round 2)',
     exemption:

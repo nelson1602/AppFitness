@@ -20,12 +20,14 @@ import {
   type MealPlanFood,
   type MealSlot,
 } from '../domain/meal-plan';
+import type { CarryOverMessage } from './carry-over-copy';
 import type { DayRebalance, RebalancedMealStatus } from '../domain/meal-rebalance';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
 import { dishNameKeyFor, SWAP_MARK_KEY } from './dish-name';
 import { PlanDaySlider } from './plan-day-slider';
 import { formatIngredientAmount } from './serving-amount';
+import { carryOverText } from './carry-over-copy';
 
 /**
  * "Plan alimentario" in the prototype's language (v8 Block 3,
@@ -83,6 +85,8 @@ export interface ViewDay {
     consumedCalories: number;
     targetCalories: number;
   };
+  /** Today only (Addendum v11-B): the day-to-day carry-over sentence's data. */
+  carryOver?: CarryOverMessage | null;
 }
 
 export function PlanDayStrip({
@@ -492,6 +496,7 @@ export function MealPlanPanel({
 }) {
   const { colors, spacing } = useTheme();
   const { language, t } = useLocalization();
+  const carried = carryOverText(day.carryOver ?? null, t, language);
   return (
     <GlassCard style={{ gap: 0, padding: spacing.lg }}>
       <View style={{ gap: spacing.xs, paddingBottom: spacing.xs }}>
@@ -519,6 +524,15 @@ export function MealPlanPanel({
             variant="label"
           >
             {t('nutrition.plan.previewBadge')}
+          </AppText>
+        ) : null}
+        {carried ? (
+          <AppText
+            style={{ color: colors.accentEnergy }}
+            testID="plan-carry-over"
+            variant="caption"
+          >
+            {carried}
           </AppText>
         ) : null}
         {day.rebalance && day.rebalance.status !== 'unchanged' ? (

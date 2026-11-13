@@ -6,9 +6,14 @@ const BASE = { calories: 2022, proteinG: 142, carbsG: 238, fatG: 56 };
 
 describe('daily targets — one rule for every screen (v10 Block C review)', () => {
   it('adds the extra-cardio bonus to calories only', () => {
-    expect(dailyTargets(BASE, 180)).toEqual({ ...BASE, calories: 2202, activityBonus: 180 });
-    expect(dailyTargets(BASE, 0)).toEqual({ ...BASE, activityBonus: 0 });
-    expect(dailyTargets(BASE, -5)).toEqual({ ...BASE, activityBonus: 0 });
+    expect(dailyTargets(BASE, 180)).toEqual({
+      ...BASE,
+      calories: 2202,
+      activityBonus: 180,
+      carryOver: 0,
+    });
+    expect(dailyTargets(BASE, 0)).toEqual({ ...BASE, activityBonus: 0, carryOver: 0 });
+    expect(dailyTargets(BASE, -5)).toEqual({ ...BASE, activityBonus: 0, carryOver: 0 });
     expect(dailyTargets(null, 180)).toBeNull();
   });
 

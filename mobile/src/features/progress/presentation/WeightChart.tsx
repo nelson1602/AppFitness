@@ -42,7 +42,7 @@ export function WeightChart({
   const { colors } = useTheme();
   const { language, t } = useLocalization();
   // v10 Block C, item 9: plotted in kg as stored; every label in the person's units.
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const gradientId = `weight-fill-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [width, setWidth] = useState(FALLBACK_WIDTH);
   const { points, target, min, max, ticks } = model;

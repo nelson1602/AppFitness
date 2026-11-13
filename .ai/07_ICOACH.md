@@ -1,8 +1,8 @@
 # AppFitness iCoach Functional Specification
 
-Version: 1.1
+Version: 1.2
 Status: Active
-Last Updated: 2026-08-10
+Last Updated: 2026-11-13
 
 ---
 
@@ -302,6 +302,15 @@ Shopping Suggestions (Future)
 
 Never generate unsafe nutritional advice.
 
+## Day-to-day carry-over (ADR-P040 Addendum v11-B, `carry-over@1.0.0`)
+
+- Yesterday's logged intake against yesterday's target adjusts today's planned calorie target: over → less, under → more.
+- Over: at most 10 % of the base comes off the next day's food; the excess beyond it becomes easy cardio (brisk walk, net MET × kg, at most 30 min) added to the next scheduled workout as "Añadido por el iCoach", removable, and never when a restriction rules it out.
+- Under: food goes up at most 10 % of the base a day, spread over the next 3 days, then dropped; exercise is never reduced.
+- Never below the safe minimum of this engine (the larger of the clinical floor and BMR); only days with a logged food count.
+- The base target never changes: the carry-over is a deterministic overlay recomputed from the last 7 days of logs, offline.
+- Shown in neutral words on Inicio's iCoach card and Nutrición's day header (es + en), never as a judgement or a health claim.
+
 ---
 
 # Workout Engine
@@ -349,9 +358,9 @@ recomputed mid-week. Logging never changes it; it only feeds adherence.
     was fulfilled, otherwise it stays; an injury change resets it.
   - `plan-adherence@1.0.0`: 50 % workouts + 50 % planned meals; green ≥ 85,
     cyan ≥ 65, orange below.
-  - `off-plan@1.0.0`: an overlay that adds 10–30 min of extra cardio, lowers
-    the next-day target by at most 300 kcal (never below the floor), and
-    shows an alcohol recovery note.
+  - `off-plan@1.1.0`: an alcohol recovery note (a lighter session today). Its
+    1.0.0 calorie reduction and extra cardio are superseded by `carry-over@1.0.0`
+    (ADR-P040 Addendum v11-B).
   - `injury-map@1.0.0-pending-review`: conservative, pending the ADR-P031 D4
     review.
 - **Inputs**: goal, training days, equipment, injury and movement tokens, and

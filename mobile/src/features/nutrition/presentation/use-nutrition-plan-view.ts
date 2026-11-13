@@ -255,6 +255,7 @@ export function withRebalance(days: readonly ViewDay[], today: TodayRebalance | 
         consumedCalories: rebalance.consumedCalories,
         targetCalories: rebalance.targetCalories,
       },
+      carryOver: today.carryOver,
     };
   });
 }

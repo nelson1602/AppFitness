@@ -9,7 +9,7 @@ import {
   cmToFeetInches,
   displayToKg,
   feetInchesToCm,
-  UnitSelector,
+  UnitDropdown,
   useUnits,
   weightFieldText,
 } from '@/shared/units';
@@ -25,19 +25,25 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
   const { colors, spacing } = theme;
   const { language, t } = useLocalization();
   // v10 Block C, item 9: typed in the person's units, stored in kg and cm.
-  const { system } = useUnits();
-  const imperial = system === 'imperial';
-  const [weight, setWeight] = useState(weightFieldText(draft.weightKg, system, language));
+  // v11-B: weight and height each have their own unit (lb + cm is valid).
+  const { weightSystem, lengthSystem } = useUnits();
+  const imperialWeight = weightSystem === 'imperial';
+  const imperial = lengthSystem === 'imperial';
+  const [weight, setWeight] = useState(weightFieldText(draft.weightKg, weightSystem, language));
   const [height, setHeight] = useState(decimalText(draft.heightCm, language));
   const initialFeetInches = draft.heightCm === null ? null : cmToFeetInches(draft.heightCm);
   const [feet, setFeet] = useState(initialFeetInches ? String(initialFeetInches.feet) : '');
   const [inches, setInches] = useState(initialFeetInches ? String(initialFeetInches.inches) : '');
-  // v10-B: switching kg/lb · cm/ft-in here re-shows what was typed in the new
-  // units (the draft keeps kg and cm, so nothing is lost or converted twice).
-  const [shownSystem, setShownSystem] = useState(system);
-  if (shownSystem !== system) {
-    setShownSystem(system);
-    setWeight(weightFieldText(draft.weightKg, system, language));
+  // v10-B: switching kg/lb or cm/ft-in here re-shows what was typed in the new
+  // unit (the draft keeps kg and cm, so nothing is lost or converted twice).
+  const [shownWeight, setShownWeight] = useState(weightSystem);
+  if (shownWeight !== weightSystem) {
+    setShownWeight(weightSystem);
+    setWeight(weightFieldText(draft.weightKg, weightSystem, language));
+  }
+  const [shownLength, setShownLength] = useState(lengthSystem);
+  if (shownLength !== lengthSystem) {
+    setShownLength(lengthSystem);
     setHeight(decimalText(draft.heightCm, language));
     const converted = draft.heightCm === null ? null : cmToFeetInches(draft.heightCm);
     setFeet(converted ? String(converted.feet) : '');
@@ -63,30 +69,29 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
         </AppText>
       </GlassCard>
 
-      {/* v10-B: new people pick their units right where they type their measures. */}
-      <UnitSelector />
-
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md }}>
         <NumberField
           error={
             issues.includes('weight')
-              ? t(imperial ? 'evaluation.error.weightImperial' : 'evaluation.error.weight')
+              ? t(imperialWeight ? 'evaluation.error.weightImperial' : 'evaluation.error.weight')
               : undefined
           }
           label={t('evaluation.measures.weight')}
           onChangeText={(text) => {
             setWeight(text);
             const typed = parseDecimal(text);
-            update({ weightKg: typed === null ? null : displayToKg(typed, system) });
+            update({ weightKg: typed === null ? null : displayToKg(typed, weightSystem) });
           }}
           testID="evaluation-weight"
-          unit={imperial ? 'lb' : t('evaluation.unit.kg')}
+          accessory={<UnitDropdown kind="weight" testID="evaluation-weight-unit" />}
+          unit={imperialWeight ? t('units.lb') : t('evaluation.unit.kg')}
           value={weight}
         />
         {imperial ? (
           <>
             <NumberField
               error={issues.includes('height') ? t('evaluation.error.heightImperial') : undefined}
+              accessory={<UnitDropdown kind="height" testID="evaluation-height-unit" />}
               label={t('evaluation.measures.height')}
               onChangeText={(text) => {
                 setFeet(text);
@@ -110,6 +115,7 @@ export function MeasuresStep({ draft, update, issues, today }: StepProps) {
         ) : (
           <NumberField
             error={issues.includes('height') ? t('evaluation.error.height') : undefined}
+            accessory={<UnitDropdown kind="height" testID="evaluation-height-unit" />}
             label={t('evaluation.measures.height')}
             onChangeText={(text) => {
               setHeight(text);

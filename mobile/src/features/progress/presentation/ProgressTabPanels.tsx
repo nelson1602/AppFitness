@@ -26,6 +26,8 @@ import {
   displayToKg,
   formatLength,
   formatWeight,
+  type UnitPair,
+  unitPair,
   type UnitSystem,
   useUnits,
   weightUnit,
@@ -123,7 +125,7 @@ export function WeightPanel({
   const theme = useTheme();
   const { colors, spacing } = theme;
   const { language, t } = useLocalization();
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const imperial = system === 'imperial';
   const [text, setText] = useState('');
   const [error, setError] = useState<WeightValidation | null>(null);
@@ -239,14 +241,15 @@ function metricText(
   metric: MeasurementMetric,
   value: number,
   language: SupportedLanguage,
-  system: UnitSystem,
+  system: UnitSystem | UnitPair,
 ) {
+  const units = unitPair(system);
   if (metric === 'bodyFatPct') {
     return formatNumber(value / 100, language, { style: 'percent', maximumFractionDigits: 1 });
   }
   return metric === 'muscleMassKg'
-    ? formatWeight(value, system, language)
-    : formatLength(value, system, language);
+    ? formatWeight(value, units.weight, language)
+    : formatLength(value, units.length, language);
 }
 
 /** "−3 cm", "+0,6 kg", "0 cm" — a true minus sign, as in the design. */
@@ -254,7 +257,7 @@ export function deltaText(
   metric: MeasurementMetric,
   delta: number,
   language: SupportedLanguage,
-  system: UnitSystem = 'metric',
+  system: UnitSystem | UnitPair = 'metric',
 ) {
   const sign = delta > 0 ? '+' : delta < 0 ? '−' : '';
   return `${sign}${metricText(metric, Math.abs(delta), language, system)}`;
@@ -263,7 +266,8 @@ export function deltaText(
 function MeasurementTileView({ tile }: { tile: MeasurementTile }) {
   const { colors, radius, spacing } = useTheme();
   const { language, t } = useLocalization();
-  const { system } = useUnits();
+  const { weightSystem, lengthSystem } = useUnits();
+  const system = { weight: weightSystem, length: lengthSystem };
   const label = t(METRIC_LABEL[tile.metric]);
   const value = tile.value === null ? '—' : metricText(tile.metric, tile.value, language, system);
   const delta = tile.delta === null ? '—' : deltaText(tile.metric, tile.delta, language, system);
@@ -408,7 +412,7 @@ function Stat({
 export function WeekSummaryPanel({ week }: { week: WeekSummary }) {
   const { spacing } = useTheme();
   const { language, t } = useLocalization();
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const noData = t('progress.tab.noData');
   const n = (value: number) => formatNumber(value, language);
   const workouts = week.workouts

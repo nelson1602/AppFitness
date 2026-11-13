@@ -91,6 +91,7 @@ const DAY: ViewDay = {
 function repro(skipped: MealSlot[] = []): TodayRebalance {
   return {
     date: TODAY,
+    carryOver: null,
     rebalance: rebalanceToday({
       meals: MEALS,
       closedSlots: new Set<MealSlot>(['BREAKFAST', 'LUNCH', 'DINNER', ...skipped]),
@@ -290,10 +291,11 @@ describe('rebalance on screen (ADR-P040 v10-B)', () => {
       string
     >;
     expect(coachChangeText(change!, (key) => es[key] ?? key, 'es')).toBe(
-      'Con Galleta de Soda ya cubriste tus calorías de hoy; tu merienda queda ligera u opcional.',
+      // v11-B item c: the logged name is shown in sentence case.
+      'Con Galleta de soda ya cubriste tus calorías de hoy; tu merienda queda ligera u opcional.',
     );
     expect(coachChangeText(change!, (key) => en[key] ?? key, 'en')).toBe(
-      "With the Galleta de Soda you've covered today's calories; your snack is now light or optional.",
+      "With the Galleta de soda you've covered today's calories; your snack is now light or optional.",
     );
     expect(rebalanceCoachChange(null)).toBeNull();
   });
@@ -358,5 +360,51 @@ describe('v11-A on screen: the owner day (target 2.711)', () => {
     expect(screen.getByTestId('plan-rebalance-3-SNACK')).toHaveTextContent(
       `Ajustada por el iCoach · antes ${es(357)} kcal`,
     );
+  });
+});
+
+describe('v11-B on screen: the carry-over sentence in the day header', () => {
+  beforeEach(() => {
+    mockLanguage = 'es';
+  });
+
+  it("today's header says what yesterday was and what the iCoach does today", async () => {
+    const [today, other] = withRebalance([DAY, { ...DAY, index: 4, date: '2026-11-14' }], {
+      ...repro(),
+      date: DAY.date as string,
+      carryOver: {
+        carryOver: {
+          ruleVersion: 'carry-over@1.0.0',
+          adjustment: -189,
+          yesterday: { date: '2026-11-12', consumed: 2900, target: 2711 },
+          remaining: 0,
+          cardio: [],
+        },
+        cardioMinutesToday: 0,
+      },
+    });
+    expect(other.carryOver).toBeUndefined();
+    await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
+    expect(screen.getByTestId('plan-carry-over')).toHaveTextContent(
+      /^Ayer llegaste a .+ de .+ kcal\. Hoy el iCoach reparte 189 kcal menos entre tus comidas\.$/,
+    );
+  });
+
+  it('only one message: the D7 banner keeps just the alcohol note (off-plan@1.1.0)', async () => {
+    const { PlanOverlayBanner } =
+      jest.requireActual<typeof import('./NutritionPlanScreen')>('./NutritionPlanScreen');
+    await render(<PlanOverlayBanner overlay={{ avoidIntenseTraining: false }} />);
+    expect(screen.queryByTestId('plan-overlay')).toBeNull();
+    await render(<PlanOverlayBanner overlay={{ avoidIntenseTraining: true }} />);
+    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(
+      /Registraste alcohol: hoy conviene un entrenamiento suave.$/,
+    );
+    expect(screen.queryByText(/menos\)|min de cardio/)).toBeNull();
+  });
+
+  it('no sentence without a carry-over', async () => {
+    const [today] = withRebalance([DAY], { ...repro(), date: DAY.date as string });
+    await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
+    expect(screen.queryByTestId('plan-carry-over')).toBeNull();
   });
 });
