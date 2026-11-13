@@ -3476,7 +3476,7 @@ The source change between the two versions is small (a statement reset after `SQ
 
 - [x] Root cause found and confirmed on device (logcat) and in the published AAR
 - [x] Pin + exclude; CI guard with unit tests
-- [ ] x86_64 emulator APK from this PR contains `libexpo-sqlite.so` and starts on the existing data (`dist/v11-review/sqlite-pin/`)
+- [x] x86_64 emulator APK from this PR (`e399d78`) contains `libexpo-sqlite.so` and starts on the existing data without clearing it (`dist/v11-review/sqlite-pin/`)
 
 ### Related Documents
 
