@@ -29,6 +29,53 @@ export function lengthUnit(system: UnitSystem): LengthUnit {
   return system === 'imperial' ? 'in' : 'cm';
 }
 
+/**
+ * v11-B: weight and height are chosen apart (lb + cm is valid). Body lengths
+ * (waist, hips, chest) follow the height unit. Stored values stay metric.
+ */
+export const WEIGHT_UNITS = ['kg', 'lb'] as const;
+export const HEIGHT_UNITS = ['cm', 'ft-in'] as const;
+export type HeightUnit = (typeof HEIGHT_UNITS)[number];
+export const DEFAULT_WEIGHT_UNIT: WeightUnit = 'kg';
+export const DEFAULT_HEIGHT_UNIT: HeightUnit = 'cm';
+export const WEIGHT_UNIT_STORAGE_KEY = 'appfitness.weight-unit';
+export const HEIGHT_UNIT_STORAGE_KEY = 'appfitness.height-unit';
+
+export function isWeightUnit(value: string | null): value is WeightUnit {
+  return value === 'kg' || value === 'lb';
+}
+
+export function isHeightUnit(value: string | null): value is HeightUnit {
+  return value === 'cm' || value === 'ft-in';
+}
+
+/** The conversion system a weight unit reads and writes with. */
+export function weightSystemOf(unit: WeightUnit): UnitSystem {
+  return unit === 'lb' ? 'imperial' : 'metric';
+}
+
+/** The conversion system a height unit (and every body length) uses. */
+export function lengthSystemOf(unit: HeightUnit): UnitSystem {
+  return unit === 'ft-in' ? 'imperial' : 'metric';
+}
+
+export interface UnitPreferences {
+  weight: WeightUnit;
+  height: HeightUnit;
+}
+
+/** The v10 single choice, migrated: imperial → lb + ft-in, metric → kg + cm. */
+export function preferencesFromSystem(system: UnitSystem): UnitPreferences {
+  return system === 'imperial' ? { weight: 'lb', height: 'ft-in' } : { weight: 'kg', height: 'cm' };
+}
+
+/** A form's units: one system for both, or weight and length apart. */
+export type UnitPair = { weight: UnitSystem; length: UnitSystem };
+
+export function unitPair(units: UnitSystem | UnitPair): UnitPair {
+  return typeof units === 'string' ? { weight: units, length: units } : units;
+}
+
 /** A stored kg value in the person's unit. */
 export function kgToDisplay(kg: number, system: UnitSystem): number {
   return system === 'imperial' ? kg / KG_PER_LB : kg;

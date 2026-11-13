@@ -5,6 +5,8 @@ import {
   displayToCm,
   displayToKg,
   kgToDisplay,
+  type UnitPair,
+  unitPair,
   type UnitSystem,
 } from '@/shared/units';
 
@@ -141,11 +143,12 @@ const BODY_MEASUREMENT_DEFAULT_MESSAGES: BodyMeasurementFormMessages = {
 
 export function createBodyMeasurementFormSchema(
   messages: BodyMeasurementFormMessages = BODY_MEASUREMENT_DEFAULT_MESSAGES,
-  system: UnitSystem = 'metric',
+  system: UnitSystem | UnitPair = 'metric',
 ) {
-  // Bounds stay 500 cm and 300 kg, expressed in the person's units.
-  const maxLength = cmToDisplay(500, system);
-  const maxMuscle = kgToDisplay(300, system);
+  // Bounds stay 500 cm and 300 kg, expressed in the person's units (v11-B: apart).
+  const units = unitPair(system);
+  const maxLength = cmToDisplay(500, units.length);
+  const maxMuscle = kgToDisplay(300, units.weight);
   return z
     .object({
       date: dateFieldWith(messages.dateFormat, messages.validDate),
@@ -186,10 +189,11 @@ export type BodyMeasurementFormOutput = z.output<typeof bodyMeasurementFormSchem
 /** The form's values → the stored input, in cm and kg whatever the person typed in. */
 export function toBodyMeasurementInput(
   values: BodyMeasurementFormOutput,
-  system: UnitSystem = 'metric',
+  system: UnitSystem | UnitPair = 'metric',
 ): BodyMeasurementInput {
+  const units = unitPair(system);
   const cm = (value: number | undefined) =>
-    value === undefined ? null : displayToCm(value, system);
+    value === undefined ? null : displayToCm(value, units.length);
   return {
     date: values.date,
     waistCm: cm(values.waistCm),
@@ -197,7 +201,7 @@ export function toBodyMeasurementInput(
     chestCm: cm(values.chestCm),
     bodyFatPct: values.bodyFatPct ?? null,
     muscleMassKg:
-      values.muscleMassKg === undefined ? null : displayToKg(values.muscleMassKg, system),
+      values.muscleMassKg === undefined ? null : displayToKg(values.muscleMassKg, units.weight),
     notes: text(values.notes),
   };
 }

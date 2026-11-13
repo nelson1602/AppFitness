@@ -1,14 +1,25 @@
 import { logError } from '@/shared/infrastructure/logging/logger';
 
-import { loadUnitSystem, saveUnitSystem } from './unit-storage';
-import { DEFAULT_UNIT_SYSTEM, type UnitSystem } from './units';
+import { loadUnitPreferences, saveHeightUnit, saveWeightUnit } from './unit-storage';
+import {
+  DEFAULT_HEIGHT_UNIT,
+  DEFAULT_WEIGHT_UNIT,
+  type HeightUnit,
+  type UnitPreferences,
+  type WeightUnit,
+} from './units';
 
-export interface UnitSnapshot {
-  system: UnitSystem;
+export interface UnitSnapshot extends UnitPreferences {
   status: 'loading' | 'ready';
 }
 
-let state: UnitSnapshot = { system: DEFAULT_UNIT_SYSTEM, status: 'loading' };
+const FIRST: UnitSnapshot = {
+  weight: DEFAULT_WEIGHT_UNIT,
+  height: DEFAULT_HEIGHT_UNIT,
+  status: 'loading',
+};
+
+let state: UnitSnapshot = FIRST;
 let initialization: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 
@@ -26,30 +37,37 @@ export function subscribeToUnits(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-/** Loads the stored choice once; a failure keeps metric, logged, never thrown. */
+/** Loads the stored choices once; a failure keeps kg / cm, logged, never thrown. */
 export function initializeUnits(): Promise<void> {
   if (initialization) return initialization;
   initialization = (async () => {
-    let system: UnitSystem = DEFAULT_UNIT_SYSTEM;
+    let preferences: UnitPreferences = { weight: DEFAULT_WEIGHT_UNIT, height: DEFAULT_HEIGHT_UNIT };
     try {
-      system = await loadUnitSystem();
+      preferences = await loadUnitPreferences();
     } catch (error) {
       logError('units.initialize', error);
     }
-    publish({ system, status: 'ready' });
+    // A choice made while loading wins over what was stored.
+    publish(state.status === 'ready' ? state : { ...preferences, status: 'ready' });
   })();
   return initialization;
 }
 
-/** Saves the choice; every screen showing a weight or length re-renders at once. */
-export async function setUnitSystem(system: UnitSystem): Promise<void> {
-  await saveUnitSystem(system);
-  publish({ system, status: 'ready' });
+/** Saves the weight unit; every screen showing a weight re-renders at once. */
+export async function setWeightUnit(weight: WeightUnit): Promise<void> {
+  await saveWeightUnit(weight);
+  publish({ ...state, weight, status: 'ready' });
+}
+
+/** Saves the height unit (body lengths follow it); screens re-render at once. */
+export async function setHeightUnit(height: HeightUnit): Promise<void> {
+  await saveHeightUnit(height);
+  publish({ ...state, height, status: 'ready' });
 }
 
 /** Test seam: back to the first-launch state. */
 export function resetUnitsForTests(): void {
   initialization = null;
-  state = { system: DEFAULT_UNIT_SYSTEM, status: 'loading' };
+  state = FIRST;
   listeners.clear();
 }

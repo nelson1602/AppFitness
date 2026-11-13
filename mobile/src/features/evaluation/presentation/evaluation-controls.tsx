@@ -212,17 +212,38 @@ interface NumberFieldProps {
   onChangeText: (next: string) => void;
   error?: string;
   testID: string;
+  /** v11-B: shown beside the label, e.g. the field's unit dropdown. */
+  accessory?: ReactNode;
 }
 
 /** A labelled decimal field on the stage with its unit inside the field. */
-export function NumberField({ label, unit, value, onChangeText, error, testID }: NumberFieldProps) {
+export function NumberField({
+  label,
+  unit,
+  value,
+  onChangeText,
+  error,
+  testID,
+  accessory = null,
+}: NumberFieldProps) {
   const theme = useTheme();
   const { colors } = theme;
   return (
     <View style={[styles.grow, { gap: theme.spacing.xs, minWidth: 140 }]}>
-      <AppText tone="onStage" variant="label">
-        {label}
-      </AppText>
+      <View
+        style={{
+          alignItems: 'center',
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: theme.spacing.sm,
+          justifyContent: 'space-between',
+        }}
+      >
+        <AppText tone="onStage" variant="label">
+          {label}
+        </AppText>
+        {accessory}
+      </View>
       <View>
         <AppTextInput
           accessibilityLabel={`${label} (${unit})`}

@@ -214,9 +214,12 @@ describe('catalogue parity', () => {
   // v10-B real-time rebalancing: the meal and day lines, the light option, Omitir and the
   // over-target preview (+12), and the iCoach card's four rebalance sentences (+4) (+16, 1932).
   // fix-1: the struck-through "antes {kcal}" on a covered or skipped meal (+1, 1933).
-  it('reaches 1933 keys in each language — 1745 shipped plus a 188-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1933);
-    expect(Object.keys(es)).toHaveLength(1933);
+  // v11-B carry-over: yesterday's / earlier days' sentence, less and more, and "the rest" (+5,
+  // 1938); units apart: Peso / Estatura, their sheet titles, the four unit names and the
+  // dropdown hint (+9), minus the kg / cm and lb / ft-in pair (-2) (+7, 1945).
+  it('reaches 1945 keys in each language — 1757 shipped plus a 188-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1945);
+    expect(Object.keys(es)).toHaveLength(1945);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

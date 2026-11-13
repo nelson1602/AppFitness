@@ -163,8 +163,9 @@ const REGISTRY: Record<string, readonly Rule[]> = {
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
-  // v10 Block C, item 9: the Unidades radios, the language selector's pills.
-  'src/shared/units/unit-selector.tsx': ['floor'],
+  // v11-B: a field's unit dropdown ("kg ▾", at least 48 × 48), then each
+  // unit row of its sheet (full width, at least 48 dp tall).
+  'src/shared/units/unit-dropdown.tsx': ['floor-both', 'floor'],
   'src/shared/presentation/app-button.tsx': ['primitive'],
   // v8.1 (ADR-P043 amendment): the birth-date field, and each wheel row (it
   // fills its column, and every row is at least 48 dp tall).
@@ -200,8 +201,9 @@ it('classifies every production Pressable, and only those', () => {
   expect(found).toEqual(expected);
 });
 
-it('counts exactly 53 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(53);
+// v11-B: the units radios (one Pressable) became a dropdown and its sheet rows (two).
+it('counts exactly 54 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(54);
 });
 
 describe.each(

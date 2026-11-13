@@ -35,7 +35,7 @@ export function ReviewStep({ draft, today, preview, goStep }: ReviewStepProps) {
   const theme = useTheme();
   const { colors, spacing } = theme;
   const { language, t } = useLocalization();
-  const { system } = useUnits();
+  const { weightSystem: system, lengthSystem } = useUnits();
   const kg = (value: number) => formatWeight(value, system, language);
   const g = (value: number) => formatQuantity(value, 'g', language);
   const onCta = { color: colors.onCta };
@@ -49,7 +49,8 @@ export function ReviewStep({ draft, today, preview, goStep }: ReviewStepProps) {
       title: t('evaluation.step.measures'),
       value: interpolate(t('evaluation.review.measures'), {
         weight: draft.weightKg === null ? '—' : kg(draft.weightKg),
-        height: draft.heightCm === null ? '—' : formatHeight(draft.heightCm, system, language),
+        height:
+          draft.heightCm === null ? '—' : formatHeight(draft.heightCm, lengthSystem, language),
         age: draft.birthDate ? formatNumber(ageOn(draft.birthDate, today), language) : '—',
         bmi:
           bmi === null

@@ -86,7 +86,7 @@ export function GoalCard({
 }) {
   const { colors, radius, spacing } = useTheme();
   const { language, t } = useLocalization();
-  const { system: units } = useUnits();
+  const { weightSystem: units } = useUnits();
   const { done, goal, complete } = summary.week;
   const n = (value: number) => formatNumber(value, language);
   const onCta = { color: colors.onCta };
