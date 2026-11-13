@@ -291,10 +291,11 @@ describe('rebalance on screen (ADR-P040 v10-B)', () => {
       string
     >;
     expect(coachChangeText(change!, (key) => es[key] ?? key, 'es')).toBe(
-      'Con Galleta de Soda ya cubriste tus calorías de hoy; tu merienda queda ligera u opcional.',
+      // v11-B item c: the logged name is shown in sentence case.
+      'Con Galleta de soda ya cubriste tus calorías de hoy; tu merienda queda ligera u opcional.',
     );
     expect(coachChangeText(change!, (key) => en[key] ?? key, 'en')).toBe(
-      "With the Galleta de Soda you've covered today's calories; your snack is now light or optional.",
+      "With the Galleta de soda you've covered today's calories; your snack is now light or optional.",
     );
     expect(rebalanceCoachChange(null)).toBeNull();
   });

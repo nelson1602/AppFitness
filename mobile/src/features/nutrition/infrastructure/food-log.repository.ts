@@ -47,6 +47,8 @@ const MEAL_ITEM_ENTITY_TYPE = 'meal_items';
 /** Joined row: a meal_item plus its parent meal's type (for grouping). */
 interface JoinedMealItemRow extends MealItemRow {
   meal_type: MealTypeName;
+  /** v11-B: the food row's brand, for the name shown (display only). */
+  food_brand?: string | null;
 }
 
 // ─── Writes ──────────────────────────────────────────────────────────────────
@@ -299,9 +301,10 @@ export async function removeMealItem(
 /** Non-deleted logged items for a user/date, grouped-ready (meal order). */
 export async function listLoggedItems(userId: string, date: string): Promise<LoggedMealItem[]> {
   const rows = await queryAll<JoinedMealItemRow>(
-    `SELECT mi.*, m.type AS meal_type
+    `SELECT mi.*, m.type AS meal_type, f.brand AS food_brand
        FROM meal_items mi
        JOIN meals m ON m.id = mi.meal_id
+       LEFT JOIN foods f ON f.id = mi.food_id
        JOIN nutrition_logs nl ON nl.id = m.nutrition_log_id
       WHERE nl.user_id = ? AND nl.date = ?
         AND mi.deleted_at IS NULL AND m.deleted_at IS NULL AND nl.deleted_at IS NULL
@@ -323,7 +326,10 @@ export async function listLoggedItems(userId: string, date: string): Promise<Log
         ),
       )
     : new Set<string>();
-  return rows.map((row) => rowToLoggedItem(row, row.meal_type, catalogBlocked.has(row.id)));
+  return rows.map((row) => ({
+    ...rowToLoggedItem(row, row.meal_type, catalogBlocked.has(row.id)),
+    ...(row.food_brand ? { brand: row.food_brand } : {}),
+  }));
 }
 
 // ─── Pull-side applier (sync worker integration) ─────────────────────────────

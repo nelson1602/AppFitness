@@ -29,7 +29,7 @@ import {
 import { useTheme } from '@/shared/theme';
 
 import { getById } from '../application/food-catalog.service';
-import { foodDisplayName } from '../application/food-display.service';
+import { foodDisplayName, loggedFoodName } from '../application/food-display.service';
 import { useFoodLogStore } from '../application/food-log.store';
 import type { MealPlan } from '../domain/meal-plan';
 import { AVOID_TAG_KEY } from './avoid-tag-labels';
@@ -67,7 +67,7 @@ function weekSubstitutions(days: readonly ViewDay[]): IngredientSubstitution[] {
  */
 export function NutritionTab() {
   const { spacing } = useTheme();
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
   const foodLogStatus = useFoodLogStore((s) => s.status);
   const foodItems = useFoodLogStore((s) => s.items);
   const view = useNutritionPlanView();
@@ -106,7 +106,7 @@ export function NutritionTab() {
         .map((item) => ({
           id: item.id,
           slot: item.mealType,
-          name: item.name,
+          name: loggedFoodName(item, language),
           servings: item.servingCount,
           calories: Math.round(item.consumed.calories),
         }))

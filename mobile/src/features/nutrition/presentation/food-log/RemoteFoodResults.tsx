@@ -9,6 +9,7 @@ import {
 import { AppText, Chip, useStageSurface } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
+import { shownFoodName } from '../../application/food-display.service';
 import type { FoodSearchResult } from '../../infrastructure/food-search-api';
 import type { RemoteSearchStatus } from './use-food-search';
 
@@ -66,10 +67,12 @@ export function RemoteFoodResults({
       ) : null}
       {results.map((result) => {
         const serving = `${formatNumber(result.servingAmount, language)} ${result.servingUnit}`;
+        // v11-B: the name as shown (sentence case, a repeated brand in parentheses).
+        const shown = shownFoodName(result.name, result.brand, language);
         return (
           <Pressable
             key={`${result.source}:${result.sourceId}`}
-            accessibilityLabel={`${t('nutrition.log.choose')} ${result.name}`}
+            accessibilityLabel={`${t('nutrition.log.choose')} ${shown.name}`}
             accessibilityRole="button"
             accessibilityState={{ disabled }}
             disabled={disabled}
@@ -85,7 +88,7 @@ export function RemoteFoodResults({
             }}
             testID={`food-remote-${result.source}-${result.sourceId}`}
           >
-            <AppText>{result.name}</AppText>
+            <AppText>{shown.name}</AppText>
             <View
               style={{
                 alignItems: 'center',
@@ -96,7 +99,7 @@ export function RemoteFoodResults({
             >
               <AppText tone="muted" variant="caption">
                 {`${serving} · ${formatKcal(result.caloriesPerServing, language)} kcal`}
-                {result.brand ? ` · ${result.brand}` : ''}
+                {result.brand && !shown.brandInName ? ` · ${result.brand}` : ''}
               </AppText>
               <Chip label={t(SOURCE_KEY[result.source])} tone="neutral" />
             </View>

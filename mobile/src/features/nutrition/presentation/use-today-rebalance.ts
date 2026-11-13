@@ -131,6 +131,7 @@ export function rebalanceCoachChange(today: TodayRebalance | null): CoachChange 
     at,
     meals: today.rebalance.meals.map((meal) => meal.slot),
     food: today.trigger.name,
+    foodBrand: today.trigger.brand ?? null,
     covered: today.rebalance.status === 'covered',
   };
 }
