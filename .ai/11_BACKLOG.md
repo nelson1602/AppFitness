@@ -3430,7 +3430,7 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ## [BUG-052] expo-sqlite 57.0.5 Ships Its Native Library for arm64-v8a Only: 32-bit and x86 Devices Hang at "Cargando contenido"
 
-Status: Fixed in PR (codex/expo-sqlite-57-0-4-pin) by pinning 57.0.4, owner decision 2026-11-13; closes on merge. The pin is removed under TECHDEBT-006.
+Status: Fixed in PR #256 (codex/expo-sqlite-57-0-4-pin) by pinning 57.0.4, owner decision 2026-11-13; closes on merge. The pin is removed under TECHDEBT-006.
 Priority: P0
 Type: Bug
 Owner: Engineering
