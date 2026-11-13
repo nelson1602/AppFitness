@@ -10,7 +10,9 @@ import { MAX_CARDIO_MINUTES, type CarryOverCardio } from '@/features/nutrition/d
  *   it (a moved session counts on its new day). A session already behind
  *   today has passed: its block is gone.
  * - One session never takes more than `MAX_CARDIO_MINUTES`.
- * - A block the person removed stays removed.
+ * - A block the person removed stays removed. The removal is kept by the days
+ *   over the block covered, not by the session's date, so it survives the
+ *   session moving to another day (a missed session moves forward).
  */
 export const ADDED_CARDIO_EXERCISE = 'exercise.brisk_walk';
 
@@ -60,14 +62,16 @@ export function placeAddedCardio(input: {
   cardio: readonly CarryOverCardio[];
   sessions: readonly ScheduledSession[];
   today: string;
-  removedDates: readonly string[];
+  /** Days over whose block the person removed ("Quitar"). */
+  removedFromDates: readonly string[];
 }): AddedCardio[] {
   const sessions = [...input.sessions].sort((a, b) => a.date.localeCompare(b.date));
-  const removed = new Set(input.removedDates);
+  const removed = new Set(input.removedFromDates);
   const byDate = new Map<string, AddedCardio>();
   for (const item of input.cardio) {
+    if (removed.has(item.fromDate)) continue;
     const next = sessions.find((session) => session.date > item.fromDate);
-    if (!next || next.date < input.today || removed.has(next.date)) continue;
+    if (!next || next.date < input.today) continue;
     const previous = byDate.get(next.date);
     byDate.set(next.date, {
       date: next.date,

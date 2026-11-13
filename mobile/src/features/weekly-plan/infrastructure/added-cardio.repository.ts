@@ -1,12 +1,15 @@
 import { queryFirst, run } from '@/shared/infrastructure/database';
 
 /**
- * Workouts whose "Añadido por el iCoach" cardio block the person removed
- * (ADR-P040 Addendum v11-B). A device preference, not health data: kept
- * locally per account, like "Omitir" on a meal, and never synced. Only the
- * last 14 days are kept.
+ * Days over whose "Añadido por el iCoach" cardio block the person removed
+ * (ADR-P040 Addendum v11-B). Kept by day over, not by session date, so the
+ * removal survives a missed session moving forward. A device preference, not
+ * health data: kept locally per account, like "Omitir" on a meal, and never
+ * synced. Only the last 14 days are kept. (The key differs from the first
+ * draft's `added-cardio-removed:`, which held session dates and was never
+ * released.)
  */
-const keyOf = (userId: string): string => `added-cardio-removed:${userId}`;
+const keyOf = (userId: string): string => `added-cardio-removed-days:${userId}`;
 const KEEP_DAYS = 14;
 
 function parse(value: string | undefined): string[] {
@@ -30,14 +33,14 @@ export async function listRemovedCardio(userId: string): Promise<string[]> {
 
 export async function removeAddedCardio(
   userId: string,
-  date: string,
+  fromDates: readonly string[],
   today: string,
 ): Promise<string[]> {
   const oldest = new Date(Date.parse(`${today}T12:00:00Z`) - KEEP_DAYS * 86_400_000)
     .toISOString()
     .slice(0, 10);
   const current = await listRemovedCardio(userId);
-  const next = [...new Set([...current, date])].filter((d) => d >= oldest).sort();
+  const next = [...new Set([...current, ...fromDates])].filter((d) => d >= oldest).sort();
   await run(`INSERT OR REPLACE INTO app_metadata (key, value) VALUES (?, ?)`, [
     keyOf(userId),
     JSON.stringify(next),

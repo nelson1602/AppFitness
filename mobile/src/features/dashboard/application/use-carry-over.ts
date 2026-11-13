@@ -49,7 +49,7 @@ export function useCarryOver(): CarryOverView | null {
   const latestWeight = useProgressStore((s) => s.bodyWeights[0]?.weightKg ?? null);
   const revisions = useWeeklyPlanStore((s) => s.revisions);
   const removedFor = useAddedCardioStore((s) => s.userId);
-  const removedDates = useAddedCardioStore((s) => s.removedDates);
+  const removedFromDates = useAddedCardioStore((s) => s.removedFromDates);
   const routine = useMemo(
     () => (revisions.length > 0 ? planAsRoutine(revisions) : null),
     [revisions],
@@ -106,7 +106,7 @@ export function useCarryOver(): CarryOverView | null {
       cardio: carryOver.cardio,
       sessions,
       today,
-      removedDates: removedFor === userId ? removedDates : [],
+      removedFromDates: removedFor === userId ? removedFromDates : [],
     });
     const yesterday = carryOver.yesterday?.date;
     const cardioMinutesToday =
@@ -120,7 +120,7 @@ export function useCarryOver(): CarryOverView | null {
     key,
     latestWeight,
     moves,
-    removedDates,
+    removedFromDates,
     removedFor,
     revisions,
     routine,

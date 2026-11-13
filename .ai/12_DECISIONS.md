@@ -15219,7 +15219,7 @@ The rule:
 - **C7 The cardio block.**
   - It is a real exercise appended to the first scheduled session dated after the day over (a moved session counts on its new day): `exercise.brisk_walk`, one timed set.
   - It is labelled **"Añadido por el iCoach"** and is logged like any other exercise.
-  - **"Quitar"** removes it. The removal is a device preference in `app_metadata`, like "Omitir", and is never synced.
+  - **"Quitar"** removes it. The removal is a device preference in `app_metadata`, like "Omitir", and is never synced. It is kept by the days over the block covered, not by the session's date, so it stays removed when a missed session moves forward (found on device 2026-11-14). A later day over can still add a new block.
   - It is gone once that session's day has passed. One session takes at most 30 min.
   - **Never added** when the evaluation restricts this kind of exercise: an excluded impact movement (`high_impact_cardio`, `running`, `sprinting`, `jumping`), or the engine's `SAFETY:medical_clearance` / `SAFETY:bp_crisis_block` flags (low intensity until a professional clears more). Without a known weight there are no minutes.
 - **C8 Today's plan (`meal-rebalance@1.2.0`).** A negative carry-over always falls outside the 5 % band, so v11-A A3 already fits the meals to it. A positive one within 5 % is fitted too, but only when quarter-step portioning actually plans more.

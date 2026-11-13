@@ -104,7 +104,12 @@ export function WorkoutsTab() {
           notes={current?.notes ?? []}
           moves={realtime.moves}
           addedCardio={carryOver?.added ?? []}
-          onRemoveCardio={(date) => void removeCardio(date, realtime.today)}
+          onRemoveCardio={(date) =>
+            void removeCardio(
+              carryOver?.added.find((block) => block.date === date)?.fromDates ?? [],
+              realtime.today,
+            )
+          }
           planStart={planStart}
           routine={shownRoutine}
           sessionMinutes={selectionState.sessionMinutes}
