@@ -47,6 +47,8 @@ const ERROR_COPY: Record<AuthErrorReason, { title: TranslationKey; body: Transla
     title: 'auth.error.invalidCredentialsTitle',
     body: 'auth.error.invalidCredentialsBody',
   },
+  // ADR-P046 per-account backoff or the per-IP throttle (429).
+  locked: { title: 'auth.error.lockedTitle', body: 'auth.error.lockedBody' },
   'registration-unavailable': {
     title: 'auth.error.registrationTitle',
     body: 'auth.error.registrationBody',

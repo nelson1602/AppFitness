@@ -135,6 +135,7 @@ const REGISTRY: Record<string, readonly Rule[]> = {
     'floor-both',
   ],
   'src/features/profile/presentation/ProfileTab.tsx': ['floor'],
+  'src/features/profile/presentation/EraseDeviceDataRow.tsx': ['floor'],
   'src/features/progress/presentation/ProgressSummaryCard.tsx': ['content'],
   // v8.1 Progreso: the dashed "Agregar medidas" tile (half the panel's width).
   'src/features/progress/presentation/ProgressTabPanels.tsx': ['floor'],
@@ -205,8 +206,9 @@ it('classifies every production Pressable, and only those', () => {
 
 // v11-B: the units radios (one Pressable) became a dropdown and its sheet rows (two), and
 // the added cardio got its "Quitar" (one).
-it('counts exactly 55 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(55);
+// ADR-P047 D4: "Cerrar sesión y borrar datos de este teléfono" (one).
+it('counts exactly 56 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(56);
 });
 
 describe.each(

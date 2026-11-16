@@ -42,6 +42,10 @@ export const RECOVERY_ERROR_COPY: Record<
     title: 'auth.error.unexpectedTitle',
     body: 'auth.error.unexpectedBody',
   },
+  locked: {
+    title: 'auth.error.rateLimitedTitle',
+    body: 'auth.error.rateLimitedBody',
+  },
   'registration-unavailable': {
     title: 'auth.error.unexpectedTitle',
     body: 'auth.error.unexpectedBody',

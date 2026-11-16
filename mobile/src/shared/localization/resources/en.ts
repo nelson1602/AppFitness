@@ -589,6 +589,9 @@ export const en = {
   'auth.error.unexpectedTitle': 'Something went wrong',
   'auth.error.unexpectedBody':
     "We couldn't finish signing you in on this device. Please try again.",
+  'auth.error.lockedTitle': 'Too many attempts',
+  'auth.error.lockedBody':
+    'For your security, sign-in is paused for a few minutes. Wait and try again, or reset your password.',
   // Password recovery (ADR-P026 Vertical 1). The "sent" copy is deliberately
   // non-committal: it must read the same whether or not the account exists.
   'auth.forgotPassword': 'Forgot your password?',
@@ -1600,6 +1603,16 @@ export const en = {
   'dashboard.exercises': 'Exercise library',
   'dashboard.signOutAccessibility': 'Sign out of your account',
   'dashboard.signOut': 'Sign out',
+  'profile.eraseDevice.row': 'Sign out and erase data from this phone',
+  'profile.eraseDevice.rowAccessibility': 'Sign out and erase this account’s data from this phone',
+  'profile.eraseDevice.title': 'Erase data from this phone?',
+  'profile.eraseDevice.body':
+    'We sign you out and erase your logs, plan and notes from this phone. Your account and everything already synced stay safe and come back when you sign in.',
+  'profile.eraseDevice.unsynced':
+    'Unsynced changes: {count}. They will be lost if you erase now; sync first to keep them.',
+  'profile.eraseDevice.confirm': 'Sign out and erase',
+  'profile.eraseDevice.confirmAccessibility': 'Sign out and erase the data on this phone',
+  'profile.eraseDevice.cancel': 'Cancel',
   'dashboard.deleteAccountAccessibility': 'Delete your account',
   'dashboard.deleteAccount': 'Delete account',
   'dashboard.subscription': 'Subscription',
@@ -1609,6 +1622,14 @@ export const en = {
     'This permanently deletes your account and all your data. This cannot be undone.',
   'account.delete.errorTitle': 'Deletion failed',
   'account.delete.errorMessage': 'We could not delete your account. Please try again.',
+  'account.delete.passwordLabel': 'Your current password',
+  'account.delete.passwordAccessibility': 'Current password to delete the account',
+  'account.delete.error.wrongPassword': 'That password is incorrect. Please try again.',
+  'account.delete.error.locked':
+    'Too many attempts. For your security, wait a few minutes before trying again.',
+  'account.delete.error.sessionEnded': 'Your session ended. Sign in again to delete your account.',
+  'account.delete.error.connectivity':
+    'You’re offline. Connect to the internet to delete your account.',
   'account.delete.confirmInstruction': 'Type {phrase} to confirm',
   'account.delete.confirmationAccessibility': 'Deletion confirmation phrase',
   'account.delete.deleteAccessibility': 'Permanently delete account',

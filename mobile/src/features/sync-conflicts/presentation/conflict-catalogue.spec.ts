@@ -222,9 +222,11 @@ describe('catalogue parity', () => {
   // (+4, 1949).
   // v11-B review: D7 retired — its title and the alcohol note go (no catalogue food is
   // tagged alcohol, so the note could never show) (-2, 1947).
-  it('reaches 1947 keys in each language — 1759 shipped plus a 188-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1947);
-    expect(Object.keys(es)).toHaveLength(1947);
+  // S2 (ADR-P047): the delete password field, its four refusals and its label (+6), the
+  // sign-in lock (+2) and "Borrar datos de este teléfono" (+8) (+16, 1963).
+  it('reaches 1963 keys in each language — 1775 shipped plus a 188-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1963);
+    expect(Object.keys(es)).toHaveLength(1963);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

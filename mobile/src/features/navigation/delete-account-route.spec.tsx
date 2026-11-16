@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import { deleteAccount } from '@/features/authentication';
+import { DeleteAccountError, deleteAccount } from '@/features/authentication';
 import DeleteAccountScreen from '../../app/delete-account';
 
 let mockSessionStatus: 'authenticated' | 'unauthenticated' | 'unknown' = 'authenticated';
@@ -13,6 +13,13 @@ jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), back: jest.fn() },
 }));
 jest.mock('@/features/authentication', () => ({
+  DeleteAccountError: class DeleteAccountError extends Error {
+    readonly reason: string;
+    constructor(mockReason: string) {
+      super(mockReason);
+      this.reason = mockReason;
+    }
+  },
   deleteAccount: jest.fn(),
   useSession: () => ({ status: mockSessionStatus, session: null }),
 }));
@@ -80,12 +87,12 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
     const confirm = screen.getByRole('button', { name: 'Permanently delete account' });
     // Disabled + guarded before the phrase matches.
     expect(confirm.props.accessibilityState?.disabled).toBe(true);
-    fireEvent.press(confirm);
+    await fireEvent.press(confirm);
     expect(mockDeleteAccount).not.toHaveBeenCalled();
 
     // Wrong phrase stays disabled.
-    fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'delete please');
-    fireEvent.press(confirm);
+    await fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'delete please');
+    await fireEvent.press(confirm);
     expect(mockDeleteAccount).not.toHaveBeenCalled();
   });
 
@@ -94,7 +101,8 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
     mockDeleteAccount.mockResolvedValue(undefined);
     await renderConfirmStep();
 
-    fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'DELETE');
+    await fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'DELETE');
+    await fireEvent.changeText(screen.getByTestId('input-delete-password'), 'Disposable-pw-1!');
     // Wait for the confirmation to enable the button before pressing.
     await waitFor(() =>
       expect(
@@ -102,25 +110,62 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
           ?.disabled,
       ).toBe(false),
     );
-    fireEvent.press(screen.getByRole('button', { name: 'Permanently delete account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Permanently delete account' }));
 
-    await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockDeleteAccount).toHaveBeenCalledWith('Disposable-pw-1!'));
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/sign-in'));
   });
+
+  it('stays disabled with the phrase but no password (ADR-P046)', async () => {
+    await renderConfirmStep();
+
+    await fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'DELETE');
+
+    expect(screen.getByRole('button', { name: 'Permanently delete account' })).toBeDisabled();
+    expect(screen.getByLabelText('Current password to delete the account')).toHaveProp(
+      'secureTextEntry',
+      true,
+    );
+  });
+
+  it.each([
+    ['wrong-password', 'That password is incorrect. Please try again.'],
+    ['locked', 'Too many attempts. For your security, wait a few minutes before trying again.'],
+    ['connectivity', 'You’re offline. Connect to the internet to delete your account.'],
+  ] as const)(
+    'a %s refusal says so, clears the password and keeps the account',
+    async (reason, copy) => {
+      const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
+      mockDeleteAccount.mockRejectedValue(new DeleteAccountError(reason));
+      await renderConfirmStep();
+
+      await fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'DELETE');
+      await fireEvent.changeText(screen.getByTestId('input-delete-password'), 'Disposable-pw-1!');
+      await waitFor(() =>
+        expect(screen.getByRole('button', { name: 'Permanently delete account' })).toBeEnabled(),
+      );
+      await fireEvent.press(screen.getByRole('button', { name: 'Permanently delete account' }));
+
+      expect(await screen.findByText(copy)).toBeOnTheScreen();
+      expect(screen.getByTestId('input-delete-password')).toHaveProp('value', '');
+      expect(router.replace).not.toHaveBeenCalled();
+    },
+  );
 
   it('shows a safe error and stays put when deletion fails', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     mockDeleteAccount.mockRejectedValue(new Error('500 boom token=secret'));
     await renderConfirmStep();
 
-    fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'DELETE');
+    await fireEvent.changeText(screen.getByTestId('input-confirm-phrase'), 'DELETE');
+    await fireEvent.changeText(screen.getByTestId('input-delete-password'), 'Disposable-pw-1!');
     await waitFor(() =>
       expect(
         screen.getByRole('button', { name: 'Permanently delete account' }).props.accessibilityState
           ?.disabled,
       ).toBe(false),
     );
-    fireEvent.press(screen.getByRole('button', { name: 'Permanently delete account' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Permanently delete account' }));
 
     expect(await screen.findByText('Deletion failed')).toBeOnTheScreen();
     expect(
@@ -134,7 +179,7 @@ describe('DeleteAccountScreen (Step 6B product surface)', () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
     await renderConfirmStep();
 
-    fireEvent.press(screen.getByRole('button', { name: 'Cancel account deletion' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel account deletion' }));
 
     expect(router.back).toHaveBeenCalledTimes(1);
     expect(mockDeleteAccount).not.toHaveBeenCalled();

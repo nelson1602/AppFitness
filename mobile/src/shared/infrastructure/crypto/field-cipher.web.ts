@@ -51,3 +51,11 @@ export function toBase64(bytes: Uint8Array): string {
 export function fromBase64(encoded: string): Uint8Array {
   throw unsupportedError();
 }
+
+/**
+ * Nothing to forget: Web never holds a field key (see above). Resolves so a
+ * shared sign-out/erase path works on every platform.
+ */
+export function forgetFieldKey(): Promise<void> {
+  return Promise.resolve();
+}

@@ -37,6 +37,17 @@ async function getOrCreateKey(): Promise<{ key: Uint8Array; keyId: string }> {
   return cached;
 }
 
+/**
+ * Crypto-shred (ADR-P047 D4): delete the device key and its id. Everything
+ * sealed under it becomes unreadable; the next encryption makes a new key.
+ * Only called right after the local database has been deleted.
+ */
+export async function forgetFieldKey(): Promise<void> {
+  cached = null;
+  await SecureStore.deleteItemAsync(KEY_STORE);
+  await SecureStore.deleteItemAsync(KEY_ID_STORE);
+}
+
 export async function getFieldKeyId(): Promise<string> {
   return (await getOrCreateKey()).keyId;
 }

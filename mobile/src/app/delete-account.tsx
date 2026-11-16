@@ -2,12 +2,26 @@ import { Redirect, Stack, router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { deleteAccount, useSession } from '@/features/authentication';
-import { useLocalization } from '@/shared/localization';
+import {
+  DeleteAccountError,
+  type DeleteAccountErrorReason,
+  deleteAccount,
+  useSession,
+} from '@/features/authentication';
+import { type TranslationKey, useLocalization } from '@/shared/localization';
 import { AppButton, AppText, AppTextInput, Banner, Card, StageScreen } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 const CONFIRM_PHRASE = 'DELETE';
+
+// ADR-P047 D2: what each refusal tells the person. Never raw server text.
+const ERROR_COPY: Record<DeleteAccountErrorReason, TranslationKey> = {
+  'wrong-password': 'account.delete.error.wrongPassword',
+  locked: 'account.delete.error.locked',
+  'session-ended': 'account.delete.error.sessionEnded',
+  connectivity: 'account.delete.error.connectivity',
+  server: 'account.delete.errorMessage',
+};
 
 const RETAIN_ITEMS = [
   'account.delete.retain.plan',
@@ -18,9 +32,11 @@ const RETAIN_ITEMS = [
 /**
  * Minimal, guarded account-deletion surface (ADR-P011 / Step 6B).
  * Deletion is immediate and irreversible (v1 — no recovery window), so
- * it is gated behind a typed confirmation phrase. Calls the existing
- * `deleteAccount()` use case, which deletes server-side then wipes the
- * local session + database; the session guard returns to sign-in.
+ * it is gated behind a typed confirmation phrase and, since ADR-P046/P047, the
+ * current password. Calls the `deleteAccount()` use case, which deletes
+ * server-side then wipes the local session + database; the session guard
+ * returns to sign-in. The password lives in component state only and is
+ * cleared after a refusal.
  */
 export default function DeleteAccountScreen() {
   const theme = useTheme();
@@ -29,6 +45,7 @@ export default function DeleteAccountScreen() {
   // v10 Block C, item 12: a short retention step comes first.
   const [step, setStep] = useState<'retain' | 'confirm'>('retain');
   const [phrase, setPhrase] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,17 +92,24 @@ export default function DeleteAccountScreen() {
     );
   }
 
-  const confirmed = phrase.trim() === CONFIRM_PHRASE;
+  const confirmed = phrase.trim() === CONFIRM_PHRASE && password !== '';
 
   const submit = async () => {
     if (!confirmed) return;
     setLoading(true);
     setError(null);
     try {
-      await deleteAccount();
+      await deleteAccount(password);
       router.replace('/sign-in');
-    } catch {
-      setError(t('account.delete.errorMessage'));
+    } catch (failure) {
+      setPassword('');
+      setError(
+        t(
+          failure instanceof DeleteAccountError
+            ? ERROR_COPY[failure.reason]
+            : 'account.delete.errorMessage',
+        ),
+      );
       setLoading(false);
     }
   };
@@ -120,6 +144,16 @@ export default function DeleteAccountScreen() {
               autoCorrect={false}
               onChangeText={setPhrase}
               value={phrase}
+            />
+            <AppText variant="label">{t('account.delete.passwordLabel')}</AppText>
+            <AppTextInput
+              accessibilityLabel={t('account.delete.passwordAccessibility')}
+              testID="input-delete-password"
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+              onChangeText={setPassword}
+              value={password}
             />
             <AppButton
               accessibilityLabel={t('account.delete.deleteAccessibility')}

@@ -298,10 +298,17 @@ describe('persisted session never mixes one account with another', () => {
 
   it("does not let A's account deletion wipe or sign out B", async () => {
     await signInAs('user-a');
+    // ADR-P047 D2: deletion rotates first; same tokens back keep storage as-is.
+    mockRefresh.mockResolvedValue({ accessToken: 'user-a-access', refreshToken: 'user-a-refresh' });
     const pending = deferred<void>();
-    mockDeleteAccount.mockReturnValue(pending.promise);
+    const onTheWire = deferred<void>();
+    mockDeleteAccount.mockImplementation(() => {
+      onTheWire.resolve();
+      return pending.promise;
+    });
 
-    const deleting = deleteAccount();
+    const deleting = deleteAccount('disposable-pw-12345');
+    await onTheWire.promise;
     await signInAs('user-b');
 
     pending.resolve();
@@ -316,9 +323,10 @@ describe('persisted session never mixes one account with another', () => {
 
   it('deletes normally when the captured account is still current', async () => {
     await signInAs('user-a');
+    mockRefresh.mockResolvedValue({ accessToken: 'user-a-access', refreshToken: 'user-a-refresh' });
     mockDeleteAccount.mockResolvedValue(undefined);
 
-    await deleteAccount();
+    await deleteAccount('disposable-pw-12345');
 
     expect(mockWipeDatabase).toHaveBeenCalledTimes(1);
     await expect(persisted()).resolves.toBeNull();

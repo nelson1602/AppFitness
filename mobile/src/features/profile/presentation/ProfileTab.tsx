@@ -37,6 +37,7 @@ import { useTheme } from '@/shared/theme';
 import { formatHeight, formatWeight, UnitSelector, useUnits } from '@/shared/units';
 
 import { useProfileStore } from '../application/profile.store';
+import { EraseDeviceDataRow } from './EraseDeviceDataRow';
 import { goalTypeLabelKey } from './goal-type-label';
 
 function Panel({
@@ -380,6 +381,8 @@ export function ProfileTab() {
           {t('dashboard.signOut')}
         </AppText>
       </Pressable>
+      {/* ADR-P047 D4: the explicit "erase this phone" alternative. */}
+      <EraseDeviceDataRow />
       {/* v10 Block C, item 12: "Eliminar cuenta" now lives in Cuenta y ajustes →
           Privacidad y datos, behind a retention step. */}
     </TabScreen>
