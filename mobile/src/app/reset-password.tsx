@@ -1,4 +1,4 @@
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Platform, View } from 'react-native';
 
@@ -12,10 +12,7 @@ import { meetsPasswordPolicy } from '@/features/authentication/domain/password-p
 import { AuthTextField } from '@/features/authentication/presentation/auth-text-field';
 import { PasswordChecklist } from '@/features/authentication/presentation/password-checklist';
 import { RECOVERY_ERROR_COPY } from '@/features/authentication/presentation/recovery-error-copy';
-import {
-  parseTokenFromFragment,
-  readTokenParam,
-} from '@/features/authentication/presentation/reset-link';
+import { parseTokenFromFragment } from '@/features/authentication/presentation/reset-link';
 import {
   currentWebHistory,
   currentWebLocation,
@@ -38,19 +35,17 @@ import { useTheme } from '@/shared/theme';
 const SCRUB_RETRY_DELAYS_MS = [0, 60, 250, 600];
 
 /**
- * Capture the reset token once, from whichever shape delivered it.
+ * Capture the reset token once, from the emailed HTTPS link's fragment only.
  *
- * Fragment first (the emailed HTTPS link, Web), then the router's `token`
- * query parameter (the native `appfitness://` scheme). See `reset-link.ts` for
- * why the two shapes differ.
+ * ADR-P047 D6: a query-string token is no longer accepted, on Web or through
+ * the native `appfitness://reset-password?token=…` scheme. Any app can
+ * register that scheme and receive the link, and the server has only ever
+ * emailed the fragment form, so the query path was attack surface with no
+ * legitimate sender. On a phone the emailed link opens the Web recovery page.
  */
-export function captureResetToken(routerParam: string | string[] | undefined): string | null {
+export function captureResetToken(): string | null {
   const location = currentWebLocation();
-  if (location) {
-    const fromFragment = parseTokenFromFragment(location.hash);
-    if (fromFragment !== null) return fromFragment;
-  }
-  return readTokenParam(routerParam);
+  return location ? parseTokenFromFragment(location.hash) : null;
 }
 
 /**
@@ -90,12 +85,12 @@ const NO_STORE_SUBSCRIPTION = () => () => {};
  * token is available on the very first render with no intermediate state.
  * The snapshot is memoised because `getSnapshot` must be stable across calls.
  */
-function useCapturedResetToken(routerToken: string | null): string | null | undefined {
+function useCapturedResetToken(): string | null | undefined {
   const cached = useRef<{ value: string | null } | undefined>(undefined);
   const getSnapshot = useCallback((): string | null => {
-    cached.current ??= { value: captureResetToken(routerToken ?? undefined) };
+    cached.current ??= { value: captureResetToken() };
     return cached.current.value;
-  }, [routerToken]);
+  }, []);
 
   return useSyncExternalStore<string | null | undefined>(
     NO_STORE_SUBSCRIPTION,
@@ -107,10 +102,7 @@ function useCapturedResetToken(routerToken: string | null): string | null | unde
 export default function ResetPasswordScreen() {
   const theme = useTheme();
   const { t } = useLocalization();
-  const params = useLocalSearchParams<{ token?: string | string[] }>();
-  const routerToken = readTokenParam(params.token);
-
-  const token = useCapturedResetToken(routerToken);
+  const token = useCapturedResetToken();
 
   useEffect(() => {
     // The capture already happened during render; now take the credential out
