@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConflictStatus, Prisma, SyncOperationStatus } from '@prisma/client';
 
 import { PrismaService } from '../../database/prisma.service';
+import { allowlistConflictPayload } from '../domain/conflict-payload';
 import { SyncEntityRegistry } from '../domain/sync-entity-registry';
 import {
   PulledChange,
@@ -11,6 +12,17 @@ import {
   SyncOperationResult,
   SyncTx,
 } from '../domain/sync.types';
+
+/** ADR-P046: unresolved conflicts kept per entity row; newer ones replace the newest. */
+export const MAX_PENDING_CONFLICTS_PER_ENTITY = 5;
+/** ADR-P046: unresolved conflicts per account before new ones are refused. */
+export const MAX_PENDING_CONFLICTS_PER_USER = 200;
+/** ADR-P046: resolved conflicts are purged this long after resolution. */
+export const RESOLVED_CONFLICT_RETENTION_MS = 90 * 86_400_000;
+/** ADR-P046: processed operation ids are purged this long after they ran. */
+export const SYNC_OPERATION_RETENTION_MS = 30 * 86_400_000;
+/** ADR-P046: the purge runs at most this often per account. */
+export const RETENTION_PURGE_INTERVAL_MS = 60 * 60_000;
 
 export interface PushResult {
   results: SyncOperationResult[];
@@ -81,6 +93,9 @@ export interface PullResult {
  */
 @Injectable()
 export class SyncService {
+  /** When each account was last purged (in memory; the API is one instance). */
+  private readonly lastPurgeAt = new Map<string, number>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly registry: SyncEntityRegistry,
@@ -91,13 +106,75 @@ export class SyncService {
     deviceId: string | null,
     operations: SyncOperationInput[],
   ): Promise<PushResult> {
+    // ADR-P046: a device id must be one of this account's own devices.
+    if (deviceId !== null) await this.assertOwnDevice(userId, deviceId);
     const results: SyncOperationResult[] = [];
     // Sequential on purpose: client queues are causally ordered
     // (parent CREATE before child CREATE).
     for (const op of operations) {
       results.push(await this.processOperation(userId, deviceId, op));
     }
+    await this.purgeExpired(userId);
     return { results };
+  }
+
+  private async assertOwnDevice(
+    userId: string,
+    deviceId: string,
+  ): Promise<void> {
+    const device = await this.prisma.device.findUnique({
+      where: { id: deviceId },
+      select: { userId: true, revokedAt: true },
+    });
+    if (!device || device.userId !== userId || device.revokedAt !== null) {
+      throw new ForbiddenException('Unknown device');
+    }
+  }
+
+  /**
+   * ADR-P046 retention: resolved conflicts older than 90 days and operation ids
+   * older than 30 days carry no further value (a client retries within
+   * minutes, not weeks). Scoped to the pushing account and run at most hourly,
+   * so it costs nothing on the hot path. Best-effort: a failure never fails
+   * the push.
+   */
+  private async purgeExpired(userId: string): Promise<void> {
+    const now = Date.now();
+    if (
+      now - (this.lastPurgeAt.get(userId) ?? 0) <
+      RETENTION_PURGE_INTERVAL_MS
+    ) {
+      return;
+    }
+    this.lastPurgeAt.set(userId, now);
+    try {
+      await this.prisma.syncConflict.deleteMany({
+        where: {
+          userId,
+          status: { not: ConflictStatus.PENDING },
+          resolvedAt: { lt: new Date(now - RESOLVED_CONFLICT_RETENTION_MS) },
+        },
+      });
+      await this.prisma.syncOperation.deleteMany({
+        where: {
+          userId,
+          appliedAt: { lt: new Date(now - SYNC_OPERATION_RETENTION_MS) },
+        },
+      });
+    } catch {
+      // Retention is housekeeping; the next push tries again.
+      this.lastPurgeAt.delete(userId);
+    }
+  }
+
+  /** ADR-P046: an op id recorded for another account is not this account's. */
+  private foreignOpId(opId: string): SyncOperationResult {
+    return {
+      opId,
+      status: SyncOperationStatus.REJECTED,
+      duplicate: false,
+      errorCode: SYNC_ERROR_CODES.OP_ID_IN_USE,
+    };
   }
 
   async pull(
@@ -140,6 +217,11 @@ export class SyncService {
           const existing = await tx.syncOperation.findUnique({
             where: { id: op.opId },
           });
+          // ADR-P046: scoped by account — another account's op id reveals
+          // nothing and is never replayed as a duplicate.
+          if (existing && existing.userId !== userId) {
+            return this.foreignOpId(op.opId);
+          }
           if (existing) {
             return {
               opId: op.opId,
@@ -264,6 +346,9 @@ export class SyncService {
       const recorded = await this.prisma.syncOperation.findUnique({
         where: { id: op.opId },
       });
+      if (recorded && recorded.userId !== userId) {
+        return this.foreignOpId(op.opId);
+      }
       if (recorded) {
         return {
           opId: op.opId,
@@ -340,6 +425,7 @@ export class SyncService {
         where: { id: op.opId },
       });
       if (!recorded) throw err;
+      if (recorded.userId !== userId) return this.foreignOpId(op.opId);
       return {
         opId: op.opId,
         status: recorded.status,
@@ -363,25 +449,64 @@ export class SyncService {
     serverState: { version: number; snapshot: Record<string, unknown> },
     redact: (payload: Record<string, unknown>) => Record<string, unknown>,
   ): Promise<SyncOperationResult> {
-    const conflict = await tx.syncConflict.create({
-      data: {
+    // ADR-P046: only the entity's own fields, as plain bounded values, are
+    // kept of an unapplied client payload; then the handler's redaction.
+    const data = {
+      clientPayload: redact(
+        allowlistConflictPayload(op.payload, serverState.snapshot),
+      ) as Prisma.InputJsonValue,
+      serverSnapshot: redact(serverState.snapshot) as Prisma.InputJsonValue,
+      clientVersion: op.baseVersion,
+      serverVersion: serverState.version,
+    };
+
+    // ADR-P046: a bounded number of unresolved conflicts. One entity row keeps
+    // at most MAX_PENDING_CONFLICTS_PER_ENTITY; past that the newest is
+    // replaced (it describes the latest disagreement). An account past
+    // MAX_PENDING_CONFLICTS_PER_USER gets no more until it resolves some.
+    const pendingForEntity = await tx.syncConflict.findMany({
+      where: {
         userId,
         entityType: op.entityType,
         entityId: op.entityId,
-        clientPayload: redact(op.payload) as Prisma.InputJsonValue,
-        serverSnapshot: redact(serverState.snapshot) as Prisma.InputJsonValue,
-        clientVersion: op.baseVersion,
-        serverVersion: serverState.version,
         status: ConflictStatus.PENDING,
       },
+      select: { id: true },
+      orderBy: { createdAt: 'desc' },
+      take: MAX_PENDING_CONFLICTS_PER_ENTITY,
     });
+    let conflictId: string;
+    if (pendingForEntity.length >= MAX_PENDING_CONFLICTS_PER_ENTITY) {
+      conflictId = pendingForEntity[0].id;
+      await tx.syncConflict.update({ where: { id: conflictId }, data });
+    } else {
+      const pendingForUser = await tx.syncConflict.count({
+        where: { userId, status: ConflictStatus.PENDING },
+      });
+      if (pendingForUser >= MAX_PENDING_CONFLICTS_PER_USER) {
+        return this.recordOutcome(tx, userId, deviceId, op, {
+          status: SyncOperationStatus.REJECTED,
+          errorCode: SYNC_ERROR_CODES.CONFLICT_LIMIT_REACHED,
+        });
+      }
+      const conflict = await tx.syncConflict.create({
+        data: {
+          userId,
+          entityType: op.entityType,
+          entityId: op.entityId,
+          ...data,
+          status: ConflictStatus.PENDING,
+        },
+      });
+      conflictId = conflict.id;
+    }
     const result = await this.recordOutcome(tx, userId, deviceId, op, {
       status: SyncOperationStatus.CONFLICT,
       errorCode: null,
     });
     return {
       ...result,
-      conflictId: conflict.id,
+      conflictId,
       serverVersion: serverState.version,
       serverSnapshot: serverState.snapshot,
     };

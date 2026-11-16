@@ -16,16 +16,29 @@ function requireId(value: unknown, field: string): string {
   return value;
 }
 
-function requireString(value: unknown, field: string): string {
+/** ADR-P046: every text field has a maximum length. */
+const MAX_NAME_LENGTH = 200;
+const MAX_TEXT_LENGTH = 2000;
+
+function requireString(
+  value: unknown,
+  field: string,
+  max = MAX_NAME_LENGTH,
+): string {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`${field} is required`);
+  }
+  if (value.length > max) {
+    throw new Error(`${field} must be at most ${max} characters`);
   }
   return value;
 }
 
-function optionalString(value: unknown): string | null {
+function optionalString(value: unknown, max = MAX_TEXT_LENGTH): string | null {
   if (value === null || value === undefined) return null;
   if (typeof value !== 'string') throw new Error('expected a string');
+  if (value.length > max)
+    throw new Error(`text must be at most ${max} characters`);
   return value;
 }
 

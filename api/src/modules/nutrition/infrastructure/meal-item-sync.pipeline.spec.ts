@@ -79,8 +79,18 @@ describe('meal_items sync pipeline', () => {
    * and writes ran inside it.
    */
   let tx: {
-    syncOperation: { findUnique: jest.Mock; create: jest.Mock };
-    syncConflict: { create: jest.Mock };
+    syncOperation: {
+      findUnique: jest.Mock;
+      create: jest.Mock;
+      deleteMany: jest.Mock;
+    };
+    syncConflict: {
+      create: jest.Mock;
+      findMany: jest.Mock;
+      count: jest.Mock;
+      update: jest.Mock;
+      deleteMany: jest.Mock;
+    };
   };
   let prisma: typeof tx & { $transaction: jest.Mock };
   let repo: {
@@ -99,9 +109,15 @@ describe('meal_items sync pipeline', () => {
       syncOperation: {
         findUnique: jest.fn().mockResolvedValue(null),
         create: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       syncConflict: {
         create: jest.fn().mockResolvedValue({ id: 'conflict-1' }),
+        // ADR-P046: the pending-conflict caps read these.
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+        update: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
     };
     prisma = {

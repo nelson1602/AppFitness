@@ -8,9 +8,14 @@
  * constraint remains the backstop).
  */
 
-function optionalString(value: unknown): string | null {
+/** ADR-P046: every text field has a maximum length. */
+const MAX_NOTES_LENGTH = 2000;
+
+function optionalString(value: unknown, max = MAX_NOTES_LENGTH): string | null {
   if (value === null || value === undefined) return null;
   if (typeof value !== 'string') throw new Error('expected a string');
+  if (value.length > max)
+    throw new Error(`text must be at most ${max} characters`);
   return value;
 }
 
@@ -150,9 +155,16 @@ export function parseBodyMeasurementUpdate(
 // Snapshots are computed on-device (Slice 4a) and only VALIDATED here — the
 // backend never recomputes. Numeric + version-string only.
 
-function requireNonEmptyString(value: unknown, field: string): string {
+function requireNonEmptyString(
+  value: unknown,
+  field: string,
+  max = 64,
+): string {
   if (typeof value !== 'string' || value.length === 0) {
     throw new Error(`${field} is required`);
+  }
+  if (value.length > max) {
+    throw new Error(`${field} must be at most ${max} characters`);
   }
   return value;
 }

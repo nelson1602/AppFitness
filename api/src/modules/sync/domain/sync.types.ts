@@ -222,6 +222,13 @@ export const SYNC_ERROR_CODES = {
   // references a catalog food revision the server does not recognise/support.
   // The local operation must NOT be silently discarded.
   CATALOG_REVISION_UNSUPPORTED: 'CATALOG_REVISION_UNSUPPORTED',
+  // ADR-P046: the op id is already used by another account. Never recorded
+  // (the id is not this account's to claim); nothing about the other account
+  // is revealed.
+  OP_ID_IN_USE: 'OP_ID_IN_USE',
+  // ADR-P046: the account already has the maximum number of unresolved
+  // conflicts; resolve some before more can be recorded.
+  CONFLICT_LIMIT_REACHED: 'CONFLICT_LIMIT_REACHED',
 } as const;
 
 export type SyncErrorCode =
