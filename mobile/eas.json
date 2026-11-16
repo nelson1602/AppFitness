@@ -5,23 +5,14 @@
   },
   "build": {
     "development": {
-      "distribution": "internal",
       "android": {
         "buildType": "apk"
       },
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "EXPO_PUBLIC_API_URL": "http://localhost:3001"
-      }
-    },
-    "preview": {
-      "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
-      "env": {
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "EXPO_PUBLIC_API_URL": "https://appfitness-production-5cfa.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "http://localhost:3001",
+        "APP_VARIANT": "development",
+        "EXPO_PUBLIC_APP_VARIANT": "development"
       }
     },
     "internal": {
@@ -35,14 +26,6 @@
         "EXPO_PUBLIC_API_URL": "https://appfitness-production-1e78.up.railway.app"
       }
     },
-    "internal-apk": {
-      "extends": "internal",
-      "distribution": "internal",
-      "autoIncrement": false,
-      "android": {
-        "buildType": "apk"
-      }
-    },
     "production": {
       "autoIncrement": true,
       "android": {
@@ -51,15 +34,6 @@
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "false",
         "EXPO_PUBLIC_API_URL": "https://appfitness-production-5cfa.up.railway.app"
-      }
-    },
-    "production-validation": {
-      "extends": "production",
-      "environment": "production",
-      "distribution": "internal",
-      "autoIncrement": false,
-      "android": {
-        "buildType": "apk"
       }
     },
     "e2e": {
