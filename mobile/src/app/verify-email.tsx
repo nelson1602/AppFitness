@@ -1,13 +1,10 @@
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 
 import { EmailVerificationError, useSession, verifyEmail } from '@/features/authentication';
 import { AuthScreen } from '@/features/authentication/presentation/auth-screen';
-import {
-  parseTokenFromFragment,
-  readTokenParam,
-} from '@/features/authentication/presentation/reset-link';
+import { parseTokenFromFragment } from '@/features/authentication/presentation/reset-link';
 import {
   currentWebHistory,
   currentWebLocation,
@@ -137,20 +134,14 @@ export function resolveVerifyState(
 }
 
 /**
- * Capture the verification token once, from whichever shape delivered it.
- *
- * Fragment first (the emailed HTTPS link on the account host), then the
- * router's `token` query parameter (the native `appfitness://` scheme).
+ * Capture the verification token once, from the emailed HTTPS link's fragment
+ * only — the same rule as the reset route (ADR-P047 D6, amended): no query
+ * string on Web and no native `appfitness://verify-email?token=…` scheme,
+ * which any app can claim and the server never sends.
  */
-export function captureVerificationToken(
-  routerParam: string | string[] | undefined,
-): string | null {
+export function captureVerificationToken(): string | null {
   const location = currentWebLocation();
-  if (location) {
-    const fromFragment = parseTokenFromFragment(location.hash);
-    if (fromFragment !== null) return fromFragment;
-  }
-  return readTokenParam(routerParam);
+  return location ? parseTokenFromFragment(location.hash) : null;
 }
 
 /**
@@ -184,12 +175,12 @@ const NO_STORE_SUBSCRIPTION = () => () => {};
  * while hydrating, then switches to the client snapshot. On native there is no
  * hydration, so the token is present on the first render.
  */
-function useCapturedVerificationToken(routerToken: string | null): string | null | undefined {
+function useCapturedVerificationToken(): string | null | undefined {
   const cached = useRef<{ value: string | null } | undefined>(undefined);
   const getSnapshot = useCallback((): string | null => {
-    cached.current ??= { value: captureVerificationToken(routerToken ?? undefined) };
+    cached.current ??= { value: captureVerificationToken() };
     return cached.current.value;
-  }, [routerToken]);
+  }, []);
 
   return useSyncExternalStore<string | null | undefined>(
     NO_STORE_SUBSCRIPTION,
@@ -202,10 +193,7 @@ export default function VerifyEmailScreen() {
   const theme = useTheme();
   const { t } = useLocalization();
   const { status } = useSession();
-  const params = useLocalSearchParams<{ token?: string | string[] }>();
-  const routerToken = readTokenParam(params.token);
-
-  const token = useCapturedVerificationToken(routerToken);
+  const token = useCapturedVerificationToken();
   const [result, setResult] = useState<RedemptionResult>('pending');
   const state = resolveVerifyState(token, result);
 

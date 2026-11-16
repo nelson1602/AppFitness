@@ -29,6 +29,12 @@ describe('resolveApiBaseUrl (ADR-P047 D5)', () => {
     expect(() => release('http://api.example.test', 'e2e')).toThrow(ApiConfigError);
   });
 
+  it('gives the local development variant the same loopback-only exception', () => {
+    expect(release('http://localhost:3001', 'development')).toBe('http://localhost:3001');
+    expect(() => release('http://api.example.test', 'development')).toThrow(ApiConfigError);
+    expect(() => release('http://localhost:3001', 'internal')).toThrow(ApiConfigError);
+  });
+
   it('refuses anything that is not an absolute http(s) URL', () => {
     for (const bad of ['ftp://x.test', 'api.example.test', 'https://', 'https://x.test?a=1']) {
       expect(() => release(bad)).toThrow(ApiConfigError);

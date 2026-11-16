@@ -7,14 +7,16 @@
  * throws when this module loads, so a misconfigured build fails at launch
  * instead of sending credentials and health data in clear text or to nowhere.
  *
- * The one release exception is the e2e build (ADR-P008): it sets
- * `EXPO_PUBLIC_APP_VARIANT=e2e` next to `APP_VARIANT=e2e` (which loads the
- * cleartext plugin) and talks plain `http:` to a loopback host through
- * `adb reverse`. A non-loopback `http:` URL is refused even there.
+ * The one release exception is a LOCAL variant — `e2e` (ADR-P008) or
+ * `development`, both built locally only (ADR-P047 D8): it sets
+ * `EXPO_PUBLIC_APP_VARIANT` next to `APP_VARIANT` (which loads the cleartext
+ * plugin) and talks plain `http:` to a loopback host through `adb reverse`.
+ * A non-loopback `http:` URL is refused even there.
  */
 
 const DEV_FALLBACK_URL = 'http://localhost:3001';
 const LOOPBACK_HOSTS = new Set(['127.0.0.1', 'localhost']);
+const LOCAL_VARIANTS = new Set(['e2e', 'development']);
 
 export interface ApiConfigInput {
   url: string | undefined;
@@ -43,8 +45,9 @@ export function resolveApiBaseUrl({ url, isDev, appVariant }: ApiConfigInput): s
   const scheme = match[1].toLowerCase();
   const host = match[2].toLowerCase();
   if (!isDev && scheme !== 'https') {
-    const e2eLoopback = appVariant === 'e2e' && LOOPBACK_HOSTS.has(host);
-    if (!e2eLoopback) throw new ApiConfigError('a release build needs an https API URL');
+    const localLoopback =
+      appVariant !== undefined && LOCAL_VARIANTS.has(appVariant) && LOOPBACK_HOSTS.has(host);
+    if (!localLoopback) throw new ApiConfigError('a release build needs an https API URL');
   }
   return raw.replace(/\/+$/, '');
 }

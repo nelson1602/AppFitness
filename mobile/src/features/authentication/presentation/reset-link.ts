@@ -7,14 +7,14 @@
  *   The token is in the **fragment**, which a browser never places in the HTTP
  *   request-line. It therefore cannot appear in the web server's access log, a
  *   reverse-proxy log, or a `Referer` header leaked to a third party. It also
- *   never reaches this app's own server. This is the only shape the reset
- *   route accepts.
- * - **Query parameter (`?token=…`):** read by `readTokenParam`, now for the
- *   verify-email route only. The reset route stopped accepting it, including
- *   through the native `appfitness://reset-password?token=…` scheme (ADR-P047
- *   D6): any app can claim a custom scheme, and the server never sends one.
+ *   never reaches this app's own server. This is the only shape the reset and
+ *   verify-email routes accept.
+ * - **Query parameter (`?token=…`):** no longer accepted by either route,
+ *   including through the native `appfitness://reset-password?token=…` and
+ *   `appfitness://verify-email?token=…` schemes (ADR-P047 D6): any app can
+ *   claim a custom scheme, and the server never sends one.
  *
- * Both parsers are pure string functions so the whole contract is testable
+ * The parser is a pure string function so the whole contract is testable
  * without a DOM, a browser, or a running router.
  */
 
@@ -47,18 +47,6 @@ export function parseTokenFromFragment(rawFragment: string | undefined | null): 
   if (found.length !== 1) return null;
 
   return decodeToken(found[0]);
-}
-
-/**
- * Normalize a router-supplied `token` query parameter (the native path).
- *
- * A router param arrives as an array when the key repeats in the query string;
- * that is refused for the same reason as a repeated fragment key.
- */
-export function readTokenParam(raw: string | string[] | undefined): string | null {
-  if (typeof raw !== 'string') return null;
-  const token = raw.trim();
-  return token === '' ? null : token;
 }
 
 function decodeToken(value: string): string | null {

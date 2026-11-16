@@ -15733,7 +15733,8 @@ It is proposed as its own slice with an ADR amendment. D3 covers the free-text c
 **D6 Reset link.**
 - The reset route reads the token only from the emailed HTTPS link's fragment.
 - `appfitness://reset-password?token=…` and a `?token=` query on Web are refused, because any app can claim a custom scheme and the server never sends that form.
-- On a phone the emailed link opens the Web recovery page. Verify-email is unchanged.
+- On a phone the emailed link opens the Web recovery page.
+- **Amendment (owner, 2026-11-16):** verify-email follows the same rule. `appfitness://verify-email?token=…` and a `?token=` query are refused, and `readTokenParam` is removed.
 
 **D7 Sentry parity with ADR-P046 D7.**
 - The mobile scrubber uses the API's key list.
@@ -15744,7 +15745,10 @@ It is proposed as its own slice with an ADR amendment. D3 covers the free-text c
 - `app.config.js` throws when `APP_VARIANT=e2e` runs on an EAS cloud worker (`EAS_BUILD_RUNNER=eas-build`).
 - `mobile-e2e.yml` builds the APK on the runner (prebuild + Gradle) instead of downloading an EAS build, so it no longer needs `EXPO_TOKEN`.
 - Testers install only from Google Play (`.ai/10_DEPLOYMENT.md`).
-- The `development`, `preview`, `internal-apk` and `production-validation` profiles still declare internal distribution. Whether to delete them is an owner decision, tracked in SECURITY-003.
+- **Amendment (owner, 2026-11-16):**
+  - `preview`, `internal-apk` and `production-validation` are removed.
+  - `development` stays, for local use only. It is a second local variant (`APP_VARIANT` and `EXPO_PUBLIC_APP_VARIANT` = `development`) that, like `e2e`, is refused on an EAS cloud worker and may use http to loopback only.
+  - No profile declares internal distribution any more, and a source test enforces that.
 
 ### Consequences
 
