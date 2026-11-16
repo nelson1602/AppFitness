@@ -527,11 +527,9 @@ export function MealPlanPanel({
           </AppText>
         ) : null}
         {carried ? (
-          <AppText
-            style={{ color: colors.accentEnergy }}
-            testID="plan-carry-over"
-            variant="caption"
-          >
+          // v11-B: the iCoach's neutral text, as on Inicio — not the warning
+          // orange (owner, 2026-11-13). Contrast-gated in `contrast.spec.ts`.
+          <AppText testID="plan-carry-over" tone="onStageVariant" variant="caption">
             {carried}
           </AppText>
         ) : null}

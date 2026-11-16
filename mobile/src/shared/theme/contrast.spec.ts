@@ -1099,3 +1099,21 @@ describe('dashboard top glow (v10 Block C, item 13)', () => {
 it('keeps the light tab bar fully opaque', () => {
   expect(lightColors.tabBarFill).toMatch(/^#[0-9A-Fa-f]{6}FF$/);
 });
+
+/**
+ * v11-B (owner, 2026-11-13): the carry-over sentence is the iCoach's neutral
+ * text on Inicio and Nutrición — `onStageVariant` on glass — not the warning
+ * orange. It must read at 4.5:1 on glass over every stage ground, both themes.
+ */
+describe('the carry-over sentence uses the neutral iCoach text (v11-B)', () => {
+  it.each([
+    ['light', lightColors],
+    ['dark', darkColors],
+  ] as const)('onStageVariant on glass reads at 4.5:1 or more (%s)', (_name, c) => {
+    for (const ground of [c.stage, c.stageDeep, c.stageMid, c.stageTop]) {
+      expect(
+        contrastRatio(c.onStageVariant, composite(c.glassFill, ground)),
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+});
