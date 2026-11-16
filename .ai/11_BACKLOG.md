@@ -8767,7 +8767,7 @@ The owner's audit of main `7eaf97c` found no Critical or High issue. The Medium 
 
 **Verify-email:** it now reads the fragment only, like reset-password (follow-up PR).
 
-**`mobile-e2e.yml`:** dispatched once on main `5dad147` with the runner-built APK.
+**`mobile-e2e.yml`:** dispatched on main `5dad147` with the runner-built APK. The build passed; both attempts failed on the emulator (TEST-007, follow-up, not blocking).
 
 ### S3 — dependencies (after S2)
 
@@ -9784,6 +9784,41 @@ slice, with its own verification, on a deliberate decision.
 - `mobile/e2e/README.md` — §Conflict resolution, §The harness, §Ordering
 - `mobile/e2e/c7-conflicts.mjs` — `make-remote-conflict`, `bump-areas`
 - `.ai/23_THEME_SURFACE_VERIFICATION.md` — the single-device precedent
+
+
+---
+
+## [TEST-007] mobile-e2e.yml: Emulator Failures on the GitHub Runner (follow-up, not blocking)
+
+Status: **Open: follow-up, not blocking** (owner decision 2026-11-16: proceed to versionCode 13 and rely on a real-phone smoke test)
+Priority: P3
+Type: Test (CI reliability)
+Owner: QA / Mobile
+Created: 2026-11-16
+Updated: 2026-11-16
+
+### Description
+
+The first dispatch of `mobile-e2e.yml` with the runner-built e2e APK (ADR-P047 D8) was run 43935081500 on main `5dad147`. The prebuild + Gradle build, the install and the app launch all worked in both attempts, and both attempts then failed in the first flow (`smoke-auth-surface`):
+
+- **Attempt 1:** about 3 s after launch the app died with a native `SIGSEGV`. The 13-frame backtrace in the Maestro logcat holds only `libc.so` (`android_unsafe_frame_pointer_chase` ← GWP-ASan `GuardedPoolAllocator::deallocate`) and `libhermesvm.so`:
+  - No expo-sqlite, Reanimated, worklets or other native module appears.
+  - There is no GWP-ASan "Cause:" report.
+  - That fits the sampler crashing while it records a stack on the Android 14 (API 34) x86_64 image, not a detected memory error.
+  - The full tombstone was not captured.
+- **Attempt 2:** the emulator itself went offline about 40 s after launch (Maestro `DeviceServerDiedException`, then `device 'emulator-5554' not found`). No crash data survived.
+
+The same e2e configuration ran every S2 flow on a local emulator (API 35 image, `-gpu host`) without a crash (`dist/security/S2/`). The workflow had not passed since 2026-09-21 (`7df7f08`).
+
+### Tasks
+
+- [ ] On failure, pull `/data/tombstones/*` (google_apis images allow `adb root`) and a full `adb logcat -d -b all` into the debug artifact. Then GWP-ASan allocation and deallocation stacks are available next time.
+- [ ] Move the emulator to API 35 and give it more RAM (`-memory 4096`, a larger `disk-size`), or turn off GWP-ASan for the e2e variant only (`android:gwpAsanMode="never"` through the local-variant config plugin; never in store builds).
+- [ ] Re-run and refresh the flows that have drifted since September, until `mobile-e2e.yml` is green again.
+
+### Related
+
+ADR-P008, ADR-P047 D8, `mobile/e2e/README.md`, TEST-003, TEST-005
 
 ---
 
