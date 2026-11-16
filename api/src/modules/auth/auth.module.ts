@@ -1,4 +1,8 @@
-import { Module } from '@nestjs/common';
+import {
+  type MiddlewareConsumer,
+  Module,
+  type NestModule,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import {
@@ -16,7 +20,14 @@ import { EmailVerificationService } from './application/email-verification.servi
 import { PasswordRecoveryService } from './application/password-recovery.service';
 import { CLOCK, SystemClock } from './infrastructure/clock.service';
 import { PasswordService } from './infrastructure/password.service';
-import { TokenService } from './infrastructure/token.service';
+import { LoginThrottleService } from './application/login-throttle.service';
+import {
+  JWT_ALGORITHM,
+  JWT_AUDIENCE,
+  JWT_ISSUER,
+  TokenService,
+} from './infrastructure/token.service';
+import { noStore } from './presentation/no-store.middleware';
 import { AuthController } from './presentation/auth.controller';
 import { EmailVerifiedGuard } from './presentation/guards/email-verified.guard';
 import { JwtAuthGuard } from './presentation/guards/jwt-auth.guard';
@@ -48,8 +59,18 @@ export function resolveJwtSecret(
     }
     return DEV_ONLY_FALLBACK_SECRET;
   }
+  // ADR-P046: an HS256 key shorter than the hash output (32 bytes) is weak.
+  // Measured in bytes, so a multi-byte character cannot pad a short secret.
+  if (Buffer.byteLength(secret, 'utf8') < MIN_JWT_SECRET_BYTES) {
+    throw new Error(
+      `JWT_ACCESS_SECRET must be at least ${MIN_JWT_SECRET_BYTES} bytes`,
+    );
+  }
   return secret;
 }
+
+/** ADR-P046: the minimum JWT signing-secret length, in bytes. */
+export const MIN_JWT_SECRET_BYTES = 32;
 
 /**
  * Authentication module (Phase 6): Argon2 credentials, JWT access tokens,
@@ -77,7 +98,18 @@ export function resolveJwtSecret(
           '15m') as JwtSignOptions['expiresIn'];
         return {
           secret,
-          signOptions: { expiresIn },
+          // ADR-P046: HS256 only, fixed issuer and audience, both ways.
+          signOptions: {
+            expiresIn,
+            algorithm: JWT_ALGORITHM,
+            issuer: JWT_ISSUER,
+            audience: JWT_AUDIENCE,
+          },
+          verifyOptions: {
+            algorithms: [JWT_ALGORITHM],
+            issuer: JWT_ISSUER,
+            audience: JWT_AUDIENCE,
+          },
         };
       },
     }),
@@ -94,6 +126,7 @@ export function resolveJwtSecret(
     { provide: CLOCK, useClass: SystemClock },
     PasswordService,
     TokenService,
+    LoginThrottleService,
     // Guard order matters: multiple APP_GUARD entries in one providers array
     // execute top-to-bottom. ThrottlerGuard is first so rate limiting runs
     // BEFORE the JWT/Roles guards and before any Argon2/DB work (ADR-P020).
@@ -106,4 +139,11 @@ export function resolveJwtSecret(
   ],
   exports: [TokenService],
 })
-export class AuthModule {}
+export class AuthModule implements NestModule {
+  // ADR-P046: no /auth response (tokens, account data, errors) may be cached
+  // by the client, a proxy or a CDN. Middleware, so it also covers guard
+  // rejections that never reach a handler.
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(noStore).forRoutes('auth');
+  }
+}
