@@ -138,26 +138,30 @@ describe('VerifyEmailScreen', () => {
 
     it('reads the token from the URL fragment', () => {
       withLocation('#token=abc123');
-      expect(captureVerificationToken(undefined)).toBe('abc123');
+      expect(captureVerificationToken()).toBe('abc123');
     });
 
     it('percent-decodes a fragment token', () => {
       withLocation('#token=a%2Bb');
-      expect(captureVerificationToken(undefined)).toBe('a+b');
+      expect(captureVerificationToken()).toBe('a+b');
     });
 
-    it('falls back to the native router param when there is no fragment', () => {
-      expect(captureVerificationToken('native-token')).toBe('native-token');
+    it('refuses the native custom scheme and a query parameter (ADR-P047 D6)', () => {
+      // appfitness://verify-email?token=… arrives as a router param only.
+      mockParams = { token: 'native-token' };
+      expect(captureVerificationToken()).toBeNull();
+      withLocation('', '?token=from-query');
+      expect(captureVerificationToken()).toBeNull();
     });
 
     it('refuses a duplicated token rather than guessing', () => {
       withLocation('#token=one&token=two');
-      expect(captureVerificationToken(undefined)).toBeNull();
+      expect(captureVerificationToken()).toBeNull();
     });
 
     it('returns null when no token is present anywhere', () => {
       withLocation('');
-      expect(captureVerificationToken(undefined)).toBeNull();
+      expect(captureVerificationToken()).toBeNull();
     });
 
     it('scrubs the fragment out of the visible URL', () => {
@@ -183,7 +187,7 @@ describe('VerifyEmailScreen', () => {
 
   describe('states', () => {
     it('shows the checking state before the request resolves', async () => {
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       let resolve: (() => void) | undefined;
       mockVerify.mockReturnValue(
         new Promise<void>((r) => {
@@ -200,7 +204,7 @@ describe('VerifyEmailScreen', () => {
     });
 
     it('shows success and redeems exactly once', async () => {
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       await render(<VerifyEmailScreen />);
 
       await waitFor(() => expect(screen.getByTestId('verify-success')).toBeTruthy());
@@ -218,7 +222,7 @@ describe('VerifyEmailScreen', () => {
     });
 
     it('maps a rejected token to the single invalid-link state', async () => {
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       mockVerify.mockRejectedValue(new EmailVerificationError('invalid-verification-token'));
 
       await render(<VerifyEmailScreen />);
@@ -231,7 +235,7 @@ describe('VerifyEmailScreen', () => {
     it.each([['connectivity'], ['server'], ['mail-unavailable'], ['rate-limited'], ['unexpected']])(
       'maps a %s failure to the request-failed state',
       async (reason) => {
-        mockParams = { token: 'tok' };
+        mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
         mockVerify.mockRejectedValue(new EmailVerificationError(reason));
 
         await render(<VerifyEmailScreen />);
@@ -241,7 +245,7 @@ describe('VerifyEmailScreen', () => {
     );
 
     it('maps an untyped throw to the request-failed state, never crashing', async () => {
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       mockVerify.mockRejectedValue(new Error('boom'));
 
       await render(<VerifyEmailScreen />);
@@ -250,7 +254,7 @@ describe('VerifyEmailScreen', () => {
 
     it('renders Spanish copy', async () => {
       mockLanguage = 'es';
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       await render(<VerifyEmailScreen />);
       await waitFor(() => expect(screen.getByText('Correo verificado')).toBeTruthy());
     });
@@ -355,7 +359,7 @@ describe('VerifyEmailScreen', () => {
   describe('conditional navigation — verification creates no session', () => {
     it('sends an authenticated visitor to the dashboard on success', async () => {
       mockStatus = 'authenticated';
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       await render(<VerifyEmailScreen />);
 
       await waitFor(() => expect(screen.getByTestId('button-verify-continue')).toBeTruthy());
@@ -365,7 +369,7 @@ describe('VerifyEmailScreen', () => {
     });
 
     it('sends an unauthenticated visitor to sign-in on success', async () => {
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       await render(<VerifyEmailScreen />);
 
       await waitFor(() => expect(screen.getByTestId('button-verify-continue')).toBeTruthy());
@@ -376,7 +380,7 @@ describe('VerifyEmailScreen', () => {
 
     it('offers Continue to the dashboard on failure when a session exists', async () => {
       mockStatus = 'authenticated';
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       mockVerify.mockRejectedValue(new EmailVerificationError('invalid-verification-token'));
 
       await render(<VerifyEmailScreen />);
@@ -387,7 +391,7 @@ describe('VerifyEmailScreen', () => {
     });
 
     it('offers Go to sign in on failure when no session exists', async () => {
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       mockVerify.mockRejectedValue(new EmailVerificationError('invalid-verification-token'));
 
       await render(<VerifyEmailScreen />);
@@ -406,7 +410,7 @@ describe('VerifyEmailScreen', () => {
 
   describe('this surface never resends', () => {
     it('renders no resend control and no email input in any state', async () => {
-      mockParams = { token: 'tok' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=tok' };
       mockVerify.mockRejectedValue(new EmailVerificationError('invalid-verification-token'));
 
       await render(<VerifyEmailScreen />);
@@ -438,7 +442,7 @@ describe('VerifyEmailScreen', () => {
      */
 
     it('survives a real unmount/remount: one API call, success preserved', async () => {
-      mockParams = { token: 'same-token' };
+      mockLocation = { pathname: '/verify-email', search: '', hash: '#token=same-token' };
       // Exactly the server behaviour that caused the defect: the first
       // redemption succeeds, any second one is rejected as already consumed.
       mockVerify

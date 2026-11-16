@@ -1,4 +1,4 @@
-import { parseTokenFromFragment, readTokenParam } from './reset-link';
+import { parseTokenFromFragment } from './reset-link';
 import { scrubbedUrl, type BrowserLocationLike } from './reset-link.web-location';
 
 const location = (parts: Partial<BrowserLocationLike>): BrowserLocationLike => ({
@@ -47,20 +47,6 @@ describe('parseTokenFromFragment', () => {
 
   it('does not confuse a key that merely ends in "token"', () => {
     expect(parseTokenFromFragment('#access_token=abc')).toBeNull();
-  });
-});
-
-describe('readTokenParam (native custom scheme)', () => {
-  it('accepts a single well-formed value', () => {
-    expect(readTokenParam('raw-token')).toBe('raw-token');
-    expect(readTokenParam('  raw-token  ')).toBe('raw-token');
-  });
-
-  it('rejects a missing, empty, or repeated parameter', () => {
-    expect(readTokenParam(undefined)).toBeNull();
-    expect(readTokenParam('')).toBeNull();
-    expect(readTokenParam('   ')).toBeNull();
-    expect(readTokenParam(['a', 'b'])).toBeNull();
   });
 });
 
