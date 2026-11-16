@@ -9,7 +9,7 @@ import {
   type FoodSearchResult,
   importRemoteFood,
 } from '../infrastructure/food-search-api';
-import { saveFoodLocally } from '../infrastructure/saved-foods.repository';
+import { fillMissingBrands, saveFoodLocally } from '../infrastructure/saved-foods.repository';
 
 /**
  * Foods beyond the bundled catalogue (v10 Block B, item 7): server search
@@ -125,8 +125,29 @@ export async function saveChosenFood(
       fiberPerServing: result.fiberPerServing,
     };
   }
-  await saveFoodLocally(food, nowIso);
-  return food;
+  // v11-B: the import answer carries no brand; the search result does.
+  const branded: CanonicalFood = { ...food, brand: food.brand ?? result.brand ?? null };
+  await saveFoodLocally(branded, nowIso);
+  return branded;
+}
+
+/** The catalogue key a search result is (or will be) saved under on the phone. */
+export function catalogKeyOfResult(result: FoodSearchResult): string {
+  return result.source === 'fdc' || result.source === 'off'
+    ? `${result.source}.${result.sourceId}`
+    : result.sourceId;
+}
+
+/**
+ * v11-B backfill: saved foods without a brand get the one a server search
+ * result reports for the same food. Returns how many saved foods changed.
+ */
+export function rememberBrands(results: readonly FoodSearchResult[]): Promise<number> {
+  return fillMissingBrands(
+    results
+      .filter((result) => result.brand)
+      .map((result) => ({ catalogKey: catalogKeyOfResult(result), brand: result.brand })),
+  );
 }
 
 /**

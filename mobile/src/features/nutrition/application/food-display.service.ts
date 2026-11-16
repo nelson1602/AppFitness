@@ -83,18 +83,32 @@ export function shownFoodName(
   return { name: clean ? sentenceCase(clean) : clean, brandInName: false };
 }
 
+/** True when every word of `brand` appears, in order, as whole words of `name`. */
+function nameHasBrand(name: string, brand: string): boolean {
+  const words = ` ${matchKey(name).replace(/[^\p{L}\p{N}]+/gu, ' ')} `;
+  const label = matchKey(brand)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+  return label !== '' && words.includes(` ${label} `);
+}
+
 /**
- * A logged food's name on screen: a bundled food by its catalogue key, any
- * other by `shownFoodName` (display only; the snapshot is never rewritten).
+ * A saved or logged food's name on screen (v11-B, decision 2 "persist from
+ * now on"): a bundled food by its catalogue key; any other by `shownFoodName`,
+ * and its stored brand in parentheses when the name does not already carry it
+ * ("Leche contensada (Nestlé)", "Galleta relieve (Dia)"). Without a stored
+ * brand: sentence case only. The stored snapshot is never rewritten.
  */
 export function loggedFoodName(
   item: { catalogKey: string | null; name: string; brand?: string | null },
   language: SupportedLanguage,
 ): string {
   const canonical = item.catalogKey ? getById(item.catalogKey) : undefined;
-  return canonical
-    ? foodDisplayName(canonical, language)
-    : shownFoodName(item.name, item.brand, language).name;
+  if (canonical) return foodDisplayName(canonical, language);
+  const shown = shownFoodName(item.name, item.brand, language);
+  const label = item.brand?.replace(/\s+/g, ' ').trim() ?? '';
+  if (!label || shown.brandInName || nameHasBrand(shown.name, label)) return shown.name;
+  return `${shown.name} (${label})`;
 }
 
 function normalizeSearch(value: string): string {

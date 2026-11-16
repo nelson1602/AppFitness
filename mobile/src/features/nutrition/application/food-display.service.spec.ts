@@ -81,6 +81,26 @@ describe('names shown for foods outside the bundled catalogue (v11-B item c)', (
     ).toBe('Galleta de soda (Field)');
   });
 
+  it('a saved or logged branded food reads "Name (Brand)" (v11-B, decision 2)', () => {
+    const named = (name: string, brand: string | null) =>
+      loggedFoodName({ catalogKey: 'off.1', name, brand }, 'es');
+    // The brand is not in the name: it is added in parentheses.
+    expect(named('Galleta relieve', 'Dia')).toBe('Galleta relieve (Dia)');
+    // A trailing brand moves into parentheses once, never twice.
+    expect(named('Leche Contensada Nestlé', 'Nestlé')).toBe('Leche contensada (Nestlé)');
+    // Already named inside (accents and case aside): nothing is added.
+    expect(named('Arroz con leche nestle la lechera', 'Nestlé')).toBe(
+      'Arroz con leche nestle la lechera',
+    );
+    // No stored brand: sentence case only.
+    expect(named('Galleta de Soda field', null)).toBe('Galleta de soda field');
+    expect(named('Galleta de Soda field', '  ')).toBe('Galleta de soda field');
+    // A bundled food keeps its catalogue name, brand or not.
+    expect(loggedFoodName({ catalogKey: 'food.orange', name: 'Orange', brand: 'Dole' }, 'es')).toBe(
+      'Naranja',
+    );
+  });
+
   it('changes only what is shown', () => {
     const item = { catalogKey: null, name: 'Chicharron De Cerdo', brand: null };
     loggedFoodName(item, 'es');

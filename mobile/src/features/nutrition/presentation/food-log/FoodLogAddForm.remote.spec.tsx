@@ -43,6 +43,7 @@ jest.mock('../../infrastructure/food-search-api', () => ({
 jest.mock('../../infrastructure/saved-foods.repository', () => ({
   searchSavedFoods: jest.fn().mockResolvedValue([]),
   saveFoodLocally: jest.fn(),
+  fillMissingBrands: jest.fn().mockResolvedValue(0),
 }));
 jest.mock('../../application/remote-food.service', () => ({
   ...jest.requireActual('../../application/remote-food.service'),
@@ -101,6 +102,48 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.useRealTimers();
+});
+
+describe('the add form names foods as the food log does (v11-B, TASK-v11B-2)', () => {
+  it('a saved branded food reads "Name (Brand)" in the local matches and once chosen', async () => {
+    jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [], external: 'ok' });
+    jest.mocked(searchSavedFoods).mockResolvedValueOnce([
+      saved({
+        catalogKey: 'off.7613035750319',
+        name: 'Leche Contensada Nestlé',
+        brand: 'Nestlé',
+      }),
+    ]);
+    await render(<FoodLogAddForm defaultMealType="SNACK" onAdd={jest.fn()} />);
+
+    await search('contensada');
+    expect(screen.getByText('Leche contensada (Nestlé)')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('food-option-off.7613035750319'));
+    expect(screen.getByText('Leche contensada (Nestlé)')).toBeOnTheScreen();
+    expect(screen.queryByText('Leche Contensada Nestlé')).toBeNull();
+  });
+
+  it('a saved food without a brand reads in sentence case only', async () => {
+    jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [], external: 'ok' });
+    jest
+      .mocked(searchSavedFoods)
+      .mockResolvedValueOnce([
+        saved({ catalogKey: 'off.7622201714826', name: 'Galleta de Soda field', brand: null }),
+      ]);
+    await render(<FoodLogAddForm defaultMealType="SNACK" onAdd={jest.fn()} />);
+
+    await search('galleta');
+    expect(screen.getByText('Galleta de soda field')).toBeOnTheScreen();
+  });
+
+  it('a chosen server result carries its brand into the name', async () => {
+    jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [CHICHARRON], external: 'ok' });
+    await render(<FoodLogAddForm defaultMealType="LUNCH" onAdd={jest.fn()} />);
+
+    await search('Chicharrón de cerdo');
+    await fireEvent.press(screen.getByTestId('food-remote-off-7501000000123'));
+    expect(screen.getByText('Chicharrón de cerdo (Doña Rosa)')).toBeOnTheScreen();
+  });
 });
 
 describe('FoodLogAddForm beyond the local catalogue (v10 Block B, item 7)', () => {

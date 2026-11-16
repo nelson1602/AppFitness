@@ -6,7 +6,7 @@ import {
   type TranslationKey,
 } from '@/shared/localization';
 
-import { shownFoodName } from '@/features/nutrition/application/food-display.service';
+import { loggedFoodName } from '@/features/nutrition/application/food-display.service';
 import type { MealSlot } from '@/features/nutrition/domain/meal-plan';
 import type { CoachChange } from '../domain/realtime-recalc';
 import { dayIndexInWeek } from '../domain/week';
@@ -90,7 +90,10 @@ export function coachChangeText(
           ? 'home.coach.change.rebalancedOne'
           : 'home.coach.change.rebalancedMany';
       return interpolate(t(key), {
-        food: shownFoodName(change.food, change.foodBrand, language).name,
+        food: loggedFoodName(
+          { catalogKey: null, name: change.food, brand: change.foodBrand },
+          language,
+        ),
         // Meal names are common nouns in both languages (unlike English weekdays).
         meal: one ? t(MEAL_SLOT_KEYS[change.meals[0]]).toLocaleLowerCase(language) : '',
       });

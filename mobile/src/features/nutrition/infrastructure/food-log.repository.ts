@@ -12,7 +12,7 @@ import { enqueue, listParkedEntityIds, SYNC_ERROR_CODES } from '@/shared/infrast
 import { getCanonicalByCatalogKey } from '../application/catalog-lookup.service';
 // BUG-044: the day's log and meal are synced parents, queued ahead of the food.
 import { ensureMeal, ensureNutritionLog } from './food-log-parents';
-import { readSavedFood } from './saved-foods.repository';
+import { cleanBrand, readSavedFood } from './saved-foods.repository';
 import {
   deriveServingSnapshot,
   type CanonicalFood,
@@ -345,6 +345,9 @@ export async function applyServerMealItem(
   // v10 Block B: a food from another device may not be on this phone (an
   // imported or custom food). Its row is rebuilt from the item's immutable
   // snapshot so the foreign key holds; a known food is left untouched.
+  // v11-B: the server sends the food's brand (`food_brand`, when it has one);
+  // it is kept on the row, and fills in a row kept earlier without one.
+  const brand = cleanBrand(str(row['food_brand']));
   await run(
     `INSERT OR IGNORE INTO foods (
        id, created_at, updated_at, version, sync_status,
@@ -352,7 +355,7 @@ export async function applyServerMealItem(
        serving_amount, serving_unit, grams_per_serving,
        calories_per_serving, protein_per_serving, carbs_per_serving,
        fat_per_serving, fiber_per_serving, created_by, is_verified
-     ) VALUES (?, ?, ?, 1, 'synced', ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)`,
+     ) VALUES (?, ?, ?, 1, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)`,
     [
       str(row['food_id']),
       str(row['created_at']),
@@ -361,6 +364,7 @@ export async function applyServerMealItem(
       numOrNull(row['food_revision_snapshot']) ?? 1,
       str(row['catalog_version_snapshot']),
       str(row['food_name_snapshot']) ?? '',
+      brand,
       Number(row['serving_amount_snapshot'] ?? 0),
       str(row['serving_unit_snapshot']) ?? 'g',
       numOrNull(row['grams_per_serving_snapshot']),
@@ -372,6 +376,13 @@ export async function applyServerMealItem(
     ],
     tx,
   );
+  if (brand) {
+    await run(
+      `UPDATE foods SET brand = ? WHERE id = ? AND brand IS NULL`,
+      [brand, str(row['food_id'])],
+      tx,
+    );
+  }
   await run(
     `INSERT OR REPLACE INTO meal_items (
        id, user_id, created_at, updated_at, version, sync_status, deleted_at, deleted_by,
@@ -567,25 +578,31 @@ export async function listDailyCalorieTotals(userId: string): Promise<DailyCalor
 }
 
 /**
- * Logged kcal and item count per day from `from` to `to` (inclusive, user-local
- * dates), for the day-to-day carry-over (ADR-P040 Addendum v11-B). Read-only;
- * days with nothing logged are absent or have `items: 0`.
+ * Logged kcal, item count and meal slots used per day from `from` to `to`
+ * (inclusive, user-local dates), for the day-to-day carry-over (ADR-P040
+ * Addendum v11-B). Read-only; days with nothing logged are absent or have
+ * `items: 0`.
  */
 export async function listDayIntakes(
   userId: string,
   from: string,
   to: string,
-): Promise<{ date: string; calories: number; items: number }[]> {
+): Promise<{ date: string; calories: number; items: number; meals: number }[]> {
   const dateRows = await queryAll<{ date: string }>(
     `SELECT DISTINCT date FROM nutrition_logs
       WHERE user_id = ? AND deleted_at IS NULL AND date >= ? AND date <= ?
       ORDER BY date ASC`,
     [userId, from, to],
   );
-  const days: { date: string; calories: number; items: number }[] = [];
+  const days: { date: string; calories: number; items: number; meals: number }[] = [];
   for (const { date } of dateRows) {
     const items = await listLoggedItems(userId, date);
-    days.push({ date, calories: sumDailyTotals(items).calories, items: items.length });
+    days.push({
+      date,
+      calories: sumDailyTotals(items).calories,
+      items: items.length,
+      meals: new Set(items.map((item) => item.mealType)).size,
+    });
   }
   return days;
 }

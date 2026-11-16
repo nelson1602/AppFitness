@@ -288,6 +288,11 @@ export interface CanonicalFood {
   carbsPerServing: number;
   fatPerServing: number;
   fiberPerServing: number | null;
+  /**
+   * v11-B: the brand of a saved (imported) food, kept on the phone for its
+   * name on screen. Bundled foods never set it; absent = none.
+   */
+  brand?: string | null;
 }
 
 /** The immutable per-serving snapshot copied onto a MealItem at log time. */

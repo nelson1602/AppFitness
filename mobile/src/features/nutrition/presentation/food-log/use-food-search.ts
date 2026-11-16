@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { logError } from '@/shared/infrastructure/logging';
 import type { SupportedLanguage } from '@/shared/localization';
 
 import { searchFoodsForDisplay } from '../../application/food-display.service';
-import { foodItemFromCanonical } from '../../application/remote-food.service';
+import { foodItemFromCanonical, rememberBrands } from '../../application/remote-food.service';
 import type { FoodItem } from '../../domain/food-catalog';
 import {
   FoodSearchOfflineError,
@@ -33,6 +34,8 @@ export function useFoodSearch(
   remoteEnabled: boolean,
 ): {
   local: FoodItem[];
+  /** v11-B: the kept brand of each saved food in `local`, by its id. */
+  brands: Readonly<Record<string, string>>;
   remote: FoodSearchResult[];
   remoteStatus: RemoteSearchStatus;
 } {
@@ -43,15 +46,18 @@ export function useFoodSearch(
   );
   // Each answer is kept with the query it answers; a newer query simply does
   // not match it, so nothing is reset synchronously in an effect.
-  const [saved, setSaved] = useState<{ query: string; foods: FoodItem[] }>({
-    query: '',
-    foods: [],
-  });
+  const [saved, setSaved] = useState<{
+    query: string;
+    foods: FoodItem[];
+    brands: Record<string, string>;
+  }>({ query: '', foods: [], brands: {} });
   const [answer, setAnswer] = useState<{
     query: string;
     results: FoodSearchResult[];
     status: RemoteSearchStatus;
   }>({ query: '', results: [], status: 'idle' });
+  // Bumped when a server answer filled in a saved food's brand (v11-B backfill).
+  const [brandsFilled, setBrandsFilled] = useState(0);
   const remoteActive = remoteEnabled && trimmed.length >= REMOTE_MIN_CHARS;
 
   useEffect(() => {
@@ -59,16 +65,19 @@ export function useFoodSearch(
     let current = true;
     searchSavedFoods(trimmed)
       .then((foods) => {
-        if (current) setSaved({ query: trimmed, foods: foods.map(foodItemFromCanonical) });
+        if (!current) return;
+        const brands: Record<string, string> = {};
+        for (const food of foods) if (food.brand) brands[food.catalogKey] = food.brand;
+        setSaved({ query: trimmed, foods: foods.map(foodItemFromCanonical), brands });
       })
       // Web has no local database (ADR-P019): only the bundled catalogue.
       .catch(() => {
-        if (current) setSaved({ query: trimmed, foods: [] });
+        if (current) setSaved({ query: trimmed, foods: [], brands: {} });
       });
     return () => {
       current = false;
     };
-  }, [trimmed]);
+  }, [trimmed, brandsFilled]);
 
   useEffect(() => {
     if (!remoteActive) return;
@@ -82,6 +91,12 @@ export function useFoodSearch(
             results: response.results,
             status: response.external === 'ok' ? 'ok' : response.external,
           });
+          // v11-B: a saved food without a brand takes the one the server reports.
+          rememberBrands(response.results)
+            .then((changed) => {
+              if (current && changed > 0) setBrandsFilled((n) => n + 1);
+            })
+            .catch((error: unknown) => logError('nutrition.foodSearch.rememberBrands', error));
         })
         .catch((error: unknown) => {
           if (!current) return;
@@ -99,6 +114,7 @@ export function useFoodSearch(
   }, [remoteActive, trimmed]);
 
   const savedFoods = saved.query === trimmed ? saved.foods : [];
+  const brands = saved.query === trimmed ? saved.brands : {};
   const answered = remoteActive && answer.query === trimmed;
   const remote = answered ? answer.results : [];
   const remoteStatus: RemoteSearchStatus = !remoteActive
@@ -116,5 +132,5 @@ export function useFoodSearch(
   const localKeys = new Set(local.map((food) => food.id));
   const shownRemote = remote.filter((result) => !localKeys.has(result.sourceId));
 
-  return { local, remote: shownRemote, remoteStatus };
+  return { local, brands, remote: shownRemote, remoteStatus };
 }
