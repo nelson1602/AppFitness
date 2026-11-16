@@ -15709,6 +15709,7 @@ S2 is the mobile half of the owner's 2026-11-16 audit of main `7eaf97c` (SECURIT
   - sync payloads keep carrying plaintext inside the queue's own encrypted envelope.
   The server contract is unchanged.
 - **Unreadable notes:** a note that no longer decrypts reads as empty. The server still holds the synced copy.
+- **No plaintext left in the file:** the connection runs with `PRAGMA secure_delete = ON`, and the backfill ends with `PRAGMA wal_checkpoint(TRUNCATE)` when it sealed anything. Device evidence showed a replaced plaintext note surviving in free page space without them.
 
 **D3b SQLCipher (design note, not implemented).** Whole-database encryption through expo-sqlite's `useSQLCipher` option is the next step. The key would be a random 256-bit value in SecureStore, set with `PRAGMA key` on open. It is not low risk today, for three reasons:
 1. It switches the native SQLite build to SQLCipher. That interacts with the expo-sqlite 57.0.4 prebuilt-AAR pin (BUG-052, `verify:native-abis`) and needs its own ABI evidence.
