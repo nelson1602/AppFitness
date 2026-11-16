@@ -1,6 +1,8 @@
 import * as SQLite from 'expo-sqlite';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { sealLegacyNotes } from '../crypto/sealed-note';
+import { logError } from '../logging';
 import { runMigrations } from './migrations';
 
 const DATABASE_NAME = 'appfitness.db';
@@ -13,7 +15,21 @@ async function open(): Promise<SQLiteDatabase> {
   // default in SQLite and must be enabled per connection.
   await db.execAsync('PRAGMA journal_mode = WAL');
   await db.execAsync('PRAGMA foreign_keys = ON');
+  // ADR-P047 D3: overwritten or deleted content is zeroed instead of left in
+  // free page space, so a rewritten note leaves no plaintext in the file.
+  await db.execAsync('PRAGMA secure_delete = ON');
   await runMigrations(db);
+  // ADR-P047 D3: rewrite pre-release plaintext notes as sealed ones. Best
+  // effort — a failure (e.g. SecureStore unavailable) must never block opening
+  // the database; legacy plaintext still reads and the next open retries.
+  try {
+    const sealed = await sealLegacyNotes(db);
+    // Fold the rewritten pages into the main file and empty the WAL, so the
+    // old page images that held the plaintext are gone too.
+    if (sealed > 0) await db.execAsync('PRAGMA wal_checkpoint(TRUNCATE)');
+  } catch (error: unknown) {
+    logError('database.sealLegacyNotes', error);
+  }
   return db;
 }
 

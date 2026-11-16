@@ -33,6 +33,25 @@ jest.mock('@/shared/infrastructure/database', () => ({
 }));
 jest.mock('@/shared/infrastructure/ids', () => ({ generateUuid: jest.fn() }));
 jest.mock('@/shared/infrastructure/sync', () => ({ enqueue: jest.fn() }));
+// ADR-P047 D3: a deterministic stand-in for the note sealer, so each test can
+// tell the at-rest form (SQL params) from the plaintext (payloads, domain).
+jest.mock('@/shared/infrastructure/crypto/sealed-note', () => {
+  const actual = jest.requireActual<typeof import('@/shared/infrastructure/crypto/sealed-note')>(
+    '@/shared/infrastructure/crypto/sealed-note',
+  );
+  const openNote = jest.fn(async (v: string | null | undefined) =>
+    v?.startsWith('enc:v1:') ? v.slice(7) : (v ?? null),
+  );
+  return {
+    ...actual,
+    sealNote: jest.fn(async (v: string | null | undefined) => (v == null ? null : 'enc:v1:' + v)),
+    openNote,
+    openNotesIn: jest.fn(async <T extends { notes?: string | null }>(rows: T[]) => {
+      for (const row of rows) if (row.notes !== undefined) row.notes = await openNote(row.notes);
+      return rows;
+    }),
+  };
+});
 
 const mockQueryFirst = jest.mocked(queryFirst);
 const mockQueryAll = jest.mocked(queryAll);
@@ -90,7 +109,8 @@ describe('progress.repository — body_weights', () => {
     );
     expect(mockRun).toHaveBeenCalledWith(
       expect.stringContaining('INSERT INTO body_weights'),
-      [BW_ID, USER, NOW, NOW, 80, '2026-08-03', 'x'],
+      // ADR-P047 D3: the SQL param is the sealed note…
+      [BW_ID, USER, NOW, NOW, 80, '2026-08-03', 'enc:v1:x'],
       mockTx,
     );
     expect(mockEnqueue).toHaveBeenCalledWith(
@@ -100,6 +120,7 @@ describe('progress.repository — body_weights', () => {
         entityType: 'body_weights',
         entityId: BW_ID,
         operation: 'CREATE',
+        // …while the sync payload keeps the plaintext.
         payload: { id: BW_ID, date: '2026-08-03', weight_kg: 80, notes: 'x' },
         baseVersion: 0,
       },
@@ -108,6 +129,45 @@ describe('progress.repository — body_weights', () => {
     );
     expect(result.weightKg).toBe(80);
     expect(result.date).toBe('2026-08-03');
+  });
+
+  it('seals notes in SQL, keeps the payload plaintext, and reads them back opened (ADR-P047 D3)', async () => {
+    mockUuid.mockReturnValueOnce('op-n');
+    mockQueryFirst
+      .mockResolvedValueOnce(bwRow({ version: 2, notes: 'enc:v1:old' })) // existing
+      .mockResolvedValueOnce(bwRow({ version: 3, notes: 'enc:v1:felt strong' })); // reloaded
+
+    const result = await updateBodyWeight(
+      USER,
+      BW_ID,
+      { date: '2026-08-03', weightKg: 81, notes: 'felt strong' },
+      NOW,
+    );
+
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringContaining('UPDATE body_weights SET'),
+      [81, '2026-08-03', 'enc:v1:felt strong', 3, NOW, BW_ID],
+      mockTx,
+    );
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: { date: '2026-08-03', weight_kg: 81, notes: 'felt strong' },
+      }),
+      NOW,
+      mockTx,
+    );
+    expect(result?.notes).toBe('felt strong');
+
+    // Reads open sealed notes and pass legacy plaintext through.
+    mockQueryAll.mockResolvedValueOnce([
+      bwRow({ notes: 'enc:v1:sealed' }),
+      bwRow({ id: 'bw-2', notes: 'legacy' }),
+      bwRow({ id: 'bw-3', notes: null }),
+    ]);
+    const rows = await listBodyWeights(USER);
+    expect(rows.map((r) => r.notes)).toEqual(['sealed', 'legacy', null]);
+    mockQueryFirst.mockResolvedValueOnce(bwRow({ notes: 'enc:v1:same day' }));
+    expect((await bodyWeightForDate(USER, '2026-08-03'))?.notes).toBe('same day');
   });
 
   it('create with an existing same-date row UPDATEs it in place (id stable, version+1, enqueue UPDATE, no duplicate INSERT)', async () => {
@@ -255,7 +315,8 @@ describe('progress.repository — body_weights', () => {
     );
     expect(mockRun).toHaveBeenCalledWith(
       expect.stringMatching(/INSERT OR REPLACE INTO body_weights[\s\S]*'synced'/),
-      [BW_ID, USER, NOW, NOW, 4, null, null, 79.5, '2026-08-03', 'server'],
+      // ADR-P047 D3: server copies are sealed at rest too.
+      [BW_ID, USER, NOW, NOW, 4, null, null, 79.5, '2026-08-03', 'enc:v1:server'],
       mockTx,
     );
   });
@@ -571,5 +632,58 @@ describe('progress.repository — body_measurements', () => {
     expect(Array.isArray(oldClientParams)).toBe(true);
     if (!Array.isArray(oldClientParams)) throw new Error('expected positional SQLite params');
     expect(oldClientParams[9]).toBeNull();
+  });
+
+  it('seals measurement notes in SQL, keeps the payload plaintext, and reads them back opened (ADR-P047 D3)', async () => {
+    mockUuid.mockReturnValueOnce('bm-9').mockReturnValueOnce('op-bm-9');
+    mockQueryFirst
+      .mockResolvedValueOnce(null) // no same-date row
+      .mockResolvedValueOnce(bmRow({ id: 'bm-9', notes: 'enc:v1:after run' })); // reloaded
+
+    const created = await createBodyMeasurement(
+      USER,
+      { date: '2026-08-03', waistCm: 82, notes: 'after run' },
+      NOW,
+    );
+
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO body_measurements'),
+      [
+        'bm-9',
+        USER,
+        NOW,
+        NOW,
+        '2026-08-03',
+        null,
+        null,
+        82,
+        null,
+        null,
+        null,
+        null,
+        null,
+        'enc:v1:after run',
+      ],
+      mockTx,
+    );
+    expect(mockEnqueue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operation: 'CREATE',
+        payload: expect.objectContaining({ id: 'bm-9', notes: 'after run' }),
+      }),
+      NOW,
+      mockTx,
+    );
+    expect(created.notes).toBe('after run');
+
+    mockRun.mockClear();
+    await applyServerBodyMeasurement(
+      { id: 'bm-9', user_id: USER, version: 2, date: '2026-08-03', notes: 'server note' },
+      false,
+      mockTx,
+    );
+    const params = mockRun.mock.calls[0]?.[1];
+    if (!Array.isArray(params)) throw new Error('expected positional SQLite params');
+    expect(params[params.length - 1]).toBe('enc:v1:server note');
   });
 });

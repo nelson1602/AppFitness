@@ -1,17 +1,18 @@
 /**
  * Reset-link token extraction (ADR-P026 Vertical 1).
  *
- * Two shapes reach this route, and they are deliberately different:
+ * Two token shapes exist, and they are deliberately different:
  *
  * - **Emailed HTTPS link (Web):** `https://<base>/reset-password#token=…`.
  *   The token is in the **fragment**, which a browser never places in the HTTP
  *   request-line. It therefore cannot appear in the web server's access log, a
  *   reverse-proxy log, or a `Referer` header leaked to a third party. It also
- *   never reaches this app's own server.
- * - **Native custom scheme:** `appfitness://reset-password?token=…`. A
- *   custom-scheme URL is handed straight to the app by the OS and never
- *   traverses an HTTP server or proxy, so a query parameter carries no logging
- *   risk there. Preserved as-is so existing native deep links keep working.
+ *   never reaches this app's own server. This is the only shape the reset
+ *   route accepts.
+ * - **Query parameter (`?token=…`):** read by `readTokenParam`, now for the
+ *   verify-email route only. The reset route stopped accepting it, including
+ *   through the native `appfitness://reset-password?token=…` scheme (ADR-P047
+ *   D6): any app can claim a custom scheme, and the server never sends one.
  *
  * Both parsers are pure string functions so the whole contract is testable
  * without a DOM, a browser, or a running router.

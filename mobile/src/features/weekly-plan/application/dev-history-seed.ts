@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/shared/infrastructure/config/api-config';
 import { getSession } from '@/features/authentication';
 import { logPlannedMeal } from '@/features/nutrition/infrastructure/food-log.repository';
 import { recordMyBodyWeight } from '@/features/progress/application/progress.service';
@@ -42,7 +43,7 @@ export function isLocalApi(url: string | undefined): boolean {
 }
 
 export function canSeedDevHistory(): boolean {
-  return __DEV__ && isLocalApi(process.env.EXPO_PUBLIC_API_URL);
+  return __DEV__ && isLocalApi(API_BASE_URL);
 }
 
 /** Local noon of a calendar date. */

@@ -8725,7 +8725,7 @@ Define and implement secure storage rules for sensitive local data.
 
 ## [SECURITY-003] Security Audit 2026-11-16 (ASVS L2 / MASVS / API Top 10): Medium Findings
 
-Status: S1 (API) in its PR, pending owner review; S2 (mobile) and S3 (dependencies) next, one at a time
+Status: S1 (API) merged (#258, f568db4); S2 (mobile) in its PR, pending owner review; S3 (dependencies) next
 Priority: P1
 Type: Security
 Owner: Engineering
@@ -8748,9 +8748,21 @@ The owner's audit of main `7eaf97c` found no Critical or High issue. The Medium 
 
 **Before S1 deploys:** set `REVENUECAT_PROVIDER` on AppFitness Production (5cfa), which deploys from `main`, and confirm both Railway services have a `JWT_ACCESS_SECRET` of at least 32 bytes. App versions before S2 send no password, so account deletion fails for them until S2 ships.
 
-### S2 — mobile (next)
+### S2 — mobile (ADR-P047)
 
-Backup exclusion, blocked permissions, encrypted notes columns plus a SQLCipher design note, "Borrar datos de este teléfono", one API config module, no reset-password deep link, the Sentry scrub, the password on account deletion, a message for the sign-in lock, e2e APKs built locally only, and a note in `10_DEPLOYMENT.md` that testers install only from Play.
+- [x] Backup: `allowBackup=false` plus data-extraction rules excluding every domain from cloud backup and device transfer.
+- [x] Permissions: `SYSTEM_ALERT_WINDOW`, `READ/WRITE_EXTERNAL_STORAGE` and `DUMP` blocked; INTERNET, biometric and BILLING kept.
+- [x] Notes columns sealed with the field cipher (`enc:v1:`), with a backfill at database open. SQLCipher is a design note only (ADR-P047 D3b), not low risk with the expo-sqlite 57.0.4 AAR pin.
+- [x] "Cerrar sesión y borrar datos de este teléfono": database file and field key erased, with an unsynced-changes warning.
+- [x] One API config module: a release build throws without an https URL; e2e loopback http only.
+- [x] `appfitness://reset-password?token=` (and `?token=` on Web) no longer accepted.
+- [x] Mobile Sentry scrub at parity with ADR-P046 D7.
+- [x] Account deletion sends the current password; sign-in and deletion show a message for 429.
+- [x] e2e APKs built locally only (cloud e2e build refused; `mobile-e2e.yml` builds on the runner); `10_DEPLOYMENT.md` says testers install only from Play.
+
+**Owner decision pending:** the `development`, `preview`, `internal-apk` and `production-validation` EAS profiles still declare internal distribution. Delete them or keep them for owner-only use? A `development` build would now refuse to start anyway: its URL is `http://localhost:3001`, which D5 refuses in a release bundle.
+
+**Not changed:** verify-email still accepts a native `?token=` (the audit named reset-password only).
 
 ### S3 — dependencies (after S2)
 

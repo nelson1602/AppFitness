@@ -8,8 +8,10 @@ import { BUILT_IN_EXERCISES } from './exercise-catalog.data';
 import {
   addRoutineExercise,
   addWorkoutSet,
+  applyServerWorkoutSet,
   countRoutinesUsingExercise,
   listRoutineExercises,
+  listWorkoutSets,
   removeRoutineExercise,
   updateWorkoutSet,
 } from './workout-exercises.repository';
@@ -23,6 +25,25 @@ jest.mock('@/shared/infrastructure/database', () => ({
 }));
 jest.mock('@/shared/infrastructure/ids', () => ({ generateUuid: jest.fn() }));
 jest.mock('@/shared/infrastructure/sync', () => ({ enqueue: jest.fn() }));
+// ADR-P047 D3: a deterministic stand-in for the note sealer, so each test can
+// tell the at-rest form (SQL params) from the plaintext (payloads, domain).
+jest.mock('@/shared/infrastructure/crypto/sealed-note', () => {
+  const actual = jest.requireActual<typeof import('@/shared/infrastructure/crypto/sealed-note')>(
+    '@/shared/infrastructure/crypto/sealed-note',
+  );
+  const openNote = jest.fn(async (v: string | null | undefined) =>
+    v?.startsWith('enc:v1:') ? v.slice(7) : (v ?? null),
+  );
+  return {
+    ...actual,
+    sealNote: jest.fn(async (v: string | null | undefined) => (v == null ? null : 'enc:v1:' + v)),
+    openNote,
+    openNotesIn: jest.fn(async <T extends { notes?: string | null }>(rows: T[]) => {
+      for (const row of rows) if (row.notes !== undefined) row.notes = await openNote(row.notes);
+      return rows;
+    }),
+  };
+});
 
 const mockQueryFirst = jest.mocked(queryFirst);
 const mockQueryAll = jest.mocked(queryAll);
@@ -237,5 +258,61 @@ describe('workout_sets repository', () => {
       payload: { reps: 8, completed: true },
     });
     expect(updated?.completed).toBe(true);
+  });
+
+  it('addWorkoutSet seals notes in SQL, keeps the payload plaintext, returns plaintext (ADR-P047 D3)', async () => {
+    mockQueryFirst
+      .mockResolvedValueOnce({ id: LOG_ID } as WorkoutSetRow) // parent log probe
+      .mockResolvedValueOnce(setRow({ notes: 'enc:v1:grip slipped' })); // re-read
+    const set = await addWorkoutSet(
+      USER,
+      LOG_ID,
+      { exerciseId: EX_ID, setNumber: 1, reps: 5, notes: 'grip slipped' },
+      NOW,
+    );
+    const insert = mockRun.mock.calls.find((c) =>
+      String(c[0]).includes('INSERT INTO workout_sets'),
+    );
+    const params = insert?.[1];
+    if (!Array.isArray(params)) throw new Error('expected positional SQLite params');
+    expect(params[params.length - 1]).toBe('enc:v1:grip slipped');
+    expect(mockEnqueue.mock.calls[0][0]).toMatchObject({ payload: { notes: 'grip slipped' } });
+    expect(set.notes).toBe('grip slipped');
+  });
+
+  it('updateWorkoutSet reuses the stored note opened: SQL re-sealed, payload plaintext (ADR-P047 D3)', async () => {
+    mockQueryFirst
+      .mockResolvedValueOnce(setRow({ version: 2, notes: 'enc:v1:kept' }))
+      .mockResolvedValueOnce(setRow({ version: 3, reps: 8, notes: 'enc:v1:kept' }));
+    const updated = await updateWorkoutSet(USER, NEW_ID, { reps: 8 }, NOW);
+    expect(mockRun.mock.calls[0][1]).toEqual([1, 8, 100, null, 0, 'enc:v1:kept', 3, NOW, NEW_ID]);
+    expect(mockEnqueue.mock.calls[0][0]).toMatchObject({ payload: { reps: 8, notes: 'kept' } });
+    expect(updated?.notes).toBe('kept');
+
+    mockQueryAll.mockResolvedValueOnce([
+      setRow({ notes: 'enc:v1:sealed' }),
+      setRow({ id: 'set-2', notes: 'legacy' }),
+    ]);
+    const sets = await listWorkoutSets(USER, LOG_ID);
+    expect(sets.map((s) => s.notes)).toEqual(['sealed', 'legacy']);
+  });
+
+  it('applyServerWorkoutSet stores the server note sealed (ADR-P047 D3)', async () => {
+    await applyServerWorkoutSet(
+      {
+        id: NEW_ID,
+        user_id: USER,
+        version: 2,
+        workout_log_id: LOG_ID,
+        exercise_id: EX_ID,
+        set_number: 1,
+        notes: 'from server',
+      },
+      false,
+      mockTx,
+    );
+    const params = mockRun.mock.calls[0][1];
+    if (!Array.isArray(params)) throw new Error('expected positional SQLite params');
+    expect(params[params.length - 1]).toBe('enc:v1:from server');
   });
 });

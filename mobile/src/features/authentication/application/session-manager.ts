@@ -1,3 +1,4 @@
+import { forgetFieldKey } from '../../../shared/infrastructure/crypto/field-cipher';
 import { wipeDatabase } from '../../../shared/infrastructure/database';
 import { logError } from '../../../shared/infrastructure/logging';
 import * as authApi from '../infrastructure/auth-api';
@@ -261,7 +262,12 @@ export type AuthAttemptOutcome =
  * the UI can show honest copy without exposing details or account existence.
  */
 export type AuthErrorReason =
-  'invalid-credentials' | 'registration-unavailable' | 'connectivity' | 'server' | 'unexpected';
+  | 'invalid-credentials'
+  | 'locked'
+  | 'registration-unavailable'
+  | 'connectivity'
+  | 'server'
+  | 'unexpected';
 
 export class AuthError extends Error {
   constructor(readonly reason: AuthErrorReason) {
@@ -280,6 +286,9 @@ export class AuthError extends Error {
 function classifyApiError(error: unknown, mode: 'sign-in' | 'register'): AuthError {
   if (error instanceof AuthApiError) {
     if (mode === 'sign-in' && error.status === 401) return new AuthError('invalid-credentials');
+    // ADR-P046: per-account backoff (LOGIN_TEMPORARILY_LOCKED) or the per-IP
+    // throttle. Both say "wait"; neither reveals whether the account exists.
+    if (error.status === 429) return new AuthError('locked');
     if (mode === 'register' && (error.status === 400 || error.status === 409)) {
       return new AuthError('registration-unavailable');
     }
@@ -577,20 +586,59 @@ async function rotateSession(refreshing: SessionSnapshot): Promise<Session | nul
   });
 }
 
+/** Why an account deletion was refused (ADR-P047 D2). Safe enum only. */
+export type DeleteAccountErrorReason =
+  'wrong-password' | 'locked' | 'session-ended' | 'connectivity' | 'server';
+
+export class DeleteAccountError extends Error {
+  constructor(readonly reason: DeleteAccountErrorReason) {
+    super(reason);
+    this.name = 'DeleteAccountError';
+  }
+}
+
+function classifyDeleteError(error: unknown): DeleteAccountError {
+  if (error instanceof AuthApiError) {
+    // The session was rotated just before the call, so a 401 is the password.
+    if (error.status === 401) return new DeleteAccountError('wrong-password');
+    if (error.status === 429) return new DeleteAccountError('locked');
+    return new DeleteAccountError('server');
+  }
+  if (error instanceof TypeError) return new DeleteAccountError('connectivity');
+  return new DeleteAccountError('server');
+}
+
 /**
  * Permanently deletes the account server-side, then erases all local
  * state (session + local database, incl. any encrypted medical cache).
  * Server deletion must succeed first — otherwise the account still exists
  * and we would only orphan the device. Irreversible.
+ *
+ * ADR-P047 D2: the API requires the current password (ADR-P046). The session
+ * is rotated first so the access token is fresh, which makes a 401 from the
+ * deletion itself mean "wrong password" rather than "token expired". The
+ * password is sent once and never stored or logged.
  */
-export async function deleteAccount(): Promise<void> {
+export async function deleteAccount(password: string): Promise<void> {
+  const owner = requireSessionSnapshot();
+  const rotated = await refreshTokens();
+  if (!rotated) {
+    // A 401 on refresh already signed the person out; anything else is offline.
+    throw new DeleteAccountError(isSessionCurrent(owner) ? 'connectivity' : 'session-ended');
+  }
+
   // Deletion applies to the account captured here and to no other. If a
   // different account becomes current while the server call is in flight, the
   // local erasure is skipped: `wipeDatabase()` would destroy the replacement
   // account's data, and signing it out would be wrong twice over.
   const deleting = requireSessionSnapshot();
+  if (deleting.userId !== owner.userId) throw new DeleteAccountError('session-ended');
 
-  await authApi.deleteAccount(deleting.accessToken);
+  try {
+    await authApi.deleteAccount(deleting.accessToken, password);
+  } catch (error) {
+    throw classifyDeleteError(error);
+  }
 
   await withSessionLock(async () => {
     if (!isSessionCurrent(deleting)) {
@@ -605,12 +653,28 @@ export async function deleteAccount(): Promise<void> {
     }
     await clearSession();
     await forgetBiometrics();
-    await wipeDatabase();
+    await eraseDeviceData();
     setState('unauthenticated', null);
   });
 }
 
-export async function signOut(): Promise<void> {
+/**
+ * Erase this phone's copy of the account (ADR-P047 D4): the local database
+ * file and the device field key, so anything sealed under it (notes, medical
+ * fields, queued payloads) cannot be read again even from a stale copy.
+ * Language and unit preferences are not personal data and stay.
+ */
+async function eraseDeviceData(): Promise<void> {
+  await wipeDatabase();
+  await forgetFieldKey();
+}
+
+export interface SignOutOptions {
+  /** "Borrar datos de este teléfono": also erase the local database and key. */
+  eraseDeviceData?: boolean;
+}
+
+export async function signOut(options: SignOutOptions = {}): Promise<void> {
   // Signing out is an explicit intent, reserved through the same lock: it
   // invalidates any authentication attempt still on the network, and it cannot
   // be granted while such an attempt is mid-persist — so the two never
@@ -642,10 +706,11 @@ export async function signOut(): Promise<void> {
     // Sign-out revokes and forgets biometrics too (ADR-P036 Decision 3, owner
     // Option A): after an explicit sign-out the next sign-in uses the password.
     await forgetBiometrics();
-    // Per-user SQLite data is deliberately preserved (ADR-P030 Decision 8), but
+    // Per-user SQLite data is preserved by default (ADR-P030 Decision 8), but
     // the transition immediately invalidates every captured snapshot and resets
     // the session-bound stores, so nothing of this account stays on screen for
-    // the next one.
+    // the next one. The person can ask to erase it instead (ADR-P047 D4).
+    if (options.eraseDeviceData) await eraseDeviceData();
     setState('unauthenticated', null);
   });
 }

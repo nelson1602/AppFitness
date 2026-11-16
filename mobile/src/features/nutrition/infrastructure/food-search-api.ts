@@ -1,8 +1,7 @@
+import { API_BASE_URL } from '@/shared/infrastructure/config/api-config';
 import { isSessionCurrent, refreshTokens, requireSessionSnapshot } from '@/features/authentication';
 
 import type { CanonicalFood } from '../domain/catalog-identity';
-
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 /** Where a server search result comes from (v10 Block B, item 7). */
 export type FoodSearchSource = 'catalog' | 'custom' | 'fdc' | 'off';

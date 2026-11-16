@@ -12,6 +12,7 @@ import {
   deleteRoutine,
   deleteWorkoutLog,
   listActiveRoutines,
+  listRecentWorkoutLogs,
   markRoutineConflict,
   updateRoutine,
   updateWorkoutLog,
@@ -25,6 +26,25 @@ jest.mock('@/shared/infrastructure/database', () => ({
 }));
 jest.mock('@/shared/infrastructure/ids', () => ({ generateUuid: jest.fn() }));
 jest.mock('@/shared/infrastructure/sync', () => ({ enqueue: jest.fn() }));
+// ADR-P047 D3: a deterministic stand-in for the note sealer, so each test can
+// tell the at-rest form (SQL params) from the plaintext (payloads, domain).
+jest.mock('@/shared/infrastructure/crypto/sealed-note', () => {
+  const actual = jest.requireActual<typeof import('@/shared/infrastructure/crypto/sealed-note')>(
+    '@/shared/infrastructure/crypto/sealed-note',
+  );
+  const openNote = jest.fn(async (v: string | null | undefined) =>
+    v?.startsWith('enc:v1:') ? v.slice(7) : (v ?? null),
+  );
+  return {
+    ...actual,
+    sealNote: jest.fn(async (v: string | null | undefined) => (v == null ? null : 'enc:v1:' + v)),
+    openNote,
+    openNotesIn: jest.fn(async <T extends { notes?: string | null }>(rows: T[]) => {
+      for (const row of rows) if (row.notes !== undefined) row.notes = await openNote(row.notes);
+      return rows;
+    }),
+  };
+});
 
 const mockQueryFirst = jest.mocked(queryFirst);
 const mockQueryAll = jest.mocked(queryAll);
@@ -185,6 +205,41 @@ describe('workout_logs repository', () => {
     expect(done?.finishedAt).toBe(NOW);
   });
 
+  it('createWorkoutLog seals notes in SQL, keeps the payload plaintext, returns plaintext (ADR-P047 D3)', async () => {
+    mockQueryFirst.mockResolvedValueOnce(logRow({ notes: 'enc:v1:tired legs' }));
+    const log = await createWorkoutLog(USER, { name: 'Morning session', notes: 'tired legs' }, NOW);
+    const params = mockRun.mock.calls[0][1];
+    if (!Array.isArray(params)) throw new Error('expected positional SQLite params');
+    expect(params).toContain('enc:v1:tired legs');
+    expect(params).not.toContain('tired legs');
+    expect(mockEnqueue.mock.calls[0][0]).toMatchObject({ payload: { notes: 'tired legs' } });
+    expect(log.notes).toBe('tired legs');
+  });
+
+  it('updateWorkoutLog reuses the stored note opened: SQL re-sealed, payload plaintext (ADR-P047 D3)', async () => {
+    mockQueryFirst
+      .mockResolvedValueOnce(logRow({ version: 1, notes: 'enc:v1:kept note' }))
+      .mockResolvedValueOnce(logRow({ version: 2, finished_at: NOW, notes: 'enc:v1:kept note' }));
+    const done = await updateWorkoutLog(USER, LID, { finishedAt: NOW }, NOW);
+    expect(mockRun.mock.calls[0][1]).toEqual([
+      'Morning session',
+      'enc:v1:kept note',
+      NOW,
+      2,
+      NOW,
+      LID,
+    ]);
+    expect(mockEnqueue.mock.calls[0][0]).toMatchObject({ payload: { notes: 'kept note' } });
+    expect(done?.notes).toBe('kept note');
+
+    mockQueryAll.mockResolvedValueOnce([
+      logRow({ notes: 'enc:v1:sealed' }),
+      logRow({ id: 'log-2', notes: 'legacy' }),
+    ]);
+    const logs = await listRecentWorkoutLogs(USER);
+    expect(logs.map((l) => l.notes)).toEqual(['sealed', 'legacy']);
+  });
+
   it('deleteWorkoutLog soft-deletes + enqueues DELETE', async () => {
     mockQueryFirst.mockResolvedValue(logRow({ version: 5 }));
     await deleteWorkoutLog(USER, LID, NOW);
@@ -221,6 +276,17 @@ describe('pull appliers', () => {
       mockTx,
     );
     expect(mockRun.mock.calls[0][0]).toContain('INSERT OR REPLACE INTO workout_logs');
+  });
+
+  it('applyServerWorkoutLog stores the server note sealed (ADR-P047 D3)', async () => {
+    await applyServerWorkoutLog(
+      { id: LID, user_id: USER, version: 2, name: 'x', notes: 'from server', started_at: NOW },
+      false,
+      mockTx,
+    );
+    const params = mockRun.mock.calls[0][1];
+    if (!Array.isArray(params)) throw new Error('expected positional SQLite params');
+    expect(params[9]).toBe('enc:v1:from server');
   });
 
   it('markRoutineConflict flips sync_status to conflict', async () => {

@@ -184,6 +184,14 @@ Every OTA update must be backward compatible with the installed binary.
 
 ---
 
+## Tester Distribution (ADR-P047 D8)
+
+* **Testers install only from Google Play** (internal or closed testing tracks). No APK or AAB is sent to a tester by link, file or EAS internal distribution.
+* The `e2e` variant (cleartext to loopback, debug-signed) is built **locally only**: on a developer machine (`eas build --local` or prebuild + Gradle) or on the `mobile-e2e.yml` runner. `app.config.js` refuses an e2e build on an EAS cloud worker.
+* Store builds (`internal`, `production`) are built locally in WSL and submitted with `eas submit`.
+
+---
+
 # Native Build Policy
 
 A new native build is required when changing:

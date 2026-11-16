@@ -1,8 +1,9 @@
+import { API_BASE_URL } from '../config/api-config';
 import type { SyncOperationType } from '../database/types';
 
 /** HTTP client for the api/ sync endpoints (contracts mirror the server DTOs). */
 
-const DEFAULT_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const DEFAULT_BASE_URL = API_BASE_URL;
 
 export interface PushOperation {
   opId: string;

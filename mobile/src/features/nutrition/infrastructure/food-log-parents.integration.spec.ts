@@ -2,6 +2,7 @@
 // dependency added); its minimal types live in the migrations' node-sqlite.d.ts.
 import { DatabaseSync } from 'node:sqlite';
 
+import { openNote, sealLegacyNotes } from '@/shared/infrastructure/crypto/sealed-note';
 import { MIGRATIONS } from '@/shared/infrastructure/database/migrations';
 import { runSync } from '@/shared/infrastructure/sync/sync-worker';
 import {
@@ -308,6 +309,60 @@ describe('food-log parents sync (BUG-044)', () => {
     expect(mockDb.prepare(`SELECT meal_id FROM meal_items`).get()).toEqual({
       meal_id: mealIdFor(USER, DAY, 'BREAKFAST'),
     });
+  });
+
+  it('stores a pulled day note sealed, and the backfill seals a legacy plaintext note (ADR-P047 D3)', async () => {
+    const executor = {
+      runAsync: (sql: string, params: (string | number | null)[]) => {
+        const result = mockDb.prepare(sql).run(...params) as { changes: number | bigint };
+        return Promise.resolve({ changes: Number(result.changes), lastInsertRowId: 0 });
+      },
+      getFirstAsync: (sql: string, params: (string | number | null)[]) =>
+        Promise.resolve(mockDb.prepare(sql).get(...params) ?? null),
+      getAllAsync: <T>(sql: string, params: (string | number | null)[]) =>
+        Promise.resolve(mockDb.prepare(sql).all(...params) as T[]),
+    };
+    const logId = nutritionLogIdFor(USER, DAY);
+    await applyServerNutritionLog(
+      {
+        id: logId,
+        user_id: USER,
+        date: DAY,
+        notes: 'ate late',
+        version: 1,
+        created_at: T0,
+        updated_at: T0,
+      },
+      false,
+      executor as never,
+    );
+    const stored = mockDb.prepare(`SELECT notes FROM nutrition_logs WHERE id = ?`).get(logId) as {
+      notes: string;
+    };
+    // This file's fake field cipher is transparent (`enc:<plain>`), so the
+    // sealed form is predictable: the note went through sealNote.
+    expect(stored.notes).toBe('enc:v1:enc:ate late');
+    expect(await openNote(stored.notes)).toBe('ate late');
+
+    // A row written before this release: plaintext at rest until the backfill.
+    mockDb
+      .prepare(
+        `INSERT INTO nutrition_logs (id, user_id, created_at, updated_at, version, sync_status, date, notes)
+         VALUES ('legacy-day', ?, ?, ?, 3, 'synced', '2026-10-19', 'old note')`,
+      )
+      .run(USER, T0, T0);
+    expect(await sealLegacyNotes(executor)).toBe(1);
+    const legacy = mockDb
+      .prepare(`SELECT notes, version, sync_status FROM nutrition_logs WHERE id = 'legacy-day'`)
+      .get() as { notes: string; version: number; sync_status: string };
+    expect(legacy).toMatchObject({ version: 3, sync_status: 'synced' });
+    expect(await openNote(legacy.notes)).toBe('old note');
+    expect(legacy.notes).toBe('enc:v1:enc:old note');
+    // Idempotent: nothing left to seal, the pulled note untouched.
+    expect(await sealLegacyNotes(executor)).toBe(0);
+    expect(mockDb.prepare(`SELECT notes FROM nutrition_logs WHERE id = ?`).get(logId)).toEqual(
+      stored,
+    );
   });
 
   it('pulls a meal onto an unsynced local meal for the same slot without a second one', async () => {

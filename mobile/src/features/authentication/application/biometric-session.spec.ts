@@ -401,9 +401,10 @@ describe('biometric session (ADR-P036 Amendment A)', () => {
 
     it('account deletion forgets biometrics', async () => {
       const env = await linked();
+      env.api.refresh.mockResolvedValue({ accessToken: 'a1', refreshToken: 'r1' });
       env.api.deleteAccount.mockResolvedValue(undefined);
 
-      await env.manager.deleteAccount();
+      await env.manager.deleteAccount('password12345');
       expectBiometricsForgotten(env);
     });
 

@@ -1,3 +1,4 @@
+import { forgetFieldKey } from '../../../shared/infrastructure/crypto/field-cipher';
 import { wipeDatabase } from '../../../shared/infrastructure/database';
 import { logError } from '../../../shared/infrastructure/logging';
 import type { AuthUser, Session } from '../domain/session.types';
@@ -7,6 +8,7 @@ import { ensureLocalUser } from '../infrastructure/local-user.repository';
 import { clearSession, loadSession, saveSession } from '../infrastructure/session-storage';
 import {
   AuthError,
+  DeleteAccountError,
   deleteAccount,
   getAccessToken,
   getSession,
@@ -20,6 +22,9 @@ import {
 
 jest.mock('../../../shared/infrastructure/database', () => ({
   wipeDatabase: jest.fn(),
+}));
+jest.mock('../../../shared/infrastructure/crypto/field-cipher', () => ({
+  forgetFieldKey: jest.fn(),
 }));
 jest.mock('../../../shared/infrastructure/logging', () => ({
   logError: jest.fn(),
@@ -278,15 +283,22 @@ describe('session-manager token rotation and sign-out', () => {
     expect(getStatus()).toBe('unauthenticated');
   });
 
-  it('deleteAccount deletes server-side, then wipes session and local data', async () => {
+  it('deleteAccount rotates first, sends the password, then wipes session, data and key', async () => {
     await establishSession();
+    mockRefresh.mockResolvedValue({ accessToken: 'fresh-access', refreshToken: 'fresh-refresh' });
     jest.mocked(authApi.deleteAccount).mockResolvedValue(undefined);
 
-    await deleteAccount();
+    await deleteAccount('Correct-horse-1!');
 
-    expect(jest.mocked(authApi.deleteAccount)).toHaveBeenCalledWith('a1');
+    // ADR-P047 D2: a fresh token, so a 401 below can only be the password.
+    expect(mockRefresh).toHaveBeenCalledWith('r1');
+    expect(jest.mocked(authApi.deleteAccount)).toHaveBeenCalledWith(
+      'fresh-access',
+      'Correct-horse-1!',
+    );
     expect(mockClearSession).toHaveBeenCalled();
     expect(jest.mocked(wipeDatabase)).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(forgetFieldKey)).toHaveBeenCalledTimes(1);
     expect(getStatus()).toBe('unauthenticated');
   });
 
@@ -294,22 +306,57 @@ describe('session-manager token rotation and sign-out', () => {
     mockLoadSession.mockResolvedValue(null);
     await restoreSession(); // unauthenticated: no in-memory or stored session
 
-    await expect(deleteAccount()).rejects.toThrow('Not authenticated');
+    await expect(deleteAccount('pw')).rejects.toThrow('Not authenticated');
 
     expect(jest.mocked(authApi.deleteAccount)).not.toHaveBeenCalled();
     expect(jest.mocked(wipeDatabase)).not.toHaveBeenCalled();
     expect(mockClearSession).not.toHaveBeenCalled();
   });
 
-  it('deleteAccount does NOT wipe local data if server deletion fails', async () => {
+  it.each([
+    [500, 'server'],
+    [401, 'wrong-password'],
+    [429, 'locked'],
+  ] as const)(
+    'deleteAccount maps a %i to %s and keeps the account and local data',
+    async (status, reason) => {
+      await establishSession();
+      mockRefresh.mockResolvedValue({ accessToken: 'fresh-access', refreshToken: 'fresh-refresh' });
+      jest.mocked(authApi.deleteAccount).mockRejectedValue(new AuthApiError(status, 'nope'));
+
+      const failure = await deleteAccount('pw').catch((error: unknown) => error);
+
+      expect(failure).toBeInstanceOf(DeleteAccountError);
+      expect((failure as DeleteAccountError).reason).toBe(reason);
+      expect(jest.mocked(wipeDatabase)).not.toHaveBeenCalled();
+      expect(mockClearSession).not.toHaveBeenCalled();
+      expect(getStatus()).toBe('authenticated');
+    },
+  );
+
+  it('deleteAccount offline never sends the password and keeps everything', async () => {
     await establishSession();
-    jest.mocked(authApi.deleteAccount).mockRejectedValue(new AuthApiError(500, 'server error'));
+    mockRefresh.mockRejectedValue(new TypeError('Network request failed'));
 
-    await expect(deleteAccount()).rejects.toBeInstanceOf(AuthApiError);
+    const failure = await deleteAccount('pw').catch((error: unknown) => error);
 
+    expect((failure as DeleteAccountError).reason).toBe('connectivity');
+    expect(jest.mocked(authApi.deleteAccount)).not.toHaveBeenCalled();
     expect(jest.mocked(wipeDatabase)).not.toHaveBeenCalled();
-    expect(mockClearSession).not.toHaveBeenCalled();
     expect(getStatus()).toBe('authenticated');
+  });
+
+  it('a plain sign-out keeps local data; erasing this phone wipes the database and key', async () => {
+    await establishSession();
+    await signOut();
+    expect(jest.mocked(wipeDatabase)).not.toHaveBeenCalled();
+    expect(jest.mocked(forgetFieldKey)).not.toHaveBeenCalled();
+
+    await establishSession();
+    await signOut({ eraseDeviceData: true });
+    expect(jest.mocked(wipeDatabase)).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(forgetFieldKey)).toHaveBeenCalledTimes(1);
+    expect(getStatus()).toBe('unauthenticated');
   });
 });
 

@@ -72,7 +72,12 @@ describe('ResetPasswordScreen Web focus contract (BUG-035)', () => {
     jest.replaceProperty(Platform, 'OS', 'web');
     mockLanguage = 'en';
     mockParams = { token: 'raw-token-from-link' };
-    mockWebLocation = null;
+    // ADR-P047 D6: the token only arrives in the emailed link's fragment.
+    mockWebLocation = {
+      pathname: '/reset-password',
+      search: '',
+      hash: '#token=raw-token-from-link',
+    };
     mockReset.mockReset();
     focus = jest.spyOn(View.prototype as unknown as { focus: () => void }, 'focus');
   });

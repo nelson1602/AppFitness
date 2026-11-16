@@ -12,6 +12,7 @@ import type {
   ProgressSnapshotRow,
 } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
+import { openNote, sealNote } from '@/shared/infrastructure/crypto/sealed-note';
 import { enqueue } from '@/shared/infrastructure/sync';
 
 import {
@@ -32,7 +33,8 @@ import {
 /**
  * Local-first Progress Monitoring persistence (ADR-P016 Slice 3b; ADR-0006).
  * Writes land in SQLite as `pending` and enqueue a sync op in the SAME
- * transaction for the Slice 3a backend handlers. Wellness data — no encryption.
+ * transaction for the Slice 3a backend handlers. Wellness data — no encryption,
+ * except free-text `notes`, sealed at rest (ADR-P047 D3).
  * UUID ids are client-minted. Soft-delete tombstones. Wire payloads are
  * snake_case and match the Slice 3a parsers exactly. No direct SQL lives outside
  * this repository. `progress_snapshots` is NOT handled here (Slice 4 / D2).
@@ -44,6 +46,15 @@ function str(value: unknown): string | null {
 
 function num(value: unknown): number | null {
   return value === null || value === undefined ? null : Number(value);
+}
+
+// ADR-P047 D3: `notes` is sealed at rest; open it before the row reaches the domain.
+async function toBodyWeight(row: BodyWeightRow): Promise<BodyWeight> {
+  return rowToBodyWeight({ ...row, notes: await openNote(row.notes) });
+}
+
+async function toBodyMeasurement(row: BodyMeasurementRow): Promise<BodyMeasurement> {
+  return rowToBodyMeasurement({ ...row, notes: await openNote(row.notes) });
 }
 
 // ── body_weights ──────────────────────────────────────────────────────────────
@@ -63,6 +74,8 @@ export async function createBodyWeight(
   nowIso: string = new Date().toISOString(),
 ): Promise<BodyWeight> {
   const notes = input.notes ?? null;
+  // ADR-P047 D3: SQL gets the sealed note; the sync payload keeps plaintext.
+  const sealedNotes = await sealNote(notes);
   return inTransaction(async (tx) => {
     const existing = await queryFirst<BodyWeightRow>(
       `SELECT * FROM body_weights WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
@@ -75,7 +88,7 @@ export async function createBodyWeight(
       await run(
         `UPDATE body_weights SET weight_kg = ?, date = ?, notes = ?, version = ?, updated_at = ?, sync_status = 'pending'
          WHERE id = ?`,
-        [input.weightKg, input.date, notes, nextVersion, nowIso, existing.id],
+        [input.weightKg, input.date, sealedNotes, nextVersion, nowIso, existing.id],
         tx,
       );
       await enqueue(
@@ -97,14 +110,14 @@ export async function createBodyWeight(
         tx,
       );
       if (!updated) throw new Error('body_weight row disappeared mid-transaction');
-      return rowToBodyWeight(updated);
+      return toBodyWeight(updated);
     }
 
     const id = generateUuid();
     await run(
       `INSERT INTO body_weights (id, user_id, created_at, updated_at, version, sync_status, weight_kg, date, notes)
        VALUES (?, ?, ?, ?, 1, 'pending', ?, ?, ?)`,
-      [id, userId, nowIso, nowIso, input.weightKg, input.date, notes],
+      [id, userId, nowIso, nowIso, input.weightKg, input.date, sealedNotes],
       tx,
     );
     await enqueue(
@@ -126,7 +139,7 @@ export async function createBodyWeight(
       tx,
     );
     if (!row) throw new Error('body_weight row disappeared mid-transaction');
-    return rowToBodyWeight(row);
+    return toBodyWeight(row);
   });
 }
 
@@ -135,7 +148,7 @@ export async function listBodyWeights(userId: string, limit = 365): Promise<Body
     `SELECT * FROM body_weights WHERE user_id = ? AND deleted_at IS NULL ORDER BY date DESC LIMIT ?`,
     [userId, limit],
   );
-  return rows.map(rowToBodyWeight);
+  return Promise.all(rows.map(toBodyWeight));
 }
 
 /** Same-date active entry (for the future UI's check-then-edit); null if none. */
@@ -144,7 +157,7 @@ export async function bodyWeightForDate(userId: string, date: string): Promise<B
     `SELECT * FROM body_weights WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
     [userId, date],
   );
-  return row ? rowToBodyWeight(row) : null;
+  return row ? toBodyWeight(row) : null;
 }
 
 export async function updateBodyWeight(
@@ -161,11 +174,13 @@ export async function updateBodyWeight(
     );
     if (!row) return null;
     const notes = input.notes ?? null;
+    // ADR-P047 D3: SQL gets the sealed note; the sync payload keeps plaintext.
+    const sealedNotes = await sealNote(notes);
     const nextVersion = row.version + 1;
     await run(
       `UPDATE body_weights SET weight_kg = ?, date = ?, notes = ?, version = ?, updated_at = ?, sync_status = 'pending'
        WHERE id = ?`,
-      [input.weightKg, input.date, notes, nextVersion, nowIso, id],
+      [input.weightKg, input.date, sealedNotes, nextVersion, nowIso, id],
       tx,
     );
     await enqueue(
@@ -186,7 +201,7 @@ export async function updateBodyWeight(
       [id],
       tx,
     );
-    return updated ? rowToBodyWeight(updated) : null;
+    return updated ? toBodyWeight(updated) : null;
   });
 }
 
@@ -245,7 +260,8 @@ export async function applyServerBodyWeight(
       str(row['deleted_by']),
       num(row['weight_kg']),
       str(row['date']),
-      str(row['notes']),
+      // ADR-P047 D3: server copies are sealed at rest too.
+      await sealNote(str(row['notes'])),
     ],
     tx,
   );
@@ -283,6 +299,8 @@ export async function createBodyMeasurement(
     neck_cm: input.neckCm ?? null,
     notes: input.notes ?? null,
   };
+  // ADR-P047 D3: SQL gets the sealed note; the sync payload `p` keeps plaintext.
+  const sealedNotes = await sealNote(p.notes);
   return inTransaction(async (tx) => {
     const existing = await queryFirst<BodyMeasurementRow>(
       `SELECT * FROM body_measurements WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
@@ -306,7 +324,7 @@ export async function createBodyMeasurement(
           p.left_arm_cm,
           p.right_arm_cm,
           p.neck_cm,
-          p.notes,
+          sealedNotes,
           nextVersion,
           nowIso,
           existing.id,
@@ -332,7 +350,7 @@ export async function createBodyMeasurement(
         tx,
       );
       if (!updated) throw new Error('body_measurement row disappeared mid-transaction');
-      return rowToBodyMeasurement(updated);
+      return toBodyMeasurement(updated);
     }
 
     const id = generateUuid();
@@ -355,7 +373,7 @@ export async function createBodyMeasurement(
         p.left_arm_cm,
         p.right_arm_cm,
         p.neck_cm,
-        p.notes,
+        sealedNotes,
       ],
       tx,
     );
@@ -378,7 +396,7 @@ export async function createBodyMeasurement(
       tx,
     );
     if (!row) throw new Error('body_measurement row disappeared mid-transaction');
-    return rowToBodyMeasurement(row);
+    return toBodyMeasurement(row);
   });
 }
 
@@ -390,7 +408,7 @@ export async function listBodyMeasurements(
     `SELECT * FROM body_measurements WHERE user_id = ? AND deleted_at IS NULL ORDER BY date DESC LIMIT ?`,
     [userId, limit],
   );
-  return rows.map(rowToBodyMeasurement);
+  return Promise.all(rows.map(toBodyMeasurement));
 }
 
 /** Same-date active entry (for the future UI's check-then-edit); null if none. */
@@ -402,7 +420,7 @@ export async function bodyMeasurementForDate(
     `SELECT * FROM body_measurements WHERE user_id = ? AND date = ? AND deleted_at IS NULL`,
     [userId, date],
   );
-  return row ? rowToBodyMeasurement(row) : null;
+  return row ? toBodyMeasurement(row) : null;
 }
 
 export async function updateBodyMeasurement(
@@ -430,6 +448,8 @@ export async function updateBodyMeasurement(
       neck_cm: input.neckCm ?? null,
       notes: input.notes ?? null,
     };
+    // ADR-P047 D3: SQL gets the sealed note; the sync payload `p` keeps plaintext.
+    const sealedNotes = await sealNote(p.notes);
     const nextVersion = row.version + 1;
     await run(
       `UPDATE body_measurements SET date = ?, body_fat_pct = ?, muscle_mass_kg = ?, waist_cm = ?, hip_cm = ?, chest_cm = ?,
@@ -445,7 +465,7 @@ export async function updateBodyMeasurement(
         p.left_arm_cm,
         p.right_arm_cm,
         p.neck_cm,
-        p.notes,
+        sealedNotes,
         nextVersion,
         nowIso,
         id,
@@ -470,7 +490,7 @@ export async function updateBodyMeasurement(
       [id],
       tx,
     );
-    return updated ? rowToBodyMeasurement(updated) : null;
+    return updated ? toBodyMeasurement(updated) : null;
   });
 }
 
@@ -537,7 +557,8 @@ export async function applyServerBodyMeasurement(
       num(row['left_arm_cm']),
       num(row['right_arm_cm']),
       num(row['neck_cm']),
-      str(row['notes']),
+      // ADR-P047 D3: server copies are sealed at rest too.
+      await sealNote(str(row['notes'])),
     ],
     tx,
   );

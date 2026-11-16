@@ -65,8 +65,8 @@ const { PasswordRecoveryError } = jest.requireMock<typeof import('@/features/aut
 
 /**
  * ADR-P026 correction: the emailed HTTPS link carries the token in the
- * fragment, which never reaches a server or proxy log. The native custom
- * scheme keeps its query parameter, which never traverses HTTP at all.
+ * fragment, which never reaches a server or proxy log. ADR-P047 D6: that is
+ * now the only shape accepted — no query string, no native custom scheme.
  */
 describe('captureResetToken', () => {
   beforeEach(() => {
@@ -77,36 +77,36 @@ describe('captureResetToken', () => {
   it('reads the token from the fragment on Web', () => {
     mockWebLocation = { pathname: '/reset-password', search: '', hash: '#token=from-fragment' };
 
-    expect(captureResetToken(undefined)).toBe('from-fragment');
+    expect(captureResetToken()).toBe('from-fragment');
   });
 
-  it('prefers the fragment over a query parameter when both are present', () => {
+  it('takes the fragment and ignores a query parameter when both are present', () => {
     mockWebLocation = {
       pathname: '/reset-password',
       search: '?token=from-query',
       hash: '#token=from-fragment',
     };
 
-    expect(captureResetToken('from-query')).toBe('from-fragment');
+    expect(captureResetToken()).toBe('from-fragment');
   });
 
-  it('falls back to the router parameter for the native custom scheme', () => {
-    // No browser location: appfitness://reset-password?token=…
+  it('refuses the native custom scheme (appfitness://reset-password?token=…)', () => {
+    // No browser location: the scheme's query is the only thing that arrives.
     mockWebLocation = null;
 
-    expect(captureResetToken('from-scheme')).toBe('from-scheme');
+    expect(captureResetToken()).toBeNull();
   });
 
-  it('still accepts a query parameter on Web when no fragment was supplied', () => {
+  it('refuses a query parameter on Web when no fragment was supplied', () => {
     mockWebLocation = { pathname: '/reset-password', search: '?token=legacy', hash: '' };
 
-    expect(captureResetToken('legacy')).toBe('legacy');
+    expect(captureResetToken()).toBeNull();
   });
 
   it('returns null when neither shape carries a usable token', () => {
     mockWebLocation = { pathname: '/reset-password', search: '', hash: '#token=' };
 
-    expect(captureResetToken(undefined)).toBeNull();
+    expect(captureResetToken()).toBeNull();
   });
 });
 
@@ -152,9 +152,25 @@ describe('ResetPasswordScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockLanguage = 'en';
-    mockParams = { token: 'raw-token-from-link' };
-    mockWebLocation = null;
+    mockParams = {};
+    // ADR-P047 D6: the token only ever arrives in the emailed link's fragment.
+    mockWebLocation = {
+      pathname: '/reset-password',
+      search: '',
+      hash: '#token=raw-token-from-link',
+    };
     mockReset.mockResolvedValue(undefined);
+  });
+
+  it('ignores appfitness://reset-password?token=… on native: incomplete link, no form', async () => {
+    mockWebLocation = null;
+    mockParams = { token: 'token-from-scheme' };
+
+    await render(<ResetPasswordScreen />);
+
+    expect(screen.getByText('This link is incomplete')).toBeTruthy();
+    expect(screen.queryByTestId('button-reset-submit')).toBeNull();
+    expect(mockReset).not.toHaveBeenCalled();
   });
 
   const fill = async (password: string, confirmation = password) => {
@@ -301,9 +317,9 @@ describe('ResetPasswordScreen', () => {
     expect(mockReset).not.toHaveBeenCalled();
   });
 
-  it('offers a new link when the deep link carries no token', async () => {
+  it('offers a new link when the link carries no token', async () => {
     const { router } = jest.requireMock<typeof import('expo-router')>('expo-router');
-    mockParams = {};
+    mockWebLocation = { pathname: '/reset-password', search: '', hash: '' };
     await render(<ResetPasswordScreen />);
 
     expect(screen.getByText('This link is incomplete')).toBeTruthy();

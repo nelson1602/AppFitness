@@ -2,6 +2,7 @@ export type { AuthUser, Role, Session, SessionStatus, SessionTokens } from './do
 export { AuthApiError } from './infrastructure/auth-api';
 export {
   AuthError,
+  DeleteAccountError,
   EmailVerificationError,
   PasswordRecoveryError,
   getAccessToken,
@@ -32,6 +33,8 @@ export type {
   BiometricLinkOutcome,
   BiometricUnlinkOutcome,
   BiometricUnlockOutcome,
+  DeleteAccountErrorReason,
+  SignOutOptions,
   SessionSnapshot,
 } from './application/session-manager';
 export {

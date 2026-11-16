@@ -169,6 +169,13 @@ Never trust the client.
 
 # Secure Storage
 
+As implemented (ADR-P047):
+
+- Free-text notes on weight, measurements, workouts, sets and nutrition logs are sealed at rest (`enc:v1:`, AES-256-GCM under the SecureStore field key). Medical fields were already sealed.
+- No app data is included in Android cloud backup or device-to-device transfer.
+- "Cerrar sesión y borrar datos de este teléfono" deletes the database file and the field key. A plain sign-out keeps local data for the next sign-in.
+- Whole-database SQLCipher is a design note (ADR-P047 D3b), not yet implemented.
+
 Sensitive local information must be stored using:
 
 - Expo SecureStore
@@ -411,7 +418,7 @@ Root/Jailbreak detection (Future)
 
 # Network Security
 
-HTTPS is mandatory.
+HTTPS is mandatory. A release build of the app refuses to start without an `https:` API URL. Only the locally built e2e variant may use http, and only to loopback (ADR-P047 D5).
 
 Reject insecure connections.
 
@@ -515,7 +522,7 @@ SecureStore
 
 Biometric authentication
 
-Secure deep links
+Secure deep links: the password-reset token is read only from the emailed HTTPS link's fragment; the `appfitness://reset-password?token=` scheme is refused (ADR-P047 D6)
 
 Protected navigation
 

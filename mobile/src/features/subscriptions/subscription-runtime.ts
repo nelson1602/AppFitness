@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '@/shared/infrastructure/config/api-config';
 import { Linking, Platform } from 'react-native';
 
 import {
@@ -24,7 +25,6 @@ import { RevenueCatPurchasesAdapter } from './infrastructure/revenuecat-purchase
 
 let runtime: SubscriptionPurchases | null = null;
 let initialized = false;
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
 
 export class SubscriptionReconciliationError extends Error {
   constructor() {

@@ -8,10 +8,14 @@
  * tokens/secrets, opaque user id only. The `reset`/`link` entries were added
  * with ADR-P026: a password-reset link is a bearer credential, so a key like
  * `resetUrl` must be redacted even though it names no obvious secret.
+ *
+ * ADR-P047 D7 brings it level with the API's ADR-P046 scrubber: the same key
+ * list (mail/recipient/subject/body/verif added), and exception values,
+ * messages, log entries and breadcrumb messages pass through `scrubText`.
  */
 
 export const SENSITIVE_KEY =
-  /token|password|secret|key|authorization|credential|cookie|session|notes|conditions|medications|restriction|injur|payload|email|phone|username|birth|reset|link/i;
+  /token|password|secret|key|authorization|credential|cookie|session|notes|conditions|medications|restriction|injur|payload|email|phone|username|birth|mail|recipient|subject|body|link|reset|verif/i;
 
 const MAX_DEPTH = 4;
 const REDACTED = '[REDACTED]';
@@ -54,6 +58,8 @@ interface ScrubbableBreadcrumb {
 /** Constrained on `object` so Sentry's own types flow through unchanged. */
 export function scrubBreadcrumb<T extends object>(input: T): T {
   const crumb = input as ScrubbableBreadcrumb;
+  // ADR-P047 D7: a console breadcrumb's message is whatever was logged.
+  if (crumb.message !== undefined) crumb.message = scrubText(crumb.message);
   if (crumb.category === 'http' || crumb.category === 'fetch' || crumb.category === 'xhr') {
     const data = crumb.data ?? {};
     crumb.data = {
@@ -92,7 +98,51 @@ function stripUrlLikeValues(data: Record<string, unknown>): Record<string, unkno
   return out;
 }
 
+/** Longest free text kept from an exception value or a message. */
+export const MAX_SCRUBBED_TEXT = 200;
+
+const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const JWT = /\beyJ[\w-]+\.[\w-]+\.[\w-]+/g;
+const BEARER = /\bBearer\s+\S+/gi;
+// Long opaque runs: refresh/reset tokens, hashes, API keys.
+const LONG_TOKEN = /\b[A-Za-z0-9_-]{32,}\b/g;
+const QUOTED = /(["'`])(?:(?!\1).){1,500}\1/g;
+
+/**
+ * ADR-P047 D7 (the API's ADR-P046 rule): free text from an exception or a
+ * message, made safe. Credentials and email addresses are replaced, quoted
+ * values (where an error quotes user input or SQL values) are dropped, URLs of
+ * any scheme lose their query and fragment, and the whole is cut to
+ * MAX_SCRUBBED_TEXT characters.
+ */
+export function scrubText(text: unknown): string | undefined {
+  if (typeof text !== 'string') return undefined;
+  const cleaned = text
+    .replace(/[a-z][a-z0-9+.-]*:\/\/\S+/gi, (url) => stripQueryAndFragment(url) ?? '')
+    .replace(BEARER, 'Bearer [REDACTED]')
+    .replace(JWT, '[REDACTED]')
+    .replace(EMAIL, '[REDACTED]')
+    .replace(LONG_TOKEN, '[REDACTED]')
+    .replace(QUOTED, '[REDACTED]');
+  return cleaned.length > MAX_SCRUBBED_TEXT ? `${cleaned.slice(0, MAX_SCRUBBED_TEXT)}…` : cleaned;
+}
+
+interface ScrubbableException {
+  type?: string;
+  value?: string;
+}
+
+/** An exception keeps its type; its message is reduced by `scrubText`. */
+export function scrubException<T extends object>(input: T): T {
+  const exception = input as ScrubbableException;
+  exception.value = scrubText(exception.value);
+  return input;
+}
+
 interface ScrubbableEvent {
+  message?: string;
+  logentry?: { message?: string; params?: unknown[] };
+  exception?: { values?: ScrubbableException[] };
   request?: { url?: string };
   user?: { id?: unknown };
   extra?: Record<string, unknown>;
@@ -103,6 +153,12 @@ interface ScrubbableEvent {
 
 export function scrubEvent<T extends object>(input: T): T {
   const event = input as ScrubbableEvent;
+  // ADR-P047 D7: exception values and messages are free text too.
+  if (event.exception?.values) {
+    event.exception.values = event.exception.values.map((e) => scrubException(e));
+  }
+  if (event.message !== undefined) event.message = scrubText(event.message);
+  if (event.logentry) event.logentry = { message: scrubText(event.logentry.message) };
   if (event.request) {
     event.request = { url: stripQueryAndFragment(event.request.url) };
   }

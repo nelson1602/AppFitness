@@ -12,6 +12,7 @@ import type {
   WorkoutSetRow,
 } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
+import { openNote, sealNote } from '@/shared/infrastructure/crypto/sealed-note';
 import { enqueue } from '@/shared/infrastructure/sync';
 
 import {
@@ -38,11 +39,16 @@ import { ownedCustomExerciseExists } from './exercise.repository';
  * An unknown id (neither a built-in nor an owned custom) is rejected so a
  * missing custom exercise fails safely instead of writing a dangling FK. Parent
  * (routine / workout_log) must exist locally + active. Wellness data — no
- * encryption. No SQL outside this repository.
+ * encryption, except free-text `notes`, sealed at rest (ADR-P047 D3). No SQL outside this repository.
  */
 
 const ROUTINE_EXERCISE_ENTITY = 'routine_exercises';
 const WORKOUT_SET_ENTITY = 'workout_sets';
+
+// ADR-P047 D3: `notes` is sealed at rest; open it before the row reaches the domain.
+async function toWorkoutSet(row: WorkoutSetRow): Promise<WorkoutSet> {
+  return rowToWorkoutSet({ ...row, notes: await openNote(row.notes) });
+}
 
 /**
  * Ensures the `exercise_id` FK target exists locally before a child insert:
@@ -269,6 +275,8 @@ export async function addWorkoutSet(
   const rpe = input.rpe ?? null;
   const completed = toSqlBool(input.completed ?? false);
   const notes = input.notes ?? null;
+  // ADR-P047 D3: SQL gets the sealed note; the sync payload keeps plaintext.
+  const sealedNotes = await sealNote(notes);
 
   return inTransaction(async (tx) => {
     const log = await queryFirst<WorkoutLogRow>(
@@ -295,7 +303,7 @@ export async function addWorkoutSet(
         weightKg,
         rpe,
         completed,
-        notes,
+        sealedNotes,
       ],
       tx,
     );
@@ -328,7 +336,7 @@ export async function addWorkoutSet(
       tx,
     );
     if (!row) throw new Error('workout_set row disappeared mid-transaction');
-    return rowToWorkoutSet(row);
+    return toWorkoutSet(row);
   });
 }
 
@@ -339,7 +347,7 @@ export async function listWorkoutSets(userId: string, workoutLogId: string): Pro
      ORDER BY set_number ASC`,
     [workoutLogId, userId],
   );
-  return rows.map(rowToWorkoutSet);
+  return Promise.all(rows.map(toWorkoutSet));
 }
 
 /**
@@ -383,12 +391,15 @@ export async function updateWorkoutSet(
     const weightKg = patch.weightKg === undefined ? row.weight_kg : patch.weightKg;
     const rpe = patch.rpe === undefined ? row.rpe : patch.rpe;
     const completed = patch.completed === undefined ? row.completed : toSqlBool(patch.completed);
-    const notes = patch.notes === undefined ? row.notes : patch.notes;
+    // ADR-P047 D3: the stored note is sealed — open it before reusing it, seal
+    // it again for SQL, and keep the payload plaintext.
+    const notes = patch.notes === undefined ? await openNote(row.notes) : patch.notes;
+    const sealedNotes = await sealNote(notes);
     const nextVersion = row.version + 1;
     await run(
       `UPDATE workout_sets SET set_number = ?, reps = ?, weight_kg = ?, rpe = ?, completed = ?,
          notes = ?, version = ?, updated_at = ?, sync_status = 'pending' WHERE id = ?`,
-      [setNumber, reps, weightKg, rpe, completed, notes, nextVersion, nowIso, id],
+      [setNumber, reps, weightKg, rpe, completed, sealedNotes, nextVersion, nowIso, id],
       tx,
     );
     await enqueue(
@@ -416,7 +427,7 @@ export async function updateWorkoutSet(
       [id],
       tx,
     );
-    return updated ? rowToWorkoutSet(updated) : null;
+    return updated ? toWorkoutSet(updated) : null;
   });
 }
 
@@ -520,7 +531,8 @@ export async function applyServerWorkoutSet(
       numOrNull(row['weight_kg']),
       numOrNull(row['rpe']),
       row['completed'] === true ? 1 : 0,
-      str(row['notes']),
+      // ADR-P047 D3: server copies are sealed at rest too.
+      await sealNote(str(row['notes'])),
     ],
     tx,
   );

@@ -590,6 +590,9 @@ export const es = {
   'auth.error.unexpectedTitle': 'Algo salió mal',
   'auth.error.unexpectedBody':
     'No pudimos completar el inicio de sesión en este dispositivo. Inténtalo de nuevo.',
+  'auth.error.lockedTitle': 'Demasiados intentos',
+  'auth.error.lockedBody':
+    'Por seguridad pausamos el inicio de sesión unos minutos. Espera e inténtalo de nuevo, o restablece tu contraseña.',
   // Recuperación de contraseña (ADR-P026 Vertical 1). El texto de "enviado"
   // es deliberadamente ambiguo: debe leerse igual exista o no la cuenta.
   'auth.forgotPassword': '¿Olvidaste tu contraseña?',
@@ -1613,6 +1616,17 @@ export const es = {
   'dashboard.exercises': 'Biblioteca de ejercicios',
   'dashboard.signOutAccessibility': 'Cerrar sesión en tu cuenta',
   'dashboard.signOut': 'Cerrar sesión',
+  'profile.eraseDevice.row': 'Cerrar sesión y borrar datos de este teléfono',
+  'profile.eraseDevice.rowAccessibility':
+    'Cerrar sesión y borrar los datos de esta cuenta en este teléfono',
+  'profile.eraseDevice.title': '¿Borrar datos de este teléfono?',
+  'profile.eraseDevice.body':
+    'Cerramos tu sesión y borramos de este teléfono tus registros, tu plan y tus notas. Tu cuenta y lo que ya se sincronizó siguen a salvo y vuelven al iniciar sesión.',
+  'profile.eraseDevice.unsynced':
+    'Cambios sin sincronizar: {count}. Se perderán si borras ahora; sincroniza primero si quieres conservarlos.',
+  'profile.eraseDevice.confirm': 'Cerrar sesión y borrar',
+  'profile.eraseDevice.confirmAccessibility': 'Cerrar sesión y borrar los datos de este teléfono',
+  'profile.eraseDevice.cancel': 'Cancelar',
   'dashboard.deleteAccountAccessibility': 'Eliminar tu cuenta',
   'dashboard.deleteAccount': 'Eliminar cuenta',
   'dashboard.subscription': 'Suscripción',
@@ -1622,6 +1636,15 @@ export const es = {
     'Esto elimina permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.',
   'account.delete.errorTitle': 'No se pudo eliminar la cuenta',
   'account.delete.errorMessage': 'No pudimos eliminar tu cuenta. Inténtalo de nuevo.',
+  'account.delete.passwordLabel': 'Tu contraseña actual',
+  'account.delete.passwordAccessibility': 'Contraseña actual para eliminar la cuenta',
+  'account.delete.error.wrongPassword': 'La contraseña no es correcta. Inténtalo de nuevo.',
+  'account.delete.error.locked':
+    'Demasiados intentos. Por seguridad, espera unos minutos antes de volver a intentarlo.',
+  'account.delete.error.sessionEnded':
+    'Tu sesión terminó. Inicia sesión de nuevo para eliminar tu cuenta.',
+  'account.delete.error.connectivity':
+    'Sin conexión. Conéctate a internet para eliminar tu cuenta.',
   'account.delete.confirmInstruction': 'Escribe {phrase} para confirmar',
   'account.delete.confirmationAccessibility': 'Frase de confirmación para eliminar la cuenta',
   'account.delete.deleteAccessibility': 'Eliminar cuenta permanentemente',

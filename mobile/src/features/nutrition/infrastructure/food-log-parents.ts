@@ -1,3 +1,4 @@
+import { sealNote } from '@/shared/infrastructure/crypto/sealed-note';
 import {
   inTransaction,
   queryAll,
@@ -322,7 +323,8 @@ export async function applyServerNutritionLog(
       deleted ? (str(row['deleted_at']) ?? new Date().toISOString()) : null,
       str(row['deleted_by']),
       row.date,
-      str(row['notes']),
+      // ADR-P047 D3: server copies are sealed at rest too.
+      await sealNote(str(row['notes'])),
     ],
     tx,
   );
