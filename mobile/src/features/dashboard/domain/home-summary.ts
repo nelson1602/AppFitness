@@ -52,6 +52,14 @@ export interface HomeInputs {
   readonly weekProgress?: { readonly done: number; readonly extra: number } | null;
   /** R2: today's kcal from extra cardio, added to the calorie target. */
   readonly activityCalories?: number;
+  /** ADR-P040 v11-B: today's carry-over kcal (signed), added to the calorie target. */
+  readonly carryOverCalories?: number;
+  /**
+   * ADR-P040 v10-A R3: skipped sessions the iCoach moved to a later day, as
+   * Entrenamientos shows them. A session moved to today makes today a training
+   * day; a session moved away leaves its day without one (TASK-v11B-4).
+   */
+  readonly moves?: readonly { readonly from: string; readonly to: string }[];
 }
 
 export type HomeToday =
@@ -102,10 +110,13 @@ function clamp01(value: number): number {
 function todayFromPlan(inputs: HomeInputs, finishedToday: boolean): HomeToday {
   const day: WorkoutScheduleDay | undefined = inputs.routine?.schedule[inputs.weekdayIndex];
   if (!day) return { kind: 'unknown' };
-  if (day.kind === 'TRAINING') {
+  // R3: the week as Entrenamientos shows it — a moved session trains today.
+  const movedIn = (inputs.moves ?? []).some((move) => move.to === inputs.today);
+  const movedOut = (inputs.moves ?? []).some((move) => move.from === inputs.today);
+  if (movedIn || (day.kind === 'TRAINING' && !movedOut)) {
     return { kind: 'training', minutes: inputs.sessionMinutes, completed: finishedToday };
   }
-  return { kind: 'rest', active: day.recovery === 'ACTIVE_RECOVERY' };
+  return { kind: 'rest', active: day.kind === 'RECOVERY' && day.recovery === 'ACTIVE_RECOVERY' };
 }
 
 export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
@@ -149,12 +160,13 @@ export function buildHomeSummary(inputs: HomeInputs): HomeSummary {
 
   const { caloriesConsumed: consumed } = inputs;
   // The same rule as the food log (nutrition/domain/daily-targets): base kcal plus
-  // today's extra-cardio bonus.
+  // today's extra-cardio bonus and the day-to-day carry-over.
   const targets =
     inputs.calorieTarget !== null
       ? dailyTargets(
           { calories: inputs.calorieTarget, proteinG: 0, carbsG: 0, fatG: 0 },
           inputs.activityCalories ?? 0,
+          inputs.carryOverCalories ?? 0,
         )
       : null;
   const activityBonus = targets?.activityBonus ?? 0;

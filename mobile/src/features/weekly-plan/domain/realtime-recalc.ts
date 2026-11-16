@@ -315,6 +315,8 @@ export type CoachChange =
       at: number;
       meals: readonly MealSlot[];
       food: string;
+      /** v11-B: its brand, for the name shown (display only). */
+      foodBrand?: string | null;
       covered: boolean;
     };
 

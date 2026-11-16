@@ -335,3 +335,56 @@ describe('WorkoutWeek with a session the iCoach moved', () => {
     expect(screen.getByTestId('workout-week-row-1-status')).toHaveTextContent('Done');
   });
 });
+
+describe('carry-over cardio on the session (ADR-P040 v11-B)', () => {
+  // Wednesday 2026-11-04 is today; yesterday went past 10 % of the target.
+  const block = [
+    { date: '2026-11-04', sessionKey: 'session-1', minutes: 20, fromDates: ['2026-11-03'] },
+  ];
+
+  beforeEach(() => {
+    mockLanguage = 'es';
+    mockDone = {};
+  });
+
+  it('is a real exercise of the session, labelled "Añadido por el iCoach"', async () => {
+    const onRemove = jest.fn();
+    await render(
+      <WorkoutWeek
+        addedCardio={block}
+        doneDates={new Set()}
+        notes={[]}
+        onRemoveCardio={onRemove}
+        planStart={null}
+        routine={ROUTINE}
+        sessionMinutes={45}
+        todayIndex={2}
+        weekDates={DATES}
+      />,
+    );
+    expect(screen.getByTestId('workout-exercise-2')).toHaveTextContent(/Añadido por el iCoach/);
+    expect(screen.getByTestId('workout-exercise-2')).toHaveTextContent(/20 min de cardio suave/);
+    // Logged like any other exercise: it has its own set button.
+    expect(screen.getByTestId('workout-exercise-2-set')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId('workout-added-cardio-remove'));
+    expect(onRemove).toHaveBeenCalledWith('2026-11-04');
+  });
+
+  it('leaves other days and sessions without it unchanged', async () => {
+    await render(
+      <WorkoutWeek
+        addedCardio={block}
+        doneDates={new Set()}
+        notes={[]}
+        planStart={null}
+        routine={ROUTINE}
+        sessionMinutes={45}
+        todayIndex={0}
+        weekDates={DATES}
+      />,
+    );
+    expect(screen.queryByTestId('workout-exercise-2')).toBeNull();
+    expect(screen.queryByTestId('workout-added-cardio-label')).toBeNull();
+  });
+});

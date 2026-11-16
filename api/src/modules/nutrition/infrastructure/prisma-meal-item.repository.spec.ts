@@ -291,6 +291,52 @@ describe('PrismaMealItemRepository (ADR-P030 C-2)', () => {
       where: { userId: USER, syncSeq: { gt: BigInt(5) } },
       orderBy: { syncSeq: 'asc' },
       take: 100,
+      include: { food: { select: { brand: true } } },
     });
+  });
+
+  it('changedSince carries the food brand on each record (v11-B)', async () => {
+    const row = (foodId: string, brand: string | null) => ({
+      id: ITEM_ID,
+      userId: USER,
+      mealId: MEAL_ID,
+      foodId,
+      servingCount: 1,
+      foodNameSnapshot: 'Leche Contensada Nestlé',
+      catalogKeySnapshot: 'off.7613035750319',
+      foodRevisionSnapshot: 1,
+      catalogVersionSnapshot: 'external@1',
+      servingAmountSnapshot: 100,
+      servingUnitSnapshot: 'g',
+      gramsPerServingSnapshot: 100,
+      caloriesPerServingSnapshot: 300,
+      proteinPerServingSnapshot: 7,
+      carbsPerServingSnapshot: 55,
+      fatPerServingSnapshot: 8,
+      fiberPerServingSnapshot: null,
+      planId: null,
+      planDate: null,
+      planSlot: null,
+      version: 1,
+      syncSeq: BigInt(7),
+      createdAt: new Date('2026-11-13T10:00:00Z'),
+      updatedAt: new Date('2026-11-13T10:00:00Z'),
+      deletedAt: null,
+      deletedBy: null,
+      food: { brand },
+    });
+    const root = {
+      mealItem: {
+        findMany: jest
+          .fn()
+          .mockResolvedValue([row(FOOD_ID, 'Nestlé'), row(FOOD_ID, null)]),
+      },
+    };
+    const records = await new PrismaMealItemRepository(
+      root as unknown as PrismaService,
+    ).changedSince(USER, 0, 100);
+
+    expect(records.map((record) => record.foodBrand)).toEqual(['Nestlé', null]);
+    expect(records[0]).not.toHaveProperty('food');
   });
 });

@@ -86,7 +86,7 @@ export function WorkoutLogScreen() {
   const paidWriteDisabled = usePaidWriteDisabled();
   const { language, t } = useLocalization();
   // v10 Block C, item 9: lifted weight typed in the person's units, saved in kg.
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const {
     status,
     routines,
@@ -556,7 +556,7 @@ function NewSetInputs({
 }) {
   const theme = useTheme();
   const { t } = useLocalization();
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const weightLabel = t(system === 'imperial' ? 'workout.log.weightLb' : 'workout.log.weightKg');
   const [rowWidth, setRowWidth] = useState(0);
   const [placeholderWidths, setPlaceholderWidths] = useState({ reps: 0, weight: 0 });
@@ -635,7 +635,7 @@ function SetList({
 }) {
   const theme = useTheme();
   const { language, t } = useLocalization();
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   if (sets.length === 0) {
     return <AppText tone="muted">{t('workout.log.setsEmpty')}</AppText>;
   }

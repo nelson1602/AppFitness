@@ -77,6 +77,8 @@ export interface TodayRebalanceInput {
   meals: readonly RebalanceMeal[];
   closedSlots: ReadonlySet<MealSlot>;
   targetCalories: number;
+  /** Addendum v11-B: today's target includes a positive carry-over. */
+  carryOverUp?: boolean;
   proteinTargetG: number;
   consumed: MealMacros;
   country: string | undefined;
@@ -89,6 +91,7 @@ export function rebalanceToday(input: TodayRebalanceInput): DayRebalance {
     meals: input.meals,
     closedSlots: input.closedSlots,
     targetCalories: input.targetCalories,
+    carryOverUp: input.carryOverUp === true,
     proteinTargetG: input.proteinTargetG,
     consumed: input.consumed,
     lighterDishes: lighterDishesFor(input.country, isBlocked),

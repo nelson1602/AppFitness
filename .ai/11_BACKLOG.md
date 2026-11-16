@@ -3546,12 +3546,21 @@ Contrast is gated in `contrast.spec.ts`. Style tests cover both themes in `langu
 
 ## [DATA-001] A Food Shows as "Galleta de Soda field" (Lowercase Brand Glued to the Name)
 
-Status: Open (backlog only, owner 2026-11-12)
+Status: Fixed in PR #257 (codex/v11-carryover-units), pending owner review. Display rule, and (review 2026-11-16, decision 2 "persist from now on") the brand is now kept on the phone; snapshots unchanged
 Priority: P3
 Type: Data quality
 Owner: Engineering
 Created: 2026-11-12
-Updated: 2026-11-12
+Updated: 2026-11-13
+
+### Resolution (v11-B item c, owner rule 2026-11-13)
+
+`shownFoodName` / `loggedFoodName` (`nutrition/application/food-display.service.ts`), display only:
+- A name matching a bundled food (accents, case and spacing aside) shows its catalogue name.
+- Otherwise the name is sentence-cased, and a brand repeated at its end moves into parentheses: "Galleta de Soda field" (brand Field) → **"Galleta de soda (Field)"**.
+- Used in search results (the separate "· Field" caption is then dropped), the food log, the plan's "fuera del plan" rows and the iCoach sentence.
+- Logged items read the brand from their local `foods` row. `food_name_snapshot` is never rewritten.
+- **Review 2026-11-16 (decision 2 is "persist from now on", not display only):** a saved food keeps its brand (from the chosen search result); a row kept earlier without one gets it from a later search or from a pull (`food_brand` on `meal_items`, API additive). Saved and logged branded foods read "Name (Brand)"; without a brand, sentence case only.
 
 ### Description
 
@@ -3565,6 +3574,106 @@ In the v10 and v11 device runs, the first search result for "galleta" read **"Ga
 - Check the saved food's source record for its `product_name` and brand fields.
 - Decide on a display rule, for example brand shown separately or title-cased.
 - Already-logged snapshots keep their name (historical data is never rewritten).
+
+---
+
+## [DATA-002] "Chicharron De Cerdo" Has No Spanish Catalogue Name, So Its Accent Is Not Restored
+
+Status: Open (owner decision needed)
+Priority: P3
+Type: Data quality
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+The owner's v11-B rule shows the Spanish catalogue name when one exists, and sentence case otherwise. The bundled catalogue (`food-catalog.es.ts`, 300+ names) has no chicharrón entry, and the server seed has none either. The API's `external-food.ts` only translates *chicharron* → *pork rinds* for searching. So "Chicharron De Cerdo" now reads **"Chicharron de cerdo"**: sentence case, without the accent.
+
+### Options
+
+- Add a sourced catalogue food for chicharrón de cerdo. This goes through ADR-P013 sourcing, with FDC data for pork skins.
+- Or add a display-only list of Spanish names for common DO foods with no catalogue entry, which needs the owner's approval for the list.
+
+---
+
+## [TASK-v11B-1] Carry-Over: Count the Previous Week's Extra-Cardio Bonus
+
+Status: Open
+Priority: P3
+Type: Task
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+`carry-over@1.0.0` (ADR-P040 Addendum v11-B) compares a past day with its target including that day's extra-cardio bonus (R2). The realtime week only knows the current ISO week's extra activities. So on a Monday or Tuesday, a day from the previous week is compared with base + carry-over, without its bonus. Someone who did extra cardio last Sunday and ate the bonus could read as over.
+
+### To do
+
+Compute R2 for the 7-day lookback window from the workout logs, not just the current week, and add a test that crosses the week boundary.
+
+---
+
+## [TASK-v11B-2] Food Add Form: Local Matches and the Chosen Food Still Show the Raw Name
+
+Status: Fixed in PR #257 (review 2026-11-16): the add form uses `loggedFoodName` with the kept brand; specs in `FoodLogAddForm.remote.spec.tsx`
+Priority: P3
+Type: Task
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+Found in the v11-B device evidence (`dist/v11-review/carryover-units/`, shots 30 and 21). `shownFoodName` / `loggedFoodName` cover the remote results, the food log, the plan extras and the iCoach sentence. In `FoodLogAddForm`, two places still show the stored name:
+- the local matches ("Galleta de Soda field");
+- the chosen food's header ("Leche Contensada Nestlé").
+
+The food log shows the same rows as "Galleta de soda field" and "Leche contensada nestlé".
+
+### To do
+
+Use `loggedFoodName` for both, with a spec. Display only; nothing stored changes.
+
+---
+
+## [TASK-v11B-3] The Alcohol Note Cannot Fire: No Catalogue Food Has the `alcohol` Tag
+
+Status: Resolved in PR #257 (review 2026-11-16) by removing the dead branch: the catalogue has no alcoholic drink to tag (tagging would need sourced new catalogue foods, ADR-P013). `off-plan`, its banner and copy are gone; ADR-P040 v11-B records it
+Priority: P3
+Type: Task
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+`off-plan@1.1.0` shows the alcohol note when a food logged yesterday or today has `avoidFor: ['alcohol']` in the catalogue. `food-catalog.data.ts` tags no food with `alcohol`, and remote or custom foods carry no avoid tags. So the softened note ("Registraste alcohol: hoy conviene un entrenamiento suave.") cannot appear on a device. Found while capturing the v11-B evidence.
+
+### To do
+
+Owner decision: add catalogue drinks tagged `alcohol` (beer, wine, rum, with sourced values per ADR-P013), or retire the note.
+
+---
+
+## [TASK-v11B-4] Inicio Says "Rest Day" While Entrenamientos Shows the Moved Session Today
+
+Status: Fixed in PR #257 (review 2026-11-16): `buildHomeSummary` applies the R3 moves; specs in `home-summary.spec.ts`
+Priority: P3
+Type: Task
+Owner: Engineering
+Created: 2026-11-13
+Updated: 2026-11-13
+
+### Description
+
+Seen in the v11-B evidence on Saturday 2026-11-14 (shots 08 and 10). Friday's session was not done, so Entrenamientos shows it moved to Saturday ("Sábado · creado por iCoach"). Inicio's iCoach line still reads "Hoy es día de descanso activo…". This predates v11-B: it comes from the v10-A move overlay versus the coach card.
+
+### To do
+
+Have the coach card use the same moved-session view as Entrenamientos, with a spec.
 
 ---
 

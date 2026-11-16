@@ -53,6 +53,8 @@ export interface LoggedMealItem {
   /** Catalog slug from the snapshot (human-facing identity). */
   catalogKey: string | null;
   name: string;
+  /** The food's brand, when the local food row has one (display only, v11-B). */
+  brand?: string | null;
   /** Editable quantity model (Slice 4A): multiples of one catalog serving. */
   servingCount: number;
   serving: { amount: number; unit: string };

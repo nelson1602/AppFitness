@@ -23,8 +23,7 @@ import {
 import { useTheme } from '@/shared/theme';
 
 import { useDietaryPreferenceStore } from '../application/dietary-preference.store';
-import { foodDisplayName } from '../application/food-display.service';
-import { getById } from '../application/food-catalog.service';
+import { loggedFoodName } from '../application/food-display.service';
 import {
   useFoodLogStore,
   type FoodLogSyncSummary,
@@ -199,8 +198,7 @@ function LoggedItemRow({ item }: { item: LoggedMealItem }) {
   const paidWriteDisabled = usePaidWriteDisabled();
   const editServing = useFoodLogStore((state) => state.editServing);
   const removeItem = useFoodLogStore((state) => state.removeItem);
-  const canonical = item.catalogKey ? getById(item.catalogKey) : undefined;
-  const displayName = canonical ? foodDisplayName(canonical, language) : item.name;
+  const displayName = loggedFoodName(item, language);
   return (
     <View
       accessibilityLabel={`${displayName}, ${formatServingCount(item.servingCount, language)} ${t(servingsKey(item.servingCount))}`}

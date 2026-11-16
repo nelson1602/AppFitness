@@ -11,7 +11,6 @@ import Animated, {
 import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 
 import { darkColors, useTheme } from '../theme';
-import { withAlpha } from './gradient-style';
 import { useReducedMotion } from './use-reduced-motion';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -86,15 +85,15 @@ export function Pulse({
             y1={0}
             y2={0}
           >
-            <Stop offset={0} stopColor={colors.accentCyan} />
-            <Stop offset={0.55} stopColor={colors.onStageVariant} />
-            <Stop offset={1} stopColor={colors.accentEnergy} />
+            <Stop offset={0} stopColor={colors.pulseStart} />
+            <Stop offset={0.55} stopColor={colors.pulseMid} />
+            <Stop offset={1} stopColor={colors.pulseEnd} />
           </LinearGradient>
         </Defs>
         <Path
           d={PULSE_PATH}
           fill="none"
-          stroke={withAlpha(colors.onStage, 0.14)}
+          stroke={colors.pulseTrack}
           strokeLinejoin="round"
           strokeWidth={2}
         />

@@ -168,7 +168,6 @@ describe('NutritionPlanScreen', () => {
       current: null,
       revisions: [],
       mealSlotsDone: [],
-      overlay: null,
       markMealEaten: mockMarkMealEaten,
     };
   });
@@ -631,7 +630,6 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
       current: saved,
       revisions: [saved],
       mealSlotsDone: [`${dates[0]}|LUNCH`],
-      overlay: null,
       markMealEaten: mockMarkMealEaten,
     };
   });
@@ -662,6 +660,7 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     const totals = { calories: 158, proteinG: 13.5, carbsG: 0.9, fatG: 11.3 };
     mockTodayRebalance = {
       date,
+      carryOver: null,
       rebalance: {
         ruleVersion: MEAL_REBALANCE_RULE_VERSION,
         status: 'unchanged',
@@ -701,19 +700,9 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     expect(screen.queryByTestId('plan-ate-8-BREAKFAST')).toBeNull();
   });
 
-  it("explains today's off-plan adjustment", async () => {
-    mockPlanState = {
-      ...mockPlanState,
-      overlay: {
-        todayCalories: 2050,
-        reducedBy: 250,
-        extraCardioMinutes: 25,
-        avoidIntenseTraining: true,
-      },
-    };
+  it('has no off-plan banner: the carry-over is the only message (v11-B, D7 retired)', async () => {
     await render(<NutritionPlanScreen />);
-    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/2,050 kcal \(250 less\)/);
-    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/25 min of cardio/);
-    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(/avoid intense training/);
+    expect(screen.queryByTestId('plan-overlay')).toBeNull();
+    expect(screen.queryByText(/alcohol|less\)|min of cardio/)).toBeNull();
   });
 });

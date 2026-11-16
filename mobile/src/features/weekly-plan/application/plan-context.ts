@@ -28,7 +28,6 @@ import { EXERCISE_CATALOG_VERSION } from '@/features/workout/domain/exercise-cat
 
 import { ADHERENCE_RULE_VERSION } from '../domain/adherence';
 import { DAYS_PROGRESSION_RULE_VERSION } from '../domain/days-progression';
-import { OFF_PLAN_RULE_VERSION } from '../domain/off-plan';
 import { PROGRESSION_RULE_VERSION } from '../domain/progression';
 import {
   WEEKLY_PLAN_CONTRACT_VERSION,
@@ -52,7 +51,6 @@ export const PLAN_RULE_VERSIONS: Readonly<Record<string, string>> = {
   progression: PROGRESSION_RULE_VERSION,
   days: DAYS_PROGRESSION_RULE_VERSION,
   adherence: ADHERENCE_RULE_VERSION,
-  offPlan: OFF_PLAN_RULE_VERSION,
 };
 
 /** Everything a plan is built from, read once from the person's local data. */

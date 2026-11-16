@@ -203,7 +203,7 @@ function WeekDetailSheet({ week, onClose }: { week: PastWeek; onClose: () => voi
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
-  const { system: units } = useUnits();
+  const { weightSystem: units } = useUnits();
   const reduceMotion = useReducedMotion();
   const a: WeekAdherence = week.adherence;
   const kcal = (value: number) => formatKcalQuantity(value, language);

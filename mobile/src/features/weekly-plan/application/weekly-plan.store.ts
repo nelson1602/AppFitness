@@ -10,7 +10,6 @@ import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/databas
 import { logError } from '@/shared/infrastructure/logging';
 
 import { computeWeekAdherence, effectivePlanDay, type WeekAdherence } from '../domain/adherence';
-import type { OffPlanAdjustment } from '../domain/off-plan';
 import { planInputsFingerprint, type PlanChange } from '../domain/plan-inputs';
 import type { WeeklyPlan } from '../domain/weekly-plan';
 import { useFoodLogStore } from '@/features/nutrition/application/food-log.store';
@@ -21,7 +20,6 @@ import {
   ensureCurrentWeekPlan,
   loadWeekLogs,
   loadPastWeeks,
-  loadTodayOverlay,
   pendingPlanChanges,
   regenerateCurrentWeek,
   type PastWeek,
@@ -37,7 +35,6 @@ export interface WeeklyPlanState {
   /** The latest revision of the current week. */
   current: WeeklyPlan | null;
   adherence: WeekAdherence | null;
-  overlay: OffPlanAdjustment | null;
   /** `date|slot` keys of this week's planned meals marked eaten. */
   mealSlotsDone: string[];
   /** Important inputs that changed since the plan was saved; empty when none. */
@@ -71,7 +68,6 @@ const INITIAL = {
   revisions: [] as WeeklyPlan[],
   current: null,
   adherence: null,
-  overlay: null,
   mealSlotsDone: [] as string[],
   pendingChanges: [] as PlanChange[],
   pastWeeks: [] as PastWeek[],
@@ -95,20 +91,16 @@ export const useWeeklyPlanStore = create<WeeklyPlanState>((set, get) => ({
         set({ ...INITIAL, status: result.status });
         return;
       }
-      const [logs, overlay] = await Promise.all([
-        loadWeekLogs(
-          owner.userId,
-          result.revisions.map((revision) => revision.id),
-        ),
-        loadTodayOverlay(result.current, now),
-      ]);
+      const logs = await loadWeekLogs(
+        owner.userId,
+        result.revisions.map((revision) => revision.id),
+      );
       if (!isSessionCurrent(owner)) return;
       set({
         status: 'ready',
         revisions: result.revisions,
         current: result.current,
         adherence: computeWeekAdherence(result.revisions, logs),
-        overlay,
         mealSlotsDone: [...logs.mealSlotsDone],
       });
     } catch (error) {

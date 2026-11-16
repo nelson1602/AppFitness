@@ -45,11 +45,15 @@ const SQL_WRITE = /INSERT INTO|UPDATE [a-z_]+\s+SET|DELETE FROM/;
  * available. Server-pull appliers live outside repositories and must keep
  * working in read-only mode, so they are not repositories at all. Notification
  * read state (ADR-P039 D4) is local-only and never synced, so there is no paid
- * write to guard: reading a notification works in read-only mode.
+ * write to guard: reading a notification works in read-only mode. Saved foods
+ * (v10 Block B) are catalogue rows the server already holds, never enqueued;
+ * v11-B only fills in a missing brand there (display data, not a user record).
+ * Saving the food itself is gated where the server import happens.
  */
 const UNTRACKED_REPOSITORIES = new Set([
   'features/authentication/infrastructure/local-user.repository.ts',
   'features/notifications/infrastructure/notification-read.repository.ts',
+  'features/nutrition/infrastructure/saved-foods.repository.ts',
 ]);
 
 describe('ADR-P034 paid-write enforcement scope', () => {

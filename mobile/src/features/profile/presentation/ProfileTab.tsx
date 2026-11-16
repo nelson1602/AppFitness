@@ -141,7 +141,7 @@ export function ProfileTab() {
   const theme = useTheme();
   const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
-  const { system: units } = useUnits();
+  const { weightSystem: units, lengthSystem } = useUnits();
   const refresh = useDashboardStore((s) => s.refresh);
   const profile = useProfileStore((s) => s.profile);
   const wellness = useWellnessSafetyProfileStore((s) => s.profile);
@@ -234,7 +234,7 @@ export function ProfileTab() {
           />
           <Stat
             label={t('profile.tab.height')}
-            value={profile?.heightCm ? formatHeight(profile.heightCm, units, language) : '–'}
+            value={profile?.heightCm ? formatHeight(profile.heightCm, lengthSystem, language) : '–'}
           />
           <Stat
             label={t('home.eval.bmi')}

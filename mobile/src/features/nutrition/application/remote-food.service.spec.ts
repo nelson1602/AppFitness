@@ -4,11 +4,13 @@ import {
   type FoodSearchResult,
   importRemoteFood,
 } from '../infrastructure/food-search-api';
-import { saveFoodLocally } from '../infrastructure/saved-foods.repository';
+import { fillMissingBrands, saveFoodLocally } from '../infrastructure/saved-foods.repository';
 import {
+  catalogKeyOfResult,
   foodItemFromCanonical,
   foodItemFromSearchResult,
   isPendingFoodId,
+  rememberBrands,
   saveChosenFood,
   saveCustomFood,
 } from './remote-food.service';
@@ -17,7 +19,10 @@ jest.mock('../infrastructure/food-search-api', () => ({
   importRemoteFood: jest.fn(),
   createCustomFood: jest.fn(),
 }));
-jest.mock('../infrastructure/saved-foods.repository', () => ({ saveFoodLocally: jest.fn() }));
+jest.mock('../infrastructure/saved-foods.repository', () => ({
+  saveFoodLocally: jest.fn(),
+  fillMissingBrands: jest.fn().mockResolvedValue(0),
+}));
 
 const NOW = '2026-11-05T10:00:00.000Z';
 
@@ -63,8 +68,31 @@ describe('remote foods (v10 Block B, item 7)', () => {
     jest.mocked(importRemoteFood).mockResolvedValue(canonical());
     const food = await saveChosenFood(result(), NOW);
     expect(importRemoteFood).toHaveBeenCalledWith('fdc', '2345678');
-    expect(saveFoodLocally).toHaveBeenCalledWith(canonical(), NOW);
+    expect(saveFoodLocally).toHaveBeenCalledWith({ ...canonical(), brand: null }, NOW);
     expect(food.catalogKey).toBe('fdc.2345678');
+  });
+
+  it('keeps the brand from the search result (the import answer has none; v11-B)', async () => {
+    jest.mocked(importRemoteFood).mockResolvedValue(canonical({ catalogKey: 'off.7613035750319' }));
+    const food = await saveChosenFood(
+      result({ source: 'off', sourceId: '7613035750319', brand: 'Nestlé' }),
+      NOW,
+    );
+    expect(food.brand).toBe('Nestlé');
+    expect(saveFoodLocally).toHaveBeenCalledWith(expect.objectContaining({ brand: 'Nestlé' }), NOW);
+  });
+
+  it('backfills saved foods from search results by their catalogue key (v11-B)', async () => {
+    expect(catalogKeyOfResult(result({ source: 'off', sourceId: '761' }))).toBe('off.761');
+    expect(catalogKeyOfResult(result({ source: 'fdc', sourceId: '234' }))).toBe('fdc.234');
+    expect(catalogKeyOfResult(result({ source: 'catalog', sourceId: 'off.761' }))).toBe('off.761');
+    await rememberBrands([
+      result({ source: 'catalog', sourceId: 'off.7622201714826', brand: 'Field' }),
+      result({ source: 'off', sourceId: '761', brand: null }),
+    ]);
+    expect(fillMissingBrands).toHaveBeenCalledWith([
+      { catalogKey: 'off.7622201714826', brand: 'Field' },
+    ]);
   });
 
   it('re-reads an already shared external food through the same idempotent import', async () => {
@@ -88,7 +116,12 @@ describe('remote foods (v10 Block B, item 7)', () => {
       result({ source: 'custom', sourceId: 'custom.abc', foodId: 'custom-id', name: 'Mío' }),
       NOW,
     );
-    expect(food).toMatchObject({ id: 'custom-id', catalogKey: 'custom.abc', name: 'Mío' });
+    expect(food).toMatchObject({
+      id: 'custom-id',
+      catalogKey: 'custom.abc',
+      name: 'Mío',
+      brand: null,
+    });
     expect(saveFoodLocally).toHaveBeenCalledWith(food, NOW);
   });
 

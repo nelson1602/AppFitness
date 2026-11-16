@@ -9,7 +9,6 @@ import {
   type LoggedWorkout,
   type WeekLogs,
 } from './adherence';
-import { computeOffPlanAdjustment } from './off-plan';
 import { changedPlanInputs, normalizePlanInputs, planInputsFingerprint } from './plan-inputs';
 import { applyLoadStep, nextLoadStep, progressionNotes } from './progression';
 import { addDays, dayIndexInWeek, weekDates, weekStartOf } from './week';
@@ -325,66 +324,6 @@ describe('session linking (ADR-P042 D5)', () => {
     expect(linkForWorkout(p, '2026-10-26', () => true)).toBeNull();
     expect(linkForWorkout(p, '2026-10-27', () => false)).toBeNull();
     expect(linkForWorkout(null, '2026-10-26', () => false)).toBeNull();
-  });
-});
-
-describe('off-plan overlay (ADR-P040 D7)', () => {
-  it('leaves the day alone within 10 %', () => {
-    expect(
-      computeOffPlanAdjustment({
-        targets: TARGETS,
-        yesterdayCalories: 2150,
-        alcoholYesterdayOrToday: false,
-      }),
-    ).toEqual({
-      todayCalories: 2000,
-      reducedBy: 0,
-      extraCardioMinutes: 0,
-      avoidIntenseTraining: false,
-    });
-  });
-
-  it('lowers today by the excess up to 300 kcal and adds 10–30 min of cardio', () => {
-    expect(
-      computeOffPlanAdjustment({
-        targets: TARGETS,
-        yesterdayCalories: 2250,
-        alcoholYesterdayOrToday: false,
-      }),
-    ).toMatchObject({ todayCalories: 1750, reducedBy: 250, extraCardioMinutes: 25 });
-    expect(
-      computeOffPlanAdjustment({
-        targets: TARGETS,
-        yesterdayCalories: 3000,
-        alcoholYesterdayOrToday: false,
-      }),
-    ).toMatchObject({ todayCalories: 1700, reducedBy: 300, extraCardioMinutes: 30 });
-  });
-
-  it('never goes below the calorie floor', () => {
-    const low = { ...TARGETS, calories: 1600, floorCalories: 1500 };
-    expect(
-      computeOffPlanAdjustment({
-        targets: low,
-        yesterdayCalories: 2500,
-        alcoholYesterdayOrToday: false,
-      }),
-    ).toMatchObject({ todayCalories: 1500, reducedBy: 100 });
-  });
-
-  it('flags intense training after alcohol, and ignores a day with no log', () => {
-    expect(
-      computeOffPlanAdjustment({
-        targets: TARGETS,
-        yesterdayCalories: null,
-        alcoholYesterdayOrToday: true,
-      }),
-    ).toEqual({
-      todayCalories: 2000,
-      reducedBy: 0,
-      extraCardioMinutes: 0,
-      avoidIntenseTraining: true,
-    });
   });
 });
 

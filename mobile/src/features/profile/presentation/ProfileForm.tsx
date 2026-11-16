@@ -40,7 +40,7 @@ export function ProfileForm({ onSaved }: ProfileFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
   // v10 Block C, item 9: height in cm, or in feet and inches; saved in cm.
-  const { system } = useUnits();
+  const { lengthSystem: system } = useUnits();
   const imperial = system === 'imperial';
   const today = useLocalDay((s) => s.today);
   const { status, profile, error, load, save } = useProfileStore();

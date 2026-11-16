@@ -32,6 +32,12 @@ export interface MealItemRecord {
   createdAt: Date;
   updatedAt: Date;
   deletedAt: Date | null;
+  /**
+   * v11-B: the referenced food's brand, read only for pulls (the phone keeps
+   * it for the name it shows). Absent when not read; null when the food has
+   * none. Never part of the immutable snapshot.
+   */
+  foodBrand?: string | null;
 }
 
 /** Parent-meal ownership probe (global by id — used to distinguish a

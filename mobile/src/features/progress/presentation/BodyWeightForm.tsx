@@ -36,7 +36,7 @@ export function BodyWeightForm({ defaultDate, saving, onSubmit }: BodyWeightForm
   const theme = useTheme();
   const { language, t } = useLocalization();
   // v10 Block C, item 9: typed in the person's units, saved in kg.
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const imperial = system === 'imperial';
   const today = useLocalDay((s) => s.today);
   const schema = createBodyWeightFormSchema(

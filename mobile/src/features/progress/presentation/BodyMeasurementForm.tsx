@@ -37,8 +37,11 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
   const theme = useTheme();
   const { language, t } = useLocalization();
   // v10 Block C, item 9: lengths and muscle mass typed in the person's units.
-  const { system } = useUnits();
-  const imperial = system === 'imperial';
+  // v11-B: lengths follow the height unit, muscle mass the weight unit.
+  const { weightSystem, lengthSystem } = useUnits();
+  const imperial = lengthSystem === 'imperial';
+  const imperialWeight = weightSystem === 'imperial';
+  const units = { weight: weightSystem, length: lengthSystem };
   const example = (value: number) =>
     interpolate(t('units.example'), { value: formatNumber(Math.round(value), language) });
   const today = useLocalDay((s) => s.today);
@@ -53,13 +56,13 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
       bodyFatPositive: t('progress.validation.bodyFatPositive'),
       bodyFatRange: t('progress.validation.bodyFatRange'),
       muscleMassRange: t(
-        imperial
+        imperialWeight
           ? 'progress.measurements.muscleMassRangeImperial'
           : 'progress.measurements.muscleMassRange',
       ),
       atLeastOne: t('progress.measurements.atLeastOne'),
     },
-    system,
+    units,
   );
   const { control, handleSubmit, reset } = useForm<
     BodyMeasurementFormInput,
@@ -71,7 +74,7 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
   });
 
   const submit = async (values: BodyMeasurementFormOutput): Promise<void> => {
-    const ok = await onSubmit(toBodyMeasurementInput(values, system));
+    const ok = await onSubmit(toBodyMeasurementInput(values, units));
     if (ok) reset(blankBodyMeasurementValues(defaultDate));
     // A false result surfaces via the parent screen's error banner.
   };
@@ -95,7 +98,9 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
         name="waistCm"
         label={t(imperial ? 'progress.measurements.waistImperial' : 'progress.measurements.waist')}
         placeholder={
-          imperial ? example(cmToDisplay(82, system)) : t('progress.measurements.waistPlaceholder')
+          imperial
+            ? example(cmToDisplay(82, lengthSystem))
+            : t('progress.measurements.waistPlaceholder')
         }
         keyboardType="decimal-pad"
         selectTextOnFocus
@@ -105,7 +110,9 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
         name="hipCm"
         label={t(imperial ? 'progress.measurements.hipImperial' : 'progress.measurements.hip')}
         placeholder={
-          imperial ? example(cmToDisplay(96, system)) : t('progress.measurements.hipPlaceholder')
+          imperial
+            ? example(cmToDisplay(96, lengthSystem))
+            : t('progress.measurements.hipPlaceholder')
         }
         keyboardType="decimal-pad"
         selectTextOnFocus
@@ -115,7 +122,9 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
         name="chestCm"
         label={t(imperial ? 'progress.measurements.chestImperial' : 'progress.measurements.chest')}
         placeholder={
-          imperial ? example(cmToDisplay(100, system)) : t('progress.measurements.chestPlaceholder')
+          imperial
+            ? example(cmToDisplay(100, lengthSystem))
+            : t('progress.measurements.chestPlaceholder')
         }
         keyboardType="decimal-pad"
         selectTextOnFocus
@@ -132,13 +141,13 @@ export function BodyMeasurementForm({ defaultDate, saving, onSubmit }: BodyMeasu
         control={control}
         name="muscleMassKg"
         label={t(
-          imperial
+          imperialWeight
             ? 'progress.measurements.muscleMassImperial'
             : 'progress.measurements.muscleMass',
         )}
         placeholder={
-          imperial
-            ? example(kgToDisplay(35, system))
+          imperialWeight
+            ? example(kgToDisplay(35, weightSystem))
             : t('progress.measurements.muscleMassPlaceholder')
         }
         keyboardType="decimal-pad"

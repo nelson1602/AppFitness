@@ -6,6 +6,10 @@ import type {
   Weekday,
   WorkoutExercisePrescription,
 } from '@/features/icoach';
+import {
+  addedCardioExercise,
+  type AddedCardio,
+} from '@/features/weekly-plan/domain/carry-over-cardio';
 import { applyMoves, type SessionMove } from '@/features/weekly-plan/domain/realtime-recalc';
 import type { PlanNote } from '@/features/weekly-plan/domain/weekly-plan';
 import { noteText } from '@/features/weekly-plan/presentation/PastWeeksPanel';
@@ -62,6 +66,12 @@ export interface WorkoutWeekProps {
    * show, and are logged, on their new day, and count for their planned day.
    */
   moves?: readonly SessionMove[];
+  /**
+   * ADR-P040 v11-B: easy cardio the carry-over added to a session, as one more
+   * exercise labelled "Añadido por el iCoach" that the person can remove.
+   */
+  addedCardio?: readonly AddedCardio[];
+  onRemoveCardio?: (date: string) => void;
 }
 
 /** Repetitions recorded for a completed set: the prescription's upper bound. */
@@ -87,6 +97,8 @@ function plannedExercises(exercises: readonly WorkoutExercisePrescription[]): Pl
 export function WorkoutWeek({
   routine: planned,
   moves = [],
+  addedCardio = [],
+  onRemoveCardio,
   sessionMinutes,
   notes,
   doneDates: plannedDone,
@@ -181,8 +193,12 @@ export function WorkoutWeek({
         </GlassCard>
       ) : sessionDay ? (
         <SessionPanel
+          addedCardioMinutes={
+            addedCardio.find((block) => block.date === selectedDate)?.minutes ?? 0
+          }
           canLog={canLog}
           date={selectedDate}
+          onRemoveCardio={onRemoveCardio ? () => onRemoveCardio(selectedDate) : null}
           movedNote={
             movedIn
               ? interpolate(t('workout.plan.movedFrom'), { day: dayNameOf(movedIn.from) })
@@ -399,7 +415,12 @@ function SessionPanel({
   notes,
   language,
   onSetDone,
+  addedCardioMinutes,
+  onRemoveCardio,
 }: {
+  /** v11-B: minutes of easy cardio the carry-over added; 0 when none. */
+  addedCardioMinutes: number;
+  onRemoveCardio: (() => void) | null;
   routine: GeneratedWorkoutRoutine;
   sessionKey: string;
   title: string;
@@ -430,7 +451,15 @@ function SessionPanel({
   const completeSession = usePlannedSessionStore((s) => s.completeSession);
   const loadedFor = usePlannedSessionStore((s) => s.sessionId);
   const session = routine.sessions.find((candidate) => candidate.key === sessionKey);
-  const exercises = session?.exercises ?? [];
+  // v11-B: the carry-over's cardio is the session's last exercise, logged like any other.
+  const addedIndex = addedCardioMinutes > 0 ? (session?.exercises.length ?? 0) : -1;
+  const exercises = useMemo(
+    () => [
+      ...(session?.exercises ?? []),
+      ...(addedCardioMinutes > 0 ? [addedCardioExercise(addedCardioMinutes)] : []),
+    ],
+    [addedCardioMinutes, session],
+  );
   const planned = plannedExercises(exercises);
   // Set progress belongs to the selected day; later days show their plan only.
   const ownCounts = canLog && loadedFor === `${date}|${sessionKey}`;
@@ -584,12 +613,29 @@ function SessionPanel({
                   <AppText style={full ? { color: colors.success } : undefined} variant="label">
                     {name}
                   </AppText>
-                  <AppText tone="onStageVariant" variant="caption">
-                    {interpolate(t('workouts.exercise.setsReps'), {
-                      sets: formatNumber(exercise.sets, language),
-                      reps: target,
-                    })}
-                  </AppText>
+                  {index === addedIndex ? (
+                    <>
+                      <AppText
+                        style={{ color: colors.linkOnStage }}
+                        testID="workout-added-cardio-label"
+                        variant="caption"
+                      >
+                        {t('workouts.addedCardio.label')}
+                      </AppText>
+                      <AppText tone="onStageVariant" variant="caption">
+                        {interpolate(t('workouts.addedCardio.minutes'), {
+                          minutes: formatNumber(addedCardioMinutes, language),
+                        })}
+                      </AppText>
+                    </>
+                  ) : (
+                    <AppText tone="onStageVariant" variant="caption">
+                      {interpolate(t('workouts.exercise.setsReps'), {
+                        sets: formatNumber(exercise.sets, language),
+                        reps: target,
+                      })}
+                    </AppText>
+                  )}
                   <View
                     accessibilityElementsHidden
                     importantForAccessibility="no-hide-descendants"
@@ -668,6 +714,27 @@ function SessionPanel({
                   </Pressable>
                 ) : null}
               </View>
+              {index === addedIndex && onRemoveCardio && !full ? (
+                <Pressable
+                  accessibilityLabel={t('workouts.addedCardio.removeA11y')}
+                  accessibilityRole="button"
+                  onPress={onRemoveCardio}
+                  style={{
+                    alignItems: 'center',
+                    alignSelf: 'flex-start',
+                    borderColor: colors.glassBorder,
+                    borderRadius: radius.field,
+                    borderWidth: 1,
+                    justifyContent: 'center',
+                    minHeight: theme.spacing.x5l,
+                    minWidth: theme.spacing.x5l,
+                    paddingHorizontal: spacing.md,
+                  }}
+                  testID="workout-added-cardio-remove"
+                >
+                  <AppText variant="label">{t('workouts.addedCardio.remove')}</AppText>
+                </Pressable>
+              ) : null}
               {open ? <ExerciseDemo exerciseKey={exercise.exerciseKey} name={name} /> : null}
             </View>
           );

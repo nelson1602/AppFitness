@@ -356,6 +356,27 @@ describe('MealItemSyncHandler', () => {
     expect(changes[0].data.food_name_snapshot).toBe('Chicken breast, cooked');
   });
 
+  it('pullChanges sends the food brand as food_brand when it was read (v11-B)', async () => {
+    repo.changedSince.mockResolvedValue([
+      record({ foodBrand: 'Nestlé' }),
+      record({ foodBrand: null }),
+      record(),
+    ]);
+
+    const changes = await handler.pullChanges(USER, 0, 100);
+
+    expect(changes[0].data.food_brand).toBe('Nestlé');
+    expect(changes[1].data.food_brand).toBeNull();
+    // Not read (any other path): the field is absent, older phones are unaffected.
+    expect(changes[2].data).not.toHaveProperty('food_brand');
+  });
+
+  it('a conflict snapshot redacts food_brand like the name snapshot', () => {
+    expect(
+      handler.redactForConflict({ food_brand: 'Nestlé', serving_count: 2 }),
+    ).toEqual({ food_brand: '[REDACTED]', serving_count: 2 });
+  });
+
   it('readCurrentOwnedRow returns the owner row UNREDACTED with its tombstone state', async () => {
     repo.findOwned.mockResolvedValue(record({ deletedAt: new Date() }));
 

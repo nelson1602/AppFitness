@@ -29,13 +29,12 @@ import {
 import { useTheme } from '@/shared/theme';
 
 import { getById } from '../application/food-catalog.service';
-import { foodDisplayName } from '../application/food-display.service';
+import { foodDisplayName, loggedFoodName } from '../application/food-display.service';
 import { useFoodLogStore } from '../application/food-log.store';
 import type { MealPlan } from '../domain/meal-plan';
 import { AVOID_TAG_KEY } from './avoid-tag-labels';
 import { MealPlanPanel, type PlanExtra, PlanDayStrip, type ViewDay } from './meal-plan-day';
 import { NutritionDataGap } from './NutritionDataGap';
-import { PlanOverlayBanner } from './NutritionPlanScreen';
 import { useNutritionPlanView } from './use-nutrition-plan-view';
 
 const MACRO_KEY: Record<'protein' | 'carbs' | 'fat', TranslationKey> = {
@@ -67,7 +66,7 @@ function weekSubstitutions(days: readonly ViewDay[]): IngredientSubstitution[] {
  */
 export function NutritionTab() {
   const { spacing } = useTheme();
-  const { t } = useLocalization();
+  const { language, t } = useLocalization();
   const foodLogStatus = useFoodLogStore((s) => s.status);
   const foodItems = useFoodLogStore((s) => s.items);
   const view = useNutritionPlanView();
@@ -106,7 +105,7 @@ export function NutritionTab() {
         .map((item) => ({
           id: item.id,
           slot: item.mealType,
-          name: item.name,
+          name: loggedFoodName(item, language),
           servings: item.servingCount,
           calories: Math.round(item.consumed.calories),
         }))
@@ -138,7 +137,6 @@ export function NutritionTab() {
         <>
           <ExcludedChips plan={state.plan} />
           <AdjustedPanel substitutions={weekSubstitutions(state.days)} />
-          {state.overlay ? <PlanOverlayBanner overlay={state.overlay} /> : null}
           <PlanDayStrip count={state.days.length} selected={shownIndex} onSelect={view.selectDay} />
           {shownDay ? (
             <MealPlanPanel

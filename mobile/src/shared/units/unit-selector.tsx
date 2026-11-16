@@ -1,118 +1,42 @@
-import { useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { logError } from '@/shared/infrastructure/logging/logger';
-import { type TranslationKey, useLocalization } from '@/shared/localization';
-import { AppText, Banner } from '@/shared/presentation';
+import { useLocalization } from '@/shared/localization';
+import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { UnitSystem } from './units';
-import { useUnits } from './use-units';
-
-type WebKeyEvent = {
-  key: string;
-  nativeEvent?: { repeat?: boolean };
-  preventDefault: () => void;
-};
-
-const OPTIONS: readonly { system: UnitSystem; labelKey: TranslationKey }[] = [
-  { system: 'metric', labelKey: 'units.metric' },
-  { system: 'imperial', labelKey: 'units.imperial' },
-];
+import { UnitDropdown } from './unit-dropdown';
 
 /**
- * Perfil → "Unidades" (v10 Block C, item 9): kg/cm or lb/ft-in. The same
- * stage row and radio semantics as the language selector (BUG-039: Web
- * `aria-checked`, Space selects).
+ * Perfil → "Unidades" (v11-B): Peso [kg ▾ | lb] and Estatura [cm ▾ | ft-in],
+ * chosen apart with the same dropdowns as Evaluación → Medidas.
  */
 export function UnitSelector() {
   const theme = useTheme();
   const { t } = useLocalization();
-  const { system, setUnitSystem } = useUnits();
-  const [saving, setSaving] = useState(false);
-  const [saveFailed, setSaveFailed] = useState(false);
-  const isWeb = Platform.OS === 'web';
-
-  const select = async (next: UnitSystem) => {
-    setSaving(true);
-    setSaveFailed(false);
-    try {
-      await setUnitSystem(next);
-    } catch (error) {
-      logError('units.preference', error);
-      setSaveFailed(true);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const onSpace = (option: UnitSystem) => (event: WebKeyEvent) => {
-    if (event.key !== ' ' && event.key !== 'Spacebar') return;
-    event.preventDefault();
-    if (saving || event.nativeEvent?.repeat) return;
-    void select(option);
-  };
-
+  const row = {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: theme.spacing.md,
+    justifyContent: 'space-between',
+  } as const;
   return (
-    <View accessibilityRole="radiogroup" style={{ gap: theme.spacing.sm }} testID="unit-selector">
-      <View
-        style={{
-          alignItems: 'center',
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          gap: theme.spacing.md,
-          justifyContent: 'space-between',
-        }}
-      >
-        <AppText tone="onStageVariant" variant="label">
-          {t('units.title')}
+    <View style={{ gap: theme.spacing.sm }} testID="unit-selector">
+      <AppText accessibilityRole="header" tone="onStageVariant" variant="label">
+        {t('units.title')}
+      </AppText>
+      <View style={row}>
+        <AppText tone="onStage" variant="label">
+          {t('units.weight')}
         </AppText>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-          {OPTIONS.map(({ system: option, labelKey }) => {
-            const selected = system === option;
-            const label = t(labelKey);
-            return (
-              <Pressable
-                key={option}
-                accessibilityLabel={`${t('units.title')}: ${label}`}
-                accessibilityRole="radio"
-                accessibilityState={{ disabled: saving, selected }}
-                aria-checked={isWeb ? selected : undefined}
-                disabled={saving}
-                onPress={() => void select(option)}
-                {...(isWeb ? { onKeyDown: onSpace(option) } : null)}
-                style={{
-                  // v11-A: a solid pill in both themes (white in dark, its inverse in light).
-                  backgroundColor: selected
-                    ? theme.colors.choiceSelectedFill
-                    : theme.colors.glassFill,
-                  borderColor: selected
-                    ? theme.colors.choiceSelectedFill
-                    : theme.colors.glassBorder,
-                  borderRadius: theme.radius.field,
-                  borderWidth: selected ? 2 : 1,
-                  justifyContent: 'center',
-                  minHeight: theme.spacing.x5l,
-                  paddingHorizontal: theme.spacing.md,
-                }}
-                testID={`unit-option-${option}`}
-              >
-                <AppText
-                  style={{ color: selected ? theme.colors.onChoiceSelected : theme.colors.onStage }}
-                  variant="label"
-                >
-                  {label}
-                </AppText>
-              </Pressable>
-            );
-          })}
-        </View>
+        <UnitDropdown kind="weight" testID="unit-weight" />
       </View>
-      {saveFailed ? (
-        <Banner title={t('units.title')} tone="error">
-          {t('units.saveError')}
-        </Banner>
-      ) : null}
+      <View style={row}>
+        <AppText tone="onStage" variant="label">
+          {t('units.height')}
+        </AppText>
+        <UnitDropdown kind="height" testID="unit-height" />
+      </View>
     </View>
   );
 }

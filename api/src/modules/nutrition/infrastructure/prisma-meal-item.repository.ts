@@ -173,8 +173,13 @@ export class PrismaMealItemRepository extends MealItemRepositoryPort {
       where: { userId, syncSeq: { gt: BigInt(sinceSeq) } },
       orderBy: { syncSeq: 'asc' },
       take: limit,
+      // v11-B: the food's brand rides along so the phone can show it.
+      include: { food: { select: { brand: true } } },
     });
-    return rows.map(mealItemRowToRecord);
+    return rows.map(({ food, ...row }) => ({
+      ...mealItemRowToRecord(row),
+      foodBrand: food.brand,
+    }));
   }
 
   async resolve(

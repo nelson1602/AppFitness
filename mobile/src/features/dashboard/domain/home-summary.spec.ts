@@ -181,3 +181,33 @@ describe('buildHomeSummary (ADR-P039 Inicio)', () => {
     ).toEqual({ consumed: null, target: null, share: null, activityBonus: 0 });
   });
 });
+
+describe('a moved session on Inicio agrees with Entrenamientos (TASK-v11B-4)', () => {
+  it('Saturday after a missed Friday: today trains, no "día de descanso"', () => {
+    const summary = buildHomeSummary({
+      ...base,
+      today: '2026-10-24', // Saturday, a rest day in the plan
+      weekdayIndex: 5,
+      moves: [{ from: '2026-10-23', to: '2026-10-24' }],
+    });
+    expect(summary.today).toEqual({ kind: 'training', minutes: 45, completed: false });
+    expect(summary.coach).not.toBe('rest');
+  });
+
+  it('a day whose session moved away is not a training day any more', () => {
+    const summary = buildHomeSummary({
+      ...base,
+      today: '2026-10-21',
+      weekdayIndex: 2,
+      moves: [{ from: '2026-10-21', to: '2026-10-22' }],
+    });
+    expect(summary.today.kind).toBe('rest');
+  });
+
+  it('without moves, the plan is read as before', () => {
+    expect(buildHomeSummary({ ...base, weekdayIndex: 5 }).today).toEqual({
+      kind: 'rest',
+      active: false,
+    });
+  });
+});

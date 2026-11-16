@@ -8,13 +8,10 @@ import {
   formatKcalQuantity,
   formatNumber,
   formatQuantity,
-  interpolate,
   useLocalization,
 } from '@/shared/localization';
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
-
-import type { OffPlanAdjustment } from '@/features/weekly-plan/domain/off-plan';
 
 import type { MealPlan } from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
@@ -160,7 +157,6 @@ export function NutritionPlanScreen() {
         </>
       ) : (
         <>
-          {state.overlay ? <PlanOverlayBanner overlay={state.overlay} /> : null}
           <PlanDayStrip count={state.days.length} selected={shownIndex} onSelect={view.selectDay} />
           {shownDay ? (
             <MealPlanPanel day={shownDay} isDone={view.isDone} onEaten={view.onEaten} />
@@ -179,34 +175,6 @@ export function NutritionPlanScreen() {
       <AppText variant="caption" tone="muted">
         {t('nutrition.plan.disclaimer')}
       </AppText>
-    </View>
-  );
-}
-
-/** The off-plan adjustment (ADR-P040 D7) in words, when it changes today. */
-export function PlanOverlayBanner({ overlay }: { overlay: OffPlanAdjustment }) {
-  const { language, t } = useLocalization();
-  if (!(overlay.reducedBy > 0 || overlay.avoidIntenseTraining)) return null;
-  return (
-    <View testID="plan-overlay">
-      <Banner title={t('nutrition.plan.overlayTitle')} tone="info">
-        {[
-          overlay.reducedBy > 0
-            ? interpolate(t('nutrition.plan.overlayBody'), {
-                kcal: formatKcal(overlay.todayCalories, language),
-                reduced: formatNumber(overlay.reducedBy, language),
-              })
-            : null,
-          overlay.extraCardioMinutes > 0
-            ? interpolate(t('nutrition.plan.overlayCardio'), {
-                minutes: formatNumber(overlay.extraCardioMinutes, language),
-              })
-            : null,
-          overlay.avoidIntenseTraining ? t('nutrition.plan.overlayAlcohol') : null,
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      </Banner>
     </View>
   );
 }

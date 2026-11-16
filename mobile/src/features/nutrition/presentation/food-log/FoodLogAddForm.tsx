@@ -26,7 +26,7 @@ import {
 } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import { foodDisplayName } from '../../application/food-display.service';
+import { loggedFoodName } from '../../application/food-display.service';
 import { useFoodLogStore } from '../../application/food-log.store';
 import {
   foodItemFromCanonical,
@@ -126,6 +126,8 @@ export function FoodLogAddForm({
   const consumedToday = useFoodLogStore((state) => state.totals.calories);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<FoodItem | null>(null);
+  // v11-B: the chosen food's brand (kept on the phone), for its name on screen.
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [mealType, setMealType] = useState<MealTypeName>(defaultMealType);
   const [servingCount, setServingCount] = useState(1);
   // v10 Block B: a server result is saved (shared catalogue) only when added.
@@ -136,6 +138,7 @@ export function FoodLogAddForm({
 
   const {
     local: results,
+    brands,
     remote,
     remoteStatus,
   } = useFoodSearch(query, language, !paidWriteDisabled);
@@ -143,10 +146,14 @@ export function FoodLogAddForm({
     () => (selected ? matchFoodExclusion(selected, activePreferences) : null),
     [selected, activePreferences],
   );
-  const selectedDisplayName = selected ? foodDisplayName(selected, language) : null;
+  // v11-B (TASK-v11B-2): the same name the food log shows, brand included.
+  const nameOf = (food: FoodItem, brand: string | null): string =>
+    loggedFoodName({ catalogKey: food.id, name: food.name, brand }, language);
+  const selectedDisplayName = selected ? nameOf(selected, selectedBrand) : null;
 
   const reset = (): void => {
     setSelected(null);
+    setSelectedBrand(null);
     setPending(null);
     setShowCustom(false);
     setSaveProblem(null);
@@ -244,6 +251,7 @@ export function FoodLogAddForm({
           onChangeText={(text) => {
             setQuery(text);
             setSelected(null);
+            setSelectedBrand(null);
             setPending(null);
           }}
         />
@@ -251,7 +259,7 @@ export function FoodLogAddForm({
         {!selected && results.length > 0 ? (
           <View style={{ gap: theme.spacing.xs }}>
             {results.map((food) => {
-              const displayName = foodDisplayName(food, language);
+              const displayName = nameOf(food, brands[food.id] ?? null);
               return (
                 <Pressable
                   key={food.id}
@@ -260,7 +268,10 @@ export function FoodLogAddForm({
                   accessibilityState={{ disabled: paidWriteDisabled }}
                   disabled={paidWriteDisabled}
                   testID={`food-option-${food.id}`}
-                  onPress={() => setSelected(food)}
+                  onPress={() => {
+                    setSelected(food);
+                    setSelectedBrand(brands[food.id] ?? null);
+                  }}
                   style={{
                     opacity: paidWriteDisabled ? DISABLED_OPACITY : 1,
                     // `outline`, not `divider`: this border is the only thing
@@ -295,6 +306,7 @@ export function FoodLogAddForm({
             disabled={paidWriteDisabled}
             onChoose={(result) => {
               setSelected(foodItemFromSearchResult(result));
+              setSelectedBrand(result.brand);
               setPending(result);
             }}
             results={remote}
@@ -329,6 +341,7 @@ export function FoodLogAddForm({
             onCancel={() => setShowCustom(false)}
             onCreated={(food) => {
               setSelected(foodItemFromCanonical(food));
+              setSelectedBrand(null);
               setShowCustom(false);
             }}
           />

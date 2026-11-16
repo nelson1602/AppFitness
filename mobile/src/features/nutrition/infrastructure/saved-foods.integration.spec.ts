@@ -5,8 +5,14 @@ import { DatabaseSync } from 'node:sqlite';
 import { MIGRATIONS } from '@/shared/infrastructure/database/migrations';
 
 import type { CanonicalFood } from '../domain/catalog-identity';
-import { applyServerMealItem, logFood } from './food-log.repository';
-import { readSavedFood, saveFoodLocally, searchSavedFoods } from './saved-foods.repository';
+import { loggedFoodName } from '../application/food-display.service';
+import { applyServerMealItem, listLoggedItems, logFood } from './food-log.repository';
+import {
+  fillMissingBrands,
+  readSavedFood,
+  saveFoodLocally,
+  searchSavedFoods,
+} from './saved-foods.repository';
 
 /**
  * v10 Block B, item 7, on a real SQLite schema: a food chosen from Open Food
@@ -101,9 +107,9 @@ describe('saved foods beyond the bundled catalogue (v10 Block B)', () => {
     await saveFoodLocally(CHICHARRON, T0);
     await saveFoodLocally(CHICHARRON, T0); // immutable revision: inserted once
 
-    expect(await searchSavedFoods('chicharron')).toEqual([CHICHARRON]);
+    expect(await searchSavedFoods('chicharron')).toEqual([{ ...CHICHARRON, brand: null }]);
     expect(await searchSavedFoods('CERDO')).toHaveLength(1);
-    expect(await readSavedFood('off.7501000000123')).toEqual(CHICHARRON);
+    expect(await readSavedFood('off.7501000000123')).toEqual({ ...CHICHARRON, brand: null });
     expect(await readSavedFood('food.chicken_breast')).toBeNull();
   });
 
@@ -195,5 +201,136 @@ describe('saved foods beyond the bundled catalogue (v10 Block B)', () => {
     ).toEqual({
       food_id: CHICHARRON.id,
     });
+  });
+});
+
+describe('a saved food keeps its brand (v11-B, decision 2: persist from now on)', () => {
+  const LECHE: CanonicalFood = {
+    ...CHICHARRON,
+    id: '22222222-2222-5222-8222-222222222222',
+    catalogKey: 'off.7613035750319',
+    name: 'Leche Contensada Nestlé',
+    caloriesPerServing: 300,
+    brand: 'Nestlé',
+  };
+  const executor = {
+    runAsync: (sql: string, params: unknown[]) => {
+      const result = mockDb.prepare(sql).run(...params) as { changes: number | bigint };
+      return Promise.resolve({ changes: Number(result.changes), lastInsertRowId: 0 });
+    },
+    getFirstAsync: (sql: string, params: unknown[]) =>
+      Promise.resolve(mockDb.prepare(sql).get(...params) ?? null),
+    getAllAsync: (sql: string, params: unknown[]) =>
+      Promise.resolve(mockDb.prepare(sql).all(...params)),
+  } as never;
+  const parents = (): void => {
+    mockDb
+      .prepare(
+        `INSERT INTO nutrition_logs (id, user_id, created_at, updated_at, version, sync_status, date)
+         VALUES ('log-1', ?, ?, ?, 1, 'synced', '2026-11-05')`,
+      )
+      .run(USER, T0, T0);
+    mockDb
+      .prepare(
+        `INSERT INTO meals (id, user_id, created_at, updated_at, version, sync_status, nutrition_log_id, type, order_index)
+         VALUES ('meal-1', ?, ?, ?, 1, 'synced', 'log-1', 'SNACK', 3)`,
+      )
+      .run(USER, T0, T0);
+  };
+  const pulled = (food: CanonicalFood, brand?: string | null): Record<string, unknown> => ({
+    id: `item-${food.catalogKey}`,
+    user_id: USER,
+    created_at: T0,
+    updated_at: T0,
+    version: 1,
+    meal_id: 'meal-1',
+    food_id: food.id,
+    serving_count: 1,
+    food_name_snapshot: food.name,
+    catalog_key_snapshot: food.catalogKey,
+    food_revision_snapshot: 1,
+    catalog_version_snapshot: 'external@1',
+    serving_amount_snapshot: 100,
+    serving_unit_snapshot: 'g',
+    grams_per_serving_snapshot: 100,
+    calories_per_serving_snapshot: food.caloriesPerServing,
+    protein_per_serving_snapshot: 0,
+    carbs_per_serving_snapshot: 0,
+    fat_per_serving_snapshot: 0,
+    fiber_per_serving_snapshot: null,
+    ...(brand !== undefined ? { food_brand: brand } : {}),
+  });
+
+  it('saves the brand with the food and finds it again', async () => {
+    await saveFoodLocally(LECHE, T0);
+    expect(await readSavedFood('off.7613035750319')).toMatchObject({ brand: 'Nestlé' });
+    expect(await searchSavedFoods('leche')).toEqual([LECHE]);
+  });
+
+  it('shows a logged branded food as "Name (Brand)"', async () => {
+    await saveFoodLocally(LECHE, T0);
+    await logFood(
+      USER,
+      { date: '2026-11-05', mealType: 'SNACK', catalogKey: 'off.7613035750319', servingCount: 1 },
+      T0,
+    );
+    const [item] = await listLoggedItems(USER, '2026-11-05');
+    expect(item?.brand).toBe('Nestlé');
+    expect(loggedFoodName(item!, 'es')).toBe('Leche contensada (Nestlé)');
+  });
+
+  it('fills in a row saved earlier without a brand, and never overwrites one', async () => {
+    await saveFoodLocally({ ...LECHE, brand: null }, T0);
+    expect(await readSavedFood('off.7613035750319')).toMatchObject({ brand: null });
+
+    // From a search result for the same food …
+    expect(await fillMissingBrands([{ catalogKey: 'off.7613035750319', brand: ' Nestlé ' }])).toBe(
+      1,
+    );
+    expect(await readSavedFood('off.7613035750319')).toMatchObject({ brand: 'Nestlé' });
+    // … a later, different brand never replaces it; bundled keys are never touched.
+    expect(await fillMissingBrands([{ catalogKey: 'off.7613035750319', brand: 'Otra' }])).toBe(0);
+    expect(await fillMissingBrands([{ catalogKey: 'food.chicken_breast', brand: 'X' }])).toBe(0);
+    expect(await readSavedFood('off.7613035750319')).toMatchObject({ brand: 'Nestlé' });
+  });
+
+  it('saving again with a brand fills in a row kept without one', async () => {
+    await saveFoodLocally({ ...LECHE, brand: null }, T0);
+    await saveFoodLocally(LECHE, T0);
+    expect(await readSavedFood('off.7613035750319')).toMatchObject({ brand: 'Nestlé' });
+  });
+
+  it('a pulled item brings the food brand (food_brand) and fills in a row without one', async () => {
+    parents();
+    await applyServerMealItem(pulled(LECHE, 'Nestlé'), false, executor);
+    expect(await readSavedFood('off.7613035750319')).toMatchObject({ brand: 'Nestlé' });
+
+    const galleta: CanonicalFood = {
+      ...CHICHARRON,
+      id: '33333333-3333-5333-8333-333333333333',
+      catalogKey: 'off.7622201714826',
+      name: 'Galleta de Soda field',
+    };
+    await saveFoodLocally(galleta, T0); // kept earlier, no brand
+    await applyServerMealItem(pulled(galleta, 'Field'), false, executor);
+    const items = await listLoggedItems(USER, '2026-11-05');
+    expect(items.map((item) => loggedFoodName(item, 'es')).sort()).toEqual([
+      'Galleta de soda (Field)',
+      'Leche contensada (Nestlé)',
+    ]);
+  });
+
+  it('an older server without food_brand: the row has none, the name is sentence case only', async () => {
+    parents();
+    const galleta: CanonicalFood = {
+      ...CHICHARRON,
+      id: '33333333-3333-5333-8333-333333333333',
+      catalogKey: 'off.7622201714826',
+      name: 'Galleta de Soda field',
+    };
+    await applyServerMealItem(pulled(galleta), false, executor);
+    const [item] = await listLoggedItems(USER, '2026-11-05');
+    expect(item?.brand).toBeUndefined();
+    expect(loggedFoodName(item!, 'es')).toBe('Galleta de soda field');
   });
 });

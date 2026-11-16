@@ -18,6 +18,7 @@ interface FoodRow {
   food_revision: number;
   catalog_version: string | null;
   name: string;
+  brand: string | null;
   serving_amount: number;
   serving_unit: string;
   grams_per_serving: number | null;
@@ -46,6 +47,7 @@ function toCanonical(row: FoodRow): CanonicalFood {
     carbsPerServing: row.carbs_per_serving,
     fatPerServing: row.fat_per_serving,
     fiberPerServing: row.fiber_per_serving,
+    brand: row.brand,
   };
 }
 
@@ -53,12 +55,17 @@ export function isSavedFoodKey(catalogKey: string): boolean {
   return SAVED_FOOD_KEY_PREFIXES.some((prefix) => catalogKey.startsWith(prefix));
 }
 
-/** Keeps an imported or custom food on the phone (immutable revision: insert once). */
+/**
+ * Keeps an imported or custom food on the phone (immutable revision: insert
+ * once). v11-B: its brand is kept too; a row saved earlier without one gets it
+ * now (the brand is display data, not part of the immutable revision).
+ */
 export async function saveFoodLocally(
   food: CanonicalFood,
   nowIso: string,
   tx?: SqlExecutor,
 ): Promise<void> {
+  const brand = cleanBrand(food.brand);
   await run(
     `INSERT OR IGNORE INTO foods (
        id, created_at, updated_at, version, sync_status,
@@ -66,7 +73,7 @@ export async function saveFoodLocally(
        serving_amount, serving_unit, grams_per_serving,
        calories_per_serving, protein_per_serving, carbs_per_serving,
        fat_per_serving, fiber_per_serving, created_by, is_verified
-     ) VALUES (?, ?, ?, 1, 'synced', ?, ?, ?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)`,
+     ) VALUES (?, ?, ?, 1, 'synced', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 0)`,
     [
       food.id,
       nowIso,
@@ -75,6 +82,7 @@ export async function saveFoodLocally(
       food.foodRevision,
       food.catalogVersion,
       food.name,
+      brand,
       food.servingAmount,
       food.servingUnit,
       food.gramsPerServing,
@@ -86,6 +94,39 @@ export async function saveFoodLocally(
     ],
     tx,
   );
+  if (brand) {
+    await run(`UPDATE foods SET brand = ? WHERE id = ? AND brand IS NULL`, [brand, food.id], tx);
+  }
+}
+
+/** A brand worth keeping: trimmed, single-spaced, at most 80 characters; else null. */
+export function cleanBrand(brand: string | null | undefined): string | null {
+  const clean = brand?.replace(/\s+/g, ' ').trim() ?? '';
+  return clean ? clean.slice(0, 80) : null;
+}
+
+/**
+ * v11-B backfill: saved foods (by catalogue key) that have no brand yet get
+ * the one the server knows — from a search result or a pulled meal item. A
+ * brand already kept is never overwritten. Returns how many rows changed.
+ */
+export async function fillMissingBrands(
+  entries: readonly { catalogKey: string; brand: string | null }[],
+  tx?: SqlExecutor,
+): Promise<number> {
+  let changed = 0;
+  for (const entry of entries) {
+    const brand = cleanBrand(entry.brand);
+    if (!brand || !isSavedFoodKey(entry.catalogKey)) continue;
+    const result = await run(
+      `UPDATE foods SET brand = ?
+        WHERE catalog_key = ? AND brand IS NULL AND deleted_at IS NULL`,
+      [brand, entry.catalogKey],
+      tx,
+    );
+    changed += result.changes;
+  }
+  return changed;
 }
 
 /** A saved (non-bundled) food by its catalogue key, or null. */

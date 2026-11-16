@@ -40,7 +40,7 @@ export function GoalForm({ onSaved }: GoalFormProps) {
   const theme = useTheme();
   const { t } = useLocalization();
   // v10 Block C, item 9: the target weight in the person's units, saved in kg.
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const today = useLocalDay((s) => s.today);
   const { status, goal, error, load, save } = useGoalStore();
   const schema = createGoalFormSchema(

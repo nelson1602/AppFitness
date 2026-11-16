@@ -7,7 +7,11 @@ import type { MealItemRecord } from '../domain/meal-item.types';
  * persisted into sync_conflicts (ADR-P012: conflict records MUST exclude the
  * food-name snapshot; notes are out of v1 scope but listed for when they land).
  */
-export const MEAL_ITEM_REDACTED_KEYS = ['food_name_snapshot', 'notes'] as const;
+export const MEAL_ITEM_REDACTED_KEYS = [
+  'food_name_snapshot',
+  'food_brand',
+  'notes',
+] as const;
 
 export function mealItemRowToRecord(row: MealItem): MealItemRecord {
   return {
@@ -70,6 +74,8 @@ export function mealItemToWire(
     created_at: record.createdAt.toISOString(),
     updated_at: record.updatedAt.toISOString(),
     deleted_at: record.deletedAt ? record.deletedAt.toISOString() : null,
+    // v11-B: only when it was read (pulls); additive, older phones ignore it.
+    ...(record.foodBrand !== undefined ? { food_brand: record.foodBrand } : {}),
   };
 }
 

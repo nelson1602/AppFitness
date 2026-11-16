@@ -160,3 +160,31 @@ describe(`${MEAL_REBALANCE_RULE_VERSION}: the pending meals never plan above wha
     expect(run({ consumed: GALLETA_DE_SODA })).toEqual(run({ consumed: GALLETA_DE_SODA }));
   });
 });
+
+describe('meal-rebalance@1.2.0: a positive carry-over portions a plan that already fits (ADR-P040 v11-B)', () => {
+  // The saved owner day plans 2.454; +96 kcal of carry-over makes today 2.550.
+  it('without the carry-over flag, a plan within 5 % under the target stands', () => {
+    const result = run({ targetCalories: 2550 });
+    expect(result.status).toBe('unchanged');
+    expect(result.plannedTotalCalories).toBe(2454);
+  });
+
+  it('with it, today is portioned up without a label and never above the target', () => {
+    const result = run({ targetCalories: 2550, carryOverUp: true });
+    expect(result.status).toBe('unchanged');
+    expect(result.meals.map((meal) => [meal.status, meal.totals.calories])).toEqual([
+      ['fitted', 692],
+      ['fitted', 804],
+      ['fitted', 357],
+      ['fitted', 656],
+    ]);
+    expect(result.plannedTotalCalories).toBe(2509);
+    expect(onQuarterSteps(result)).toBe(true);
+  });
+
+  it('keeps the plan when quarter steps would round it below what it was', () => {
+    const result = run({ targetCalories: 2500, carryOverUp: true });
+    expect(result.plannedTotalCalories).toBe(2454);
+    expect(result.meals).toEqual([]);
+  });
+});

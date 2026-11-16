@@ -101,6 +101,15 @@ export interface ColorTokens {
    */
   choiceSelectedFill: string;
   onChoiceSelected: string;
+  /**
+   * The brand heartbeat line (ADR-P035 D5, v11-B item d): its gradient stops and
+   * its track. Light takes the prototype's login line (cyan → light cyan →
+   * orange) over a soft blue track instead of slate; dark is unchanged.
+   */
+  pulseStart: string;
+  pulseMid: string;
+  pulseEnd: string;
+  pulseTrack: string;
   /** Tinted status chips (design Chip tones): translucent fill + its text. */
   chipCyan: string;
   onChipCyan: string;
@@ -188,6 +197,10 @@ export const lightColors: ColorTokens = {
   tabBarBorder: '#0A3FA826',
   choiceSelectedFill: '#0A57C2',
   onChoiceSelected: '#FFFFFF',
+  pulseStart: '#22D3EE',
+  pulseMid: '#9BEBFF',
+  pulseEnd: '#FF5A36',
+  pulseTrack: '#0A3FA81A',
   chipCyan: '#0E749024',
   onChipCyan: '#0B5E75',
   chipEnergy: '#B03A0B1F',
@@ -269,6 +282,11 @@ export const darkColors: ColorTokens = {
   tabBarBorder: '#FFFFFF26',
   choiceSelectedFill: '#FFFFFF',
   onChoiceSelected: '#0A57C2',
+  // Unchanged: accentCyan, onStageVariant, accentEnergy and onStage at 14 %.
+  pulseStart: '#22D3EE',
+  pulseMid: '#C7D7F0',
+  pulseEnd: '#FF8A5B',
+  pulseTrack: '#E6EDF724',
   chipCyan: '#22D3EE24',
   onChipCyan: '#67E8F9',
   chipEnergy: '#FF7A4529',

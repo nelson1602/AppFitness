@@ -141,7 +141,7 @@ export function WeeklySnapshotSummary({
   const theme = useTheme();
   const { t, language } = useLocalization();
   // v10 Block C, item 9: weights in the person's units (metric unchanged).
-  const { system } = useUnits();
+  const { weightSystem: system } = useUnits();
   const kgShown = (kg: number | null) =>
     kg === null || system === 'metric' ? kg : roundToTenth(kgToDisplay(kg, system));
   const kgUnit = ` ${weightUnit(system)}`;
