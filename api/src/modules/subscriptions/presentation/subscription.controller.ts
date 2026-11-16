@@ -8,9 +8,11 @@ import {
   Post,
   Req,
   ServiceUnavailableException,
+  UseGuards,
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { createHash } from 'node:crypto';
 
@@ -30,6 +32,7 @@ import type {
   WebhookIngestionResult,
 } from '../domain/subscription.types';
 import { verifyRevenueCatWebhook } from '../infrastructure/revenuecat-webhook.verifier';
+import { ReconcileRateLimitGuard } from './guards/reconcile-rate-limit.guard';
 
 @ApiTags('subscriptions')
 @Controller('subscriptions')
@@ -49,6 +52,9 @@ export class SubscriptionController {
     return this.subscriptions.getStatus(user.id);
   }
 
+  // ADR-P046: 5 per minute per account (after authentication), and a call
+  // within 30 s of the last reconcile answers from the mirror (service).
+  @UseGuards(ReconcileRateLimitGuard)
   @ApiBearerAuth()
   @Post('reconcile')
   @HttpCode(200)
@@ -61,6 +67,10 @@ export class SubscriptionController {
     return this.subscriptions.reconcile(user.id);
   }
 
+  // ADR-P046: RevenueCat delivers from a few shared addresses and retries on
+  // failure; the per-IP throttle would drop real deliveries. The webhook is
+  // authenticated by its shared token and HMAC signature instead.
+  @SkipThrottle()
   @Public()
   @Post('webhooks/revenuecat')
   @HttpCode(200)

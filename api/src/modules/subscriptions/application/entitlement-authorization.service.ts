@@ -5,6 +5,7 @@ import {
   type RevenueCatConfig,
 } from '../../../config/revenuecat.config';
 import { PrismaService } from '../../database/prisma.service';
+import { entitlementGrantsAccess } from '../domain/entitlement-access';
 
 export const SUBSCRIPTION_REQUIRED_CODE = 'SUBSCRIPTION_REQUIRED';
 
@@ -28,17 +29,17 @@ export class EntitlementAuthorizationService {
 
     const entitlement = await this.prisma.subscriptionEntitlement.findUnique({
       where: { userId },
-      select: { entitlementId: true, isActive: true, expiresAt: true },
+      select: {
+        entitlementId: true,
+        isActive: true,
+        expiresAt: true,
+        environment: true,
+      },
     });
     // The mirror must be for the entitlement this environment sells; an active
     // row for any other entitlement identifier never authorizes a paid write.
-    const active =
-      entitlement?.entitlementId === this.config.entitlementId &&
-      entitlement.isActive === true &&
-      (entitlement.expiresAt === null ||
-        entitlement.expiresAt.getTime() > Date.now());
-
-    if (!active) {
+    // ADR-P046: nor does a sandbox purchase in production (testers aside).
+    if (!entitlementGrantsAccess(entitlement, this.config, userId)) {
       throw new HttpException(
         {
           statusCode: HttpStatus.PAYMENT_REQUIRED,

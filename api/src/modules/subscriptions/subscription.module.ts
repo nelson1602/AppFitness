@@ -1,6 +1,7 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 
 import {
+  describeRevenueCatMode,
   REVENUECAT_CONFIG,
   resolveRevenueCatConfig,
   type RevenueCatConfig,
@@ -25,7 +26,14 @@ import { ActiveEntitlementGuard } from './presentation/guards/active-entitlement
   providers: [
     {
       provide: REVENUECAT_CONFIG,
-      useFactory: (): RevenueCatConfig => resolveRevenueCatConfig(),
+      useFactory: (): RevenueCatConfig => {
+        const config = resolveRevenueCatConfig();
+        // ADR-P046: say at boot which payments mode this instance runs in.
+        new Logger('Subscriptions').log(
+          `Payments mode: ${describeRevenueCatMode(config)}`,
+        );
+        return config;
+      },
     },
     {
       provide: REVENUECAT_FETCH,

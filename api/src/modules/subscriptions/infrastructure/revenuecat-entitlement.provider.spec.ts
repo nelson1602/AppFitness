@@ -10,6 +10,8 @@ const config: EnabledRevenueCatConfig = {
   webhookAuthToken: 'a'.repeat(32),
   webhookSigningSecret: 'b'.repeat(32),
   entitlementId: 'appfitness_pro',
+  rejectSandbox: false,
+  sandboxAllowedUserIds: new Set<string>(),
 };
 
 function jsonResponse(body: unknown, status = 200): Response {

@@ -10,6 +10,8 @@ const config: EnabledRevenueCatConfig = {
   webhookAuthToken: 'a'.repeat(32),
   webhookSigningSecret: 'b'.repeat(32),
   entitlementId: 'appfitness_pro',
+  rejectSandbox: false,
+  sandboxAllowedUserIds: new Set<string>(),
 };
 
 const nowMs = Date.parse('2026-09-29T16:00:00.000Z');

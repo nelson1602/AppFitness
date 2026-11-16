@@ -24,6 +24,8 @@ const UNGATED = new Set([
   "auth/presentation/auth.controller.ts @Post('login')",
   "auth/presentation/auth.controller.ts @Post('refresh')",
   "auth/presentation/auth.controller.ts @Post('logout')",
+  // ADR-P046: ending every session is a security action, never a paid write.
+  "auth/presentation/auth.controller.ts @Post('logout-all')",
   "auth/presentation/auth.controller.ts @Delete('account')",
   "auth/presentation/auth.controller.ts @Post('forgot-password')",
   "auth/presentation/auth.controller.ts @Post('reset-password')",

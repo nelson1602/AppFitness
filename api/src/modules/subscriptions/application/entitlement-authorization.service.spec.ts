@@ -85,7 +85,12 @@ describe('EntitlementAuthorizationService', () => {
       });
       expect(findUnique).toHaveBeenCalledWith({
         where: { userId: USER_ID },
-        select: { entitlementId: true, isActive: true, expiresAt: true },
+        select: {
+          entitlementId: true,
+          isActive: true,
+          expiresAt: true,
+          environment: true,
+        },
       });
       jest.useRealTimers();
     },
@@ -109,6 +114,65 @@ describe('EntitlementAuthorizationService', () => {
   });
 });
 
+describe('ADR-P046: sandbox purchases in production', () => {
+  const TESTER = '00000000-0000-4000-8000-00000000bbbb';
+  const findUnique = jest.fn();
+  const prisma = {
+    subscriptionEntitlement: { findUnique },
+  } as unknown as PrismaService;
+  const sandboxRow = {
+    entitlementId: ENTITLEMENT,
+    isActive: true,
+    expiresAt: null,
+    environment: 'SANDBOX',
+  };
+  const production = (): RevenueCatConfig => ({
+    ...(enabledConfig() as Extract<
+      RevenueCatConfig,
+      { provider: 'revenuecat' }
+    >),
+    rejectSandbox: true,
+    sandboxAllowedUserIds: new Set([TESTER]),
+  });
+
+  it('a sandbox entitlement grants nothing in production', async () => {
+    findUnique.mockResolvedValue(sandboxRow);
+    const service = new EntitlementAuthorizationService(prisma, production());
+    await expect(
+      service.assertPaidMutationAllowed(USER_ID),
+    ).rejects.toMatchObject({
+      status: HttpStatus.PAYMENT_REQUIRED,
+    });
+  });
+
+  it('an allow-listed tester keeps access with a sandbox purchase', async () => {
+    findUnique.mockResolvedValue(sandboxRow);
+    const service = new EntitlementAuthorizationService(prisma, production());
+    await expect(
+      service.assertPaidMutationAllowed(TESTER),
+    ).resolves.toBeUndefined();
+  });
+
+  it('a real (PRODUCTION) purchase is unaffected', async () => {
+    findUnique.mockResolvedValue({ ...sandboxRow, environment: 'PRODUCTION' });
+    const service = new EntitlementAuthorizationService(prisma, production());
+    await expect(
+      service.assertPaidMutationAllowed(USER_ID),
+    ).resolves.toBeUndefined();
+  });
+
+  it('outside production a sandbox purchase counts as usual', async () => {
+    findUnique.mockResolvedValue(sandboxRow);
+    const service = new EntitlementAuthorizationService(
+      prisma,
+      enabledConfig(),
+    );
+    await expect(
+      service.assertPaidMutationAllowed(USER_ID),
+    ).resolves.toBeUndefined();
+  });
+});
+
 function enabledConfig(): RevenueCatConfig {
   return {
     provider: 'revenuecat',
@@ -116,5 +180,7 @@ function enabledConfig(): RevenueCatConfig {
     webhookAuthToken: 'a'.repeat(32),
     webhookSigningSecret: 'b'.repeat(32),
     entitlementId: ENTITLEMENT,
+    rejectSandbox: false,
+    sandboxAllowedUserIds: new Set<string>(),
   };
 }
