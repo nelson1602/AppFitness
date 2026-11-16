@@ -61,7 +61,7 @@ El usuario registra los resultados de su evaluación con el médico.
 - **Cantidades redondeadas:** gramos y mililitros sin decimales ("271 g"); cucharadas, tazas, unidades y rebanadas a la media más cercana ("2 cda.", "½ unidad", "1½ tazas"), nunca cero. La unidad concuerda con la cantidad ("1 taza", "2 tazas"; las abreviaturas no cambian). Los totales de calorías y macros usan los valores exactos.
 - **Alimentos excluidos:** solo se quita el alimento marcado, nunca el plato completo ni el grupo. El iCoach lo cambia por otro del mismo tipo (proteína por proteína, víveres por víveres, fruta por fruta…) y si no hay sustituto lo quita. El plato muestra "Ajustado por iCoach: huevo → pechuga de pollo".
 - **Otras restricciones** (sodio, purinas, azúcares, alcohol, cafeína, frituras) sí excluyen los productos que las tienen.
-- **Comida fuera del plan:** recalcula. Si se pasó de calorías añade cardio al próximo entrenamiento y baja la meta del día siguiente; si fue alcohol, recomienda evitar el entrenamiento intenso.
+- **Comida fuera del plan:** recalcula. Si se pasó de calorías, el día siguiente reparte hasta un 10 % menos entre las comidas y el resto pasa a cardio suave en el próximo entrenamiento (30 min como máximo, "Añadido por el iCoach", se puede quitar). Si se quedó por debajo en un día completo (al menos la mitad de su meta en dos comidas o más), sube hasta un 10 % por día. El iCoach no da consejos de entrenamiento por alcohol (ADR-P040, adenda v11-B).
 
 ### Panel (pestañas Inicio, Entrenamientos, Nutrición, Progreso, Perfil)
 La pestaña activa muestra su nombre; las demás, solo el ícono.
