@@ -17,7 +17,11 @@ import { addDays } from '@/features/weekly-plan/domain/week';
  *   also covered by cardio. No cardio when a restriction rules it out.
  * - C3 Under: food goes up, at most `CARRY_OVER_DAILY_CAP_PCT` % of the base a
  *   day, spread over the next `CARRY_OVER_SPREAD_DAYS` days, then dropped.
- *   Exercise is never reduced.
+ *   Exercise is never reduced. Only a day that looks complete counts as under:
+ *   at least `UNDER_MIN_LOGGED_PCT` % of its target logged, in at least
+ *   `UNDER_MIN_MEALS` meal slots. A thinner day (one naranja) is most likely
+ *   half-logged, so it adds nothing: no queue, no cancelling, no message. A
+ *   day over always counts.
  * - C4 Opposite differences cancel first: a day over cancels food still queued
  *   from a day under (oldest first), and the reverse.
  * - C5 Safe minimum: a day's planned target never goes below the iCoach's safe
@@ -30,6 +34,10 @@ export const CARRY_OVER_RULE_VERSION = 'carry-over@1.0.0';
 export const CARRY_OVER_DAILY_CAP_PCT = 10;
 export const CARRY_OVER_SPREAD_DAYS = 3;
 export const CARRY_OVER_LOOKBACK_DAYS = 7;
+/** C3: a day under counts only with at least this share of its target logged … */
+export const UNDER_MIN_LOGGED_PCT = 50;
+/** … in at least this many meal slots (breakfast, lunch, snack, dinner). */
+export const UNDER_MIN_MEALS = 2;
 /** C2: the most cardio one day over can add to a workout. */
 export const MAX_CARDIO_MINUTES = 30;
 /** C2: brisk walking, low–moderate (Compendium 17190, `ACTIVITY_MET.walking`). */
@@ -44,6 +52,8 @@ export interface DayIntake {
   calories: number;
   /** Logged food items that day; 0 means the day does not count (C1). */
   items: number;
+  /** Meal slots with something logged that day (C3); absent = unknown, 0. */
+  meals?: number;
 }
 
 export interface CarryOverInput {
@@ -160,6 +170,11 @@ export function computeCarryOver(input: CarryOverInput): CarryOver {
     if (!day || day.items <= 0) continue;
     const target = base + adjustment + Math.max(0, Math.round(input.bonusByDate?.[date] ?? 0));
     const consumed = Math.round(day.calories);
+    // C3: a day under that does not look complete adds nothing at all.
+    const incompleteUnder =
+      consumed < target &&
+      (consumed * 100 < target * UNDER_MIN_LOGGED_PCT || (day.meals ?? 0) < UNDER_MIN_MEALS);
+    if (incompleteUnder) continue;
     if (back === 1) yesterday = { date, consumed, target };
     const left = cancel(queue, target - consumed);
     if (left > 0) {

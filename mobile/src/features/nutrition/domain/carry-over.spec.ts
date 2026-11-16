@@ -11,7 +11,12 @@ const FLOOR = 1792; // the safe minimum of a 80 kg / 175 cm adult (BMR > clinica
 const TODAY = '2026-11-13';
 const YESTERDAY = '2026-11-12';
 
-const day = (date: string, calories: number, items = 3): DayIntake => ({ date, calories, items });
+const day = (date: string, calories: number, items = 3, meals = 3): DayIntake => ({
+  date,
+  calories,
+  items,
+  meals,
+});
 const run = (days: DayIntake[], extra: Partial<CarryOverInput> = {}) =>
   computeCarryOver({
     today: TODAY,
@@ -151,5 +156,43 @@ describe('carry-over@1.0.0 (ADR-P040 Addendum v11-B)', () => {
     const frozen = JSON.stringify(input);
     expect(computeCarryOver(input)).toEqual(computeCarryOver(input));
     expect(JSON.stringify(input)).toBe(frozen);
+  });
+});
+
+describe('C3: only a day under that looks complete counts (owner, 2026-11-13)', () => {
+  const nothing = { adjustment: 0, yesterday: null, remaining: 0, cardio: [] };
+
+  it('a day with only one naranja (64 kcal, one meal): no carry-over, no message', () => {
+    expect(run([day(YESTERDAY, 64, 1, 1)])).toMatchObject(nothing);
+  });
+
+  it('half the target but one meal slot: nothing', () => {
+    expect(run([day(YESTERDAY, 1500, 2, 1)])).toMatchObject(nothing);
+  });
+
+  it('two meal slots but under half the target: nothing', () => {
+    expect(run([day(YESTERDAY, 1300, 4, 2)])).toMatchObject(nothing);
+  });
+
+  it('at least 50 % in at least two meal slots: counts, +10 % at most', () => {
+    // 1.356 of 2.711 is 50,0 %; under by 1.355, today +271 (the cap).
+    const result = run([day(YESTERDAY, 1356, 4, 2)]);
+    expect(result.yesterday).toEqual({ date: YESTERDAY, consumed: 1356, target: BASE });
+    expect(result.adjustment).toBe(271);
+    expect(result.cardio).toEqual([]);
+    // 1.355 of 2.711 (49,98 %) is not enough.
+    expect(run([day(YESTERDAY, 1355, 4, 2)])).toMatchObject(nothing);
+  });
+
+  it('a day over always counts, whatever was logged where', () => {
+    expect(run([day(YESTERDAY, 2900, 1, 1)]).adjustment).toBe(-189);
+  });
+
+  it('an incomplete day under does not cancel what a day over queued', () => {
+    // 11-11 over by 514 (food −271 on 11-12 only, the rest cardio); 11-12 one naranja.
+    const result = run([day('2026-11-11', 3225), day(YESTERDAY, 64, 1, 1)]);
+    expect(result.yesterday).toBeNull();
+    expect(result.adjustment).toBe(0);
+    expect(result.cardio).toEqual([{ fromDate: '2026-11-11', kcal: 243, minutes: 30 }]);
   });
 });
