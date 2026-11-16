@@ -168,6 +168,8 @@ export function useHomeData(now: Date = new Date()): HomeData {
         : null,
       activityCalories: realtime.calorieBonus,
       carryOverCalories: carryOver?.carryOver.adjustment ?? 0,
+      // TASK-v11B-4: a session moved to today trains today, as Entrenamientos shows.
+      moves: realtime.moves,
     });
 
     const notifications = buildNotifications({
