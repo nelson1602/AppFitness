@@ -403,6 +403,14 @@ Examples:
   2026-09-04). Any further hosted Web origin still needs its own approval before
   it is added.
 
+API boot requirements (ADR-P046). With `NODE_ENV=production` the API refuses to start unless:
+
+* `REVENUECAT_PROVIDER` is set explicitly to `disabled` or `revenuecat`. Unset is no longer read as "disabled". The mode is logged at boot as `Payments mode: …`.
+* `JWT_ACCESS_SECRET` is at least 32 bytes.
+* `REVENUECAT_SANDBOX_USER_IDS` (optional, with `revenuecat`) holds comma-separated user UUIDs. Only these accounts' sandbox (test) purchases count in production; anything malformed fails boot.
+
+Set these on every Railway service before an API release that includes ADR-P046 reaches it. Both services deploy automatically from `main`.
+
 Secrets must never be committed to source control.
 
 ---

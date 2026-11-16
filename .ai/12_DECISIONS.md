@@ -15585,6 +15585,91 @@ ADR-P012, ADR-P013, ADR-P014, ADR-P034, ADR-P040 D9/D10, `docs/design/FOCUS.md` 
 
 ---
 
+## ADR-P046 — API Security Hardening S1 (Sessions, Brute Force, Payments, Sync, Telemetry)
+
+Status: Proposed with the S1 PR; the owner accepts it by merging that PR
+Date: 2026-11-16
+Owner: Security / Backend
+Supersedes: nothing. Refines ADR-P006 (sessions), ADR-P011 (account deletion), ADR-P020 (throttling), ADR-P030 (sync conflicts) and ADR-P034 (entitlements).
+
+### Context
+
+The owner's audit of main `7eaf97c` (OWASP ASVS L2, MASVS, API Top 10) found no Critical or High issue and a set of Medium ones. S1 fixes the API side. S2 (mobile) and S3 (dependencies) follow as separate PRs.
+
+### Decision
+
+**D1 Sessions.**
+- **Token version:** `users.token_version`, carried in every access token as `tv`. The JWT guard reloads the account on each request and rejects:
+  - an account that is missing, deleted or not ACTIVE;
+  - a token on an older version.
+  The role comes from the database.
+- **Version bumps:** a password reset and the new `POST /auth/logout-all` bump the version, ending every access token at once. `logout-all` also revokes every refresh token.
+- **Atomic rotation:** inside one transaction, the old refresh token is revoked by an `updateMany` that must match exactly one still-active row, then the successor is created. A concurrent loser gets 401 and no token. The existing reuse detection is unchanged.
+- **Absolute lifetime:** `refresh_tokens.session_started_at` is copied along the chain, and a session ends 30 days after sign-in. No refresh token outlives that limit.
+- **No caching:** every `/auth` response, errors included, is sent with `Cache-Control: no-store`.
+
+**D2 JWT.**
+- HS256 only, with issuer `appfitness-api` and audience `appfitness-app`, pinned on both signing and verification.
+- Boot fails if `JWT_ACCESS_SECRET` is shorter than 32 bytes.
+- Tokens signed before this change fail verification once. The app refreshes on 401, so it is transparent.
+
+**D3 Brute force and enumeration.**
+- **Per-account backoff:** a `login_attempts` table keyed by the SHA-256 of the normalized email (trim, NFKC, lower case).
+  - After 5 failures within 24 h, sign-in is locked for 1 minute, doubling up to 1 hour. A success clears it.
+  - Unknown addresses are counted and locked the same way, with the same 429 `LOGIN_TEMPORARILY_LOCKED`.
+- **Timing:** an unknown email spends one real Argon2 verification against a dummy hash.
+- **Register:** answers a taken email or username with one generic 409.
+
+**D4 Account deletion.**
+- `DELETE /auth/account` requires the current password (`{ password }`). A wrong password counts as a sign-in failure and is audited. The route is throttled to 5 per hour per IP.
+- The account's own foods and exercises (`created_by`, which has no foreign key) are deleted in the same transaction. Any still referenced elsewhere is anonymized instead.
+
+**D5 Payments.**
+- **Sandbox purchases in production:** a SANDBOX entitlement grants nothing, except for tester accounts in `REVENUECAT_SANDBOX_USER_IDS` (comma-separated UUIDs). One rule (`entitlementGrantsAccess`) serves the paid-write guard and the status view.
+- **Newest wins:** reconcile and webhook writes store `last_fetched_at`. A write lands only if the stored snapshot is older; the predicate runs in PostgreSQL, behind an `ON CONFLICT DO NOTHING` insert.
+- **Reconcile limits:** `/subscriptions/reconcile` is limited to 5 per minute per account, by a guard that runs after authentication. A call within 30 s of the last reconcile answers from the mirror.
+- **Explicit mode:** production refuses to boot without an explicit `REVENUECAT_PROVIDER` (`disabled` or `revenuecat`), and every instance logs its payments mode at boot.
+- **Webhook:** the RevenueCat webhook skips the per-IP throttle. It stays authenticated by its token and HMAC.
+
+**D6 Sync.**
+- **Conflict payloads:** `sync_conflicts.client_payload` keeps only the entity's own fields, those present in the server snapshot. Values must be plain and bounded: strings of at most 1,000 characters and arrays of at most 50 items. The handler's redaction then still runs.
+- **Conflict caps:**
+  - A single entity row keeps at most 5 unresolved conflicts; past that, the newest is replaced.
+  - An account with 200 unresolved conflicts gets `CONFLICT_LIMIT_REACHED`.
+- **Retention:** best-effort and run at most hourly per account. It purges resolved conflicts after 90 days and operation ids after 30 days.
+- **Op ids:** an op id recorded for another account answers `OP_ID_IN_USE`. It is never replayed as a duplicate and never recorded.
+- **Device ids:** a `deviceId` must be one of the account's own active devices; otherwise the request gets 403.
+- **Text limits:** every text field in a sync payload has a maximum length:
+  - names: 200;
+  - notes, instructions and descriptions: 2,000;
+  - dietary notes: 1,000;
+  - tokens: 64.
+
+**D7 Telemetry.**
+- Sentry exception values and messages are scrubbed: emails, bearer tokens, JWTs, long opaque tokens and quoted values are replaced, URLs lose their query and fragment, and the text is cut to 200 characters.
+- A Prisma error keeps its class name only.
+- The audit writer logs an error's class and Prisma code, never the error itself.
+
+### Consequences
+
+- **Positive:**
+  - A stolen access token stops working on "log out everywhere" or a password reset.
+  - Distributed password guessing is bounded per account.
+  - Sandbox purchases cannot unlock production.
+  - Stale provider data cannot overwrite fresh data.
+  - The sync tables cannot be filled with arbitrary data.
+- **Negative:**
+  - One extra indexed user read per authenticated request (D1).
+  - Clients must send the password to delete an account. App versions before S2 cannot delete an account until S2 ships.
+  - Production deploys fail until `REVENUECAT_PROVIDER` is set explicitly.
+- **Migration:** `20261116150818_security_hardening_s1` is additive only: new columns with defaults and one new table. Existing refresh tokens take their own `created_at` as the session start.
+
+### Related Documents
+
+`.ai/05_SECURITY.md` (Session Management, Account Deletion), `.ai/10_DEPLOYMENT.md` (environment), `dist/security/S1/INDEX.md`, ADR-P006, ADR-P011, ADR-P020, ADR-P030, ADR-P034
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

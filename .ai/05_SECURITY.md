@@ -121,6 +121,15 @@ Sessions must support:
 
 Expired sessions must become unusable immediately.
 
+As implemented (ADR-P046):
+
+- Access tokens are 15-minute HS256 JWTs with a fixed issuer and audience, and carry the account's token version (`tv`). Every request reloads the account. A deleted or non-ACTIVE account, or an older token version, is rejected at once.
+- Refresh tokens are single-use and rotated atomically. Reuse revokes the whole family. A session ends 30 days after sign-in at most.
+- `POST /auth/logout-all` and every password reset revoke all refresh tokens and bump the token version.
+- `/auth` responses are `Cache-Control: no-store`.
+- Sign-in is backed off per account. After 5 failures it is locked for 1 minute, doubling up to 1 hour, keyed by a hash of the normalized email, for unknown addresses too. An unknown email costs one real Argon2 verification.
+- Deleting the account requires the current password.
+
 ---
 
 # Authorization
