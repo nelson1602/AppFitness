@@ -135,6 +135,7 @@ describe('Account deletion (e2e)', () => {
     await request(http)
       .delete('/auth/account')
       .set('Authorization', `Bearer ${accessToken}`)
+      .send({ password: 'Disposable-pw-12345' })
       .expect(204);
 
     // User-owned data is gone (DB cascade).
