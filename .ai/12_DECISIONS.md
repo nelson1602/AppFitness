@@ -15670,6 +15670,101 @@ The owner's audit of main `7eaf97c` (OWASP ASVS L2, MASVS, API Top 10) found no 
 
 ---
 
+## ADR-P047 — Mobile Security Hardening S2 (Device Data, Account Deletion, Config, Telemetry)
+
+Status: Proposed with the S2 PR; the owner accepts it by merging that PR
+Date: 2026-11-16
+Owner: Security / Mobile
+Supersedes: nothing. Refines ADR-P001 (field cipher), ADR-P008 (e2e build), ADR-P010 (Sentry), ADR-P026 (reset link) and ADR-P030 Decision 8 (data kept at sign-out).
+
+### Context
+
+S2 is the mobile half of the owner's 2026-11-16 audit of main `7eaf97c` (SECURITY-003). It also makes the app use the account-deletion contract that ADR-P046 D4 put on the API.
+
+### Decision
+
+**D1 Backup and transfer.**
+- `android.allowBackup: false`.
+- A local config plugin (`plugins/with-backup-exclusion.js`) adds data-extraction rules that exclude every domain from cloud backup and from device-to-device transfer. That is needed because on Android 12+ `allowBackup=false` alone does not stop a device transfer. The plugin also adds `fullBackupContent` rules for Android 11 and older.
+- expo-secure-store's own backup rules are turned off (`configureAndroidBackup: false`) so they cannot replace these.
+
+**D1b Permissions.** `android.blockedPermissions` removes `SYSTEM_ALERT_WINDOW`, `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE` and `DUMP` from the merged manifest (`tools:node="remove"`). `INTERNET`, the biometric permissions and `com.android.vending.BILLING` stay.
+
+**D2 Account deletion.**
+- The delete screen asks for the current password next to the typed `DELETE` phrase, and sends it as `{ password }` (ADR-P046 D4).
+- The session is rotated just before the call, so a 401 from the deletion means a wrong password and not an expired token.
+- Refusals map to safe copy: wrong password, too many attempts (429), session ended, offline, server.
+- The password lives in component state only, is cleared after a refusal, and is never stored or logged.
+- A completed deletion also erases the device field key (D4).
+
+**D2b Sign-in lock.** A 429 on sign-in, from ADR-P046's per-account backoff or from the per-IP throttle, shows "Demasiados intentos" with a pointer to the password reset. It never says whether the account exists.
+
+**D3 Notes encrypted at rest.**
+- **Columns:** the free-text `notes` columns of `body_weights`, `body_measurements`, `workout_logs`, `workout_sets`, `nutrition_logs` and `health_logs`.
+- **Format:** `enc:v1:<base64>`, which is AES-256-GCM under the existing device field key (ADR-P001). The key lives only in SecureStore.
+- **No schema change:** the column stays TEXT, so there is no migration. At every database open, an idempotent backfill seals any legacy plaintext note. It changes only `notes`, never `version`, `updated_at` or `sync_status`.
+- **Plaintext stays in memory:**
+  - repositories open notes before the domain sees them;
+  - server-pull appliers seal what they write;
+  - sync payloads keep carrying plaintext inside the queue's own encrypted envelope.
+  The server contract is unchanged.
+- **Unreadable notes:** a note that no longer decrypts reads as empty. The server still holds the synced copy.
+
+**D3b SQLCipher (design note, not implemented).** Whole-database encryption through expo-sqlite's `useSQLCipher` option is the next step. The key would be a random 256-bit value in SecureStore, set with `PRAGMA key` on open. It is not low risk today, for three reasons:
+1. It switches the native SQLite build to SQLCipher. That interacts with the expo-sqlite 57.0.4 prebuilt-AAR pin (BUG-052, `verify:native-abis`) and needs its own ABI evidence.
+2. An installed database must be migrated with `sqlcipher_export` into a new file and swapped atomically, with a recovery path when the key is missing.
+3. It costs CPU on every query on low-end devices.
+
+It is proposed as its own slice with an ADR amendment. D3 covers the free-text columns meanwhile, and the medical columns were already sealed.
+
+**D4 "Borrar datos de este teléfono".**
+- Perfil gains "Cerrar sesión y borrar datos de este teléfono" under the plain sign-out. The plain sign-out still keeps local data (ADR-P030 D8), and its one tap is unchanged.
+- The new action asks once, and shows how many changes have not synced and would be lost.
+- It then signs out, deletes the database file and deletes the field key (crypto-shred). Anything sealed under that key cannot be read again.
+- Language and unit preferences are not personal data and stay.
+
+**D5 One API config module.**
+- `shared/infrastructure/config/api-config.ts` is the only reader of `EXPO_PUBLIC_API_URL`, and a source test enforces that.
+- A development bundle falls back to `http://localhost:3001`.
+- A release bundle throws at load if the URL is missing, not absolute, or not `https:`.
+- The one exception is the e2e variant (`EXPO_PUBLIC_APP_VARIANT=e2e`, set next to `APP_VARIANT=e2e`), which may use plain http to `127.0.0.1` or `localhost` only. `app.config.js` refuses `APP_VARIANT=e2e` without the matching public variable.
+
+**D6 Reset link.**
+- The reset route reads the token only from the emailed HTTPS link's fragment.
+- `appfitness://reset-password?token=…` and a `?token=` query on Web are refused, because any app can claim a custom scheme and the server never sends that form.
+- On a phone the emailed link opens the Web recovery page. Verify-email is unchanged.
+
+**D7 Sentry parity with ADR-P046 D7.**
+- The mobile scrubber uses the API's key list.
+- Exception values, `message`, `logentry` and breadcrumb messages pass through the same `scrubText`: emails, bearer tokens, JWTs, long tokens and quoted values are replaced, URLs of any scheme lose their query and fragment, and the text is cut to 200 characters.
+
+**D8 E2E builds are local only.**
+- The `e2e` profile no longer has internal distribution.
+- `app.config.js` throws when `APP_VARIANT=e2e` runs on an EAS cloud worker (`EAS_BUILD_RUNNER=eas-build`).
+- `mobile-e2e.yml` builds the APK on the runner (prebuild + Gradle) instead of downloading an EAS build, so it no longer needs `EXPO_TOKEN`.
+- Testers install only from Google Play (`.ai/10_DEPLOYMENT.md`).
+- The `development`, `preview`, `internal-apk` and `production-validation` profiles still declare internal distribution. Whether to delete them is an owner decision, tracked in SECURITY-003.
+
+### Consequences
+
+- **Positive:**
+  - No health data leaves the phone through backup or transfer.
+  - Free-text notes are unreadable from a copied database file.
+  - A shared phone can be wiped on sign-out.
+  - A misconfigured release cannot talk to an http API.
+  - A reset token cannot be captured by another app.
+- **Negative:**
+  - A reinstall or a new phone always restores from the server, never from a backup.
+  - Each note read and write costs one AES-GCM operation.
+  - The e2e workflow builds its APK, which takes about 20 more minutes per run.
+- **Native build:** the manifest changes (D1, D1b) need a new native build. It is versionCode 13, after this merges.
+
+### Related Documents
+
+`.ai/05_SECURITY.md` (Secure Storage, Mobile Security), `.ai/10_DEPLOYMENT.md` (mobile build types), `mobile/e2e/README.md`, `dist/security/S2/INDEX.md`, ADR-P001, ADR-P008, ADR-P010, ADR-P026, ADR-P030, ADR-P046
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.
