@@ -3546,7 +3546,7 @@ Contrast is gated in `contrast.spec.ts`. Style tests cover both themes in `langu
 
 ## [DATA-001] A Food Shows as "Galleta de Soda field" (Lowercase Brand Glued to the Name)
 
-Status: Display rule in the v11-B PR (codex/v11-carryover-units), pending owner review; stored data unchanged
+Status: Fixed in PR #257 (codex/v11-carryover-units), pending owner review. Display rule, and (review 2026-11-16, decision 2 "persist from now on") the brand is now kept on the phone; snapshots unchanged
 Priority: P3
 Type: Data quality
 Owner: Engineering
@@ -3560,6 +3560,7 @@ Updated: 2026-11-13
 - Otherwise the name is sentence-cased, and a brand repeated at its end moves into parentheses: "Galleta de Soda field" (brand Field) → **"Galleta de soda (Field)"**.
 - Used in search results (the separate "· Field" caption is then dropped), the food log, the plan's "fuera del plan" rows and the iCoach sentence.
 - Logged items read the brand from their local `foods` row. `food_name_snapshot` is never rewritten.
+- **Review 2026-11-16 (decision 2 is "persist from now on", not display only):** a saved food keeps its brand (from the chosen search result); a row kept earlier without one gets it from a later search or from a pull (`food_brand` on `meal_items`, API additive). Saved and logged branded foods read "Name (Brand)"; without a brand, sentence case only.
 
 ### Description
 
@@ -3617,7 +3618,7 @@ Compute R2 for the 7-day lookback window from the workout logs, not just the cur
 
 ## [TASK-v11B-2] Food Add Form: Local Matches and the Chosen Food Still Show the Raw Name
 
-Status: Open
+Status: Fixed in PR #257 (review 2026-11-16): the add form uses `loggedFoodName` with the kept brand; specs in `FoodLogAddForm.remote.spec.tsx`
 Priority: P3
 Type: Task
 Owner: Engineering
@@ -3640,7 +3641,7 @@ Use `loggedFoodName` for both, with a spec. Display only; nothing stored changes
 
 ## [TASK-v11B-3] The Alcohol Note Cannot Fire: No Catalogue Food Has the `alcohol` Tag
 
-Status: Open
+Status: Resolved in PR #257 (review 2026-11-16) by removing the dead branch: the catalogue has no alcoholic drink to tag (tagging would need sourced new catalogue foods, ADR-P013). `off-plan`, its banner and copy are gone; ADR-P040 v11-B records it
 Priority: P3
 Type: Task
 Owner: Engineering
@@ -3659,7 +3660,7 @@ Owner decision: add catalogue drinks tagged `alcohol` (beer, wine, rum, with sou
 
 ## [TASK-v11B-4] Inicio Says "Rest Day" While Entrenamientos Shows the Moved Session Today
 
-Status: Open
+Status: Fixed in PR #257 (review 2026-11-16): `buildHomeSummary` applies the R3 moves; specs in `home-summary.spec.ts`
 Priority: P3
 Type: Task
 Owner: Engineering

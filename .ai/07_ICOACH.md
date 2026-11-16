@@ -358,9 +358,11 @@ recomputed mid-week. Logging never changes it; it only feeds adherence.
     was fulfilled, otherwise it stays; an injury change resets it.
   - `plan-adherence@1.0.0`: 50 % workouts + 50 % planned meals; green ≥ 85,
     cyan ≥ 65, orange below.
-  - `off-plan@1.1.0`: an alcohol recovery note (a lighter session today). Its
-    1.0.0 calorie reduction and extra cardio are superseded by `carry-over@1.0.0`
-    (ADR-P040 Addendum v11-B).
+  - `off-plan` is retired (ADR-P040 Addendum v11-B): its calorie reduction and
+    extra cardio became `carry-over@1.0.0`, and its alcohol note was removed in
+    review because no catalogue food is tagged `alcohol`. `carry-over@1.0.0`
+    counts a day under only when it looks complete (≥ 50 % of its target in
+    ≥ 2 meal slots); a day over always counts.
   - `injury-map@1.0.0-pending-review`: conservative, pending the ADR-P031 D4
     review.
 - **Inputs**: goal, training days, equipment, injury and movement tokens, and

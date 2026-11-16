@@ -44,7 +44,7 @@ Every UI implementation must comply with this specification.
   - Each theme now declares 81 roles.
 - **Carry-over line** (ADR-P040 v11-B). A caption on Nutrición's day header
   (`plan-carry-over`) and a body line on Inicio's iCoach card
-  (`home-coach-carry-over`). One sentence covers the food and the cardio, and it is shown only when something changes today. D7's banner keeps only the alcohol note.
+  (`home-coach-carry-over`). One sentence covers the food and the cardio, and it is shown only when something changes today. Both use the iCoach's neutral text, `onStageVariant` on glass (4.5:1 in both themes, `contrast.spec.ts`), never the warning orange. D7's banner is gone (its alcohol note could never show).
 - **"Añadido por el iCoach" cardio block** (ADR-P040 v11-B C7). One more exercise row
   on the session: a `linkOnStage` caption with the label, "N min de cardio suave", its
   own set button, and a 48 × 48 minimum **Quitar** button (role button, label
