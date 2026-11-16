@@ -41,6 +41,25 @@ describe('database open — legacy notes backfill (ADR-P047 D3)', () => {
     expect(logError).not.toHaveBeenCalled();
   });
 
+  it('zeroes freed content and, after sealing anything, truncates the WAL', async () => {
+    jest.mocked(sealLegacyNotes).mockResolvedValue(2);
+
+    await getDatabase();
+
+    const statements = fakeDb.execAsync.mock.calls.map((call: unknown[]) => call[0]);
+    expect(statements).toContain('PRAGMA secure_delete = ON');
+    expect(statements).toContain('PRAGMA wal_checkpoint(TRUNCATE)');
+  });
+
+  it('skips the checkpoint when nothing was sealed', async () => {
+    jest.mocked(sealLegacyNotes).mockResolvedValue(0);
+
+    await getDatabase();
+
+    const statements = fakeDb.execAsync.mock.calls.map((call: unknown[]) => call[0]);
+    expect(statements).not.toContain('PRAGMA wal_checkpoint(TRUNCATE)');
+  });
+
   it('a backfill failure is logged and never blocks opening the database', async () => {
     const failure = new Error('SecureStore unavailable');
     jest.mocked(sealLegacyNotes).mockRejectedValue(failure);
