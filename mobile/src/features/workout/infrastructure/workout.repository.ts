@@ -5,6 +5,7 @@ import {
   run,
   type SqlExecutor,
 } from '@/shared/infrastructure/database';
+import { openNote, sealNote } from '@/shared/infrastructure/crypto/sealed-note';
 import type { RoutineRow, WorkoutLogRow } from '@/shared/infrastructure/database/types';
 import { generateUuid } from '@/shared/infrastructure/ids';
 import { enqueue } from '@/shared/infrastructure/sync';
@@ -22,12 +23,17 @@ import {
  * Local-first routines + workout_logs persistence (ADR-P015 Slice 4A;
  * ADR-0006). Writes land in SQLite as `pending` and enqueue a sync op in the
  * SAME transaction for the Slice 3 backend handlers. Wellness data — no
- * encryption. UUID ids are client-minted. Soft-delete tombstones. No direct
+ * encryption, except free-text `notes`, sealed at rest (ADR-P047 D3). UUID ids are client-minted. Soft-delete tombstones. No direct
  * SQL lives outside this repository.
  */
 
 const ROUTINE_ENTITY = 'routines';
 const WORKOUT_LOG_ENTITY = 'workout_logs';
+
+// ADR-P047 D3: `notes` is sealed at rest; open it before the row reaches the domain.
+async function toWorkoutLog(row: WorkoutLogRow): Promise<WorkoutLog> {
+  return rowToWorkoutLog({ ...row, notes: await openNote(row.notes) });
+}
 
 // ── routines ──────────────────────────────────────────────────────────────
 export async function createRoutine(
@@ -152,6 +158,8 @@ export async function createWorkoutLog(
 ): Promise<WorkoutLog> {
   const id = generateUuid();
   const notes = input.notes ?? null;
+  // ADR-P047 D3: SQL gets the sealed note; the sync payload keeps plaintext.
+  const sealedNotes = await sealNote(notes);
   const startedAt = input.startedAt ?? nowIso;
   // A routine link is accepted only when the routine exists locally + active;
   // otherwise the log is created ad-hoc (routine_id null) rather than risking a
@@ -180,7 +188,7 @@ export async function createWorkoutLog(
         nowIso,
         routineId,
         input.name,
-        notes,
+        sealedNotes,
         startedAt,
         link?.weeklyPlanId ?? null,
         link?.planSessionKey ?? null,
@@ -217,7 +225,7 @@ export async function createWorkoutLog(
       tx,
     );
     if (!row) throw new Error('workout_log row disappeared mid-transaction');
-    return rowToWorkoutLog(row);
+    return toWorkoutLog(row);
   });
 }
 
@@ -227,7 +235,7 @@ export async function listRecentWorkoutLogs(userId: string, limit = 50): Promise
      ORDER BY started_at DESC LIMIT ?`,
     [userId, limit],
   );
-  return rows.map(rowToWorkoutLog);
+  return Promise.all(rows.map(toWorkoutLog));
 }
 
 /** Marks a log finished (or edits name/notes). Only these fields are mutable. */
@@ -245,13 +253,16 @@ export async function updateWorkoutLog(
     );
     if (!row) return null;
     const name = patch.name ?? row.name;
-    const notes = patch.notes === undefined ? row.notes : patch.notes;
+    // ADR-P047 D3: the stored note is sealed — open it before reusing it, seal
+    // it again for SQL, and keep the payload plaintext.
+    const notes = patch.notes === undefined ? await openNote(row.notes) : patch.notes;
+    const sealedNotes = await sealNote(notes);
     const finishedAt = patch.finishedAt === undefined ? row.finished_at : patch.finishedAt;
     const nextVersion = row.version + 1;
     await run(
       `UPDATE workout_logs SET name = ?, notes = ?, finished_at = ?, version = ?, updated_at = ?,
          sync_status = 'pending' WHERE id = ?`,
-      [name, notes, finishedAt, nextVersion, nowIso, id],
+      [name, sealedNotes, finishedAt, nextVersion, nowIso, id],
       tx,
     );
     await enqueue(
@@ -281,7 +292,7 @@ export async function updateWorkoutLog(
       [id],
       tx,
     );
-    return updated ? rowToWorkoutLog(updated) : null;
+    return updated ? toWorkoutLog(updated) : null;
   });
 }
 
@@ -376,7 +387,8 @@ export async function applyServerWorkoutLog(
       str(row['deleted_by']),
       str(row['routine_id']),
       str(row['name']),
-      str(row['notes']),
+      // ADR-P047 D3: server copies are sealed at rest too.
+      await sealNote(str(row['notes'])),
       str(row['started_at']),
       str(row['finished_at']),
       str(row['weekly_plan_id']),

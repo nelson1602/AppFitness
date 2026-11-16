@@ -1,6 +1,8 @@
 import * as SQLite from 'expo-sqlite';
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { sealLegacyNotes } from '../crypto/sealed-note';
+import { logError } from '../logging';
 import { runMigrations } from './migrations';
 
 const DATABASE_NAME = 'appfitness.db';
@@ -14,6 +16,14 @@ async function open(): Promise<SQLiteDatabase> {
   await db.execAsync('PRAGMA journal_mode = WAL');
   await db.execAsync('PRAGMA foreign_keys = ON');
   await runMigrations(db);
+  // ADR-P047 D3: rewrite pre-release plaintext notes as sealed ones. Best
+  // effort — a failure (e.g. SecureStore unavailable) must never block opening
+  // the database; legacy plaintext still reads and the next open retries.
+  try {
+    await sealLegacyNotes(db);
+  } catch (error: unknown) {
+    logError('database.sealLegacyNotes', error);
+  }
   return db;
 }
 
