@@ -16,6 +16,8 @@
  * `url` — and would otherwise carry a live `#token=` fragment into an event.
  */
 
+import { isPrismaErrorName } from './error-summary';
+
 export const SENSITIVE_KEY =
   /token|password|secret|key|authorization|credential|cookie|session|notes|conditions|medications|restriction|injur|payload|email|phone|username|birth|mail|recipient|subject|body|link|reset|verif/i;
 
@@ -119,7 +121,56 @@ function stripUrlLikeValues(
   return out;
 }
 
+/** Longest free text kept from an exception value or a message. */
+export const MAX_SCRUBBED_TEXT = 200;
+
+const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const JWT = /\beyJ[\w-]+\.[\w-]+\.[\w-]+/g;
+const BEARER = /\bBearer\s+\S+/gi;
+// Long opaque runs: refresh/reset tokens, hashes, API keys.
+const LONG_TOKEN = /\b[A-Za-z0-9_-]{32,}\b/g;
+const QUOTED = /(["'`])(?:(?!\1).){1,500}\1/g;
+
+/**
+ * ADR-P046: free text from an exception or a message, made safe. Credentials
+ * and email addresses are replaced, quoted values (which is where an error
+ * quotes user input) are dropped, URLs lose their query and fragment, and the
+ * whole is cut to MAX_SCRUBBED_TEXT characters.
+ */
+export function scrubText(text: unknown): string | undefined {
+  if (typeof text !== 'string') return undefined;
+  const cleaned = text
+    .replace(/https?:\/\/\S+/gi, (url) => stripQueryAndFragment(url) ?? '')
+    .replace(BEARER, 'Bearer [REDACTED]')
+    .replace(JWT, '[REDACTED]')
+    .replace(EMAIL, '[REDACTED]')
+    .replace(LONG_TOKEN, '[REDACTED]')
+    .replace(QUOTED, '[REDACTED]');
+  return cleaned.length > MAX_SCRUBBED_TEXT
+    ? `${cleaned.slice(0, MAX_SCRUBBED_TEXT)}…`
+    : cleaned;
+}
+
+interface ScrubbableException {
+  type?: string;
+  value?: string;
+}
+
+/**
+ * ADR-P046: an exception's message is reduced the same way. A Prisma error
+ * keeps its class name only — its message quotes the query and the values.
+ */
+export function scrubException<T extends object>(input: T): T {
+  const exception = input as ScrubbableException;
+  const type = exception.type ?? '';
+  exception.value = isPrismaErrorName(type) ? type : scrubText(exception.value);
+  return input;
+}
+
 interface ScrubbableEvent {
+  message?: string;
+  logentry?: { message?: string; params?: unknown[] };
+  exception?: { values?: ScrubbableException[] };
   request?: {
     method?: string;
     url?: string;
@@ -133,6 +184,16 @@ interface ScrubbableEvent {
 
 export function scrubEvent<T extends object>(input: T): T {
   const event = input as ScrubbableEvent;
+  // ADR-P046: exception values and messages are free text too.
+  if (event.exception?.values) {
+    event.exception.values = event.exception.values.map((e) =>
+      scrubException(e),
+    );
+  }
+  if (event.message !== undefined) event.message = scrubText(event.message);
+  if (event.logentry) {
+    event.logentry = { message: scrubText(event.logentry.message) };
+  }
   if (event.request) {
     event.request = {
       method: event.request.method,

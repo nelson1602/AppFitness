@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AuditAction, Prisma } from '@prisma/client';
 
+import { summarizeError } from '../../monitoring/error-summary';
 import { PrismaService } from '../database/prisma.service';
 
 export interface AuditEntry {
@@ -37,9 +38,9 @@ export class AuditService {
         },
       });
     } catch (error) {
+      // ADR-P046: never the raw error — a Prisma message can quote values.
       this.logger.error(
-        `Failed to write audit entry for ${entry.action}`,
-        error,
+        `Failed to write audit entry for ${entry.action}: ${summarizeError(error)}`,
       );
     }
   }
