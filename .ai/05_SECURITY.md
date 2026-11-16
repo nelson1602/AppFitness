@@ -522,7 +522,7 @@ SecureStore
 
 Biometric authentication
 
-Secure deep links: the password-reset token is read only from the emailed HTTPS link's fragment; the `appfitness://reset-password?token=` scheme is refused (ADR-P047 D6)
+Secure deep links: password-reset and email-verification tokens are read only from the emailed HTTPS link's fragment. The `appfitness://reset-password?token=` and `appfitness://verify-email?token=` schemes are refused (ADR-P047 D6).
 
 Protected navigation
 

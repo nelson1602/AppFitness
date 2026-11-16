@@ -8760,9 +8760,14 @@ The owner's audit of main `7eaf97c` found no Critical or High issue. The Medium 
 - [x] Account deletion sends the current password; sign-in and deletion show a message for 429.
 - [x] e2e APKs built locally only (cloud e2e build refused; `mobile-e2e.yml` builds on the runner); `10_DEPLOYMENT.md` says testers install only from Play.
 
-**Owner decision pending:** the `development`, `preview`, `internal-apk` and `production-validation` EAS profiles still declare internal distribution. Delete them or keep them for owner-only use? A `development` build would now refuse to start anyway: its URL is `http://localhost:3001`, which D5 refuses in a release bundle.
+**Owner decisions (2026-11-16), done in the follow-up PR:**
+- `preview`, `internal-apk` and `production-validation` are removed.
+- `development` is kept as a local-only variant, refused on EAS cloud, with http to loopback only.
+- No profile uses internal distribution.
 
-**Not changed:** verify-email still accepts a native `?token=` (the audit named reset-password only).
+**Verify-email:** it now reads the fragment only, like reset-password (follow-up PR).
+
+**`mobile-e2e.yml`:** dispatched once on main `5dad147` with the runner-built APK.
 
 ### S3 — dependencies (after S2)
 
