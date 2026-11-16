@@ -418,6 +418,7 @@ describe('subscription runtime RevenueCat Test Store boundary (S-5, D-2)', () =>
     android: process.env[ANDROID_KEY],
     testStore: process.env[TEST_STORE_KEY],
     dev: globals.__DEV__,
+    apiUrl: process.env.EXPO_PUBLIC_API_URL,
   };
   let consoleSpies: jest.SpyInstance[] = [];
 
@@ -425,6 +426,8 @@ describe('subscription runtime RevenueCat Test Store boundary (S-5, D-2)', () =>
     delete process.env[IOS_KEY];
     delete process.env[ANDROID_KEY];
     delete process.env[TEST_STORE_KEY];
+    // ADR-P047 D5: a release bundle (__DEV__ false) needs an https API URL to load.
+    process.env.EXPO_PUBLIC_API_URL = 'https://api.example.test';
     consoleSpies = (['log', 'info', 'warn', 'error', 'debug'] as const).map((method) =>
       jest.spyOn(console, method).mockImplementation(() => undefined),
     );
@@ -432,6 +435,8 @@ describe('subscription runtime RevenueCat Test Store boundary (S-5, D-2)', () =>
 
   afterEach(() => {
     globals.__DEV__ = original.dev;
+    if (original.apiUrl === undefined) delete process.env.EXPO_PUBLIC_API_URL;
+    else process.env.EXPO_PUBLIC_API_URL = original.apiUrl;
     for (const spy of consoleSpies) spy.mockRestore();
   });
 

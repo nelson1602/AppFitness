@@ -16,6 +16,13 @@
     },
     "android": {
       "package": "com.appfitnessrd.mobile",
+      "allowBackup": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.DUMP"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#002C8F",
         "foregroundImage": "./assets/brand/appfitnessrd-adaptive-foreground-v3.png",
@@ -41,7 +48,8 @@
       [
         "expo-secure-store",
         {
-          "faceIDPermission": "AppFitnessRD uses Face ID so you can sign in without typing your password. Your face data never leaves your iPhone."
+          "faceIDPermission": "AppFitnessRD uses Face ID so you can sign in without typing your password. Your face data never leaves your iPhone.",
+          "configureAndroidBackup": false
         }
       ],
       [

@@ -1,10 +1,11 @@
 # Mobile E2E — seeded local API + Android emulator + Maestro (ADR-P008).
 #
 # Manual dispatch only. Everything is colocated on one runner: disposable
-# Postgres service, the real NestJS api, an Android emulator, and the
-# EAS-built release APK (fetched with the EXPO_TOKEN secret). adb reverse
-# maps the app's 127.0.0.1:3001 to the runner-local API — no external
-# backend can be reached. All credentials below are throwaway CI values.
+# Postgres service, the real NestJS api, an Android emulator, and a release
+# APK of the e2e variant built ON THIS RUNNER (ADR-P047 D8: e2e APKs are never
+# built on EAS cloud or distributed). adb reverse maps the app's
+# 127.0.0.1:3001 to the runner-local API — no external backend can be
+# reached. All credentials below are throwaway CI values.
 name: mobile-e2e
 
 on:
@@ -24,7 +25,7 @@ jobs:
   e2e:
     name: Registration + dashboard sync + onboarding loop + food logging + workout + progress (Maestro)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     services:
       postgres:
         image: postgres:16-alpine
@@ -40,15 +41,6 @@ jobs:
           --health-timeout 3s
           --health-retries 15
     steps:
-      - name: Require EXPO_TOKEN
-        env:
-          HAS_EXPO_TOKEN: ${{ secrets.EXPO_TOKEN != '' }}
-        run: |
-          if [ "$HAS_EXPO_TOKEN" != "true" ]; then
-            echo "::error::EXPO_TOKEN repository secret is not configured — needed to download the EAS-built e2e APK. Create an access token at https://expo.dev/settings/access-tokens and add it as a repo secret."
-            exit 1
-          fi
-
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -73,19 +65,33 @@ jobs:
           done
           curl -sf http://127.0.0.1:3001/health
 
-      # eas-cli evaluates the dynamic app.config.js, which resolves the
-      # app's config plugins — mobile node_modules must be installed.
       - name: Install mobile dependencies
         working-directory: mobile
         run: npm ci
 
-      - name: Download latest EAS e2e APK
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # ADR-P047 D8: the e2e APK is built here from this commit — no EAS cloud
+      # build, no EXPO_TOKEN, nothing published. Same env as the eas.json `e2e`
+      # profile; app.config.js refuses APP_VARIANT=e2e without the matching
+      # EXPO_PUBLIC_APP_VARIANT. Release build type, debug-keystore signed by
+      # the prebuild template, so it cannot be uploaded to Play.
+      - name: Build the e2e APK locally (prebuild + Gradle)
         working-directory: mobile
         env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APP_VARIANT: e2e
+          EXPO_PUBLIC_APP_VARIANT: e2e
+          EXPO_PUBLIC_API_URL: http://127.0.0.1:3001
+          SENTRY_DISABLE_AUTO_UPLOAD: 'true'
+          NODE_ENV: production
         run: |
-          URL=$(npx eas-cli build:list --platform android --build-profile e2e --status finished --limit 1 --json --non-interactive | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const b=JSON.parse(d)[0];if(!b){console.error('no finished e2e build found');process.exit(1)};console.log(b.artifacts.applicationArchiveUrl)})")
-          curl -sL -o /tmp/appfitness-e2e.apk "$URL"
+          npx expo prebuild --platform android --no-install
+          cd android
+          ./gradlew assembleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=x86_64
+          cp app/build/outputs/apk/release/app-release.apk /tmp/appfitness-e2e.apk
           ls -la /tmp/appfitness-e2e.apk
 
       - name: Install Maestro

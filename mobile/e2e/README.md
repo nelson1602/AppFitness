@@ -22,7 +22,7 @@ other variants never load the plugin and keep cleartext blocked.
 | `dashboard-sync.yml`             | yes (after full seed)                           | session restore → Sync now → populated dashboard via real pull                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `onboarding-loop.yml`            | yes (no seed)                                   | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → nutrition targets + 15-day meal plan render → sync clears pending → sign out & back in                                                                                                                                                                                                                                                                                                                        |
 | `food-log.yml`                   | yes (no seed)                                   | open the food log from the meal-plan entry point, log a catalog food, see daily totals update, confirm a sync attempt keeps the (pending) entry, soft-delete it (runs after onboarding-loop, same session)                                                                                                                                                                                                                                                                                                               |
-| `food-log-exclusion-warning.yml` | yes (no seed)                                   | add a "Nuts" allergy via the dietary-preferences surface, then confirm selecting a nut food on the food log shows the non-blocking allergy/sensitivity warning and can still be logged (ADR-P014 Slice 4). Wired into `mobile-e2e.yml` after `food-log.yml` (same onboard session). **PENDING a first green run**: it needs an EAS `e2e` APK built from the Slice 4 commit (878af06) or later — an older APK predating the warning UI fails the assertions. Until that run, Slice 4 is verified by unit/component tests. |
+| `food-log-exclusion-warning.yml` | yes (no seed)                                   | add a "Nuts" allergy via the dietary-preferences surface, then confirm selecting a nut food on the food log shows the non-blocking allergy/sensitivity warning and can still be logged (ADR-P014 Slice 4). Wired into `mobile-e2e.yml` after `food-log.yml` (same onboard session). **PENDING a first green run**: it needs an `e2e` APK built from the Slice 4 commit (878af06) or later — an older APK predating the warning UI fails the assertions. Until that run, Slice 4 is verified by unit/component tests. |
 | `medical-management.yml`         | retained, **not run**                           | historical medical-management flow; excluded from public-v1 journeys by ADR-P017                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `offline-entry.yml`              | API unreachable                                 | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync shows "Local changes pending"                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `reconnect-sync.yml`             | yes                                             | with the loopback restored: the offline-queued change syncs to "Local data ready"                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -79,14 +79,14 @@ cd api && docker compose down -v && docker compose up -d
 DATABASE_URL="postgresql://appfitness:localdev@localhost:5433/appfitness_dev" npx prisma migrate deploy
 npm run start:dev   # port 3001; api/.env supplies dev-only config
 
-# 2. APK — download the latest EAS e2e build (or trigger a new one)
+# 2. APK — build it locally (ADR-P047 D8: never on EAS cloud, never shared)
 cd ../mobile
-npx eas-cli build:list --platform android --profile e2e --limit 1 --json
-#   -> download applicationArchiveUrl, or: npx eas-cli build -p android --profile e2e
+APP_VARIANT=e2e EXPO_PUBLIC_APP_VARIANT=e2e EXPO_PUBLIC_API_URL=http://127.0.0.1:3001   npx eas-cli build --local --platform android --profile e2e --output /tmp/appfitness-e2e.apk
+#   or: the same three variables + `npx expo prebuild -p android` + `./gradlew assembleRelease`
 
 # 3. Emulator + install + wire API
 emulator -avd <your-avd> &
-adb install -r <downloaded>.apk
+adb install -r /tmp/appfitness-e2e.apk
 adb reverse tcp:3001 tcp:3001
 
 # 4. Flows — Journey A (seeded pull)
@@ -235,10 +235,11 @@ which closes once answered, so neither can be edited repeatedly.
 
 `.github/workflows/mobile-e2e.yml` (manual `workflow_dispatch`) runs the
 same sequence on one runner: Postgres service → api → Android emulator →
-Maestro. It downloads the latest FINISHED EAS `e2e` APK and therefore
-requires an **`EXPO_TOKEN`** repository secret (Expo access token from
-https://expo.dev/accounts/[account]/settings/access-tokens). Without the
-secret the workflow fails fast with a clear message.
+Maestro. It builds the e2e APK on the runner from the dispatched commit
+(`expo prebuild` + Gradle, ADR-P047 D8); it needs no `EXPO_TOKEN` and
+publishes nothing. `app.config.js` refuses an e2e build on an EAS cloud
+worker, so a cleartext APK can no longer be produced there or downloaded by a
+tester. Testers install only from Google Play (`.ai/10_DEPLOYMENT.md`).
 
 ## Theme verification — Stage 2 gate 6
 

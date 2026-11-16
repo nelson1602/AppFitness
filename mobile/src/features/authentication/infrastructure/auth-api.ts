@@ -1,12 +1,12 @@
+import { API_BASE_URL } from '@/shared/infrastructure/config/api-config';
 import type { AuthUser, SessionTokens } from '../domain/session.types';
 
 /**
  * Minimal fetch client for the NestJS auth endpoints. The base URL comes
- * from EXPO_PUBLIC_API_URL (inlined by Expo at build time); defaults to
- * the local api/ dev server.
+ * from the shared API config (one validated module, ADR-P047 D5).
  */
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3001';
+const BASE_URL = API_BASE_URL;
 
 export class AuthApiError extends Error {
   constructor(
@@ -65,10 +65,12 @@ export function logout(refreshToken: string): Promise<void> {
   return post<void>('/auth/logout', { refreshToken }, false);
 }
 
-export async function deleteAccount(accessToken: string): Promise<void> {
+export async function deleteAccount(accessToken: string, password: string): Promise<void> {
   const response = await fetch(`${BASE_URL}/auth/account`, {
     method: 'DELETE',
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+    // ADR-P046: the API asks for the current password before deleting.
+    body: JSON.stringify({ password }),
   });
   if (!response.ok) {
     throw new AuthApiError(response.status, await safeErrorMessage(response));
