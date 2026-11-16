@@ -327,7 +327,9 @@ describe('PrismaMealItemRepository (ADR-P030 C-2)', () => {
     });
     const root = {
       mealItem: {
-        findMany: jest.fn().mockResolvedValue([row(FOOD_ID, 'Nestlé'), row(FOOD_ID, null)]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([row(FOOD_ID, 'Nestlé'), row(FOOD_ID, null)]),
       },
     };
     const records = await new PrismaMealItemRepository(
