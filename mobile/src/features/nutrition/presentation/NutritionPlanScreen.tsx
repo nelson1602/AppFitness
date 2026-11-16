@@ -13,8 +13,6 @@ import {
 import { AppButton, AppText, Banner, Card } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
-import type { OffPlanAdjustment } from '@/features/weekly-plan/domain/off-plan';
-
 import type { MealPlan } from '../domain/meal-plan';
 import { getById } from '../application/food-catalog.service';
 import { foodDisplayName } from '../application/food-display.service';
@@ -159,7 +157,6 @@ export function NutritionPlanScreen() {
         </>
       ) : (
         <>
-          {state.overlay ? <PlanOverlayBanner overlay={state.overlay} /> : null}
           <PlanDayStrip count={state.days.length} selected={shownIndex} onSelect={view.selectDay} />
           {shownDay ? (
             <MealPlanPanel day={shownDay} isDone={view.isDone} onEaten={view.onEaten} />
@@ -178,22 +175,6 @@ export function NutritionPlanScreen() {
       <AppText variant="caption" tone="muted">
         {t('nutrition.plan.disclaimer')}
       </AppText>
-    </View>
-  );
-}
-
-/**
- * The off-plan note (ADR-P040 D7, `off-plan@1.1.0`): alcohol only. Yesterday's
- * calories and the cardio are the carry-over's single sentence (v11-B).
- */
-export function PlanOverlayBanner({ overlay }: { overlay: OffPlanAdjustment }) {
-  const { t } = useLocalization();
-  if (!overlay.avoidIntenseTraining) return null;
-  return (
-    <View testID="plan-overlay">
-      <Banner title={t('nutrition.plan.overlayTitle')} tone="info">
-        {t('nutrition.plan.overlayAlcohol')}
-      </Banner>
     </View>
   );
 }

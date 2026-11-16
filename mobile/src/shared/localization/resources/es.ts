@@ -1338,8 +1338,6 @@ export const es = {
   'nutrition.dish.guineitos_bacalao': 'Guineítos con bacalao guisado',
   'nutrition.household.greenBananaOne': '{count} guineíto · {amount}',
   'nutrition.household.greenBananaMany': '{count} guineítos · {amount}',
-  'nutrition.plan.overlayTitle': 'Ajuste de hoy',
-  'nutrition.plan.overlayAlcohol': 'Registraste alcohol: hoy conviene un entrenamiento suave.',
   'workouts.addedCardio.label': 'Añadido por el iCoach',
   'workouts.addedCardio.minutes': '{minutes} min de cardio suave',
   'workouts.addedCardio.remove': 'Quitar',

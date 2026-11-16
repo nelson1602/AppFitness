@@ -35,7 +35,6 @@ import type { MealPlan } from '../domain/meal-plan';
 import { AVOID_TAG_KEY } from './avoid-tag-labels';
 import { MealPlanPanel, type PlanExtra, PlanDayStrip, type ViewDay } from './meal-plan-day';
 import { NutritionDataGap } from './NutritionDataGap';
-import { PlanOverlayBanner } from './NutritionPlanScreen';
 import { useNutritionPlanView } from './use-nutrition-plan-view';
 
 const MACRO_KEY: Record<'protein' | 'carbs' | 'fat', TranslationKey> = {
@@ -138,7 +137,6 @@ export function NutritionTab() {
         <>
           <ExcludedChips plan={state.plan} />
           <AdjustedPanel substitutions={weekSubstitutions(state.days)} />
-          {state.overlay ? <PlanOverlayBanner overlay={state.overlay} /> : null}
           <PlanDayStrip count={state.days.length} selected={shownIndex} onSelect={view.selectDay} />
           {shownDay ? (
             <MealPlanPanel

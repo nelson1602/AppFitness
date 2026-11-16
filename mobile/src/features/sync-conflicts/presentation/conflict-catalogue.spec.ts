@@ -220,9 +220,11 @@ describe('catalogue parity', () => {
   // v11-B unified carry-over: food + cardio and cardio-only sentences (+2), the added
   // cardio's label, minutes, Quitar and its label (+4), minus D7's calorie and cardio lines (-2)
   // (+4, 1949).
-  it('reaches 1949 keys in each language — 1761 shipped plus a 188-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1949);
-    expect(Object.keys(es)).toHaveLength(1949);
+  // v11-B review: D7 retired — its title and the alcohol note go (no catalogue food is
+  // tagged alcohol, so the note could never show) (-2, 1947).
+  it('reaches 1947 keys in each language — 1759 shipped plus a 188-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1947);
+    expect(Object.keys(es)).toHaveLength(1947);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

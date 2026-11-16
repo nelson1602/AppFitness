@@ -168,7 +168,6 @@ describe('NutritionPlanScreen', () => {
       current: null,
       revisions: [],
       mealSlotsDone: [],
-      overlay: null,
       markMealEaten: mockMarkMealEaten,
     };
   });
@@ -631,7 +630,6 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
       current: saved,
       revisions: [saved],
       mealSlotsDone: [`${dates[0]}|LUNCH`],
-      overlay: null,
       markMealEaten: mockMarkMealEaten,
     };
   });
@@ -702,13 +700,9 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     expect(screen.queryByTestId('plan-ate-8-BREAKFAST')).toBeNull();
   });
 
-  it("keeps only the alcohol note of today's off-plan overlay (off-plan@1.1.0)", async () => {
-    // v11-B: yesterday's calories and cardio are the carry-over's single sentence.
-    mockPlanState = { ...mockPlanState, overlay: { avoidIntenseTraining: true } };
+  it('has no off-plan banner: the carry-over is the only message (v11-B, D7 retired)', async () => {
     await render(<NutritionPlanScreen />);
-    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(
-      /You logged alcohol: a lighter session suits today better\.$/,
-    );
-    expect(screen.queryByText(/less\)|min of cardio/)).toBeNull();
+    expect(screen.queryByTestId('plan-overlay')).toBeNull();
+    expect(screen.queryByText(/alcohol|less\)|min of cardio/)).toBeNull();
   });
 });

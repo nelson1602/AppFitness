@@ -25,7 +25,7 @@ export interface PlanTargets {
   proteinG: number;
   carbsG: number;
   fatG: number;
-  /** The engine's calorie safety floor; the off-plan overlay never goes below it. */
+  /** The engine's calorie safety floor; no overlay (rebalance, carry-over) goes below it. */
   floorCalories: number;
 }
 

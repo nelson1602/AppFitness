@@ -1336,8 +1336,6 @@ export const en = {
   'nutrition.dish.guineitos_bacalao': 'Guineítos (boiled green bananas) with stewed salt cod',
   'nutrition.household.greenBananaOne': '{count} green banana · {amount}',
   'nutrition.household.greenBananaMany': '{count} green bananas · {amount}',
-  'nutrition.plan.overlayTitle': "Today's adjustment",
-  'nutrition.plan.overlayAlcohol': 'You logged alcohol: a lighter session suits today better.',
   'workouts.addedCardio.label': 'Added by the iCoach',
   'workouts.addedCardio.minutes': '{minutes} min of easy cardio',
   'workouts.addedCardio.remove': 'Remove',

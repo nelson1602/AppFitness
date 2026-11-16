@@ -1,8 +1,6 @@
 import { getSession } from '@/features/authentication';
-import { getById as getCatalogFood } from '@/features/nutrition/application/food-catalog.service';
 import {
   listDailyCalorieTotals,
-  listLoggedItems,
   listPlannedSlotsDone,
 } from '@/features/nutrition/infrastructure/food-log.repository';
 import { listBodyWeights } from '@/features/progress/infrastructure/progress.repository';
@@ -10,7 +8,6 @@ import { listRecentWorkoutLogs } from '@/features/workout/infrastructure/workout
 
 import { computeWeekAdherence, type WeekAdherence, type WeekLogs } from '../domain/adherence';
 import { buildWeeklyPlanContent } from '../domain/build-plan';
-import { computeOffPlanAdjustment, type OffPlanAdjustment } from '../domain/off-plan';
 import {
   daysProposalNote,
   openDaysProposal,
@@ -301,27 +298,6 @@ export async function loadCurrentWeekAdherence(
     revisions.map((revision) => revision.id),
   );
   return computeWeekAdherence(revisions, logs);
-}
-
-/**
- * Today's off-plan overlay (ADR-P040 D7, `off-plan@1.1.0`): alcohol logged
- * yesterday or today. Yesterday's calories are the carry-over's (v11-B).
- * Never writes the plan.
- */
-export async function loadTodayOverlay(
-  current: WeeklyPlan,
-  now: Date = new Date(),
-): Promise<OffPlanAdjustment> {
-  const today = localDateOf(now.toISOString());
-  const yesterday = addDays(today, -1);
-  const [yesterdayItems, todayItems] = await Promise.all([
-    listLoggedItems(current.userId, yesterday),
-    listLoggedItems(current.userId, today),
-  ]);
-  const alcohol = [...yesterdayItems, ...todayItems].some((item) =>
-    (getCatalogFood(item.catalogKey ?? '')?.avoidFor ?? []).includes('alcohol'),
-  );
-  return computeOffPlanAdjustment({ alcoholYesterdayOrToday: alcohol });
 }
 
 /** The 7 dates of the current plan's week (for the meal-plan slider). */

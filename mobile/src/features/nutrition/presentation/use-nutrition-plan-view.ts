@@ -6,7 +6,6 @@ import { useProfileStore } from '@/features/profile/application/profile.store';
 import type { DataRequirement } from '@/features/dashboard/domain/dashboard.types';
 import { useWeeklyPlanStore } from '@/features/weekly-plan/application/weekly-plan.store';
 import { effectivePlanDay } from '@/features/weekly-plan/domain/adherence';
-import type { OffPlanAdjustment } from '@/features/weekly-plan/domain/off-plan';
 import { localDateOf, weekDates } from '@/features/weekly-plan/domain/week';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 
@@ -28,7 +27,6 @@ export type NutritionPlanViewState =
       plan: MealPlan;
       days: readonly ViewDay[];
       todayIndex: number;
-      overlay: OffPlanAdjustment | null;
       /** Whether this week's plan is saved (days 1–7); false before the first save. */
       saved: boolean;
     };
@@ -155,7 +153,6 @@ export function useNutritionPlanView() {
       plan: selection.plan,
       days: shownDays,
       todayIndex,
-      overlay: plan.overlay,
       saved: plan.current !== null,
     };
   }

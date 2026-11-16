@@ -7,7 +7,7 @@ import { MEAL_SLOTS } from './meal-plan';
  * `meal-rebalance@1.2.0`).
  *
  * An overlay computed from today's log, never a write to the saved plan (the
- * same contract as the off-plan adjustment, D7). Every food logged today —
+ * same overlay contract as the day-to-day carry-over, v11-B). Every food logged today —
  * from the plan or "fuera del plan" — changes what is left of the day, and the
  * meals not yet eaten are re-portioned to it:
  *

@@ -390,18 +390,6 @@ describe('v11-B on screen: the carry-over sentence in the day header', () => {
     );
   });
 
-  it('only one message: the D7 banner keeps just the alcohol note (off-plan@1.1.0)', async () => {
-    const { PlanOverlayBanner } =
-      jest.requireActual<typeof import('./NutritionPlanScreen')>('./NutritionPlanScreen');
-    await render(<PlanOverlayBanner overlay={{ avoidIntenseTraining: false }} />);
-    expect(screen.queryByTestId('plan-overlay')).toBeNull();
-    await render(<PlanOverlayBanner overlay={{ avoidIntenseTraining: true }} />);
-    expect(screen.getByTestId('plan-overlay')).toHaveTextContent(
-      /Registraste alcohol: hoy conviene un entrenamiento suave.$/,
-    );
-    expect(screen.queryByText(/menos\)|min de cardio/)).toBeNull();
-  });
-
   it('no sentence without a carry-over', async () => {
     const [today] = withRebalance([DAY], { ...repro(), date: DAY.date as string });
     await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);

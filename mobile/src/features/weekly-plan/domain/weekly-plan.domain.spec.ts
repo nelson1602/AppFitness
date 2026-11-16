@@ -9,7 +9,6 @@ import {
   type LoggedWorkout,
   type WeekLogs,
 } from './adherence';
-import { computeOffPlanAdjustment } from './off-plan';
 import { changedPlanInputs, normalizePlanInputs, planInputsFingerprint } from './plan-inputs';
 import { applyLoadStep, nextLoadStep, progressionNotes } from './progression';
 import { addDays, dayIndexInWeek, weekDates, weekStartOf } from './week';
@@ -325,19 +324,6 @@ describe('session linking (ADR-P042 D5)', () => {
     expect(linkForWorkout(p, '2026-10-26', () => true)).toBeNull();
     expect(linkForWorkout(p, '2026-10-27', () => false)).toBeNull();
     expect(linkForWorkout(null, '2026-10-26', () => false)).toBeNull();
-  });
-});
-
-describe('off-plan overlay (ADR-P040 D7, off-plan@1.1.0)', () => {
-  // v11-B: yesterday's calories and the cardio are the carry-over's now
-  // (carry-over.spec.ts); only the alcohol note is left here.
-  it('flags intense training after alcohol logged yesterday or today', () => {
-    expect(computeOffPlanAdjustment({ alcoholYesterdayOrToday: true })).toEqual({
-      avoidIntenseTraining: true,
-    });
-    expect(computeOffPlanAdjustment({ alcoholYesterdayOrToday: false })).toEqual({
-      avoidIntenseTraining: false,
-    });
   });
 });
 
