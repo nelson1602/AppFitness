@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -17,7 +18,9 @@ export class PushOperationDto {
   @IsUUID()
   opId!: string;
 
+  // ADR-P046: bounded like every other text field.
   @IsString()
+  @MaxLength(64)
   entityType!: string;
 
   @IsUUID()

@@ -24,3 +24,19 @@ describe('PasswordService', () => {
     ).resolves.toBe(false);
   });
 });
+
+describe('PasswordService.verifyDummy (ADR-P046)', () => {
+  it('always answers false, after a real Argon2 verification', async () => {
+    const passwords = new PasswordService();
+    const verify = jest.spyOn(passwords, 'verify');
+
+    await expect(passwords.verifyDummy('any-password')).resolves.toBe(false);
+    await expect(passwords.verifyDummy('another')).resolves.toBe(false);
+
+    // Each call verified against one real Argon2id hash, made once.
+    expect(verify).toHaveBeenCalledTimes(2);
+    const [hash] = verify.mock.calls[0];
+    expect(hash).toMatch(/^\$argon2id\$/);
+    expect(verify.mock.calls[1][0]).toBe(hash);
+  });
+});

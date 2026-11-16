@@ -30,10 +30,17 @@ function requireEnum<T extends string>(
   return value as T;
 }
 
-function optionalString(value: unknown, field: string): string | null {
+/** ADR-P046: every text field has a maximum length. */
+function optionalString(
+  value: unknown,
+  field: string,
+  max: number,
+): string | null {
   if (value == null) return null;
   if (typeof value !== 'string')
     throw new Error(`${field} must be a string or null`);
+  if (value.length > max)
+    throw new Error(`${field} must be at most ${max} characters`);
   return value;
 }
 
@@ -46,8 +53,8 @@ export function parseDietaryPreferenceCreate(
     'exclusion_type',
   );
   const kind = requireEnum(payload.kind, KINDS, 'kind');
-  const avoidTag = optionalString(payload.avoid_tag, 'avoid_tag');
-  const catalogKey = optionalString(payload.catalog_key, 'catalog_key');
+  const avoidTag = optionalString(payload.avoid_tag, 'avoid_tag', 64);
+  const catalogKey = optionalString(payload.catalog_key, 'catalog_key', 255);
 
   // Exactly one target, matching exclusion_type (mirrors the DB CHECK).
   if (
@@ -72,7 +79,7 @@ export function parseDietaryPreferenceCreate(
     avoidTag,
     catalogKey,
     kind,
-    note: optionalString(payload.note, 'note'),
+    note: optionalString(payload.note, 'note', 1000),
   };
 }
 
@@ -82,6 +89,6 @@ export function parseDietaryPreferenceUpdate(
 ): DietaryPreferenceUpdate {
   return {
     kind: requireEnum(payload.kind, KINDS, 'kind'),
-    note: optionalString(payload.note, 'note'),
+    note: optionalString(payload.note, 'note', 1000),
   };
 }

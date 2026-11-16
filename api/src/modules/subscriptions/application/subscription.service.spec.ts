@@ -12,6 +12,7 @@ import type {
   ProviderEntitlementSnapshot,
 } from '../domain/subscription.types';
 import {
+  RECONCILE_MIN_INTERVAL_MS,
   SubscriptionService,
   parseRevenueCatEvent,
 } from './subscription.service';
@@ -34,6 +35,7 @@ const activeSnapshot = (): ProviderEntitlementSnapshot => ({
 interface EntitlementRow extends ProviderEntitlementSnapshot {
   userId: string;
   lastProviderEventAt: Date | null;
+  lastFetchedAt: Date | null;
   lastReconciledAt: Date;
 }
 
@@ -114,7 +116,7 @@ describe('SubscriptionService', () => {
   let prisma: {
     subscriptionEntitlement: {
       findUnique: jest.Mock;
-      upsert: jest.Mock;
+      createMany: jest.Mock;
       updateMany: jest.Mock;
     };
     subscriptionWebhookEvent: {
@@ -157,27 +159,21 @@ describe('SubscriptionService', () => {
     prisma = {
       subscriptionEntitlement: {
         findUnique: jest.fn(() => Promise.resolve(entitlementRow)),
-        upsert: jest.fn(
-          (args: {
-            create: EntitlementRow;
-            update: Partial<EntitlementRow>;
-          }) => {
-            entitlementRow = entitlementRow
-              ? { ...entitlementRow, ...args.update }
-              : { ...args.create };
-            return Promise.resolve(entitlementRow);
-          },
-        ),
+        // INSERT … ON CONFLICT DO NOTHING (createMany skipDuplicates).
+        createMany: jest.fn((args: { data: EntitlementRow[] }) => {
+          if (entitlementRow) return Promise.resolve({ count: 0 });
+          entitlementRow = { ...args.data[0] };
+          return Promise.resolve({ count: 1 });
+        }),
+        // A conditional UPDATE: the OR predicate is evaluated like PostgreSQL
+        // would (`field IS NULL OR field < value`), on either watermark.
         updateMany: jest.fn(
           (args: {
             where: {
               userId: string;
-              OR: Array<
-                | { lastProviderEventAt: null }
-                | { lastProviderEventAt: { lt: Date } }
-              >;
+              OR: Array<Record<string, null | { lt: Date }>>;
             };
-            data: { lastProviderEventAt: Date };
+            data: Partial<EntitlementRow>;
           }) => {
             if (
               !entitlementRow ||
@@ -185,15 +181,19 @@ describe('SubscriptionService', () => {
             ) {
               return Promise.resolve({ count: 0 });
             }
-            const current = entitlementRow.lastProviderEventAt;
-            if (
-              current === null ||
-              current.getTime() < args.data.lastProviderEventAt.getTime()
-            ) {
-              entitlementRow = { ...entitlementRow, ...args.data };
-              return Promise.resolve({ count: 1 });
-            }
-            return Promise.resolve({ count: 0 });
+            const row = entitlementRow as unknown as Record<string, unknown>;
+            const matches = args.where.OR.some((condition) =>
+              Object.entries(condition).every(([field, test]) => {
+                const current = row[field] as Date | null;
+                if (test === null) return current === null;
+                return (
+                  current !== null && current.getTime() < test.lt.getTime()
+                );
+              }),
+            );
+            if (!matches) return Promise.resolve({ count: 0 });
+            entitlementRow = { ...entitlementRow, ...args.data };
+            return Promise.resolve({ count: 1 });
           },
         ),
       },
@@ -270,6 +270,7 @@ describe('SubscriptionService', () => {
       prisma as unknown as PrismaService,
       audit as unknown as AuditService,
       provider,
+      { provider: 'disabled' },
     );
   });
 
@@ -292,12 +293,16 @@ describe('SubscriptionService', () => {
       ...activeSnapshot(),
       userId: USER_ID,
       lastProviderEventAt: null,
+      lastFetchedAt: null,
       lastReconciledAt: EVENT_TIME,
     };
     await expect(service.getStatus(USER_ID)).resolves.toEqual(
       expect.objectContaining({ state: 'ACTIVE' }),
     );
-    entitlementRow.expiresAt = new Date('2020-01-01T00:00:00.000Z');
+    entitlementRow = {
+      ...entitlementRow,
+      expiresAt: new Date('2020-01-01T00:00:00.000Z'),
+    };
     await expect(service.getStatus(USER_ID)).resolves.toEqual(
       expect.objectContaining({ state: 'INACTIVE' }),
     );
@@ -307,7 +312,7 @@ describe('SubscriptionService', () => {
     await expect(service.reconcile(USER_ID)).resolves.toEqual(
       expect.objectContaining({ state: 'ACTIVE', periodType: 'trial' }),
     );
-    expect(prisma.subscriptionEntitlement.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.subscriptionEntitlement.createMany).toHaveBeenCalledTimes(1);
     expect(audit.record).toHaveBeenCalledWith({
       action: 'SUBSCRIPTION_ENTITLEMENT_CHANGE',
       userId: USER_ID,
@@ -318,9 +323,84 @@ describe('SubscriptionService', () => {
       },
     });
 
+    // ADR-P046: a reconcile within 30 s answers from the mirror.
     audit.record.mockClear();
+    provider.getEntitlement.mockClear();
     await service.reconcile(USER_ID);
+    expect(provider.getEntitlement.mock.calls).toHaveLength(0);
     expect(audit.record).not.toHaveBeenCalled();
+
+    // After 30 s it asks the provider again; nothing changed, so no audit.
+    jest.setSystemTime(Date.now() + RECONCILE_MIN_INTERVAL_MS + 1);
+    await service.reconcile(USER_ID);
+    expect(provider.getEntitlement.mock.calls).toHaveLength(1);
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it('newest wins: a slower, older fetch never overwrites a newer snapshot (ADR-P046)', async () => {
+    const newer = new Date(Date.now() + 5_000);
+    entitlementRow = {
+      ...activeSnapshot(),
+      isActive: false,
+      userId: USER_ID,
+      lastProviderEventAt: null,
+      lastFetchedAt: newer,
+      lastReconciledAt: new Date(Date.now() - RECONCILE_MIN_INTERVAL_MS - 1),
+    };
+
+    // This reconcile's fetch completes at "now", before the stored one.
+    await service.reconcile(USER_ID);
+
+    expect(entitlementRow.isActive).toBe(false);
+    expect(entitlementRow.lastFetchedAt).toEqual(newer);
+    expect(audit.record).not.toHaveBeenCalled();
+  });
+
+  it('a newer fetch replaces an older snapshot', async () => {
+    entitlementRow = {
+      ...activeSnapshot(),
+      isActive: false,
+      userId: USER_ID,
+      lastProviderEventAt: null,
+      lastFetchedAt: new Date(Date.now() - 60_000),
+      lastReconciledAt: new Date(Date.now() - 60_000),
+    };
+
+    await service.reconcile(USER_ID);
+
+    expect(entitlementRow.isActive).toBe(true);
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'SUBSCRIPTION_ENTITLEMENT_CHANGE' }),
+    );
+  });
+
+  it('the status view applies the production sandbox rule (ADR-P046)', async () => {
+    entitlementRow = {
+      ...activeSnapshot(),
+      entitlementId: 'appfitness_pro',
+      environment: 'SANDBOX',
+      userId: USER_ID,
+      lastProviderEventAt: null,
+      lastFetchedAt: null,
+      lastReconciledAt: new Date(),
+    };
+    const production = new SubscriptionService(
+      prisma as unknown as PrismaService,
+      audit as unknown as AuditService,
+      provider,
+      {
+        provider: 'revenuecat',
+        secretApiKey: 'secret',
+        webhookAuthToken: 'a'.repeat(32),
+        webhookSigningSecret: 'b'.repeat(32),
+        entitlementId: 'appfitness_pro',
+        rejectSandbox: true,
+        sandboxAllowedUserIds: new Set<string>(),
+      },
+    );
+    await expect(production.getStatus(USER_ID)).resolves.toMatchObject({
+      state: 'INACTIVE',
+    });
   });
 
   it('fails reconciliation closed when disabled or when provider lookup fails', async () => {
@@ -430,6 +510,7 @@ describe('SubscriptionService', () => {
       ...activeSnapshot(),
       userId: USER_ID,
       lastProviderEventAt: new Date('2026-10-01T00:00:00.000Z'),
+      lastFetchedAt: null,
       lastReconciledAt: EVENT_TIME,
     };
     await service.ingestWebhook(event(), 'a'.repeat(64));

@@ -597,7 +597,7 @@ describe('PasswordRecoveryService', () => {
       });
     });
 
-    it('hashes the new password and writes it', async () => {
+    it('hashes the new password, writes it and moves the token version on (ADR-P046)', async () => {
       claimSucceeds();
 
       await service.resetPassword({
@@ -606,9 +606,11 @@ describe('PasswordRecoveryService', () => {
       });
 
       expect(passwords.hash).toHaveBeenCalledWith('new-password');
+      // The token version moves on with the password, so every access token
+      // issued before the reset stops working immediately.
       expect(prisma.user.update).toHaveBeenCalledWith({
         where: { id: USER_ID },
-        data: { passwordHash: '$argon2id$new' },
+        data: { passwordHash: '$argon2id$new', tokenVersion: { increment: 1 } },
       });
     });
 

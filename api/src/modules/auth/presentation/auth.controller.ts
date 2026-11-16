@@ -14,6 +14,7 @@ import type {
 import { AllowUnverifiedEmail } from './decorators/allow-unverified-email.decorator';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
+import { DeleteAccountDto } from './dto/delete-account.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
@@ -81,16 +82,38 @@ export class AuthController {
     return this.authService.me(user.id);
   }
 
+  /**
+   * ADR-P046 "log out everywhere": revokes every session of the account and
+   * ends every outstanding access token on its next request.
+   */
+  @Throttle({ default: { limit: 10, ttl: seconds(900) } })
+  @Post('logout-all')
+  @AllowUnverifiedEmail()
+  @HttpCode(204)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Revoke every session of the authenticated account',
+  })
+  async logoutAll(@CurrentUser() user: AuthenticatedUser): Promise<void> {
+    await this.authService.logoutAll(user.id);
+  }
+
+  // ADR-P046: the current password is required, and the route is capped
+  // hard — 5 attempts / 60 min per IP, on top of the per-account backoff.
+  @Throttle({ default: { limit: 5, ttl: seconds(3600) } })
   @Delete('account')
   @AllowUnverifiedEmail()
   @HttpCode(204)
   @ApiBearerAuth()
   @ApiOperation({
     summary:
-      'Permanently delete the authenticated account and all user-owned data (irreversible)',
+      'Permanently delete the authenticated account and all user-owned data (irreversible; requires the current password)',
   })
-  async deleteAccount(@CurrentUser() user: AuthenticatedUser): Promise<void> {
-    await this.authService.deleteAccount(user.id);
+  async deleteAccount(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: DeleteAccountDto,
+  ): Promise<void> {
+    await this.authService.deleteAccount(user.id, dto.password);
   }
 
   /**

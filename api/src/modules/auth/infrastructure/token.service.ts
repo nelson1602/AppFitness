@@ -32,6 +32,21 @@ const EMAIL_VERIFICATION_TOKEN_BYTES = 32;
  */
 export const EMAIL_VERIFICATION_TTL_HOURS = 24;
 
+/**
+ * ADR-P046: access tokens are HS256 only, with a fixed issuer and audience.
+ * Verification pins all three, so a token signed for anything else — or with
+ * `alg: none` / another algorithm — is rejected.
+ */
+export const JWT_ALGORITHM = 'HS256' as const;
+export const JWT_ISSUER = 'appfitness-api';
+export const JWT_AUDIENCE = 'appfitness-app';
+
+/**
+ * ADR-P046: a session (a refresh-token rotation chain) ends this long after
+ * the sign-in that started it, however often it is refreshed.
+ */
+export const SESSION_ABSOLUTE_LIFETIME_MS = 30 * 86_400_000;
+
 /** Parses "15m" / "7d" style durations; defaults to 7 days on bad input. */
 export function msFromExpiry(expiry: string): number {
   const match = /^(\d+)([smhd])$/.exec(expiry);
@@ -51,13 +66,25 @@ export class TokenService {
     private readonly config: ConfigService,
   ) {}
 
-  signAccessToken(userId: string, role: Role): Promise<string> {
-    const payload: AccessTokenPayload = { sub: userId, role };
-    return this.jwt.signAsync(payload);
+  signAccessToken(
+    userId: string,
+    role: Role,
+    tokenVersion: number,
+  ): Promise<string> {
+    const payload: AccessTokenPayload = { sub: userId, role, tv: tokenVersion };
+    return this.jwt.signAsync(payload, {
+      algorithm: JWT_ALGORITHM,
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    });
   }
 
   verifyAccessToken(token: string): Promise<AccessTokenPayload> {
-    return this.jwt.verifyAsync<AccessTokenPayload>(token);
+    return this.jwt.verifyAsync<AccessTokenPayload>(token, {
+      algorithms: [JWT_ALGORITHM],
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE,
+    });
   }
 
   generateRefreshToken(): { raw: string; hash: string } {

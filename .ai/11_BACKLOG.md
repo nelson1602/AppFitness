@@ -8723,6 +8723,41 @@ Define and implement secure storage rules for sensitive local data.
 
 ---
 
+## [SECURITY-003] Security Audit 2026-11-16 (ASVS L2 / MASVS / API Top 10): Medium Findings
+
+Status: S1 (API) in its PR, pending owner review; S2 (mobile) and S3 (dependencies) next, one at a time
+Priority: P1
+Type: Security
+Owner: Engineering
+Created: 2026-11-16
+Updated: 2026-11-16
+
+### Description
+
+The owner's audit of main `7eaf97c` found no Critical or High issue. The Medium findings are fixed in three PRs against main, each with tests and stopping before merge.
+
+### S1 — API (ADR-P046)
+
+- [x] Payments: sandbox entitlements inactive in production (tester allow-list); newest-wins provider writes; reconcile 5/min per account plus a 30 s skip; production boot needs an explicit `REVENUECAT_PROVIDER`, and the mode is logged; webhook skips the IP throttle.
+- [x] Account deletion: the current password is required, with a strict throttle; the account's own foods and exercises are removed.
+- [x] Sessions: atomic refresh rotation; the JWT guard checks status, deletion and token version; `POST /auth/logout-all`; 30-day absolute lifetime; `no-store` on `/auth`.
+- [x] Brute force: per-account backoff on the normalized email; dummy Argon2 for unknown emails; generic 409 on register.
+- [x] Sync: allowlisted conflict payloads; conflict caps; retention purge; op ids scoped by account; device ids validated; text max lengths.
+- [x] Sentry: exception values and messages scrubbed (Prisma → class name); audit logs no raw Prisma error.
+- [x] JWT: secret of at least 32 bytes; issuer, audience and HS256 pinned.
+
+**Before S1 deploys:** set `REVENUECAT_PROVIDER` on AppFitness Production (5cfa), which deploys from `main`, and confirm both Railway services have a `JWT_ACCESS_SECRET` of at least 32 bytes. App versions before S2 send no password, so account deletion fails for them until S2 ships.
+
+### S2 — mobile (next)
+
+Backup exclusion, blocked permissions, encrypted notes columns plus a SQLCipher design note, "Borrar datos de este teléfono", one API config module, no reset-password deep link, the Sentry scrub, the password on account deletion, a message for the sign-in lock, e2e APKs built locally only, and a note in `10_DEPLOYMENT.md` that testers install only from Play.
+
+### S3 — dependencies (after S2)
+
+`npm audit fix` for production dependencies within Expo SDK 57; expo-sqlite stays at 57.0.4.
+
+---
+
 ## [SECURITY-002] ADR-P038 / ADR-P017 D9 Gate — Medical Evaluation Reactivation
 
 Status: In Progress (gate opened 2026-10-22 on owner instruction)

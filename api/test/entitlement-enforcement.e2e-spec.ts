@@ -177,6 +177,7 @@ describe('Entitlement enforcement (e2e, provider enabled)', () => {
     await request(app.getHttpServer())
       .delete('/auth/account')
       .set('Authorization', `Bearer ${unentitled.token}`)
+      .send({ password: 'Disposable-pw-12345' })
       .expect(204);
   });
 });

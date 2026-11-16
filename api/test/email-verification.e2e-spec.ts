@@ -864,6 +864,7 @@ describe('Email verification (e2e, ADR-P026 Vertical 2)', () => {
         .delete('/auth/account')
         .set('Authorization', `Bearer ${user.accessToken}`)
         .set('X-Forwarded-For', nextClient())
+        .send({ password })
         .expect(204);
     });
 

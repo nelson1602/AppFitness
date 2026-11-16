@@ -280,6 +280,7 @@ describe('Weekly plan sync (e2e, ADR-P042)', () => {
     await request(app.getHttpServer())
       .delete('/auth/account')
       .set('Authorization', `Bearer ${owner.token}`)
+      .send({ password: 'Disposable-pw-12345' })
       .expect(204);
     expect(await prisma.weeklyPlan.count({ where: { userId: owner.id } })).toBe(
       0,

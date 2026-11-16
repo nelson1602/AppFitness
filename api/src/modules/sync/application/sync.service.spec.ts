@@ -26,10 +26,16 @@ interface TxMock {
   syncOperation: {
     findUnique: jest.Mock<Promise<SyncOperation | null>, [unknown]>;
     create: jest.Mock<Promise<unknown>, [unknown]>;
+    deleteMany: jest.Mock;
   };
   syncConflict: {
     create: jest.Mock<Promise<{ id: string }>, [unknown]>;
+    findMany: jest.Mock;
+    count: jest.Mock;
+    update: jest.Mock;
+    deleteMany: jest.Mock;
   };
+  device: { findUnique: jest.Mock };
 }
 type PrismaMock = TxMock & { $transaction: jest.Mock };
 
@@ -109,12 +115,18 @@ describe('SyncService', () => {
           .fn<Promise<SyncOperation | null>, [unknown]>()
           .mockResolvedValue(null),
         create: jest.fn<Promise<unknown>, [unknown]>().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       syncConflict: {
         create: jest
           .fn<Promise<{ id: string }>, [unknown]>()
           .mockResolvedValue({ id: 'conflict-1' }),
+        findMany: jest.fn().mockResolvedValue([]),
+        count: jest.fn().mockResolvedValue(0),
+        update: jest.fn().mockResolvedValue({}),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
+      device: { findUnique: jest.fn().mockResolvedValue(null) },
     };
     prisma = {
       ...tx,
@@ -158,6 +170,7 @@ describe('SyncService', () => {
 
   it('is idempotent: a replayed opId returns the recorded outcome without re-applying', async () => {
     tx.syncOperation.findUnique.mockResolvedValue({
+      userId: USER,
       status: SyncOperationStatus.APPLIED,
       errorCode: null,
     } as SyncOperation);
@@ -318,6 +331,7 @@ describe('SyncService', () => {
     tx.syncOperation.findUnique
       .mockResolvedValueOnce(null) // the in-transaction probe
       .mockResolvedValueOnce({
+        userId: USER,
         status: SyncOperationStatus.APPLIED,
         errorCode: null,
       } as SyncOperation); // the post-rollback convergence probe
@@ -339,6 +353,7 @@ describe('SyncService', () => {
       .mockResolvedValueOnce(null) // in-transaction probe
       .mockResolvedValueOnce(null) // convergence probe: nothing recorded yet
       .mockResolvedValueOnce({
+        userId: USER,
         status: SyncOperationStatus.REJECTED,
         errorCode: SYNC_ERROR_CODES.APPLY_FAILED,
       } as SyncOperation); // read back after the colliding terminal insert
@@ -350,6 +365,122 @@ describe('SyncService', () => {
       status: SyncOperationStatus.REJECTED,
       duplicate: true,
       errorCode: SYNC_ERROR_CODES.APPLY_FAILED,
+    });
+  });
+
+  describe('ADR-P046 hardening', () => {
+    const OTHER = '99999999-9999-4999-8999-999999999999';
+
+    it('an op id recorded for another account is refused, not replayed', async () => {
+      tx.syncOperation.findUnique.mockResolvedValue({
+        userId: OTHER,
+        status: SyncOperationStatus.APPLIED,
+        errorCode: null,
+      } as SyncOperation);
+
+      const { results } = await service.push(USER, null, [makeOp()]);
+
+      expect(results[0]).toEqual({
+        opId: makeOp().opId,
+        status: SyncOperationStatus.REJECTED,
+        duplicate: false,
+        errorCode: SYNC_ERROR_CODES.OP_ID_IN_USE,
+      });
+      expect(handler.applied).toHaveLength(0);
+      expect(tx.syncOperation.create).not.toHaveBeenCalled();
+    });
+
+    it('a conflict keeps only the entity fields, as plain bounded values', async () => {
+      handler.serverState = { version: 7, snapshot: { goal_type: 'STRENGTH' } };
+
+      await service.push(USER, null, [
+        makeOp({
+          baseVersion: 3,
+          payload: {
+            goal_type: 'ENDURANCE',
+            smuggled: 'x'.repeat(10),
+            nested: { a: 1 },
+          },
+        }),
+      ]);
+
+      const createArg = tx.syncConflict.create.mock.calls[0][0] as {
+        data: { clientPayload: Record<string, unknown> };
+      };
+      expect(createArg.data.clientPayload).toEqual({ goal_type: 'ENDURANCE' });
+    });
+
+    it('past 5 unresolved conflicts on one row, the newest is replaced', async () => {
+      handler.serverState = { version: 7, snapshot: { goal_type: 'STRENGTH' } };
+      tx.syncConflict.findMany.mockResolvedValue(
+        ['c5', 'c4', 'c3', 'c2', 'c1'].map((id) => ({ id })),
+      );
+
+      const { results } = await service.push(USER, null, [
+        makeOp({ baseVersion: 3 }),
+      ]);
+
+      expect(tx.syncConflict.create).not.toHaveBeenCalled();
+      expect(tx.syncConflict.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'c5' } }),
+      );
+      expect(results[0]).toMatchObject({
+        status: SyncOperationStatus.CONFLICT,
+        conflictId: 'c5',
+      });
+    });
+
+    it('an account at 200 unresolved conflicts gets no more', async () => {
+      handler.serverState = { version: 7, snapshot: { goal_type: 'STRENGTH' } };
+      tx.syncConflict.count.mockResolvedValue(200);
+
+      const { results } = await service.push(USER, null, [
+        makeOp({ baseVersion: 3 }),
+      ]);
+
+      expect(tx.syncConflict.create).not.toHaveBeenCalled();
+      expect(results[0]).toMatchObject({
+        status: SyncOperationStatus.REJECTED,
+        errorCode: SYNC_ERROR_CODES.CONFLICT_LIMIT_REACHED,
+      });
+    });
+
+    it('a device id must be one of the account own, active devices', async () => {
+      const deviceId = '22222222-2222-4222-8222-222222222222';
+      await expect(service.push(USER, deviceId, [makeOp()])).rejects.toThrow(
+        'Unknown device',
+      );
+      tx.device.findUnique.mockResolvedValue({
+        userId: OTHER,
+        revokedAt: null,
+      });
+      await expect(service.push(USER, deviceId, [makeOp()])).rejects.toThrow(
+        'Unknown device',
+      );
+      expect(handler.applied).toHaveLength(0);
+
+      tx.device.findUnique.mockResolvedValue({ userId: USER, revokedAt: null });
+      const { results } = await service.push(USER, deviceId, [makeOp()]);
+      expect(results[0].status).toBe(SyncOperationStatus.APPLIED);
+    });
+
+    it('purges old resolved conflicts and op ids for the account, at most hourly', async () => {
+      await service.push(USER, null, [makeOp()]);
+      await service.push(USER, null, [
+        makeOp({ opId: '33333333-3333-4333-8333-333333333333' }),
+      ]);
+
+      expect(prisma.syncConflict.deleteMany).toHaveBeenCalledTimes(1);
+      expect(prisma.syncConflict.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: USER,
+          status: { not: 'PENDING' },
+          resolvedAt: { lt: expect.any(Date) as Date },
+        },
+      });
+      expect(prisma.syncOperation.deleteMany).toHaveBeenCalledWith({
+        where: { userId: USER, appliedAt: { lt: expect.any(Date) as Date } },
+      });
     });
   });
 

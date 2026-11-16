@@ -285,9 +285,11 @@ export class PasswordRecoveryService {
         return null;
       }
 
+      // ADR-P046: the token version moves on with the password, so every
+      // access token issued before the reset stops working immediately.
       await tx.user.update({
         where: { id: user.id },
-        data: { passwordHash },
+        data: { passwordHash, tokenVersion: { increment: 1 } },
       });
 
       // Any sibling token issued before this one is now moot.

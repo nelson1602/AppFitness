@@ -5,6 +5,11 @@ export interface AccessTokenPayload {
   /** User id (UUID). */
   sub: string;
   role: Role;
+  /**
+   * The user's token version when the token was signed (ADR-P046). Absent on
+   * tokens signed before it existed; those also fail the issuer/audience check.
+   */
+  tv?: number;
 }
 
 /** Identity attached to the request by JwtAuthGuard. */

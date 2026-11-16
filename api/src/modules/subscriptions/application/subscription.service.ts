@@ -7,6 +7,10 @@ import {
 } from '@nestjs/common';
 import { AuditAction, Prisma, SubscriptionWebhookStatus } from '@prisma/client';
 
+import {
+  REVENUECAT_CONFIG,
+  type RevenueCatConfig,
+} from '../../../config/revenuecat.config';
 import { AuditService } from '../../audit/audit.service';
 import { PrismaService } from '../../database/prisma.service';
 import {
@@ -17,6 +21,13 @@ import {
   type SubscriptionStatusView,
   type WebhookIngestionResult,
 } from '../domain/subscription.types';
+import { entitlementGrantsAccess } from '../domain/entitlement-access';
+
+/**
+ * ADR-P046: a reconcile within this long of the last one answers from the
+ * mirror instead of calling the provider again.
+ */
+export const RECONCILE_MIN_INTERVAL_MS = 30_000;
 
 type JsonRecord = Record<string, unknown>;
 
@@ -124,6 +135,8 @@ export class SubscriptionService {
     private readonly audit: AuditService,
     @Inject(ENTITLEMENT_PROVIDER)
     private readonly provider: EntitlementProvider,
+    @Inject(REVENUECAT_CONFIG)
+    private readonly config: RevenueCatConfig,
   ) {}
 
   async getStatus(userId: string): Promise<SubscriptionStatusView> {
@@ -141,9 +154,13 @@ export class SubscriptionService {
       };
     }
 
+    // ADR-P046: the same rule as the paid-write guard when payments are on
+    // (entitlement id, expiry, and no sandbox purchase in production).
     const activeNow =
-      row.isActive &&
-      (row.expiresAt === null || row.expiresAt.getTime() > Date.now());
+      this.config.provider === 'revenuecat'
+        ? entitlementGrantsAccess(row, this.config, userId)
+        : row.isActive &&
+          (row.expiresAt === null || row.expiresAt.getTime() > Date.now());
     return {
       state: activeNow ? 'ACTIVE' : 'INACTIVE',
       expiresAt: row.expiresAt?.toISOString() ?? null,
@@ -156,8 +173,25 @@ export class SubscriptionService {
 
   async reconcile(userId: string): Promise<SubscriptionStatusView> {
     this.assertProviderEnabled();
+    // ADR-P046: a reconcile right after another answers from the mirror.
+    const last = await this.prisma.subscriptionEntitlement.findUnique({
+      where: { userId },
+      select: { lastReconciledAt: true },
+    });
+    if (
+      last &&
+      Date.now() - last.lastReconciledAt.getTime() < RECONCILE_MIN_INTERVAL_MS
+    ) {
+      return this.getStatus(userId);
+    }
     const snapshot = await this.fetchSnapshot(userId);
-    const changed = await this.persistSnapshot(userId, snapshot, null, null);
+    const changed = await this.persistSnapshot(
+      userId,
+      snapshot,
+      null,
+      null,
+      new Date(),
+    );
     if (changed) await this.auditEntitlementChange(userId, snapshot, 'manual');
     return this.getStatus(userId);
   }
@@ -220,12 +254,14 @@ export class SubscriptionService {
     let snapshots: Array<{
       userId: string;
       snapshot: ProviderEntitlementSnapshot;
+      fetchedAt: Date;
     }>;
     try {
       snapshots = await Promise.all(
         users.map(async ({ id: userId }) => ({
           userId,
           snapshot: await this.provider.getEntitlement(userId),
+          fetchedAt: new Date(),
         })),
       );
     } catch {
@@ -330,70 +366,83 @@ export class SubscriptionService {
     return { status: existing.status };
   }
 
-  private persistSnapshot(
+  /**
+   * Store a provider snapshot (ADR-P046: newest wins).
+   *
+   * Concurrent reconciles and webhooks can fetch the provider in one order and
+   * write in another. Each write carries the time its snapshot was fetched, and
+   * a write only lands if the stored snapshot is older — the predicate runs in
+   * PostgreSQL, so a slow, stale fetch can never overwrite a newer one. The
+   * insert is `ON CONFLICT DO NOTHING` (createMany skipDuplicates), so a
+   * race on the first row never aborts the webhook transaction.
+   *
+   * Returns true when the stored entitlement changed (for the audit trail).
+   */
+  private async persistSnapshot(
     userId: string,
     snapshot: ProviderEntitlementSnapshot,
     eventTimestamp: Date | null,
     tx: Prisma.TransactionClient | null,
+    fetchedAt: Date,
   ): Promise<boolean> {
     const client: Prisma.TransactionClient | PrismaService = tx ?? this.prisma;
-    return client.subscriptionEntitlement
-      .findUnique({ where: { userId } })
-      .then(async (before) => {
-        await client.subscriptionEntitlement.upsert({
-          where: { userId },
-          create: {
-            userId,
-            entitlementId: snapshot.entitlementId,
-            isActive: snapshot.isActive,
-            expiresAt: snapshot.expiresAt,
-            periodType: snapshot.periodType,
-            productId: snapshot.productId,
-            store: snapshot.store,
-            environment: snapshot.environment,
-            willRenew: snapshot.willRenew,
-            lastProviderEventAt: eventTimestamp,
-            lastReconciledAt: new Date(),
-          },
-          update: {
-            entitlementId: snapshot.entitlementId,
-            isActive: snapshot.isActive,
-            expiresAt: snapshot.expiresAt,
-            periodType: snapshot.periodType,
-            productId: snapshot.productId,
-            store: snapshot.store,
-            environment: snapshot.environment,
-            willRenew: snapshot.willRenew,
-            lastReconciledAt: new Date(),
-          },
-        });
-        if (eventTimestamp) {
-          // Do not derive the watermark in application memory: two different
-          // event transactions can read the same old value. This predicate is
-          // evaluated by PostgreSQL after the upsert lock is acquired, so a
-          // late older delivery cannot overwrite a newer watermark.
-          await client.subscriptionEntitlement.updateMany({
-            where: {
-              userId,
-              OR: [
-                { lastProviderEventAt: null },
-                { lastProviderEventAt: { lt: eventTimestamp } },
-              ],
-            },
-            data: { lastProviderEventAt: eventTimestamp },
-          });
-        }
-        return (
-          before === null ||
-          before.isActive !== snapshot.isActive ||
-          before.expiresAt?.getTime() !== snapshot.expiresAt?.getTime() ||
-          before.periodType !== snapshot.periodType ||
-          before.productId !== snapshot.productId ||
-          before.store !== snapshot.store ||
-          before.environment !== snapshot.environment ||
-          before.willRenew !== snapshot.willRenew
-        );
+    const before = await client.subscriptionEntitlement.findUnique({
+      where: { userId },
+    });
+    const fields = {
+      entitlementId: snapshot.entitlementId,
+      isActive: snapshot.isActive,
+      expiresAt: snapshot.expiresAt,
+      periodType: snapshot.periodType,
+      productId: snapshot.productId,
+      store: snapshot.store,
+      environment: snapshot.environment,
+      willRenew: snapshot.willRenew,
+      lastFetchedAt: fetchedAt,
+      lastReconciledAt: new Date(),
+    };
+    const inserted = await client.subscriptionEntitlement.createMany({
+      data: [{ userId, ...fields, lastProviderEventAt: eventTimestamp }],
+      skipDuplicates: true,
+    });
+    let wrote = inserted.count === 1;
+    if (!wrote) {
+      const updated = await client.subscriptionEntitlement.updateMany({
+        where: {
+          userId,
+          OR: [{ lastFetchedAt: null }, { lastFetchedAt: { lt: fetchedAt } }],
+        },
+        data: fields,
       });
+      wrote = updated.count === 1;
+    }
+    if (eventTimestamp) {
+      // Do not derive the watermark in application memory: two different
+      // event transactions can read the same old value. This predicate is
+      // evaluated by PostgreSQL, so a late older delivery cannot overwrite a
+      // newer watermark.
+      await client.subscriptionEntitlement.updateMany({
+        where: {
+          userId,
+          OR: [
+            { lastProviderEventAt: null },
+            { lastProviderEventAt: { lt: eventTimestamp } },
+          ],
+        },
+        data: { lastProviderEventAt: eventTimestamp },
+      });
+    }
+    return (
+      wrote &&
+      (before === null ||
+        before.isActive !== snapshot.isActive ||
+        before.expiresAt?.getTime() !== snapshot.expiresAt?.getTime() ||
+        before.periodType !== snapshot.periodType ||
+        before.productId !== snapshot.productId ||
+        before.store !== snapshot.store ||
+        before.environment !== snapshot.environment ||
+        before.willRenew !== snapshot.willRenew)
+    );
   }
 
   private persistWebhookSnapshots(
@@ -401,6 +450,7 @@ export class SubscriptionService {
     snapshots: Array<{
       userId: string;
       snapshot: ProviderEntitlementSnapshot;
+      fetchedAt: Date;
     }>,
   ): Promise<{
     claimed: boolean;
@@ -453,6 +503,7 @@ export class SubscriptionService {
             item.snapshot,
             event.timestamp,
             tx,
+            item.fetchedAt,
           )
         ) {
           changed.push(item);

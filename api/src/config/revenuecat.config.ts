@@ -26,12 +26,21 @@ export interface EnabledRevenueCatConfig {
   webhookSigningSecret: string;
   /** Stable lookup identifier, e.g. `appfitness_pro`. */
   entitlementId: string;
+  /**
+   * ADR-P046: in production a SANDBOX (test-purchase) entitlement never grants
+   * access, except for these tester accounts (REVENUECAT_SANDBOX_USER_IDS).
+   * Outside production sandbox purchases count as usual.
+   */
+  rejectSandbox: boolean;
+  sandboxAllowedUserIds: ReadonlySet<string>;
 }
 
 export type RevenueCatConfig =
   DisabledRevenueCatConfig | EnabledRevenueCatConfig;
 
 const IDENTIFIER_PATTERN = /^[A-Za-z0-9._-]{1,255}$/;
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MIN_LOCAL_SECRET_LENGTH = 32;
 
 function requireValue(raw: string | undefined, name: string): string {
@@ -50,11 +59,48 @@ function requireLocalSecret(raw: string | undefined, name: string): string {
   return value;
 }
 
+/**
+ * ADR-P046: tester accounts whose sandbox purchases still count in production.
+ * Comma-separated user UUIDs; anything else fails boot.
+ */
+export function parseSandboxUserIds(raw: string | undefined): Set<string> {
+  const ids = new Set<string>();
+  for (const part of (raw ?? '').split(',')) {
+    const id = part.trim();
+    if (id === '') continue;
+    if (!UUID_PATTERN.test(id)) {
+      throw new Error(
+        'REVENUECAT_SANDBOX_USER_IDS must be comma-separated user UUIDs',
+      );
+    }
+    ids.add(id.toLowerCase());
+  }
+  return ids;
+}
+
+/** A short, secret-free description of the mode, for the boot log. */
+export function describeRevenueCatMode(config: RevenueCatConfig): string {
+  if (config.provider === 'disabled')
+    return 'disabled (paid writes not enforced)';
+  const sandbox = config.rejectSandbox
+    ? `sandbox purchases rejected (${config.sandboxAllowedUserIds.size} tester account(s) allowed)`
+    : 'sandbox purchases accepted';
+  return `revenuecat, entitlement ${config.entitlementId}, ${sandbox}`;
+}
+
 export function resolveRevenueCatConfig(
   env: NodeJS.ProcessEnv = process.env,
 ): RevenueCatConfig {
   const provider = (env.REVENUECAT_PROVIDER ?? '').trim().toLowerCase();
+  const production = env.NODE_ENV === 'production';
 
+  // ADR-P046: production must say what it does. An unset provider used to mean
+  // "disabled" silently, which also leaves every paid write unenforced.
+  if (provider === '' && production) {
+    throw new Error(
+      'REVENUECAT_PROVIDER must be set explicitly in production ("disabled" or "revenuecat")',
+    );
+  }
   if (provider === '' || provider === 'disabled') {
     return { provider: 'disabled' };
   }
@@ -89,5 +135,7 @@ export function resolveRevenueCatConfig(
       'REVENUECAT_WEBHOOK_SIGNING_SECRET',
     ),
     entitlementId,
+    rejectSandbox: production,
+    sandboxAllowedUserIds: parseSandboxUserIds(env.REVENUECAT_SANDBOX_USER_IDS),
   };
 }
