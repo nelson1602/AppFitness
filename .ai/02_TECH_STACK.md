@@ -113,6 +113,15 @@ enforcement pending)
 - Real transactions require development/store builds; Expo Go is not release
   evidence
 
+Health Connect (ADR-P048; Android only, read-only, on-device)
+
+- `react-native-health-connect` 4.1.3, pinned exactly, with its bundled Expo
+  module and config plugin (`androidx.health.connect:connect-client`)
+- Local plugin `plugins/with-health-connect.js`: minSdk 26 and exactly four
+  READ permissions (steps, active calories, exercise, hydration)
+- Behind `EXPO_PUBLIC_HEALTH_CONNECT=on` (internal, e2e, development); off in
+  production
+
 ---
 
 # Backend

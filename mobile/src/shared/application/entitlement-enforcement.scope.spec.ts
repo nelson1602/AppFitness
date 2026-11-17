@@ -48,10 +48,12 @@ const SQL_WRITE = /INSERT INTO|UPDATE [a-z_]+\s+SET|DELETE FROM/;
  * write to guard: reading a notification works in read-only mode. Saved foods
  * (v10 Block B) are catalogue rows the server already holds, never enqueued;
  * v11-B only fills in a missing brand there (display data, not a user record).
- * Saving the food itself is gated where the server import happens.
+ * Saving the food itself is gated where the server import happens. The water
+ * goal (ADR-P048) is a device preference in `app_metadata`, never synced.
  */
 const UNTRACKED_REPOSITORIES = new Set([
   'features/authentication/infrastructure/local-user.repository.ts',
+  'features/health-connect/infrastructure/water-goal.repository.ts',
   'features/notifications/infrastructure/notification-read.repository.ts',
   'features/nutrition/infrastructure/saved-foods.repository.ts',
 ]);

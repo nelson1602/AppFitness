@@ -43,6 +43,11 @@ module.exports = ({ config }) => ({
     '@sentry/react-native/expo',
     // ADR-P047 D1: no cloud backup, no device-to-device transfer.
     './plugins/with-backup-exclusion',
+    // ADR-P048: Health Connect, read-only. The library's plugin adds the
+    // permission-rationale intent filter and the Android 14 alias; the local
+    // one raises minSdk to 26 and declares exactly the four read permissions.
+    'react-native-health-connect',
+    './plugins/with-health-connect',
     ...(IS_LOCAL_VARIANT ? ['./plugins/with-e2e-cleartext'] : []),
   ],
 });

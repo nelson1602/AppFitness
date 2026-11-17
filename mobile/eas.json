@@ -12,7 +12,8 @@
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "EXPO_PUBLIC_API_URL": "http://localhost:3001",
         "APP_VARIANT": "development",
-        "EXPO_PUBLIC_APP_VARIANT": "development"
+        "EXPO_PUBLIC_APP_VARIANT": "development",
+        "EXPO_PUBLIC_HEALTH_CONNECT": "on"
       }
     },
     "internal": {
@@ -23,7 +24,8 @@
       },
       "env": {
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-        "EXPO_PUBLIC_API_URL": "https://appfitness-production-1e78.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://appfitness-production-1e78.up.railway.app",
+        "EXPO_PUBLIC_HEALTH_CONNECT": "on"
       }
     },
     "production": {
@@ -44,7 +46,8 @@
         "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "APP_VARIANT": "e2e",
         "EXPO_PUBLIC_API_URL": "http://127.0.0.1:3001",
-        "EXPO_PUBLIC_APP_VARIANT": "e2e"
+        "EXPO_PUBLIC_APP_VARIANT": "e2e",
+        "EXPO_PUBLIC_HEALTH_CONNECT": "on"
       }
     }
   },

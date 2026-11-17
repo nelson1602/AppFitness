@@ -15802,6 +15802,60 @@ It is proposed as its own slice with an ADR amendment. D3 covers the free-text c
 
 ---
 
+## ADR-P048 — Health Connect, Read-Only and On-Device (Block D)
+
+Status: Proposed with the Block D PR; the owner accepts it by merging that PR
+Date: 2026-11-17
+Owner: Mobile / iCoach
+Supersedes: nothing. Amends ADR-P040 Addendum v11-B (`carry-over@1.0.0` → `1.1.0`, C9) and replaces the "Próximamente" watch placeholder (ADR-P039, docs/design).
+
+### Context
+
+Block D is the minimum smartwatch integration that can pass Play review. Owner decisions (2026-11-17): Android Health Connect only, read-only and foreground-only, four data types, everything processed on the phone, and the carry-over rule below. A new dependency was approved for it.
+
+### Decision
+
+**D1 Dependency.** `react-native-health-connect@4.1.3` (MIT), pinned exactly. It ships its own Expo module (no `MainActivity` change for the permission delegate) and config plugin (the rationale intent filter and the Android 14 `ViewPermissionUsageActivity` alias), and brings Google's `androidx.health.connect:connect-client`. No other npm dependency; `expo-build-properties` is not added. The expo-sqlite 57.0.4 pin and `verify:native-abis` are unchanged.
+
+**D2 Manifest.** A local config plugin (`plugins/with-health-connect.js`), loaded for every variant:
+
+- `android.minSdkVersion=26` in gradle.properties (Expo 57 reads it into its version catalog). Android 7.0/7.1 phones can no longer install new versions; Health Connect itself needs Android 9+.
+- Exactly four permissions: `READ_STEPS`, `READ_ACTIVE_CALORIES_BURNED`, `READ_EXERCISE`, `READ_HYDRATION`. Any other `android.permission.health.*` in the app config is dropped. No write, no `READ_HEALTH_DATA_IN_BACKGROUND`, no history permission, no other type (no heart rate, no sleep).
+- `MainActivity` turns Health Connect's rationale intents (`androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE`, and `VIEW_PERMISSION_USAGE` from Android 14) into `appfitness://health-connect`, so Expo Router opens the rationale screen.
+
+**D3 Flag.** `EXPO_PUBLIC_HEALTH_CONNECT=on` in the `internal`, `e2e` and `development` profiles; absent (off) in `production` until the owner turns it on. Off, the app is exactly as before ("Próximamente" stays). The permissions are declared either way, so Play reviews the declaration regardless.
+
+**D4 On-device only.** The app reads Health Connect while it is open: on app open, on return to the foreground and when the day changes. Read values live in memory; nothing is written to SQLite except the person's own water goal, and nothing is sent to the API. No derived value is synced. Data safety: no new data type is "collected" (Play's definition: transmitted off the device); the Health Connect declaration form is still required.
+
+**D5 Rationale screen** (`/health-connect`): what each of the four types is for, in plain es/en, that the data stay on the phone, that it is optional, and the privacy policy. It shows without a signed-in account (Health Connect may open it from its dialog); connecting needs one. Denied, or no Health Connect: a neutral note, and the app works as before.
+
+**D6 Inicio and Perfil.** With Health Connect available, the watch card replaces "Próximamente" on Inicio and "Reloj y Health Connect" replaces it in Perfil. The card shows the water line and today's steps and active kcal for the granted types only; a type not shared says so. Water:
+
+- No goal (the default; there is none): "Tu reloj registró X ml hoy".
+- With the person's goal, set in Perfil (250–6000 ml, local per account in `app_metadata`, never synced): "Tu reloj registró X ml; tu meta es Y" and a progress bar.
+- Neutral wording only: no advice, no medical claim, no recommended amount.
+
+**D7 `watch-activity@1.0.0`** (`health-connect/domain/watch-activity.ts`), pure:
+
+- Only exercise sessions count; all-day steps and calories do not (the daily target already includes the activity level).
+- Session kcal: the active kcal Health Connect recorded inside the session (its aggregate de-duplicates phone and watch); else the steps inside it as walking minutes at 100 steps a minute, never longer than the session, at the brisk-walk net rate (`CARDIO_MET` 3,5 − 1); else the session's length at that rate. Without a weight only recorded kcal count. Sessions over 6 hours are ignored.
+- A session that overlaps a workout logged in the app is ignored. An app workout never finished covers 3 hours from its start.
+
+**D8 `carry-over@1.1.0`, C9.** The watch's sessions cover the cardio a day over owes: a session covers days over on or before its date, up to today; each kcal once, oldest day over first. What is owed is the capped cardio (30 min); the minutes are recomputed from what is left, and a block fully covered is not added. Food never changes. "Quitar" and the 30-minute cap are unchanged. Without Health Connect the rule gives exactly 1.0.0's result.
+
+### Consequences
+
+- **Positive:** watch activity reduces cardio the person already did; water from the watch is visible; nothing leaves the phone.
+- **Negative:** minSdk 26; one more native dependency to keep current; Health Connect's own UI differs between Android 13 (app) and 14+ (system).
+- **Native build:** needs a new versionCode; the production flag stays off until Play approves the Health Connect declaration.
+- **Play Console texts** (data-type justifications, Data safety draft, privacy-policy section for counsel): `dist/blockD/`.
+
+### Related Documents
+
+ADR-P039, ADR-P040 (Addendum v11-B), ADR-P047, `.ai/05_SECURITY.md`, `docs/design/README.md`, `dist/blockD/`
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

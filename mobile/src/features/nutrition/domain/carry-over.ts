@@ -1,7 +1,7 @@
 import { addDays } from '@/features/weekly-plan/domain/week';
 
 /**
- * Day-to-day carry-over (ADR-P040 Addendum v11-B, rule `carry-over@1.0.0`).
+ * Day-to-day carry-over (ADR-P040 Addendum v11-B, rule `carry-over@1.1.0`).
  * One rule for food and exercise; it replaces D7's calorie and cardio parts.
  * Pure and deterministic: identical logs give the identical adjustment.
  *
@@ -29,8 +29,15 @@ import { addDays } from '@/features/weekly-plan/domain/week';
  *   what was applied leaves the queue.
  * - C6 Window: rebuilt from `CARRY_OVER_LOOKBACK_DAYS` days before today,
  *   starting empty. The base target is never written.
+ * - C9 Watch exercise (ADR-P048, 1.1.0): exercise sessions the watch recorded
+ *   (Health Connect, read on the phone, already without the ones that overlap
+ *   a workout logged in the app) cover the cardio a day over owes. A session
+ *   covers only days over on or before its own date, up to today; each kcal
+ *   covers once, oldest day over first. What is owed is the capped cardio
+ *   (`MAX_CARDIO_MINUTES`); the minutes are recomputed from what is left, and
+ *   a block fully covered is not added. The watch never changes food.
  */
-export const CARRY_OVER_RULE_VERSION = 'carry-over@1.0.0';
+export const CARRY_OVER_RULE_VERSION = 'carry-over@1.1.0';
 export const CARRY_OVER_DAILY_CAP_PCT = 10;
 export const CARRY_OVER_SPREAD_DAYS = 3;
 export const CARRY_OVER_LOOKBACK_DAYS = 7;
@@ -71,6 +78,8 @@ export interface CarryOverInput {
   weightKg?: number | null;
   /** False when the evaluation restricts this kind of exercise (C2). */
   cardioAllowed?: boolean;
+  /** C9: the watch's exercise sessions (kcal by device-local date). */
+  watchExercise?: readonly { date: string; kcal: number }[];
 }
 
 export interface CarryOverDay {
@@ -86,6 +95,8 @@ export interface CarryOverCardio {
   /** Excess kcal beyond the food part, before the cap. */
   kcal: number;
   minutes: number;
+  /** C9: kcal of it the watch already covered; absent when none. */
+  watchKcal?: number;
 }
 
 export interface CarryOver {
@@ -147,6 +158,34 @@ export function cardioMinutes(kcal: number, weightKg: number): number {
   return Math.min(MAX_CARDIO_MINUTES, steps * CARDIO_STEP_MINUTES);
 }
 
+/** C9: the watch's exercise covers the capped cardio, oldest day over first. */
+function coverWithWatch(
+  cardio: readonly CarryOverCardio[],
+  watch: readonly { date: string; kcal: number }[],
+  weightKg: number,
+  today: string,
+): CarryOverCardio[] {
+  const left = watch
+    .filter((entry) => entry.date <= today && entry.kcal > 0)
+    .map((entry) => ({ date: entry.date, kcal: entry.kcal }));
+  const capKcal = (MAX_CARDIO_MINUTES * (CARDIO_MET - 1) * weightKg) / 60;
+  return cardio.flatMap((item) => {
+    let owed = Math.min(item.kcal, capKcal);
+    let covered = 0;
+    for (const entry of left) {
+      if (owed <= 0) break;
+      if (entry.date < item.fromDate || entry.kcal <= 0) continue;
+      const used = Math.min(entry.kcal, owed);
+      entry.kcal -= used;
+      owed -= used;
+      covered += used;
+    }
+    if (covered === 0) return [item];
+    const minutes = cardioMinutes(owed, weightKg);
+    return minutes > 0 ? [{ ...item, minutes, watchKcal: Math.round(covered) }] : [];
+  });
+}
+
 export function computeCarryOver(input: CarryOverInput): CarryOver {
   const base = Math.round(input.baseCalories);
   const floor = Math.round(input.floorCalories);
@@ -193,5 +232,9 @@ export function computeCarryOver(input: CarryOverInput): CarryOver {
   const adjustment = take(queue, base, floor, cap);
   consume(queue, Math.abs(adjustment));
   const remaining = sum(queue.filter((item) => item.daysLeft > 1));
-  return { ruleVersion: CARRY_OVER_RULE_VERSION, adjustment, yesterday, remaining, cardio };
+  const owed =
+    weight !== null && input.watchExercise && input.watchExercise.length > 0
+      ? coverWithWatch(cardio, input.watchExercise, weight, input.today)
+      : cardio;
+  return { ruleVersion: CARRY_OVER_RULE_VERSION, adjustment, yesterday, remaining, cardio: owed };
 }

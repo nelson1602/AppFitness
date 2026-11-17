@@ -226,9 +226,11 @@ describe('catalogue parity', () => {
   // sign-in lock (+2) and "Borrar datos de este teléfono" (+8) (+16, 1963).
   // BUG-053: the sync reason for a change the server cannot apply yet (+1, 1964).
   // BUG-055: the one-time notice that the evaluation date follows the account (+1, 1965).
-  it('reaches 1965 keys in each language — 1775 shipped plus a 190-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1965);
-    expect(Object.keys(es)).toHaveLength(1965);
+  // ADR-P048: Health Connect — the watch card (15), the rationale screen (18) and the
+  // Perfil panel with the water goal (10) (+43, 2008).
+  it('reaches 2008 keys in each language — 1775 shipped plus a 233-key family', () => {
+    expect(Object.keys(en)).toHaveLength(2008);
+    expect(Object.keys(es)).toHaveLength(2008);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

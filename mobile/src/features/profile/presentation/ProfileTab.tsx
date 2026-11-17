@@ -13,6 +13,8 @@ import {
   STRESS_LABEL,
   foodLabelKey,
 } from '@/features/evaluation/presentation/evaluation-copy';
+import { showsWatch, useWatchStatus } from '@/features/health-connect/application/use-watch-status';
+import { HealthConnectSettings } from '@/features/health-connect/presentation/HealthConnectSettings';
 import { PrivacyPolicyLink } from '@/features/legal/presentation/privacy-policy-link';
 import { useDietaryPreferenceStore } from '@/features/nutrition/application/dietary-preference.store';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
@@ -143,6 +145,7 @@ export function ProfileTab() {
   const { colors, radius, spacing } = theme;
   const { language, t } = useLocalization();
   const { weightSystem: units, lengthSystem } = useUnits();
+  const watchStatus = useWatchStatus();
   const refresh = useDashboardStore((s) => s.refresh);
   const profile = useProfileStore((s) => s.profile);
   const wellness = useWellnessSafetyProfileStore((s) => s.profile);
@@ -315,16 +318,24 @@ export function ProfileTab() {
           <BiometricSwitch />
         </Panel>
       )}
-      <Panel
-        icon="watch"
-        right={<Chip label={t('home.soon.chip')} />}
-        testID="profile-soon"
-        title={t('home.soon.title')}
-      >
-        <AppText tone="onStageVariant" variant="caption">
-          {t('profile.tab.soonBody')}
-        </AppText>
-      </Panel>
+      {/* ADR-P048: with Health Connect on this phone (and the flag on), the
+          watch panel replaces "Próximamente"; otherwise Perfil is as before. */}
+      {watchStatus !== null && showsWatch(watchStatus) ? (
+        <Panel icon="watch" testID="profile-watch" title={t('profile.watch.title')}>
+          <HealthConnectSettings status={watchStatus} />
+        </Panel>
+      ) : (
+        <Panel
+          icon="watch"
+          right={<Chip label={t('home.soon.chip')} />}
+          testID="profile-soon"
+          title={t('home.soon.title')}
+        >
+          <AppText tone="onStageVariant" variant="caption">
+            {t('profile.tab.soonBody')}
+          </AppText>
+        </Panel>
+      )}
 
       <Panel icon="user" testID="profile-settings" title={t('profile.tab.settingsTitle')}>
         {/* v10-B: Idioma and Unidades first, each its own row, where people look. */}
