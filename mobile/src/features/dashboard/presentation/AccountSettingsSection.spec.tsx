@@ -185,6 +185,7 @@ function setStore(partial: Partial<DashboardState>) {
     status: 'idle',
     data: null,
     error: null,
+    accountValueNotice: false,
     refresh,
     syncNow,
     loadSampleData,
@@ -448,6 +449,7 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
       status: 'error',
       data: { ...baseData, wellness: 'unavailable', assessment: null },
       error: null,
+      accountValueNotice: false,
       refresh,
       syncNow,
       loadSampleData,
@@ -517,6 +519,7 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
         status: 'ready',
         data: { ...baseData, wellness: 'available' },
         error: null,
+        accountValueNotice: false,
         refresh,
         syncNow,
         loadSampleData,
@@ -528,12 +531,25 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
     });
   });
 
+  it('BUG-055: says once, neutrally, that the evaluation date follows the account', async () => {
+    setStore({ status: 'ready', data: baseData, accountValueNotice: true });
+    await render(<AccountSettingsSection />);
+    expect(screen.getByText('We used the evaluation date saved in your account')).toBeOnTheScreen();
+
+    setStore({ status: 'ready', data: baseData, accountValueNotice: false });
+    await render(<AccountSettingsSection />);
+    expect(
+      screen.queryByText('We used the evaluation date saved in your account'),
+    ).not.toBeOnTheScreen();
+  });
+
   describe('conflict review entry (ADR-P030 C-6)', () => {
     function withConflicts(conflicts: number): DashboardState {
       return {
         status: 'ready',
         data: { ...baseData, sync: { ...baseData.sync, conflicts } },
         error: null,
+        accountValueNotice: false,
         refresh,
         syncNow,
         loadSampleData,

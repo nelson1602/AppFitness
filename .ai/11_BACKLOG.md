@@ -3428,9 +3428,39 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-055] The Evaluation Date Conflict Offers No Choice and Never Clears
+
+Status: Fixed in PR (codex/bug055-evaluation-conflict), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-17
+Updated: 2026-11-17
+
+### Description
+
+On the owner's phone, the last pending conflict was the medical evaluation: the date differed between the device and the account. Perfil → "Revisar cambios" showed both dates with no choice buttons and no "Intentar ahora" (owner, 2026-11-17).
+
+- **Cause:** the phone no longer held the queued change that caused the conflict. ADR-P030 §Decision 9 therefore classes it as remote-origin and offers neither choice, so nothing on the device could clear it, and it kept the "Conflictos pendientes" badge on.
+- **Ruled out in code and tests:** the evaluation type is fully supported (presenter allow-list, applier, record label); the payload is not stored encrypted; the server snapshot uses only allowed fields; the card renders whatever choices the review offers.
+- **Server conflict:** the API holds it as PENDING (wellness CREATE CONFLICT, 2026-11-12).
+
+### Fix (owner decision; ADR-P030 amendment, evaluation date only)
+
+- **Rule:** the account value is authoritative for the evaluation date.
+- **Which conflicts:** an evaluation conflict that differs only in the date settles to the account value automatically after the next successful sync, through the ordinary resolve endpoint and local settlement. No choice is asked, and the conflict and badge clear.
+- **Notice:** one neutral, one-time notice in Perfil: "Usamos la fecha de evaluación guardada en tu cuenta".
+- **Later edits:** a later edit by the person is an ordinary UPDATE and syncs as the device's date.
+- **Not changed:** other entities, and evaluation conflicts that also differ in another field.
+
+- [x] Regression tests: (a) auto-resolve to the account value, including the owner's remote-origin state and a stale comparison; (b) a later manual edit syncs as device-wins; scope guard
+- [ ] After the release: the owner's evaluation conflict clears on the first sync, and the notice shows once
+
+---
+
 ## [BUG-054] "Sincronizar ahora" Does Nothing While Failed Changes Wait Out Their Backoff
 
-Status: Fixed in PR (codex/bug054-sync-now-retries-failed), pending owner review
+Status: Merged (#262, edcd7f2); the owner's 21 sets wait for the next release
 Priority: P1
 Type: Bug
 Owner: Engineering

@@ -9,7 +9,11 @@ import {
 } from '@/features/authentication';
 import { isDatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
 import { logError } from '@/shared/infrastructure/logging';
-import { runSync } from '@/shared/infrastructure/sync';
+import {
+  autoResolveAccountAuthoritative,
+  runSync,
+  takeAccountValueNotice,
+} from '@/shared/infrastructure/sync';
 
 import type {
   DashboardData,
@@ -19,7 +23,12 @@ import type {
 } from '../domain/dashboard.types';
 import { loadDashboardData, loadSampleDashboardData } from './dashboard.service';
 
-const INITIAL = { status: 'idle' as DashboardStatus, data: null, error: null };
+const INITIAL = {
+  status: 'idle' as DashboardStatus,
+  data: null,
+  error: null,
+  accountValueNotice: false,
+};
 
 /**
  * The read outcome, in precedence order (ADR-P031 §Decision 8).
@@ -97,6 +106,25 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         }
       }
       if (!isSessionCurrent(owner)) return;
+      // BUG-055 (ADR-P030 amendment): an evaluation date that differs only
+      // from the account settles to the account value, with no choice asked.
+      let accountValueNotice = get().accountValueNotice;
+      if (outcome.outcome === 'success') {
+        const runOwner = owner;
+        try {
+          await autoResolveAccountAuthoritative({
+            userId,
+            getToken: () => runOwner.accessToken,
+            isCurrent: () => isSessionCurrent(runOwner),
+          });
+          if (!isSessionCurrent(owner)) return;
+          accountValueNotice = (await takeAccountValueNotice(userId)) || accountValueNotice;
+        } catch (error) {
+          // Never fatal to the sync: the conflict stays listed for review.
+          logError('dashboard.autoResolve', error);
+        }
+      }
+      if (!isSessionCurrent(owner)) return;
       const data = await loadDashboardData();
       if (!isSessionCurrent(owner)) return;
       const syncStatus: SyncUiStatus =
@@ -130,6 +158,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           },
         },
         status: resolveStatus(data),
+        accountValueNotice,
       });
     } catch (error) {
       logError('dashboard.syncNow', error);

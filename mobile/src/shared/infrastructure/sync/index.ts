@@ -33,11 +33,14 @@ export {
  * points; the outbox transitions in `sync-conflicts.ts` are internal to it.
  */
 export {
+  autoResolveAccountAuthoritative,
   chooseConflictResolution,
   isDeletedSnapshot,
   listConflictsForReview,
   reconcileConflictStatuses,
   settlePendingResolutions,
+  takeAccountValueNotice,
+  type AutoResolveReport,
   type ChoiceResult,
   type ConflictBlocker,
   type ConflictResolutionDeps,

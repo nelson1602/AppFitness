@@ -1,6 +1,6 @@
 import { hasPaidMutationAccess } from '../../application/entitlement-access';
 import { decryptFromBase64 } from '../crypto/field-cipher';
-import { inTransaction } from '../database';
+import { inTransaction, queryFirst, run } from '../database';
 import type { OfferedResolution, SettlementStatus, SyncConflictRow } from '../database/types';
 import { getApplier } from './appliers';
 import { buildConflictReview, type ConflictReview } from './conflict-presenter';
@@ -677,4 +677,118 @@ export async function reconcileConflictStatuses(
     if (!deps.isCurrent()) return { ...report, outcome: 'session-changed' };
   }
   return report;
+}
+
+// ── Account-authoritative fields (ADR-P030 Amendment, BUG-055) ───────────────
+
+/**
+ * Fields whose account value is authoritative: a conflict that differs ONLY in
+ * these settles to the account automatically, with no choice asked. Owner
+ * decision 2026-11-17, scoped to the evaluation date: every other entity, and
+ * an evaluation conflict that also differs in any other field, keeps the
+ * ordinary review (Decisions 6 and 9 unchanged).
+ */
+const ACCOUNT_AUTHORITATIVE_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  wellness_safety_profiles: ['evaluation_date'],
+};
+
+/** `app_metadata` key for the one-time notice, per account (app_metadata is global). */
+export function accountValueNoticeKey(userId: string): string {
+  return `bug055.evaluation-date-notice.${userId}`;
+}
+
+export interface AutoResolveReport {
+  outcome: SettlementOutcome;
+  /** Conflicts this pass settled to the account value. */
+  resolved: number;
+}
+
+/**
+ * Whether a conflict qualifies: an account-authoritative entity, undecided,
+ * readable, and every compared field that differs is account-authoritative.
+ * Anything unknown or unreadable does not qualify; it stays for review.
+ */
+async function qualifiesForAccountValue(row: SyncConflictRow): Promise<boolean> {
+  const fields = ACCOUNT_AUTHORITATIVE_FIELDS[row.entity_type];
+  if (!fields || row.status !== 'PENDING' || row.chosen_resolution !== null) return false;
+  const payloads = await readConflictPayloads(row);
+  if (!payloads) return false;
+  const review = buildConflictReview(row, payloads.local, payloads.server);
+  if (review.status !== 'REVIEWABLE') return false;
+  const differing = review.model.fields.filter((field) => field.comparison !== 'same');
+  return (
+    differing.length > 0 &&
+    differing.every((field) => field.comparison === 'different' && fields.includes(field.field))
+  );
+}
+
+/**
+ * **BUG-055** — settles qualifying conflicts to the account value through the
+ * ordinary T1 → T2 → T3 path: the account's choice is recorded (`SERVER_WINS`
+ * never needs this device's retained operation, so a remote-origin conflict
+ * qualifies too), the server resolves it, and T3 applies the account's row,
+ * drops any parked op and marks the conflict settled, atomically.
+ *
+ * Two passes at most: if the account moved on since the comparison, the first
+ * answer is `STALE_COMPARISON`, which refreshes it and clears the choice; the
+ * second pass records it again against the current account value.
+ *
+ * A later edit by the person is an ordinary UPDATE from the settled version
+ * and syncs as this device's value.
+ */
+export async function autoResolveAccountAuthoritative(
+  deps: ConflictResolutionDeps,
+): Promise<AutoResolveReport> {
+  const report: AutoResolveReport = { outcome: 'success', resolved: 0 };
+  if (!hasPaidMutationAccess(deps.userId)) return report;
+  if (!deps.getToken()) return { ...report, outcome: 'unauthenticated' };
+  const now = deps.now ?? ((): string => new Date().toISOString());
+
+  for (let pass = 0; pass < 2; pass += 1) {
+    const rows = await listUnsettledConflicts(deps.userId);
+    if (!deps.isCurrent()) return { ...report, outcome: 'session-changed' };
+    const chosen = new Set<string>();
+    for (const row of rows) {
+      if (!(await qualifiesForAccountValue(row))) continue;
+      if (await chooseResolution(deps.userId, row.id, 'RESOLVED_SERVER_WINS', now())) {
+        chosen.add(row.id);
+      }
+      if (!deps.isCurrent()) return { ...report, outcome: 'session-changed' };
+    }
+    if (chosen.size === 0) return report;
+
+    const settlement = await settlePendingResolutions(deps);
+    const settled = settlement.events.filter(
+      (event) =>
+        chosen.has(event.conflictId) &&
+        (event.outcome === 'SETTLED' || event.outcome === 'ALREADY_DECIDED_ELSEWHERE'),
+    ).length;
+    if (settled > 0) {
+      report.resolved += settled;
+      await run(`INSERT OR REPLACE INTO app_metadata (key, value) VALUES (?, ?)`, [
+        accountValueNoticeKey(deps.userId),
+        'pending',
+      ]);
+    }
+    if (settlement.outcome !== 'success') return { ...report, outcome: settlement.outcome };
+    const stale = settlement.events.some(
+      (event) => chosen.has(event.conflictId) && event.outcome === 'STALE',
+    );
+    if (!stale) return report;
+  }
+  return report;
+}
+
+/**
+ * BUG-055: the one-time notice. True exactly once after an evaluation date was
+ * settled to the account value; reading it marks it shown.
+ */
+export async function takeAccountValueNotice(userId: string): Promise<boolean> {
+  const key = accountValueNoticeKey(userId);
+  const row = await queryFirst<{ value: string }>(`SELECT value FROM app_metadata WHERE key = ?`, [
+    key,
+  ]);
+  if (row?.value !== 'pending') return false;
+  await run(`UPDATE app_metadata SET value = 'shown' WHERE key = ?`, [key]);
+  return true;
 }
