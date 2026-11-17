@@ -61,7 +61,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       set({ status: 'error', error: 'The dashboard could not be loaded right now.' });
     }
   },
-  syncNow: async () => {
+  syncNow: async ({ retryFailedNow = false } = {}) => {
     // Captured before any await, so the catch and every publish below refer to
     // the account this run started for.
     let owner: SessionSnapshot | null = null;
@@ -81,7 +81,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       // re-pointed later, which is also what lets the closure below capture
       // one account's token for the whole run.
       const { userId, accessToken } = owner;
-      let outcome = await runSync({ userId, getToken: () => accessToken });
+      let outcome = await runSync({ userId, getToken: () => accessToken, retryFailedNow });
       if (outcome.outcome === 'unauthenticated') {
         // The in-memory access token can be expired server-side (15m TTL);
         // rotate once and retry instead of failing until app restart. Only

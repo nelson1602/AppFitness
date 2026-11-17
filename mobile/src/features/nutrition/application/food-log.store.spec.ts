@@ -70,6 +70,8 @@ const syncReport = (outcome: 'success' | 'offline' | 'unauthenticated') => ({
   skippedPending: 0,
   recovered: 0,
   unreadable: 0,
+
+  released: 0,
 });
 
 function loggedItem(overrides: Partial<LoggedMealItem> = {}): LoggedMealItem {
@@ -204,6 +206,8 @@ describe('food-log store (Slice 4C)', () => {
       skippedPending: 0,
       recovered: 0,
       unreadable: 0,
+
+      released: 0,
     });
     mockList.mockResolvedValue([]);
     await useFoodLogStore.getState().syncNow();
@@ -228,6 +232,8 @@ describe('food-log store (Slice 4C)', () => {
         skippedPending: 0,
         recovered: 0,
         unreadable: 0,
+
+        released: 0,
       });
       mockList.mockResolvedValue([]);
       await useFoodLogStore.getState().syncNow();

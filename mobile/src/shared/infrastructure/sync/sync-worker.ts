@@ -15,6 +15,7 @@ import {
   readClaimed,
   readQueuePayload,
   recoverAbandonedInFlight,
+  releaseBackoff,
   removeRejected,
   returnInFlightToPending,
 } from './sync-queue';
@@ -82,6 +83,8 @@ export interface SyncReport {
   recovered: number;
   /** Queued rows whose payload could not be read; failed with backoff (v8.1). */
   unreadable: number;
+  /** FAILED ops a "Sincronizar ahora" tap made ready before this push (BUG-054). */
+  released: number;
 }
 
 export interface SyncDeps {
@@ -94,6 +97,12 @@ export interface SyncDeps {
   getToken(): string | null;
   baseUrl?: string;
   now?(): string;
+  /**
+   * BUG-054: the person tapped "Sincronizar ahora". FAILED ops still in their
+   * backoff are retried in this run instead of waiting up to an hour. Automatic
+   * runs never set it, so the backoff still paces them.
+   */
+  retryFailedNow?: boolean;
 }
 
 /**
@@ -108,6 +117,9 @@ const standingRuns = new Map<string, Promise<SyncReport>>();
 
 export function runSync(deps: SyncDeps): Promise<SyncReport> {
   const standing = standingRuns.get(deps.userId);
+  // A tap that arrives during an automatic run is not lost in it (BUG-054):
+  // it waits for that run, then starts its own with the backoff released.
+  if (standing && deps.retryFailedNow) return standing.then(() => runSync(deps));
   if (standing) return standing;
 
   const execution = executeSync(deps).finally(() => {
@@ -129,6 +141,7 @@ async function executeSync(deps: SyncDeps): Promise<SyncReport> {
     skippedPending: 0,
     recovered: 0,
     unreadable: 0,
+    released: 0,
   };
   if (!deps.getToken()) {
     return { ...report, outcome: 'unauthenticated' };
@@ -150,6 +163,10 @@ async function executeSync(deps: SyncDeps): Promise<SyncReport> {
   // This run holds the user's exclusive boundary, so any IN_FLIGHT row is
   // left over from an earlier run. Return it for replay under its own op id.
   report.recovered = await recoverAbandonedInFlight(deps.userId, now());
+
+  // BUG-054: a tap retries what is waiting out its backoff, once. An op that
+  // fails again gets a new backoff from markFailed, so this push cannot loop.
+  if (deps.retryFailedNow) report.released = await releaseBackoff(deps.userId, now());
 
   // Feature repairs that must precede this push (BUG-044). Never fatal.
   for (const hook of allPrePushHooks()) {

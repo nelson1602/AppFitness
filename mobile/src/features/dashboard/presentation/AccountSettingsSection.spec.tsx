@@ -374,6 +374,8 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
     expect(screen.getByText('2,500 kcal')).toBeOnTheScreen();
     expect(screen.getByText('Protect sleep consistency')).toBeOnTheScreen();
     expect(syncNow).toHaveBeenCalledTimes(1);
+    // BUG-054: a tap retries what is waiting out its backoff.
+    expect(syncNow).toHaveBeenCalledWith({ retryFailedNow: true });
   });
 
   it('does not expose dormant medical management actions', async () => {

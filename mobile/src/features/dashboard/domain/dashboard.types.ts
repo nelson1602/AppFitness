@@ -67,6 +67,7 @@ export interface DashboardState {
   data: DashboardData | null;
   error: string | null;
   refresh: () => Promise<void>;
-  syncNow: () => Promise<void>;
+  /** `retryFailedNow`: a person tapped "Sincronizar ahora" (BUG-054). */
+  syncNow: (options?: { retryFailedNow?: boolean }) => Promise<void>;
   loadSampleData: () => Promise<void>;
 }

@@ -71,7 +71,8 @@ export interface FoodLogState {
   addFood: (catalogKey: string, mealType: MealTypeName, servingCount: number) => Promise<void>;
   editServing: (id: string, servingCount: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
-  syncNow: () => Promise<void>;
+  /** `retryFailedNow`: a person tapped "Sincronizar ahora" (BUG-054). */
+  syncNow: (options?: { retryFailedNow?: boolean }) => Promise<void>;
   /**
    * "Lo comí" (v10 Block A, item 4): items the weekly plan already wrote to
    * SQLite for `date`, published into the loaded day so the ring and the macro
@@ -233,7 +234,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
     }
   },
 
-  syncNow: async () => {
+  syncNow: async ({ retryFailedNow = false } = {}) => {
     let owner: SessionSnapshot | null = null;
     set((state) => ({ sync: { ...state.sync, state: 'syncing' } }));
     try {
@@ -242,7 +243,7 @@ export const useFoodLogStore = create<FoodLogState>((set, get) => ({
       // re-pointed later, which is also what lets the closure below capture
       // one account's token for the whole run.
       const { userId, accessToken } = owner;
-      let outcome = await runSync({ userId, getToken: () => accessToken });
+      let outcome = await runSync({ userId, getToken: () => accessToken, retryFailedNow });
       if (outcome.outcome === 'unauthenticated') {
         // Rotate once, but only while this run still owns the session: a 401
         // raised for A must never refresh B.

@@ -435,7 +435,7 @@ export function FoodLogScreen() {
               testID="food-log-sync-now"
               variant="secondary"
               loading={sync.state === 'syncing'}
-              onPress={() => void syncNow()}
+              onPress={() => void syncNow({ retryFailedNow: true })}
             >
               {t('nutrition.log.syncNow')}
             </AppButton>
