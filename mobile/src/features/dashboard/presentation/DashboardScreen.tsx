@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 
+import { WatchCard } from '@/features/health-connect/presentation/WatchCard';
 import { TabScreen } from '@/features/shell/presentation/tab-screen';
 import {
   rebalanceCoachChange,
@@ -87,7 +88,9 @@ export function DashboardScreen() {
       <TodayTiles summary={summary} />
       <EvaluationCard evaluation={evaluation} />
       <QuickActions />
-      <ComingSoonCard />
+      {/* ADR-P048: the watch card; "Próximamente" when the flag is off or the
+          phone has no usable Health Connect. */}
+      <WatchCard fallback={<ComingSoonCard />} />
     </TabScreen>
   );
 }

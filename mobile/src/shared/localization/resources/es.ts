@@ -155,6 +155,60 @@ export const es = {
   'home.soon.waterBody': 'vasos al día, desde tu reloj inteligente',
   'home.soon.heartTitle': 'Ritmo cardíaco',
   'home.soon.heartBody': 'en tiempo real, desde tu reloj inteligente',
+  // ADR-P048: Health Connect (solo lectura, en el teléfono).
+  'watch.title': 'Tu reloj',
+  'watch.chip': 'Health Connect',
+  'watch.connectBody':
+    'Conecta Health Connect para ver el agua y la actividad que registra tu reloj. Solo los leemos en tu teléfono.',
+  'watch.connectAction': 'Conectar Health Connect',
+  'watch.needsUpdateBody': 'Actualiza Health Connect para conectar tu reloj.',
+  'watch.waterTitle': 'Agua',
+  'watch.waterAmount': 'Tu reloj registró {ml} hoy',
+  'watch.waterGoal': 'Tu reloj registró {ml}; tu meta es {goal}',
+  'watch.waterProgress': 'Agua de hoy hacia tu meta',
+  'watch.waterSetGoal': 'Puedes poner una meta de agua en Perfil.',
+  'watch.notShared': 'No compartido en Health Connect',
+  'watch.activityTitle': 'Actividad',
+  'watch.steps': '{steps} pasos',
+  'watch.activeKcal': '{kcal} kcal activas',
+  'watch.activityNote':
+    'Las sesiones de ejercicio de tu reloj reducen el cardio que suma el iCoach.',
+  'healthConnect.title': 'Health Connect',
+  'healthConnect.intro':
+    'AppFitnessRD puede leer estos datos de Health Connect para mostrar tu progreso. Solo los leemos mientras usas la app; se quedan en tu teléfono y no se envían a nuestros servidores. Nunca escribimos en Health Connect.',
+  'healthConnect.stepsTitle': 'Pasos',
+  'healthConnect.stepsBody':
+    'Para mostrar tus pasos de hoy y estimar la energía de una sesión de ejercicio cuando tu reloj no registra calorías.',
+  'healthConnect.activeCaloriesTitle': 'Calorías activas',
+  'healthConnect.activeCaloriesBody':
+    'Para mostrar tus calorías activas de hoy y descontar las de tus sesiones de ejercicio del cardio que suma el iCoach.',
+  'healthConnect.exerciseTitle': 'Sesiones de ejercicio',
+  'healthConnect.exerciseBody':
+    'Para que el ejercicio que registra tu reloj reduzca el cardio que el iCoach suma a tu próximo entrenamiento, sin contar dos veces lo que ya registraste en la app.',
+  'healthConnect.hydrationTitle': 'Hidratación',
+  'healthConnect.hydrationBody':
+    'Para mostrar el agua que registra tu reloj y, si pusiste una meta en Perfil, tu avance hacia ella.',
+  'healthConnect.optional':
+    'Es opcional: sin esto la app funciona igual. Puedes quitar el permiso cuando quieras en Health Connect.',
+  'healthConnect.continue': 'Continuar',
+  'healthConnect.open': 'Abrir Health Connect',
+  'healthConnect.notNow': 'Ahora no',
+  'healthConnect.unavailable':
+    'Health Connect no está disponible en este teléfono. La app funciona igual sin él.',
+  'healthConnect.needsUpdate': 'Actualiza Health Connect desde Google Play para conectarlo.',
+  'healthConnect.denied':
+    'No se compartió ningún dato. La app funciona igual; puedes conectarlo más tarde desde Perfil.',
+  'healthConnect.connected': 'Conectado. Leemos solo lo que permitiste.',
+  'profile.watch.title': 'Reloj y Health Connect',
+  'profile.watch.connected': 'Conectado',
+  'profile.watch.notConnected': 'Sin conectar',
+  'profile.watch.needsUpdate': 'Actualiza Health Connect',
+  'profile.waterGoal.label': 'Meta de agua (ml)',
+  'profile.waterGoal.hint': 'La pones tú; no es una recomendación.',
+  'profile.waterGoal.save': 'Guardar meta',
+  'profile.waterGoal.clear': 'Quitar meta',
+  'profile.waterGoal.invalid': 'Escribe un número entero entre 250 y 6000.',
+  'profile.waterGoal.saved': 'Meta guardada: {goal}',
   'notifications.time.today': 'Hoy',
   'notifications.time.yesterday': 'Ayer',
   'notifications.time.daysAgo': 'Hace {count} días',

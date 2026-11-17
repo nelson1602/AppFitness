@@ -374,7 +374,7 @@ describe('v11-B on screen: the carry-over sentence in the day header', () => {
       date: DAY.date as string,
       carryOver: {
         carryOver: {
-          ruleVersion: 'carry-over@1.0.0',
+          ruleVersion: 'carry-over@1.1.0',
           adjustment: -189,
           yesterday: { date: '2026-11-12', consumed: 2900, target: 2711 },
           remaining: 0,

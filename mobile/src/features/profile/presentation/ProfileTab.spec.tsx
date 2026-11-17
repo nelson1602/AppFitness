@@ -63,6 +63,20 @@ jest.mock('@/features/nutrition/application/dietary-preference.store', () => {
   useDietaryPreferenceStore.getState = () => ({ load: mockLoadPreferences });
   return { useDietaryPreferenceStore };
 });
+// ADR-P048: the watch panel's status; its settings have their own spec.
+let mockWatchStatus: string | null = 'off';
+jest.mock('@/features/health-connect/application/use-watch-status', () => ({
+  ...jest.requireActual('@/features/health-connect/application/use-watch-status'),
+  useWatchStatus: () => mockWatchStatus,
+}));
+jest.mock('@/features/health-connect/presentation/HealthConnectSettings', () => {
+  const RN = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    HealthConnectSettings: ({ status }: { status: string }) => (
+      <RN.Text testID="health-connect-settings">{status}</RN.Text>
+    ),
+  };
+});
 // "Cuenta y ajustes" has its own spec (AccountSettingsSection.spec.tsx).
 jest.mock('@/features/dashboard/presentation/AccountSettingsSection', () => {
   const RN = jest.requireActual<typeof import('react-native')>('react-native');
@@ -91,6 +105,7 @@ function push() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockLanguage = 'en';
+  mockWatchStatus = 'off';
   mockProfile = {
     heightCm: 178,
     activityLevel: 'MODERATE',
@@ -115,6 +130,31 @@ beforeEach(() => {
     goalType: 'RECOMPOSITION',
     goalTargetDate: '2026-12-31',
   };
+});
+
+describe('ProfileTab watch panel (ADR-P048)', () => {
+  it.each([['off'], ['unavailable'], [null]])(
+    'keeps "Próximamente" exactly as before when the watch status is %s',
+    async (status) => {
+      mockWatchStatus = status;
+      mockLanguage = 'es';
+      await render(<ProfileTab />);
+      expect(screen.getByRole('header', { name: 'Próximamente' })).toBeOnTheScreen();
+      expect(screen.queryByTestId('profile-watch')).toBeNull();
+    },
+  );
+
+  it.each([['connected'], ['not-connected'], ['needs-update']])(
+    'replaces "Próximamente" with "Reloj y Health Connect" when %s',
+    async (status) => {
+      mockWatchStatus = status;
+      mockLanguage = 'es';
+      await render(<ProfileTab />);
+      expect(screen.getByRole('header', { name: 'Reloj y Health Connect' })).toBeOnTheScreen();
+      expect(screen.getByTestId('health-connect-settings')).toHaveTextContent(status);
+      expect(screen.queryByTestId('profile-soon')).toBeNull();
+    },
+  );
 });
 
 describe('ProfileTab (ADR-P039)', () => {

@@ -4,7 +4,7 @@
  *
  * The iCoach assessment gives the base targets; finished extra cardio adds its
  * kcal to the day's calorie target only (ADR-P040 Addendum v10-A, R2), and so
- * does the day-to-day carry-over (Addendum v11-B, `carry-over@1.0.0`), which
+ * does the day-to-day carry-over (Addendum v11-B, `carry-over@1.1.0`), which
  * may be negative and already respects the safe minimum. Macros stay as
  * assessed and the base is never changed. Pure and deterministic.
  */

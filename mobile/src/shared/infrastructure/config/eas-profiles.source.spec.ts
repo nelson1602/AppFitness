@@ -31,3 +31,14 @@ it.each(['development', 'e2e'])('marks %s as a local variant on both sides', (na
   expect(eas.build[name].env?.APP_VARIANT).toBe(name);
   expect(eas.build[name].env?.EXPO_PUBLIC_APP_VARIANT).toBe(name);
 });
+
+// ADR-P048 (owner, 2026-11-17): Health Connect on for internal and the local
+// variants, off in production until the owner turns it on.
+it.each([
+  ['development', 'on'],
+  ['e2e', 'on'],
+  ['internal', 'on'],
+  ['production', undefined],
+])('Health Connect flag in %s is %s', (name, value) => {
+  expect(eas.build[name].env?.EXPO_PUBLIC_HEALTH_CONNECT).toBe(value);
+});

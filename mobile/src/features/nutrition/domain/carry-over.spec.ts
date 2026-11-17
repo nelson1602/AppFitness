@@ -196,3 +196,49 @@ describe('C3: only a day under that looks complete counts (owner, 2026-11-13)', 
     expect(result.cardio).toEqual([{ fromDate: '2026-11-11', kcal: 243, minutes: 30 }]);
   });
 });
+
+describe('carry-over@1.1.0 C9: the watch covers the cardio (ADR-P048)', () => {
+  // 80 kg: brisk walk net 200 kcal an hour, so the 30-minute cap owes 100 kcal.
+  const over = [day(YESTERDAY, 3199)]; // 488 over: −271 food, 217 kcal → 30 min
+
+  it('without watch exercise nothing changes', () => {
+    expect(run(over, { watchExercise: [] })).toEqual(run(over));
+  });
+
+  it('part covered: fewer minutes, food unchanged', () => {
+    const result = run(over, { watchExercise: [{ date: YESTERDAY, kcal: 40 }] });
+    expect(result.adjustment).toBe(-271);
+    // 100 owed − 40 = 60 kcal = 18 min → 20 in 5-minute steps.
+    expect(result.cardio).toEqual([{ fromDate: YESTERDAY, kcal: 217, minutes: 20, watchKcal: 40 }]);
+  });
+
+  it('fully covered: no block is added (owed is the capped cardio, not the raw excess)', () => {
+    const result = run(over, { watchExercise: [{ date: TODAY, kcal: 120 }] });
+    expect(result.cardio).toEqual([]);
+    expect(result.adjustment).toBe(-271);
+  });
+
+  it('a session before the day over, or after today, covers nothing', () => {
+    const result = run(over, {
+      watchExercise: [
+        { date: '2026-11-11', kcal: 300 },
+        { date: '2026-11-14', kcal: 300 },
+      ],
+    });
+    expect(result.cardio).toEqual([{ fromDate: YESTERDAY, kcal: 217, minutes: 30 }]);
+  });
+
+  it('each kcal covers once, oldest day over first', () => {
+    // 11-10 and 11-12 both over by 488 → two 30-minute blocks (100 kcal owed each).
+    const days = [day('2026-11-10', 3199), day(YESTERDAY, 3199)];
+    const result = run(days, { watchExercise: [{ date: YESTERDAY, kcal: 130 }] });
+    // 11-10 is fully covered (100), the 30 left cover 11-12: 70 kcal = 21 min → 20.
+    expect(result.cardio).toEqual([{ fromDate: YESTERDAY, kcal: 217, minutes: 20, watchKcal: 30 }]);
+  });
+
+  it('without a weight there is no cardio, so the watch has nothing to cover', () => {
+    const result = run(over, { weightKg: null, watchExercise: [{ date: TODAY, kcal: 500 }] });
+    expect(result.cardio).toEqual([]);
+    expect(result.adjustment).toBe(-271);
+  });
+});

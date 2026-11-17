@@ -3428,6 +3428,31 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [FEATURE-020] Block D: Health Connect, Read-Only and On-Device (ADR-P048)
+
+Status: In PR (codex/blockd-health-connect), pending owner review
+Priority: P1
+Type: Feature
+Owner: Engineering
+Created: 2026-11-17
+Updated: 2026-11-17
+
+### Description
+
+The minimum smartwatch integration for Play review (owner decisions, 2026-11-17): Android Health Connect, read-only and foreground-only, four types (steps, active calories, exercise sessions, hydration), everything on the phone. The watch's exercise sessions reduce the carry-over's added cardio (`carry-over@1.1.0`), and the water from the watch shows against a goal the person sets in Perfil. Behind `EXPO_PUBLIC_HEALTH_CONNECT` (on for internal, off in production).
+
+- [x] `react-native-health-connect@4.1.3` pinned; local plugin: minSdk 26, exactly four READ permissions, rationale intent → `/health-connect`
+- [x] Rationale screen (es/en, privacy policy), denied and no-Health-Connect paths unchanged
+- [x] Inicio watch card and Perfil panel replace "Próximamente"; local water goal, no default
+- [x] `watch-activity@1.0.0` and `carry-over@1.1.0` C9 with tests
+- [x] `dist/blockD/`: Play Console data-type texts, Data safety draft, privacy-policy section for counsel
+- [ ] Owner: Play Console Health Connect declaration and Data safety answers
+- [ ] Counsel: the privacy-policy "Health Connect" section, then publish the site
+- [ ] Owner: turn the flag on in `production` after Play approves the declaration
+- [ ] Device check on a phone with a real watch (sessions, hydration) after the internal release
+
+---
+
 ## [BUG-055] The Evaluation Date Conflict Offers No Choice and Never Clears
 
 Status: Fixed in PR (codex/bug055-evaluation-conflict), pending owner review

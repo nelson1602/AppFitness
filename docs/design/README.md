@@ -18,6 +18,7 @@ Login → (vincular biometría) → Evaluación física → el iCoach crea el pl
 - **Idiomas:** Español e English.
 - **Estilo:** fondo azul marino oscuro con el resplandor azul del arte original, tarjetas de cristal translúcido, botones en degradado azul a celeste, acentos cian y naranja, pulso cardíaco animado. Tipografías: Sora (títulos) e Inter (texto).
 - **Agua y ritmo cardíaco:** actualización futura con reloj inteligente. Hoy aparecen como "Próximamente".
+  - **Health Connect (ADR-P048, Android):** con Health Connect en el teléfono (y la función activada), "Tu reloj" sustituye a "Próximamente" en Inicio y "Reloj y Health Connect" en Perfil: agua del reloj ("Tu reloj registró X ml; tu meta es Y", con una meta que pone la persona en Perfil), pasos y kcal activas de hoy. Solo lectura y en el teléfono. El ritmo cardíaco sigue fuera de esta fase. Sin Health Connect, o con la función apagada, todo queda como antes.
 
 ## Pantallas
 

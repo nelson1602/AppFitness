@@ -1,6 +1,8 @@
 import { useEffect, useMemo } from 'react';
 
 import { getSession } from '@/features/authentication';
+import { useWatchSessions } from '@/features/health-connect/application/use-watch-sessions';
+import { watchExercise } from '@/features/health-connect/domain/watch-activity';
 import { absoluteCalorieFloor } from '@/features/icoach/domain/nutrition';
 import { useFoodLogStore } from '@/features/nutrition/application/food-log.store';
 import { useIntakeHistoryStore } from '@/features/nutrition/application/intake-history.store';
@@ -56,6 +58,8 @@ export function useCarryOver(): CarryOverView | null {
   );
   const { extras, weekDates, moves } = useRealtimeWeek(routine);
   const userId = getSession()?.user.id ?? null;
+  // ADR-P048 C9: the watch's exercise sessions; null without Health Connect.
+  const watch = useWatchSessions(today);
 
   useEffect(() => {
     if (userId === null) return;
@@ -78,6 +82,7 @@ export function useCarryOver(): CarryOverView | null {
       absoluteCalorieFloor(assessment.engineInput.subject.sex),
       Math.round(metabolics.bmr),
     );
+    const weightKg = latestWeight ?? assessment.engineInput.subject.weightKg;
     const bonusByDate: Record<string, number> = {};
     for (const date of weekDates) {
       if (date < today) bonusByDate[date] = activityCalorieBonus(extras, date);
@@ -88,11 +93,12 @@ export function useCarryOver(): CarryOverView | null {
       floorCalories: floor,
       days,
       bonusByDate,
-      weightKg: latestWeight ?? assessment.engineInput.subject.weightKg,
+      weightKg,
       cardioAllowed: cardioAllowed(
         training.excludedMovements,
         recommendations.map((recommendation) => recommendation.id),
       ),
+      watchExercise: watch ? watchExercise(watch.sessions, watch.appWorkouts, weightKg) : [],
     });
     // The week's scheduled sessions on the day they train (R3 moves applied).
     const start = planStartDate(revisions);
@@ -126,6 +132,7 @@ export function useCarryOver(): CarryOverView | null {
     routine,
     today,
     userId,
+    watch,
     weekDates,
   ]);
 }
