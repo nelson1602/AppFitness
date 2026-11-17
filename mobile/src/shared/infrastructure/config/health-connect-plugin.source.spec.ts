@@ -63,6 +63,8 @@ describe('with-health-connect (ADR-P048)', () => {
     expect(routed).toContain('androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE');
     expect(routed).toContain('android.intent.action.VIEW_PERMISSION_USAGE');
     expect(routed).toContain(`Uri.parse("${plugin.RATIONALE_URL}")`);
+    // React Native's Linking reads the URL only for a VIEW intent.
+    expect(routed).toContain('intent.action = android.content.Intent.ACTION_VIEW');
     expect(routed).toContain('override fun onNewIntent');
     expect(plugin.RATIONALE_URL).toBe('appfitness://health-connect');
     expect(plugin.addRationaleRoute(routed)).toBe(routed);

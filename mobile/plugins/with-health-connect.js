@@ -65,8 +65,10 @@ function withHealthPermissions(config) {
 // Health Connect opens the app with one of these actions when the person taps
 // the privacy-policy link in its permission dialog (the first through Android
 // 13, the second from 14 via the library's activity alias). Neither carries a
-// URL, so MainActivity turns both into the app's rationale route; Expo Router
-// then opens `/health-connect` like any other deep link.
+// URL, so MainActivity turns both into a VIEW of the app's rationale route;
+// Expo Router then opens `/health-connect` like any other deep link. The action
+// must become VIEW too: React Native's Linking only reads an intent's URL for
+// ACTION_VIEW (found on the emulator, 2026-11-17).
 const RATIONALE_URL = 'appfitness://health-connect';
 const MARKER = 'appfitness-health-connect-rationale';
 const ROUTE_FUNCTION = `
@@ -75,6 +77,7 @@ const ROUTE_FUNCTION = `
     val action = intent?.action ?: return
     if (action == "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" ||
         action == "android.intent.action.VIEW_PERMISSION_USAGE") {
+      intent.action = android.content.Intent.ACTION_VIEW
       intent.data = android.net.Uri.parse("${RATIONALE_URL}")
     }
   }
