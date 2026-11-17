@@ -10,14 +10,15 @@ import { AllowUnverifiedEmail } from '../decorators/allow-unverified-email.decor
 import { Public } from '../decorators/public.decorator';
 import { EmailVerifiedGuard } from './email-verified.guard';
 
+// Handlers only identify routes for the metadata lookup; they never use `this`.
 class Routes {
   @Public()
-  publicRoute(): void {}
+  publicRoute(this: void): void {}
 
   @AllowUnverifiedEmail()
-  exemptRoute(): void {}
+  exemptRoute(this: void): void {}
 
-  gatedRoute(): void {}
+  gatedRoute(this: void): void {}
 }
 
 function contextFor(
