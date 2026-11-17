@@ -1994,6 +1994,7 @@ export const en = {
   'sync.settlement.serverErrorBody':
     "The server couldn't finish right now. We will try again; you don't need to do anything else.",
   'sync.conflicts.dashboardButton': 'Review changes',
+  'sync.accountValue.evaluationDateTitle': 'We used the evaluation date saved in your account',
   'sync.conflicts.dashboardButtonAccessibility': 'Review changes that need your decision',
   'sync.conflicts.record.user_profiles': 'Profile',
   'sync.conflicts.record.goals': 'Goal',

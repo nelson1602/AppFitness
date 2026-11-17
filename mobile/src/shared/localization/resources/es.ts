@@ -2014,6 +2014,7 @@ export const es = {
   'sync.settlement.serverErrorBody':
     'El servidor no pudo terminar ahora. Lo intentaremos de nuevo; no necesitas hacer nada más.',
   'sync.conflicts.dashboardButton': 'Revisar cambios',
+  'sync.accountValue.evaluationDateTitle': 'Usamos la fecha de evaluación guardada en tu cuenta',
   'sync.conflicts.dashboardButtonAccessibility': 'Revisar los cambios que necesitan tu decisión',
   'sync.conflicts.record.user_profiles': 'Perfil',
   'sync.conflicts.record.goals': 'Meta',

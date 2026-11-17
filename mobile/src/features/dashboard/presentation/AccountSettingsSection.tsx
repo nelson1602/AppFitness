@@ -71,7 +71,7 @@ export function AccountSettingsSection() {
   const { language, t } = useLocalization();
   const { mode } = useEntitlementAccess();
   const paidWriteDisabled = mode === 'checking' || mode === 'read-only';
-  const { status, data, error, syncNow, loadSampleData } = useDashboardStore();
+  const { status, data, error, syncNow, loadSampleData, accountValueNotice } = useDashboardStore();
   const [showAssessment, setShowAssessment] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const verificationPending = useVerificationPending();
@@ -131,6 +131,11 @@ export function AccountSettingsSection() {
         <Banner title={t('workout.plan.wellnessUnavailableTitle')} tone="error">
           {t('workout.plan.wellnessUnavailableBody')}
         </Banner>
+      ) : null}
+
+      {/* BUG-055: once, after an evaluation date settled to the account value. */}
+      {accountValueNotice ? (
+        <Banner title={t('sync.accountValue.evaluationDateTitle')} tone="info" />
       ) : null}
 
       {data ? (

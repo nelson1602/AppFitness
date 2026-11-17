@@ -66,6 +66,8 @@ export interface DashboardState {
   status: DashboardStatus;
   data: DashboardData | null;
   error: string | null;
+  /** BUG-055: show once that the evaluation date now follows the account. */
+  accountValueNotice: boolean;
   refresh: () => Promise<void>;
   /** `retryFailedNow`: a person tapped "Sincronizar ahora" (BUG-054). */
   syncNow: (options?: { retryFailedNow?: boolean }) => Promise<void>;

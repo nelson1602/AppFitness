@@ -2,7 +2,11 @@ import * as authModule from '@/features/authentication';
 import type { FakeSessionModule } from '@/features/authentication/testing/fake-session';
 import type { AuthUser, Session } from '@/features/authentication/domain/session.types';
 import { logError } from '@/shared/infrastructure/logging';
-import { runSync } from '@/shared/infrastructure/sync';
+import {
+  autoResolveAccountAuthoritative,
+  runSync,
+  takeAccountValueNotice,
+} from '@/shared/infrastructure/sync';
 import type { SyncOutcome, SyncReport } from '@/shared/infrastructure/sync';
 
 import { DatabaseUnsupportedOnWebError } from '@/shared/infrastructure/database/web-unsupported';
@@ -25,6 +29,10 @@ jest.mock('@/shared/infrastructure/logging', () => ({
 }));
 jest.mock('@/shared/infrastructure/sync', () => ({
   runSync: jest.fn(),
+  autoResolveAccountAuthoritative: jest.fn(() =>
+    Promise.resolve({ outcome: 'success', resolved: 0 }),
+  ),
+  takeAccountValueNotice: jest.fn(() => Promise.resolve(false)),
 }));
 jest.mock('./dashboard.service', () => ({
   loadDashboardData: jest.fn(),
@@ -34,6 +42,8 @@ jest.mock('./dashboard.service', () => ({
 const auth = authModule as unknown as FakeSessionModule;
 const mockRefreshTokens = auth.refreshTokens;
 const mockRunSync = jest.mocked(runSync);
+const mockAutoResolve = jest.mocked(autoResolveAccountAuthoritative);
+const mockTakeNotice = jest.mocked(takeAccountValueNotice);
 const mockLoadDashboardData = jest.mocked(loadDashboardData);
 const mockLoadSample = jest.mocked(loadSampleDashboardData);
 
@@ -99,10 +109,35 @@ const emptyData: DashboardData = {
 describe('dashboard store syncNow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useDashboardStore.setState({ status: 'idle', data: null, error: null });
+    useDashboardStore.setState({
+      status: 'idle',
+      data: null,
+      error: null,
+      accountValueNotice: false,
+    });
     mockLoadDashboardData.mockResolvedValue(emptyData);
     // The sync run is scoped to the signed-in account (ADR-P030 Decision 8).
     auth.becomeUser(currentSession.user.id, currentSession);
+  });
+
+  it('BUG-055: settles account-authoritative conflicts after a good sync and shows the notice once', async () => {
+    mockRunSync.mockResolvedValue(report('success'));
+    mockTakeNotice.mockResolvedValueOnce(true);
+
+    await useDashboardStore.getState().syncNow();
+
+    expect(mockAutoResolve).toHaveBeenCalledTimes(1);
+    expect(mockAutoResolve.mock.calls[0][0]).toMatchObject({ userId: currentSession.user.id });
+    expect(useDashboardStore.getState().accountValueNotice).toBe(true);
+  });
+
+  it('BUG-055: does not auto-resolve when the sync itself failed', async () => {
+    mockRunSync.mockResolvedValue(report('offline'));
+
+    await useDashboardStore.getState().syncNow();
+
+    expect(mockAutoResolve).not.toHaveBeenCalled();
+    expect(useDashboardStore.getState().accountValueNotice).toBe(false);
   });
 
   it('syncs once and reports idle when the token is accepted', async () => {
@@ -125,6 +160,20 @@ describe('dashboard store syncNow', () => {
     await useDashboardStore.getState().syncNow();
 
     expect(mockRunSync.mock.calls.map(([deps]) => deps.retryFailedNow)).toEqual([true, false]);
+  });
+
+  it('BUG-054 + BUG-055: a tapped run releases the backoff and still settles the evaluation date', async () => {
+    mockRunSync.mockResolvedValue(report('success'));
+    mockTakeNotice.mockResolvedValueOnce(true);
+
+    await useDashboardStore.getState().syncNow({ retryFailedNow: true });
+
+    expect(mockRunSync.mock.calls[0][0].retryFailedNow).toBe(true);
+    expect(mockAutoResolve).toHaveBeenCalledTimes(1);
+    expect(mockAutoResolve.mock.invocationCallOrder[0]).toBeGreaterThan(
+      mockRunSync.mock.invocationCallOrder[0],
+    );
+    expect(useDashboardStore.getState().accountValueNotice).toBe(true);
   });
 
   it('rotates tokens and retries once when the sync outcome is unauthenticated', async () => {

@@ -12978,6 +12978,38 @@ and each needs its own approval before implementation begins.
 - `api/prisma/schema.prisma` (`SyncConflict` — already sufficient;
   `ConflictStatus`, `AuditAction.SYNC_CONFLICT`, `AuditLog`)
 
+### Amendment — BUG-055: the evaluation date follows the account (2026-11-17, owner decision)
+
+**Context.** The owner's phone held a `wellness_safety_profiles` conflict that differed only in `evaluation_date`. Perfil → "Revisar cambios" showed both dates with no choice, because the phone no longer held the change that caused the conflict, so §Decision 9 classed it as remote-origin. Nothing on the device could clear it.
+
+**Decision (scoped).**
+- **Rule:** for the evaluation date, the **account (server) value is authoritative**.
+- **Which conflicts:** a conflict qualifies when it is on `wellness_safety_profiles`, is undecided, its payloads can be read, and **every compared field that differs is `evaluation_date`**.
+- **What happens:** a qualifying conflict settles to the account value automatically, with no choice asked, on the next successful sync.
+- **Notice:** one neutral, one-time notice in Perfil: "Usamos la fecha de evaluación guardada en tu cuenta" / "We used the evaluation date saved in your account".
+- **Later edits:** the device value wins only through a later explicit edit by the person. That edit is an ordinary UPDATE from the settled version and syncs normally.
+
+**How (no new path).**
+- `autoResolveAccountAuthoritative` (C-4 service) records `RESOLVED_SERVER_WINS` through the ordinary guarded T1 claim, then drains the outbox with `settlePendingResolutions`. T2 is the existing resolve endpoint. T3 applies the account row, drops any parked op and marks the conflict settled, in one transaction.
+- `SERVER_WINS` never needs the retained operation (`buildRequest`), so a remote-origin conflict qualifies. This is the one place §Decision 9's "neither choice is deliverable from here" is relaxed. The server's first-choice-wins rule is unchanged, so a device that already chose `CLIENT_WINS` elsewhere still wins (`ALREADY_RESOLVED_OPPOSITE_CHOICE` converges to it).
+- A `STALE_COMPARISON` answer refreshes the comparison and clears the choice, and a second pass records it against the current account value. There are at most two passes per sync.
+- The dashboard store runs it after a sync whose outcome is `success`. It is never fatal to the sync: on any failure the conflict stays listed for review.
+
+**Not changed.**
+- Every other entity type.
+- An evaluation conflict that also differs in the injured areas, the movements to avoid or whether an evaluation was completed: it keeps the ordinary review (both choices when this device holds the op, remote-origin otherwise).
+- §Decisions 2, 4, 6, 7 and 10.
+
+**Tests.** `wellness-conflict.integration.spec.ts` uses real SQLite, the real wellness repository and applier, and the real outbox. It covers:
+- the owner's remote-origin state reproduced first;
+- (a) settles to the account date and clears it, the notice shows once;
+- (a) also settles one this phone still holds, dropping its parked CREATE;
+- (a) converges after a stale comparison;
+- (b) a later manual edit syncs as this device's date;
+- scope: a conflict that also differs in another field is not touched.
+
+The dashboard store and Perfil tests cover the wiring and the notice.
+
 ---
 
 ## ADR-P031 — Deterministic Wellness-Safety Consumption in iCoach (ADR-P017 W-4 contract)
