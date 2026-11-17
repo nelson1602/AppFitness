@@ -70,6 +70,8 @@ function report(outcome: SyncOutcome): SyncReport {
     skippedPending: 0,
     recovered: 0,
     unreadable: 0,
+
+    released: 0,
   };
 }
 
@@ -114,6 +116,15 @@ describe('dashboard store syncNow', () => {
     expect(state.data?.sync.status).toBe('idle');
     expect(state.data?.sync.lastSyncedAt).not.toBeNull();
     expect(state.status).toBe('empty');
+  });
+
+  it('BUG-054: passes a tap through to the run; an automatic sync keeps the backoff', async () => {
+    mockRunSync.mockResolvedValue(report('success'));
+
+    await useDashboardStore.getState().syncNow({ retryFailedNow: true });
+    await useDashboardStore.getState().syncNow();
+
+    expect(mockRunSync.mock.calls.map(([deps]) => deps.retryFailedNow)).toEqual([true, false]);
   });
 
   it('rotates tokens and retries once when the sync outcome is unauthenticated', async () => {

@@ -3428,9 +3428,46 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-054] "Sincronizar ahora" Does Nothing While Failed Changes Wait Out Their Backoff
+
+Status: Fixed in PR (codex/bug054-sync-now-retries-failed), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-17
+Updated: 2026-11-17
+
+### Description
+
+After BUG-053 was deployed (2026-11-17 12:33Z), the phone's 32 stuck "Serie" changes dropped to 21, and "Sincronizar ahora" did not move the rest.
+
+- **Evidence (1e78, read-only):**
+  - All four of the owner's workout logs are on the server (CREATE and UPDATE APPLIED, 2026-11-11 to 11-16). The 11 sets that arrived all belong to the 11-16 log; the 11-11 and 11-12 logs have 0.
+  - There was one push after the deploy (12:35:58Z, 5.1 KB, about 11 ops). The two later syncs, at 12:36:04 and 12:39:42, pulled and pushed nothing.
+  - So the parents are on the server, and the 21 were never sent.
+- **Cause:** a "Sincronizar ahora" tap runs the same `runSync` as automatic sync, and `peekReady` skips FAILED ops until their `next_retry_at`.
+  - The backoff doubles from 30 s per failure, up to the 1-hour cap (reached at the 7th).
+  - The sets from 11-11 and 11-12 had failed `DEPENDENCY_NOT_READY` on every attempt since then, so they sat at the cap. The 11-16 sets had fewer failures and came out of backoff first.
+  - An edit queued behind a FAILED CREATE is held by the BUG-029 barrier as PENDING with no `last_error`, so Perfil shows it as "En espera" with no reason.
+  - Nothing was dropped or rejected, and nothing was out of order.
+- **Badge:** "Conflictos pendientes 32" was two numbers in one row. The title says "Conflictos pendientes" whenever any conflict is open; 1e78 holds two for the owner, a meal item UPDATE and a health profile CREATE, both from 2026-11-12. The number is `pending + inFlight + failed` (`AccountSettingsSection.tsx`), so it counted unsynced changes, not conflicts.
+- **Other testers:** of the 15 other accounts on 1e78, none has a workout log or workout op, and none has an open conflict. The exercise catalogue was empty from the server's creation (first migration 2026-07-07) until 2026-11-17, so every set logged on any build before then was affected. Only the owner had logged sets.
+
+### Fix
+
+- A tap on "Sincronizar ahora" (Perfil and the food log) passes `retryFailedNow`. The run calls `releaseBackoff`, which moves `next_retry_at` to now for that user's FAILED ops only. Payload, `retry_count`, `last_error` and FIFO order are kept; PENDING, IN_FLIGHT and CONFLICT rows, other users' rows and the barriers are unchanged.
+- The release happens once per tap. An op that fails again gets a new backoff from `markFailed`, so the push cannot loop. A tap during an automatic run waits for it and then runs its own.
+- Automatic syncs keep the backoff.
+
+- [x] Integration regression test, with real SQLite and a fake server: a set stuck at the 1-hour cap is not pushed by an automatic run; a tap pushes it and the edit behind it; a second deferral backs off again; other users are untouched; a tap during an automatic run is kept.
+- [ ] After the release: the owner's 21 sets reach the server on the first tap
+- [ ] Follow-up, needs a decision: Perfil's sync row could show the conflict count next to the conflict title, so its number never counts something else.
+
+---
+
 ## [BUG-053] Workout Sets Stuck as "Sin conexión": the Server Exercise Catalogue Was Never Seeded
 
-Status: Fixed in PR (codex/bug053-exercise-seed-on-deploy), pending owner review
+Status: Merged (#261, 85ae310); 11 of 32 sets reached the server after the deploy, the other 21 are BUG-054
 Priority: P1
 Type: Bug
 Owner: Engineering
@@ -3453,8 +3490,8 @@ On the v13 internal build (first seen on v11), Perfil listed 32 "Serie" changes 
 
 - [x] Regression test: `DEPENDENCY_NOT_READY` is never shown as "no connection"
 - [x] CI release step proves the exercise seed runs and is idempotent
-- [ ] After the deploy: the deploy log shows `Seeded built-in exercises: 37 inserted, 37 total` on both services, and the 32 sets reach the server
-- [ ] Separate: what the 32 "Conflictos pendientes" are (not established by this diagnosis)
+- [x] After the deploy: both services seeded 37 exercises (owner, 2026-11-17); 11 of the 32 sets reached the server on the next sync, the other 21 waited out their backoff (BUG-054)
+- [x] "Conflictos pendientes 32": two open conflicts plus 32 unsynced changes in one row (see BUG-054)
 
 ---
 

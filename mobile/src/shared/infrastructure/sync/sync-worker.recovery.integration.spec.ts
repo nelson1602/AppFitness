@@ -605,3 +605,98 @@ describe('replaying abandoned work end to end (BUG-030)', () => {
     expect(servers[A].push).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('"Sincronizar ahora" retries failed ops now (BUG-054)', () => {
+  const LATER = '2026-09-28T12:05:00.000Z';
+  const manual = (userId = A, now = LATER) =>
+    runSync({ userId, getToken: () => `token-${userId}`, now: () => now, retryFailedNow: true });
+
+  /** A set whose CREATE the server deferred eleven times: its backoff is at the 1 h cap. */
+  async function setStuckAtTheCap() {
+    const { set } = await loggedSet(A, 10);
+    servers[A].dependencyReady = false;
+    await sync(A);
+    const [create] = queue(set.id);
+    for (let i = 0; i < 10; i += 1) await markFailed(A, create.op_id, 'DEPENDENCY_NOT_READY', T1);
+    await updateWorkoutSet(A, set.id, { reps: 12 }, T1);
+    servers[A].pushes.length = 0;
+    // The exercise catalogue is deployed (BUG-053): the server can apply it now.
+    servers[A].dependencyReady = true;
+    return set;
+  }
+
+  it('an automatic run still waits out the backoff: nothing is pushed', async () => {
+    const set = await setStuckAtTheCap();
+
+    await sync(A, LATER);
+
+    expect(servers[A].sent()).toEqual([]);
+    expect(queue(set.id).map((r) => [r.operation, r.status, r.retry_count, r.last_error])).toEqual([
+      ['CREATE', 'FAILED', 11, 'DEPENDENCY_NOT_READY'],
+      // The edit behind it shows no reason at all: PENDING, held by the barrier.
+      ['UPDATE', 'PENDING', 0, null],
+    ]);
+  });
+
+  it('a tap pushes the stuck CREATE and the edit behind it, and both apply', async () => {
+    const set = await setStuckAtTheCap();
+
+    const report = await manual();
+
+    expect(report).toMatchObject({ outcome: 'success', released: 1, pushedApplied: 2 });
+    expect(servers[A].sent()).toEqual(['workout_sets:CREATE', 'workout_sets:UPDATE']);
+    expect(servers[A].rows.get(set.id)).toMatchObject({ version: 2, data: { reps: 12 } });
+    expect(states(set.id)).toEqual([]);
+    expect(localSet(set.id)).toMatchObject({ reps: 12 });
+  });
+
+  it('retries once per tap: an op the server defers again gets a new backoff, no loop', async () => {
+    const set = await setStuckAtTheCap();
+    servers[A].dependencyReady = false;
+
+    const report = await manual();
+
+    expect(report).toMatchObject({ released: 1, deferred: 1 });
+    expect(servers[A].sent()).toEqual(['workout_sets:CREATE']);
+    const [create] = queue(set.id);
+    expect(create).toMatchObject({ status: 'FAILED', retry_count: 12 });
+    expect(create.next_retry_at! > LATER).toBe(true);
+  });
+
+  it('never touches another user’s failed ops', async () => {
+    const { set: mine } = await loggedSet(A, 10);
+    const { set: theirs } = await loggedSet(B, 8);
+    servers[A].dependencyReady = false;
+    servers[B].dependencyReady = false;
+    await sync(A);
+    await sync(B);
+    const before = queue(theirs.id).map((r) => r.next_retry_at);
+    servers[A].dependencyReady = true;
+
+    await manual(A);
+
+    expect(states(mine.id)).toEqual([]);
+    expect(queue(theirs.id).map((r) => r.next_retry_at)).toEqual(before);
+    expect(states(theirs.id)).toEqual(['CREATE:FAILED']);
+  });
+
+  it('a tap during an automatic run is not lost: it runs again after it', async () => {
+    const set = await setStuckAtTheCap();
+    let release!: () => void;
+    servers[A].gate = new Promise((resolve) => (release = resolve));
+    await createWorkoutLog(A, { name: 'Pull day' }, T1);
+
+    const automatic = sync(A, LATER);
+    const tapped = manual();
+    servers[A].gate = null;
+    release();
+    await Promise.all([automatic, tapped]);
+
+    expect(servers[A].sent()).toEqual([
+      'workout_logs:CREATE',
+      'workout_sets:CREATE',
+      'workout_sets:UPDATE',
+    ]);
+    expect(states(set.id)).toEqual([]);
+  });
+});

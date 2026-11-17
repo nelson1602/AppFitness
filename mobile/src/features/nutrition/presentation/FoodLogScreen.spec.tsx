@@ -547,6 +547,7 @@ describe('S-4 read-only write boundary', () => {
     expect(sync.props.accessibilityState).toMatchObject({ disabled: false });
     await fireEvent.press(sync);
     expect(mockState.syncNow).toHaveBeenCalledTimes(1);
+    expect(mockState.syncNow).toHaveBeenCalledWith({ retryFailedNow: true });
 
     const remove = screen.getByTestId('remove-item-i1');
     expect(remove.props.accessibilityState).toMatchObject({ disabled: true });

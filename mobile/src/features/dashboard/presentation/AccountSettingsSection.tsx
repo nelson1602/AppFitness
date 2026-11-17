@@ -143,7 +143,7 @@ export function AccountSettingsSection() {
             icon="refresh"
             label={t('dashboard.syncNow')}
             onPress={() => {
-              void syncNow();
+              void syncNow({ retryFailedNow: true });
             }}
             testID="dashboard-sync-now"
           />

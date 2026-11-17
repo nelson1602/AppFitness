@@ -286,6 +286,27 @@ export async function recoverAbandonedInFlight(userId: string, nowIso: string): 
   return result.changes;
 }
 
+/**
+ * BUG-054: makes this user's FAILED ops ready now, for a "Sincronizar ahora"
+ * tap. Before this, a tap pushed nothing while every failed op waited out its
+ * backoff (up to an hour), so the person saw a sync that did nothing.
+ *
+ * One owner-scoped statement that only moves `next_retry_at` to now. It keeps
+ * `op_id`, the payload, `retry_count`, `last_error` and the FIFO position.
+ * PENDING, IN_FLIGHT and parked (CONFLICT) rows and other users' rows are
+ * untouched, and so are the causal barriers in `peekReady`.
+ *
+ * @returns the number of ops released.
+ */
+export async function releaseBackoff(userId: string, nowIso: string): Promise<number> {
+  const result = await run(
+    `UPDATE sync_queue SET next_retry_at = ?
+     WHERE user_id = ? AND status = 'FAILED' AND next_retry_at > ?`,
+    [nowIso, userId, nowIso],
+  );
+  return result.changes;
+}
+
 /** Server applied the op — the queue item has served its purpose. */
 export async function markApplied(userId: string, opId: string): Promise<void> {
   await run(`DELETE FROM sync_queue WHERE op_id = ? AND user_id = ?`, [opId, userId]);
