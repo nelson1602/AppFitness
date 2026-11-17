@@ -1,7 +1,5 @@
 import { useEffect, useMemo } from 'react';
 
-import { getSession } from '@/features/authentication';
-
 import type { AppWorkoutWindow, WatchSession } from '../domain/watch-activity';
 import { useHealthConnectStore } from './health-connect.store';
 
@@ -15,10 +13,11 @@ export interface WatchSessions {
  * carry-over (ADR-P048, C9), read on open and when the day changes. Null
  * whenever the flag is off, Health Connect is missing or not connected, or the
  * data belongs to another account — the carry-over is then `carry-over@1.0.0`'s.
- * The caller turns them into kcal with `watchExercise` and its own weight.
+ * The caller turns them into kcal with `watchExercise` and its own weight, and
+ * passes the signed-in account (`userId`), so this hook reads no session in
+ * render (see `useWatchStatus`).
  */
-export function useWatchSessions(today: string): WatchSessions | null {
-  const userId = getSession()?.user.id ?? null;
+export function useWatchSessions(today: string, userId: string | null): WatchSessions | null {
   const status = useHealthConnectStore((s) => s.status);
   const owner = useHealthConnectStore((s) => s.userId);
   const sessions = useHealthConnectStore((s) => s.sessions);

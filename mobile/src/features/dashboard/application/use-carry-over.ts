@@ -59,7 +59,7 @@ export function useCarryOver(): CarryOverView | null {
   const { extras, weekDates, moves } = useRealtimeWeek(routine);
   const userId = getSession()?.user.id ?? null;
   // ADR-P048 C9: the watch's exercise sessions; null without Health Connect.
-  const watch = useWatchSessions(today);
+  const watch = useWatchSessions(today, userId);
 
   useEffect(() => {
     if (userId === null) return;
