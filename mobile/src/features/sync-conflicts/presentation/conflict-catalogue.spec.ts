@@ -224,9 +224,10 @@ describe('catalogue parity', () => {
   // tagged alcohol, so the note could never show) (-2, 1947).
   // S2 (ADR-P047): the delete password field, its four refusals and its label (+6), the
   // sign-in lock (+2) and "Borrar datos de este teléfono" (+8) (+16, 1963).
-  it('reaches 1963 keys in each language — 1775 shipped plus a 188-key family', () => {
-    expect(Object.keys(en)).toHaveLength(1963);
-    expect(Object.keys(es)).toHaveLength(1963);
+  // BUG-053: the sync reason for a change the server cannot apply yet (+1, 1964).
+  it('reaches 1964 keys in each language — 1775 shipped plus a 189-key family', () => {
+    expect(Object.keys(en)).toHaveLength(1964);
+    expect(Object.keys(es)).toHaveLength(1964);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

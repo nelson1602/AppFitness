@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -16,9 +16,12 @@ import {
  * Distribution, not a user write path: seeds the global built-in exercises into
  * PostgreSQL with stable UUIDv5 ids, byte-identical to the mobile bundle, so
  * `routine_exercises`/`workout_sets` can reference `exercise_id` at runtime.
- * NOT auto-wired — run deliberately:
- *   `ts-node prisma/seed/seed-exercise-catalog.ts`
- * (run alongside the food-catalog seed on a fresh/prod database).
+ * BUG-053 (2026-11-17): it runs on every deploy as part of the release step
+ * `npm run db:deploy` (migrations, the food-catalog seed, then this seed
+ * compiled to dist/), like the food catalog since v8.1. Until then it was run
+ * by hand only, and Railway's `exercises` table was empty: every workout set
+ * came back `DEPENDENCY_NOT_READY` and stayed queued on the phone.
+ * `npm run db:seed:exercises:src` still runs it from source.
  *
  * Behaviour:
  *   - Verifies every id === uuidv5(`key:EXERCISE_REVISION`) before writing.
@@ -28,7 +31,12 @@ import {
  *   - Seeds global reference data only (`createdBy = null`).
  */
 
-const CATALOG_PATH = join(__dirname, 'exercise-catalog.json');
+// From source (ts-node) the JSON sits beside this file; compiled, this file is
+// dist/prisma/seed/ and the image keeps the JSON in prisma/seed/.
+const CATALOG_PATH = [
+  join(__dirname, 'exercise-catalog.json'),
+  join(__dirname, '..', '..', '..', 'prisma', 'seed', 'exercise-catalog.json'),
+].find((path) => existsSync(path)) as string;
 
 async function main(): Promise<void> {
   const catalog = JSON.parse(

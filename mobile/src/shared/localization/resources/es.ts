@@ -1718,6 +1718,8 @@ export const es = {
   'dashboard.sync.details.server': 'El servidor no lo aceptó; lo intentaremos de nuevo',
   'dashboard.sync.details.tooLarge': 'Es demasiado grande para enviarlo; lo intentaremos de nuevo',
   'dashboard.sync.details.network': 'Sin conexión; lo intentaremos de nuevo',
+  'dashboard.sync.details.dependency':
+    'El servidor aún no tiene algo que necesita; lo intentaremos de nuevo',
   'dashboard.sync.details.unreadable': 'No se pudo leer en este teléfono',
   'dashboard.sync.details.retries': 'intento {count}',
   'dashboard.sync.details.otherRecord': 'Otro dato',

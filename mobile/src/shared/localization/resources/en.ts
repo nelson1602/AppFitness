@@ -1702,6 +1702,8 @@ export const en = {
   'dashboard.sync.details.server': 'The server didn’t accept it; we will try again',
   'dashboard.sync.details.tooLarge': 'Too large to send; we will try again',
   'dashboard.sync.details.network': 'No connection; we will try again',
+  'dashboard.sync.details.dependency':
+    'The server doesn’t have what this needs yet; we will try again',
   'dashboard.sync.details.unreadable': 'Couldn’t be read on this phone',
   'dashboard.sync.details.retries': 'attempt {count}',
   'dashboard.sync.details.otherRecord': 'Other data',

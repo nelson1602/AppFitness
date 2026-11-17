@@ -83,6 +83,44 @@ describe('sync reason and details (v8.1)', () => {
     ).toBe('dashboard.sync.details.network');
   });
 
+  it('BUG-053: a change the server answered DEPENDENCY_NOT_READY is never "no connection"', () => {
+    // The worker stores the server's retryable code as `last_error`; v11–v13
+    // fell through to the connection reason while the phone was online.
+    const set = {
+      entityType: 'workout_sets',
+      operation: 'CREATE',
+      status: 'FAILED',
+      retryCount: 10,
+      lastError: 'DEPENDENCY_NOT_READY',
+    };
+    expect(unsyncedReasonKey(set)).toBe('dashboard.sync.details.dependency');
+    expect(unsyncedReasonKey(set)).not.toBe('dashboard.sync.details.network');
+  });
+
+  it.each(['en', 'es'] as const)('names the dependency reason on the row (%s)', async (lang) => {
+    mockLanguage = lang;
+    const copy = lang === 'es' ? es : en;
+    await render(
+      <SyncDetails
+        sync={summary({
+          failed: 1,
+          unsynced: [
+            {
+              entityType: 'workout_sets',
+              operation: 'CREATE',
+              status: 'FAILED',
+              retryCount: 10,
+              lastError: 'DEPENDENCY_NOT_READY',
+            },
+          ],
+        })}
+      />,
+    );
+    const row = screen.getByTestId('sync-details-row-0');
+    expect(row).toHaveTextContent(copy['dashboard.sync.details.dependency'], { exact: false });
+    expect(row).not.toHaveTextContent(copy['dashboard.sync.details.network'], { exact: false });
+  });
+
   it('shows the details only after a failed run or a failed row', () => {
     const unsynced = [
       {
