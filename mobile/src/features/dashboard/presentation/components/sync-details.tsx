@@ -6,7 +6,7 @@ import {
   type TranslationKey,
   useLocalization,
 } from '@/shared/localization';
-import { UNREADABLE_PAYLOAD } from '@/shared/infrastructure/sync';
+import { SYNC_ERROR_CODES, UNREADABLE_PAYLOAD } from '@/shared/infrastructure/sync';
 import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
@@ -31,13 +31,16 @@ const RECORD_NAME: Partial<Record<string, TranslationKey>> = {
 
 /**
  * Why one queued change has not reached the server yet, in words: still
- * waiting, the session, the server, the connection, or a change this device
- * cannot read. `lastError` is the worker's technical code, never shown raw.
+ * waiting, the session, the server, something the server does not have yet,
+ * the connection, or a change this device cannot read. `lastError` is the
+ * worker's technical code, never shown raw. The server answered a
+ * `DEPENDENCY_NOT_READY` change, so it is never a connection problem (BUG-053).
  */
 export function unsyncedReasonKey(change: UnsyncedChange): TranslationKey {
   const error = change.lastError ?? '';
   if (change.status !== 'FAILED' || error === '') return 'dashboard.sync.details.waiting';
   if (error.startsWith(UNREADABLE_PAYLOAD)) return 'dashboard.sync.details.unreadable';
+  if (error === SYNC_ERROR_CODES.DEPENDENCY_NOT_READY) return 'dashboard.sync.details.dependency';
   if (error === 'http_401') return 'dashboard.sync.details.session';
   if (error === 'http_413') return 'dashboard.sync.details.tooLarge';
   if (error.startsWith('http_')) return 'dashboard.sync.details.server';

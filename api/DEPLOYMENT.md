@@ -138,8 +138,11 @@ Five properties are worth keeping in mind when operating this:
    receives traffic): **`npm run db:deploy`** (= `prisma migrate deploy`,
    then the compiled food-catalog seed `npm run db:seed:catalog`, which
    inserts only catalog revisions the database does not have yet — ADR-P012
-   addendum, 2026-11-03). The deploy log shows
-   `Seeded catalog: N revisions processed, M newly inserted.`
+   addendum, 2026-11-03), then the compiled built-in exercise seed
+   `npm run db:seed:exercises`, insert-only as well (BUG-053, 2026-11-17).
+   The deploy log shows
+   `Seeded catalog: N revisions processed, M newly inserted.` and
+   `Seeded built-in exercises: M inserted, N total.`
    The runtime image ships `prisma/` (schema + migrations) and
    `prisma.config.ts`, and `npm ci --omit=dev` installs the **Prisma CLI at
    the lockfile-pinned version** (the lockfile resolves `prisma` into the

@@ -23,10 +23,12 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
-    "db:deploy": "prisma migrate deploy && npm run db:seed:catalog",
+    "db:deploy": "prisma migrate deploy && npm run db:seed:catalog && npm run db:seed:exercises",
     "db:migrate": "prisma migrate deploy",
     "db:seed:catalog": "node dist/prisma/seed/seed-food-catalog.js",
-    "db:seed": "ts-node prisma/seed/seed-food-catalog.ts"
+    "db:seed:exercises": "node dist/prisma/seed/seed-exercise-catalog.js",
+    "db:seed": "ts-node prisma/seed/seed-food-catalog.ts",
+    "db:seed:exercises:src": "ts-node prisma/seed/seed-exercise-catalog.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

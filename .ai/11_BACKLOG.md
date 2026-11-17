@@ -3428,6 +3428,36 @@ Done meanwhile: the Salud step's hints no longer name conditions (rotator cuff, 
 
 ---
 
+## [BUG-053] Workout Sets Stuck as "Sin conexión": the Server Exercise Catalogue Was Never Seeded
+
+Status: Fixed in PR (codex/bug053-exercise-seed-on-deploy), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-17
+Updated: 2026-11-17
+
+### Description
+
+On the v13 internal build (first seen on v11), Perfil listed 32 "Serie" changes as "Sin conexión; lo intentaremos de nuevo · intento 10" while the phone was online and 1e78 `/health` returned 200.
+
+- **Server:** the `exercises` table on 1e78 is empty. A read-only query on 2026-11-17 found 0 rows and none of the app's 37 built-in exercise ids. `seed-exercise-catalog.ts` existed but was run by hand only; the release step `db:deploy` seeds the food catalogue only (the same gap as BUG-046 for foods). Every `workout_sets` CREATE passes payload parsing and then fails `assertExerciseReady` with the retryable `DEPENDENCY_NOT_READY` inside a 201 push response. The Railway HTTP logs show no 4xx or 5xx on `/sync/*`.
+- **Client:** the worker stores that code as `last_error`, and `unsyncedReasonKey` maps every code that is not `http_*` to the connection reason.
+- **Not the cause:** the expo-sqlite 57.0.5 window, its downgrade, and the S1 changes. The payloads parse on the server, and the missing row is server reference data.
+
+### Fix
+
+- `db:deploy` also runs the compiled exercise seed (`db:seed:exercises`; insert-only, idempotent). CI's release step checks that the first run inserts the whole catalogue and the second inserts nothing.
+- Perfil names `DEPENDENCY_NOT_READY` as "El servidor aún no tiene algo que necesita" instead of "Sin conexión".
+- No phone-side repair is needed. The ops are retryable, the server stores nothing against their op ids, and the backoff is capped at one hour with no retry limit, so the queued sets apply on their next retry after the deploy.
+
+- [x] Regression test: `DEPENDENCY_NOT_READY` is never shown as "no connection"
+- [x] CI release step proves the exercise seed runs and is idempotent
+- [ ] After the deploy: the deploy log shows `Seeded built-in exercises: 37 inserted, 37 total` on both services, and the 32 sets reach the server
+- [ ] Separate: what the 32 "Conflictos pendientes" are (not established by this diagnosis)
+
+---
+
 ## [BUG-052] expo-sqlite 57.0.5 Ships Its Native Library for arm64-v8a Only: 32-bit and x86 Devices Hang at "Cargando contenido"
 
 Status: Fixed in PR #256 (codex/expo-sqlite-57-0-4-pin) by pinning 57.0.4, owner decision 2026-11-13; closes on merge. The pin is removed under TECHDEBT-006.
