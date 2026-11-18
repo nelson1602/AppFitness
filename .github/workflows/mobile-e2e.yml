@@ -152,6 +152,9 @@ jobs:
           script: |
             mkdir -p /tmp/e2e-debug && (while sleep 10; do date +%T; ps -eo pid,rss,pcpu,etime,args | grep -E '[q]emu-system' | cut -c1-160; done > /tmp/e2e-debug/emu-ps.txt 2>&1 &)
             adb install -r /tmp/appfitness-e2e.apk
+            # Guest rendering is slow enough for the launcher to raise "isn't
+            # responding" dialogs over the app (run 44379835446); hide them.
+            adb shell settings put global hide_error_dialogs 1
             adb reverse tcp:3001 tcp:3001
             bash e2e/run-flows.sh
 
