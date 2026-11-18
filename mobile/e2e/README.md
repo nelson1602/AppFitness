@@ -98,12 +98,15 @@ adb reverse tcp:3001 tcp:3001
 DATABASE_URL=<local disposable DB> bash e2e/run-flows.sh
 ```
 
-Emulator size matters: CI uses a Pixel 7 profile on API 35 (TEST-007); the
-flows scroll to every control below the fold and centre rows before tapping
-them, because a row left at the bottom edge sits under the floating tab bar.
-On failure the script saves logcat and tombstones to `$E2E_DEBUG_DIR`
-(default `/tmp/e2e-debug`); its `adb root` drops `adb reverse`, so re-run
-`adb reverse tcp:3001 tcp:3001` before resuming locally.
+Emulator size matters: CI and the local reference AVD use a Pixel 7 screen
+(TEST-007); the flows scroll to every control below the fold and centre rows
+before tapping them, because a row left at the bottom edge sits under the
+floating tab bar. Locally, start the emulator with `-gpu host`: under
+software rendering it crashes with this app. On failure the script saves
+host info, the host `dmesg` (CI), logcat and tombstones to `$E2E_DEBUG_DIR`
+(default `/tmp/e2e-debug`), with every adb call time-bounded; its `adb root`
+drops `adb reverse`, so re-run `adb reverse tcp:3001 tcp:3001` before
+resuming locally.
 
 Maestro install (no admin): unzip the GitHub release
 (`mobile-dev-inc/maestro` → `maestro.zip`) and run `bin/maestro` with a
@@ -233,8 +236,18 @@ which closes once answered, so neither can be edited repeatedly.
 
 `.github/workflows/mobile-e2e.yml` (manual `workflow_dispatch`) runs the
 same sequence (`e2e/run-flows.sh`) on one runner: Postgres service → api →
-Android emulator (Pixel 7 profile, API 35) → Maestro (pinned release,
-SHA-256 checked). It builds the e2e APK on the runner from the dispatched commit
+Android emulator (Pixel 7 profile, API 34, emulator build pinned to 37.1.11)
+→ Maestro (pinned release, SHA-256 checked).
+
+**Known flaky (TEST-007):** on the GitHub-hosted runner the emulator drops
+off adb a few minutes into the run, after its host render thread segfaults
+or the guest goes silent. It has not passed since 2026-09-21, so a red run
+is not evidence against the app on its own; read the `e2e-debug` artifact
+(`adb-state.txt`, `logcat-stream.txt`, `dmesg.txt`, `emu-ps.txt`). The
+workflow is manual-dispatch and not a required check. The full sequence is
+proven locally with `run-flows.sh` instead.
+
+It builds the e2e APK on the runner from the dispatched commit
 (`expo prebuild` + Gradle, ADR-P047 D8); it needs no `EXPO_TOKEN` and
 publishes nothing. `app.config.js` refuses an e2e build on an EAS cloud
 worker, so a cleartext APK can no longer be produced there or downloaded by a
