@@ -1045,6 +1045,24 @@ Negative:
 * .ai/13_MIGRATION_ROADMAP.md
 * ADR-0001 through ADR-0012
 
+### Amendment — legacy MVP removed (S3 follow-up, 2026-11-18, owner decision)
+
+The legacy `client/` (Vite web MVP) and `server/` (Express MVP) directories
+are **removed** from the working tree. The mobile app and the NestJS api
+replaced them: neither folder was built, tested or deployed by any
+workflow, and they were kept only as read-only reference. The S3
+dependency audit found that they still carried advisories, including a
+critical one (`proxy-addr` in `server/`) and several highs, with no reason
+to maintain them.
+
+* History stays in git: the last commit that contains both folders is
+  `e51e62a` (`git show e51e62a:server/...` or
+  `git checkout e51e62a -- client server` in a scratch worktree).
+* The "run alongside the MVP" decision above is complete. The
+  "never import from `client/` or `server/`" rule now holds trivially.
+* `.ai/13_MIGRATION_ROADMAP.md` and `.ai/14_CURRENT_MVP_BASELINE.md` stay
+  as historical records; their source paths refer to that commit.
+
 ---
 
 # Proposed Future ADRs

@@ -19,9 +19,6 @@ credentials/
 *.db
 *.db-journal
 
-# Prisma
-server/prisma/migrations/
-
 # Test & tooling caches (generated)
 coverage/
 .jest-cache/

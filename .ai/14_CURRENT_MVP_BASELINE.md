@@ -1,7 +1,7 @@
 # AppFitness Current MVP Baseline
 
 Version: 1.0
-Status: Active
+Status: Historical — the legacy `client/` and `server/` were removed on 2026-11-18 (ADR-0013 amendment); the paths below refer to commit `e51e62a`.
 Last Updated: 2026-07-03
 
 ---
