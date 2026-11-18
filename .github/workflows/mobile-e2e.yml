@@ -147,10 +147,15 @@ jobs:
           working-directory: mobile
           # The flow sequence lives in e2e/run-flows.sh (shared with local
           # runs); on failure it saves logcat and tombstones to /tmp/e2e-debug.
-          # Each script line runs in its own shell; the sampler below records
-          # the emulator process every 10 s for the debug artifact.
+          # Each script line runs in its own shell. For the debug artifact the
+          # lines below record the emulator process every 10 s, adb's view of
+          # the device every 2 s, and a live logcat stream (the device drops
+          # off adb mid-flow while qemu is still running, so a logcat taken
+          # after the failure is too late).
           script: |
             mkdir -p /tmp/e2e-debug && (while sleep 10; do date +%T; ps -eo pid,rss,pcpu,etime,args | grep -E '[q]emu-system' | cut -c1-160; done > /tmp/e2e-debug/emu-ps.txt 2>&1 &)
+            (while sleep 2; do echo "$(date +%T) $(adb get-state 2>&1)"; done > /tmp/e2e-debug/adb-state.txt 2>&1 &)
+            (adb logcat -b all -v threadtime > /tmp/e2e-debug/logcat-stream.txt 2>&1 &)
             adb install -r /tmp/appfitness-e2e.apk
             # Guest rendering is slow enough for the launcher to raise "isn't
             # responding" dialogs over the app (run 44379835446); hide them.
