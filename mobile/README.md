@@ -148,8 +148,6 @@ mobile/
   `useTheme()` from `@/shared/theme`.
 - No business logic in screens/components; features own their
   presentation/application/domain/infrastructure layers.
-- Never import from `client/` or `server/` (the legacy MVP is read-only
-  reference material — see ADR-0013).
 - Typography targets Inter (`.ai/02_TECH_STACK.md`); the font is not yet
   bundled — tokens fall back to the platform font until it is added.
 

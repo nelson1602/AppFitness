@@ -5,8 +5,9 @@ The NestJS backend for AppFitness — the target architecture defined by
 `.ai/13_MIGRATION_ROADMAP.md` (ADR-0013).
 
 Created in migration **Phase 2** (2026-07-03). Contains the foundation
-only — no business logic, database, or authentication yet. The legacy
-Express MVP in `server/` remains the operational backend until cutover.
+only — no business logic, database, or authentication yet. (The legacy
+Express MVP in `server/` was removed on 2026-11-18; see the ADR-0013
+amendment.)
 
 ---
 
@@ -76,8 +77,7 @@ rules in `domain/` (framework-free); Prisma/external services in
 ## Environment
 
 Copy `.env.example` to `.env`. No secrets in the repo — ever
-(`.ai/05_SECURITY.md`). Defaults to port **3001** so the legacy MVP
-(port 3000) can run alongside during the migration.
+(`.ai/05_SECURITY.md`). Defaults to port **3001**.
 
 ## Database (local development)
 
@@ -112,6 +112,4 @@ Swagger UI: http://localhost:3001/docs — Health check: GET /health
 
 - Read `.ai/01_ARCHITECTURE.md`, `.ai/03_CODING_STANDARDS.md`,
   `.ai/05_SECURITY.md`, and root `CLAUDE.md` before contributing.
-- Never import from `server/` — the legacy MVP is read-only reference
-  material (ADR-0013).
 - No business logic in controllers; no `any`; typed errors only.

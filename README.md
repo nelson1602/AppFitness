@@ -12,12 +12,10 @@ Offline-first fitness and wellness platform for iOS and Android. AppFitness comb
 |------|------|
 | [`mobile/`](./mobile) | **Target** React Native + Expo app (primary product) |
 | [`api/`](./api) | **Target** NestJS modular monolith (system of record) |
-| [`client/`](./client) | Legacy Vite web MVP — read-only reference during migration |
-| [`server/`](./server) | Legacy Express MVP — read-only reference during migration |
 | [`.ai/`](./.ai) | Architecture, ADRs, coding standards (source of truth) |
 | [`docs/`](./docs) | Release, legal, and operational documentation |
 
-New work belongs in `mobile/` and `api/`. Do not extend `client/` or `server/` (see ADR-0013).
+The legacy web MVP (`client/`, `server/`) was removed on 2026-11-18; it stays in git history at `e51e62a` (ADR-0013 amendment).
 
 ---
 

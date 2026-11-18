@@ -94,10 +94,21 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk /tmp/appfitness-e2e.apk
           ls -la /tmp/appfitness-e2e.apk
 
-      - name: Install Maestro
+      # Pinned release zip with its published SHA-256 (no `curl | bash`).
+      # To upgrade: take the new tag's maestro.zip digest from the release's
+      # checksums_sha256.txt and update both values together.
+      - name: Install Maestro (pinned)
+        env:
+          MAESTRO_VERSION: 2.12.1
+          MAESTRO_SHA256: 54dbb0716425626604973cbb374c585ca30272375d9ce15177a1152765ddd9d7
         run: |
-          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          curl -fsSL -o /tmp/maestro.zip "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip"
+          echo "${MAESTRO_SHA256}  /tmp/maestro.zip" | sha256sum -c -
+          unzip -q /tmp/maestro.zip -d "$HOME/.maestro-dist"
+          mkdir -p "$HOME/.maestro"
+          cp -r "$HOME/.maestro-dist/maestro/." "$HOME/.maestro/"
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
 
       - name: Enable KVM for hardware-accelerated emulation
         run: |

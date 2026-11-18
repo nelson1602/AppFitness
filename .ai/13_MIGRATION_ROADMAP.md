@@ -2,6 +2,7 @@
 
 Version: 1.0
 Status: Active
+Note (2026-11-18): the legacy `client/` and `server/` were removed (ADR-0013 amendment); references to them below point to commit `e51e62a`.
 Last Updated: 2026-07-03
 
 ---

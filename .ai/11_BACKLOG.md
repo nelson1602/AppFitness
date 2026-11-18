@@ -8893,7 +8893,7 @@ The owner's audit of main `7eaf97c` found no Critical or High issue. The Medium 
 
 ### S3 — dependencies (after S2)
 
-In PR (codex/s3-dependency-security), pending owner review. Reports before and after are in `dist/security/S3/` (local).
+Merged as PR #265 (e51e62a, 2026-11-18). Reports before and after are in `dist/security/S3/` (local).
 
 - [x] **api, runtime advisories 11 → 0.** NestJS 11.2.10 (`platform-express` takes multer 2.5.0 and body-parser 2.4.0), `@nestjs/swagger` 11.4.8 (js-yaml), Prisma 7.10.1 (deepmerge-ts, mysql2), plus qs and fast-uri through `npm audit fix`. `typescript-eslint` 8.73.0 (dev), and one spec typed `this: void` for its new `unbound-method` check.
 - [x] **mobile, runtime advisories 74 → 65.** zod 4.6.7, node-forge, compression, `@xmldom/xmldom`, js-yaml, source-map-js, brace-expansion and glob fixed. The SDK 57 set is aligned: expo 57.0.33, expo-router 57.0.31, reanimated 4.5.1, worklets 0.10.1, `@expo/ui`, `expo-constants`, `expo-image`, `expo-linking`, `expo-system-ui`, `eslint-config-expo`. `expo.install.exclude` is down to `expo-sqlite`, which stays exactly 57.0.4. `react-native-health-connect` stays 4.1.3.
@@ -8903,8 +8903,12 @@ In PR (codex/s3-dependency-security), pending owner review. Reports before and a
   - `decode-uri-component` through expo-router 57's `query-string` 7: reachable through deep links, denial of service only. The ESM-only fix cannot be overridden, and the real fix is SDK 58;
   - `image-size` through Metro, build time only;
   - `minimatch` and `glob` in build tooling.
-- [ ] Proposals for the owner, majors: Expo SDK 58, `@nestjs/cli` 12, `argon2` 0.45. Also: move `jest` and `jest-expo` to devDependencies, and pin the Maestro installer version in `mobile-e2e.yml`.
-- Out of scope: the legacy `client/` and `server/` (read-only, ADR-0013) still carry advisories, including a critical `proxy-addr` in `server/`. They are not built or deployed; removing them is a separate decision.
+- Owner decisions on the proposals (2026-11-18):
+  - [x] `jest` and `jest-expo` moved to devDependencies in mobile (no version change). Follow-up PR (codex/s3-followups). The production audit only drops 65 → 62: `expo-router` (optional peer `@testing-library/react-native`, which needs `jest`) and `react-native` (optional peer `@react-native/jest-preset`) keep the jest chain in npm's `--omit=dev` view. None of it is in the app bundle.
+  - [x] Maestro pinned in `mobile-e2e.yml`: release 2.12.1 downloaded directly and checked against its published SHA-256, replacing `curl | bash`. Same PR.
+  - [x] Legacy `client/` and `server/` removed (ADR-0013 amendment); history stays in git, last present at e51e62a. This also removes their advisories, including the critical `proxy-addr` in `server/`. Same PR.
+  - [ ] Deferred: `@nestjs/cli` 12 and `argon2` 0.45.
+  - [ ] Expo SDK 58 waits until Play approves the Health Connect declaration (Block D).
 
 ---
 
