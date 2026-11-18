@@ -57,6 +57,9 @@ capture_debug() {
   # Every adb call is bounded: if the emulator itself died, an unbounded call
   # blocks until the job timeout and the artifacts are never uploaded.
   { date; adb devices -l; free -m 2>/dev/null; } > "$DEBUG_DIR/host.txt" 2>&1
+  # Host kernel log: shows an OOM kill or a segfault of the emulator process
+  # (CI only; needs passwordless sudo).
+  sudo -n dmesg -T 2>/dev/null | tail -200 > "$DEBUG_DIR/dmesg.txt" || true
   if ! adb devices | grep -q 'device$'; then
     echo "e2e: no device attached; the emulator is gone (see host.txt)"
     return

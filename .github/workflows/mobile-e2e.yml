@@ -145,7 +145,10 @@ jobs:
           working-directory: mobile
           # The flow sequence lives in e2e/run-flows.sh (shared with local
           # runs); on failure it saves logcat and tombstones to /tmp/e2e-debug.
+          # Each script line runs in its own shell; the sampler below records
+          # the emulator process every 10 s for the debug artifact.
           script: |
+            mkdir -p /tmp/e2e-debug && (while sleep 10; do date +%T; ps -eo pid,rss,pcpu,etime,args | grep -E '[q]emu-system' | cut -c1-160; done > /tmp/e2e-debug/emu-ps.txt 2>&1 &)
             adb install -r /tmp/appfitness-e2e.apk
             adb reverse tcp:3001 tcp:3001
             bash e2e/run-flows.sh
