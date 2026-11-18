@@ -116,7 +116,18 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      # The Gradle build leaves JVMs behind (the Kotlin compile daemon is not
+      # covered by --no-daemon); free that memory before the emulator boots.
+      - name: Free build memory
+        run: |
+          pkill -f KotlinCompileDaemon || true
+          pkill -f GradleDaemon || true
+          free -m
+
       - name: Run E2E flows on emulator
+        # Bounded below the job timeout so a hang fails this step and the
+        # debug artifact below is still uploaded.
+        timeout-minutes: 65
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         # TEST-007: a Pixel 7 profile on API 35 (the local reference AVD). The
         # runner's default device is a bare 320x640 screen, far shorter than any
@@ -126,7 +137,8 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_7
-          ram-size: 4096M
+          # RAM stays at the profile default: with 4096M the emulator process
+          # vanished mid-flow on the hosted runner (run 44350906460).
           disk-size: 6000M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
@@ -139,12 +151,13 @@ jobs:
             bash e2e/run-flows.sh
 
       - name: Upload API log and Maestro artifacts on failure
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: e2e-debug
           path: |
             /tmp/api.log
             /tmp/e2e-debug/**
+            /tmp/android-runner/emu-crash*
             ~/.maestro/tests/**
           retention-days: 7

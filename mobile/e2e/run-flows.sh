@@ -54,12 +54,20 @@ steps=(
 
 capture_debug() {
   mkdir -p "$DEBUG_DIR"
-  adb logcat -d -b all > "$DEBUG_DIR/logcat.txt" 2>&1 || true
+  # Every adb call is bounded: if the emulator itself died, an unbounded call
+  # blocks until the job timeout and the artifacts are never uploaded.
+  { date; adb devices -l; free -m 2>/dev/null; } > "$DEBUG_DIR/host.txt" 2>&1
+  if ! adb devices | grep -q 'device$'; then
+    echo "e2e: no device attached; the emulator is gone (see host.txt)"
+    return
+  fi
+  timeout 60 adb logcat -d -b all > "$DEBUG_DIR/logcat.txt" 2>&1 || true
   # google_apis images allow adb root; tombstones hold native crash stacks.
-  if adb root >/dev/null 2>&1; then
+  # adb root restarts adbd, which also drops `adb reverse` (the run stops here).
+  if timeout 30 adb root >/dev/null 2>&1; then
     sleep 3
-    adb wait-for-device
-    adb pull /data/tombstones "$DEBUG_DIR/tombstones" >/dev/null 2>&1 || true
+    timeout 30 adb wait-for-device
+    timeout 60 adb pull /data/tombstones "$DEBUG_DIR/tombstones" >/dev/null 2>&1 || true
   fi
 }
 
