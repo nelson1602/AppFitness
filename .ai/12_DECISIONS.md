@@ -5262,6 +5262,17 @@ moves unrelated dependencies. This note records an intentional gate exclusion
 only; it does **not** assert any new runtime verification and leaves the existing
 cloud verification above unchanged.
 
+**Amendment (S3, 2026-11-17, owner scope "stay on SDK 57, `expo install
+--check`"):** the deferred SDK-57 patch re-alignment is done. `npm audit fix`
+moved `expo` (57.0.33) and `expo-router` (57.0.31) within their ranges. The rest
+of the set was raised to the versions SDK 57 bundles: `@expo/ui`,
+`expo-constants`, `expo-image`, `expo-linking`, `expo-system-ui`,
+`react-native-reanimated` 4.5.1, `react-native-worklets` 0.10.1 and
+`eslint-config-expo`. `react-native` 0.86.3 and `jest-expo` already matched.
+`expo.install.exclude` now lists only `expo-sqlite`, which BUG-052 keeps
+pinned at exactly 57.0.4. `expo install --check` and the pinned expo-doctor
+both pass. Runtime evidence is on the S3 PR.
+
 **Still deferred:** richer custom-exercise medical mapping remains a separate
 future decision. Built-in catalog mappings remain the only source used for
 deterministic excluded-movement warnings.
