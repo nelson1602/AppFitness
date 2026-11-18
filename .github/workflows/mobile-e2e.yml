@@ -129,21 +129,23 @@ jobs:
         # debug artifact below is still uploaded.
         timeout-minutes: 65
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
-        # TEST-007: a Pixel 7 profile on API 35 (the local reference AVD). The
+        # TEST-007: a Pixel 7 profile (the local reference AVD's screen). The
         # runner's default device is a bare 320x640 screen, far shorter than any
-        # supported phone, and the API 34 image crashed in GWP-ASan sampling.
+        # supported phone.
         with:
-          api-level: 35
+          api-level: 34
           arch: x86_64
           target: google_apis
           profile: pixel_7
           disk-size: 6000M
           disable-animations: true
-          # Software rendering inside the guest. Under swiftshader_indirect the
-          # emulator's host RenderThread segfaults a few minutes into the flows
-          # (host dmesg, run 44372479979; same with emulator 37.1.11, run
-          # 44374946096), and the device disappears mid-flow.
-          emulator-options: -no-window -gpu guest -noaudio -no-boot-anim -camera-back none
+          # The emulator's host RenderThread segfaults about three minutes
+          # after start on the API 35 image, under both swiftshader_indirect
+          # and guest rendering and with emulator 37.1.11 or 37.2.13 (host
+          # dmesg, runs 44372479979, 44374946096, 44387750304). The last green
+          # run (35600746413) used API 34 with emulator 37.1.11.
+          emulator-build: 15917651
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           working-directory: mobile
           # The flow sequence lives in e2e/run-flows.sh (shared with local
           # runs); on failure it saves logcat and tombstones to /tmp/e2e-debug.
@@ -157,7 +159,7 @@ jobs:
             (while sleep 2; do echo "$(date +%T) $(adb get-state 2>&1)"; done > /tmp/e2e-debug/adb-state.txt 2>&1 &)
             (adb logcat -b all -v threadtime > /tmp/e2e-debug/logcat-stream.txt 2>&1 &)
             adb install -r /tmp/appfitness-e2e.apk
-            # Guest rendering is slow enough for the launcher to raise "isn't
+            # Slow software rendering can make the launcher raise "isn't
             # responding" dialogs over the app (run 44379835446); hide them.
             adb shell settings put global hide_error_dialogs 1
             adb reverse tcp:3001 tcp:3001
