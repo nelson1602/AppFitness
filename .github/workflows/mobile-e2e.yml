@@ -137,13 +137,13 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_7
-          # The runner image's emulator 37.2.13 exits silently under swiftshader
-          # a few minutes into the flows (runs 43935081500, 44350906460,
-          # 44368287079); the last green run (35600746413) used 37.1.11.
-          emulator-build: 15917651
           disk-size: 6000M
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # Software rendering inside the guest. Under swiftshader_indirect the
+          # emulator's host RenderThread segfaults a few minutes into the flows
+          # (host dmesg, run 44372479979; same with emulator 37.1.11, run
+          # 44374946096), and the device disappears mid-flow.
+          emulator-options: -no-window -gpu guest -noaudio -no-boot-anim -camera-back none
           working-directory: mobile
           # The flow sequence lives in e2e/run-flows.sh (shared with local
           # runs); on failure it saves logcat and tombstones to /tmp/e2e-debug.
