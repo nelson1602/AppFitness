@@ -1,8 +1,8 @@
 # Phase 15 Slice 4D — food logging (local-first write path, Slice 4C engine).
 #
 # Proves the device-side food-logging journey on top of the merged Slice 4C
-# write path: from a populated dashboard, open the food log via the meal-plan
-# entry point, log a catalog food, see the daily totals update, confirm the
+# write path: from a populated dashboard, open the food log from the Nutrición
+# tab, log a catalog food, see the daily totals update, confirm the
 # entry is saved locally and shown as pending (a sync attempt never loses it —
 # the parent meal is not yet server-synced, so the meal_items op comes back
 # DEPENDENCY_NOT_READY and stays queued, never discarded), then soft-delete it.
@@ -37,26 +37,22 @@ appId: com.appfitnessrd.mobile
       id: 'home-eval-bmi'
     timeout: 45000
 
-# --- Navigate: Nutrición tab → 15-day meal plan → Food log (ADR-P039 D1) ---
+# --- Navigate: Nutrición tab → Food log (ADR-P039 D1) ---
 - tapOn:
     id: 'tab-nutrition'
-# The tab opens on today's summary; the detailed targets are a spoke now.
 - extendedWaitUntil:
     visible:
       id: 'nutrition-today-card'
     timeout: 15000
+# The tab's own food-log button (the meal plan no longer hosts the entry).
 - scrollUntilVisible:
-    element: '15-day meal plan'
-    timeout: 60000
-- tapOn: '15-day meal plan'
-# The "Log today's food" entry button sits at the top of the meal-plan screen
-# (above the day content), so wait for it directly rather than scrolling down.
-- extendedWaitUntil:
-    visible:
-      id: 'open-food-log'
-    timeout: 15000
+    element:
+      id: 'nutrition-food-log'
+    # Centred: a row left at the bottom edge sits under the floating tab bar.
+    centerElement: true
+    timeout: 30000
 - tapOn:
-    id: 'open-food-log'
+    id: 'nutrition-food-log'
 - extendedWaitUntil:
     visible: 'Food log'
     timeout: 15000

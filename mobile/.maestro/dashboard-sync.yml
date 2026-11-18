@@ -29,6 +29,8 @@ appId: com.appfitnessrd.mobile
 # Pull the seeded server data through the real sync path.
 - scrollUntilVisible:
     element: 'Sync now'
+    # Centred: a row left at the bottom edge sits under the floating tab bar.
+    centerElement: true
     timeout: 30000
 - tapOn: 'Sync now'
 
@@ -66,6 +68,7 @@ appId: com.appfitnessrd.mobile
     id: 'tab-profile'
 - scrollUntilVisible:
     element: 'Sign out'
+    centerElement: true
     timeout: 60000
 - tapOn: 'Sign out'
 - extendedWaitUntil:

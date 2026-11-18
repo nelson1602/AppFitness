@@ -118,71 +118,25 @@ jobs:
 
       - name: Run E2E flows on emulator
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        # TEST-007: a Pixel 7 profile on API 35 (the local reference AVD). The
+        # runner's default device is a bare 320x640 screen, far shorter than any
+        # supported phone, and the API 34 image crashed in GWP-ASan sampling.
         with:
-          api-level: 34
+          api-level: 35
           arch: x86_64
           target: google_apis
+          profile: pixel_7
+          ram-size: 4096M
+          disk-size: 6000M
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           working-directory: mobile
+          # The flow sequence lives in e2e/run-flows.sh (shared with local
+          # runs); on failure it saves logcat and tombstones to /tmp/e2e-debug.
           script: |
             adb install -r /tmp/appfitness-e2e.apk
             adb reverse tcp:3001 tcp:3001
-            maestro test .maestro/smoke-auth-surface.yml
-            # Journey A — seeded server → device pull (existing coverage).
-            maestro test -e E2E_EMAIL=demo@appfitness.local -e E2E_USERNAME=demo -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
-            # ADR-P041: verify on the local disposable DB, then continue into the app.
-            node e2e/verify-email.mjs demo@appfitness.local
-            maestro test .maestro/registration-verified.yml
-            node e2e/seed.mjs
-            maestro test .maestro/dashboard-sync.yml
-            # Journey B — full device-side onboarding loop (Phase 14). A
-            # distinct synthetic user keeps its device-entered data separate
-            # from Journey A's server-seeded dataset. Every data point
-            # (profile, physical evaluation/weight, goal) is entered on the
-            # device — no server seed step.
-            maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
-            # ADR-P041: verify on the local disposable DB, then continue into the app.
-            node e2e/verify-email.mjs onboard@appfitness.local
-            maestro test .maestro/registration-verified.yml
-            maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_PASSWORD=Password-12345 .maestro/onboarding-loop.yml
-            # Phase 15 Slice 4D — device-side food logging on top of the merged
-            # Slice 4C write path. Reuses the onboard session: open the food log
-            # from the meal-plan entry point, log a catalog food, see totals
-            # update, confirm a sync attempt keeps the (pending) entry, delete it.
-            maestro test .maestro/food-log.yml
-            # ADR-P014 Slice 4 — food-log excluded-food warning. Same onboard
-            # session: add a "Nuts" allergy via the dietary-preferences surface,
-            # then confirm selecting a nut food on the food log shows the
-            # non-blocking allergy/sensitivity warning and can still be logged.
-            maestro test .maestro/food-log-exclusion-warning.yml
-            # Phase 16 Slice 8 — workout module + read-only iCoach TrainingPlan
-            # integration. Medical management remains retained but dormant for
-            # public v1, so this journey uses wellness inputs only.
-            maestro test .maestro/workout-training-plan.yml
-            # Phase 16 Slice 10 — custom-exercise UI. Same onboard session:
-            # create/edit a user-owned custom exercise from the Exercise
-            # library, use it from both workout pickers, soft-delete it, and
-            # verify historical routine references fall back safely.
-            maestro test .maestro/workout-custom-exercise.yml
-            # Phase 17 Slice 6 — Progress Monitoring. Same onboard session: open
-            # the Progress surface from the dashboard summary card, record a body
-            # weight (auto-recomputes the weekly snapshot) and a waist
-            # measurement, re-run "Update weekly insights", and assert the
-            # accessible trend text + weekly snapshot summary (deload as text).
-            maestro test .maestro/progress-monitoring.yml
-            # Phase 14.5 — offline data entry. Register online, then DROP the
-            # adb-reverse loopback to simulate offline (airplane mode does not
-            # sever it): a profile saves locally + sync goes "Offline".
-            # Restore the loopback and confirm the queued change syncs.
-            maestro test -e E2E_EMAIL=offline@appfitness.local -e E2E_USERNAME=offline -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
-            # ADR-P041: verify on the local disposable DB, then continue into the app.
-            node e2e/verify-email.mjs offline@appfitness.local
-            maestro test .maestro/registration-verified.yml
-            adb reverse --remove tcp:3001
-            maestro test .maestro/offline-entry.yml
-            adb reverse tcp:3001 tcp:3001
-            maestro test .maestro/reconnect-sync.yml
+            bash e2e/run-flows.sh
 
       - name: Upload API log and Maestro artifacts on failure
         if: failure()
@@ -191,5 +145,6 @@ jobs:
           name: e2e-debug
           path: |
             /tmp/api.log
+            /tmp/e2e-debug/**
             ~/.maestro/tests/**
           retention-days: 7

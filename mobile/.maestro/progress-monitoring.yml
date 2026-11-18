@@ -3,7 +3,7 @@
 # Proves the device-side Progress journey end to end on the wellness
 # `body_weights` / `body_measurements` tables and the deterministic weekly
 # `progress_snapshots` rollup (D1/D2/D6):
-#   1. dashboard → the Progress summary card entry point;
+#   1. Progreso tab → "Add measurements" → the full progress screen;
 #   2. record a body weight (local-first); a successful weight save
 #      auto-recomputes the weekly snapshot (Slice 5a);
 #   3. the latest weight + the in-house, accessible trend text are shown
@@ -12,7 +12,7 @@
 #   5. tap "Update weekly insights" to re-run the deterministic recompute;
 #   6. the weekly snapshot summary surfaces avg weight / total volume / workouts
 #      and the deload flag AS TEXT (never color-only);
-#   7. back on the dashboard, the summary card reflects the new weight.
+#   7. back on the Progreso tab, the weight card reflects the new weight.
 #
 # Progress uses the wellness tables only — NOT medical_evaluations (D1). The
 # body weight added here is the first wellness `body_weights` row for this
@@ -46,12 +46,16 @@ appId: com.appfitnessrd.mobile
 # --- 1. Progreso tab → the full progress screen (ADR-P039). ---
 - tapOn:
     id: 'tab-progress'
-- extendedWaitUntil:
-    visible:
-      id: 'progress-open-log'
+# The tab's "Add measurements" opens the full progress screen (/progress-log)
+# with the weight and measurement forms and the weekly insights.
+- scrollUntilVisible:
+    element:
+      id: 'progress-add-measurements'
+    # Centred: a row left at the bottom edge sits under the floating tab bar.
+    centerElement: true
     timeout: 30000
 - tapOn:
-    id: 'progress-open-log'
+    id: 'progress-add-measurements'
 - extendedWaitUntil:
     visible: 'Record weight'
     timeout: 15000

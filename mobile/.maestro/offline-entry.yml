@@ -5,81 +5,67 @@
 # (`adb reverse --remove tcp:3001`) — emulator airplane mode does NOT sever
 # that loopback, so it cannot simulate offline for this setup.
 #
-# Proves: a production data-entry path (profile) saves locally with no
-# network, and the queued change surfaces as pending ("Local changes
-# pending"). A companion `reconnect-sync.yml` (run after the loopback is
-# restored) proves the queued change then syncs to "Local data ready".
+# Proves: a production data-entry path (the profile editor in Perfil) saves
+# locally with no network, and the queued change surfaces as pending ("Local
+# changes pending"). A companion `reconnect-sync.yml` (run after the loopback
+# is restored) proves the queued change then syncs to "Local data ready".
 #
-# Prereqs: run AFTER registration.yml (online) for the SAME account, THEN
-# `adb reverse --remove tcp:3001`. Fake synthetic data only.
+# Prereqs: run AFTER registration.yml + registration-verified.yml (online) for
+# the SAME account, THEN `adb reverse --remove tcp:3001`. Since v8 Block 2 the
+# evaluation has already created the profile, so this flow EDITS it. Fake
+# synthetic data only.
 appId: com.appfitnessrd.mobile
 ---
 - launchApp
 
 # Session restores offline (stored session is kept when the server is
-# unreachable — 48h offline operation), landing on the empty dashboard.
+# unreachable — 48h offline operation), landing on Inicio.
 - extendedWaitUntil:
     visible:
       id: 'tab-dashboard'
     timeout: 30000
-# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
+
+# --- Edit the profile OFFLINE: the local-first write must succeed. ---
+# The editor opens from Perfil → Cuenta y ajustes (ADR-P039).
 - tapOn:
     id: 'tab-profile'
-# First run renders the ADR-P027 checklist, whose profile step reads "Add your
-# profile basics"; DataGapCard's "Create your profile" now appears only in the
-# `ready` state. The checklist also sits below the verification reminder and
-# the wellness recommendation card, so it is scrolled to rather than merely
-# waited for — the same pattern registration.yml uses.
 - scrollUntilVisible:
     element:
-      id: 'onboarding-step-profile'
+      id: 'profile-edit'
+    # Centred: a row left at the bottom edge sits under the floating tab bar.
+    centerElement: true
     timeout: 30000
-- assertVisible:
-    id: 'onboarding-step-profile'
-
-# --- Enter a profile OFFLINE: the local-first write must succeed. ---
 - tapOn:
-    id: 'gap-fix-profile'
-- extendedWaitUntil:
-    visible:
-      id: 'field-birthDate'
-    timeout: 15000
+    id: 'profile-edit'
+- scrollUntilVisible:
+    element:
+      id: 'field-occupation'
+    centerElement: true
+    timeout: 60000
 - tapOn:
-    id: 'field-birthDate'
-- inputText: '1990-01-15'
+    id: 'field-occupation'
+- eraseText
+- inputText: 'E2E offline edit'
 - hideKeyboard
-- tapOn:
-    id: 'field-heightCm'
-- inputText: '178'
-- hideKeyboard
-- tapOn:
-    id: 'option-gender-MALE'
 - scrollUntilVisible:
     element: 'Save profile'
     timeout: 60000
 - tapOn: 'Save profile'
 
-# Local save succeeded with no network — profile gaps close on the
-# dashboard even while offline, and the change is queued: the sync banner
-# shows the pending (non-ready) state.
+# Local save succeeded with no network, and the change is queued: the sync
+# row shows the pending (non-ready) state.
 #
 # We intentionally do NOT tap "Sync now" here: a failed sync attempt puts
 # the op into a 60s retry backoff (backoff.ts), which would make the
-# immediate reconnect retry flaky. The PENDING banner already proves the
+# immediate reconnect retry flaky. The PENDING state already proves the
 # offline local write + unsynced state; reconnect-sync.yml then pushes it.
-# Saving returns to Inicio; the checklist lives in Perfil (ADR-P039).
+# Saving returns to Inicio; the sync row lives in Perfil (ADR-P039).
 - extendedWaitUntil:
     visible:
-      id: 'home-goal-card'
+      id: 'tab-dashboard'
     timeout: 30000
 - tapOn:
     id: 'tab-profile'
-# The profile step leaves the checklist entirely — asserted by its own testID,
-# because the old "Create your profile" copy no longer renders in this state
-# and would have passed vacuously.
-- assertNotVisible:
-    id: 'onboarding-step-profile'
-# The sync banner sits below the two advisory cards, so scroll to it.
 - scrollUntilVisible:
     element: 'Local changes pending'
     timeout: 30000

@@ -9932,7 +9932,7 @@ Priority: P3
 Type: Test (CI reliability)
 Owner: QA / Mobile
 Created: 2026-11-16
-Updated: 2026-11-16
+Updated: 2026-11-18
 
 ### Description
 
@@ -9949,9 +9949,21 @@ The same e2e configuration ran every S2 flow on a local emulator (API 35 image, 
 
 ### Tasks
 
-- [ ] On failure, pull `/data/tombstones/*` (google_apis images allow `adb root`) and a full `adb logcat -d -b all` into the debug artifact. Then GWP-ASan allocation and deallocation stacks are available next time.
-- [ ] Move the emulator to API 35 and give it more RAM (`-memory 4096`, a larger `disk-size`), or turn off GWP-ASan for the e2e variant only (`android:gwpAsanMode="never"` through the local-variant config plugin; never in store builds).
-- [ ] Re-run and refresh the flows that have drifted since September, until `mobile-e2e.yml` is green again.
+- [x] On failure, pull `/data/tombstones/*` (google_apis images allow `adb root`) and a full `adb logcat -d -b all` into the debug artifact. Then GWP-ASan allocation and deallocation stacks are available next time. (`mobile/e2e/run-flows.sh` → `/tmp/e2e-debug`, uploaded with `e2e-debug`.)
+- [x] Move the emulator to API 35 and give it more RAM: Pixel 7 profile, API 35, `ram-size` 4096M, `disk-size` 6000M. GWP-ASan left on.
+- [x] Re-run and refresh the flows that have drifted since September, until `mobile-e2e.yml` is green again (branch `codex/test007-maestro-suite`, 2026-11-18).
+
+### Resolution (2026-11-18)
+
+The runner's default AVD was a bare 320×640 screen: the redesigned sign-in hero pushed "Create an account" below the fold, and run 44304158200 (PR #266) failed there. The flows had also drifted from the shipped screens. Fixed, and the whole sequence passed on a local Pixel 7 / API 35 emulator against a fresh disposable DB:
+
+- **Scrolling:** every control below the fold is scrolled to first. Rows tapped on tab screens are centred (`centerElement: true`): a row left at the bottom edge sits under the floating tab bar, and the tap landed on the bar (Workouts → Nutrition).
+- **Registration:** register mode adds the country field and the password checklist; the submit and mode switch are scrolled to.
+- **Evaluation (v8 Block 2):** the birth date is the in-app wheel (`evaluation-birth-date-done`), sex is chosen so iCoach adds no "sex not set" gap, and the transient "Creando tu plan" screen is no longer asserted.
+- **No checklist:** the evaluation fills profile, weight and goal, so the ADR-P027 checklist and its gap actions no longer appear for a new account. `onboarding-loop.yml` now proves the ready assessment, sync, Nutrición, the meal plan and sign-out/in; `offline-entry.yml` edits the profile from Perfil.
+- **Navigation:** the food log opens from the Nutrición tab, the meal plan from its targets row, the full progress screen from "Add measurements"; the routines screen is titled "Weekly plan"; changing excluded foods offers a plan rebuild ("Not now").
+- **Seed:** `e2e/seed.mjs` dates its weight two days back, because the evaluation already records today's (`body_weights` is unique per user and date).
+- **Workflow:** the sequence lives in `mobile/e2e/run-flows.sh`, shared by CI and local runs.
 
 ### Related
 

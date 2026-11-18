@@ -24,11 +24,26 @@ appId: com.appfitnessrd.mobile
 - assertNotVisible: 'demo@appfitness.local'
 
 # Routing/interaction: switch to register mode and back.
+# The sign-in hero pushes the mode switch below the fold on short screens,
+# and register mode (country, password checklist) is taller still, so every
+# control below the form is scrolled to before it is used.
+- scrollUntilVisible:
+    element:
+      id: 'button-toggle-mode'
+    timeout: 15000
 - tapOn: 'Create an account'
 - assertVisible: 'Username'
-- assertVisible: 'Create account'
+- scrollUntilVisible:
+    element: 'Create account'
+    timeout: 15000
+- scrollUntilVisible:
+    element: 'Use existing account'
+    timeout: 15000
 - tapOn: 'Use existing account'
-- assertVisible: 'Sign in'
+- scrollUntilVisible:
+    element: 'Sign in'
+    direction: UP
+    timeout: 15000
 
 # Dev-only seed action must never appear on the auth surface (and the
 # "Load sample data" button is __DEV__-gated in release builds).
