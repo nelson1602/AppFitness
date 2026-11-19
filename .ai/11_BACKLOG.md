@@ -9927,12 +9927,12 @@ slice, with its own verification, on a deliberate decision.
 
 ## [TEST-007] mobile-e2e.yml: Emulator Failures on the GitHub Runner (follow-up, not blocking)
 
-Status: **Open: known-flaky on GitHub-hosted emulators, non-blocking** (owner decision 2026-11-16: proceed to versionCode 13 and rely on a real-phone smoke test; owner timebox 2026-11-18: flows fixed and shipped, CI emulator instability left open with a proposal below)
+Status: **Closed: option (c) adopted (owner decision 2026-11-19).** The flows were fixed in PR #267. Before each public release the Maestro suite runs locally, and the owner's real-phone smoke test runs too (`.ai/10_DEPLOYMENT.md`, Release Checklist). `mobile-e2e.yml` stays manual, non-blocking and known-flaky on GitHub-hosted emulators. (Earlier: owner decision 2026-11-16 to proceed to versionCode 13 on a real-phone smoke test; owner timebox 2026-11-18.)
 Priority: P3
 Type: Test (CI reliability)
 Owner: QA / Mobile
 Created: 2026-11-16
-Updated: 2026-11-18
+Updated: 2026-11-19
 
 ### Description
 
@@ -9952,8 +9952,8 @@ The same e2e configuration ran every S2 flow on a local emulator (API 35 image, 
 - [x] On failure, pull `/data/tombstones/*` (google_apis images allow `adb root`) and a full `adb logcat -d -b all` into the debug artifact. Then GWP-ASan allocation and deallocation stacks are available next time. (`mobile/e2e/run-flows.sh` → `/tmp/e2e-debug`, uploaded with `e2e-debug`.)
 - [x] Give the emulator a real phone screen: Pixel 7 profile, `disk-size` 6000M. API 35 and 4096M RAM were tried and dropped (see CI evidence below); the workflow now runs API 34 with emulator build 37.1.11. GWP-ASan left on.
 - [x] Refresh the flows that have drifted since September (branch `codex/test007-maestro-suite`, 2026-11-18). The whole sequence passes locally.
-- [ ] `mobile-e2e.yml` green on the GitHub-hosted runner. Not reached: the emulator dies a few minutes into every run (below).
-- [ ] Owner decision on the sustainable option (proposal below).
+- [ ] ~~`mobile-e2e.yml` green on the GitHub-hosted runner.~~ Not reached: the emulator dies a few minutes into every run (below). Superseded by the owner's decision for option (c); the workflow stays a best effort.
+- [x] Owner decision on the sustainable option: **(c)**, 2026-11-19 (see "Decision" below).
 
 ### Resolution (2026-11-18)
 
@@ -9990,6 +9990,15 @@ The drop comes 3 to 6 minutes after the emulator starts, whatever the image, emu
 - **(a) One fresh emulator job per flow (matrix).** Probably not enough: registration plus the evaluation alone already outlasts the 3 to 6 minutes the emulator survives, and Journeys B and C depend on state built by earlier flows. It also multiplies the build cost unless the APK is built once and shared as an artifact.
 - **(b) A larger runner.** Unknown value: larger GitHub runners are paid, and they may run on the same CPU family and nested virtualisation. Worth a single paid trial only if a hosted gate is required.
 - **(c) Recommended: run the Maestro suite locally before each public release,** on a real phone or on the local reference AVD with `-gpu host` (`bash e2e/run-flows.sh` against a fresh disposable DB). Release gating has already relied on a real-phone smoke test since versionCode 13 (owner decision 2026-11-16), and the full local sequence passed on 2026-11-18. Record each run with the release evidence. Keep `mobile-e2e.yml` as a manual, non-blocking best effort with its diagnostics.
+
+### Decision (2026-11-19)
+
+The owner chose **(c)**. Before each public release:
+
+1. Run `bash e2e/run-flows.sh` (from `mobile/`) locally, on a real phone or the local emulator with `-gpu host`, against a fresh disposable DB and a fresh api process. Every step must pass. Record the commit, device and result with the release evidence.
+2. The owner runs a real-phone smoke test of the Play internal build.
+
+Both are items in the Release Checklist (`.ai/10_DEPLOYMENT.md`). (a) and (b) are not pursued. A red or missing `mobile-e2e.yml` run does not block a release and does not replace step 1.
 
 ### Related
 
