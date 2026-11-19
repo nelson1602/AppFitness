@@ -158,21 +158,24 @@ export const es = {
   // ADR-P048: Health Connect (solo lectura, en el teléfono).
   'watch.title': 'Tu reloj',
   'watch.chip': 'Health Connect',
+  'watch.subtitle': 'Reloj y teléfono vía Health Connect',
+  'watch.empty': 'Conecta tu reloj a Health Connect para ver aquí tu actividad.',
   'watch.connectBody':
     'Conecta Health Connect para ver el agua y la actividad que registra tu reloj. Solo los leemos en tu teléfono.',
   'watch.connectAction': 'Conectar Health Connect',
   'watch.needsUpdateBody': 'Actualiza Health Connect para conectar tu reloj.',
   'watch.waterTitle': 'Agua',
-  'watch.waterAmount': 'Tu reloj registró {ml} hoy',
-  'watch.waterGoal': 'Tu reloj registró {ml}; tu meta es {goal}',
+  'watch.waterAmount': 'Registrado hoy: {ml}',
+  'watch.waterGoal': 'Registrado hoy: {ml} de {goal}',
   'watch.waterProgress': 'Agua de hoy hacia tu meta',
+  'watch.waterPercent': '{pct} %',
   'watch.waterSetGoal': 'Puedes poner una meta de agua en Perfil.',
   'watch.notShared': 'No compartido en Health Connect',
   'watch.activityTitle': 'Actividad',
   'watch.steps': '{steps} pasos',
   'watch.activeKcal': '{kcal} kcal activas',
   'watch.activityNote':
-    'Las sesiones de ejercicio de tu reloj reducen el cardio que suma el iCoach.',
+    'Entrena con tu reloj y el iCoach descuenta esas sesiones del cardio extra.',
   'healthConnect.title': 'Health Connect',
   'healthConnect.intro':
     'AppFitnessRD puede leer estos datos de Health Connect para mostrar tu progreso. Solo los leemos mientras usas la app; se quedan en tu teléfono y no se envían a nuestros servidores. Nunca escribimos en Health Connect.',

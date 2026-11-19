@@ -71,9 +71,21 @@ describe('Inicio watch card (ADR-P048)', () => {
     },
   );
 
-  it('without a water goal: only what the watch recorded, neutral', async () => {
+  it('keeps the watch title and says the data comes via Health Connect', async () => {
     await render(<WatchCard fallback={fallback} />);
+    expect(screen.getByText('Tu reloj')).toBeOnTheScreen();
+    expect(screen.getByTestId('home-watch-subtitle')).toHaveTextContent(
+      'Reloj y teléfono vía Health Connect',
+    );
+  });
+
+  it('without a water goal: only what was logged, neutral, no device claim', async () => {
+    await render(<WatchCard fallback={fallback} />);
+    expect(JSON.stringify(screen.toJSON())).not.toMatch(/registró/);
     expect(screen.getByTestId('home-watch-water-line')).toHaveTextContent(
+      'Registrado hoy: 1250 ml',
+    );
+    expect(screen.getByTestId('home-watch-water-line')).not.toHaveTextContent(
       'Tu reloj registró 1250 ml hoy',
     );
     expect(screen.queryByTestId('home-watch-water-progress')).toBeNull();
@@ -82,10 +94,17 @@ describe('Inicio watch card (ADR-P048)', () => {
     );
   });
 
-  it('with the person’s goal: "Tu reloj registró X ml; tu meta es Y" and a progress bar', async () => {
+  it('with the person’s goal: "Registrado hoy: X ml de Y ml" and a water ring', async () => {
     useHealthConnectStore.setState({ waterGoalMl: 2500 });
     await render(<WatchCard fallback={fallback} />);
     expect(screen.getByTestId('home-watch-water-line')).toHaveTextContent(
+      'Registrado hoy: 1250 ml de 2500 ml',
+    );
+    expect(screen.getByTestId('home-watch-water-progress')).toHaveProp(
+      'accessibilityLabel',
+      'Agua de hoy hacia tu meta',
+    );
+    expect(screen.getByTestId('home-watch-water-line')).not.toHaveTextContent(
       'Tu reloj registró 1250 ml; tu meta es 2500 ml',
     );
     expect(screen.getByRole('progressbar')).toHaveProp('accessibilityValue', {
@@ -93,6 +112,45 @@ describe('Inicio watch card (ADR-P048)', () => {
       max: 100,
       now: 50,
     });
+  });
+
+  it('English: same structure and wording', async () => {
+    mockLanguage = 'en';
+    useHealthConnectStore.setState({ waterGoalMl: 2500 });
+    await render(<WatchCard fallback={fallback} />);
+    expect(screen.getByText('Your watch')).toBeOnTheScreen();
+    expect(screen.getByTestId('home-watch-subtitle')).toHaveTextContent(
+      'Watch and phone via Health Connect',
+    );
+    expect(screen.getByTestId('home-watch-water-line')).toHaveTextContent(
+      'Logged today: 1,250 ml of 2,500 ml',
+    );
+    expect(screen.getByTestId('home-watch-footer')).toHaveTextContent(
+      'Train with your watch and the iCoach subtracts those sessions from the extra cardio.',
+    );
+  });
+
+  it('footer: only when exercise sessions are shared', async () => {
+    await render(<WatchCard fallback={fallback} />);
+    expect(screen.getByTestId('home-watch-footer')).toHaveTextContent(
+      'Entrena con tu reloj y el iCoach descuenta esas sesiones del cardio extra.',
+    );
+    useHealthConnectStore.setState({ granted: ['Steps', 'Hydration'] });
+    await render(<WatchCard fallback={fallback} />);
+    expect(screen.queryByTestId('home-watch-footer')).toBeNull();
+  });
+
+  it.each([
+    ['no totals read yet', null],
+    ['all zero today', { steps: 0, activeKcal: 0, hydrationMl: 0 }],
+  ])('connected with %s: the empty state, no zero lines', async (_label, totals) => {
+    useHealthConnectStore.setState({ totals });
+    await render(<WatchCard fallback={fallback} />);
+    expect(screen.getByTestId('home-watch-empty')).toHaveTextContent(
+      'Conecta tu reloj a Health Connect para ver aquí tu actividad.',
+    );
+    expect(screen.queryByTestId('home-watch-water')).toBeNull();
+    expect(screen.queryByTestId('home-watch-activity')).toBeNull();
   });
 
   it('a type not shared in Health Connect says so instead of showing 0', async () => {
@@ -169,6 +227,13 @@ describe('Perfil water goal (ADR-P048)', () => {
     await fireEvent.changeText(screen.getByTestId('profile-water-goal-input'), '2.500');
     await fireEvent.press(screen.getByTestId('profile-water-goal-save'));
     expect(mockSetWaterGoal).toHaveBeenCalledWith(2500);
+  });
+
+  it('shows the same "via Health Connect" subtitle as Inicio', async () => {
+    await render(<HealthConnectSettings status="not-connected" />);
+    expect(screen.getByTestId('profile-watch-subtitle')).toHaveTextContent(
+      'Reloj y teléfono vía Health Connect',
+    );
   });
 
   it('has no default goal and no goal field until connected', async () => {

@@ -159,20 +159,24 @@ export const en = {
   // ADR-P048: Health Connect (read-only, on the phone).
   'watch.title': 'Your watch',
   'watch.chip': 'Health Connect',
+  'watch.subtitle': 'Watch and phone via Health Connect',
+  'watch.empty': 'Connect your watch to Health Connect to see your activity here.',
   'watch.connectBody':
     'Connect Health Connect to see the water and activity your watch records. We only read them on your phone.',
   'watch.connectAction': 'Connect Health Connect',
   'watch.needsUpdateBody': 'Update Health Connect to connect your watch.',
   'watch.waterTitle': 'Water',
-  'watch.waterAmount': 'Your watch recorded {ml} today',
-  'watch.waterGoal': 'Your watch recorded {ml}; your goal is {goal}',
+  'watch.waterAmount': 'Logged today: {ml}',
+  'watch.waterGoal': 'Logged today: {ml} of {goal}',
   'watch.waterProgress': 'Today’s water toward your goal',
+  'watch.waterPercent': '{pct}%',
   'watch.waterSetGoal': 'You can set a water goal in Profile.',
   'watch.notShared': 'Not shared in Health Connect',
   'watch.activityTitle': 'Activity',
   'watch.steps': '{steps} steps',
   'watch.activeKcal': '{kcal} active kcal',
-  'watch.activityNote': 'Your watch’s exercise sessions reduce the cardio the iCoach adds.',
+  'watch.activityNote':
+    'Train with your watch and the iCoach subtracts those sessions from the extra cardio.',
   'healthConnect.title': 'Health Connect',
   'healthConnect.intro':
     'AppFitnessRD can read these data from Health Connect to show your progress. We read them only while you use the app; they stay on your phone and are not sent to our servers. We never write to Health Connect.',

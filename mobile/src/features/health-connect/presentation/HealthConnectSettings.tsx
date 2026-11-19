@@ -52,6 +52,9 @@ export function HealthConnectSettings({ status }: { status: WatchStatus }) {
 
   return (
     <View style={{ gap: spacing.md }}>
+      <AppText tone="onStageVariant" testID="profile-watch-subtitle" variant="caption">
+        {t('watch.subtitle')}
+      </AppText>
       <GlassRow
         detail={statusKey ? t(statusKey) : undefined}
         icon="watch"
