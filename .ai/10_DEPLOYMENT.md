@@ -635,6 +635,12 @@ Before every release verify:
 
 ✓ Smoke tests completed
 
+✓ Local Maestro suite passed (TEST-007, owner decision 2026-11-19): `bash e2e/run-flows.sh` from `mobile/`, on a real phone or the local emulator started with `-gpu host`, against a fresh disposable DB and a fresh api (`mobile/e2e/README.md`, "Local run"). Record the commit, device and result with the release evidence.
+
+✓ Owner's real-phone smoke test of the Play internal build passed
+
+The hosted `mobile-e2e.yml` workflow is a manual, non-blocking best effort: its emulator is unstable on GitHub-hosted runners (TEST-007), so a red or missing hosted run neither blocks nor replaces the two local checks above.
+
 ---
 
 # Production Smoke Tests

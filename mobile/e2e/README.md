@@ -247,6 +247,12 @@ is not evidence against the app on its own; read the `e2e-debug` artifact
 workflow is manual-dispatch and not a required check. The full sequence is
 proven locally with `run-flows.sh` instead.
 
+**Release gate (owner decision 2026-11-19):** before each public release,
+run the "Local run" sequence above on a real phone or on the emulator with
+`-gpu host`, against a fresh DB and api. Every step must pass. The owner's
+real-phone smoke test of the Play internal build must pass too. Both are items
+in the Release Checklist in `.ai/10_DEPLOYMENT.md`.
+
 It builds the e2e APK on the runner from the dispatched commit
 (`expo prebuild` + Gradle, ADR-P047 D8); it needs no `EXPO_TOKEN` and
 publishes nothing. `app.config.js` refuses an e2e build on an EAS cloud
