@@ -44,6 +44,9 @@ appId: com.appfitnessrd.mobile
     id: 'tab-workouts'
 - scrollUntilVisible:
     element: 'Workout routines'
+    # Centred: a row left at the bottom edge sits under the floating tab bar,
+    # and the tap would land on the bar instead.
+    centerElement: true
     timeout: 60000
 - tapOn: 'Workout routines'
 
@@ -103,6 +106,7 @@ appId: com.appfitnessrd.mobile
 - back
 - scrollUntilVisible:
     element: 'Log a workout'
+    centerElement: true
     timeout: 60000
 - tapOn: 'Log a workout'
 - extendedWaitUntil:

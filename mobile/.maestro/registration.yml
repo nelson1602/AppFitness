@@ -20,9 +20,19 @@ appId: com.appfitnessrd.mobile
     visible: 'AppFitnessRD'
     timeout: 30000
 
-# Switch to register mode and enter the disposable identity.
+# Switch to register mode and enter the disposable identity. The mode switch
+# sits below the sign-in hero, and register mode is taller (country, password
+# checklist), so controls below the fold are scrolled to first.
+- scrollUntilVisible:
+    element:
+      id: 'button-toggle-mode'
+    timeout: 15000
 - tapOn: 'Create an account'
-- assertVisible: 'Create account'
+- scrollUntilVisible:
+    element:
+      id: 'input-email'
+    direction: UP
+    timeout: 15000
 - tapOn:
     id: 'input-email'
 - inputText: ${E2E_EMAIL}
@@ -31,10 +41,17 @@ appId: com.appfitnessrd.mobile
 - inputText: ${E2E_USERNAME}
 # The soft keyboard can cover the password field on small screens.
 - hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: 'input-password'
+    timeout: 15000
 - tapOn:
     id: 'input-password'
 - inputText: ${E2E_PASSWORD}
 - hideKeyboard
+- scrollUntilVisible:
+    element: 'Create account'
+    timeout: 15000
 - tapOn: 'Create account'
 
 # ADR-P041 D2: a new account lands on "Verify your email" and can go no

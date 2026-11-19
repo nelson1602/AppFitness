@@ -18,13 +18,13 @@ other variants never load the plugin and keep cleartext blocked.
 | -------------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `smoke-auth-surface.yml`         | no                                              | launch, routing, auth surface, `__DEV__` gate                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `registration.yml`               | yes                                             | register (policy-compliant password) → "Verify your email" (ADR-P041)                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `registration-verified.yml`      | yes (after `node e2e/verify-email.mjs <email>`) | "I've verified it" → welcome → empty dashboard (data-gap state)                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `registration-verified.yml`      | yes (after `node e2e/verify-email.mjs <email>`) | "I've verified it" → Evaluación física (weight, height, birth-date wheel, sex, goal) → welcome → Inicio → Perfil sync row                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `dashboard-sync.yml`             | yes (after full seed)                           | session restore → Sync now → populated dashboard via real pull                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `onboarding-loop.yml`            | yes (no seed)                                   | full device-side profile + evaluation/weight + goal entry via gap actions → iCoach ready from local data → nutrition targets + 15-day meal plan render → sync clears pending → sign out & back in                                                                                                                                                                                                                                                                                                                        |
-| `food-log.yml`                   | yes (no seed)                                   | open the food log from the meal-plan entry point, log a catalog food, see daily totals update, confirm a sync attempt keeps the (pending) entry, soft-delete it (runs after onboarding-loop, same session)                                                                                                                                                                                                                                                                                                               |
-| `food-log-exclusion-warning.yml` | yes (no seed)                                   | add a "Nuts" allergy via the dietary-preferences surface, then confirm selecting a nut food on the food log shows the non-blocking allergy/sensitivity warning and can still be logged (ADR-P014 Slice 4). Wired into `mobile-e2e.yml` after `food-log.yml` (same onboard session). **PENDING a first green run**: it needs an `e2e` APK built from the Slice 4 commit (878af06) or later — an older APK predating the warning UI fails the assertions. Until that run, Slice 4 is verified by unit/component tests. |
+| `onboarding-loop.yml`            | yes (no seed)                                   | the evaluation's device-entered data → iCoach ready from local data (no checklist, no data gap) → sync clears pending → Nutrición + 15-day meal plan render → sign out & back in                                                                                                                                                                                                                                                                                                                                         |
+| `food-log.yml`                   | yes (no seed)                                   | open the food log from the Nutrición tab, log a catalog food, see daily totals update, confirm a sync attempt keeps the (pending) entry, soft-delete it (runs after onboarding-loop, same session)                                                                                                                                                                                                                                                                                                               |
+| `food-log-exclusion-warning.yml` | yes (no seed)                                   | add a "Nuts" allergy via the dietary-preferences surface, then confirm selecting a nut food on the food log shows the allergy explanation, with the add control disabled (ADR-P040 D4: an allergy blocks). Runs after `food-log.yml` (same onboard session). |
 | `medical-management.yml`         | retained, **not run**                           | historical medical-management flow; excluded from public-v1 journeys by ADR-P017                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `offline-entry.yml`              | API unreachable                                 | with the adb-reverse loopback dropped: enter a profile locally (save works offline) → sync shows "Local changes pending"                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `offline-entry.yml`              | API unreachable                                 | with the adb-reverse loopback dropped: edit the profile in Perfil (save works offline) → sync shows "Local changes pending"                                                                                                                                                                                                                                                                                                                                                                                                |
 | `reconnect-sync.yml`             | yes                                             | with the loopback restored: the offline-queued change syncs to "Local data ready"                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 Two journeys run against the same disposable DB with distinct synthetic
@@ -35,13 +35,14 @@ users:
   `/sync/push`) → `dashboard-sync.yml` pulls it all through the real
   public-v1 appliers. The retained medical routes are never invoked.
 - **Journey B (full device onboarding):**
-  `registration.yml` (onboard user) → `onboarding-loop.yml` enters the
-  profile, physical evaluation (weight), and goal entirely on the device
-  through the dashboard gap actions. The iCoach assessment reaches `ready`
-  from purely local data (no server seed), then local changes sync until
-  pending clears, and the account signs out and back in with data intact.
-  → `food-log.yml` then logs a catalog food from the meal-plan entry
-  point, confirms the daily totals update and the entry survives a sync
+  `registration.yml` + `registration-verified.yml` (onboard user) enter the
+  profile, birth date, height, weight and goal entirely on the device
+  through the Evaluación física (v8 Block 2). `onboarding-loop.yml` then
+  proves the iCoach assessment is `ready` from purely local data (no server
+  seed), local changes sync until pending clears, and the account signs out
+  and back in with data intact.
+  → `food-log.yml` then logs a catalog food from the Nutrición tab,
+  confirms the daily totals update and the entry survives a sync
   attempt as pending (the local parent meal is not yet server-synced, so
   the `meal_items` op returns `DEPENDENCY_NOT_READY` and stays queued —
   never data loss), then soft-deletes it. The retained
@@ -49,7 +50,7 @@ users:
 
 - **Journey C (offline data entry, Phase 14.5):** `registration.yml`
   (offline user, online) → `adb reverse --remove tcp:3001` (simulate
-  offline) → `offline-entry.yml` (profile saves locally, banner shows
+  offline) → `offline-entry.yml` (a profile edit saves locally, Perfil shows
   "Local changes pending") → `adb reverse tcp:3001 tcp:3001` (restore) →
   `reconnect-sync.yml` (queued change syncs to "Local data ready"). We do
   not attempt a sync while offline — a failed op enters a 60s retry backoff
@@ -89,23 +90,23 @@ emulator -avd <your-avd> &
 adb install -r /tmp/appfitness-e2e.apk
 adb reverse tcp:3001 tcp:3001
 
-# 4. Flows — Journey A (seeded pull)
-maestro test -e E2E_EMAIL=demo@appfitness.local -e E2E_USERNAME=demo \
-  -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
-DATABASE_URL=<local disposable DB> node e2e/verify-email.mjs demo@appfitness.local
-maestro test .maestro/registration-verified.yml
-node e2e/seed.mjs
-maestro test .maestro/dashboard-sync.yml
-
-# 5. Flows — Journey B (full device onboarding loop; no seed)
-maestro test -e E2E_EMAIL=onboard@appfitness.local -e E2E_USERNAME=onboard \
-  -e E2E_PASSWORD=Password-12345 .maestro/registration.yml
-DATABASE_URL=<local disposable DB> node e2e/verify-email.mjs onboard@appfitness.local
-maestro test .maestro/registration-verified.yml
-maestro test -e E2E_EMAIL=onboard@appfitness.local \
-  -e E2E_PASSWORD=Password-12345 .maestro/onboarding-loop.yml
-maestro test .maestro/food-log.yml
+# 4. Flows — the whole CI sequence (Journeys A, B and C), in order, stopping
+#    at the first failure. Optional: `[first] [last]` step numbers to resume;
+#    MAESTRO_DEVICE=<serial> picks a device. The flows build on each other's
+#    state, so a rerun needs a fresh DB (and a fresh api process: its rate
+#    limits are in memory).
+DATABASE_URL=<local disposable DB> bash e2e/run-flows.sh
 ```
+
+Emulator size matters: CI and the local reference AVD use a Pixel 7 screen
+(TEST-007); the flows scroll to every control below the fold and centre rows
+before tapping them, because a row left at the bottom edge sits under the
+floating tab bar. Locally, start the emulator with `-gpu host`: under
+software rendering it crashes with this app. On failure the script saves
+host info, the host `dmesg` (CI), logcat and tombstones to `$E2E_DEBUG_DIR`
+(default `/tmp/e2e-debug`), with every adb call time-bounded; its `adb root`
+drops `adb reverse`, so re-run `adb reverse tcp:3001 tcp:3001` before
+resuming locally.
 
 Maestro install (no admin): unzip the GitHub release
 (`mobile-dev-inc/maestro` → `maestro.zip`) and run `bin/maestro` with a
@@ -234,8 +235,19 @@ which closes once answered, so neither can be edited repeatedly.
 ## CI
 
 `.github/workflows/mobile-e2e.yml` (manual `workflow_dispatch`) runs the
-same sequence on one runner: Postgres service → api → Android emulator →
-Maestro. It builds the e2e APK on the runner from the dispatched commit
+same sequence (`e2e/run-flows.sh`) on one runner: Postgres service → api →
+Android emulator (Pixel 7 profile, API 34, emulator build pinned to 37.1.11)
+→ Maestro (pinned release, SHA-256 checked).
+
+**Known flaky (TEST-007):** on the GitHub-hosted runner the emulator drops
+off adb a few minutes into the run, after its host render thread segfaults
+or the guest goes silent. It has not passed since 2026-09-21, so a red run
+is not evidence against the app on its own; read the `e2e-debug` artifact
+(`adb-state.txt`, `logcat-stream.txt`, `dmesg.txt`, `emu-ps.txt`). The
+workflow is manual-dispatch and not a required check. The full sequence is
+proven locally with `run-flows.sh` instead.
+
+It builds the e2e APK on the runner from the dispatched commit
 (`expo prebuild` + Gradle, ADR-P047 D8); it needs no `EXPO_TOKEN` and
 publishes nothing. `app.config.js` refuses an e2e build on an EAS cloud
 worker, so a cleartext APK can no longer be produced there or downloaded by a

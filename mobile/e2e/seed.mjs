@@ -50,6 +50,10 @@ async function waitForHealth(attempts = 30) {
 }
 
 const today = new Date().toISOString().slice(0, 10);
+// Since v8 Block 2 the device's evaluation (registration-verified.yml) records
+// today's weight, and body_weights is unique per user and date, so the seeded
+// weight is dated two days back: clear of today in any device time zone.
+const weightDate = new Date(Date.now() - 2 * 86_400_000).toISOString().slice(0, 10);
 const nowIso = new Date().toISOString();
 
 await waitForHealth();
@@ -100,7 +104,7 @@ const push = await request(
         baseVersion: 0,
         payload: {
           id: weightId,
-          date: today,
+          date: weightDate,
           weight_kg: 82,
           notes: null,
         },

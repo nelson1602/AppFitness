@@ -23,6 +23,8 @@ appId: com.appfitnessrd.mobile
 # assertion above already anchored the screen.
 - scrollUntilVisible:
     element: 'Sync now'
+    # Centred: a row left at the bottom edge sits under the floating tab bar.
+    centerElement: true
     timeout: 30000
 - tapOn: 'Sync now'
 - extendedWaitUntil:

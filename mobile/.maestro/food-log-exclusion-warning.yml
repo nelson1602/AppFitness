@@ -37,6 +37,8 @@ appId: com.appfitnessrd.mobile
     id: 'tab-nutrition'
 - scrollUntilVisible:
     element: 'Dietary preferences'
+    # Centred: a row left at the bottom edge sits under the floating tab bar.
+    centerElement: true
     timeout: 60000
 - tapOn: 'Dietary preferences'
 - extendedWaitUntil:
@@ -63,19 +65,23 @@ appId: com.appfitnessrd.mobile
     element: 'Nuts · category'
     timeout: 60000
 
-# --- Navigate to the food log via the Nutrición tab → meal plan ---
+# --- Navigate to the food log from the Nutrición tab ---
 # `back` returns to the Nutrición tab the preferences were opened from.
 - back
+# Changing excluded foods offers to rebuild this week's plan; keeping it is
+# enough here (the plan rebuild is not what this flow proves).
+- runFlow:
+    when:
+      visible: 'Not now'
+    commands:
+      - tapOn: 'Not now'
 - scrollUntilVisible:
-    element: '15-day meal plan'
-    timeout: 60000
-- tapOn: '15-day meal plan'
-- extendedWaitUntil:
-    visible:
-      id: 'open-food-log'
-    timeout: 15000
+    element:
+      id: 'nutrition-food-log'
+    centerElement: true
+    timeout: 30000
 - tapOn:
-    id: 'open-food-log'
+    id: 'nutrition-food-log'
 - extendedWaitUntil:
     visible: 'Food log'
     timeout: 15000

@@ -12,8 +12,8 @@ appId: com.appfitnessrd.mobile
 - tapOn:
     id: 'button-verify-confirm'
 # v8 Block 2: a verified account without its evaluation lands on the
-# Evaluación física. The date fields open the system picker on their default
-# dates (30 years ago; 90 days ahead), which are valid, so the flow accepts them.
+# Evaluación física. The date pickers open on their default dates (30 years
+# ago; 90 days ahead), which are valid, so the flow accepts them.
 - extendedWaitUntil:
     visible:
       id: 'evaluation-weight'
@@ -27,7 +27,19 @@ appId: com.appfitnessrd.mobile
 - hideKeyboard
 - tapOn:
     id: 'evaluation-birth-date'
-- tapOn: 'OK|Aceptar|ACEPTAR'
+# v8.1: the birth date is the in-app Día / Mes / Año wheel sheet (default 30
+# years ago, valid), confirmed with its own button; the target date below
+# still opens the system picker.
+- tapOn:
+    id: 'evaluation-birth-date-done'
+# Sex is optional, but without it iCoach adds the "sex not set" advisory
+# (onboarding-loop.yml asserts the assessment carries no data gap).
+- scrollUntilVisible:
+    element:
+      id: 'evaluation-sex-MALE'
+    timeout: 15000
+- tapOn:
+    id: 'evaluation-sex-MALE'
 - tapOn:
     id: 'evaluation-continue'
 - tapOn:
@@ -51,11 +63,8 @@ appId: com.appfitnessrd.mobile
     timeout: 15000
 - tapOn:
     id: 'evaluation-continue'
-# "Creando tu plan personal" saves the first week, then opens the welcome.
-- extendedWaitUntil:
-    visible:
-      id: 'building-steps'
-    timeout: 15000
+# "Creando tu plan personal" saves the first week, then opens the welcome. It
+# can finish before Maestro looks (fast local API), so it is not asserted.
 # ADR-P039 D5: a sign-in opens the welcome screen once. Its auto-continue is
 # off under reduced motion (an emulator with animations off reports it), so
 # the flow continues explicitly.
@@ -66,28 +75,21 @@ appId: com.appfitnessrd.mobile
 - tapOn:
     id: 'welcome-continue'
 
-# Registration hits the local API, then routes to the dashboard. A brand-new
-# account has no assessment, so the dashboard resolves to its `empty` state and
-# renders the ADR-P027 onboarding checklist. "Complete your basic info" belongs to
-# `DataGapCard`, which renders only once the assessment is `ready` — asserting
-# it here is what made this flow stale.
-#
-# The checklist also sits below the verification reminder and the wellness
-# recommendation card, so on a phone viewport it is below the fold and must be
-# scrolled to rather than merely waited for.
+# The welcome routes to the dashboard. Since v8 Block 2 the evaluation above
+# fills the profile, birth date, height, weight and goal, so the account is not
+# `empty` and the ADR-P027 onboarding checklist no longer renders; asserting it
+# is what made this flow stale. Sync and conflicts live in Perfil → Cuenta y
+# ajustes (ADR-P039), below the fold.
 - extendedWaitUntil:
     visible:
       id: 'tab-dashboard'
     timeout: 45000
-# Checklist, sync and conflicts live in Perfil → Cuenta y ajustes (ADR-P039).
 - tapOn:
     id: 'tab-profile'
 - scrollUntilVisible:
     element:
-      id: 'onboarding-step-profile'
+      id: 'dashboard-sync-now'
     timeout: 30000
-- assertVisible:
-    id: 'onboarding-step-profile'
 
 # Dev-only seed action must not exist in release builds.
 - assertNotVisible: 'Load sample data'

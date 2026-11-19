@@ -9927,12 +9927,12 @@ slice, with its own verification, on a deliberate decision.
 
 ## [TEST-007] mobile-e2e.yml: Emulator Failures on the GitHub Runner (follow-up, not blocking)
 
-Status: **Open: follow-up, not blocking** (owner decision 2026-11-16: proceed to versionCode 13 and rely on a real-phone smoke test)
+Status: **Open: known-flaky on GitHub-hosted emulators, non-blocking** (owner decision 2026-11-16: proceed to versionCode 13 and rely on a real-phone smoke test; owner timebox 2026-11-18: flows fixed and shipped, CI emulator instability left open with a proposal below)
 Priority: P3
 Type: Test (CI reliability)
 Owner: QA / Mobile
 Created: 2026-11-16
-Updated: 2026-11-16
+Updated: 2026-11-18
 
 ### Description
 
@@ -9949,9 +9949,47 @@ The same e2e configuration ran every S2 flow on a local emulator (API 35 image, 
 
 ### Tasks
 
-- [ ] On failure, pull `/data/tombstones/*` (google_apis images allow `adb root`) and a full `adb logcat -d -b all` into the debug artifact. Then GWP-ASan allocation and deallocation stacks are available next time.
-- [ ] Move the emulator to API 35 and give it more RAM (`-memory 4096`, a larger `disk-size`), or turn off GWP-ASan for the e2e variant only (`android:gwpAsanMode="never"` through the local-variant config plugin; never in store builds).
-- [ ] Re-run and refresh the flows that have drifted since September, until `mobile-e2e.yml` is green again.
+- [x] On failure, pull `/data/tombstones/*` (google_apis images allow `adb root`) and a full `adb logcat -d -b all` into the debug artifact. Then GWP-ASan allocation and deallocation stacks are available next time. (`mobile/e2e/run-flows.sh` → `/tmp/e2e-debug`, uploaded with `e2e-debug`.)
+- [x] Give the emulator a real phone screen: Pixel 7 profile, `disk-size` 6000M. API 35 and 4096M RAM were tried and dropped (see CI evidence below); the workflow now runs API 34 with emulator build 37.1.11. GWP-ASan left on.
+- [x] Refresh the flows that have drifted since September (branch `codex/test007-maestro-suite`, 2026-11-18). The whole sequence passes locally.
+- [ ] `mobile-e2e.yml` green on the GitHub-hosted runner. Not reached: the emulator dies a few minutes into every run (below).
+- [ ] Owner decision on the sustainable option (proposal below).
+
+### Resolution (2026-11-18)
+
+The runner's default AVD was a bare 320×640 screen: the redesigned sign-in hero pushed "Create an account" below the fold, and run 44304158200 (PR #266) failed there. The flows had also drifted from the shipped screens. Fixed, and the whole sequence passed on a local Pixel 7 / API 35 emulator against a fresh disposable DB:
+
+- **Scrolling:** every control below the fold is scrolled to first. Rows tapped on tab screens are centred (`centerElement: true`): a row left at the bottom edge sits under the floating tab bar, and the tap landed on the bar (Workouts → Nutrition).
+- **Registration:** register mode adds the country field and the password checklist; the submit and mode switch are scrolled to.
+- **Evaluation (v8 Block 2):** the birth date is the in-app wheel (`evaluation-birth-date-done`), sex is chosen so iCoach adds no "sex not set" gap, and the transient "Creando tu plan" screen is no longer asserted.
+- **No checklist:** the evaluation fills profile, weight and goal, so the ADR-P027 checklist and its gap actions no longer appear for a new account. `onboarding-loop.yml` now proves the ready assessment, sync, Nutrición, the meal plan and sign-out/in; `offline-entry.yml` edits the profile from Perfil.
+- **Navigation:** the food log opens from the Nutrición tab, the meal plan from its targets row, the full progress screen from "Add measurements"; the routines screen is titled "Weekly plan"; changing excluded foods offers a plan rebuild ("Not now").
+- **Seed:** `e2e/seed.mjs` dates its weight two days back, because the evaluation already records today's (`body_weights` is unique per user and date).
+- **Workflow:** the sequence lives in `mobile/e2e/run-flows.sh`, shared by CI and local runs.
+- **Debug capture:** every adb call in the failure capture is time-bounded (a dead device used to block it until the 90-minute job timeout, run 44350906460). The flows step has its own 65-minute timeout, and the `e2e-debug` artifact also uploads on cancel. It holds host info, the host `dmesg`, a live logcat stream, adb's view of the device every 2 s, and the emulator process every 10 s. Leftover build JVMs are stopped before boot.
+
+### CI evidence (2026-11-18)
+
+Every run on the GitHub-hosted runner lost the emulator. When it survived, each flow passed: the last run cleared smoke, registration, verification and most of the evaluation.
+
+| Run | Image / emulator / GPU | How far | Host evidence |
+| --- | --- | --- | --- |
+| 44350906460 | API 35, 37.2.13, swiftshader, 4096M | registration launch | job hung in the old capture (fixed) |
+| 44368287079 | API 35, 37.2.13, swiftshader | after "Create account" | 14.6 GB host RAM free |
+| 44372479979 | API 35, 37.2.13, swiftshader | after "Create account" | `RenderThread` segfault 1 s after the tap |
+| 44374946096 | API 35, 37.1.11, swiftshader | after "Create account" | same |
+| 44379835446 (rerun) | API 35, 37.2.13, guest | smoke, behind a launcher ANR dialog | emulator survived; dialogs now hidden |
+| 44383648761 | API 35, 37.2.13, guest | registration launch | qemu alive 1 s before "device not found" |
+| 44387750304 | API 35, 37.2.13, guest | registration, email field | guest log silent, then `RenderThread` segfault 2 s later |
+| 44391913102 | API 34, 37.1.11, swiftshader | `registration-verified`, after the welcome step | guest log silent about 40 s before the drop |
+
+The drop comes 3 to 6 minutes after the emulator starts, whatever the image, emulator build, GPU mode or RAM, so the failing part is the emulator on this runner (AMD EPYC under Hyper-V nested virtualisation), not the flows. Locally the same app also segfaults the emulator under every software renderer and runs cleanly with `-gpu host`. Which part of the app's rendering triggers it was not isolated: bisecting it means a 25-minute runner build per variant.
+
+### Proposal: a sustainable gate instead of more retries
+
+- **(a) One fresh emulator job per flow (matrix).** Probably not enough: registration plus the evaluation alone already outlasts the 3 to 6 minutes the emulator survives, and Journeys B and C depend on state built by earlier flows. It also multiplies the build cost unless the APK is built once and shared as an artifact.
+- **(b) A larger runner.** Unknown value: larger GitHub runners are paid, and they may run on the same CPU family and nested virtualisation. Worth a single paid trial only if a hosted gate is required.
+- **(c) Recommended: run the Maestro suite locally before each public release,** on a real phone or on the local reference AVD with `-gpu host` (`bash e2e/run-flows.sh` against a fresh disposable DB). Release gating has already relied on a real-phone smoke test since versionCode 13 (owner decision 2026-11-16), and the full local sequence passed on 2026-11-18. Record each run with the release evidence. Keep `mobile-e2e.yml` as a manual, non-blocking best effort with its diagnostics.
 
 ### Related
 
