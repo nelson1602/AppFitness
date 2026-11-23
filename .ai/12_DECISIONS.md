@@ -15872,6 +15872,28 @@ Block D is the minimum smartwatch integration that can pass Play review. Owner d
 
 **D8 `carry-over@1.1.0`, C9.** The watch's sessions cover the cardio a day over owes: a session covers days over on or before its date, up to today; each kcal once, oldest day over first. What is owed is the capped cardio (30 min); the minutes are recomputed from what is left, and a block fully covered is not added. Food never changes. "Quitar" and the 30-minute cap are unchanged. Without Health Connect the rule gives exactly 1.0.0's result.
 
+### Amendment 1 (2026-11-23) — data source selection, `health-source@1.0.0`
+
+**Context.** A device report showed an Honor phone with a Samsung watch (Samsung Health) where the watch counted 1,117 steps and the app showed 156. Health Connect's unfiltered aggregate follows the phone's app priority, so the phone's own app (Honor Health) won and the watch's data was dropped.
+
+**Decision.** All of D1–D8 still apply: read-only, foreground-only, the same four types, everything stays on the phone, and nothing is synced. Only which records are counted changes.
+
+- **Origins.** On each refresh the app reads today's Steps, ActiveCaloriesBurned and Hydration records for the granted types. It reads them page by page through `pageToken`, with a bounded number of pages. It collects each record's `metadata.dataOrigin` (the writing app's package name) and whether any of that origin's records come from a watch (`metadata.device.type` = 1, `TYPE_WATCH`).
+- **Per-origin totals.** Each origin's totals use `aggregateRecord` with `dataOriginFilter: [origin]`. Origins are never added together.
+- **Source choice** (`health-connect/domain/data-source.ts`, pure). The order is:
+  1. the person's pick in Perfil, kept locally per account in `app_metadata` (`health-source:<userId>`) and never synced;
+  2. else an origin with watch records (most steps first);
+  3. else the origin with the most steps today.
+
+  Ties break by package name. The source is used for all three totals. For a type it has no data for, the total falls back to the unfiltered aggregate. With no origin found, everything is unfiltered, exactly as before.
+- **Sessions (D7).** When exercise sessions from different origins overlap in time, only one origin's are kept: the source's if it is in the overlap, else the earliest session's origin. One origin's sessions never knock each other out. Each kept session's kcal and steps are aggregated with its own origin's filter, so the source's sessions use the source's filter.
+- **Perfil.** "Fuente de datos: <app>" and a radio picker: "Automática" plus the apps found today. Known apps have readable names (Samsung Health, Google Fit, Huawei Health, Honor Salud / Honor Health, Fitbit, Garmin Connect); any other app shows its package name.
+- **Sync row.** Perfil's sync row also re-reads Health Connect for today unless its status is `off`.
+
+**Library (4.1.3, verified in its sources).** It supports `dataOriginFilter` on `aggregateRecord` and `readRecords` for the three types and ExerciseSession, and `pageToken`/`pageSize` paging (default 1000). `metadata.dataOrigin` is the package name, and `metadata.device` carries `{ type, manufacturer, model }`. Its TypeScript `DeviceType` enum omits `TYPE_WATCH`, so the app compares the raw value 1. No dependency changes; the 4.1.3 and expo-sqlite 57.0.4 pins are unchanged.
+
+**Consequence.** More Health Connect reads per refresh: one paged read per granted total type, plus up to three aggregates per origin. All of them run on the phone, in the foreground.
+
 ### Consequences
 
 - **Positive:** watch activity reduces cardio the person already did; water from the watch is visible; nothing leaves the phone.

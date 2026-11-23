@@ -7,12 +7,15 @@ import { listRecentWorkoutLogs } from '@/features/workout/infrastructure/workout
 import { isHealthConnectEnabled } from '@/shared/infrastructure/config/feature-flags';
 import { logError } from '@/shared/infrastructure/logging';
 
+import { chooseSource, type HealthOrigin } from '../domain/data-source';
 import type { AppWorkoutWindow, WatchSession } from '../domain/watch-activity';
+import { readPickedSource, writePickedSource } from '../infrastructure/data-source.repository';
 import {
   availability,
   grantedReadTypes,
   openSettings,
   readDayTotals,
+  readOrigins,
   readSessions,
   requestReadPermissions,
   type DayTotals,
@@ -47,10 +50,17 @@ interface HealthConnectState {
   sessions: WatchSession[];
   appWorkouts: AppWorkoutWindow[];
   waterGoalMl: number | null;
+  /** Apps that wrote steps, active calories or water today, by package name. */
+  sources: HealthOrigin[];
+  /** The app the totals and sessions are read from; null = unfiltered. */
+  source: string | null;
+  /** The person's own pick in Perfil; null = automatic. */
+  pickedSource: string | null;
   refresh: (today: string) => Promise<void>;
   connect: (today: string) => Promise<void>;
   openSettings: () => void;
   setWaterGoal: (ml: number | null) => Promise<void>;
+  setSource: (source: string | null) => Promise<void>;
 }
 
 const INITIAL = {
@@ -62,7 +72,52 @@ const INITIAL = {
   sessions: [],
   appWorkouts: [],
   waterGoalMl: null,
+  sources: [],
+  source: null,
+  pickedSource: null,
 };
+
+/**
+ * Today's totals from ONE app (ADR-P048 amendment, `health-source@1.0.0`):
+ * the chosen source's own totals for the types it has; Health Connect's
+ * unfiltered aggregate for any type it lacks. Apps are never added together.
+ */
+async function readSourcedTotals(
+  dayStart: string,
+  now: string,
+  granted: ReadonlySet<HealthReadType>,
+  pickedSource: string | null,
+): Promise<{ totals: DayTotals; sources: HealthOrigin[]; source: string | null }> {
+  const found = await readOrigins(dayStart, now, granted);
+  const perOrigin = await Promise.all(
+    found.map((origin) => readDayTotals(dayStart, now, new Set(origin.types), origin.packageName)),
+  );
+  const sources = found.map((origin, i) => ({
+    packageName: origin.packageName,
+    isWatch: origin.isWatch,
+    steps: perOrigin[i].steps,
+  }));
+  const source = chooseSource(sources, pickedSource);
+  const index = found.findIndex((origin) => origin.packageName === source);
+  const own = index >= 0 ? perOrigin[index] : null;
+  const ownTypes = new Set<HealthReadType>(index >= 0 ? found[index].types : []);
+  const fallback = await readDayTotals(
+    dayStart,
+    now,
+    new Set([...granted].filter((type) => !ownTypes.has(type))),
+  );
+  const pick = <K extends keyof DayTotals>(key: K, type: HealthReadType) =>
+    own !== null && ownTypes.has(type) ? own[key] : fallback[key];
+  return {
+    totals: {
+      steps: pick('steps', 'Steps'),
+      activeKcal: pick('activeKcal', 'ActiveCaloriesBurned'),
+      hydrationMl: pick('hydrationMl', 'Hydration'),
+    },
+    sources,
+    source,
+  };
+}
 
 const startOf = (date: string): string => new Date(`${date}T00:00:00`).toISOString();
 
@@ -97,9 +152,15 @@ export const useHealthConnectStore = create<HealthConnectState>((set, get) => ({
           return;
         }
         const now = new Date().toISOString();
-        const [totals, sessions, logs] = await Promise.all([
-          readDayTotals(startOf(today), now, granted),
-          readSessions(startOf(addDays(today, -WATCH_LOOKBACK_DAYS)), now, granted),
+        const pickedSource = await readPickedSource(owner.userId);
+        const { totals, sources, source } = await readSourcedTotals(
+          startOf(today),
+          now,
+          granted,
+          pickedSource,
+        );
+        const [sessions, logs] = await Promise.all([
+          readSessions(startOf(addDays(today, -WATCH_LOOKBACK_DAYS)), now, granted, source),
           listRecentWorkoutLogs(owner.userId, APP_WORKOUTS_SCANNED),
         ]);
         if (!isSessionCurrent(owner)) return;
@@ -115,6 +176,9 @@ export const useHealthConnectStore = create<HealthConnectState>((set, get) => ({
             finishedAt: log.finishedAt,
           })),
           waterGoalMl,
+          sources,
+          source,
+          pickedSource,
         });
       } catch (error) {
         // Never fatal: without the watch's data the app works as before.
@@ -148,6 +212,20 @@ export const useHealthConnectStore = create<HealthConnectState>((set, get) => ({
       await writeWaterGoal(owner.userId, ml);
     } catch (error) {
       logError('healthConnect.waterGoal', error);
+    }
+  },
+  setSource: async (source) => {
+    try {
+      const owner = requireSessionSnapshot();
+      await writePickedSource(owner.userId, source);
+      if (get().userId === owner.userId) set({ pickedSource: source });
+      const { today } = get();
+      if (today === null) return;
+      // A refresh already running read the old pick; read again after it.
+      if (inFlight) await inFlight;
+      await get().refresh(today);
+    } catch (error) {
+      logError('healthConnect.source', error);
     }
   },
 }));

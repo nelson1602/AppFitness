@@ -163,6 +163,8 @@ const REGISTRY: Record<string, readonly Rule[]> = {
     'floor-both',
     'floor',
   ],
+  // ADR-P048 amendment 1: the data-source radio pills, drawn like the language pills.
+  'src/features/health-connect/presentation/HealthSourcePicker.tsx': ['floor'],
   'src/features/workout/presentation/RoutineBuilder.tsx': ['content', 'content'],
   'src/features/workout/presentation/WorkoutLogScreen.tsx': ['floor', 'content'],
   'src/shared/localization/language-selector.tsx': ['floor'],
@@ -207,8 +209,9 @@ it('classifies every production Pressable, and only those', () => {
 // v11-B: the units radios (one Pressable) became a dropdown and its sheet rows (two), and
 // the added cardio got its "Quitar" (one).
 // ADR-P047 D4: "Cerrar sesión y borrar datos de este teléfono" (one).
-it('counts exactly 56 production Pressables', () => {
-  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(56);
+// ADR-P048 amendment 1: the Health Connect data-source pills (one).
+it('counts exactly 57 production Pressables', () => {
+  expect(discovered.reduce((total, { sites }) => total + sites.length, 0)).toBe(57);
 });
 
 describe.each(

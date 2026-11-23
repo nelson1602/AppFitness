@@ -243,3 +243,75 @@ describe('Perfil water goal (ADR-P048)', () => {
     expect(screen.queryByTestId('profile-water-goal')).toBeNull();
   });
 });
+
+describe('Perfil data source (ADR-P048 amendment)', () => {
+  const mockSetSource = jest.fn(() => Promise.resolve());
+  beforeEach(() => {
+    useHealthConnectStore.setState({
+      sources: [
+        { packageName: 'com.hihonor.health', isWatch: false, steps: 156 },
+        { packageName: 'com.sec.android.app.shealth', isWatch: true, steps: 1117 },
+      ],
+      source: 'com.sec.android.app.shealth',
+      pickedSource: null,
+      setSource: mockSetSource,
+    });
+  });
+
+  it('shows the source in use and the apps found, automatic selected', async () => {
+    await render(<HealthConnectSettings status="connected" />);
+    expect(screen.getByTestId('profile-health-source-current')).toHaveTextContent(
+      'Fuente de datos: Samsung Health',
+    );
+    expect(screen.getByTestId('profile-health-source-com.hihonor.health')).toHaveTextContent(
+      'Honor Salud',
+    );
+    expect(screen.getByTestId('profile-health-source-auto')).toHaveProp('accessibilityState', {
+      disabled: false,
+      selected: true,
+    });
+  });
+
+  it('English labels', async () => {
+    mockLanguage = 'en';
+    await render(<HealthConnectSettings status="connected" />);
+    expect(screen.getByTestId('profile-health-source-current')).toHaveTextContent(
+      'Data source: Samsung Health',
+    );
+    expect(screen.getByTestId('profile-health-source-com.hihonor.health')).toHaveTextContent(
+      'Honor Health',
+    );
+  });
+
+  it('picking an app saves it; "Automática" clears the pick', async () => {
+    await render(<HealthConnectSettings status="connected" />);
+    await fireEvent.press(screen.getByTestId('profile-health-source-com.hihonor.health'));
+    expect(mockSetSource).toHaveBeenLastCalledWith('com.hihonor.health');
+    await fireEvent.press(screen.getByTestId('profile-health-source-auto'));
+    expect(mockSetSource).toHaveBeenLastCalledWith(null);
+  });
+
+  it('an unknown app shows its package name; a pick with no data today stays listed', async () => {
+    useHealthConnectStore.setState({
+      sources: [{ packageName: 'com.example.tracker', isWatch: false, steps: 10 }],
+      source: 'com.garmin.android.apps.connectmobile',
+      pickedSource: 'com.garmin.android.apps.connectmobile',
+    });
+    await render(<HealthConnectSettings status="connected" />);
+    expect(screen.getByTestId('profile-health-source-com.example.tracker')).toHaveTextContent(
+      'com.example.tracker',
+    );
+    expect(
+      screen.getByTestId('profile-health-source-com.garmin.android.apps.connectmobile'),
+    ).toHaveProp('accessibilityState', { disabled: false, selected: true });
+  });
+
+  it('hidden when nothing was found and nothing picked, and when not connected', async () => {
+    useHealthConnectStore.setState({ sources: [], source: null, pickedSource: null });
+    await render(<HealthConnectSettings status="connected" />);
+    expect(screen.queryByTestId('profile-health-source')).toBeNull();
+    useHealthConnectStore.setState({ source: 'com.sec.android.app.shealth' });
+    await render(<HealthConnectSettings status="not-connected" />);
+    expect(screen.queryByTestId('profile-health-source')).toBeNull();
+  });
+});

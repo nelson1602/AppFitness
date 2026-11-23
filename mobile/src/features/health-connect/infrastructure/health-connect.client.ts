@@ -11,6 +11,7 @@ import {
   type Permission,
 } from 'react-native-health-connect';
 
+import { pickSessions } from '../domain/data-source';
 import type { WatchSession } from '../domain/watch-activity';
 
 /**
@@ -100,24 +101,37 @@ export interface DayTotals {
   hydrationMl: number | null;
 }
 
-/** Today's totals for the granted types (Health Connect's aggregates avoid duplicates). */
+/** The three types with a daily total (exercise sessions are read separately). */
+export const TOTAL_TYPES = ['Steps', 'ActiveCaloriesBurned', 'Hydration'] as const;
+export type TotalType = (typeof TOTAL_TYPES)[number];
+
+/** Restricts a query to one app's records (ADR-P048 amendment); null = unfiltered. */
+const originFilter = (origin: string | null) =>
+  origin === null ? {} : { dataOriginFilter: [origin] };
+
+/**
+ * Totals for the given types. With `origin`, only that app's records count
+ * (never several apps added together); without it, Health Connect's
+ * unfiltered aggregate, which follows the phone's app priority.
+ */
 export async function readDayTotals(
   startTime: string,
   endTime: string,
-  granted: ReadonlySet<HealthReadType>,
+  types: ReadonlySet<HealthReadType>,
+  origin: string | null = null,
 ): Promise<DayTotals> {
-  const filter = between(startTime, endTime);
+  const filter = { timeRangeFilter: between(startTime, endTime), ...originFilter(origin) };
   const [steps, activeKcal, hydrationMl] = await Promise.all([
-    granted.has('Steps')
-      ? aggregateRecord({ recordType: 'Steps', timeRangeFilter: filter }).then((r) => r.COUNT_TOTAL)
+    types.has('Steps')
+      ? aggregateRecord({ recordType: 'Steps', ...filter }).then((r) => r.COUNT_TOTAL)
       : null,
-    granted.has('ActiveCaloriesBurned')
-      ? aggregateRecord({ recordType: 'ActiveCaloriesBurned', timeRangeFilter: filter }).then(
+    types.has('ActiveCaloriesBurned')
+      ? aggregateRecord({ recordType: 'ActiveCaloriesBurned', ...filter }).then(
           (r) => r.ACTIVE_CALORIES_TOTAL.inKilocalories,
         )
       : null,
-    granted.has('Hydration')
-      ? aggregateRecord({ recordType: 'Hydration', timeRangeFilter: filter }).then(
+    types.has('Hydration')
+      ? aggregateRecord({ recordType: 'Hydration', ...filter }).then(
           (r) => r.VOLUME_TOTAL.inMilliliters,
         )
       : null,
@@ -125,13 +139,80 @@ export async function readDayTotals(
   return { steps, activeKcal, hydrationMl };
 }
 
+/** An app that wrote records in the range, with the types it wrote. */
+export interface FoundOrigin {
+  packageName: string;
+  isWatch: boolean;
+  types: TotalType[];
+}
+
+/**
+ * `Device.TYPE_WATCH` in androidx Health Connect. The library's TypeScript
+ * `DeviceType` enum (4.1.3) omits it; its native side passes the raw int.
+ */
+export const DEVICE_TYPE_WATCH = 1;
+const PAGE_SIZE = 1000;
+/** Bounds the paging: a day never holds this many pages of one type. */
+const MAX_PAGES = 20;
+
+interface RecordMetadata {
+  metadata?: { dataOrigin?: string; device?: { type?: number } | null };
+}
+
+/**
+ * The apps that wrote Steps, active calories or hydration in the range, read
+ * page by page (`pageToken`) for the granted types. Sorted by package name.
+ */
+export async function readOrigins(
+  startTime: string,
+  endTime: string,
+  granted: ReadonlySet<HealthReadType>,
+): Promise<FoundOrigin[]> {
+  const found = new Map<string, { isWatch: boolean; types: Set<TotalType> }>();
+  for (const type of TOTAL_TYPES) {
+    if (!granted.has(type)) continue;
+    let pageToken: string | undefined;
+    for (let page = 0; page < MAX_PAGES; page += 1) {
+      const response = await readRecords(type, {
+        timeRangeFilter: between(startTime, endTime),
+        pageSize: PAGE_SIZE,
+        ...(pageToken ? { pageToken } : {}),
+      });
+      for (const record of response.records as RecordMetadata[]) {
+        const origin = record.metadata?.dataOrigin;
+        if (!origin) continue;
+        const entry = found.get(origin) ?? { isWatch: false, types: new Set<TotalType>() };
+        entry.types.add(type);
+        if (record.metadata?.device?.type === DEVICE_TYPE_WATCH) entry.isWatch = true;
+        found.set(origin, entry);
+      }
+      pageToken = response.pageToken || undefined;
+      if (!pageToken) break;
+    }
+  }
+  return [...found.entries()]
+    .map(([packageName, { isWatch, types }]) => ({
+      packageName,
+      isWatch,
+      types: TOTAL_TYPES.filter((type) => types.has(type)),
+    }))
+    .sort((a, b) => a.packageName.localeCompare(b.packageName));
+}
+
 const MAX_SESSIONS = 100;
 
-/** Exercise sessions in the range, each with the active kcal and steps inside it. */
+/**
+ * Exercise sessions in the range, each with the active kcal and steps inside
+ * it. When two apps wrote the same workout, `pickSessions` keeps one app's
+ * (the chosen source's first). Each session's kcal and steps are read from the
+ * app that wrote it only, so for the chosen source's sessions that is the
+ * source's own filter.
+ */
 export async function readSessions(
   startTime: string,
   endTime: string,
   granted: ReadonlySet<HealthReadType>,
+  source: string | null = null,
 ): Promise<WatchSession[]> {
   if (!granted.has('ExerciseSession')) return [];
   const { records } = await readRecords('ExerciseSession', {
@@ -139,22 +220,31 @@ export async function readSessions(
     ascendingOrder: true,
     pageSize: MAX_SESSIONS,
   });
+  const kept = pickSessions(
+    (records as (RecordMetadata & { startTime: string; endTime: string })[]).map((record) => ({
+      startTime: record.startTime,
+      endTime: record.endTime,
+      origin: record.metadata?.dataOrigin ?? '',
+    })),
+    source,
+  );
   return Promise.all(
-    records.map(async (record) => {
-      const inside = between(record.startTime, record.endTime);
+    kept.map(async ({ startTime: start, endTime: end, origin }) => {
+      const inside = {
+        timeRangeFilter: between(start, end),
+        ...originFilter(origin === '' ? null : origin),
+      };
       const [activeKcal, steps] = await Promise.all([
         granted.has('ActiveCaloriesBurned')
-          ? aggregateRecord({ recordType: 'ActiveCaloriesBurned', timeRangeFilter: inside }).then(
+          ? aggregateRecord({ recordType: 'ActiveCaloriesBurned', ...inside }).then(
               (r) => r.ACTIVE_CALORIES_TOTAL.inKilocalories,
             )
           : null,
         granted.has('Steps')
-          ? aggregateRecord({ recordType: 'Steps', timeRangeFilter: inside }).then(
-              (r) => r.COUNT_TOTAL,
-            )
+          ? aggregateRecord({ recordType: 'Steps', ...inside }).then((r) => r.COUNT_TOTAL)
           : null,
       ]);
-      return { startTime: record.startTime, endTime: record.endTime, activeKcal, steps };
+      return { startTime: start, endTime: end, activeKcal, steps };
     }),
   );
 }

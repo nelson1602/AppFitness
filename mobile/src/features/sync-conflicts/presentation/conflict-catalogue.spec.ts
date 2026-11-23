@@ -230,9 +230,11 @@ describe('catalogue parity', () => {
   // Perfil panel with the water goal (10) (+43, 2008).
   // Watch card copy: the "via Health Connect" subtitle, the empty state and the
   // water ring's percentage (+3, 2011).
-  it('reaches 2011 keys in each language — 1775 shipped plus a 236-key family', () => {
-    expect(Object.keys(en)).toHaveLength(2011);
-    expect(Object.keys(es)).toHaveLength(2011);
+  // Health Connect data source in Perfil: title, current, automatic, hint and
+  // Honor's localized app name (+5, 2016).
+  it('reaches 2016 keys in each language — 1775 shipped plus a 241-key family', () => {
+    expect(Object.keys(en)).toHaveLength(2016);
+    expect(Object.keys(es)).toHaveLength(2016);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 
