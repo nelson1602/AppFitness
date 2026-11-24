@@ -18,4 +18,12 @@ export class DisabledEntitlementProvider implements EntitlementProvider {
   ensureCustomerDeleted(): Promise<void> {
     return Promise.resolve();
   }
+
+  grantPromotional(): Promise<void> {
+    return Promise.reject(new SubscriptionProviderUnavailableError());
+  }
+
+  revokePromotionals(): Promise<void> {
+    return Promise.reject(new SubscriptionProviderUnavailableError());
+  }
 }

@@ -6,13 +6,16 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { AppConfigModule } from '../app-config/app-config.module';
 import { AuthModule } from '../auth/auth.module';
 import { MailModule } from '../mail/mail.module';
+import { SubscriptionModule } from '../subscriptions/subscription.module';
 import {
   ADMIN_CONFIG,
   type AdminConfig,
   resolveAdminConfig,
 } from './admin.config';
+import { AppManagementService } from './application/app-management.service';
 import { MetricsService } from './application/metrics.service';
 import { StaffAuditService } from './application/staff-audit.service';
 import { StaffAuthService } from './application/staff-auth.service';
@@ -21,6 +24,7 @@ import { UserSupportService } from './application/user-support.service';
 import { StaffSecretsService } from './infrastructure/staff-secrets.service';
 import { adminGate } from './presentation/admin-gate.middleware';
 import {
+  AdminAppController,
   AdminAuthController,
   AdminInvitesController,
   AdminStaffController,
@@ -34,12 +38,13 @@ import { StaffSessionGuard } from './presentation/staff-session.guard';
  * audit trail, and support actions that reuse the app's own flows.
  */
 @Module({
-  imports: [AuthModule, MailModule],
+  imports: [AuthModule, MailModule, AppConfigModule, SubscriptionModule],
   controllers: [
     AdminAuthController,
     AdminInvitesController,
     AdminStaffController,
     AdminUsersController,
+    AdminAppController,
   ],
   providers: [
     {
@@ -59,6 +64,7 @@ import { StaffSessionGuard } from './presentation/staff-session.guard';
     StaffManagementService,
     UserSupportService,
     MetricsService,
+    AppManagementService,
     StaffSessionGuard,
   ],
   exports: [ADMIN_CONFIG, StaffManagementService],

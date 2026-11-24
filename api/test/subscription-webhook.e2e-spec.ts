@@ -38,6 +38,8 @@ describe('RevenueCat webhook (e2e)', () => {
     enabled: true,
     getEntitlement: jest.fn(),
     ensureCustomerDeleted: jest.fn().mockResolvedValue(undefined),
+    grantPromotional: jest.fn().mockResolvedValue(undefined),
+    revokePromotionals: jest.fn().mockResolvedValue(undefined),
   };
   const previousEnv = {
     provider: process.env.REVENUECAT_PROVIDER,

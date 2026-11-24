@@ -589,6 +589,157 @@ describe('Staff backoffice (e2e)', () => {
     expect(typeof body.proCount).toBe('number');
   });
 
+  // ─── Amendment 1 (PR 2) ────────────────────────────────────────────────────
+
+  it('publishes app config the owner sets, and audits it', async () => {
+    await request(http)
+      .get('/app-config')
+      .expect(200, { maintenance: null, minAndroidVersionCode: null });
+
+    // Support lacks config.manage.
+    await request(http)
+      .get('/admin/api/config')
+      .set('Cookie', support.cookie)
+      .expect(403);
+
+    // A banner needs both languages.
+    await request(http)
+      .put('/admin/api/config')
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({
+        maintenanceEnabled: true,
+        maintenanceTone: 'warning',
+        maintenanceMessageEs: 'Mantenimiento hoy',
+        maintenanceMessageEn: null,
+        minAndroidVersionCode: null,
+      })
+      .expect(400);
+
+    await request(http)
+      .put('/admin/api/config')
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({
+        maintenanceEnabled: true,
+        maintenanceTone: 'info',
+        maintenanceMessageEs: 'Mantenimiento hoy a las 22:00',
+        maintenanceMessageEn: 'Maintenance today at 22:00',
+        minAndroidVersionCode: 17,
+      })
+      .expect(200);
+
+    const published = await request(http).get('/app-config').expect(200);
+    expect(published.body).toEqual({
+      maintenance: {
+        tone: 'info',
+        message: {
+          es: 'Mantenimiento hoy a las 22:00',
+          en: 'Maintenance today at 22:00',
+        },
+      },
+      minAndroidVersionCode: 17,
+    });
+    expect(published.headers['cache-control']).toBe('public, max-age=60');
+
+    const trail = await prisma.staffAuditLog.findFirst({
+      where: { action: 'config.update', staffId: ownerId },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(trail?.before).toMatchObject({ maintenanceEnabled: false });
+    expect(trail?.after).toMatchObject({ minAndroidVersionCode: 17 });
+
+    // Back to the defaults, so no other suite sees a banner.
+    await request(http)
+      .put('/admin/api/config')
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({
+        maintenanceEnabled: false,
+        maintenanceTone: 'warning',
+        maintenanceMessageEs: null,
+        maintenanceMessageEn: null,
+        minAndroidVersionCode: null,
+      })
+      .expect(200);
+  });
+
+  it('exports the user list as CSV: account fields only, audited', async () => {
+    const user = await registerUser('csv');
+    await prisma.bodyWeight.create({
+      data: {
+        id: randomUUID(),
+        userId: user.id,
+        weightKg: 81.9,
+        date: new Date('2026-11-02'),
+      },
+    });
+    const response = await request(http)
+      .get('/admin/api/export/users.csv')
+      .query({ q: user.email })
+      .set('Cookie', support.cookie)
+      .expect(200);
+    expect(response.headers['content-type']).toContain('text/csv');
+    expect(response.headers['content-disposition']).toMatch(
+      /attachment; filename="usuarios-\d{4}-\d{2}-\d{2}\.csv"/,
+    );
+    const lines = response.text.replace(/^﻿/, '').trim().split('\r\n');
+    expect(lines[0]).toBe(
+      'id,email,username,created_at,email_verified,status,last_login_at,device_count,last_sync_at,is_pro',
+    );
+    expect(lines).toHaveLength(2);
+    expect(lines[1].startsWith(`${user.id},${user.email},`)).toBe(true);
+    expect(response.text).not.toContain('81.9');
+
+    const audit = await prisma.staffAuditLog.findFirst({
+      where: { action: 'user.export', staffId: support.id },
+    });
+    expect(audit?.after).toEqual({ q: user.email, status: null, rows: 1 });
+  });
+
+  it('gates subscription reads and promotional grants by permission', async () => {
+    const user = await registerUser('promo');
+    // Support holds neither subscription permission.
+    await request(http)
+      .get(`/admin/api/users/${user.id}/subscription`)
+      .set('Cookie', support.cookie)
+      .expect(403);
+    await request(http)
+      .post(`/admin/api/users/${user.id}/subscription/promotional`)
+      .set(CSRF)
+      .set('Cookie', support.cookie)
+      .send({ duration: 'monthly' })
+      .expect(403);
+
+    // Payments are off in this suite: the read shows the mirror, the grant
+    // answers 503, and nothing is audited as granted.
+    const read = await request(http)
+      .get(`/admin/api/users/${user.id}/subscription`)
+      .set('Cookie', owner.cookie)
+      .expect(200);
+    expect(read.body).toMatchObject({
+      mirror: { state: 'UNKNOWN' },
+      provider: { available: false, snapshot: null },
+    });
+    await request(http)
+      .post(`/admin/api/users/${user.id}/subscription/promotional`)
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({ duration: 'forever' })
+      .expect(400);
+    await request(http)
+      .post(`/admin/api/users/${user.id}/subscription/promotional`)
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({ duration: 'monthly' })
+      .expect(503);
+    expect(
+      await prisma.staffAuditLog.count({
+        where: { action: 'subscription.grant_promotional', targetId: user.id },
+      }),
+    ).toBe(0);
+  });
+
   it('disables a staff member instantly', async () => {
     await request(http)
       .get('/admin/api/users')

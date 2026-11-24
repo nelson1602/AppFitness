@@ -8,7 +8,7 @@ export interface StaffAuditEntry {
   action: StaffAuditAction;
   staffId?: string | null;
   staffEmail?: string | null;
-  targetType?: 'staff' | 'role' | 'user';
+  targetType?: 'staff' | 'role' | 'user' | 'config';
   targetId?: string;
   /** Account and support fields only — never health data, never a secret. */
   before?: Record<string, unknown>;

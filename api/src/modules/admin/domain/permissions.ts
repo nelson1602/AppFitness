@@ -55,6 +55,11 @@ export const STAFF_AUDIT_ACTIONS = [
   'user.suspend',
   'user.reactivate',
   'user.delete',
+  // Amendment 1 (PR 2).
+  'config.update',
+  'user.export',
+  'subscription.grant_promotional',
+  'subscription.revoke_promotional',
 ] as const;
 
 export type StaffAuditAction = (typeof STAFF_AUDIT_ACTIONS)[number];

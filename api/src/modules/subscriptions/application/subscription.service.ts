@@ -17,6 +17,7 @@ import {
   ENTITLEMENT_PROVIDER,
   type EntitlementProvider,
   type ParsedRevenueCatEvent,
+  type PromotionalDuration,
   type ProviderEntitlementSnapshot,
   type SubscriptionStatusView,
   type WebhookIngestionResult,
@@ -513,10 +514,53 @@ export class SubscriptionService {
     });
   }
 
+  /**
+   * ADR-P049 amendment 1: the live provider view for the backoffice. Read
+   * only; the local mirror is not touched.
+   */
+  async providerSnapshot(userId: string): Promise<ProviderEntitlementSnapshot> {
+    this.assertProviderEnabled();
+    return this.fetchSnapshot(userId);
+  }
+
+  /**
+   * ADR-P049 amendment 1: staff grant or revoke promotional access through
+   * RevenueCat (the provider stays the authority, ADR-P034), then the mirror
+   * is refreshed from a fresh fetch at once, bypassing the reconcile spacing,
+   * so the person's access follows without waiting for a webhook.
+   */
+  async staffChangePromotional(
+    userId: string,
+    change: { grant: PromotionalDuration } | { revoke: true },
+  ): Promise<SubscriptionStatusView> {
+    this.assertProviderEnabled();
+    try {
+      if ('grant' in change) {
+        await this.provider.grantPromotional(userId, change.grant);
+      } else {
+        await this.provider.revokePromotionals(userId);
+      }
+    } catch {
+      throw new ServiceUnavailableException(
+        'The subscription provider did not accept the change',
+      );
+    }
+    const snapshot = await this.fetchSnapshot(userId);
+    const changed = await this.persistSnapshot(
+      userId,
+      snapshot,
+      null,
+      null,
+      new Date(),
+    );
+    if (changed) await this.auditEntitlementChange(userId, snapshot, 'staff');
+    return this.getStatus(userId);
+  }
+
   private auditEntitlementChange(
     userId: string,
     snapshot: ProviderEntitlementSnapshot,
-    source: 'manual' | 'webhook',
+    source: 'manual' | 'webhook' | 'staff',
   ): Promise<void> {
     return this.audit.record({
       action: AuditAction.SUBSCRIPTION_ENTITLEMENT_CHANGE,

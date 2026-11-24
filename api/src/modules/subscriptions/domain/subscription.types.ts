@@ -11,10 +11,31 @@ export interface ProviderEntitlementSnapshot {
   willRenew: boolean | null;
 }
 
+/**
+ * RevenueCat promotional durations the backoffice may grant (ADR-P049
+ * amendment 1). A subset of the provider's list, from a week to lifetime.
+ */
+export const PROMOTIONAL_DURATIONS = [
+  'weekly',
+  'monthly',
+  'three_month',
+  'six_month',
+  'yearly',
+  'lifetime',
+] as const;
+export type PromotionalDuration = (typeof PROMOTIONAL_DURATIONS)[number];
+
 export interface EntitlementProvider {
   readonly enabled: boolean;
   getEntitlement(userId: string): Promise<ProviderEntitlementSnapshot>;
   ensureCustomerDeleted(userId: string): Promise<void>;
+  /** Grants the paid entitlement as a RevenueCat promotional (staff only). */
+  grantPromotional(
+    userId: string,
+    duration: PromotionalDuration,
+  ): Promise<void>;
+  /** Revokes every promotional of the paid entitlement (staff only). */
+  revokePromotionals(userId: string): Promise<void>;
 }
 
 export class SubscriptionProviderUnavailableError extends Error {

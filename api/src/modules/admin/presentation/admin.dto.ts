@@ -2,9 +2,11 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsDate,
   IsEmail,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -17,6 +19,10 @@ import {
 } from 'class-validator';
 import { UserStatus } from '@prisma/client';
 
+import {
+  PROMOTIONAL_DURATIONS,
+  type PromotionalDuration,
+} from '../../subscriptions/domain/subscription.types';
 import { STAFF_PASSWORD_MAX } from '../domain/staff.types';
 
 const TOKEN = /^[A-Za-z0-9_-]{20,100}$/;
@@ -176,4 +182,46 @@ export class DeleteUserDto {
   @IsString()
   @MaxLength(320)
   confirmEmail!: string;
+}
+
+// ─── Amendment 1 (PR 2) ──────────────────────────────────────────────────────
+
+export class UpdateAppConfigDto {
+  @IsBoolean()
+  maintenanceEnabled!: boolean;
+
+  @IsIn(['info', 'warning'])
+  maintenanceTone!: 'info' | 'warning';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  maintenanceMessageEs!: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  maintenanceMessageEn!: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(2_100_000_000)
+  minAndroidVersionCode!: number | null;
+}
+
+export class UserExportQuery {
+  @IsOptional()
+  @IsString()
+  @MaxLength(320)
+  q?: string;
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
+}
+
+export class GrantPromotionalDto {
+  @IsIn(PROMOTIONAL_DURATIONS)
+  duration!: PromotionalDuration;
 }
