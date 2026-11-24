@@ -15907,6 +15907,54 @@ ADR-P039, ADR-P040 (Addendum v11-B), ADR-P047, `.ai/05_SECURITY.md`, `docs/desig
 
 ---
 
+## ADR-P049 — Staff Backoffice (Custom Panel): Staff Identity, RBAC, Audit, Support
+
+Status: Proposed with PR 1 of the backoffice; the owner accepts it by merging that PR
+Date: 2026-11-24
+Owner: Backend / Security
+Supersedes: nothing. Adds technologies to `.ai/02_TECH_STACK.md` for `admin/` only (D10).
+
+### Context
+
+The owner needs a backoffice to support users (verification, password reset, lockouts, sessions, suspension, deletion), see account metrics and, in a later PR, manage the catalogue, app config and promotional subscriptions. Owner choice (2026-11-24): a custom panel — NestJS API routes plus a Vite/React SPA in `admin/`, served at `/admin`, Spanish UI — delivered in two PRs. This ADR covers PR 1 (foundation and support); PR 2 adds an amendment.
+
+### Decision
+
+**D1 Separate staff identity.** Staff are `staff_users`, never rows of `users`: no foreign key, no shared session, no shared audit table. A staff member is `INVITED`, `ACTIVE` or `DISABLED` and holds exactly one role. Emails are normalized like app emails.
+
+**D2 Sign-in.** Email + password (Argon2, via the app's `PasswordService`) opens a 5-minute MFA-pending session; a TOTP code (RFC 6238, SHA-1, 6 digits, 30 s, ±1 step, each step accepted once) replaces it with a new ACTIVE session. A pending session is never accepted by any route. Sessions are opaque 32-byte tokens; only HMAC-SHA256(`ADMIN_SESSION_SECRET`, token) is stored. A session ends on logout, after 15 minutes idle, 8 hours after sign-in, or when the staff member's `session_version` moves (disable, role change). Five wrong codes revoke a pending session. TOTP is implemented on `node:crypto` (no dependency); secrets are AES-256-GCM encrypted with `ADMIN_TOTP_ENC_KEY`.
+
+**D3 Brute force and CSRF.** Per-IP route throttles (10 sign-in attempts / 15 min per step, 20 invite calls / 15 min) and the per-account backoff of ADR-P046 (`login_attempts`, key `staff:<email>`), counting password and TOTP failures. Unknown addresses pay a dummy Argon2 run and get the same answer. The session cookie is `__Host-af_admin` (Secure, HttpOnly, SameSite=Strict, Path=/). Every state-changing request must carry `X-Admin-CSRF: 1`; the API's CORS stays fail-closed, so a cross-site page cannot send it. All `/admin/api` responses are `no-store`.
+
+**D4 Invites.** Staff are created only by invite: a one-time token (HMAC stored), 72 h (24 h for the owner bootstrap), emailed as `<ADMIN_PUBLIC_URL>/#/invitacion?token=…` (fragment, never in a request line). The invitee sets their own password (12–128 characters, not their email) and enrolls TOTP by confirming a code; only then is the account ACTIVE and the invite spent. Creating a new invite invalidates the previous one. Nobody else ever sees or sets a staff password.
+
+**D5 Bootstrap.** `npm run admin:bootstrap -- <email>` (from `api/`, with the target environment's variables) creates the owner as an INVITED `SUPER_ADMIN`, prints the invite link to that terminal, and emails it when mail is configured. It is refused once an owner is ACTIVE. There are no default credentials.
+
+**D6 RBAC.** Twelve permissions: `users.read`, `users.support`, `users.suspend`, `users.delete`, `subscriptions.read`, `subscriptions.grant`, `metrics.read`, `catalog.manage`, `config.manage`, `audit.read`, `staff.manage`, `roles.manage`. `SUPER_ADMIN` is a seeded system role (fixed id) with all of them. Custom roles are sets of permissions edited in the UI, but `staff.manage` and `roles.manage` are reserved for the system role, so only the owner manages staff, roles and permissions. The owner cannot be deleted, demoted, disabled or edited, a system role cannot be assigned, edited or deleted, and nobody can change their own account. Each rule is enforced in the service and again by database triggers. Every backoffice route declares its permission; `StaffSessionGuard` refuses a route that declares none (fail closed). Role and permissions are read from the database on every request, so changes apply at once.
+
+**D7 No health data.** The backoffice reads only `users.id, email, username, status, email_verified_at, created_at`, plus activity facts: last login (from `audit_logs`), device rows, last sync time, failed sync operations (entity type, verb, status, error code, time — never payloads), the login-throttle row, and whether a Pro entitlement is active. It never reads profiles, goals, evaluations, wellness answers, meals, weights, measurements, progress or Health Connect data. A unit spec pins the selected columns, and an e2e test seeds health values and proves none appear in list or detail responses.
+
+**D8 Support actions reuse the app's flows.** Resend verification and send password reset call the existing services (staff never see or set passwords). Clear throttle deletes the account's `login_attempts` row. Log out everywhere is ADR-P046's `logoutAll`. Suspend sets `SUSPENDED` and logs out everywhere; reactivate restores `ACTIVE`. **Delete is permanent**: it is the person's own account-deletion erase (ADR-P011 cascade, RevenueCat customer first), split into `AuthService.eraseAccount` so staff can call it after typing the account's exact email. AppFitness has no soft delete for accounts. Each action needs its permission (`users.support`, `users.suspend`, `users.delete`).
+
+**D9 Staff audit trail.** `staff_audit_logs` records every staff action, sign-in, failed sign-in (step only) and logout: staff id and email snapshot, action, target type and id, before and after (account fields only), client address (resolved like the rate limiter's), time. It is append-only: triggers refuse UPDATE, DELETE and TRUNCATE. Unlike the app's audit writer, a failed staff audit write fails the request. A deleted person's email never enters the trail. Staff with `audit.read` can view and filter it.
+
+**D10 Front end.** `admin/` is a Vite 8 + React 19 + TypeScript 5 SPA, tested with Vitest and Testing Library, linted with ESLint 9 and Prettier, with exact pinned versions at least 14 days old and no router, UI kit or state library. Hash routes; Spanish copy in one module; light and dark themes; 44 px targets. It never stores a token: the session is the HttpOnly cookie. These technologies are approved for `admin/` only. A separate `admin-ci` workflow checks it. The API serves `admin/dist` at `/admin` only when the backoffice is configured and the build exists.
+
+**D11 Configuration.** `ADMIN_SESSION_SECRET` (≥32 bytes), `ADMIN_TOTP_ENC_KEY` (base64 of 32 bytes) and `ADMIN_PUBLIC_URL` (HTTPS) are set together or not at all; with none, every `/admin/api` route answers 503 and the SPA is not served; a partial or malformed set fails boot. `ADMIN_STATIC_DIR` optionally points at the SPA build.
+
+### Consequences
+
+- **Positive:** support work no longer needs database access; every staff action is attributable and permanent in the trail; staff cannot reach health data.
+- **Negative:** a second front end and toolchain to keep current; staff accounts need an authenticator app; the owner must set three secrets per environment.
+- **Deployment (not in PR 1):** the API image does not yet build or include `admin/dist`; serving `/admin` on Railway needs a Dockerfile and build change, done when the owner chooses to deploy.
+- **PR 2:** catalogue management, app config (maintenance banner, minimum app version), RevenueCat promotional grants and CSV export, as an amendment to this ADR.
+
+### Related Documents
+
+ADR-P011, ADR-P026, ADR-P034, ADR-P041, ADR-P046, `.ai/05_SECURITY.md`, `api/DEPLOYMENT.md`, `admin/README.md`
+
+---
+
 # AI Instructions
 
 Every AI agent working on AppFitness must read this file before proposing architectural changes.

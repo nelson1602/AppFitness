@@ -10197,6 +10197,49 @@ Owner requirement: "País" on sign-up and Editar perfil (device region, else Rep
 
 ---
 
+## [FEATURE-018] Staff Backoffice (custom panel at /admin)
+
+Status: In Progress (PR 1 open; PR 2 after PR 1 merges)
+Priority: P1
+Type: Feature
+Owner: Project owner (decisions, merges, secrets) · Engineering (delivery)
+Created: 2026-11-24
+Updated: 2026-11-24
+
+### Description
+
+Owner request 2026-11-24: a full admin backoffice in two PRs, as a custom panel (NestJS API + Vite/React SPA in `admin/`, served at `/admin`, Spanish UI). Separate staff accounts with mandatory TOTP, owner-managed RBAC, an append-only staff audit trail, and no access to health data. Recorded in ADR-P049.
+
+### Acceptance Criteria
+
+PR 1 — foundation and support:
+
+* [x] Staff, role, permission, invite, session and audit tables + migration (triggers: immutable owner and system role, owner-only permissions, append-only audit)
+* [x] Sign-in with Argon2 password + TOTP, short sessions, throttling, CSRF header, invites, bootstrap command
+* [x] Staff and role management screens (owner only)
+* [x] User search, list and detail (account and support fields only)
+* [x] Support actions with confirmation and audit: resend verification, password-reset email, clear throttle, log out everywhere, suspend/reactivate, permanent delete with typed email
+* [x] Dashboard: totals, new per day (30 d), verified %, active 7 d, Pro count
+* [x] Tests: 403 without permission, blocked without 2FA, immutable owner, each action and its audit entry, no health data returned
+* [ ] Owner sets `ADMIN_*` secrets and runs `admin:bootstrap` per environment
+* [ ] API image builds and ships `admin/dist` (deployment change, not in PR 1)
+
+PR 2 — app management (after PR 1 merges):
+
+* [ ] Catalogue CRUD for exercises and foods (soft delete, versioned, sync-consistent)
+* [ ] App config: maintenance banner, minimum supported app version ("update required" in mobile)
+* [ ] Subscriptions: read RevenueCat entitlement; grant/revoke promotional Pro (`subscriptions.grant`, audited)
+* [ ] CSV export of the user list (no health data), permission-gated and audited
+* [ ] ADR-P049 amendment
+
+### Related Documents
+
+* .ai/12_DECISIONS.md (ADR-P049)
+* api/DEPLOYMENT.md (`ADMIN_*` variables, bootstrap)
+* admin/README.md
+
+---
+
 # Research Backlog
 
 ## [RESEARCH-001] SQLite Encryption Strategy
