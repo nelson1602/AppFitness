@@ -304,6 +304,18 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    await this.eraseAccount(userId);
+  }
+
+  /**
+   * The erase itself, after the caller has been authorized: the account's own
+   * password above, or a backoffice staff member with `users.delete` and the
+   * typed email confirmation (ADR-P049). Same steps and order either way.
+   */
+  async eraseAccount(
+    userId: string,
+    metadata?: Record<string, unknown>,
+  ): Promise<void> {
     // Provider deletion is intentionally first. If it fails, keep the local
     // account/session reachable so the user can retry; deleting locally first
     // would strand the external customer with no authenticated retry path.
@@ -311,7 +323,11 @@ export class AuthService {
 
     // Record the completed-deletion event while the user still exists; it
     // is de-linked below along with the user's other audit rows.
-    await this.audit.record({ action: AuditAction.ACCOUNT_DELETE, userId });
+    await this.audit.record({
+      action: AuditAction.ACCOUNT_DELETE,
+      userId,
+      metadata,
+    });
 
     await this.prisma.$transaction(async (tx) => {
       // Sever the personal link on the immutable audit rows (ADR-P011

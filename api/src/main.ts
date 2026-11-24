@@ -6,6 +6,7 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
+import { configureAdminSpa } from './modules/admin/presentation/admin-spa';
 import { setupApiDocs } from './config/api-docs.config';
 import { buildWebCorsOptions } from './config/cors.config';
 import {
@@ -50,6 +51,9 @@ async function bootstrap(): Promise<void> {
   // ONLY when API_DOCS_ENABLED === 'true' (local development). Unset on both
   // hosted Railway tiers, so docs stay off in Development and Production.
   setupApiDocs(app, process.env.API_DOCS_ENABLED);
+
+  // Staff backoffice SPA at /admin (ADR-P049), only when configured and built.
+  configureAdminSpa(app);
 
   // Graceful shutdown (ADR-P021 H-1A): Nest drives the existing Prisma
   // onModuleDestroy ($disconnect) on SIGTERM/SIGINT (Railway deploy replacement).
