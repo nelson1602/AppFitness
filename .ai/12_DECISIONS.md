@@ -15942,6 +15942,18 @@ The owner needs a backoffice to support users (verification, password reset, loc
 
 **D11 Configuration.** `ADMIN_SESSION_SECRET` (≥32 bytes), `ADMIN_TOTP_ENC_KEY` (base64 of 32 bytes) and `ADMIN_PUBLIC_URL` (HTTPS) are set together or not at all; with none, every `/admin/api` route answers 503 and the SPA is not served; a partial or malformed set fails boot. `ADMIN_STATIC_DIR` optionally points at the SPA build.
 
+### Amendment 1 (2026-11-25) — app management (PR 2)
+
+**A1 App config.** One `app_config` row (CHECK: single row, tone `info|warning`, minimum > 0, banner text in both languages when enabled), edited by `config.manage` and audited (`config.update`, before/after). The app reads it at `GET /app-config` (public, no account data, `Cache-Control: public, max-age=60`) on start and on returning to the foreground, and shows the maintenance banner in its own language at the top of the tab shell and on sign-in. Failures are silent; the last good value is kept. There were no server-driven feature flags to bring under this; build-time flags (`EXPO_PUBLIC_*`) stay as they are.
+
+**A2 Minimum app version.** `minAndroidVersionCode` is stored, published and parsed by the app, but not yet enforced: the app cannot read its own versionCode without `expo-application` (expo-constants no longer provides it), a new native dependency awaiting the owner's decision. Builds before the one that enforces it can never show "update required".
+
+**A3 Promotional Pro.** `subscriptions.grant` grants (`weekly` … `lifetime`) or revokes promotional access through RevenueCat v1 (`…/entitlements/{id}/promotional`, `…/revoke_promotionals`); RevenueCat stays the authority (ADR-P034). The mirror is refreshed from a fresh fetch at once (not subject to the 30 s reconcile spacing) and the app audit records `source: staff`; the staff trail records before/after state. `subscriptions.read` shows the mirror and the live RevenueCat view. With payments off, reads show the mirror and changes answer 503.
+
+**A4 CSV export.** `GET /admin/api/export/users.csv` (permission `users.read`, the same that shows the list on screen) exports the list's own account columns with the list's filter: CSV-injection safe (formula prefixes neutralized), UTF-8 with BOM, at most 50,000 rows, audited with the filter and row count (never the rows).
+
+**A5 Catalogue management — pending owner decision.** Phones receive the built-in foods and exercises only from the app bundle (foods also from search/import results); there is no pull of shared catalogue rows. A server-side add or edit therefore never reaches existing phones, and a soft delete (`deleted_at`) makes phones' later meal items and workout sets referencing it fail sync (`CATALOG_REVISION_UNSUPPORTED`, `assertExerciseReady`). Revisions are immutable (ADR-P012, ADR-P013, ADR-P045). Not built until the owner chooses the semantics.
+
 ### Consequences
 
 - **Positive:** support work no longer needs database access; every staff action is attributable and permanent in the trail; staff cannot reach health data.

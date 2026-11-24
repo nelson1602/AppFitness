@@ -10199,7 +10199,7 @@ Owner requirement: "País" on sign-up and Editar perfil (device region, else Rep
 
 ## [FEATURE-018] Staff Backoffice (custom panel at /admin)
 
-Status: In Progress (PR 1 open; PR 2 after PR 1 merges)
+Status: In Progress (PR 1 merged 2026-11-24 as #272; image PR #273; PR 2 open, catalogue and min-version enforcement pending owner decisions)
 Priority: P1
 Type: Feature
 Owner: Project owner (decisions, merges, secrets) · Engineering (delivery)
@@ -10226,11 +10226,12 @@ PR 1 — foundation and support:
 
 PR 2 — app management (after PR 1 merges):
 
-* [ ] Catalogue CRUD for exercises and foods (soft delete, versioned, sync-consistent)
-* [ ] App config: maintenance banner, minimum supported app version ("update required" in mobile)
-* [ ] Subscriptions: read RevenueCat entitlement; grant/revoke promotional Pro (`subscriptions.grant`, audited)
-* [ ] CSV export of the user list (no health data), permission-gated and audited
-* [ ] ADR-P049 amendment
+* [ ] Catalogue CRUD for exercises and foods (soft delete, versioned, sync-consistent) — blocked on owner decision (ADR-P049 A5: phones get the catalogue only from the bundle)
+* [x] App config: maintenance banner (API, panel, app shell and sign-in)
+* [ ] Minimum supported app version: stored and published; "update required" in mobile needs `expo-application` (owner decision, ADR-P049 A2)
+* [x] Subscriptions: read RevenueCat entitlement; grant/revoke promotional Pro (`subscriptions.grant`, audited)
+* [x] CSV export of the user list (no health data), permission-gated and audited
+* [x] ADR-P049 amendment 1 (A5 catalogue pending)
 
 ### Related Documents
 
