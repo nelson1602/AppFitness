@@ -28,6 +28,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       admin: ${{ steps.filter.outputs.admin }}
+      image: ${{ steps.filter.outputs.image }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -46,6 +47,7 @@ jobs:
           if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
             echo "Base commit unavailable; running admin-ci conservatively (admin=true)."
             echo "admin=true" >> "$GITHUB_OUTPUT"
+            echo "image=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           changed="$(git diff --name-only "$base" HEAD)"
@@ -55,6 +57,13 @@ jobs:
             echo "admin=true" >> "$GITHUB_OUTPUT"
           else
             echo "admin=false" >> "$GITHUB_OUTPUT"
+          fi
+          # The repo-root image (ADR-P049) bundles api/ and admin/, so a change
+          # to either, or to the image files, rebuilds and probes it.
+          if printf '%s\n' "$changed" | grep -qE '^(admin/|api/|Dockerfile$|\.dockerignore$|\.github/workflows/admin-ci\.yml$)'; then
+            echo "image=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "image=false" >> "$GITHUB_OUTPUT"
           fi
 
   quality:
@@ -103,3 +112,77 @@ jobs:
         # untouched, so the default `admin` working directory does not exist.
         working-directory: ${{ github.workspace }}
         run: echo "No admin/** changes in this event — skipping admin quality checks."
+
+  # Builds the repo-root Dockerfile (API + SPA) and proves the container serves
+  # /admin when the backoffice is configured, and hides it (404, API 503) when
+  # it is not. CI-only throwaway values; nothing is pushed anywhere.
+  image:
+    name: 'Image: repo-root Dockerfile serves /admin'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: appfitness_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d appfitness_ci"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 15
+    defaults:
+      run:
+        working-directory: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: needs.changes.outputs.image == 'true'
+
+      - name: Build the image
+        if: needs.changes.outputs.image == 'true'
+        run: docker build -t appfitness-admin-ci .
+
+      - name: Run it with and without the backoffice secrets, and probe
+        if: needs.changes.outputs.image == 'true'
+        run: |
+          set -euo pipefail
+          common=(
+            --network host
+            -e DATABASE_URL=postgresql://ci:ci@localhost:5432/appfitness_ci
+            -e JWT_ACCESS_SECRET=ci_only_jwt_secret_not_a_real_secret_0000000001
+            -e MEDICAL_ENC_KEY=BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
+            -e MEDICAL_ENC_KEY_ID=ci-dummy-1
+            -e REVENUECAT_PROVIDER=disabled
+          )
+          docker run -d --name on "${common[@]}" -e PORT=3101 \
+            -e ADMIN_SESSION_SECRET=ci_only_admin_session_secret_0000000000001 \
+            -e ADMIN_TOTP_ENC_KEY=CQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQk= \
+            -e ADMIN_PUBLIC_URL=http://localhost:3101/admin \
+            appfitness-admin-ci
+          docker run -d --name off "${common[@]}" -e PORT=3102 appfitness-admin-ci
+          for port in 3101 3102; do
+            for i in $(seq 1 60); do
+              curl -sf "http://localhost:$port/health" >/dev/null && break
+              sleep 1
+            done
+          done
+          code() { curl -s -o /dev/null -w '%{http_code}' "$1"; }
+          curl -sf http://localhost:3101/admin/ -o index.html
+          asset="$(grep -o '/admin/assets/[^"]*\.js' index.html | head -1)"
+          test "$(code "http://localhost:3101$asset")" = 200
+          test "$(code http://localhost:3101/admin/api/auth/me)" = 401
+          test "$(code http://localhost:3102/admin/)" = 404
+          test "$(code http://localhost:3102/admin/api/auth/me)" = 503
+          echo "Configured: /admin served, API 401 without a session. Unconfigured: /admin 404, API 503."
+
+      - name: Container logs (on failure)
+        if: failure() && needs.changes.outputs.image == 'true'
+        run: docker logs on; docker logs off
+
+      - name: No-op (image inputs unchanged)
+        if: needs.changes.outputs.image != 'true'
+        run: echo "No api/, admin/ or image changes — skipping the image check."
