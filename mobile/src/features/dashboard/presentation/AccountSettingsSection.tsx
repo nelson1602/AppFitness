@@ -3,10 +3,12 @@ import { useState, useSyncExternalStore } from 'react';
 import { View } from 'react-native';
 
 import { dismissedUserSnapshot, subscribeToReminder, useSession } from '@/features/authentication';
+import { useHealthConnectStore } from '@/features/health-connect/application/health-connect.store';
 // Direct import: the barrel would also load the subscription store composition.
 import { SubscriptionAccessNotice } from '@/features/subscriptions/presentation/SubscriptionAccessNotice';
 import { SubscriptionRequiredNotice } from '@/features/subscriptions/presentation/SubscriptionRequiredNotice';
 import { WellnessSafetyRecommendationCard } from '@/features/wellness';
+import { useLocalDay } from '@/shared/application/local-day';
 import { useEntitlementAccess } from '@/shared/application/use-entitlement-access';
 import { interpolate, formatNumber, useLocalization } from '@/shared/localization';
 import { AppButton, Banner, GlassRow, PaidWriteDisabledProvider } from '@/shared/presentation';
@@ -149,6 +151,10 @@ export function AccountSettingsSection() {
             label={t('dashboard.syncNow')}
             onPress={() => {
               void syncNow({ retryFailedNow: true });
+              // ADR-P048 amendment: syncing also re-reads Health Connect (on the
+              // phone only), so a fixed source shows without leaving Perfil.
+              const watch = useHealthConnectStore.getState();
+              if (watch.status !== 'off') void watch.refresh(useLocalDay.getState().today);
             }}
             testID="dashboard-sync-now"
           />

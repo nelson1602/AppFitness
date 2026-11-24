@@ -13,6 +13,7 @@ import { useTheme } from '@/shared/theme';
 
 import { useHealthConnectStore, type WatchStatus } from '../application/health-connect.store';
 import { parseWaterGoal } from '../domain/watch-activity';
+import { HealthSourcePicker } from './HealthSourcePicker';
 
 const STATUS_KEY: Partial<Record<WatchStatus, TranslationKey>> = {
   connected: 'profile.watch.connected',
@@ -22,8 +23,9 @@ const STATUS_KEY: Partial<Record<WatchStatus, TranslationKey>> = {
 
 /**
  * Perfil → "Reloj y Health Connect" (ADR-P048): the connection, which opens
- * the rationale screen, and the person's own water goal (local, no default,
- * never synced). Rendered by Perfil only when the watch UI shows.
+ * the rationale screen, the data source (which app's data are read), and the
+ * person's own water goal (local, no default, never synced). Rendered by
+ * Perfil only when the watch UI shows.
  */
 export function HealthConnectSettings({ status }: { status: WatchStatus }) {
   const { spacing } = useTheme();
@@ -62,6 +64,7 @@ export function HealthConnectSettings({ status }: { status: WatchStatus }) {
         onPress={() => router.push('/health-connect')}
         testID="profile-health-connect"
       />
+      {status === 'connected' ? <HealthSourcePicker /> : null}
       {status === 'connected' ? (
         <View style={{ gap: spacing.sm }} testID="profile-water-goal">
           <AppText tone="onStage" variant="label">

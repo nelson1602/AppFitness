@@ -212,6 +212,12 @@ export const es = {
   'profile.waterGoal.clear': 'Quitar meta',
   'profile.waterGoal.invalid': 'Escribe un número entero entre 250 y 6000.',
   'profile.waterGoal.saved': 'Meta guardada: {goal}',
+  'profile.source.title': 'Fuente de datos',
+  'profile.source.current': 'Fuente de datos: {source}',
+  'profile.source.auto': 'Automática',
+  'profile.source.hint':
+    'Si tu teléfono y tu reloj son de marcas distintas, elige la app de tu reloj.',
+  'profile.source.honor': 'Honor Salud',
   'notifications.time.today': 'Hoy',
   'notifications.time.yesterday': 'Ayer',
   'notifications.time.daysAgo': 'Hace {count} días',

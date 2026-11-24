@@ -49,10 +49,12 @@ const SQL_WRITE = /INSERT INTO|UPDATE [a-z_]+\s+SET|DELETE FROM/;
  * (v10 Block B) are catalogue rows the server already holds, never enqueued;
  * v11-B only fills in a missing brand there (display data, not a user record).
  * Saving the food itself is gated where the server import happens. The water
- * goal (ADR-P048) is a device preference in `app_metadata`, never synced.
+ * goal (ADR-P048) is a device preference in `app_metadata`, never synced, and
+ * so is the picked Health Connect source (ADR-P048 amendment 1).
  */
 const UNTRACKED_REPOSITORIES = new Set([
   'features/authentication/infrastructure/local-user.repository.ts',
+  'features/health-connect/infrastructure/data-source.repository.ts',
   'features/health-connect/infrastructure/water-goal.repository.ts',
   'features/notifications/infrastructure/notification-read.repository.ts',
   'features/nutrition/infrastructure/saved-foods.repository.ts',

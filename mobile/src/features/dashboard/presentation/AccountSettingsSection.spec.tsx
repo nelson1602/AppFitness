@@ -17,6 +17,18 @@ const loadSampleData = jest.fn();
 
 let mockStoreState: DashboardState;
 let mockLanguage: 'en' | 'es' = 'en';
+// ADR-P048 amendment: the sync row also re-reads Health Connect unless it is off.
+let mockWatchStatus: string | null = 'connected';
+const mockWatchRefresh = jest.fn(() => Promise.resolve());
+
+jest.mock('@/features/health-connect/application/health-connect.store', () => ({
+  useHealthConnectStore: {
+    getState: () => ({ status: mockWatchStatus, refresh: mockWatchRefresh }),
+  },
+}));
+jest.mock('@/shared/application/local-day', () => ({
+  useLocalDay: { getState: () => ({ today: '2026-11-23' }) },
+}));
 
 jest.mock('../application/dashboard.store', () => ({
   useDashboardStore: () => mockStoreState,
@@ -378,6 +390,26 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
     // BUG-054: a tap retries what is waiting out its backoff.
     expect(syncNow).toHaveBeenCalledWith({ retryFailedNow: true });
   });
+
+  it.each([
+    ['connected', true],
+    ['not-connected', true],
+    [null, true],
+    ['off', false],
+  ])(
+    'sync also re-reads Health Connect for today when its status is %s: %s',
+    async (status, reads) => {
+      mockWatchStatus = status;
+      mockWatchRefresh.mockClear();
+      setStore({ status: 'ready', data: baseData });
+      await render(<AccountSettingsSection />);
+      fireEvent.press(screen.getByTestId('dashboard-sync-now'));
+      expect(syncNow).toHaveBeenCalledWith({ retryFailedNow: true });
+      if (reads) expect(mockWatchRefresh).toHaveBeenCalledWith('2026-11-23');
+      else expect(mockWatchRefresh).not.toHaveBeenCalled();
+      mockWatchStatus = 'connected';
+    },
+  );
 
   it('does not expose dormant medical management actions', async () => {
     setStore({ status: 'ready', data: baseData });

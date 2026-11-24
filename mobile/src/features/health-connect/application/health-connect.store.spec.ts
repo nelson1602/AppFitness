@@ -1,6 +1,7 @@
 import { isHealthConnectEnabled } from '@/shared/infrastructure/config/feature-flags';
 
 import * as client from '../infrastructure/health-connect.client';
+import { readPickedSource, writePickedSource } from '../infrastructure/data-source.repository';
 import { readWaterGoal, writeWaterGoal } from '../infrastructure/water-goal.repository';
 import { useHealthConnectStore } from './health-connect.store';
 
@@ -30,9 +31,34 @@ jest.mock('../infrastructure/health-connect.client', () => ({
     Promise.resolve({ steps: 4200, activeKcal: null, hydrationMl: 900 }),
   ),
   readSessions: jest.fn(() => Promise.resolve([])),
+  readOrigins: jest.fn(() => Promise.resolve([])),
   openSettings: jest.fn(),
 }));
+jest.mock('../infrastructure/data-source.repository', () => ({
+  readPickedSource: jest.fn(() => Promise.resolve(null)),
+  writePickedSource: jest.fn(() => Promise.resolve()),
+}));
 jest.mock('@/shared/infrastructure/logging', () => ({ logError: jest.fn() }));
+
+const SAMSUNG = 'com.sec.android.app.shealth';
+const HONOR = 'com.hihonor.health';
+/** Honor phone + Samsung watch: each app's own totals; the unfiltered read follows priority. */
+function phoneAndWatch() {
+  mocked.grantedReadTypes.mockResolvedValue(
+    new Set(['Steps', 'ActiveCaloriesBurned', 'Hydration', 'ExerciseSession']),
+  );
+  mocked.readOrigins.mockResolvedValue([
+    { packageName: HONOR, isWatch: false, types: ['Steps', 'ActiveCaloriesBurned'] },
+    { packageName: SAMSUNG, isWatch: true, types: ['Steps'] },
+  ]);
+  mocked.readDayTotals.mockImplementation((_start, _end, types, origin) =>
+    Promise.resolve({
+      steps: types.has('Steps') ? (origin === SAMSUNG ? 1117 : 156) : null,
+      activeKcal: types.has('ActiveCaloriesBurned') ? (origin === HONOR ? 40 : 55) : null,
+      hydrationMl: types.has('Hydration') ? (origin ? 999 : 750) : null,
+    }),
+  );
+}
 
 const mocked = jest.mocked(client);
 const TODAY = '2026-11-17';
@@ -112,5 +138,76 @@ describe('Health Connect store (ADR-P048)', () => {
     await useHealthConnectStore.getState().setWaterGoal(null);
     expect(writeWaterGoal).toHaveBeenLastCalledWith('u1', null);
     expect(readWaterGoal).toHaveBeenCalledWith('u1');
+  });
+});
+
+describe('Health Connect data source (ADR-P048 amendment)', () => {
+  afterEach(() => {
+    mocked.grantedReadTypes.mockReset();
+    mocked.grantedReadTypes.mockResolvedValue(new Set(['Steps', 'Hydration']));
+    mocked.readOrigins.mockReset();
+    mocked.readOrigins.mockResolvedValue([]);
+    mocked.readDayTotals.mockReset();
+    mocked.readDayTotals.mockResolvedValue({ steps: 4200, activeKcal: null, hydrationMl: 900 });
+    jest.mocked(readPickedSource).mockResolvedValue(null);
+  });
+
+  it('Honor phone + Samsung watch: the watch’s 1,117 steps, not the phone’s 156', async () => {
+    phoneAndWatch();
+    await useHealthConnectStore.getState().refresh(TODAY);
+    const state = useHealthConnectStore.getState();
+    expect(state.source).toBe(SAMSUNG);
+    expect(state.totals?.steps).toBe(1117);
+    expect(state.sources).toEqual([
+      { packageName: HONOR, isWatch: false, steps: 156 },
+      { packageName: SAMSUNG, isWatch: true, steps: 1117 },
+    ]);
+  });
+
+  it('a type the source lacks falls back to the unfiltered aggregate, never a sum', async () => {
+    phoneAndWatch();
+    await useHealthConnectStore.getState().refresh(TODAY);
+    // Samsung wrote no calories or water today: both come from the unfiltered read.
+    expect(useHealthConnectStore.getState().totals).toEqual({
+      steps: 1117,
+      activeKcal: 55,
+      hydrationMl: 750,
+    });
+    const fallback = mocked.readDayTotals.mock.calls.find((call) => call[3] === undefined);
+    expect([...(fallback?.[2] ?? [])].sort()).toEqual([
+      'ActiveCaloriesBurned',
+      'ExerciseSession',
+      'Hydration',
+    ]);
+  });
+
+  it('the person’s pick wins and is passed to the session read', async () => {
+    phoneAndWatch();
+    jest.mocked(readPickedSource).mockResolvedValue(HONOR);
+    await useHealthConnectStore.getState().refresh(TODAY);
+    const state = useHealthConnectStore.getState();
+    expect(state).toMatchObject({ source: HONOR, pickedSource: HONOR });
+    expect(state.totals).toMatchObject({ steps: 156, activeKcal: 40 });
+    expect(mocked.readSessions.mock.calls[0][3]).toBe(HONOR);
+  });
+
+  it('no origin found: unfiltered totals and sessions, as before', async () => {
+    await useHealthConnectStore.getState().refresh(TODAY);
+    expect(useHealthConnectStore.getState().source).toBeNull();
+    expect(mocked.readSessions.mock.calls[0][3]).toBeNull();
+    expect(mocked.readDayTotals).toHaveBeenCalledTimes(1);
+  });
+
+  it('picking a source saves it for the account and reads again', async () => {
+    phoneAndWatch();
+    await useHealthConnectStore.getState().refresh(TODAY);
+    mocked.readDayTotals.mockClear();
+    jest.mocked(readPickedSource).mockResolvedValue(HONOR);
+    await useHealthConnectStore.getState().setSource(HONOR);
+    expect(writePickedSource).toHaveBeenCalledWith('u1', HONOR);
+    expect(mocked.readDayTotals).toHaveBeenCalled();
+    expect(useHealthConnectStore.getState().source).toBe(HONOR);
+    await useHealthConnectStore.getState().setSource(null);
+    expect(writePickedSource).toHaveBeenLastCalledWith('u1', null);
   });
 });
