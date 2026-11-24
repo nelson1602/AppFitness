@@ -1,8 +1,15 @@
 import { useState } from 'react';
-import { errorMessage } from '../api/client';
-import { usersApi } from '../api/endpoints';
+import { ApiError, errorMessage } from '../api/client';
+import { subscriptionsApi, usersApi } from '../api/endpoints';
 import type { UserAction } from '../api/endpoints';
-import type { Me, Permission, UserDetail } from '../api/types';
+import { PROMOTIONAL_DURATIONS } from '../api/types';
+import type {
+  Me,
+  Permission,
+  PromotionalDuration,
+  UserDetail,
+  UserSubscription,
+} from '../api/types';
 import { Banner, ErrorText, Loading } from '../components/Banner';
 import type { BannerMessage } from '../components/Banner';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -183,6 +190,9 @@ export function UserDetailScreen({ me, userId }: UserDetailScreenProps) {
             </section>
           ) : null}
 
+          {can(me, 'subscriptions.read') ? (
+            <SubscriptionSection me={me} userId={userId} />
+          ) : null}
           <DevicesSection user={data} />
           <ThrottleSection user={data} />
           <FailedSyncSection user={data} />
@@ -257,6 +267,183 @@ export function DeleteUserDialog({
         />
       </div>
     </ConfirmDialog>
+  );
+}
+
+const subCopy = es.userDetail.subscription;
+
+function isDuration(value: string): value is PromotionalDuration {
+  return (PROMOTIONAL_DURATIONS as readonly string[]).includes(value);
+}
+
+function yesNo(value: boolean | null): string {
+  if (value === null) return es.common.dash;
+  return value ? es.users.yes : es.users.no;
+}
+
+function SubscriptionSection({ me, userId }: { me: Me; userId: string }) {
+  const { data, error, loading, reload } = useResource(
+    `subscription:${userId}`,
+    () => subscriptionsApi.get(userId),
+  );
+  const [duration, setDuration] = useState<PromotionalDuration>('monthly');
+  const [dialog, setDialog] = useState<'grant' | 'revoke' | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [banner, setBanner] = useState<BannerMessage | null>(null);
+  const canGrant = can(me, 'subscriptions.grant');
+
+  async function run(kind: 'grant' | 'revoke') {
+    setBusy(true);
+    try {
+      if (kind === 'grant') {
+        await subscriptionsApi.grantPromotional(userId, duration);
+      } else {
+        await subscriptionsApi.revokePromotional(userId);
+      }
+      setBanner({ kind: 'success', text: subCopy[kind].success });
+    } catch (err) {
+      setBanner({
+        kind: 'error',
+        text:
+          err instanceof ApiError && err.status === 503
+            ? subCopy.providerRefused
+            : es.userDetail.actionFailed(errorMessage(err)),
+      });
+    } finally {
+      setBusy(false);
+      setDialog(null);
+      reload();
+    }
+  }
+
+  return (
+    <section className="card" aria-labelledby="user-subscription">
+      <h2 id="user-subscription">{subCopy.title}</h2>
+      <Banner message={banner} onDismiss={() => setBanner(null)} />
+      {error ? <ErrorText>{errorMessage(error)}</ErrorText> : null}
+      {loading && !data ? <Loading /> : null}
+      {data ? <SubscriptionDetails subscription={data} /> : null}
+
+      {canGrant ? (
+        <div className="inline-form">
+          <div className="field">
+            <label htmlFor="promo-duration">{subCopy.durationLabel}</label>
+            <select
+              id="promo-duration"
+              value={duration}
+              onChange={(e) => {
+                if (isDuration(e.target.value)) setDuration(e.target.value);
+              }}
+            >
+              {PROMOTIONAL_DURATIONS.map((value) => (
+                <option key={value} value={value}>
+                  {subCopy.durations[value]}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="button-row button-row--wrap">
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={() => setDialog('grant')}
+            >
+              {subCopy.grant.button}
+            </button>
+            <button
+              type="button"
+              className="button button--danger-outline"
+              onClick={() => setDialog('revoke')}
+            >
+              {subCopy.revoke.button}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {dialog === 'grant' ? (
+        <ConfirmDialog
+          title={subCopy.grant.title}
+          confirmLabel={subCopy.grant.confirm}
+          busy={busy}
+          onCancel={() => setDialog(null)}
+          onConfirm={() => void run('grant')}
+        >
+          <p>{subCopy.grant.body(subCopy.durations[duration])}</p>
+        </ConfirmDialog>
+      ) : null}
+      {dialog === 'revoke' ? (
+        <ConfirmDialog
+          title={subCopy.revoke.title}
+          confirmLabel={subCopy.revoke.confirm}
+          destructive
+          busy={busy}
+          onCancel={() => setDialog(null)}
+          onConfirm={() => void run('revoke')}
+        >
+          <p>{subCopy.revoke.body}</p>
+        </ConfirmDialog>
+      ) : null}
+    </section>
+  );
+}
+
+function SubscriptionDetails({
+  subscription,
+}: {
+  subscription: UserSubscription;
+}) {
+  const { mirror, provider } = subscription;
+  return (
+    <>
+      <h3>{subCopy.mirrorTitle}</h3>
+      <dl className="details">
+        <dt>{subCopy.state}</dt>
+        <dd>{subCopy.states[mirror.state]}</dd>
+        <dt>{subCopy.expiresAt}</dt>
+        <dd>
+          {mirror.expiresAt
+            ? formatDateTime(mirror.expiresAt)
+            : subCopy.noExpiry}
+        </dd>
+        <dt>{subCopy.store}</dt>
+        <dd>{mirror.store ?? es.common.dash}</dd>
+        <dt>{subCopy.periodType}</dt>
+        <dd>{mirror.periodType ?? es.common.dash}</dd>
+        <dt>{subCopy.willRenew}</dt>
+        <dd>{yesNo(mirror.willRenew)}</dd>
+        <dt>{subCopy.lastReconciledAt}</dt>
+        <dd>{formatDateTime(mirror.lastReconciledAt)}</dd>
+      </dl>
+
+      <h3>{subCopy.providerTitle}</h3>
+      {provider.available ? (
+        <dl className="details">
+          <dt>{subCopy.entitlement}</dt>
+          <dd>{provider.snapshot.entitlementId}</dd>
+          <dt>{subCopy.providerActive}</dt>
+          <dd>{yesNo(provider.snapshot.isActive)}</dd>
+          <dt>{subCopy.expiresAt}</dt>
+          <dd>
+            {provider.snapshot.expiresAt
+              ? formatDateTime(provider.snapshot.expiresAt)
+              : subCopy.noExpiry}
+          </dd>
+          <dt>{subCopy.periodType}</dt>
+          <dd>{provider.snapshot.periodType ?? es.common.dash}</dd>
+          <dt>{subCopy.productId}</dt>
+          <dd>{provider.snapshot.productId ?? es.common.dash}</dd>
+          <dt>{subCopy.store}</dt>
+          <dd>{provider.snapshot.store ?? es.common.dash}</dd>
+          <dt>{subCopy.environment}</dt>
+          <dd>{provider.snapshot.environment ?? es.common.dash}</dd>
+          <dt>{subCopy.willRenew}</dt>
+          <dd>{yesNo(provider.snapshot.willRenew)}</dd>
+        </dl>
+      ) : (
+        <p className="muted">{subCopy.providerUnavailable}</p>
+      )}
+    </>
   );
 }
 

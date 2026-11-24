@@ -150,3 +150,58 @@ export interface AuditEntry {
   after: unknown;
   ip: string | null;
 }
+
+export type MaintenanceTone = 'info' | 'warning';
+
+export interface AppConfig {
+  maintenanceEnabled: boolean;
+  maintenanceTone: MaintenanceTone;
+  maintenanceMessageEs: string | null;
+  maintenanceMessageEn: string | null;
+  minAndroidVersionCode: number | null;
+  updatedAt: string;
+}
+
+export type AppConfigInput = Omit<AppConfig, 'updatedAt'>;
+
+export type SubscriptionMirrorState = 'UNKNOWN' | 'ACTIVE' | 'INACTIVE';
+
+export interface SubscriptionMirror {
+  state: SubscriptionMirrorState;
+  expiresAt: string | null;
+  periodType: string | null;
+  store: string | null;
+  willRenew: boolean | null;
+  lastReconciledAt: string | null;
+}
+
+export interface SubscriptionProviderSnapshot {
+  entitlementId: string;
+  isActive: boolean;
+  expiresAt: string | null;
+  periodType: string | null;
+  productId: string | null;
+  store: string | null;
+  environment: string | null;
+  willRenew: boolean | null;
+}
+
+export type SubscriptionProvider =
+  | { available: true; snapshot: SubscriptionProviderSnapshot }
+  | { available: false; snapshot: null };
+
+export interface UserSubscription {
+  mirror: SubscriptionMirror;
+  provider: SubscriptionProvider;
+}
+
+export const PROMOTIONAL_DURATIONS = [
+  'weekly',
+  'monthly',
+  'three_month',
+  'six_month',
+  'yearly',
+  'lifetime',
+] as const;
+
+export type PromotionalDuration = (typeof PROMOTIONAL_DURATIONS)[number];

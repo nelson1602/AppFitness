@@ -1,7 +1,9 @@
 // One function per /admin/api endpoint. Screens call these, never fetch.
 
-import { apiRequest, toQuery } from './client';
+import { apiDownload, apiRequest, toQuery } from './client';
 import type {
+  AppConfig,
+  AppConfigInput,
   AuditEntry,
   DashboardMetrics,
   InviteAcceptResponse,
@@ -10,10 +12,13 @@ import type {
   Me,
   Page,
   PermissionInfo,
+  PromotionalDuration,
   Role,
   StaffMember,
+  SubscriptionMirror,
   UserDetail,
   UserStatus,
+  UserSubscription,
   UserSummary,
 } from './types';
 
@@ -93,6 +98,33 @@ export const usersApi = {
       method: 'POST',
       body: { confirmEmail },
     }),
+  /** Account data only (never health data); same filter as `list`. */
+  exportCsv: (filter: Pick<UserListQuery, 'q' | 'status'>) =>
+    apiDownload(
+      `export/users.csv${toQuery({ q: filter.q, status: filter.status })}`,
+      'text/csv',
+    ),
+};
+
+export const subscriptionsApi = {
+  get: (userId: string) =>
+    apiRequest<UserSubscription>(`users/${id(userId)}/subscription`),
+  grantPromotional: (userId: string, duration: PromotionalDuration) =>
+    apiRequest<SubscriptionMirror>(
+      `users/${id(userId)}/subscription/promotional`,
+      { method: 'POST', body: { duration } },
+    ),
+  revokePromotional: (userId: string) =>
+    apiRequest<SubscriptionMirror>(
+      `users/${id(userId)}/subscription/revoke-promotional`,
+      { method: 'POST' },
+    ),
+};
+
+export const configApi = {
+  get: () => apiRequest<AppConfig>('config'),
+  update: (input: AppConfigInput) =>
+    apiRequest<AppConfig>('config', { method: 'PUT', body: input }),
 };
 
 export const staffApi = {

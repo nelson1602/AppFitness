@@ -7,7 +7,7 @@ export function can(me: Me | null, permission: Permission): boolean {
 }
 
 export interface NavItem {
-  key: 'dashboard' | 'users' | 'staff' | 'roles' | 'audit';
+  key: 'dashboard' | 'users' | 'staff' | 'roles' | 'audit' | 'config';
   label: string;
   path: string;
   permission: Permission;
@@ -43,6 +43,12 @@ export const NAV_ITEMS: readonly NavItem[] = [
     label: es.nav.audit,
     path: paths.audit,
     permission: 'audit.read',
+  },
+  {
+    key: 'config',
+    label: es.nav.config,
+    path: paths.config,
+    permission: 'config.manage',
   },
 ];
 

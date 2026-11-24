@@ -742,6 +742,51 @@ tbody tr:last-child > * {
   font-size: 0.8125rem;
 }
 
+/* Configuration */
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+}
+
+.preview {
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.preview--info {
+  background: var(--color-surface-muted);
+  color: var(--color-primary);
+}
+
+.preview--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.preview__text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.preview__text + .preview__text {
+  margin-top: var(--space-1);
+}
+
+/* Users export */
+.export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.export-row .hint {
+  margin: 0;
+}
+
 /* Dialog */
 .dialog-backdrop {
   position: fixed;

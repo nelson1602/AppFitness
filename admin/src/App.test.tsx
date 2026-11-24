@@ -118,6 +118,48 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows Configuración only with config.manage', async () => {
+    window.location.hash = '#/configuracion';
+    mockFetch({
+      'GET auth/me': { body: makeMe(['config.manage']) },
+      'GET config': {
+        body: {
+          maintenanceEnabled: false,
+          maintenanceTone: 'info',
+          maintenanceMessageEs: null,
+          maintenanceMessageEn: null,
+          minAndroidVersionCode: null,
+          updatedAt: '2026-11-20T10:00:00.000Z',
+        },
+      },
+    });
+
+    render(<App />);
+
+    const nav = await screen.findByRole('navigation', { name: es.nav.label });
+    expect(
+      within(nav).getByRole('link', { name: es.nav.config }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      await screen.findByRole('heading', { name: es.config.title, level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides Configuración and blocks its route without config.manage', async () => {
+    window.location.hash = '#/configuracion';
+    mockFetch({ 'GET auth/me': { body: makeMe(['audit.read']) } });
+
+    render(<App />);
+
+    const nav = await screen.findByRole('navigation', { name: es.nav.label });
+    expect(
+      within(nav).queryByRole('link', { name: es.nav.config }),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      es.errors.forbidden,
+    );
+  });
+
   it('routes to the login screen when a later call answers 401', async () => {
     window.location.hash = '#/panel';
     mockFetch({

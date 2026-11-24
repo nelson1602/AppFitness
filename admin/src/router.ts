@@ -17,6 +17,7 @@ export const paths = {
   staff: '/personal',
   roles: '/roles',
   audit: '/auditoria',
+  config: '/configuracion',
 } as const;
 
 export function parseHash(hash: string): Route {

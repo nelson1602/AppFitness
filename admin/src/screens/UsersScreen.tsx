@@ -3,12 +3,14 @@ import type { FormEvent } from 'react';
 import { errorMessage } from '../api/client';
 import { usersApi } from '../api/endpoints';
 import type { UserListQuery } from '../api/endpoints';
-import type { UserStatus } from '../api/types';
-import { ErrorText, Loading } from '../components/Banner';
+import type { Me, UserStatus } from '../api/types';
+import { Banner, ErrorText, Loading } from '../components/Banner';
+import type { BannerMessage } from '../components/Banner';
 import { Pagination } from '../components/Pagination';
 import { formatDateTime, formatNumber } from '../format';
 import { useResource } from '../hooks/useResource';
 import { es } from '../i18n/es';
+import { can } from '../permissions';
 import { href, paths } from '../router';
 
 const PAGE_SIZE = 25;
@@ -18,7 +20,30 @@ function isStatus(value: string): value is UserStatus {
   return (STATUSES as string[]).includes(value);
 }
 
-export function UsersScreen() {
+/** Local calendar day as `YYYY-MM-DD`, for the export file name. */
+export function localDay(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Hands a Blob to the browser as a file download, then frees its URL. */
+function saveBlob(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  try {
+    link.click();
+  } finally {
+    link.remove();
+    // Revoke on the next tick so every browser has started the download.
+    window.setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+}
+
+export function UsersScreen({ me }: { me: Me }) {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<UserStatus | ''>('');
   const [query, setQuery] = useState<UserListQuery>({
@@ -31,9 +56,32 @@ export function UsersScreen() {
     usersApi.list(query),
   );
 
+  const [exporting, setExporting] = useState(false);
+  const [banner, setBanner] = useState<BannerMessage | null>(null);
+
   function submit(event: FormEvent) {
     event.preventDefault();
     setQuery({ q: q.trim(), status, page: 1, pageSize: PAGE_SIZE });
+  }
+
+  // Exports with the filter currently applied to the list.
+  async function exportCsv() {
+    setExporting(true);
+    setBanner(null);
+    try {
+      const blob = await usersApi.exportCsv({
+        q: query.q,
+        status: query.status,
+      });
+      saveBlob(blob, es.users.exportFileName(localDay(new Date())));
+    } catch (err) {
+      setBanner({
+        kind: 'error',
+        text: es.users.exportFailed(errorMessage(err)),
+      });
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
@@ -70,6 +118,24 @@ export function UsersScreen() {
           {es.users.search}
         </button>
       </form>
+
+      {can(me, 'users.read') ? (
+        <div className="export-row">
+          <button
+            type="button"
+            className="button button--secondary"
+            disabled={exporting}
+            aria-describedby="users-export-note"
+            onClick={() => void exportCsv()}
+          >
+            {exporting ? es.users.exporting : es.users.exportCsv}
+          </button>
+          <p id="users-export-note" className="hint">
+            {es.users.exportNote}
+          </p>
+        </div>
+      ) : null}
+      <Banner message={banner} onDismiss={() => setBanner(null)} />
 
       {error ? <ErrorText>{errorMessage(error)}</ErrorText> : null}
       {loading && !data ? <Loading /> : null}
