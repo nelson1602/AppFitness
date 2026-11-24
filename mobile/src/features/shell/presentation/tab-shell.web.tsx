@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { AppHeader } from './app-header';
+import { MaintenanceBanner } from '@/features/app-config';
 import { useTheme } from '@/shared/theme';
 
 import { AppTabBar } from './app-tab-bar';
@@ -17,6 +18,8 @@ export function TabShell({ activeName }: { activeName: TabName }) {
     <View style={[styles.shell, { backgroundColor: colors.stage }]} testID="tab-shell">
       <ShellGlow />
       <AppHeader routeName={activeName} />
+      {/* ADR-P049 amendment 1: the server's notice, above every tab's page. */}
+      <MaintenanceBanner placement="shell" />
       <View style={styles.page}>
         <TabPage name={activeName} />
       </View>

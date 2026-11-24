@@ -232,9 +232,10 @@ describe('catalogue parity', () => {
   // water ring's percentage (+3, 2011).
   // Health Connect data source in Perfil: title, current, automatic, hint and
   // Honor's localized app name (+5, 2016).
-  it('reaches 2016 keys in each language — 1775 shipped plus a 241-key family', () => {
-    expect(Object.keys(en)).toHaveLength(2016);
-    expect(Object.keys(es)).toHaveLength(2016);
+  // ADR-P049 amendment 1: the maintenance notice title (+1, 2017).
+  it('reaches 2017 keys in each language — 1776 shipped plus a 241-key family', () => {
+    expect(Object.keys(en)).toHaveLength(2017);
+    expect(Object.keys(es)).toHaveLength(2017);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

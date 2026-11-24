@@ -2,6 +2,7 @@ import TopTabs, { type MaterialTopTabBarProps } from 'expo-router/js-top-tabs';
 import { useEffect, useRef } from 'react';
 import { AccessibilityInfo, type Animated, StyleSheet, View } from 'react-native';
 
+import { MaintenanceBanner } from '@/features/app-config';
 import { useLocalization } from '@/shared/localization';
 import { useReducedMotion, useScreenReader } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
@@ -28,6 +29,8 @@ export function TabShell({ activeName }: { activeName: TabName }) {
     <View style={[styles.shell, { backgroundColor: colors.stage }]} testID="tab-shell">
       <ShellGlow />
       <AppHeader routeName={activeName} />
+      {/* ADR-P049 amendment 1: the server's notice, above every tab's page. */}
+      <MaintenanceBanner placement="shell" />
       <TopTabs
         screenOptions={{
           animationEnabled: motionAllowed,

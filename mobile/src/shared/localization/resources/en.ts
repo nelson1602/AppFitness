@@ -59,6 +59,8 @@ export const en = {
   'tabs.profile': 'Profile',
   'header.greeting': 'Hi, {name}',
   'header.notifications': 'Notifications, {count} unread',
+  // ADR-P049 amendment 1: the server's maintenance notice; the body is the server's text.
+  'appConfig.maintenance.title': 'Notice',
   'notifications.title': 'Notifications',
   'notifications.markAllRead': 'Mark all as read',
   'notifications.close': 'Close',

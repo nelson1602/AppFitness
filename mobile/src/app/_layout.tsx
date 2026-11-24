@@ -1,6 +1,7 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
+import { startAppConfigWatch } from '@/features/app-config';
 import { AccessGateRedirect } from '@/features/authentication/presentation/access-gate-redirect';
 import { registerDayRollover } from '@/features/dashboard/application/use-home-data';
 import { EvaluationGateRedirect } from '@/features/evaluation/presentation/evaluation-gate-redirect';
@@ -38,6 +39,9 @@ initializeWelcomeGate();
 // BUG-045: "today" follows the local day while the app stays open.
 registerDayRollover();
 startLocalDayWatch();
+// ADR-P049 amendment 1: the public app config (maintenance notice), at start
+// and on each return to the foreground, at most once a minute.
+startAppConfigWatch();
 // Native: no screen paints before the brand faces are ready (ADR-P037).
 holdSplashForBrandFonts();
 

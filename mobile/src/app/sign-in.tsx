@@ -13,6 +13,7 @@ import {
   useBiometricCapability,
   useSession,
 } from '@/features/authentication';
+import { MaintenanceBanner } from '@/features/app-config';
 import { landingRouteFor } from '@/features/authentication/application/access-gate';
 import { meetsPasswordPolicy } from '@/features/authentication/domain/password-policy';
 import { PasswordChecklist } from '@/features/authentication/presentation/password-checklist';
@@ -242,6 +243,8 @@ export default function SignInScreen() {
           <AppText tone="onStageVariant">{t('auth.subtitle')}</AppText>
         </View>
 
+        {/* ADR-P049 amendment 1: the server's notice, before the form. */}
+        <MaintenanceBanner placement="inline" />
         {errorReason ? (
           <Banner title={t(ERROR_COPY[errorReason].title)} tone="error">
             {t(ERROR_COPY[errorReason].body)}
