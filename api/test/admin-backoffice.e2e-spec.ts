@@ -683,7 +683,9 @@ describe('Staff backoffice (e2e)', () => {
     expect(response.headers['content-disposition']).toMatch(
       /attachment; filename="usuarios-\d{4}-\d{2}-\d{2}\.csv"/,
     );
-    const lines = response.text.replace(/^﻿/, '').trim().split('\r\n');
+    const bom = String.fromCharCode(0xfeff);
+    expect(response.text.startsWith(bom)).toBe(true);
+    const lines = response.text.slice(bom.length).trim().split('\r\n');
     expect(lines[0]).toBe(
       'id,email,username,created_at,email_verified,status,last_login_at,device_count,last_sync_at,is_pro',
     );

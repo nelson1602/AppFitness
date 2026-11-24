@@ -296,11 +296,10 @@ describe('SubscriptionService', () => {
       await expect(
         service.staffChangePromotional(USER_ID, { grant: 'monthly' }),
       ).resolves.toEqual(expect.objectContaining({ state: 'ACTIVE' }));
-      expect(provider.grantPromotional).toHaveBeenCalledWith(
-        USER_ID,
-        'monthly',
-      );
-      expect(provider.getEntitlement).toHaveBeenCalledTimes(1);
+      expect(provider.grantPromotional.mock.calls).toEqual([
+        [USER_ID, 'monthly'],
+      ]);
+      expect(provider.getEntitlement.mock.calls).toHaveLength(1);
     });
 
     it('revokes through the provider and audits the change as staff', async () => {
@@ -314,13 +313,12 @@ describe('SubscriptionService', () => {
         expiresAt: null,
       });
       await service.staffChangePromotional(USER_ID, { revoke: true });
-      expect(provider.revokePromotionals).toHaveBeenCalledWith(USER_ID);
-      expect(audit.record).toHaveBeenCalledWith(
-        expect.objectContaining({
-          action: 'SUBSCRIPTION_ENTITLEMENT_CHANGE',
-          metadata: expect.objectContaining({ source: 'staff', active: false }),
-        }),
-      );
+      expect(provider.revokePromotionals.mock.calls).toEqual([[USER_ID]]);
+      expect(audit.record).toHaveBeenCalledWith({
+        action: 'SUBSCRIPTION_ENTITLEMENT_CHANGE',
+        userId: USER_ID,
+        metadata: { active: false, source: 'staff', environment: 'SANDBOX' },
+      });
     });
 
     it('answers 503 when the provider refuses, and changes nothing', async () => {
@@ -341,7 +339,7 @@ describe('SubscriptionService', () => {
       await expect(
         off.staffChangePromotional(USER_ID, { grant: 'weekly' }),
       ).rejects.toThrow('unavailable');
-      expect(provider.grantPromotional).not.toHaveBeenCalled();
+      expect(provider.grantPromotional.mock.calls).toHaveLength(0);
     });
   });
 
