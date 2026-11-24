@@ -14,6 +14,7 @@ import {
 } from '../domain/mail.types';
 import { renderEmailVerificationEmail } from '../domain/email-verification.template';
 import { renderPasswordResetEmail } from '../domain/password-reset.template';
+import { renderStaffInviteEmail } from '../domain/staff-invite.template';
 
 /**
  * Composes transactional messages and hands them to the bound transport.
@@ -125,6 +126,21 @@ export class MailService {
       expiresInHours: input.expiresInHours,
     });
     await this.transport.send(message);
+  }
+
+  /**
+   * ADR-P049: the staff invite. The link is built by the backoffice from
+   * ADMIN_PUBLIC_URL (its own validated base), not from the app's base.
+   */
+  async sendStaffInvite(input: {
+    to: string;
+    inviteUrl: string;
+    expiresInHours: number;
+  }): Promise<void> {
+    if (this.config.provider === 'disabled') {
+      throw new MailDisabledError();
+    }
+    await this.transport.send(renderStaffInviteEmail(input));
   }
 
   async sendPasswordReset(input: {

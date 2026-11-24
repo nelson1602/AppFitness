@@ -21,6 +21,7 @@ export type MailLocale = (typeof MAIL_LOCALES)[number];
 export const MAIL_TEMPLATE_IDS = [
   'password-reset',
   'email-verification',
+  'staff-invite',
 ] as const;
 export type MailTemplateId = (typeof MAIL_TEMPLATE_IDS)[number];
 

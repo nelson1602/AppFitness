@@ -37,10 +37,29 @@ injected via environment variables.
 | `REVENUECAT_WEBHOOK_SIGNING_SECRET` | Required when enabled; at least 32 characters. Verifies `X-RevenueCat-Webhook-Signature` over the exact raw request body. Use a different value per hosted environment |
 | `REVENUECAT_ENTITLEMENT_ID` | Required when enabled; the single RevenueCat entitlement identifier. ADR-P034 fixes this to `appfitness_pro` |
 | `FDC_API_KEY` | Optional (ADR-P045). USDA FoodData Central key for `GET /foods/search` and `POST /foods/import`. Free api.data.gov key: sign up at https://fdc.nal.usda.gov/api-key-signup (default limit 1,000 requests/hour per key). Unset ⇒ FDC is skipped, search still answers from the catalogue and Open Food Facts (`external: 'partial'`), and one warning is logged at startup. Secret — never logged (the value) and never shipped to the app. Use a different key per hosted environment. Open Food Facts needs no key, but its data is ODbL-licensed: the app must show "Datos de Open Food Facts" wherever OFF-sourced food data is displayed |
+| `ADMIN_SESSION_SECRET` | Optional (ADR-P049 staff backoffice). At least 32 bytes; keys the HMAC of staff session and invite tokens. Generate: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`. Set together with the next two, or none: with none the backoffice is off (`/admin/api` answers `503`, `/admin` is not served); a partial or malformed set **fails boot**. Rotating it signs every staff member out and voids open invites |
+| `ADMIN_TOTP_ENC_KEY` | Optional, with the above. Base64 of exactly 32 bytes; AES-256-GCM key for staff TOTP secrets at rest. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Never rotate it in place**: existing staff could no longer sign in (they would need new invites) |
+| `ADMIN_PUBLIC_URL` | Optional, with the above. The panel's own URL, e.g. `https://<api-host>/admin`; HTTPS only (plain HTTP only for `localhost`), no query or fragment. Invite links are `<url>/#/invitacion?token=…` |
+| `ADMIN_STATIC_DIR` | Optional. Path of the built SPA (`admin/dist`); defaults to `../admin/dist` from the API's working directory. The current API image does not include it yet (ADR-P049 Consequences) |
 
 Rules: secrets exist ONLY in Railway's variable store. Never reuse
 local `.env` values, never commit values, never share keys between
 environments (05_SECURITY.md).
+
+### Staff backoffice owner bootstrap (ADR-P049)
+
+After the three `ADMIN_*` variables are set and the migration has run, the
+owner creates their own account from `api/`, with that environment's variables
+loaded (for example `railway run`):
+
+```bash
+npm run admin:bootstrap -- <owner-email>
+```
+
+It prints a one-time invite link (24 h) and also emails it when mail is
+configured. Open it, choose a password and enroll an authenticator app. There
+are no default credentials, and the command refuses to run again once the
+owner account is active.
 
 Subscription support ships fail-closed. While `REVENUECAT_PROVIDER` is
 unset or `disabled`, the webhook endpoint returns unavailable and no provider

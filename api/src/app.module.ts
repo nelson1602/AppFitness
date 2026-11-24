@@ -6,6 +6,7 @@ import { SentryGlobalFilter, SentryModule } from '@sentry/nestjs/setup';
 
 import { buildThrottlerOptions } from './config/throttler.config';
 
+import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DatabaseModule } from './modules/database/database.module';
@@ -54,6 +55,8 @@ import { WorkoutModule } from './modules/workout/workout.module';
     WeeklyPlansModule,
     WellnessModule,
     SubscriptionModule,
+    // Staff backoffice (ADR-P049). Off (503) unless its secrets are set.
+    AdminModule,
   ],
   providers: [
     // Preserves Nest's normal HTTP error responses while reporting

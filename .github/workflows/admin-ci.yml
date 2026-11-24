@@ -1,0 +1,105 @@
+# Admin SPA CI (staff backoffice, admin/).
+# PR quality gate for the Vite + React backoffice that the API serves at
+# /admin: type-check, non-mutating lint/format checks, unit tests (Vitest +
+# React Testing Library on jsdom) and a production build.
+#
+# Same shape as api-ci.yml: the `quality` job runs on every PR/push (no path
+# filter) so its status context is always reported; a lightweight `changes`
+# job decides whether `admin/**` was actually touched. When it was NOT, the
+# real steps are skipped and the job reports SUCCESS as a no-op.
+name: admin-ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+defaults:
+  run:
+    working-directory: admin
+
+jobs:
+  # Decide whether this event touched admin-relevant files. Defaults to `true`
+  # whenever the base commit is unavailable so validation is never weakened by
+  # a detection gap (fail-safe: run the real checks).
+  changes:
+    name: Detect admin changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      admin: ${{ steps.filter.outputs.admin }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+
+      - name: Detect admin-relevant changes
+        id: filter
+        working-directory: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base='${{ github.event.pull_request.base.sha }}'
+          else
+            base='${{ github.event.before }}'
+          fi
+          if [ -z "$base" ] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "Base commit unavailable; running admin-ci conservatively (admin=true)."
+            echo "admin=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$base" HEAD)"
+          echo "Changed files:"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -qE '^(admin/|\.github/workflows/admin-ci\.yml$)'; then
+            echo "admin=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "admin=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  quality:
+    name: 'Admin SPA: type-check, lint, format, tests, build'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: needs.changes.outputs.admin == 'true'
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: needs.changes.outputs.admin == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+
+      - name: Install dependencies
+        if: needs.changes.outputs.admin == 'true'
+        run: npm ci
+
+      - name: TypeScript check
+        if: needs.changes.outputs.admin == 'true'
+        run: npm run typecheck
+
+      - name: Lint (no --fix)
+        if: needs.changes.outputs.admin == 'true'
+        run: npm run lint
+
+      - name: Format check (no --write)
+        if: needs.changes.outputs.admin == 'true'
+        run: npm run format:check
+
+      - name: Unit and component tests
+        if: needs.changes.outputs.admin == 'true'
+        run: npm test
+
+      - name: Build
+        if: needs.changes.outputs.admin == 'true'
+        run: npm run build
+
+      - name: No-op (admin unchanged)
+        if: needs.changes.outputs.admin != 'true'
+        # Runs from the workspace root: checkout is skipped when admin/ is
+        # untouched, so the default `admin` working directory does not exist.
+        working-directory: ${{ github.workspace }}
+        run: echo "No admin/** changes in this event — skipping admin quality checks."

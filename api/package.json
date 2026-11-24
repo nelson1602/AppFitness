@@ -28,6 +28,7 @@
     "db:seed:catalog": "node dist/prisma/seed/seed-food-catalog.js",
     "db:seed:exercises": "node dist/prisma/seed/seed-exercise-catalog.js",
     "db:seed": "ts-node prisma/seed/seed-food-catalog.ts",
+    "admin:bootstrap": "ts-node src/modules/admin/bootstrap/admin-bootstrap.ts",
     "db:seed:exercises:src": "ts-node prisma/seed/seed-exercise-catalog.ts"
   },
   "dependencies": {

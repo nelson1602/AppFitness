@@ -122,6 +122,16 @@ Health Connect (ADR-P048; Android only, read-only, on-device)
 - Behind `EXPO_PUBLIC_HEALTH_CONNECT=on` (internal, e2e, development); off in
   production
 
+## Staff backoffice (`admin/`, ADR-P049)
+
+Approved for `admin/` only; the mobile app does not use them.
+
+- Vite 8 + React 19 + TypeScript 5 (strict), exact pinned versions
+- Vitest + Testing Library (jsdom) for tests
+- ESLint 9 + typescript-eslint + Prettier
+- No router, UI kit, state or HTTP library: a small hash router and `fetch`
+- Served by the API at `/admin`; Spanish UI
+
 ---
 
 # Backend

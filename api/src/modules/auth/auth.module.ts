@@ -137,7 +137,17 @@ export const MIN_JWT_SECRET_BYTES = 32;
     { provide: APP_GUARD, useClass: EmailVerifiedGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
-  exports: [TokenService],
+  // The staff backoffice (ADR-P049) reuses these for its support actions and
+  // its own sign-in, rather than duplicating them.
+  exports: [
+    TokenService,
+    AuthService,
+    EmailVerificationService,
+    PasswordRecoveryService,
+    LoginThrottleService,
+    PasswordService,
+    CLOCK,
+  ],
 })
 export class AuthModule implements NestModule {
   // ADR-P046: no /auth response (tokens, account data, errors) may be cached
