@@ -1,19 +1,31 @@
 // One function per /admin/api endpoint. Screens call these, never fetch.
 
-import { apiRequest, toQuery } from './client';
+import { apiDownload, apiRequest, toQuery } from './client';
 import type {
+  AppConfig,
+  AppConfigInput,
   AuditEntry,
+  CatalogExercise,
+  CatalogFoodDetail,
+  CatalogFoodInput,
+  CatalogFoodView,
   DashboardMetrics,
+  FoodKind,
   InviteAcceptResponse,
   InviteInspectResponse,
   LoginResponse,
   Me,
   Page,
   PermissionInfo,
+  PromotionalDuration,
   Role,
+  SortOrder,
   StaffMember,
+  SubscriptionMirror,
   UserDetail,
+  UserSortField,
   UserStatus,
+  UserSubscription,
   UserSummary,
 } from './types';
 
@@ -70,6 +82,8 @@ export const metricsApi = {
 export interface UserListQuery {
   q: string;
   status: UserStatus | '';
+  sort: UserSortField;
+  order: SortOrder;
   page: number;
   pageSize: number;
 }
@@ -93,6 +107,38 @@ export const usersApi = {
       method: 'POST',
       body: { confirmEmail },
     }),
+  /** Account data only (never health data); same filter and sort as `list`. */
+  exportCsv: (filter: Pick<UserListQuery, 'q' | 'status' | 'sort' | 'order'>) =>
+    apiDownload(
+      `export/users.csv${toQuery({
+        q: filter.q,
+        status: filter.status,
+        sort: filter.sort,
+        order: filter.order,
+      })}`,
+      'text/csv',
+    ),
+};
+
+export const subscriptionsApi = {
+  get: (userId: string) =>
+    apiRequest<UserSubscription>(`users/${id(userId)}/subscription`),
+  grantPromotional: (userId: string, duration: PromotionalDuration) =>
+    apiRequest<SubscriptionMirror>(
+      `users/${id(userId)}/subscription/promotional`,
+      { method: 'POST', body: { duration } },
+    ),
+  revokePromotional: (userId: string) =>
+    apiRequest<SubscriptionMirror>(
+      `users/${id(userId)}/subscription/revoke-promotional`,
+      { method: 'POST' },
+    ),
+};
+
+export const configApi = {
+  get: () => apiRequest<AppConfig>('config'),
+  update: (input: AppConfigInput) =>
+    apiRequest<AppConfig>('config', { method: 'PUT', body: input }),
 };
 
 export const staffApi = {
@@ -147,4 +193,48 @@ export interface AuditQuery {
 export const auditApi = {
   list: (query: AuditQuery) =>
     apiRequest<Page<AuditEntry>>(`audit${toQuery({ ...query })}`),
+};
+
+export interface FoodListQuery {
+  q: string;
+  kind: FoodKind | '';
+  status: 'active' | 'retired' | '';
+  page: number;
+  pageSize: number;
+}
+
+export interface ExerciseListQuery {
+  q: string;
+  page: number;
+  pageSize: number;
+}
+
+export const catalogApi = {
+  foods: (query: FoodListQuery) =>
+    apiRequest<Page<CatalogFoodView>>(`catalog/foods${toQuery({ ...query })}`),
+  food: (foodId: string) =>
+    apiRequest<CatalogFoodDetail>(`catalog/foods/${id(foodId)}`),
+  createFood: (input: CatalogFoodInput) =>
+    apiRequest<CatalogFoodView>('catalog/foods', {
+      method: 'POST',
+      body: input,
+    }),
+  /** "Corregir": creates revision N+1 and retires the previous one. */
+  reviseFood: (foodId: string, input: CatalogFoodInput) =>
+    apiRequest<CatalogFoodView>(`catalog/foods/${id(foodId)}/revisions`, {
+      method: 'POST',
+      body: input,
+    }),
+  retireFood: (foodId: string) =>
+    apiRequest<CatalogFoodView>(`catalog/foods/${id(foodId)}/retire`, {
+      method: 'POST',
+    }),
+  restoreFood: (foodId: string) =>
+    apiRequest<CatalogFoodView>(`catalog/foods/${id(foodId)}/restore`, {
+      method: 'POST',
+    }),
+  exercises: (query: ExerciseListQuery) =>
+    apiRequest<Page<CatalogExercise>>(
+      `catalog/exercises${toQuery({ ...query })}`,
+    ),
 };

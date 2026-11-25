@@ -17,6 +17,12 @@ export interface CatalogFoodRow {
   fiberPerServing: number | null;
 }
 
+/**
+ * A food revision with its retirement stamp (ADR-P049 amendment 1): a retired
+ * revision is hidden from search and import but stays loggable.
+ */
+export type RetirableFoodRow = CatalogFoodRow & { retiredAt: Date | null };
+
 /** A new food revision row (shared external import or private custom food). */
 export interface NewFoodRow {
   id: string;
@@ -42,22 +48,30 @@ export interface NewFoodRow {
  */
 export abstract class FoodCatalogRepositoryPort {
   /**
-   * Active foods visible to `userId` whose name contains every folded word
-   * (accent- and case-insensitive), at most `limit` rows, deterministic order.
+   * Active, unretired foods visible to `userId` whose name contains every
+   * folded word (accent- and case-insensitive), at most `limit` rows,
+   * deterministic order.
    */
   abstract searchVisible(
     userId: string,
     foldedWords: readonly string[],
     limit: number,
   ): Promise<CatalogFoodRow[]>;
-  /** Active GLOBAL foods with one of these catalog keys (imported externals). */
+  /**
+   * Active GLOBAL foods with one of these catalog keys (imported externals),
+   * retired revisions included so search can tell a hidden key from a new one.
+   */
   abstract findGlobalByCatalogKeys(
     catalogKeys: readonly string[],
-  ): Promise<CatalogFoodRow[]>;
+  ): Promise<RetirableFoodRow[]>;
   /** The row with this id, including soft-deleted ones; null when absent. */
   abstract findById(
     id: string,
-  ): Promise<(CatalogFoodRow & { deletedAt: Date | null }) | null>;
+  ): Promise<(RetirableFoodRow & { deletedAt: Date | null }) | null>;
+  /** The newest active, unretired GLOBAL revision of a catalog key. */
+  abstract findCurrentGlobal(
+    catalogKey: string,
+  ): Promise<CatalogFoodRow | null>;
   /** Inserts the row unless its id/revision already exists (race-safe). */
   abstract insertIfAbsent(row: NewFoodRow): Promise<void>;
 }

@@ -32,6 +32,8 @@ describe('Entitlement enforcement (e2e, provider enabled)', () => {
     enabled: true,
     getEntitlement: jest.fn().mockResolvedValue(null),
     ensureCustomerDeleted: jest.fn().mockResolvedValue(undefined),
+    grantPromotional: jest.fn().mockResolvedValue(undefined),
+    revokePromotionals: jest.fn().mockResolvedValue(undefined),
   };
   const ENV = [
     'REVENUECAT_PROVIDER',

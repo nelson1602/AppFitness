@@ -17,6 +17,7 @@ import type {
   CatalogFoodRow,
   FoodCatalogRepositoryPort,
   NewFoodRow,
+  RetirableFoodRow,
 } from '../domain/food-catalog.repository';
 import {
   ExternalFoodClient,
@@ -83,9 +84,19 @@ function row(patch: Partial<CatalogFoodRow>): CatalogFoodRow {
   };
 }
 
+type StoredRow = CatalogFoodRow & {
+  deletedAt: Date | null;
+  retiredAt?: Date | null;
+};
+
+const withRetired = (r: StoredRow): StoredRow & RetirableFoodRow => ({
+  ...r,
+  retiredAt: r.retiredAt ?? null,
+});
+
 /** In-memory repository honouring the "global or own" visibility rule. */
 class FakeFoods implements FoodCatalogRepositoryPort {
-  rows: Array<CatalogFoodRow & { deletedAt: Date | null }> = [];
+  rows: StoredRow[] = [];
   inserts: NewFoodRow[] = [];
 
   searchVisible(
@@ -100,6 +111,7 @@ class FakeFoods implements FoodCatalogRepositoryPort {
         .filter(
           (r) =>
             r.deletedAt === null &&
+            !r.retiredAt &&
             (r.createdBy === null || r.createdBy === userId) &&
             words.every((w) => fold(r.name).includes(w)),
         )
@@ -107,22 +119,40 @@ class FakeFoods implements FoodCatalogRepositoryPort {
     );
   }
 
-  findGlobalByCatalogKeys(keys: readonly string[]): Promise<CatalogFoodRow[]> {
+  findGlobalByCatalogKeys(
+    keys: readonly string[],
+  ): Promise<RetirableFoodRow[]> {
     return Promise.resolve(
-      this.rows.filter(
-        (r) =>
-          r.catalogKey !== null &&
-          keys.includes(r.catalogKey) &&
-          r.createdBy === null &&
-          r.deletedAt === null,
-      ),
+      this.rows
+        .filter(
+          (r) =>
+            r.catalogKey !== null &&
+            keys.includes(r.catalogKey) &&
+            r.createdBy === null &&
+            r.deletedAt === null,
+        )
+        .map(withRetired),
     );
   }
 
   findById(
     id: string,
-  ): Promise<(CatalogFoodRow & { deletedAt: Date | null }) | null> {
-    return Promise.resolve(this.rows.find((r) => r.id === id) ?? null);
+  ): Promise<(RetirableFoodRow & { deletedAt: Date | null }) | null> {
+    const found = this.rows.find((r) => r.id === id);
+    return Promise.resolve(found ? withRetired(found) : null);
+  }
+
+  findCurrentGlobal(catalogKey: string): Promise<CatalogFoodRow | null> {
+    const current = this.rows
+      .filter(
+        (r) =>
+          r.catalogKey === catalogKey &&
+          r.createdBy === null &&
+          r.deletedAt === null &&
+          !r.retiredAt,
+      )
+      .sort((a, b) => b.foodRevision - a.foodRevision)[0];
+    return Promise.resolve(current ?? null);
   }
 
   insertIfAbsent(newRow: NewFoodRow): Promise<void> {
@@ -320,6 +350,68 @@ describe('FoodSearchService.search (ADR-P045)', () => {
     ]);
   });
 
+  it('a corrected imported hit comes back at its newest revision (ADR-P049 A5)', async () => {
+    const { service, foods } = build(mockFetch(OK_ROUTES));
+    const key = `off.${OFF_CHICHARRON.code}`;
+    foods.rows.push(
+      {
+        ...row({
+          id: deriveFoodId(key, 1),
+          catalogKey: key,
+          name: 'Chicharrón de cerdo',
+        }),
+        deletedAt: null,
+        retiredAt: new Date('2026-11-25T10:00:00Z'),
+      },
+      {
+        ...row({
+          id: deriveFoodId(key, 2),
+          catalogKey: key,
+          foodRevision: 2,
+          catalogVersion: 'external@1',
+          name: 'Chicharrón de cerdo',
+        }),
+        deletedAt: null,
+      },
+    );
+
+    const { results } = await service.search(USER, 'chicharron de cerdo', 15);
+
+    const matches = results.filter(
+      (r) => r.sourceId === key || r.sourceId === OFF_CHICHARRON.code,
+    );
+    expect(matches).toEqual([
+      expect.objectContaining({
+        source: 'catalog',
+        foodId: deriveFoodId(key, 2),
+        foodRevision: 2,
+        catalogVersion: 'external@1',
+      }),
+    ]);
+  });
+
+  it('a retired imported hit is hidden, not offered again as an external hit', async () => {
+    const { service, foods } = build(mockFetch(OK_ROUTES));
+    const key = `off.${OFF_CHICHARRON.code}`;
+    foods.rows.push({
+      ...row({
+        id: deriveFoodId(key, 1),
+        catalogKey: key,
+        name: 'Chicharrón de cerdo',
+      }),
+      deletedAt: null,
+      retiredAt: new Date('2026-11-25T10:00:00Z'),
+    });
+
+    const { results } = await service.search(USER, 'chicharron de cerdo', 15);
+
+    expect(
+      results.filter(
+        (r) => r.sourceId === key || r.sourceId === OFF_CHICHARRON.code,
+      ),
+    ).toEqual([]);
+  });
+
   it('both sources failing → unavailable, DB results still returned', async () => {
     const { service, foods } = build(
       mockFetch({ offSearch: 'network-error', fdcSearch: { status: 500 } }),
@@ -413,6 +505,33 @@ describe('FoodSearchService.importExternal (ADR-P045)', () => {
     expect(second).toEqual(first);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(foods.inserts).toHaveLength(1);
+  });
+
+  it('a corrected food imports as its newest revision; a retired one is 404 (ADR-P049 A5)', async () => {
+    const fetchMock = mockFetch({});
+    const { service, foods } = build(fetchMock);
+    const key = 'fdc.168201';
+    foods.rows.push(
+      {
+        ...row({ id: deriveFoodId(key, 1), catalogKey: key }),
+        deletedAt: null,
+        retiredAt: new Date('2026-11-25T10:00:00Z'),
+      },
+      {
+        ...row({ id: deriveFoodId(key, 2), catalogKey: key, foodRevision: 2 }),
+        deletedAt: null,
+      },
+    );
+
+    const food = await service.importExternal('fdc', '168201');
+    expect(food.id).toBe(deriveFoodId(key, 2));
+    expect(food.foodRevision).toBe(2);
+
+    foods.rows[1].retiredAt = new Date('2026-11-25T11:00:00Z');
+    await expect(service.importExternal('fdc', '168201')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('macros come only from the source, whatever an earlier search showed', async () => {

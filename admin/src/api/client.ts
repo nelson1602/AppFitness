@@ -23,7 +23,7 @@ export class ApiError extends Error {
   }
 }
 
-type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface RequestOptions {
   method?: HttpMethod;
@@ -62,12 +62,17 @@ async function readError(response: Response): Promise<ApiError> {
   return new ApiError(response.status, message, code);
 }
 
-export async function apiRequest<T>(
+/**
+ * Sends the request with the shared security rules and error handling, and
+ * returns the successful response for the caller to read.
+ */
+async function send(
   path: string,
-  options: RequestOptions = {},
-): Promise<T> {
+  options: RequestOptions,
+  accept: string,
+): Promise<Response> {
   const method = options.method ?? 'GET';
-  const headers: Record<string, string> = { Accept: 'application/json' };
+  const headers: Record<string, string> = { Accept: accept };
   const init: RequestInit = {
     method,
     credentials: 'same-origin',
@@ -98,12 +103,32 @@ export async function apiRequest<T>(
     }
     throw error;
   }
+  return response;
+}
 
+export async function apiRequest<T>(
+  path: string,
+  options: RequestOptions = {},
+): Promise<T> {
+  const response = await send(path, options, 'application/json');
   if (response.status === 204 || response.status === 202) {
     return undefined as T;
   }
   const text = await response.text();
   return (text ? JSON.parse(text) : undefined) as T;
+}
+
+/**
+ * GETs a file (for example a CSV export) as a Blob. Same credentials, 401
+ * redirect and error mapping as `apiRequest`.
+ */
+export async function apiDownload(path: string, accept: string): Promise<Blob> {
+  const response = await send(path, {}, accept);
+  try {
+    return await response.blob();
+  } catch {
+    throw new ApiError(0, es.errors.network);
+  }
 }
 
 /** Builds a query string, dropping empty values. */

@@ -562,6 +562,17 @@ fieldset {
   background: var(--color-danger-bg);
 }
 
+/* Catalogue food statuses (superseded keeps the neutral pill). */
+.pill--active {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.pill--retired {
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
 .details {
   display: grid;
   grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
@@ -616,6 +627,34 @@ td {
 thead th {
   background: var(--color-surface-muted);
   white-space: nowrap;
+}
+
+/* Sortable column headers: the whole label is the button. */
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sort-button:hover {
+  color: var(--color-primary);
+}
+
+.sort-indicator {
+  color: var(--color-text-muted);
+  font-size: 0.75em;
+}
+
+th[aria-sort='ascending'] .sort-indicator,
+th[aria-sort='descending'] .sort-indicator {
+  color: var(--color-primary);
 }
 
 tbody th {
@@ -740,6 +779,81 @@ tbody tr:last-child > * {
   border-radius: var(--radius-sm);
   padding: 2px var(--space-2);
   font-size: 0.8125rem;
+}
+
+/* Configuration */
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: var(--space-4);
+}
+
+.preview {
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+}
+
+.preview--info {
+  background: var(--color-surface-muted);
+  color: var(--color-primary);
+}
+
+.preview--warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.preview__text {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.preview__text + .preview__text {
+  margin-top: var(--space-1);
+}
+
+/* Users export */
+.export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.export-row .hint {
+  margin: 0;
+}
+
+/* Catalogue tabs */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.tab {
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+
+.tab[aria-selected='true'] {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tab:hover:not([aria-selected='true']) {
+  color: var(--color-text);
 }
 
 /* Dialog */

@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -17,6 +18,11 @@ import { seconds, Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
 import { Public } from '../../auth/presentation/decorators/public.decorator';
+import { AppManagementService } from '../application/app-management.service';
+import {
+  type CatalogFoodInput,
+  CatalogAdminService,
+} from '../application/catalog-admin.service';
 import { MetricsService } from '../application/metrics.service';
 import { StaffAuditService } from '../application/staff-audit.service';
 import { StaffAuthService } from '../application/staff-auth.service';
@@ -26,15 +32,21 @@ import type { StaffContext } from '../domain/staff.types';
 import {
   AcceptInviteDto,
   AuditQuery,
+  CatalogFoodDto,
   ConfirmInviteDto,
   CreateRoleDto,
   CreateStaffDto,
   DeleteUserDto,
+  ExerciseListQuery,
+  FoodListQuery,
+  GrantPromotionalDto,
   InviteTokenDto,
   StaffLoginDto,
   TotpCodeDto,
   UpdateRoleDto,
+  UpdateAppConfigDto,
   UpdateStaffDto,
+  UserExportQuery,
   UserSearchQuery,
 } from './admin.dto';
 import {
@@ -353,5 +365,156 @@ export class AdminUsersController {
   @Get('audit')
   auditLog(@Query() query: AuditQuery) {
     return this.audit.list(query);
+  }
+}
+
+/** ADR-P049 amendment 1: app config, CSV export, promotional Pro. */
+@Public()
+@UseGuards(StaffSessionGuard)
+@Controller('admin/api')
+export class AdminAppController {
+  constructor(private readonly app: AppManagementService) {}
+
+  @RequirePermission('config.manage')
+  @Get('config')
+  config() {
+    return this.app.getConfig();
+  }
+
+  @RequirePermission('config.manage')
+  @Put('config')
+  updateConfig(
+    @CurrentStaff() actor: StaffContext,
+    @Body() body: UpdateAppConfigDto,
+  ) {
+    return this.app.updateConfig(actor, {
+      maintenanceEnabled: body.maintenanceEnabled,
+      maintenanceTone: body.maintenanceTone,
+      maintenanceMessageEs: body.maintenanceMessageEs ?? null,
+      maintenanceMessageEn: body.maintenanceMessageEn ?? null,
+      minAndroidVersionCode: body.minAndroidVersionCode ?? null,
+    });
+  }
+
+  /** The user list as CSV (same filter as the list; never health data). */
+  @RequirePermission('users.export')
+  @Get('export/users.csv')
+  async exportUsers(
+    @CurrentStaff() actor: StaffContext,
+    @Query() query: UserExportQuery,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<string> {
+    const { csv } = await this.app.exportUsers(actor, query);
+    const stamp = new Date().toISOString().slice(0, 10);
+    response.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    response.setHeader(
+      'Content-Disposition',
+      `attachment; filename="usuarios-${stamp}.csv"`,
+    );
+    return csv;
+  }
+
+  @RequirePermission('subscriptions.read')
+  @Get('users/:id/subscription')
+  subscription(@Param('id', ParseUUIDPipe) id: string) {
+    return this.app.subscription(id);
+  }
+
+  @RequirePermission('subscriptions.grant')
+  @Post('users/:id/subscription/promotional')
+  @HttpCode(200)
+  grant(
+    @CurrentStaff() actor: StaffContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: GrantPromotionalDto,
+  ) {
+    return this.app.changePromotional(actor, id, { grant: body.duration });
+  }
+
+  @RequirePermission('subscriptions.grant')
+  @Post('users/:id/subscription/revoke-promotional')
+  @HttpCode(200)
+  revoke(
+    @CurrentStaff() actor: StaffContext,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.app.changePromotional(actor, id, { revoke: true });
+  }
+}
+
+function foodInput(body: CatalogFoodDto): CatalogFoodInput {
+  return {
+    name: body.name,
+    brand: body.brand ?? null,
+    servingAmount: body.servingAmount,
+    servingUnit: body.servingUnit,
+    gramsPerServing: body.gramsPerServing ?? null,
+    caloriesPerServing: body.caloriesPerServing,
+    proteinPerServing: body.proteinPerServing,
+    carbsPerServing: body.carbsPerServing,
+    fatPerServing: body.fatPerServing,
+    fiberPerServing: body.fiberPerServing ?? null,
+  };
+}
+
+/**
+ * ADR-P049 amendment 1: the food catalogue (add, correct as a new revision,
+ * retire/restore) and the exercise catalogue (read-only).
+ */
+@Public()
+@UseGuards(StaffSessionGuard)
+@RequirePermission('catalog.manage')
+@Controller('admin/api/catalog')
+export class AdminCatalogController {
+  constructor(private readonly catalog: CatalogAdminService) {}
+
+  @Get('foods')
+  foods(@Query() query: FoodListQuery) {
+    return this.catalog.listFoods(query);
+  }
+
+  @Get('foods/:id')
+  food(@Param('id', ParseUUIDPipe) id: string) {
+    return this.catalog.getFood(id);
+  }
+
+  @Post('foods')
+  createFood(
+    @CurrentStaff() actor: StaffContext,
+    @Body() body: CatalogFoodDto,
+  ) {
+    return this.catalog.createFood(actor, foodInput(body));
+  }
+
+  @Post('foods/:id/revisions')
+  reviseFood(
+    @CurrentStaff() actor: StaffContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: CatalogFoodDto,
+  ) {
+    return this.catalog.reviseFood(actor, id, foodInput(body));
+  }
+
+  @Post('foods/:id/retire')
+  @HttpCode(200)
+  retireFood(
+    @CurrentStaff() actor: StaffContext,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.catalog.retireFood(actor, id);
+  }
+
+  @Post('foods/:id/restore')
+  @HttpCode(200)
+  restoreFood(
+    @CurrentStaff() actor: StaffContext,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.catalog.restoreFood(actor, id);
+  }
+
+  @Get('exercises')
+  exercises(@Query() query: ExerciseListQuery) {
+    return this.catalog.listExercises(query);
   }
 }

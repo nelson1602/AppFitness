@@ -3,10 +3,171 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { es } from '../i18n/es';
 import { makeMe, userDetail } from '../test/fixtures';
-import { countCalls, mockFetch } from '../test/fetchMock';
+import { bodyOfCall, countCalls, mockFetch } from '../test/fetchMock';
+import type { SubscriptionMirror, UserSubscription } from '../api/types';
 import { DeleteUserDialog, UserDetailScreen } from './UserDetailScreen';
 
 const copy = es.userDetail.actions.delete;
+const sub = es.userDetail.subscription;
+
+const mirror: SubscriptionMirror = {
+  state: 'INACTIVE',
+  expiresAt: null,
+  periodType: null,
+  store: null,
+  willRenew: null,
+  lastReconciledAt: null,
+};
+
+const noProvider: UserSubscription = {
+  mirror,
+  provider: { available: false, snapshot: null },
+};
+
+const withProvider: UserSubscription = {
+  mirror: {
+    ...mirror,
+    state: 'ACTIVE',
+    expiresAt: '2026-12-24T10:00:00.000Z',
+    store: 'PROMOTIONAL',
+  },
+  provider: {
+    available: true,
+    snapshot: {
+      entitlementId: 'pro',
+      isActive: true,
+      expiresAt: '2026-12-24T10:00:00.000Z',
+      periodType: 'normal',
+      productId: 'rc_promo_pro_monthly',
+      store: 'promotional',
+      environment: 'production',
+      willRenew: false,
+    },
+  },
+};
+
+describe('UserDetailScreen subscription', () => {
+  it('is hidden without subscriptions.read', async () => {
+    const fetchMock = mockFetch({ 'GET users/user-1': { body: userDetail } });
+
+    render(<UserDetailScreen me={makeMe(['users.read'])} userId="user-1" />);
+
+    expect(
+      await screen.findByRole('heading', { name: es.userDetail.summary }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: sub.title }),
+    ).not.toBeInTheDocument();
+    expect(countCalls(fetchMock.mock.calls, 'users/user-1/subscription')).toBe(
+      0,
+    );
+  });
+
+  it('shows the state read-only without subscriptions.grant', async () => {
+    mockFetch({
+      'GET users/user-1': { body: userDetail },
+      'GET users/user-1/subscription': { body: noProvider },
+    });
+
+    render(
+      <UserDetailScreen
+        me={makeMe(['users.read', 'subscriptions.read'])}
+        userId="user-1"
+      />,
+    );
+
+    expect(
+      await screen.findByText(sub.providerUnavailable),
+    ).toBeInTheDocument();
+    expect(screen.getByText(sub.states.INACTIVE)).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: sub.grant.button }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: sub.revoke.button }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(sub.durationLabel)).not.toBeInTheDocument();
+  });
+
+  it('grants the chosen duration after confirmation and refetches', async () => {
+    const user = userEvent.setup();
+    let subscription = noProvider;
+    const fetchMock = mockFetch({
+      'GET users/user-1': { body: userDetail },
+      'GET users/user-1/subscription': () => ({ body: subscription }),
+      'POST users/user-1/subscription/promotional': () => {
+        subscription = withProvider;
+        return { body: withProvider.mirror };
+      },
+    });
+
+    render(
+      <UserDetailScreen
+        me={makeMe(['users.read', 'subscriptions.read', 'subscriptions.grant'])}
+        userId="user-1"
+      />,
+    );
+
+    await user.selectOptions(
+      await screen.findByLabelText(sub.durationLabel),
+      'three_month',
+    );
+    await user.click(screen.getByRole('button', { name: sub.grant.button }));
+    const dialog = screen.getByRole('dialog', { name: sub.grant.title });
+    expect(dialog).toHaveTextContent(sub.durations.three_month);
+    expect(countCalls(fetchMock.mock.calls, 'subscription/promotional')).toBe(
+      0,
+    );
+    await user.click(
+      within(dialog).getByRole('button', { name: sub.grant.confirm }),
+    );
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      sub.grant.success,
+    );
+    expect(
+      bodyOfCall(fetchMock.mock.calls, 'subscription/promotional'),
+    ).toEqual({ duration: 'three_month' });
+    expect(await screen.findByText(sub.states.ACTIVE)).toBeInTheDocument();
+    expect(screen.getByText('rc_promo_pro_monthly')).toBeInTheDocument();
+    expect(countCalls(fetchMock.mock.calls, 'users/user-1/subscription')).toBe(
+      2,
+    );
+  });
+
+  it('explains a 503 when revoking', async () => {
+    const user = userEvent.setup();
+    mockFetch({
+      'GET users/user-1': { body: userDetail },
+      'GET users/user-1/subscription': { body: noProvider },
+      'POST users/user-1/subscription/revoke-promotional': {
+        status: 503,
+        body: { statusCode: 503 },
+      },
+    });
+
+    render(
+      <UserDetailScreen
+        me={makeMe(['users.read', 'subscriptions.read', 'subscriptions.grant'])}
+        userId="user-1"
+      />,
+    );
+
+    await user.click(
+      await screen.findByRole('button', { name: sub.revoke.button }),
+    );
+    await user.click(
+      within(screen.getByRole('dialog', { name: sub.revoke.title })).getByRole(
+        'button',
+        { name: sub.revoke.confirm },
+      ),
+    );
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      sub.providerRefused,
+    );
+  });
+});
 
 describe('DeleteUserDialog', () => {
   it('keeps the delete button disabled until the exact email is typed', async () => {

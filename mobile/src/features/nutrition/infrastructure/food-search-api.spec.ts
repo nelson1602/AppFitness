@@ -50,6 +50,50 @@ describe('food search API (v10 Block B, item 7)', () => {
     expect(headersOf(0)).toEqual({ Authorization: 'Bearer user-1-access' });
   });
 
+  it('keeps a well-formed food revision and catalogue version, and drops malformed ones', async () => {
+    const base = {
+      source: 'catalog',
+      sourceId: 'food.rice',
+      foodId: 'food-1',
+      name: 'Arroz',
+      brand: null,
+      servingAmount: 100,
+      servingUnit: 'g',
+      gramsPerServing: 100,
+      caloriesPerServing: 130,
+      proteinPerServing: 2.7,
+      carbsPerServing: 28,
+      fatPerServing: 0.3,
+      fiberPerServing: null,
+    };
+    fetchMock.mockResolvedValueOnce(
+      reply(200, {
+        external: 'ok',
+        results: [
+          base,
+          { ...base, foodRevision: 2, catalogVersion: 'admin@2' },
+          { ...base, foodRevision: 3, catalogVersion: null },
+          { ...base, foodRevision: 0, catalogVersion: 7 },
+          { ...base, foodRevision: '2', catalogVersion: {} },
+          { ...base, foodRevision: 1.5 },
+        ],
+      }),
+    );
+
+    const { results } = await searchRemoteFoods('arroz');
+
+    expect(results[0]).toEqual(base);
+    expect(results[0]).not.toHaveProperty('foodRevision');
+    expect(results[0]).not.toHaveProperty('catalogVersion');
+    expect(results[1]).toEqual({ ...base, foodRevision: 2, catalogVersion: 'admin@2' });
+    expect(results[2]).toEqual({ ...base, foodRevision: 3, catalogVersion: null });
+    for (const malformed of results.slice(3)) {
+      expect(malformed).toEqual(base);
+      expect(malformed).not.toHaveProperty('foodRevision');
+      expect(malformed).not.toHaveProperty('catalogVersion');
+    }
+  });
+
   it('posts an import with JSON and never sends nutrition values', async () => {
     fetchMock.mockResolvedValueOnce(reply(200, { id: 'food-1' }));
 

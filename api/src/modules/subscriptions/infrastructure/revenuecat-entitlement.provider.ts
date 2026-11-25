@@ -6,6 +6,7 @@ import {
 } from '../../../config/revenuecat.config';
 import type {
   EntitlementProvider,
+  PromotionalDuration,
   ProviderEntitlementSnapshot,
 } from '../domain/subscription.types';
 
@@ -115,6 +116,45 @@ export class RevenueCatEntitlementProvider implements EntitlementProvider {
     }
   }
 
+  /** RevenueCat v1: POST …/entitlements/{id}/promotional {duration}. */
+  async grantPromotional(
+    userId: string,
+    duration: PromotionalDuration,
+  ): Promise<void> {
+    const response = await this.request(
+      this.promotionalUrl(userId, 'promotional'),
+      {
+        method: 'POST',
+        body: JSON.stringify({ duration }),
+      },
+    );
+    if (response.status !== 200 && response.status !== 201) {
+      throw new Error(
+        `RevenueCat promotional grant failed (${response.status})`,
+      );
+    }
+  }
+
+  /** RevenueCat v1: POST …/entitlements/{id}/revoke_promotionals. */
+  async revokePromotionals(userId: string): Promise<void> {
+    const response = await this.request(
+      this.promotionalUrl(userId, 'revoke_promotionals'),
+      { method: 'POST' },
+    );
+    if (response.status !== 200 && response.status !== 201) {
+      throw new Error(
+        `RevenueCat promotional revoke failed (${response.status})`,
+      );
+    }
+  }
+
+  private promotionalUrl(
+    userId: string,
+    action: 'promotional' | 'revoke_promotionals',
+  ): string {
+    return `${providerUrl(userId)}/entitlements/${encodeURIComponent(this.config.entitlementId)}/${action}`;
+  }
+
   private inactiveSnapshot(): ProviderEntitlementSnapshot {
     return {
       entitlementId: this.config.entitlementId,
@@ -133,6 +173,9 @@ export class RevenueCatEntitlementProvider implements EntitlementProvider {
       ...init,
       headers: {
         Accept: 'application/json',
+        ...(init.body === undefined
+          ? {}
+          : { 'Content-Type': 'application/json' }),
         Authorization: `Bearer ${this.config.secretApiKey}`,
       },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),

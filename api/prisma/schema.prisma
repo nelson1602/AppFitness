@@ -746,6 +746,10 @@ model Food {
   fiberPerServing    Float?  @map("fiber_per_serving")
   createdBy          String? @map("created_by") @db.Uuid // null = global catalog entry
   isVerified         Boolean @default(false) @map("is_verified")
+  // ADR-P049 amendment 1: a retired revision is hidden from search and import
+  // but still accepted by meal_item sync (never a delete).
+  retiredAt          DateTime? @map("retired_at") @db.Timestamptz(6)
+  retiredByStaffId   String?   @map("retired_by_staff_id") @db.Uuid
 
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1310,4 +1314,22 @@ model StaffAuditLog {
   @@index([action, createdAt], map: "idx_staff_audit_logs_action_created")
   @@index([targetType, targetId], map: "idx_staff_audit_logs_target")
   @@map("staff_audit_logs")
+}
+
+// ─── App config (ADR-P049 amendment 1) ───────────────────────────────────────
+// One row (id 'global'): what the backoffice can change without a release.
+// Read publicly by the app at GET /app-config; written only by staff with
+// config.manage, audited in staff_audit_logs.
+model AppConfig {
+  id                        String    @id @default("global") @db.VarChar(16)
+  maintenanceEnabled        Boolean   @default(false) @map("maintenance_enabled")
+  maintenanceTone           String    @default("warning") @map("maintenance_tone") @db.VarChar(16) // info | warning
+  maintenanceMessageEs      String?   @map("maintenance_message_es") @db.VarChar(300)
+  maintenanceMessageEn      String?   @map("maintenance_message_en") @db.VarChar(300)
+  // Android versionCode below which the app shows "update required". NULL: no minimum.
+  minAndroidVersionCode     Int?      @map("min_android_version_code")
+  updatedAt                 DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedByStaffId          String?   @map("updated_by_staff_id") @db.Uuid
+
+  @@map("app_config")
 }

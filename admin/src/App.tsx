@@ -8,6 +8,8 @@ import { es } from './i18n/es';
 import { can, visibleNav } from './permissions';
 import { href, navigate, parseHash, paths, useHash } from './router';
 import { AuditScreen } from './screens/AuditScreen';
+import { CatalogScreen } from './screens/CatalogScreen';
+import { ConfigScreen } from './screens/ConfigScreen';
 import { DashboardScreen } from './screens/DashboardScreen';
 import { InviteScreen } from './screens/InviteScreen';
 import { LoginScreen } from './screens/LoginScreen';
@@ -161,7 +163,7 @@ function Routes({
         second ? (
           <UserDetailScreen key={second} me={me} userId={second} />
         ) : (
-          <UsersScreen />
+          <UsersScreen me={me} />
         ),
       );
     case paths.staff:
@@ -170,6 +172,10 @@ function Routes({
       return guard('roles.manage', <RolesScreen />);
     case paths.audit:
       return guard('audit.read', <AuditScreen />);
+    case paths.config:
+      return guard('config.manage', <ConfigScreen />);
+    case paths.catalog:
+      return guard('catalog.manage', <CatalogScreen foodId={second} />);
     default:
       return <p>{es.app.notFound}</p>;
   }

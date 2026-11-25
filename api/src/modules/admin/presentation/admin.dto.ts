@@ -1,14 +1,18 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsDate,
   IsEmail,
   IsEnum,
+  IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Length,
   Matches,
   Max,
   MaxLength,
@@ -17,7 +21,24 @@ import {
 } from 'class-validator';
 import { UserStatus } from '@prisma/client';
 
+import { CreateCustomFoodDto } from '../../nutrition/presentation/dto/food.dto';
+import {
+  PROMOTIONAL_DURATIONS,
+  type PromotionalDuration,
+} from '../../subscriptions/domain/subscription.types';
+import type { FoodKind } from '../application/catalog-admin.service';
+import {
+  type SortOrder,
+  USER_SORT_FIELDS,
+  type UserSortField,
+} from '../application/user-support.service';
 import { STAFF_PASSWORD_MAX } from '../domain/staff.types';
+
+const trimText = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.trim() : value;
+
+/** No control characters in catalogue text. */
+const NO_CONTROL_TEXT = /^[^\p{Cc}]*$/u;
 
 const TOKEN = /^[A-Za-z0-9_-]{20,100}$/;
 
@@ -139,6 +160,15 @@ export class UserSearchQuery extends PageQuery {
   @IsOptional()
   @IsEnum(UserStatus)
   status?: UserStatus;
+
+  /** Whitelisted: anything else is a 400, never SQL. */
+  @IsOptional()
+  @IsIn(USER_SORT_FIELDS)
+  sort?: UserSortField;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  order?: SortOrder;
 }
 
 export class AuditQuery extends PageQuery {
@@ -176,4 +206,92 @@ export class DeleteUserDto {
   @IsString()
   @MaxLength(320)
   confirmEmail!: string;
+}
+
+// ─── Amendment 1 (PR 2) ──────────────────────────────────────────────────────
+
+export class UpdateAppConfigDto {
+  @IsBoolean()
+  maintenanceEnabled!: boolean;
+
+  @IsIn(['info', 'warning'])
+  maintenanceTone!: 'info' | 'warning';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  maintenanceMessageEs!: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  maintenanceMessageEn!: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(2_100_000_000)
+  minAndroidVersionCode!: number | null;
+}
+
+export class UserExportQuery {
+  @IsOptional()
+  @IsString()
+  @MaxLength(320)
+  q?: string;
+
+  @IsOptional()
+  @IsEnum(UserStatus)
+  status?: UserStatus;
+
+  @IsOptional()
+  @IsIn(USER_SORT_FIELDS)
+  sort?: UserSortField;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  order?: SortOrder;
+}
+
+export class GrantPromotionalDto {
+  @IsIn(PROMOTIONAL_DURATIONS)
+  duration!: PromotionalDuration;
+}
+
+/** A backoffice catalogue food: a person's custom-food fields plus brand and fiber. */
+export class CatalogFoodDto extends CreateCustomFoodDto {
+  @IsOptional()
+  @Transform(trimText)
+  @IsString()
+  @Length(1, 80)
+  @Matches(NO_CONTROL_TEXT, { message: 'brand contains invalid characters' })
+  brand?: string | null;
+
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  @Max(1000)
+  fiberPerServing?: number | null;
+}
+
+export class FoodListQuery extends PageQuery {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
+
+  @IsOptional()
+  @IsIn(['bundled', 'external', 'staff'])
+  kind?: FoodKind;
+
+  @IsOptional()
+  @IsIn(['active', 'retired'])
+  status?: 'active' | 'retired';
+}
+
+export class ExerciseListQuery extends PageQuery {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
 }

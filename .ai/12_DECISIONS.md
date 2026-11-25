@@ -15942,12 +15942,30 @@ The owner needs a backoffice to support users (verification, password reset, loc
 
 **D11 Configuration.** `ADMIN_SESSION_SECRET` (≥32 bytes), `ADMIN_TOTP_ENC_KEY` (base64 of 32 bytes) and `ADMIN_PUBLIC_URL` (HTTPS) are set together or not at all; with none, every `/admin/api` route answers 503 and the SPA is not served; a partial or malformed set fails boot. `ADMIN_STATIC_DIR` optionally points at the SPA build.
 
+### Amendment 1 (2026-11-25) — app management (PR 2)
+
+**A1 App config.** One `app_config` row (CHECK: single row, tone `info|warning`, minimum > 0, banner text in both languages when enabled), edited by `config.manage` and audited (`config.update`, before/after). The app reads it at `GET /app-config` (public, no account data, `Cache-Control: public, max-age=60`) on start and on returning to the foreground, and shows the maintenance banner in its own language at the top of the tab shell and on sign-in. Failures are silent; the last good value is kept. There were no server-driven feature flags to bring under this; build-time flags (`EXPO_PUBLIC_*`) stay as they are.
+
+**A2 Minimum app version.** `minAndroidVersionCode` is stored, published and enforced on Android: the app reads its own versionCode with `expo-application` (`~57.0.3`, SDK-bundled; approved by the owner 2026-11-25, because expo-constants no longer provides it) and, when it is below the minimum, covers its UI with a blocking "Actualiza la app" screen that opens the Play Store listing. It fails open: an unknown installed version, no config yet (offline), iOS and Web never block. The navigator stays mounted underneath (hidden from touch and screen readers) so Expo Router calls keep working; local data, the session and pending sync are untouched. Builds before the first one that includes this can never show it.
+
+**A3 Promotional Pro.** `subscriptions.grant` grants (`weekly` … `lifetime`) or revokes promotional access through RevenueCat v1 (`…/entitlements/{id}/promotional`, `…/revoke_promotionals`); RevenueCat stays the authority (ADR-P034). The mirror is refreshed from a fresh fetch at once (not subject to the 30 s reconcile spacing) and the app audit records `source: staff`; the staff trail records before/after state. `subscriptions.read` shows the mirror and the live RevenueCat view. With payments off, reads show the mirror and changes answer 503.
+
+**A4 CSV export.** `GET /admin/api/export/users.csv` requires its own permission `users.export` (owner decision 2026-11-25; the 13th permission, seeded by migration `20261125130000_catalog_admin` and granted only to the SUPER_ADMIN system role — the owner adds it to other roles explicitly). It exports the list's own account columns with the list's filter: CSV-injection safe (formula prefixes neutralized), UTF-8 with BOM, at most 50,000 rows, audited with the filter and row count (never the rows).
+
+**A5 Catalogue management (owner decision 2026-11-25).** Phones receive the built-in foods and exercises only from the app bundle (foods also from search/import results); there is no pull of shared catalogue rows, and a soft delete (`deleted_at`) would make later meal items and workout sets fail sync (`CATALOG_REVISION_UNSUPPORTED`, `assertExerciseReady`). Revisions stay immutable (ADR-P012, ADR-P013, ADR-P045). So, under `catalog.manage`:
+- **Add** a food: key `staff.<uuid>`, revision 1, stamp `staff@1`; it reaches phones through server search like an imported food.
+- **Correct** a food: revision N+1 under the same key (id = UUIDv5 of `key:N+1`), the previous revision retired in the same transaction; only the newest revision can be corrected (409 otherwise or on a race). Search and import serve the newest revision; a phone that already saved the food keeps its revision, which stays valid.
+- **Retire** (new `foods.retired_at`, `retired_by_staff_id`; never `deleted_at`): hidden from search, from import and as a fresh external hit, but meal items referencing any revision keep syncing. **Restore** undoes it on the newest revision.
+- **Built-in (bundled) foods are read-only** here: phones always use their bundled copy, so a server change would never reach them; they change through the catalogue release pipeline (ADR-P013).
+- **Exercises are read-only** until phones can download catalogue updates (that needs its own ADR and an app build).
+Every change is audited (`catalog.food_create|revise|retire|restore`, target `food`, before/after).
+
 ### Consequences
 
 - **Positive:** support work no longer needs database access; every staff action is attributable and permanent in the trail; staff cannot reach health data.
 - **Negative:** a second front end and toolchain to keep current; staff accounts need an authenticator app; the owner must set three secrets per environment.
 - **Deployment (not in PR 1):** the API image does not yet build or include `admin/dist`; serving `/admin` on Railway needs a Dockerfile and build change, done when the owner chooses to deploy.
-- **PR 2:** catalogue management, app config (maintenance banner, minimum app version), RevenueCat promotional grants and CSV export, as an amendment to this ADR.
+- **PR 2:** catalogue management, app config (maintenance banner, minimum app version), RevenueCat promotional grants and CSV export, as amendment 1 to this ADR.
 
 ### Related Documents
 

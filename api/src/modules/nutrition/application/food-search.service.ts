@@ -69,6 +69,32 @@ export interface CustomFoodInput {
 /** Fat is the densest macro: 9 kcal per gram. */
 const MAX_KCAL_PER_GRAM = 9;
 
+/**
+ * The portion's gram weight (explicit, or the amount when the unit is grams)
+ * after checking the energy and macros fit in it; null when unknown. Shared by
+ * custom foods and backoffice catalogue foods (ADR-P049 amendment 1).
+ */
+export function checkedGramsPerServing(input: CustomFoodInput): number | null {
+  const gramsPerServing =
+    input.gramsPerServing ??
+    (input.servingUnit === 'g' ? input.servingAmount : null);
+  if (gramsPerServing !== null) {
+    const macroGrams =
+      input.proteinPerServing + input.carbsPerServing + input.fatPerServing;
+    if (input.caloriesPerServing / gramsPerServing > MAX_KCAL_PER_GRAM) {
+      throw new BadRequestException(
+        'caloriesPerServing is implausible for the portion weight',
+      );
+    }
+    if (macroGrams > gramsPerServing) {
+      throw new BadRequestException(
+        'protein, carbs and fat cannot weigh more than the portion',
+      );
+    }
+  }
+  return gramsPerServing;
+}
+
 type SourceOutcome = { ok: true; items: ExternalFood[] } | { ok: false };
 
 /**
@@ -111,20 +137,32 @@ export class FoodSearchService {
       [...(off.ok ? off.items : []), ...(fdc.ok ? fdc.items : [])],
       query,
     );
-    // An external hit already imported is returned as that catalogue food.
-    const imported = new Map(
-      (
-        await this.foods.findGlobalByCatalogKeys(
-          ranked.map((i) => externalCatalogKey(i.source, i.sourceId)),
-        )
-      ).map((row) => [row.catalogKey, row]),
+    // An external hit already imported is returned as that catalogue food, at
+    // its current revision. A key whose every revision is retired (ADR-P049
+    // amendment 1) is hidden, not offered again as a fresh external hit.
+    const imported = new Map<string, CatalogFoodRow>();
+    const retiredKeys = new Set<string>();
+    const stored = await this.foods.findGlobalByCatalogKeys(
+      ranked.map((i) => externalCatalogKey(i.source, i.sourceId)),
     );
+    for (const row of stored) {
+      if (row.catalogKey === null) continue;
+      if (row.retiredAt !== null) {
+        retiredKeys.add(row.catalogKey);
+        continue;
+      }
+      const current = imported.get(row.catalogKey);
+      if (!current || row.foodRevision > current.foodRevision) {
+        imported.set(row.catalogKey, row);
+      }
+    }
     const seenFoodIds = new Set(dbRows.map((row) => row.id));
     for (const item of ranked) {
       if (results.length >= limit) break;
-      const row = imported.get(externalCatalogKey(item.source, item.sourceId));
+      const key = externalCatalogKey(item.source, item.sourceId);
+      const row = imported.get(key);
       if (!row) {
-        results.push(toSearchResult(item));
+        if (!retiredKeys.has(key)) results.push(toSearchResult(item));
       } else if (!seenFoodIds.has(row.id)) {
         seenFoodIds.add(row.id);
         results.push(this.rowToResult(row, userId));
@@ -152,7 +190,11 @@ export class FoodSearchService {
       if (existing.deletedAt !== null) {
         throw new NotFoundException('Food not found at the source');
       }
-      return toCanonical(existing, 'external');
+      if (existing.retiredAt === null) return toCanonical(existing, 'external');
+      // Corrected (a newer revision exists) or retired (none does).
+      const current = await this.foods.findCurrentGlobal(catalogKey);
+      if (!current) throw new NotFoundException('Food not found at the source');
+      return toCanonical(current, 'external');
     }
 
     let item: ExternalFood | null;
@@ -197,23 +239,7 @@ export class FoodSearchService {
     userId: string,
     input: CustomFoodInput,
   ): Promise<CanonicalFood> {
-    const gramsPerServing =
-      input.gramsPerServing ??
-      (input.servingUnit === 'g' ? input.servingAmount : null);
-    if (gramsPerServing !== null) {
-      const macroGrams =
-        input.proteinPerServing + input.carbsPerServing + input.fatPerServing;
-      if (input.caloriesPerServing / gramsPerServing > MAX_KCAL_PER_GRAM) {
-        throw new BadRequestException(
-          'caloriesPerServing is implausible for the portion weight',
-        );
-      }
-      if (macroGrams > gramsPerServing) {
-        throw new BadRequestException(
-          'protein, carbs and fat cannot weigh more than the portion',
-        );
-      }
-    }
+    const gramsPerServing = checkedGramsPerServing(input);
 
     const catalogKey = `custom.${randomUUID()}`;
     const row: NewFoodRow = {
@@ -301,6 +327,8 @@ export class FoodSearchService {
       carbsPerServing: row.carbsPerServing,
       fatPerServing: row.fatPerServing,
       fiberPerServing: row.fiberPerServing,
+      foodRevision: row.foodRevision,
+      catalogVersion: row.catalogVersion,
     };
   }
 }

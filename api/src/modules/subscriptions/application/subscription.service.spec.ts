@@ -265,6 +265,8 @@ describe('SubscriptionService', () => {
       enabled: true,
       getEntitlement: jest.fn().mockResolvedValue(activeSnapshot()),
       ensureCustomerDeleted: jest.fn().mockResolvedValue(undefined),
+      grantPromotional: jest.fn().mockResolvedValue(undefined),
+      revokePromotionals: jest.fn().mockResolvedValue(undefined),
     };
     service = new SubscriptionService(
       prisma as unknown as PrismaService,
@@ -282,6 +284,63 @@ describe('SubscriptionService', () => {
     timestamp: EVENT_TIME,
     environment: 'SANDBOX',
     candidateUserIds: [USER_ID],
+  });
+
+  describe('staff promotional changes (ADR-P049 amendment 1)', () => {
+    it('grants through the provider, then refreshes the mirror at once', async () => {
+      await service.reconcile(USER_ID);
+      audit.record.mockClear();
+      provider.getEntitlement.mockClear();
+
+      // Within the 30 s reconcile spacing, a staff change still re-fetches.
+      await expect(
+        service.staffChangePromotional(USER_ID, { grant: 'monthly' }),
+      ).resolves.toEqual(expect.objectContaining({ state: 'ACTIVE' }));
+      expect(provider.grantPromotional.mock.calls).toEqual([
+        [USER_ID, 'monthly'],
+      ]);
+      expect(provider.getEntitlement.mock.calls).toHaveLength(1);
+    });
+
+    it('revokes through the provider and audits the change as staff', async () => {
+      await service.reconcile(USER_ID);
+      audit.record.mockClear();
+      // A later fetch (the clock is frozen in this spec); newest-wins applies.
+      jest.setSystemTime(Date.now() + 1_000);
+      provider.getEntitlement.mockResolvedValue({
+        ...activeSnapshot(),
+        isActive: false,
+        expiresAt: null,
+      });
+      await service.staffChangePromotional(USER_ID, { revoke: true });
+      expect(provider.revokePromotionals.mock.calls).toEqual([[USER_ID]]);
+      expect(audit.record).toHaveBeenCalledWith({
+        action: 'SUBSCRIPTION_ENTITLEMENT_CHANGE',
+        userId: USER_ID,
+        metadata: { active: false, source: 'staff', environment: 'SANDBOX' },
+      });
+    });
+
+    it('answers 503 when the provider refuses, and changes nothing', async () => {
+      provider.grantPromotional.mockRejectedValue(new Error('400'));
+      await expect(
+        service.staffChangePromotional(USER_ID, { grant: 'yearly' }),
+      ).rejects.toThrow('did not accept');
+      expect(prisma.subscriptionEntitlement.createMany).not.toHaveBeenCalled();
+    });
+
+    it('answers 503 when payments are off', async () => {
+      const off = new SubscriptionService(
+        prisma as unknown as PrismaService,
+        audit as unknown as AuditService,
+        { ...provider, enabled: false },
+        { provider: 'disabled' },
+      );
+      await expect(
+        off.staffChangePromotional(USER_ID, { grant: 'weekly' }),
+      ).rejects.toThrow('unavailable');
+      expect(provider.grantPromotional.mock.calls).toHaveLength(0);
+    });
   });
 
   it('reports UNKNOWN with no mirror, then ACTIVE only before its expiry', async () => {

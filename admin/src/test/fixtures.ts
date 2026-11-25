@@ -1,4 +1,37 @@
-import type { Me, Role, StaffMember, UserDetail } from '../api/types';
+import type {
+  CatalogFoodView,
+  Me,
+  Role,
+  StaffMember,
+  UserDetail,
+} from '../api/types';
+
+export function makeFood(
+  overrides: Partial<CatalogFoodView> = {},
+): CatalogFoodView {
+  return {
+    id: 'food-1',
+    catalogKey: 'staff:arepa',
+    foodRevision: 1,
+    catalogVersion: null,
+    kind: 'staff',
+    status: 'active',
+    editable: true,
+    name: 'Arepa de maíz',
+    brand: 'Casera',
+    servingAmount: 1,
+    servingUnit: 'piece',
+    gramsPerServing: 90,
+    caloriesPerServing: 200,
+    proteinPerServing: 4,
+    carbsPerServing: 40,
+    fatPerServing: 2.5,
+    fiberPerServing: null,
+    retiredAt: null,
+    createdAt: '2026-11-20T10:00:00.000Z',
+    ...overrides,
+  };
+}
 
 export function makeMe(permissions: string[], overrides: Partial<Me> = {}): Me {
   return {
