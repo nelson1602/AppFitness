@@ -1,0 +1,13 @@
+# Build context for the repo-root Dockerfile (ADR-P049): only api/ and admin/
+# sources. Everything else (mobile/, docs/, .ai/, dependencies, builds, local
+# env files) stays out of the context.
+*
+!api/
+!admin/
+**/node_modules
+**/dist
+**/coverage
+**/.env
+**/.env.*
+**/*.log
+api/test
