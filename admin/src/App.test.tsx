@@ -88,10 +88,7 @@ describe('App', () => {
   it('hides nav items the staff member has no permission for', async () => {
     mockFetch({
       'GET auth/me': { body: makeMe(['users.read', 'audit.read']) },
-      'GET users?q=&status=&page=1&pageSize=25': {
-        body: { items: [], total: 0, page: 1, pageSize: 25 },
-      },
-      'GET users?page=1&pageSize=25': {
+      'GET users?sort=createdAt&order=desc&page=1&pageSize=25': {
         body: { items: [], total: 0, page: 1, pageSize: 25 },
       },
     });

@@ -63,6 +63,20 @@ export interface DashboardMetrics {
 
 export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING_DELETION';
 
+/** The user-list columns the server sorts by (its whitelist). */
+export type UserSortField =
+  | 'email'
+  | 'username'
+  | 'createdAt'
+  | 'emailVerified'
+  | 'status'
+  | 'lastLoginAt'
+  | 'deviceCount'
+  | 'lastSyncAt'
+  | 'isPro';
+
+export type SortOrder = 'asc' | 'desc';
+
 export interface UserSummary {
   id: string;
   email: string;

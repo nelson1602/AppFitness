@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { errorMessage } from '../api/client';
 import { usersApi } from '../api/endpoints';
 import type { UserListQuery } from '../api/endpoints';
-import type { Me, UserStatus } from '../api/types';
+import type { Me, SortOrder, UserSortField, UserStatus } from '../api/types';
 import { Banner, ErrorText, Loading } from '../components/Banner';
 import type { BannerMessage } from '../components/Banner';
 import { Pagination } from '../components/Pagination';
@@ -43,12 +43,74 @@ function saveBlob(blob: Blob, fileName: string): void {
   }
 }
 
+/** The table's columns, in order, each with the server field it sorts by. */
+const COLUMNS: { field: UserSortField; label: string }[] = [
+  { field: 'email', label: es.users.email },
+  { field: 'username', label: es.users.username },
+  { field: 'status', label: es.users.status },
+  { field: 'emailVerified', label: es.users.verified },
+  { field: 'isPro', label: es.users.pro },
+  { field: 'deviceCount', label: es.users.devices },
+  { field: 'lastLoginAt', label: es.users.lastLogin },
+  { field: 'lastSyncAt', label: es.users.lastSync },
+  { field: 'createdAt', label: es.users.createdAt },
+];
+
+/** Same column: flip the order. Another column: start ascending. */
+export function nextSort(
+  current: { sort: UserSortField; order: SortOrder },
+  field: UserSortField,
+): { sort: UserSortField; order: SortOrder } {
+  if (current.sort === field) {
+    return { sort: field, order: current.order === 'asc' ? 'desc' : 'asc' };
+  }
+  return { sort: field, order: 'asc' };
+}
+
+function SortHeader({
+  field,
+  label,
+  sort,
+  order,
+  onSort,
+}: {
+  field: UserSortField;
+  label: string;
+  sort: UserSortField;
+  order: SortOrder;
+  onSort: (field: UserSortField) => void;
+}) {
+  const active = sort === field;
+  return (
+    <th
+      scope="col"
+      aria-sort={
+        active ? (order === 'asc' ? 'ascending' : 'descending') : 'none'
+      }
+    >
+      <button
+        type="button"
+        className="sort-button"
+        onClick={() => onSort(field)}
+      >
+        {label}
+        <span className="sort-indicator" aria-hidden="true">
+          {active ? (order === 'asc' ? '▲' : '▼') : '↕'}
+        </span>
+      </button>
+    </th>
+  );
+}
+
 export function UsersScreen({ me }: { me: Me }) {
   const [q, setQ] = useState('');
   const [status, setStatus] = useState<UserStatus | ''>('');
+  // Newest first until a header is chosen (the server's default too).
   const [query, setQuery] = useState<UserListQuery>({
     q: '',
     status: '',
+    sort: 'createdAt',
+    order: 'desc',
     page: 1,
     pageSize: PAGE_SIZE,
   });
@@ -61,10 +123,14 @@ export function UsersScreen({ me }: { me: Me }) {
 
   function submit(event: FormEvent) {
     event.preventDefault();
-    setQuery({ q: q.trim(), status, page: 1, pageSize: PAGE_SIZE });
+    setQuery((prev) => ({ ...prev, q: q.trim(), status, page: 1 }));
   }
 
-  // Exports with the filter currently applied to the list.
+  function sortBy(field: UserSortField) {
+    setQuery((prev) => ({ ...prev, ...nextSort(prev, field), page: 1 }));
+  }
+
+  // Exports with the filter and sort currently applied to the list.
   async function exportCsv() {
     setExporting(true);
     setBanner(null);
@@ -72,6 +138,8 @@ export function UsersScreen({ me }: { me: Me }) {
       const blob = await usersApi.exportCsv({
         q: query.q,
         status: query.status,
+        sort: query.sort,
+        order: query.order,
       });
       saveBlob(blob, es.users.exportFileName(localDay(new Date())));
     } catch (err) {
@@ -154,15 +222,16 @@ export function UsersScreen({ me }: { me: Me }) {
                 </caption>
                 <thead>
                   <tr>
-                    <th scope="col">{es.users.email}</th>
-                    <th scope="col">{es.users.username}</th>
-                    <th scope="col">{es.users.status}</th>
-                    <th scope="col">{es.users.verified}</th>
-                    <th scope="col">{es.users.pro}</th>
-                    <th scope="col">{es.users.devices}</th>
-                    <th scope="col">{es.users.lastLogin}</th>
-                    <th scope="col">{es.users.lastSync}</th>
-                    <th scope="col">{es.users.createdAt}</th>
+                    {COLUMNS.map((column) => (
+                      <SortHeader
+                        key={column.field}
+                        field={column.field}
+                        label={column.label}
+                        sort={query.sort}
+                        order={query.order}
+                        onSort={sortBy}
+                      />
+                    ))}
                   </tr>
                 </thead>
                 <tbody>

@@ -19,9 +19,11 @@ import type {
   PermissionInfo,
   PromotionalDuration,
   Role,
+  SortOrder,
   StaffMember,
   SubscriptionMirror,
   UserDetail,
+  UserSortField,
   UserStatus,
   UserSubscription,
   UserSummary,
@@ -80,6 +82,8 @@ export const metricsApi = {
 export interface UserListQuery {
   q: string;
   status: UserStatus | '';
+  sort: UserSortField;
+  order: SortOrder;
   page: number;
   pageSize: number;
 }
@@ -103,10 +107,15 @@ export const usersApi = {
       method: 'POST',
       body: { confirmEmail },
     }),
-  /** Account data only (never health data); same filter as `list`. */
-  exportCsv: (filter: Pick<UserListQuery, 'q' | 'status'>) =>
+  /** Account data only (never health data); same filter and sort as `list`. */
+  exportCsv: (filter: Pick<UserListQuery, 'q' | 'status' | 'sort' | 'order'>) =>
     apiDownload(
-      `export/users.csv${toQuery({ q: filter.q, status: filter.status })}`,
+      `export/users.csv${toQuery({
+        q: filter.q,
+        status: filter.status,
+        sort: filter.sort,
+        order: filter.order,
+      })}`,
       'text/csv',
     ),
 };

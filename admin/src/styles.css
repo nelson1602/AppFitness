@@ -629,6 +629,34 @@ thead th {
   white-space: nowrap;
 }
 
+/* Sortable column headers: the whole label is the button. */
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sort-button:hover {
+  color: var(--color-primary);
+}
+
+.sort-indicator {
+  color: var(--color-text-muted);
+  font-size: 0.75em;
+}
+
+th[aria-sort='ascending'] .sort-indicator,
+th[aria-sort='descending'] .sort-indicator {
+  color: var(--color-primary);
+}
+
 tbody th {
   font-weight: 600;
 }
