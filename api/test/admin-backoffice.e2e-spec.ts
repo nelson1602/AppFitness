@@ -718,7 +718,119 @@ describe('Staff backoffice (e2e)', () => {
     const audit = await prisma.staffAuditLog.findFirst({
       where: { action: 'user.export', staffId: ownerId },
     });
-    expect(audit?.after).toEqual({ q: user.email, status: null, rows: 1 });
+    expect(audit?.after).toEqual({
+      q: user.email,
+      status: null,
+      sort: null,
+      order: null,
+      rows: 1,
+    });
+  });
+
+  it('sorts the user list on the server by every column, with filters, paging and CSV', async () => {
+    // Three accounts sharing a tag, with known differences.
+    const tag = `s${suffix.slice(-6)}`;
+    const a = await registerUser(`${tag}a`);
+    const b = await registerUser(`${tag}b`);
+    const c = await registerUser(`${tag}c`);
+    await markEmailVerified(prisma, b.id);
+    await prisma.user.update({
+      where: { id: c.id },
+      data: { status: 'SUSPENDED' },
+    });
+    const ids = [a.id, b.id, c.id];
+    const list = async (query: Record<string, string | number>) =>
+      (
+        await request(http)
+          .get('/admin/api/users')
+          .query({ q: tag, ...query })
+          .set('Cookie', owner.cookie)
+          .expect(200)
+      ).body as {
+        items: { id: string; email: string }[];
+        total: number;
+      };
+    const order = async (query: Record<string, string | number>) =>
+      (await list(query)).items.map((item) => item.id);
+
+    // Default: newest first.
+    expect(await order({})).toEqual([c.id, b.id, a.id]);
+    expect(await order({ sort: 'email', order: 'asc' })).toEqual(ids);
+    expect(await order({ sort: 'email', order: 'desc' })).toEqual(
+      [...ids].reverse(),
+    );
+    expect(await order({ sort: 'username' })).toEqual(ids);
+    expect(await order({ sort: 'createdAt', order: 'asc' })).toEqual(ids);
+    // Verified first when descending; ties broken by id, ascending.
+    const byId = (x: string[]) => [...x].sort();
+    expect(await order({ sort: 'emailVerified', order: 'desc' })).toEqual([
+      b.id,
+      ...byId([a.id, c.id]),
+    ]);
+    expect(await order({ sort: 'status', order: 'desc' })).toEqual([
+      c.id,
+      ...byId([a.id, b.id]),
+    ]);
+    // Every column is accepted; equal values come back in id order.
+    for (const sort of ['lastLoginAt', 'deviceCount', 'lastSyncAt', 'isPro']) {
+      for (const direction of ['asc', 'desc']) {
+        const got = await order({ sort, order: direction });
+        expect(got.sort()).toEqual(byId(ids));
+      }
+    }
+    expect(await order({ sort: 'isPro', order: 'asc' })).toEqual(byId(ids));
+
+    // Works with the status filter and with paging (stable across pages).
+    expect(
+      await order({ sort: 'email', order: 'asc', status: 'ACTIVE' }),
+    ).toEqual([a.id, b.id]);
+    const first = await list({ sort: 'email', order: 'asc', pageSize: 2 });
+    const second = await list({
+      sort: 'email',
+      order: 'asc',
+      pageSize: 2,
+      page: 2,
+    });
+    expect(first.total).toBe(3);
+    expect([...first.items, ...second.items].map((i) => i.id)).toEqual(ids);
+
+    // Anything outside the whitelist is refused.
+    for (const bad of [
+      { sort: 'password_hash' },
+      { sort: 'email; DROP TABLE users' },
+      { sort: 'email', order: 'sideways' },
+    ]) {
+      await request(http)
+        .get('/admin/api/users')
+        .query(bad)
+        .set('Cookie', owner.cookie)
+        .expect(400);
+    }
+
+    // The CSV follows the same filter and sort, and the audit records them.
+    const csv = await request(http)
+      .get('/admin/api/export/users.csv')
+      .query({ q: tag, sort: 'email', order: 'desc' })
+      .set('Cookie', owner.cookie)
+      .expect(200);
+    const rows = csv.text
+      .slice(1)
+      .trim()
+      .split('\r\n')
+      .slice(1)
+      .map((line) => line.split(',')[0]);
+    expect(rows).toEqual([...ids].reverse());
+    const audit = await prisma.staffAuditLog.findFirst({
+      where: { action: 'user.export', staffId: ownerId },
+      orderBy: { createdAt: 'desc' },
+    });
+    expect(audit?.after).toEqual({
+      q: tag,
+      status: null,
+      sort: 'email',
+      order: 'desc',
+      rows: 3,
+    });
   });
 
   it('manages the food catalogue; retired and superseded revisions keep syncing', async () => {

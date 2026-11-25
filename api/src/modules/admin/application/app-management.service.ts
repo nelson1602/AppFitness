@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { UserStatus } from '@prisma/client';
 
 import {
   AppConfigService,
@@ -11,7 +10,11 @@ import { SubscriptionService } from '../../subscriptions/application/subscriptio
 import type { PromotionalDuration } from '../../subscriptions/domain/subscription.types';
 import type { StaffContext } from '../domain/staff.types';
 import { StaffAuditService } from './staff-audit.service';
-import { type UserSummary, UserSupportService } from './user-support.service';
+import {
+  type UserListQuery,
+  type UserSummary,
+  UserSupportService,
+} from './user-support.service';
 
 const UTF8_BOM = String.fromCharCode(0xfeff);
 
@@ -123,12 +126,13 @@ export class AppManagementService {
   // ─── CSV export ───────────────────────────────────────────────────────────
 
   /**
-   * The user list as CSV, with the same filter as the list screen. Account
-   * and support fields only (the list's own columns): never health data.
+   * The user list as CSV, with the same filter and sort as the list screen.
+   * Account and support fields only (the list's own columns): never health
+   * data.
    */
   async exportUsers(
     actor: StaffContext,
-    filter: { q?: string; status?: UserStatus },
+    filter: Pick<UserListQuery, 'q' | 'status' | 'sort' | 'order'>,
   ): Promise<{ csv: string; rows: number }> {
     const lines: string[] = [EXPORT_COLUMNS.join(',')];
     let rows = 0;
@@ -150,7 +154,13 @@ export class AppManagementService {
       staffId: actor.id,
       staffEmail: actor.email,
       // The filter and the count; never the rows themselves.
-      after: { q: filter.q ?? null, status: filter.status ?? null, rows },
+      after: {
+        q: filter.q ?? null,
+        status: filter.status ?? null,
+        sort: filter.sort ?? null,
+        order: filter.order ?? null,
+        rows,
+      },
       ip: actor.ip,
     });
     // UTF-8 BOM so Excel opens accents (ñ, á) correctly.

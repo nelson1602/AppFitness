@@ -52,6 +52,57 @@ export interface UserSummary {
 
 export const RECENT_FAILED_SYNC_LIMIT = 20;
 
+/** The user-list columns staff can sort by (the `UserSummary` keys). */
+export const USER_SORT_FIELDS = [
+  'email',
+  'username',
+  'createdAt',
+  'emailVerified',
+  'status',
+  'lastLoginAt',
+  'deviceCount',
+  'lastSyncAt',
+  'isPro',
+] as const;
+export type UserSortField = (typeof USER_SORT_FIELDS)[number];
+export type SortOrder = 'asc' | 'desc';
+
+/**
+ * The SQL each sort field orders by: fixed fragments only, chosen from this
+ * whitelist — no request text ever reaches ORDER BY. They compute the same
+ * facts `summarize` shows.
+ */
+const USER_SORT_SQL: Record<UserSortField, Prisma.Sql> = {
+  email: Prisma.sql`lower(u.email)`,
+  username: Prisma.sql`lower(u.username)`,
+  createdAt: Prisma.sql`u.created_at`,
+  emailVerified: Prisma.sql`(u.email_verified_at IS NOT NULL)`,
+  status: Prisma.sql`u.status::text`,
+  lastLoginAt: Prisma.sql`(SELECT max(a.created_at) FROM audit_logs a
+                            WHERE a.user_id = u.id AND a.action = 'LOGIN')`,
+  deviceCount: Prisma.sql`(SELECT count(*) FROM devices d
+                            WHERE d.user_id = u.id AND d.revoked_at IS NULL)`,
+  lastSyncAt: Prisma.sql`(SELECT max(s.applied_at) FROM sync_operations s
+                           WHERE s.user_id = u.id)`,
+  isPro: Prisma.sql`EXISTS (SELECT 1 FROM subscription_entitlements e
+                             WHERE e.user_id = u.id AND e.is_active
+                               AND (e.expires_at IS NULL OR e.expires_at > now()))`,
+};
+
+/** `%`, `_` and `\` match themselves in a search term. */
+export function likePattern(term: string): string {
+  return `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+}
+
+export interface UserListQuery {
+  q?: string;
+  status?: UserStatus;
+  sort?: UserSortField;
+  order?: SortOrder;
+  page: number;
+  pageSize: number;
+}
+
 /**
  * Backoffice user search and support actions (ADR-P049). Every action reuses
  * the app's own code path (verification resend, password-reset request,
@@ -70,36 +121,48 @@ export class UserSupportService {
     private readonly audit: StaffAuditService,
   ) {}
 
-  async search(query: {
-    q?: string;
-    status?: UserStatus;
-    page: number;
-    pageSize: number;
-  }) {
+  /**
+   * One page of the user list, filtered and sorted on the server. Default:
+   * newest first. NULLs sort last and ties are broken by id ascending, so
+   * paging — and the CSV export built on it — is stable.
+   */
+  async search(query: UserListQuery) {
     const term = query.q?.trim();
-    const where: Prisma.UserWhereInput = {
-      deletedAt: null,
-      status: query.status,
-      OR: term
-        ? [
-            { email: { contains: term, mode: 'insensitive' } },
-            { username: { contains: term, mode: 'insensitive' } },
-          ]
-        : undefined,
-    };
-    const [rows, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        select: USER_ACCOUNT_SELECT,
-        orderBy: { createdAt: 'desc' },
-        skip: (query.page - 1) * query.pageSize,
-        take: query.pageSize,
-      }),
-      this.prisma.user.count({ where }),
+    const filters: Prisma.Sql[] = [Prisma.sql`u.deleted_at IS NULL`];
+    if (query.status) {
+      filters.push(Prisma.sql`u.status = ${query.status}::"UserStatus"`);
+    }
+    if (term) {
+      const pattern = likePattern(term);
+      filters.push(
+        Prisma.sql`(u.email ILIKE ${pattern} OR u.username ILIKE ${pattern})`,
+      );
+    }
+    const where = Prisma.join(filters, ' AND ');
+    const sortField: UserSortField = query.sort ?? 'createdAt';
+    const order: SortOrder = query.order ?? (query.sort ? 'asc' : 'desc');
+    const direction = order === 'desc' ? Prisma.sql`DESC` : Prisma.sql`ASC`;
+    const [page, totals] = await Promise.all([
+      this.prisma.$queryRaw<{ id: string }[]>`
+        SELECT u.id FROM users u
+         WHERE ${where}
+         ORDER BY ${USER_SORT_SQL[sortField]} ${direction} NULLS LAST, u.id ASC
+         LIMIT ${query.pageSize} OFFSET ${(query.page - 1) * query.pageSize}`,
+      this.prisma.$queryRaw<{ total: bigint }[]>`
+        SELECT count(*) AS total FROM users u WHERE ${where}`,
     ]);
+    const rows = await this.prisma.user.findMany({
+      where: { id: { in: page.map((row) => row.id) } },
+      select: USER_ACCOUNT_SELECT,
+    });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const ordered = page.flatMap((row) => {
+      const found = byId.get(row.id);
+      return found ? [found] : [];
+    });
     return {
-      items: await this.summarize(rows),
-      total,
+      items: await this.summarize(ordered),
+      total: Number(totals[0]?.total ?? 0),
       page: query.page,
       pageSize: query.pageSize,
     };

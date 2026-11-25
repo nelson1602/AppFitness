@@ -27,6 +27,11 @@ import {
   type PromotionalDuration,
 } from '../../subscriptions/domain/subscription.types';
 import type { FoodKind } from '../application/catalog-admin.service';
+import {
+  type SortOrder,
+  USER_SORT_FIELDS,
+  type UserSortField,
+} from '../application/user-support.service';
 import { STAFF_PASSWORD_MAX } from '../domain/staff.types';
 
 const trimText = ({ value }: { value: unknown }): unknown =>
@@ -155,6 +160,15 @@ export class UserSearchQuery extends PageQuery {
   @IsOptional()
   @IsEnum(UserStatus)
   status?: UserStatus;
+
+  /** Whitelisted: anything else is a 400, never SQL. */
+  @IsOptional()
+  @IsIn(USER_SORT_FIELDS)
+  sort?: UserSortField;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  order?: SortOrder;
 }
 
 export class AuditQuery extends PageQuery {
@@ -229,6 +243,14 @@ export class UserExportQuery {
   @IsOptional()
   @IsEnum(UserStatus)
   status?: UserStatus;
+
+  @IsOptional()
+  @IsIn(USER_SORT_FIELDS)
+  sort?: UserSortField;
+
+  @IsOptional()
+  @IsIn(['asc', 'desc'])
+  order?: SortOrder;
 }
 
 export class GrantPromotionalDto {
