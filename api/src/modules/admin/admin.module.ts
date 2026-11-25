@@ -16,6 +16,7 @@ import {
   resolveAdminConfig,
 } from './admin.config';
 import { AppManagementService } from './application/app-management.service';
+import { CatalogAdminService } from './application/catalog-admin.service';
 import { MetricsService } from './application/metrics.service';
 import { StaffAuditService } from './application/staff-audit.service';
 import { StaffAuthService } from './application/staff-auth.service';
@@ -26,6 +27,7 @@ import { adminGate } from './presentation/admin-gate.middleware';
 import {
   AdminAppController,
   AdminAuthController,
+  AdminCatalogController,
   AdminInvitesController,
   AdminStaffController,
   AdminUsersController,
@@ -45,6 +47,7 @@ import { StaffSessionGuard } from './presentation/staff-session.guard';
     AdminStaffController,
     AdminUsersController,
     AdminAppController,
+    AdminCatalogController,
   ],
   providers: [
     {
@@ -65,6 +68,7 @@ import { StaffSessionGuard } from './presentation/staff-session.guard';
     UserSupportService,
     MetricsService,
     AppManagementService,
+    CatalogAdminService,
     StaffSessionGuard,
   ],
   exports: [ADMIN_CONFIG, StaffManagementService],

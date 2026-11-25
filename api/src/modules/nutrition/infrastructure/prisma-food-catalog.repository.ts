@@ -6,6 +6,7 @@ import {
   type CatalogFoodRow,
   FoodCatalogRepositoryPort,
   type NewFoodRow,
+  type RetirableFoodRow,
 } from '../domain/food-catalog.repository';
 
 const FOOD_SELECT = {
@@ -70,6 +71,7 @@ export class PrismaFoodCatalogRepository extends FoodCatalogRepositoryPort {
              fiber_per_serving AS "fiberPerServing"
         FROM foods
        WHERE deleted_at IS NULL
+         AND retired_at IS NULL
          AND (created_by IS NULL OR created_by = ${userId}::uuid)
          AND ${Prisma.join(matches, ' AND ')}
        ORDER BY char_length(name), name, id
@@ -79,7 +81,7 @@ export class PrismaFoodCatalogRepository extends FoodCatalogRepositoryPort {
 
   findGlobalByCatalogKeys(
     catalogKeys: readonly string[],
-  ): Promise<CatalogFoodRow[]> {
+  ): Promise<RetirableFoodRow[]> {
     if (catalogKeys.length === 0) return Promise.resolve([]);
     return this.prisma.food.findMany({
       where: {
@@ -87,16 +89,24 @@ export class PrismaFoodCatalogRepository extends FoodCatalogRepositoryPort {
         createdBy: null,
         deletedAt: null,
       },
-      select: FOOD_SELECT,
+      select: { ...FOOD_SELECT, retiredAt: true },
     });
   }
 
   findById(
     id: string,
-  ): Promise<(CatalogFoodRow & { deletedAt: Date | null }) | null> {
+  ): Promise<(RetirableFoodRow & { deletedAt: Date | null }) | null> {
     return this.prisma.food.findUnique({
       where: { id },
-      select: { ...FOOD_SELECT, deletedAt: true },
+      select: { ...FOOD_SELECT, retiredAt: true, deletedAt: true },
+    });
+  }
+
+  findCurrentGlobal(catalogKey: string): Promise<CatalogFoodRow | null> {
+    return this.prisma.food.findFirst({
+      where: { catalogKey, createdBy: null, deletedAt: null, retiredAt: null },
+      orderBy: { foodRevision: 'desc' },
+      select: FOOD_SELECT,
     });
   }
 

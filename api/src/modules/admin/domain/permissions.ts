@@ -1,9 +1,11 @@
 /**
- * Backoffice permissions (ADR-P049). The keys are seeded by migration
- * 20261124120000_staff_backoffice; this list must match it (a spec checks).
+ * Backoffice permissions (ADR-P049). The keys are seeded by migrations
+ * 20261124120000_staff_backoffice and 20261125130000_catalog_admin
+ * (`users.export`, amendment 1); this list must match them (a spec checks).
  */
 export const STAFF_PERMISSIONS = [
   'users.read',
+  'users.export',
   'users.support',
   'users.suspend',
   'users.delete',
@@ -60,6 +62,10 @@ export const STAFF_AUDIT_ACTIONS = [
   'user.export',
   'subscription.grant_promotional',
   'subscription.revoke_promotional',
+  'catalog.food_create',
+  'catalog.food_revise',
+  'catalog.food_retire',
+  'catalog.food_restore',
 ] as const;
 
 export type StaffAuditAction = (typeof STAFF_AUDIT_ACTIONS)[number];

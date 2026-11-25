@@ -18,7 +18,20 @@ import { LoginThrottleService } from './../src/modules/auth/application/login-th
 import { PrismaService } from './../src/modules/database/prisma.service';
 import { MAIL_TRANSPORT } from './../src/modules/mail/domain/mail.types';
 import { FakeMailTransport } from './../src/modules/mail/infrastructure/fake.transport';
+import { deriveFoodId } from './../src/modules/nutrition/catalog/catalog-identity';
+import { ExternalFoodClient } from './../src/modules/nutrition/infrastructure/external-food.client';
 import { markEmailVerified } from './support/mark-email-verified';
+
+/** No network in this suite: the external food sources answer nothing. */
+const NO_EXTERNAL_FOODS: Pick<
+  ExternalFoodClient,
+  'searchOff' | 'searchFdc' | 'fetchOff' | 'fetchFdc'
+> = {
+  searchOff: () => Promise.resolve([]),
+  searchFdc: () => Promise.resolve([]),
+  fetchOff: () => Promise.resolve(null),
+  fetchFdc: () => Promise.resolve(null),
+};
 
 /**
  * ADR-P049 staff backoffice, end to end against a real PostgreSQL database:
@@ -186,6 +199,8 @@ describe('Staff backoffice (e2e)', () => {
       })
       .overrideProvider(MAIL_TRANSPORT)
       .useValue(mail)
+      .overrideProvider(ExternalFoodClient)
+      .useValue(NO_EXTERNAL_FOODS)
       .compile();
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(
@@ -674,10 +689,17 @@ describe('Staff backoffice (e2e)', () => {
         date: new Date('2026-11-02'),
       },
     });
-    const response = await request(http)
+    // Seeing the list (users.read) is not enough: export is users.export,
+    // which only the owner's system role holds by default.
+    await request(http)
       .get('/admin/api/export/users.csv')
       .query({ q: user.email })
       .set('Cookie', support.cookie)
+      .expect(403);
+    const response = await request(http)
+      .get('/admin/api/export/users.csv')
+      .query({ q: user.email })
+      .set('Cookie', owner.cookie)
       .expect(200);
     expect(response.headers['content-type']).toContain('text/csv');
     expect(response.headers['content-disposition']).toMatch(
@@ -694,9 +716,272 @@ describe('Staff backoffice (e2e)', () => {
     expect(response.text).not.toContain('81.9');
 
     const audit = await prisma.staffAuditLog.findFirst({
-      where: { action: 'user.export', staffId: support.id },
+      where: { action: 'user.export', staffId: ownerId },
     });
     expect(audit?.after).toEqual({ q: user.email, status: null, rows: 1 });
+  });
+
+  it('manages the food catalogue; retired and superseded revisions keep syncing', async () => {
+    const admin = (path: string) => `/admin/api/catalog${path}`;
+    await request(http)
+      .get(admin('/foods'))
+      .set('Cookie', support.cookie)
+      .expect(403);
+
+    // Add: a new staff food, found by the app's search.
+    const name = `Mangu ${suffix}`;
+    const created = await request(http)
+      .post(admin('/foods'))
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({
+        name,
+        servingAmount: 100,
+        servingUnit: 'g',
+        caloriesPerServing: 150,
+        proteinPerServing: 2,
+        carbsPerServing: 35,
+        fatPerServing: 0.5,
+      })
+      .expect(201);
+    const first = created.body as {
+      id: string;
+      catalogKey: string;
+      foodRevision: number;
+      kind: string;
+      status: string;
+    };
+    expect(first).toMatchObject({
+      foodRevision: 1,
+      kind: 'staff',
+      status: 'active',
+    });
+    expect(first.catalogKey.startsWith('staff.')).toBe(true);
+    expect(first.id).toBe(deriveFoodId(first.catalogKey, 1));
+
+    // Implausible energy for the portion weight is refused.
+    await request(http)
+      .post(admin('/foods'))
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({
+        name: `Imposible ${suffix}`,
+        servingAmount: 10,
+        servingUnit: 'g',
+        caloriesPerServing: 500,
+        proteinPerServing: 0,
+        carbsPerServing: 0,
+        fatPerServing: 0,
+      })
+      .expect(400);
+
+    const person = await registerUser('cat');
+    await markEmailVerified(prisma, person.id);
+    const search = async () =>
+      (
+        await request(http)
+          .get('/foods/search')
+          .query({ q: name })
+          .set('Authorization', `Bearer ${person.accessToken}`)
+          .expect(200)
+      ).body as {
+        results: { foodId: string; foodRevision?: number; source: string }[];
+      };
+    expect((await search()).results).toEqual([
+      expect.objectContaining({
+        foodId: first.id,
+        foodRevision: 1,
+        source: 'catalog',
+      }),
+    ]);
+
+    // The person logs it.
+    const logId = randomUUID();
+    const mealId = randomUUID();
+    const push = async (itemId: string, foodId: string) =>
+      (
+        await request(http)
+          .post('/sync/push')
+          .set('Authorization', `Bearer ${person.accessToken}`)
+          .send({
+            operations: [
+              {
+                entityType: 'meal_items',
+                entityId: itemId,
+                payload: { meal_id: mealId, food_id: foodId, serving_count: 1 },
+              },
+            ].map((op) => ({
+              opId: randomUUID(),
+              operation: 'CREATE',
+              baseVersion: 0,
+              ...op,
+            })),
+          })
+          .expect(201)
+      ).body as { results: { status: string; errorCode: string | null }[] };
+    const parents = await request(http)
+      .post('/sync/push')
+      .set('Authorization', `Bearer ${person.accessToken}`)
+      .send({
+        operations: [
+          {
+            entityType: 'nutrition_logs',
+            entityId: logId,
+            payload: { date: '2026-11-20', notes: null },
+          },
+          {
+            entityType: 'meals',
+            entityId: mealId,
+            payload: { nutrition_log_id: logId, type: 'LUNCH', order_index: 1 },
+          },
+        ].map((op) => ({
+          opId: randomUUID(),
+          operation: 'CREATE',
+          baseVersion: 0,
+          ...op,
+        })),
+      })
+      .expect(201);
+    expect(
+      (parents.body as { results: { status: string }[] }).results.map(
+        (r) => r.status,
+      ),
+    ).toEqual(['APPLIED', 'APPLIED']);
+    expect((await push(randomUUID(), first.id)).results[0].status).toBe(
+      'APPLIED',
+    );
+
+    // Correct: revision 2 under the same key; revision 1 is superseded.
+    const revised = await request(http)
+      .post(admin(`/foods/${first.id}/revisions`))
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({
+        name,
+        servingAmount: 100,
+        servingUnit: 'g',
+        caloriesPerServing: 160,
+        proteinPerServing: 2,
+        carbsPerServing: 37,
+        fatPerServing: 0.5,
+      })
+      .expect(201);
+    const second = revised.body as { id: string; foodRevision: number };
+    expect(second).toMatchObject({
+      id: deriveFoodId(first.catalogKey, 2),
+      foodRevision: 2,
+    });
+    const detail = await request(http)
+      .get(admin(`/foods/${first.id}`))
+      .set('Cookie', owner.cookie)
+      .expect(200);
+    expect(
+      (
+        detail.body as { revisions: { foodRevision: number; status: string }[] }
+      ).revisions.map((r) => [r.foodRevision, r.status]),
+    ).toEqual([
+      [2, 'active'],
+      [1, 'superseded'],
+    ]);
+    expect((await search()).results).toEqual([
+      expect.objectContaining({ foodId: second.id, foodRevision: 2 }),
+    ]);
+    // A phone that still has revision 1 keeps logging it.
+    expect((await push(randomUUID(), first.id)).results[0].status).toBe(
+      'APPLIED',
+    );
+    // Only the newest revision can be corrected.
+    await request(http)
+      .post(admin(`/foods/${first.id}/revisions`))
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .send({
+        name,
+        servingAmount: 100,
+        servingUnit: 'g',
+        caloriesPerServing: 170,
+        proteinPerServing: 2,
+        carbsPerServing: 37,
+        fatPerServing: 0.5,
+      })
+      .expect(409);
+
+    // Retire: hidden from search, still loggable; then restore.
+    const retired = await request(http)
+      .post(admin(`/foods/${second.id}/retire`))
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .expect(200);
+    expect((retired.body as { status: string }).status).toBe('retired');
+    expect((await search()).results).toEqual([]);
+    expect((await push(randomUUID(), second.id)).results[0].status).toBe(
+      'APPLIED',
+    );
+    await request(http)
+      .post(admin(`/foods/${second.id}/retire`))
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .expect(409);
+    const listed = await request(http)
+      .get(admin('/foods'))
+      .query({ q: name, kind: 'staff', status: 'retired' })
+      .set('Cookie', owner.cookie)
+      .expect(200);
+    expect(listed.body).toMatchObject({
+      total: 1,
+      items: [{ id: second.id, status: 'retired' }],
+    });
+    await request(http)
+      .post(admin(`/foods/${second.id}/restore`))
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .expect(200);
+    expect((await search()).results).toEqual([
+      expect.objectContaining({ foodId: second.id }),
+    ]);
+
+    // A built-in (bundled) food is read-only here.
+    const bundledKey = `food.e2eadmin${suffix}`;
+    const bundled = await prisma.food.create({
+      data: {
+        id: deriveFoodId(bundledKey, 1),
+        catalogKey: bundledKey,
+        foodRevision: 1,
+        catalogVersion: 'food-catalog@1.0.0',
+        name: `Arroz ${suffix}`,
+        servingAmount: 100,
+        servingUnit: 'g',
+        gramsPerServing: 100,
+        caloriesPerServing: 130,
+        proteinPerServing: 2.7,
+        carbsPerServing: 28,
+        fatPerServing: 0.3,
+      },
+    });
+    await request(http)
+      .post(admin(`/foods/${bundled.id}/retire`))
+      .set(CSRF)
+      .set('Cookie', owner.cookie)
+      .expect(400);
+
+    const actions = await prisma.staffAuditLog.findMany({
+      where: { staffId: ownerId, targetType: 'food' },
+      orderBy: { createdAt: 'asc' },
+      select: { action: true },
+    });
+    expect(actions.map((a) => a.action)).toEqual([
+      'catalog.food_create',
+      'catalog.food_revise',
+      'catalog.food_retire',
+      'catalog.food_restore',
+    ]);
+
+    // Exercises: read-only list.
+    const exercises = await request(http)
+      .get(admin('/exercises'))
+      .set('Cookie', owner.cookie)
+      .expect(200);
+    expect(exercises.body).toMatchObject({ page: 1, pageSize: 25 });
   });
 
   it('gates subscription reads and promotional grants by permission', async () => {

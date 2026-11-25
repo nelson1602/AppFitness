@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
@@ -8,9 +8,11 @@ import {
   IsEnum,
   IsIn,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Length,
   Matches,
   Max,
   MaxLength,
@@ -19,11 +21,19 @@ import {
 } from 'class-validator';
 import { UserStatus } from '@prisma/client';
 
+import { CreateCustomFoodDto } from '../../nutrition/presentation/dto/food.dto';
 import {
   PROMOTIONAL_DURATIONS,
   type PromotionalDuration,
 } from '../../subscriptions/domain/subscription.types';
+import type { FoodKind } from '../application/catalog-admin.service';
 import { STAFF_PASSWORD_MAX } from '../domain/staff.types';
+
+const trimText = ({ value }: { value: unknown }): unknown =>
+  typeof value === 'string' ? value.trim() : value;
+
+/** No control characters in catalogue text. */
+const NO_CONTROL_TEXT = /^[^\p{Cc}]*$/u;
 
 const TOKEN = /^[A-Za-z0-9_-]{20,100}$/;
 
@@ -224,4 +234,42 @@ export class UserExportQuery {
 export class GrantPromotionalDto {
   @IsIn(PROMOTIONAL_DURATIONS)
   duration!: PromotionalDuration;
+}
+
+/** A backoffice catalogue food: a person's custom-food fields plus brand and fiber. */
+export class CatalogFoodDto extends CreateCustomFoodDto {
+  @IsOptional()
+  @Transform(trimText)
+  @IsString()
+  @Length(1, 80)
+  @Matches(NO_CONTROL_TEXT, { message: 'brand contains invalid characters' })
+  brand?: string | null;
+
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false })
+  @Min(0)
+  @Max(1000)
+  fiberPerServing?: number | null;
+}
+
+export class FoodListQuery extends PageQuery {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
+
+  @IsOptional()
+  @IsIn(['bundled', 'external', 'staff'])
+  kind?: FoodKind;
+
+  @IsOptional()
+  @IsIn(['active', 'retired'])
+  status?: 'active' | 'retired';
+}
+
+export class ExerciseListQuery extends PageQuery {
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  q?: string;
 }

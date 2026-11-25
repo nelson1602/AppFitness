@@ -23,6 +23,13 @@ export interface FoodSearchResult {
   carbsPerServing: number;
   fatPerServing: number;
   fiberPerServing: number | null;
+  /**
+   * The stored revision and catalogue stamp, on results that are already
+   * catalogue foods (absent on fresh external hits). A corrected food is
+   * served at its newest revision (ADR-P049 amendment 1).
+   */
+  foodRevision?: number;
+  catalogVersion?: string | null;
 }
 
 /** A normalized external item, plus whether its name is Spanish (OFF). */
