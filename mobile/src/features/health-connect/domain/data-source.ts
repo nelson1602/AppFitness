@@ -45,24 +45,70 @@ export function chooseSource(
   return [...pool].sort(mostSteps)[0].packageName;
 }
 
-/** Known apps' display names; any other origin shows its package name. */
+/** Known apps' display names (brand names are not translated). */
 const KNOWN_SOURCES: Readonly<Record<string, string>> = {
   'com.sec.android.app.shealth': 'Samsung Health',
   'com.google.android.apps.fitness': 'Google Fit',
   'com.huawei.health': 'Huawei Health',
   'com.fitbit.FitbitMobile': 'Fitbit',
   'com.garmin.android.apps.connectmobile': 'Garmin Connect',
+  'com.xiaomi.wearable': 'Mi Fitness',
+  'com.huami.watch.hmwatchmanager': 'Zepp',
 };
-/** Honor's app is named differently per language ("Salud" / "Health"). */
+/** Honor's app is named differently per language ("Honor Salud" / "Honor Health"). */
 export const HONOR_HEALTH_PACKAGE = 'com.hihonor.health';
+/**
+ * Health Connect's own origins: the phone's sensors, written as
+ * `com.android.healthconnect.<…>` (e.g. `…phone.<hash>` on Honor).
+ */
+const THIS_PHONE_PREFIX = 'com.android.healthconnect.';
+
+/** The localized names the app supplies. */
+export interface SourceLabelCopy {
+  /** Honor's health app. */
+  honor: string;
+  /** "Este teléfono" / "This phone". */
+  thisPhone: string;
+  /** "Otra app" / "Other app". */
+  otherApp: string;
+}
 
 /**
- * The name to show for an origin. `honorLabel` is the localized name of
- * Honor's app; brand names are not translated.
+ * The name to show for an origin. Never a raw package name or hash: an app
+ * we do not know is "Other app".
  */
-export function sourceLabel(packageName: string, honorLabel: string): string {
-  if (packageName === HONOR_HEALTH_PACKAGE) return honorLabel;
-  return KNOWN_SOURCES[packageName] ?? packageName;
+export function sourceLabel(packageName: string, copy: SourceLabelCopy): string {
+  if (packageName === HONOR_HEALTH_PACKAGE) return copy.honor;
+  if (packageName.startsWith(THIS_PHONE_PREFIX)) return copy.thisPhone;
+  return KNOWN_SOURCES[packageName] ?? copy.otherApp;
+}
+
+/**
+ * Names for a list of origins, kept distinct: when several origins share a
+ * name ("Other app", or two of the phone's own), they are numbered in
+ * package-name order ("Other app 1", "Other app 2"). Deterministic.
+ */
+export function sourceLabels(
+  packageNames: readonly string[],
+  copy: SourceLabelCopy,
+): Map<string, string> {
+  const unique = [...new Set(packageNames)].sort((a, b) => a.localeCompare(b));
+  const names = unique.map((packageName) => sourceLabel(packageName, copy));
+  const counts = new Map<string, number>();
+  for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1);
+  const seen = new Map<string, number>();
+  const labels = new Map<string, string>();
+  unique.forEach((packageName, i) => {
+    const name = names[i];
+    if ((counts.get(name) ?? 0) < 2) {
+      labels.set(packageName, name);
+      return;
+    }
+    const n = (seen.get(name) ?? 0) + 1;
+    seen.set(name, n);
+    labels.set(packageName, `${name} ${n}`);
+  });
+  return labels;
 }
 
 export interface OriginSession {

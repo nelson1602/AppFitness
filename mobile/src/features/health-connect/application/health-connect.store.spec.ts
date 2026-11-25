@@ -164,6 +164,40 @@ describe('Health Connect data source (ADR-P048 amendment)', () => {
     ]);
   });
 
+  it('lists apps from the last 7 days; today’s totals and the automatic choice use today only', async () => {
+    const HC_PHONE = 'com.android.healthconnect.phone.j1fb8597d7183337c986884aabc17d2d3';
+    mocked.readOrigins.mockImplementation((start) =>
+      Promise.resolve(
+        start === new Date(`${TODAY}T00:00:00`).toISOString()
+          ? [{ packageName: HC_PHONE, isWatch: false, types: ['Steps'] }]
+          : [
+              { packageName: HC_PHONE, isWatch: false, types: ['Steps'] },
+              { packageName: SAMSUNG, isWatch: true, types: ['Steps'] },
+            ],
+      ),
+    );
+    mocked.readDayTotals.mockResolvedValue({ steps: 156, activeKcal: null, hydrationMl: 900 });
+
+    await useHealthConnectStore.getState().refresh(TODAY);
+
+    const starts = mocked.readOrigins.mock.calls.map(([start]) => start).sort();
+    expect(starts).toEqual(
+      [
+        new Date('2026-11-11T00:00:00').toISOString(),
+        new Date(`${TODAY}T00:00:00`).toISOString(),
+      ].sort(),
+    );
+    const state = useHealthConnectStore.getState();
+    // The watch's app is listed before today's data has synced…
+    expect(state.sources).toEqual([
+      { packageName: HC_PHONE, isWatch: false, steps: 156 },
+      { packageName: SAMSUNG, isWatch: true, steps: null },
+    ]);
+    // …but with nothing today it does not take over today's totals.
+    expect(state.source).toBe(HC_PHONE);
+    expect(state.totals?.steps).toBe(156);
+  });
+
   it('a type the source lacks falls back to the unfiltered aggregate, never a sum', async () => {
     phoneAndWatch();
     await useHealthConnectStore.getState().refresh(TODAY);

@@ -225,6 +225,8 @@ export const es = {
   'profile.source.hint':
     'Si tu teléfono y tu reloj son de marcas distintas, elige la app de tu reloj.',
   'profile.source.honor': 'Honor Salud',
+  'profile.source.thisPhone': 'Este teléfono',
+  'profile.source.otherApp': 'Otra app',
   'notifications.time.today': 'Hoy',
   'notifications.time.yesterday': 'Ayer',
   'notifications.time.daysAgo': 'Hace {count} días',

@@ -6,7 +6,7 @@ import { AppText } from '@/shared/presentation';
 import { useTheme } from '@/shared/theme';
 
 import { useHealthConnectStore } from '../application/health-connect.store';
-import { sourceLabel } from '../domain/data-source';
+import { sourceLabels } from '../domain/data-source';
 
 const AUTO = 'auto';
 
@@ -24,13 +24,18 @@ export function HealthSourcePicker() {
   const picked = useHealthConnectStore((s) => s.pickedSource);
   const [saving, setSaving] = useState(false);
   const isWeb = Platform.OS === 'web';
-  const label = (packageName: string) => sourceLabel(packageName, t('profile.source.honor'));
-
   if (source === null && sources.length === 0) return null;
 
-  // A pick with no data today stays listed, so it remains visible and selected.
+  // A pick with no recent data stays listed, so it remains visible and selected.
   const packages = sources.map((origin) => origin.packageName);
   if (picked !== null && !packages.includes(picked)) packages.push(picked);
+  // Names, never package names; repeated names are numbered to stay distinct.
+  const names = sourceLabels(source !== null ? [...packages, source] : packages, {
+    honor: t('profile.source.honor'),
+    thisPhone: t('profile.source.thisPhone'),
+    otherApp: t('profile.source.otherApp'),
+  });
+  const label = (packageName: string) => names.get(packageName) ?? t('profile.source.otherApp');
   const options = [
     { value: AUTO, text: t('profile.source.auto') },
     ...packages.map((packageName) => ({ value: packageName, text: label(packageName) })),
@@ -81,6 +86,9 @@ export function HealthSourcePicker() {
                 borderRadius: theme.radius.field,
                 borderWidth: selected ? 2 : 1,
                 justifyContent: 'center',
+                // Never wider than the row: a long name wraps inside the chip.
+                flexShrink: 1,
+                maxWidth: '100%',
                 minHeight: theme.spacing.x5l,
                 paddingHorizontal: theme.spacing.md,
               }}
@@ -89,6 +97,7 @@ export function HealthSourcePicker() {
               <AppText
                 style={{
                   color: selected ? theme.colors.onChoiceSelected : theme.colors.onStage,
+                  flexShrink: 1,
                 }}
                 variant="label"
               >
