@@ -7,6 +7,7 @@ import { mockFetch, urlOf } from '../test/fetchMock';
 import { UsersScreen, localDay } from './UsersScreen';
 
 const emptyPage = { items: [], total: 0, page: 1, pageSize: 25 };
+const EXPORTER = ['users.read', 'users.export'];
 
 function stubObjectUrls() {
   const createObjectURL = vi.fn((object: Blob | MediaSource): string => {
@@ -25,6 +26,29 @@ function stubObjectUrls() {
 }
 
 describe('UsersScreen export', () => {
+  it('hides the export button with only users.read', async () => {
+    mockFetch({ 'GET users?page=1&pageSize=25': { body: emptyPage } });
+
+    render(<UsersScreen me={makeMe(['users.read'])} />);
+    await screen.findByText(es.users.resultCount(0));
+
+    expect(
+      screen.queryByRole('button', { name: es.users.exportCsv }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText(es.users.exportNote)).not.toBeInTheDocument();
+  });
+
+  it('shows the export button with users.export', async () => {
+    mockFetch({ 'GET users?page=1&pageSize=25': { body: emptyPage } });
+
+    render(<UsersScreen me={makeMe(EXPORTER)} />);
+    await screen.findByText(es.users.resultCount(0));
+
+    expect(
+      screen.getByRole('button', { name: es.users.exportCsv }),
+    ).toBeEnabled();
+  });
+
   it('downloads the CSV with the applied filters and revokes the object URL', async () => {
     const user = userEvent.setup();
     const fetchMock = mockFetch({
@@ -44,7 +68,7 @@ describe('UsersScreen export', () => {
       clicked.push({ href: this.href, download: this.download });
     });
 
-    render(<UsersScreen me={makeMe(['users.read'])} />);
+    render(<UsersScreen me={makeMe(EXPORTER)} />);
 
     expect(screen.getByText(es.users.exportNote)).toBeInTheDocument();
     await user.type(screen.getByLabelText(es.users.searchLabel), 'ana');
@@ -89,7 +113,7 @@ describe('UsersScreen export', () => {
     });
     const { createObjectURL } = stubObjectUrls();
 
-    render(<UsersScreen me={makeMe(['users.read'])} />);
+    render(<UsersScreen me={makeMe(EXPORTER)} />);
     await screen.findByText(es.users.resultCount(0));
     await user.click(screen.getByRole('button', { name: es.users.exportCsv }));
 
@@ -125,7 +149,7 @@ describe('UsersScreen export', () => {
       () => undefined,
     );
 
-    render(<UsersScreen me={makeMe(['users.read'])} />);
+    render(<UsersScreen me={makeMe(EXPORTER)} />);
     await screen.findByText(es.users.resultCount(0));
     await user.click(screen.getByRole('button', { name: es.users.exportCsv }));
 

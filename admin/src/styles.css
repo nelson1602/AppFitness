@@ -562,6 +562,17 @@ fieldset {
   background: var(--color-danger-bg);
 }
 
+/* Catalogue food statuses (superseded keeps the neutral pill). */
+.pill--active {
+  color: var(--color-success);
+  background: var(--color-success-bg);
+}
+
+.pill--retired {
+  color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
 .details {
   display: grid;
   grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr);
@@ -785,6 +796,36 @@ tbody tr:last-child > * {
 
 .export-row .hint {
   margin: 0;
+}
+
+/* Catalogue tabs */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-4);
+}
+
+.tab {
+  min-height: var(--touch-target);
+  padding: var(--space-2) var(--space-4);
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+}
+
+.tab[aria-selected='true'] {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.tab:hover:not([aria-selected='true']) {
+  color: var(--color-text);
 }
 
 /* Dialog */

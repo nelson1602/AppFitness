@@ -3,6 +3,7 @@
 
 export const PERMISSIONS = [
   'users.read',
+  'users.export',
   'users.support',
   'users.suspend',
   'users.delete',
@@ -205,3 +206,70 @@ export const PROMOTIONAL_DURATIONS = [
 ] as const;
 
 export type PromotionalDuration = (typeof PROMOTIONAL_DURATIONS)[number];
+
+export const FOOD_KINDS = ['bundled', 'external', 'staff'] as const;
+export type FoodKind = (typeof FOOD_KINDS)[number];
+
+export type FoodStatus = 'active' | 'retired' | 'superseded';
+
+export const SERVING_UNITS = [
+  'g',
+  'ml',
+  'serving',
+  'piece',
+  'cup',
+  'tbsp',
+  'tsp',
+] as const;
+export type ServingUnit = (typeof SERVING_UNITS)[number];
+
+export interface CatalogFoodView {
+  id: string;
+  catalogKey: string;
+  foodRevision: number;
+  catalogVersion: string | null;
+  kind: FoodKind;
+  status: FoodStatus;
+  /** False for bundled foods and for superseded revisions. */
+  editable: boolean;
+  name: string;
+  brand: string | null;
+  servingAmount: number;
+  servingUnit: string;
+  gramsPerServing: number | null;
+  caloriesPerServing: number;
+  proteinPerServing: number;
+  carbsPerServing: number;
+  fatPerServing: number;
+  fiberPerServing: number | null;
+  retiredAt: string | null;
+  createdAt: string;
+}
+
+export interface CatalogFoodDetail {
+  food: CatalogFoodView;
+  /** Newest first. */
+  revisions: CatalogFoodView[];
+}
+
+/** Body of POST catalog/foods and POST catalog/foods/:id/revisions. */
+export interface CatalogFoodInput {
+  name: string;
+  brand?: string;
+  servingAmount: number;
+  servingUnit: ServingUnit;
+  gramsPerServing?: number;
+  caloriesPerServing: number;
+  proteinPerServing: number;
+  carbsPerServing: number;
+  fatPerServing: number;
+  fiberPerServing?: number;
+}
+
+export interface CatalogExercise {
+  id: string;
+  name: string;
+  muscleGroup: string;
+  category: string;
+  instructions: string | null;
+}

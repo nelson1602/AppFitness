@@ -5,7 +5,12 @@ import type {
   AppConfig,
   AppConfigInput,
   AuditEntry,
+  CatalogExercise,
+  CatalogFoodDetail,
+  CatalogFoodInput,
+  CatalogFoodView,
   DashboardMetrics,
+  FoodKind,
   InviteAcceptResponse,
   InviteInspectResponse,
   LoginResponse,
@@ -179,4 +184,48 @@ export interface AuditQuery {
 export const auditApi = {
   list: (query: AuditQuery) =>
     apiRequest<Page<AuditEntry>>(`audit${toQuery({ ...query })}`),
+};
+
+export interface FoodListQuery {
+  q: string;
+  kind: FoodKind | '';
+  status: 'active' | 'retired' | '';
+  page: number;
+  pageSize: number;
+}
+
+export interface ExerciseListQuery {
+  q: string;
+  page: number;
+  pageSize: number;
+}
+
+export const catalogApi = {
+  foods: (query: FoodListQuery) =>
+    apiRequest<Page<CatalogFoodView>>(`catalog/foods${toQuery({ ...query })}`),
+  food: (foodId: string) =>
+    apiRequest<CatalogFoodDetail>(`catalog/foods/${id(foodId)}`),
+  createFood: (input: CatalogFoodInput) =>
+    apiRequest<CatalogFoodView>('catalog/foods', {
+      method: 'POST',
+      body: input,
+    }),
+  /** "Corregir": creates revision N+1 and retires the previous one. */
+  reviseFood: (foodId: string, input: CatalogFoodInput) =>
+    apiRequest<CatalogFoodView>(`catalog/foods/${id(foodId)}/revisions`, {
+      method: 'POST',
+      body: input,
+    }),
+  retireFood: (foodId: string) =>
+    apiRequest<CatalogFoodView>(`catalog/foods/${id(foodId)}/retire`, {
+      method: 'POST',
+    }),
+  restoreFood: (foodId: string) =>
+    apiRequest<CatalogFoodView>(`catalog/foods/${id(foodId)}/restore`, {
+      method: 'POST',
+    }),
+  exercises: (query: ExerciseListQuery) =>
+    apiRequest<Page<CatalogExercise>>(
+      `catalog/exercises${toQuery({ ...query })}`,
+    ),
 };

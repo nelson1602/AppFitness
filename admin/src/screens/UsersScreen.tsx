@@ -119,7 +119,7 @@ export function UsersScreen({ me }: { me: Me }) {
         </button>
       </form>
 
-      {can(me, 'users.read') ? (
+      {can(me, 'users.export') ? (
         <div className="export-row">
           <button
             type="button"

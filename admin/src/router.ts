@@ -18,6 +18,8 @@ export const paths = {
   roles: '/roles',
   audit: '/auditoria',
   config: '/configuracion',
+  catalog: '/catalogo',
+  catalogFood: (foodId: string) => `/catalogo/${encodeURIComponent(foodId)}`,
 } as const;
 
 export function parseHash(hash: string): Route {

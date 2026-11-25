@@ -160,6 +160,41 @@ describe('App', () => {
     );
   });
 
+  it('shows Catálogo only with catalog.manage', async () => {
+    window.location.hash = '#/catalogo';
+    mockFetch({
+      'GET auth/me': { body: makeMe(['catalog.manage']) },
+      'GET catalog/foods?page=1&pageSize=25': {
+        body: { items: [], total: 0, page: 1, pageSize: 25 },
+      },
+    });
+
+    render(<App />);
+
+    const nav = await screen.findByRole('navigation', { name: es.nav.label });
+    expect(
+      within(nav).getByRole('link', { name: es.nav.catalog }),
+    ).toHaveAttribute('aria-current', 'page');
+    expect(
+      await screen.findByRole('heading', { name: es.catalog.title, level: 1 }),
+    ).toBeInTheDocument();
+  });
+
+  it('hides Catálogo and blocks its route without catalog.manage', async () => {
+    window.location.hash = '#/catalogo';
+    mockFetch({ 'GET auth/me': { body: makeMe(['audit.read']) } });
+
+    render(<App />);
+
+    const nav = await screen.findByRole('navigation', { name: es.nav.label });
+    expect(
+      within(nav).queryByRole('link', { name: es.nav.catalog }),
+    ).not.toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      es.errors.forbidden,
+    );
+  });
+
   it('routes to the login screen when a later call answers 401', async () => {
     window.location.hash = '#/panel';
     mockFetch({
