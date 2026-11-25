@@ -3,6 +3,7 @@ import {
   HONOR_HEALTH_PACKAGE,
   pickSessions,
   sourceLabel,
+  sourceLabels,
   type HealthOrigin,
 } from './data-source';
 
@@ -47,16 +48,44 @@ describe('health-source@1.0.0 — source choice (ADR-P048 amendment)', () => {
 });
 
 describe('source labels', () => {
+  const ES = { honor: 'Honor Salud', thisPhone: 'Este teléfono', otherApp: 'Otra app' };
+  const HC_PHONE = 'com.android.healthconnect.phone.j1fb8597d7183337c986884aabc17d2d3';
+
   it.each([
     [SAMSUNG, 'Samsung Health'],
     [FIT, 'Google Fit'],
     ['com.huawei.health', 'Huawei Health'],
     ['com.fitbit.FitbitMobile', 'Fitbit'],
     ['com.garmin.android.apps.connectmobile', 'Garmin Connect'],
+    ['com.xiaomi.wearable', 'Mi Fitness'],
+    ['com.huami.watch.hmwatchmanager', 'Zepp'],
     [HONOR_HEALTH_PACKAGE, 'Honor Salud'],
-    ['com.example.tracker', 'com.example.tracker'],
+    [HC_PHONE, 'Este teléfono'],
+    ['com.android.healthconnect.controller', 'Este teléfono'],
+    ['com.example.tracker', 'Otra app'],
   ])('%s → %s', (packageName, label) => {
-    expect(sourceLabel(packageName, 'Honor Salud')).toBe(label);
+    expect(sourceLabel(packageName, ES)).toBe(label);
+  });
+
+  it('never shows a raw package name or hash', () => {
+    for (const packageName of [HC_PHONE, 'com.example.tracker', 'x']) {
+      const label = sourceLabel(packageName, ES);
+      expect(label).not.toContain('com.');
+      expect(label).not.toContain('j1fb8597');
+    }
+  });
+
+  it('numbers repeated names in package order so chips stay distinct', () => {
+    const labels = sourceLabels(
+      ['com.zeta.tracker', SAMSUNG, HC_PHONE, 'com.alpha.tracker', SAMSUNG],
+      ES,
+    );
+    expect([...labels.entries()]).toEqual([
+      ['com.alpha.tracker', 'Otra app 1'],
+      [HC_PHONE, 'Este teléfono'],
+      [SAMSUNG, 'Samsung Health'],
+      ['com.zeta.tracker', 'Otra app 2'],
+    ]);
   });
 });
 

@@ -225,6 +225,8 @@ export const en = {
   'profile.source.auto': 'Automatic',
   'profile.source.hint': 'If your phone and watch are different brands, choose your watch’s app.',
   'profile.source.honor': 'Honor Health',
+  'profile.source.thisPhone': 'This phone',
+  'profile.source.otherApp': 'Other app',
   'notifications.time.today': 'Today',
   'notifications.time.yesterday': 'Yesterday',
   'notifications.time.daysAgo': '{count} days ago',

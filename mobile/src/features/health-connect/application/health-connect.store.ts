@@ -19,6 +19,7 @@ import {
   readSessions,
   requestReadPermissions,
   type DayTotals,
+  type FoundOrigin,
   type HealthReadType,
 } from '../infrastructure/health-connect.client';
 import { readWaterGoal, writeWaterGoal } from '../infrastructure/water-goal.repository';
@@ -39,6 +40,8 @@ export type WatchStatus = 'off' | 'unavailable' | 'needs-update' | 'not-connecte
 
 /** Days of watch sessions kept for the carry-over (its 7-day window plus today). */
 export const WATCH_LOOKBACK_DAYS = 7;
+/** Days (today included) of apps listed in Perfil → Fuente de datos. */
+export const SOURCE_LOOKBACK_DAYS = 7;
 const APP_WORKOUTS_SCANNED = 50;
 
 interface HealthConnectState {
@@ -50,7 +53,11 @@ interface HealthConnectState {
   sessions: WatchSession[];
   appWorkouts: AppWorkoutWindow[];
   waterGoalMl: number | null;
-  /** Apps that wrote steps, active calories or water today, by package name. */
+  /**
+   * Apps that wrote steps, active calories or water in the last 7 days, by
+   * package name (so a watch's app is listed before today's data syncs).
+   * `steps` is today's own total, null when the app has nothing today.
+   */
   sources: HealthOrigin[];
   /** The app the totals and sessions are read from; null = unfiltered. */
   source: string | null;
@@ -84,20 +91,27 @@ const INITIAL = {
  */
 async function readSourcedTotals(
   dayStart: string,
+  originsStart: string,
   now: string,
   granted: ReadonlySet<HealthReadType>,
   pickedSource: string | null,
 ): Promise<{ totals: DayTotals; sources: HealthOrigin[]; source: string | null }> {
-  const found = await readOrigins(dayStart, now, granted);
+  const [found, recent] = await Promise.all([
+    readOrigins(dayStart, now, granted),
+    readOrigins(originsStart, now, granted),
+  ]);
   const perOrigin = await Promise.all(
     found.map((origin) => readDayTotals(dayStart, now, new Set(origin.types), origin.packageName)),
   );
-  const sources = found.map((origin, i) => ({
+  const today = found.map((origin, i) => ({
     packageName: origin.packageName,
     isWatch: origin.isWatch,
     steps: perOrigin[i].steps,
   }));
-  const source = chooseSource(sources, pickedSource);
+  // The automatic choice and the totals use today's apps only, as before;
+  // the picker also lists apps seen in the last days with nothing today yet.
+  const source = chooseSource(today, pickedSource);
+  const sources = listedSources(today, recent);
   const index = found.findIndex((origin) => origin.packageName === source);
   const own = index >= 0 ? perOrigin[index] : null;
   const ownTypes = new Set<HealthReadType>(index >= 0 ? found[index].types : []);
@@ -117,6 +131,27 @@ async function readSourcedTotals(
     sources,
     source,
   };
+}
+
+/**
+ * Today's apps plus any app seen in the lookback with nothing today yet
+ * (`steps: null`), sorted by package name.
+ */
+export function listedSources(
+  today: readonly HealthOrigin[],
+  recent: readonly FoundOrigin[],
+): HealthOrigin[] {
+  const listed = new Map(today.map((origin) => [origin.packageName, origin]));
+  for (const origin of recent) {
+    if (!listed.has(origin.packageName)) {
+      listed.set(origin.packageName, {
+        packageName: origin.packageName,
+        isWatch: origin.isWatch,
+        steps: null,
+      });
+    }
+  }
+  return [...listed.values()].sort((a, b) => a.packageName.localeCompare(b.packageName));
 }
 
 const startOf = (date: string): string => new Date(`${date}T00:00:00`).toISOString();
@@ -155,6 +190,7 @@ export const useHealthConnectStore = create<HealthConnectState>((set, get) => ({
         const pickedSource = await readPickedSource(owner.userId);
         const { totals, sources, source } = await readSourcedTotals(
           startOf(today),
+          startOf(addDays(today, -(SOURCE_LOOKBACK_DAYS - 1))),
           now,
           granted,
           pickedSource,

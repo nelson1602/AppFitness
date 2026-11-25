@@ -234,9 +234,10 @@ describe('catalogue parity', () => {
   // Honor's localized app name (+5, 2016).
   // ADR-P049 amendment 1: the maintenance notice title (+1, 2017), then the
   // "update required" screen's title, body and action (+3, 2020).
-  it('reaches 2020 keys in each language — 1779 shipped plus a 241-key family', () => {
-    expect(Object.keys(en)).toHaveLength(2020);
-    expect(Object.keys(es)).toHaveLength(2020);
+  // Data source "This phone" and "Other app" (+2, 2022).
+  it('reaches 2022 keys in each language — 1779 shipped plus a 243-key family', () => {
+    expect(Object.keys(en)).toHaveLength(2022);
+    expect(Object.keys(es)).toHaveLength(2022);
     expect(Object.keys(en).filter((key) => key.startsWith('sync.conflicts.'))).toHaveLength(166);
   });
 

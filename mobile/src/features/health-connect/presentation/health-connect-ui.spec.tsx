@@ -291,7 +291,7 @@ describe('Perfil data source (ADR-P048 amendment)', () => {
     expect(mockSetSource).toHaveBeenLastCalledWith(null);
   });
 
-  it('an unknown app shows its package name; a pick with no data today stays listed', async () => {
+  it('an unknown app is "Otra app", never its package name; a pick with no data stays listed', async () => {
     useHealthConnectStore.setState({
       sources: [{ packageName: 'com.example.tracker', isWatch: false, steps: 10 }],
       source: 'com.garmin.android.apps.connectmobile',
@@ -299,11 +299,35 @@ describe('Perfil data source (ADR-P048 amendment)', () => {
     });
     await render(<HealthConnectSettings status="connected" />);
     expect(screen.getByTestId('profile-health-source-com.example.tracker')).toHaveTextContent(
-      'com.example.tracker',
+      'Otra app',
     );
+    expect(screen.queryByText(/com\./)).toBeNull();
     expect(
       screen.getByTestId('profile-health-source-com.garmin.android.apps.connectmobile'),
     ).toHaveProp('accessibilityState', { disabled: false, selected: true });
+  });
+
+  it('Honor phone + Galaxy Watch: "Este teléfono", never the raw origin, and chips that shrink', async () => {
+    const HC_PHONE = 'com.android.healthconnect.phone.j1fb8597d7183337c986884aabc17d2d3';
+    useHealthConnectStore.setState({
+      sources: [
+        { packageName: HC_PHONE, isWatch: false, steps: 156 },
+        { packageName: 'com.sec.android.app.shealth', isWatch: true, steps: null },
+      ],
+      source: HC_PHONE,
+      pickedSource: null,
+    });
+    await render(<HealthConnectSettings status="connected" />);
+    expect(screen.getByTestId('profile-health-source-current')).toHaveTextContent(
+      'Fuente de datos: Este teléfono',
+    );
+    const chip = screen.getByTestId(`profile-health-source-${HC_PHONE}`);
+    expect(chip).toHaveTextContent('Este teléfono');
+    expect(chip).toHaveStyle({ flexShrink: 1, maxWidth: '100%' });
+    expect(
+      screen.getByTestId('profile-health-source-com.sec.android.app.shealth'),
+    ).toHaveTextContent('Samsung Health');
+    expect(screen.queryByText(/healthconnect|j1fb8597/)).toBeNull();
   });
 
   it('hidden when nothing was found and nothing picked, and when not connected', async () => {
