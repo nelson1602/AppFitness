@@ -10199,12 +10199,12 @@ Owner requirement: "País" on sign-up and Editar perfil (device region, else Rep
 
 ## [FEATURE-018] Staff Backoffice (custom panel at /admin)
 
-Status: In Progress (PR 1 merged 2026-11-24 as #272; image PR #273; PR 2 open, catalogue and min-version enforcement pending owner decisions)
+Status: In Progress (PR 1 merged 2026-11-24 as #272; image PR #273; PR 2 #274 complete, awaiting owner merge)
 Priority: P1
 Type: Feature
 Owner: Project owner (decisions, merges, secrets) · Engineering (delivery)
 Created: 2026-11-24
-Updated: 2026-11-24
+Updated: 2026-11-25
 
 ### Description
 
@@ -10226,12 +10226,13 @@ PR 1 — foundation and support:
 
 PR 2 — app management (after PR 1 merges):
 
-* [ ] Catalogue CRUD for exercises and foods (soft delete, versioned, sync-consistent) — blocked on owner decision (ADR-P049 A5: phones get the catalogue only from the bundle)
+* [x] Catalogue (owner decision 2026-11-25, ADR-P049 A5): foods add / correct as a new revision / retire (hidden from search, syncs still accepted) / restore; built-in foods and exercises read-only
 * [x] App config: maintenance banner (API, panel, app shell and sign-in)
-* [ ] Minimum supported app version: stored and published; "update required" in mobile needs `expo-application` (owner decision, ADR-P049 A2)
+* [x] Minimum supported app version: stored, published and enforced on Android with `expo-application` (owner-approved 2026-11-25, ADR-P049 A2); takes effect from the first build that includes it
 * [x] Subscriptions: read RevenueCat entitlement; grant/revoke promotional Pro (`subscriptions.grant`, audited)
-* [x] CSV export of the user list (no health data), permission-gated and audited
-* [x] ADR-P049 amendment 1 (A5 catalogue pending)
+* [x] CSV export of the user list (no health data), its own permission `users.export` (SUPER_ADMIN only by default), audited
+* [x] ADR-P049 amendment 1 (A1–A5)
+* [ ] Exercise catalogue editing: needs phones to download catalogue updates (new ADR + app build)
 
 ### Related Documents
 
