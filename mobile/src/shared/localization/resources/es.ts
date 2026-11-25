@@ -58,6 +58,11 @@ export const es = {
   'header.notifications': 'Notificaciones, {count} sin leer',
   // ADR-P049 amendment 1: the server's maintenance notice; the body is the server's text.
   'appConfig.maintenance.title': 'Aviso',
+  // ADR-P049 amendment 1: the installed Android build is below the server's minimum.
+  'appConfig.updateRequired.title': 'Actualiza la app',
+  'appConfig.updateRequired.body':
+    'Esta versión ya no es compatible. Actualiza AppFitnessRD desde Google Play para seguir usándola. Tus datos se conservan.',
+  'appConfig.updateRequired.action': 'Actualizar',
   'notifications.title': 'Notificaciones',
   'notifications.markAllRead': 'Marcar todo como leído',
   'notifications.close': 'Cerrar',

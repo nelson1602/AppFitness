@@ -1,7 +1,12 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
 
-import { startAppConfigWatch } from '@/features/app-config';
+import {
+  startAppConfigWatch,
+  UpdateRequiredScreen,
+  useUpdateRequired,
+} from '@/features/app-config';
 import { AccessGateRedirect } from '@/features/authentication/presentation/access-gate-redirect';
 import { registerDayRollover } from '@/features/dashboard/application/use-home-data';
 import { EvaluationGateRedirect } from '@/features/evaluation/presentation/evaluation-gate-redirect';
@@ -49,6 +54,7 @@ export default function RootLayout() {
   const theme = useTheme();
   useLocalization();
   const fontsReady = useBrandFonts();
+  const updateRequired = useUpdateRequired();
 
   // Bridge our design tokens into the navigation container so native
   // navigation surfaces (headers, backgrounds) match the app theme.
@@ -73,29 +79,49 @@ export default function RootLayout() {
           native, where Stack.Screen options.title remains the only mechanism. */}
       <DocumentHead />
       <StatusBar style={theme.dark ? 'light' : 'dark'} />
-      {/* v10 Block C: every pushed screen looks like the tabs — the solid dark
-          stage with the top glow behind a transparent header, drawn by the
-          screen itself (`StageScreen`), which starts its content below the
-          header. The auth screens keep an opaque header of their own. */}
-      <Stack
-        screenOptions={{
-          headerTransparent: true,
-          headerStyle: { backgroundColor: 'transparent' },
-          headerTintColor: theme.colors.onStage,
-          headerShadowVisible: false,
-          contentStyle: { backgroundColor: theme.colors.stage },
-        }}
+      {/* ADR-P049 amendment 1: below the server's minimum Android build, the
+          update screen covers the app. The navigator stays mounted (Expo
+          Router needs it for any router call) but is hidden from touch and
+          from screen readers. Only the UI changes: sync, the session and
+          local data carry on untouched. */}
+      <View
+        style={styles.fill}
+        importantForAccessibility={updateRequired ? 'no-hide-descendants' : 'auto'}
+        accessibilityElementsHidden={updateRequired}
+        pointerEvents={updateRequired ? 'none' : 'auto'}
+        testID="root-navigator"
       >
-        {/* The tab shell and the welcome screen draw their own headers (ADR-P039). */}
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="welcome" options={{ headerShown: false }} />
-        <Stack.Screen name="verify-pending" options={{ headerShown: false }} />
-      </Stack>
+        {/* v10 Block C: every pushed screen looks like the tabs — the solid dark
+            stage with the top glow behind a transparent header, drawn by the
+            screen itself (`StageScreen`), which starts its content below the
+            header. The auth screens keep an opaque header of their own. */}
+        <Stack
+          screenOptions={{
+            headerTransparent: true,
+            headerStyle: { backgroundColor: 'transparent' },
+            headerTintColor: theme.colors.onStage,
+            headerShadowVisible: false,
+            contentStyle: { backgroundColor: theme.colors.stage },
+          }}
+        >
+          {/* The tab shell and the welcome screen draw their own headers (ADR-P039). */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="welcome" options={{ headerShown: false }} />
+          <Stack.Screen name="verify-pending" options={{ headerShown: false }} />
+        </Stack>
+      </View>
       {/* Mandatory email verification (ADR-P041): no data route stays open
           for an account that still owes a step. */}
       <AccessGateRedirect />
       {/* The first-run Evaluación física after verification (v8 Block 2). */}
       <EvaluationGateRedirect />
+      {updateRequired ? (
+        <View style={StyleSheet.absoluteFill} testID="update-required-overlay">
+          <UpdateRequiredScreen />
+        </View>
+      ) : null}
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({ fill: { flex: 1 } });

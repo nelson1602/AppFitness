@@ -125,6 +125,34 @@ describe('remote foods (v10 Block B, item 7)', () => {
     expect(saveFoodLocally).toHaveBeenCalledWith(food, NOW);
   });
 
+  it('keeps the revision and catalogue version the server serves for a shared food', async () => {
+    const food = await saveChosenFood(
+      result({
+        source: 'catalog',
+        sourceId: 'catalog.mangu',
+        foodId: 'shared-id',
+        foodRevision: 2,
+        catalogVersion: 'admin@2',
+      }),
+      NOW,
+    );
+    expect(food).toMatchObject({ foodRevision: 2, catalogVersion: 'admin@2' });
+    expect(saveFoodLocally).toHaveBeenCalledWith(food, NOW);
+  });
+
+  it('falls back to revision 1 and the default version when the server sends neither', async () => {
+    const shared = await saveChosenFood(
+      result({ source: 'catalog', sourceId: 'catalog.mangu', foodId: 'shared-id' }),
+      NOW,
+    );
+    expect(shared).toMatchObject({ foodRevision: 1, catalogVersion: '' });
+    const own = await saveChosenFood(
+      result({ source: 'custom', sourceId: 'custom.abc', foodId: 'c', catalogVersion: null }),
+      NOW,
+    );
+    expect(own).toMatchObject({ foodRevision: 1, catalogVersion: 'custom@1' });
+  });
+
   it('creates a custom food on the server and keeps it on the phone', async () => {
     const created = canonical({ catalogKey: 'custom.def', category: 'custom' });
     jest.mocked(createCustomFood).mockResolvedValue(created);

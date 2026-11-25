@@ -15,9 +15,9 @@ export interface MaintenanceNotice {
 export interface AppConfig {
   maintenance: MaintenanceNotice | null;
   /**
-   * Parsed and kept, but not acted on yet: telling "update required" apart
-   * needs the installed native versionCode, which needs `expo-application` —
-   * a new dependency the owner has not approved.
+   * The lowest Android versionCode the server still serves. Enforced by
+   * `isUpdateRequired` against the installed versionCode (read through
+   * `expo-application`); null means no minimum.
    */
   minAndroidVersionCode: number | null;
 }
@@ -53,6 +53,22 @@ function parseMaintenance(value: unknown): MaintenanceNotice | null {
 
 function parseVersionCode(value: unknown): number | null {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+/**
+ * Pure: true only on Android, when both the minimum and the installed
+ * versionCode are known and the installed one is below the minimum. Fails
+ * open — no config, an unreadable installed version, iOS or Web all answer
+ * false — so a bad read never locks anyone out.
+ */
+export function isUpdateRequired(
+  minAndroidVersionCode: number | null,
+  platform: string,
+  installedVersionCode: number | null,
+): boolean {
+  if (platform !== 'android') return false;
+  if (minAndroidVersionCode === null || installedVersionCode === null) return false;
+  return installedVersionCode < minAndroidVersionCode;
 }
 
 /** Pure: any shape the server (or a proxy) might send becomes a valid config. */

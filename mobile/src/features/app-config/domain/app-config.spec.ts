@@ -1,4 +1,25 @@
-import { EMPTY_APP_CONFIG, MAINTENANCE_MESSAGE_MAX_LENGTH, parseAppConfig } from './app-config';
+import {
+  EMPTY_APP_CONFIG,
+  isUpdateRequired,
+  MAINTENANCE_MESSAGE_MAX_LENGTH,
+  parseAppConfig,
+} from './app-config';
+
+describe('isUpdateRequired (ADR-P049 amendment 1)', () => {
+  it.each([
+    ['android, installed below the minimum', 17, 'android', 16, true],
+    ['android, installed equal to the minimum', 17, 'android', 17, false],
+    ['android, installed above the minimum', 17, 'android', 18, false],
+    ['no minimum', null, 'android', 16, false],
+    ['installed version unknown', 17, 'android', null, false],
+    ['both unknown', null, 'android', null, false],
+    ['iOS', 17, 'ios', 1, false],
+    ['Web', 17, 'web', 1, false],
+    ['an unknown platform', 17, 'windows', 1, false],
+  ] as const)('%s → %s', (_case, minimum, platform, installed, expected) => {
+    expect(isUpdateRequired(minimum, platform, installed)).toBe(expected);
+  });
+});
 
 describe('parseAppConfig (ADR-P049 amendment 1)', () => {
   it('reads a valid answer, trimming the messages', () => {

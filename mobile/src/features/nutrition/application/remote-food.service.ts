@@ -111,8 +111,9 @@ export async function saveChosenFood(
     food = {
       id: result.foodId ?? '',
       catalogKey: result.sourceId,
-      foodRevision: 1,
-      catalogVersion: result.source === 'custom' ? 'custom@1' : '',
+      // A corrected shared food is served at revision 2+ (older servers send neither).
+      foodRevision: result.foodRevision ?? 1,
+      catalogVersion: result.catalogVersion ?? (result.source === 'custom' ? 'custom@1' : ''),
       name: result.name,
       category: result.source,
       servingAmount: result.servingAmount,
