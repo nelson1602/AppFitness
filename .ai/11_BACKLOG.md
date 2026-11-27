@@ -3453,9 +3453,63 @@ The minimum smartwatch integration for Play review (owner decisions, 2026-11-17)
 
 ---
 
+## [FEATURE-021] Real Dominican Foods With Sourced Macros (ADR-P013 Batch)
+
+Status: Open
+Priority: P1 (high, owner 2026-11-27)
+Type: Feature
+Owner: Engineering / Nutrition
+Created: 2026-11-27
+Updated: 2026-11-27
+
+### Description
+
+Common Dominican foods have no bundled catalogue entry, so searching them in Spanish finds only English FDC/OFF products (found by BUG-057). The BUG-057 aliases never point at a near-miss, so these need real foods: an ADR-P013 batch with sourced per-100 g macros, an English and a Spanish name, and the catalogue integrity checks.
+
+- [ ] Mangú
+- [ ] Plátano maduro
+- [ ] Salami
+- [ ] Queso de freír
+- [ ] Moro
+- [ ] Sancocho
+- [ ] Pan de agua
+- [ ] Concón
+- [ ] Once mangú is added: repoint the `mangu` alias (`food-aliases.es.ts`) from `food.plantain_boiled` to it, and update the BUG-057 tests
+- [ ] Server catalogue seed carries the new revisions (`db:seed:catalog`)
+
+---
+
+## [BUG-057] Food Search Finds Dominican Words Only in English
+
+Status: Fixed in PR (codex/bug057-dominican-search-aliases), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-27
+Updated: 2026-11-27
+
+### Description
+
+With the app in Spanish, searching "Mangú" returned "Mangu mashed plantains, mangu" (GOYA), and the logged item read "Plantain, cooked with butter or margarine" (owner, 2026-11-27).
+
+- **Cause:** the phone's bundled search matches only text inside a food's English or Spanish name, and no bundled food has "mangu" in its name (the plan's mangú dishes are built from `food.plantain_boiled`). Only the server answered, with FDC/OFF products, and FDC names stay in English (ADR-P045 §3).
+
+### Fix (ADR-P045 Amendment BUG-057)
+
+- **Aliases:** a reviewed table of Dominican words → bundled foods: mangú, habichuela(s), habichuelas negras/blancas, gandul(es), guineo, lechosa, chinola, molondrón, auyama, ají, ají morrón.
+- **Ranking:** a name or alias equal to the query comes first. Search only: stored and shown names never change, so "mangú" logs "Plátano verde hervido".
+- **Scope:** mobile only; the server term table is unchanged.
+
+- [x] Tests: alias guard (folded keys, bundled targets), mangú in ES/EN however typed, partial typing, whole-word query, most specific alias first, unchanged searches without an alias
+- [ ] Device check (skipped before the PR by the owner, 2026-11-27; verify in the next tester build): "mangú" in the log form shows Plátano verde hervido first
+- [ ] Known limit: an FDC item picked from the server list still shows and logs its English name
+- [ ] After the release: the owner searches "mangú" and sees the Spanish food first
+
+---
+
 ## [BUG-056] Logging a Different Meal Does Not Close the Planned Meal
 
-Status: Fixed in PR (codex/bug056-offplan-closes-slot), pending owner review
+Status: Fixed (PR #277, merged 2026-11-27)
 Priority: P1
 Type: Bug
 Owner: Engineering

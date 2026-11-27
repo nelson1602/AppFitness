@@ -1,3 +1,4 @@
+import { FOOD_SEARCH_ALIASES } from '../infrastructure/food-aliases.es';
 import { FOOD_CATALOG } from '../infrastructure/food-catalog.data';
 import { SPANISH_FOOD_NAMES } from '../infrastructure/food-catalog.es';
 import {
@@ -41,6 +42,79 @@ describe('food display localization', () => {
     const result = searchFoodsForDisplay('chicken breast', 'es')[0];
     expect(result?.id).toBe('food.chicken_breast');
     expect(result?.name).toBe('Chicken breast, cooked');
+  });
+});
+
+describe('Spanish/Dominican search aliases (BUG-057, ADR-P045 Amendment BUG-057)', () => {
+  const ids = (query: string, language: 'es' | 'en' = 'es') =>
+    searchFoodsForDisplay(query, language).map((food) => food.id);
+  const fold = (value: string) =>
+    value.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
+
+  it('every alias is folded and points only at bundled foods', () => {
+    const catalogIds = new Set(FOOD_CATALOG.map((food) => food.id));
+    for (const [alias, targets] of Object.entries(FOOD_SEARCH_ALIASES)) {
+      expect(fold(alias)).toBe(alias);
+      expect(targets.length).toBeGreaterThan(0);
+      for (const id of targets) expect(catalogIds.has(id)).toBe(true);
+    }
+  });
+
+  it('"mangú" finds the boiled green plantain first, however it is typed, in both languages', () => {
+    for (const query of ['mangú', 'Mangu', 'MANGÚ', '  mangú ']) {
+      expect(ids(query)[0]).toBe('food.plantain_boiled');
+      expect(ids(query, 'en')[0]).toBe('food.plantain_boiled');
+    }
+    expect(foodDisplayName(searchFoodsForDisplay('mangú', 'es')[0]!, 'es')).toBe(
+      'Plátano verde hervido',
+    );
+  });
+
+  it('a partly typed alias already finds its food, next to name matches', () => {
+    const results = ids('mang');
+    expect(results).toContain('food.plantain_boiled');
+    expect(results).toContain('food.mango');
+  });
+
+  it('a query that names an alias as a whole word still finds its food', () => {
+    expect(ids('mangú con salami')).toEqual(['food.plantain_boiled']);
+  });
+
+  it('the most specific alias comes first ("habichuelas negras" → black beans)', () => {
+    const results = ids('habichuelas negras');
+    expect(results[0]).toBe('food.black_beans');
+    expect(results).toContain('food.kidney_beans');
+    expect(ids('habichuelas')[0]).toBe('food.kidney_beans');
+  });
+
+  it('seeds the approved Dominican terms', () => {
+    expect(ids('gandules')[0]).toBe('food.pigeon_peas');
+    expect(ids('lechosa')[0]).toBe('food.papaya');
+    expect(ids('chinola')[0]).toBe('food.passion_fruit');
+    expect(ids('molondrón')[0]).toBe('food.okra');
+    expect(ids('auyama')[0]).toBe('food.pumpkin');
+    // Both peppers equal the alias; they keep the catalogue order.
+    expect(ids('ají').slice(0, 2).sort()).toEqual([
+      'food.bell_pepper_green',
+      'food.bell_pepper_red',
+    ]);
+    // "guineo" means either in the DR: the ripe banana first, then the green one.
+    expect(ids('guineo').slice(0, 2)).toEqual(['food.banana', 'food.green_banana_raw']);
+  });
+
+  it('leaves searches without an alias as they were', () => {
+    const plain = (query: string) =>
+      FOOD_CATALOG.filter((food) => {
+        const q = fold(query);
+        return fold(food.name).includes(q) || fold(foodDisplayName(food, 'es')).includes(q);
+      }).map((food) => food.id);
+    for (const query of ['pollo', 'arroz', 'queso', 'rice', 'pechuga de pollo']) {
+      expect(ids(query)).toEqual(plain(query));
+    }
+  });
+
+  it('a name equal to the query comes first', () => {
+    expect(ids('naranja')[0]).toBe('food.orange');
   });
 });
 
