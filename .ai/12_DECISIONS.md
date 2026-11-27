@@ -15310,6 +15310,25 @@ The rule:
   - the block removable.
 - **Known limit.** The extra-cardio bonus of a past day counts only within the current ISO week (where the realtime week knows it). Backlog TASK-v11B-1.
 
+### Addendum BUG-056 — An off-plan log closes its meal slot (proposed 2026-11-27, owner decision)
+
+Status: proposed with the BUG-056 PR; the owner accepts it with that PR (text approved by the owner on 2026-11-27). Rule `meal-rebalance@1.3.0` amends B2 and B9. ADR-P042 items 6–7 and carry-over `carry-over@1.1.0` are unchanged. No schema change. Code: `nutrition/domain/meal-slot-status.ts`; tests: `meal-slot-status.spec.ts`, `rebalance-ui.spec.tsx`, `weekly-plan.service.spec.ts`.
+
+**Found by the owner (2026-11-27).** Logging a food other than the plan's under Desayuno left Desayuno pending. The rebalance kept a portion for a meal already eaten, and the card still offered "Lo comí".
+
+- **S1 Slot status.** For one date, a planned meal slot is exactly one of the following, in this precedence:
+  - **Comido**: at least one food-log item linked to the plan for that date and slot (ADR-P042 item 6, "Lo comí");
+  - **Registrado**: no linked item, but at least one non-deleted food-log item logged under that meal type on that date;
+  - **Omitida**: "Omitir" for today (v10-B B2);
+  - **Pending**: none of the above.
+
+  It is derived from the logs by a pure function and never stored.
+- **S2 Rebalance (amends B2).** Only pending meals are rebalanced. Comido, Registrado and Omitida slots are closed. What a Registrado slot logged is already in "consumed" (B1), so the remaining calories spread over the pending slots and the day still never plans above its target (B6, v11-A).
+- **S3 Last slot.** When no slot is pending, the day has no plan left to adjust (v10-B rule 1). Its total reaches the following days only through the carry-over (v11-B C1–C9) from the next day on, with its caps, its "day looks complete" check (C3) and its safe minimum (C5). Nothing new is computed on the day itself, and no same-day message is shown (owner, 2026-11-27).
+- **S4 Adherence (ADR-P042 item 6 unchanged).** Registrado is not on-plan: meal adherence still counts only slots with a plan-linked item. Off-plan food still counts in "days within the calorie target" and in the carry-over, as before.
+- **S5 Display.** A Registrado slot shows "Registrado ✓" / "Logged ✓" in place of "Lo comí". It offers no "Lo comí", skip or light option, and its plan kcal reads like a closed meal's. Comido keeps "Comido ✓". This applies to every saved day of the current week, not only today (owner, 2026-11-27): the day the food log has loaded is read live, the week's other days as the weekly plan last loaded them.
+- **S6 Undo (amends B9).** Deleting the last item that made a slot Registrado makes it pending again, and the rebalance reruns. Nothing is stored to undo.
+
 ### Consequences
 
 - **Positive:** the design's coaching promises become real, tested behaviour.
@@ -15423,6 +15442,7 @@ The engine recomputed the weekly workout routine and the 15-day meal plan on eve
    - Anything else is an extra workout outside adherence.
 6. **"Lo comí".** Each planned meal can be marked eaten. That logs the dish's ingredient lines into the food log, with `meal_items.plan_id`, `plan_date` and `plan_slot` (nullable, migrations on both sides). Deleting those items undoes it.
    - Meal adherence = planned meal slots with at least one linked item ÷ planned meal slots in the week.
+   - ADR-P040 Addendum BUG-056 (2026-11-27): food logged under a meal outside the plan shows that meal as "Registrado" and closes it for the rebalance, but it is not a linked item and never counts here.
 7. **Adherence** = 50 % × (fulfilled sessions ÷ planned sessions) + 50 % × meal adherence, rounded to a whole percent. The ring is green at ≥ 85, cyan at ≥ 65 and orange below.
    - The week detail shows: each planned session as Cumplido / No realizado; meal %; days within the calorie target (logged kcal within ±10 % of target, of 7); average daily kcal against the target; the weight change (last weigh-in of the week minus the last one before it); and the iCoach note of the **following** week's plan.
    - All of it is computed by pure functions from the logs and the saved plan.

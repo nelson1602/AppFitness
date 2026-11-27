@@ -1,6 +1,7 @@
 import { getSession } from '@/features/authentication';
 import {
   listDailyCalorieTotals,
+  listOffPlanSlots,
   listPlannedSlotsDone,
 } from '@/features/nutrition/infrastructure/food-log.repository';
 import { listBodyWeights } from '@/features/progress/infrastructure/progress.repository';
@@ -69,6 +70,14 @@ export async function loadWeekLogs(userId: string, planIds: readonly string[]): 
     ),
     weights: weights.map((weight) => ({ date: weight.date, weightKg: weight.weightKg })),
   };
+}
+
+/**
+ * The week's meal slots with food logged outside the plan, as `date|slot`
+ * keys (ADR-P040 Addendum BUG-056). Shown as "Registrado"; never adherence.
+ */
+export async function loadWeekOffPlanSlots(userId: string, weekStart: string): Promise<string[]> {
+  return listOffPlanSlots(userId, weekStart, addDays(weekStart, 6));
 }
 
 function resultOf(adherence: WeekAdherence | null, loadStep: number): PreviousWeekResult | null {

@@ -246,6 +246,7 @@ function MealRow({
   meal,
   dayIndex,
   done,
+  logged = false,
   onEaten,
   onLightOption = null,
   onSkip = null,
@@ -253,6 +254,8 @@ function MealRow({
   meal: PlanMeal;
   dayIndex: number;
   done: boolean;
+  /** ADR-P040 Addendum BUG-056: food logged under this meal outside the plan. */
+  logged?: boolean;
   onEaten: (() => void) | null;
   onLightOption?: (() => void) | null;
   onSkip?: (() => void) | null;
@@ -271,10 +274,12 @@ function MealRow({
     : count === 1
       ? t('nutrition.plan.ingredientsOne')
       : interpolate(t('nutrition.plan.ingredients'), { count: formatNumber(count, language) });
-  const rebalance = done ? undefined : meal.rebalance;
+  // BUG-056 S1/S5: "Comido" wins over "Registrado", which wins over "Omitida".
+  const closed = done || logged;
+  const rebalance = closed ? undefined : meal.rebalance;
   const covered = rebalance?.status === 'covered';
-  const skipped = !done && meal.skipped === true;
-  const muted = done || skipped || covered;
+  const skipped = !closed && meal.skipped === true;
+  const muted = closed || skipped || covered;
 
   return (
     <View
@@ -356,6 +361,29 @@ function MealRow({
             testID={`plan-eaten-${dayIndex}-${meal.slot}`}
           >
             <Icon color={colors.stageDeep} name="check" size={18} strokeWidth={3} />
+          </View>
+        ) : logged ? (
+          <View
+            accessibilityLabel={interpolate(t('nutrition.plan.loggedAccessibility'), {
+              meal: slotLabel,
+            })}
+            accessible
+            style={[
+              styles.row,
+              {
+                borderColor: colors.success,
+                borderRadius: theme.spacing.x5l / 2,
+                borderWidth: 2,
+                flexShrink: 1,
+                gap: spacing.xs,
+                minHeight: theme.spacing.x5l,
+                paddingHorizontal: spacing.md,
+              },
+            ]}
+            testID={`plan-logged-${dayIndex}-${meal.slot}`}
+          >
+            <Icon color={colors.success} name="check" size={16} strokeWidth={3} />
+            <AppText variant="caption">{t('nutrition.plan.logged')}</AppText>
           </View>
         ) : onEaten ? (
           <Pressable
@@ -477,6 +505,7 @@ export interface PlanExtra {
 export function MealPlanPanel({
   day,
   isDone,
+  isLogged = () => false,
   onEaten,
   onLightOption = null,
   onSkip = null,
@@ -485,6 +514,8 @@ export function MealPlanPanel({
 }: {
   day: ViewDay;
   isDone: (slot: MealSlot) => boolean;
+  /** ADR-P040 Addendum BUG-056: "Registrado", food logged under the meal outside the plan. */
+  isLogged?: (slot: MealSlot) => boolean;
   onEaten: ((slot: MealSlot) => void) | null;
   /** ADR-P040 v10-B, a covered day: eat the light option instead of the meal. */
   onLightOption?: ((slot: MealSlot) => void) | null;
@@ -565,6 +596,7 @@ export function MealPlanPanel({
           <MealRow
             dayIndex={day.index}
             done={isDone(meal.slot)}
+            logged={isLogged(meal.slot)}
             meal={meal}
             onEaten={onEaten && !day.preview && !day.isFuture ? () => onEaten(meal.slot) : null}
             onLightOption={onLightOption && day.isToday ? () => onLightOption(meal.slot) : null}

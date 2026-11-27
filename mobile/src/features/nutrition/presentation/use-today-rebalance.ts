@@ -14,6 +14,7 @@ import { useFoodLogStore } from '../application/food-log.store';
 import { rebalanceToday } from '../application/meal-rebalance.service';
 import { useSkippedMealsStore } from '../application/skipped-meals.store';
 import type { LoggedMealItem } from '../domain/food-log';
+import { closedMealSlots, offPlanSlotKeys } from '../domain/meal-slot-status';
 import { MEAL_SLOTS, type MealMacros, type MealPlanFood, type MealSlot } from '../domain/meal-plan';
 import type { ServingUnit } from '../domain/food-catalog';
 import type { CarryOverMessage } from './carry-over-copy';
@@ -66,10 +67,16 @@ export function useTodayRebalance(): TodayRebalance | null {
     const effective = effectivePlanDay(revisions, today);
     if (!effective || effective.day.meals.length === 0) return null;
     const skipped = skippedKey === `${userId}|${today}` ? skippedSlots : [];
-    const closedSlots = new Set<MealSlot>([
-      ...MEAL_SLOTS.filter((slot) => mealSlotsDone.includes(`${today}|${slot}`)),
-      ...skipped,
-    ]);
+    // ADR-P040 Addendum BUG-056 S2: "Lo comí", "Registrado" and "Omitir" close a slot.
+    const closedSlots = closedMealSlots(
+      {
+        date: today,
+        eaten: new Set(mealSlotsDone),
+        logged: new Set(offPlanSlotKeys(today, items)),
+        skipped,
+      },
+      MEAL_SLOTS,
+    );
     const rebalance = rebalanceToday({
       meals: effective.day.meals,
       closedSlots,

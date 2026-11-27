@@ -396,3 +396,111 @@ describe('v11-B on screen: the carry-over sentence in the day header', () => {
     expect(screen.queryByTestId('plan-carry-over')).toBeNull();
   });
 });
+
+describe('BUG-056 on screen: food logged off the plan closes its meal ("Registrado")', () => {
+  beforeEach(() => {
+    mockLanguage = 'es';
+  });
+
+  const BREAKFAST_KCAL = MEALS[0].totals.calories;
+
+  /** Today with `slots` closed and `calories` logged (the rebalance input). */
+  function today(closed: MealSlot[], calories: number, skipped: MealSlot[] = []): TodayRebalance {
+    return {
+      ...repro(skipped),
+      rebalance: rebalanceToday({
+        meals: MEALS,
+        closedSlots: new Set<MealSlot>([...closed, ...skipped]),
+        targetCalories: 2430,
+        proteinTargetG: 150,
+        consumed: { calories, proteinG: 20, carbsG: 60, fatG: 20 },
+        country: 'DO',
+        preferences: [],
+      }),
+    };
+  }
+
+  it('a different breakfast shows "Registrado" instead of "Lo comí", and only Desayuno', async () => {
+    const [day] = withRebalance([DAY], today(['BREAKFAST'], BREAKFAST_KCAL + 300));
+    await render(
+      <MealPlanPanel
+        day={day}
+        isDone={() => false}
+        isLogged={(slot) => slot === 'BREAKFAST'}
+        onEaten={jest.fn()}
+        onSkip={jest.fn()}
+      />,
+    );
+    const badge = screen.getByTestId('plan-logged-3-BREAKFAST');
+    expect(badge).toHaveTextContent('Registrado');
+    expect(badge).toHaveProp('accessibilityLabel', 'Desayuno: registrado fuera del plan');
+    expect(screen.queryByTestId('plan-ate-3-BREAKFAST')).toBeNull();
+    expect(screen.queryByTestId('plan-rebalance-3-BREAKFAST')).toBeNull();
+    // The other meals stay open: "Lo comí" and a rebalance line.
+    for (const slot of ['LUNCH', 'SNACK', 'DINNER'] as const) {
+      expect(screen.getByTestId(`plan-ate-3-${slot}`)).toBeOnTheScreen();
+      expect(screen.queryByTestId(`plan-logged-3-${slot}`)).toBeNull();
+    }
+    expect(screen.getByTestId('plan-rebalance-3-LUNCH')).toBeOnTheScreen();
+  });
+
+  it('deleting the food reopens Desayuno: "Lo comí" again, no rebalance', async () => {
+    const [day] = withRebalance([DAY], today([], 0));
+    await render(
+      <MealPlanPanel day={day} isDone={() => false} isLogged={() => false} onEaten={jest.fn()} />,
+    );
+    expect(screen.getByTestId('plan-ate-3-BREAKFAST')).toBeOnTheScreen();
+    expect(screen.queryByTestId('plan-logged-3-BREAKFAST')).toBeNull();
+    expect(screen.queryByTestId('plan-rebalance-day')).toBeNull();
+  });
+
+  it('"Comido" wins over "Registrado"; "Registrado" wins over "Omitida hoy"', async () => {
+    const [day] = withRebalance([DAY], today(['BREAKFAST'], 2000, ['SNACK']));
+    await render(
+      <MealPlanPanel
+        day={day}
+        isDone={(slot) => slot === 'BREAKFAST'}
+        isLogged={(slot) => slot === 'BREAKFAST' || slot === 'SNACK'}
+        onEaten={jest.fn()}
+      />,
+    );
+    expect(screen.getByTestId('plan-eaten-3-BREAKFAST')).toBeOnTheScreen();
+    expect(screen.queryByTestId('plan-logged-3-BREAKFAST')).toBeNull();
+    expect(screen.getByTestId('plan-logged-3-SNACK')).toBeOnTheScreen();
+    expect(screen.queryByTestId('plan-skipped-3-SNACK')).toBeNull();
+    expect(screen.queryByTestId('plan-before-3-SNACK')).toBeNull();
+  });
+
+  it('a past day shows "Registrado" too and offers no "Lo comí" there', async () => {
+    const past: ViewDay = { ...DAY, index: 2, date: '2026-11-10', isToday: false };
+    await render(
+      <MealPlanPanel
+        day={past}
+        isDone={() => false}
+        isLogged={(slot) => slot === 'LUNCH'}
+        onEaten={jest.fn()}
+      />,
+    );
+    expect(screen.getByTestId('plan-logged-2-LUNCH')).toBeOnTheScreen();
+    expect(screen.queryByTestId('plan-ate-2-LUNCH')).toBeNull();
+    expect(screen.getByTestId('plan-ate-2-DINNER')).toBeOnTheScreen();
+  });
+
+  it('says "Logged" in English', async () => {
+    mockLanguage = 'en';
+    const [day] = withRebalance([DAY], today(['BREAKFAST'], BREAKFAST_KCAL));
+    await render(
+      <MealPlanPanel
+        day={day}
+        isDone={() => false}
+        isLogged={(slot) => slot === 'BREAKFAST'}
+        onEaten={jest.fn()}
+      />,
+    );
+    expect(screen.getByTestId('plan-logged-3-BREAKFAST')).toHaveTextContent('Logged');
+    expect(screen.getByTestId('plan-logged-3-BREAKFAST')).toHaveProp(
+      'accessibilityLabel',
+      'Breakfast: logged outside the plan',
+    );
+  });
+});

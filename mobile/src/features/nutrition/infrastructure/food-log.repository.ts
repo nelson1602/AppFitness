@@ -129,6 +129,28 @@ export async function listPlannedSlotsDone(
   return rows.map((row) => `${row.plan_date}|${row.plan_slot}`);
 }
 
+/**
+ * Meal slots with food logged outside the plan from `from` to `to` (inclusive,
+ * user-local dates), as `date|slot` keys (ADR-P040 Addendum BUG-056, S1). They
+ * close the slot for the rebalance but are not plan adherence (S4).
+ */
+export async function listOffPlanSlots(
+  userId: string,
+  from: string,
+  to: string,
+): Promise<string[]> {
+  const rows = await queryAll<{ date: string; meal_type: string }>(
+    `SELECT DISTINCT nl.date AS date, m.type AS meal_type
+       FROM meal_items mi
+       JOIN meals m ON m.id = mi.meal_id
+       JOIN nutrition_logs nl ON nl.id = m.nutrition_log_id
+      WHERE nl.user_id = ? AND nl.date >= ? AND nl.date <= ? AND mi.plan_slot IS NULL
+        AND mi.deleted_at IS NULL AND m.deleted_at IS NULL AND nl.deleted_at IS NULL`,
+    [userId, from, to],
+  );
+  return rows.map((row) => `${row.date}|${row.meal_type}`);
+}
+
 async function insertLoggedFood(
   userId: string,
   input: LogFoodInput,

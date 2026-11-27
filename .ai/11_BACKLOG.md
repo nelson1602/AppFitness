@@ -3453,6 +3453,35 @@ The minimum smartwatch integration for Play review (owner decisions, 2026-11-17)
 
 ---
 
+## [BUG-056] Logging a Different Meal Does Not Close the Planned Meal
+
+Status: Fixed in PR (codex/bug056-offplan-closes-slot), pending owner review
+Priority: P1
+Type: Bug
+Owner: Engineering
+Created: 2026-11-27
+Updated: 2026-11-27
+
+### Description
+
+Logging a food other than the plan's under a meal (e.g. Desayuno) left that meal pending (owner, 2026-11-27). The rebalance kept a portion for a meal already eaten, and the card still offered "Lo comí".
+
+- **Cause:** a meal counted as done only when a plan-linked item existed (`meal_items.plan_slot`, written only by "Lo comí", ADR-P042 item 6). A food logged from the log form has no plan link, so it counted toward the day's calories (v10-B B1) but never closed its meal (v10-B B2).
+
+### Fix (ADR-P040 Addendum BUG-056, `meal-rebalance@1.3.0`)
+
+- **Rule:** food logged under a meal outside the plan shows it as "Registrado" and closes it; the pending meals rebalance to what is left of today's goal.
+- **Last meal:** the existing carry-over (v11-B) carries the day to the next days, with its caps, completeness check and safe minimum; no same-day message.
+- **Adherence:** unchanged; "Registrado" is not on-plan.
+- **Undo:** deleting the food reopens the meal and the rebalance reruns.
+- **Scope:** every saved day of the current week; no schema change.
+
+- [x] Regression tests: first meal, middle meal, last meal → carry-over, delete → undo; status precedence; adherence excludes off-plan slots
+- [ ] Device check on the emulator with the local stack
+- [ ] After the release: the owner logs a different Desayuno and sees "Registrado"
+
+---
+
 ## [BUG-055] The Evaluation Date Conflict Offers No Choice and Never Clears
 
 Status: Fixed in PR (codex/bug055-evaluation-conflict), pending owner review

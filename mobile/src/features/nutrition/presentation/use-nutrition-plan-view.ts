@@ -14,6 +14,7 @@ import { selectMealPlan } from '../application/meal-plan.service';
 import type { MealMacros, MealPlan, MealSlot } from '../domain/meal-plan';
 import { useSkippedMealsStore } from '../application/skipped-meals.store';
 import type { ViewDay } from './meal-plan-day';
+import { useMealSlotsLogged } from './use-meal-slots-logged';
 import { type TodayRebalance, useTodayRebalance } from './use-today-rebalance';
 
 export type NutritionPlanViewState =
@@ -134,6 +135,7 @@ export function useNutritionPlanView() {
   const shownIndex = selectedDay ?? todayIndex;
   const shownDay = shownDays[shownIndex - 1] ?? null;
   const done = new Set(plan.mealSlotsDone);
+  const logged = new Set(useMealSlotsLogged());
   const preferencesLoading = prefStatus === 'idle' || prefStatus === 'loading';
 
   let state: NutritionPlanViewState;
@@ -163,6 +165,8 @@ export function useNutritionPlanView() {
     shownIndex,
     selectDay: setSelectedDay,
     isDone: (slot: MealSlot) => (shownDay?.date ? done.has(`${shownDay.date}|${slot}`) : false),
+    /** ADR-P040 Addendum BUG-056: food logged under this meal outside the plan. */
+    isLogged: (slot: MealSlot) => (shownDay?.date ? logged.has(`${shownDay.date}|${slot}`) : false),
     onEaten:
       plan.current && shownDay?.date
         ? (slot: MealSlot) => {

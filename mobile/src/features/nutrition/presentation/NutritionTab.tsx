@@ -144,6 +144,7 @@ export function NutritionTab() {
               extras={extras}
               footer={logFood}
               isDone={view.isDone}
+              isLogged={view.isLogged}
               onEaten={view.onEaten}
               onLightOption={view.onLightOption}
               onSkip={view.onSkip}

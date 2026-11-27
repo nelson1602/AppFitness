@@ -19,6 +19,7 @@ import type { MealSlot } from '@/features/nutrition/domain/meal-plan';
 import {
   ensureCurrentWeekPlan,
   loadWeekLogs,
+  loadWeekOffPlanSlots,
   loadPastWeeks,
   pendingPlanChanges,
   regenerateCurrentWeek,
@@ -37,6 +38,12 @@ export interface WeeklyPlanState {
   adherence: WeekAdherence | null;
   /** `date|slot` keys of this week's planned meals marked eaten. */
   mealSlotsDone: string[];
+  /**
+   * `date|slot` keys of this week's meals with food logged outside the plan
+   * (ADR-P040 Addendum BUG-056): "Registrado", closed for the rebalance, not
+   * adherence. As last loaded; the food log's loaded day is read live.
+   */
+  mealSlotsLogged: string[];
   /** Important inputs that changed since the plan was saved; empty when none. */
   pendingChanges: PlanChange[];
   pastWeeks: PastWeek[];
@@ -69,6 +76,7 @@ const INITIAL = {
   current: null,
   adherence: null,
   mealSlotsDone: [] as string[],
+  mealSlotsLogged: [] as string[],
   pendingChanges: [] as PlanChange[],
   pastWeeks: [] as PastWeek[],
   historyStatus: 'idle' as const,
@@ -91,10 +99,13 @@ export const useWeeklyPlanStore = create<WeeklyPlanState>((set, get) => ({
         set({ ...INITIAL, status: result.status });
         return;
       }
-      const logs = await loadWeekLogs(
-        owner.userId,
-        result.revisions.map((revision) => revision.id),
-      );
+      const [logs, offPlan] = await Promise.all([
+        loadWeekLogs(
+          owner.userId,
+          result.revisions.map((revision) => revision.id),
+        ),
+        loadWeekOffPlanSlots(owner.userId, result.current.weekStart),
+      ]);
       if (!isSessionCurrent(owner)) return;
       set({
         status: 'ready',
@@ -102,6 +113,7 @@ export const useWeeklyPlanStore = create<WeeklyPlanState>((set, get) => ({
         current: result.current,
         adherence: computeWeekAdherence(result.revisions, logs),
         mealSlotsDone: [...logs.mealSlotsDone],
+        mealSlotsLogged: offPlan,
       });
     } catch (error) {
       if (owner && !isSessionCurrent(owner)) return;

@@ -47,7 +47,11 @@ jest.mock('../application/meal-plan.service', () => ({
 const mockMarkMealEaten = jest.fn();
 let mockPlanState: Record<string, unknown> = {};
 jest.mock('@/features/weekly-plan/application/weekly-plan.store', () => ({
-  useWeeklyPlanStore: Object.assign(() => mockPlanState, { getState: () => ({ load: jest.fn() }) }),
+  useWeeklyPlanStore: Object.assign(
+    (selector?: (state: Record<string, unknown>) => unknown) =>
+      selector ? selector(mockPlanState) : mockPlanState,
+    { getState: () => ({ load: jest.fn() }) },
+  ),
 }));
 jest.mock('../application/dietary-preference.store', () => ({
   useDietaryPreferenceStore: () => mockPrefs,
@@ -168,6 +172,7 @@ describe('NutritionPlanScreen', () => {
       current: null,
       revisions: [],
       mealSlotsDone: [],
+      mealSlotsLogged: [],
       markMealEaten: mockMarkMealEaten,
     };
   });
@@ -630,6 +635,7 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
       current: saved,
       revisions: [saved],
       mealSlotsDone: [`${dates[0]}|LUNCH`],
+      mealSlotsLogged: [`${dates[0]}|DINNER`],
       markMealEaten: mockMarkMealEaten,
     };
   });
@@ -691,6 +697,15 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     expect(screen.getByTestId('plan-eaten-1-LUNCH')).toBeOnTheScreen();
     expect(screen.queryByTestId('plan-ate-1-LUNCH')).toBeNull();
     expect(screen.getByText(/Adjusted by iCoach:/)).toBeOnTheScreen();
+  });
+
+  it('BUG-056: a meal logged off the plan reads "Logged" on its day, with no "I ate it"', async () => {
+    await render(<NutritionPlanScreen />);
+    await fireEvent.press(screen.getByTestId('plan-day-1'));
+    expect(screen.getByTestId('plan-logged-1-DINNER')).toHaveTextContent('Logged');
+    expect(screen.queryByTestId('plan-ate-1-DINNER')).toBeNull();
+    // "Eaten" from the plan stays its own state.
+    expect(screen.queryByTestId('plan-logged-1-LUNCH')).toBeNull();
   });
 
   it('labels days 8–15 as a preview that may change on Monday, without "I ate it"', async () => {
