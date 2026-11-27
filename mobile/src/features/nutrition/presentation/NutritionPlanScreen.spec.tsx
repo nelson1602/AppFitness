@@ -489,7 +489,7 @@ describe('NutritionPlanScreen', () => {
       screen.getByText('Use the AppFitnessRD mobile app to view and follow your 15-day meal plan.'),
     ).toBeOnTheScreen();
     // v8 Block 3: the stack header names the screen; the intro stays.
-    expect(screen.getByText(/meal plan built from your iCoach targets/i)).toBeOnTheScreen();
+    expect(screen.getByText(/meal plan built from your Coach targets/i)).toBeOnTheScreen();
     // No food-log link, no plan/day content, no gap, no error, no disclaimer.
     expect(screen.queryByTestId('open-food-log')).toBeNull();
     expect(screen.queryByText('Meal plan · day 1')).toBeNull();
@@ -696,7 +696,7 @@ describe('NutritionPlanScreen — saved week (ADR-P042 D9)', () => {
     await fireEvent.press(screen.getByTestId('plan-day-1'));
     expect(screen.getByTestId('plan-eaten-1-LUNCH')).toBeOnTheScreen();
     expect(screen.queryByTestId('plan-ate-1-LUNCH')).toBeNull();
-    expect(screen.getByText(/Adjusted by iCoach:/)).toBeOnTheScreen();
+    expect(screen.getByText(/Adjusted by the Coach:/)).toBeOnTheScreen();
   });
 
   it('BUG-056: a meal logged off the plan reads "Logged" on its day, with no "I ate it"', async () => {

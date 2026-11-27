@@ -3453,6 +3453,28 @@ The minimum smartwatch integration for Play review (owner decisions, 2026-11-17)
 
 ---
 
+## [FEATURE-022] The App Calls Its Engine "Coach", Not "iCoach"
+
+Status: In PR (codex/coach-rename), pending owner review
+Priority: P2
+Type: Feature (copy)
+Owner: Engineering
+Created: 2026-11-27
+Updated: 2026-11-27
+
+### Description
+
+Owner decision (2026-11-27): people see **"Coach"**. Spanish uses the article ("el Coach", "del Coach", "por el Coach", "al Coach"); English uses "the Coach" with a capital C. Visible text only: the `features/icoach` folder, identifiers, translation keys, test ids and rule-version stamps (`icoach-rules@…`) stay. Rule in `.ai/08_UI_UX.md` §iCoach UI; note under ADR-P040.
+
+- [x] `es`/`en` values (52 each), hardcoded English in `TrainingPlanCard` and the dormant medical `EvaluationForm`, three Maestro assertions
+- [x] Design README, prototype visible text, injury map, copy decks; privacy policy (ES/EN) and Play Data safety row
+- [x] Guard test `coach-name.spec.ts`: no "iCoach" in any `es`/`en` value or Maestro assertion
+- [ ] Owner: publish the updated privacy policy on the site (owner, after merge)
+- [ ] Owner: Play listing and store screenshots, if they say "iCoach" (outside the repo)
+- [ ] Republish the claude.ai prototype artifact from the updated HTML (optional)
+
+---
+
 ## [FEATURE-021] Real Dominican Foods With Sourced Macros (ADR-P013 Batch)
 
 Status: Open
@@ -3481,7 +3503,7 @@ Common Dominican foods have no bundled catalogue entry, so searching them in Spa
 
 ## [BUG-057] Food Search Finds Dominican Words Only in English
 
-Status: Fixed in PR (codex/bug057-dominican-search-aliases), pending owner review
+Status: Fixed (PR #278, merged 2026-11-27)
 Priority: P1
 Type: Bug
 Owner: Engineering

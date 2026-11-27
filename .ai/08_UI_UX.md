@@ -45,10 +45,10 @@ Every UI implementation must comply with this specification.
 - **Carry-over line** (ADR-P040 v11-B). A caption on Nutrición's day header
   (`plan-carry-over`) and a body line on Inicio's iCoach card
   (`home-coach-carry-over`). One sentence covers the food and the cardio, and it is shown only when something changes today. Both use the iCoach's neutral text, `onStageVariant` on glass (4.5:1 in both themes, `contrast.spec.ts`), never the warning orange. D7's banner is gone (its alcohol note could never show).
-- **"Añadido por el iCoach" cardio block** (ADR-P040 v11-B C7). One more exercise row
+- **"Añadido por el Coach" cardio block** (ADR-P040 v11-B C7). One more exercise row
   on the session: a `linkOnStage` caption with the label, "N min de cardio suave", its
   own set button, and a 48 × 48 minimum **Quitar** button (role button, label
-  "Quitar el cardio que añadió el iCoach"), hidden once the block is done.
+  "Quitar el cardio que añadió el Coach"), hidden once the block is done.
 
 ---
 
@@ -2385,6 +2385,14 @@ Important information appears first.
 ---
 
 # iCoach UI
+
+**Shown name (owner decision, 2026-11-27):** people see **"Coach"**, never
+"iCoach". Spanish uses the article ("el Coach", "del Coach", "por el Coach",
+"al Coach"); English uses "the Coach" with a capital C. "iCoach" stays the
+internal name of the deterministic engine: the `features/icoach` folder, code
+identifiers, translation keys, test ids and rule-version stamps
+(`icoach-rules@…`) do not change. `coach-name.spec.ts` keeps "iCoach" out of
+every `es`/`en` value and every Maestro assertion.
 
 Recommendations should clearly indicate:
 

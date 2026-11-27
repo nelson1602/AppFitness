@@ -1,4 +1,4 @@
-# Lesiones → ejercicios (mapa del iCoach)
+# Lesiones → ejercicios (mapa del Coach)
 
 **Estado: PENDIENTE DE REVISIÓN PROFESIONAL.** Este mapa lo exige ADR-P040 D5, y ADR-P031 D4 pide que lo revise un profesional del ejercicio calificado. Mientras no esté firmado se aplica en su forma **más conservadora**: si hay duda, se excluye.
 
@@ -9,7 +9,7 @@
 ## Cómo se aplica
 
 1. En la evaluación (paso **Salud**) el usuario marca sus lesiones. Se guardan como valores cerrados en `wellness_safety_profiles.affected_areas`. No hay texto libre ("Otra lesión" queda fuera de v8).
-2. El iCoach une los **movimientos excluidos** de cada lesión. Nunca deduce gravedad, diagnóstico ni permiso médico.
+2. El Coach une los **movimientos excluidos** de cada lesión. Nunca deduce gravedad, diagnóstico ni permiso médico.
 3. El generador de rutinas quita los ejercicios que usan esos movimientos y elige otro ejercicio del mismo papel con el equipo disponible. Las **sustituciones preferidas** de la tabla se usan primero si el equipo lo permite; si no hay un sustituto válido, el ejercicio se quita.
 4. Cada exclusión deja un motivo traducible ("Ajustado por tu lesión de rodilla: sin saltos"). El usuario siempre ve qué cambió y por qué.
 5. Los movimientos que el usuario declaró antes (formulario anterior) se siguen respetando: el resultado es la unión de ambos.
@@ -18,7 +18,7 @@
 
 Los movimientos usan el vocabulario cerrado del motor (`WELLNESS_MOVEMENTS_TO_AVOID`).
 
-| Lesión (ES / EN) | Valor guardado | Movimientos excluidos | Sustitución preferida | Nota del iCoach |
+| Lesión (ES / EN) | Valor guardado | Movimientos excluidos | Sustitución preferida | Nota del Coach |
 |---|---|---|---|---|
 | Hombro / Shoulder | `shoulder` | `overhead_press`, `heavy_pressing`, `dips`, `front_rack_loading`, `max_effort_lifts` | Press militar → rotación externa con banda | Sin press por encima de la cabeza ni empujes pesados. |
 | Rodilla / Knee | `knee` | `jumping`, `deep_squat`, `lunge`, `running`, `sprinting`, `high_impact_cardio` | Trote → bicicleta estática; sentadilla profunda → puente de glúteo | Sin saltos, sentadilla profunda ni impacto. |

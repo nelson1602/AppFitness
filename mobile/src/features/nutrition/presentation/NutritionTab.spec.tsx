@@ -156,7 +156,7 @@ describe('NutritionTab (v8.1, prototype layout)', () => {
       exact: false,
     });
     expect(screen.getByTestId('nutrition-adjusted')).toHaveTextContent(
-      'iCoach adjusted your plan',
+      'The Coach adjusted your plan',
       { exact: false },
     );
   });
@@ -206,7 +206,7 @@ describe('NutritionTab (v8.1, prototype layout)', () => {
 
     expect(screen.getByText(/^de 2.?776$/, { includeHiddenElements: true })).toBeTruthy();
     expect(screen.getByText('Fuera de tu plan por tu evaluación:')).toBeOnTheScreen();
-    expect(screen.getByText('iCoach ajustó tu plan')).toBeOnTheScreen();
+    expect(screen.getByText('El Coach ajustó tu plan')).toBeOnTheScreen();
   });
 
   it('shows the honest Web state', async () => {

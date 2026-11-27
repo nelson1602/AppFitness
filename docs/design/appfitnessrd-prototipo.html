@@ -533,7 +533,7 @@ const ALL_FOODS = [
 ];
 const mealFor = (day, slot, allergies) => {
   const ok = MEALS[slot].filter((m) => !m[2].some((t) => allergies.includes(t)));
-  if (!ok.length) return ['Plato alternativo del iCoach', 450, [], [['Ingredientes según tus restricciones', '1 plato', 450]], []];
+  if (!ok.length) return ['Plato alternativo del Coach', 450, [], [['Ingredientes según tus restricciones', '1 plato', 450]], []];
   return adaptDish(ok[(day * 2 + SLOTS.indexOf(slot)) % ok.length], allergies);
 };
 
@@ -685,7 +685,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
           <div className="flex flex-col gap-4">
             <div className="glass flex items-start gap-3 rounded-2xl p-3.5 text-[13px] leading-snug text-[#DCE7F7]">
               <Icon n="clipboard" s={20} className="mt-px shrink-0 text-[#67E8F9]" />
-              Copia aquí los resultados de tu evaluación física. El iCoach los usa para crear tus entrenamientos y tu plan de comidas.
+              Copia aquí los resultados de tu evaluación física. El Coach los usa para crear tus entrenamientos y tu plan de comidas.
             </div>
             <div className="grid grid-cols-2 gap-3">
               <NumField id="ev-w" label="Peso actual" unit="kg" step={0.1} value={e.weight} onChange={(v) => set('weight', v)} />
@@ -737,7 +737,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
         )}
         {step === 2 && (
           <div className="flex flex-col gap-4">
-            <Label hint="Marca lo que no quieres en tu plan. El iCoach solo cambia lo que marques.">Alergias y restricciones</Label>
+            <Label hint="Marca lo que no quieres en tu plan. El Coach solo cambia lo que marques.">Alergias y restricciones</Label>
             <div className="flex flex-col gap-2">
               {Object.entries(FOOD_GROUPS).map(([g, items]) => (
                 <Group key={g} title={g} count={items.filter((i) => e.allergies.includes(i)).length} open={openGroup === g} onToggle={() => flip(g)}>
@@ -746,7 +746,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
               ))}
             </div>
             <div className="glass rounded-2xl p-3.5">
-              <div className="mb-2 text-[12.5px] font-semibold text-[#9FB0C8]">El iCoach solo cambia lo que marcaste. Así ajusta tus platos:</div>
+              <div className="mb-2 text-[12.5px] font-semibold text-[#9FB0C8]">El Coach solo cambia lo que marcaste. Así ajusta tus platos:</div>
               {swaps.slice(0, 6).map(([from, to]) => (
                 <div key={from} className="flex flex-wrap items-center gap-1.5 py-1 text-[13px] text-[#DCE7F7]"><Icon n="refresh" s={14} className="text-[#67E8F9]" /><span className="line-through decoration-[#FFA585]">{from}</span><Icon n="arrow" s={13} className="text-[#9FB0C8]" /><span className="font-semibold">{to || 'se quita'}</span></div>
               ))}
@@ -817,7 +817,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
               </div>
             ))}
             <div className="rounded-2xl p-4" style={{ background: HERO_BG }}>
-              <div className="flex items-center gap-2 text-[12px] font-bold tracking-[1.4px] text-[#CFF4FF]"><Icon n="sparkle" s={16} />VISTA PREVIA DEL ICOACH</div>
+              <div className="flex items-center gap-2 text-[12px] font-bold tracking-[1.4px] text-[#CFF4FF]"><Icon n="sparkle" s={16} />VISTA PREVIA DEL COACH</div>
               <div className="mt-1 font-display text-[20px] font-extrabold tnum">{fmt(plan.kcal)} kcal al día</div>
               <div className="text-[13px] text-[#E3F0FF] tnum">Proteína {plan.protein} g · Carbohidratos {plan.carbs} g · Grasas {plan.fat} g</div>
               <div className="mt-2 text-[13px] text-[#E3F0FF]">{e.days} entrenamientos por semana{plan.notes.length ? ` · ${plan.notes.length} ajustes por tu salud` : ''}</div>
@@ -829,7 +829,7 @@ function Evaluation({ initial, editing, onDone, onExit }) {
       <div className="border-t border-white/10 bg-[#060A14]/70 px-5 pb-5 pt-3 backdrop-blur-xl">
         {step < STEPS.length - 1
           ? <Btn className="w-full" disabled={!valid} onClick={() => goStep(step + 1)}>Continuar<Icon n="arrow" s={18} w={2.6} /></Btn>
-          : <Btn className="w-full" onClick={() => onDone(e)}><Icon n="sparkle" s={20} />Generar mi plan con iCoach</Btn>}
+          : <Btn className="w-full" onClick={() => onDone(e)}><Icon n="sparkle" s={20} />Generar mi plan con el Coach</Btn>}
       </div>
     </div>
   );
@@ -855,7 +855,7 @@ function CoachBuild({ e, onDone }) {
       <Art className="art-hero shrink-0" />
       <Pulse id="pl-coach" h={34} className="-mt-4 shrink-0" track="rgba(255,255,255,.14)" stops={['#22D3EE', '#9BEBFF', '#FF5A36']} fast />
       <div className="flex flex-1 flex-col px-6 pt-2">
-        <div className="flex items-center gap-2 text-[12px] font-bold tracking-[1.6px] text-[#67E8F9]"><Icon n="sparkle" s={16} />ICOACH</div>
+        <div className="flex items-center gap-2 text-[12px] font-bold tracking-[1.6px] text-[#67E8F9]"><Icon n="sparkle" s={16} />COACH</div>
         <h1 className="mt-1 font-display text-[30px] font-extrabold leading-tight tracking-[-0.8px]">Creando tu <span className="grad-text">plan personal</span></h1>
         <ul className="mt-5 flex flex-col gap-3">
           {items.map((t, i) => (
@@ -1079,7 +1079,7 @@ function FoodSheet({ allergies, custom, favs, counts, onCreate, onFav, onAdd, on
               </div>
               <NumField id="nf-k" label="Calorías" unit="kcal" value={nf.k} onChange={(v) => setNf({ ...nf, k: v })} />
             </div>
-            <p className="text-[12px] leading-snug text-[#9FB0C8]">Se guarda en tu base de alimentos para la próxima vez, y el iCoach lo toma en cuenta en tus planes.</p>
+            <p className="text-[12px] leading-snug text-[#9FB0C8]">Se guarda en tu base de alimentos para la próxima vez, y el Coach lo toma en cuenta en tus planes.</p>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setCreating(false)} className="h-11 rounded-xl bg-white/10 text-[14px] font-semibold hover:bg-white/20">Cancelar</button>
               <button type="button" onClick={saveNew} disabled={!nf.n.trim() || !(Number(nf.k) > 0)} style={{ background: BTN_BG }} className="h-11 rounded-xl text-[14px] font-bold disabled:opacity-40">Guardar alimento</button>
@@ -1137,7 +1137,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
   const alcohol = off.some((x) => ['Cerveza', 'Ron'].includes(x.n));
   const cardioMin = offKcal && excess > 0 ? Math.min(30, Math.max(10, Math.round(excess / 8 / 5) * 5)) : 0;
   const nextDay = base.pattern.find((i) => i > TODAY) ?? base.pattern[0];
-  const plan = { ...base, week: base.week.map((r, i) => (r && cardioMin && i === nextDay ? { ...r, ex: [...r.ex, ['Cardio extra del iCoach', 1, `${cardioMin} min`, 'por calorías extra']] } : r)) };
+  const plan = { ...base, week: base.week.map((r, i) => (r && cardioMin && i === nextDay ? { ...r, ex: [...r.ex, ['Cardio extra del Coach', 1, `${cardioMin} min`, 'por calorías extra']] } : r)) };
   const adjust = offKcal ? [
     excess > 0 ? `Comiste ${fmt(excess)} kcal por encima de tu meta de hoy.` : `Registraste ${fmt(offKcal)} kcal fuera del plan y aún te quedan ${fmt(-excess)} kcal.`,
     ...(excess > 0
@@ -1172,11 +1172,11 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
     : `Hoy es día de descanso activo: camina 20 minutos y estira 10.`;
   const dateLabel = new Date().toLocaleDateString('es-DO', { weekday: 'long', day: 'numeric', month: 'long' });
   const notifs = [
-    ...(adjust.length ? [{ id: `adj-${st.day}-${offKcal}`, icon: 'sparkle', title: 'iCoach ajustó tu plan', body: adjust[0], time: 'Ahora', tab: 'nutricion' }] : []),
+    ...(adjust.length ? [{ id: `adj-${st.day}-${offKcal}`, icon: 'sparkle', title: 'El Coach ajustó tu plan', body: adjust[0], time: 'Ahora', tab: 'nutricion' }] : []),
     { id: 'train', icon: 'dumbbell', title: todayR ? 'Hoy toca entrenar' : 'Hoy es día de descanso', body: todayR ? `${todayR.name} · ${e.minutes} min` : 'Camina 20 minutos y estira 10.', time: '7:00 a. m.', tab: 'entrenamientos' },
-    { id: 'plan', icon: 'sparkle', title: 'iCoach creó tu plan', body: `${e.days} entrenamientos por semana y ${fmt(base.kcal)} kcal al día, según tu evaluación.`, time: 'Hoy', tab: 'entrenamientos' },
+    { id: 'plan', icon: 'sparkle', title: 'El Coach creó tu plan', body: `${e.days} entrenamientos por semana y ${fmt(base.kcal)} kcal al día, según tu evaluación.`, time: 'Hoy', tab: 'entrenamientos' },
     { id: 'weight', icon: 'scale', title: 'Registra tu peso', body: 'Pésate en ayunas para ver tu progreso de la semana.', time: 'Ayer', tab: 'progreso' },
-    { id: 'eval', icon: 'clipboard', title: 'Tu evaluación física', body: 'Actualízala cada 3 meses para que el iCoach siga acertando.', time: 'Hace 3 días', tab: 'perfil' }
+    { id: 'eval', icon: 'clipboard', title: 'Tu evaluación física', body: 'Actualízala cada 3 meses para que el Coach siga acertando.', time: 'Hace 3 días', tab: 'perfil' }
   ];
   const unread = notifs.filter((n) => !readIds.includes(n.id)).length;
 
@@ -1235,7 +1235,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
               <Pulse id="pl-dash" h={30} className="relative mt-1" />
             </section>
 
-            <Panel title="iCoach" icon="sparkle" right={<Chip>Recomendación de hoy</Chip>}>
+            <Panel title="Coach" icon="sparkle" right={<Chip>Recomendación de hoy</Chip>}>
               <p className="text-[15px] font-semibold leading-snug">{coachLine}</p>
               {plan.notes.length > 0 && (
                 <ul className="mt-2.5 flex flex-col gap-1.5">
@@ -1325,7 +1325,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
             )}
             {plan.week[selDay] ? (
               <Panel title={plan.week[selDay].name} icon="sparkle" right={<Chip>{e.minutes} min</Chip>}>
-                <div className="mb-1 text-[12.5px] text-[#9FB0C8]">{DAY_NAMES[selDay]} · creado por iCoach</div>
+                <div className="mb-1 text-[12.5px] text-[#9FB0C8]">{DAY_NAMES[selDay]} · creado por el Coach</div>
                 {plan.notes.length > 0 && <div className="mb-3 flex flex-wrap gap-1.5">{plan.notes.slice(0, 2).map((n) => <Chip key={n} tone="orange">{n}</Chip>)}</div>}
                 <div className="mb-3 flex items-center gap-3"><div className="flex-1"><Bar pct={madeSets(selDay) / totalSets(selDay)} /></div><span className="text-[12.5px] font-semibold text-[#9FB0C8] tnum">{madeSets(selDay)}/{totalSets(selDay)} series</span></div>
                 <ul className="flex flex-col gap-2">
@@ -1354,7 +1354,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
               </Panel>
             ) : (
               <Panel title="Día de descanso" icon="moon">
-                <p className="text-[14px] leading-relaxed text-[#C7D7F0]">El iCoach dejó este día libre para que te recuperes. Si quieres moverte: caminata suave de 20 minutos y 10 minutos de estiramientos.</p>
+                <p className="text-[14px] leading-relaxed text-[#C7D7F0]">El Coach dejó este día libre para que te recuperes. Si quieres moverte: caminata suave de 20 minutos y 10 minutos de estiramientos.</p>
               </Panel>
             )}
             <Panel title="Plan de la semana" icon="dumbbell" right={<Chip tone="gray">Se renueva el lunes</Chip>}>
@@ -1386,7 +1386,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
               <div className="flex flex-wrap items-center gap-1.5 text-[12.5px] text-[#9FB0C8]">Fuera de tu plan por tu evaluación:{e.allergies.map((a) => <Chip key={a} tone="orange">{a}</Chip>)}</div>
             )}
             {adjust.length > 0 && (
-              <Panel title="iCoach ajustó tu plan" icon="sparkle" className="border-[#FF7A45]/40">
+              <Panel title="El Coach ajustó tu plan" icon="sparkle" className="border-[#FF7A45]/40">
                 <ul className="flex flex-col gap-1.5">{adjust.map((a) => <li key={a} className="flex items-start gap-2 text-[13px] leading-snug text-[#DCE7F7]"><Icon n="check" s={15} w={2.6} className="mt-0.5 shrink-0 text-[#FFA585]" />{a}</li>)}</ul>
               </Panel>
             )}
@@ -1417,7 +1417,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
                           <span className="block text-[11.5px] font-bold text-[#67E8F9]">{s}</span>
                           <span className={`block text-[14px] font-semibold leading-snug ${on ? 'text-[#9FB0C8]' : ''}`}>{m[0]}</span>
                           <span className="block text-[12px] text-[#9FB0C8] tnum">{m[1]} kcal · <span className="font-semibold text-[#67E8F9]">{openMeal === s ? 'Ocultar ingredientes' : `${m[3].length} ingredientes`}</span></span>
-                          {m[4] && m[4].length > 0 && <span className="mt-1 block text-[11.5px] font-semibold text-[#FFA585]">Ajustado por iCoach: {m[4].map((c) => (c[1] ? `${c[0].toLowerCase()} → ${c[1].toLowerCase()}` : `sin ${c[0].toLowerCase()}`)).join(' · ')}</span>}
+                          {m[4] && m[4].length > 0 && <span className="mt-1 block text-[11.5px] font-semibold text-[#FFA585]">Ajustado por el Coach: {m[4].map((c) => (c[1] ? `${c[0].toLowerCase()} → ${c[1].toLowerCase()}` : `sin ${c[0].toLowerCase()}`)).join(' · ')}</span>}
                         </button>
                         <button type="button" aria-pressed={on} aria-label={`${on ? 'Desmarcar' : 'Marcar'} ${s.toLowerCase()} como comido`} onClick={() => toggleMeal(s)}
                           className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition ${on ? 'border-[#22C55E] bg-[#22C55E] text-[#04121A]' : 'border-white/25 text-white/40 hover:border-[#67E8F9] hover:text-[#67E8F9]'}`}><Icon n="check" s={17} w={3} /></button>
@@ -1425,7 +1425,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
                       {openMeal === s && (
                         <ul className="mt-2 flex flex-col gap-1 rounded-2xl bg-white/[.05] p-3">
                           {m[3].map(([f, q, k, sw]) => (
-                            <li key={f + q} className="flex items-center justify-between gap-2 text-[12.5px]"><span className={`min-w-0 ${sw ? 'font-semibold text-[#67E8F9]' : 'text-[#DCE7F7]'}`}>{f}{sw ? ' (cambio del iCoach)' : ''} <span className="font-normal text-[#9FB0C8]">· {q}</span></span><span className="shrink-0 text-[#9FB0C8] tnum">{k} kcal</span></li>
+                            <li key={f + q} className="flex items-center justify-between gap-2 text-[12.5px]"><span className={`min-w-0 ${sw ? 'font-semibold text-[#67E8F9]' : 'text-[#DCE7F7]'}`}>{f}{sw ? ' (cambio del Coach)' : ''} <span className="font-normal text-[#9FB0C8]">· {q}</span></span><span className="shrink-0 text-[#9FB0C8] tnum">{k} kcal</span></li>
                           ))}
                         </ul>
                       )}
@@ -1590,7 +1590,7 @@ function Dashboard({ name, e, plan: base, hw, linked, setLinked, st, setSt, onLo
             <div className="rounded-2xl bg-white/[.05] p-3 text-[14px] font-semibold tnum">{openWeek.weight > 0 ? '+' : ''}{openWeek.weight.toFixed(1)} kg en la semana</div>
 
             <div className="mt-4 rounded-2xl p-3.5 text-[13px] leading-snug" style={{ background: HERO_BG }}>
-              <div className="mb-1 flex items-center gap-2 text-[12px] font-bold tracking-[1.2px] text-[#CFF4FF]"><Icon n="sparkle" s={14} />ICOACH</div>
+              <div className="mb-1 flex items-center gap-2 text-[12px] font-bold tracking-[1.2px] text-[#CFF4FF]"><Icon n="sparkle" s={14} />COACH</div>
               {openWeek.trained < openWeek.sessions.length
                 ? `Te ${openWeek.sessions.length - openWeek.trained === 1 ? 'faltó 1 entrenamiento' : `faltaron ${openWeek.sessions.length - openWeek.trained} entrenamientos`}. La semana siguiente mantuve la misma carga para que la completes sin forzarte.`
                 : '¡Cumpliste todos tus entrenamientos! La semana siguiente subí un poco la carga.'}
@@ -1669,7 +1669,7 @@ function App() {
   const jump = (s) => { if (s === 'welcome' || s === 'dashboard') setEvaluated(true); if (s === 'evaluation') setEditing(evaluated); go(s); };
   const reset = () => { go('login'); setLinked(false); setEvaluated(false); setEv(EVAL_SAMPLE); setSt(initialState(EVAL_SAMPLE)); };
 
-  const tabs = [['login', '1', 'Inicio de sesión', 'Biometría y muñeco'], ['evaluation', '2', 'Evaluación física', 'Tus datos → iCoach'], ['welcome', '3', 'Tu meta te espera', 'Bienvenida'], ['dashboard', '4', 'Panel', 'Inicio, entrenamientos, nutrición, progreso, perfil']];
+  const tabs = [['login', '1', 'Inicio de sesión', 'Biometría y muñeco'], ['evaluation', '2', 'Evaluación física', 'Tus datos → Coach'], ['welcome', '3', 'Tu meta te espera', 'Bienvenida'], ['dashboard', '4', 'Panel', 'Inicio, entrenamientos, nutrición, progreso, perfil']];
   const active = screen === 'coach' ? 'evaluation' : screen;
 
   return (
@@ -1678,7 +1678,7 @@ function App() {
         <div>
           <div className="text-[12px] font-semibold tracking-[2px] text-[#38B6F5]">PROTOTIPO INTERACTIVO</div>
           <h1 className="mt-1 font-display text-[30px] font-extrabold leading-tight text-[#E6EDF7]">AppFitness<span className="text-energy">RD</span></h1>
-          <p className="mt-2 text-[14px] leading-relaxed text-[#94A3B8]">Inicia sesión, registra los resultados de tu evaluación física y deja que el iCoach arme tu plan. También puedes saltar directo a cada pantalla.</p>
+          <p className="mt-2 text-[14px] leading-relaxed text-[#94A3B8]">Inicia sesión, registra los resultados de tu evaluación física y deja que el Coach arme tu plan. También puedes saltar directo a cada pantalla.</p>
         </div>
         <nav aria-label="Pantallas" className="flex flex-col gap-2">
           {tabs.map(([k, num, label, sub]) => (
@@ -1702,7 +1702,7 @@ function App() {
             <button type="button" onClick={reset} className="flex h-9 items-center gap-1.5 rounded-lg px-2 font-semibold text-[#38B6F5] hover:bg-[#13213A]"><Icon n="refresh" s={15} />Reiniciar</button>
           </div>
         </div>
-        <p className="text-[12px] leading-relaxed text-[#7C8BA1]">Los datos son de ejemplo (Ana, 72 kg, lesión de rodilla, alergia a mariscos). Cambia la evaluación y verás cómo el iCoach ajusta calorías, comidas y ejercicios. El muñeco y el logo son los de tu diseño original.</p>
+        <p className="text-[12px] leading-relaxed text-[#7C8BA1]">Los datos son de ejemplo (Ana, 72 kg, lesión de rodilla, alergia a mariscos). Cambia la evaluación y verás cómo el Coach ajusta calorías, comidas y ejercicios. El muñeco y el logo son los de tu diseño original.</p>
       </aside>
 
       <div className="relative w-full max-w-[410px]">

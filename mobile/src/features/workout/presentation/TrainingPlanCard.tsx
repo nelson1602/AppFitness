@@ -34,7 +34,7 @@ export function TrainingPlanCard({ plan }: { plan: TrainingPlan | null | undefin
   if (guidance.status === 'blocked') {
     return (
       <Banner title="Training is on hold" tone="error">
-        Your iCoach assessment has paused training based on your medical information. You can review
+        Your Coach assessment has paused training based on your medical information. You can review
         your plan, but do not start training until your restrictions are cleared.
       </Banner>
     );
@@ -43,8 +43,8 @@ export function TrainingPlanCard({ plan }: { plan: TrainingPlan | null | undefin
   if (guidance.status === 'clearance') {
     return (
       <Banner title="Medical clearance recommended" tone="warning">
-        Your iCoach assessment suggests getting medical clearance before training. Plan carefully
-        and check with a professional first.
+        Your Coach assessment suggests getting medical clearance before training. Plan carefully and
+        check with a professional first.
       </Banner>
     );
   }

@@ -94,10 +94,10 @@ describe('ExtraActivityPanel (ADR-P040 Addendum v10-A)', () => {
         today={TODAY}
       />,
     );
-    expect(screen.getByText('iCoach: la sesión del miércoles pasa al sábado.')).toBeOnTheScreen();
+    expect(screen.getByText('Coach: la sesión del miércoles pasa al sábado.')).toBeOnTheScreen();
     expect(
       screen.getByText(
-        'iCoach: tu sesión del viernes lleva una serie menos en cuádriceps, porque ya los trabajaste.',
+        'Coach: tu sesión del viernes lleva una serie menos en cuádriceps, porque ya los trabajaste.',
       ),
     ).toBeOnTheScreen();
   });

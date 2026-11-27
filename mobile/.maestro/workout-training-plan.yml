@@ -57,7 +57,7 @@ appId: com.appfitnessrd.mobile
 # `surface-coverage.spec.ts` already records. That assertion could not have
 # passed since GeneratedWorkoutPlan replaced it.
 - extendedWaitUntil:
-    visible: 'Your weekly iCoach plan'
+    visible: 'Your weekly Coach plan'
     timeout: 30000
 
 # --- 3. Create a routine, then view its exercises and add a built-in one. ---

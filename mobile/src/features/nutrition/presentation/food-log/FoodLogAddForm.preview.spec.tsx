@@ -49,7 +49,7 @@ describe('FoodLogAddForm — over-target preview (v10-B)', () => {
     expect(
       screen.getByText(
         // The thousands dot depends on the runtime's ICU grouping; the words do not.
-        /^Con esto llegas a 2\.?\d{3} de 2\.?430\skcal\. El iCoach ajustará tus comidas pendientes\.$/,
+        /^Con esto llegas a 2\.?\d{3} de 2\.?430\skcal\. El Coach ajustará tus comidas pendientes\.$/,
       ),
     ).toBeOnTheScreen();
     await fireEvent.press(screen.getByTestId('food-log-add-submit'));

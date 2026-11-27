@@ -9,7 +9,7 @@ Este diseño es la referencia del rediseño de la app móvil: el código se adap
 
 ## Flujo
 
-Login → (vincular biometría) → Evaluación física → el iCoach crea el plan → "Tu meta te espera" → Panel con pestañas.
+Login → (vincular biometría) → Evaluación física → el Coach crea el plan → "Tu meta te espera" → Panel con pestañas.
 
 ## Reglas generales
 
@@ -18,7 +18,7 @@ Login → (vincular biometría) → Evaluación física → el iCoach crea el pl
 - **Idiomas:** Español e English.
 - **Estilo:** fondo azul marino oscuro con el resplandor azul del arte original, tarjetas de cristal translúcido, botones en degradado azul a celeste, acentos cian y naranja, pulso cardíaco animado. Tipografías: Sora (títulos) e Inter (texto).
 - **Agua y ritmo cardíaco:** actualización futura con reloj inteligente. Hoy aparecen como "Próximamente".
-  - **Health Connect (ADR-P048, Android):** con Health Connect en el teléfono (y la función activada), "Tu reloj" sustituye a "Próximamente" en Inicio y "Reloj y Health Connect" en Perfil, ambos con el subtítulo "Reloj y teléfono vía Health Connect". Muestra el agua registrada hoy ("Registrado hoy: X ml de Y ml", con un anillo de progreso cuando la persona pone su meta en Perfil; "Registrado hoy: X ml" sin meta), y los pasos y las kcal activas de hoy. Las frases dicen qué se registró, nunca qué dispositivo lo registró (decisión del dueño, 2026-11-19). Si las sesiones de ejercicio están compartidas, el pie dice: "Entrena con tu reloj y el iCoach descuenta esas sesiones del cardio extra." Si está conectado pero aún no hay datos de hoy, dice: "Conecta tu reloj a Health Connect para ver aquí tu actividad." Solo lectura y en el teléfono. El ritmo cardíaco sigue fuera de esta fase. Sin Health Connect, o con la función apagada, todo queda como antes.
+  - **Health Connect (ADR-P048, Android):** con Health Connect en el teléfono (y la función activada), "Tu reloj" sustituye a "Próximamente" en Inicio y "Reloj y Health Connect" en Perfil, ambos con el subtítulo "Reloj y teléfono vía Health Connect". Muestra el agua registrada hoy ("Registrado hoy: X ml de Y ml", con un anillo de progreso cuando la persona pone su meta en Perfil; "Registrado hoy: X ml" sin meta), y los pasos y las kcal activas de hoy. Las frases dicen qué se registró, nunca qué dispositivo lo registró (decisión del dueño, 2026-11-19). Si las sesiones de ejercicio están compartidas, el pie dice: "Entrena con tu reloj y el Coach descuenta esas sesiones del cardio extra." Si está conectado pero aún no hay datos de hoy, dice: "Conecta tu reloj a Health Connect para ver aquí tu actividad." Solo lectura y en el teléfono. El ritmo cardíaco sigue fuera de esta fase. Sin Health Connect, o con la función apagada, todo queda como antes.
 
 ## Pantallas
 
@@ -36,7 +36,7 @@ El usuario registra los resultados de su evaluación con el médico.
    - Condiciones: Hipertensión, Diabetes, Asma, Condición cardíaca, Otros (abre un cuadro de texto).
    - Botón **Lesiones** que despliega: Hombro, Rodilla, Espalda baja, Muñeca, Codo, Tobillo, Cadera o pelvis, Cuello, Desgarre muscular, Periostitis tibial, Fascitis plantar, Otra lesión (abre un cuadro de texto).
    - Presión sistólica y diastólica, pulso en reposo, medicamentos.
-3. **Alimentación:** grupos desplegables con los alimentos a excluir. Texto de ayuda: "Marca lo que no quieres en tu plan. El iCoach solo cambia lo que marques." Cada alimento marcado se indica como **Alergia** (no se puede registrar) o **Prefiero evitar** (solo avisa al registrarlo).
+3. **Alimentación:** grupos desplegables con los alimentos a excluir. Texto de ayuda: "Marca lo que no quieres en tu plan. El Coach solo cambia lo que marques." Cada alimento marcado se indica como **Alergia** (no se puede registrar) o **Prefiero evitar** (solo avisa al registrarlo).
    - Frutas: guineo, manzana, fresas, arándanos, piña, lechosa, mango, naranja, sandía, kiwi, uvas, chinola.
    - Verduras y vegetales: brócoli, espinaca, lechuga, tomate, ajíes, zanahoria, pepino, coliflor, berenjena, cebolla, auyama.
    - Carnes, huevo y pescado: pollo, pavo, res, cerdo, pescado, atún, salmón, huevo.
@@ -49,9 +49,11 @@ El usuario registra los resultados de su evaluación con el médico.
    - Otras restricciones: alto en sodio, alto en purinas, azúcares añadidos, alcohol, cafeína, frituras.
 4. **Estilo de vida:** nivel de actividad (5), estrés (5), horas de sueño, días para entrenar (2 a 6), equipo disponible.
 5. **Meta:** tipo de meta (7), peso meta y fecha meta.
-6. **Revisión:** resumen editable por sección y vista previa del iCoach (calorías, macros, ajustes por salud).
+6. **Revisión:** resumen editable por sección y vista previa del Coach (calorías, macros, ajustes por salud).
 
-### iCoach
+### Coach
+
+El nombre que ve la persona es **"Coach"** (con artículo en español: "el Coach", "del Coach", "por el Coach", "al Coach"; en inglés "the Coach"). "iCoach" queda como nombre interno del motor determinista: carpeta `features/icoach`, identificadores y sellos de versión de reglas (`icoach-rules@…`) no cambian.
 - Calcula calorías y macros (Mifflin-St Jeor × actividad ± ajuste por meta) y arma la semana de entrenamientos según los días disponibles.
 - **Lesiones:** rodilla quita saltos y sentadilla profunda; espalda baja quita cargas pesadas sobre la espalda; hombro cambia el press militar por rotación externa con banda; tobillo, periostitis y fascitis cambian el trote por bicicleta; las demás bajan las cargas.
 - **Otras reglas:** hipertensión o condición cardíaca → intensidad moderada; diabetes → carbohidratos repartidos; estrés alto → respiración al final; sueño corto → descansos más largos.
@@ -60,9 +62,9 @@ El usuario registra los resultados de su evaluación con el médico.
 - **Merienda mínima:** una merienda tiene al menos 100 kcal. Si es más pequeña, sube a la porción más pequeña que llega a 100 kcal y las otras comidas se recortan alrededor de ella. Si el día no tiene espacio (pasaría de 1,05 veces su meta) o el alimento no llega a 100 kcal en dos porciones, la merienda se quita y sus calorías pasan a desayuno, almuerzo y cena (ADR-P040).
 - **Verduras:** una verdura nunca pasa de tres porciones (unas tres tazas); el plan no completa el día con verduras.
 - **Cantidades redondeadas:** gramos y mililitros sin decimales ("271 g"); cucharadas, tazas, unidades y rebanadas a la media más cercana ("2 cda.", "½ unidad", "1½ tazas"), nunca cero. La unidad concuerda con la cantidad ("1 taza", "2 tazas"; las abreviaturas no cambian). Los totales de calorías y macros usan los valores exactos.
-- **Alimentos excluidos:** solo se quita el alimento marcado, nunca el plato completo ni el grupo. El iCoach lo cambia por otro del mismo tipo (proteína por proteína, víveres por víveres, fruta por fruta…) y si no hay sustituto lo quita. El plato muestra "Ajustado por iCoach: huevo → pechuga de pollo".
+- **Alimentos excluidos:** solo se quita el alimento marcado, nunca el plato completo ni el grupo. El Coach lo cambia por otro del mismo tipo (proteína por proteína, víveres por víveres, fruta por fruta…) y si no hay sustituto lo quita. El plato muestra "Ajustado por el Coach: huevo → pechuga de pollo".
 - **Otras restricciones** (sodio, purinas, azúcares, alcohol, cafeína, frituras) sí excluyen los productos que las tienen.
-- **Comida fuera del plan:** recalcula. Si se pasó de calorías, el día siguiente reparte hasta un 10 % menos entre las comidas y el resto pasa a cardio suave en el próximo entrenamiento (30 min como máximo, "Añadido por el iCoach", se puede quitar). Si se quedó por debajo en un día completo (al menos la mitad de su meta en dos comidas o más), sube hasta un 10 % por día. El iCoach no da consejos de entrenamiento por alcohol (ADR-P040, adenda v11-B).
+- **Comida fuera del plan:** recalcula. Si se pasó de calorías, el día siguiente reparte hasta un 10 % menos entre las comidas y el resto pasa a cardio suave en el próximo entrenamiento (30 min como máximo, "Añadido por el Coach", se puede quitar). Si se quedó por debajo en un día completo (al menos la mitad de su meta en dos comidas o más), sube hasta un 10 % por día. El Coach no da consejos de entrenamiento por alcohol (ADR-P040, adenda v11-B).
 
 ### Panel (pestañas Inicio, Entrenamientos, Nutrición, Progreso, Perfil)
 La pestaña activa muestra su nombre; las demás, solo el ícono.
@@ -76,9 +78,9 @@ La pestaña activa muestra su nombre; las demás, solo el ícono.
 - **Encabezado:** fecha, saludo y campanita con el número de notificaciones sin leer. Al tocarla se abre la lista; cada notificación lleva a su pantalla y hay "Marcar todo como leído".
 - **Inicio:**
   - Tarjeta "Tu meta te espera" con anillo de entrenamientos de la semana (naranja; **verde al completar la semana**) y avance de peso hacia la meta.
-  - iCoach: recomendación del día con los ajustes por salud. Botón "Empezar"; al terminar el de hoy, "Entrenamiento de hoy completado"; al completar la semana, **"Entrenamientos de esta semana completados"**.
+  - Coach: recomendación del día con los ajustes por salud. Botón "Empezar"; al terminar el de hoy, "Entrenamiento de hoy completado"; al completar la semana, **"Entrenamientos de esta semana completados"**.
   - Resumen de entrenamiento y calorías, evaluación del día (IMC, presión, macros), accesos rápidos y "Próximamente".
-- **Entrenamientos:** semana del iCoach, series que se marcan una por una con descanso de 90 s, y al tocar un ejercicio se despliega la demostración del muñeco con 3 pasos de técnica.
+- **Entrenamientos:** semana del Coach, series que se marcan una por una con descanso de 90 s, y al tocar un ejercicio se despliega la demostración del muñeco con 3 pasos de técnica.
 - **Nutrición:**
   - Calorías y macros del día, plan de 15 días con barra deslizable y flechas (también fila de días con barra visible).
   - Cada plato muestra sus ingredientes sueltos con cantidad y calorías.
@@ -86,16 +88,16 @@ La pestaña activa muestra su nombre; las demás, solo el ícono.
   - La base de alimentos debe crecer con tres fuentes: USDA FoodData Central (importación fijada según ADR-P013), una base de alimentos dominicanos (cada uno con su fuente documentada y nombre en español e inglés) y los alimentos creados por el usuario. Lo que más registra el usuario aparece primero. Open Food Facts no se usa.
 - **Progreso:** gráfica de peso con línea de meta, registrar peso, medidas y resumen semanal.
   - **Semanas anteriores (plan vs. lo cumplido):** lista de las semanas pasadas, cada una con un anillo de cumplimiento (verde ≥ 85 %, cian ≥ 65 %, naranja menos), "X de Y entrenamientos · N % de las comidas". Al tocar una semana se abre el detalle:
-    - **Entrenamientos:** cada sesión que el iCoach planificó (día y nombre) con "Cumplido" o "No realizado".
+    - **Entrenamientos:** cada sesión que el Coach planificó (día y nombre) con "Cumplido" o "No realizado".
     - **Alimentación:** % de comidas del plan cumplidas, días dentro de la meta de calorías (de 7), promedio diario contra la meta.
     - **Peso:** cambio en la semana.
-    - **iCoach:** una frase con lo que ajustó para la semana siguiente (mantener la carga si faltaron entrenamientos, subirla si se cumplió todo; recordar la meta de calorías si hubo pocos días dentro).
+    - **Coach:** una frase con lo que ajustó para la semana siguiente (mantener la carga si faltaron entrenamientos, subirla si se cumplió todo; recordar la meta de calorías si hubo pocos días dentro).
     - Cumplimiento = 50 % entrenamientos realizados / planificados + 50 % comidas del plan cumplidas.
 
 ### Plan semanal guardado
-- El iCoach **guarda el plan de cada semana** (entrenamientos por día y plan de comidas) en el teléfono y lo sincroniza con la cuenta. Se muestra "Se renueva el lunes" en "Plan de la semana".
+- El Coach **guarda el plan de cada semana** (entrenamientos por día y plan de comidas) en el teléfono y lo sincroniza con la cuenta. Se muestra "Se renueva el lunes" en "Plan de la semana".
 - El plan **no cambia a mitad de semana**. Se genera de nuevo el lunes con los datos de ese momento, o antes solo si el usuario cambia algo importante (meta, días para entrenar, equipo, lesiones o alimentos excluidos); en ese caso se le avisa y confirma.
-- Registrar comidas, entrenamientos o peso no cambia el plan; solo actualiza el cumplimiento. La excepción es la comida fuera del plan, que puede ajustar el entrenamiento siguiente y la meta del día siguiente, como se describe en iCoach.
+- Registrar comidas, entrenamientos o peso no cambia el plan; solo actualiza el cumplimiento. La excepción es la comida fuera del plan, que puede ajustar el entrenamiento siguiente y la meta del día siguiente, como se describe en Coach.
 - Cada entrenamiento registrado queda ligado a la sesión del plan que cumple, para poder decir qué se cumplió.
 - El historial (lo planificado y lo cumplido) se conserva para "Semanas anteriores" y se borra solo al eliminar la cuenta.
 - **Perfil:** resumen de la evaluación con "Actualizar evaluación", meta, interruptor de Face ID o Huella, "Próximamente" y cerrar sesión.

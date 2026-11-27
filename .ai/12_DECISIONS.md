@@ -15329,6 +15329,10 @@ Status: proposed with the BUG-056 PR; the owner accepts it with that PR (text ap
 - **S5 Display.** A Registrado slot shows "Registrado ✓" / "Logged ✓" in place of "Lo comí". It offers no "Lo comí", skip or light option, and its plan kcal reads like a closed meal's. Comido keeps "Comido ✓". This applies to every saved day of the current week, not only today (owner, 2026-11-27): the day the food log has loaded is read live, the week's other days as the weekly plan last loaded them.
 - **S6 Undo (amends B9).** Deleting the last item that made a slot Registrado makes it pending again, and the rebalance reruns. Nothing is stored to undo.
 
+### Note — Shown name "Coach" (owner decision, 2026-11-27)
+
+People see the engine as **"Coach"** ("el Coach" / "the Coach"); "iCoach" stays its internal name. Copy only: rules, rule versions (`icoach-rules@…`), identifiers and the `features/icoach` folder are unchanged. Wording rule in `.ai/08_UI_UX.md` §iCoach UI.
+
 ### Consequences
 
 - **Positive:** the design's coaching promises become real, tested behaviour.

@@ -349,6 +349,6 @@ describe('dish names for the screens', () => {
     expect(dishNameKeyFor('no_such_dish')).toBeNull();
     expect(dishNameKeyFor(undefined)).toBeNull();
     expect(dishNameKeyFor('toString')).toBeNull();
-    expect(es[SWAP_MARK_KEY]).toBe('(cambio del iCoach)');
+    expect(es[SWAP_MARK_KEY]).toBe('(cambio del Coach)');
   });
 });
