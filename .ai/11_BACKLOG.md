@@ -3477,7 +3477,8 @@ Logging a food other than the plan's under a meal (e.g. Desayuno) left that meal
 - **Scope:** every saved day of the current week; no schema change.
 
 - [x] Regression tests: first meal, middle meal, last meal → carry-over, delete → undo; status precedence; adherence excludes off-plan slots
-- [ ] Device check on the emulator with the local stack
+- [x] Device check on the emulator with the local stack (2026-11-27, e2e APK from this branch): a different Desayuno shows "Registrado" and the pending meals rebalance; deleting it restores "Lo comí" and the plan
+- [ ] Known limit (accepted by the owner, 2026-11-27): earlier days of the week show what the weekly plan last loaded; a log or delete on an earlier date updates on the next plan load (or at once while the food log is open on that date)
 - [ ] After the release: the owner logs a different Desayuno and sees "Registrado"
 
 ---
