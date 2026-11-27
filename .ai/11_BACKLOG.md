@@ -3501,7 +3501,7 @@ With the app in Spanish, searching "Mangú" returned "Mangu mashed plantains, ma
 - **Scope:** mobile only; the server term table is unchanged.
 
 - [x] Tests: alias guard (folded keys, bundled targets), mangú in ES/EN however typed, partial typing, whole-word query, most specific alias first, unchanged searches without an alias
-- [ ] Device check: "mangú" in the log form shows Plátano verde hervido first
+- [ ] Device check (skipped before the PR by the owner, 2026-11-27; verify in the next tester build): "mangú" in the log form shows Plátano verde hervido first
 - [ ] Known limit: an FDC item picked from the server list still shows and logs its English name
 - [ ] After the release: the owner searches "mangú" and sees the Spanish food first
 
