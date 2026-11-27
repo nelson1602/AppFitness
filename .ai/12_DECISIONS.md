@@ -15660,6 +15660,29 @@ server derives every snapshot from that row (ADR-P012).
   that happens. This ADR does not feed imported or custom foods into the
   deterministic iCoach plan engine; they are for logging.
 
+### Amendment BUG-057 — Spanish/Dominican Search Aliases on the Phone
+
+Accepted: 2026-11-27 by the project owner (BUG-057; decision 1(a), no server
+term changes, alias list approved).
+
+Searching "Mangú" in Spanish found only English FDC/OFF products, because no
+bundled food has "mangu" in its name. The phone's bundled search gains a
+reviewed alias table:
+
+1. `FOOD_SEARCH_ALIASES` (`mobile/.../nutrition/infrastructure/food-aliases.es.ts`)
+   maps folded words (accent-free, lower-case) to bundled catalogue ids. It is
+   used **only to find foods**: what is stored and what is shown never
+   change, so "mangú" finds and logs "Plátano verde hervido".
+2. An alias matches when it contains what is typed so far, or the query
+   contains it as whole words. It applies in both languages and offline.
+3. Foods whose name or alias equals the query come first; the rest keep the
+   catalogue order.
+4. An alias never points at a near-miss. A Dominican food with no bundled
+   match waits for a sourced catalogue entry under ADR-P013 (FEATURE-021);
+   "mangú" moves to the real food once it is added.
+5. Extending the table is a reviewed code change. The server's
+   `ES_EN_FOOD_TERMS` is unchanged.
+
 ### Related Documents
 
 ADR-P012, ADR-P013, ADR-P014, ADR-P034, ADR-P040 D9/D10, `docs/design/FOCUS.md` Block B item 7, `api/DEPLOYMENT.md`

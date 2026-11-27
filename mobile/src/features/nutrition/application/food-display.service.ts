@@ -1,6 +1,7 @@
 import type { SupportedLanguage } from '@/shared/localization';
 
 import type { FoodItem } from '../domain/food-catalog';
+import { FOOD_SEARCH_ALIASES } from '../infrastructure/food-aliases.es';
 import { FOOD_CATALOG } from '../infrastructure/food-catalog.data';
 import { SPANISH_FOOD_NAMES } from '../infrastructure/food-catalog.es';
 import { getCanonicalByCatalogKey } from './catalog-lookup.service';
@@ -119,19 +120,58 @@ function normalizeSearch(value: string): string {
     .toLocaleLowerCase();
 }
 
+let aliasesByFood: Map<string, string[]> | null = null;
+
+/** Every bundled food's search aliases by its id (built once). */
+function aliasIndex(): Map<string, string[]> {
+  if (aliasesByFood) return aliasesByFood;
+  aliasesByFood = new Map();
+  for (const [alias, ids] of Object.entries(FOOD_SEARCH_ALIASES)) {
+    for (const id of ids) aliasesByFood.set(id, [...(aliasesByFood.get(id) ?? []), alias]);
+  }
+  return aliasesByFood;
+}
+
 /**
- * Display search accepts both the selected locale and the canonical English
- * name. Results retain their original FoodItem identity and stable order.
+ * An alias answers the query when it holds what is typed so far ("mang" →
+ * "mangu") or the query names it as whole words ("mangu con salami").
+ */
+function aliasMatches(alias: string, query: string): boolean {
+  return alias.includes(query) || ` ${query.replace(/\s+/g, ' ')} `.includes(` ${alias} `);
+}
+
+/**
+ * Display search accepts the selected locale's name, the canonical English
+ * name and the Spanish/Dominican search aliases (ADR-P045 Amendment BUG-057).
+ * Foods whose name or alias equals the query come first; the rest keep the
+ * catalogue order. Results retain their original FoodItem identity.
  */
 export function searchFoodsForDisplay(query: string, language: SupportedLanguage): FoodItem[] {
   const normalizedQuery = normalizeSearch(query);
   if (!normalizedQuery) return [];
 
-  return FOOD_CATALOG.filter((food) => {
+  const aliases = aliasIndex();
+  const exact: FoodItem[] = [];
+  const partial: FoodItem[] = [];
+  for (const food of FOOD_CATALOG) {
     const canonical = normalizeSearch(food.name);
     const localized = normalizeSearch(foodDisplayName(food, language));
-    return canonical.includes(normalizedQuery) || localized.includes(normalizedQuery);
-  });
+    const foodAliases = aliases.get(food.id) ?? [];
+    if (
+      canonical === normalizedQuery ||
+      localized === normalizedQuery ||
+      foodAliases.includes(normalizedQuery)
+    ) {
+      exact.push(food);
+    } else if (
+      canonical.includes(normalizedQuery) ||
+      localized.includes(normalizedQuery) ||
+      foodAliases.some((alias) => aliasMatches(alias, normalizedQuery))
+    ) {
+      partial.push(food);
+    }
+  }
+  return [...exact, ...partial];
 }
 
 /**

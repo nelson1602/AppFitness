@@ -146,6 +146,37 @@ describe('the add form names foods as the food log does (v11-B, TASK-v11B-2)', (
   });
 });
 
+describe('Dominican words find the Spanish bundled food first (BUG-057)', () => {
+  const GOYA_MANGU: FoodSearchResult = {
+    ...CHICHARRON,
+    source: 'fdc',
+    sourceId: '2345678',
+    name: 'Mangu mashed plantains, mangu',
+    brand: 'GOYA',
+    caloriesPerServing: 140,
+    proteinPerServing: 1,
+    carbsPerServing: 30,
+    fatPerServing: 2,
+  };
+
+  it('"Mangú" lists Plátano verde hervido above the server products and logs it by its key', async () => {
+    jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [GOYA_MANGU], external: 'ok' });
+    const onAdd = jest.fn();
+    await render(<FoodLogAddForm defaultMealType="BREAKFAST" onAdd={onAdd} />);
+
+    await search('Mangú');
+    const options = screen.getAllByTestId(/^food-(option|remote)-/);
+    expect(options[0]).toHaveProp('testID', 'food-option-food.plantain_boiled');
+    expect(screen.getByTestId('food-remote-fdc-2345678')).toBeOnTheScreen();
+    expect(screen.getByText('Plátano verde hervido')).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId('food-option-food.plantain_boiled'));
+    await fireEvent.press(screen.getByTestId('food-log-add-submit'));
+    expect(onAdd).toHaveBeenCalledWith('food.plantain_boiled', 'BREAKFAST', 1);
+    expect(saveChosenFood).not.toHaveBeenCalled();
+  });
+});
+
 describe('FoodLogAddForm beyond the local catalogue (v10 Block B, item 7)', () => {
   it('finds "Chicharrón de cerdo" on the server, saves it and logs it under its catalogue key', async () => {
     jest.mocked(searchRemoteFoods).mockResolvedValue({ results: [CHICHARRON], external: 'ok' });
