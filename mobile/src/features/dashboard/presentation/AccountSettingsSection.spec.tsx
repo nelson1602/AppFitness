@@ -375,7 +375,7 @@ describe('AccountSettingsSection (Perfil → Cuenta y ajustes, ADR-P039)', () =>
     await render(<AccountSettingsSection />);
     expect(screen.queryByText('Protect sleep consistency')).toBeNull();
     expect(screen.getByTestId('profile-recommendations')).toHaveTextContent(
-      'iCoach recommendations1 from your evaluation',
+      'Coach recommendations1 from your evaluation',
     );
     await fireEvent.press(screen.getByTestId('profile-recommendations'));
     // Sync is one compact row now: its name says the action and the state.

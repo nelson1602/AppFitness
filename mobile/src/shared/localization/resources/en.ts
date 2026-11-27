@@ -79,7 +79,7 @@ export const en = {
   'notifications.weighIn.body': 'Weigh yourself before breakfast to see your progress this week.',
   'notifications.evaluationReview.title': 'Review your evaluation',
   'notifications.evaluationReview.body':
-    'Keep your evaluation and limitations up to date so the iCoach stays accurate.',
+    'Keep your evaluation and limitations up to date so the Coach stays accurate.',
   'home.week.eyebrow': 'THIS WEEK',
   'home.goal.title': 'Your goal awaits',
   'home.goal.titleDone': 'Week complete!',
@@ -91,13 +91,13 @@ export const en = {
   'home.goal.ringEmpty': 'No weekly plan yet',
   'home.weight.label': 'Weight toward your goal',
   'home.weight.empty': 'Set a target weight to track it here.',
-  'home.coach.title': 'iCoach',
+  'home.coach.title': 'Coach',
   'home.coach.chip': "Today's recommendation",
   'home.coach.train': 'Today: full-body training, {minutes} minutes.',
   'home.coach.todayDoneHeadline': 'You finished today’s workout. Great job!',
   'home.coach.restActive': 'Active recovery today: walk 20 minutes and stretch 10.',
   'home.coach.restFull': 'Rest day today. Recover well.',
-  'home.coach.noPlan': 'Complete your profile and goal so the iCoach can plan your week.',
+  'home.coach.noPlan': 'Complete your profile and goal so the Coach can plan your week.',
   'home.coach.start': 'Start',
   'home.coach.startAccessibility': "Start today's workout",
   'home.coach.todayDone': "Today's workout completed",
@@ -153,8 +153,8 @@ export const en = {
   'workouts.extra.inProgress': 'In progress',
   'workouts.extra.noTime': 'No duration',
   'workouts.extra.lightened':
-    'iCoach: your {day} session has one set less for {groups}, since you already trained them.',
-  'workouts.extra.moved': 'iCoach: the {from} session moves to {to}.',
+    'Coach: your {day} session has one set less for {groups}, since you already trained them.',
+  'workouts.extra.moved': 'Coach: the {from} session moves to {to}.',
   'workout.log.saveAsRoutine': 'Save as routine',
   'workout.log.saveAsRoutineAccessibility': 'Save as a reusable routine:',
   'workout.log.routineSaved': 'Routine saved. Find it in Routines and when you start a workout.',
@@ -183,7 +183,7 @@ export const en = {
   'watch.steps': '{steps} steps',
   'watch.activeKcal': '{kcal} active kcal',
   'watch.activityNote':
-    'Train with your watch and the iCoach subtracts those sessions from the extra cardio.',
+    'Train with your watch and the Coach subtracts those sessions from the extra cardio.',
   'healthConnect.title': 'Health Connect',
   'healthConnect.intro':
     'AppFitnessRD can read these data from Health Connect to show your progress. We read them only while you use the app; they stay on your phone and are not sent to our servers. We never write to Health Connect.',
@@ -192,10 +192,10 @@ export const en = {
     'To show today’s steps and to estimate the energy of an exercise session when your watch records no calories.',
   'healthConnect.activeCaloriesTitle': 'Active calories',
   'healthConnect.activeCaloriesBody':
-    'To show today’s active calories and to count your exercise sessions’ calories against the cardio the iCoach adds.',
+    'To show today’s active calories and to count your exercise sessions’ calories against the cardio the Coach adds.',
   'healthConnect.exerciseTitle': 'Exercise sessions',
   'healthConnect.exerciseBody':
-    'So the exercise your watch records reduces the cardio the iCoach adds to your next workout, without counting twice what you already logged in the app.',
+    'So the exercise your watch records reduces the cardio the Coach adds to your next workout, without counting twice what you already logged in the app.',
   'healthConnect.hydrationTitle': 'Hydration',
   'healthConnect.hydrationBody':
     'To show the water your watch records and, if you set a goal in Profile, your progress toward it.',
@@ -233,9 +233,9 @@ export const en = {
   'workout.plan.beforeStartBody': 'Your plan started on {date}. Earlier days don’t count.',
   'workouts.session.markDone': 'Mark the session as done',
   'workouts.session.pastDay': 'Saved with {day}’s date.',
-  'workout.plan.movedFrom': 'The iCoach moved it here from {day}.',
-  'workout.plan.movedTo': 'The iCoach moved this session to {day}.',
-  'workout.plan.movedLogHere': 'The iCoach moved it to {day}. If you did it this day, log it here.',
+  'workout.plan.movedFrom': 'The Coach moved it here from {day}.',
+  'workout.plan.movedTo': 'The Coach moved this session to {day}.',
+  'workout.plan.movedLogHere': 'The Coach moved it to {day}. If you did it this day, log it here.',
   'plan.history.title': 'Past weeks',
   'plan.history.subtitle': 'Plan vs. done',
   'plan.history.empty': 'Your weeks will appear here once the first one ends.',
@@ -261,7 +261,7 @@ export const en = {
   'plan.history.weight': 'Weight',
   'plan.history.weightChange': '{kg} over the week',
   'plan.history.noWeight': 'Not enough weigh-ins to compare.',
-  'plan.history.icoach': 'ICOACH',
+  'plan.history.icoach': 'COACH',
   'plan.session.fullBody': 'Full body {n}',
   'evaluation.eyebrow': 'PHYSICAL ASSESSMENT · STEP {step} OF {total}',
   'evaluation.eyebrowUpdate': 'UPDATE ASSESSMENT · STEP {step} OF {total}',
@@ -274,13 +274,13 @@ export const en = {
   'evaluation.back': 'Back',
   'evaluation.close': 'Close',
   'evaluation.continue': 'Continue',
-  'evaluation.generate': 'Create my plan with iCoach',
+  'evaluation.generate': 'Create my plan with the Coach',
   'evaluation.saveUpdate': 'Save assessment',
   'evaluation.loadError': "We couldn't load your data. Please try again.",
   'evaluation.saveError': "We couldn't save your assessment. Please try again.",
   'evaluation.retry': 'Try again',
   'evaluation.measures.intro':
-    'Enter the results of your physical assessment here. iCoach uses them to build your workouts and your meal plan.',
+    'Enter the results of your physical assessment here. The Coach uses them to build your workouts and your meal plan.',
   'evaluation.measures.weight': 'Current weight',
   'evaluation.measures.height': 'Height',
   'evaluation.measures.birthDate': 'Date of birth',
@@ -310,7 +310,7 @@ export const en = {
   'evaluation.health.hint':
     'Mark any area with an injury or pain. If you have none, leave it empty.',
   'evaluation.health.effect':
-    'iCoach swaps or removes the exercises that load those areas. These adjustments are pending professional review and, when in doubt, stay conservative.',
+    'The Coach swaps or removes the exercises that load those areas. These adjustments are pending professional review and, when in doubt, stay conservative.',
   'evaluation.health.noMedical': "We don't ask for diagnoses, medicines or other medical data.",
   'evaluation.injury.shoulder': 'Shoulder',
   'evaluation.injury.knee': 'Knee',
@@ -332,7 +332,7 @@ export const en = {
   'evaluation.group.expandHint': 'Shows or hides the options',
   'evaluation.food.title': 'Allergies and restrictions',
   'evaluation.food.hint':
-    "Mark what you don't want in your plan. iCoach only changes what you mark.",
+    "Mark what you don't want in your plan. The Coach only changes what you mark.",
   'evaluation.food.kindHint':
     "Allergy: it can't be logged. Prefer to avoid: you're only warned when you log it.",
   'evaluation.food.allergy': 'Allergy',
@@ -340,9 +340,9 @@ export const en = {
   'evaluation.food.kindGroup': '{food}: allergy or prefer to avoid?',
   'evaluation.food.none': 'Nothing marked. Your plan can include every food.',
   'evaluation.food.summaryOne':
-    'You marked 1 food. In your dishes, iCoach swaps it for another of the same kind or removes it.',
+    'You marked 1 food. In your dishes, the Coach swaps it for another of the same kind or removes it.',
   'evaluation.food.summaryMany':
-    'You marked {n} foods. In your dishes, iCoach swaps them for others of the same kind or removes them.',
+    'You marked {n} foods. In your dishes, the Coach swaps them for others of the same kind or removes them.',
   'evaluation.foodGroup.fruits': 'Fruits',
   'evaluation.foodGroup.vegetables': 'Vegetables',
   'evaluation.foodGroup.meat': 'Meat, eggs and fish',
@@ -470,16 +470,16 @@ export const en = {
   'evaluation.review.lifestyle':
     'Activity {activity} · stress {stress} · {sleep} of sleep · {days} days',
   'evaluation.review.goal': '{goal} · {weight} by {date}',
-  'evaluation.preview.title': 'ICOACH PREVIEW',
+  'evaluation.preview.title': 'COACH PREVIEW',
   'evaluation.preview.kcal': '{kcal} a day',
   'evaluation.preview.macros': 'Protein {p} · Carbs {c} · Fat {f}',
   'evaluation.preview.days': '{n} workouts a week',
   'evaluation.preview.daysCapped':
-    'You chose {asked} days. For your level, iCoach starts you on {n} workouts a week and will offer one more once you complete at least 80 % two weeks in a row.',
+    'You chose {asked} days. For your level, the Coach starts you on {n} workouts a week and will offer one more once you complete at least 80 % two weeks in a row.',
   'evaluation.preview.adjustOne': '1 health adjustment',
   'evaluation.preview.adjustMany': '{n} health adjustments',
   'evaluation.preview.unavailable': 'Complete the previous steps to see your plan.',
-  'building.eyebrow': 'ICOACH',
+  'building.eyebrow': 'COACH',
   'building.titleLead': 'Creating your',
   'building.titleAccent': 'personal plan',
   'building.step.analyze': 'Analysing your physical assessment',
@@ -551,7 +551,7 @@ export const en = {
   'nutrition.tab.ringA11y': '{consumed} of {target} kcal today',
   'nutrition.tab.macroValue': '{consumed}/{target} g',
   'nutrition.tab.excludedLabel': 'Off your plan from your evaluation:',
-  'nutrition.tab.adjustedTitle': 'iCoach adjusted your plan',
+  'nutrition.tab.adjustedTitle': 'The Coach adjusted your plan',
   'nutrition.tab.moreLinks': 'Plan settings',
   'nutrition.plan.extraLabel': '{slot} · off plan',
   'nutrition.plan.extraServingOne': '{servings} serving',
@@ -597,7 +597,7 @@ export const en = {
   'profile.tab.goalTitle': 'Goal',
   'profile.tab.goalDetail': '{target} by {date}',
   'profile.tab.goalTarget': 'Target {target}',
-  'profile.tab.goalEmpty': 'Set a goal so the iCoach can plan for it.',
+  'profile.tab.goalEmpty': 'Set a goal so the Coach can plan for it.',
   'profile.tab.soonBody':
     'Connect your smartwatch to track water and heart rate without typing them.',
   'profile.tab.settingsTitle': 'Account and settings',
@@ -755,7 +755,7 @@ export const en = {
   'profile.createTitle': 'Create your profile',
   'profile.editTitle': 'Edit profile',
   'profile.subtitle':
-    'Saved on your device first, then synced. Required fields unlock your iCoach evaluation.',
+    'Saved on your device first, then synced. Required fields unlock your Coach evaluation.',
   'profile.errorTitle': "Couldn't save",
   'profile.errorMessage': 'Your profile could not be saved right now. Try again.',
   'profile.webUnavailableTitle': "Profile editing isn't available on the web",
@@ -978,9 +978,9 @@ export const en = {
   'progress.validation.chestPositive': 'Enter a chest measurement greater than 0',
   'progress.validation.bodyFatPositive': 'Enter a body-fat % greater than 0',
   'progress.validation.bodyFatRange': 'Enter a body-fat % between 0 and 100',
-  'workout.plan.accessibility': 'Your iCoach workout plan',
+  'workout.plan.accessibility': 'Your Coach workout plan',
   'workout.plan.routeTitle': 'Weekly plan',
-  'workout.plan.title': 'Your weekly iCoach plan',
+  'workout.plan.title': 'Your weekly Coach plan',
   'workout.plan.subtitle': 'Built from your goal, fitness level, schedule and equipment.',
   'workout.plan.loading': 'Building your workout plan…',
   'workout.plan.gapTitle': 'Complete your basic info first',
@@ -1082,10 +1082,10 @@ export const en = {
   'workout.plan.weekPlan': "This week's plan",
   'workout.plan.weekStrip': 'Days of the week',
   'workout.plan.restDay': 'Rest day',
-  'workout.plan.restDayFull': 'iCoach left this day free so you can recover.',
+  'workout.plan.restDayFull': 'The Coach left this day free so you can recover.',
   'workout.plan.restDayActive':
     'Active recovery: an easy 20-minute walk and 10 minutes of stretching.',
-  'workout.plan.byICoach': '{day} · built by iCoach',
+  'workout.plan.byICoach': '{day} · built by the Coach',
   // ADR-P031 §Decision 10: the assessment recommendation. Localization keys
   // only — the validated movements stay inside the rule inputs and never
   // appear here, and neither does a count, a date or an area.
@@ -1284,7 +1284,7 @@ export const en = {
   'workout.log.removeSetAccessibility': 'Remove set',
   'nutrition.routeTitle': 'Nutrition',
   'nutrition.plan.routeTitle': 'Meal plan',
-  'nutrition.plan.subtitle': 'A meal plan built from your iCoach targets and our food list.',
+  'nutrition.plan.subtitle': 'A meal plan built from your Coach targets and our food list.',
   'nutrition.plan.logToday': "Log today's food",
   'nutrition.plan.logTodayAccessibility': 'Log the food you ate today',
   'nutrition.plan.loading': 'Loading…',
@@ -1313,8 +1313,8 @@ export const en = {
   'nutrition.plan.meal': 'meal',
   'nutrition.plan.savedWeek': "This week's plan. It renews on Monday.",
   'nutrition.plan.previewBadge': 'May change on Monday',
-  'nutrition.rebalance.scaled': 'Adjusted by the iCoach · was {kcal}',
-  'nutrition.rebalance.swapped': 'A lighter option from the iCoach · was {kcal}',
+  'nutrition.rebalance.scaled': 'Adjusted by the Coach · was {kcal}',
+  'nutrition.rebalance.swapped': 'A lighter option from the Coach · was {kcal}',
   'nutrition.rebalance.optional': 'Optional today · was {kcal}',
   'nutrition.rebalance.covered': "You've covered today's calories",
   'nutrition.rebalance.lightOption': 'Light option: {food} · {kcal}',
@@ -1324,32 +1324,32 @@ export const en = {
   'nutrition.rebalance.skipped': 'Skipped today',
   'nutrition.rebalance.before': 'was',
   'nutrition.rebalance.dayAdjusted':
-    "You're at {consumed} of {target}. The iCoach adjusted your pending meals.",
+    "You're at {consumed} of {target}. The Coach adjusted your pending meals.",
   'nutrition.rebalance.dayCovered':
     "You're at {consumed} of {target}. You've covered today's calories.",
   'nutrition.rebalance.preview':
-    'With this you reach {total} of {target}. The iCoach will adjust your pending meals.',
+    'With this you reach {total} of {target}. The Coach will adjust your pending meals.',
   'nutrition.carryOver.lessAfterYesterday':
-    'Yesterday you reached {consumed} of {target}. Today the iCoach spreads {kcal} less across your meals.',
+    'Yesterday you reached {consumed} of {target}. Today the Coach spreads {kcal} less across your meals.',
   'nutrition.carryOver.lessWithCardio':
-    'Yesterday you reached {consumed} of {target}. Today the iCoach spreads {kcal} less across your meals and adds {minutes} min of easy cardio to your next workout.',
+    'Yesterday you reached {consumed} of {target}. Today the Coach spreads {kcal} less across your meals and adds {minutes} min of easy cardio to your next workout.',
   'nutrition.carryOver.cardioOnly':
-    'Yesterday you reached {consumed} of {target}. Today the iCoach adds {minutes} min of easy cardio to your next workout.',
+    'Yesterday you reached {consumed} of {target}. Today the Coach adds {minutes} min of easy cardio to your next workout.',
   'nutrition.carryOver.moreAfterYesterday':
-    'Yesterday you reached {consumed} of {target}. Today the iCoach spreads {kcal} more across your meals.',
+    'Yesterday you reached {consumed} of {target}. Today the Coach spreads {kcal} more across your meals.',
   'nutrition.carryOver.less':
-    'Based on what you logged on earlier days, today the iCoach spreads {kcal} less across your meals.',
+    'Based on what you logged on earlier days, today the Coach spreads {kcal} less across your meals.',
   'nutrition.carryOver.more':
-    'Based on what you logged on earlier days, today the iCoach spreads {kcal} more across your meals.',
+    'Based on what you logged on earlier days, today the Coach spreads {kcal} more across your meals.',
   'nutrition.carryOver.rest': 'The rest is spread over the next few days.',
   'nutrition.plan.ateAccessibility': "I ate it: log the plan's {meal}",
   'nutrition.plan.eaten': 'Eaten ✓',
   // BUG-056: food logged under the meal outside the plan closes it.
   'nutrition.plan.logged': 'Logged',
   'nutrition.plan.loggedAccessibility': '{meal}: logged outside the plan',
-  'nutrition.plan.adjusted': 'Adjusted by iCoach: {from} → {to}',
-  'nutrition.plan.adjustedRemoved': 'Adjusted by iCoach: no {from}',
-  'nutrition.plan.swapMark': '(iCoach swap)',
+  'nutrition.plan.adjusted': 'Adjusted by the Coach: {from} → {to}',
+  'nutrition.plan.adjustedRemoved': 'Adjusted by the Coach: no {from}',
+  'nutrition.plan.swapMark': '(Coach swap)',
   // v8.1 (meal-rules@1.5.0): the Dominican dish catalogue (dominican-dishes.ts).
   'nutrition.dish.mangu_huevo_aguacate': 'Mangú (mashed green plantain) with egg and avocado',
   'nutrition.dish.avena_guineo_chia': 'Oatmeal with milk, banana and chia',
@@ -1411,10 +1411,10 @@ export const en = {
   'nutrition.dish.guineitos_bacalao': 'Guineítos (boiled green bananas) with stewed salt cod',
   'nutrition.household.greenBananaOne': '{count} green banana · {amount}',
   'nutrition.household.greenBananaMany': '{count} green bananas · {amount}',
-  'workouts.addedCardio.label': 'Added by the iCoach',
+  'workouts.addedCardio.label': 'Added by the Coach',
   'workouts.addedCardio.minutes': '{minutes} min of easy cardio',
   'workouts.addedCardio.remove': 'Remove',
-  'workouts.addedCardio.removeA11y': 'Remove the cardio the iCoach added',
+  'workouts.addedCardio.removeA11y': 'Remove the cardio the Coach added',
   'nutrition.plan.dayTotalsAccessibility': 'Day totals versus targets',
   'nutrition.plan.dayTotalTarget': 'Day total vs target',
   'nutrition.plan.calories': 'Calories',
@@ -1435,7 +1435,7 @@ export const en = {
     'Allergies and preferences remove foods from the plan before it is built. This is not medical advice.',
   'nutrition.targets.title': 'Nutrition targets',
   'nutrition.targets.subtitle':
-    'Your daily calorie and macronutrient targets from your iCoach evaluation.',
+    'Your daily calorie and macronutrient targets from your Coach evaluation.',
   'nutrition.targets.loadingAccessibility': 'Loading nutrition targets',
   'nutrition.targets.unavailable': 'Nutrition unavailable',
   'nutrition.targets.errorMessage': 'Your nutrition targets could not be loaded right now.',
@@ -1464,7 +1464,7 @@ export const en = {
   'nutrition.preferences.routeTitle': 'Dietary preferences',
   'nutrition.preferences.title': 'Dietary preferences and allergies',
   'nutrition.preferences.subtitle':
-    'Tell iCoach what to avoid. Allergies and preferences shape your meal suggestions and show advisory warnings without blocking your choices. Entries are saved on your device first and sync to your account later.',
+    'Tell the Coach what to avoid. Allergies and preferences shape your meal suggestions and show advisory warnings without blocking your choices. Entries are saved on your device first and sync to your account later.',
   'nutrition.preferences.errorTitle': 'Something went wrong',
   'nutrition.preferences.errorMessage': 'Your dietary preferences could not be loaded right now.',
   'nutrition.preferences.webUnavailableTitle': "Dietary preferences aren't available on the web",
@@ -1661,7 +1661,7 @@ export const en = {
     'Your dashboard data lives on your device. Use the AppFitnessRD mobile app for the full offline experience.',
   'dashboard.syncAccessibility': 'Sync local changes',
   'dashboard.syncNow': 'Sync now',
-  'dashboard.recommendations': 'iCoach recommendations',
+  'dashboard.recommendations': 'Coach recommendations',
   'dashboard.foodLogAccessibility': "Open today's food log",
   'dashboard.foodLog': 'Log food',
   'dashboard.preferencesAccessibility': 'Manage dietary preferences and allergies',
@@ -1711,7 +1711,7 @@ export const en = {
   'account.delete.retain.title': 'Before you go',
   'account.delete.retain.lead':
     'If you delete your account, everything is erased and can’t be recovered:',
-  'account.delete.retain.plan': 'Your iCoach training and meal plan',
+  'account.delete.retain.plan': 'Your Coach training and meal plan',
   'account.delete.retain.history':
     'Your physical evaluation and your weight and measurement history',
   'account.delete.retain.logs': 'Your food logs, workouts and past weeks',
@@ -1727,7 +1727,7 @@ export const en = {
   'dashboard.gap.accessibility': 'Dashboard setup requirements',
   'dashboard.gap.title': 'Complete your basic info',
   'dashboard.gap.description':
-    'The dashboard runs entirely from local data. Add the basics below to unlock your first iCoach evaluation.',
+    'The dashboard runs entirely from local data. Add the basics below to unlock your first Coach evaluation.',
   'dashboard.gap.fixAccessibility': 'Fix',
   'dashboard.gap.addNow': 'Add now',
   'dashboard.gap.sampleAccessibility': 'Load sample data',
@@ -1819,7 +1819,7 @@ export const en = {
   'dashboard.recommendation.calorieExplanation':
     'You burn about {tdee} kcal a day, adjusted {adjustment}% for your goal.',
   'dashboard.recommendation.calorieSafetyFloor':
-    'Your goal implies a deficit, but iCoach raised the target to a safe minimum calorie level.',
+    'Your goal implies a deficit, but the Coach raised the target to a safe minimum calorie level.',
   'dashboard.recommendation.calorieEvidence':
     'Standard resting-metabolism formula with an activity multiplier.',
   'dashboard.recommendation.macrosTitle':
@@ -2177,7 +2177,7 @@ export const en = {
   'subscription.loadingAccessibility': 'Loading subscription',
   'subscription.benefitsTitle': "What's included",
   'subscription.benefitTracking': 'Log workouts, meals and body progress',
-  'subscription.benefitPlans': 'Get new workout routines and meal plans from iCoach',
+  'subscription.benefitPlans': 'Get new workout routines and meal plans from the Coach',
   'subscription.benefitSync': 'Keep your records backed up and in sync across your devices',
   'subscription.ownership':
     "Your records stay yours. Without an active subscription you can still see what's already saved on this device.",
@@ -2258,7 +2258,7 @@ export const en = {
     'Your saved data stays available while AppFitnessRD confirms your subscription.',
   'subscription.readOnlyTitle': 'AppFitnessRD is in read-only mode',
   'subscription.readOnlyBody':
-    'Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new iCoach plan.',
+    'Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new Coach plan.',
   'subscription.open': 'View subscription',
   'subscription.requiredTitle': 'You need an active subscription to save this',
   'subscription.requiredKeptBody':

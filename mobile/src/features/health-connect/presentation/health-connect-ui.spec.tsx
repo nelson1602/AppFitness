@@ -126,14 +126,14 @@ describe('Inicio watch card (ADR-P048)', () => {
       'Logged today: 1,250 ml of 2,500 ml',
     );
     expect(screen.getByTestId('home-watch-footer')).toHaveTextContent(
-      'Train with your watch and the iCoach subtracts those sessions from the extra cardio.',
+      'Train with your watch and the Coach subtracts those sessions from the extra cardio.',
     );
   });
 
   it('footer: only when exercise sessions are shared', async () => {
     await render(<WatchCard fallback={fallback} />);
     expect(screen.getByTestId('home-watch-footer')).toHaveTextContent(
-      'Entrena con tu reloj y el iCoach descuenta esas sesiones del cardio extra.',
+      'Entrena con tu reloj y el Coach descuenta esas sesiones del cardio extra.',
     );
     useHealthConnectStore.setState({ granted: ['Steps', 'Hydration'] });
     await render(<WatchCard fallback={fallback} />);

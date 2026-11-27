@@ -190,7 +190,7 @@ describe('real-time changes on Inicio', () => {
     // One sentence: the food and the cardio together.
     expect(screen.getAllByText(/Ayer llegaste a/)).toHaveLength(1);
     expect(screen.getByTestId('home-coach-carry-over')).toHaveTextContent(
-      /Hoy el iCoach reparte 271 kcal menos entre tus comidas y suma 30 min de cardio suave a tu próximo entrenamiento\.$/,
+      /Hoy el Coach reparte 271 kcal menos entre tus comidas y suma 30 min de cardio suave a tu próximo entrenamiento\.$/,
     );
     await render(<CoachCard evaluationDate={null} summary={TRAINING} />);
     expect(screen.queryByTestId('home-coach-carry-over')).toBeNull();
@@ -284,7 +284,7 @@ describe('CoachCard', () => {
     await render(<CoachCard evaluationDate={null} summary={EMPTY} />);
 
     expect(screen.getByTestId('home-coach-message')).toHaveTextContent(
-      'Complete your profile and goal so the iCoach can plan your week.',
+      'Complete your profile and goal so the Coach can plan your week.',
     );
     expect(screen.queryByTestId('home-coach-start')).toBeNull();
   });

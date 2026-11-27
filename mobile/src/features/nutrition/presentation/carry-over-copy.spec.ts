@@ -30,10 +30,10 @@ describe('the one carry-over sentence (ADR-P040 Addendum v11-B)', () => {
   it('food and cardio in one sentence, es + en', () => {
     const both = message({ adjustment: -271, yesterday: over }, 20);
     expect(carryOverText(both, es, 'es')).toBe(
-      `Ayer llegaste a ${n(3200)} de ${k(2711)}. Hoy el iCoach reparte ${k(271)} menos entre tus comidas y suma 20 min de cardio suave a tu próximo entrenamiento.`,
+      `Ayer llegaste a ${n(3200)} de ${k(2711)}. Hoy el Coach reparte ${k(271)} menos entre tus comidas y suma 20 min de cardio suave a tu próximo entrenamiento.`,
     );
     expect(carryOverText(both, en, 'en')).toBe(
-      `Yesterday you reached 3,200 of ${k(2711, 'en')}. Today the iCoach spreads ${k(271, 'en')} less across your meals and adds 20 min of easy cardio to your next workout.`,
+      `Yesterday you reached 3,200 of ${k(2711, 'en')}. Today the Coach spreads ${k(271, 'en')} less across your meals and adds 20 min of easy cardio to your next workout.`,
     );
   });
 
@@ -43,13 +43,13 @@ describe('the one carry-over sentence (ADR-P040 Addendum v11-B)', () => {
       yesterday: { date: '2026-11-12', consumed: 2847, target: 2711 },
     });
     expect(carryOverText(foodOnly, es, 'es')).toBe(
-      `Ayer llegaste a ${n(2847)} de ${k(2711)}. Hoy el iCoach reparte ${k(136)} menos entre tus comidas.`,
+      `Ayer llegaste a ${n(2847)} de ${k(2711)}. Hoy el Coach reparte ${k(136)} menos entre tus comidas.`,
     );
   });
 
   it('cardio only, when the safe minimum leaves no room for less food', () => {
     expect(carryOverText(message({ adjustment: 0, yesterday: over }, 30), es, 'es')).toBe(
-      `Ayer llegaste a ${n(3200)} de ${k(2711)}. Hoy el iCoach suma 30 min de cardio suave a tu próximo entrenamiento.`,
+      `Ayer llegaste a ${n(3200)} de ${k(2711)}. Hoy el Coach suma 30 min de cardio suave a tu próximo entrenamiento.`,
     );
   });
 
@@ -60,16 +60,16 @@ describe('the one carry-over sentence (ADR-P040 Addendum v11-B)', () => {
       yesterday: { date: '2026-11-12', consumed: 2304, target: 2711 },
     });
     expect(carryOverText(under, es, 'es')).toBe(
-      `Ayer llegaste a ${n(2304)} de ${k(2711)}. Hoy el iCoach reparte ${k(271)} más entre tus comidas. El resto se reparte en los próximos días.`,
+      `Ayer llegaste a ${n(2304)} de ${k(2711)}. Hoy el Coach reparte ${k(271)} más entre tus comidas. El resto se reparte en los próximos días.`,
     );
   });
 
   it('without yesterday (or pointing the other way) it names earlier days', () => {
     expect(carryOverText(message({ adjustment: 129 }), es, 'es')).toBe(
-      `Por lo que registraste en días anteriores, hoy el iCoach reparte ${k(129)} más entre tus comidas.`,
+      `Por lo que registraste en días anteriores, hoy el Coach reparte ${k(129)} más entre tus comidas.`,
     );
     expect(carryOverText(message({ adjustment: 71, yesterday: over }), en, 'en')).toBe(
-      `Based on what you logged on earlier days, today the iCoach spreads ${k(71, 'en')} more across your meals.`,
+      `Based on what you logged on earlier days, today the Coach spreads ${k(71, 'en')} more across your meals.`,
     );
   });
 

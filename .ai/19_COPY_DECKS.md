@@ -194,7 +194,7 @@ The copy names the prerequisite and routes to its owner. Empty-language such as
 |---|---|---|---|
 | `dashboard.gap.accessibility` | Dashboard setup requirements | Requisitos de configuración del panel | **SHIPPED** |
 | `dashboard.gap.title` | Finish your baseline | Completa tus datos iniciales | **SHIPPED** |
-| `dashboard.gap.description` | The dashboard runs entirely from local data. Add the basics below to unlock your first iCoach assessment. | El panel funciona completamente con datos locales. Agrega la información básica para obtener tu primera evaluación de iCoach. | **SHIPPED** |
+| `dashboard.gap.description` | The dashboard runs entirely from local data. Add the basics below to unlock your first Coach assessment. | El panel funciona completamente con datos locales. Agrega la información básica para obtener tu primera evaluación del Coach. | **SHIPPED** |
 | `dashboard.gap.profileTitle` | Create your profile | Crea tu perfil | **SHIPPED** |
 | `dashboard.gap.profileDetail` | The dashboard needs your profile to calculate safe targets. | El panel necesita tu perfil para calcular objetivos seguros. | **SHIPPED** |
 | `dashboard.gap.birthDateTitle` | Add your birth date | Agrega tu fecha de nacimiento | **SHIPPED** |
@@ -1584,7 +1584,7 @@ for Decision 12 counsel approval.
 |---|---|---|---|
 | `subscription.benefitsTitle` | What's included | Qué incluye | **SHIPPED** |
 | `subscription.benefitTracking` | Log workouts, meals and body progress | Registra entrenamientos, comidas y progreso corporal | **SHIPPED** |
-| `subscription.benefitPlans` | Get new workout routines and meal plans from iCoach | Recibe nuevas rutinas de entrenamiento y planes de comidas de iCoach | **SHIPPED** |
+| `subscription.benefitPlans` | Get new workout routines and meal plans from the Coach | Recibe nuevas rutinas de entrenamiento y planes de comidas del Coach | **SHIPPED** |
 | `subscription.benefitSync` | Keep your records backed up and in sync across your devices | Mantén tus registros respaldados y sincronizados entre tus dispositivos | **SHIPPED** |
 | `subscription.ownership` | Your records stay yours. Without an active subscription you can still see what's already saved on this device. | Tus registros siguen siendo tuyos. Sin una suscripción activa, puedes seguir viendo lo que ya está guardado en este dispositivo. | **SHIPPED** |
 
@@ -1706,7 +1706,7 @@ dormant until provider activation.
 
 - **Calm and factual.** `checking` reassures that saved data stays available.
   `read-only` states plainly what is paused (saving changes, syncing edits,
-  resolving conflicts, new iCoach plans) and that saved data is safe. There is
+  resolving conflicts, new Coach plans) and that saved data is safe. There is
   no urgency, no discount and no outcome claim.
 - **One affordance.** *View subscription* opens `/subscription`. No other
   control is named.
@@ -1716,7 +1716,7 @@ dormant until provider activation.
 | `subscription.accessCheckingTitle` | Checking your access | Comprobando tu acceso | **SHIPPED** |
 | `subscription.accessCheckingBody` | Your saved data stays available while AppFitnessRD confirms your subscription. | Tus datos guardados siguen disponibles mientras AppFitnessRD confirma tu suscripción. | **SHIPPED** |
 | `subscription.readOnlyTitle` | AppFitnessRD is in read-only mode | AppFitnessRD está en modo de solo lectura | **SHIPPED** |
-| `subscription.readOnlyBody` | Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new iCoach plan. | Tus datos guardados están seguros y disponibles. Renueva o restaura tu suscripción para guardar cambios, sincronizar ediciones, resolver conflictos o generar un plan nuevo de iCoach. | **SHIPPED** |
+| `subscription.readOnlyBody` | Your saved data is safe and available. Renew or restore your subscription to save changes, sync edits, resolve conflicts, or generate a new Coach plan. | Tus datos guardados están seguros y disponibles. Renueva o restaura tu suscripción para guardar cambios, sincronizar ediciones, resolver conflictos o generar un plan nuevo de iCoach. | **SHIPPED** |
 | `subscription.open` | View subscription | Ver suscripción | **SHIPPED** |
 
 The catalogues held **1138** keys each before S-4 and hold **1143** each

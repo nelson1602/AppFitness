@@ -309,7 +309,7 @@ describe('WorkoutWeek with a session the iCoach moved', () => {
     // Monday has passed: it still offers the session, for a person who did it after all.
     await fireEvent.press(screen.getByTestId('workout-day-0'));
     expect(screen.getByTestId('workout-moved-in')).toHaveTextContent(
-      'The iCoach moved it to Tuesday. If you did it this day, log it here.',
+      'The Coach moved it to Tuesday. If you did it this day, log it here.',
     );
     await fireEvent.press(screen.getByTestId('workout-session-mark-done'));
     expect(mockCompleteSession).toHaveBeenCalledWith(
@@ -321,7 +321,7 @@ describe('WorkoutWeek with a session the iCoach moved', () => {
     await renderWeek(2, [], null, MOVE);
     await fireEvent.press(screen.getByTestId('workout-day-1'));
     expect(screen.getByTestId('workout-moved-in')).toHaveTextContent(
-      'The iCoach moved it here from Monday.',
+      'The Coach moved it here from Monday.',
     );
     expect(mockLoad).toHaveBeenLastCalledWith('session-1', undefined, '2026-11-03', '2026-11-02');
     await fireEvent.press(screen.getByTestId('workout-session-mark-done'));
@@ -362,7 +362,7 @@ describe('carry-over cardio on the session (ADR-P040 v11-B)', () => {
         weekDates={DATES}
       />,
     );
-    expect(screen.getByTestId('workout-exercise-2')).toHaveTextContent(/Añadido por el iCoach/);
+    expect(screen.getByTestId('workout-exercise-2')).toHaveTextContent(/Añadido por el Coach/);
     expect(screen.getByTestId('workout-exercise-2')).toHaveTextContent(/20 min de cardio suave/);
     // Logged like any other exercise: it has its own set button.
     expect(screen.getByTestId('workout-exercise-2-set')).toBeOnTheScreen();

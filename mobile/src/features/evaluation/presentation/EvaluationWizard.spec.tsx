@@ -180,7 +180,7 @@ describe('EvaluationWizard (first run)', () => {
     expect(screen.getByTestId('evaluation-review-health')).toHaveTextContent(/Lesiones: Rodilla/);
     expect(screen.getByTestId('evaluation-review-food')).toHaveTextContent(/Excluir: Huevo/);
     expect(screen.getByTestId('evaluation-preview-kcal')).toHaveTextContent(/kcal al día/);
-    expect(screen.getByText('Generar mi plan con iCoach')).toBeTruthy();
+    expect(screen.getByText('Generar mi plan con el Coach')).toBeTruthy();
 
     await next();
     expect(saveEvaluation).toHaveBeenCalledWith(

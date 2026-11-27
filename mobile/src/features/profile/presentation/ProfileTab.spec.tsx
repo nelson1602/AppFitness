@@ -329,7 +329,7 @@ describe('ProfileTab (ADR-P039)', () => {
     await render(<ProfileTab />);
 
     expect(screen.getByTestId('profile-evaluation')).toHaveTextContent(/Weight–.*BMI–/);
-    expect(screen.getByText('Set a goal so the iCoach can plan for it.')).toBeOnTheScreen();
+    expect(screen.getByText('Set a goal so the Coach can plan for it.')).toBeOnTheScreen();
   });
 
   it('does not expose dormant medical fields or actions (ADR-P038)', async () => {

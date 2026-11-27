@@ -70,7 +70,7 @@ appId: com.appfitnessrd.mobile
     visible: 'Local data ready'
     timeout: 60000
 - scrollUntilVisible:
-    element: 'iCoach recommendations'
+    element: 'Coach recommendations'
     timeout: 60000
 
 # --- 3. The Nutrición tab: today's calories and macros (ADR-P039) ---

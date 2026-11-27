@@ -254,10 +254,10 @@ describe('rebalance on screen (ADR-P040 v10-B)', () => {
       <MealPlanPanel day={today} isDone={(slot) => slot === 'BREAKFAST'} onEaten={jest.fn()} />,
     );
     expect(screen.getByTestId('plan-rebalance-3-LUNCH')).toHaveTextContent(
-      /^Ajustada por el iCoach · antes /,
+      /^Ajustada por el Coach · antes /,
     );
     expect(screen.getByTestId('plan-rebalance-day')).toHaveTextContent(
-      /El iCoach ajustó tus comidas pendientes\.$/,
+      /El Coach ajustó tus comidas pendientes\.$/,
     );
   });
 
@@ -345,7 +345,7 @@ describe('v11-A on screen: the owner day (target 2.711)', () => {
       [708, true, undefined],
     ]);
     await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
-    expect(screen.queryByText(/Ajustada por el iCoach/)).toBeNull();
+    expect(screen.queryByText(/Ajustada por el Coach/)).toBeNull();
     expect(screen.queryByTestId('plan-rebalance-day')).toBeNull();
   });
 
@@ -355,10 +355,10 @@ describe('v11-A on screen: the owner day (target 2.711)', () => {
     expect(today.totals.calories).toBeLessThanOrEqual(OWNER_DAY_TARGET_KCAL);
     await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
     expect(screen.getByTestId('plan-rebalance-3-BREAKFAST')).toHaveTextContent(
-      `Ajustada por el iCoach · antes ${es(739)} kcal`,
+      `Ajustada por el Coach · antes ${es(739)} kcal`,
     );
     expect(screen.getByTestId('plan-rebalance-3-SNACK')).toHaveTextContent(
-      `Ajustada por el iCoach · antes ${es(357)} kcal`,
+      `Ajustada por el Coach · antes ${es(357)} kcal`,
     );
   });
 });
@@ -386,7 +386,7 @@ describe('v11-B on screen: the carry-over sentence in the day header', () => {
     expect(other.carryOver).toBeUndefined();
     await render(<MealPlanPanel day={today} isDone={() => false} onEaten={jest.fn()} />);
     expect(screen.getByTestId('plan-carry-over')).toHaveTextContent(
-      /^Ayer llegaste a .+ de .+ kcal\. Hoy el iCoach reparte 189 kcal menos entre tus comidas\.$/,
+      /^Ayer llegaste a .+ de .+ kcal\. Hoy el Coach reparte 189 kcal menos entre tus comidas\.$/,
     );
   });
 

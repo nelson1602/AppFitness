@@ -39,7 +39,7 @@ appId: com.appfitnessrd.mobile
 # before the assessment can render, so this scroll is also the wait for sync
 # to settle — nothing else reports completion this precisely.
 - scrollUntilVisible:
-    element: 'iCoach recommendations'
+    element: 'Coach recommendations'
     timeout: 60000
 
 # The sync row sits above the recommendations row, so scroll back UP for it.

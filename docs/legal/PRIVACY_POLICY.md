@@ -22,7 +22,7 @@ Cómo tratamos tus datos en la app AppFitnessRD.
 
 ### 1. Resumen
 
-AppFitnessRD te ayuda a registrar tus entrenamientos, tu alimentación, tu progreso y tu información de bienestar, y te da recomendaciones de su asistente iCoach. Solo tratamos los datos que la app necesita para funcionar. **No vendemos tus datos, no mostramos anuncios y no usamos herramientas de analítica publicitaria.**
+AppFitnessRD te ayuda a registrar tus entrenamientos, tu alimentación, tu progreso y tu información de bienestar, y te da recomendaciones de su asistente Coach. Solo tratamos los datos que la app necesita para funcionar. **No vendemos tus datos, no mostramos anuncios y no usamos herramientas de analítica publicitaria.**
 
 ### 2. Datos que tratamos
 
@@ -62,7 +62,7 @@ La versión actual de la app **no** te pide notas médicas, medicamentos, condic
 
 Tratamos tus datos **con tu consentimiento**, que das al crear tu cuenta y al registrar tu información, y **porque son necesarios para darte el servicio** que pides. Para la seguridad y la corrección de errores, nos basamos en el interés legítimo de mantener la app funcionando de forma segura. Cumplimos con la Ley No. 172-13 de la República Dominicana sobre protección de datos personales. Puedes retirar tu consentimiento en cualquier momento eliminando tu cuenta.
 
-Las recomendaciones del iCoach se calculan con reglas fijas a partir de tus datos. AppFitnessRD es una app de fitness y bienestar: **no ofrece diagnósticos ni sustituye la orientación de un profesional de la salud**.
+Las recomendaciones del Coach se calculan con reglas fijas a partir de tus datos. AppFitnessRD es una app de fitness y bienestar: **no ofrece diagnósticos ni sustituye la orientación de un profesional de la salud**.
 
 ### 4. Cómo protegemos tus datos
 
@@ -142,7 +142,7 @@ This English version is a translation; the [Spanish version](https://appfitnessr
 
 ### 1. Summary
 
-AppFitnessRD helps you track your workouts, nutrition, progress and wellness information, and gives you recommendations from its iCoach assistant. We only process the data the app needs to work. **We do not sell your data, show ads or use advertising analytics tools.**
+AppFitnessRD helps you track your workouts, nutrition, progress and wellness information, and gives you recommendations from its Coach assistant. We only process the data the app needs to work. **We do not sell your data, show ads or use advertising analytics tools.**
 
 ### 2. Data we process
 
@@ -182,7 +182,7 @@ The current version of the app does **not** ask for medical notes, medications, 
 
 We process your data **with your consent**, which you give when you create your account and enter your information, and **because it is necessary to provide the service** you request. For security and error fixing we rely on our legitimate interest in keeping the app working safely. We comply with Dominican Republic Law No. 172-13 on personal data protection. You can withdraw your consent at any time by deleting your account.
 
-iCoach recommendations are calculated with fixed rules from your data. AppFitnessRD is a fitness and wellness app: **it does not provide diagnoses or replace guidance from a health professional**.
+Coach recommendations are calculated with fixed rules from your data. AppFitnessRD is a fitness and wellness app: **it does not provide diagnoses or replace guidance from a health professional**.
 
 ### 4. How we protect your data
 

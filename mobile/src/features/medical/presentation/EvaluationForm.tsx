@@ -64,7 +64,7 @@ export function EvaluationForm({ onSaved }: EvaluationFormProps) {
       <View style={{ gap: theme.spacing.xs }}>
         <AppText variant="headline">Record an evaluation</AppText>
         <AppText tone="muted">
-          Saved on your device first, then synced. Weight unlocks your iCoach assessment. Notes are
+          Saved on your device first, then synced. Weight unlocks your Coach assessment. Notes are
           encrypted on your device.
         </AppText>
         {latest ? (

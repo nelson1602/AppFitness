@@ -138,7 +138,7 @@ describe('GeneratedWorkoutPlan', () => {
   it('renders the complete English prescription and progression', async () => {
     await render(<GeneratedWorkoutPlanView selection={readySelection} today={MONDAY} />);
 
-    expect(screen.getByText('Your weekly iCoach plan')).toBeOnTheScreen();
+    expect(screen.getByText('Your weekly Coach plan')).toBeOnTheScreen();
     expect(screen.getByLabelText('Monday: Session 1 · Full body')).toBeOnTheScreen();
     expect(screen.getAllByText('Back squat')).toHaveLength(2);
     expect(
@@ -156,7 +156,7 @@ describe('GeneratedWorkoutPlan', () => {
 
     await render(<GeneratedWorkoutPlanView selection={readySelection} today={MONDAY} />);
 
-    expect(screen.getByText('Tu plan semanal de iCoach')).toBeOnTheScreen();
+    expect(screen.getByText('Tu plan semanal del Coach')).toBeOnTheScreen();
     expect(screen.getByLabelText('Lunes: Sesión 1 · Cuerpo completo')).toBeOnTheScreen();
     expect(screen.getAllByText('Sentadilla trasera')).toHaveLength(2);
     expect(screen.getByText(/Sustituciones: Sentadilla goblet/)).toBeOnTheScreen();
@@ -172,7 +172,7 @@ describe('GeneratedWorkoutPlan', () => {
     await render(<GeneratedWorkoutPlanView selection={readySelection} today={MONDAY} />);
 
     expect(screen.getByTestId('plan-session-panel')).toBeOnTheScreen();
-    expect(screen.getByText('Monday · built by iCoach')).toBeOnTheScreen();
+    expect(screen.getByText('Monday · built by the Coach')).toBeOnTheScreen();
     expect(screen.getByTestId('plan-session-start')).toBeOnTheScreen();
     expect(screen.getByTestId('plan-week-today')).toBeOnTheScreen();
     expect(screen.getByRole('tab', { name: 'Monday, training', selected: true })).toBeOnTheScreen();
@@ -247,7 +247,7 @@ describe('GeneratedWorkoutPlan', () => {
 
       expect(screen.getByText('Your plan is on hold')).toBeOnTheScreen();
       // No plan, no schedule, no exercise — nothing presented as personalized.
-      expect(screen.queryByText('Your weekly iCoach plan')).not.toBeOnTheScreen();
+      expect(screen.queryByText('Your weekly Coach plan')).not.toBeOnTheScreen();
       expect(screen.queryByText('Back squat')).not.toBeOnTheScreen();
       // And it is not the first-run Data-gap arm either.
       expect(screen.queryByText('Complete your baseline first')).not.toBeOnTheScreen();
@@ -309,7 +309,7 @@ describe('GeneratedWorkoutPlan', () => {
 
       // A routine was produced, and none of its exercises match a declared
       // movement — the same list the assessment reports.
-      await waitFor(() => expect(screen.getByText('Your weekly iCoach plan')).toBeOnTheScreen());
+      await waitFor(() => expect(screen.getByText('Your weekly Coach plan')).toBeOnTheScreen());
       for (const excluded of ['Parallel-bar dips', 'Box jump']) {
         expect(screen.queryByText(excluded)).not.toBeOnTheScreen();
       }
