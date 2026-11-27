@@ -3469,7 +3469,7 @@ Owner decision (2026-11-27): people see **"Coach"**. Spanish uses the article ("
 - [x] `es`/`en` values (52 each), hardcoded English in `TrainingPlanCard` and the dormant medical `EvaluationForm`, three Maestro assertions
 - [x] Design README, prototype visible text, injury map, copy decks; privacy policy (ES/EN) and Play Data safety row
 - [x] Guard test `coach-name.spec.ts`: no "iCoach" in any `es`/`en` value or Maestro assertion
-- [ ] Owner: publish the updated privacy policy on the site (owner, after merge)
+- [ ] Owner: publish the updated privacy policy on the site (owner, after merge), and set its "Vigente desde" / "Effective" date to the publish date then (left at 26 Oct 2026 in this PR, owner decision)
 - [ ] Owner: Play listing and store screenshots, if they say "iCoach" (outside the repo)
 - [ ] Republish the claude.ai prototype artifact from the updated HTML (optional)
 
