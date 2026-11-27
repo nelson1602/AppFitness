@@ -159,7 +159,12 @@ export function NutritionPlanScreen() {
         <>
           <PlanDayStrip count={state.days.length} selected={shownIndex} onSelect={view.selectDay} />
           {shownDay ? (
-            <MealPlanPanel day={shownDay} isDone={view.isDone} onEaten={view.onEaten} />
+            <MealPlanPanel
+              day={shownDay}
+              isDone={view.isDone}
+              isLogged={view.isLogged}
+              onEaten={view.onEaten}
+            />
           ) : null}
           {logFood}
           {shownDay ? <DayTotals day={shownDay} /> : null}

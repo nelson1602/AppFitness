@@ -1344,6 +1344,9 @@ export const en = {
   'nutrition.carryOver.rest': 'The rest is spread over the next few days.',
   'nutrition.plan.ateAccessibility': "I ate it: log the plan's {meal}",
   'nutrition.plan.eaten': 'Eaten ✓',
+  // BUG-056: food logged under the meal outside the plan closes it.
+  'nutrition.plan.logged': 'Logged',
+  'nutrition.plan.loggedAccessibility': '{meal}: logged outside the plan',
   'nutrition.plan.adjusted': 'Adjusted by iCoach: {from} → {to}',
   'nutrition.plan.adjustedRemoved': 'Adjusted by iCoach: no {from}',
   'nutrition.plan.swapMark': '(iCoach swap)',

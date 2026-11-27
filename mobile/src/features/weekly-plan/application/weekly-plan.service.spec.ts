@@ -7,7 +7,13 @@ import type { WeeklyPlan } from '../domain/weekly-plan';
 import { gatherPlanContext, type PlanContext } from './plan-context';
 import { dayIndexInWeek, weekStartOf } from '../domain/week';
 import {
+  listOffPlanSlots,
+  listPlannedSlotsDone,
+} from '@/features/nutrition/infrastructure/food-log.repository';
+import {
   ensureCurrentWeekPlan,
+  loadWeekLogs,
+  loadWeekOffPlanSlots,
   pendingPlanChanges,
   regenerateCurrentWeek,
 } from './weekly-plan.service';
@@ -30,6 +36,7 @@ jest.mock('@/features/workout/infrastructure/workout.repository', () => ({
 }));
 jest.mock('@/features/nutrition/infrastructure/food-log.repository', () => ({
   listPlannedSlotsDone: jest.fn().mockResolvedValue([]),
+  listOffPlanSlots: jest.fn().mockResolvedValue([]),
   listDailyCalorieTotals: jest.fn().mockResolvedValue([]),
   listLoggedItems: jest.fn().mockResolvedValue([]),
 }));
@@ -111,6 +118,24 @@ beforeEach(() => {
     .mocked(gatherPlanContext)
     .mockReset()
     .mockResolvedValue({ status: 'ready', context: context() });
+});
+
+describe('off-plan meal slots (ADR-P040 Addendum BUG-056)', () => {
+  it("reads the week's off-plan slots, Monday to Sunday", async () => {
+    jest.mocked(listOffPlanSlots).mockResolvedValueOnce(['2026-10-27|BREAKFAST']);
+    await expect(loadWeekOffPlanSlots('u1', '2026-10-26')).resolves.toEqual([
+      '2026-10-27|BREAKFAST',
+    ]);
+    expect(listOffPlanSlots).toHaveBeenCalledWith('u1', '2026-10-26', '2026-11-01');
+  });
+
+  it('S4: an off-plan slot never reaches meal adherence', async () => {
+    jest.mocked(listOffPlanSlots).mockResolvedValue(['2026-10-27|BREAKFAST']);
+    jest.mocked(listPlannedSlotsDone).mockResolvedValueOnce(['2026-10-27|LUNCH']);
+    const logs = await loadWeekLogs('u1', ['plan-1']);
+    expect([...logs.mealSlotsDone]).toEqual(['2026-10-27|LUNCH']);
+    jest.mocked(listOffPlanSlots).mockResolvedValue([]);
+  });
 });
 
 describe('ensureCurrentWeekPlan (ADR-P042 D2)', () => {

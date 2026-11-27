@@ -3,8 +3,8 @@ import type { MealMacros, MealPlanFood, MealSlot } from './meal-plan';
 import { MEAL_SLOTS } from './meal-plan';
 
 /**
- * Real-time meal rebalancing (ADR-P040 Addendum v10-B, amended by v11-A and v11-B:
- * `meal-rebalance@1.2.0`).
+ * Real-time meal rebalancing (ADR-P040 Addendum v10-B, amended by v11-A, v11-B
+ * and BUG-056: `meal-rebalance@1.3.0`).
  *
  * An overlay computed from today's log, never a write to the saved plan (the
  * same overlay contract as the day-to-day carry-over, v11-B). Every food logged today —
@@ -17,8 +17,10 @@ import { MEAL_SLOTS } from './meal-plan';
  *    under the target is portioned up too, when that plans more.
  * 1. remaining = the day's target (+ the activity bonus) − consumed today.
  *    The target itself never changes.
- * 2. Meals already eaten ("Lo comí") or skipped ("Omitir") are never touched.
- *    With nothing logged or skipped today, today's plan stands as it is.
+ * 2. Meals already eaten ("Lo comí"), logged outside the plan ("Registrado",
+ *    v1.3.0, Addendum BUG-056) or skipped ("Omitir") are never touched: the
+ *    caller passes them as `closedSlots` (`meal-slot-status.ts`). With nothing
+ *    logged or skipped today, today's plan stands as it is.
  * 3. The pending meals are scaled by remaining ÷ their planned kcal, unless
  *    they already fit (at most what is left, and not more than 5 % under it).
  *    Protein-rich foods keep as much of the protein still needed today as they
@@ -36,7 +38,7 @@ import { MEAL_SLOTS } from './meal-plan';
  * plan as it was: nothing is stored. Pure and deterministic: identical inputs
  * give deep-equal outputs. Wellness wording only.
  */
-export const MEAL_REBALANCE_RULE_VERSION = 'meal-rebalance@1.2.0';
+export const MEAL_REBALANCE_RULE_VERSION = 'meal-rebalance@1.3.0';
 
 /** Pending meals at most 5 % under what is left (never over it) are kept as planned. */
 export const REBALANCE_TOLERANCE = 0.05;
